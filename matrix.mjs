@@ -2,7 +2,7 @@
 /*
 idb stores:
 all in one database per stored session:
-	- session
+	- session (store all sessions in localStorage object?)
 		- device id
 		- last sync token
 		- access token
@@ -44,6 +44,17 @@ all in one database per stored session:
 	- members_{room_id}
 		historical?
 	- timeline_{room_id}
+		how to store timeline events in order they should be shown?
+		what's the key they should be sorted by?
+
+		start with origin_server_ts of first event as 0 and add / subtract from there
+		in case of gaps, take the max(last_ts + 1000, origin_server_ts) again to get an idea of how many
+		numbers are in between, and go down/up one again for events filling the gap
+		
+		when closing the gap, we notice there are not enough numbers between the PK
+		of both sides of the gap (because more than 1 event / millisecond was sent, or server clocks were off),
+		what do we do? floating point?
+
 	- search?
 
 where to store avatars?
