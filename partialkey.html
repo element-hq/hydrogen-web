@@ -115,11 +115,27 @@
 				await reqAsPromise(store.add(value));
 			}
 
-			async selectAt(roomId, sortKey, amount) {
+			async selectLast(roomId, amount) {
 				const tx = this._database.transaction(["timeline"], "readonly");
 				const store = tx.objectStore("timeline");
-				const range = IDBKeyRange.lowerBound([roomId, sortKey.buffer()]);
-				const cursor = store.openCursor(range);
+				const maxKey = new Key();
+				maxKey.gapKey = Number.MAX_SAFE_INTEGER;
+				maxKey.eventKey = Number.MAX_SAFE_INTEGER;
+				const range = IDBKeyRange.upperBound([roomId, maxKey.buffer()]);
+				const cursor = store.openCursor(range, "prev");
+				const events = await fetchResults(cursor, 
+					(results) => results.length === amount,
+					(cursor) => cursor.value);
+				events.reverse();
+				return events;
+			}
+
+			async selectFirst(roomId, amount) {
+				const tx = this._database.transaction(["timeline"], "readonly");
+				const store = tx.objectStore("timeline");
+				const minKey = new Key();
+				const range = IDBKeyRange.lowerBound([roomId, minKey.buffer()]);
+				const cursor = store.openCursor(range, "next");
 				return await fetchResults(cursor, 
 					(results) => results.length === amount,
 					(cursor) => cursor.value);
@@ -133,7 +149,7 @@
 			const storage = new Storage("mysession");
 			await storage.open();
 
-			let records = await storage.selectAt(roomId, initialSortKey, 15);
+			let records = await storage.selectFirst(roomId, 15);
 			if (!records.length) {
 				// insert first batch backwards,
 				// to see we're not assuming insertion order to sort
@@ -161,7 +177,7 @@
 						message: `message ${i} after gap`
 					});
 				}
-				records = await storage.selectAt(roomId, initialSortKey, 15);
+				records = await storage.selectFirst(roomId, 15);
 			}
 			console.log(records, "records");
 			const nodes = records.map(r => {

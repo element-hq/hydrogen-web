@@ -8,7 +8,7 @@ class Request {
 		this._controller.abort();
 	}
 
-	response() {
+	get response() {
 		return this._promise;
 	}
 }
@@ -52,7 +52,7 @@ export class Network {
 		return new Request(promise, controller);
 	}
 
-	sync(timeout = 0, since = null) {
+	sync(timeout = 0, since = undefined) {
 		return this._request("GET", "/sync", {since, timeout});
 	}
 }

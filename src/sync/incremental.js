@@ -35,8 +35,9 @@ export class IncrementalSync {
 	async _syncLoop(syncToken) {
 		while(this._isSyncing) {
 			this._currentRequest = this._network.sync(TIMEOUT, syncToken);
-			const response = await this._currentRequest.response();
+			const response = await this._currentRequest.response;
 			syncToken = response.next_batch;
+			const txn = session.startSyncTransaction();
 			const sessionPromise = session.applySync(syncToken, response.account_data);
 			// to_device
 			// presence
@@ -47,6 +48,11 @@ export class IncrementalSync {
 				}
 				return room.applyIncrementalSync(roomResponse, membership);
 			});
+			try {
+				await txn;
+			} catch (err) {
+				throw new StorageError("unable to commit sync tranaction", err);
+			}
 			await Promise.all(roomPromises.concat(sessionPromise));
 		}
 	}
