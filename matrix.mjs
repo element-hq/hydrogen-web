@@ -21,6 +21,10 @@ all in one database per stored session:
 		- unread_message_count ?
 		- unread_message_with_mention ?
 	- roomstate_{room_id}
+
+		we only really need historical roomstate for historical display names?
+			so we can get away without doing this to begin with ...
+
 		how about every state event gets a revision number
 		for each state event, we store the min and max revision number where they form part of the room state
 		then we "just" do a where revision_range includes revision, and every state event event/gap in the timeline we store the revision number, and we have an index on it? so we can easily look for the nearest one 

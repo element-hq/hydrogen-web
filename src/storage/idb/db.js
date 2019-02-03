@@ -12,14 +12,9 @@ class Database {
 		this._syncTxn = null;
 	}
 
-	startSyncTxn() {
-		if (this._syncTxn) {
-			return txnAsPromise(this._syncTxn);
-		}
-		this._syncTxn = this._db.transaction(SYNC_STORES, "readwrite");
-		this._syncTxn.addEventListener("complete", () => this._syncTxn = null);
-		this._syncTxn.addEventListener("abort", () => this._syncTxn = null);
-		return txnAsPromise(this._syncTxn);
+	async startSyncTxn() {
+		const txn = this._db.transaction(SYNC_STORES, "readwrite");
+		return new Transaction(txn, SYNC_STORES);
 	}
 
 	startReadOnlyTxn(storeName) {
@@ -40,6 +35,42 @@ class Database {
 
 	store(storeName) {
 		return new ObjectStore(this, storeName);
+	}
+}
+
+class Transaction {
+	constructor(txn, allowedStoreNames) {
+		this._txn = txn;
+		this._stores = {
+			sync: null,
+			summary: null,
+			timeline: null,
+			state: null,
+		};
+		this._allowedStoreNames = allowedStoreNames;
+	}
+
+	_idbStore(name) {
+		if (!this._allowedStoreNames.includes(name)) {
+			throw new Error(`Invalid store for transaction: ${name}, only ${this._allowedStoreNames.join(", ")} are allowed.`);
+		}
+		return new ObjectStore(this._txn.getObjectStore(name));
+	}
+
+	get timeline() {
+		if (!this._stores.timeline) {
+			const idbStore = this._idbStore("timeline");
+			this._stores.timeline = new TimelineStore(idbStore);
+		}
+		return this._stores.timeline;
+	}
+
+	complete() {
+		return txnAsPromise(this._txn);
+	}
+
+	abort() {
+		this._txn.abort();
 	}
 }
 
@@ -69,7 +100,7 @@ class QueryTarget {
 	}
 
 	selectAll(range) {
-		const cursor = this._getIdbQueryTarget().openCursor(range, direction);
+		const cursor = this._queryTarget().openCursor(range, direction);
 		const results = [];
 		return iterateCursor(cursor, (value) => {
 			results.push(value);
@@ -95,7 +126,7 @@ class QueryTarget {
 
 	_reduce(range, reducer, initialValue, direction) {
 		let reducedValue = initialValue;
-		const cursor = this._getIdbQueryTarget().openCursor(range, direction);
+		const cursor = this._queryTarget().openCursor(range, direction);
 		return iterateCursor(cursor, (value) => {
 			reducedValue = reducer(reducedValue, value);
 			return true;
@@ -109,7 +140,7 @@ class QueryTarget {
 	}
 
 	_selectWhile(range, predicate, direction) {
-		const cursor = this._getIdbQueryTarget().openCursor(range, direction);
+		const cursor = this._queryTarget().openCursor(range, direction);
 		const results = [];
 		return iterateCursor(cursor, (value) => {
 			results.push(value);
@@ -118,7 +149,7 @@ class QueryTarget {
 	}
 
 	async _find(range, predicate, direction) {
-		const cursor = this._getIdbQueryTarget().openCursor(range, direction);
+		const cursor = this._queryTarget().openCursor(range, direction);
 		let result;
 		const found = await iterateCursor(cursor, (value) => {
 			if (predicate(value)) {
@@ -131,45 +162,31 @@ class QueryTarget {
 		return result;
 	}
 
-	_getIdbQueryTarget() {
+	_queryTarget() {
 		throw new Error("override this");
 	}
 }
 
 class ObjectStore extends QueryTarget {
-	constructor(db, storeName) {
-		this._db = db;
-		this._storeName = storeName;
+	constructor(store) {
+		this._store = store;
 	}
 
-	_getIdbQueryTarget() {
-		this._db
-			.startReadOnlyTxn(this._storeName)
-			.getObjectStore(this._storeName);
-	}
-
-	_readWriteTxn() {
-		this._db
-			.startReadWriteTxn(this._storeName)
-			.getObjectStore(this._storeName);
+	_queryTarget() {
+		return this._store;
 	}
 
 	index(indexName) {
-		return new Index(this._db, this._storeName, indexName);
+		return new Index(this._store.index(indexName));
 	}
 }
 
 class Index extends QueryTarget {
-	constructor(db, storeName, indexName) {
-		this._db = db;
-		this._storeName = storeName;
-		this._indexName = indexName;
+	constructor(index) {
+		this._index = index;
 	}
 
-	_getIdbQueryTarget() {
-		this._db
-			.startReadOnlyTxn(this._storeName)
-			.getObjectStore(this._storeName)
-			.index(this._indexName);
+	_queryTarget() {
+		return this._index;
 	}
 }

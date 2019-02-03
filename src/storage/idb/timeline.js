@@ -1,37 +1,27 @@
 import GapSortKey from "./gapsortkey";
 import {select} from "./utils";
 
-const TIMELINE_STORE = "timeline";
-
 class TimelineStore {
-	// create with transaction for sync????
-	constructor(db, roomId) {
-		this._db = db;
-		this._roomId = roomId;
+	constructor(timelineStore) {
+		this._timelineStore = timelineStore;
 	}
 
-	async lastEvents(amount) {
-		return this.eventsBefore(GapSortKey.maxKey());
+	async lastEvents(roomId, amount) {
+		return this.eventsBefore(roomId, GapSortKey.maxKey());
 	}
 
-	async firstEvents(amount) {
-		return this.eventsAfter(GapSortKey.minKey());
+	async firstEvents(roomId, amount) {
+		return this.eventsAfter(roomId, GapSortKey.minKey());
 	}
 
-	eventsAfter(sortKey, amount) {
-		const range = IDBKeyRange.lowerBound([this._roomId, sortKey], true);
-		return this._db
-			.store(TIMELINE_STORE)
-			.index("by_sort_key")
-			.selectLimit(range, amount);
+	eventsAfter(roomId, sortKey, amount) {
+		const range = IDBKeyRange.lowerBound([roomId, sortKey], true);
+		return this._timelineStore.selectLimit(range, amount);
 	}
 
-	async eventsBefore(sortKey, amount) {
-		const range = IDBKeyRange.upperBound([this._roomId, sortKey], true);
-		const events = await this._db
-			.store(TIMELINE_STORE)
-			.index("by_sort_key")
-			.selectLimitReverse(range, amount);
+	async eventsBefore(roomId, sortKey, amount) {
+		const range = IDBKeyRange.upperBound([roomId, sortKey], true);
+		const events = await this._timelineStore.selectLimitReverse(range, amount);
 		events.reverse(); // because we fetched them backwards
 		return events;
 	}
@@ -43,19 +33,30 @@ class TimelineStore {
 	// - new members
 	// - new room state
 	// - updated/new account data
-	async addEvents(events) {
-		const txn = this._db.startReadWriteTxn(TIMELINE_STORE);
-		const timeline = txn.objectStore(TIMELINE_STORE);
-		events.forEach(event => timeline.add(event));
-		return txnAsPromise(txn);
+
+	appendGap(roomId, sortKey, gap) {
+		this._timelineStore.add({
+			room_id: roomId,
+			sort_key: sortKey,
+			content: {
+				event: null,
+				gap: gap,
+			},
+		});
 	}
-	// used to close gaps (gaps are also inserted as fake events)
-	// delete old events and add new ones in one transaction
-	async replaceEvents(oldEventIds, newEvents) {
-		const txn = this._db.startReadWriteTxn(TIMELINE_STORE);
-		const timeline = txn.objectStore(TIMELINE_STORE);
-		oldEventIds.forEach(event_id => timeline.delete([this._roomId, event_id]));
-		events.forEach(event => timeline.add(event));
-		return txnAsPromise(txn);
+
+	appendEvent(roomId, sortKey, event) {
+		this._timelineStore.add({
+			room_id: roomId,
+			sort_key: sortKey,
+			content: {
+				event: event,
+				gap: null,
+			},
+		});
+	}
+
+	async removeEvent(roomId, sortKey) {
+		this._timelineStore.delete([roomId, sortKey]);
 	}
 }

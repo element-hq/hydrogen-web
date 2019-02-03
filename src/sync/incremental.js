@@ -2,24 +2,28 @@ import {parseRooms} from "./common";
 import {RequestAbortError} from "../network";
 import {HomeServerError} from "../error";
 
-const TIMEOUT = 30;
+const INCREMENTAL_TIMEOUT = 30;
 
 export class IncrementalSync {
-	constructor(network, session, roomCreator) {
+	constructor(network, session, storage) {
 		this._network = network;
 		this._session = session;
-		this._roomCreator = roomCreator;
+		this._storage = storage;
 		this._isSyncing = false;
 		this._currentRequest = null;
 	}
-
-	start() {
+	// returns when initial sync is done
+	async start() {
 		if (this._isSyncing) {
 			return;
 		}
 		this._isSyncing = true;
 		try {
-			this._syncLoop(session.syncToken);
+			let syncToken = session.syncToken;
+			// do initial sync if needed
+			if (!syncToken) {
+				syncToken = await this._syncRequest();
+			}
 		} catch(err) {
 			//expected when stop is called
 			if (err instanceof RequestAbortError) {
@@ -30,31 +34,49 @@ export class IncrementalSync {
 				// something threw something
 			}
 		}
+		this._syncLoop(syncToken);
 	}
 
 	async _syncLoop(syncToken) {
+		// if syncToken is falsy, it will first do an initial sync ... 
 		while(this._isSyncing) {
-			this._currentRequest = this._network.sync(TIMEOUT, syncToken);
-			const response = await this._currentRequest.response;
-			syncToken = response.next_batch;
-			const txn = session.startSyncTransaction();
-			const sessionPromise = session.applySync(syncToken, response.account_data);
+			try {
+				syncToken = await this._syncRequest(INCREMENTAL_TIMEOUT, syncToken);
+			} catch (err) {
+				this.emit("error", err);
+			}
+		}
+	}
+
+	async _syncRequest(timeout, syncToken) {
+		this._currentRequest = this._network.sync(timeout, syncToken);
+		const response = await this._currentRequest.response;
+		syncToken = response.next_batch;
+		const txn = this._storage.startSyncTxn();
+		try {
+			session.applySync(syncToken, response.account_data, txn);
 			// to_device
 			// presence
-			const roomPromises = parseRooms(response.rooms, async (roomId, roomResponse, membership) => {
+			parseRooms(response.rooms, async (roomId, roomResponse, membership) => {
 				let room = session.getRoom(roomId);
 				if (!room) {
-					room = await session.createRoom(roomId);
+					room = session.createRoom(roomId, txn);
 				}
-				return room.applyIncrementalSync(roomResponse, membership);
+				room.applySync(roomResponse, membership, txn);
 			});
-			try {
-				await txn;
-			} catch (err) {
-				throw new StorageError("unable to commit sync tranaction", err);
-			}
-			await Promise.all(roomPromises.concat(sessionPromise));
+		} catch(err) {
+			// avoid corrupting state by only
+			// storing the sync up till the point
+			// the exception occurred
+			txn.abort();
+			throw err;
 		}
+		try {
+			await txn.complete();
+		} catch (err) {
+			throw new StorageError("unable to commit sync tranaction", err);
+		}
+		return syncToken;
 	}
 
 	stop() {
