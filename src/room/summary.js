@@ -4,9 +4,10 @@ function disambiguateMember(name, userId) {
 	return `${name} (${userId})`;
 }
 
+// could even split name calculation in a separate class
+// as the summary will grow more
 export class RoomSummary {
-	constructor(roomId, storage) {
-		this._storage = storage;
+	constructor(roomId) {
 		this._members = new SummaryMembers();
 		this._roomId = roomId;
 		this._inviteCount = 0;
@@ -40,7 +41,7 @@ export class RoomSummary {
 		return changed;
 	}
 
-	async loadFromStorage() {
+	async load() {
 		const summary = await storage.getSummary(this._roomId);
 		this._roomId = summary.roomId;
 		this._inviteCount = summary.inviteCount;
