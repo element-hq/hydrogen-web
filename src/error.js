@@ -4,3 +4,6 @@ export class HomeServerError extends Error {
 		this.errcode = body.errcode;
 	}
 }
+
+export class StorageError extends Error {
+}
