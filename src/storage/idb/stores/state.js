@@ -1,5 +1,5 @@
 class StateStore {
-	constructor(roomId, db) {
+	constructor(db) {
 
 	}
 

@@ -62,7 +62,12 @@ export class Sync {
 		this._currentRequest = this._network.sync(timeout, syncToken);
 		const response = await this._currentRequest.response;
 		syncToken = response.next_batch;
-		const txn = this._storage.startSyncTxn();
+		const storeNames = this._storage.storeNames;
+		const txn = this._storage.startReadWriteTxn([
+			storeNames.timeline,
+			storeNames.sync,
+			storeNames.state
+		]);
 		try {
 			session.applySync(syncToken, response.account_data, txn);
 			// to_device

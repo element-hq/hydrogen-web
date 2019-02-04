@@ -1,5 +1,6 @@
-import Network from "../network.js";
-import Session from "../session.js";
+import Network from "./network.js";
+import Session from "./session.js";
+import createIdbStorage from "./storage/idb/factory.js";
 const HOMESERVER = "http://localhost:8008";
 
 async function getLoginData(username, password) {
@@ -17,7 +18,7 @@ async function getLoginData(username, password) {
 async function main() {
 	const loginData = await getLoginData("bruno1", "testtest");
 	const network = new Network(HOMESERVER, loginData.access_token);
-	const storage = new IdbStorage("morpheus_session");
+	const storage = await createIdbStorage("morpheus_session");
 	const session = new Session(loginData, storage);
 	await session.load();
 	const sync = new Sync(network, session, storage);

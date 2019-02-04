@@ -1,80 +1,6 @@
-const SYNC_STORES = [
-	"sync",
-	"summary",
-	"timeline",
-	"members",
-	"state"
-];
+import {iterateCursor} from "./utils";
 
-class Database {
-	constructor(idbDatabase) {
-		this._db = idbDatabase;
-		this._syncTxn = null;
-	}
-
-	async startSyncTxn() {
-		const txn = this._db.transaction(SYNC_STORES, "readwrite");
-		return new Transaction(txn, SYNC_STORES);
-	}
-
-	startReadOnlyTxn(storeName) {
-		if (this._syncTxn && SYNC_STORES.includes(storeName)) {
-			return this._syncTxn;
-		} else {
-			return this._db.transaction([storeName], "readonly");
-		}
-	}
-
-	startReadWriteTxn(storeName) {
-		if (this._syncTxn && SYNC_STORES.includes(storeName)) {
-			return this._syncTxn;
-		} else {
-			return this._db.transaction([storeName], "readwrite");
-		}
-	}
-
-	store(storeName) {
-		return new ObjectStore(this, storeName);
-	}
-}
-
-class Transaction {
-	constructor(txn, allowedStoreNames) {
-		this._txn = txn;
-		this._stores = {
-			sync: null,
-			summary: null,
-			timeline: null,
-			state: null,
-		};
-		this._allowedStoreNames = allowedStoreNames;
-	}
-
-	_idbStore(name) {
-		if (!this._allowedStoreNames.includes(name)) {
-			throw new Error(`Invalid store for transaction: ${name}, only ${this._allowedStoreNames.join(", ")} are allowed.`);
-		}
-		return new ObjectStore(this._txn.getObjectStore(name));
-	}
-
-	get timeline() {
-		if (!this._stores.timeline) {
-			const idbStore = this._idbStore("timeline");
-			this._stores.timeline = new TimelineStore(idbStore);
-		}
-		return this._stores.timeline;
-	}
-
-	complete() {
-		return txnAsPromise(this._txn);
-	}
-
-	abort() {
-		this._txn.abort();
-	}
-}
-
-class QueryTarget {
+export default class QueryTarget {
 	reduce(range, reducer, initialValue) {
 		return this._reduce(range, reducer, initialValue, "next");
 	}
@@ -164,29 +90,5 @@ class QueryTarget {
 
 	_queryTarget() {
 		throw new Error("override this");
-	}
-}
-
-class ObjectStore extends QueryTarget {
-	constructor(store) {
-		this._store = store;
-	}
-
-	_queryTarget() {
-		return this._store;
-	}
-
-	index(indexName) {
-		return new Index(this._store.index(indexName));
-	}
-}
-
-class Index extends QueryTarget {
-	constructor(index) {
-		this._index = index;
-	}
-
-	_queryTarget() {
-		return this._index;
 	}
 }
