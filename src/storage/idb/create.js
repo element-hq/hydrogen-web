@@ -2,7 +2,7 @@ import Storage from "./storage.js";
 import { openDatabase } from "./utils.js";
 
 export default async function createIdbStorage(databaseName) {
-	const db = await openDatabase(databaseName, createStores);
+	const db = await openDatabase(databaseName, createStores, 1);
 	return new Storage(db);
 }
 

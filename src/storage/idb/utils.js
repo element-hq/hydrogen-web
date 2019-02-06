@@ -1,4 +1,4 @@
-export function openDatabase(name, createObjectStore, version = undefined) {
+export function openDatabase(name, createObjectStore, version) {
     const req = window.indexedDB.open(name, version);
     req.onupgradeneeded = (ev) => {
         const db = ev.target.result;

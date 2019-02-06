@@ -1,4 +1,4 @@
-export const STORE_NAMES = ["sync", "roomState", "roomSummary", "roomTimeline"];
+export const STORE_NAMES = ["session", "roomState", "roomSummary", "roomTimeline"];
 
 export default class Storage {
 	constructor(idbDatabase) {

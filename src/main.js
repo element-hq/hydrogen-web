@@ -3,22 +3,37 @@ import Session from "./session.js";
 import createIdbStorage from "./storage/idb/create.js";
 const HOMESERVER = "http://localhost:8008";
 
-async function getLoginData(username, password) {
-	const storedCredentials = localStorage.getItem("morpheus_login");
-	if (!storedCredentials) {
-		const api = new Network(HOMESERVER);
-		const loginData = await api.passwordLogin(username, password).response();
-		localStorage.setItem("morpheus_login", JSON.stringify(loginData));
-		return loginData;
-	} else {
-		return JSON.parse(storedCredentials);
+function getSessionId(userId) {
+	const sessionsJson = localStorage.getItem("morpheus_sessions_v1");
+	if (sessionsJson) {
+		const sessions = JSON.parse(sessionsJson);
+		const session = sessions.find(session => session.userId === userId);
+		if (session) {
+			return session.id;
+		}
 	}
 }
 
+async function login(username, password, homeserver) {
+	const api = new Network(homeserver);
+	const loginData = await api.passwordLogin(username, password).response();
+	const sessionsJson = localStorage.getItem("morpheus_sessions_v1");
+	const sessions = sessionsJson ? JSON.parse(sessionsJson) : [];
+	const sessionId = (Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)).toString();
+	console.log(loginData);
+	sessions.push({userId: loginData.user_id, id: sessionId});
+	localStorage.setItem("morpheus_sessions_v1", JSON.stringify(sessions));
+	return {sessionId, loginData};
+}
+
 async function main() {
-	const loginData = await getLoginData("bruno1", "testtest");
-	const network = new Network(HOMESERVER, loginData.access_token);
-	const storage = await createIdbStorage("morpheus_session");
+	let sessionId = getSessionId("@bruno1:localhost");
+	let loginData;
+	if (!sessionId) {
+		({sessionId, loginData} = await login("bruno1", "testtest", "http://localhost:8008"));
+	}
+	const storage = await createIdbStorage(`morpheus_session_${sessionId}`);
+	console.log("database created", storage);
 	const session = new Session(loginData, storage);
 	await session.load();
 	const sync = new Sync(network, session, storage);
