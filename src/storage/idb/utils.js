@@ -10,8 +10,8 @@ export function openDatabase(name, createObjectStore, version = undefined) {
 
 export function reqAsPromise(req) {
     return new Promise((resolve, reject) => {
-    	txn.addEventListener("success", event => resolve(event.target.result));
-        txn.addEventListener("error", event => reject(event.target.error));
+        req.addEventListener("success", event => resolve(event.target.result));
+        req.addEventListener("error", event => reject(event.target.error));
     });
 }
 

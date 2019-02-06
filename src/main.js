@@ -7,7 +7,7 @@ async function getLoginData(username, password) {
 	const storedCredentials = localStorage.getItem("morpheus_login");
 	if (!storedCredentials) {
 		const api = new Network(HOMESERVER);
-		loginData = await api.passwordLogin(username, password).response();
+		const loginData = await api.passwordLogin(username, password).response();
 		localStorage.setItem("morpheus_login", JSON.stringify(loginData));
 		return loginData;
 	} else {
