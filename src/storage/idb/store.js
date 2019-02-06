@@ -1,5 +1,5 @@
 import QueryTarget from "./query-target.js";
-import Index from "./index.js";
+import StoreIndex from "./store-index.js";
 
 export default class Store extends QueryTarget {
 	constructor(store) {
@@ -11,6 +11,6 @@ export default class Store extends QueryTarget {
 	}
 
 	index(indexName) {
-		return new Index(this._store.index(indexName));
+		return new StoreIndex(this._store.index(indexName));
 	}
 }

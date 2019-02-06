@@ -1,6 +1,6 @@
 import Network from "./network.js";
 import Session from "./session.js";
-import createIdbStorage from "./storage/idb/factory.js";
+import createIdbStorage from "./storage/idb/create.js";
 const HOMESERVER = "http://localhost:8008";
 
 async function getLoginData(username, password) {

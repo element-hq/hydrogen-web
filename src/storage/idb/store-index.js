@@ -1,6 +1,6 @@
 import QueryTarget from "./query-target.js";
 
-export default class Index extends QueryTarget {
+export default class StoreIndex extends QueryTarget {
 	constructor(index) {
 		this._index = index;
 	}
