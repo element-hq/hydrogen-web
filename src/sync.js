@@ -75,7 +75,7 @@ export class Sync {
 			parseRooms(response.rooms, async (roomId, roomResponse, membership) => {
 				let room = session.getRoom(roomId);
 				if (!room) {
-					room = session.createRoom(roomId, txn);
+					room = session.createRoom(roomId);
 				}
 				room.applySync(roomResponse, membership, txn);
 			});

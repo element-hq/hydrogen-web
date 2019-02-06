@@ -19,12 +19,6 @@ class RoomPersister {
 	}
 
 	async persistSync(roomResponse, txn) {
-		// persist state
-		const state = roomResponse.state;
-		if (state.events) {
-			const promises = state.events.map((event) => txn.state.setStateEventAt(this._lastSortKey, event));
-			await Promise.all(promises);
-		}
 
 		let nextKey;
 		const timeline = roomResponse.timeline;
@@ -34,6 +28,7 @@ class RoomPersister {
 			txn.timeline.appendGap(this._roomId, nextKey, {prev_batch: timeline.prev_batch});
 		}
 		nextKey = this._lastSortKey.nextKey();
+		const startOfChunkSortKey = nextKey;
 
 		if (timeline.events) {
 			for(const event of timeline.events) {
@@ -43,5 +38,14 @@ class RoomPersister {
 		}
 		// what happens here when the txn fails?
 		this._lastSortKey = nextKey;
+
+		// persist state
+		const state = roomResponse.state;
+		if (state.events) {
+			const promises = state.events.map((event) => {
+				txn.state.setStateEventAt(startOfChunkSortKey, event)
+			});
+			await Promise.all(promises);
+		}
 	}
 }
