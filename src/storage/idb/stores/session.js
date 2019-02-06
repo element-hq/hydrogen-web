@@ -1,11 +1,31 @@
+/**
+store contains:
+	loginData {
+		device_id
+		home_server
+		access_token
+		user_id
+	}
+	// flags {
+	// 	lazyLoading?
+	// }
+	syncToken
+	displayName
+	avatarUrl
+	lastSynced
+*/
 class SessionStore {
 
-	constructor(session, db) {
-		this._db = new Database(db);
+	constructor(sessionStore) {
+		this._sessionStore = sessionStore;
 	}
 
-	get session() {
+	readSession() {
 		return this._session;
+	}
+
+	writeSession(session) {
+
 	}
 
 	// or dedicated set sync_token method?
