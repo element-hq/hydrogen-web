@@ -28,21 +28,10 @@ export class Sync {
 			return;
 		}
 		this._isSyncing = true;
-		try {
-			let syncToken = session.syncToken;
-			// do initial sync if needed
-			if (!syncToken) {
-				syncToken = await this._syncRequest();
-			}
-		} catch(err) {
-			//expected when stop is called
-			if (err instanceof RequestAbortError) {
-
-			} else if (err instanceof HomeServerError) {
-
-			} else {
-				// something threw something
-			}
+		let syncToken = session.syncToken;
+		// do initial sync if needed
+		if (!syncToken) {
+			syncToken = await this._syncRequest();
 		}
 		this._syncLoop(syncToken);
 	}
@@ -63,13 +52,13 @@ export class Sync {
 		const response = await this._currentRequest.response;
 		syncToken = response.next_batch;
 		const storeNames = this._storage.storeNames;
-		const txn = this._storage.startReadWriteTxn([
+		const syncTxn = this._storage.startReadWriteTxn([
 			storeNames.timeline,
-			storeNames.sync,
+			storeNames.session,
 			storeNames.state
 		]);
 		try {
-			session.applySync(syncToken, response.account_data, txn);
+			session.applySync(syncToken, response.account_data, syncTxn);
 			// to_device
 			// presence
 			parseRooms(response.rooms, async (roomId, roomResponse, membership) => {
@@ -77,7 +66,7 @@ export class Sync {
 				if (!room) {
 					room = session.createRoom(roomId);
 				}
-				room.applySync(roomResponse, membership, txn);
+				room.applySync(roomResponse, membership, syncTxn);
 			});
 		} catch(err) {
 			// avoid corrupting state by only
