@@ -38,14 +38,16 @@ async function main() {
 		({sessionId, loginData} = await login(USERNAME, PASSWORD, HOMESERVER));
 	}
 	const storage = await createIdbStorage(`morpheus_session_${sessionId}`);
-	console.log("database created", storage);
 	const session = new Session(storage);
 	if (loginData) {
 		await session.setLoginData(loginData);
 	}
 	await session.load();
 	const hsApi = new HomeServerApi(HOMESERVER, session.accessToken);
-	console.log("session loaded", session, hsApi);
+	console.log("session loaded");
+	if (!session.syncToken) {
+		console.log("session needs initial sync");
+	}
 	return;
 	const sync = new Sync(hsApi, session, storage);
 	await sync.start();
