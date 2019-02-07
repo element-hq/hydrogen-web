@@ -1,11 +1,11 @@
 export default class Session {
-	// loginData has device_id, user_id, home_server, access_token
 	constructor(storage) {
 		this._storage = storage;
 		this._session = null;
 		this._rooms = null;
 	}
 	// should be called before load
+	// loginData has device_id, user_id, home_server, access_token
 	async setLoginData(loginData) {
 		const txn = this._storage.readWriteTxn([this._storage.storeNames.session]);
 		const session = {loginData};
@@ -43,7 +43,7 @@ export default class Session {
 
 	applySync(syncToken, accountData, txn) {
 		this._session.syncToken = syncToken;
-		txn.session.setSession(this._session);
+		txn.session.set(this._session);
 	}
 
 	get syncToken() {
