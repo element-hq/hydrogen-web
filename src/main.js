@@ -30,12 +30,18 @@ async function main() {
 	let sessionId = getSessionId("@bruno1:localhost");
 	let loginData;
 	if (!sessionId) {
-		({sessionId, loginData} = await login("bruno1", "testtest", "http://localhost:8008"));
+		({sessionId, loginData} = await login("bruno1", "testtest", HOMESERVER));
 	}
 	const storage = await createIdbStorage(`morpheus_session_${sessionId}`);
 	console.log("database created", storage);
-	const session = new Session(loginData, storage);
+	const session = new Session(storage);
+	if (loginData) {
+		await session.setLoginData(loginData);
+	}
 	await session.load();
+	console.log("session loaded", session);
+	return;
+	const network = new Network(HOMESERVER, session.accessToken);
 	const sync = new Sync(network, session, storage);
 	await sync.start();
 

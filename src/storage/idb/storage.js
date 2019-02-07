@@ -1,3 +1,5 @@
+import Transaction from "./transaction.js";
+
 export const STORE_NAMES = ["session", "roomState", "roomSummary", "roomTimeline"];
 
 export default class Storage {
@@ -17,13 +19,13 @@ export default class Storage {
 		}
 	}
 
-	startReadOnlyTxn(storeNames) {
+	readTxn(storeNames) {
 		this._validateStoreNames(storeNames);
 		const txn = this._db.transaction(storeNames, "readonly");
 		return new Transaction(txn, storeNames);
 	}
 
-	startReadWriteTxn(storeNames) {
+	readWriteTxn(storeNames) {
 		this._validateStoreNames(storeNames);
 		const txn = this._db.transaction(storeNames, "readwrite");
 		return new Transaction(txn, storeNames);

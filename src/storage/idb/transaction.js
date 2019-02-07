@@ -1,6 +1,7 @@
-import {txnAsPromise} from "./utils";
+import {txnAsPromise} from "./utils.js";
 import Store from "./store.js";
-import TimelineStore from "./stores/timeline.js";
+// import TimelineStore from "./stores/timeline.js";
+import SessionStore from "./stores/session.js";
 
 export default class Transaction {
 	constructor(txn, allowedStoreNames) {
@@ -19,15 +20,23 @@ export default class Transaction {
 			// more specific error? this is a bug, so maybe not ...
 			throw new Error(`Invalid store for transaction: ${name}, only ${this._allowedStoreNames.join(", ")} are allowed.`);
 		}
-		return new Store(this._txn.getObjectStore(name));
+		return new Store(this._txn.objectStore(name));
 	}
 
-	get roomTimeline() {
-		if (!this._stores.roomTimeline) {
-			const idbStore = this._idbStore("roomTimeline");
-			this._stores.roomTimeline = new TimelineStore(idbStore);
+	_store(name, mapStore) {
+		if (!this._stores[name]) {
+			const idbStore = this._idbStore(name);
+			this._stores[name] = mapStore(idbStore);
 		}
-		return this._stores.roomTimeline;
+		return this._stores[name];
+	}
+
+	// get roomTimeline() {
+	// 	return this._store("roomTimeline", idbStore => new TimelineStore(idbStore));
+	// }
+
+	get session() {
+		return this._store("session", idbStore => new SessionStore(idbStore));
 	}
 
 	complete() {

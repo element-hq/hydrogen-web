@@ -1,6 +1,10 @@
-import {iterateCursor} from "./utils";
+import {iterateCursor} from "./utils.js";
 
 export default class QueryTarget {
+	constructor(target) {
+		this._target = target;
+	}
+
 	reduce(range, reducer, initialValue) {
 		return this._reduce(range, reducer, initialValue, "next");
 	}
@@ -26,7 +30,7 @@ export default class QueryTarget {
 	}
 
 	selectAll(range) {
-		const cursor = this._queryTarget().openCursor(range, direction);
+		const cursor = this._target.openCursor(range, direction);
 		const results = [];
 		return iterateCursor(cursor, (value) => {
 			results.push(value);
@@ -52,7 +56,7 @@ export default class QueryTarget {
 
 	_reduce(range, reducer, initialValue, direction) {
 		let reducedValue = initialValue;
-		const cursor = this._queryTarget().openCursor(range, direction);
+		const cursor = this._target.openCursor(range, direction);
 		return iterateCursor(cursor, (value) => {
 			reducedValue = reducer(reducedValue, value);
 			return true;
@@ -66,7 +70,7 @@ export default class QueryTarget {
 	}
 
 	_selectWhile(range, predicate, direction) {
-		const cursor = this._queryTarget().openCursor(range, direction);
+		const cursor = this._target.openCursor(range, direction);
 		const results = [];
 		return iterateCursor(cursor, (value) => {
 			results.push(value);
@@ -75,20 +79,17 @@ export default class QueryTarget {
 	}
 
 	async _find(range, predicate, direction) {
-		const cursor = this._queryTarget().openCursor(range, direction);
+		const cursor = this._target.openCursor(range, direction);
 		let result;
 		const found = await iterateCursor(cursor, (value) => {
-			if (predicate(value)) {
+			const found = predicate(value);
+			if (found) {
 				result = value;
 			}
+			return found;
 		});
-		if (!found) {
-			throw new Error("not found");
+		if (found) {
+			return result;
 		}
-		return result;
-	}
-
-	_queryTarget() {
-		throw new Error("override this");
 	}
 }

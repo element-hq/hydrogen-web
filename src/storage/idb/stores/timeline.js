@@ -1,5 +1,4 @@
-import GapSortKey from "./gapsortkey";
-import {select} from "./utils";
+import SortKey from "../../sortkey.js";
 
 class TimelineStore {
 	constructor(timelineStore) {

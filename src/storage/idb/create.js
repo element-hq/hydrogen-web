@@ -7,7 +7,7 @@ export default async function createIdbStorage(databaseName) {
 }
 
 function createStores(db) {
-	db.createObjectStore("sync");	//sync token 
+	db.createObjectStore("session", {keyPath: "key"});
 	// any way to make keys unique here?
 	db.createObjectStore("roomSummary", {keyPath: "room_id"});
 	const timeline = db.createObjectStore("roomTimeline", {keyPath: ["room_id", "sort_key"]});
