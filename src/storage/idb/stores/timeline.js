@@ -35,8 +35,8 @@ class TimelineStore {
 
 	appendGap(roomId, sortKey, gap) {
 		this._timelineStore.add({
-			room_id: roomId,
-			sort_key: sortKey,
+			roomId: roomId,
+			sortKey: sortKey,
 			content: {
 				event: null,
 				gap: gap,
@@ -46,8 +46,8 @@ class TimelineStore {
 
 	appendEvent(roomId, sortKey, event) {
 		this._timelineStore.add({
-			room_id: roomId,
-			sort_key: sortKey,
+			roomId: roomId,
+			sortKey: sortKey,
 			content: {
 				event: event,
 				gap: null,

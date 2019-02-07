@@ -8,10 +8,11 @@ export default async function createIdbStorage(databaseName) {
 
 function createStores(db) {
 	db.createObjectStore("session", {keyPath: "key"});
-	// any way to make keys unique here?
-	db.createObjectStore("roomSummary", {keyPath: "room_id"});
-	const timeline = db.createObjectStore("roomTimeline", {keyPath: ["room_id", "sort_key"]});
-	timeline.createIndex("by_event_id", ["room_id", "event.event_id"], {unique: true});
+	// any way to make keys unique here? (just use put?)
+	db.createObjectStore("roomSummary", {keyPath: "roomId"});
+	// needs roomId separate because it might hold a gap and no event
+	const timeline = db.createObjectStore("roomTimeline", {keyPath: ["roomId", "sortKey"]});
+	timeline.createIndex("byEventId", ["roomId", "event.event_id"], {unique: true});
 	// how to get the first/last x events for a room?
 	// we don't want to specify the sort key, but would need an index for the room_id?
 	// take sort_key as primary key then and have index on event_id?
