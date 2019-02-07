@@ -1,7 +1,12 @@
 import HomeServerApi from "./hs-api.js";
 import Session from "./session.js";
 import createIdbStorage from "./storage/idb/create.js";
-const HOMESERVER = "http://localhost:8008";
+
+const HOST = "localhost";
+const HOMESERVER = `http://${HOST}:8008`;
+const USERNAME = "bruno1";
+const USER_ID = `@${USERNAME}:${HOST}`;
+const PASSWORD = "testtest";
 
 function getSessionId(userId) {
 	const sessionsJson = localStorage.getItem("morpheus_sessions_v1");
@@ -27,10 +32,10 @@ async function login(username, password, homeserver) {
 }
 
 async function main() {
-	let sessionId = getSessionId("@bruno1:localhost");
+	let sessionId = getSessionId(USER_ID);
 	let loginData;
 	if (!sessionId) {
-		({sessionId, loginData} = await login("bruno1", "testtest", HOMESERVER));
+		({sessionId, loginData} = await login(USERNAME, PASSWORD, HOMESERVER));
 	}
 	const storage = await createIdbStorage(`morpheus_session_${sessionId}`);
 	console.log("database created", storage);
