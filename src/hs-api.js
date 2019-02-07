@@ -13,7 +13,7 @@ class RequestWrapper {
 	}
 }
 
-export default class Network {
+export default class HomeServerApi {
 	constructor(homeserver, accessToken) {
 		this._homeserver = homeserver;
 		this._accessToken = accessToken;

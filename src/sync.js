@@ -1,4 +1,4 @@
-import {RequestAbortError} from "./network.js";
+import {RequestAbortError} from "./hs-api.js";
 import {HomeServerError, StorageError} from "./error.js";
 
 const INCREMENTAL_TIMEOUT = 30;
@@ -15,8 +15,8 @@ function parseRooms(responseSections, roomMapper) {
 }
 
 export class Sync {
-	constructor(network, session, storage) {
-		this._network = network;
+	constructor(hsApi, session, storage) {
+		this._hsApi = hsApi;
 		this._session = session;
 		this._storage = storage;
 		this._isSyncing = false;
@@ -48,7 +48,7 @@ export class Sync {
 	}
 
 	async _syncRequest(timeout, syncToken) {
-		this._currentRequest = this._network.sync(timeout, syncToken);
+		this._currentRequest = this._hsApi.sync(timeout, syncToken);
 		const response = await this._currentRequest.response;
 		syncToken = response.next_batch;
 		const storeNames = this._storage.storeNames;
