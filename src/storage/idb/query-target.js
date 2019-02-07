@@ -29,7 +29,7 @@ export default class QueryTarget {
 		return this._selectWhile(range, predicate, "prev");
 	}
 
-	selectAll(range) {
+	selectAll(range, direction) {
 		const cursor = this._target.openCursor(range, direction);
 		const results = [];
 		return iterateCursor(cursor, (value) => {

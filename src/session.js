@@ -14,12 +14,21 @@ export default class Session {
 	}
 
 	async load() {
-		const txn = this._storage.readTxn([this._storage.storeNames.session]);
+		const txn = this._storage.readTxn([
+			this._storage.storeNames.session,
+			this._storage.storeNames.roomSummary,
+		]);
+		// restore session object
 		this._session = await txn.session.get();
 		if (!this._session) {
 			throw new Error("session store is empty");
 		}
 		// load rooms
+		const rooms = await txn.roomSummary.getAll();
+		await Promise.all(rooms.map(roomSummary => {
+			const room = this.createRoom(room.roomId);
+			return room.load(roomSummary);
+		}));
 	}
 
 	getRoom(roomId) {
