@@ -1,3 +1,5 @@
+import {HomeServerError} from "./error.js";
+
 class RequestWrapper {
 	constructor(promise, controller) {
 		this._promise = promise;
@@ -47,13 +49,13 @@ export default class HomeServerApi {
 			body: bodyString,
 			signal: controller.signal
 		});
-		promise = promise.then(response => {
+		promise = promise.then(async (response) => {
 			if (response.ok) {
-				return response.json();
+				return await response.json();
 			} else {
 				switch (response.status) {
 					default:
-						throw new HomeServerError(response.json())
+						throw new HomeServerError(method, url, await response.json())
 				}
 			}
 		});
@@ -68,8 +70,8 @@ export default class HomeServerApi {
 		return this._request("GET", csPath, queryParams, body);
 	}
 
-	sync(timeout = 0, since = undefined) {
-		return this._get("/sync", {since, timeout});
+	sync(since, filter, timeout) {
+		return this._get("/sync", {since, timeout, filter});
 	}
 
 	passwordLogin(username, password) {

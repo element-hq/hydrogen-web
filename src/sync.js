@@ -1,21 +1,32 @@
-import {RequestAbortError} from "./hs-api.js";
-import {HomeServerError, StorageError} from "./error.js";
+import {
+	RequestAbortError,
+	HomeServerError,
+	StorageError
+} from "./error.js";
+import EventEmitter from "./event-emitter.js";
 
-const INCREMENTAL_TIMEOUT = 30;
+const INCREMENTAL_TIMEOUT = 30000;
+const SYNC_EVENT_LIMIT = 10;
 
-function parseRooms(responseSections, roomMapper) {
-	return ["join", "invite", "leave"].map(membership => {
-		const membershipSection = responseSections[membership];
-		const results = Object.entries(membershipSection).map(([roomId, roomResponse]) => {
-			const room = roomMapper(roomId, membership);
-			return room.processInitialSync(roomResponse);
-		});
-		return results;
-	}).reduce((allResults, sectionResults) => allResults.concat(sectionResults), []);
+function parseRooms(roomsSection, roomCallback) {
+	if (!roomsSection) {
+		return;
+	}
+	const allMemberships = ["join", "invite", "leave"];
+	for(const membership of allMemberships) {
+		const membershipSection = roomsSection[membership];
+		if (membershipSection) {
+			const rooms = Object.entries(membershipSection)
+			for (const [roomId, roomResponse] of rooms) {
+				roomCallback(roomId, roomResponse, membership);
+			}
+		}
+	}
 }
 
-export class Sync {
+export default class Sync extends EventEmitter {
 	constructor(hsApi, session, storage) {
+		super();
 		this._hsApi = hsApi;
 		this._session = session;
 		this._storage = storage;
@@ -28,9 +39,10 @@ export class Sync {
 			return;
 		}
 		this._isSyncing = true;
-		let syncToken = session.syncToken;
+		let syncToken = this._session.syncToken;
 		// do initial sync if needed
 		if (!syncToken) {
+			// need to create limit filter here
 			syncToken = await this._syncRequest();
 		}
 		this._syncLoop(syncToken);
@@ -40,43 +52,53 @@ export class Sync {
 		// if syncToken is falsy, it will first do an initial sync ... 
 		while(this._isSyncing) {
 			try {
-				syncToken = await this._syncRequest(INCREMENTAL_TIMEOUT, syncToken);
+				console.log(`starting sync request with since ${syncToken} ...`);
+				syncToken = await this._syncRequest(syncToken, INCREMENTAL_TIMEOUT);
 			} catch (err) {
+				console.warn("stopping sync because of error");
+				this._isSyncing = false;
 				this.emit("error", err);
 			}
 		}
+		this.emit("stopped");
 	}
 
-	async _syncRequest(timeout, syncToken) {
-		this._currentRequest = this._hsApi.sync(timeout, syncToken);
-		const response = await this._currentRequest.response;
+	async _syncRequest(syncToken, timeout) {
+		this._currentRequest = this._hsApi.sync(syncToken, undefined, timeout);
+		const response = await this._currentRequest.response();
 		syncToken = response.next_batch;
 		const storeNames = this._storage.storeNames;
-		const syncTxn = this._storage.startReadWriteTxn([
-			storeNames.timeline,
+		const syncTxn = this._storage.readWriteTxn([
 			storeNames.session,
-			storeNames.state
+			storeNames.roomSummary,
+			storeNames.roomTimeline,
+			storeNames.roomState,
 		]);
 		try {
-			session.applySync(syncToken, response.account_data, syncTxn);
+			this._session.applySync(syncToken, response.account_data, syncTxn);
 			// to_device
 			// presence
-			parseRooms(response.rooms, async (roomId, roomResponse, membership) => {
-				let room = session.getRoom(roomId);
-				if (!room) {
-					room = session.createRoom(roomId);
-				}
-				room.applySync(roomResponse, membership, syncTxn);
-			});
+			if (response.rooms) {
+				parseRooms(response.rooms, (roomId, roomResponse, membership) => {
+					let room = this._session.getRoom(roomId);
+					if (!room) {
+						room = this._session.createRoom(roomId);
+					}
+					console.log(` * applying sync response to room ${roomId} ...`);
+					room.applySync(roomResponse, membership, syncTxn);
+				});
+			}
 		} catch(err) {
+			console.warn("aborting syncTxn because of error");
 			// avoid corrupting state by only
 			// storing the sync up till the point
 			// the exception occurred
-			txn.abort();
+			syncTxn.abort();
 			throw err;
 		}
 		try {
-			await txn.complete();
+			await syncTxn.complete();
+			console.info("syncTxn committed!!");
 		} catch (err) {
 			throw new StorageError("unable to commit sync tranaction", err);
 		}

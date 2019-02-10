@@ -1,6 +1,7 @@
 import HomeServerApi from "./hs-api.js";
 import Session from "./session.js";
 import createIdbStorage from "./storage/idb/create.js";
+import Sync from "./sync.js";
 
 const HOST = "localhost";
 const HOMESERVER = `http://${HOST}:8008`;
@@ -31,30 +32,37 @@ async function login(username, password, homeserver) {
 	return {sessionId, loginData};
 }
 
-async function main() {
-	let sessionId = getSessionId(USER_ID);
-	let loginData;
-	if (!sessionId) {
-		({sessionId, loginData} = await login(USERNAME, PASSWORD, HOMESERVER));
+// eslint-disable-next-line no-unused-vars
+export default async function main(label, button) {
+	try {
+		let sessionId = getSessionId(USER_ID);
+		let loginData;
+		if (!sessionId) {
+			({sessionId, loginData} = await login(USERNAME, PASSWORD, HOMESERVER));
+		}
+		const storage = await createIdbStorage(`morpheus_session_${sessionId}`);
+		const session = new Session(storage);
+		if (loginData) {
+			await session.setLoginData(loginData);
+		}
+		await session.load();
+		const hsApi = new HomeServerApi(HOMESERVER, session.accessToken);
+		console.log("session loaded");
+		if (!session.syncToken) {
+			console.log("session needs initial sync");
+		}
+		const sync = new Sync(hsApi, session, storage);
+		await sync.start();
+		label.innerText = "sync running";
+		button.addEventListener("click", () => sync.stop());
+		sync.on("error", err => {
+			label.innerText = "sync error";
+			console.error("sync error", err);
+		});
+		sync.on("stopped", () => {
+			label.innerText = "sync stopped";
+		});
+	} catch(err) {
+		console.error(err);
 	}
-	const storage = await createIdbStorage(`morpheus_session_${sessionId}`);
-	const session = new Session(storage);
-	if (loginData) {
-		await session.setLoginData(loginData);
-	}
-	await session.load();
-	const hsApi = new HomeServerApi(HOMESERVER, session.accessToken);
-	console.log("session loaded");
-	if (!session.syncToken) {
-		console.log("session needs initial sync");
-	}
-	return;
-	const sync = new Sync(hsApi, session, storage);
-	await sync.start();
-
-	sync.on("error", err => {
-		console.error("sync error", err);
-	});
 }
-
-main().catch(err => console.error(err));

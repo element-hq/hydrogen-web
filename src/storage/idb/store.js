@@ -2,23 +2,23 @@ import QueryTarget from "./query-target.js";
 import { reqAsPromise } from "./utils.js";
 
 export default class Store extends QueryTarget {
-	constructor(store) {
-		super(store);
+	constructor(idbStore) {
+		super(idbStore);
 	}
 
-	get _store() {
+	get _idbStore() {
 		return this._target;
 	}
 
 	index(indexName) {
-		return new QueryTarget(this._store.index(indexName));
+		return new QueryTarget(this._idbStore.index(indexName));
 	}
 
 	put(value) {
-		return reqAsPromise(this._store.put(value));
+		return reqAsPromise(this._idbStore.put(value));
 	}
 
 	add(value) {
-		return reqAsPromise(this._store.add(value));
+		return reqAsPromise(this._idbStore.add(value));
 	}
 }

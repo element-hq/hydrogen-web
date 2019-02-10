@@ -13,9 +13,9 @@ export default class Storage {
 	}
 
 	_validateStoreNames(storeNames) {
-		const unknownStoreName = storeNames.find(name => !STORE_NAMES.includes(name));
-		if (unknownStoreName) {
-			throw new Error(`Tried to open a transaction for unknown store ${unknownStoreName}`);
+		const idx = storeNames.findIndex(name => !STORE_NAMES.includes(name));
+		if (idx !== -1) {
+			throw new Error(`Tried to open a transaction for unknown store ${storeNames[idx]}`);
 		}
 	}
 

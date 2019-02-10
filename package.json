@@ -1,0 +1,22 @@
+{
+  "name": "morpheusjs",
+  "version": "1.0.0",
+  "description": "A javascript matrix client prototype, trying to minize RAM usage by offloading as much as possible to IndexedDB",
+  "main": "index.js",
+  "directories": {
+    "doc": "doc"
+  },
+  "scripts": {
+    "test": "node --experimental-modules --loader ../js-inline-tests/src/resolve-hook.mjs ../js-inline-tests/src/main.mjs --entryPoint src/main.js --force-esm"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bwindels/morpheusjs.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bwindels/morpheusjs/issues"
+  },
+  "homepage": "https://github.com/bwindels/morpheusjs#readme"
+}

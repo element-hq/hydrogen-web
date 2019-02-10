@@ -1,12 +1,15 @@
+import Room from "./room/room.js";
+
 export default class Session {
 	constructor(storage) {
 		this._storage = storage;
 		this._session = null;
-		this._rooms = null;
+		this._rooms = {};
 	}
 	// should be called before load
 	// loginData has device_id, user_id, home_server, access_token
 	async setLoginData(loginData) {
+		console.log("session.setLoginData");
 		const txn = this._storage.readWriteTxn([this._storage.storeNames.session]);
 		const session = {loginData};
 		txn.session.set(session);
@@ -17,6 +20,8 @@ export default class Session {
 		const txn = this._storage.readTxn([
 			this._storage.storeNames.session,
 			this._storage.storeNames.roomSummary,
+			this._storage.storeNames.roomState,
+			this._storage.storeNames.roomTimeline,
 		]);
 		// restore session object
 		this._session = await txn.session.get();
@@ -25,9 +30,9 @@ export default class Session {
 		}
 		// load rooms
 		const rooms = await txn.roomSummary.getAll();
-		await Promise.all(rooms.map(roomSummary => {
-			const room = this.createRoom(room.roomId);
-			return room.load(roomSummary);
+		await Promise.all(rooms.map(summary => {
+			const room = this.createRoom(summary.roomId);
+			return room.load(summary, txn);
 		}));
 	}
 

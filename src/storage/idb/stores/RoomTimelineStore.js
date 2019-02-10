@@ -1,25 +1,25 @@
 import SortKey from "../../sortkey.js";
 
-class TimelineStore {
+export default class RoomTimelineStore {
 	constructor(timelineStore) {
 		this._timelineStore = timelineStore;
 	}
 
 	async lastEvents(roomId, amount) {
-		return this.eventsBefore(roomId, GapSortKey.maxKey());
+		return this.eventsBefore(roomId, SortKey.maxKey, amount);
 	}
 
 	async firstEvents(roomId, amount) {
-		return this.eventsAfter(roomId, GapSortKey.minKey());
+		return this.eventsAfter(roomId, SortKey.minKey, amount);
 	}
 
 	eventsAfter(roomId, sortKey, amount) {
-		const range = IDBKeyRange.lowerBound([roomId, sortKey], true);
+		const range = IDBKeyRange.lowerBound([roomId, sortKey.buffer], true);
 		return this._timelineStore.selectLimit(range, amount);
 	}
 
 	async eventsBefore(roomId, sortKey, amount) {
-		const range = IDBKeyRange.upperBound([roomId, sortKey], true);
+		const range = IDBKeyRange.upperBound([roomId, sortKey.buffer], true);
 		const events = await this._timelineStore.selectLimitReverse(range, amount);
 		events.reverse(); // because we fetched them backwards
 		return events;
@@ -36,7 +36,7 @@ class TimelineStore {
 	appendGap(roomId, sortKey, gap) {
 		this._timelineStore.add({
 			roomId: roomId,
-			sortKey: sortKey,
+			sortKey: sortKey.buffer,
 			content: {
 				event: null,
 				gap: gap,
@@ -45,9 +45,10 @@ class TimelineStore {
 	}
 
 	appendEvent(roomId, sortKey, event) {
+		console.info(`appending event for room ${roomId} with key ${sortKey}`);
 		this._timelineStore.add({
 			roomId: roomId,
-			sortKey: sortKey,
+			sortKey: sortKey.buffer,
 			content: {
 				event: event,
 				gap: null,
@@ -56,6 +57,6 @@ class TimelineStore {
 	}
 
 	async removeEvent(roomId, sortKey) {
-		this._timelineStore.delete([roomId, sortKey]);
+		this._timelineStore.delete([roomId, sortKey.buffer]);
 	}
 }

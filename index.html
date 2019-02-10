@@ -2,8 +2,16 @@
 <html>
 	<head>
 		<meta charset="utf-8">
-		<script	type="module" src="src/main.js"></script>
 	</head>
 	<body>
+		<p id="syncstatus"></p>
+		<div><button id="stopsync">stop syncing</button></div>
+		<script>
+			const label = document.getElementById("syncstatus");
+			const button = document.getElementById("stopsync");
+			import("./src/main.js").then(main => {
+				main.default(label, button);
+			});
+		</script>
 	</body>
 </html>

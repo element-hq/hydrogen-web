@@ -29,13 +29,14 @@ export default class QueryTarget {
 		return this._selectWhile(range, predicate, "prev");
 	}
 
-	selectAll(range, direction) {
+	async selectAll(range, direction) {
 		const cursor = this._target.openCursor(range, direction);
 		const results = [];
-		return iterateCursor(cursor, (value) => {
+		await iterateCursor(cursor, (value) => {
 			results.push(value);
 			return true;
 		});
+		return results;
 	}
 
 	selectFirst(range) {
@@ -69,13 +70,14 @@ export default class QueryTarget {
 		}, direction);
 	}
 
-	_selectWhile(range, predicate, direction) {
+	async _selectWhile(range, predicate, direction) {
 		const cursor = this._target.openCursor(range, direction);
 		const results = [];
-		return iterateCursor(cursor, (value) => {
+		await iterateCursor(cursor, (value) => {
 			results.push(value);
 			return predicate(results);
 		});
+		return results;
 	}
 
 	async _find(range, predicate, direction) {

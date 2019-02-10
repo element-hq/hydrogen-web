@@ -1,24 +1,22 @@
-const SUMMARY_NAME_COUNT = 3;
+// import SummaryMembers from "./members";
 
-function disambiguateMember(name, userId) {
-	return `${name} (${userId})`;
-}
-
-// could even split name calculation in a separate class
-// as the summary will grow more
-export class RoomSummary {
+export default class RoomSummary {
 	constructor(roomId) {
-		this._members = new SummaryMembers();
+		// this._members = new SummaryMembers();
 		this._roomId = roomId;
+		this._name = null;
+		this._lastMessage = null;
+		this._unreadCount = null;
+		this._mentionCount = null;
+		this._isEncrypted = null;
+		this._isDirectMessage = null;
+		this._membership = null;
 		this._inviteCount = 0;
 		this._joinCount = 0;
-		this._calculatedName = null;
-		this._nameFromEvent = null;
-		this._lastMessageBody = null;
 	}
 
 	get name() {
-		return this._nameFromEvent || this._calculatedName;
+		return this._name || "Room without a name";
 	}
 
 	get lastMessage() {
@@ -33,53 +31,59 @@ export class RoomSummary {
 		return this._joinCount;
 	}
 
-	async applySync(roomResponse) {
-		const changed = this._processSyncResponse(roomResponse);
+	async applySync(roomResponse, membership, txn) {
+		const changed = this._processSyncResponse(roomResponse, membership);
 		if (changed) {
-			await this._persist();
+			await this._persist(txn);
 		}
 		return changed;
 	}
 
-	async load() {
-		const summary = await storage.getSummary(this._roomId);
+	async load(summary) {
 		this._roomId = summary.roomId;
+		this._name = summary.name;
+		this._lastMessage = summary.lastMessage;
+		this._unreadCount = summary.unreadCount;
+		this._mentionCount = summary.mentionCount;
+		this._isEncrypted = summary.isEncrypted;
+		this._isDirectMessage = summary.isDirectMessage;
+		this._membership = summary.membership;
 		this._inviteCount = summary.inviteCount;
 		this._joinCount = summary.joinCount;
-		this._calculatedName = summary.calculatedName;
-		this._nameFromEvent = summary.nameFromEvent;
-		this._lastMessageBody = summary.lastMessageBody;
-		this._members = new SummaryMembers(summary.members);
 	}
 
-	_persist() {
+	_persist(txn) {
 		const summary = {
 			roomId: this._roomId,
 			heroes: this._heroes,
 			inviteCount: this._inviteCount,
 			joinCount: this._joinCount,
-			calculatedName: this._calculatedName,
-			nameFromEvent: this._nameFromEvent,
-			lastMessageBody: this._lastMessageBody,
-			members: this._members.asArray()
+			name: this._name,
+			lastMessageBody: this._lastMessageBody
 		};
-		return this.storage.saveSummary(this.room_id, summary);
+		return txn.roomSummary.set(summary);
 	}
 
-	_processSyncResponse(roomResponse) {
+	_processSyncResponse(roomResponse, membership) {
 		// lets not do lazy loading for now
 		// if (roomResponse.summary) {
 		// 	this._updateSummary(roomResponse.summary);
 		// }
 		let changed = false;
-		if (roomResponse.limited) {
+		if (membership !== this._membership) {
+			this._membership = membership;
+			changed = true;
+		}
+		if (roomResponse.state_events) {
 			changed = roomResponse.state_events.events.reduce((changed, e) => {
 				return this._processEvent(e) || changed;
 			}, changed);
 		}
-		changed = roomResponse.timeline.events.reduce((changed, e) => {
-			return this._processEvent(e) || changed;
-		}, changed);
+		if (roomResponse.timeline) {
+			changed = roomResponse.timeline.events.reduce((changed, e) => {
+				return this._processEvent(e) || changed;
+			}, changed);
+		}
 
 		return changed;
 	}
@@ -87,8 +91,8 @@ export class RoomSummary {
 	_processEvent(event) {
 		if (event.type === "m.room.name") {
 			const newName = event.content && event.content.name;
-			if (newName !== this._nameFromEvent) {
-				this._nameFromEvent = newName;
+			if (newName !== this._name) {
+				this._name = newName;
 				return true;
 			}
 		} else if (event.type === "m.room.member") {
@@ -108,25 +112,29 @@ export class RoomSummary {
 	_processMembership(event) {
 		let changed = false;
 		const prevMembership = event.prev_content && event.prev_content.membership;
-		const membership = event.content && event.content.membership;
+		if (!event.content) {
+			return changed;
+		}
+		const content = event.content;
+		const membership = content.membership;
 		// danger of a replayed event getting the count out of sync
 		// but summary api will solve this.
 		// otherwise we'd have to store all the member ids in here
 		if (membership !== prevMembership) {
 			switch (prevMembership) {
-				case "invite": --this._inviteCount;
-				case "join": --this._joinCount;
+				case "invite": --this._inviteCount; break;
+				case "join": --this._joinCount; break;
 			}
 			switch (membership) {
-				case "invite": ++this._inviteCount;
-				case "join": ++this._joinCount;
+				case "invite": ++this._inviteCount; break;
+				case "join": ++this._joinCount; break;
 			}
 			changed = true;
 		}
-		if (membership === "join" && content.name) {
-			// TODO: avatar_url
-			changed = this._members.applyMember(content.name, content.state_key) || changed;
-		}
+		// if (membership === "join" && content.name) {
+		// 	// TODO: avatar_url
+		// 	changed = this._members.applyMember(content.name, content.state_key) || changed;
+		// }
 		return changed;
 	}
 
@@ -145,42 +153,5 @@ export class RoomSummary {
 			this._joinCount = joinCount;
 		}
 		// this._recaculateNameIfNoneSet();
-	}
-}
-
-class SummaryMembers {
-	constructor(initialMembers = []) {
-		this._alphabeticalNames = initialMembers.map(m => m.name);
-	}
-
-	applyMember(name, userId) {
-		let insertionIndex = 0;
-		for (var i = this._alphabeticalNames.length - 1; i >= 0; i--) {
-			const cmp = this._alphabeticalNames[i].localeCompare(name);
-			// name is already in the list, disambiguate
-			if (cmp === 0) {
-				name = disambiguateMember(name, userId);
-			}
-			// name should come after already present name, stop
-			if (cmp >= 0) {
-				insertionIndex = i + 1;
-				break;	
-			}
-		}
-		// don't append names if list is full already
-		if (insertionIndex < SUMMARY_NAME_COUNT) {
-			this._alphabeticalNames.splice(insertionIndex, 0, name);
-		}
-		if (this._alphabeticalNames > SUMMARY_NAME_COUNT) {
-			this._alphabeticalNames = this._alphabeticalNames.slice(0, SUMMARY_NAME_COUNT);
-		}
-	}
-
-	get names() {
-		return this._alphabeticalNames;
-	}
-
-	asArray() {
-		return this._alphabeticalNames.map(n => {name: n});
 	}
 }

@@ -8,6 +8,8 @@ store contains:
 	isEncrypted
 	isDirectMessage
 	membership
+	inviteCount
+	joinCount
 */
 export default class RoomSummaryStore {
 	constructor(summaryStore) {
@@ -16,5 +18,9 @@ export default class RoomSummaryStore {
 
 	getAll() {
 		return this._summaryStore.selectAll();
+	}
+
+	set(summary) {
+		return this._summaryStore.put(summary);
 	}
 }

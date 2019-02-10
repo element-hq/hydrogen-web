@@ -1,7 +1,9 @@
 import {txnAsPromise} from "./utils.js";
 import Store from "./store.js";
-// import TimelineStore from "./stores/timeline.js";
-import SessionStore from "./stores/session.js";
+import SessionStore from "./stores/SessionStore.js";
+import RoomSummaryStore from "./stores/RoomSummaryStore.js";
+import RoomTimelineStore from "./stores/RoomTimelineStore.js";
+import RoomStateStore from "./stores/RoomStateStore.js";
 
 export default class Transaction {
 	constructor(txn, allowedStoreNames) {
@@ -31,12 +33,20 @@ export default class Transaction {
 		return this._stores[name];
 	}
 
-	// get roomTimeline() {
-	// 	return this._store("roomTimeline", idbStore => new TimelineStore(idbStore));
-	// }
-
 	get session() {
 		return this._store("session", idbStore => new SessionStore(idbStore));
+	}
+
+	get roomSummary() {
+		return this._store("roomSummary", idbStore => new RoomSummaryStore(idbStore));
+	}
+
+	get roomTimeline() {
+		return this._store("roomTimeline", idbStore => new RoomTimelineStore(idbStore));
+	}
+
+	get roomState() {
+		return this._store("roomState", idbStore => new RoomStateStore(idbStore));
 	}
 
 	complete() {

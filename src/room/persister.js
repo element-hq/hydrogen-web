@@ -1,51 +1,56 @@
-class RoomPersister {
+import SortKey from "../storage/sortkey.js";
+
+export default class RoomPersister {
 	constructor(roomId) {
 		this._roomId = roomId;
-		this._lastSortKey = null;
+		this._lastSortKey = new SortKey();
 
 	}
 
-	async loadFromStorage(storage) {
-		const lastEvent = await storage.timeline.lastEvents(1);
+	async load(txn) {
+		//fetch key here instead?
+		const [lastEvent] = await txn.roomTimeline.lastEvents(this._roomId, 1);
 		if (lastEvent) {
-			this._lastSortKey = lastEvent.sortKey;
-		} else {
-			this._lastSortKey = new GapSortKey();
+			console.log("room persister load", this._roomId, lastEvent);
+			this._lastSortKey = new SortKey(lastEvent.sortKey);
 		}
 	}
 
-	async persistGapFill(...) {
+	// async persistGapFill(...) {
 
-	}
+	// }
 
 	async persistSync(roomResponse, txn) {
-
-		let nextKey;
+		let nextKey = this._lastSortKey;
 		const timeline = roomResponse.timeline;
 		// is limited true for initial sync???? or do we need to handle that as a special case?
+		// I suppose it will, yes
 		if (timeline.limited) {
-			nextKey = this._lastSortKey.nextKeyWithGap();
-			txn.timeline.appendGap(this._roomId, nextKey, {prev_batch: timeline.prev_batch});
+			nextKey = nextKey.nextKeyWithGap();
+			txn.roomTimeline.appendGap(this._roomId, nextKey, {prev_batch: timeline.prev_batch});
 		}
-		nextKey = this._lastSortKey.nextKey();
-		const startOfChunkSortKey = nextKey;
+		// const startOfChunkSortKey = nextKey;
 
 		if (timeline.events) {
 			for(const event of timeline.events) {
-				txn.timeline.appendEvent(this._roomId, nextKey, event);
 				nextKey = nextKey.nextKey();
+				txn.roomTimeline.appendEvent(this._roomId, nextKey, event);
 			}
 		}
-		// what happens here when the txn fails?
-		this._lastSortKey = nextKey;
+		// right thing to do? if the txn fails, not sure we'll continue anyways ...
+		// only advance the key once the transaction has
+		// succeeded 
+		txn.complete().then(() => {
+			console.log("txn complete, setting key");
+			this._lastSortKey = nextKey;
+		});
 
 		// persist state
 		const state = roomResponse.state;
 		if (state.events) {
-			const promises = state.events.map((event) => {
-				txn.state.setStateEventAt(startOfChunkSortKey, event)
-			});
-			await Promise.all(promises);
+			for (const event of state.events) {
+				txn.roomState.setStateEvent(this._roomId, event)
+			}
 		}
 	}
 }
