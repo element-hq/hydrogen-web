@@ -4,7 +4,6 @@ export default class RoomPersister {
 	constructor(roomId) {
 		this._roomId = roomId;
 		this._lastSortKey = new SortKey();
-
 	}
 
 	async load(txn) {

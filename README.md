@@ -3,4 +3,8 @@ A javascript matrix client prototype, trying to minize RAM usage by offloading a
 
 ## Status
 
-Not working yet
+Sort of syncing, but not really yet.
+
+## Troubleshooting
+
+You need to disable the browser cache to see your updated code when refreshing

@@ -4,6 +4,7 @@ export default class Session {
 	constructor(storage) {
 		this._storage = storage;
 		this._session = null;
+		// use Map here?
 		this._rooms = {};
 	}
 	// should be called before load

@@ -37,10 +37,8 @@ export default class RoomTimelineStore {
 		this._timelineStore.add({
 			roomId: roomId,
 			sortKey: sortKey.buffer,
-			content: {
-				event: null,
-				gap: gap,
-			},
+			event: null,
+			gap: gap,
 		});
 	}
 
@@ -49,10 +47,8 @@ export default class RoomTimelineStore {
 		this._timelineStore.add({
 			roomId: roomId,
 			sortKey: sortKey.buffer,
-			content: {
-				event: event,
-				gap: null,
-			},
+			event: event,
+			gap: null,
 		});
 	}
 
