@@ -55,9 +55,11 @@ export default class Sync extends EventEmitter {
 				console.log(`starting sync request with since ${syncToken} ...`);
 				syncToken = await this._syncRequest(syncToken, INCREMENTAL_TIMEOUT);
 			} catch (err) {
-				console.warn("stopping sync because of error");
 				this._isSyncing = false;
-				this.emit("error", err);
+				if (!(err instanceof RequestAbortError)) {
+					console.warn("stopping sync because of error");
+					this.emit("error", err);
+				}
 			}
 		}
 		this.emit("stopped");

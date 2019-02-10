@@ -1,4 +1,7 @@
-import {HomeServerError} from "./error.js";
+import {
+	HomeServerError,
+	RequestAbortError
+} from "./error.js";
 
 class RequestWrapper {
 	constructor(promise, controller) {
@@ -57,6 +60,11 @@ export default class HomeServerApi {
 					default:
 						throw new HomeServerError(method, url, await response.json())
 				}
+			}
+		}, err => {
+			switch (err.name) {
+				case "AbortError": throw new RequestAbortError();
+				default: throw new Error(`Unrecognized DOMException: ${err.name}`);
 			}
 		});
 		return new RequestWrapper(promise, controller);
