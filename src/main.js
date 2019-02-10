@@ -1,7 +1,7 @@
-import HomeServerApi from "./hs-api.js";
-import Session from "./session.js";
-import createIdbStorage from "./storage/idb/create.js";
-import Sync from "./sync.js";
+import HomeServerApi from "./matrix/hs-api.js";
+import Session from "./matrix/session.js";
+import createIdbStorage from "./matrix/storage/idb/create.js";
+import Sync from "./matrix/sync.js";
 
 const HOST = "localhost";
 const HOMESERVER = `http://${HOST}:8008`;

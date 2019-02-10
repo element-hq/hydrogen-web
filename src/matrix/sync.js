@@ -3,7 +3,7 @@ import {
 	HomeServerError,
 	StorageError
 } from "./error.js";
-import EventEmitter from "./event-emitter.js";
+import EventEmitter from "../event-emitter.js";
 
 const INCREMENTAL_TIMEOUT = 30000;
 const SYNC_EVENT_LIMIT = 10;
