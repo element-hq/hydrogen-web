@@ -13,3 +13,4 @@ You need to disable the browser cache to see your updated code when refreshing
 
  - store all fetched messages, not just synced ones
  - fast local search (with words index)
+ - scroll timeline with date tooltip?
