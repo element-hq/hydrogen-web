@@ -74,8 +74,8 @@ export default class RoomSummary {
 			this._membership = membership;
 			changed = true;
 		}
-		if (roomResponse.state_events) {
-			changed = roomResponse.state_events.events.reduce((changed, e) => {
+		if (roomResponse.state) {
+			changed = roomResponse.state.events.reduce((changed, e) => {
 				return this._processEvent(e) || changed;
 			}, changed);
 		}
