@@ -64,7 +64,7 @@ export default class HomeServerApi {
 		}, err => {
 			switch (err.name) {
 				case "AbortError": throw new RequestAbortError();
-				default: throw new Error(`Unrecognized DOMException: ${err.name}`);
+				default: throw err; //new Error(`Unrecognized DOMException: ${err.name}`);
 			}
 		});
 		return new RequestWrapper(promise, controller);
