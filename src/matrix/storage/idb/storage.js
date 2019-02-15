@@ -19,13 +19,13 @@ export default class Storage {
 		}
 	}
 
-	readTxn(storeNames) {
+	async readTxn(storeNames) {
 		this._validateStoreNames(storeNames);
 		const txn = this._db.transaction(storeNames, "readonly");
 		return new Transaction(txn, storeNames);
 	}
 
-	readWriteTxn(storeNames) {
+	async readWriteTxn(storeNames) {
 		this._validateStoreNames(storeNames);
 		const txn = this._db.transaction(storeNames, "readwrite");
 		return new Transaction(txn, storeNames);

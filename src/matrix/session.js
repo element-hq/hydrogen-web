@@ -11,14 +11,14 @@ export default class Session {
 	// loginData has device_id, user_id, home_server, access_token
 	async setLoginData(loginData) {
 		console.log("session.setLoginData");
-		const txn = this._storage.readWriteTxn([this._storage.storeNames.session]);
+		const txn = await this._storage.readWriteTxn([this._storage.storeNames.session]);
 		const session = {loginData};
 		txn.session.set(session);
 		await txn.complete();
 	}
 
 	async load() {
-		const txn = this._storage.readTxn([
+		const txn = await this._storage.readTxn([
 			this._storage.storeNames.session,
 			this._storage.storeNames.roomSummary,
 			this._storage.storeNames.roomState,

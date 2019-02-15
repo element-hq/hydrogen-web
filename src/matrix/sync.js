@@ -70,7 +70,7 @@ export default class Sync extends EventEmitter {
 		const response = await this._currentRequest.response();
 		syncToken = response.next_batch;
 		const storeNames = this._storage.storeNames;
-		const syncTxn = this._storage.readWriteTxn([
+		const syncTxn = await this._storage.readWriteTxn([
 			storeNames.session,
 			storeNames.roomSummary,
 			storeNames.roomTimeline,
