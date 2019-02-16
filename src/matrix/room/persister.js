@@ -51,5 +51,15 @@ export default class RoomPersister {
 				txn.roomState.setStateEvent(this._roomId, event)
 			}
 		}
+
+		if (timeline.events) {
+			if (state.events) {
+				for (const event of timeline.events) {
+					if (typeof event.state_key === "string") {
+						txn.roomState.setStateEvent(this._roomId, event);
+					}
+				}
+			}
+		} 
 	}
 }
