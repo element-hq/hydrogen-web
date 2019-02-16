@@ -5,7 +5,7 @@ export default class RoomSummary {
 		// this._members = new SummaryMembers();
 		this._roomId = roomId;
 		this._name = null;
-		this._lastMessage = null;
+		this._lastMessageBody = null;
 		this._unreadCount = null;
 		this._mentionCount = null;
 		this._isEncrypted = null;
@@ -13,6 +13,7 @@ export default class RoomSummary {
 		this._membership = null;
 		this._inviteCount = 0;
 		this._joinCount = 0;
+		this._readMarkerEventId = null;
 	}
 
 	get name() {
@@ -42,7 +43,7 @@ export default class RoomSummary {
 	async load(summary) {
 		this._roomId = summary.roomId;
 		this._name = summary.name;
-		this._lastMessage = summary.lastMessage;
+		this._lastMessageBody = summary.lastMessageBody;
 		this._unreadCount = summary.unreadCount;
 		this._mentionCount = summary.mentionCount;
 		this._isEncrypted = summary.isEncrypted;
@@ -50,16 +51,28 @@ export default class RoomSummary {
 		this._membership = summary.membership;
 		this._inviteCount = summary.inviteCount;
 		this._joinCount = summary.joinCount;
+		this._readMarkerEventId = summary.readMarkerEventId;
 	}
 
 	_persist(txn) {
+		// need to think here how we want to persist
+		// things like unread status (as read marker, or unread count)?
+		// we could very well load additional things in the load method
+		// ... the trade-off is between constantly writing the summary
+		// on every sync, or doing a bit of extra reading on load
+		// and have in-memory only variables for visualization
 		const summary = {
 			roomId: this._roomId,
-			heroes: this._heroes,
+			name: this._name,
+			lastMessageBody: this._lastMessageBody,
+			unreadCount: this._unreadCount,
+			mentionCount: this._mentionCount,
+			isEncrypted: this._isEncrypted,
+			isDirectMessage: this._isDirectMessage,
+			membership: this._membership,
 			inviteCount: this._inviteCount,
 			joinCount: this._joinCount,
-			name: this._name,
-			lastMessageBody: this._lastMessageBody
+			readMarkerEventId: this._readMarkerEventId,
 		};
 		return txn.roomSummary.set(summary);
 	}
@@ -89,6 +102,12 @@ export default class RoomSummary {
 	}
 
 	_processEvent(event) {
+		if (event.type === "m.room.encryption") {
+			if (!this._isEncrypted) {
+				this._isEncrypted = true;
+				return true;
+			}
+		}
 		if (event.type === "m.room.name") {
 			const newName = event.content && event.content.name;
 			if (newName !== this._name) {
