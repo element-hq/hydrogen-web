@@ -10,8 +10,10 @@ export default class RoomPersister {
 		//fetch key here instead?
 		const [lastEvent] = await txn.roomTimeline.lastEvents(this._roomId, 1);
 		if (lastEvent) {
-			console.log("room persister load", this._roomId, lastEvent);
 			this._lastSortKey = new SortKey(lastEvent.sortKey);
+			console.log("room persister load", this._roomId, this._lastSortKey.toString());
+		} else {
+			console.warn("could not recover last sort key for ", this._roomId);
 		}
 	}
 
