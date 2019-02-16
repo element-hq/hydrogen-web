@@ -14,12 +14,12 @@ export default class RoomTimelineStore {
 	}
 
 	eventsAfter(roomId, sortKey, amount) {
-		const range = IDBKeyRange.lowerBound([roomId, sortKey.buffer], true);
+		const range = IDBKeyRange.bound([roomId, sortKey.buffer], [roomId, SortKey.maxKey.buffer], true, false);
 		return this._timelineStore.selectLimit(range, amount);
 	}
 
 	async eventsBefore(roomId, sortKey, amount) {
-		const range = IDBKeyRange.upperBound([roomId, sortKey.buffer], true);
+		const range = IDBKeyRange.bound([roomId, SortKey.minKey.buffer], [roomId, sortKey.buffer], false, true);
 		const events = await this._timelineStore.selectLimitReverse(range, amount);
 		events.reverse(); // because we fetched them backwards
 		return events;
