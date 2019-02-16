@@ -34,7 +34,7 @@ export default class QueryTarget {
 		const results = [];
 		await iterateCursor(cursor, (value) => {
 			results.push(value);
-			return true;
+			return false;
 		});
 		return results;
 	}
