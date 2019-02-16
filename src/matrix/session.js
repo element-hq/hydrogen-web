@@ -48,8 +48,10 @@ export default class Session {
 	}
 
 	applySync(syncToken, accountData, txn) {
-		this._session.syncToken = syncToken;
-		txn.session.set(this._session);
+		if (syncToken !== this._session.syncToken) {
+			this._session.syncToken = syncToken;
+			txn.session.set(this._session);
+		}
 	}
 
 	get syncToken() {
