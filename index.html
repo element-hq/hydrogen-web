@@ -6,12 +6,14 @@
 	<body>
 		<p id="syncstatus"></p>
 		<div><button id="stopsync">stop syncing</button></div>
-		<script>
+		<script type="module">
+			import main from "./src/main.js";
 			const label = document.getElementById("syncstatus");
 			const button = document.getElementById("stopsync");
-			import("./src/main.js").then(main => {
-				main.default(label, button);
-			});
+			
+			//import("./src/main.js").then(main => {
+				main(label, button);
+			//});
 		</script>
 	</body>
 </html>
