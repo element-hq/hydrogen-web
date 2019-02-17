@@ -51,8 +51,8 @@ export default class RoomTimelineStore {
 			gap: null,
 		});
 	}
-
-	async removeEvent(roomId, sortKey) {
+	// could be gap or event
+	async removeEntry(roomId, sortKey) {
 		this._timelineStore.delete([roomId, sortKey.buffer]);
 	}
 }
