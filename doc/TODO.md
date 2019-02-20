@@ -21,6 +21,8 @@
  - build a very basic interface with
  	- a start/stop sync button
  	- a room list sorted alphabetically
+ - do some preprocessing on sync response which can then be used by persister, summary, timeline
+ - support timeline
  	- clicking on a room list, you see messages (userId -> body)
  - send messages
  - fill gaps with call to /messages
@@ -28,3 +30,4 @@
  - lazy loading members
  - decide denormalized data in summary vs reading from multiple stores PER room on load
  - allow Room/Summary class to be subclassed and store additional data?
+ - store account data, support read markers

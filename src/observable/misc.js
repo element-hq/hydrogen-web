@@ -1,6 +1,4 @@
-import EventEmitter from "./event-emitter.js";
-
-class LiveMap {
+class ObservableMap {
 	constructor() {
 		this._handlers = new Set();
 	}
@@ -30,43 +28,46 @@ class LiveMap {
 		}
 	}
 
+    onSubscribeFirst() {
+
+    }
+
+    onUnsubscribeLast() {
+
+    }
+
 	subscribe(handler) {
 		this._handlers.add(handler);
+        if (this._handlers.length === 1) {
+            this.onSubscribeFirst();
+        }
 		return () => {
 			if (handler) {
 				this._handlers.delete(this._handler);
+                if (this._handlers.length === 0) {
+                    this.onUnsubscribeLast();
+                }
 				handler = null;
 			}
 			return null;
 		};
 	}
-
-	[Symbol.iterator]() {
-
-	}
 }
 
-class Operator extends LiveMap {
+class Operator extends ObservableMap {
 	constructor(source) {
 		super();
 		this._source = source;
 	}
 
-	subscribe(handler) {
-		this.onSubscribe(this._source);
-		let subscription = super.subscribe(handler);
-		let sourceSubscription = this._source.subscribe(this);
-		return () => {
-			sourceSubscription = sourceSubscription && sourceSubscription();
-			subscription = subscription && subscription();
-			// this.onUnsubscribe(); ?
-			return null;
-		};
-	}
+    onSubscribeFirst() {
+        this._sourceSubscription = this._source.subscribe(this);
+    }
 
-	onSubscribe() {
-
-	}
+    onUnsubscribeLast() {
+        this._sourceSubscription();
+        this._sourceSubscription = null;
+    }
 
 	onRemove(key, value) {}
 	onAdd(key, value) {}
@@ -74,7 +75,7 @@ class Operator extends LiveMap {
 	onReset() {}
 }
 
-export default class LiveMapCollection extends LiveMap {
+export default class ObservableMapCollection extends ObservableMap {
 	constructor(initialValues) {
 		super();
 		this._values = new Map(initialValues);
@@ -124,19 +125,12 @@ export default class LiveMapCollection extends LiveMap {
 	}
 }
 
-class LiveMapOperator extends Operator {
+class ObservableMapOperator extends Operator {
 	constructor(source, mapper, updater) {
 		super(source);
 		this._mapper = mapper;
 		this._updater = updater;
 		this._mappedValues = new Map();
-	}
-
-	onSubscribe(source) {
-		for (let [key, value] of source) {
-			const mappedValue = this._mapper(value);
-			this._mappedValues.set(key, mappedValue);
-		}
 	}
 
 	onAdd(key, value) {
@@ -162,6 +156,19 @@ class LiveMapOperator extends Operator {
 		}
 	}
 
+    onSubscribeFirst() {
+        for (let [key, value] of this._source) {
+            const mappedValue = this._mapper(value);
+            this._mappedValues.set(key, mappedValue);
+        }
+        super.onSubscribeFirst();
+    }
+
+    onUnsubscribeLast() {
+        super.onUnsubscribeLast();
+        this._mappedValues.clear();
+    }
+
 	onReset() {
 		this._mappedValues.clear();
 		this.emitReset();
@@ -172,12 +179,12 @@ class LiveMapOperator extends Operator {
 	}
 }
 
-class FilterOperator extends LiveMapOperator {
+class FilterOperator extends ObservableMapOperator {
 
 }
 
 class SortSet {
-	constructor(liveMap) {
+	constructor(ObservableMap) {
 
 	}
 }

@@ -1,11 +1,12 @@
 import Room from "./room/room.js";
+import ObservableMap from "../observable/map.js";
 
 export default class Session {
 	constructor(storage) {
 		this._storage = storage;
 		this._session = null;
 		// use Map here?
-		this._rooms = {};
+		this._rooms = new ObservableMap();
 	}
 	// should be called before load
 	// loginData has device_id, user_id, home_server, access_token
@@ -37,13 +38,18 @@ export default class Session {
 		}));
 	}
 
+    get rooms() {
+        return this._rooms;
+    }
+
 	getRoom(roomId) {
-		return this._rooms[roomId];
+		return this._rooms.get(roomId);
 	}
 
 	createRoom(roomId) {
-		const room = new Room(roomId, this._storage);
-		this._rooms[roomId] = room;
+        const updateCallback = (params) => this._rooms.update(roomId, params);
+		const room = new Room(roomId, this._storage, updateCallback);
+		this._rooms.add(roomId, room);
 		return room;
 	}
 
