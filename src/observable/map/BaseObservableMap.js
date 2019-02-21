@@ -1,11 +1,8 @@
 import MapOperator from "./operators/MapOperator.js";
 import SortOperator from "./operators/SortOperator.js";
+import BaseObservableCollection from "../BaseObservableCollection.js";
 
-export default class BaseObservableMap {
-    constructor() {
-        this._handlers = new Set();
-    }
-
+export default class BaseObservableMap extends BaseObservableCollection {
     emitReset() {
         for(let h of this._handlers) {
             h.onReset();
@@ -29,31 +26,6 @@ export default class BaseObservableMap {
         for(let h of this._handlers) {
             h.onRemove(key, value);
         }
-    }
-
-    onSubscribeFirst() {
-
-    }
-
-    onUnsubscribeLast() {
-
-    }
-
-    subscribe(handler) {
-        this._handlers.add(handler);
-        if (this._handlers.length === 1) {
-            this.onSubscribeFirst();
-        }
-        return () => {
-            if (handler) {
-                this._handlers.delete(this._handler);
-                if (this._handlers.length === 0) {
-                    this.onUnsubscribeLast();
-                }
-                handler = null;
-            }
-            return null;
-        };
     }
 
     map(mapper, updater) {
