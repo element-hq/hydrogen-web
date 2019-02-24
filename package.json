@@ -7,7 +7,7 @@
     "doc": "doc"
   },
   "scripts": {
-    "test": "node --experimental-modules --loader ../js-inline-tests/src/resolve-hook.mjs ../js-inline-tests/src/main.mjs --entryPoint src/main.js --force-esm",
+    "test": "node_modules/.bin/impunity --entryPoint src/main.js --force-esm",
     "start": "node scripts/serve-local.js"
   },
   "repository": {
@@ -22,6 +22,7 @@
   "homepage": "https://github.com/bwindels/morpheusjs#readme",
   "devDependencies": {
     "finalhandler": "^1.1.1",
+    "impunity": "^0.0.5",
     "serve-static": "^1.13.2"
   }
 }
