@@ -17,7 +17,7 @@ export default class Room extends EventEmitter {
 		this._persister.persistSync(roomResponse, txn);
         if (changed) {
             this.emit("change");
-            (this._emitCollectionChange)();
+            (this._emitCollectionChange)(this);
         }
 	}
 

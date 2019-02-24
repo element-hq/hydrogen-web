@@ -5,8 +5,8 @@ export default class Session {
 	constructor(storage) {
 		this._storage = storage;
 		this._session = null;
-		// use Map here?
 		this._rooms = new ObservableMap();
+        this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
 	}
 	// should be called before load
 	// loginData has device_id, user_id, home_server, access_token
@@ -47,8 +47,7 @@ export default class Session {
 	}
 
 	createRoom(roomId) {
-        const updateCallback = (params) => this._rooms.update(roomId, params);
-		const room = new Room(roomId, this._storage, updateCallback);
+		const room = new Room(roomId, this._storage, this._roomUpdateCallback);
 		this._rooms.add(roomId, room);
 		return room;
 	}
