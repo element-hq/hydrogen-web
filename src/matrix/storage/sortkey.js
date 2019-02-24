@@ -85,6 +85,15 @@ export default class SortKey {
 		return minKey;
 	}
 
+    compare(otherKey) {
+        const gapDiff = this.gapKey - otherKey.gapKey;
+        if (gapDiff === 0) {
+            return this.eventKey - otherKey.eventKey;
+        } else {
+            return gapDiff;
+        }
+    }
+
 	toString() {
 		return `[${this.gapKey}/${this.eventKey}]`;
 	}
@@ -140,8 +149,7 @@ export function tests() {
 			a.eventKey = 1;
 			b.gapKey = 1;
 			b.eventKey = 100000;
-			assert(b < a);
-			assert(a > b);
+			assert(a.compare(b) > 0);
 		},
 
 		test_cmp_eventkey_second(assert) {
@@ -151,12 +159,11 @@ export function tests() {
 			a.eventKey = 100000;
 			b.gapKey = 1;
 			b.eventKey = 2;
-			assert(b.buffer < a.buffer);
-			assert(a.buffer > b.buffer);
+			assert(a.compare(b) > 0);
 		},
 
 		test_cmp_max_larger_than_min(assert) {
-			assert(SortKey.minKey < SortKey.maxKey);
+			assert(SortKey.minKey.compare(SortKey.maxKey) < 0);
 		},
 
 		test_cmp_gapkey_first_large(assert) {
