@@ -1,5 +1,3 @@
-import MapOperator from "./operators/MapOperator.js";
-import SortOperator from "./operators/SortOperator.js";
 import BaseObservableCollection from "../BaseObservableCollection.js";
 
 export default class BaseObservableMap extends BaseObservableCollection {
@@ -16,9 +14,9 @@ export default class BaseObservableMap extends BaseObservableCollection {
         }
     }
 
-    emitChange(key, value, ...params) {
+    emitUpdate(key, value, ...params) {
         for(let h of this._handlers) {
-            h.onChange(key, value, ...params);
+            h.onUpdate(key, value, ...params);
         }
     }
 
@@ -28,11 +26,11 @@ export default class BaseObservableMap extends BaseObservableCollection {
         }
     }
 
-    map(mapper, updater) {
-        return new MapOperator(this, mapper, updater);
-    }
+    // map(mapper, updater) {
+    //     return new MapOperator(this, mapper, updater);
+    // }
 
-    sort(comparator) {
-        return new SortOperator(this, comparator);
-    }
+    // sort(comparator) {
+    //     return new SortOperator(this, comparator);
+    // }
 }
