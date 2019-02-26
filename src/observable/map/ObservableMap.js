@@ -1,9 +1,8 @@
 import BaseObservableMap from "./BaseObservableMap.js";
 
 export default class ObservableMap extends BaseObservableMap {
-    constructor(keyFn, initialValues) {
+    constructor(initialValues) {
         super();
-        this._keyFn = keyFn;
         this._values = new Map(initialValues);
     }
 
@@ -60,6 +59,16 @@ export default class ObservableMap extends BaseObservableMap {
 //#ifdef TESTS
 export function tests() {
     return {
+        test_initial_values(assert) {
+            const map = new ObservableMap([
+                ["a", 5],
+                ["b", 10]
+            ]);
+            assert.equal(map.size, 2);
+            assert.equal(map.get("a"), 5);
+            assert.equal(map.get("b"), 10);
+        },
+
         test_add(assert) {
             let fired = 0;
             const map = new ObservableMap();
@@ -95,7 +104,7 @@ export function tests() {
 
         test_update_unknown(assert) {
             let fired = 0;
-            const map = new ObservableMap(v => v.id);
+            const map = new ObservableMap();
             map.subscribe({
                 onUpdate() { fired += 1; }
             });
