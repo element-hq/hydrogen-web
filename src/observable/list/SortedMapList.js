@@ -118,7 +118,7 @@ export default class SortedMapList extends BaseObservableList {
     }
 
     get(index) {
-        return this._sourceMap[index];
+        return this._sortedPairs[index];
     }
 
     get length() {
@@ -126,11 +126,13 @@ export default class SortedMapList extends BaseObservableList {
     }
 
     [Symbol.iterator]() {
-        return this._sortedPairs;
+        return this._sortedPairs.values();
     }
 }
 
 //#ifdef TESTS
+import ObservableMap from "../map/ObservableMap.js";
+
 export function tests() {
     return {
         test_sortIndex(assert) {
@@ -154,6 +156,17 @@ export function tests() {
             assert.deepEqual(a, [1, 2, 5, 8]);
             let idx = sortedIndex(a, 2, cmp);
             assert.equal(idx, 1);
+        },
+
+        test_initial_values(assert) {
+            const map = new ObservableMap([
+                ["a", 50],
+                ["b", 6],
+                ["c", -5],
+            ]);
+            const list = new SortedMapList(map, (a, b) => a - b);
+            list.subscribe({}); //needed to populate iterator
+            assert.deepEqual(Array.from(list), [-5, 6, 50]);
         }
     }
 }
