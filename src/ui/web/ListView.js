@@ -73,7 +73,7 @@ export default class ListView {
         insertAt(this._root, toIdx, child.root());
     }
 
-    onUpdate(i, value) {
-        this._childInstances[i].update(value);
+    onUpdate(i, value, params) {
+        this._childInstances[i].update(value, params);
     }
 }
