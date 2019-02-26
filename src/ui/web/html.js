@@ -12,6 +12,9 @@ export function el(elementName, attrs, children) {
     if (Array.isArray(children)) {
         // TODO: use fragment here?
         for (let c of children) {
+            if (typeof c === "string") {
+                c = text(c);
+            }
             e.appendChild(c);
         }
     }
