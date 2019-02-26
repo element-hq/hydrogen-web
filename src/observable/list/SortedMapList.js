@@ -1,9 +1,9 @@
-import BaseObservableList from "../BaseObservableList.js";
+import BaseObservableList from "./BaseObservableList.js";
 
 
 /*
 
-when a value changes, it sorting order can change. It would still be at the old index prior to firing an onChange event.
+when a value changes, it sorting order can change. It would still be at the old index prior to firing an onUpdate event.
 So how do you know where it was before it changed, if not by going over all values?
 
 how to make this fast?
@@ -52,73 +52,81 @@ function sortedIndex(array, value, comparator) {
     }
     return high;
 }
+
+
+// does not assume whether or not the values are reference
+// types modified outside of the collection (and affecting sort order) or not
+
 // no duplicates allowed for now
-export default class SortOperator extends BaseObservableList {
-    constructor(sourceMap, comparator, getKey) {
+export default class SortedMapList extends BaseObservableList {
+    constructor(sourceMap, comparator) {
         super();
         this._sourceMap = sourceMap;
         this._comparator = comparator;
-        this._getKey = getKey;
-        this._sortedValues = [];
+        this._sortedPairs = null;
+        this._mapSubscription = null;
     }
     
     onAdd(key, value) {
-        const idx = sortedIndex(this._sortedValues, value, this._comparator);
-        this._sortedValues.splice(idx, 0, value);
+        const idx = sortedIndex(this._sortedPairs, value, this._comparator);
+        this._sortedPairs.splice(idx, 0, {key, value});
         this.emitAdd(idx, value);
     }
 
     onRemove(key, value) {
-        const idx = sortedIndex(this._sortedValues, value, this._comparator);
-        this._sortedValues.splice(idx, 1);
+        const idx = sortedIndex(this._sortedPairs, value, this._comparator);
+        // assert key === this._sortedPairs[idx].key;
+        this._sortedPairs.splice(idx, 1);
         this.emitRemove(idx, value);
     }
 
-    onChange(key, value, params) {
-        const idxIfSortUnchanged = sortedIndex(this._sortedValues, value, this._comparator);
-        if (this._getKey(this._sortedValues[idxIfSortUnchanged]) === key) {
-            this.emitChange(idxIfSortUnchanged, value, params);
-        } else {
-            // TODO: slow!? See above for idea with BST to speed this up if we need to
-            const oldIdx = this._sortedValues.find(v => this._getKey(v) === key);
-            this._sortedValues.splice(oldIdx, 1);
-            const newIdx = sortedIndex(this._sortedValues, value, this._comparator);
-            this._sortedValues.splice(newIdx, 0, value);
+    onUpdate(key, value, params) {
+        // TODO: suboptimal for performance, see above for idea with BST to speed this up if we need to
+        const oldIdx = this._sortedPairs.findIndex(p => p.key === key);
+        // neccesary to remove item from array before
+        // doing sortedIndex as it relies on being sorted
+        this._sortedPairs.splice(oldIdx, 1);
+        const newIdx = sortedIndex(this._sortedPairs, value, this._comparator);
+        this._sortedPairs.splice(newIdx, 0, {key, value});
+        if (oldIdx !== newIdx) {
             this.emitMove(oldIdx, newIdx, value);
-            this.emitChange(newIdx, value, params);
         }
+        this.emitUpdate(newIdx, value, params);
     }
 
     onReset() {
-        this._sortedValues = [];
+        this._sortedPairs = [];
         this.emitReset();
     }
 
     onSubscribeFirst() {
         this._mapSubscription = this._sourceMap.subscribe(this);
-        this._sortedValues = new Array(this._sourceMap.size);
+        this._sortedPairs = new Array(this._sourceMap.size);
         let i = 0;
         for (let [, value] of this._sourceMap) {
-            this._sortedValues[i] = value;
+            this._sortedPairs[i] = value;
             ++i;
         }
-        this._sortedValues.sort(this._comparator);
+        this._sortedPairs.sort(this._comparator);
         super.onSubscribeFirst();
     }
 
     onUnsubscribeLast() {
         super.onUnsubscribeLast();
-        this._sortedValues = null;
+        this._sortedPairs = null;
         this._mapSubscription = this._mapSubscription();
     }
 
+    get(index) {
+        return this._sourceMap[index];
+    }
 
     get length() {
         return this._sourceMap.size;
     }
 
     [Symbol.iterator]() {
-        return this._sortedValues;
+        return this._sortedPairs;
     }
 }
 
@@ -139,7 +147,7 @@ export function tests() {
             assert.equal(idx, 1);
         },
 
-        test_sortIndex_likeArraySort(assert) {
+        test_sortIndex_comparator_Array_compatible(assert) {
             const a = [5, 1, 8, 2];
             const cmp = (a, b) => a - b;
             a.sort(cmp);

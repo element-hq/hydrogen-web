@@ -1,8 +1,9 @@
-import Operator from "../Operator.js";
+import BaseObservableMap from "./BaseObservableMap.js";
 
-export default class FilterOperator extends Operator {
+export default class FilteredMap extends BaseObservableMap {
     constructor(source, mapper, updater) {
-        super(source);
+        super();
+        this._source = source;
         this._mapper = mapper;
         this._updater = updater;
         this._mappedValues = new Map();

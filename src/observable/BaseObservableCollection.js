@@ -27,4 +27,6 @@ export default class BaseObservableCollection {
             return null;
         };
     }
+
+    // Add iterator over handlers here
 }

@@ -1,15 +1,19 @@
-import Operator from "../Operator.js";
+import BaseObservableMap from "./BaseObservableMap.js";
 
-export default class MapOperator extends Operator {
-    constructor(source, mapper, updater) {
-        super(source);
+export default class MappedMap extends BaseObservableMap {
+    constructor(source, mapper) {
+        super();
+        this._source = source;
         this._mapper = mapper;
-        this._updater = updater;
         this._mappedValues = new Map();
+        this._updater = (key, params) => {  // this should really be (value, params) but can't make that work for now
+            const value = this._mappedValues.get(key);
+            this.onUpdate(key, value, params);
+        };
     }
 
     onAdd(key, value) {
-        const mappedValue = this._mapper(value);
+        const mappedValue = this._mapper(value, this._updater);
         this._mappedValues.set(key, mappedValue);
         this.emitAdd(key, mappedValue);
     }
@@ -21,26 +25,27 @@ export default class MapOperator extends Operator {
         }
     }
 
-    onChange(key, value, params) {
+    onUpdate(key, value, params) {
         const mappedValue = this._mappedValues.get(key);
         if (mappedValue !== undefined) {
             const newParams = this._updater(value, params);
             if (newParams !== undefined) {
-                this.emitChange(key, mappedValue, newParams);
+                this.emitUpdate(key, mappedValue, newParams);
             }
         }
     }
 
     onSubscribeFirst() {
+        this._subscription = this._source.subscribe(this);
         for (let [key, value] of this._source) {
-            const mappedValue = this._mapper(value);
+            const mappedValue = this._mapper(value, this._updater);
             this._mappedValues.set(key, mappedValue);
         }
         super.onSubscribeFirst();
     }
 
     onUnsubscribeLast() {
-        super.onUnsubscribeLast();
+        this._subscription = this._subscription();
         this._mappedValues.clear();
     }
 

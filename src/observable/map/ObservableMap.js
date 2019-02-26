@@ -1,4 +1,4 @@
-import BaseObservableMap from "./map/BaseObservableMap.js";
+import BaseObservableMap from "./BaseObservableMap.js";
 
 export default class ObservableMap extends BaseObservableMap {
     constructor(keyFn, initialValues) {
@@ -57,6 +57,7 @@ export default class ObservableMap extends BaseObservableMap {
     }
 }
 
+//#ifdef TESTS
 export function tests() {
     return {
         test_add(assert) {
@@ -142,3 +143,4 @@ export function tests() {
         },
     }
 }
+//#endif

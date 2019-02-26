@@ -14,9 +14,9 @@ export default class BaseObservableList extends BaseObservableCollection {
         }
     }
 
-    emitChange(index, value, params) {
+    emitUpdate(index, value, params) {
         for(let h of this._handlers) {
-            h.onChange(index, value, params);
+            h.onUpdate(index, value, params);
         }
     }
 

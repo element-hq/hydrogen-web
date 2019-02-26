@@ -25,12 +25,4 @@ export default class BaseObservableMap extends BaseObservableCollection {
             h.onRemove(key, value);
         }
     }
-
-    // map(mapper, updater) {
-    //     return new MapOperator(this, mapper, updater);
-    // }
-
-    // sort(comparator) {
-    //     return new SortOperator(this, comparator);
-    // }
 }
