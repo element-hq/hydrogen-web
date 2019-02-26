@@ -9,11 +9,11 @@ class UIView {
 }
 
 function insertAt(parentNode, idx, childNode) {
-    const isLast =  idx === parentNode.childElementCount - 1;
+    const isLast = idx === parentNode.childElementCount;
     if (isLast) {
         parentNode.appendChild(childNode);
     } else {
-        const nextDomNode = parentNode.children[idx + 1];
+        const nextDomNode = parentNode.children[idx];
         parentNode.insertBefore(childNode, nextDomNode);
     }
 }
@@ -36,7 +36,7 @@ export default class ListView {
     mount() {
         this._subscription = this._collection.subscribe(this);
         this._root = html.ul({className: "ListView"});
-        this._childInstances = new Array(this._collection.length);
+        this._childInstances = [];
         for (let item of this._collection) {
             const child = this._childCreator(item);
             this._childInstances.push(child);
