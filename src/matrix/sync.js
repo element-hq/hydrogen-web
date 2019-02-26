@@ -82,7 +82,7 @@ export default class Sync extends EventEmitter {
 			// presence
 			if (response.rooms) {
 				parseRooms(response.rooms, (roomId, roomResponse, membership) => {
-					let room = this._session.getRoom(roomId);
+					let room = this._session.rooms.get(roomId);
 					if (!room) {
 						room = this._session.createRoom(roomId);
 					}

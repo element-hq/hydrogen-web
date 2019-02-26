@@ -42,10 +42,6 @@ export default class Session {
         return this._rooms;
     }
 
-	getRoom(roomId) {
-		return this._rooms.get(roomId);
-	}
-
 	createRoom(roomId) {
 		const room = new Room(roomId, this._storage, this._roomUpdateCallback);
 		this._rooms.add(roomId, room);
