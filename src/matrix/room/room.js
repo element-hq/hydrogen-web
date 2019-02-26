@@ -29,4 +29,8 @@ export default class Room extends EventEmitter {
     get name() {
         return this._summary.name;
     }
+
+    get id() {
+        return this._roomId;
+    }
 }
