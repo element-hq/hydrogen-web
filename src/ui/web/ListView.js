@@ -1,16 +1,20 @@
 import * as html from "./html.js";
 
 class UIView {
-    mount(initialValue) {
+    mount() {}
+    unmount() {}
+    update(_value) {}
+    // can only be called between a call to mount and unmount
+    root() {}
+}
 
-    }
-
-    unmount() {
-
-    }
-
-    update() {
-
+function insertAt(parentNode, idx, childNode) {
+    const isLast =  idx === parentNode.childElementCount - 1;
+    if (isLast) {
+        parentNode.appendChild(childNode);
+    } else {
+        const nextDomNode = parentNode.children[idx + 1];
+        parentNode.insertBefore(childNode, nextDomNode);
     }
 }
 
@@ -23,9 +27,11 @@ export default class ListView {
         this._childInstances = null;
     }
 
-    getDOMNode() {
+    root() {
         return this._root;
     }
+
+    update() {}
 
     mount() {
         this._subscription = this._collection.subscribe(this);
@@ -48,31 +54,26 @@ export default class ListView {
         this._childInstances = null;
     }
 
-    onAdd(i, value) {
+    onAdd(idx, value) {
         const child = this._childCreator(value);
-        const childDomNode = child.mount();
-        this._childInstances.splice(i, 0, child);
-        const isLast =  i === this._collection.length - 1;
-        if (isLast) {
-            this._root.appendChild(childDomNode);
-        } else {
-            const nextDomNode = this._childInstances[i + 1].getDOMNode();
-            this._root.insertBefore(childDomNode, nextDomNode);
-        }
-
+        this._childInstances.splice(idx, 0, child);
+        insertAt(this._root, idx, child.mount());
     }
 
-    onRemove(i, _value) {
-        const [child] = this._childInstances.splice(i, 1);
-        child.getDOMNode().remove();
+    onRemove(idx, _value) {
+        const [child] = this._childInstances.splice(idx, 1);
+        child.root().remove();
         child.unmount();
     }
 
     onMove(fromIdx, toIdx, value) {
-
+        const [child] = this._childInstances.splice(fromIdx, 1);
+        this._childInstances.splice(toIdx, 0, child);
+        child.root().remove();
+        insertAt(this._root, toIdx, child.root());
     }
 
-    onChange(i, value) {
+    onUpdate(i, value) {
         this._childInstances[i].update(value);
     }
 }

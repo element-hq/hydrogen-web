@@ -17,7 +17,7 @@ export default class RoomSummary {
 	}
 
 	get name() {
-		return this._name || "Room without a name";
+		return this._name || this._roomId;
 	}
 
 	get lastMessage() {

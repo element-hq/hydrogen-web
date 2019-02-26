@@ -8,7 +8,7 @@ export { default as ObservableMap } from "./map/ObservableMap.js";
 // avoid circular dependency between these classes
 // and BaseObservableMap (as they extend it)
 Object.assign(BaseObservableMap.prototype, {
-    asSortedList(comparator) {
+    sortValues(comparator) {
         return new SortedMapList(this, comparator);
     },
 

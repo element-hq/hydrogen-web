@@ -4,12 +4,15 @@ export function setAttribute(el, name, value) {
 
 export function el(elementName, attrs, children) {
     const e = document.createElement(elementName);
-    if (typeof attrs === "object") {
+    if (typeof attrs === "object" && attrs !== null) {
         for (let [name, value] of Object.entries(attrs)) {
             setAttribute(e, name, value);
         }
     }
-    if (Array.isArray(children)) {
+    if (children) {
+        if (!Array.isArray(children)) {
+            children = [children];
+        }
         // TODO: use fragment here?
         for (let c of children) {
             if (typeof c === "string") {

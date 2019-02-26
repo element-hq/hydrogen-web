@@ -2,6 +2,8 @@ import HomeServerApi from "./matrix/hs-api.js";
 import Session from "./matrix/session.js";
 import createIdbStorage from "./matrix/storage/idb/create.js";
 import Sync from "./matrix/sync.js";
+import ListView from "./ui/web/ListView.js";
+import RoomTile from "./ui/web/RoomTile.js";
 
 const HOST = "localhost";
 const HOMESERVER = `http://${HOST}:8008`;
@@ -32,8 +34,14 @@ async function login(username, password, homeserver) {
 	return {sessionId, loginData};
 }
 
+function showRooms(container, rooms) {
+    const sortedRooms = rooms.sortValues((a, b) => a.name.localeCompare(b.name));
+    const listView = new ListView(sortedRooms, (room) => new RoomTile(room));
+    container.appendChild(listView.mount());
+}
+
 // eslint-disable-next-line no-unused-vars
-export default async function main(label, button) {
+export default async function main(label, button, container) {
 	try {
 		let sessionId = getSessionId(USER_ID);
 		let loginData;
@@ -46,6 +54,7 @@ export default async function main(label, button) {
 			await session.setLoginData(loginData);
 		}
 		await session.load();
+        showRooms(container, session.rooms);
 		const hsApi = new HomeServerApi(HOMESERVER, session.accessToken);
 		console.log("session loaded");
 		if (!session.syncToken) {
