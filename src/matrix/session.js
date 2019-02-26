@@ -1,5 +1,5 @@
 import Room from "./room/room.js";
-import ObservableMap from "../observable/map.js";
+import { ObservableMap } from "../observable/index.js";
 
 export default class Session {
 	constructor(storage) {
