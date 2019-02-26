@@ -16,11 +16,11 @@
  		code: 0
 		message: "Key already exists in the object store."
 		name: "ConstraintError"
- - emit events so we can start showing something on the screen maybe?
- - move session._rooms over to Map, so we can iterate over it, ...
- - build a very basic interface with
- 	- a start/stop sync button
- 	- a room list sorted alphabetically
+ - DONE: emit events so we can start showing something on the screen maybe?
+ - DONE: move session._rooms over to Map, so we can iterate over it, ...
+ - DONE: build a very basic interface with
+ 	- DONE: a start/stop sync button
+ 	- DONE: a room list sorted alphabetically
  - do some preprocessing on sync response which can then be used by persister, summary, timeline
  - support timeline
  	- clicking on a room list, you see messages (userId -> body)
