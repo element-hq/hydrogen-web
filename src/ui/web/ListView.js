@@ -60,6 +60,9 @@ export default class ListView {
     }
 
     _onClick(event) {
+        if (event.target === this._root) {
+            return;
+        }
         let childNode = event.target;
         while (childNode.parentNode !== this._root) {
             childNode = childNode.parentNode;
