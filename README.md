@@ -3,9 +3,9 @@ A javascript matrix client prototype, trying to minize RAM usage by offloading a
 
 ## Status
 
-Syncing & storing rooms with state and timeline, with a minimal syncing room list on screen (not interactive for now). Using Fractal here to update the room name:
+Syncing & storing rooms with state and timeline, with a minimal UI syncing room list and timeline on screen. No sending yet. Using Fractal here to update the room name and send messages:
 
-![Rooms syncing on-screen](https://bwindels.github.io/morpheusjs/images/roomlist1.gif)
+![Rooms and timeline syncing on-screen](https://bwindels.github.io/morpheusjs/images/timeline1.gif)
 
 ## Features that this approach would be well suited for
 
