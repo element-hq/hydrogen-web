@@ -24,8 +24,12 @@
  - DONE: do some preprocessing on sync response which can then be used by persister, summary, timeline
  - DONE: support timeline
  	- DONE: clicking on a room list, you see messages (userId -> body)
- - style minimal UI
+ - DONE: style minimal UI
+ - fix MappedMap update mechanism
+ - see if in BaseObservableMap we need to change ...params
+ - put sync button and status label inside SessionView
  - fix some errors:
+    - find out if `(this._emitCollectionUpdate)(this)` is different than `this._emitCollectionUpdate(this)` 
     - got "database tried to mutate when not allowed" or something error as well
     - find out why when RoomPersister.(\_createGapEntry/\_createEventEntry) we remove .buffer the transaction fails (good), but upon fixing and refreshing is missing a message! syncToken should not be saved, so why isn't this again in the sync response and now the txn does succeed?
  - send messages
