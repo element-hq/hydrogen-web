@@ -23,7 +23,7 @@ export default class SessionView {
         this._roomList = new ListView(
             {
                 list: this._viewModel.roomList,
-                onItemClick: roomTile => roomTile.clicked()
+                onItemClick: (roomTile, event) => roomTile.clicked(event)
             },
             (room) => new RoomTile(room)
         );

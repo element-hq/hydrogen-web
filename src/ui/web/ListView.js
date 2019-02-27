@@ -66,7 +66,7 @@ export default class ListView {
         }
         const index = Array.prototype.indexOf.call(this._root.childNodes, childNode);
         const childView = this._childInstances[index];
-        this._onItemClick(childView);
+        this._onItemClick(childView, event);
     }
 
     _unloadList() {
