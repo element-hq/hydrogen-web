@@ -22,8 +22,12 @@
  	- DONE: a start/stop sync button
  	- DONE: a room list sorted alphabetically
  - DONE: do some preprocessing on sync response which can then be used by persister, summary, timeline
- - support timeline
- 	- clicking on a room list, you see messages (userId -> body)
+ - DONE: support timeline
+ 	- DONE: clicking on a room list, you see messages (userId -> body)
+ - style minimal UI
+ - fix some errors:
+    - got "database tried to mutate when not allowed" or something error as well
+    - find out why when RoomPersister.(\_createGapEntry/\_createEventEntry) we remove .buffer the transaction fails (good), but upon fixing and refreshing is missing a message! syncToken should not be saved, so why isn't this again in the sync response and now the txn does succeed?
  - send messages
  - fill gaps with call to /messages
  - create sync filter
