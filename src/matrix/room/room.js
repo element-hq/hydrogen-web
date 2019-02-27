@@ -12,9 +12,13 @@ export default class Room extends EventEmitter {
         this._emitCollectionChange = emitCollectionChange;
 	}
 
-	async applySync(roomResponse, membership, txn) {
+    persistSync(roomResponse, membership, txn) {
 		const changed = this._summary.applySync(roomResponse, membership, txn);
 		this._persister.persistSync(roomResponse, txn);
+        return changed;
+    }
+
+    emitSync(changed) {
         if (changed) {
             this.emit("change");
             (this._emitCollectionChange)(this);

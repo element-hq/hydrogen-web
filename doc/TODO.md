@@ -21,7 +21,7 @@
  - DONE: build a very basic interface with
  	- DONE: a start/stop sync button
  	- DONE: a room list sorted alphabetically
- - do some preprocessing on sync response which can then be used by persister, summary, timeline
+ - DONE: do some preprocessing on sync response which can then be used by persister, summary, timeline
  - support timeline
  	- clicking on a room list, you see messages (userId -> body)
  - send messages

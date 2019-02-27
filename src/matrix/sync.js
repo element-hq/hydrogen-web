@@ -76,10 +76,11 @@ export default class Sync extends EventEmitter {
 			storeNames.roomTimeline,
 			storeNames.roomState,
 		]);
-		try {
-			this._session.applySync(syncToken, response.account_data, syncTxn);
-			// to_device
-			// presence
+        const roomChanges = [];
+        try {
+            this._session.applySync(syncToken, response.account_data, syncTxn);
+            // to_device
+            // presence
 			if (response.rooms) {
 				parseRooms(response.rooms, (roomId, roomResponse, membership) => {
 					let room = this._session.rooms.get(roomId);
@@ -87,7 +88,8 @@ export default class Sync extends EventEmitter {
 						room = this._session.createRoom(roomId);
 					}
 					console.log(` * applying sync response to room ${roomId} ...`);
-					room.applySync(roomResponse, membership, syncTxn);
+					const changes = room.persistSync(roomResponse, membership, syncTxn);
+                    roomChanges.push({room, changes});
 				});
 			}
 		} catch(err) {
@@ -104,6 +106,11 @@ export default class Sync extends EventEmitter {
 		} catch (err) {
 			throw new StorageError("unable to commit sync tranaction", err);
 		}
+        // emit room related events after txn has been closed
+        for(let {room, changes} of roomChanges) {
+            room.emitSync(changes);
+        }
+
 		return syncToken;
 	}
 
