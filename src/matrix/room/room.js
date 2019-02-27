@@ -23,7 +23,7 @@ export default class Room extends EventEmitter {
     emitSync({summaryChanged, newTimelineEntries}) {
         if (summaryChanged) {
             this.emit("change");
-            (this._emitCollectionChange)(this);
+            this._emitCollectionChange(this);
         }
         if (this._timeline) {
             this._timeline.appendLiveEntries(newTimelineEntries);
