@@ -54,14 +54,19 @@ export default async function main(label, button, container) {
 			await session.setLoginData(loginData);
 		}
 		await session.load();
-        showSession(container, session);
-		const hsApi = new HomeServerApi(HOMESERVER, session.accessToken);
-		console.log("session loaded");
-		if (!session.syncToken) {
-			console.log("session needs initial sync");
-		}
+        const hsApi = new HomeServerApi(HOMESERVER, session.accessToken);
+        console.log("session loaded");
+        const needsInitialSync = !session.syncToken;
+        if (needsInitialSync) {
+            console.log("session needs initial sync");
+        } else {
+            showSession(container, session);
+        }
 		const sync = new Sync(hsApi, session, storage);
 		await sync.start();
+        if (needsInitialSync) {
+            showSession(container, session);
+        }
 		label.innerText = "sync running";
 		button.addEventListener("click", () => sync.stop());
 		sync.on("error", err => {
