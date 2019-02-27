@@ -1,13 +1,13 @@
 import { li } from "./html.js";
 
 export default class RoomTile {
-    constructor(room) {
-        this._room = room;
+    constructor(viewModel) {
+        this._viewModel = viewModel;
         this._root = null;
     }
 
     mount() {
-        this._root = li(null, this._room.name);
+        this._root = li(null, this._viewModel.name);
         return this._root;
     }
 
@@ -16,7 +16,11 @@ export default class RoomTile {
 
     update() {
         // no data-binding yet
-        this._root.innerText = this._room.name;
+        this._root.innerText = this._viewModel.name;
+    }
+
+    clicked() {
+        this._viewModel.open();
     }
 
     root() {

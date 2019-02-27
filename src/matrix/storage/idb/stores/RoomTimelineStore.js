@@ -18,20 +18,26 @@ export default class RoomTimelineStore {
 		return this._timelineStore.selectLimit(range, amount);
 	}
 
-	async eventsBefore(roomId, sortKey, amount) {
-		const range = IDBKeyRange.bound([roomId, SortKey.minKey.buffer], [roomId, sortKey.buffer], false, true);
-		const events = await this._timelineStore.selectLimitReverse(range, amount);
-		events.reverse(); // because we fetched them backwards
-		return events;
-	}
+    async eventsBefore(roomId, sortKey, amount) {
+        const range = IDBKeyRange.bound([roomId, SortKey.minKey.buffer], [roomId, sortKey.buffer], false, true);
+        const events = await this._timelineStore.selectLimitReverse(range, amount);
+        events.reverse(); // because we fetched them backwards
+        return events;
+    }
 
-	// should this happen as part of a transaction that stores all synced in changes?
-	// e.g.:
-	// - timeline events for all rooms
-	// - latest sync token
-	// - new members
-	// - new room state
-	// - updated/new account data
+    // entry should have roomId, sortKey, event & gap keys
+    append(entry) {
+        this._timelineStore.add(entry);
+    }
+    // should this happen as part of a transaction that stores all synced in changes?
+    // e.g.:
+    // - timeline events for all rooms
+    // - latest sync token
+    // - new members
+    // - new room state
+    // - updated/new account data
+
+
 
 	appendGap(roomId, sortKey, gap) {
 		this._timelineStore.add({

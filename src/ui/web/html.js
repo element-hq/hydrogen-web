@@ -47,3 +47,4 @@ export function section(... params) { return el("section", ... params); }
 export function main(... params)    { return el("main", ... params); }
 export function article(... params) { return el("article", ... params); }
 export function aside(... params)   { return el("aside", ... params); }
+export function pre(... params)   { return el("pre", ... params); }

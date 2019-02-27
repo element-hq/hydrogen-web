@@ -87,6 +87,7 @@ export default class RoomSummary {
 			this._membership = membership;
 			changed = true;
 		}
+        // state comes before timeline
 		if (roomResponse.state) {
 			changed = roomResponse.state.events.reduce((changed, e) => {
 				return this._processEvent(e) || changed;

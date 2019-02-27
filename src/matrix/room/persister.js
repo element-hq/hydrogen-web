@@ -21,23 +21,27 @@ export default class RoomPersister {
 
 	// }
 
-	async persistSync(roomResponse, txn) {
+	persistSync(roomResponse, txn) {
 		let nextKey = this._lastSortKey;
 		const timeline = roomResponse.timeline;
+        const entries = [];
 		// is limited true for initial sync???? or do we need to handle that as a special case?
 		// I suppose it will, yes
 		if (timeline.limited) {
 			nextKey = nextKey.nextKeyWithGap();
-			txn.roomTimeline.appendGap(this._roomId, nextKey, {prev_batch: timeline.prev_batch});
-		}
-		// const startOfChunkSortKey = nextKey;
-
-		if (timeline.events) {
-			for(const event of timeline.events) {
-				nextKey = nextKey.nextKey();
-				txn.roomTimeline.appendEvent(this._roomId, nextKey, event);
+            entries.push(this._createGapEntry(nextKey, timeline.prev_batch));
+        }
+        // const startOfChunkSortKey = nextKey;
+        if (timeline.events) {
+            for(const event of timeline.events) {
+                nextKey = nextKey.nextKey();
+                entries.push(this._createEventEntry(nextKey, event));
 			}
 		}
+        // write to store
+        for(const entry of entries) {
+            txn.roomTimeline.append(entry);
+        }
 		// right thing to do? if the txn fails, not sure we'll continue anyways ...
 		// only advance the key once the transaction has
 		// succeeded 
@@ -55,13 +59,30 @@ export default class RoomPersister {
 		}
 
 		if (timeline.events) {
-			if (state.events) {
-				for (const event of timeline.events) {
-					if (typeof event.state_key === "string") {
-						txn.roomState.setStateEvent(this._roomId, event);
-					}
+			for (const event of timeline.events) {
+				if (typeof event.state_key === "string") {
+					txn.roomState.setStateEvent(this._roomId, event);
 				}
 			}
-		} 
+		}
+        return entries;
 	}
+
+    _createGapEntry(sortKey, prevBatch) {
+        return {
+            roomId: this._roomId,
+            sortKey: sortKey.buffer,
+            event: null,
+            gap: {prev_batch: prevBatch}
+        };
+    }
+
+    _createEventEntry(sortKey, event) {
+        return {
+            roomId: this._roomId,
+            sortKey: sortKey.buffer,
+            event: event,
+            gap: null
+        };
+    }
 }

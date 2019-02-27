@@ -19,39 +19,76 @@ function insertAt(parentNode, idx, childNode) {
 }
 
 export default class ListView {
-    constructor(collection, childCreator) {
-        this._collection = collection;
+    constructor({list, onItemClick}, childCreator) {
+        this._onItemClick = onItemClick;
+        this._list = list;
         this._root = null;
         this._subscription = null;
         this._childCreator = childCreator;
         this._childInstances = null;
+        this._onClick = this._onClick.bind(this);
     }
 
     root() {
         return this._root;
     }
 
-    update() {}
+    update(attributes) {
+        if (attributes.hasOwnProperty("list")) {
+            if (this._subscription) {
+                this._unloadList();
+                while (this._root.lastChild) {
+                    this._root.lastChild.remove();
+                }
+            }
+            this._list = attributes.list;
+            this._loadList();
+        }
+    }
 
     mount() {
-        this._subscription = this._collection.subscribe(this);
         this._root = html.ul({className: "ListView"});
-        this._childInstances = [];
-        for (let item of this._collection) {
-            const child = this._childCreator(item);
-            this._childInstances.push(child);
-            const childDomNode = child.mount();
-            this._root.appendChild(childDomNode);
+        this._loadList();
+        if (this._onItemClick) {
+            this._root.addEventListener("click", this._onClick);
         }
         return this._root;
     }
 
     unmount() {
+        this._unloadList();
+    }
+
+    _onClick(event) {
+        let childNode = event.target;
+        while (childNode.parentNode !== this._root) {
+            childNode = childNode.parentNode;
+        }
+        const index = Array.prototype.indexOf.call(this._root.childNodes, childNode);
+        const childView = this._childInstances[index];
+        this._onItemClick(childView);
+    }
+
+    _unloadList() {
         this._subscription = this._subscription();
         for (let child of this._childInstances) {
             child.unmount();
         }
         this._childInstances = null;
+    }
+
+    _loadList() {
+        if (!this._list) {
+            return;
+        }
+        this._subscription = this._list.subscribe(this);
+        this._childInstances = [];
+        for (let item of this._list) {
+            const child = this._childCreator(item);
+            this._childInstances.push(child);
+            const childDomNode = child.mount();
+            this._root.appendChild(childDomNode);
+        }
     }
 
     onAdd(idx, value) {

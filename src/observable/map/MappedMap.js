@@ -55,6 +55,6 @@ export default class MappedMap extends BaseObservableMap {
     }
 
     [Symbol.iterator]() {
-        return this._mappedValues.entries()[Symbol.iterator];
+        return this._mappedValues.entries();
     }
 }
