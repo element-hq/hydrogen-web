@@ -29,9 +29,9 @@ export default class MappedMap extends BaseObservableMap {
         const mappedValue = this._mappedValues.get(key);
         if (mappedValue !== undefined) {
             const newParams = this._updater(value, params);
-            if (newParams !== undefined) {
+            // if (newParams !== undefined) {
                 this.emitUpdate(key, mappedValue, newParams);
-            }
+            // }
         }
     }
 
