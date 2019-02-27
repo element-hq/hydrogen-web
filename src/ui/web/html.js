@@ -1,4 +1,7 @@
 export function setAttribute(el, name, value) {
+    if (name === "className") {
+        name = "class";
+    }
     el.setAttribute(name, value);
 }
 
