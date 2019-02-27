@@ -32,10 +32,10 @@ export default class RoomSummary {
 		return this._joinCount;
 	}
 
-	async applySync(roomResponse, membership, txn) {
+	applySync(roomResponse, membership, txn) {
 		const changed = this._processSyncResponse(roomResponse, membership);
 		if (changed) {
-			await this._persist(txn);
+			this._persist(txn);
 		}
 		return changed;
 	}
