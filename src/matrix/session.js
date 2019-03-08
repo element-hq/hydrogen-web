@@ -2,20 +2,12 @@ import Room from "./room/room.js";
 import { ObservableMap } from "../observable/index.js";
 
 export default class Session {
-	constructor(storage) {
+	constructor({storage, sessionInfo}) {
 		this._storage = storage;
 		this._session = null;
+        this._sessionInfo = sessionInfo;
 		this._rooms = new ObservableMap();
         this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
-	}
-	// should be called before load
-	// loginData has device_id, user_id, home_server, access_token
-	async setLoginData(loginData) {
-		console.log("session.setLoginData");
-		const txn = await this._storage.readWriteTxn([this._storage.storeNames.session]);
-		const session = {loginData};
-		txn.session.set(session);
-		await txn.complete();
 	}
 
 	async load() {
@@ -28,7 +20,8 @@ export default class Session {
 		// restore session object
 		this._session = await txn.session.get();
 		if (!this._session) {
-			throw new Error("session store is empty");
+            this._session = {};
+			return;
 		}
 		// load rooms
 		const rooms = await txn.roomSummary.getAll();
@@ -57,9 +50,5 @@ export default class Session {
 
 	get syncToken() {
 		return this._session.syncToken;
-	}
-
-	get accessToken() {
-		return this._session.loginData.access_token;
 	}
 }
