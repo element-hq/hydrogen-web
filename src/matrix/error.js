@@ -9,5 +9,7 @@ export class StorageError extends Error {
 }
 
 export class RequestAbortError extends Error {
+}
 
+export class NetworkError extends Error { 
 }

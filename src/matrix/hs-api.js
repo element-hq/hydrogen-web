@@ -1,6 +1,7 @@
 import {
 	HomeServerError,
-	RequestAbortError
+	RequestAbortError,
+    NetworkError
 } from "./error.js";
 
 class RequestWrapper {
@@ -62,10 +63,18 @@ export default class HomeServerApi {
 				}
 			}
 		}, err => {
-			switch (err.name) {
-				case "AbortError": throw new RequestAbortError();
-				default: throw err; //new Error(`Unrecognized DOMException: ${err.name}`);
-			}
+            if (err.name === "AbortError") {
+                throw new RequestAbortError();
+            } else if (err instanceof TypeError) {
+                // Network errors are reported as TypeErrors, see
+                // https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch#Checking_that_the_fetch_was_successful
+                // this can either mean user is offline, server is offline, or a CORS error (server misconfiguration).
+                // 
+                // One could check navigator.onLine to rule out the first
+                // but the 2 later ones are indistinguishable from javascript.
+                throw new NetworkError(err.message);
+            }
+			throw err;
 		});
 		return new RequestWrapper(promise, controller);
 	}
