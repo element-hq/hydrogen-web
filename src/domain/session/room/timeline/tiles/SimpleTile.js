@@ -1,6 +1,7 @@
 export default class SimpleTile {
-    constructor(entry) {
+    constructor({entry, emitUpdate}) {
         this._entry = entry;
+        this._emitUpdate = emitUpdate;
     }
     // view model props for all subclasses
     // hmmm, could also do instanceof ... ?
@@ -33,10 +34,17 @@ export default class SimpleTile {
 
     // update received for already included (falls within sort keys) entry
     updateEntry(entry) {
-
+        // return names of props updated, or true for all, or null for no changes caused
+        return true;
     }
 
-    // simple entry can only contain 1 entry
+    // return whether the tile should be removed
+    // as SimpleTile only has one entry, the tile should be removed
+    removeEntry(entry) {
+        return true;
+    }
+
+    // SimpleTile can only contain 1 entry
     tryIncludeEntry() {
         return false;
     }
