@@ -6,12 +6,18 @@ export default class RoomViewModel extends EventEmitter {
         this._room = room;
         this._timeline = null;
         this._onRoomChange = this._onRoomChange.bind(this);
+        this._timelineError = null;
     }
 
     async enable() {
         this._room.on("change", this._onRoomChange);
-        this._timeline = await this._room.openTimeline();
-        this.emit("change", "timelineEntries");
+        try {
+            this._timeline = await this._room.openTimeline();
+            this.emit("change", "timelineEntries");
+        } catch (err) {
+            this._timelineError = err;
+            this.emit("change", "error");
+        }
     }
 
     disable() {
@@ -32,5 +38,12 @@ export default class RoomViewModel extends EventEmitter {
 
     get timelineEntries() {
         return this._timeline && this._timeline.entries;
+    }
+
+    get error() {
+        if (this._timelineError) {
+            return `Something went wrong loading the timeline: ${this._timelineError.message}`;
+        }
+        return null;
     }
 }
