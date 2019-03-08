@@ -41,7 +41,7 @@ export default class Session {
 		return room;
 	}
 
-	applySync(syncToken, accountData, txn) {
+	persistSync(syncToken, accountData, txn) {
 		if (syncToken !== this._session.syncToken) {
 			this._session.syncToken = syncToken;
 			txn.session.set(this._session);

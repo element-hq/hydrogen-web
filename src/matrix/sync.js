@@ -78,7 +78,7 @@ export default class Sync extends EventEmitter {
 		]);
         const roomChanges = [];
         try {
-            this._session.applySync(syncToken, response.account_data, syncTxn);
+            this._session.persistSync(syncToken, response.account_data, syncTxn);
             // to_device
             // presence
 			if (response.rooms) {
