@@ -1,4 +1,5 @@
 import BaseObservableList from "../../../../observable/list/BaseObservableList.js";
+import sortedIndex from "../../../../utils/sortedIndex.js";
 
 // maps 1..n entries to 0..1 tile. Entries are what is stored in the timeline, either an event or gap
 export default class TilesCollection extends BaseObservableList {
@@ -37,10 +38,25 @@ export default class TilesCollection extends BaseObservableList {
         }
     }
 
-    _findTileIndex(sortKey) {
+    _findTileIdx(sortKey) {
         return sortedIndex(this._tiles, sortKey, (key, tile) => {
-            return tile.compareSortKey(key);
+            // negate result because we're switching the order of the params
+            return -tile.compareSortKey(key);
         });
+    }
+
+    _findTileAtIdx(sortKey, idx) {
+        const tile = this._getTileAtIdx(idx);
+        if (tile && tile.compareSortKey(sortKey) === 0) {
+            return tile;
+        }
+    }
+
+    _getTileAtIdx(tileIdx) {
+        if (tileIdx >= 0 && tileIdx < this._tiles.length) {
+            return this._tiles[tileIdx];
+        }
+        return null;
     }
 
     onUnsubscribeLast() {
@@ -54,25 +70,73 @@ export default class TilesCollection extends BaseObservableList {
         this.emitReset();
     }
 
-    onAdd(index, value) {
+    onAdd(index, entry) {
+        const {sortKey} = entry;
+        const tileIdx = this._findTileIdx(sortKey);
+        const prevTile = this._getTileAtIdx(tileIdx - 1);
+        if (prevTile && prevTile.tryIncludeEntry(entry)) {
+            this.emitUpdate(tileIdx - 1, prevTile);
+            return;
+        }
+        // not + 1 because this entry hasn't been added yet
+        const nextTile = this._getTileAtIdx(tileIdx);
+        if (nextTile && nextTile.tryIncludeEntry(entry)) {
+            this.emitUpdate(tileIdx, nextTile);
+            return;
+        }
+
+        const newTile = this._tileCreator(entry);
+        if (newTile) {
+            prevTile.updateNextSibling(newTile);
+            nextTile.updatePreviousSibling(newTile);
+            this._tiles.splice(tileIdx, 0, newTile);
+            this.emitAdd(tileIdx, newTile);
+        }
         // find position by sort key
         // ask siblings to be included? both? yes, twice: a (insert c here) b, ask a(c), if yes ask b(a), else ask b(c)? if yes then b(a)?
     }
 
-    onUpdate(index, value, params) {
+    onUpdate(index, entry, params) {
+        const {sortKey} = entry;
+        const tileIdx = this._findTileIdx(sortKey);
+        const tile = this._findTileAtIdx(sortKey, tileIdx);
+        if (tile) {
+            const newParams = tile.updateEntry(entry, params);
+            if (newParams) {
+                this.emitUpdate(tileIdx, tile, newParams);
+            }
+        }
+        // technically we should handle adding a tile here as well
+        // in case before we didn't have a tile for it but now we do
+        // but in reality we don't have this use case as the type and msgtype
+        // doesn't change. Decryption maybe is the exception?
+
+
         // outcomes here can be
         //   tiles should be removed (got redacted and we don't want it in the timeline)
         //   tile should be added where there was none before ... ?
         //   entry should get it's own tile now
-        //   merge with neighbours? ... hard to imagine for this use case ...
-
-        // also emit update for tile
+        //   merge with neighbours? ... hard to imagine use case for this  ...
     }
 
-    onRemove(index, value) {
-        // find tile, if any
-        // remove entry from tile
-        // emit update or remove (if empty now) on tile
+    // would also be called when unloading a part of the timeline
+    onRemove(index, entry) {
+        const {sortKey} = entry;
+        const tileIdx = this._findTileIdx(sortKey);
+        const tile = this._findTileAtIdx(sortKey, tileIdx);
+        if (tile) {
+            const removeTile = tile.removeEntry(entry);
+            if (removeTile) {
+                const prevTile = this._getTileAtIdx(tileIdx - 1);
+                const nextTile = this._getTileAtIdx(tileIdx + 1);
+                this._tiles.splice(tileIdx, 1);
+                prevTile && prevTile.updateNextSibling(nextTile);
+                nextTile && nextTile.updatePreviousSibling(prevTile);
+                this.emitRemove(tileIdx, tile);
+            } else {
+                this.emitUpdate(tileIdx, tile);
+            }
+        }
     }
 
     onMove(fromIdx, toIdx, value) {
