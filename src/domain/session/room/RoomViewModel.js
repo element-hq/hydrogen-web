@@ -1,4 +1,4 @@
-import EventEmitter from "../../EventEmitter.js";
+import EventEmitter from "../../../EventEmitter.js";
 
 export default class RoomViewModel extends EventEmitter {
     constructor(room) {

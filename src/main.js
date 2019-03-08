@@ -3,7 +3,7 @@ import Session from "./matrix/session.js";
 import createIdbStorage from "./matrix/storage/idb/create.js";
 import Sync from "./matrix/sync.js";
 import SessionView from "./ui/web/SessionView.js";
-import SessionViewModel from "./ui/viewmodels/SessionViewModel.js";
+import SessionViewModel from "./domain/session/SessionViewModel.js";
 
 const HOST = "localhost";
 const HOMESERVER = `http://${HOST}:8008`;
