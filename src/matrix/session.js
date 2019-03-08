@@ -2,8 +2,10 @@ import Room from "./room/room.js";
 import { ObservableMap } from "../observable/index.js";
 
 export default class Session {
-	constructor({storage, sessionInfo}) {
+    // sessionInfo contains deviceId, userId and homeServer
+	constructor({storage, hsApi, sessionInfo}) {
 		this._storage = storage;
+        this._hsApi = hsApi;
 		this._session = null;
         this._sessionInfo = sessionInfo;
 		this._rooms = new ObservableMap();
@@ -36,7 +38,12 @@ export default class Session {
     }
 
 	createRoom(roomId) {
-		const room = new Room(roomId, this._storage, this._roomUpdateCallback);
+		const room = new Room({
+            roomId,
+            storage: this._storage,
+            emitCollectionChange: this._roomUpdateCallback,
+            hsApi: this._hsApi,
+        });
 		this._rooms.add(roomId, room);
 		return room;
 	}

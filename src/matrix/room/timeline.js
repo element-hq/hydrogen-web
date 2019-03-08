@@ -25,6 +25,30 @@ export default class Timeline {
     }
 
     /** @public */
+    async fillGap(gapEntry, amount) {
+        const gap = gapEntry.gap;
+        let direction;
+        if (gap.prev_batch) {
+            direction = "b";
+        } else if (gap.next_batch) {
+            direction = "f";
+        } else {
+            throw new Error("Invalid gap, no prev_batch or next_batch field: " + JSON.stringify(gapEntry.gap));
+        }
+        const token = gap.prev_batch || gap.next_batch;
+
+        const response = await this._hsApi.messages({
+            roomId: this._roomId,
+            from: token,
+            dir: direction,
+            limit: amount
+        });
+        const newEntries = await this._persister.persistGapFill(gapEntry, response);
+        // find where to replace existing gap with newEntries by doing binary search
+
+    }
+
+    /** @public */
     get entries() {
         return this._entriesList;
     }

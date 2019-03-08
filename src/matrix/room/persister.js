@@ -17,9 +17,9 @@ export default class RoomPersister {
 		}
 	}
 
-	// async persistGapFill(...) {
-
-	// }
+	async persistGapFill(gapEntry, response) {
+        throw new Error("not yet implemented");
+	}
 
 	persistSync(roomResponse, txn) {
 		let nextKey = this._lastSortKey;

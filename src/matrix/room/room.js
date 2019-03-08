@@ -4,10 +4,11 @@ import RoomPersister from "./persister.js";
 import Timeline from "./timeline.js";
 
 export default class Room extends EventEmitter {
-	constructor(roomId, storage, emitCollectionChange) {
+	constructor({roomId, storage, hsApi, emitCollectionChange}) {
         super();
-		this._roomId = roomId;
-		this._storage = storage;
+        this._roomId = roomId;
+        this._storage = storage;
+        this._hsApi = hsApi;
 		this._summary = new RoomSummary(roomId);
 		this._persister = new RoomPersister(roomId);
         this._emitCollectionChange = emitCollectionChange;
@@ -50,6 +51,8 @@ export default class Room extends EventEmitter {
         this._timeline = new Timeline({
             roomId: this.id,
             storage: this._storage,
+            persister: this._persister,
+            hsApi: this._hsApi,
             closeCallback: () => this._timeline = null,
         });
         await this._timeline.load();
