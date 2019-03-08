@@ -10,7 +10,7 @@ export default class Room extends EventEmitter {
         this._storage = storage;
         this._hsApi = hsApi;
 		this._summary = new RoomSummary(roomId);
-		this._persister = new RoomPersister(roomId);
+		this._persister = new RoomPersister({roomId, storage});
         this._emitCollectionChange = emitCollectionChange;
         this._timeline = null;
 	}

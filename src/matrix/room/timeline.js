@@ -1,4 +1,5 @@
 import { ObservableArray } from "../../observable/index.js";
+import sortedIndex from "../../utils/sortedIndex.js";
 
 export default class Timeline {
     constructor({roomId, storage, closeCallback}) {
@@ -37,15 +38,32 @@ export default class Timeline {
         }
         const token = gap.prev_batch || gap.next_batch;
 
-        const response = await this._hsApi.messages({
-            roomId: this._roomId,
+        const response = await this._hsApi.messages(this._roomId, {
             from: token,
             dir: direction,
             limit: amount
         });
+
         const newEntries = await this._persister.persistGapFill(gapEntry, response);
         // find where to replace existing gap with newEntries by doing binary search
+        const gapIdx = sortedIndex(this._entriesList.array, gapEntry.sortKey, (key, entry) => {
+            return key.compare(entry.sortKey);
+        });
+        // only replace the gap if it's currently in the timeline
+        if (this._entriesList.at(gapIdx) === gapEntry) {
+            this._entriesList.removeAt(gapIdx);
+            this._entriesList.insertMany(gapIdx, newEntries);
+        }
+    }
 
+    async loadAtTop(amount) {
+        const firstEntry = this._entriesList.at(0);
+        if (firstEntry) {
+            const txn = await this._storage.readTxn([this._storage.storeNames.roomTimeline]);
+            const topEntries = await txn.roomTimeline.eventsBefore(this._roomId, firstEntry.sortKey, amount);
+            this._entriesList.insertMany(0, topEntries);
+            return topEntries.length;
+        }
     }
 
     /** @public */

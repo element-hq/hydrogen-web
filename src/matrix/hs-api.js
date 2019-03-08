@@ -93,6 +93,11 @@ export default class HomeServerApi {
 		return this._get("/sync", {since, timeout, filter});
 	}
 
+    // params is from, dir and optionally to, limit, filter.
+    messages(roomId, params) {
+        return this._get(`/rooms/${roomId}/messages`, params);
+    }
+
 	passwordLogin(username, password) {
         return this._post("/login", undefined, {
           "type": "m.login.password",
