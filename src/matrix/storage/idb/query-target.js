@@ -10,7 +10,7 @@ export default class QueryTarget {
 	}
 
 	reduceReverse(range, reducer, initialValue) {
-		return this._reduce(range, reducer, initialValue, "next");
+		return this._reduce(range, reducer, initialValue, "prev");
 	}
 	
 	selectLimit(range, amount) {
