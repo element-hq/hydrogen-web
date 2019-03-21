@@ -8,6 +8,24 @@ function gapEntriesAreEqual(a, b) {
     return gapA.prev_batch === gapB.prev_batch && gapA.next_batch === gapB.next_batch;
 }
 
+function replaceGapEntries(roomTimeline, newEntries, gapKey, neighbourEventKey, backwards) {
+    let replacedRange;
+    if (neighbourEventKey) {
+        replacedRange = backwards ?
+            roomTimeline.boundRange(neighbourEventKey, gapKey, false, true) :
+            roomTimeline.boundRange(gapKey, neighbourEventKey, true, false);
+    } else {
+        replacedRange = roomTimeline.onlyRange(gapKey);
+    }
+
+    const removedEntries = roomTimeline.getAndRemoveRange(this._roomId, replacedRange);
+    for (let entry of newEntries) {
+        roomTimeline.add(entry);
+    }
+
+    return removedEntries;
+}
+
 export default class RoomPersister {
 	constructor({roomId, storage}) {
 		this._roomId = roomId;
@@ -26,77 +44,38 @@ export default class RoomPersister {
 		}
 	}
 
-	async persistGapFill(gapEntry, response) {
+    async persistGapFill(gapEntry, response) {
+        const backwards = !!gapEntry.prev_batch;
         const {chunk, start, end} = response;
         if (!Array.isArray(chunk)) {
             throw new Error("Invalid chunk in response");
         }
-        if (typeof start !== "string" || typeof end !== "string") {
-            throw new Error("Invalid start or end token in response");
+        if (typeof end !== "string") {
+            throw new Error("Invalid end token in response");
         }
+        if ((backwards && start !== gapEntry.prev_batch) || (!backwards && start !== gapEntry.next_batch)) {
+            throw new Error("start is not equal to prev_batch or next_batch");
+        }
+        
         const gapKey = gapEntry.sortKey;
         const txn = await this._storage.readWriteTxn([this._storage.storeNames.roomTimeline]);
+        let result;
         try {
             const roomTimeline = txn.roomTimeline;
             // make sure what we've been given is actually persisted
             // in the timeline, otherwise we're replacing something
             // that doesn't exist (maybe it has been replaced already, or ...)
-            const persistedEntry = await roomTimeline.findEntry(this._roomId, gapKey);
+            const persistedEntry = await roomTimeline.get(this._roomId, gapKey);
             if (!gapEntriesAreEqual(gapEntry, persistedEntry)) {
                 throw new Error("Gap is not present in the timeline");
             }
-            // find the previous event before the gap we could blend with
-            const backwards = !!gapEntry.prev_batch;
-            let neighbourEventEntry;
-            if (backwards) {
-                neighbourEventEntry = await roomTimeline.previousEventFromGap(this._roomId, gapKey);
-            } else {
-                neighbourEventEntry = await roomTimeline.nextEventFromGap(this._roomId, gapKey);
-            }
-            const neighbourEvent = neighbourEventEntry && neighbourEventEntry.event;
-
-            const newEntries = [];
-            let sortKey = gapKey;
-            let eventFound = false;
-            if (backwards) {
-                for (let i = chunk.length - 1; i >= 0; i--) {
-                    const event = chunk[i];
-                    if (event.id === neighbourEvent.id) {
-                        eventFound = true;
-                        break;
-                    }
-                    newEntries.splice(0, 0, this._createEventEntry(sortKey, event));
-                    sortKey = sortKey.previousKey();
-                }
-                if (!eventFound) {
-                    newEntries.splice(0, 0, this._createBackwardGapEntry(sortKey, end));
-                }
-            } else {
-                for (let i = 0; i < chunk.length; i++) {
-                    const event = chunk[i];
-                    if (event.id === neighbourEvent.id) {
-                        eventFound = true;
-                        break;
-                    }
-                    newEntries.push(this._createEventEntry(sortKey, event));
-                    sortKey = sortKey.nextKey();
-                }
-                if (!eventFound) {
-                    // need to check start is correct here
-                    newEntries.push(this._createForwardGapEntry(sortKey, start));
-                }
-            }
-
-            if (eventFound) {
-                // remove gap on the other side as well,
-                // or while we're at it, remove all gaps between gapKey and neighbourEventEntry.sortKey
-            } else {
-                roomTimeline.deleteEntry(this._roomId, gapKey);
-            }
-
-            for (let entry of newEntries) {
-                roomTimeline.add(entry);
-            }
+            // find the previous event before the gap we could merge with
+            const neighbourEventEntry = await roomTimeline.findSubsequentEvent(this._roomId, gapKey, backwards);
+            const neighbourEventId = neighbourEventEntry ? neighbourEventEntry.event.event_id : undefined;
+            const {newEntries, eventFound} = this._createNewGapEntries(chunk, end, gapKey, neighbourEventId, backwards);
+            const neighbourEventKey = eventFound ? neighbourEventEntry.sortKey : undefined;
+            const replacedEntries = replaceGapEntries(roomTimeline, newEntries, gapKey, neighbourEventKey, backwards);
+            result = {newEntries, replacedEntries};
         } catch (err) {
             txn.abort();
             throw err;
@@ -104,9 +83,35 @@ export default class RoomPersister {
 
         await txn.complete();
 
-        // somehow also return all the gaps we removed so the timeline can do the same
-        return {newEntries};
-	}
+        return result;
+    }
+
+    _createNewGapEntries(chunk, nextPaginationToken, gapKey, neighbourEventId, backwards) {
+        if (backwards) {
+            // if backwards, the last events are the ones closest to the gap,
+            // and need to be assigned a key derived from the gap first,
+            // so swap order to only need one loop for both directions
+            chunk.reverse();
+        }
+        let sortKey = gapKey;
+        const {newEntries, eventFound} = chunk.reduce((acc, event) => {
+            acc.eventFound = acc.eventFound || event.event_id === neighbourEventId;
+            if (!acc.eventFound) {
+                acc.newEntries.push(this._createEventEntry(sortKey, event));
+                sortKey = backwards ? sortKey.previousKey() : sortKey.nextKey();
+            }
+        }, {newEntries: [], eventFound: false});
+
+        if (!eventFound) {
+            // as we're replacing an existing gap, no need to increment the gap index
+            newEntries.push(this._createGapEntry(sortKey, nextPaginationToken, backwards));
+        }
+        if (backwards) {
+            // swap resulting array order again if needed
+            newEntries.reverse();
+        }
+        return {newEntries, eventFound};
+    }
 
 	persistSync(roomResponse, txn) {
 		let nextKey = this._lastSortKey;
@@ -182,3 +187,89 @@ export default class RoomPersister {
         };
     }
 }
+
+//#ifdef TESTS
+import {StorageMock, RoomTimelineMock} from "../../src/mocks/storage.js";
+
+export async function tests() {
+    const roomId = "!abc:hs.tld";
+
+    function areSorted(entries) {
+        for (var i = 1; i < entries.length; i++) {
+            const isSorted = entries[i - 1].sortKey.compare(entries[i].sortKey) < 0;
+            if(!isSorted) {
+                return false
+            }
+        }
+        return true;
+    }
+
+    return {
+        "test backwards gap fill with overlapping neighbouring event": async function(assert) {
+            const currentPaginationToken = "abc";
+            const gap = {gap: {prev_batch: currentPaginationToken}};
+            // assigns roomId and sortKey
+            const roomTimeline = RoomTimelineMock.forRoom(roomId, [
+                {event: {event_id: "b"}},
+                {gap: {next_batch: "ghi"}},
+                gap,
+            ]);
+            const persister = new RoomPersister(roomId, new StorageMock({roomTimeline}));
+            const response = {
+                start: currentPaginationToken,
+                end: "def",
+                chunk: [
+                    {event_id: "a"},
+                    {event_id: "b"},
+                    {event_id: "c"},
+                    {event_id: "d"},
+                ]
+            };
+            const {newEntries, replacedEntries} = await persister.persistGapFill(gap, response);
+            // should only have taken events up till existing event
+            assert.equal(newEntries.length, 2);
+            assert.equal(newEntries[0].event.event_id, "c");
+            assert.equal(newEntries[1].event.event_id, "d");
+            assert.equal(replacedEntries.length, 2);
+            assert.equal(replacedEntries[0].gap.next_batch, "hij");
+            assert.equal(replacedEntries[1].gap.prev_batch, currentPaginationToken);
+            assert(areSorted(newEntries));
+            assert(areSorted(replacedEntries));
+        },
+        "test backwards gap fill with non-overlapping neighbouring event": async function(assert) {
+            const currentPaginationToken = "abc";
+            const newPaginationToken = "def";
+            const gap = {gap: {prev_batch: currentPaginationToken}};
+            // assigns roomId and sortKey
+            const roomTimeline = RoomTimelineMock.forRoom(roomId, [
+                {event: {event_id: "a"}},
+                {gap: {next_batch: "ghi"}},
+                gap,
+            ]);
+            const persister = new RoomPersister(roomId, new StorageMock({roomTimeline}));
+            const response = {
+                start: currentPaginationToken,
+                end: newPaginationToken,
+                chunk: [
+                    {event_id: "c"},
+                    {event_id: "d"},
+                    {event_id: "e"},
+                    {event_id: "f"},
+                ]
+            };
+            const {newEntries, replacedEntries} = await persister.persistGapFill(gap, response);
+            // should only have taken events up till existing event
+            assert.equal(newEntries.length, 5);
+            assert.equal(newEntries[0].gap.prev_batch, newPaginationToken);
+            assert.equal(newEntries[1].event.event_id, "c");
+            assert.equal(newEntries[2].event.event_id, "d");
+            assert.equal(newEntries[3].event.event_id, "e");
+            assert.equal(newEntries[4].event.event_id, "f");
+            assert(areSorted(newEntries));
+
+            assert.equal(replacedEntries.length, 1);
+            assert.equal(replacedEntries[0].gap.prev_batch, currentPaginationToken);
+        },
+    }
+}
+//#endif
