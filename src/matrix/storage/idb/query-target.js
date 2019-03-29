@@ -1,9 +1,13 @@
-import {iterateCursor} from "./utils.js";
+import {iterateCursor, reqAsPromise} from "./utils.js";
 
 export default class QueryTarget {
 	constructor(target) {
 		this._target = target;
 	}
+
+    get(key) {
+        return reqAsPromise(this._target.get(key));
+    }
 
 	reduce(range, reducer, initialValue) {
 		return this._reduce(range, reducer, initialValue, "next");
