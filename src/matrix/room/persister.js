@@ -70,7 +70,9 @@ export default class RoomPersister {
                 throw new Error("Gap is not present in the timeline");
             }
             // find the previous event before the gap we could merge with
-            const neighbourEventEntry = await roomTimeline.findSubsequentEvent(this._roomId, gapKey, backwards);
+            const neighbourEventEntry = await (backwards ?
+                roomTimeline.previousEvent(this._roomId, gapKey) :
+                roomTimeline.nextEvent(this._roomId, gapKey));
             const neighbourEventId = neighbourEventEntry ? neighbourEventEntry.event.event_id : undefined;
             const {newEntries, eventFound} = this._createNewGapEntries(chunk, end, gapKey, neighbourEventId, backwards);
             const neighbourEventKey = eventFound ? neighbourEventEntry.sortKey : undefined;
@@ -123,7 +125,6 @@ export default class RoomPersister {
 			nextKey = nextKey.nextKeyWithGap();
             entries.push(this._createBackwardGapEntry(nextKey, timeline.prev_batch));
         }
-        // const startOfChunkSortKey = nextKey;
         if (timeline.events) {
             for(const event of timeline.events) {
                 nextKey = nextKey.nextKey();
@@ -132,7 +133,7 @@ export default class RoomPersister {
 		}
         // write to store
         for(const entry of entries) {
-            txn.roomTimeline.add(entry);
+            txn.roomTimeline.insert(entry);
         }
 		// right thing to do? if the txn fails, not sure we'll continue anyways ...
 		// only advance the key once the transaction has
@@ -189,10 +190,27 @@ export default class RoomPersister {
 }
 
 //#ifdef TESTS
-import {StorageMock, RoomTimelineMock} from "../../src/mocks/storage.js";
+import MemoryStorage from "../storage/memory/MemoryStorage.js";
 
-export async function tests() {
+export function tests() {
     const roomId = "!abc:hs.tld";
+
+    // sets sortKey and roomId on an array of entries
+    function createTimeline(roomId, entries) {
+        let key = new SortKey();
+        for (let entry of entries) {
+            if (entry.gap && entry.gap.prev_batch) {
+                key = key.nextKeyWithGap();
+            }
+            entry.sortKey = key;
+            if (entry.gap && entry.gap.next_batch) {
+                key = key.nextKeyWithGap();
+            } else if (!entry.gap) {
+                key = key.nextKey();
+            }
+            entry.roomId = roomId;
+        }
+    }
 
     function areSorted(entries) {
         for (var i = 1; i < entries.length; i++) {
@@ -208,13 +226,12 @@ export async function tests() {
         "test backwards gap fill with overlapping neighbouring event": async function(assert) {
             const currentPaginationToken = "abc";
             const gap = {gap: {prev_batch: currentPaginationToken}};
-            // assigns roomId and sortKey
-            const roomTimeline = RoomTimelineMock.forRoom(roomId, [
+            const storage = new MemoryStorage({roomTimeline: createTimeline(roomId, [
                 {event: {event_id: "b"}},
                 {gap: {next_batch: "ghi"}},
                 gap,
-            ]);
-            const persister = new RoomPersister(roomId, new StorageMock({roomTimeline}));
+            ])});
+            const persister = new RoomPersister({roomId, storage});
             const response = {
                 start: currentPaginationToken,
                 end: "def",
@@ -240,13 +257,12 @@ export async function tests() {
             const currentPaginationToken = "abc";
             const newPaginationToken = "def";
             const gap = {gap: {prev_batch: currentPaginationToken}};
-            // assigns roomId and sortKey
-            const roomTimeline = RoomTimelineMock.forRoom(roomId, [
+            const storage = new MemoryStorage({roomTimeline: createTimeline(roomId, [
                 {event: {event_id: "a"}},
                 {gap: {next_batch: "ghi"}},
                 gap,
-            ]);
-            const persister = new RoomPersister(roomId, new StorageMock({roomTimeline}));
+            ])});
+            const persister = new RoomPersister({roomId, storage});
             const response = {
                 start: currentPaginationToken,
                 end: newPaginationToken,
