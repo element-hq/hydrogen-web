@@ -44,4 +44,4 @@ Updates from view models can come in two ways. View models emit a change event, 
 
 For view models part of an observable collection (and to be rendered by a ListView), updates can also propagate through the collection and delivered by the ListView to the view in question. This avoids every child component in a ListView having to attach a listener to it's viewModel. This is the mechanism to update the room name in a RoomTile in the room list for example.
 
-TODO: specify how the collection based updates work.
+TODO: specify how the collection based updates work. (not specified yet, we'd need a way to derive a key from a value to emit an update from within a collection, but haven't found a nice way of specifying that in an api)
