@@ -1,5 +1,6 @@
 import SortKey from "../sortkey.js";
 import sortedIndex from "../../../utils/sortedIndex.js";
+import Store from "./Store";
 
 function compareKeys(key, entry) {
     if (key.roomId === entry.roomId) {
@@ -64,9 +65,13 @@ class Range {
     }
 }
 
-export default class RoomTimelineStore {
-    constructor(initialTimeline = []) {
-        this._timeline = initialTimeline;
+export default class RoomTimelineStore extends Store {
+    constructor(timeline, writable) {
+        super(timeline || [], writable);
+    }
+
+    get _timeline() {
+        return this._storeValue;
     }
 
     /** Creates a range that only includes the given key
@@ -176,6 +181,7 @@ export default class RoomTimelineStore {
      *  @throws {StorageError} ...
      */
     insert(entry) {
+        this.assertWritable();
         const insertIndex = sortedIndex(this._timeline, entry, compareKeys);
         if (insertIndex < this._timeline.length) {
             const existingEntry = this._timeline[insertIndex];
@@ -193,6 +199,7 @@ export default class RoomTimelineStore {
      *  @return {Promise<>} a promise resolving to undefined if the operation was successful, or a StorageError if not.
      */
     update(entry) {
+        this.assertWritable();
         let update = false;
         const updateIndex = sortedIndex(this._timeline, entry, compareKeys);
         if (updateIndex < this._timeline.length) {
@@ -213,6 +220,7 @@ export default class RoomTimelineStore {
     }
 
     removeRange(roomId, range) {
+        this.assertWritable();
         const {startIndex, count} = range.project(roomId);
         const removedEntries = this._timeline.splice(startIndex, count);
         return Promise.resolve(removedEntries);
