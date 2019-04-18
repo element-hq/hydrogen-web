@@ -1,0 +1,10 @@
+ - DONE: write FragmentIndex
+ - adapt SortKey
+ - write fragmentStore
+ - adapt timelineStore
+ - adapt persister
+    - persist fragments in /sync
+    - load n items before and after key
+    - fill gaps / fragment filling
+ - add live fragment id optimization if we haven't done so already
+ - lets try to not have to have the fragmentindex in memory if the timeline isn't loaded
