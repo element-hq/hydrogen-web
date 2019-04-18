@@ -10,10 +10,12 @@ function createStores(db) {
 	db.createObjectStore("session", {keyPath: "key"});
 	// any way to make keys unique here? (just use put?)
 	db.createObjectStore("roomSummary", {keyPath: "roomId"});
+
+    db.createObjectStore("timelineFragments", {keyPath: ["roomId", "id"]});
 	// needs roomId separate because it might hold a gap and no event
-	const timeline = db.createObjectStore("roomTimeline", {keyPath: ["roomId", "sortKey"]});
-	timeline.createIndex("byEventId", [
-		"roomId",
+	const timelineEvents = db.createObjectStore("timelineEvents", {keyPath: ["event.room_id", "fragmentId", "sortKey"]});
+	timelineEvents.createIndex("byEventId", [
+		"event.room_id",
 		"event.event_id"
 	], {unique: true});
 
