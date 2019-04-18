@@ -1,4 +1,5 @@
 import SortKey from "../storage/sortkey.js";
+import FragmentIndex from "./timeline/FragmentIndex.js";
 
 function gapEntriesAreEqual(a, b) {
     if (!a || !b || !a.gap || !b.gap) {
@@ -190,9 +191,9 @@ export default class RoomPersister {
 }
 
 //#ifdef TESTS
-import MemoryStorage from "../storage/memory/MemoryStorage.js";
+//import MemoryStorage from "../storage/memory/MemoryStorage.js";
 
-export function tests() {
+export function xtests() {
     const roomId = "!abc:hs.tld";
 
     // sets sortKey and roomId on an array of entries
