@@ -1,4 +1,4 @@
-import SortKey from "../../sortkey.js";
+import SortKey from "../../../room/timeline/SortKey.js";
 
 class Range {
     constructor(only, lower, upper, lowerOpen, upperOpen) {

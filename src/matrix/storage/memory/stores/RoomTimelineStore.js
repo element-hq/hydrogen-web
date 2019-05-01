@@ -1,6 +1,6 @@
-import SortKey from "../sortkey.js";
+import SortKey from "../../room/timeline/SortKey.js";
 import sortedIndex from "../../../utils/sortedIndex.js";
-import Store from "./Store";
+import Store from "./Store.js";
 
 function compareKeys(key, entry) {
     if (key.roomId === entry.roomId) {

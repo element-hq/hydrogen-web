@@ -1,10 +1,3 @@
-class Fragment {
-    constructor(previousId, nextId) {
-        this.previousId = previousId;
-        this.nextId = nextId;
-    }
-}
-
 /*
 lookups will be far more frequent than changing fragment order,
 so data structure should be optimized for fast lookup
@@ -93,7 +86,7 @@ class Island {
         });
     }
 
-    compareIds(idA, idB) {
+    compare(idA, idB) {
         const sortIndexA = this._idToSortIndex.get(idA);
         if (sortIndexA === undefined) {
             throw new Error(`first id ${idA} isn't part of this island`);
@@ -126,7 +119,7 @@ export default class FragmentIndex {
         return island;
     }
 
-    compareIds(idA, idB) {
+    compare(idA, idB) {
         if (idA === idB) {
             return 0;
         }
@@ -135,7 +128,7 @@ export default class FragmentIndex {
         if (islandA !== islandB) {
             throw new Error(`${idA} and ${idB} are on different islands, can't tell order`);
         }
-        return islandA.compareIds(idA, idB);
+        return islandA.compare(idA, idB);
     }
 
     rebuild(fragments) {
@@ -166,6 +159,7 @@ export default class FragmentIndex {
     // }
 }
 
+//#ifdef TESTS
 export function tests() {
     return {
         test_1_island_3_fragments(assert) {
@@ -174,24 +168,24 @@ export function tests() {
                 {id: 1, nextId: 2},
                 {id: 2, nextId: 3, previousId: 1},
             ]);
-            assert(index.compareIds(1, 2) < 0);
-            assert(index.compareIds(2, 1) > 0);
+            assert(index.compare(1, 2) < 0);
+            assert(index.compare(2, 1) > 0);
 
-            assert(index.compareIds(1, 3) < 0);
-            assert(index.compareIds(3, 1) > 0);
+            assert(index.compare(1, 3) < 0);
+            assert(index.compare(3, 1) > 0);
             
-            assert(index.compareIds(2, 3) < 0);
-            assert(index.compareIds(3, 2) > 0);
+            assert(index.compare(2, 3) < 0);
+            assert(index.compare(3, 2) > 0);
             
-            assert.equal(index.compareIds(1, 1), 0);
+            assert.equal(index.compare(1, 1), 0);
         },
         test_2_island_dont_compare(assert) {
             const index = new FragmentIndex([
                 {id: 1},
                 {id: 2},
             ]);
-            assert.throws(() => index.compareIds(1, 2));
-            assert.throws(() => index.compareIds(2, 1));
+            assert.throws(() => index.compare(1, 2));
+            assert.throws(() => index.compare(2, 1));
         },
         test_2_island_compare_internally(assert) {
             const index = new FragmentIndex([
@@ -202,16 +196,16 @@ export function tests() {
                 
             ]);
 
-            assert(index.compareIds(1, 2) < 0);
-            assert(index.compareIds(11, 12) < 0);
+            assert(index.compare(1, 2) < 0);
+            assert(index.compare(11, 12) < 0);
             
-            assert.throws(() => index.compareIds(1, 11));
-            assert.throws(() => index.compareIds(12, 2));
+            assert.throws(() => index.compare(1, 11));
+            assert.throws(() => index.compare(12, 2));
         },
         test_unknown_id(assert) {
             const index = new FragmentIndex([{id: 1}]);
-            assert.throws(() => index.compareIds(1, 2));
-            assert.throws(() => index.compareIds(2, 1));
+            assert.throws(() => index.compare(1, 2));
+            assert.throws(() => index.compare(2, 1));
         },
         test_rebuild_flushes_old_state(assert) {
             const index = new FragmentIndex([
@@ -223,8 +217,9 @@ export function tests() {
                 {id: 12, previousId: 11},
             ]);
             
-            assert.throws(() => index.compareIds(1, 2));
-            assert(index.compareIds(11, 12) < 0);
+            assert.throws(() => index.compare(1, 2));
+            assert(index.compare(11, 12) < 0);
         },
     }
 }
+//#endif

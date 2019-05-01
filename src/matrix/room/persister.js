@@ -1,4 +1,4 @@
-import SortKey from "../storage/sortkey.js";
+import SortKey from "./timeline/SortKey.js";
 import FragmentIndex from "./timeline/FragmentIndex.js";
 
 function gapEntriesAreEqual(a, b) {
@@ -31,6 +31,7 @@ export default class RoomPersister {
 	constructor({roomId, storage}) {
 		this._roomId = roomId;
         this._storage = storage;
+        // TODO: load fragmentIndex?
 		this._lastSortKey = new SortKey();
 	}
 
@@ -38,6 +39,7 @@ export default class RoomPersister {
 		//fetch key here instead?
 		const [lastEvent] = await txn.roomTimeline.lastEvents(this._roomId, 1);
 		if (lastEvent) {
+            // TODO: load fragmentIndex?
 			this._lastSortKey = new SortKey(lastEvent.sortKey);
 			console.log("room persister load", this._roomId, this._lastSortKey.toString());
 		} else {

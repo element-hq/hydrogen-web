@@ -1,5 +1,10 @@
  - DONE: write FragmentIndex
- - adapt SortKey
+ - adapt SortKey ... naming! :
+    - FragmentIndex (index as in db index)
+        - compare(fragmentKeyA, fragmentKeyB)
+    - SortKey
+        - FragmentKey
+        - EventKey (we don't use id here because we already have event_id in the event)
  - write fragmentStore
  - adapt timelineStore
  - adapt persister
