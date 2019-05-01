@@ -11,32 +11,32 @@ const MID = MID_UINT32;
 const MAX = MAX_UINT32;
 
 export default class SortKey {
-	constructor(fragmentIndex, buffer) {
+	constructor(fragmentIdComparer, buffer) {
 		if (buffer) {
 			this._keys = new DataView(buffer);
 		} else {
 			this._keys = new DataView(new ArrayBuffer(8));
 			// start default key right at the middle fragment key, min event key
 			// so we have the same amount of key address space either way
-			this.fragmentKey = MID;
-			this.eventKey = MIN;
+			this.fragmentId = MID;
+			this.eventIndex = MIN;
 		}
-        this._fragmentIndex = fragmentIndex;
+        this._fragmentIdComparer = fragmentIdComparer;
 	}
 
-	get fragmentKey() {
+	get fragmentId() {
 		return this._keys.getUint32(0, false);
 	}
 
-	set fragmentKey(value) {
+	set fragmentId(value) {
 		return this._keys.setUint32(0, value, false);
 	}
 
-	get eventKey() {
+	get eventIndex() {
 		return this._keys.getUint32(4, false);
 	}
 
-	set eventKey(value) {
+	set eventIndex(value) {
 		return this._keys.setUint32(4, value, false);
 	}
 
@@ -45,136 +45,136 @@ export default class SortKey {
 	}
 
 	nextFragmentKey() {
-		const k = new SortKey(this._fragmentIndex);
-		k.fragmentKey = this.fragmentKey + 1;
-		k.eventKey = MIN;
+		const k = new SortKey(this._fragmentIdComparer);
+		k.fragmentId = this.fragmentId + 1;
+		k.eventIndex = MIN;
 		return k;
 	}
 
 	nextKey() {
-		const k = new SortKey(this._fragmentIndex);
-		k.fragmentKey = this.fragmentKey;
-		k.eventKey = this.eventKey + 1;
+		const k = new SortKey(this._fragmentIdComparer);
+		k.fragmentId = this.fragmentId;
+		k.eventIndex = this.eventIndex + 1;
 		return k;
 	}
 
 	previousKey() {
-		const k = new SortKey(this._fragmentIndex);
-		k.fragmentKey = this.fragmentKey;
-		k.eventKey = this.eventKey - 1;
+		const k = new SortKey(this._fragmentIdComparer);
+		k.fragmentId = this.fragmentId;
+		k.eventIndex = this.eventIndex - 1;
 		return k;
 	}
 
 	clone() {
 		const k = new SortKey();
-		k.fragmentKey = this.fragmentKey;
-		k.eventKey = this.eventKey;	
+		k.fragmentId = this.fragmentId;
+		k.eventIndex = this.eventIndex;	
 		return k;
 	}
 
 	static get maxKey() {
 		const maxKey = new SortKey(null);
-		maxKey.fragmentKey = MAX;
-		maxKey.eventKey = MAX;
+		maxKey.fragmentId = MAX;
+		maxKey.eventIndex = MAX;
 		return maxKey;
 	}
 
 	static get minKey() {
 		const minKey = new SortKey(null);
-		minKey.fragmentKey = MIN;
-		minKey.eventKey = MIN;
+		minKey.fragmentId = MIN;
+		minKey.eventIndex = MIN;
 		return minKey;
 	}
 
     compare(otherKey) {
-        const fragmentDiff = this.fragmentKey - otherKey.fragmentKey;
+        const fragmentDiff = this.fragmentId - otherKey.fragmentId;
         if (fragmentDiff === 0) {
-            return this.eventKey - otherKey.eventKey;
+            return this.eventIndex - otherKey.eventIndex;
         } else {
-            // minKey and maxKey might not have fragmentIndex, so short-circuit this first ...
-            if (this.fragmentKey === MIN || otherKey.fragmentKey === MAX) {
+            // minKey and maxKey might not have fragmentIdComparer, so short-circuit this first ...
+            if (this.fragmentId === MIN || otherKey.fragmentId === MAX) {
                 return -1;
             }
-            if (this.fragmentKey === MAX || otherKey.fragmentKey === MIN) {
+            if (this.fragmentId === MAX || otherKey.fragmentId === MIN) {
                 return 1;
             }
-            // ... then delegate to fragmentIndex.
+            // ... then delegate to fragmentIdComparer.
             // This might throw if the relation of two fragments is unknown.
-            return this._fragmentIndex.compare(this.fragmentKey, otherKey.fragmentKey);
+            return this._fragmentIdComparer.compare(this.fragmentId, otherKey.fragmentId);
         }
     }
 
 	toString() {
-		return `[${this.fragmentKey}/${this.eventKey}]`;
+		return `[${this.fragmentId}/${this.eventIndex}]`;
 	}
 }
 
 //#ifdef TESTS
 export function tests() {
-    const fragmentIndex = {compare: (a, b) => a - b};
+    const fragmentIdComparer = {compare: (a, b) => a - b};
 
 	return {
 		test_default_key(assert) {
-			const k = new SortKey(fragmentIndex);
-			assert.equal(k.fragmentKey, MID);
-			assert.equal(k.eventKey, MIN);
+			const k = new SortKey(fragmentIdComparer);
+			assert.equal(k.fragmentId, MID);
+			assert.equal(k.eventIndex, MIN);
 		},
 
 		test_inc(assert) {
-			const a = new SortKey(fragmentIndex);
+			const a = new SortKey(fragmentIdComparer);
 			const b = a.nextKey();
-			assert.equal(a.fragmentKey, b.fragmentKey);
-			assert.equal(a.eventKey + 1, b.eventKey);
+			assert.equal(a.fragmentId, b.fragmentId);
+			assert.equal(a.eventIndex + 1, b.eventIndex);
 			const c = b.previousKey();
-			assert.equal(b.fragmentKey, c.fragmentKey);
-			assert.equal(c.eventKey + 1, b.eventKey);
-			assert.equal(a.eventKey, c.eventKey);
+			assert.equal(b.fragmentId, c.fragmentId);
+			assert.equal(c.eventIndex + 1, b.eventIndex);
+			assert.equal(a.eventIndex, c.eventIndex);
 		},
 
 		test_min_key(assert) {
 			const minKey = SortKey.minKey;
-			const k = new SortKey(fragmentIndex);
-			assert(minKey.fragmentKey <= k.fragmentKey);
-			assert(minKey.eventKey <= k.eventKey);
+			const k = new SortKey(fragmentIdComparer);
+			assert(minKey.fragmentId <= k.fragmentId);
+			assert(minKey.eventIndex <= k.eventIndex);
             assert(k.compare(minKey) > 0);
             assert(minKey.compare(k) < 0);
 		},
 
 		test_max_key(assert) {
 			const maxKey = SortKey.maxKey;
-			const k = new SortKey(fragmentIndex);
-			assert(maxKey.fragmentKey >= k.fragmentKey);
-			assert(maxKey.eventKey >= k.eventKey);
+			const k = new SortKey(fragmentIdComparer);
+			assert(maxKey.fragmentId >= k.fragmentId);
+			assert(maxKey.eventIndex >= k.eventIndex);
             assert(k.compare(maxKey) < 0);
             assert(maxKey.compare(k) > 0);
 		},
 
 		test_immutable(assert) {
-			const a = new SortKey(fragmentIndex);
-			const fragmentKey = a.fragmentKey;
-			const eventKey = a.eventKey;
+			const a = new SortKey(fragmentIdComparer);
+			const fragmentId = a.fragmentId;
+			const eventIndex = a.eventIndex;
 			a.nextFragmentKey();
-			assert.equal(a.fragmentKey, fragmentKey);
-			assert.equal(a.eventKey, eventKey);
+			assert.equal(a.fragmentId, fragmentId);
+			assert.equal(a.eventIndex, eventIndex);
 		},
 
-		test_cmp_fragmentkey_first(assert) {
-			const a = new SortKey(fragmentIndex);
-			const b = new SortKey(fragmentIndex);
-			a.fragmentKey = 2;
-			a.eventKey = 1;
-			b.fragmentKey = 1;
-			b.eventKey = 100000;
+		test_cmp_fragmentid_first(assert) {
+			const a = new SortKey(fragmentIdComparer);
+			const b = new SortKey(fragmentIdComparer);
+			a.fragmentId = 2;
+			a.eventIndex = 1;
+			b.fragmentId = 1;
+			b.eventIndex = 100000;
 			assert(a.compare(b) > 0);
 		},
 
-		test_cmp_eventkey_second(assert) {
-			const a = new SortKey(fragmentIndex);
-			const b = new SortKey(fragmentIndex);
-			a.fragmentKey = 1;
-			a.eventKey = 100000;
-			b.fragmentKey = 1;
-			b.eventKey = 2;
+		test_cmp_eventindex_second(assert) {
+			const a = new SortKey(fragmentIdComparer);
+			const b = new SortKey(fragmentIdComparer);
+			a.fragmentId = 1;
+			a.eventIndex = 100000;
+			b.fragmentId = 1;
+			b.eventIndex = 2;
 			assert(a.compare(b) > 0);
 		},
 
@@ -182,13 +182,13 @@ export function tests() {
 			assert(SortKey.minKey.compare(SortKey.maxKey) < 0);
 		},
 
-		test_cmp_fragmentkey_first_large(assert) {
-			const a = new SortKey(fragmentIndex);
-			const b = new SortKey(fragmentIndex);
-			a.fragmentKey = MAX;
-			a.eventKey = MIN;
-			b.fragmentKey = MIN;
-			b.eventKey = MAX;
+		test_cmp_fragmentid_first_large(assert) {
+			const a = new SortKey(fragmentIdComparer);
+			const b = new SortKey(fragmentIdComparer);
+			a.fragmentId = MAX;
+			a.eventIndex = MIN;
+			b.fragmentId = MIN;
+			b.eventIndex = MAX;
 			assert(b < a);
 			assert(a > b);
 		}
