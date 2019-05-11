@@ -105,23 +105,29 @@ export default class RoomTimelineStore {
 
     /** Looks up the last `amount` entries in the timeline for `roomId`.
      *  @param  {string} roomId
+     *  @param  {number} fragmentId
      *  @param  {number} amount
      *  @return {Promise<Entry[]>} a promise resolving to an array with 0 or more entries, in ascending order.
      */
-	async lastEvents(roomId, amount) {
-		return this.eventsBefore(roomId, SortKey.maxKey, amount);
+	async lastEvents(roomId, fragmentId, amount) {
+        const sortKey = SortKey.maxKey;
+        sortKey.fragmentId = fragmentId;
+		return this.eventsBefore(roomId, sortKey, amount);
 	}
 
     /** Looks up the first `amount` entries in the timeline for `roomId`.
      *  @param  {string} roomId
+     *  @param  {number} fragmentId
      *  @param  {number} amount
      *  @return {Promise<Entry[]>} a promise resolving to an array with 0 or more entries, in ascending order.
      */
-	async firstEvents(roomId, amount) {
-		return this.eventsAfter(roomId, SortKey.minKey, amount);
+	async firstEvents(roomId, fragmentId, amount) {
+        const sortKey = SortKey.minKey;
+        sortKey.fragmentId = fragmentId;
+		return this.eventsAfter(roomId, sortKey, amount);
 	}
 
-    /** Looks up `amount` entries after `sortKey` in the timeline for `roomId`.
+    /** Looks up `amount` entries after `sortKey` in the timeline for `roomId` within the same fragment.
      *  The entry for `sortKey` is not included.
      *  @param  {string} roomId
      *  @param  {SortKey} sortKey
@@ -133,7 +139,7 @@ export default class RoomTimelineStore {
 		return this._timelineStore.selectLimit(idbRange, amount);
 	}
 
-    /** Looks up `amount` entries before `sortKey` in the timeline for `roomId`.
+    /** Looks up `amount` entries before `sortKey` in the timeline for `roomId` within the same fragment.
      *  The entry for `sortKey` is not included.
      *  @param  {string} roomId
      *  @param  {SortKey} sortKey
