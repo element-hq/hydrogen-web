@@ -6,10 +6,40 @@
         - FragmentId
         - EventIndex
  - write fragmentStore
+    - load all fragments
+    - add a fragment (live on limited sync, or /context)
+    - connect two fragments
+    - update token on fragment (when filling gap or connecting two fragments)
+
+    fragments can need connecting when filling a gap or creating a new /context fragment
  - adapt timelineStore
+
+    how will fragments be exposed in timeline store?
+        - all read operations are passed a fragment id
  - adapt persister
     - persist fragments in /sync
     - load n items before and after key
     - fill gaps / fragment filling
  - add live fragment id optimization if we haven't done so already
  - lets try to not have to have the fragmentindex in memory if the timeline isn't loaded
+    - could do this by only loading all fragments into index when filling gaps, backpaginating, ... and on persister load only load the last fragment. This wouldn't even need a FragmentIndex?
+
+
+so a gap is two connected fragments where either the first fragment has a nextToken and/or the second fragment has a previousToken. It can be both, so we can have a gap where you can fill in from the top, from the bottom (like when limited sync) or both.
+
+
+
+
+also, filling gaps and storing /context, how do we find the fragment we could potentially merge with to look for overlapping events?
+
+with /sync this is all fine and dandy, but with /context is there a way where we don't need to look up every event_id in the store to see if it's already there?
+    we can do a anyOf(event_id) on timelineStore.index("by_index") by sorting the event ids according to IndexedDb.cmp and passing the next value to cursor.continue(nextId).
+
+so we'll need to remove previous/nextEvent on the timeline store and come up with a method to find the first matched event in a list of eventIds.
+    so we'll need to map all event ids to an event and return the first one that is not null. If we haven't read all events but we know that all the previous ones are null, then we can already return the result. 
+
+    we can call this findFirstEventIn(roomId, [event ids])
+
+thoughts:
+    - ranges in timeline store with fragmentId might not make sense anymore as doing queries over multiple fragment ids doesn't make sense anymore ... still makes sense to have them part of SortKey though ...
+    - we need a test for querytarget::lookup, or make sure it works well ...

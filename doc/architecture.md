@@ -18,7 +18,7 @@ let fragment := {
     id: number
     previousId: number?
     nextId: number?
-    prevToken: string?
+    previousToken: string?
     nextToken: string?
 }
 ```
@@ -27,7 +27,7 @@ let fragment := {
 
 `Room`s on the `Session` are exposed as an `ObservableMap` collection, which is like an ordinary `Map` but emits events when it is modified (here when a room is added, removed, or the properties of a room change). `ObservableMap` can have different operators applied to it like `mapValues()`, `filterValues()` each returning a new `ObservableMap`-like object, and also `sortValues()` returning an `ObservableList` (emitting events when a room at an index is added, removed, moved or changes properties).
 
-So example, for the room list, `Room` objects from `Session.rooms` are mapped to a `RoomTileViewModel` and then sorted. This gives us fine-grained events at the end of the collection chain that can be easily and efficiently rendered by the `ListView` component.
+So for example, the room list, `Room` objects from `Session.rooms` are mapped to a `RoomTileViewModel` and then sorted. This gives us fine-grained events at the end of the collection chain that can be easily and efficiently rendered by the `ListView` component.
 
 On that note, view components are just a simple convention, having these methods:
 
