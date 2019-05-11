@@ -1,5 +1,5 @@
 import SortKey from "./timeline/SortKey.js";
-import FragmentIndex from "./timeline/FragmentIndex.js";
+import FragmentIdIndex from "./timeline/FragmentIdIndex.js";
 
 function gapEntriesAreEqual(a, b) {
     if (!a || !b || !a.gap || !b.gap) {
@@ -31,9 +31,7 @@ export default class RoomPersister {
 	constructor({roomId, storage}) {
 		this._roomId = roomId;
         this._storage = storage;
-        // TODO: load fragmentIndex?
-		this._lastSortKey = new SortKey();
-		this._lastSortKey = null;
+		this._lastLiveKey = null;
         this._fragmentIdIndex = new FragmentIdIndex([]);   //only used when timeline is loaded ... e.g. "certain" methods on this class... split up?
 	}
 
@@ -41,13 +39,18 @@ export default class RoomPersister {
         const liveFragment = await txn.roomFragments.liveFragment(this._roomId);
         if (liveFragment) {
             const [lastEvent] = await txn.roomTimeline.lastEvents(this._roomId, liveFragment.id, 1);
-            // last event needs to come from the fragment (e.g. passing the last fragment id)
-            const lastSortKey = new SortKey(this._fragmentIdIndex);
-            lastSortKey.fragmentId = liveFragment.id;
-            lastSortKey.eventIndex = lastEvent.eventIndex;
-            this._lastSortKey = lastSortKey;
+            // sorting and identifying (e.g. sort key and pk to insert) are a bit intertwined here
+            // we could split it up into a SortKey (only with compare) and
+            // a EventKey (no compare or fragment index) with nextkey methods and getters/setters for eventIndex/fragmentId
+            // we probably need to convert from one to the other though, so bother?
+            const lastLiveKey = new SortKey(this._fragmentIdIndex);
+            lastLiveKey.fragmentId = liveFragment.id;
+            lastLiveKey.eventIndex = lastEvent.eventIndex;
+            this._lastLiveKey = lastLiveKey;
         }
-        console.log("room persister load", this._roomId, this._lastSortKey && this._lastSortKey.toString());
+        // if there is no live fragment, we don't create it here because load gets a readonly txn.
+        // this is on purpose, load shouldn't modify the store
+        console.log("room persister load", this._roomId, this._lastLiveKey && this._lastLiveKey.toString());
 	}
 
     async persistGapFill(gapEntry, response) {
@@ -121,16 +124,63 @@ export default class RoomPersister {
         return {newEntries, eventFound};
     }
 
-	persistSync(roomResponse, txn) {
-		let nextKey = this._lastSortKey;
+    async _getLiveFragment(txn, previousToken) {
+        const liveFragment = await txn.roomFragments.liveFragment(this._roomId);
+        if (!liveFragment) {
+            if (!previousToken) {
+                previousToken = null;
+            }
+            let defaultId = SortKey.firstLiveFragmentId;
+            txn.roomFragments.add({
+                roomId: this._roomId,
+                id: defaultId,
+                previousId: null,
+                nextId: null,
+                previousToken: previousToken,
+                nextToken: null
+            });
+            return defaultId;
+        } else {
+            return liveFragment.id;
+        }
+    }
+
+    async _replaceLiveFragment(oldFragmentId, newFragmentId, previousToken, txn) {
+        const oldFragment = await txn.roomFragments.get(oldFragmentId);
+        if (!oldFragment) {
+            throw new Error(`old live fragment doesn't exist: ${oldFragmentId}`);
+        }
+        oldFragment.nextId = newFragmentId;
+        txn.roomFragments.update(oldFragment);
+        txn.roomFragments.add({
+            roomId: this._roomId,
+            id: newFragmentId,
+            previousId: oldFragmentId,
+            nextId: null,
+            previousToken: previousToken,
+            nextToken: null
+        });
+    }
+
+	async persistSync(roomResponse, txn) {
+        // means we haven't synced this room yet (just joined or did initial sync)
+        if (!this._lastLiveKey) {
+            // as this is probably a limited sync, prev_batch should be there
+            // (but don't fail if it isn't, we won't be able to back-paginate though)
+            const fragmentId = await this._getLiveFragment(txn, timeline.prev_batch);
+            this._lastLiveKey = new SortKey(this._fragmentIdIndex);
+            this._lastLiveKey.fragmentId = fragmentId;
+            this._lastLiveKey.eventIndex = SortKey.firstLiveEventIndex;
+        }
+        // replace live fragment for limited sync, *only* if we had a live fragment already
+        else if (timeline.limited) {
+            const oldFragmentId = this._lastLiveKey.fragmentId;
+			this._lastLiveKey = this._lastLiveKey.nextFragmentKey();
+            this._replaceLiveFragment(oldFragmentId, this._lastLiveKey.fragmentId, timeline.prev_batch, txn);
+        }
+		let nextKey = this._lastLiveKey;
 		const timeline = roomResponse.timeline;
         const entries = [];
-		// is limited true for initial sync???? or do we need to handle that as a special case?
-		// I suppose it will, yes
-		if (timeline.limited) {
-			nextKey = nextKey.nextKeyWithGap();
-            entries.push(this._createBackwardGapEntry(nextKey, timeline.prev_batch));
-        }
         if (timeline.events) {
             for(const event of timeline.events) {
                 nextKey = nextKey.nextKey();
@@ -146,7 +196,7 @@ export default class RoomPersister {
 		// succeeded 
 		txn.complete().then(() => {
 			console.log("txn complete, setting key");
-			this._lastSortKey = nextKey;
+			this._lastLiveKey = nextKey;
 		});
 
 		// persist state
@@ -156,7 +206,7 @@ export default class RoomPersister {
 				txn.roomState.setStateEvent(this._roomId, event)
 			}
 		}
-
+        // persist live state events in timeline
 		if (timeline.events) {
 			for (const event of timeline.events) {
 				if (typeof event.state_key === "string") {
@@ -164,33 +214,15 @@ export default class RoomPersister {
 				}
 			}
 		}
+
         return entries;
 	}
 
-    _createBackwardGapEntry(sortKey, prevBatch) {
+    _createEventEntry(key, event) {
         return {
-            roomId: this._roomId,
-            sortKey: sortKey.buffer,
-            event: null,
-            gap: {prev_batch: prevBatch}
-        };
-    }
-
-    _createForwardGapEntry(sortKey, nextBatch) {
-        return {
-            roomId: this._roomId,
-            sortKey: sortKey.buffer,
-            event: null,
-            gap: {next_batch: nextBatch}
-        };
-    }
-
-    _createEventEntry(sortKey, event) {
-        return {
-            roomId: this._roomId,
-            sortKey: sortKey.buffer,
+            fragmentId: key.fragmentId,
+            eventIndex: key.eventIndex,
             event: event,
-            gap: null
         };
     }
 }

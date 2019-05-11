@@ -43,3 +43,19 @@ so we'll need to remove previous/nextEvent on the timeline store and come up wit
 thoughts:
     - ranges in timeline store with fragmentId might not make sense anymore as doing queries over multiple fragment ids doesn't make sense anymore ... still makes sense to have them part of SortKey though ...
     - we need a test for querytarget::lookup, or make sure it works well ...
+
+
+# Reading the timeline with fragments
+
+- what format does the persister return newEntries after persisting sync or a gap fill?
+    - a new fragment can be created during a limited sync
+    - when doing a /context or /messages call, we could have joined with another fragment
+    - don't think we need to describe a result spanning multiple fragments here
+    so:
+
+    in case of limited sync, we just say there was a limited sync, this is the fragment that was created for it so we can show a gap in the timeline
+
+    in case of a gap fill, we need to return what was changed to the fragment (was it joined with another fragment, what's the new token), and which events were actually added.
+
+- where do we translate from fragments to gap entries? and back? in the timeline object?
+    that would make sense, that seems to be the only place we need that translation

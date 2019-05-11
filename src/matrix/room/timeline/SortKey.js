@@ -86,6 +86,14 @@ export default class SortKey {
         return minKey;
     }
 
+    static get firstLiveFragmentId() {
+        return MID;
+    }
+
+    static get firstLiveEventIndex() {
+        return MID;
+    }
+
     compare(otherKey) {
         const fragmentDiff = this.fragmentId - otherKey.fragmentId;
         if (fragmentDiff === 0) {
