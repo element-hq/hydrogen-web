@@ -57,5 +57,15 @@ thoughts:
 
     in case of a gap fill, we need to return what was changed to the fragment (was it joined with another fragment, what's the new token), and which events were actually added.
 
+we return entries! fragmentboundaryentry(start or end) or evententry. so looks much like the gaps we had before, but now they are not stored in the timeline store, but based on fragments.
+
 - where do we translate from fragments to gap entries? and back? in the timeline object?
     that would make sense, that seems to be the only place we need that translation
+
+# SortKey
+
+so, it feels simpler to store fragmentId and eventIndex as fields on the entry instead of an array/arraybuffer in the field sortKey. Currently, the tiles code somewhat relies on having sortKeys but nothing too hard to change.
+
+so, what we could do:
+    - we create EventKey(fragmentId, eventIndex) that has the nextKey methods.
+    - we create a class EventEntry that wraps what is stored in the timeline store. This has a reference to the fragmentindex and has an opaque compare method. Tiles delegate to this method. EventEntry could later on also contain methods like MatrixEvent has in the riot js-sdk, e.g. something to safely dig into the event object.

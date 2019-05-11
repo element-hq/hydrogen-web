@@ -1,5 +1,7 @@
-import SortKey from "./timeline/SortKey.js";
+import EventKey from "./timeline/EventKey.js";
 import FragmentIdIndex from "./timeline/FragmentIdIndex.js";
+import EventEntry from "./timeline/entries/EventEntry.js";
+import FragmentBoundaryEntry from "./timeline/entries/FragmentBoundaryEntry.js";
 
 function gapEntriesAreEqual(a, b) {
     if (!a || !b || !a.gap || !b.gap) {
@@ -28,14 +30,14 @@ function replaceGapEntries(roomTimeline, newEntries, gapKey, neighbourEventKey, 
 }
 
 export default class RoomPersister {
-	constructor({roomId, storage}) {
-		this._roomId = roomId;
+    constructor({roomId, storage}) {
+        this._roomId = roomId;
         this._storage = storage;
-		this._lastLiveKey = null;
+        this._lastLiveKey = null;
         this._fragmentIdIndex = new FragmentIdIndex([]);   //only used when timeline is loaded ... e.g. "certain" methods on this class... split up?
-	}
+    }
 
-	async load(txn) {
+    async load(txn) {
         const liveFragment = await txn.roomFragments.liveFragment(this._roomId);
         if (liveFragment) {
             const [lastEvent] = await txn.roomTimeline.lastEvents(this._roomId, liveFragment.id, 1);
@@ -43,15 +45,12 @@ export default class RoomPersister {
             // we could split it up into a SortKey (only with compare) and
             // a EventKey (no compare or fragment index) with nextkey methods and getters/setters for eventIndex/fragmentId
             // we probably need to convert from one to the other though, so bother?
-            const lastLiveKey = new SortKey(this._fragmentIdIndex);
-            lastLiveKey.fragmentId = liveFragment.id;
-            lastLiveKey.eventIndex = lastEvent.eventIndex;
-            this._lastLiveKey = lastLiveKey;
+            this._lastLiveKey = new EventKey(liveFragment.id, lastEvent.eventIndex);
         }
         // if there is no live fragment, we don't create it here because load gets a readonly txn.
         // this is on purpose, load shouldn't modify the store
         console.log("room persister load", this._roomId, this._lastLiveKey && this._lastLiveKey.toString());
-	}
+    }
 
     async persistGapFill(gapEntry, response) {
         const backwards = !!gapEntry.prev_batch;
@@ -124,24 +123,24 @@ export default class RoomPersister {
         return {newEntries, eventFound};
     }
 
-    async _getLiveFragment(txn, previousToken) {
+    async _createLiveFragment(txn, previousToken) {
         const liveFragment = await txn.roomFragments.liveFragment(this._roomId);
         if (!liveFragment) {
             if (!previousToken) {
                 previousToken = null;
             }
-            let defaultId = SortKey.firstLiveFragmentId;
-            txn.roomFragments.add({
+            const fragment = {
                 roomId: this._roomId,
-                id: defaultId,
+                id: EventKey.defaultLiveKey.fragmentId,
                 previousId: null,
                 nextId: null,
                 previousToken: previousToken,
                 nextToken: null
-            });
-            return defaultId;
+            };
+            txn.roomFragments.add(fragment);
+            return fragment;
         } else {
-            return liveFragment.id;
+            return liveFragment;
         }
     }
 
@@ -152,71 +151,72 @@ export default class RoomPersister {
         }
         oldFragment.nextId = newFragmentId;
         txn.roomFragments.update(oldFragment);
-        txn.roomFragments.add({
+        const newFragment = {
             roomId: this._roomId,
             id: newFragmentId,
             previousId: oldFragmentId,
             nextId: null,
             previousToken: previousToken,
             nextToken: null
-        });
+        };
+        txn.roomFragments.add(newFragment);
+        return newFragment;
     }
 
-	async persistSync(roomResponse, txn) {
-        // means we haven't synced this room yet (just joined or did initial sync)
+    async persistSync(roomResponse, txn) {
+        const entries = [];
         if (!this._lastLiveKey) {
+            // means we haven't synced this room yet (just joined or did initial sync)
+            
             // as this is probably a limited sync, prev_batch should be there
             // (but don't fail if it isn't, we won't be able to back-paginate though)
-            const fragmentId = await this._getLiveFragment(txn, timeline.prev_batch);
-            this._lastLiveKey = new SortKey(this._fragmentIdIndex);
-            this._lastLiveKey.fragmentId = fragmentId;
-            this._lastLiveKey.eventIndex = SortKey.firstLiveEventIndex;
-        }
-        // replace live fragment for limited sync, *only* if we had a live fragment already
-        else if (timeline.limited) {
+            let liveFragment = await this._createLiveFragment(txn, timeline.prev_batch);
+            this._lastLiveKey = new EventKey(liveFragment.id, EventKey.defaultLiveKey.eventIndex);
+            entries.push(FragmentBoundaryEntry.start(liveFragment, this._fragmentIdIndex));
+        } else if (timeline.limited) {
+            // replace live fragment for limited sync, *only* if we had a live fragment already
             const oldFragmentId = this._lastLiveKey.fragmentId;
-			this._lastLiveKey = this._lastLiveKey.nextFragmentKey();
-            this._replaceLiveFragment(oldFragmentId, this._lastLiveKey.fragmentId, timeline.prev_batch, txn);
+            this._lastLiveKey = this._lastLiveKey.nextFragmentKey();
+            const [oldFragment, newFragment] = this._replaceLiveFragment(oldFragmentId, this._lastLiveKey.fragmentId, timeline.prev_batch, txn);
+            entries.push(FragmentBoundaryEntry.end(oldFragment, this._fragmentIdIndex));
+            entries.push(FragmentBoundaryEntry.start(newFragment, this._fragmentIdIndex));
         }
-		let nextKey = this._lastLiveKey;
-		const timeline = roomResponse.timeline;
-        const entries = [];
+        let currentKey = this._lastLiveKey;
+        const timeline = roomResponse.timeline;
         if (timeline.events) {
             for(const event of timeline.events) {
-                nextKey = nextKey.nextKey();
-                entries.push(this._createEventEntry(nextKey, event));
-			}
-		}
-        // write to store
-        for(const entry of entries) {
-            txn.roomTimeline.insert(entry);
+                currentKey = currentKey.nextKey();
+                const entry = this._createEventEntry(currentKey, event);
+                txn.roomTimeline.insert(entry);
+                entries.push(new EventEntry(entry, this._fragmentIdIndex));
+            }
         }
-		// right thing to do? if the txn fails, not sure we'll continue anyways ...
-		// only advance the key once the transaction has
-		// succeeded 
-		txn.complete().then(() => {
-			console.log("txn complete, setting key");
-			this._lastLiveKey = nextKey;
-		});
+        // right thing to do? if the txn fails, not sure we'll continue anyways ...
+        // only advance the key once the transaction has
+        // succeeded 
+        txn.complete().then(() => {
+            console.log("txn complete, setting key");
+            this._lastLiveKey = currentKey;
+        });
 
-		// persist state
-		const state = roomResponse.state;
-		if (state.events) {
-			for (const event of state.events) {
-				txn.roomState.setStateEvent(this._roomId, event)
-			}
-		}
+        // persist state
+        const state = roomResponse.state;
+        if (state.events) {
+            for (const event of state.events) {
+                txn.roomState.setStateEvent(this._roomId, event)
+            }
+        }
         // persist live state events in timeline
-		if (timeline.events) {
-			for (const event of timeline.events) {
-				if (typeof event.state_key === "string") {
-					txn.roomState.setStateEvent(this._roomId, event);
-				}
-			}
-		}
+        if (timeline.events) {
+            for (const event of timeline.events) {
+                if (typeof event.state_key === "string") {
+                    txn.roomState.setStateEvent(this._roomId, event);
+                }
+            }
+        }
 
         return entries;
-	}
+    }
 
     _createEventEntry(key, event) {
         return {
