@@ -33,18 +33,21 @@ export default class RoomPersister {
         this._storage = storage;
         // TODO: load fragmentIndex?
 		this._lastSortKey = new SortKey();
+		this._lastSortKey = null;
+        this._fragmentIdIndex = new FragmentIdIndex([]);   //only used when timeline is loaded ... e.g. "certain" methods on this class... split up?
 	}
 
 	async load(txn) {
-		//fetch key here instead?
-		const [lastEvent] = await txn.roomTimeline.lastEvents(this._roomId, 1);
-		if (lastEvent) {
-            // TODO: load fragmentIndex?
-			this._lastSortKey = new SortKey(lastEvent.sortKey);
-			console.log("room persister load", this._roomId, this._lastSortKey.toString());
-		} else {
-			console.warn("could not recover last sort key for ", this._roomId);
-		}
+        const liveFragment = await txn.roomFragments.liveFragment(this._roomId);
+        if (liveFragment) {
+            const [lastEvent] = await txn.roomTimeline.lastEvents(this._roomId, liveFragment.id, 1);
+            // last event needs to come from the fragment (e.g. passing the last fragment id)
+            const lastSortKey = new SortKey(this._fragmentIdIndex);
+            lastSortKey.fragmentId = liveFragment.id;
+            lastSortKey.eventIndex = lastEvent.eventIndex;
+            this._lastSortKey = lastSortKey;
+        }
+        console.log("room persister load", this._roomId, this._lastSortKey && this._lastSortKey.toString());
 	}
 
     async persistGapFill(gapEntry, response) {
