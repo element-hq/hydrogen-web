@@ -147,24 +147,47 @@ export default class RoomTimelineStore {
         return events;
     }
 
-    /** Looks up the first, if any, event entry (so excluding gap entries) after `sortKey`.
+    /** Finds the first (or last if `findLast=true`) eventId that occurs in the store, if any.
+     *  For optimal performance, `eventIds` should be in chronological order.
+     *
+     *  The order in which results are returned might be different than `eventIds`.
+     *  Call the return value to obtain the next {id, event} pair.
      *  @param  {string} roomId
-     *  @param  {SortKey} sortKey
-     *  @return {Promise<(?Entry)>} a promise resolving to entry, if any.
+     *  @param  {string[]} eventIds
+     *  @return {Function<Promise>}
      */
-    nextEvent(roomId, sortKey) {
-        const range = this.lowerBoundRange(sortKey, true).asIDBKeyRange(roomId);
-        return this._timelineStore.find(range, entry => !!entry.event);
-    }
+    // performance comment from above refers to the fact that their *might*
+    // be a correlation between event_id sorting order and chronology.
+    // In that case we could avoid running over all eventIds, as the reported order by findExistingKeys
+    // would match the order of eventIds. That's why findLast is also passed as backwards to keysExist.
+    // also passing them in chronological order makes sense as that's how we'll receive them almost always.
+    async findFirstOrLastOccurringEventId(roomId, eventIds, findLast = false) {
+        const byEventId = this._timelineStore.index("byEventId");
+        const keys = eventIds.map(eventId => [roomId, eventId]);
+        const results = new Array(keys.length);
+        let firstFoundEventId;
 
-    /** Looks up the first, if any, event entry (so excluding gap entries) before `sortKey`.
-     *  @param  {string} roomId
-     *  @param  {SortKey} sortKey
-     *  @return {Promise<(?Entry)>} a promise resolving to entry, if any.
-     */
-    previousEvent(roomId, sortKey) {
-        const range = this.upperBoundRange(sortKey, true).asIDBKeyRange(roomId);
-        return this._timelineStore.findReverse(range, entry => !!entry.event);
+        // find first result that is found and has no undefined results before it
+        function firstFoundAndPrecedingResolved() {
+            let inc = findLast ? -1 : 1;
+            let start = findLast ? results.length - 1 : 0;
+            for(let i = start; i >= 0 && i < results.length; i += inc) {
+                if (results[i] === undefined) {
+                    return;
+                } else if(results[i] === true) {
+                    return keys[i];
+                }
+            }
+        }
+
+        await byEventId.findExistingKeys(keys, findLast, (key, found) => {
+            const index = keys.indexOf(key);
+            results[index] = found;
+            firstFoundEventId = firstFoundAndPrecedingResolved();
+            return !!firstFoundEventId;
+        });
+
+        return firstFoundEventId;
     }
 
     /** Inserts a new entry into the store. The combination of roomId and sortKey should not exist yet, or an error is thrown.
