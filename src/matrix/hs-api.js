@@ -33,7 +33,7 @@ export default class HomeServerApi {
 
 	_request(method, csPath, queryParams = {}, body) {
 		const queryString = Object.entries(queryParams)
-			.filter(([name, value]) => value !== undefined)
+			.filter(([, value]) => value !== undefined)
 			.map(([name, value]) => `${encodeURIComponent(name)}=${encodeURIComponent(value)}`)
 			.join("&");
 		const url = this._url(`${csPath}?${queryString}`);
