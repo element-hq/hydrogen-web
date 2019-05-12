@@ -1,6 +1,10 @@
 //entries can be sorted, first by fragment, then by entry index.
 
 export default class BaseEntry {
+    constructor(fragmentIdComparer) {
+        this._fragmentIdComparer = fragmentIdComparer;
+    }
+
     get fragmentId() {
         throw new Error("unimplemented");
     }

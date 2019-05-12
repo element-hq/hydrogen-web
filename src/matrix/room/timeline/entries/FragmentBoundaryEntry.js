@@ -1,4 +1,5 @@
 import BaseEntry from "./BaseEntry.js";
+import Direction from "../Direction.js";
 
 export default class FragmentBoundaryEntry extends BaseEntry {
     constructor(fragment, isFragmentStart, fragmentIdComparator) {
@@ -15,12 +16,12 @@ export default class FragmentBoundaryEntry extends BaseEntry {
         return new FragmentBoundaryEntry(fragment, false, fragmentIdComparator);
     }
     
-    get hasStarted() {
+    get started() {
         return this._isFragmentStart;
     }
 
     get hasEnded() {
-        return !this.hasStarted;
+        return !this.started;
     }
 
     get fragment() {
@@ -32,7 +33,7 @@ export default class FragmentBoundaryEntry extends BaseEntry {
     }
 
     get entryIndex() {
-        if (this.hasStarted) {
+        if (this.started) {
             return Number.MIN_SAFE_INTEGER;
         } else {
             return Number.MAX_SAFE_INTEGER;
@@ -40,10 +41,54 @@ export default class FragmentBoundaryEntry extends BaseEntry {
     }
 
     get isGap() {
-        if (this.hasStarted) {
-            return !!this.fragment.nextToken;
+        return !!this.token;
+    }
+
+    get token() {
+        if (this.started) {
+            return this.fragment.nextToken;
         } else {
-            return !!this.fragment.previousToken;
+            return this.fragment.previousToken;
         }
+    }
+
+    set token(token) {
+        if (this.started) {
+            this.fragment.nextToken = token;
+        } else {
+            this.fragment.previousToken = token;
+        }
+    }
+
+    get linkedFragmentId() {
+        if (this.started) {
+            return this.fragment.nextId;
+        } else {
+            return this.fragment.previousId;
+        }
+    }
+
+    set linkedFragmentId(id) {
+        if (this.started) {
+            this.fragment.nextId = id;
+        } else {
+            this.fragment.previousId = id;
+        }
+    }
+
+    get direction() {
+        if (this.started) {
+            return Direction.Backward;
+        } else {
+            return Direction.Forward;
+        }
+    }
+
+    withUpdatedFragment(fragment) {
+        return new FragmentBoundaryEntry(fragment, this._isFragmentStart, this._fragmentIdComparator);
+    }
+
+    createNeighbourEntry(neighbour) {
+        return new FragmentBoundaryEntry(neighbour, !this._isFragmentStart, this._fragmentIdComparator);
     }
 }

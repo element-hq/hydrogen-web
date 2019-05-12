@@ -3,6 +3,7 @@ const MIN_EVENT_INDEX = Number.MIN_SAFE_INTEGER + 1;
 const MAX_EVENT_INDEX = Number.MAX_SAFE_INTEGER - 1;
 const MID_EVENT_INDEX = 0;
 
+// key for events in the timelineEvents store
 export default class EventKey {
     constructor(fragmentId, eventIndex) {
         this.fragmentId = fragmentId;
@@ -12,6 +13,18 @@ export default class EventKey {
     nextFragmentKey() {
         // could take MIN_EVENT_INDEX here if it can't be paged back
         return new EventKey(this.fragmentId + 1, MID_EVENT_INDEX);
+    }
+
+    nextKeyForDirection(direction) {
+        if (direction.isForward) {
+            return this.nextKey();
+        } else {
+            return this.previousKey();
+        }
+    }
+
+    previousKey() {
+        return new EventKey(this.fragmentId, this.eventIndex - 1);
     }
 
     nextKey() {
