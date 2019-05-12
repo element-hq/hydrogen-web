@@ -17,7 +17,7 @@
     how will fragments be exposed in timeline store?
         - all read operations are passed a fragment id
  - adapt persister
-    - persist fragments in /sync
+    - DONE: persist fragments in /sync
     - load n items before and after key
     - fill gaps / fragment filling
  - add live fragment id optimization if we haven't done so already

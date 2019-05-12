@@ -106,7 +106,7 @@ class Island {
 /*
 index for fast lookup of how two fragments can be sorted
 */
-export default class FragmentIdIndex {
+export default class FragmentIdComparer {
     constructor(fragments) {
         this.rebuild(fragments);
     }

@@ -1,4 +1,4 @@
-import SortKey from "../../../room/timeline/SortKey.js";
+import EventKey from "../../../room/timeline/EventKey.js";
 
 class Range {
     constructor(only, lower, upper, lowerOpen, upperOpen) {
@@ -12,14 +12,14 @@ class Range {
     asIDBKeyRange(roomId) {
         // only
         if (this._only) {
-            return IDBKeyRange.only([roomId, this._only.buffer]);
+            return IDBKeyRange.only([roomId, this._only.fragmentId, this._only.eventIndex]);
         }
         // lowerBound
         // also bound as we don't want to move into another roomId
         if (this._lower && !this._upper) {
             return IDBKeyRange.bound(
-                [roomId, this._lower.buffer],
-                [roomId, SortKey.maxKey.buffer],
+                [roomId, this._lower.fragmentId, this._lower.eventIndex],
+                [roomId, EventKey.maxKey.fragmentId, EventKey.maxKey.eventIndex],
                 this._lowerOpen,
                 false
             );
@@ -28,8 +28,8 @@ class Range {
         // also bound as we don't want to move into another roomId
         if (!this._lower && this._upper) {
             return IDBKeyRange.bound(
-                [roomId, SortKey.minKey.buffer],
-                [roomId, this._upper.buffer],
+                [roomId, EventKey.minKey.fragmentId, EventKey.minKey.eventIndex],
+                [roomId, this._upper.fragmentId, this._upper.eventIndex],
                 false,
                 this._upperOpen
             );
@@ -37,8 +37,8 @@ class Range {
         // bound
         if (this._lower && this._upper) {
             return IDBKeyRange.bound(
-                [roomId, this._lower.buffer],
-                [roomId, this._upper.buffer],
+                [roomId, this._lower.fragmentId, this._lower.eventIndex],
+                [roomId, this._upper.fragmentId, this._upper.eventIndex],
                 this._lowerOpen,
                 this._upperOpen
             );
@@ -57,44 +57,44 @@ class Range {
  *
  * @typedef   {Object} Entry
  * @property  {string} roomId
- * @property  {SortKey} sortKey
+ * @property  {EventKey} eventKey
  * @property  {?Event} event if an event entry, the event
  * @property  {?Gap} gap if a gap entry, the gap
 */
-export default class RoomTimelineStore {
+export default class TimelineEventStore {
 	constructor(timelineStore) {
 		this._timelineStore = timelineStore;
 	}
 
     /** Creates a range that only includes the given key
-     *  @param {SortKey} sortKey the key
+     *  @param {EventKey} eventKey the key
      *  @return {Range} the created range
      */
-    onlyRange(sortKey) {
-        return new Range(sortKey);
+    onlyRange(eventKey) {
+        return new Range(eventKey);
     }
 
-    /** Creates a range that includes all keys before sortKey, and optionally also the key itself.
-     *  @param {SortKey} sortKey the key
+    /** Creates a range that includes all keys before eventKey, and optionally also the key itself.
+     *  @param {EventKey} eventKey the key
      *  @param {boolean} [open=false] whether the key is included (false) or excluded (true) from the range at the upper end.
      *  @return {Range} the created range
      */
-    upperBoundRange(sortKey, open=false) {
-        return new Range(undefined, undefined, sortKey, undefined, open);
+    upperBoundRange(eventKey, open=false) {
+        return new Range(undefined, undefined, eventKey, undefined, open);
     }
 
-    /** Creates a range that includes all keys after sortKey, and optionally also the key itself.
-     *  @param {SortKey} sortKey the key
+    /** Creates a range that includes all keys after eventKey, and optionally also the key itself.
+     *  @param {EventKey} eventKey the key
      *  @param {boolean} [open=false] whether the key is included (false) or excluded (true) from the range at the lower end.
      *  @return {Range} the created range
      */
-    lowerBoundRange(sortKey, open=false) {
-        return new Range(undefined, sortKey, undefined, open);
+    lowerBoundRange(eventKey, open=false) {
+        return new Range(undefined, eventKey, undefined, open);
     }
 
     /** Creates a range that includes all keys between `lower` and `upper`, and optionally the given keys as well.
-     *  @param {SortKey} lower the lower key
-     *  @param {SortKey} upper the upper key
+     *  @param {EventKey} lower the lower key
+     *  @param {EventKey} upper the upper key
      *  @param {boolean} [lowerOpen=false] whether the lower key is included (false) or excluded (true) from the range.
      *  @param {boolean} [upperOpen=false] whether the upper key is included (false) or excluded (true) from the range.
      *  @return {Range} the created range
@@ -110,9 +110,9 @@ export default class RoomTimelineStore {
      *  @return {Promise<Entry[]>} a promise resolving to an array with 0 or more entries, in ascending order.
      */
 	async lastEvents(roomId, fragmentId, amount) {
-        const sortKey = SortKey.maxKey;
-        sortKey.fragmentId = fragmentId;
-		return this.eventsBefore(roomId, sortKey, amount);
+        const eventKey = EventKey.maxKey;
+        eventKey.fragmentId = fragmentId;
+		return this.eventsBefore(roomId, eventKey, amount);
 	}
 
     /** Looks up the first `amount` entries in the timeline for `roomId`.
@@ -122,32 +122,32 @@ export default class RoomTimelineStore {
      *  @return {Promise<Entry[]>} a promise resolving to an array with 0 or more entries, in ascending order.
      */
 	async firstEvents(roomId, fragmentId, amount) {
-        const sortKey = SortKey.minKey;
-        sortKey.fragmentId = fragmentId;
-		return this.eventsAfter(roomId, sortKey, amount);
+        const eventKey = EventKey.minKey;
+        eventKey.fragmentId = fragmentId;
+		return this.eventsAfter(roomId, eventKey, amount);
 	}
 
-    /** Looks up `amount` entries after `sortKey` in the timeline for `roomId` within the same fragment.
-     *  The entry for `sortKey` is not included.
+    /** Looks up `amount` entries after `eventKey` in the timeline for `roomId` within the same fragment.
+     *  The entry for `eventKey` is not included.
      *  @param  {string} roomId
-     *  @param  {SortKey} sortKey
+     *  @param  {EventKey} eventKey
      *  @param  {number} amount
      *  @return {Promise<Entry[]>} a promise resolving to an array with 0 or more entries, in ascending order.
      */
-	eventsAfter(roomId, sortKey, amount) {
-        const idbRange = this.lowerBoundRange(sortKey, true).asIDBKeyRange(roomId);
+	eventsAfter(roomId, eventKey, amount) {
+        const idbRange = this.lowerBoundRange(eventKey, true).asIDBKeyRange(roomId);
 		return this._timelineStore.selectLimit(idbRange, amount);
 	}
 
-    /** Looks up `amount` entries before `sortKey` in the timeline for `roomId` within the same fragment.
-     *  The entry for `sortKey` is not included.
+    /** Looks up `amount` entries before `eventKey` in the timeline for `roomId` within the same fragment.
+     *  The entry for `eventKey` is not included.
      *  @param  {string} roomId
-     *  @param  {SortKey} sortKey
+     *  @param  {EventKey} eventKey
      *  @param  {number} amount
      *  @return {Promise<Entry[]>} a promise resolving to an array with 0 or more entries, in ascending order.
      */
-    async eventsBefore(roomId, sortKey, amount) {
-        const range = this.upperBoundRange(sortKey, true).asIDBKeyRange(roomId);
+    async eventsBefore(roomId, eventKey, amount) {
+        const range = this.upperBoundRange(eventKey, true).asIDBKeyRange(roomId);
         const events = await this._timelineStore.selectLimitReverse(range, amount);
         events.reverse(); // because we fetched them backwards
         return events;
@@ -196,7 +196,7 @@ export default class RoomTimelineStore {
         return firstFoundEventId;
     }
 
-    /** Inserts a new entry into the store. The combination of roomId and sortKey should not exist yet, or an error is thrown.
+    /** Inserts a new entry into the store. The combination of roomId and eventKey should not exist yet, or an error is thrown.
      *  @param  {Entry} entry the entry to insert
      *  @return {Promise<>} a promise resolving to undefined if the operation was successful, or a StorageError if not.
      *  @throws {StorageError} ...
@@ -206,7 +206,7 @@ export default class RoomTimelineStore {
         return this._timelineStore.add(entry);
     }
 
-    /** Updates the entry into the store with the given [roomId, sortKey] combination.
+    /** Updates the entry into the store with the given [roomId, eventKey] combination.
      *  If not yet present, will insert. Might be slower than add.
      *  @param  {Entry} entry the entry to update.
      *  @return {Promise<>} a promise resolving to undefined if the operation was successful, or a StorageError if not.
@@ -215,12 +215,16 @@ export default class RoomTimelineStore {
         return this._timelineStore.put(entry);
     }
 
-    get(roomId, sortKey) {
-        return this._timelineStore.get([roomId, sortKey]);
+    get(roomId, eventKey) {
+        return this._timelineStore.get([roomId, eventKey.fragmentId, eventKey.eventIndex]);
     }
     // returns the entries as well!! (or not always needed? I guess not always needed, so extra method)
     removeRange(roomId, range) {
         // TODO: read the entries!
         return this._timelineStore.delete(range.asIDBKeyRange(roomId));
+    }
+
+    getByEventId(roomId, eventId) {
+        return this._timelineStore.index("byEventId").get([roomId, eventId]);
     }
 }
