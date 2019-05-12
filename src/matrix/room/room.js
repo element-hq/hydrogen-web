@@ -1,7 +1,7 @@
 import EventEmitter from "../../EventEmitter.js";
 import RoomSummary from "./summary.js";
-import Timeline from "./timeline.js";
 import SyncPersister from "./timeline/persistence/SyncPersister.js";
+import Timeline from "./timeline/Timeline.js";
 import FragmentIdComparer from "./timeline/FragmentIdComparer.js";
 
 export default class Room extends EventEmitter {
@@ -54,6 +54,7 @@ export default class Room extends EventEmitter {
             roomId: this.id,
             storage: this._storage,
             hsApi: this._hsApi,
+            fragmentIdComparer: this._fragmentIdComparer,
             closeCallback: () => this._timeline = null,
         });
         await this._timeline.load();
