@@ -18,6 +18,7 @@ export default class Session {
             this._storage.storeNames.roomSummary,
             this._storage.storeNames.roomState,
             this._storage.storeNames.timelineEvents,
+            this._storage.storeNames.timelineFragments,
         ]);
         // restore session object
         this._session = await txn.session.get();

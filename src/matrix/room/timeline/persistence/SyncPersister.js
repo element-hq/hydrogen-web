@@ -11,7 +11,7 @@ export default class SyncPersister {
     }
 
     async load(txn) {
-        const liveFragment = await txn.roomFragments.liveFragment(this._roomId);
+        const liveFragment = await txn.timelineFragments.liveFragment(this._roomId);
         if (liveFragment) {
             const [lastEvent] = await txn.roomTimeline.lastEvents(this._roomId, liveFragment.id, 1);
             // sorting and identifying (e.g. sort key and pk to insert) are a bit intertwined here
@@ -26,7 +26,7 @@ export default class SyncPersister {
     }
 
     async _createLiveFragment(txn, previousToken) {
-        const liveFragment = await txn.roomFragments.liveFragment(this._roomId);
+        const liveFragment = await txn.timelineFragments.liveFragment(this._roomId);
         if (!liveFragment) {
             if (!previousToken) {
                 previousToken = null;
@@ -39,7 +39,7 @@ export default class SyncPersister {
                 previousToken: previousToken,
                 nextToken: null
             };
-            txn.roomFragments.add(fragment);
+            txn.timelineFragments.add(fragment);
             return fragment;
         } else {
             return liveFragment;
@@ -47,12 +47,12 @@ export default class SyncPersister {
     }
 
     async _replaceLiveFragment(oldFragmentId, newFragmentId, previousToken, txn) {
-        const oldFragment = await txn.roomFragments.get(oldFragmentId);
+        const oldFragment = await txn.timelineFragments.get(oldFragmentId);
         if (!oldFragment) {
             throw new Error(`old live fragment doesn't exist: ${oldFragmentId}`);
         }
         oldFragment.nextId = newFragmentId;
-        txn.roomFragments.update(oldFragment);
+        txn.timelineFragments.update(oldFragment);
         const newFragment = {
             roomId: this._roomId,
             id: newFragmentId,
@@ -61,7 +61,7 @@ export default class SyncPersister {
             previousToken: previousToken,
             nextToken: null
         };
-        txn.roomFragments.add(newFragment);
+        txn.timelineFragments.add(newFragment);
         return {oldFragment, newFragment};
     }
 
@@ -115,6 +115,11 @@ export default class SyncPersister {
                     txn.roomState.setStateEvent(this._roomId, event);
                 }
             }
+        }
+
+        if (timeline.limited) {
+            const fragments = await txn.timelineFragments.all(this._roomId);
+            this._fragmentIdComparer.rebuild(fragments);
         }
 
         return entries;

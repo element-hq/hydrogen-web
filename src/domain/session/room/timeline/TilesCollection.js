@@ -22,6 +22,7 @@ export default class TilesCollection extends BaseObservableList {
         for (let entry of this._entries) {
             if (!currentTile || !currentTile.tryIncludeEntry(entry)) {
                 currentTile = this._tileCreator(entry);
+                // if (currentTile) here?
                 this._tiles.push(currentTile);
             }
         }

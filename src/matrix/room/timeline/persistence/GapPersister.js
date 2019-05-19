@@ -1,14 +1,6 @@
 import EventKey from "../EventKey.js";
 import EventEntry from "../entries/EventEntry.js";
-import {createEventEntry} from "./common.js";
-
-function directionalAppend(array, value, direction) {
-    if (direction.isForward) {
-        array.push(value);
-    } else {
-        array.splice(0, 0, value);
-    }
-}
+import {createEventEntry, directionalAppend} from "./common.js";
 
 export default class GapPersister {
     constructor({roomId, storage, fragmentIdComparer}) {

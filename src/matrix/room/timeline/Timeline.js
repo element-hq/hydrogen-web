@@ -1,6 +1,7 @@
 import { ObservableArray } from "../../../observable/index.js";
 import sortedIndex from "../../../utils/sortedIndex.js";
 import GapPersister from "./persistence/GapPersister.js";
+import TimelineReader from "./persistence/TimelineReader.js";
 
 export default class Timeline {
     constructor({roomId, storage, closeCallback, fragmentIdComparer}) {
@@ -9,6 +10,11 @@ export default class Timeline {
         this._closeCallback = closeCallback;
         this._entriesList = new ObservableArray();
         this._fragmentIdComparer = fragmentIdComparer;
+        this._timelineReader = new TimelineReader({
+            roomId: this._roomId,
+            storage: this._storage,
+            fragmentIdComparer: this._fragmentIdComparer
+        });
     }
 
     /** @package */
@@ -53,6 +59,7 @@ export default class Timeline {
     }
 
     async loadAtTop(amount) {
+        // TODO: use TimelineReader::readFrom here, and insert returned array at location for first and last entry.
         const firstEntry = this._entriesList.at(0);
         if (firstEntry) {
             const txn = await this._storage.readTxn([this._storage.storeNames.timelineEvents]);

@@ -5,21 +5,31 @@
     - SortKey
         - FragmentId
         - EventIndex
- - write fragmentStore
+ - DONE: write fragmentStore
     - load all fragments
     - add a fragment (live on limited sync, or /context)
     - connect two fragments
     - update token on fragment (when filling gap or connecting two fragments)
 
     fragments can need connecting when filling a gap or creating a new /context fragment
- - adapt timelineStore
+ - DONE: adapt timelineStore
 
     how will fragments be exposed in timeline store?
         - all read operations are passed a fragment id
  - adapt persister
     - DONE: persist fragments in /sync
-    - load n items before and after key
-    - fill gaps / fragment filling
+    - DONE: fill gaps / fragment filling
+    - load n items before and after key,
+        - need to add fragments as we come across boundaries
+        - also cache fragments? not for now ...
+        - not doing any of the above, just reloading and rebuilding for now
+
+ - adapt Timeline
+    - turn ObservableArray into ObservableSortedArray
+        - upsert already sorted sections
+        - upsert single entry
+ - adapt TilesCollection & Tile to entry changes
+ 
  - add live fragment id optimization if we haven't done so already
  - lets try to not have to have the fragmentindex in memory if the timeline isn't loaded
     - could do this by only loading all fragments into index when filling gaps, backpaginating, ... and on persister load only load the last fragment. This wouldn't even need a FragmentIndex?
