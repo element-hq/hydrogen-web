@@ -1,5 +1,6 @@
 import {directionalConcat, directionalAppend} from "./common.js";
 import EventKey from "../EventKey.js";
+import Direction from "../Direction.js";
 import EventEntry from "../entries/EventEntry.js";
 import FragmentBoundaryEntry from "../entries/FragmentBoundaryEntry.js";
 
@@ -10,11 +11,19 @@ export default class TimelineReader {
         this._fragmentIdComparer = fragmentIdComparer;
     }
 
-    async readFrom(eventKey, direction, amount) {
-        const txn = this._storage.readTxn([
+    _openTxn() {
+        return this._storage.readTxn([
             this._storage.storeNames.timelineEvents,
             this._storage.storeNames.timelineFragments,
         ]);
+    }
+
+    async readFrom(eventKey, direction, amount) {
+        const txn = await this._openTxn();
+        return this._readFrom(eventKey, direction, amount, txn);
+    }
+
+    async _readFrom(eventKey, direction, amount, txn) {
         let entries = [];
 
         const timelineStore = txn.timelineEvents;
@@ -51,5 +60,26 @@ export default class TimelineReader {
         }
 
         return entries;
+    }
+
+    async readFromEnd(amount) {
+        const txn = await this._openTxn();
+        const liveFragment = await txn.timelineFragments.liveFragment(this._roomId);
+        // room hasn't been synced yet
+        if (!liveFragment) {
+            return [];
+        }
+        this._fragmentIdComparer.add(liveFragment);
+        const liveFragmentEntry = new FragmentBoundaryEntry(liveFragment, Direction.Forward, this._fragmentIdComparer);
+        const eventKey = new EventKey(liveFragmentEntry.fragmentId, liveFragmentEntry.eventIndex);
+        const entries = this._readFrom(eventKey, Direction.Backward, amount, txn);
+        entries.unshift(liveFragmentEntry);
+        return entries;
+    }
+
+    // reads distance up and down from eventId
+    // or just expose eventIdToKey?
+    readAtEventId(eventId, distance) {
+        return null;
     }
 }

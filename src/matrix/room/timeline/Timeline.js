@@ -19,8 +19,7 @@ export default class Timeline {
 
     /** @package */
     async load() {
-        const txn = await this._storage.readTxn([this._storage.storeNames.timelineEvents]);
-        const entries = await txn.roomTimeline.lastEvents(this._roomId, 100);
+        const entries = this._timelineReader.readFromEnd(100);
         for (const entry of entries) {
             this._entriesList.append(entry);
         }
