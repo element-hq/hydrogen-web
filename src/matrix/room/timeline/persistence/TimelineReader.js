@@ -70,7 +70,7 @@ export default class TimelineReader {
             return [];
         }
         this._fragmentIdComparer.add(liveFragment);
-        const liveFragmentEntry = new FragmentBoundaryEntry(liveFragment, Direction.Forward, this._fragmentIdComparer);
+        const liveFragmentEntry = FragmentBoundaryEntry.end(liveFragment, this._fragmentIdComparer);
         const eventKey = new EventKey(liveFragmentEntry.fragmentId, liveFragmentEntry.eventIndex);
         const entries = this._readFrom(eventKey, Direction.Backward, amount, txn);
         entries.unshift(liveFragmentEntry);

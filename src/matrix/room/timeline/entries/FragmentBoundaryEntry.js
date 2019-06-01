@@ -5,6 +5,7 @@ export default class FragmentBoundaryEntry extends BaseEntry {
     constructor(fragment, isFragmentStart, fragmentIdComparator) {
         super(fragmentIdComparator);
         this._fragment = fragment;
+        // TODO: should isFragmentStart be Direction instead of bool?
         this._isFragmentStart = isFragmentStart;
     }
 
