@@ -1,5 +1,6 @@
-import { ObservableArray } from "../../../observable/index.js";
-import sortedIndex from "../../../utils/sortedIndex.js";
+import { SortedArray } from "../../../observable/index.js";
+import EventKey from "./EventKey.js";
+import Direction from "./Direction.js";
 import GapWriter from "./persistence/GapWriter.js";
 import TimelineReader from "./persistence/TimelineReader.js";
 
@@ -8,8 +9,8 @@ export default class Timeline {
         this._roomId = roomId;
         this._storage = storage;
         this._closeCallback = closeCallback;
-        this._entriesList = new ObservableArray();
         this._fragmentIdComparer = fragmentIdComparer;
+        this._entriesList = new SortedArray((a, b) => a.compare(b));
         this._timelineReader = new TimelineReader({
             roomId: this._roomId,
             storage: this._storage,
@@ -20,16 +21,12 @@ export default class Timeline {
     /** @package */
     async load() {
         const entries = this._timelineReader.readFromEnd(100);
-        for (const entry of entries) {
-            this._entriesList.append(entry);
-        }
+        this._entriesList.setManySorted(entries);
     }
 
     /** @package */
     appendLiveEntries(newEntries) {
-        for (const entry of newEntries) {
-            this._entriesList.append(entry);
-        }
+        this._entriesList.setManySorted(newEntries);
     }
 
     /** @public */
@@ -46,26 +43,18 @@ export default class Timeline {
             fragmentIdComparer: this._fragmentIdComparer
         });
         const newEntries = await gapWriter.writerFragmentFill(fragmentEntry, response);
-        // find where to replace existing gap with newEntries by doing binary search
-        const gapIdx = sortedIndex(this._entriesList.array, fragmentEntry, (fragmentEntry, entry) => {
-            return fragmentEntry.compare(entry);
-        });
-        // only replace the gap if it's currently in the timeline
-        if (this._entriesList.at(gapIdx) === fragmentEntry) {
-            this._entriesList.removeAt(gapIdx);
-            this._entriesList.insertMany(gapIdx, newEntries);
-        }
+        this._entriesList.setManySorted(newEntries);
     }
 
+    // tries to prepend `amount` entries to the `entries` list.
     async loadAtTop(amount) {
-        // TODO: use TimelineReader::readFrom here, and insert returned array at location for first and last entry.
-        const firstEntry = this._entriesList.at(0);
-        if (firstEntry) {
-            const txn = await this._storage.readTxn([this._storage.storeNames.timelineEvents]);
-            const topEntries = await txn.roomTimeline.eventsBefore(this._roomId, firstEntry.sortKey, amount);
-            this._entriesList.insertMany(0, topEntries);
-            return topEntries.length;
+        if (this._entriesList.length() === 0) {
+            return;
         }
+        const firstEntry = this._entriesList.array()[0];
+        const firstKey = new EventKey(firstEntry.fragmentId, firstEntry.eventIndex);
+        const entries = await this._timelineReader.readFrom(firstKey, Direction.Backward, amount);
+        this._entriesList.setManySorted(entries);
     }
 
     /** @public */
