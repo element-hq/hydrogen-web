@@ -18,18 +18,19 @@ export default class SimpleTile {
     get hasDateSeparator() {
         return false;
     }
-
-    get upperSortKey() {
-        return this._entry.sortKey;
+    // TilesCollection contract? unused atm
+    get upperEntry() {
+        return this._entry;
     }
 
-    get lowerSortKey() {
-        return this._entry.sortKey;
+    // TilesCollection contract? unused atm
+    get lowerEntry() {
+        return this._entry;
     }
 
     // TilesCollection contract
-    compareSortKey(key) {
-        return this._entry.sortKey.compare(key);
+    compareEntry(entry) {
+        return this._entry.compare(entry);
     }
 
     // update received for already included (falls within sort keys) entry

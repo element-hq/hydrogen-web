@@ -8,7 +8,7 @@ import RoomMemberTile from "./tiles/RoomMemberTile.js";
 export default function ({timeline, emitUpdate}) {
     return function tilesCreator(entry) {
         const options = {entry, emitUpdate};
-        if (entry.gap) {
+        if (entry.isGap) {
             return new GapTile(options, timeline);
         } else if (entry.event) {
             const event = entry.event;

@@ -29,7 +29,7 @@ export default class GapTile extends SimpleTile {
     }
 
     get direction() {
-        return this._entry.prev_batch ? "backward" : "forward";
+        return this._entry.direction;
     }
 
     get error() {

@@ -18,6 +18,10 @@ export default class EventEntry extends BaseEntry {
         return this._eventEntry.event.content;
     }
 
+    get event() {
+        return this._eventEntry.event;
+    }
+
     get type() {
         return this._eventEntry.event.type;
     }

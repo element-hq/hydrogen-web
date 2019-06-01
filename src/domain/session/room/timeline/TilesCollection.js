@@ -1,7 +1,7 @@
 import BaseObservableList from "../../../../observable/list/BaseObservableList.js";
 import sortedIndex from "../../../../utils/sortedIndex.js";
 
-// maps 1..n entries to 0..1 tile. Entries are what is stored in the timeline, either an event or gap
+// maps 1..n entries to 0..1 tile. Entries are what is stored in the timeline, either an event or fragmentboundary
 export default class TilesCollection extends BaseObservableList {
     constructor(entries, tileCreator) {
         super();
@@ -39,16 +39,16 @@ export default class TilesCollection extends BaseObservableList {
         }
     }
 
-    _findTileIdx(sortKey) {
-        return sortedIndex(this._tiles, sortKey, (key, tile) => {
+    _findTileIdx(entry) {
+        return sortedIndex(this._tiles, entry, (entry, tile) => {
             // negate result because we're switching the order of the params
-            return -tile.compareSortKey(key);
+            return -tile.compareEntry(entry);
         });
     }
 
-    _findTileAtIdx(sortKey, idx) {
+    _findTileAtIdx(entry, idx) {
         const tile = this._getTileAtIdx(idx);
-        if (tile && tile.compareSortKey(sortKey) === 0) {
+        if (tile && tile.compareEntry(entry) === 0) {
             return tile;
         }
     }
@@ -72,8 +72,7 @@ export default class TilesCollection extends BaseObservableList {
     }
 
     onAdd(index, entry) {
-        const {sortKey} = entry;
-        const tileIdx = this._findTileIdx(sortKey);
+        const tileIdx = this._findTileIdx(entry);
         const prevTile = this._getTileAtIdx(tileIdx - 1);
         if (prevTile && prevTile.tryIncludeEntry(entry)) {
             this.emitUpdate(tileIdx - 1, prevTile);
@@ -98,9 +97,8 @@ export default class TilesCollection extends BaseObservableList {
     }
 
     onUpdate(index, entry, params) {
-        const {sortKey} = entry;
-        const tileIdx = this._findTileIdx(sortKey);
-        const tile = this._findTileAtIdx(sortKey, tileIdx);
+        const tileIdx = this._findTileIdx(entry);
+        const tile = this._findTileAtIdx(entry, tileIdx);
         if (tile) {
             const newParams = tile.updateEntry(entry, params);
             if (newParams) {
@@ -122,9 +120,8 @@ export default class TilesCollection extends BaseObservableList {
 
     // would also be called when unloading a part of the timeline
     onRemove(index, entry) {
-        const {sortKey} = entry;
-        const tileIdx = this._findTileIdx(sortKey);
-        const tile = this._findTileAtIdx(sortKey, tileIdx);
+        const tileIdx = this._findTileIdx(entry);
+        const tile = this._findTileAtIdx(entry, tileIdx);
         if (tile) {
             const removeTile = tile.removeEntry(entry);
             if (removeTile) {
