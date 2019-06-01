@@ -40,6 +40,7 @@ export default class SyncWriter {
                 nextToken: null
             };
             txn.timelineFragments.add(fragment);
+            this._fragmentIdComparer.add(fragment);
             return fragment;
         } else {
             return liveFragment;
@@ -62,6 +63,7 @@ export default class SyncWriter {
             nextToken: null
         };
         txn.timelineFragments.add(newFragment);
+        this._fragmentIdComparer.add(newFragment);
         return {oldFragment, newFragment};
     }
 
@@ -115,11 +117,6 @@ export default class SyncWriter {
                     txn.roomState.setStateEvent(this._roomId, event);
                 }
             }
-        }
-
-        if (timeline.limited) {
-            const fragments = await txn.timelineFragments.all(this._roomId);
-            this._fragmentIdComparer.rebuild(fragments);
         }
 
         return entries;

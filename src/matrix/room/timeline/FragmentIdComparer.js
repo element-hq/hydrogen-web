@@ -108,6 +108,7 @@ index for fast lookup of how two fragments can be sorted
 */
 export default class FragmentIdComparer {
     constructor(fragments) {
+        this._fragmentsById = fragments.reduce((map, f) => {map.set(f.id, f); return map;}, new Map());
         this.rebuild(fragments);
     }
 
@@ -157,6 +158,10 @@ export default class FragmentIdComparer {
     // linkFragments(txn, firstFragmentId, secondFragmentId) {
 
     // }
+    add(fragment) {
+        this._fragmentsById[fragment.id] = fragment;
+        this.rebuild(this._fragmentsById.values());
+    }
 }
 
 //#ifdef TESTS

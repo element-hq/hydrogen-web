@@ -16,7 +16,6 @@ export default class TimelineReader {
             this._storage.storeNames.timelineFragments,
         ]);
         let entries = [];
-        let loadedFragment = false;
 
         const timelineStore = txn.timelineEvents;
         const fragmentStore = txn.timelineFragments;
@@ -36,26 +35,19 @@ export default class TimelineReader {
                 const fragment = await fragmentStore.get(this._roomId, eventKey.fragmentId);
                 // this._fragmentIdComparer.addFragment(fragment);
                 let fragmentEntry = new FragmentBoundaryEntry(fragment, direction.isBackward, this._fragmentIdComparer);
-                // append or prepend fragmentEntry, reuse func from GapPersister?
+                // append or prepend fragmentEntry, reuse func from GapWriter?
                 directionalAppend(entries, fragmentEntry, direction);
                 // don't count it in amount perhaps? or do?
                 if (fragmentEntry.linkedFragmentId) {
                     const nextFragment = await fragmentStore.get(this._roomId, fragmentEntry.linkedFragmentId);
-                    // this._fragmentIdComparer.addFragment(nextFragment);
+                    this._fragmentIdComparer.add(nextFragment);
                     const nextFragmentEntry = new FragmentBoundaryEntry(nextFragment, direction.isForward, this._fragmentIdComparer);
                     directionalAppend(entries, nextFragmentEntry, direction);
                     eventKey = new EventKey(nextFragmentEntry.fragmentId, nextFragmentEntry.eventIndex);
-                    loadedFragment = true;
                 } else {
                     eventKey = null;
                 }
             }
-        }
-
-        // reload fragments
-        if (loadedFragment) {
-            const fragments = await fragmentStore.all(this._roomId);
-            this._fragmentIdComparer.rebuild(fragments);
         }
 
         return entries;

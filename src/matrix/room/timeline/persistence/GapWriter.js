@@ -64,8 +64,9 @@ export default class GapWriter {
             txn.timelineFragments.set(neighbourFragmentEntry.fragment);
             directionalAppend(entries, neighbourFragmentEntry, direction);
 
-            // update fragmentIdComparer here after linking up fragments?
-            this._fragmentIdComparer.rebuild(await txn.timelineFragments.all());
+            // update fragmentIdComparer here after linking up fragments
+            this._fragmentIdComparer.add(fragmentEntry.fragment);
+            this._fragmentIdComparer.add(neighbourFragmentEntry.fragment);
         }
         fragmentEntry.token = end;
         txn.timelineFragments.set(fragmentEntry.fragment);
