@@ -19,21 +19,25 @@
  - adapt persister
     - DONE: persist fragments in /sync
     - DONE: fill gaps / fragment filling
-    - load n items before and after key,
-        - need to add fragments as we come across boundaries
-        - also cache fragments? not for now ...
-        - not doing any of the above, just reloading and rebuilding for now
+    - DONE: load n items before and after key,
+        - DONE: need to add fragments as we come across boundaries
+        - DONE: also cache fragments? not for now ...
+        - DONE: not doing any of the above, just reloading and rebuilding for now
 
- - adapt Timeline
-    - turn ObservableArray into ObservableSortedArray
+ - DONE: adapt Timeline
+    - DONE: turn ObservableArray into ObservableSortedArray
         - upsert already sorted sections
-        - upsert single entry
+        - DONE: upsert single entry
  - adapt TilesCollection & Tile to entry changes
  
  - add live fragment id optimization if we haven't done so already
  - lets try to not have to have the fragmentindex in memory if the timeline isn't loaded
     - could do this by only loading all fragments into index when filling gaps, backpaginating, ... and on persister load only load the last fragment. This wouldn't even need a FragmentIndex?
 
+
+implement SortedArray::setManySorted in a performant manner
+implement FragmentIdComparator::add in a performant manner
+there is some duplication (also in memory) between SortedArray and TilesCollection. Both keep a sorted list based on fragmentId/eventIndex... TilesCollection doesn't use the index in the event handlers at all. we could allow timeline to export a structure that just emits "these entries are a thing (now)" and not have to go through sorting twice. Timeline would have to keep track of the earliest key so it can use it in loadAtTop, but that should be easy. Hmmm. also, Timeline might want to be in charge of unloading parts of the loaded timeline, and for that it would need to know the order of entries. So maybe not ... we'll see.
 
 so a gap is two connected fragments where either the first fragment has a nextToken and/or the second fragment has a previousToken. It can be both, so we can have a gap where you can fill in from the top, from the bottom (like when limited sync) or both.
 
