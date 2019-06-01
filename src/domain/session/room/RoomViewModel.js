@@ -1,10 +1,12 @@
 import EventEmitter from "../../../EventEmitter.js";
+import TimelineViewModel from "./timeline/TimelineViewModel.js";
 
 export default class RoomViewModel extends EventEmitter {
     constructor(room) {
         super();
         this._room = room;
         this._timeline = null;
+        this._timelineVM = null;
         this._onRoomChange = this._onRoomChange.bind(this);
         this._timelineError = null;
     }
@@ -13,6 +15,7 @@ export default class RoomViewModel extends EventEmitter {
         this._room.on("change", this._onRoomChange);
         try {
             this._timeline = await this._room.openTimeline();
+            this._timelineVM = new TimelineViewModel(this._timeline);
             this.emit("change", "timelineEntries");
         } catch (err) {
             this._timelineError = err;
@@ -22,6 +25,7 @@ export default class RoomViewModel extends EventEmitter {
 
     disable() {
         if (this._timeline) {
+            // will stop the timeline from delivering updates on entries
             this._timeline.close();
         }
     }
@@ -36,8 +40,8 @@ export default class RoomViewModel extends EventEmitter {
         return this._room.name;
     }
 
-    get timelineEntries() {
-        return this._timeline && this._timeline.entries;
+    get timelineViewModel() {
+        return this._timelineVM;
     }
 
     get error() {
