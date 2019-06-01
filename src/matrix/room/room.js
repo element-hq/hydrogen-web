@@ -1,6 +1,6 @@
 import EventEmitter from "../../EventEmitter.js";
 import RoomSummary from "./summary.js";
-import SyncPersister from "./timeline/persistence/SyncPersister.js";
+import SyncWriter from "./timeline/persistence/SyncWriter.js";
 import Timeline from "./timeline/Timeline.js";
 import FragmentIdComparer from "./timeline/FragmentIdComparer.js";
 
@@ -12,14 +12,14 @@ export default class Room extends EventEmitter {
         this._hsApi = hsApi;
 		this._summary = new RoomSummary(roomId);
         this._fragmentIdComparer = new FragmentIdComparer([]);
-		this._syncPersister = new SyncPersister({roomId, storage, fragmentIdComparer: this._fragmentIdComparer});
+		this._syncWriter = new SyncWriter({roomId, storage, fragmentIdComparer: this._fragmentIdComparer});
         this._emitCollectionChange = emitCollectionChange;
         this._timeline = null;
 	}
 
     persistSync(roomResponse, membership, txn) {
 		const summaryChanged = this._summary.applySync(roomResponse, membership, txn);
-		const newTimelineEntries = this._syncPersister.persistSync(roomResponse, txn);
+		const newTimelineEntries = this._syncWriter.writeSync(roomResponse, txn);
         return {summaryChanged, newTimelineEntries};
     }
 
@@ -35,7 +35,7 @@ export default class Room extends EventEmitter {
 
 	load(summary, txn) {
 		this._summary.load(summary);
-		return this._syncPersister.load(txn);
+		return this._syncWriter.load(txn);
 	}
 
     get name() {

@@ -1,6 +1,6 @@
 import { ObservableArray } from "../../../observable/index.js";
 import sortedIndex from "../../../utils/sortedIndex.js";
-import GapPersister from "./persistence/GapPersister.js";
+import GapWriter from "./persistence/GapWriter.js";
 import TimelineReader from "./persistence/TimelineReader.js";
 
 export default class Timeline {
@@ -41,12 +41,12 @@ export default class Timeline {
             limit: amount
         });
 
-        const gapPersister = new GapPersister({
+        const gapWriter = new GapWriter({
             roomId: this._roomId,
             storage: this._storage,
             fragmentIdComparer: this._fragmentIdComparer
         });
-        const newEntries = await gapPersister.persistFragmentFill(fragmentEntry, response);
+        const newEntries = await gapWriter.writerFragmentFill(fragmentEntry, response);
         // find where to replace existing gap with newEntries by doing binary search
         const gapIdx = sortedIndex(this._entriesList.array, fragmentEntry, (fragmentEntry, entry) => {
             return fragmentEntry.compare(entry);

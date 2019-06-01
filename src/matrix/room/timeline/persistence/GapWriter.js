@@ -2,7 +2,7 @@ import EventKey from "../EventKey.js";
 import EventEntry from "../entries/EventEntry.js";
 import {createEventEntry, directionalAppend} from "./common.js";
 
-export default class GapPersister {
+export default class GapWriter {
     constructor({roomId, storage, fragmentIdComparer}) {
         this._roomId = roomId;
         this._storage = storage;
@@ -71,7 +71,7 @@ export default class GapPersister {
         txn.timelineFragments.set(fragmentEntry.fragment);
     }
 
-    async persistFragmentFill(fragmentEntry, response) {
+    async writeFragmentFill(fragmentEntry, response) {
         const {fragmentId, direction} = fragmentEntry;
         // assuming that chunk is in chronological order when backwards too?
         const {chunk, start, end} = response;
