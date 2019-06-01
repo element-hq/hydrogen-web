@@ -19,4 +19,8 @@ export default class ImageTile extends MessageTile {
     get height() {
         return 200;
     }
+
+    get label() {
+        return "this is an image";
+    }
 }

@@ -24,12 +24,20 @@ export default class GapTile extends SimpleTile {
         }
     }
 
+    get shape() {
+        return "gap";
+    }
+
     get isLoading() {
         return this._loading;
     }
 
-    get direction() {
-        return this._entry.direction;
+    get isUp() {
+        return this._entry.direction.isBackward;
+    }
+
+    get isDown() {
+        return this._entry.direction.isForward;
     }
 
     get error() {

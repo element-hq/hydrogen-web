@@ -14,9 +14,7 @@ export default class RoomView {
     mount() {
         this._viewModel.on("change", this._onViewModelUpdate);
         this._nameLabel = html.h2(null, this._viewModel.name);
-        this._timelineList = new ListView({
-            list: this._viewModel.timelineEntries
-        }, entry => new TimelineTile(entry));
+        this._timelineList = new ListView({}, entry => new TimelineTile(entry));
         this._timelineList.mount();
 
         this._root = html.div({className: "RoomView"}, [
@@ -40,8 +38,8 @@ export default class RoomView {
         if (prop === "name") {
             this._nameLabel.innerText = this._viewModel.name;
         }
-        else if (prop === "timelineEntries") {
-            this._timelineList.update({list: this._viewModel.timelineEntries});
+        else if (prop === "timelineViewModel") {
+            this._timelineList.update({list: this._viewModel.timelineViewModel.tiles});
         }
     }
 

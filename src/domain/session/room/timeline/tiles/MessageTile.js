@@ -7,6 +7,10 @@ export default class MessageTile extends SimpleTile {
         this._date = new Date(this._entry.event.origin_server_ts);
     }
 
+    get shape() {
+        return "message";
+    }
+
     get sender() {
         return this._entry.event.sender;
     }
