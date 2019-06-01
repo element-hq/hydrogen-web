@@ -3,6 +3,11 @@ import MessageTile from "./MessageTile.js";
 export default class TextTile extends MessageTile {
     get text() {
         const content = this._getContent();
-        return content && content.body;
+        const body = content && content.body;
+        if (this._entry.type() === "m.emote") {
+            return `* ${this._entry.event.sender} ${body}`;
+        } else {
+            return body;
+        }
     }
 }

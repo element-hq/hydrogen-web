@@ -19,6 +19,7 @@ export default function ({timeline, emitUpdate}) {
                     switch (msgtype) {
                         case "m.text":
                         case "m.notice":
+                        case "m.emote":
                             return new TextTile(options);
                         case "m.image":
                             return new ImageTile(options);
