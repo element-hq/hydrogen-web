@@ -141,23 +141,7 @@ export default class FragmentIdComparer {
             }
         }
     }
-    // maybe actual persistence shouldn't be done here, just allocate fragment ids and sorting
 
-    // we need to check here that the fragment we think we are appending to doesn't already have a nextId.
-    // otherwise we could create a corrupt state (two fragments not pointing at each other).
-
-    // allocates a fragment id within the live range, that can be compared to each other without a mapping as they are allocated in chronological order
-    // appendLiveFragment(txn, previousToken) {
-
-    // }
-
-    // newFragment(txn, previousToken, nextToken) {
-
-    // }
-
-    // linkFragments(txn, firstFragmentId, secondFragmentId) {
-
-    // }
     add(fragment) {
         this._fragmentsById[fragment.id] = fragment;
         this.rebuild(this._fragmentsById.values());
