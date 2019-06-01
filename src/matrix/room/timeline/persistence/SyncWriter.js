@@ -13,7 +13,7 @@ export default class SyncWriter {
     async load(txn) {
         const liveFragment = await txn.timelineFragments.liveFragment(this._roomId);
         if (liveFragment) {
-            const [lastEvent] = await txn.roomTimeline.lastEvents(this._roomId, liveFragment.id, 1);
+            const [lastEvent] = await txn.timelineEvents.lastEvents(this._roomId, liveFragment.id, 1);
             // sorting and identifying (e.g. sort key and pk to insert) are a bit intertwined here
             // we could split it up into a SortKey (only with compare) and
             // a EventKey (no compare or fragment index) with nextkey methods and getters/setters for eventIndex/fragmentId
@@ -69,6 +69,7 @@ export default class SyncWriter {
 
     async writeSync(roomResponse, txn) {
         const entries = [];
+        const timeline = roomResponse.timeline;
         if (!this._lastLiveKey) {
             // means we haven't synced this room yet (just joined or did initial sync)
             
@@ -86,22 +87,20 @@ export default class SyncWriter {
             entries.push(FragmentBoundaryEntry.start(newFragment, this._fragmentIdComparer));
         }
         let currentKey = this._lastLiveKey;
-        const timeline = roomResponse.timeline;
         if (timeline.events) {
             for(const event of timeline.events) {
                 currentKey = currentKey.nextKey();
-                const entry = createEventEntry(currentKey, event);
-                txn.roomTimeline.insert(entry);
+                const entry = createEventEntry(currentKey, this._roomId, event);
+                txn.timelineEvents.insert(entry);
                 entries.push(new EventEntry(entry, this._fragmentIdComparer));
             }
         }
         // right thing to do? if the txn fails, not sure we'll continue anyways ...
-        // only advance the key once the transaction has
-        // succeeded 
+        // only advance the key once the transaction has succeeded 
         txn.complete().then(() => {
             console.log("txn complete, setting key");
             this._lastLiveKey = currentKey;
-        });
+        })
 
         // persist state
         const state = roomResponse.state;

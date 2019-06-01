@@ -1,7 +1,8 @@
-export function createEventEntry(key, event) {
+export function createEventEntry(key, roomId, event) {
     return {
         fragmentId: key.fragmentId,
         eventIndex: key.eventIndex,
+        roomId,
         event: event,
     };
 }

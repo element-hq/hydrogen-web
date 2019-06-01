@@ -17,9 +17,9 @@ export default class Room extends EventEmitter {
         this._timeline = null;
 	}
 
-    persistSync(roomResponse, membership, txn) {
+    async persistSync(roomResponse, membership, txn) {
 		const summaryChanged = this._summary.applySync(roomResponse, membership, txn);
-		const newTimelineEntries = this._syncWriter.writeSync(roomResponse, txn);
+		const newTimelineEntries = await this._syncWriter.writeSync(roomResponse, txn);
         return {summaryChanged, newTimelineEntries};
     }
 

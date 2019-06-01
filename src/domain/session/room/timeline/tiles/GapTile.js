@@ -1,4 +1,4 @@
-import SimpleTile from "./SimpleTile";
+import SimpleTile from "./SimpleTile.js";
 
 export default class GapTile extends SimpleTile {
     constructor(options, timeline) {

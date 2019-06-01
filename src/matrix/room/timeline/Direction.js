@@ -1,6 +1,4 @@
 
-const _forward = Object.freeze(new Direction(true));
-const _backward = Object.freeze(new Direction(false));
 
 export default class Direction {
     constructor(isForward) {
@@ -27,3 +25,6 @@ export default class Direction {
         return _backward;
     }
 }
+
+const _forward = Object.freeze(new Direction(true));
+const _backward = Object.freeze(new Direction(false));

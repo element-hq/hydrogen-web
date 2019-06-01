@@ -9,19 +9,18 @@ const INCREMENTAL_TIMEOUT = 30000;
 const SYNC_EVENT_LIMIT = 10;
 
 function parseRooms(roomsSection, roomCallback) {
-    if (!roomsSection) {
-        return;
-    }
-    const allMemberships = ["join", "invite", "leave"];
-    for(const membership of allMemberships) {
-        const membershipSection = roomsSection[membership];
-        if (membershipSection) {
-            const rooms = Object.entries(membershipSection)
-            for (const [roomId, roomResponse] of rooms) {
-                roomCallback(roomId, roomResponse, membership);
+    if (roomsSection) {
+        const allMemberships = ["join", "invite", "leave"];
+        for(const membership of allMemberships) {
+            const membershipSection = roomsSection[membership];
+            if (membershipSection) {
+                return Object.entries(membershipSection).map(([roomId, roomResponse]) => {
+                    return roomCallback(roomId, roomResponse, membership);
+                });
             }
         }
     }
+    return [];
 }
 
 export default class Sync extends EventEmitter {
@@ -73,9 +72,9 @@ export default class Sync extends EventEmitter {
         const syncTxn = await this._storage.readWriteTxn([
             storeNames.session,
             storeNames.roomSummary,
+            storeNames.roomState,
             storeNames.timelineEvents,
             storeNames.timelineFragments,
-            storeNames.roomState,
         ]);
         const roomChanges = [];
         try {
@@ -83,18 +82,19 @@ export default class Sync extends EventEmitter {
             // to_device
             // presence
             if (response.rooms) {
-                parseRooms(response.rooms, (roomId, roomResponse, membership) => {
+                const promises = parseRooms(response.rooms, async (roomId, roomResponse, membership) => {
                     let room = this._session.rooms.get(roomId);
                     if (!room) {
                         room = this._session.createRoom(roomId);
                     }
                     console.log(` * applying sync response to room ${roomId} ...`);
-                    const changes = room.persistSync(roomResponse, membership, syncTxn);
+                    const changes = await room.persistSync(roomResponse, membership, syncTxn);
                     roomChanges.push({room, changes});
                 });
+                await Promise.all(promises);
             }
         } catch(err) {
-            console.warn("aborting syncTxn because of error");
+            console.warn("aborting syncTxn because of error", err.stack);
             // avoid corrupting state by only
             // storing the sync up till the point
             // the exception occurred

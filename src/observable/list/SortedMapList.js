@@ -1,5 +1,5 @@
 import BaseObservableList from "./BaseObservableList.js";
-import sortedIndex from "../../utils/sortedIndex";
+import sortedIndex from "../../utils/sortedIndex.js";
 
 /*
 

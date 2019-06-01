@@ -13,7 +13,7 @@ function createStores(db) {
 
     // need index to find live fragment? prooobably ok without for now
     db.createObjectStore("timelineFragments", {keyPath: ["roomId", "id"]});
-    const timelineEvents = db.createObjectStore("timelineEvents", {keyPath: ["event.room_id", "fragmentId", "eventIndex"]});
+    const timelineEvents = db.createObjectStore("timelineEvents", {keyPath: ["roomId", "fragmentId", "eventIndex"]});
     timelineEvents.createIndex("byEventId", [
         "event.room_id",
         "event.event_id"

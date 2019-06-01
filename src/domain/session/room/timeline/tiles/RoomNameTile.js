@@ -3,7 +3,7 @@ import SimpleTile from "./SimpleTile.js";
 export default class RoomNameTile extends SimpleTile {
     
     get shape() {
-        return "annoucement";
+        return "announcement";
     }
 
     get label() {
