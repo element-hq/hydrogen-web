@@ -43,15 +43,17 @@ export default class GapWriter {
     }
 
     _storeEvents(events, startKey, direction, txn) {
-        const entries = new Array(events.length);
-        const reducer = direction.isBackward ? Array.prototype.reduceRight : Array.prototype.reduce;
-        reducer.call(events, (key, event, i) => {
+        const entries = [];
+        // events is in reverse chronological order for backwards pagination,
+        // e.g. order is moving away from the `from` point.
+        let key = startKey;
+        for(let event of events) {
             key = key.nextKeyForDirection(direction);
-            const eventEntry = createEventEntry(key, this._roomId, event);
-            txn.timelineEvents.insert(eventEntry);
-            entries[i] = new EventEntry(eventEntry, this._fragmentIdComparer);
-            return key;
-        }, startKey);
+            const eventStorageEntry = createEventEntry(key, this._roomId, event);
+            txn.timelineEvents.insert(eventStorageEntry);
+            const eventEntry = new EventEntry(eventStorageEntry, this._fragmentIdComparer);
+            directionalAppend(entries, eventEntry, direction);
+        }
         return entries;
     }
 
