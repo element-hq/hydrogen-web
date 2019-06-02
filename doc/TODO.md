@@ -25,6 +25,11 @@
  - DONE: support timeline
  	- DONE: clicking on a room list, you see messages (userId -> body)
  - DONE: style minimal UI
+ - DONE: implement gap filling and fragments (see FRAGMENTS.md)
+ - allow collection items (especially tiles) to self-update
+ - improve fragmentidcomparer::add
+ - send messages
+ - better UI
  - fix MappedMap update mechanism
  - see if in BaseObservableMap we need to change ...params
  - put sync button and status label inside SessionView
@@ -32,6 +37,8 @@
     - find out if `(this._emitCollectionUpdate)(this)` is different than `this._emitCollectionUpdate(this)` 
     - got "database tried to mutate when not allowed" or something error as well
     - find out why when RoomPersister.(\_createGapEntry/\_createEventEntry) we remove .buffer the transaction fails (good), but upon fixing and refreshing is missing a message! syncToken should not be saved, so why isn't this again in the sync response and now the txn does succeed?
+ - DONE: take access token out of IDB? this way it can be stored in a more secure thing for non-web clients, together wit encryption key for olm sessions ... ? like macos keychain, gnome keyring, ... maybe using https://www.npmjs.com/package/keytar
+ - experiment with using just a normal array with 2 numbers for sortkeys, to work in Edge as well.
  - send messages
  - fill gaps with call to /messages
  - create sync filter

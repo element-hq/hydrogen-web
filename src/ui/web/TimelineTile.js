@@ -1,29 +1,8 @@
 import * as html from "./html.js";
 
-function tileText(event) {
-    const content = event.content;
-    switch (event.type) {
-        case "m.room.message": {
-            const msgtype = content.msgtype;
-            switch (msgtype) {
-                case "m.text":
-                    return content.body;
-                default:
-                    return `unsupported msgtype: ${msgtype}`;
-            }
-        }
-        case "m.room.name":
-            return `changed the room name to "${content.name}"`;
-        case "m.room.member":
-            return `changed membership to ${content.membership}`;
-        default:
-            return `unsupported event type: ${event.type}`;
-    }
-}
-
 export default class TimelineTile {
-    constructor(entry) {
-        this._entry = entry;
+    constructor(tileVM) {
+        this._tileVM = tileVM;
         this._root = null;
     }
 
@@ -32,25 +11,31 @@ export default class TimelineTile {
     }
 
     mount() {
-        let children;
-        if (this._entry.gap) {
-            children = [
-                html.strong(null, "Gap"),
-                " with prev_batch ",
-                html.strong(null, this._entry.gap.prev_batch)
-            ];
-        } else if (this._entry.event) {
-            const event = this._entry.event;
-            children = [
-                html.strong(null, event.sender),
-                `: ${tileText(event)}`,
-            ];
-        }
-        this._root = html.li(null, children);
+        this._root = renderTile(this._tileVM);
         return this._root;
     }
 
     unmount() {}
 
     update() {}
+}
+
+function renderTile(tile) {
+    switch (tile.shape) {
+        case "message":
+            return html.li(null, [html.strong(null, tile.internalId+" "), tile.label]);
+        case "gap": {
+            const button = html.button(null, (tile.isUp ? "🠝" : "🠟") + " fill gap");
+            const handler = () => {
+                tile.fill();
+                button.removeEventListener("click", handler);
+            };
+            button.addEventListener("click", handler);
+            return html.li(null, [html.strong(null, tile.internalId+" "), button]);
+        }
+        case "announcement":
+            return html.li(null, [html.strong(null, tile.internalId+" "), tile.label]);
+        default:
+            return html.li(null, [html.strong(null, tile.internalId+" "), "unknown tile shape: " + tile.shape]);
+    }
 }

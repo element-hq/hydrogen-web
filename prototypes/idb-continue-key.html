@@ -1,0 +1,165 @@
+<html>
+<head><meta charset="utf-8"></head>
+<body>
+	<script type="text/javascript">
+        function reqAsPromise(req) {
+            return new Promise((resolve, reject) => {
+                req.onsuccess = () => resolve(req);
+                req.onerror = (err) => reject(err);
+            });
+        }
+
+        function txnAsPromise(txn) {
+            return new Promise((resolve, reject) => {
+                txn.addEventListener("complete", resolve);
+                txn.addEventListener("abort", reject);
+            });
+        }
+
+        function iterateCursor(cursor, processValue) {
+            // TODO: does cursor already have a value here??
+            return new Promise((resolve, reject) => {
+                cursor.onerror = (event) => {
+                    reject(new Error("Query failed: " + event.target.errorCode));
+                };
+                // collect results
+                cursor.onsuccess = (event) => {
+                    const cursor = event.target.result;
+                    if (!cursor) {
+                        resolve(false);
+                        return; // end of results
+                    }
+                    const {done, jumpTo} = processValue(cursor.value, cursor.key);
+                    if (done) {
+                        resolve(true);
+                    } else {
+                        cursor.continue(jumpTo);
+                    }
+                };
+            });
+        }
+
+        /**
+         * Checks if a given set of keys exist.
+         * Calls `callback(key, found)` for each key in `keys`, in an unspecified order.
+         * If the callback returns true, the search is halted and callback won't be called again.
+        */
+        async function findKeys(target, keys, backwards, callback) {
+            const direction = backwards ? "prev" : "next";
+            const compareKeys = (a, b) => backwards ? -indexedDB.cmp(a, b) : indexedDB.cmp(a, b);
+            const sortedKeys = keys.slice().sort(compareKeys);
+            console.log(sortedKeys);
+            const firstKey = backwards ? sortedKeys[sortedKeys.length - 1] : sortedKeys[0];
+            const lastKey = backwards ? sortedKeys[0] : sortedKeys[sortedKeys.length - 1];
+            const cursor = target.openKeyCursor(IDBKeyRange.bound(firstKey, lastKey), direction);
+            let i = 0;
+            let consumerDone = false;
+            await iterateCursor(cursor, (value, key) => {
+                // while key is larger than next key, advance and report false
+                while(i < sortedKeys.length && compareKeys(sortedKeys[i], key) < 0 && !consumerDone) {
+                    console.log("before match", sortedKeys[i]);
+                    consumerDone = callback(sortedKeys[i], false);
+                    ++i;
+                }
+                if (i < sortedKeys.length && compareKeys(sortedKeys[i], key) === 0 && !consumerDone) {
+                    console.log("match", sortedKeys[i]);
+                    consumerDone = callback(sortedKeys[i], true);
+                    ++i;
+                }
+                const done = consumerDone || i >= sortedKeys.length;
+                const jumpTo = !done && sortedKeys[i];
+                return {done, jumpTo};
+            });
+            // report null for keys we didn't to at the end
+            while (!consumerDone && i < sortedKeys.length) {
+                console.log("afterwards", sortedKeys[i]);
+                consumerDone = callback(sortedKeys[i], false);
+                ++i;
+            }
+        }
+
+        async function findFirstOrLastOccurringEventId(target, roomId, eventIds, findLast = false) {
+            const keys = eventIds.map(eventId => [roomId, eventId]);
+            const results = new Array(keys.length);
+            let firstFoundEventId;
+
+            // find first result that is found and has no undefined results before it
+            function firstFoundAndPrecedingResolved() {
+                let inc = findLast ? -1 : 1;
+                let start = findLast ? results.length - 1 : 0;
+                for(let i = start; i >= 0 && i < results.length; i += inc) {
+                    if (results[i] === undefined) {
+                        return;
+                    } else if(results[i] === true) {
+                        return keys[i];
+                    }
+                }
+            }
+
+            await findKeys(target, keys, findLast, (key, found) => {
+                const index = keys.indexOf(key);
+                results[index] = found;
+                firstFoundEventId = firstFoundAndPrecedingResolved();
+                return !!firstFoundEventId;
+            });
+
+            return firstFoundEventId;
+        }
+
+        (async () => {
+            let db;
+            let isNew = false;
+            // open db
+            {
+                const req = window.indexedDB.open("prototype-idb-continue-key");
+                req.onupgradeneeded = (ev) => {
+                    const db = ev.target.result;
+                    db.createObjectStore("timeline", {keyPath: ["roomId", "eventId"]});
+                    isNew = true;
+                };
+                db = (await reqAsPromise(req)).result;
+            }
+            const roomId = "!abcdef:localhost";
+            if (isNew) {
+                const txn = db.transaction(["timeline"], "readwrite");
+                const store = txn.objectStore("timeline");
+                for (var i = 1; i <= 100; ++i) {
+                    store.add({roomId, eventId: `$${i * 10}`});
+                }
+                await txnAsPromise(txn);
+            }
+            console.log("show all in order we get them");
+            {
+                const txn = db.transaction(["timeline"], "readonly");
+                const store = txn.objectStore("timeline");
+                const cursor = store.openKeyCursor();
+                await iterateCursor(cursor, (value, key) => {
+                    console.log(key);
+                    return {done: false};
+                });
+            }
+            console.log("run findKeys");
+            {
+                const txn = db.transaction(["timeline"], "readonly");
+                const store = txn.objectStore("timeline");
+                const eventIds = ["$992", "$1000", "$1010", "$991", "$500", "$990"];
+                // const eventIds = ["$992", "$1010"];
+                const keys = eventIds.map(eventId => [roomId, eventId]);
+                await findKeys(store, keys, false, (key, found) => {
+                    console.log(key, found);
+                });
+            }
+            console.log("run findFirstOrLastOccurringEventId");
+            {
+                const txn = db.transaction(["timeline"], "readonly");
+                const store = txn.objectStore("timeline");
+                const eventIds = ["$992", "$1000", "$1010", "$991", "$500", "$990", "$123"];
+                const firstMatch = await findFirstOrLastOccurringEventId(store, roomId, eventIds, false);
+                console.log("firstMatch", firstMatch);
+                const lastMatch = await findFirstOrLastOccurringEventId(store, roomId, eventIds, true);
+                console.log("lastMatch", lastMatch);
+            }
+        })();
+	</script>
+</body>
+</html>

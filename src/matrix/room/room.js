@@ -1,22 +1,25 @@
 import EventEmitter from "../../EventEmitter.js";
 import RoomSummary from "./summary.js";
-import RoomPersister from "./persister.js";
-import Timeline from "./timeline.js";
+import SyncWriter from "./timeline/persistence/SyncWriter.js";
+import Timeline from "./timeline/Timeline.js";
+import FragmentIdComparer from "./timeline/FragmentIdComparer.js";
 
 export default class Room extends EventEmitter {
-	constructor(roomId, storage, emitCollectionChange) {
+	constructor({roomId, storage, hsApi, emitCollectionChange}) {
         super();
-		this._roomId = roomId;
-		this._storage = storage;
+        this._roomId = roomId;
+        this._storage = storage;
+        this._hsApi = hsApi;
 		this._summary = new RoomSummary(roomId);
-		this._persister = new RoomPersister(roomId);
+        this._fragmentIdComparer = new FragmentIdComparer([]);
+		this._syncWriter = new SyncWriter({roomId, storage, fragmentIdComparer: this._fragmentIdComparer});
         this._emitCollectionChange = emitCollectionChange;
         this._timeline = null;
 	}
 
-    persistSync(roomResponse, membership, txn) {
+    async persistSync(roomResponse, membership, txn) {
 		const summaryChanged = this._summary.applySync(roomResponse, membership, txn);
-		const newTimelineEntries = this._persister.persistSync(roomResponse, txn);
+		const newTimelineEntries = await this._syncWriter.writeSync(roomResponse, txn);
         return {summaryChanged, newTimelineEntries};
     }
 
@@ -32,7 +35,7 @@ export default class Room extends EventEmitter {
 
 	load(summary, txn) {
 		this._summary.load(summary);
-		return this._persister.load(txn);
+		return this._syncWriter.load(txn);
 	}
 
     get name() {
@@ -50,6 +53,8 @@ export default class Room extends EventEmitter {
         this._timeline = new Timeline({
             roomId: this.id,
             storage: this._storage,
+            hsApi: this._hsApi,
+            fragmentIdComparer: this._fragmentIdComparer,
             closeCallback: () => this._timeline = null,
         });
         await this._timeline.load();

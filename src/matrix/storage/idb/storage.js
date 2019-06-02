@@ -1,6 +1,5 @@
 import Transaction from "./transaction.js";
-
-export const STORE_NAMES = ["session", "roomState", "roomSummary", "roomTimeline"];
+import { STORE_NAMES } from "../common.js";
 
 export default class Storage {
 	constructor(idbDatabase) {

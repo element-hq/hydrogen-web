@@ -35,11 +35,11 @@ export function iterateCursor(cursor, processValue) {
                 resolve(false);
                 return; // end of results
             }
-            const isDone = processValue(cursor.value);
-            if (isDone) {
+            const {done, jumpTo} = processValue(cursor.value, cursor.key);
+            if (done) {
                 resolve(true);
             } else {
-                cursor.continue();
+                cursor.continue(jumpTo);
             }
         };
     });
@@ -49,7 +49,7 @@ export async function fetchResults(cursor, isDone) {
     const results = [];
     await iterateCursor(cursor, (value) => {
         results.push(value);
-        return isDone(results);
+        return {done: isDone(results)};
     });
     return results;
 }

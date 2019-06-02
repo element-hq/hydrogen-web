@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html manifest="manifest.appcache">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no">
+    <meta name="application-name" content="Talk to Bruno"/>
+    <meta name="msapplication-navbutton-color" content="red"/>
+    <style type="text/css">
+        html {
+            height: 100%;
+            display: flex;
+            min-height: 0;
+        }
+        body {
+            flex: 1;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            font-family: sans-serif;
+        }
+
+        .log {
+            flex: 0 0 50px;
+            overflow-y: scroll;
+            margin: 0;
+            background: white;
+            color: black;
+            word-wrap: anywhere;
+            display: none;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            min-height: 0;
+            min-width: 0;
+            width: 100vw;
+        }
+        
+        /* mobile layout */
+        @media screen and (max-width: 800px) {
+            .back { display: block !important; }
+            .room-panel, .room-panel-placeholder { display: none; }
+            .room-shown .room-panel { display: unset; }
+            .room-shown .left-panel { display: none; }
+            .right-shown .timeline-panel { display: none; }
+        }
+
+        .left-panel {
+            flex: 1;
+            background: red;
+            color: white;
+            overflow-y: auto;
+        }
+
+        .left-panel ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .left-panel li {
+            margin: 5px;
+            padding: 10px;
+            background: darkred;
+            display: flex;
+            align-items: center;
+        }
+
+        .left-panel li > * {
+            margin-right: 10px;
+        }
+
+        .left-panel div.description {
+            margin: 0;
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        .description > * {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .description .last-message {
+            font-size: 0.8em;
+        }
+
+        .room-panel-placeholder, .room-panel {
+            flex: 3;
+            color: white;
+            background: black;
+        }
+
+        .room-panel {
+            min-width: 0;
+            display: none;
+        }
+
+        .room-shown .room-panel {
+            display: flex;
+        }
+
+        .room-shown .room-panel-placeholder {
+            display: none;
+        }
+
+        .right-panel {
+            flex: 1;
+            background: green;
+            color: white;
+            display: none;
+        }
+
+        .timeline-panel {
+            flex: 3;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .right-shown .right-panel {
+            display: block;
+        }
+
+        .room-header {
+            display: flex;
+            padding: 10px;
+        }
+
+        .room-header *:last-child {
+            margin-right: 0 !important;
+        }
+
+        .room-header > * {
+            margin-right: 10px !important;
+        }
+
+        .room-header button {
+            width: 40px;
+            height: 40px;
+            display: none;
+            font-size: 1.5em;
+            padding: 0;
+            display: block;
+            background: white;
+            border: none;
+            font-weight: bolder;
+            line-height: 40px;
+        }
+
+        .room-header button.back {
+            display: none;
+        }
+
+        .room-header .topic {
+            font-size: 0.8em;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .back::before {
+            content: "☰";
+        }
+
+        .more::before {
+            content: "⋮";
+        }
+
+        .room-header {
+            align-items: center;
+        }
+
+        .room-header .room-description {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .room-header h2 {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            margin: 0;
+        }
+
+        .timeline-panel ul {
+            flex: 1;
+            overflow-y: auto;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .timeline-panel li {
+            background: blue;
+            padding: 10px;
+            margin: 10px;
+        }
+
+        .composer {
+            display: flex;
+        }
+
+        .composer input {
+            display: block;
+            flex: 1;
+            font-size: 1.2em;
+            border: none;
+            padding: 10px;
+        }
+
+        .avatar {
+            --avatar-size: 32px;
+            width: var(--avatar-size);
+            height: var(--avatar-size);
+            border-radius: 100px;
+            overflow: hidden;
+            flex-shrink: 0;
+            line-height: var(--avatar-size);
+            font-size: calc(var(--avatar-size) * 0.6);
+            text-align: center;
+            letter-spacing: calc(var(--avatar-size) * -0.05);
+            background: white;
+            color: black;
+        }
+
+        .avatar.large {
+            --avatar-size: 40px;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <ul class="log"></ul>
+    <div class="container">
+        <div class="left-panel">
+            <ul>
+                <li>
+                    <div class="avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                    <div class="description">
+                        <div class="name">Room 1</div>
+                        <div class="last-message">Message 12, message 12, message 12</div>
+                    </div>
+                </li>
+                <li>
+                    <div class="avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                    <div class="description">
+                        <div class="name">Room 2</div>
+                        <div class="last-message">Message 12, message 12, message 12</div>
+                    </div>
+                </li>
+                <li>
+                    <div class="avatar medium">R3</div>
+                    <div class="description">
+                        <div class="name">Room 3</div>
+                        <div class="last-message">Message 12, message 12, message 12</div>
+                    </div>
+                </li>
+                <li>
+                    <div class="avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                    <div class="description">
+                        <div class="name">Room 4</div>
+                        <div class="last-message">Message 12, message 12, message 12</div>
+                    </div>
+                </li>
+                <li>
+                    <div class="avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                    <div class="description">
+                        <div class="name">Room 5</div>
+                        <div class="last-message">Message 12, message 12, message 12</div>
+                    </div>
+                </li>
+                <li>
+                    <div class="avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                    <div class="description">
+                        <div class="name">Room 6</div>
+                        <div class="last-message">Message 12, message 12, message 12</div>
+                    </div>
+                </li>
+                <li>
+                    <div class="avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                    <div class="description">
+                        <div class="name">Room 7</div>
+                        <div class="last-message">Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</div>
+                    </div>
+                </li>
+                <li>
+                    <div class="avatar medium">BW</div>
+                    <div class="description">
+                        <div class="name">Room 8</div>
+                        <div class="last-message">Message 12, message 12, message 12</div>
+                    </div>
+                </li>
+                <li>
+                    <div class="avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                    <div class="description">
+                        <div class="name">Room 9</div>
+                        <div class="last-message">Message 12, message 12, message 12</div>
+                    </div>
+                </li>
+                <li>
+                    <div class="avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                    <div class="description">
+                        <div class="name">Room 10</div>
+                        <div class="last-message">Message 12, message 12, message 12</div>
+                    </div>
+                </li>
+                <li>
+                    <div class="avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                    <div class="description">
+                        <div class="name">Room 11</div>
+                        <div class="last-message">Message 12, message 12, message 12</div>
+                    </div>
+                </li>
+                <li>
+                    <div class="avatar medium">🍔</div>
+                    <div class="description">
+                        <div class="name">Room 12</div>
+                        <div class="last-message">Message 12, message 12, message 12</div>
+                    </div>
+                </li>
+                <li>
+                    <div class="avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                    <div class="description">
+                        <div class="name">Room 13</div>
+                        <div class="last-message">Message 12, message 12, message 12</div>
+                    </div>
+                </li>
+                <li>
+                    <div class="avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                    <div class="description">
+                        <div class="name">Room 14</div>
+                        <div class="last-message">Message 12, message 12, message 12</div>
+                    </div>
+                </li>   
+            </ul>
+        </div>
+        <div class="room-panel-placeholder">
+            <h2>Select a room on the left side</h2>
+        </div>
+        <div class="room-panel">
+            <div class="timeline-panel">
+                <div class="room-header">
+                    <button class="back"></button>
+                    <div class="avatar large"><img src="me.jpg" alt="Avatar for some room"/></div>
+                    <div class="room-description">
+                        <h2>Talk to Bruno</h2>
+                        <div class="topic">The room to talk to Bruno</div>
+                    </div>
+                    <button class="more"></button>
+                </div>
+                <ul>
+                    <li>Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1</li>
+                    <li>Message 2, message 2, message 2, message 2, message 2, message 2, message 2, message 2</li>
+                    <li>Message 3, message 3, message 3, message 3, message 3, message 3, message 3, message 3</li>
+                    <li>Message 4, message 4, message 4, message 4, message 4, message 4, message 4, message 4</li>
+                    <li>Message 5, message 5, message 5, message 5, message 5, message 5, message 5, message 5</li>
+                    <li>Message 6, message 6, message 6, message 6, message 6, message 6, message 6, message 6</li>
+                    <li>Message 7, message 7, message 7, message 7, message 7, message 7, message 7, message 7</li>
+                    <li>Message 8, message 8, message 8, message 8, message 8, message 8, message 8, message 8</li>
+                    <li>Message 9, message 9, message 9, message 9, message 9, message 9, message 9, message 9</li>
+                    <li>Message 10, message 10, message 10, message 10, message 10, message 10, message 10, message 10</li>
+                    <li>Message 11, message 11, message 11, message 11, message 11, message 11, message 11, message 11</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                </ul>
+                <div class="composer"><input type="text" placeholder="Send a message" /></div>
+            </div>
+            <div class="right-panel">
+                <h2>Bruno</h2>
+                <p>Ban | Kick | Mock</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        const left = document.querySelector(".left-panel");
+        const room = document.querySelector(".room-panel");
+        const timeline = document.querySelector(".timeline-panel ul");
+        const right = document.querySelector(".right-panel");
+        const back = document.querySelector(".back");
+        const more = document.querySelector(".more");
+        const container = document.querySelector(".container");
+        const logNode = document.querySelector(".log");
+        const composer = document.querySelector(".composer input");
+
+        function fullscreen() {
+            try {
+                document.body.webkitRequestFullscreen();
+            } catch (err) {
+                log(`could not set fullscreen: ${err.message}`);
+            }
+        }
+
+        function log(text) {
+            return;
+            const li = document.createElement("li");
+            li.appendChild(document.createTextNode(text));
+            if (logNode.childElementCount) {
+                logNode.insertBefore(li, logNode.firstChild);
+            } else {
+                logNode.appendChild(li);
+            }
+        }
+
+        left.addEventListener("click", (e) => {
+            container.classList.toggle("room-shown");
+            e.preventDefault();
+            e.stopPropagation();
+        });
+
+        timeline.addEventListener("click", (e) => {
+            room.classList.add("right-shown");
+            e.preventDefault();
+            e.stopPropagation();
+        });
+
+        right.addEventListener("click", (e) => {
+            room.classList.remove("right-shown");
+            e.preventDefault();
+            e.stopPropagation();
+        });
+
+        back.addEventListener("click", () => {
+            container.classList.remove("room-shown");
+        });
+
+        more.addEventListener("click", fullscreen);
+
+        const isMyPhone = navigator.userAgent.match(/Windows Phone/i);
+
+        if (isMyPhone) {
+            log("on my phone");
+        } else {
+            log("not on my phone");
+        }
+
+        window.addEventListener("load", () => {
+            fullscreen();
+            setTimeout(() => {
+                log("hello!");
+                fullscreen();
+            }, 100);
+        });
+
+        if (window.applicationCache) {
+            window.applicationCache.oncached = () => {
+                log("app is cached now!");
+            };
+            window.applicationCache.onupdateready = () => {
+                log("app has update ready!");
+            };
+        }
+
+        if (isMyPhone) {
+            composer.addEventListener("blur", () => {
+                log(`composer blurred, clearing maxHeight`);
+                container.style.removeProperty("maxHeight");
+                container.style.maxHeight = "";
+                container.style.maxHeight = null;
+            });
+            composer.addEventListener("focus", () => {
+                const h = 640 - 260;
+                log(`composer focused, setting container height to ${h}`);
+                container.style.maxHeight = `${h}px`;
+            });
+        }
+
+        document.scrollingElement.addEventListener("scroll", () => {
+            log(`window scrolled to ${document.scrollingElement.scrollTop}`);
+        });
+        window.addEventListener("resize", () => {
+            // document.body.style.height = `${window.innerHeight - 100}px`;
+            // document.scrollingElement.style.background = "red";
+            // window.scrollTo(0, 0);
+            log(`window resize ${window.innerHeight}`);
+        });
+    </script>
+</body>
+</html>

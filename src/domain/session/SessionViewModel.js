@@ -1,6 +1,6 @@
 import EventEmitter from "../../EventEmitter.js";
-import RoomTileViewModel from "./RoomTileViewModel.js";
-import RoomViewModel from "./RoomViewModel.js";
+import RoomTileViewModel from "./roomlist/RoomTileViewModel.js";
+import RoomViewModel from "./room/RoomViewModel.js";
 
 export default class SessionViewModel extends EventEmitter {
     constructor(session) {

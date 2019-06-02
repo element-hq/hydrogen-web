@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style type="text/css">
+        body {
+            height: 100vh;
+            margin: 0;
+            display: grid;
+        }
+
+        body              { grid-template-columns: 1fr 0 0; }
+        body.middle-shown { grid-template-columns: 0 1fr 0; }
+        body.right-shown  { grid-template-columns: 0 0 1fr; }
+
+        @media(min-width: 800px) {
+            /*
+            body without middle-shown is used when having middle-panel-placeholder,
+            which shouldn't be the panel shown on < 800px)
+            */
+            body, body.middle-shown { grid-template-columns: 2fr 3fr ; }
+            body.right-shown        { grid-template-columns: 0 3fr 2fr; }
+        }
+
+        @media(min-width: 1024px) {
+            body {
+                grid-template-columns: 1fr 3fr 0;
+            }
+            
+            body.right-shown {
+                grid-template-columns: 1fr 3fr 1fr;
+            }
+        }
+
+        .left-panel {
+            grid-column: 1;
+            background: red;
+            color: white;
+        }
+
+        .middle-panel-placeholder, .middle-panel {
+            color: white;
+            background: blue;
+            grid-column: 2;
+        }
+
+        .middle-panel {
+            display: none;
+        }
+
+        .right-panel {
+            grid-column: 3;
+            background: green;
+            color: white;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="left-panel">
+        <ul>
+            <li>Room 1</li>
+            <li>Room 2</li>
+            <li>Room 3</li>
+            <li>Room 4</li>
+            <li>Room 5</li>
+            <li>Room 6</li>
+            <li>Room 7</li>
+            <li>Room 8</li>
+            <li>Room 9</li>
+            <li>Room 10</li>
+            <li>Room 11</li>
+            <li>Room 12</li>
+        </ul>
+    </div>
+    <div class="middle-panel-placeholder">
+        <h2>Select a room on the left side</h2>
+    </div>
+    <div class="middle-panel">
+        <ul>
+            <li>Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1</li>
+            <li>Message 2, message 2, message 2, message 2, message 2, message 2, message 2, message 2</li>
+            <li>Message 3, message 3, message 3, message 3, message 3, message 3, message 3, message 3</li>
+            <li>Message 4, message 4, message 4, message 4, message 4, message 4, message 4, message 4</li>
+            <li>Message 5, message 5, message 5, message 5, message 5, message 5, message 5, message 5</li>
+            <li>Message 6, message 6, message 6, message 6, message 6, message 6, message 6, message 6</li>
+            <li>Message 7, message 7, message 7, message 7, message 7, message 7, message 7, message 7</li>
+            <li>Message 8, message 8, message 8, message 8, message 8, message 8, message 8, message 8</li>
+            <li>Message 9, message 9, message 9, message 9, message 9, message 9, message 9, message 9</li>
+            <li>Message 10, message 10, message 10, message 10, message 10, message 10, message 10, message 10</li>
+            <li>Message 11, message 11, message 11, message 11, message 11, message 11, message 11, message 11</li>
+            <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+        </ul>
+    </div>
+    <div class="right-panel">
+        <h2>Bruno</h2>
+        <p>Ban | Kick | Mock</p>
+    </div>
+
+    <script type="text/javascript">
+        const left = document.querySelector(".left-panel");
+        const middle = document.querySelector(".middle-panel");
+        const middlePlaceholder = document.querySelector(".middle-panel-placeholder");
+        const right = document.querySelector(".right-panel");
+        const container = document.body;
+
+        left.addEventListener("click", () => {
+            // middle or right shown
+            if (container.className) {
+                container.className = "";
+                middle.style.display = "";
+                right.style.display = "";
+                middlePlaceholder.style.display = "block";
+            } else {
+                container.className = "middle-shown";
+                middle.style.display = "block";
+                middlePlaceholder.style.display = "none";
+                right.style.display = "";
+            }
+        });
+
+        middle.addEventListener("click", () => {
+            if (container.className === "right-shown") {
+                container.className = "middle-shown";
+                right.style.display = "";
+            } else {
+                container.className = "right-shown";
+                right.style.display = "block";
+            }
+        });
+    </script>
+</body>
+</html>

@@ -3,7 +3,7 @@ import Session from "./matrix/session.js";
 import createIdbStorage from "./matrix/storage/idb/create.js";
 import Sync from "./matrix/sync.js";
 import SessionView from "./ui/web/SessionView.js";
-import SessionViewModel from "./ui/viewmodels/SessionViewModel.js";
+import SessionViewModel from "./domain/session/SessionViewModel.js";
 
 const HOST = "localhost";
 const HOMESERVER = `http://${HOST}:8008`;
@@ -11,50 +11,61 @@ const USERNAME = "bruno1";
 const USER_ID = `@${USERNAME}:${HOST}`;
 const PASSWORD = "testtest";
 
-function getSessionId(userId) {
+function getSessionInfo(userId) {
 	const sessionsJson = localStorage.getItem("morpheus_sessions_v1");
 	if (sessionsJson) {
 		const sessions = JSON.parse(sessionsJson);
 		const session = sessions.find(session => session.userId === userId);
 		if (session) {
-			return session.id;
+			return session;
 		}
 	}
+}
+
+function storeSessionInfo(loginData) {
+    const sessionsJson = localStorage.getItem("morpheus_sessions_v1");
+    const sessions = sessionsJson ? JSON.parse(sessionsJson) : [];
+    const sessionId = (Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)).toString();
+    const sessionInfo = {
+        id: sessionId,
+        deviceId: loginData.device_id,
+        userId: loginData.user_id,
+        homeServer: loginData.home_server,
+        accessToken: loginData.access_token,
+    };
+    sessions.push(sessionInfo);
+    localStorage.setItem("morpheus_sessions_v1", JSON.stringify(sessions));
+    return sessionInfo;
 }
 
 async function login(username, password, homeserver) {
 	const hsApi = new HomeServerApi(homeserver);
 	const loginData = await hsApi.passwordLogin(username, password).response();
-	const sessionsJson = localStorage.getItem("morpheus_sessions_v1");
-	const sessions = sessionsJson ? JSON.parse(sessionsJson) : [];
-	const sessionId = (Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)).toString();
-	console.log(loginData);
-	sessions.push({userId: loginData.user_id, id: sessionId});
-	localStorage.setItem("morpheus_sessions_v1", JSON.stringify(sessions));
-	return {sessionId, loginData};
+	return storeSessionInfo(loginData);
 }
 
 function showSession(container, session) {
     const vm = new SessionViewModel(session);
     const view = new SessionView(vm);
-    container.appendChild(view.mount());
+    view.mount();
+    container.appendChild(view.root());
 }
 
 // eslint-disable-next-line no-unused-vars
 export default async function main(label, button, container) {
 	try {
-		let sessionId = getSessionId(USER_ID);
-		let loginData;
-		if (!sessionId) {
-			({sessionId, loginData} = await login(USERNAME, PASSWORD, HOMESERVER));
+		let sessionInfo = getSessionInfo(USER_ID);
+		if (!sessionInfo) {
+			sessionInfo = await login(USERNAME, PASSWORD, HOMESERVER);
 		}
-		const storage = await createIdbStorage(`morpheus_session_${sessionId}`);
-		const session = new Session(storage);
-		if (loginData) {
-			await session.setLoginData(loginData);
-		}
-		await session.load();
-        const hsApi = new HomeServerApi(HOMESERVER, session.accessToken);
+        const storage = await createIdbStorage(`morpheus_session_${sessionInfo.id}`);
+        const hsApi = new HomeServerApi(HOMESERVER, sessionInfo.accessToken);
+        const session = new Session({storage, hsApi, sessionInfo: {
+            deviceId: sessionInfo.deviceId,
+            userId: sessionInfo.userId,
+            homeServer: sessionInfo.homeServer, //only pass relevant fields to Session
+        }});
+        await session.load();
         console.log("session loaded");
         const needsInitialSync = !session.syncToken;
         if (needsInitialSync) {
@@ -77,6 +88,6 @@ export default async function main(label, button, container) {
 			label.innerText = "sync stopped";
 		});
 	} catch(err) {
-		console.error(err);
+        console.error(`${err.message}:\n${err.stack}`);
 	}
 }

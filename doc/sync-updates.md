@@ -1,7 +1,7 @@
 # persistance vs model update of a room
 
 ## persist first, return update object, update model with update object
- - 
+ - we went with this
 ## update model first, return update object, persist with update object
  - not all models exist at all times (timeline only when room is "open"),
  	so model to create timeline update object might not exist for persistence need

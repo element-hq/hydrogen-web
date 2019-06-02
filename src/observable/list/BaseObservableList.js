@@ -34,4 +34,11 @@ export default class BaseObservableList extends BaseObservableCollection {
         }
     }
 
+    [Symbol.iterator]() {
+        throw new Error("unimplemented");
+    }
+
+    get length() {
+        throw new Error("unimplemented");
+    }
 }

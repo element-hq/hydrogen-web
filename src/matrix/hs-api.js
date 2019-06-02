@@ -1,6 +1,7 @@
 import {
 	HomeServerError,
-	RequestAbortError
+	RequestAbortError,
+    NetworkError
 } from "./error.js";
 
 class RequestWrapper {
@@ -20,7 +21,9 @@ class RequestWrapper {
 
 export default class HomeServerApi {
 	constructor(homeserver, accessToken) {
-		this._homeserver = homeserver;
+        // store these both in a closure somehow so it's harder to get at in case of XSS?
+        // one could change the homeserver as well so the token gets sent there, so both must be protected from read/write
+        this._homeserver = homeserver;
 		this._accessToken = accessToken;
 	}
 
@@ -30,7 +33,7 @@ export default class HomeServerApi {
 
 	_request(method, csPath, queryParams = {}, body) {
 		const queryString = Object.entries(queryParams)
-			.filter(([name, value]) => value !== undefined)
+			.filter(([, value]) => value !== undefined)
 			.map(([name, value]) => `${encodeURIComponent(name)}=${encodeURIComponent(value)}`)
 			.join("&");
 		const url = this._url(`${csPath}?${queryString}`);
@@ -62,10 +65,18 @@ export default class HomeServerApi {
 				}
 			}
 		}, err => {
-			switch (err.name) {
-				case "AbortError": throw new RequestAbortError();
-				default: throw err; //new Error(`Unrecognized DOMException: ${err.name}`);
-			}
+            if (err.name === "AbortError") {
+                throw new RequestAbortError();
+            } else if (err instanceof TypeError) {
+                // Network errors are reported as TypeErrors, see
+                // https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch#Checking_that_the_fetch_was_successful
+                // this can either mean user is offline, server is offline, or a CORS error (server misconfiguration).
+                // 
+                // One could check navigator.onLine to rule out the first
+                // but the 2 later ones are indistinguishable from javascript.
+                throw new NetworkError(err.message);
+            }
+			throw err;
 		});
 		return new RequestWrapper(promise, controller);
 	}
@@ -81,6 +92,11 @@ export default class HomeServerApi {
 	sync(since, filter, timeout) {
 		return this._get("/sync", {since, timeout, filter});
 	}
+
+    // params is from, dir and optionally to, limit, filter.
+    messages(roomId, params) {
+        return this._get(`/rooms/${roomId}/messages`, params);
+    }
 
 	passwordLogin(username, password) {
         return this._post("/login", undefined, {
