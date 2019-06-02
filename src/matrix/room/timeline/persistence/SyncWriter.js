@@ -49,7 +49,7 @@ export default class SyncWriter {
     }
 
     async _replaceLiveFragment(oldFragmentId, newFragmentId, previousToken, txn) {
-        const oldFragment = await txn.timelineFragments.get(oldFragmentId);
+        const oldFragment = await txn.timelineFragments.get(this._roomId, oldFragmentId);
         if (!oldFragment) {
             throw new Error(`old live fragment doesn't exist: ${oldFragmentId}`);
         }
@@ -83,7 +83,7 @@ export default class SyncWriter {
             // replace live fragment for limited sync, *only* if we had a live fragment already
             const oldFragmentId = this._lastLiveKey.fragmentId;
             this._lastLiveKey = this._lastLiveKey.nextFragmentKey();
-            const {oldFragment, newFragment} = this._replaceLiveFragment(oldFragmentId, this._lastLiveKey.fragmentId, timeline.prev_batch, txn);
+            const {oldFragment, newFragment} = await this._replaceLiveFragment(oldFragmentId, this._lastLiveKey.fragmentId, timeline.prev_batch, txn);
             entries.push(FragmentBoundaryEntry.end(oldFragment, this._fragmentIdComparer));
             entries.push(FragmentBoundaryEntry.start(newFragment, this._fragmentIdComparer));
         }
@@ -106,7 +106,7 @@ export default class SyncWriter {
         const state = roomResponse.state;
         if (state.events) {
             for (const event of state.events) {
-                txn.roomState.setStateEvent(this._roomId, event)
+                txn.roomState.setStateEvent(this._roomId, event);
             }
         }
         // persist live state events in timeline
