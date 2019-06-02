@@ -1,5 +1,4 @@
 import { SortedArray } from "../../../observable/index.js";
-import EventKey from "./EventKey.js";
 import Direction from "./Direction.js";
 import GapWriter from "./persistence/GapWriter.js";
 import TimelineReader from "./persistence/TimelineReader.js";
@@ -52,8 +51,11 @@ export default class Timeline {
             return;
         }
         const firstEntry = this._entriesList.array()[0];
-        const firstKey = new EventKey(firstEntry.fragmentId, firstEntry.eventIndex);
-        const entries = await this._timelineReader.readFrom(firstKey, Direction.Backward, amount);
+        const entries = await this._timelineReader.readFrom(
+            firstEntry.asEventKey(),
+            Direction.Backward,
+            amount
+        );
         this._entriesList.setManySorted(entries);
     }
 
