@@ -34,10 +34,13 @@
  - lets try to not have to have the fragmentindex in memory if the timeline isn't loaded
     - could do this by only loading all fragments into index when filling gaps, backpaginating, ... and on persister load only load the last fragment. This wouldn't even need a FragmentIndex?
 
+# Leftover items
 
 implement SortedArray::setManySorted in a performant manner
 implement FragmentIdComparator::add in a performant manner
 there is some duplication (also in memory) between SortedArray and TilesCollection. Both keep a sorted list based on fragmentId/eventIndex... TilesCollection doesn't use the index in the event handlers at all. we could allow timeline to export a structure that just emits "these entries are a thing (now)" and not have to go through sorting twice. Timeline would have to keep track of the earliest key so it can use it in loadAtTop, but that should be easy. Hmmm. also, Timeline might want to be in charge of unloading parts of the loaded timeline, and for that it would need to know the order of entries. So maybe not ... we'll see.
+
+check: do /sync events not have a room_id and /messages do???
 
 so a gap is two connected fragments where either the first fragment has a nextToken and/or the second fragment has a previousToken. It can be both, so we can have a gap where you can fill in from the top, from the bottom (like when limited sync) or both.
 

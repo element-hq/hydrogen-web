@@ -25,6 +25,11 @@
  - DONE: support timeline
  	- DONE: clicking on a room list, you see messages (userId -> body)
  - DONE: style minimal UI
+ - DONE: implement gap filling and fragments (see FRAGMENTS.md)
+ - allow collection items (especially tiles) to self-update
+ - improve fragmentidcomparer::add
+ - send messages
+ - better UI
  - fix MappedMap update mechanism
  - see if in BaseObservableMap we need to change ...params
  - put sync button and status label inside SessionView
