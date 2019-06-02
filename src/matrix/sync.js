@@ -94,7 +94,7 @@ export default class Sync extends EventEmitter {
                 await Promise.all(promises);
             }
         } catch(err) {
-            console.warn("aborting syncTxn because of error", err.stack);
+            console.warn("aborting syncTxn because of error");
             // avoid corrupting state by only
             // storing the sync up till the point
             // the exception occurred

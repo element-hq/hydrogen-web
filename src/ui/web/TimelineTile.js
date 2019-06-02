@@ -23,7 +23,7 @@ export default class TimelineTile {
 function renderTile(tile) {
     switch (tile.shape) {
         case "message":
-            return html.li(null, [html.strong(tile.sender), `: ${tile.label}`]);
+            return html.li(null, tile.label);
         case "gap": {
             const button = html.button(null, (tile.isUp ? "🠝" : "🠟") + " fill gap");
             const handler = () => {

@@ -15,7 +15,7 @@ function createStores(db) {
     db.createObjectStore("timelineFragments", {keyPath: ["roomId", "id"]});
     const timelineEvents = db.createObjectStore("timelineEvents", {keyPath: ["roomId", "fragmentId", "eventIndex"]});
     timelineEvents.createIndex("byEventId", [
-        "event.room_id",
+        "roomId",
         "event.event_id"
     ], {unique: true});
 

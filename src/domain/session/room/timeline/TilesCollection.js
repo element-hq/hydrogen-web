@@ -22,8 +22,9 @@ export default class TilesCollection extends BaseObservableList {
         for (let entry of this._entries) {
             if (!currentTile || !currentTile.tryIncludeEntry(entry)) {
                 currentTile = this._tileCreator(entry);
-                // if (currentTile) here?
-                this._tiles.push(currentTile);
+                if (currentTile) {
+                    this._tiles.push(currentTile);
+                }
             }
         }
         let prevTile = null;
@@ -144,5 +145,9 @@ export default class TilesCollection extends BaseObservableList {
 
     [Symbol.iterator]() {
         return this._tiles.values();
+    }
+
+    get length() {
+        return this._tiles.length;
     }
 }

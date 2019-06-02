@@ -32,9 +32,9 @@ export default class TimelineReader {
         while (entries.length < amount && eventKey) {
             let eventsWithinFragment;
             if (direction.isForward) {
-                eventsWithinFragment = timelineStore.eventsAfter(eventKey, amount);
+                eventsWithinFragment = await timelineStore.eventsAfter(this._roomId, eventKey, amount);
             } else {
-                eventsWithinFragment = timelineStore.eventsBefore(eventKey, amount);
+                eventsWithinFragment = await timelineStore.eventsBefore(this._roomId, eventKey, amount);
             }
             const eventEntries = eventsWithinFragment.map(e => new EventEntry(e, this._fragmentIdComparer));
             entries = directionalConcat(entries, eventEntries, direction);
@@ -52,7 +52,7 @@ export default class TimelineReader {
                     this._fragmentIdComparer.add(nextFragment);
                     const nextFragmentEntry = new FragmentBoundaryEntry(nextFragment, direction.isForward, this._fragmentIdComparer);
                     directionalAppend(entries, nextFragmentEntry, direction);
-                    eventKey = new EventKey(nextFragmentEntry.fragmentId, nextFragmentEntry.eventIndex);
+                    eventKey = nextFragmentEntry.asEventKey();
                 } else {
                     eventKey = null;
                 }
@@ -71,8 +71,8 @@ export default class TimelineReader {
         }
         this._fragmentIdComparer.add(liveFragment);
         const liveFragmentEntry = FragmentBoundaryEntry.end(liveFragment, this._fragmentIdComparer);
-        const eventKey = new EventKey(liveFragmentEntry.fragmentId, liveFragmentEntry.eventIndex);
-        const entries = this._readFrom(eventKey, Direction.Backward, amount, txn);
+        const eventKey = liveFragmentEntry.asEventKey();
+        const entries = await this._readFrom(eventKey, Direction.Backward, amount, txn);
         entries.unshift(liveFragmentEntry);
         return entries;
     }

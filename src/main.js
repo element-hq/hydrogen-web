@@ -88,6 +88,6 @@ export default async function main(label, button, container) {
 			label.innerText = "sync stopped";
 		});
 	} catch(err) {
-		console.error(err);
+        console.error(`${err.message}:\n${err.stack}`);
 	}
 }

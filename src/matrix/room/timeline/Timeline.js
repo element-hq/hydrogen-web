@@ -20,7 +20,7 @@ export default class Timeline {
 
     /** @package */
     async load() {
-        const entries = this._timelineReader.readFromEnd(100);
+        const entries = await this._timelineReader.readFromEnd(100);
         this._entriesList.setManySorted(entries);
     }
 

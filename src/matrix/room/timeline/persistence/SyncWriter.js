@@ -8,6 +8,7 @@ export default class SyncWriter {
         this._roomId = roomId;
         this._storage = storage;
         this._fragmentIdComparer = fragmentIdComparer;
+        this._lastLiveKey = null;
     }
 
     async load(txn) {
@@ -98,7 +99,6 @@ export default class SyncWriter {
         // right thing to do? if the txn fails, not sure we'll continue anyways ...
         // only advance the key once the transaction has succeeded 
         txn.complete().then(() => {
-            console.log("txn complete, setting key");
             this._lastLiveKey = currentKey;
         })
 
