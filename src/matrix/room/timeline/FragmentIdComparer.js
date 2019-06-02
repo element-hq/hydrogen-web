@@ -22,31 +22,31 @@ until no more fragments
 
 */
 
+import {isValidFragmentId} from "./common.js";
 
 function findBackwardSiblingFragments(current, byId) {
     const sortedSiblings = [];
-    while (current.previousId) {
+    while (isValidFragmentId(current.previousId)) {
         const previous = byId.get(current.previousId);
         if (!previous) {
-            throw new Error(`Unknown previousId ${current.previousId} on ${current.id}`);
+            break;
         }
         if (previous.nextId !== current.id) {
             throw new Error(`Previous fragment ${previous.id} doesn't point back to ${current.id}`);
         }
         byId.delete(current.previousId);
-        sortedSiblings.push(previous);
+        sortedSiblings.unshift(previous);
         current = previous;
     }
-    sortedSiblings.reverse();
     return sortedSiblings;
 }
 
 function findForwardSiblingFragments(current, byId) {
     const sortedSiblings = [];
-    while (current.nextId) {
+    while (isValidFragmentId(current.nextId)) {
         const next = byId.get(current.nextId);
         if (!next) {
-            throw new Error(`Unknown nextId ${current.nextId} on ${current.id}`);
+            break;
         }
         if (next.previousId !== current.id) {
             throw new Error(`Next fragment ${next.id} doesn't point back to ${current.id}`);
@@ -143,7 +143,7 @@ export default class FragmentIdComparer {
     }
 
     add(fragment) {
-        this._fragmentsById[fragment.id] = fragment;
+        this._fragmentsById.set(fragment.id, fragment);
         this.rebuild(this._fragmentsById.values());
     }
 }
@@ -167,6 +167,44 @@ export function tests() {
             assert(index.compare(3, 2) > 0);
             
             assert.equal(index.compare(1, 1), 0);
+        },
+        test_falsy_id(assert) {
+            const index = new FragmentIdComparer([
+                {id: 0, nextId: 1},
+                {id: 1, previousId: 0},
+            ]);
+            assert(index.compare(0, 1) < 0);
+            assert(index.compare(1, 0) > 0);
+        },
+        test_falsy_id_reverse(assert) {
+            const index = new FragmentIdComparer([
+                {id: 1, previousId: 0},
+                {id: 0, nextId: 1},
+            ]);
+            assert(index.compare(0, 1) < 0);
+            assert(index.compare(1, 0) > 0);
+        },
+        test_allow_unknown_id(assert) {
+            // as we tend to load fragments incrementally
+            // as events come into view, we need to allow
+            // unknown previousId/nextId in the fragments that we do load
+            assert.doesNotThrow(() => {
+                new FragmentIdComparer([
+                    {id: 1, previousId: 2},
+                    {id: 0, nextId: 3},
+                ]);
+            });
+        },
+        test_throw_on_link_mismatch(assert) {
+            // as we tend to load fragments incrementally
+            // as events come into view, we need to allow
+            // unknown previousId/nextId in the fragments that we do load
+            assert.throws(() => {
+                new FragmentIdComparer([
+                    {id: 1, previousId: 0},
+                    {id: 0, nextId: 2},
+                ]);
+            });
         },
         test_2_island_dont_compare(assert) {
             const index = new FragmentIdComparer([

@@ -1,5 +1,6 @@
 import BaseEntry from "./BaseEntry.js";
 import Direction from "../Direction.js";
+import {isValidFragmentId} from "../common.js";
 
 export default class FragmentBoundaryEntry extends BaseEntry {
     constructor(fragment, isFragmentStart, fragmentIdComparator) {
@@ -75,6 +76,10 @@ export default class FragmentBoundaryEntry extends BaseEntry {
         } else {
             this.fragment.nextId = id;
         }
+    }
+
+    get hasLinkedFragment() {
+        return isValidFragmentId(this.linkedFragmentId);
     }
 
     get direction() {

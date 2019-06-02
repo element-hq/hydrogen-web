@@ -25,7 +25,6 @@ export default class TimelineReader {
 
     async _readFrom(eventKey, direction, amount, txn) {
         let entries = [];
-
         const timelineStore = txn.timelineEvents;
         const fragmentStore = txn.timelineFragments;
         
@@ -47,7 +46,7 @@ export default class TimelineReader {
                 // append or prepend fragmentEntry, reuse func from GapWriter?
                 directionalAppend(entries, fragmentEntry, direction);
                 // don't count it in amount perhaps? or do?
-                if (fragmentEntry.linkedFragmentId) {
+                if (fragmentEntry.hasLinkedFragment) {
                     const nextFragment = await fragmentStore.get(this._roomId, fragmentEntry.linkedFragmentId);
                     this._fragmentIdComparer.add(nextFragment);
                     const nextFragmentEntry = new FragmentBoundaryEntry(nextFragment, direction.isForward, this._fragmentIdComparer);
