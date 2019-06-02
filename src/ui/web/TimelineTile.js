@@ -23,7 +23,7 @@ export default class TimelineTile {
 function renderTile(tile) {
     switch (tile.shape) {
         case "message":
-            return html.li(null, tile.label);
+            return html.li(null, [html.strong(null, tile.internalId+" "), tile.label]);
         case "gap": {
             const button = html.button(null, (tile.isUp ? "🠝" : "🠟") + " fill gap");
             const handler = () => {
@@ -31,11 +31,11 @@ function renderTile(tile) {
                 button.removeEventListener("click", handler);
             };
             button.addEventListener("click", handler);
-            return html.li(null, button);
+            return html.li(null, [html.strong(null, tile.internalId+" "), button]);
         }
         case "announcement":
-            return html.li(null, tile.label);
+            return html.li(null, [html.strong(null, tile.internalId+" "), tile.label]);
         default:
-            return html.li(null, "unknown tile shape: " + tile.shape);
+            return html.li(null, [html.strong(null, tile.internalId+" "), "unknown tile shape: " + tile.shape]);
     }
 }

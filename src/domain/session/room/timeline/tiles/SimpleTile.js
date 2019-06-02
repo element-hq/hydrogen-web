@@ -58,4 +58,8 @@ export default class SimpleTile {
     updateNextSibling(next) {
     
     }
+
+    get internalId() {
+        return this._entry.asEventKey().toString();
+    }
 }
