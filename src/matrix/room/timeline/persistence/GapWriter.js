@@ -83,7 +83,7 @@ export default class GapWriter {
 
     async writeFragmentFill(fragmentEntry, response) {
         const {fragmentId, direction} = fragmentEntry;
-        // assuming that chunk is in chronological order when backwards too?
+        // chunk is in reverse-chronological order when backwards
         const {chunk, start, end} = response;
         let entries;
 
