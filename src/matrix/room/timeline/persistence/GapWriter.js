@@ -15,19 +15,14 @@ export default class GapWriter {
         let neighbourFragmentEntry;
         const neighbourEventId = await txn.timelineEvents.findFirstOccurringEventId(this._roomId, eventIds);
         if (neighbourEventId) {
-            console.log("_findOverlappingEvents neighbourEventId", neighbourEventId);
             // trim overlapping events
             const neighbourEventIndex = events.findIndex(e => e.event_id === neighbourEventId);
             nonOverlappingEvents = events.slice(0, neighbourEventIndex);
             // get neighbour fragment to link it up later on
             const neighbourEvent = await txn.timelineEvents.getByEventId(this._roomId, neighbourEventId);
-            console.log("neighbourEvent", {neighbourEvent, nonOverlappingEvents, events, neighbourEventIndex});
             const neighbourFragment = await txn.timelineFragments.get(this._roomId, neighbourEvent.fragmentId);
             neighbourFragmentEntry = fragmentEntry.createNeighbourEntry(neighbourFragment);
         }
-
-        console.log("_findOverlappingEvents events", events, nonOverlappingEvents);
-
         return {nonOverlappingEvents, neighbourFragmentEntry};
     }
 
