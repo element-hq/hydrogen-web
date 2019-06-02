@@ -10,28 +10,18 @@ export default class GapWriter {
     }
     // events is in reverse-chronological order (last event comes at index 0) if backwards
     async _findOverlappingEvents(fragmentEntry, events, txn) {
-        const {direction} = fragmentEntry;
-        // make it in chronological order, so findFirstOrLastOccurringEventId can
-        // use it's supposed optimization if event ids sorting order correlates with timeline chronology.
-        // premature optimization?
-        if (direction.isBackward) {
-            events = events.slice().reverse();
-        }
         const eventIds = events.map(e => e.event_id);
-        const findLast = direction.isBackward;
         let nonOverlappingEvents = events;
         let neighbourFragmentEntry;
-        const neighbourEventId = await txn.timelineEvents.findFirstOrLastOccurringEventId(this._roomId, eventIds, findLast);
+        const neighbourEventId = await txn.timelineEvents.findFirstOccurringEventId(this._roomId, eventIds);
         if (neighbourEventId) {
             console.log("_findOverlappingEvents neighbourEventId", neighbourEventId);
             // trim overlapping events
             const neighbourEventIndex = events.findIndex(e => e.event_id === neighbourEventId);
-            const start = direction.isBackward ? neighbourEventIndex + 1 : 0;
-            const end = direction.isBackward ? events.length : neighbourEventIndex;
-            nonOverlappingEvents = events.slice(start, end);
+            nonOverlappingEvents = events.slice(0, neighbourEventIndex);
             // get neighbour fragment to link it up later on
             const neighbourEvent = await txn.timelineEvents.getByEventId(this._roomId, neighbourEventId);
-            console.log("neighbourEvent", {neighbourEvent, start, end, nonOverlappingEvents, events, neighbourEventIndex});
+            console.log("neighbourEvent", {neighbourEvent, nonOverlappingEvents, events, neighbourEventIndex});
             const neighbourFragment = await txn.timelineFragments.get(this._roomId, neighbourEvent.fragmentId);
             neighbourFragmentEntry = fragmentEntry.createNeighbourEntry(neighbourFragment);
         }

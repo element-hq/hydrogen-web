@@ -153,7 +153,7 @@ export default class TimelineEventStore {
         return events;
     }
 
-    /** Finds the first (or last if `findLast=true`) eventId that occurs in the store, if any.
+    /** Finds the first eventId that occurs in the store, if any.
      *  For optimal performance, `eventIds` should be in chronological order.
      *
      *  The order in which results are returned might be different than `eventIds`.
@@ -167,7 +167,7 @@ export default class TimelineEventStore {
     // In that case we could avoid running over all eventIds, as the reported order by findExistingKeys
     // would match the order of eventIds. That's why findLast is also passed as backwards to keysExist.
     // also passing them in chronological order makes sense as that's how we'll receive them almost always.
-    async findFirstOrLastOccurringEventId(roomId, eventIds, findLast = false) {
+    async findFirstOccurringEventId(roomId, eventIds) {
         const byEventId = this._timelineStore.index("byEventId");
         const keys = eventIds.map(eventId => [roomId, eventId]);
         const results = new Array(keys.length);
@@ -175,9 +175,7 @@ export default class TimelineEventStore {
 
         // find first result that is found and has no undefined results before it
         function firstFoundAndPrecedingResolved() {
-            let inc = findLast ? -1 : 1;
-            let start = findLast ? results.length - 1 : 0;
-            for(let i = start; i >= 0 && i < results.length; i += inc) {
+            for(let i = 0; i < results.length; ++i) {
                 if (results[i] === undefined) {
                     return;
                 } else if(results[i] === true) {
@@ -186,7 +184,7 @@ export default class TimelineEventStore {
             }
         }
 
-        await byEventId.findExistingKeys(keys, findLast, (key, found) => {
+        await byEventId.findExistingKeys(keys, false, (key, found) => {
             const index = keys.indexOf(key);
             results[index] = found;
             firstFoundKey = firstFoundAndPrecedingResolved();
