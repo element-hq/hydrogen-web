@@ -162,7 +162,7 @@ export default class TimelineEventStore {
      *  @param  {string[]} eventIds
      *  @return {Function<Promise>}
      */
-    // performance comment from above refers to the fact that their *might*
+    // performance comment from above refers to the fact that there *might*
     // be a correlation between event_id sorting order and chronology.
     // In that case we could avoid running over all eventIds, as the reported order by findExistingKeys
     // would match the order of eventIds. That's why findLast is also passed as backwards to keysExist.
@@ -171,7 +171,7 @@ export default class TimelineEventStore {
         const byEventId = this._timelineStore.index("byEventId");
         const keys = eventIds.map(eventId => [roomId, eventId]);
         const results = new Array(keys.length);
-        let firstFoundEventId;
+        let firstFoundKey;
 
         // find first result that is found and has no undefined results before it
         function firstFoundAndPrecedingResolved() {
@@ -189,11 +189,11 @@ export default class TimelineEventStore {
         await byEventId.findExistingKeys(keys, findLast, (key, found) => {
             const index = keys.indexOf(key);
             results[index] = found;
-            firstFoundEventId = firstFoundAndPrecedingResolved();
-            return !!firstFoundEventId;
+            firstFoundKey = firstFoundAndPrecedingResolved();
+            return !!firstFoundKey;
         });
-
-        return firstFoundEventId;
+        // key of index is [roomId, eventId], so pick out eventId
+        return firstFoundKey && firstFoundKey[1];
     }
 
     /** Inserts a new entry into the store. The combination of roomId and eventKey should not exist yet, or an error is thrown.
