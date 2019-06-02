@@ -88,8 +88,8 @@ export default class TilesCollection extends BaseObservableList {
 
         const newTile = this._tileCreator(entry);
         if (newTile) {
-            prevTile.updateNextSibling(newTile);
-            nextTile.updatePreviousSibling(newTile);
+            prevTile  && prevTile.updateNextSibling(newTile);
+            nextTile  && nextTile.updatePreviousSibling(newTile);
             this._tiles.splice(tileIdx, 0, newTile);
             this.emitAdd(tileIdx, newTile);
         }
