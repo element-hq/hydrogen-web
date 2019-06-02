@@ -63,17 +63,17 @@ export default class FragmentBoundaryEntry extends BaseEntry {
 
     get linkedFragmentId() {
         if (this.started) {
-            return this.fragment.nextId;
-        } else {
             return this.fragment.previousId;
+        } else {
+            return this.fragment.nextId;
         }
     }
 
     set linkedFragmentId(id) {
         if (this.started) {
-            this.fragment.nextId = id;
-        } else {
             this.fragment.previousId = id;
+        } else {
+            this.fragment.nextId = id;
         }
     }
 
