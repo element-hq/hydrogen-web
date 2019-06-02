@@ -47,9 +47,10 @@ export default class GapWriter {
         const reducer = direction.isBackward ? Array.prototype.reduceRight : Array.prototype.reduce;
         reducer.call(events, (key, event, i) => {
             key = key.nextKeyForDirection(direction);
-            const eventEntry = createEventEntry(key, event);
+            const eventEntry = createEventEntry(key, this._roomId, event);
             txn.timelineEvents.insert(eventEntry);
             entries[i] = new EventEntry(eventEntry, this._fragmentIdComparer);
+            return key;
         }, startKey);
         return entries;
     }
@@ -61,7 +62,7 @@ export default class GapWriter {
         if (neighbourFragmentEntry) {
             fragmentEntry.linkedFragmentId = neighbourFragmentEntry.fragmentId;
             neighbourFragmentEntry.linkedFragmentId = fragmentEntry.fragmentId;
-            txn.timelineFragments.set(neighbourFragmentEntry.fragment);
+            txn.timelineFragments.update(neighbourFragmentEntry.fragment);
             directionalAppend(entries, neighbourFragmentEntry, direction);
 
             // update fragmentIdComparer here after linking up fragments
@@ -69,7 +70,7 @@ export default class GapWriter {
             this._fragmentIdComparer.add(neighbourFragmentEntry.fragment);
         }
         fragmentEntry.token = end;
-        txn.timelineFragments.set(fragmentEntry.fragment);
+        txn.timelineFragments.update(fragmentEntry.fragment);
     }
 
     async writeFragmentFill(fragmentEntry, response) {
@@ -92,7 +93,7 @@ export default class GapWriter {
 
         try {
             // make sure we have the latest fragment from the store
-            const fragment = await txn.timelineFragments.get(fragmentId);
+            const fragment = await txn.timelineFragments.get(this._roomId, fragmentId);
             if (!fragment) {
                 throw new Error(`Unknown fragment: ${fragmentId}`);
             }
@@ -102,12 +103,12 @@ export default class GapWriter {
                 throw new Error("start is not equal to prev_batch or next_batch");
             }
             // find last event in fragment so we get the eventIndex to begin creating keys at
-            let lastKey = this._findLastFragmentEventKey(fragmentEntry, txn);
+            let lastKey = await this._findLastFragmentEventKey(fragmentEntry, txn);
             // find out if any event in chunk is already present using findFirstOrLastOccurringEventId
             const {
                 nonOverlappingEvents,
                 neighbourFragmentEntry
-            } = this._findOverlappingEvents(fragmentEntry, chunk, txn);
+            } = await this._findOverlappingEvents(fragmentEntry, chunk, txn);
 
             // create entries for all events in chunk, add them to entries
             entries = this._storeEvents(nonOverlappingEvents, lastKey, direction, txn);

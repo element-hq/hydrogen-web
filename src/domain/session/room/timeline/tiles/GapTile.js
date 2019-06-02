@@ -12,14 +12,16 @@ export default class GapTile extends SimpleTile {
         // prevent doing this twice
         if (!this._loading) {
             this._loading = true;
-            this._emitUpdate("isLoading");
+            // this._emitUpdate("isLoading");
             try {
-                return await this._timeline.fillGap(this._entry, 10);
+                await this._timeline.fillGap(this._entry, 10);
             } catch (err) {
-                this._loading = false;
+                console.error(`timeline.fillGap(): ${err.message}:\n${err.stack}`);
                 this._error = err;
-                this._emitUpdate("isLoading");
-                this._emitUpdate("error");
+                // this._emitUpdate("error");
+            } finally {
+                this._loading = false;
+                // this._emitUpdate("isLoading");
             }
         }
     }

@@ -4,11 +4,12 @@ import GapWriter from "./persistence/GapWriter.js";
 import TimelineReader from "./persistence/TimelineReader.js";
 
 export default class Timeline {
-    constructor({roomId, storage, closeCallback, fragmentIdComparer}) {
+    constructor({roomId, storage, closeCallback, fragmentIdComparer, hsApi}) {
         this._roomId = roomId;
         this._storage = storage;
         this._closeCallback = closeCallback;
         this._fragmentIdComparer = fragmentIdComparer;
+        this._hsApi = hsApi;
         this._entriesList = new SortedArray((a, b) => a.compare(b));
         this._timelineReader = new TimelineReader({
             roomId: this._roomId,
@@ -34,14 +35,13 @@ export default class Timeline {
             from: fragmentEntry.token,
             dir: fragmentEntry.direction.asApiString(),
             limit: amount
-        });
-
+        }).response();
         const gapWriter = new GapWriter({
             roomId: this._roomId,
             storage: this._storage,
             fragmentIdComparer: this._fragmentIdComparer
         });
-        const newEntries = await gapWriter.writerFragmentFill(fragmentEntry, response);
+        const newEntries = await gapWriter.writeFragmentFill(fragmentEntry, response);
         this._entriesList.setManySorted(newEntries);
     }
 
