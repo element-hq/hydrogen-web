@@ -64,14 +64,20 @@ export default class GapWriter {
         if (neighbourFragmentEntry) {
             fragmentEntry.linkedFragmentId = neighbourFragmentEntry.fragmentId;
             neighbourFragmentEntry.linkedFragmentId = fragmentEntry.fragmentId;
+            // if neighbourFragmentEntry was found, it means the events were overlapping,
+            // so no pagination should happen anymore.
+            neighbourFragmentEntry.token = null;
+            fragmentEntry.token = null;
+
             txn.timelineFragments.update(neighbourFragmentEntry.fragment);
             directionalAppend(entries, neighbourFragmentEntry, direction);
 
             // update fragmentIdComparer here after linking up fragments
             this._fragmentIdComparer.add(fragmentEntry.fragment);
             this._fragmentIdComparer.add(neighbourFragmentEntry.fragment);
+        } else {
+            fragmentEntry.token = end;
         }
-        fragmentEntry.token = end;
         txn.timelineFragments.update(fragmentEntry.fragment);
     }
 
