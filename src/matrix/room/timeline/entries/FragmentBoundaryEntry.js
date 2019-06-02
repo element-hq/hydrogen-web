@@ -55,9 +55,9 @@ export default class FragmentBoundaryEntry extends BaseEntry {
 
     set token(token) {
         if (this.started) {
-            this.fragment.nextToken = token;
-        } else {
             this.fragment.previousToken = token;
+        } else {
+            this.fragment.nextToken = token;
         }
     }
 
