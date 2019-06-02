@@ -3,19 +3,19 @@ import Direction from "../Direction.js";
 import {isValidFragmentId} from "../common.js";
 
 export default class FragmentBoundaryEntry extends BaseEntry {
-    constructor(fragment, isFragmentStart, fragmentIdComparator) {
-        super(fragmentIdComparator);
+    constructor(fragment, isFragmentStart, fragmentIdComparer) {
+        super(fragmentIdComparer);
         this._fragment = fragment;
         // TODO: should isFragmentStart be Direction instead of bool?
         this._isFragmentStart = isFragmentStart;
     }
 
-    static start(fragment, fragmentIdComparator) {
-        return new FragmentBoundaryEntry(fragment, true, fragmentIdComparator);
+    static start(fragment, fragmentIdComparer) {
+        return new FragmentBoundaryEntry(fragment, true, fragmentIdComparer);
     }
 
-    static end(fragment, fragmentIdComparator) {
-        return new FragmentBoundaryEntry(fragment, false, fragmentIdComparator);
+    static end(fragment, fragmentIdComparer) {
+        return new FragmentBoundaryEntry(fragment, false, fragmentIdComparer);
     }
     
     get started() {
@@ -91,10 +91,10 @@ export default class FragmentBoundaryEntry extends BaseEntry {
     }
 
     withUpdatedFragment(fragment) {
-        return new FragmentBoundaryEntry(fragment, this._isFragmentStart, this._fragmentIdComparator);
+        return new FragmentBoundaryEntry(fragment, this._isFragmentStart, this._fragmentIdComparer);
     }
 
     createNeighbourEntry(neighbour) {
-        return new FragmentBoundaryEntry(neighbour, !this._isFragmentStart, this._fragmentIdComparator);
+        return new FragmentBoundaryEntry(neighbour, !this._isFragmentStart, this._fragmentIdComparer);
     }
 }

@@ -1,8 +1,8 @@
 import BaseEntry from "./BaseEntry.js";
 
 export default class EventEntry extends BaseEntry {
-    constructor(eventEntry, fragmentIdComparator) {
-        super(fragmentIdComparator);
+    constructor(eventEntry, fragmentIdComparer) {
+        super(fragmentIdComparer);
         this._eventEntry = eventEntry;
     }
 
