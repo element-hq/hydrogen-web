@@ -1,0 +1,161 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <ul id="files"></ul>
+    <p>
+        <input type="file" id="file" multiple capture="user" accept="image/*">
+        <button id="addFile">Add</button>
+        <button id="drop">Delete all</button>
+    </p>
+    <script type="text/javascript">
+        
+
+        function reqAsPromise(req) {
+            return new Promise((resolve, reject) => {
+                req.onsuccess = () => resolve(req);
+                req.onerror = (err) => reject(err);
+            });
+        }
+
+        function fetchResults(cursor, isDone, resultMapper) {
+            return new Promise((resolve, reject) => {
+                const results = [];
+                cursor.onerror = (event) => {
+                    reject(new Error("Query failed: " + event.target.errorCode));
+                };
+                // collect results
+                cursor.onsuccess = (event) => {
+                    const cursor = event.target.result;
+                    if (!cursor) {
+                        resolve(results);
+                        return; // end of results
+                    }
+                    results.push(resultMapper(cursor));
+                    if (!isDone(results)) {
+                        cursor.continue();
+                    } else {
+                        resolve(results);
+                    }
+                };
+            });
+        }
+
+        class Storage {
+            constructor(databaseName) {
+                this._databaseName = databaseName;
+                this._database = null;
+            }
+
+            async open() {
+                const req = window.indexedDB.open(this._databaseName);
+                req.onupgradeneeded = (ev) => {
+                    const db = ev.target.result;
+                    const oldVersion = ev.oldVersion;
+                    this._createStores(db, oldVersion);
+                }; 
+                await reqAsPromise(req);
+                this._database = req.result;
+            }
+
+            async drop() {
+                if (this._database) {
+                    this._database.close();
+                    this._database = null;
+                }
+                await reqAsPromise(window.indexedDB.deleteDatabase(this._databaseName));
+            }
+
+            _createStores(db) {
+                db.createObjectStore("files", {keyPath: "id"});
+            }
+
+            async storeFile(file) {
+                const id = Math.floor(Math.random() * 10000000000);
+                console.log(`adding a file as id ${id}`);
+                const tx = this._database.transaction(["files"], "readwrite");
+                const store = tx.objectStore("files");
+                await reqAsPromise(store.add({id, file}));
+            }
+
+
+            getFiles() {
+                const tx = this._database.transaction(["files"], "readonly");
+                const store = tx.objectStore("files");
+                const cursor = store.openCursor();
+                return fetchResults(cursor, 
+                    () => false,
+                    (cursor) => cursor.value);
+            }
+        }
+
+        async function reloadFiles(storage, fileList) {
+            const files = await storage.getFiles();
+            const fileNodes = files.map(f => {
+                const {type, size, name} = f.file;
+                const txt = document.createTextNode(`${f.id} - ${name} of type ${type} - size: ${Math.round(size / 1024, 2)}kb`);
+                const li = document.createElement("li");
+                li.addEventListener("click", async () => {
+                    const reader = new FileReader();
+                    const promise = new Promise((resolve, reject) => {
+                        reader.onload = e => resolve(e.target.result);
+                        reader.onerror = e => reject(e.target.error);
+                    });
+                    reader.readAsArrayBuffer(f.file);
+                    try {
+                        const buf = await promise;
+                        alert(`read blob, len is ${buf.byteLength}`);
+                    } catch(e) {
+                        alert(e.message);
+                    }
+                });
+                li.appendChild(txt);
+                return li;
+            });
+            fileList.innerHTML = "";
+            for(const li of fileNodes) {
+                fileList.appendChild(li);
+            }
+        }
+
+        async function main() {
+            let storage = new Storage("idb-store-files-test");
+            await storage.open();
+
+            const fileList = document.getElementById("files");
+            const dropButton = document.getElementById("drop");
+            const addButton = document.getElementById("addFile");
+            const filePicker = document.getElementById("file");
+            addButton.addEventListener("click", async () => {
+                const files = Array.from(filePicker.files);
+                try {
+                    for(const file of files) {
+                        await storage.storeFile(file);
+                    }
+                    alert(`stored ${files.length} files!`);
+                    reloadFiles(storage, fileList);
+                } catch(e) {
+                    alert(e.message);
+                }
+            });
+            dropButton.addEventListener("click", async () => {
+                try {
+                    if (storage) {
+                        await storage.drop();
+                        storage = null;
+                        alert("dropped db");
+                    }
+                } catch(e) {
+                    alert(e.message);
+                }
+            });
+            reloadFiles(storage, fileList);
+        }
+
+        main();
+
+    </script>
+</body>
+</html>

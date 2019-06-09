@@ -28,7 +28,7 @@
     - DONE: turn ObservableArray into ObservableSortedArray
         - upsert already sorted sections
         - DONE: upsert single entry
- - adapt TilesCollection & Tile to entry changes
+ - DONE: adapt TilesCollection & Tile to entry changes
  
  - add live fragment id optimization if we haven't done so already
  - lets try to not have to have the fragmentindex in memory if the timeline isn't loaded

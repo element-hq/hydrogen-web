@@ -1,0 +1,26 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <ul id="statuses"></ul>
+    <script type="text/javascript">
+        const list = document.getElementById("statuses");
+
+        function appendOnlineStatus(onLine) {
+            const label = onLine ? "device is now online" : "device is now offline";
+            const txt = document.createTextNode(label);
+            const li = document.createElement("li");
+            li.appendChild(txt);
+            list.appendChild(li);
+        }
+
+        window.addEventListener('offline', () => appendOnlineStatus(false));
+        window.addEventListener('online', () => appendOnlineStatus(true));
+
+        appendOnlineStatus(navigator.onLine);
+
+    </script>
+</body>
+</html>
