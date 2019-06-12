@@ -31,6 +31,11 @@ export function text(str) {
     return document.createTextNode(str);
 }
 
+export const TAG_NAMES = [
+    "ol", "ul", "li", "div", "h1", "h2", "h3", "h4", "h5", "h6",
+    "p", "strong", "em", "span", "img", "section", "main", "article", "aside",
+    "pre", "button"];
+
 export function ol(... params)      { return el("ol", ... params); }
 export function ul(... params)      { return el("ul", ... params); }
 export function li(... params)      { return el("li", ... params); }
