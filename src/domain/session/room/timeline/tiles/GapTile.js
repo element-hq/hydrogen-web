@@ -1,4 +1,5 @@
 import SimpleTile from "./SimpleTile.js";
+import UpdateAction from "../UpdateAction.js";
 
 export default class GapTile extends SimpleTile {
     constructor(options, timeline) {
@@ -12,17 +13,25 @@ export default class GapTile extends SimpleTile {
         // prevent doing this twice
         if (!this._loading) {
             this._loading = true;
-            // this._emitUpdate("isLoading");
+            this.emitUpdate("isLoading");
             try {
                 await this._timeline.fillGap(this._entry, 10);
             } catch (err) {
                 console.error(`timeline.fillGap(): ${err.message}:\n${err.stack}`);
                 this._error = err;
-                // this._emitUpdate("error");
+                this.emitUpdate("error");
             } finally {
                 this._loading = false;
-                // this._emitUpdate("isLoading");
+                this.emitUpdate("isLoading");
             }
+        }
+    }
+
+    updateEntry(entry) {
+        if (!entry.isGap) {
+            return UpdateAction.Remove();
+        } else {
+            return UpdateAction.Nothing();
         }
     }
 

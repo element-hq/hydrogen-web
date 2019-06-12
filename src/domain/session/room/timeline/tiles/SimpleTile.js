@@ -1,3 +1,5 @@
+import UpdateAction from "../UpdateAction.js";
+
 export default class SimpleTile {
     constructor({entry, emitUpdate}) {
         this._entry = entry;
@@ -6,6 +8,7 @@ export default class SimpleTile {
     // view model props for all subclasses
     // hmmm, could also do instanceof ... ?
     get shape() {
+        return null;
         // "gap" | "message" | "image" | ... ?
     }
 
@@ -28,15 +31,18 @@ export default class SimpleTile {
         return this._entry;
     }
 
+    emitUpdate(paramName) {
+        this._emitUpdate(this, paramName);
+    }
+
     // TilesCollection contract
     compareEntry(entry) {
         return this._entry.compare(entry);
     }
 
     // update received for already included (falls within sort keys) entry
-    updateEntry(entry) {
-        // return names of props updated, or true for all, or null for no changes caused
-        return true;
+    updateEntry() {
+        return UpdateAction.Nothing();
     }
 
     // return whether the tile should be removed

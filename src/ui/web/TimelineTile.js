@@ -17,7 +17,8 @@ export default class TimelineTile {
 
     unmount() {}
 
-    update() {}
+    update(vm, paramName) {
+    }
 }
 
 function renderTile(tile) {

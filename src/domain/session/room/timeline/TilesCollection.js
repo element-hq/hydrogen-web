@@ -9,6 +9,13 @@ export default class TilesCollection extends BaseObservableList {
         this._tiles = null;
         this._entrySubscription = null;
         this._tileCreator = tileCreator;
+        this._emitSpontanousUpdate = this._emitSpontanousUpdate.bind(this);
+    }
+
+    _emitSpontanousUpdate(tile, params) {
+        const entry = tile.lowerEntry;
+        const tileIdx = this._findTileIdx(entry);
+        this.emitUpdate(tileIdx, tile, params);
     }
 
     onSubscribeFirst() {
@@ -21,7 +28,7 @@ export default class TilesCollection extends BaseObservableList {
         let currentTile = null;
         for (let entry of this._entries) {
             if (!currentTile || !currentTile.tryIncludeEntry(entry)) {
-                currentTile = this._tileCreator(entry);
+                currentTile = this._tileCreator(entry, this._emitSpontanousUpdate);
                 if (currentTile) {
                     this._tiles.push(currentTile);
                 }
@@ -86,7 +93,7 @@ export default class TilesCollection extends BaseObservableList {
             return;
         }
 
-        const newTile = this._tileCreator(entry);
+        const newTile = this._tileCreator(entry, this._emitSpontanousUpdate);
         if (newTile) {
             prevTile && prevTile.updateNextSibling(newTile);
             nextTile && nextTile.updatePreviousSibling(newTile);
@@ -101,9 +108,12 @@ export default class TilesCollection extends BaseObservableList {
         const tileIdx = this._findTileIdx(entry);
         const tile = this._findTileAtIdx(entry, tileIdx);
         if (tile) {
-            const newParams = tile.updateEntry(entry, params);
-            if (newParams) {
-                this.emitUpdate(tileIdx, tile, newParams);
+            const action = tile.updateEntry(entry, params);
+            if (action.shouldRemove) {
+                this._removeTile(tileIdx, tile);
+            }
+            if (action.shouldUpdate) {
+                this.emitUpdate(tileIdx, tile, action.updateParams);
             }
         }
         // technically we should handle adding a tile here as well
@@ -119,6 +129,15 @@ export default class TilesCollection extends BaseObservableList {
         //   merge with neighbours? ... hard to imagine use case for this  ...
     }
 
+    _removeTile(tileIdx, tile) {
+        const prevTile = this._getTileAtIdx(tileIdx - 1);
+        const nextTile = this._getTileAtIdx(tileIdx + 1);
+        this._tiles.splice(tileIdx, 1);
+        prevTile && prevTile.updateNextSibling(nextTile);
+        nextTile && nextTile.updatePreviousSibling(prevTile);
+        this.emitRemove(tileIdx, tile);
+    }
+
     // would also be called when unloading a part of the timeline
     onRemove(index, entry) {
         const tileIdx = this._findTileIdx(entry);
@@ -126,12 +145,7 @@ export default class TilesCollection extends BaseObservableList {
         if (tile) {
             const removeTile = tile.removeEntry(entry);
             if (removeTile) {
-                const prevTile = this._getTileAtIdx(tileIdx - 1);
-                const nextTile = this._getTileAtIdx(tileIdx + 1);
-                this._tiles.splice(tileIdx, 1);
-                prevTile && prevTile.updateNextSibling(nextTile);
-                nextTile && nextTile.updatePreviousSibling(prevTile);
-                this.emitRemove(tileIdx, tile);
+                this._removeTile(tileIdx, tile);
             } else {
                 this.emitUpdate(tileIdx, tile);
             }
@@ -140,7 +154,8 @@ export default class TilesCollection extends BaseObservableList {
 
     onMove(fromIdx, toIdx, value) {
         // this ... cannot happen in the timeline?
-        // should be sorted by sortKey and sortKey is immutable
+        // perhaps we can use this event to support a local echo (in a different fragment)
+        // to be moved to the key of the remote echo, so we don't loose state ... ?
     }
 
     [Symbol.iterator]() {

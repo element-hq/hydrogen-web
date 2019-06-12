@@ -5,8 +5,8 @@ import LocationTile from "./tiles/LocationTile.js";
 import RoomNameTile from "./tiles/RoomNameTile.js";
 import RoomMemberTile from "./tiles/RoomMemberTile.js";
 
-export default function ({timeline, emitUpdate}) {
-    return function tilesCreator(entry) {
+export default function ({timeline}) {
+    return function tilesCreator(entry, emitUpdate) {
         const options = {entry, emitUpdate};
         if (entry.isGap) {
             return new GapTile(options, timeline);
