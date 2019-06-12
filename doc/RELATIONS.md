@@ -6,3 +6,7 @@ SyncWriter will need to resolve the related remote id to a [fragmentId, eventInd
 The timeline can take incoming events from both the SendQueue and SyncWriter, and see if their related to fragmentId/eventIndex is in view, and then update it?
 
 alternatively, SyncWriter/SendQueue could have a section with updatedEntries apart from newEntries?
+
+SendQueue will need to pass the non-sent state (redactions & relations) about an event that has it's remote echo received to the SyncWriter so it doesn't flash while redactions and relations for it still have to be synced.
+
+Also, related ids should be processed recursively. If event 3 is a redaction of event 2, a reaction to event 1, all 3 entries should be considered as updated.

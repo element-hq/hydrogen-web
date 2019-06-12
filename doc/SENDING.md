@@ -196,3 +196,5 @@ PendingEventStore
     get()
     update()
     remove()
+
+make sure to handle race between /sync and /send (e.g. /sync with sent event may come in before /send returns)
