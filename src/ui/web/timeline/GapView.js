@@ -4,7 +4,7 @@ export default class GapView extends TemplateView {
     render(t, vm) {
         const className = {
             gap: true,
-            loading: vm => vm.isLoading
+            isLoading: vm => vm.isLoading
         };
         const label = (vm.isUp ? "🠝" : "🠟") + " fill gap"; //no binding
         return t.li({className}, [
