@@ -1,7 +1,7 @@
 import ListView from "./ListView.js";
 import RoomTile from "./RoomTile.js";
 import RoomView from "./RoomView.js";
-import { div } from "./html.js";
+import {tag} from "./html.js";
 
 export default class SessionView {
     constructor(viewModel) {
@@ -19,7 +19,7 @@ export default class SessionView {
     mount() {
         this._viewModel.on("change", this._onViewModelChange);
 
-        this._root = div({className: "SessionView"});
+        this._root = tag.div({className: "SessionView"});
         this._roomList = new ListView(
             {
                 list: this._viewModel.roomList,

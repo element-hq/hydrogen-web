@@ -1,6 +1,6 @@
 import TimelineTile from "./TimelineTile.js";
 import ListView from "./ListView.js";
-import * as html from "./html.js";
+import {tag} from "./html.js";
 import GapView from "./timeline/GapView.js";
 
 export default class RoomView {
@@ -14,15 +14,15 @@ export default class RoomView {
 
     mount() {
         this._viewModel.on("change", this._onViewModelUpdate);
-        this._nameLabel = html.h2(null, this._viewModel.name);
-        this._errorLabel = html.div({className: "RoomView_error"});
+        this._nameLabel = tag.h2(null, this._viewModel.name);
+        this._errorLabel = tag.div({className: "RoomView_error"});
 
         this._timelineList = new ListView({}, entry => {
             return entry.shape === "gap" ? new GapView(entry) : new TimelineTile(entry);
         });
         this._timelineList.mount();
 
-        this._root = html.div({className: "RoomView"}, [
+        this._root = tag.div({className: "RoomView"}, [
             this._nameLabel,
             this._errorLabel,
             this._timelineList.root()
