@@ -2,7 +2,8 @@ import Template from "./Template.js";
 
 export default class TemplateView {
     constructor(value) {
-        this._template = new Template(value, (t, value) => this.render(t, value));
+        this.viewModel = value;
+        this._template = null;
     }
 
     render() {
@@ -10,9 +11,8 @@ export default class TemplateView {
     }
 
     mount() {
-        const root = this._template.root();
-        this._template.attach();
-        return root;
+        this._template = new Template(this.viewModel, (t, value) => this.render(t, value));
+        return this.root();
     }
 
     root() {
@@ -20,7 +20,8 @@ export default class TemplateView {
     }
 
     unmount() {
-        this._template.detach();
+        this._template.dispose();
+        this._template = null;
     }
 
     update(value) {
