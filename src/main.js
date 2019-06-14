@@ -12,7 +12,7 @@ const USER_ID = `@${USERNAME}:${HOST}`;
 const PASSWORD = "testtest";
 
 function getSessionInfo(userId) {
-	const sessionsJson = localStorage.getItem("morpheus_sessions_v1");
+	const sessionsJson = localStorage.getItem("brawl_sessions_v1");
 	if (sessionsJson) {
 		const sessions = JSON.parse(sessionsJson);
 		const session = sessions.find(session => session.userId === userId);
@@ -23,7 +23,7 @@ function getSessionInfo(userId) {
 }
 
 function storeSessionInfo(loginData) {
-    const sessionsJson = localStorage.getItem("morpheus_sessions_v1");
+    const sessionsJson = localStorage.getItem("brawl_sessions_v1");
     const sessions = sessionsJson ? JSON.parse(sessionsJson) : [];
     const sessionId = (Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)).toString();
     const sessionInfo = {
@@ -34,7 +34,7 @@ function storeSessionInfo(loginData) {
         accessToken: loginData.access_token,
     };
     sessions.push(sessionInfo);
-    localStorage.setItem("morpheus_sessions_v1", JSON.stringify(sessions));
+    localStorage.setItem("brawl_sessions_v1", JSON.stringify(sessions));
     return sessionInfo;
 }
 
@@ -58,7 +58,7 @@ export default async function main(label, button, container) {
 		if (!sessionInfo) {
 			sessionInfo = await login(USERNAME, PASSWORD, HOMESERVER);
 		}
-        const storage = await createIdbStorage(`morpheus_session_${sessionInfo.id}`);
+        const storage = await createIdbStorage(`brawl_session_${sessionInfo.id}`);
         const hsApi = new HomeServerApi(HOMESERVER, sessionInfo.accessToken);
         const session = new Session({storage, hsApi, sessionInfo: {
             deviceId: sessionInfo.deviceId,

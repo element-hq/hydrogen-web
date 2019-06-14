@@ -1,5 +1,5 @@
 {
-  "name": "morpheusjs",
+  "name": "brawl-chat",
   "version": "1.0.0",
   "description": "A javascript matrix client prototype, trying to minize RAM usage by offloading as much as possible to IndexedDB",
   "main": "index.js",
@@ -12,14 +12,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bwindels/morpheusjs.git"
+    "url": "git+https://github.com/bwindels/brawl-chat.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/bwindels/morpheusjs/issues"
+    "url": "https://github.com/bwindels/brawl-chat/issues"
   },
-  "homepage": "https://github.com/bwindels/morpheusjs#readme",
+  "homepage": "https://github.com/bwindels/brawl-chat#readme",
   "devDependencies": {
     "finalhandler": "^1.1.1",
     "impunity": "^0.0.7",
