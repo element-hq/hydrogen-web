@@ -2,7 +2,14 @@ export function setAttribute(el, name, value) {
     if (name === "className") {
         name = "class";
     }
-    el.setAttribute(name, value);
+    if (value === false) {
+        el.removeAttribute(name);
+    } else {
+        if (value === true) {
+            value = name;
+        }
+        el.setAttribute(name, value);
+    }
 }
 
 export function el(elementName, attrs, children) {
