@@ -7,6 +7,6 @@ export default class RoomTile extends TemplateView {
 
     // called from ListView
     clicked() {
-        this._viewModel.open();
+        this.viewModel.open();
     }
 }
