@@ -1,4 +1,4 @@
-import * as html from "./html.js";
+import {tag} from "./html.js";
 
 export default class TimelineTile {
     constructor(tileVM) {
@@ -24,19 +24,10 @@ export default class TimelineTile {
 function renderTile(tile) {
     switch (tile.shape) {
         case "message":
-            return html.li(null, [html.strong(null, tile.internalId+" "), tile.label]);
-        case "gap": {
-            const button = html.button(null, (tile.isUp ? "🠝" : "🠟") + " fill gap");
-            const handler = () => {
-                tile.fill();
-                button.removeEventListener("click", handler);
-            };
-            button.addEventListener("click", handler);
-            return html.li(null, [html.strong(null, tile.internalId+" "), button]);
-        }
+            return tag.li(null, [tag.strong(null, tile.internalId+" "), tile.label]);
         case "announcement":
-            return html.li(null, [html.strong(null, tile.internalId+" "), tile.label]);
+            return tag.li(null, [tag.strong(null, tile.internalId+" "), tile.label]);
         default:
-            return html.li(null, [html.strong(null, tile.internalId+" "), "unknown tile shape: " + tile.shape]);
+            return tag.li(null, [tag.strong(null, tile.internalId+" "), "unknown tile shape: " + tile.shape]);
     }
 }

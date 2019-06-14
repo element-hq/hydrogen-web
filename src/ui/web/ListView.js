@@ -1,4 +1,4 @@
-import * as html from "./html.js";
+import {tag} from "./html.js";
 
 class UIView {
     mount() {}
@@ -47,7 +47,7 @@ export default class ListView {
     }
 
     mount() {
-        this._root = html.ul({className: "ListView"});
+        this._root = tag.ul({className: "ListView"});
         this._loadList();
         if (this._onItemClick) {
             this._root.addEventListener("click", this._onClick);
