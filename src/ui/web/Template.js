@@ -20,7 +20,6 @@ import { setAttribute, text, TAG_NAMES } from "./html.js";
 export default class Template {
     constructor(value, render) {
         this._value = value;
-        this._refs = {};
         this._eventListeners = [];
         this._bindings = [];
         this._render = render;
@@ -35,10 +34,6 @@ export default class Template {
             this._root = this._render(this, this._value);
         }
         return this._root;
-    }
-
-    ref(name) {
-        return this._refs[name];
     }
 
     update(value) {
@@ -60,8 +55,6 @@ export default class Template {
         }
     }
 
-    _addRef(name, node) {
-        this._refs[name] = node;
     }
 
     _addEventListener(node, name, fn) {
@@ -112,9 +105,7 @@ export default class Template {
         if (attributes) {
             for(let [key, value] of Object.entries(attributes)) {
                 const isFn = typeof value === "function";
-                if (key === "ref") {
-                    this._refs[value] = node;
-                } else if (key.startsWith("on") && key.length > 2 && isFn) {
+                if (key.startsWith("on") && key.length > 2 && isFn) {
                     const eventName = key.substr(2, 1).toLowerCase() + key.substr(3);
                     const handler = value;
                     this._addEventListener(node, eventName, handler);
