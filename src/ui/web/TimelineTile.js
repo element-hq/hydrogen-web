@@ -25,15 +25,6 @@ function renderTile(tile) {
     switch (tile.shape) {
         case "message":
             return html.li(null, [html.strong(null, tile.internalId+" "), tile.label]);
-        case "gap": {
-            const button = html.button(null, (tile.isUp ? "🠝" : "🠟") + " fill gap");
-            const handler = () => {
-                tile.fill();
-                button.removeEventListener("click", handler);
-            };
-            button.addEventListener("click", handler);
-            return html.li(null, [html.strong(null, tile.internalId+" "), button]);
-        }
         case "announcement":
             return html.li(null, [html.strong(null, tile.internalId+" "), tile.label]);
         default:
