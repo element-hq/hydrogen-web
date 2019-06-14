@@ -1,12 +1,5 @@
 import { setAttribute, text, TAG_NAMES } from "./html.js";
 
-// const template = new Template(vm, t => {
-//     return t.div({onClick: () => this._clicked(), className: "errorLabel"}, [
-//         vm => vm.label,
-//         t.span({className: vm => t.className({fatal: !!vm.fatal})}, [vm => vm.error])
-//     ]);
-// });
-
 /*
     supports
         - event handlers (attribute fn value with name that starts with on)
@@ -20,48 +13,79 @@ import { setAttribute, text, TAG_NAMES } from "./html.js";
 export default class Template {
     constructor(value, render) {
         this._value = value;
-        this._eventListeners = [];
-        this._bindings = [];
-        this._render = render;
+        this._eventListeners = null;
+        this._bindings = null;
+        this._subTemplates = null;
+        this._root = render(this, this._value);
+        this._attach();
     }
 
-    className(obj) {
+    // TODO: obj needs to support bindings
+    classes(obj) {
         Object.entries(obj).filter(([, value]) => value).map(([key]) => key).join(" ");
     }
 
     root() {
-        if (!this._root) {
-            this._root = this._render(this, this._value);
-        }
         return this._root;
     }
 
     update(value) {
         this._value = value;
-        for (const binding of this._bindings) {
-            binding();
+        if (this._bindings) {
+            for (const binding of this._bindings) {
+                binding();
+            }
+        }
+        if (this._subTemplates) {
+            for (const sub of this._subTemplates) {
+                sub.update(value);
+            }
         }
     }
 
-    detach() {
-        for (let {node, name, fn} of this._eventListeners) {
-            node.removeEventListener(name, fn);
+    dispose() {
+        if (this._eventListeners) {
+            for (let {node, name, fn} of this._eventListeners) {
+                node.removeEventListener(name, fn);
+            }
+        }
+        if (this._subTemplates) {
+            for (const sub of this._subTemplates) {
+                sub.dispose();
+            }
         }
     }
 
-    attach() {
-        for (let {node, name, fn} of this._eventListeners) {
-            node.addEventListener(name, fn);
+    _attach() {
+        if (this._eventListeners) {
+            for (let {node, name, fn} of this._eventListeners) {
+                node.addEventListener(name, fn);
+            }
         }
-    }
-
     }
 
     _addEventListener(node, name, fn) {
+        if (!this._eventListeners) {
+            this._eventListeners = [];
+        }
         this._eventListeners.push({node, name, fn});
     }
 
-    _setAttributeBinding(node, name, fn) {
+    _addBinding(bindingFn) {
+        if (!this._bindings) {
+            this._bindings = [];
+        }
+        this._bindings.push(bindingFn);
+    }
+
+    _addSubTemplate(t) {
+        if (!this._subTemplates) {
+            this._subTemplates = [];
+        }
+        this._subTemplates.push(t);
+    }
+
+    _addAttributeBinding(node, name, fn) {
         let prevValue = undefined;
         const binding = () => {
             const newValue = fn(this._value);
@@ -70,7 +94,7 @@ export default class Template {
                 setAttribute(node, name, newValue);
             }
         };
-        this._bindings.push(binding);
+        this._addBinding(binding);
         binding();
     }
 
@@ -85,7 +109,8 @@ export default class Template {
                 node.textContent = newValue+"";
             }
         };
-        this._bindings.push(binding);
+
+        this._addBinding(binding);
         return node;
     }
 
@@ -94,7 +119,7 @@ export default class Template {
             // valid attributes is only object that is not a DOM node
             // anything else (string, fn, array, dom node) is presumed
             // to be children with no attributes passed
-            if (typeof attributes !== "object" || attributes.nodeType === Node.ELEMENT_NODE || Array.isArray(attributes)) {
+            if (typeof attributes !== "object" || !!attributes.nodeType || Array.isArray(attributes)) {
                 children = attributes;
                 attributes = null;
             }
@@ -122,10 +147,11 @@ export default class Template {
                 children = [children];
             }
             for (let child of children) {
-                if (typeof child === "string") {
-                    child = text(child);
-                } else if (typeof c === "function") {
+                if (typeof child === "function") {
                     child = this._addTextBinding(child);
+                } else if (!child.nodeType) {
+                    // not a DOM node, turn into text
+                    child = text(child);
                 }
                 node.appendChild(child);
             }
@@ -133,10 +159,51 @@ export default class Template {
 
         return node;
     }
+
+    _addReplaceNodeBinding(fn, renderNode) {
+        let prevValue = fn(this._value);
+        let node = renderNode(null);
+
+        const binding = () => {
+            const newValue = fn(this._value);
+            if (prevValue !== newValue) {
+                prevValue = newValue;
+                const newNode = renderNode(node);
+                if (node.parentElement) {
+                    node.parentElement.replaceChild(newNode, node);
+                }
+                node = newNode;
+            }
+        };
+        this._addBinding(binding);
+        return node;
+    }
+
+    // creates a conditional subtemplate
+    if(fn, render) {
+        const boolFn = value => !!fn(value);
+        return this._addReplaceNodeBinding(boolFn, (prevNode) => {
+            if (prevNode && prevNode.nodeType !== Node.COMMENT_NODE) {
+                const templateIdx = this._subTemplates.findIndex(t => t.root() === prevNode);
+                const [template] = this._subTemplates.splice(templateIdx, 1);
+                template.dispose();
+            }
+            if (boolFn(this._value)) {
+                const template = new Template(this._value, render);
+                this._addSubTemplate(template);
+                return template.root();
+            } else {
+                return document.createComment("if placeholder");
+            }
+        });
+    }
 }
 
 for (const tag of TAG_NAMES) {
     Template.prototype[tag] = function(...params) {
-        this.el(tag, ... params);
+        return this.el(tag, ... params);
     };
 }
+
+
+
