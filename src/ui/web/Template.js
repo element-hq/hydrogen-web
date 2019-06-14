@@ -1,5 +1,18 @@
 import { setAttribute, text, TAG_NAMES } from "./html.js";
 
+
+function classNames(obj, value) {
+    return Object.entries(obj).reduce((cn, [name, enabled]) => {
+        if (typeof enabled === "function") {
+            enabled = enabled(value);
+        }
+        if (enabled) {
+            return (cn.length ? " " : "") + name;
+        } else {
+            return cn;
+        }
+    }, "");
+}
 /*
     supports
         - event handlers (attribute fn value with name that starts with on)
@@ -18,11 +31,6 @@ export default class Template {
         this._subTemplates = null;
         this._root = render(this, this._value);
         this._attach();
-    }
-
-    // TODO: obj needs to support bindings
-    classes(obj) {
-        Object.entries(obj).filter(([, value]) => value).map(([key]) => key).join(" ");
     }
 
     root() {
@@ -98,6 +106,10 @@ export default class Template {
         binding();
     }
 
+    _addClassNamesBinding(node, obj) {
+        this._addAttributeBinding(node, "className", value => classNames(obj, value));
+    }
+
     _addTextBinding(fn) {
         const initialValue = fn(this._value);
         const node = text(initialValue);
@@ -130,7 +142,10 @@ export default class Template {
         if (attributes) {
             for(let [key, value] of Object.entries(attributes)) {
                 const isFn = typeof value === "function";
-                if (key.startsWith("on") && key.length > 2 && isFn) {
+                // binding for className as object of className => enabled
+                if (key === "className" && typeof value === "object" && value !== null) {
+                    this._addClassNamesBinding(node, value);
+                } else if (key.startsWith("on") && key.length > 2 && isFn) {
                     const eventName = key.substr(2, 1).toLowerCase() + key.substr(3);
                     const handler = value;
                     this._addEventListener(node, eventName, handler);
@@ -204,6 +219,3 @@ for (const tag of TAG_NAMES) {
         return this.el(tag, ... params);
     };
 }
-
-
-
