@@ -13,7 +13,10 @@ function classNames(obj, value) {
         }
     }, "");
 }
-/*
+/**
+    Bindable template. Renders once, and allows bindings for given nodes. If you need
+    to change the structure on a condition, use a subtemplate (if)
+
     supports
         - event handlers (attribute fn value with name that starts with on)
         - one way binding of attributes (other attribute fn value)
@@ -138,43 +141,50 @@ export default class Template {
         }
 
         const node = document.createElement(name);
-
+        
         if (attributes) {
-            for(let [key, value] of Object.entries(attributes)) {
-                const isFn = typeof value === "function";
-                // binding for className as object of className => enabled
-                if (key === "className" && typeof value === "object" && value !== null) {
-                    this._addClassNamesBinding(node, value);
-                } else if (key.startsWith("on") && key.length > 2 && isFn) {
-                    const eventName = key.substr(2, 1).toLowerCase() + key.substr(3);
-                    const handler = value;
-                    this._addEventListener(node, eventName, handler);
-                } else if (isFn) {
-                    this._addAttributeBinding(node, key, value);
-                } else {
-                    setAttribute(node, key, value);
-                }
-            }
+            this._setNodeAttributes(node, attributes);
         }
-
         if (children) {
-            if (!Array.isArray(children)) {
-                children = [children];
-            }
-            for (let child of children) {
-                if (typeof child === "function") {
-                    child = this._addTextBinding(child);
-                } else if (!child.nodeType) {
-                    // not a DOM node, turn into text
-                    child = text(child);
-                }
-                node.appendChild(child);
-            }
+            this._setNodeChildren(node, children);
         }
 
         return node;
     }
 
+    _setNodeAttributes(node, attributes) {
+        for(let [key, value] of Object.entries(attributes)) {
+            const isFn = typeof value === "function";
+            // binding for className as object of className => enabled
+            if (key === "className" && typeof value === "object" && value !== null) {
+                this._addClassNamesBinding(node, value);
+            } else if (key.startsWith("on") && key.length > 2 && isFn) {
+                const eventName = key.substr(2, 1).toLowerCase() + key.substr(3);
+                const handler = value;
+                this._addEventListener(node, eventName, handler);
+            } else if (isFn) {
+                this._addAttributeBinding(node, key, value);
+            } else {
+                setAttribute(node, key, value);
+            }
+        }
+    }
+
+    _setNodeChildren(node, children) {
+        if (!Array.isArray(children)) {
+            children = [children];
+        }
+        for (let child of children) {
+            if (typeof child === "function") {
+                child = this._addTextBinding(child);
+            } else if (!child.nodeType) {
+                // not a DOM node, turn into text
+                child = text(child);
+            }
+            node.appendChild(child);
+        }
+    }
+    
     _addReplaceNodeBinding(fn, renderNode) {
         let prevValue = fn(this._value);
         let node = renderNode(null);
@@ -215,7 +225,7 @@ export default class Template {
 }
 
 for (const tag of TAG_NAMES) {
-    Template.prototype[tag] = function(...params) {
-        return this.el(tag, ... params);
+    Template.prototype[tag] = function(attributes, children) {
+        return this.el(tag, attributes, children);
     };
 }
