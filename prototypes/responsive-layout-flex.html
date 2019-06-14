@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no">
-    <meta name="application-name" content="Talk to Bruno"/>
+    <meta name="application-name" content="Brawl Chat"/>
     <meta name="msapplication-navbutton-color" content="red"/>
     <style type="text/css">
         html {
@@ -17,6 +17,12 @@
             display: flex;
             flex-direction: column;
             font-family: sans-serif;
+            background-color: black;
+            color: white;
+        }
+
+        .syncbar {
+            background-color: grey;
         }
 
         .log {
@@ -48,7 +54,7 @@
 
         .left-panel {
             flex: 1;
-            background: red;
+            background: #333;
             color: white;
             overflow-y: auto;
         }
@@ -62,9 +68,16 @@
         .left-panel li {
             margin: 5px;
             padding: 10px;
-            background: darkred;
             display: flex;
             align-items: center;
+        }
+
+        .left-panel li {
+            border-bottom: 1px #555 solid;
+        }
+
+        .left-panel li:last-child {
+            border-bottom: none;
         }
 
         .left-panel li > * {
@@ -89,8 +102,6 @@
 
         .room-panel-placeholder, .room-panel {
             flex: 3;
-            color: white;
-            background: black;
         }
 
         .room-panel {
@@ -194,10 +205,68 @@
         }
 
         .timeline-panel li {
-            background: blue;
-            padding: 10px;
-            margin: 10px;
         }
+
+        .message {
+            display: flex;
+            min-width: 0;
+        }
+
+        .message.own .message-container {
+            margin-left: auto;
+        }
+
+        .message-container {
+            flex: 0 1 auto;
+            max-width: 80%;
+            padding: 5px 10px;
+            margin: 5px 10px;
+            background: blue;
+        }
+
+        .message-container .sender {
+            margin: 5px 0;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .text-message .message-container time {
+            float: right;
+            padding: 2px 0 0px 20px;
+            font-size: 0.9em;
+            color: lightblue;
+        }
+
+        .image-message .message-container time {
+            display: block;
+            text-align: right;
+        }
+
+        .image-message img {
+            width: 100%;
+        }
+
+        .message-container time {
+            font-size: 0.9em;
+            color: lightblue;
+        }
+
+        .own time {
+            color: lightgreen;
+        }
+
+        .own .message-container {
+            background-color: darkgreen;
+        }
+
+        .message-container p {
+            margin: 5px 0;
+        }
+
+        .timeline-panel .text-message.own {
+
+        }
+
 
         .composer {
             display: flex;
@@ -218,6 +287,10 @@
             border-radius: 100px;
             overflow: hidden;
             flex-shrink: 0;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
             line-height: var(--avatar-size);
             font-size: calc(var(--avatar-size) * 0.6);
             text-align: center;
@@ -237,7 +310,7 @@
     </style>
 </head>
 <body>
-    <ul class="log"></ul>
+    <div class="syncbar"><button>Stop syncing</button></div>
     <div class="container">
         <div class="left-panel">
             <ul>
@@ -356,38 +429,204 @@
                     <button class="more"></button>
                 </div>
                 <ul>
-                    <li>Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1</li>
-                    <li>Message 2, message 2, message 2, message 2, message 2, message 2, message 2, message 2</li>
-                    <li>Message 3, message 3, message 3, message 3, message 3, message 3, message 3, message 3</li>
-                    <li>Message 4, message 4, message 4, message 4, message 4, message 4, message 4, message 4</li>
-                    <li>Message 5, message 5, message 5, message 5, message 5, message 5, message 5, message 5</li>
-                    <li>Message 6, message 6, message 6, message 6, message 6, message 6, message 6, message 6</li>
-                    <li>Message 7, message 7, message 7, message 7, message 7, message 7, message 7, message 7</li>
-                    <li>Message 8, message 8, message 8, message 8, message 8, message 8, message 8, message 8</li>
-                    <li>Message 9, message 9, message 9, message 9, message 9, message 9, message 9, message 9</li>
-                    <li>Message 10, message 10, message 10, message 10, message 10, message 10, message 10, message 10</li>
-                    <li>Message 11, message 11, message 11, message 11, message 11, message 11, message 11, message 11</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
-                    <li>Message 12, message 12, message 12, message 12, message 12, message 12, message 12, message 12</li>
+                    <li class="message text-message own">
+                        <div class="message-container">
+                            <div class="sender">@bruno:localhost</div>
+                            <p>Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1<time>15:24</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message not-own">
+                        <div class="message-container">
+                            <div class="sender">@bruno2:localhost</div>
+                            <p>Sounds about right<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message not-own">
+                        <div class="message-container">
+                            <p>You wee prick!<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="message-container">
+                            <div class="sender">@bruno:localhost</div>
+                            <p>Oh, don't get me started!!<time>15:26</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="message-container">
+                            <div class="sender">@bruno:localhost</div>
+                            <p>Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1<time>15:24</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message not-own">
+                        <div class="message-container">
+                            <div class="sender">@bruno2:localhost</div>
+                            <p>Sounds about right<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message not-own">
+                        <div class="message-container">
+                            <p>You wee prick!<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="message-container">
+                            <div class="sender">@bruno:localhost</div>
+                            <p>Oh, don't get me started!!<time>15:26</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="message-container">
+                            <div class="sender">@bruno:localhost</div>
+                            <p>Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1<time>15:24</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message not-own">
+                        <div class="message-container">
+                            <div class="sender">@bruno2:localhost</div>
+                            <p>Sounds about right<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message not-own">
+                        <div class="message-container">
+                            <p>You wee prick!<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="message-container">
+                            <div class="sender">@bruno:localhost</div>
+                            <p>Oh, don't get me started!!<time>15:26</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="message-container">
+                            <div class="sender">@bruno:localhost</div>
+                            <p>Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1<time>15:24</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message not-own">
+                        <div class="message-container">
+                            <div class="sender">@bruno2:localhost</div>
+                            <p>Sounds about right<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message not-own">
+                        <div class="message-container">
+                            <p>You wee prick!<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="message-container">
+                            <div class="sender">@bruno:localhost</div>
+                            <p>Oh, don't get me started!!<time>15:26</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="message-container">
+                            <div class="sender">@bruno:localhost</div>
+                            <p>Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1<time>15:24</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message not-own">
+                        <div class="message-container">
+                            <div class="sender">@bruno2:localhost</div>
+                            <p>Sounds about right<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message not-own">
+                        <div class="message-container">
+                            <p>You wee prick!<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="message-container">
+                            <div class="sender">@bruno:localhost</div>
+                            <p>Oh, don't get me started!!<time>15:26</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="message-container">
+                            <div class="sender">@bruno:localhost</div>
+                            <p>Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1<time>15:24</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message not-own">
+                        <div class="message-container">
+                            <div class="sender">@bruno2:localhost</div>
+                            <p>Sounds about right<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message image-message not-own">
+                        <div class="message-container">
+                            <p><img src="me.jpg" alt="Avatar for some room"/><time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="message-container">
+                            <div class="sender">@bruno:localhost</div>
+                            <p>Oh, don't get me started!!<time>15:26</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="message-container">
+                            <div class="sender">@bruno:localhost</div>
+                            <p>Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1<time>15:24</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message not-own">
+                        <div class="message-container">
+                            <div class="sender">@bruno2:localhost</div>
+                            <p>Sounds about right<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message not-own">
+                        <div class="message-container">
+                            <p>You wee prick!<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="message-container">
+                            <div class="sender">@bruno:localhost</div>
+                            <p>Oh, don't get me started!!<time>15:26</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="message-container">
+                            <div class="sender">@bruno:localhost</div>
+                            <p>Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1<time>15:24</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message not-own">
+                        <div class="message-container">
+                            <div class="sender">@bruno2:localhost</div>
+                            <p>Sounds about right<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message not-own">
+                        <div class="message-container">
+                            <p>You wee prick!<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="message-container">
+                            <div class="sender">@bruno:localhost</div>
+                            <p>Oh, don't get me started!!<time>15:26</time></p>
+                            
+                        </div>
+                    </li>
                 </ul>
                 <div class="composer"><input type="text" placeholder="Send a message" /></div>
             </div>
