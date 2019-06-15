@@ -1,11 +1,14 @@
 import ListView from "./ListView.js";
 import RoomTile from "./RoomTile.js";
 import RoomView from "./RoomView.js";
+import SwitchView from "./SwitchView.js";
+import RoomPlaceholderView from "./RoomPlaceholderView.js";
 import {tag} from "./html.js";
 
 export default class SessionView {
     constructor(viewModel) {
         this._viewModel = viewModel;
+        this._middleSwitcher = null;
         this._roomList = null;
         this._currentRoom = null;
         this._root = null;
@@ -27,41 +30,24 @@ export default class SessionView {
             },
             (room) => new RoomTile(room)
         );
-        this._roomList.mount();
-        this._root.appendChild(this._roomList.root());
-
-        this._updateCurrentRoom();
+        this._root.appendChild(this._roomList.mount());
+        this._middleSwitcher = new SwitchView(new RoomPlaceholderView());
+        this._root.appendChild(this._middleSwitcher.mount());
         return this._root;
     }
 
     unmount() {
         this._roomList.unmount();
-        if (this._room) {
-            this._room.unmount();
-        }
-
+        this._middleSwitcher.unmount();
         this._viewModel.off("change", this._onViewModelChange);
     }
 
     _onViewModelChange(prop) {
         if (prop === "currentRoom") {
-            this._updateCurrentRoom();
+            this._middleSwitcher.switch(new RoomView(this._viewModel.currentRoom));
         }
     }
 
     // changing viewModel not supported for now
     update() {}
-
-    _updateCurrentRoom() {
-        if (this._currentRoom) {
-            this._currentRoom.root().remove();
-            this._currentRoom.unmount();
-            this._currentRoom = null;
-        }
-        if (this._viewModel.currentRoom) {
-            this._currentRoom = new RoomView(this._viewModel.currentRoom);
-            this._currentRoom.mount();
-            this.root().appendChild(this._currentRoom.root());
-        }
-    }
 }
