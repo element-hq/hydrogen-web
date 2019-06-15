@@ -1,4 +1,4 @@
-import { setAttribute, text, TAG_NAMES } from "./html.js";
+import { setAttribute, text, isChildren, TAG_NAMES } from "./html.js";
 
 
 function classNames(obj, value) {
@@ -130,14 +130,9 @@ export default class Template {
     }
 
     el(name, attributes, children) {
-        if (attributes) {
-            // valid attributes is only object that is not a DOM node
-            // anything else (string, fn, array, dom node) is presumed
-            // to be children with no attributes passed
-            if (typeof attributes !== "object" || !!attributes.nodeType || Array.isArray(attributes)) {
-                children = attributes;
-                attributes = null;
-            }
+        if (attributes && isChildren(attributes)) {
+            children = attributes;
+            attributes = null;
         }
 
         const node = document.createElement(name);

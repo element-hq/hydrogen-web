@@ -1,5 +1,9 @@
 // DOM helper functions
 
+export function isChildren(children) {
+    return typeof children !== "object" || !!children.nodeType || Array.isArray(children);
+}
+
 export function setAttribute(el, name, value) {
     if (name === "className") {
         name = "class";
@@ -14,13 +18,20 @@ export function setAttribute(el, name, value) {
     }
 }
 
-export function el(elementName, attrs, children) {
+export function el(elementName, attributes, children) {
+    if (attributes && isChildren(attributes)) {
+        children = attributes;
+        attributes = null;
+    }
+
     const e = document.createElement(elementName);
-    if (typeof attrs === "object" && attrs !== null) {
-        for (let [name, value] of Object.entries(attrs)) {
+
+    if (attributes) {
+        for (let [name, value] of Object.entries(attributes)) {
             setAttribute(e, name, value);
         }
     }
+
     if (children) {
         if (!Array.isArray(children)) {
             children = [children];
