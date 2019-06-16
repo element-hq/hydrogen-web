@@ -1,4 +1,4 @@
-import TemplateView from "./TemplateView.js";
+import TemplateView from "../general/TemplateView.js";
 
 export default class RoomTile extends TemplateView {
     render(t) {

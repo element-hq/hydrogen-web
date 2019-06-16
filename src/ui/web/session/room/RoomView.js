@@ -1,6 +1,6 @@
-import TimelineTile from "./TimelineTile.js";
-import ListView from "./ListView.js";
-import {tag} from "./html.js";
+import TimelineTile from "./timeline/TimelineTile.js";
+import ListView from "../../general/ListView.js";
+import {tag} from "../../general/html.js";
 import GapView from "./timeline/GapView.js";
 
 export default class RoomView {

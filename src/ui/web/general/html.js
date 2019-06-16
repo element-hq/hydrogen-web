@@ -1,6 +1,7 @@
 // DOM helper functions
 
 export function isChildren(children) {
+    // children should be an not-object (that's the attributes), or a domnode, or an array
     return typeof children !== "object" || !!children.nodeType || Array.isArray(children);
 }
 

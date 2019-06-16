@@ -22,7 +22,8 @@ export default function ({timeline}) {
                         case "m.emote":
                             return new TextTile(options);
                         case "m.image":
-                            return new ImageTile(options);
+                            return null; // not supported yet
+                            // return new ImageTile(options);
                         case "m.location":
                             return new LocationTile(options);
                         default:

@@ -1,9 +1,10 @@
-import ListView from "./ListView.js";
+import ListView from "../general/ListView.js";
 import RoomTile from "./RoomTile.js";
-import RoomView from "./RoomView.js";
-import SwitchView from "./SwitchView.js";
+import RoomView from "./room/RoomView.js";
+import SwitchView from "../general/SwitchView.js";
 import RoomPlaceholderView from "./RoomPlaceholderView.js";
-import {tag} from "./html.js";
+import SyncStatusBar from "./SyncStatusBar.js";
+import {tag} from "../general/html.js";
 
 export default class SessionView {
     constructor(viewModel) {
@@ -21,8 +22,7 @@ export default class SessionView {
 
     mount() {
         this._viewModel.on("change", this._onViewModelChange);
-
-        this._root = tag.div({className: "SessionView"});
+        this._syncStatusBar = new SyncStatusBar(this._viewModel.syncStatusViewModel);
         this._roomList = new ListView(
             {
                 list: this._viewModel.roomList,
@@ -30,9 +30,16 @@ export default class SessionView {
             },
             (room) => new RoomTile(room)
         );
-        this._root.appendChild(this._roomList.mount());
         this._middleSwitcher = new SwitchView(new RoomPlaceholderView());
-        this._root.appendChild(this._middleSwitcher.mount());
+
+        this._root = tag.div({className: "SessionView"}, [
+            this._syncStatusBar.mount(),
+            tag.div({className: "main"}, [
+                this._roomList.mount(),
+                this._middleSwitcher.mount()
+            ])
+        ]);
+        
         return this._root;
     }
 

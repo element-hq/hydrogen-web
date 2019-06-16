@@ -1,8 +1,9 @@
 import Template from "./Template.js";
 
 export default class TemplateView {
-    constructor(value) {
-        this.viewModel = value;
+    constructor(vm, bindToChangeEvent) {
+        this.viewModel = vm;
+        this._changeEventHandler = bindToChangeEvent ? this.update.bind(this, this.viewModel) : null;
         this._template = null;
     }
 
@@ -11,6 +12,9 @@ export default class TemplateView {
     }
 
     mount() {
+        if (this._changeEventHandler) {
+            this.viewModel.on("change", this._changeEventHandler);
+        }
         this._template = new Template(this.viewModel, (t, value) => this.render(t, value));
         return this.root();
     }
@@ -20,6 +24,9 @@ export default class TemplateView {
     }
 
     unmount() {
+        if (this._changeEventHandler) {
+            this.viewModel.off("change", this._changeEventHandler);
+        }
         this._template.dispose();
         this._template = null;
     }
