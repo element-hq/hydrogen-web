@@ -18,7 +18,7 @@ export default class MessageTile extends SimpleTile {
     }
 
     get date() {
-        return this._date.toLocaleDateString();
+        return this._date.toLocaleDateString({}, {month: "numeric", day: "numeric"});
     }
 
     get time() {

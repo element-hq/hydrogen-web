@@ -7,7 +7,7 @@ export default class TextMessageView extends TemplateView {
             {className: {"TextMessageView": true, own: vm.isOwn}},
             t.div({className: "message-container"}, [
                 t.div({className: "sender"}, vm => vm.isContinuation ? "" : vm.sender),
-                t.p([vm.text, t.time(vm.time)]),
+                t.p([vm.text, t.time(vm.date + " " + vm.time)]),
             ])
         );
     }
