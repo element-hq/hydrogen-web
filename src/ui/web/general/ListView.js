@@ -125,7 +125,10 @@ export default class ListView {
     }
 
     onUpdate(i, value, params) {
-        this._childInstances[i].update(value, params);
+        if (this._childInstances) {
+            const instance = this._childInstances[i];
+            instance && instance.update(value, params);
+        }
     }
 
     onBeforeListChanged() {}
