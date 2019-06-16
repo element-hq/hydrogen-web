@@ -16,8 +16,8 @@ export default class TimelineList extends ListView {
         this._atBottom = false;
     }
 
-    _loadList() {
-        super._loadList();
+    loadList() {
+        super.loadList();
         const root = this.root();
         root.scrollTop = root.scrollHeight;
     }

@@ -43,7 +43,7 @@ export default class ListView {
                 }
             }
             this._list = attributes.list;
-            this._loadList();
+            this.loadList();
         }
     }
 
@@ -53,7 +53,7 @@ export default class ListView {
             attr.className = this._className;
         }
         this._root = tag.ul(attr);
-        this._loadList();
+        this.loadList();
         if (this._onItemClick) {
             this._root.addEventListener("click", this._onClick);
         }
@@ -85,7 +85,7 @@ export default class ListView {
         this._childInstances = null;
     }
 
-    _loadList() {
+    loadList() {
         if (!this._list) {
             return;
         }
