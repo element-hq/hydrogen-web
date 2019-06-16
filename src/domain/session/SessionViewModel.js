@@ -1,11 +1,13 @@
 import EventEmitter from "../../EventEmitter.js";
 import RoomTileViewModel from "./roomlist/RoomTileViewModel.js";
 import RoomViewModel from "./room/RoomViewModel.js";
+import SyncStatusViewModel from "./SyncStatusViewModel.js";
 
 export default class SessionViewModel extends EventEmitter {
-    constructor(session) {
+    constructor(session, sync) {
         super();
         this._session = session;
+        this._syncStatusViewModel = new SyncStatusViewModel(sync);
         this._currentRoomViewModel = null;
         const roomTileVMs = this._session.rooms.mapValues((room, emitUpdate) => {
                 return new RoomTileViewModel({
@@ -15,6 +17,10 @@ export default class SessionViewModel extends EventEmitter {
                 });
             });
         this._roomList = roomTileVMs.sortValues((a, b) => a.compare(b));
+    }
+
+    get syncStatusViewModel() {
+        return this._syncStatusViewModel;
     }
 
     get roomList() {

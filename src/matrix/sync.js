@@ -32,12 +32,18 @@ export default class Sync extends EventEmitter {
         this._isSyncing = false;
         this._currentRequest = null;
     }
+
+    get isSyncing() {
+        return this._isSyncing;
+    }
+
     // returns when initial sync is done
     async start() {
         if (this._isSyncing) {
             return;
         }
         this._isSyncing = true;
+        this.emit("status", "started");
         let syncToken = this._session.syncToken;
         // do initial sync if needed
         if (!syncToken) {
@@ -56,12 +62,12 @@ export default class Sync extends EventEmitter {
             } catch (err) {
                 this._isSyncing = false;
                 if (!(err instanceof RequestAbortError)) {
-                    console.warn("stopping sync because of error");
-                    this.emit("error", err);
+                    console.warn("stopping sync because of error", err.message);
+                    this.emit("status", "error", err);
                 }
             }
         }
-        this.emit("stopped");
+        this.emit("status", "stopped");
     }
 
     async _syncRequest(syncToken, timeout) {

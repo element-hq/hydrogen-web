@@ -52,18 +52,9 @@
         </style>
 	</head>
 	<body>
-		<p id="syncstatus"></p>
-		<div><button id="stopsync">stop syncing</button></div>
-        <div id="container"></div>
 		<script type="module">
 			import main from "./src/main.js";
-			const label = document.getElementById("syncstatus");
-            const button = document.getElementById("stopsync");
-			const container = document.getElementById("container");
-			
-			//import("./src/main.js").then(main => {
-				main(label, button, container);
-			//});
+			main(document.body);
 		</script>
 	</body>
 </html>
