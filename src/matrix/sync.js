@@ -62,7 +62,7 @@ export default class Sync extends EventEmitter {
             } catch (err) {
                 this._isSyncing = false;
                 if (!(err instanceof RequestAbortError)) {
-                    console.warn("stopping sync because of error", err.message);
+                    console.error("stopping sync because of error", err.stack);
                     this.emit("status", "error", err);
                 }
             }
