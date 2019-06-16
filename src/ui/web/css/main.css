@@ -19,3 +19,10 @@ body {
 .SyncStatusBar_shown {
     display: unset;
 }
+
+.RoomPlaceholderView {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
+}
