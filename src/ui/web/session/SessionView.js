@@ -25,6 +25,7 @@ export default class SessionView {
         this._syncStatusBar = new SyncStatusBar(this._viewModel.syncStatusViewModel);
         this._roomList = new ListView(
             {
+                className: "RoomList",
                 list: this._viewModel.roomList,
                 onItemClick: (roomTile, event) => roomTile.clicked(event)
             },
@@ -35,7 +36,7 @@ export default class SessionView {
         this._root = tag.div({className: "SessionView"}, [
             this._syncStatusBar.mount(),
             tag.div({className: "main"}, [
-                this._roomList.mount(),
+                tag.div({className: "LeftPanel"}, this._roomList.mount()),
                 this._middleSwitcher.mount()
             ])
         ]);
@@ -51,6 +52,7 @@ export default class SessionView {
 
     _onViewModelChange(prop) {
         if (prop === "currentRoom") {
+            this._root.classList.add("room-shown");
             this._middleSwitcher.switch(new RoomView(this._viewModel.currentRoom));
         }
     }

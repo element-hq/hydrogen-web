@@ -1,0 +1,21 @@
+@import url('layout.css');
+@import url('left-panel.css');
+@import url('room.css');
+@import url('timeline.css');
+@import url('avatar.css');
+
+body {
+    margin: 0;
+    font-family: sans-serif;
+    background-color: black;
+    color: white;
+}
+
+.SyncStatusBar {
+    background-color: #555;
+    display: none;
+}
+
+.SyncStatusBar_shown {
+    display: unset;
+}

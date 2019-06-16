@@ -31,7 +31,7 @@ export default class TemplateView {
         this._template = null;
     }
 
-    update(value) {
+    update(value, prop) {
         this._template.update(value);
     }
 }

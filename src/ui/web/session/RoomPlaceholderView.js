@@ -6,7 +6,7 @@ export default class RoomPlaceholderView {
     }
 
     mount() {
-        this._root = tag.div(tag.h2("Choose a room on the left side."));
+        this._root = tag.div({className: "RoomPlaceholderView"}, tag.h2("Choose a room on the left side."));
         return this._root;
     }
 

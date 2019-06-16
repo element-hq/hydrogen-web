@@ -1,5 +1,6 @@
 import EventEmitter from "../../../EventEmitter.js";
 import TimelineViewModel from "./timeline/TimelineViewModel.js";
+import {avatarInitials} from "../avatar.js";
 
 export default class RoomViewModel extends EventEmitter {
     constructor(room, ownUserId) {
@@ -50,6 +51,10 @@ export default class RoomViewModel extends EventEmitter {
         if (this._timelineError) {
             return `Something went wrong loading the timeline: ${this._timelineError.message}`;
         }
-        return null;
+        return "";
+    }
+
+    get avatarInitials() {
+        return avatarInitials(this._room.name);
     }
 }

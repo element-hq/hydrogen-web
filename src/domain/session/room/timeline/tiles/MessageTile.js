@@ -21,7 +21,7 @@ export default class MessageTile extends SimpleTile {
     }
 
     get time() {
-        return this._date.toLocaleTimeString();
+        return this._date.toLocaleTimeString({}, {hour: "numeric", minute: "2-digit"});
     }
 
     get isOwn() {

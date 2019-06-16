@@ -1,55 +1,47 @@
-import TimelineTile from "./timeline/TimelineTile.js";
-import ListView from "../../general/ListView.js";
-import {tag} from "../../general/html.js";
-import GapView from "./timeline/GapView.js";
+import TemplateView from "../../general/TemplateView.js";
+import TimelineList from "./TimelineList.js";
 
-export default class RoomView {
+export default class RoomView extends TemplateView {
     constructor(viewModel) {
-        this._viewModel = viewModel;
-        this._root = null;
+        super(viewModel, true);
         this._timelineList = null;
-        this._nameLabel = null;
-        this._onViewModelUpdate = this._onViewModelUpdate.bind(this);
+        this._checkScroll = this._checkScroll.bind(this);
+    }
+
+    render(t) {
+        return t.div({className: "RoomView"}, [
+            t.div({className: "TimelinePanel"}, [
+                t.div({className: "RoomHeader"}, [
+                    t.button({className: "back"}),
+                    t.div({className: "avatar large"}, vm => vm.avatarInitials),
+                    t.div({className: "room-description"}, [
+                        t.h2(vm => vm.name),
+                    ]),
+                ]),
+                t.div({className: "RoomView_error"}, vm => vm.error),
+                this._timelineList.mount()
+            ])
+        ]);
     }
 
     mount() {
-        this._viewModel.on("change", this._onViewModelUpdate);
-        this._nameLabel = tag.h2(null, this._viewModel.name);
-        this._errorLabel = tag.div({className: "RoomView_error"});
-
-        this._timelineList = new ListView({}, entry => {
-            return entry.shape === "gap" ? new GapView(entry) : new TimelineTile(entry);
-        });
-        this._timelineList.mount();
-
-        this._root = tag.div({className: "RoomView"}, [
-            this._nameLabel,
-            this._errorLabel,
-            this._timelineList.root()
-        ]);
-
-        return this._root;
+        this._timelineList = new TimelineList();
+        return super.mount();
     }
 
     unmount() {
         this._timelineList.unmount();
-        this._viewModel.off("change", this._onViewModelUpdate);
+        super.unmount();
     }
 
-    root() {
-        return this._root;
-    }
-
-    _onViewModelUpdate(prop) {
-        if (prop === "name") {
-            this._nameLabel.innerText = this._viewModel.name;
-        }
-        else if (prop === "timelineViewModel") {
-            this._timelineList.update({list: this._viewModel.timelineViewModel.tiles});
-        } else if (prop === "error") {
-            this._errorLabel.innerText = this._viewModel.error;
+    update(value, prop) {
+        super.update(value, prop);
+        if (prop === "timelineViewModel") {
+            this._timelineList.update({list: this.viewModel.timelineViewModel.tiles});
         }
     }
 
-    update() {}
+    _checkScroll() {
+        // const list = this._timelineList.root();
+    }
 }

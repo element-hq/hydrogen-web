@@ -1,0 +1,27 @@
+.avatar {
+    --avatar-size: 32px;
+    width: var(--avatar-size);
+    height: var(--avatar-size);
+    border-radius: 100px;
+    overflow: hidden;
+    flex-shrink: 0;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    line-height: var(--avatar-size);
+    font-size: calc(var(--avatar-size) * 0.6);
+    text-align: center;
+    letter-spacing: calc(var(--avatar-size) * -0.05);
+    background: white;
+    color: black;
+}
+
+.avatar.large {
+    --avatar-size: 40px;
+}
+
+.avatar img {
+    width: 100%;
+    height: 100%;
+}
