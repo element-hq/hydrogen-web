@@ -20,7 +20,7 @@ export default class Timeline {
 
     /** @package */
     async load() {
-        const entries = await this._timelineReader.readFromEnd(100);
+        const entries = await this._timelineReader.readFromEnd(50);
         this._entriesList.setManySorted(entries);
     }
 
@@ -47,12 +47,12 @@ export default class Timeline {
 
     // tries to prepend `amount` entries to the `entries` list.
     async loadAtTop(amount) {
-        if (this._entriesList.length() === 0) {
+        const firstEventEntry = this._entriesList.array.find(e => !!e.event);
+        if (!firstEventEntry) {
             return;
         }
-        const firstEntry = this._entriesList.array()[0];
         const entries = await this._timelineReader.readFrom(
-            firstEntry.asEventKey(),
+            firstEventEntry.asEventKey(),
             Direction.Backward,
             amount
         );

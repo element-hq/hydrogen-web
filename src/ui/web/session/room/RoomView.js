@@ -5,7 +5,6 @@ export default class RoomView extends TemplateView {
     constructor(viewModel) {
         super(viewModel, true);
         this._timelineList = null;
-        this._checkScroll = this._checkScroll.bind(this);
     }
 
     render(t) {
@@ -37,11 +36,7 @@ export default class RoomView extends TemplateView {
     update(value, prop) {
         super.update(value, prop);
         if (prop === "timelineViewModel") {
-            this._timelineList.update({list: this.viewModel.timelineViewModel.tiles});
+            this._timelineList.update({viewModel: this.viewModel.timelineViewModel});
         }
-    }
-
-    _checkScroll() {
-        // const list = this._timelineList.root();
     }
 }

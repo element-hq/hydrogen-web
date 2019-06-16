@@ -14,6 +14,41 @@ export default class TimelineList extends ListView {
             }
         });
         this._atBottom = false;
+        this._onScroll = this._onScroll.bind(this);
+        this._topLoadingPromise = null;
+        this._viewModel = null;
+    }
+
+    async _onScroll() {
+        const root = this.root();
+        if (root.scrollTop === 0 && !this._topLoadingPromise && this._viewModel) {
+            const beforeFromBottom = this._distanceFromBottom();
+            this._topLoadingPromise = this._viewModel.loadAtTop();
+            await this._topLoadingPromise;
+            const fromBottom = this._distanceFromBottom();
+            const amountGrown = fromBottom - beforeFromBottom;
+            root.scrollTop = root.scrollTop + amountGrown;
+            this._topLoadingPromise = null;
+        }
+    }
+
+    update(attributes) {
+        if(attributes.viewModel) {
+            this._viewModel = attributes.viewModel;
+            attributes.list = attributes.viewModel.tiles;
+        }
+        super.update(attributes);
+    }
+
+    mount() {
+        const root = super.mount();
+        root.addEventListener("scroll", this._onScroll);
+        return root;
+    }
+
+    unmount() {
+        this.root().removeEventListener("scroll", this._onScroll);
+        super.unmount();
     }
 
     loadList() {
@@ -23,9 +58,13 @@ export default class TimelineList extends ListView {
     }
 
     onBeforeListChanged() {
-        const root = this.root();
-        const fromBottom = root.scrollHeight - root.scrollTop - root.clientHeight;
+        const fromBottom = this._distanceFromBottom();
         this._atBottom = fromBottom < 1;
+    }
+
+    _distanceFromBottom() {
+        const root = this.root();
+        return root.scrollHeight - root.scrollTop - root.clientHeight;
     }
 
     onListChanged() {

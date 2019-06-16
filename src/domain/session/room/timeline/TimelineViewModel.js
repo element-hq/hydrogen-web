@@ -28,8 +28,7 @@ export default class TimelineViewModel {
 
     // doesn't fill gaps, only loads stored entries/tiles
     loadAtTop() {
-        // load 100 entries, which may result in 0..100 tiles
-        return this._timeline.loadAtTop(100);
+        return this._timeline.loadAtTop(50);
     }
 
     unloadAtTop(tileAmount) {
