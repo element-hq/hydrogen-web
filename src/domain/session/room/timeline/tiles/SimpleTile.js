@@ -41,7 +41,8 @@ export default class SimpleTile {
     }
 
     // update received for already included (falls within sort keys) entry
-    updateEntry() {
+    updateEntry(entry) {
+        this._entry = entry;
         return UpdateAction.Nothing();
     }
 

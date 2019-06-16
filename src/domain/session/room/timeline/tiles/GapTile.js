@@ -27,7 +27,8 @@ export default class GapTile extends SimpleTile {
         }
     }
 
-    updateEntry(entry) {
+    updateEntry(entry, params) {
+        super.updateEntry(entry, params);
         if (!entry.isGap) {
             return UpdateAction.Remove();
         } else {
