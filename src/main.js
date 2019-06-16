@@ -2,7 +2,7 @@ import HomeServerApi from "./matrix/hs-api.js";
 import Session from "./matrix/session.js";
 import createIdbStorage from "./matrix/storage/idb/create.js";
 import Sync from "./matrix/sync.js";
-import SessionView from "./ui/web/SessionView.js";
+import SessionView from "./ui/web/session/SessionView.js";
 import SessionViewModel from "./domain/session/SessionViewModel.js";
 
 const HOST = "localhost";
@@ -44,15 +44,14 @@ async function login(username, password, homeserver) {
 	return storeSessionInfo(loginData);
 }
 
-function showSession(container, session) {
-    const vm = new SessionViewModel(session);
+function showSession(container, session, sync) {
+    const vm = new SessionViewModel(session, sync);
     const view = new SessionView(vm);
-    view.mount();
-    container.appendChild(view.root());
+    container.appendChild(view.mount());
 }
 
 // eslint-disable-next-line no-unused-vars
-export default async function main(label, button, container) {
+export default async function main(container) {
 	try {
 		let sessionInfo = getSessionInfo(USER_ID);
 		if (!sessionInfo) {
@@ -67,26 +66,17 @@ export default async function main(label, button, container) {
         }});
         await session.load();
         console.log("session loaded");
+		const sync = new Sync(hsApi, session, storage);
         const needsInitialSync = !session.syncToken;
         if (needsInitialSync) {
             console.log("session needs initial sync");
         } else {
-            showSession(container, session);
+            showSession(container, session, sync);
         }
-		const sync = new Sync(hsApi, session, storage);
 		await sync.start();
         if (needsInitialSync) {
-            showSession(container, session);
+            showSession(container, session, sync);
         }
-		label.innerText = "sync running";
-		button.addEventListener("click", () => sync.stop());
-		sync.on("error", err => {
-			label.innerText = "sync error";
-			console.error("sync error", err);
-		});
-		sync.on("stopped", () => {
-			label.innerText = "sync stopped";
-		});
 	} catch(err) {
         console.error(`${err.message}:\n${err.stack}`);
 	}

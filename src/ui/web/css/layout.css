@@ -1,0 +1,56 @@
+html {
+    height: 100%;
+}
+body {
+    margin: 0;
+}
+
+.SessionView {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.SessionView > .main {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    min-width: 0;
+    width: 100vw;
+}
+
+/* mobile layout */
+@media screen and (max-width: 800px) {
+    .back { display: block !important; }
+    .RoomView, .RoomPlaceholderView { display: none; }
+    .room-shown .RoomView { display: unset; }
+    .room-shown .LeftPanel { display: none; }
+    .right-shown .TimelinePanel { display: none; }
+}
+
+.LeftPanel {
+    flex: 0 0 300px;
+    min-width: 0;
+}
+
+.RoomPlaceholderView, .RoomView {
+    flex: 1 0 0;
+    min-width: 0;
+}
+
+.RoomView {
+    min-width: 0;
+    display: flex;
+}
+
+
+.TimelinePanel {
+    flex: 3;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.RoomHeader {
+    display: flex;
+}

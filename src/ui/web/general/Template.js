@@ -1,17 +1,13 @@
-import { setAttribute, text, TAG_NAMES } from "./html.js";
+import { setAttribute, text, isChildren, classNames, TAG_NAMES } from "./html.js";
 
 
-function classNames(obj, value) {
-    return Object.entries(obj).reduce((cn, [name, enabled]) => {
-        if (typeof enabled === "function") {
-            enabled = enabled(value);
+function objHasFns(obj) {
+    for(const value of Object.values(obj)) {
+        if (typeof value === "function") {
+            return true;
         }
-        if (enabled) {
-            return (cn.length ? " " : "") + name;
-        } else {
-            return cn;
-        }
-    }, "");
+    }
+    return false;
 }
 /**
     Bindable template. Renders once, and allows bindings for given nodes. If you need
@@ -130,14 +126,9 @@ export default class Template {
     }
 
     el(name, attributes, children) {
-        if (attributes) {
-            // valid attributes is only object that is not a DOM node
-            // anything else (string, fn, array, dom node) is presumed
-            // to be children with no attributes passed
-            if (typeof attributes !== "object" || !!attributes.nodeType || Array.isArray(attributes)) {
-                children = attributes;
-                attributes = null;
-            }
+        if (attributes && isChildren(attributes)) {
+            children = attributes;
+            attributes = null;
         }
 
         const node = document.createElement(name);
@@ -157,7 +148,11 @@ export default class Template {
             const isFn = typeof value === "function";
             // binding for className as object of className => enabled
             if (key === "className" && typeof value === "object" && value !== null) {
-                this._addClassNamesBinding(node, value);
+                if (objHasFns(value)) {
+                    this._addClassNamesBinding(node, value);
+                } else {
+                    setAttribute(node, key, classNames(value));
+                }
             } else if (key.startsWith("on") && key.length > 2 && isFn) {
                 const eventName = key.substr(2, 1).toLowerCase() + key.substr(3);
                 const handler = value;

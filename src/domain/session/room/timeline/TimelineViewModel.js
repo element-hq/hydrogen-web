@@ -18,12 +18,12 @@ import TilesCollection from "./TilesCollection.js";
 import tilesCreator from "./tilesCreator.js";
 
 export default class TimelineViewModel {
-    constructor(timeline) {
+    constructor(timeline, ownUserId) {
         this._timeline = timeline;
         // once we support sending messages we could do
         // timeline.entries.concat(timeline.pendingEvents)
         // for an ObservableList that also contains local echos
-        this._tiles = new TilesCollection(timeline.entries, tilesCreator({timeline}));
+        this._tiles = new TilesCollection(timeline.entries, tilesCreator({timeline, ownUserId}));
     }
 
     // doesn't fill gaps, only loads stored entries/tiles

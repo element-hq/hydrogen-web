@@ -1,10 +1,12 @@
 import EventEmitter from "../../../EventEmitter.js";
 import TimelineViewModel from "./timeline/TimelineViewModel.js";
+import {avatarInitials} from "../avatar.js";
 
 export default class RoomViewModel extends EventEmitter {
-    constructor(room) {
+    constructor(room, ownUserId) {
         super();
         this._room = room;
+        this._ownUserId = ownUserId;
         this._timeline = null;
         this._timelineVM = null;
         this._onRoomChange = this._onRoomChange.bind(this);
@@ -15,7 +17,7 @@ export default class RoomViewModel extends EventEmitter {
         this._room.on("change", this._onRoomChange);
         try {
             this._timeline = await this._room.openTimeline();
-            this._timelineVM = new TimelineViewModel(this._timeline);
+            this._timelineVM = new TimelineViewModel(this._timeline, this._ownUserId);
             this.emit("change", "timelineViewModel");
         } catch (err) {
             console.error(`room.openTimeline(): ${err.message}:\n${err.stack}`);
@@ -49,6 +51,10 @@ export default class RoomViewModel extends EventEmitter {
         if (this._timelineError) {
             return `Something went wrong loading the timeline: ${this._timelineError.message}`;
         }
-        return null;
+        return "";
+    }
+
+    get avatarInitials() {
+        return avatarInitials(this._room.name);
     }
 }

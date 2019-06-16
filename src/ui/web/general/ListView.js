@@ -19,9 +19,10 @@ function insertAt(parentNode, idx, childNode) {
 }
 
 export default class ListView {
-    constructor({list, onItemClick}, childCreator) {
+    constructor({list, onItemClick, className}, childCreator) {
         this._onItemClick = onItemClick;
         this._list = list;
+        this._className = className;
         this._root = null;
         this._subscription = null;
         this._childCreator = childCreator;
@@ -47,7 +48,11 @@ export default class ListView {
     }
 
     mount() {
-        this._root = tag.ul({className: "ListView"});
+        const attr = {};
+        if (this._className) {
+            attr.className = this._className;
+        }
+        this._root = tag.ul(attr);
         this._loadList();
         if (this._onItemClick) {
             this._root.addEventListener("click", this._onClick);
@@ -95,25 +100,37 @@ export default class ListView {
     }
 
     onAdd(idx, value) {
+        this.onBeforeListChanged();
         const child = this._childCreator(value);
         this._childInstances.splice(idx, 0, child);
         insertAt(this._root, idx, child.mount());
+        this.onListChanged();
     }
 
     onRemove(idx, _value) {
+        this.onBeforeListChanged();
         const [child] = this._childInstances.splice(idx, 1);
         child.root().remove();
         child.unmount();
+        this.onListChanged();
     }
 
     onMove(fromIdx, toIdx, value) {
+        this.onBeforeListChanged();
         const [child] = this._childInstances.splice(fromIdx, 1);
         this._childInstances.splice(toIdx, 0, child);
         child.root().remove();
         insertAt(this._root, toIdx, child.root());
+        this.onListChanged();
     }
 
     onUpdate(i, value, params) {
-        this._childInstances[i].update(value, params);
+        if (this._childInstances) {
+            const instance = this._childInstances[i];
+            instance && instance.update(value, params);
+        }
     }
+
+    onBeforeListChanged() {}
+    onListChanged() {}
 }

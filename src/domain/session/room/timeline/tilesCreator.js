@@ -5,9 +5,9 @@ import LocationTile from "./tiles/LocationTile.js";
 import RoomNameTile from "./tiles/RoomNameTile.js";
 import RoomMemberTile from "./tiles/RoomMemberTile.js";
 
-export default function ({timeline}) {
+export default function ({timeline, ownUserId}) {
     return function tilesCreator(entry, emitUpdate) {
-        const options = {entry, emitUpdate};
+        const options = {entry, emitUpdate, ownUserId};
         if (entry.isGap) {
             return new GapTile(options, timeline);
         } else if (entry.event) {
@@ -22,7 +22,8 @@ export default function ({timeline}) {
                         case "m.emote":
                             return new TextTile(options);
                         case "m.image":
-                            return new ImageTile(options);
+                            return null; // not supported yet
+                            // return new ImageTile(options);
                         case "m.location":
                             return new LocationTile(options);
                         default:

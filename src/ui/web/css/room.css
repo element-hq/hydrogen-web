@@ -1,0 +1,65 @@
+
+.RoomHeader {
+    padding: 10px;
+    background-color: #333;
+}
+
+.RoomHeader *:last-child {
+    margin-right: 0 !important;
+}
+
+.RoomHeader > * {
+    margin-right: 10px !important;
+}
+
+.RoomHeader button {
+    width: 40px;
+    height: 40px;
+    display: none;
+    font-size: 1.5em;
+    padding: 0;
+    display: block;
+    background: white;
+    border: none;
+    font-weight: bolder;
+    line-height: 40px;
+}
+
+.RoomHeader button.back {
+    display: none;
+}
+
+.RoomHeader .topic {
+    font-size: 0.8em;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.back::before {
+    content: "☰";
+}
+
+.more::before {
+    content: "⋮";
+}
+
+.RoomHeader {
+    align-items: center;
+}
+
+.RoomHeader .description {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.RoomHeader h2 {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    margin: 0;
+}
+
+.RoomView_error {
+    color: red;
+}

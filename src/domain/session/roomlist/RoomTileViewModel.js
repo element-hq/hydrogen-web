@@ -1,3 +1,5 @@
+import {avatarInitials} from "../avatar.js";
+
 export default class RoomTileViewModel {
     // we use callbacks to parent VM instead of emit because
     // it would be annoying to keep track of subscriptions in
@@ -20,5 +22,9 @@ export default class RoomTileViewModel {
 
     get name() {
         return this._room.name;
+    }
+
+    get avatarInitials() {
+        return avatarInitials(this._room.name);
     }
 }

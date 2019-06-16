@@ -1,4 +1,4 @@
-import {tag} from "./html.js";
+import {tag} from "../../../general/html.js";
 
 export default class TimelineTile {
     constructor(tileVM) {
@@ -24,10 +24,10 @@ export default class TimelineTile {
 function renderTile(tile) {
     switch (tile.shape) {
         case "message":
-            return tag.li(null, [tag.strong(null, tile.internalId+" "), tile.label]);
+            return tag.li([tag.strong(tile.internalId+" "), tile.label]);
         case "announcement":
-            return tag.li(null, [tag.strong(null, tile.internalId+" "), tile.label]);
+            return tag.li([tag.strong(tile.internalId+" "), tile.announcement]);
         default:
-            return tag.li(null, [tag.strong(null, tile.internalId+" "), "unknown tile shape: " + tile.shape]);
+            return tag.li([tag.strong(tile.internalId+" "), "unknown tile shape: " + tile.shape]);
     }
 }
