@@ -4,6 +4,7 @@ export default class MessageTile extends SimpleTile {
 
     constructor(options) {
         super(options);
+        this._isOwn = this._entry.event.sender === options.ownUserId;
         this._date = new Date(this._entry.event.origin_server_ts);
     }
 
@@ -21,6 +22,10 @@ export default class MessageTile extends SimpleTile {
 
     get time() {
         return this._date.toLocaleTimeString();
+    }
+
+    get isOwn() {
+        return this._isOwn;
     }
 
     _getContent() {

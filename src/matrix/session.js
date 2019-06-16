@@ -59,4 +59,8 @@ export default class Session {
     get syncToken() {
         return this._session.syncToken;
     }
+
+    get userId() {
+        return this._sessionInfo.userId;
+    }
 }

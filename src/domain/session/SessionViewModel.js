@@ -29,7 +29,7 @@ export default class SessionViewModel extends EventEmitter {
         if (this._currentRoomViewModel) {
             this._currentRoomViewModel.disable();
         }
-        this._currentRoomViewModel = new RoomViewModel(room);
+        this._currentRoomViewModel = new RoomViewModel(room, this._session.userId);
         this._currentRoomViewModel.enable();
         this.emit("change", "currentRoom");
     }
