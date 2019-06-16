@@ -1,17 +1,13 @@
-import { setAttribute, text, isChildren, TAG_NAMES } from "./html.js";
+import { setAttribute, text, isChildren, classNames, TAG_NAMES } from "./html.js";
 
 
-function classNames(obj, value) {
-    return Object.entries(obj).reduce((cn, [name, enabled]) => {
-        if (typeof enabled === "function") {
-            enabled = enabled(value);
+function objHasFns(obj) {
+    for(const value of Object.values(obj)) {
+        if (typeof value === "function") {
+            return true;
         }
-        if (enabled) {
-            return (cn.length ? " " : "") + name;
-        } else {
-            return cn;
-        }
-    }, "");
+    }
+    return false;
 }
 /**
     Bindable template. Renders once, and allows bindings for given nodes. If you need
@@ -152,7 +148,11 @@ export default class Template {
             const isFn = typeof value === "function";
             // binding for className as object of className => enabled
             if (key === "className" && typeof value === "object" && value !== null) {
-                this._addClassNamesBinding(node, value);
+                if (objHasFns(value)) {
+                    this._addClassNamesBinding(node, value);
+                } else {
+                    setAttribute(node, key, classNames(value));
+                }
             } else if (key.startsWith("on") && key.length > 2 && isFn) {
                 const eventName = key.substr(2, 1).toLowerCase() + key.substr(3);
                 const handler = value;

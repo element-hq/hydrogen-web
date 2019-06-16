@@ -5,6 +5,19 @@ export function isChildren(children) {
     return typeof children !== "object" || !!children.nodeType || Array.isArray(children);
 }
 
+export function classNames(obj, value) {
+    return Object.entries(obj).reduce((cn, [name, enabled]) => {
+        if (typeof enabled === "function") {
+            enabled = enabled(value);
+        }
+        if (enabled) {
+            return cn + (cn.length ? " " : "") + name;
+        } else {
+            return cn;
+        }
+    }, "");
+}
+
 export function setAttribute(el, name, value) {
     if (name === "className") {
         name = "class";
@@ -29,6 +42,9 @@ export function el(elementName, attributes, children) {
 
     if (attributes) {
         for (let [name, value] of Object.entries(attributes)) {
+            if (name === "className" && typeof value === "object" && value !== null) {
+                value = classNames(value);
+            }
             setAttribute(e, name, value);
         }
     }
