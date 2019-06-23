@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "node_modules/.bin/impunity --entryPoint src/main.js --force-esm",
-    "start": "node scripts/serve-local.js"
+    "start": "node scripts/serve-local.js",
+    "build": "node_modules/rollup/bin/rollup -c"
   },
   "repository": {
     "type": "git",
@@ -23,6 +24,7 @@
   "devDependencies": {
     "finalhandler": "^1.1.1",
     "impunity": "^0.0.7",
+    "rollup": "^1.15.6",
     "serve-static": "^1.13.2"
   }
 }
