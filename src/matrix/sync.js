@@ -1,8 +1,4 @@
-import {
-    RequestAbortError,
-    HomeServerError,
-    StorageError
-} from "./error.js";
+import {RequestAbortError} from "./error.js";
 import EventEmitter from "../EventEmitter.js";
 
 const INCREMENTAL_TIMEOUT = 30000;
@@ -111,7 +107,8 @@ export default class Sync extends EventEmitter {
             await syncTxn.complete();
             console.info("syncTxn committed!!");
         } catch (err) {
-            throw new StorageError("unable to commit sync tranaction", err);
+            console.error("unable to commit sync tranaction", err.message);
+            throw err;
         }
         // emit room related events after txn has been closed
         for(let {room, changes} of roomChanges) {

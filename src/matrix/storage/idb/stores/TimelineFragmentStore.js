@@ -1,3 +1,4 @@
+import { StorageError } from "../../common.js";
 import Platform from "../../../../Platform.js";
 
 function encodeKey(roomId, fragmentId) {
@@ -12,10 +13,14 @@ export default class RoomFragmentStore {
     }
 
     _allRange(roomId) {
-        return IDBKeyRange.bound(
-            encodeKey(roomId, Platform.minStorageKey),
-            encodeKey(roomId, Platform.maxStorageKey)
-        );
+        try {
+            return IDBKeyRange.bound(
+                encodeKey(roomId, Platform.minStorageKey),
+                encodeKey(roomId, Platform.maxStorageKey)
+            );
+        } catch (err) {
+            throw new StorageError(`error from IDBKeyRange with roomId ${roomId}`, err);
+        }
     }
 
     all(roomId) {

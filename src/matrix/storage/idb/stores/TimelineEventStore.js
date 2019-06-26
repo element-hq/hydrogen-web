@@ -1,4 +1,5 @@
 import EventKey from "../../../room/timeline/EventKey.js";
+import { StorageError } from "../../common.js";
 import Platform from "../../../../Platform.js";
 
 // storage keys are defined to be unsigned 32bit numbers in WebPlatform.js, which is assumed by idb
@@ -30,38 +31,42 @@ class Range {
     }
 
     asIDBKeyRange(roomId) {
-        // only
-        if (this._only) {
-            return IDBKeyRange.only(encodeKey(roomId, this._only.fragmentId, this._only.eventIndex));
-        }
-        // lowerBound
-        // also bound as we don't want to move into another roomId
-        if (this._lower && !this._upper) {
-            return IDBKeyRange.bound(
-                encodeKey(roomId, this._lower.fragmentId, this._lower.eventIndex),
-                encodeKey(roomId, this._lower.fragmentId, Platform.maxStorageKey),
-                this._lowerOpen,
-                false
-            );
-        }
-        // upperBound
-        // also bound as we don't want to move into another roomId
-        if (!this._lower && this._upper) {
-            return IDBKeyRange.bound(
-                encodeKey(roomId, this._upper.fragmentId, Platform.minStorageKey),
-                encodeKey(roomId, this._upper.fragmentId, this._upper.eventIndex),
-                false,
-                this._upperOpen
-            );
-        }
-        // bound
-        if (this._lower && this._upper) {
-            return IDBKeyRange.bound(
-                encodeKey(roomId, this._lower.fragmentId, this._lower.eventIndex),
-                encodeKey(roomId, this._upper.fragmentId, this._upper.eventIndex),
-                this._lowerOpen,
-                this._upperOpen
-            );
+        try {
+            // only
+            if (this._only) {
+                return IDBKeyRange.only(encodeKey(roomId, this._only.fragmentId, this._only.eventIndex));
+            }
+            // lowerBound
+            // also bound as we don't want to move into another roomId
+            if (this._lower && !this._upper) {
+                return IDBKeyRange.bound(
+                    encodeKey(roomId, this._lower.fragmentId, this._lower.eventIndex),
+                    encodeKey(roomId, this._lower.fragmentId, Platform.maxStorageKey),
+                    this._lowerOpen,
+                    false
+                );
+            }
+            // upperBound
+            // also bound as we don't want to move into another roomId
+            if (!this._lower && this._upper) {
+                return IDBKeyRange.bound(
+                    encodeKey(roomId, this._upper.fragmentId, Platform.minStorageKey),
+                    encodeKey(roomId, this._upper.fragmentId, this._upper.eventIndex),
+                    false,
+                    this._upperOpen
+                );
+            }
+            // bound
+            if (this._lower && this._upper) {
+                return IDBKeyRange.bound(
+                    encodeKey(roomId, this._lower.fragmentId, this._lower.eventIndex),
+                    encodeKey(roomId, this._upper.fragmentId, this._upper.eventIndex),
+                    this._lowerOpen,
+                    this._upperOpen
+                );
+            }
+        } catch(err) {
+            throw new StorageError(`IDBKeyRange failed with data: ` + JSON.stringify(this), err);
         }
     }
 }

@@ -5,9 +5,6 @@ export class HomeServerError extends Error {
 	}
 }
 
-export class StorageError extends Error {
-}
-
 export class RequestAbortError extends Error {
 }
 
