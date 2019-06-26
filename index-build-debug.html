@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, user-scalable=no">
+        <meta name="application-name" content="Brawl Chat"/>
+        <link rel="stylesheet" type="text/css" href="src/ui/web/css/main.css">
+	</head>
+	<body>
+        <script type="text/javascript" src="bundle.js"></script>
+		<script type="text/javascript">
+            window.DEBUG = true;
+            let buf = "";
+            console.error = (...params) => {
+                const lastLines = "...\n" + buf.split("\n").slice(-10).join("\n");
+                // buf = buf + "ERR " + params.join(" ") + "\n";
+                // const location = new Error().stack.split("\n")[2];
+                alert(params.join(" ") +"\n...\n" + lastLines);
+            };
+            console.log = console.info = console.warn = (...params) => {
+                buf = buf + params.join(" ") + "\n";
+            };
+            main(document.body);
+            setTimeout(() => {
+                const showlogs = document.getElementById("showlogs");
+                showlogs.addEventListener("click", () => {
+                    const lastLines = "...\n" + buf.split("\n").slice(-20).join("\n");
+                    alert(lastLines);
+                }, true);
+                showlogs.innerText = "Show last 20 log lines";
+            }, 1000);
+            // (async () => {
+            //     try {
+            //         const js = await (await fetch("bundle.js")).text();
+            //         eval(js+";main(document.body);");
+            //     } catch(err) {
+            //         alert(err.message);
+            //     }
+            // })();
+		</script>
+	</body>
+</html>

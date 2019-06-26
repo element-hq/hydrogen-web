@@ -11,7 +11,8 @@ export default class SyncStatusBar extends TemplateView {
             "SyncStatusBar_shown": true,
         }}, [
             vm => vm.status,
-            t.if(vm => !vm.isSyncing, t => t.button({onClick: () => vm.trySync()}, "Try syncing"))
+            t.if(vm => !vm.isSyncing, t => t.button({onClick: () => vm.trySync()}, "Try syncing")),
+            window.DEBUG ? t.button({id: "showlogs"}, "Show logs") : ""
         ]);
     }
 }
