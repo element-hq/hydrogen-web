@@ -12,6 +12,8 @@ export default class RoomStateStore {
 	}
 
 	async setStateEvent(roomId, event) {
-		return this._roomStateStore.put({roomId, event});
+        const key = `${roomId}|${event.type}|${event.state_key}`;
+        const entry = {roomId, event, key};
+		return this._roomStateStore.put(entry);
 	}
 }

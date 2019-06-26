@@ -12,18 +12,14 @@ function createStores(db) {
     db.createObjectStore("roomSummary", {keyPath: "roomId"});
 
     // need index to find live fragment? prooobably ok without for now
-    db.createObjectStore("timelineFragments", {keyPath: ["roomId", "id"]});
-    const timelineEvents = db.createObjectStore("timelineEvents", {keyPath: ["roomId", "fragmentId", "eventIndex"]});
-    timelineEvents.createIndex("byEventId", [
-        "roomId",
-        "event.event_id"
-    ], {unique: true});
-
-    db.createObjectStore("roomState", {keyPath: [
-        "roomId",
-        "event.type",
-        "event.state_key"
-    ]});
+    //key = room_id | fragment_id
+    db.createObjectStore("timelineFragments", {keyPath: "key"});
+    //key = room_id | fragment_id | event_index
+    const timelineEvents = db.createObjectStore("timelineEvents", {keyPath: "key"});
+    //eventIdKey = room_id | event_id
+    timelineEvents.createIndex("byEventId", "eventIdKey", {unique: true});
+    //key = room_id | event.type | event.state_key,
+    db.createObjectStore("roomState", {keyPath: "key"});
     
     // const roomMembers = db.createObjectStore("roomMembers", {keyPath: [
     //  "event.room_id",
