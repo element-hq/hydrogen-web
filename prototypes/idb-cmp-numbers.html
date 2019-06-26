@@ -1,0 +1,110 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type="text/css">
+        pre {
+            font-family: monospace;
+            display: block;
+            white-space: pre;
+            font-size: 2em;
+        }
+    </style>
+</head>
+<body>
+    <script type="text/javascript">
+
+        const MIN = 0;
+        const MAX = 0xFFFFFFFF;
+
+        function zeropad(a, n) {
+            return "0".repeat(n - a.length) + a;
+        }
+
+        // const encodeNumber = n => zeropad((n >>> 0).toString(16), 8);
+
+        function encodeNumber(n) {
+            const a = (n & 0xFFFF0000) >>> 16;
+            const b = (n & 0xFFFF) >>> 0;
+            //return zeropad(a.toString(16), 4) + zeropad(b.toString(16), 4);
+            return String.fromCharCode(a, b);
+        }
+
+        function decodeNumber(s) {
+            const a = s.charCodeAt(0);
+            const b = s.charCodeAt(1);
+            //return `${a.toString(16)} ${b}`;
+            return ((a << 16) | b) >>> 0;
+        }
+
+        function formatArg(a) {
+            if (typeof a === "string") {
+                return `"${a}"`;
+            }
+            if (Array.isArray(a)) {
+                return `[${a.map(formatArg)}]`;
+            }
+            return a+"";
+        }
+        function cmp(a, b) {
+            let value;
+            try {
+                const result = indexedDB.cmp(encodeNumber(a), encodeNumber(b));
+                if (result < 0) {
+                    value = "a < b";
+                } else if (result === 0) {
+                    value = "a = b";
+                } else if (result > 0) {
+                    value = "a > b";
+                }
+            } catch(err) {
+                value = err.message;
+            }
+            return `cmp(${formatArg(a)} as ${formatArg(encodeNumber(a))},\n    ${formatArg(b)} as ${formatArg(encodeNumber(b))}): ${value}`;
+        }
+
+        try {
+            const tests = [
+                // see https://stackoverflow.com/questions/28413947/space-efficient-way-to-encode-numbers-as-sortable-strings
+                // need to encode numbers with base 256 and zero padded at start
+                // should still fit in 8 bytes then?
+                (cmp) => cmp(9, 100000),
+                (cmp) => cmp(1, 2),
+                (cmp) => cmp(MIN, 1),
+                (cmp) => cmp(MIN, MIN),
+                (cmp) => cmp(MIN, MAX),
+                (cmp) => cmp(MAX >>> 1, MAX),
+                (cmp) => cmp(0x7fffffff, 0xffff7fff),
+                (cmp) => cmp(MAX, MAX),
+                (cmp) => cmp(MAX - 1, MAX),
+            ];
+
+            for (const fn of tests) {
+                const txt = document.createTextNode(fn(cmp));
+                const p = document.createElement("pre");
+                p.appendChild(txt);
+                document.body.appendChild(p);
+            }
+        } catch(err) {
+            alert(err.message);
+        }
+
+        let prev;
+        for (let i = MIN; i <= MAX; i += 100) {
+            if (decodeNumber(encodeNumber(i)) !== i) {
+                document.write(`<p>${i} decodes back to ${decodeNumber(encodeNumber(i))}</p>`);
+                break;
+            }
+            if (typeof prev === "number") {
+                if (indexedDB.cmp(encodeNumber(prev), encodeNumber(i)) >= 0) {
+                    document.write(`<p>${i} <= ${prev}</p>`);
+                    break;
+                }
+            }
+            prev = i;
+        }
+        document.write(`<p>check from ${MIN} to ${prev}</p>`);
+    </script>
+</body>
+</html>
+ 

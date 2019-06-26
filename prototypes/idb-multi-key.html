@@ -1,0 +1,75 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <script type="text/javascript">
+        function reqAsPromise(req) {
+            return new Promise((resolve, reject) => {
+                req.onsuccess = () => resolve(req);
+                req.onerror = (err) => reject(err);
+            });
+        }
+
+        class Storage {
+            constructor(databaseName) {
+                this._databaseName = databaseName;
+                this._database = null;
+            }
+
+            async open() {
+                const req = window.indexedDB.open(this._databaseName);
+                req.onupgradeneeded = (ev) => {
+                    const db = ev.target.result;
+                    const oldVersion = ev.oldVersion;
+                    this._createStores(db, oldVersion);
+                }; 
+                await reqAsPromise(req);
+                this._database = req.result;
+            }
+
+            _createStores(db) {
+                db.createObjectStore("files", {keyPath: ["idName"]});
+            }
+
+            async storeFoo(id, name) {
+                const tx = this._database.transaction(["files"], "readwrite");
+                const store = tx.objectStore("files");
+                await reqAsPromise(store.add(value(id, name)));
+            }
+        }
+
+        function value(id, name) {
+            return {idName: key(id, name)};
+        }
+
+        function key(id, name) {
+            return id+","+name;
+        }
+
+        async function main() {
+            let storage = new Storage("idb-multi-key2");
+            try {
+                await storage.open();
+                await storage.storeFoo(5, "foo");
+                await storage.storeFoo(6, "bar");
+                alert("all good");
+            } catch(err) {
+                alert(err.message);
+            }
+            try {
+                const result = indexedDB.cmp(key(5, "foo"), key(6, "bar"));
+                //IDBKeyRange.bound(["aaa", "111"],["zzz", "999"], false, false);
+                alert("all good: " + result);
+            } catch (err) {
+                alert(`IDBKeyRange.bound: ${err.message}`);
+            }
+        }
+
+        main();
+
+    </script>
+</body>
+</html>
+ 
