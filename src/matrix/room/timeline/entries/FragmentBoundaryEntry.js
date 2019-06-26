@@ -1,6 +1,7 @@
 import BaseEntry from "./BaseEntry.js";
 import Direction from "../Direction.js";
 import {isValidFragmentId} from "../common.js";
+import Platform from "../../../../Platform.js";
 
 export default class FragmentBoundaryEntry extends BaseEntry {
     constructor(fragment, isFragmentStart, fragmentIdComparer) {
@@ -36,9 +37,9 @@ export default class FragmentBoundaryEntry extends BaseEntry {
 
     get entryIndex() {
         if (this.started) {
-            return Number.MIN_SAFE_INTEGER;
+            return Platform.minStorageKey;
         } else {
-            return Number.MAX_SAFE_INTEGER;
+            return Platform.maxStorageKey;
         }
     }
 

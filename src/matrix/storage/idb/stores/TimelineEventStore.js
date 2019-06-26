@@ -1,4 +1,5 @@
 import EventKey from "../../../room/timeline/EventKey.js";
+import Platform from "../../../../Platform.js";
 
 class Range {
     constructor(only, lower, upper, lowerOpen, upperOpen) {
@@ -19,7 +20,7 @@ class Range {
         if (this._lower && !this._upper) {
             return IDBKeyRange.bound(
                 [roomId, this._lower.fragmentId, this._lower.eventIndex],
-                [roomId, this._lower.fragmentId, EventKey.maxKey.eventIndex],
+                [roomId, this._lower.fragmentId, Platform.maxStorageKey],
                 this._lowerOpen,
                 false
             );
@@ -28,7 +29,7 @@ class Range {
         // also bound as we don't want to move into another roomId
         if (!this._lower && this._upper) {
             return IDBKeyRange.bound(
-                [roomId, this._upper.fragmentId, EventKey.minKey.eventIndex],
+                [roomId, this._upper.fragmentId, Platform.minStorageKey],
                 [roomId, this._upper.fragmentId, this._upper.eventIndex],
                 false,
                 this._upperOpen

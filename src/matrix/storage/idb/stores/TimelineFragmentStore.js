@@ -1,3 +1,5 @@
+import Platform from "../../../../Platform.js";
+
 export default class RoomFragmentStore {
     constructor(store) {
         this._store = store;
@@ -5,8 +7,8 @@ export default class RoomFragmentStore {
 
     _allRange(roomId) {
         return IDBKeyRange.bound(
-            [roomId, Number.MIN_SAFE_INTEGER],
-            [roomId, Number.MAX_SAFE_INTEGER]
+            [roomId, Platform.minStorageKey],
+            [roomId, Platform.maxStorageKey]
         );
     }
 
