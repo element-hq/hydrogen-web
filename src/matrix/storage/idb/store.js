@@ -57,23 +57,23 @@ class QueryTargetWrapper {
 }
 
 export default class Store extends QueryTarget {
-	constructor(idbStore) {
-		super(new QueryTargetWrapper(idbStore));
-	}
+    constructor(idbStore) {
+        super(new QueryTargetWrapper(idbStore));
+    }
 
-	get _idbStore() {
-		return this._target;
-	}
+    get _idbStore() {
+        return this._target;
+    }
 
-	index(indexName) {
-		return new QueryTarget(new QueryTargetWrapper(this._idbStore.index(indexName)));
-	}
+    index(indexName) {
+        return new QueryTarget(new QueryTargetWrapper(this._idbStore.index(indexName)));
+    }
 
-	put(value) {
-		return reqAsPromise(this._idbStore.put(value));
-	}
+    put(value) {
+        return reqAsPromise(this._idbStore.put(value));
+    }
 
-	add(value) {
-		return reqAsPromise(this._idbStore.add(value));
-	}
+    add(value) {
+        return reqAsPromise(this._idbStore.add(value));
+    }
 }

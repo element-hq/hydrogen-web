@@ -87,9 +87,9 @@ class Range {
  * @property  {?Gap} gap if a gap entry, the gap
 */
 export default class TimelineEventStore {
-	constructor(timelineStore) {
-		this._timelineStore = timelineStore;
-	}
+    constructor(timelineStore) {
+        this._timelineStore = timelineStore;
+    }
 
     /** Creates a range that only includes the given key
      *  @param {EventKey} eventKey the key
@@ -134,11 +134,11 @@ export default class TimelineEventStore {
      *  @param  {number} amount
      *  @return {Promise<Entry[]>} a promise resolving to an array with 0 or more entries, in ascending order.
      */
-	async lastEvents(roomId, fragmentId, amount) {
+    async lastEvents(roomId, fragmentId, amount) {
         const eventKey = EventKey.maxKey;
         eventKey.fragmentId = fragmentId;
-		return this.eventsBefore(roomId, eventKey, amount);
-	}
+        return this.eventsBefore(roomId, eventKey, amount);
+    }
 
     /** Looks up the first `amount` entries in the timeline for `roomId`.
      *  @param  {string} roomId
@@ -146,11 +146,11 @@ export default class TimelineEventStore {
      *  @param  {number} amount
      *  @return {Promise<Entry[]>} a promise resolving to an array with 0 or more entries, in ascending order.
      */
-	async firstEvents(roomId, fragmentId, amount) {
+    async firstEvents(roomId, fragmentId, amount) {
         const eventKey = EventKey.minKey;
         eventKey.fragmentId = fragmentId;
-		return this.eventsAfter(roomId, eventKey, amount);
-	}
+        return this.eventsAfter(roomId, eventKey, amount);
+    }
 
     /** Looks up `amount` entries after `eventKey` in the timeline for `roomId` within the same fragment.
      *  The entry for `eventKey` is not included.
@@ -159,10 +159,10 @@ export default class TimelineEventStore {
      *  @param  {number} amount
      *  @return {Promise<Entry[]>} a promise resolving to an array with 0 or more entries, in ascending order.
      */
-	eventsAfter(roomId, eventKey, amount) {
+    eventsAfter(roomId, eventKey, amount) {
         const idbRange = this.lowerBoundRange(eventKey, true).asIDBKeyRange(roomId);
-		return this._timelineStore.selectLimit(idbRange, amount);
-	}
+        return this._timelineStore.selectLimit(idbRange, amount);
+    }
 
     /** Looks up `amount` entries before `eventKey` in the timeline for `roomId` within the same fragment.
      *  The entry for `eventKey` is not included.

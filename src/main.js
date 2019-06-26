@@ -12,14 +12,14 @@ const USER_ID = `@${USERNAME}:localhost`;
 const PASSWORD = "testtest";
 
 function getSessionInfo(userId) {
-	const sessionsJson = localStorage.getItem("brawl_sessions_v1");
-	if (sessionsJson) {
-		const sessions = JSON.parse(sessionsJson);
-		const session = sessions.find(session => session.userId === userId);
-		if (session) {
-			return session;
-		}
-	}
+    const sessionsJson = localStorage.getItem("brawl_sessions_v1");
+    if (sessionsJson) {
+        const sessions = JSON.parse(sessionsJson);
+        const session = sessions.find(session => session.userId === userId);
+        if (session) {
+            return session;
+        }
+    }
 }
 
 function storeSessionInfo(loginData) {
@@ -39,9 +39,9 @@ function storeSessionInfo(loginData) {
 }
 
 async function login(username, password, homeserver) {
-	const hsApi = new HomeServerApi(homeserver);
-	const loginData = await hsApi.passwordLogin(username, password).response();
-	return storeSessionInfo(loginData);
+    const hsApi = new HomeServerApi(homeserver);
+    const loginData = await hsApi.passwordLogin(username, password).response();
+    return storeSessionInfo(loginData);
 }
 
 function showSession(container, session, sync) {
@@ -51,11 +51,11 @@ function showSession(container, session, sync) {
 }
 
 export default async function main(container) {
-	try {
-		let sessionInfo = getSessionInfo(USER_ID);
-		if (!sessionInfo) {
-			sessionInfo = await login(USERNAME, PASSWORD, HOMESERVER);
-		}
+    try {
+        let sessionInfo = getSessionInfo(USER_ID);
+        if (!sessionInfo) {
+            sessionInfo = await login(USERNAME, PASSWORD, HOMESERVER);
+        }
         const storage = await createIdbStorage(`brawl_session_${sessionInfo.id}`);
         const hsApi = new HomeServerApi(HOMESERVER, sessionInfo.accessToken);
         const session = new Session({storage, hsApi, sessionInfo: {
@@ -65,18 +65,18 @@ export default async function main(container) {
         }});
         await session.load();
         console.log("session loaded");
-		const sync = new Sync(hsApi, session, storage);
+        const sync = new Sync(hsApi, session, storage);
         const needsInitialSync = !session.syncToken;
         if (needsInitialSync) {
             console.log("session needs initial sync");
         } else {
             showSession(container, session, sync);
         }
-		await sync.start();
+        await sync.start();
         if (needsInitialSync) {
             showSession(container, session, sync);
         }
-	} catch(err) {
+    } catch(err) {
         console.error(`${err.message}:\n${err.stack}`);
-	}
+    }
 }
