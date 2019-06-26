@@ -10,12 +10,12 @@ export default class SessionViewModel extends EventEmitter {
         this._syncStatusViewModel = new SyncStatusViewModel(sync);
         this._currentRoomViewModel = null;
         const roomTileVMs = this._session.rooms.mapValues((room, emitUpdate) => {
-                return new RoomTileViewModel({
-                    room,
-                    emitUpdate,
-                    emitOpen: room => this._openRoom(room)
-                });
+            return new RoomTileViewModel({
+                room,
+                emitUpdate,
+                emitOpen: room => this._openRoom(room)
             });
+        });
         this._roomList = roomTileVMs.sortValues((a, b) => a.compare(b));
     }
 
@@ -31,12 +31,24 @@ export default class SessionViewModel extends EventEmitter {
         return this._currentRoomViewModel;
     }
 
+    _closeCurrentRoom() {
+        if (this._currentRoomViewModel) {
+            this._currentRoomViewModel.dispose();
+            this._currentRoomViewModel = null;
+            this.emit("change", "currentRoom");
+        }
+    }
+
     _openRoom(room) {
         if (this._currentRoomViewModel) {
-            this._currentRoomViewModel.disable();
+            this._currentRoomViewModel.dispose();
         }
-        this._currentRoomViewModel = new RoomViewModel(room, this._session.userId);
-        this._currentRoomViewModel.enable();
+        this._currentRoomViewModel = new RoomViewModel({
+            room,
+            ownUserId: this._session.userId,
+            closeCallback: () => this._closeCurrentRoom(),
+        });
+        this._currentRoomViewModel.load();
         this.emit("change", "currentRoom");
     }
 }

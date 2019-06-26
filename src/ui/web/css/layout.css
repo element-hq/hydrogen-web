@@ -21,7 +21,7 @@ body {
 
 /* mobile layout */
 @media screen and (max-width: 800px) {
-    div.back { display: block !important; }
+    .RoomHeader button.back { display: block; }
     div.RoomView, div.RoomPlaceholderView { display: none; }
     div.LeftPanel {flex-grow: 1;}
     div.room-shown div.RoomView { display: unset; }

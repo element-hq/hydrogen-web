@@ -7,11 +7,11 @@ export default class RoomView extends TemplateView {
         this._timelineList = null;
     }
 
-    render(t) {
+    render(t, vm) {
         return t.div({className: "RoomView"}, [
             t.div({className: "TimelinePanel"}, [
                 t.div({className: "RoomHeader"}, [
-                    t.button({className: "back"}),
+                    t.button({className: "back", onClick: () => vm.close()}),
                     t.div({className: "avatar large"}, vm => vm.avatarInitials),
                     t.div({className: "room-description"}, [
                         t.h2(vm => vm.name),

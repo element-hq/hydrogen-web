@@ -52,8 +52,13 @@ export default class SessionView {
 
     _onViewModelChange(prop) {
         if (prop === "currentRoom") {
-            this._root.classList.add("room-shown");
-            this._middleSwitcher.switch(new RoomView(this._viewModel.currentRoom));
+            if (this._viewModel.currentRoom) {
+                this._root.classList.add("room-shown");
+                this._middleSwitcher.switch(new RoomView(this._viewModel.currentRoom));
+            } else {
+                this._root.classList.remove("room-shown");
+                this._middleSwitcher.switch(new RoomPlaceholderView());
+            }
         }
     }
 

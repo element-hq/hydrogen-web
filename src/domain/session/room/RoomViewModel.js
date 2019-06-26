@@ -3,7 +3,7 @@ import TimelineViewModel from "./timeline/TimelineViewModel.js";
 import {avatarInitials} from "../avatar.js";
 
 export default class RoomViewModel extends EventEmitter {
-    constructor(room, ownUserId) {
+    constructor({room, ownUserId, closeCallback}) {
         super();
         this._room = room;
         this._ownUserId = ownUserId;
@@ -11,9 +11,10 @@ export default class RoomViewModel extends EventEmitter {
         this._timelineVM = null;
         this._onRoomChange = this._onRoomChange.bind(this);
         this._timelineError = null;
+        this._closeCallback = closeCallback;
     }
 
-    async enable() {
+    async load() {
         this._room.on("change", this._onRoomChange);
         try {
             this._timeline = await this._room.openTimeline();
@@ -26,11 +27,16 @@ export default class RoomViewModel extends EventEmitter {
         }
     }
 
-    disable() {
+    dispose() {
+        // this races with enable, on the await openTimeline()
         if (this._timeline) {
             // will stop the timeline from delivering updates on entries
             this._timeline.close();
         }
+    }
+
+    close() {
+        this._closeCallback();
     }
 
     // room doesn't tell us yet which fields changed,

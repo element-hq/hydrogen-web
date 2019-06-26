@@ -4,12 +4,13 @@
     background-color: #333;
 }
 
-.RoomHeader *:last-child {
-    margin-right: 0 !important;
+.RoomHeader > *:last-child {
+    margin-right: 0;
 }
 
 .RoomHeader > * {
-    margin-right: 10px !important;
+    margin-right: 10px;
+    flex: 0 0 auto;
 }
 
 .RoomHeader button {
@@ -25,8 +26,13 @@
     line-height: 40px;
 }
 
-.RoomHeader button.back {
+.RoomHeader .back {
     display: none;
+}
+
+.RoomHeader .room-description {
+    flex: 1 1 0;
+    min-width: 0;
 }
 
 .RoomHeader .topic {
