@@ -44,8 +44,10 @@ export function iterateCursor(cursor, processValue) {
             const {done, jumpTo} = processValue(cursor.value, cursor.key);
             if (done) {
                 resolve(true);
-            } else {
+            } else if(jumpTo) {
                 cursor.continue(jumpTo);
+            } else {
+                cursor.continue();
             }
         };
     }).catch(err => {
