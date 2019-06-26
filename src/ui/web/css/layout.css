@@ -21,11 +21,12 @@ body {
 
 /* mobile layout */
 @media screen and (max-width: 800px) {
-    .back { display: block !important; }
-    .RoomView, .RoomPlaceholderView { display: none; }
-    .room-shown .RoomView { display: unset; }
-    .room-shown .LeftPanel { display: none; }
-    .right-shown .TimelinePanel { display: none; }
+    div.back { display: block !important; }
+    div.RoomView, div.RoomPlaceholderView { display: none; }
+    div.LeftPanel {flex-grow: 1;}
+    div.room-shown div.RoomView { display: unset; }
+    div.room-shown div.LeftPanel { display: none; }
+    div.right-shown div.TimelinePanel { display: none; }
 }
 
 .LeftPanel {
