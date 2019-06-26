@@ -1,5 +1,5 @@
 import Transaction from "./transaction.js";
-import { STORE_NAMES } from "../common.js";
+import { STORE_NAMES, StorageError } from "../common.js";
 
 export default class Storage {
 	constructor(idbDatabase) {
@@ -14,19 +14,27 @@ export default class Storage {
 	_validateStoreNames(storeNames) {
 		const idx = storeNames.findIndex(name => !STORE_NAMES.includes(name));
 		if (idx !== -1) {
-			throw new Error(`Tried to open a transaction for unknown store ${storeNames[idx]}`);
+			throw new StorageError(`Tried top, a transaction unknown store ${storeNames[idx]}`);
 		}
 	}
 
 	async readTxn(storeNames) {
 		this._validateStoreNames(storeNames);
-		const txn = this._db.transaction(storeNames, "readonly");
-		return new Transaction(txn, storeNames);
+		try {
+			const txn = this._db.transaction(storeNames, "readonly");
+			return new Transaction(txn, storeNames);
+		} catch(err) {
+			throw new StorageError("readTxn failed", err);
+		}
 	}
 
 	async readWriteTxn(storeNames) {
 		this._validateStoreNames(storeNames);
-		const txn = this._db.transaction(storeNames, "readwrite");
-		return new Transaction(txn, storeNames);
+		try {
+			const txn = this._db.transaction(storeNames, "readwrite");
+			return new Transaction(txn, storeNames);
+		} catch(err) {
+			throw new StorageError("readWriteTxn failed", err);
+		}
 	}
 }

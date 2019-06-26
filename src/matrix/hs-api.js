@@ -6,8 +6,21 @@ import {
 
 class RequestWrapper {
 	constructor(promise, controller) {
-		this._promise = promise;
-		this._controller = controller;
+        if (!controller) {
+            const abortPromise = new Promise((_, reject) => {
+                this._controller = {
+                    abort() {
+                        const err = new Error("fetch request aborted");
+                        err.name = "AbortError";
+                        reject(err);
+                    }
+                };
+            });
+            this._promise = Promise.race([promise, abortPromise]);
+        } else {
+            this._promise = promise;
+            this._controller = controller;
+        }
 	}
 
 	abort() {
@@ -47,13 +60,13 @@ export default class HomeServerApi {
 			headers.append("Content-Type", "application/json");
 			bodyString = JSON.stringify(body);
 		}
-		const controller = new AbortController();
+		const controller = typeof AbortController === "function" ? new AbortController() : null;
 		// TODO: set authenticated headers with second arguments, cache them
 		let promise = fetch(url, {
 			method,
 			headers,
 			body: bodyString,
-			signal: controller.signal
+			signal: controller && controller.signal
 		});
 		promise = promise.then(async (response) => {
 			if (response.ok) {

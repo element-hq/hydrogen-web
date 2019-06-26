@@ -5,6 +5,18 @@ export default class QueryTarget {
 		this._target = target;
 	}
 
+    _openCursor(range, direction) {
+        if (range && direction) {
+            return this._target.openCursor(range, direction);
+        } else if (range) {
+            return this._target.openCursor(range);
+        } else if (direction) {
+            return this._target.openCursor(null, direction);
+        } else {
+            return this._target.openCursor();
+        }
+    }
+
     get(key) {
         return reqAsPromise(this._target.get(key));
     }
@@ -34,7 +46,7 @@ export default class QueryTarget {
 	}
 
 	async selectAll(range, direction) {
-		const cursor = this._target.openCursor(range, direction);
+		const cursor = this._openCursor(range, direction);
 		const results = [];
 		await iterateCursor(cursor, (value) => {
 			results.push(value);
@@ -97,7 +109,7 @@ export default class QueryTarget {
 
 	_reduce(range, reducer, initialValue, direction) {
 		let reducedValue = initialValue;
-		const cursor = this._target.openCursor(range, direction);
+		const cursor = this._openCursor(range, direction);
 		return iterateCursor(cursor, (value) => {
 			reducedValue = reducer(reducedValue, value);
 			return {done: false};
@@ -111,7 +123,7 @@ export default class QueryTarget {
 	}
 
 	async _selectWhile(range, predicate, direction) {
-		const cursor = this._target.openCursor(range, direction);
+		const cursor = this._openCursor(range, direction);
 		const results = [];
 		await iterateCursor(cursor, (value) => {
 			results.push(value);
@@ -121,7 +133,7 @@ export default class QueryTarget {
 	}
 
 	async _find(range, predicate, direction) {
-		const cursor = this._target.openCursor(range, direction);
+		const cursor = this._openCursor(range, direction);
 		let result;
 		const found = await iterateCursor(cursor, (value) => {
 			const found = predicate(value);

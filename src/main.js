@@ -5,10 +5,10 @@ import Sync from "./matrix/sync.js";
 import SessionView from "./ui/web/session/SessionView.js";
 import SessionViewModel from "./domain/session/SessionViewModel.js";
 
-const HOST = "localhost";
+const HOST = "192.168.2.108";
 const HOMESERVER = `http://${HOST}:8008`;
 const USERNAME = "bruno1";
-const USER_ID = `@${USERNAME}:${HOST}`;
+const USER_ID = `@${USERNAME}:localhost`;
 const PASSWORD = "testtest";
 
 function getSessionInfo(userId) {
@@ -50,7 +50,6 @@ function showSession(container, session, sync) {
     container.appendChild(view.mount());
 }
 
-// eslint-disable-next-line no-unused-vars
 export default async function main(container) {
 	try {
 		let sessionInfo = getSessionInfo(USER_ID);

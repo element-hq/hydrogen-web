@@ -1,4 +1,5 @@
 import {txnAsPromise} from "./utils.js";
+import {StorageError} from "../common.js";
 import Store from "./store.js";
 import SessionStore from "./stores/SessionStore.js";
 import RoomSummaryStore from "./stores/RoomSummaryStore.js";
@@ -21,7 +22,7 @@ export default class Transaction {
 	_idbStore(name) {
 		if (!this._allowedStoreNames.includes(name)) {
 			// more specific error? this is a bug, so maybe not ...
-			throw new Error(`Invalid store for transaction: ${name}, only ${this._allowedStoreNames.join(", ")} are allowed.`);
+			throw new StorageError(`Invalid store for transaction: ${name}, only ${this._allowedStoreNames.join(", ")} are allowed.`);
 		}
 		return new Store(this._txn.objectStore(name));
 	}

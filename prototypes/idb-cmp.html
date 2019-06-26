@@ -1,0 +1,76 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type="text/css">
+        pre {
+            font-family: "courier";
+            display: block;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <script type="text/javascript">
+        function encodeNumber(n) {
+            const a = (n & 0xFFFF);
+            const b = (n & 0xFFFF0000) >> 16;
+            const c = (n & 0xFFFF00000000) >> 32;
+            const d = (n & 0xFFFF000000000000) >> 48;
+            return String.fromCharCode(a, b, c, d);
+        }
+        function formatArg(a) {
+            if (typeof a === "string") {
+                return `"${a}"`;
+            }
+            if (Array.isArray(a)) {
+                return `[${a.map(formatArg)}]`;
+            }
+            return a+"";
+        }
+        function cmp(a, b) {
+            let value;
+            try {
+                const result = indexedDB.cmp(encodeNumber(a), encodeNumber(b));
+                if (result < 0) {
+                    value = "a < b";
+                } else if (result === 0) {
+                    value = "a = b";
+                } else if (result > 0) {
+                    value = "a > b";
+                }
+            } catch(err) {
+                value = err.message;
+            }
+            return `cmp(${formatArg(a)},\n    ${formatArg(b)}): ${value}`;
+        }
+
+        try {
+            const tests = [
+                (cmp) => cmp(Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER),
+                (cmp) => cmp([Number.MIN_SAFE_INTEGER], [Number.MAX_SAFE_INTEGER]),
+                // see https://stackoverflow.com/questions/28413947/space-efficient-way-to-encode-numbers-as-sortable-strings
+                // need to encode numbers with base 256 and zero padded at start
+                // should still fit in 8 bytes then?
+                (cmp) => cmp("foo-9", "foo-10000"),
+                (cmp) => cmp("foo-\u0000", "foo-\uFFFF"),
+                (cmp) => cmp("foo-\u0000", "foo-0"),
+                (cmp) => cmp("foo-" + Number.MAX_SAFE_INTEGER, "foo-\uFFFF"),
+                (cmp) => cmp("!abc:host.tld,"+Number.MIN_SAFE_INTEGER, "!abc:host.tld,"+(Number.MIN_SAFE_INTEGER + 1)),
+                (cmp) => cmp("!abc:host.tld,"+0, "!abc:host.tld,"+(Number.MAX_SAFE_INTEGER)),
+                (cmp) => cmp("!abc:host.tld,"+Math.floor(Number.MAX_SAFE_INTEGER / 2), "!abc:host.tld,"+(Number.MAX_SAFE_INTEGER)),
+            ];
+
+            for (const fn of tests) {
+                const txt = document.createTextNode(fn(cmp));
+                const p = document.createElement("pre");
+                p.appendChild(txt);
+                document.body.appendChild(p);
+            }
+        } catch(err) {
+            alert(err.message);
+        }
+    </script>
+</body>
+</html>
+ 

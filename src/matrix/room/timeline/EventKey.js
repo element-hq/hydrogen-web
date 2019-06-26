@@ -1,7 +1,4 @@
-const DEFAULT_LIVE_FRAGMENT_ID = 0;
-const MIN_EVENT_INDEX = Number.MIN_SAFE_INTEGER + 1;
-const MAX_EVENT_INDEX = Number.MAX_SAFE_INTEGER - 1;
-const MID_EVENT_INDEX = 0;
+import Platform from "../../../Platform.js";
 
 // key for events in the timelineEvents store
 export default class EventKey {
@@ -12,7 +9,7 @@ export default class EventKey {
 
     nextFragmentKey() {
         // could take MIN_EVENT_INDEX here if it can't be paged back
-        return new EventKey(this.fragmentId + 1, MID_EVENT_INDEX);
+        return new EventKey(this.fragmentId + 1, Platform.middleStorageKey);
     }
 
     nextKeyForDirection(direction) {
@@ -32,15 +29,15 @@ export default class EventKey {
     }
 
     static get maxKey() {
-        return new EventKey(Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
+        return new EventKey(Platform.maxStorageKey, Platform.maxStorageKey);
     }
 
     static get minKey() {
-        return new EventKey(Number.MIN_SAFE_INTEGER, Number.MIN_SAFE_INTEGER);
+        return new EventKey(Platform.minStorageKey, Platform.minStorageKey);
     }
 
     static get defaultLiveKey() {
-        return new EventKey(DEFAULT_LIVE_FRAGMENT_ID, MID_EVENT_INDEX);
+        return new EventKey(Platform.minStorageKey, Platform.middleStorageKey);
     }
 
     toString() {

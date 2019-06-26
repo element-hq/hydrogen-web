@@ -1,4 +1,25 @@
 import EventKey from "../../../room/timeline/EventKey.js";
+import { StorageError } from "../../common.js";
+import Platform from "../../../../Platform.js";
+
+// storage keys are defined to be unsigned 32bit numbers in WebPlatform.js, which is assumed by idb
+function encodeUint32(n) {
+    const hex = n.toString(16);
+    return "0".repeat(8 - hex.length) + hex;
+}
+
+function encodeKey(roomId, fragmentId, eventIndex) {
+    return `${roomId}|${encodeUint32(fragmentId)}|${encodeUint32(eventIndex)}`;
+}
+
+function encodeEventIdKey(roomId, eventId) {
+    return `${roomId}|${eventId}`;
+}
+
+function decodeEventIdKey(eventIdKey) {
+    const [roomId, eventId] = eventIdKey.split("|");
+    return {roomId, eventId};
+}
 
 class Range {
     constructor(only, lower, upper, lowerOpen, upperOpen) {
@@ -10,38 +31,42 @@ class Range {
     }
 
     asIDBKeyRange(roomId) {
-        // only
-        if (this._only) {
-            return IDBKeyRange.only([roomId, this._only.fragmentId, this._only.eventIndex]);
-        }
-        // lowerBound
-        // also bound as we don't want to move into another roomId
-        if (this._lower && !this._upper) {
-            return IDBKeyRange.bound(
-                [roomId, this._lower.fragmentId, this._lower.eventIndex],
-                [roomId, this._lower.fragmentId, EventKey.maxKey.eventIndex],
-                this._lowerOpen,
-                false
-            );
-        }
-        // upperBound
-        // also bound as we don't want to move into another roomId
-        if (!this._lower && this._upper) {
-            return IDBKeyRange.bound(
-                [roomId, this._upper.fragmentId, EventKey.minKey.eventIndex],
-                [roomId, this._upper.fragmentId, this._upper.eventIndex],
-                false,
-                this._upperOpen
-            );
-        }
-        // bound
-        if (this._lower && this._upper) {
-            return IDBKeyRange.bound(
-                [roomId, this._lower.fragmentId, this._lower.eventIndex],
-                [roomId, this._upper.fragmentId, this._upper.eventIndex],
-                this._lowerOpen,
-                this._upperOpen
-            );
+        try {
+            // only
+            if (this._only) {
+                return IDBKeyRange.only(encodeKey(roomId, this._only.fragmentId, this._only.eventIndex));
+            }
+            // lowerBound
+            // also bound as we don't want to move into another roomId
+            if (this._lower && !this._upper) {
+                return IDBKeyRange.bound(
+                    encodeKey(roomId, this._lower.fragmentId, this._lower.eventIndex),
+                    encodeKey(roomId, this._lower.fragmentId, Platform.maxStorageKey),
+                    this._lowerOpen,
+                    false
+                );
+            }
+            // upperBound
+            // also bound as we don't want to move into another roomId
+            if (!this._lower && this._upper) {
+                return IDBKeyRange.bound(
+                    encodeKey(roomId, this._upper.fragmentId, Platform.minStorageKey),
+                    encodeKey(roomId, this._upper.fragmentId, this._upper.eventIndex),
+                    false,
+                    this._upperOpen
+                );
+            }
+            // bound
+            if (this._lower && this._upper) {
+                return IDBKeyRange.bound(
+                    encodeKey(roomId, this._lower.fragmentId, this._lower.eventIndex),
+                    encodeKey(roomId, this._upper.fragmentId, this._upper.eventIndex),
+                    this._lowerOpen,
+                    this._upperOpen
+                );
+            }
+        } catch(err) {
+            throw new StorageError(`IDBKeyRange failed with data: ` + JSON.stringify(this), err);
         }
     }
 }
@@ -169,7 +194,7 @@ export default class TimelineEventStore {
     // also passing them in chronological order makes sense as that's how we'll receive them almost always.
     async findFirstOccurringEventId(roomId, eventIds) {
         const byEventId = this._timelineStore.index("byEventId");
-        const keys = eventIds.map(eventId => [roomId, eventId]);
+        const keys = eventIds.map(eventId => encodeEventIdKey(roomId, eventId));
         const results = new Array(keys.length);
         let firstFoundKey;
 
@@ -190,8 +215,7 @@ export default class TimelineEventStore {
             firstFoundKey = firstFoundAndPrecedingResolved();
             return !!firstFoundKey;
         });
-        // key of index is [roomId, eventId], so pick out eventId
-        return firstFoundKey && firstFoundKey[1];
+        return firstFoundKey && decodeEventIdKey(firstFoundKey).eventId;
     }
 
     /** Inserts a new entry into the store. The combination of roomId and eventKey should not exist yet, or an error is thrown.
@@ -200,6 +224,8 @@ export default class TimelineEventStore {
      *  @throws {StorageError} ...
      */
     insert(entry) {
+        entry.key = encodeKey(entry.roomId, entry.fragmentId, entry.eventIndex);
+        entry.eventIdKey = encodeEventIdKey(entry.roomId, entry.event.event_id);
         // TODO: map error? or in idb/store?
         return this._timelineStore.add(entry);
     }
@@ -214,7 +240,7 @@ export default class TimelineEventStore {
     }
 
     get(roomId, eventKey) {
-        return this._timelineStore.get([roomId, eventKey.fragmentId, eventKey.eventIndex]);
+        return this._timelineStore.get(encodeKey(roomId, eventKey.fragmentId, eventKey.eventIndex));
     }
     // returns the entries as well!! (or not always needed? I guess not always needed, so extra method)
     removeRange(roomId, range) {
@@ -223,6 +249,6 @@ export default class TimelineEventStore {
     }
 
     getByEventId(roomId, eventId) {
-        return this._timelineStore.index("byEventId").get([roomId, eventId]);
+        return this._timelineStore.index("byEventId").get(encodeEventIdKey(roomId, eventId));
     }
 }

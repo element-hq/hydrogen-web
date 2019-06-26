@@ -1,13 +1,26 @@
+import { StorageError } from "../../common.js";
+import Platform from "../../../../Platform.js";
+
+function encodeKey(roomId, fragmentId) {
+    let fragmentIdHex = fragmentId.toString(16);
+    fragmentIdHex = "0".repeat(8 - fragmentIdHex.length) + fragmentIdHex;
+    return `${roomId}|${fragmentIdHex}`;
+}
+
 export default class RoomFragmentStore {
     constructor(store) {
         this._store = store;
     }
 
     _allRange(roomId) {
-        return IDBKeyRange.bound(
-            [roomId, Number.MIN_SAFE_INTEGER],
-            [roomId, Number.MAX_SAFE_INTEGER]
-        );
+        try {
+            return IDBKeyRange.bound(
+                encodeKey(roomId, Platform.minStorageKey),
+                encodeKey(roomId, Platform.maxStorageKey)
+            );
+        } catch (err) {
+            throw new StorageError(`error from IDBKeyRange with roomId ${roomId}`, err);
+        }
     }
 
     all(roomId) {
@@ -33,6 +46,7 @@ export default class RoomFragmentStore {
     // depends if we want to do anything smart with fragment ids,
     // like give them meaning depending on range. not for now probably ...
     add(fragment) {
+        fragment.key = encodeKey(fragment.roomId, fragment.id);
         return this._store.add(fragment);
     }
 
@@ -41,6 +55,6 @@ export default class RoomFragmentStore {
     }
 
     get(roomId, fragmentId) {
-        return this._store.get([roomId, fragmentId]);
+        return this._store.get(encodeKey(roomId, fragmentId));
     }
 }

@@ -1,0 +1,30 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <script type="text/javascript">
+        function encodeNumber(n) {
+            const a = (n & 0xFFFF);
+            const b = (n & 0xFFFF0000) >> 16;
+            const c = (n & 0xFFFF00000000) >> 32;
+            const d = (n & 0xFFFF000000000000) >> 48;
+            return String.fromCharCode(a, b, c, d);
+        }
+
+        function printN(n) {
+            //document.write(`<p>fn(${n}) = ${encodeNumber(n)}</p>`);
+            console.log(n, encodeNumber(n));
+        }
+
+        printN(0);
+        printN(9);
+        printN(1000);
+        printN(Number.MAX_SAFE_INTEGER);
+
+
+    </script>
+</body>
+</html>
+ 
