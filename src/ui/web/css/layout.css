@@ -24,7 +24,7 @@ body {
     .RoomHeader button.back { display: block; }
     div.RoomView, div.RoomPlaceholderView { display: none; }
     div.LeftPanel {flex-grow: 1;}
-    div.room-shown div.RoomView { display: unset; }
+    div.room-shown div.RoomView { display: flex; }
     div.room-shown div.LeftPanel { display: none; }
     div.right-shown div.TimelinePanel { display: none; }
 }
