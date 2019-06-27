@@ -13,4 +13,8 @@ export default {
         // for indexeddb, we use unsigned 32 bit integers as keys
         return 0xFFFFFFFF;
     },
+
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
 }

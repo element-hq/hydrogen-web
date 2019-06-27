@@ -76,8 +76,36 @@ steps of sending
     // sender is the thing that is shared across rooms to handle rate limiting.
     const sendQueue = new SendQueue({roomId, hsApi, sender, storage});
     await sendQueue.load();     //loads the queue?
-                                //might need to load members for e2e rooms
+                                //might need to load members for e2e rooms ...
+                                //events should be encrypted before storing them though ...
  
+
+    // terminology ...?
+    // task: to let us wait for it to be our turn
+    // given rate limiting
+    class Sender {
+        acquireSlot() {
+            return new SendSlot();
+        }
+    }
+    // terminology ...?
+    // task: after waiting for it to be our turn given rate-limiting,
+    // send the actual thing we want to send.
+    // this should be used for all rate-limited apis... ? 
+    class SendSlot {
+        sendContent(content) {
+
+        }
+
+        sendRedaction() {
+
+        }
+
+        uploadMedia() {
+
+        }
+    }
+
     class SendQueue {
         // when trying to send
         enqueueEvent(pendingEvent) {
@@ -93,11 +121,13 @@ steps of sending
             while (let pendingEvent = await findNextPendingEvent()) {
                 pendingEvent.status = QUEUED;
                 try {
-                    await this.sender.sendEvent(() => {
-                        // callback gets called
-                        pendingEvent.status = SENDING;
-                        return pendingEvent;
-                    });
+                    const mediaSlot = await this.sender.acquireSlot();
+                    const mxcUrl = await mediaSlot.uploadMedia(pendingEvent.blob);
+                    pendingEvent.content.url = mxcUrl;
+                    const contentSlot = await this.sender.acquireSlot();
+                    contentSlot.sendContent(pendingEvent.content);
+                    pendingEvent.status = SENDING;
+                    await slot.sendContent(...);
                 } catch (err) {
                     //offline
                 }
