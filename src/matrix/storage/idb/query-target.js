@@ -71,6 +71,16 @@ export default class QueryTarget {
         return this._find(range, predicate, "prev");
     }
 
+    async findMaxKey(range) {
+        const cursor = this._target.openKeyCursor(range, "prev");
+        let maxKey;
+        await iterateCursor(cursor, (_, key) => {
+            maxKey = key;
+            return {done: true};
+        });
+        return maxKey;
+    }
+
     /**
      * Checks if a given set of keys exist.
      * Calls `callback(key, found)` for each key in `keys`, in key sorting order (or reversed if backwards=true).

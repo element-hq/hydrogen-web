@@ -1,12 +1,7 @@
 import EventKey from "../../../room/timeline/EventKey.js";
 import { StorageError } from "../../common.js";
+import { encodeUint32 } from "../utils.js";
 import Platform from "../../../../Platform.js";
-
-// storage keys are defined to be unsigned 32bit numbers in WebPlatform.js, which is assumed by idb
-function encodeUint32(n) {
-    const hex = n.toString(16);
-    return "0".repeat(8 - hex.length) + hex;
-}
 
 function encodeKey(roomId, fragmentId, eventIndex) {
     return `${roomId}|${encodeUint32(fragmentId)}|${encodeUint32(eventIndex)}`;

@@ -1,9 +1,9 @@
 import BaseObservableList from "./BaseObservableList.js";
 
 export default class ObservableArray extends BaseObservableList {
-    constructor() {
+    constructor(initialValues = []) {
         super();
-        this._items = [];
+        this._items = initialValues;
     }
 
     append(item) {

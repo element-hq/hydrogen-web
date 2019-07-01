@@ -20,6 +20,7 @@ function createStores(db) {
     timelineEvents.createIndex("byEventId", "eventIdKey", {unique: true});
     //key = room_id | event.type | event.state_key,
     db.createObjectStore("roomState", {keyPath: "key"});
+    db.createObjectStore("pendingEvents", {keyPath: "key"});
     
     // const roomMembers = db.createObjectStore("roomMembers", {keyPath: [
     //  "event.room_id",

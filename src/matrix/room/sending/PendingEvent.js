@@ -1,13 +1,11 @@
 export default class PendingEvent {
-    static fromRedaction(eventId) {
-
+    constructor(roomId, queueIndex, eventType, content, txnId) {
+        this._roomId = roomId;
+        this._eventType = eventType;
+        this._content = content;
+        this._txnId = txnId;
+        this._queueIndex = queueIndex;
     }
 
-    static fromContent(content) {
 
-    }
-
-    static fromStateKey(eventType, stateKey, content) {
-        
-    }
 }
