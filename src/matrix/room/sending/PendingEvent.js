@@ -1,11 +1,14 @@
 export default class PendingEvent {
-    constructor(roomId, queueIndex, eventType, content, txnId) {
-        this._roomId = roomId;
-        this._eventType = eventType;
-        this._content = content;
-        this._txnId = txnId;
-        this._queueIndex = queueIndex;
+    constructor(data) {
+        this._data = data;
     }
 
-
+    get roomId() { return this._data.roomId; }
+    get queueIndex() { return this._data.queueIndex; }
+    get eventType() { return this._data.eventType; }
+    get txnId() { return this._data.txnId; }
+    get remoteId() { return this._data.remoteId; }
+    set remoteId(value) { this._data.remoteId = value; }
+    get content() { return this._data.content; }
+    get data() { return this._data; }
 }

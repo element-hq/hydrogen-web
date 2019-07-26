@@ -29,6 +29,17 @@ export default class PendingEventStore {
         }
     }
 
+    remove(roomId, queueIndex) {
+        const keyRange = IDBKeyRange.only(encodeKey(roomId, queueIndex));
+        this._eventStore.delete(keyRange);
+    }
+
+    async exists(roomId, queueIndex) {
+        const keyRange = IDBKeyRange.only(encodeKey(roomId, queueIndex));
+        const key = await this._eventStore.getKey(keyRange);
+        return !!key;
+    }
+    
     add(pendingEvent) {
         pendingEvent.key = encodeKey(pendingEvent.roomId, pendingEvent.queueIndex);
         return this._eventStore.add(pendingEvent);

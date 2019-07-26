@@ -47,6 +47,14 @@ class QueryTargetWrapper {
         }
     }
 
+    delete(...params) {
+        try {
+            return this._qt.delete(...params);
+        } catch(err) {
+            throw new StorageError("delete failed", err);
+        }
+    }
+
     index(...params) {
         try {
             return this._qt.index(...params);
@@ -75,5 +83,9 @@ export default class Store extends QueryTarget {
 
     add(value) {
         return reqAsPromise(this._idbStore.add(value));
+    }
+
+    delete(keyOrKeyRange) {
+        return reqAsPromise(this._idbStore.delete(keyOrKeyRange));
     }
 }

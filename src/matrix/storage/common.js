@@ -23,5 +23,8 @@ export class StorageError extends Error {
             fullMessage += cause.message;
         }
         super(fullMessage);
+        if (cause) {
+            this.errcode = cause.name;
+        }
     }
 }
