@@ -42,6 +42,10 @@ export default class Room extends EventEmitter {
         }
 	}
 
+    resumeSending() {
+        this._sendQueue.resumeSending();
+    }
+
 	load(summary, txn) {
 		this._summary.load(summary);
 		return this._syncWriter.load(txn);

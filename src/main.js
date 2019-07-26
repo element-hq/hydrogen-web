@@ -76,6 +76,7 @@ export default async function main(container) {
         if (needsInitialSync) {
             showSession(container, session, sync);
         }
+        session.notifyNetworkAvailable();
     } catch(err) {
         console.error(`${err.message}:\n${err.stack}`);
     }

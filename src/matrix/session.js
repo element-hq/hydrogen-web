@@ -38,6 +38,12 @@ export default class Session {
         }));
     }
 
+    notifyNetworkAvailable() {
+        for (const room of this._rooms) {
+            room.resumeSending();
+        }
+    }
+
     async _getPendingEventsByRoom(txn) {
         const pendingEvents = await txn.pendingEvents.getAll();
         return pendingEvents.reduce((groups, pe) => {
