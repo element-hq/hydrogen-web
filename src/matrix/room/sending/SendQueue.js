@@ -1,6 +1,5 @@
 import SortedArray from "../../../observable/list/SortedArray.js";
 import {NetworkError} from "../../error.js";
-import {StorageError} from "../../storage/common.js";
 import PendingEvent from "./PendingEvent.js";
 
 function makeTxnId() {
@@ -10,10 +9,11 @@ function makeTxnId() {
 }
 
 export default class SendQueue {
-    constructor({roomId, storage, scheduler, pendingEvents}) {
+    constructor({roomId, storage, sendScheduler, pendingEvents}) {
+        pendingEvents = pendingEvents || [];
         this._roomId = roomId;
         this._storage = storage;
-        this._scheduler = scheduler;
+        this._sendScheduler = sendScheduler;
         this._pendingEvents = new SortedArray((a, b) => a.queueIndex - b.queueIndex);
         this._pendingEvents.setManySorted(pendingEvents.map(data => new PendingEvent(data)));
         this._isSending = false;
@@ -30,7 +30,7 @@ export default class SendQueue {
                 if (pendingEvent.remoteId) {
                     continue;
                 }
-                const response = await this._scheduler.request(hsApi => {
+                const response = await this._sendScheduler.request(hsApi => {
                     return hsApi.send(
                         pendingEvent.roomId,
                         pendingEvent.eventType,
@@ -50,14 +50,29 @@ export default class SendQueue {
         }
     }
 
+    removeRemoteEchos(events, txn) {
+        const removed = [];
+        for (const event of events) {
+            const txnId = event.unsigned && event.unsigned.transaction_id;
+            if (txnId) {
+                const idx = this._pendingEvents.array.findIndex(pe => pe.txnId === txnId);
+                if (idx !== -1) {
+                    const pendingEvent = this._pendingEvents.get(idx);
+                    txn.pendingEvents.remove(pendingEvent.roomId, pendingEvent.queueIndex);
+                    removed.push(pendingEvent);
+                }
+            }
+        }
+        return removed;
+    }
 
-    async receiveRemoteEcho(txnId) {
-        const idx = this._pendingEvents.array.findIndex(pe => pe.txnId === txnId);
-        if (idx !== 0) {
-            const pendingEvent = this._pendingEvents.get(idx);
-            this._amountSent -= 1;
-            this._pendingEvents.remove(idx);
-            await this._removeEvent(pendingEvent);
+    emitRemovals(pendingEvents) {
+        for (const pendingEvent of pendingEvents) {
+            const idx = this._pendingEvents.array.indexOf(pendingEvent);
+            if (idx !== -1) {
+                this._amountSent -= 1;
+                this._pendingEvents.remove(idx);
+            }
         }
     }
 
@@ -88,17 +103,6 @@ export default class SendQueue {
             if (await txn.pendingEvents.exists(pendingEvent.roomId, pendingEvent.queueIndex)) {
                 txn.pendingEvents.update(pendingEvent.data);
             }
-        } catch (err) {
-            txn.abort();
-            throw err;
-        }
-        await txn.complete();
-    }
-
-    async _removeEvent(pendingEvent) {
-        const txn = await this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
-        try {
-            txn.pendingEvents.remove(pendingEvent.roomId, pendingEvent.queueIndex);
         } catch (err) {
             txn.abort();
             throw err;

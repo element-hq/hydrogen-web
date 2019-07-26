@@ -49,7 +49,7 @@ export default class PendingEventStore {
         return this._eventStore.put(pendingEvent);
     }
 
-    getAllEvents() {
+    getAll() {
         return this._eventStore.selectAll();
     }
 }
