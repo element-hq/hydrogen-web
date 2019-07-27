@@ -1,4 +1,4 @@
-import Platform from "../../../Platform.js";
+import Platform from "../Platform.js";
 import {HomeServerError, NetworkError} from "./error.js";
 
 export class RateLimitingBackoff {
@@ -79,7 +79,7 @@ export class SendScheduler {
 
     async _sendLoop() {
         while (this._sendRequests.length) {
-            const request = this._sendRequests.unshift();
+            const request = this._sendRequests.shift();
             let result;
             try {
                 // this can throw!
@@ -94,6 +94,7 @@ export class SendScheduler {
                     }
                     this._sendRequests = [];
                 }
+                console.error("error for request", request);
                 request.reject(err);
                 break;
             }

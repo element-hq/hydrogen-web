@@ -15,6 +15,9 @@ export default class SendQueue {
         this._storage = storage;
         this._sendScheduler = sendScheduler;
         this._pendingEvents = new SortedArray((a, b) => a.queueIndex - b.queueIndex);
+        if (pendingEvents.length) {
+            console.info(`SendQueue for room ${roomId} has ${pendingEvents.length} pending events`, pendingEvents);
+        }
         this._pendingEvents.setManySorted(pendingEvents.map(data => new PendingEvent(data)));
         this._isSending = false;
         this._offline = false;
@@ -24,13 +27,17 @@ export default class SendQueue {
     async _sendLoop() {
         this._isSending = true;
         try {
+            console.log("start sending", this._amountSent, "<", this._pendingEvents.length);
             while (this._amountSent < this._pendingEvents.length) {
                 const pendingEvent = this._pendingEvents.get(this._amountSent);
+                console.log("trying to send", pendingEvent.content.body);
                 this._amountSent += 1;
                 if (pendingEvent.remoteId) {
                     continue;
                 }
+                console.log("really sending now");
                 const response = await this._sendScheduler.request(hsApi => {
+                    console.log("got sendScheduler slot");
                     return hsApi.send(
                         pendingEvent.roomId,
                         pendingEvent.eventType,
@@ -39,7 +46,10 @@ export default class SendQueue {
                     );
                 });
                 pendingEvent.remoteId = response.event_id;
+                // 
+                console.log("writing remoteId now");
                 await this._tryUpdateEvent(pendingEvent);
+                console.log("keep sending?", this._amountSent, "<", this._pendingEvents.length);
             }
         } catch(err) {
             if (err instanceof NetworkError) {
@@ -97,16 +107,22 @@ export default class SendQueue {
 
     async _tryUpdateEvent(pendingEvent) {
         const txn = await this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
+        console.log("_tryUpdateEvent: got txn");
         try {
             // pendingEvent might have been removed already here
             // by a racing remote echo, so check first so we don't recreate it
+            console.log("_tryUpdateEvent: before exists");
             if (await txn.pendingEvents.exists(pendingEvent.roomId, pendingEvent.queueIndex)) {
+                console.log("_tryUpdateEvent: inside if exists");
                 txn.pendingEvents.update(pendingEvent.data);
             }
+            console.log("_tryUpdateEvent: after exists");
         } catch (err) {
             txn.abort();
+            console.log("_tryUpdateEvent: error", err);
             throw err;
         }
+        console.log("_tryUpdateEvent: try complete");
         await txn.complete();
     }
 

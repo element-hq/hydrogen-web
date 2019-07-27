@@ -21,6 +21,10 @@ export default class QueryTarget {
         return reqAsPromise(this._target.get(key));
     }
 
+    getKey(key) {
+        return reqAsPromise(this._target.getKey(key));
+    }
+
     reduce(range, reducer, initialValue) {
         return this._reduce(range, reducer, initialValue, "next");
     }

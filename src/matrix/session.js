@@ -33,13 +33,13 @@ export default class Session {
         // load rooms
         const rooms = await txn.roomSummary.getAll();
         await Promise.all(rooms.map(summary => {
-            const room = this.createRoom(summary.roomId, pendingEventsByRoomId[summary.roomId]);
+            const room = this.createRoom(summary.roomId, pendingEventsByRoomId.get(summary.roomId));
             return room.load(summary, txn);
         }));
     }
 
     notifyNetworkAvailable() {
-        for (const room of this._rooms) {
+        for (const [, room] of this._rooms) {
             room.resumeSending();
         }
     }

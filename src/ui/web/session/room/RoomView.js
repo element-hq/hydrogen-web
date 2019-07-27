@@ -1,5 +1,6 @@
 import TemplateView from "../../general/TemplateView.js";
 import TimelineList from "./TimelineList.js";
+import MessageComposer from "./MessageComposer.js";
 
 export default class RoomView extends TemplateView {
     constructor(viewModel) {
@@ -18,17 +19,20 @@ export default class RoomView extends TemplateView {
                     ]),
                 ]),
                 t.div({className: "RoomView_error"}, vm => vm.error),
-                this._timelineList.mount()
+                this._timelineList.mount(),
+                this._composer.mount(),
             ])
         ]);
     }
 
     mount() {
+        this._composer = new MessageComposer(this.viewModel);
         this._timelineList = new TimelineList();
         return super.mount();
     }
 
     unmount() {
+        this._composer.unmount();
         this._timelineList.unmount();
         super.unmount();
     }

@@ -1,3 +1,11 @@
+# Remaining stuffs
+ - don't swallow send errors, they should probably appear in the room error?
+    - not sure it makes sense to show them where the composer is,
+      because they might get sent a long time after you enter them in brawl,
+      so you don't neccessarily have the context of the composer anymore
+ - local echo
+
+
 takes care of rate limiting,
 and sending events from different rooms in parallel,
 NO: txnIds are created inside room. ~~making txnIds? ... it's rooms though that will receive the event in their sync response~~

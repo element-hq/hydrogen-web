@@ -5,7 +5,7 @@ import Sync from "./matrix/sync.js";
 import SessionView from "./ui/web/session/SessionView.js";
 import SessionViewModel from "./domain/session/SessionViewModel.js";
 
-const HOST = "192.168.2.108";
+const HOST = "127.0.0.1";
 const HOMESERVER = `http://${HOST}:8008`;
 const USERNAME = "bruno1";
 const USER_ID = `@${USERNAME}:localhost`;
@@ -76,6 +76,7 @@ export default async function main(container) {
         if (needsInitialSync) {
             showSession(container, session, sync);
         }
+        // this will start sending unsent messages
         session.notifyNetworkAvailable();
     } catch(err) {
         console.error(`${err.message}:\n${err.stack}`);

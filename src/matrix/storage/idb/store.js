@@ -46,6 +46,14 @@ class QueryTargetWrapper {
             throw new StorageError("get failed", err);
         }
     }
+    
+    getKey(...params) {
+        try {
+            return this._qt.getKey(...params);
+        } catch(err) {
+            throw new StorageError("getKey failed", err);
+        }
+    }
 
     delete(...params) {
         try {

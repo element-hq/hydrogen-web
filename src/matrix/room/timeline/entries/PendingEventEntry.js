@@ -1,6 +1,4 @@
-import BaseEntry from "./BaseEntry.js";
-
-export const PENDING_FRAGMENT_ID = Number.MAX_SAFE_INTEGER;
+import BaseEntry, {PENDING_FRAGMENT_ID} from "./BaseEntry.js";
 
 export default class PendingEventEntry extends BaseEntry {
     constructor(pendingEvent) {
