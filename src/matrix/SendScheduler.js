@@ -22,7 +22,6 @@ export class RateLimitingBackoff {
 
     async waitForNextSend() {
         // this._remainingRateLimitedRequest = Math.max(0, this._remainingRateLimitedRequest - 1);
-        Platform.delay(1000);
     }
 }
 
