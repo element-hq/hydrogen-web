@@ -46,7 +46,7 @@ export default class ConcatList extends BaseObservableList {
     }
 
     onUpdate(index, value, params, sourceList) {
-        this.emitAdd(this._offsetForSource(sourceList) + index, value, params);
+        this.emitUpdate(this._offsetForSource(sourceList) + index, value, params);
     }
 
     onRemove(index, value, sourceList) {
