@@ -18,7 +18,7 @@ export default class SendQueue {
         if (pendingEvents.length) {
             console.info(`SendQueue for room ${roomId} has ${pendingEvents.length} pending events`, pendingEvents);
         }
-        this._pendingEvents.setManySorted(pendingEvents.map(data => new PendingEvent(data)));
+        this._pendingEvents.setManyUnsorted(pendingEvents.map(data => new PendingEvent(data)));
         this._isSending = false;
         this._offline = false;
         this._amountSent = 0;

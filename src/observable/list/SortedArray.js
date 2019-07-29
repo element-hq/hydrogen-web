@@ -8,6 +8,10 @@ export default class SortedArray extends BaseObservableList {
         this._items = [];
     }
 
+    setManyUnsorted(items) {
+        this.setManySorted(items);
+    }
+
     setManySorted(items) {
         // TODO: we can make this way faster by only looking up the first and last key,
         // and merging whatever is inbetween with items
