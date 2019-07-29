@@ -54,7 +54,7 @@ export default class Timeline {
 
     // tries to prepend `amount` entries to the `entries` list.
     async loadAtTop(amount) {
-        const firstEventEntry = this._remoteEntries.array.find(e => !!e.event);
+        const firstEventEntry = this._remoteEntries.array.find(e => !!e.eventType);
         if (!firstEventEntry) {
             return;
         }
