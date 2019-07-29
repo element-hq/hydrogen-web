@@ -1,6 +1,7 @@
 import Room from "./room/room.js";
 import { ObservableMap } from "../observable/index.js";
 import { SendScheduler, RateLimitingBackoff } from "./SendScheduler.js";
+import User from "./User.js";
 
 export default class Session {
     // sessionInfo contains deviceId, userId and homeServer
@@ -12,6 +13,7 @@ export default class Session {
         this._rooms = new ObservableMap();
         this._sendScheduler = new SendScheduler({hsApi, backoff: new RateLimitingBackoff()});
         this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
+        this._user = new User(sessionInfo.userId);
     }
 
     async load() {
@@ -69,6 +71,7 @@ export default class Session {
             hsApi: this._hsApi,
             sendScheduler: this._sendScheduler,
             pendingEvents,
+            user: this._user,
         });
         this._rooms.add(roomId, room);
         return room;
@@ -85,7 +88,7 @@ export default class Session {
         return this._session.syncToken;
     }
 
-    get userId() {
-        return this._sessionInfo.userId;
+    get user() {
+        return this._user;
     }
 }

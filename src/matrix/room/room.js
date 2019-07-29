@@ -6,7 +6,7 @@ import FragmentIdComparer from "./timeline/FragmentIdComparer.js";
 import SendQueue from "./sending/SendQueue.js";
 
 export default class Room extends EventEmitter {
-	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, pendingEvents}) {
+	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, pendingEvents, user}) {
         super();
         this._roomId = roomId;
         this._storage = storage;
@@ -17,6 +17,7 @@ export default class Room extends EventEmitter {
         this._emitCollectionChange = emitCollectionChange;
         this._sendQueue = new SendQueue({roomId, storage, sendScheduler, pendingEvents});
         this._timeline = null;
+        this._user = user;
 	}
 
     async persistSync(roomResponse, membership, txn) {
@@ -74,6 +75,7 @@ export default class Room extends EventEmitter {
             fragmentIdComparer: this._fragmentIdComparer,
             pendingEvents: this._sendQueue.pendingEvents,
             closeCallback: () => this._timeline = null,
+            user: this._user,
         });
         await this._timeline.load();
         return this._timeline;

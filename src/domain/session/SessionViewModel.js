@@ -45,7 +45,7 @@ export default class SessionViewModel extends EventEmitter {
         }
         this._currentRoomViewModel = new RoomViewModel({
             room,
-            ownUserId: this._session.userId,
+            ownUserId: this._session.user.id,
             closeCallback: () => this._closeCurrentRoom(),
         });
         this._currentRoomViewModel.load();

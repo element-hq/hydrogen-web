@@ -1,9 +1,10 @@
 import BaseEntry, {PENDING_FRAGMENT_ID} from "./BaseEntry.js";
 
 export default class PendingEventEntry extends BaseEntry {
-    constructor(pendingEvent) {
+    constructor({pendingEvent, user}) {
         super(null);
         this._pendingEvent = pendingEvent;
+        this._user = user;
     }
 
     get fragmentId() {
@@ -24,6 +25,10 @@ export default class PendingEventEntry extends BaseEntry {
 
     get type() {
         return this._pendingEvent.eventType;
+    }
+
+    get sender() {
+        return this._user.id;
     }
 
     get id() {
