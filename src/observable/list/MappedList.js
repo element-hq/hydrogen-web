@@ -94,7 +94,7 @@ export async function tests() {
             const mapped = new MappedList(
                 source,
                 n => {return {n: n*n};},
-                (o, n) => o.m = n*n
+                (o, p, n) => o.m = n*n
             );
             let fired = false;
             const unsubscribe = mapped.subscribe({
