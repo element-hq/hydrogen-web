@@ -45,9 +45,8 @@ export function tests() {
     return {
         test_unsubscribe(assert) {
             const c = new Collection();
-            const subscription = c.subscribe({});
-            // unsubscribe
-            subscription();
+            const unsubscribe = c.subscribe({});
+            unsubscribe();
             assert.equal(c.firstSubscribeCalls, 1);
             assert.equal(c.firstUnsubscribeCalls, 1);
         }
