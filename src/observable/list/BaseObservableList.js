@@ -3,26 +3,26 @@ import BaseObservableCollection from "../BaseObservableCollection.js";
 export default class BaseObservableList extends BaseObservableCollection {
     emitReset() {
         for(let h of this._handlers) {
-            h.onReset();
+            h.onReset(this);
         }
     }
     // we need batch events, mostly on index based collection though?
     // maybe we should get started without?
     emitAdd(index, value) {
         for(let h of this._handlers) {
-            h.onAdd(index, value);
+            h.onAdd(index, value, this);
         }
     }
 
     emitUpdate(index, value, params) {
         for(let h of this._handlers) {
-            h.onUpdate(index, value, params);
+            h.onUpdate(index, value, params, this);
         }
     }
 
     emitRemove(index, value) {
         for(let h of this._handlers) {
-            h.onRemove(index, value);
+            h.onRemove(index, value, this);
         }
     }
 
@@ -30,7 +30,7 @@ export default class BaseObservableList extends BaseObservableCollection {
     // been removed from its fromIdx
     emitMove(fromIdx, toIdx, value) {
         for(let h of this._handlers) {
-            h.onMove(fromIdx, toIdx, value);
+            h.onMove(fromIdx, toIdx, value, this);
         }
     }
 
