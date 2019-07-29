@@ -32,7 +32,7 @@ export default class MappedList extends BaseObservableList {
     onUpdate(index, value, params) {
         const mappedValue = this._mappedValues[index];
         if (this._updater) {
-            this._updater(mappedValue, value);
+            this._updater(mappedValue, params, value);
         }
         this.emitUpdate(index, mappedValue, params);
     }
