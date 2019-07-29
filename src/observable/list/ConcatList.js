@@ -125,6 +125,20 @@ export async function tests() {
             list2.insert(1, 11.5);
             assert(fired);
         },
-        
+        test_update(assert) {
+            const list1 = new ObservableArray([1, 2, 3]);
+            const list2 = new ObservableArray([11, 12, 13]);
+            const all = new ConcatList(list1, list2);
+            let fired = false;
+            all.subscribe({
+                onUpdate(index, value) {
+                    fired = true;
+                    assert.equal(index, 4);
+                    assert.equal(value, 10);
+                }
+            });
+            list2.emitUpdate(1, 10);
+            assert(fired);
+        },
     };
 }
