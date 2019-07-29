@@ -53,6 +53,10 @@
     background-color: darkgreen;
 }
 
+.TextMessageView.pending .message-container {
+    background-color: #333;
+}
+
 .message-container p {
     margin: 5px 0;
 }

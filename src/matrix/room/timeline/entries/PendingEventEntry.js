@@ -39,7 +39,15 @@ export default class PendingEventEntry extends BaseEntry {
         return null;
     }
 
+    get isPending() {
+        return true;
+    }
+
     get id() {
         return this._pendingEvent.txnId;
+    }
+
+    notifyUpdate() {
+        
     }
 }
