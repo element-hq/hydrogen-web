@@ -69,3 +69,11 @@
 .RoomView_error {
     color: red;
 }
+
+.MessageComposer > input {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.8em;
+    border: none;
+}

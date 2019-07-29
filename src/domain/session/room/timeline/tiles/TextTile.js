@@ -4,9 +4,8 @@ export default class TextTile extends MessageTile {
     get text() {
         const content = this._getContent();
         const body = content && content.body;
-        const sender = this._entry.event.sender;
-        if (this._entry.type === "m.emote") {
-            return `* ${sender} ${body}`;
+        if (content.msgtype === "m.emote") {
+            return `* ${this._entry.sender} ${body}`;
         } else {
             return body;
         }

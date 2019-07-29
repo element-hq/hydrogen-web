@@ -5,6 +5,8 @@ import BaseObservableMap from "./map/BaseObservableMap.js";
 // re-export "root" (of chain) collections
 export { default as ObservableArray } from "./list/ObservableArray.js";
 export { default as SortedArray } from "./list/SortedArray.js";
+export { default as MappedList } from "./list/MappedList.js";
+export { default as ConcatList } from "./list/ConcatList.js";
 export { default as ObservableMap } from "./map/ObservableMap.js";
 
 // avoid circular dependency between these classes

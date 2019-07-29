@@ -4,8 +4,8 @@ export default class MessageTile extends SimpleTile {
 
     constructor(options) {
         super(options);
-        this._isOwn = this._entry.event.sender === options.ownUserId;
-        this._date = new Date(this._entry.event.origin_server_ts);
+        this._isOwn = this._entry.sender === options.ownUserId;
+        this._date = new Date(this._entry.timestamp);
         this._isContinuation = false;
     }
 
@@ -14,7 +14,7 @@ export default class MessageTile extends SimpleTile {
     }
 
     get sender() {
-        return this._entry.event.sender;
+        return this._entry.sender;
     }
 
     get date() {
@@ -34,8 +34,7 @@ export default class MessageTile extends SimpleTile {
     }
 
     _getContent() {
-        const event = this._entry.event;
-        return event && event.content;
+        return this._entry.content;
     }
 
     updatePreviousSibling(prev) {

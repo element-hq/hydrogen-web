@@ -63,4 +63,10 @@ export default class RoomViewModel extends EventEmitter {
     get avatarInitials() {
         return avatarInitials(this._room.name);
     }
+
+    sendMessage(message) {
+        if (message) {
+            this._room.sendEvent("m.room.message", {msgtype: "m.text", body: message});
+        }
+    }
 }

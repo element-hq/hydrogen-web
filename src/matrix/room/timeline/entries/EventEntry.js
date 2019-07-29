@@ -18,12 +18,20 @@ export default class EventEntry extends BaseEntry {
         return this._eventEntry.event.content;
     }
 
-    get event() {
-        return this._eventEntry.event;
+    get eventType() {
+        return this._eventEntry.event.type;
     }
 
-    get type() {
-        return this._eventEntry.event.type;
+    get stateKey() {
+        return this._eventEntry.event.state_key;
+    }
+
+    get sender() {
+        return this._eventEntry.event.sender;
+    }
+
+    get timestamp() {
+        return this._eventEntry.event.origin_server_ts;
     }
 
     get id() {

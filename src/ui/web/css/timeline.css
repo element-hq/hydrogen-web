@@ -1,6 +1,5 @@
 
 .TimelinePanel ul {
-    flex: 1;
     overflow-y: auto;
     list-style: none;
     padding: 0;
@@ -52,6 +51,10 @@
 
 .own .message-container {
     background-color: darkgreen;
+}
+
+.TextMessageView.pending .message-container {
+    background-color: #333;
 }
 
 .message-container p {

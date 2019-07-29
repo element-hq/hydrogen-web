@@ -77,6 +77,7 @@ export default class Sync extends EventEmitter {
             storeNames.roomState,
             storeNames.timelineEvents,
             storeNames.timelineFragments,
+            storeNames.pendingEvents,
         ]);
         const roomChanges = [];
         try {

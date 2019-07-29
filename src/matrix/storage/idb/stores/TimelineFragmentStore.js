@@ -1,10 +1,9 @@
 import { StorageError } from "../../common.js";
 import Platform from "../../../../Platform.js";
+import { encodeUint32 } from "../utils.js";
 
 function encodeKey(roomId, fragmentId) {
-    let fragmentIdHex = fragmentId.toString(16);
-    fragmentIdHex = "0".repeat(8 - fragmentIdHex.length) + fragmentIdHex;
-    return `${roomId}|${fragmentIdHex}`;
+    return `${roomId}|${encodeUint32(fragmentId)}`;
 }
 
 export default class RoomFragmentStore {

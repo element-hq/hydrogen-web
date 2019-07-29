@@ -1,5 +1,16 @@
 import { StorageError } from "../common.js";
 
+
+// storage keys are defined to be unsigned 32bit numbers in WebPlatform.js, which is assumed by idb
+export function encodeUint32(n) {
+    const hex = n.toString(16);
+    return "0".repeat(8 - hex.length) + hex;
+}
+
+export function decodeUint32(str) {
+    return parseInt(str, 16);
+}
+
 export function openDatabase(name, createObjectStore, version) {
     const req = window.indexedDB.open(name, version);
     req.onupgradeneeded = (ev) => {

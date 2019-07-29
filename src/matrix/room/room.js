@@ -3,9 +3,10 @@ import RoomSummary from "./summary.js";
 import SyncWriter from "./timeline/persistence/SyncWriter.js";
 import Timeline from "./timeline/Timeline.js";
 import FragmentIdComparer from "./timeline/FragmentIdComparer.js";
+import SendQueue from "./sending/SendQueue.js";
 
 export default class Room extends EventEmitter {
-	constructor({roomId, storage, hsApi, emitCollectionChange}) {
+	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, pendingEvents, user}) {
         super();
         this._roomId = roomId;
         this._storage = storage;
@@ -14,16 +15,22 @@ export default class Room extends EventEmitter {
         this._fragmentIdComparer = new FragmentIdComparer([]);
 		this._syncWriter = new SyncWriter({roomId, storage, fragmentIdComparer: this._fragmentIdComparer});
         this._emitCollectionChange = emitCollectionChange;
+        this._sendQueue = new SendQueue({roomId, storage, sendScheduler, pendingEvents});
         this._timeline = null;
+        this._user = user;
 	}
 
     async persistSync(roomResponse, membership, txn) {
 		const summaryChanged = this._summary.applySync(roomResponse, membership, txn);
 		const newTimelineEntries = await this._syncWriter.writeSync(roomResponse, txn);
-        return {summaryChanged, newTimelineEntries};
+        let removedPendingEvents;
+        if (roomResponse.timeline && roomResponse.timeline.events) {
+            removedPendingEvents = this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn);
+        }
+        return {summaryChanged, newTimelineEntries, removedPendingEvents};
     }
 
-    emitSync({summaryChanged, newTimelineEntries}) {
+    emitSync({summaryChanged, newTimelineEntries, removedPendingEvents}) {
         if (summaryChanged) {
             this.emit("change");
             this._emitCollectionChange(this);
@@ -31,12 +38,23 @@ export default class Room extends EventEmitter {
         if (this._timeline) {
             this._timeline.appendLiveEntries(newTimelineEntries);
         }
+        if (removedPendingEvents) {
+            this._sendQueue.emitRemovals(removedPendingEvents);
+        }
 	}
+
+    resumeSending() {
+        this._sendQueue.resumeSending();
+    }
 
 	load(summary, txn) {
 		this._summary.load(summary);
 		return this._syncWriter.load(txn);
 	}
+
+    sendEvent(eventType, content) {
+        this._sendQueue.enqueueEvent(eventType, content);
+    }
 
     get name() {
         return this._summary.name;
@@ -55,7 +73,9 @@ export default class Room extends EventEmitter {
             storage: this._storage,
             hsApi: this._hsApi,
             fragmentIdComparer: this._fragmentIdComparer,
+            pendingEvents: this._sendQueue.pendingEvents,
             closeCallback: () => this._timeline = null,
+            user: this._user,
         });
         await this._timeline.load();
         return this._timeline;

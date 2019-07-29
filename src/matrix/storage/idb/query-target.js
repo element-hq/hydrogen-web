@@ -21,6 +21,10 @@ export default class QueryTarget {
         return reqAsPromise(this._target.get(key));
     }
 
+    getKey(key) {
+        return reqAsPromise(this._target.getKey(key));
+    }
+
     reduce(range, reducer, initialValue) {
         return this._reduce(range, reducer, initialValue, "next");
     }
@@ -69,6 +73,16 @@ export default class QueryTarget {
 
     findReverse(range, predicate) {
         return this._find(range, predicate, "prev");
+    }
+
+    async findMaxKey(range) {
+        const cursor = this._target.openKeyCursor(range, "prev");
+        let maxKey;
+        await iterateCursor(cursor, (_, key) => {
+            maxKey = key;
+            return {done: true};
+        });
+        return maxKey;
     }
 
     /**

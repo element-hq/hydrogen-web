@@ -8,6 +8,10 @@ export default class SortedArray extends BaseObservableList {
         this._items = [];
     }
 
+    setManyUnsorted(items) {
+        this.setManySorted(items);
+    }
+
     setManySorted(items) {
         // TODO: we can make this way faster by only looking up the first and last key,
         // and merging whatever is inbetween with items
@@ -32,8 +36,14 @@ export default class SortedArray extends BaseObservableList {
         }
     }
 
-    remove(item) {
-        throw new Error("unimplemented");
+    get(idx) {
+        return this._items[idx];
+    }
+
+    remove(idx) {
+        const item = this._items[idx];
+        this._items.splice(idx, 1);
+        this.emitRemove(idx, item);
     }
 
     get array() {

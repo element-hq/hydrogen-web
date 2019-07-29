@@ -18,7 +18,7 @@ export default class BaseObservableCollection {
         }
         return () => {
             if (handler) {
-                this._handlers.delete(this._handler);
+                this._handlers.delete(handler);
                 if (this._handlers.size === 0) {
                     this.onUnsubscribeLast();
                 }
@@ -29,4 +29,26 @@ export default class BaseObservableCollection {
     }
 
     // Add iterator over handlers here
+}
+
+export function tests() {
+    class Collection extends BaseObservableCollection {
+        constructor() {
+            super();
+            this.firstSubscribeCalls = 0;
+            this.firstUnsubscribeCalls = 0;
+        }
+        onSubscribeFirst() {  this.firstSubscribeCalls += 1; }
+        onUnsubscribeLast() { this.firstUnsubscribeCalls += 1; }
+    }
+
+    return {
+        test_unsubscribe(assert) {
+            const c = new Collection();
+            const unsubscribe = c.subscribe({});
+            unsubscribe();
+            assert.equal(c.firstSubscribeCalls, 1);
+            assert.equal(c.firstUnsubscribeCalls, 1);
+        }
+    }
 }

@@ -69,4 +69,8 @@ export default class SimpleTile {
     get internalId() {
         return this._entry.asEventKey().toString();
     }
+
+    get isPending() {
+        return this._entry.isPending;
+    }
 }

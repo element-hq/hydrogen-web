@@ -32,6 +32,7 @@ class RequestWrapper {
     }
 }
 
+// todo: everywhere here, encode params in the url that could have slashes ... mainly event ids?
 export default class HomeServerApi {
     constructor(homeserver, accessToken) {
         // store these both in a closure somehow so it's harder to get at in case of XSS?
@@ -98,6 +99,10 @@ export default class HomeServerApi {
         return this._request("POST", csPath, queryParams, body);
     }
 
+    _put(csPath, queryParams, body) {
+        return this._request("PUT", csPath, queryParams, body);
+    }
+
     _get(csPath, queryParams, body) {
         return this._request("GET", csPath, queryParams, body);
     }
@@ -109,6 +114,10 @@ export default class HomeServerApi {
     // params is from, dir and optionally to, limit, filter.
     messages(roomId, params) {
         return this._get(`/rooms/${roomId}/messages`, params);
+    }
+
+    send(roomId, eventType, txnId, content) {
+        return this._put(`/rooms/${roomId}/send/${eventType}/${txnId}`, {}, content);
     }
 
     passwordLogin(username, password) {

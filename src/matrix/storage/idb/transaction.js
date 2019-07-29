@@ -6,6 +6,7 @@ import RoomSummaryStore from "./stores/RoomSummaryStore.js";
 import TimelineEventStore from "./stores/TimelineEventStore.js";
 import RoomStateStore from "./stores/RoomStateStore.js";
 import TimelineFragmentStore from "./stores/TimelineFragmentStore.js";
+import PendingEventStore from "./stores/PendingEventStore.js";
 
 export default class Transaction {
     constructor(txn, allowedStoreNames) {
@@ -53,6 +54,10 @@ export default class Transaction {
 
     get roomState() {
         return this._store("roomState", idbStore => new RoomStateStore(idbStore));
+    }
+
+    get pendingEvents() {
+        return this._store("pendingEvents", idbStore => new PendingEventStore(idbStore));
     }
 
     complete() {

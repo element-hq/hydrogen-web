@@ -1,4 +1,11 @@
-export const STORE_NAMES = Object.freeze(["session", "roomState", "roomSummary", "timelineEvents", "timelineFragments"]);
+export const STORE_NAMES = Object.freeze([
+    "session",
+    "roomState",
+    "roomSummary",
+    "timelineEvents",
+    "timelineFragments",
+    "pendingEvents",
+]);
 
 export const STORE_MAP = Object.freeze(STORE_NAMES.reduce((nameMap, name) => {
     nameMap[name] = name;
@@ -16,5 +23,8 @@ export class StorageError extends Error {
             fullMessage += cause.message;
         }
         super(fullMessage);
+        if (cause) {
+            this.errcode = cause.name;
+        }
     }
 }
