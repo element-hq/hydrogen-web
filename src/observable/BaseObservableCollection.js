@@ -30,3 +30,26 @@ export default class BaseObservableCollection {
 
     // Add iterator over handlers here
 }
+
+export function tests() {
+    class Collection extends BaseObservableCollection {
+        constructor() {
+            super();
+            this.firstSubscribeCalls = 0;
+            this.firstUnsubscribeCalls = 0;
+        }
+        onSubscribeFirst() {  this.firstSubscribeCalls += 1; }
+        onUnsubscribeLast() { this.firstUnsubscribeCalls += 1; }
+    }
+
+    return {
+        test_unsubscribe(assert) {
+            const c = new Collection();
+            const subscription = c.subscribe({});
+            // unsubscribe
+            subscription();
+            assert.equal(c.firstSubscribeCalls, 1);
+            assert.equal(c.firstUnsubscribeCalls, 1);
+        }
+    }
+}
