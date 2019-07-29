@@ -18,7 +18,7 @@ export default class BaseObservableCollection {
         }
         return () => {
             if (handler) {
-                this._handlers.delete(this._handler);
+                this._handlers.delete(handler);
                 if (this._handlers.size === 0) {
                     this.onUnsubscribeLast();
                 }
