@@ -65,6 +65,8 @@ export default class RoomViewModel extends EventEmitter {
     }
 
     sendMessage(message) {
-        this._room.sendEvent("m.room.message", {msgtype: "m.text", body: message});
+        if (message) {
+            this._room.sendEvent("m.room.message", {msgtype: "m.text", body: message});
+        }
     }
 }
