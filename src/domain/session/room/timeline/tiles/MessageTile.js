@@ -4,7 +4,7 @@ export default class MessageTile extends SimpleTile {
 
     constructor(options) {
         super(options);
-        this._isOwn = this._entry.event.sender === options.ownUserId;
+        this._isOwn = this._entry.sender === options.ownUserId;
         this._date = new Date(this._entry.timestamp);
         this._isContinuation = false;
     }
