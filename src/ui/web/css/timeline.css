@@ -1,6 +1,5 @@
 
 .TimelinePanel ul {
-    flex: 1;
     overflow-y: auto;
     list-style: none;
     padding: 0;

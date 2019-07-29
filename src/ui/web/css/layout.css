@@ -50,6 +50,11 @@ body {
     min-height: 0;
     display: flex;
     flex-direction: column;
+    height: 100%;
+}
+
+.TimelinePanel ul {
+    flex: 1 0 0;
 }
 
 .RoomHeader {
