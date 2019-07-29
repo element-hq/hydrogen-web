@@ -23,12 +23,20 @@ export default class PendingEventEntry extends BaseEntry {
         return null;
     }
 
-    get type() {
+    get eventType() {
         return this._pendingEvent.eventType;
+    }
+
+    get stateKey() {
+        return null;
     }
 
     get sender() {
         return this._user.id;
+    }
+
+    get timestamp() {
+        return null;
     }
 
     get id() {

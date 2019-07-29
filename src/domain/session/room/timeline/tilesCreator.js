@@ -1,6 +1,5 @@
 import GapTile from "./tiles/GapTile.js";
 import TextTile from "./tiles/TextTile.js";
-import ImageTile from "./tiles/ImageTile.js";
 import LocationTile from "./tiles/LocationTile.js";
 import RoomNameTile from "./tiles/RoomNameTile.js";
 import RoomMemberTile from "./tiles/RoomMemberTile.js";
@@ -10,11 +9,10 @@ export default function ({timeline, ownUserId}) {
         const options = {entry, emitUpdate, ownUserId};
         if (entry.isGap) {
             return new GapTile(options, timeline);
-        } else if (entry.event) {
-            const event = entry.event;
-            switch (event.type) {
+        } else if (entry.eventType) {
+            switch (entry.eventType) {
                 case "m.room.message": {
-                    const content = event.content;
+                    const content = entry.content;
                     const msgtype = content && content.msgtype;
                     switch (msgtype) {
                         case "m.text":
