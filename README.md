@@ -1,16 +1,15 @@
 # Brawl
-A javascript matrix client prototype, trying to minize RAM usage by offloading as much as possible to IndexedDB
+
+A minimal [Matrix](https://matrix.org/) chat client, focused on performance, offline functionality and working on my Lumia 950 Windows Phone.
 
 ## Status
 
-Syncing & storing rooms with state and timeline, with a minimal UI syncing room list and timeline on screen. Filling gaps supported, detecting overlapping events. The `[0/1]` in the gif below is the local event key, consisting of a fragment id and event index. No sending yet. Using Fractal here to update the room name and send messages:
+Brawl can currently log you in, or pick an existing session, sync already joined rooms, fill gaps in the timeline, and send text messages. Everything is stored locally.
 
-![Rooms and timeline syncing on-screen, gaps filling](https://bwindels.github.io/brawl-chat/images/morpheus-gaps.gif)
+![Showing multiple sessions, and sending messages](https://bwindels.github.io/brawl-chat/images/brawl-sending.gif)
 
-## Features that this approach would be well suited for
+## Why
 
- - store all fetched messages, not just synced ones
- - fast local search (with words index)
- - scroll timeline with date tooltip?
- - jump to timestamp
- - multi-account
+I started writing Brawl both to have a functional matrix client on my aging phone, and to play around with some ideas I had how to use indexeddb optimally in a matrix client. For every interaction or network response (syncing, filling a gap), Brawl starts a transaction in indexedb, and only commits it once everything went well. This helps to keep your storage always in a consistent state. As little data is kept in memory as well, and while scrolling in the above GIF, everything is loaded straight from the storage.
+
+If you find this interesting, feel free to reach me at `@bwindels:matrix.org`.

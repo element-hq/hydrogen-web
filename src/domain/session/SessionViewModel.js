@@ -4,7 +4,7 @@ import RoomViewModel from "./room/RoomViewModel.js";
 import SyncStatusViewModel from "./SyncStatusViewModel.js";
 
 export default class SessionViewModel extends EventEmitter {
-    constructor(session, sync) {
+    constructor({session, sync}) {
         super();
         this._session = session;
         this._syncStatusViewModel = new SyncStatusViewModel(sync);

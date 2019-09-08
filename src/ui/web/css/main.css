@@ -26,3 +26,35 @@ body {
     justify-content: center;
     flex-direction: row;
 }
+
+.SessionPickerView {
+  padding: 0.4em;
+}
+
+.SessionPickerView ul {
+  list-style: none;
+  padding: 0;
+}
+
+.SessionPickerView li {
+  margin: 0.4em 0;
+  font-size: 1.2em;
+  background-color: grey;
+  padding: 0.5em;
+  cursor: pointer;
+}
+
+.LoginView {
+  padding: 0.4em;
+}
+
+.form > div {
+  margin: 0.4em 0;
+}
+
+.form input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
