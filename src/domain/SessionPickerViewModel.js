@@ -1,14 +1,14 @@
-import {SortedArray} from "./observables/index.js";
+import {SortedArray} from "../observable/index.js";
 
 export default class SessionPickerViewModel {
     constructor({sessionStore, sessionCallback}) {
-        this._sessionsStore = sessionStore;
+        this._sessionStore = sessionStore;
         this._sessionCallback = sessionCallback;
         this._sessions = new SortedArray((s1, s2) => (s1.lastUsed || 0) - (s2.lastUsed || 0));
     }
 
     async load() {
-        const sessions = await this._sessionsStore.getAll();
+        const sessions = await this._sessionStore.getAll();
         this._sessions.setManyUnsorted(sessions);
     }
 

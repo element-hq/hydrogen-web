@@ -20,7 +20,7 @@ function parseRooms(roomsSection, roomCallback) {
 }
 
 export default class Sync extends EventEmitter {
-    constructor(hsApi, session, storage) {
+    constructor({hsApi, session, storage}) {
         super();
         this._hsApi = hsApi;
         this._session = session;

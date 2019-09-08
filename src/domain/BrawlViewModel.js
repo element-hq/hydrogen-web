@@ -6,10 +6,10 @@ import SessionPickerViewModel from "./SessionPickerViewModel.js";
 import EventEmitter from "../EventEmitter.js";
 
 export default class BrawlViewModel extends EventEmitter {
-    constructor({createStorage, sessionsStore, createHsApi, clock}) {
+    constructor({createStorage, sessionStore, createHsApi, clock}) {
         super();
         this._createStorage = createStorage;
-        this._sessionsStore = sessionsStore;
+        this._sessionStore = sessionStore;
         this._createHsApi = createHsApi;
         this._clock = clock;
 
@@ -21,7 +21,7 @@ export default class BrawlViewModel extends EventEmitter {
     }
 
     async load() {
-        if (await this._sessionsStore.hasAnySession()) {
+        if (await this._sessionStore.hasAnySession()) {
             this._showPicker();
         } else {
             this._showLogin();
@@ -31,7 +31,7 @@ export default class BrawlViewModel extends EventEmitter {
     async _showPicker() {
         this._clearSections();
         this._sessionPickerViewModel = new SessionPickerViewModel({
-            sessionsStore: this._sessionsStore,
+            sessionStore: this._sessionStore,
             sessionCallback: sessionInfo => this._onSessionPicked(sessionInfo)
         });
         this.emit("change", "activeSection");
@@ -101,7 +101,7 @@ export default class BrawlViewModel extends EventEmitter {
                 accessToken: loginData.access_token,
                 lastUsed: this._clock.now()
             };
-            await this._sessionsStore.add(sessionInfo);
+            await this._sessionStore.add(sessionInfo);
             this._loadSession(sessionInfo);
         } else {
             this._showPicker();
@@ -111,7 +111,7 @@ export default class BrawlViewModel extends EventEmitter {
     _onSessionPicked(sessionInfo) {
         if (sessionInfo) {
             this._loadSession(sessionInfo);
-            this._sessionsStore.updateLastUsed(sessionInfo.id, this._clock.now());
+            this._sessionStore.updateLastUsed(sessionInfo.id, this._clock.now());
         } else {
             this._showLogin();
         }
@@ -121,7 +121,7 @@ export default class BrawlViewModel extends EventEmitter {
         try {
             this._loading = true;
             this._loadingText = "Loading your conversations…";
-            const hsApi = this._createHsApi(sessionInfo.homeServer);
+            const hsApi = this._createHsApi(sessionInfo.homeServer, sessionInfo.accessToken);
             const storage = await this._createStorage(sessionInfo.id);
             // no need to pass access token to session
             const filteredSessionInfo = {
@@ -150,6 +150,7 @@ export default class BrawlViewModel extends EventEmitter {
             // start sending pending messages
             session.notifyNetworkAvailable();
         } catch (err) {
+            console.error(err);
             this._error = err;
         }
         this.emit("change", "activeSection");
