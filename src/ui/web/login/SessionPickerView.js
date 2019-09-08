@@ -1,24 +1,30 @@
-import * as h from "../general/html.js";
 import ListView from "../general/ListView.js";
+import TemplateView from "../general/TemplateView.js";
 
-class SessionPickerItem {
-
+class SessionPickerItem extends TemplateView {
+    render(t) {
+        return t.li([vm => `${vm.userId}@${vm.homeServer}`]);
+    }
 }
 
 export default class SessionPickerView extends TemplateView {
     mount() {
-        this._sessionList = new ListView({list: this._viewModel.sessions}, sessionInfo => {
+        this._sessionList = new ListView({
+            list: this.viewModel.sessions,
+            onItemClick: (item) => {
+                this.viewModel.pick(item.viewModel.id);
+            },
+        }, sessionInfo => {
             return new SessionPickerItem(sessionInfo);
         });
-        super.mount();
+        return super.mount();
     }
 
-    render(t, vm) {
-        this._root = h.div({className: "SessionPickerView"}, [
+    render(t) {
+        return t.div({className: "SessionPickerView"}, [
             this._sessionList.mount(),
-            h.button()
+            t.button({onClick: () => this.viewModel.cancel()}, ["Cancel"])
         ]);
-
     }
 
     unmount() {
