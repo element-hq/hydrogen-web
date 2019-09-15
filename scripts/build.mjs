@@ -14,7 +14,34 @@ const __dirname = dirname(__filename);
 const projectDir = path.join(__dirname, "../");
 const targetDir = path.join(projectDir, "target");
 
+const jsPostfix = `
+window.DEBUG = true;
+let buf = "";
+console.error = (...params) => {
+    const lastLines = "...\\n" + buf.split("\\n").slice(-10).join("\\n");
+    // buf = buf + "ERR " + params.join(" ") + "\\n";
+    // const location = new Error().stack.split("\\n")[2];
+    alert(params.join(" ") +"\\n...\\n" + lastLines);
+};
+console.log = console.info = console.warn = (...params) => {
+    buf = buf + params.join(" ") + "\\n";
+};
+`;
+
+const jsSuffix = `
+setTimeout(() => {
+    const showlogs = document.getElementById("showlogs");
+    showlogs.addEventListener("click", () => {
+        const lastLines = "...\\n" + buf.split("\\n").slice(-20).join("\\n");
+        alert(lastLines);
+    }, true);
+    showlogs.innerText = "Show last 20 log lines";
+}, 10000);
+`;
+
 async function build() {
+    // get version number
+    const version = JSON.parse(await fs.readFile(path.join(projectDir, "package.json"), "utf8")).version;
     // clear target dir
     await removeDirIfExists(targetDir);
     await fs.mkdir(targetDir);
@@ -22,9 +49,10 @@ async function build() {
     const devHtml = await fs.readFile(path.join(projectDir, "index.html"), "utf8");
     const doc = cheerio.load(devHtml);
     doc("link[rel=stylesheet]").attr("href", "brawl.css");
+    // doc("html").attr("manifest", "manifest.appcache");
     doc("script").replaceWith(
         `<script type="text/javascript" src="brawl.js"></script>` +
-        `<script type="text/javascript">main(document.body);</script>`);
+        `<script type="text/javascript">${jsPostfix} main(document.body); ${jsSuffix}</script>`);
     await fs.writeFile(path.join(targetDir, "index.html"), doc.html(), "utf8");
     // create js bundle
     const rollupConfig = {
@@ -43,6 +71,17 @@ async function build() {
     const cssBundler = postcss([postcssImport]);
     const postCss = await cssBundler.process(preCss, {from: cssMainFile});
     await fs.writeFile(path.join(targetDir, "brawl.css"), postCss, "utf8");
+    // write appcache manifest
+    const manifestLines = [
+        `CACHE MANIFEST`,
+        `# v${version}`,
+        "brawl.js",
+        "brawl.css",
+        "index.html",
+        ""  
+    ];
+    await fs.writeFile(path.join(targetDir, "manifest.appcache"), manifestLines.join("\n"), "utf8");
+    console.log(`built brawl ${version} successfully`);
 }
 
 async function removeDirIfExists(targetDir) {
@@ -51,8 +90,9 @@ async function removeDirIfExists(targetDir) {
         await Promise.all(files.map(filename => fs.unlink(path.join(targetDir, filename))));
         await fs.rmdir(targetDir);
     } catch (err) {
-        // err.code === ENOENT
-        console.log(err);
+        if (err.code !== "ENOENT") {
+            throw err;
+        }
     }
 }
 
