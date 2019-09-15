@@ -96,6 +96,7 @@ export default class SendQueue {
     async enqueueEvent(eventType, content) {
         const pendingEvent = await this._createAndStoreEvent(eventType, content);
         this._pendingEvents.set(pendingEvent);
+        console.log("added to _pendingEvents set", this._pendingEvents.length);
         if (!this._isSending && !this._offline) {
             this._sendLoop();
         }
@@ -127,11 +128,14 @@ export default class SendQueue {
     }
 
     async _createAndStoreEvent(eventType, content) {
+        console.log("_createAndStoreEvent");
         const txn = await this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
         let pendingEvent;
         try {
             const pendingEventsStore = txn.pendingEvents;
+            console.log("_createAndStoreEvent getting maxQueueIndex");
             const maxQueueIndex = await pendingEventsStore.getMaxQueueIndex(this._roomId) || 0;
+            console.log("_createAndStoreEvent got maxQueueIndex", maxQueueIndex);
             const queueIndex = maxQueueIndex + 1;
             pendingEvent = new PendingEvent({
                 roomId: this._roomId,
@@ -140,6 +144,7 @@ export default class SendQueue {
                 content,
                 txnId: makeTxnId()
             });
+            console.log("_createAndStoreEvent: adding to pendingEventsStore");
             pendingEventsStore.add(pendingEvent.data);
         } catch (err) {
             txn.abort();

@@ -39,14 +39,14 @@ export function txnAsPromise(txn) {
     });
 }
 
-export function iterateCursor(cursor, processValue) {
+export function iterateCursor(cursorRequest, processValue) {
     // TODO: does cursor already have a value here??
     return new Promise((resolve, reject) => {
-        cursor.onerror = (event) => {
-            reject(new Error("Query failed: " + event.target.errorCode));
+        cursorRequest.onerror = () => {
+            reject(new StorageError("Query failed", cursorRequest.error));
         };
         // collect results
-        cursor.onsuccess = (event) => {
+        cursorRequest.onsuccess = (event) => {
             const cursor = event.target.result;
             if (!cursor) {
                 resolve(false);

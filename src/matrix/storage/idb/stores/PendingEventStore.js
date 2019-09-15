@@ -36,7 +36,13 @@ export default class PendingEventStore {
 
     async exists(roomId, queueIndex) {
         const keyRange = IDBKeyRange.only(encodeKey(roomId, queueIndex));
-        const key = await this._eventStore.getKey(keyRange);
+        let key;
+        if (this._eventStore.supports("getKey")) {
+            key = await this._eventStore.getKey(keyRange);
+        } else {
+            const value = await this._eventStore.get(keyRange);
+            key = value && value.key;
+        }
         return !!key;
     }
     

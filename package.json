@@ -1,6 +1,6 @@
 {
   "name": "brawl-chat",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "A javascript matrix client prototype, trying to minize RAM usage by offloading as much as possible to IndexedDB",
   "main": "index.js",
   "directories": {
@@ -9,22 +9,26 @@
   "scripts": {
     "test": "node_modules/.bin/impunity --entryPoint src/main.js --force-esm",
     "start": "node scripts/serve-local.js",
-    "build": "node_modules/rollup/bin/rollup -c"
+    "build": "node --experimental-modules scripts/build.mjs"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bwindels/brawl-chat.git"
   },
-  "author": "",
+  "author": "Bruno Windels",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/bwindels/brawl-chat/issues"
   },
   "homepage": "https://github.com/bwindels/brawl-chat#readme",
   "devDependencies": {
+    "cheerio": "^1.0.0-rc.3",
     "finalhandler": "^1.1.1",
     "impunity": "^0.0.7",
+    "postcss": "^7.0.18",
+    "postcss-import": "^12.0.1",
     "rollup": "^1.15.6",
     "serve-static": "^1.13.2"
-  }
+  },
+  "type": "module"
 }
