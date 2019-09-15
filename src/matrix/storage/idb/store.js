@@ -12,6 +12,10 @@ class QueryTargetWrapper {
     }
     
     openKeyCursor(...params) {
+        // not supported on Edge 15
+        if (!this._qt.openKeyCursor) {
+            return this.openCursor(...params);
+        }
         try {
             return this._qt.openKeyCursor(...params);
         } catch(err) {
