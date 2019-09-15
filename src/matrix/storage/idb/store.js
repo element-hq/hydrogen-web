@@ -6,6 +6,10 @@ class QueryTargetWrapper {
     constructor(qt) {
         this._qt = qt;
     }
+
+    supports(methodName) {
+        return !!this._qt[methodName];
+    }
     
     openKeyCursor(...params) {
         try {

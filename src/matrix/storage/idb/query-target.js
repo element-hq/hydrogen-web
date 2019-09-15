@@ -17,6 +17,10 @@ export default class QueryTarget {
         }
     }
 
+    supports(methodName) {
+        return this._target.supports(methodName);
+    }
+
     get(key) {
         return reqAsPromise(this._target.get(key));
     }
