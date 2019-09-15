@@ -2,3 +2,4 @@
 *.sublime-workspace
 node_modules
 bundle.js
+target
