@@ -11,7 +11,7 @@
  - DONE: store state
  - DONE: make summary work better (name and joined/inviteCount doesn't seem to work well)
  - DONE: timeline doesn't seem to recover it's key well upon loading, the query in load seems to never yield an event in the persister
- - map DOMException to something better
+ - DONE: map DOMException to something better
  	- it's pretty opaque now when something idb related fails. DOMException has these fields:
  		code: 0
 		message: "Key already exists in the object store."
@@ -26,21 +26,44 @@
  	- DONE: clicking on a room list, you see messages (userId -> body)
  - DONE: style minimal UI
  - DONE: implement gap filling and fragments (see FRAGMENTS.md)
- - allow collection items (especially tiles) to self-update
+ - DONE: allow collection items (especially tiles) to self-update
  - improve fragmentidcomparer::add
- - send messages
- - better UI
+ - DONE: better UI
  - fix MappedMap update mechanism
  - see if in BaseObservableMap we need to change ...params
- - put sync button and status label inside SessionView
+ - DONE: put sync button and status label inside SessionView
  - fix some errors:
     - find out if `(this._emitCollectionUpdate)(this)` is different than `this._emitCollectionUpdate(this)` 
     - got "database tried to mutate when not allowed" or something error as well
     - find out why when RoomPersister.(\_createGapEntry/\_createEventEntry) we remove .buffer the transaction fails (good), but upon fixing and refreshing is missing a message! syncToken should not be saved, so why isn't this again in the sync response and now the txn does succeed?
  - DONE: take access token out of IDB? this way it can be stored in a more secure thing for non-web clients, together wit encryption key for olm sessions ... ? like macos keychain, gnome keyring, ... maybe using https://www.npmjs.com/package/keytar
- - experiment with using just a normal array with 2 numbers for sortkeys, to work in Edge as well.
- - send messages
- - fill gaps with call to /messages
+ - DONE: experiment with using just a normal array with 2 numbers for sortkeys, to work in Edge as well.
+ - DONE: send messages
+ - DONE: fill gaps with call to /messages
+
+ - build script
+    - DONE: take dev index.html, run some dom modifications to change script tag with `parse5`.
+    - DONE: create js bundle, rollup
+    - DONE: create css bundle, postcss, probably just need postcss-import for now, but good to have more options
+    - DONE: put all in /target
+    - have option to run it locally to test
+
+ - deploy script
+    - upload /target to github pages
+
+ - offline available
+    - both offline mechanisms have (filelist, version) as input for their template:
+        - create appcache manifest with (index.html, brawl.js, brawl.css) and print version number in it
+        - create service worker wit file list to cache (at top const files = "%%FILES_ARRAY%%", version = "%%VERSION%%")
+        - write web manifest
+ - delete sessions from picker & option to close current session and go back to picker
+ 
+ - create room
+ - join room
+ - accept invite
+ - leave room
+ - unread rooms, badge count, sort rooms by activity
+
  - create sync filter
  - lazy loading members
  - decide denormalized data in summary vs reading from multiple stores PER room on load
