@@ -67,7 +67,11 @@ export default class HomeServerApi {
             method,
             headers,
             body: bodyString,
-            signal: controller && controller.signal
+            signal: controller && controller.signal,
+            mode: "cors",
+            credentials: "omit",
+            referrer: "no-referrer",
+            cache: "no-cache",
         });
         promise = promise.then(async (response) => {
             if (response.ok) {
