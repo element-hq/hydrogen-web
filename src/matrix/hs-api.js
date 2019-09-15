@@ -92,7 +92,7 @@ export default class HomeServerApi {
                 // 
                 // One could check navigator.onLine to rule out the first
                 // but the 2 later ones are indistinguishable from javascript.
-                throw new NetworkError(err.message);
+                throw new NetworkError(`${method} ${url}: ${err.message}`);
             }
             throw err;
         });
