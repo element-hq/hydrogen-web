@@ -8,7 +8,7 @@ export default async function main(container) {
     try {
         const vm = new BrawlViewModel({
             createStorage: sessionId => createIdbStorage(`brawl_session_${sessionId}`),
-            createHsApi: (homeServer, accessToken = null) => new HomeServerApi(`https://${homeServer}`, accessToken),
+            createHsApi: (homeServer, accessToken = null) => new HomeServerApi(homeServer, accessToken),
             sessionStore: new SessionsStore("brawl_sessions_v1"),
             clock: Date //just for `now` fn
         });

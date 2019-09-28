@@ -48,7 +48,7 @@ export default class BrawlViewModel extends EventEmitter {
         this._clearSections();
         this._loginViewModel = new LoginViewModel({
             createHsApi: this._createHsApi,
-            defaultHomeServer: "matrix.org",
+            defaultHomeServer: "https://matrix.org",
             loginCallback: loginData => this._onLoginFinished(loginData)
         });
         this.emit("change", "activeSection");
@@ -97,7 +97,7 @@ export default class BrawlViewModel extends EventEmitter {
                 id: sessionId,
                 deviceId: loginData.device_id,
                 userId: loginData.user_id,
-                homeServer: loginData.home_server,
+                homeServer: loginData.homeServerUrl,
                 accessToken: loginData.access_token,
                 lastUsed: this._clock.now()
             };

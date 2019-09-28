@@ -23,6 +23,7 @@ export default class LoginViewModel extends EventEmitter {
             this._loading = true;
             this.emit("change", "loading");
             const loginData = await hsApi.passwordLogin(username, password).response();
+            loginData.homeServerUrl = homeserver;
             this._loginCallback(loginData);
             // wait for parent view model to switch away here
         } catch (err) {
