@@ -15,6 +15,7 @@ const projectDir = path.join(__dirname, "../");
 const targetDir = path.join(projectDir, "target");
 
 const debug = true;
+const offline = true;
 
 async function build() {
     // get version number
@@ -26,7 +27,9 @@ async function build() {
     await buildHtml();
     await buildJs();
     await buildCss();
-    await buildOffline(version);
+    if (offline) {
+        await buildOffline(version);
+    }
 
     console.log(`built brawl ${version} successfully`);
 }
@@ -42,8 +45,10 @@ async function buildHtml() {
     removeOrEnableScript(doc("script#phone-debug-pre"), debug);
     removeOrEnableScript(doc("script#phone-debug-post"), debug);
     removeOrEnableScript(doc("script#service-worker"), false);
-    doc("html").attr("manifest", "manifest.appcache");
-    doc("head").append(`<link rel="manifest" href="manifest.json">`);
+    if (offline) {
+        doc("html").attr("manifest", "manifest.appcache");
+        doc("head").append(`<link rel="manifest" href="manifest.json">`);
+    }
     await fs.writeFile(path.join(targetDir, "index.html"), doc.html(), "utf8");
 }
 
