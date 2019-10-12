@@ -77,15 +77,20 @@ export default class Session {
         return room;
     }
 
-    persistSync(syncToken, accountData, txn) {
+    persistSync(syncToken, syncFilterId, accountData, txn) {
         if (syncToken !== this._session.syncToken) {
             this._session.syncToken = syncToken;
+            this._session.syncFilterId = syncFilterId;
             txn.session.set(this._session);
         }
     }
 
     get syncToken() {
         return this._session.syncToken;
+    }
+
+    get syncFilterId() {
+        return this._session.syncFilterId;
     }
 
     get user() {

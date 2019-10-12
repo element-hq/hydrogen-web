@@ -41,7 +41,8 @@ export default class Timeline {
         const response = await this._hsApi.messages(this._roomId, {
             from: fragmentEntry.token,
             dir: fragmentEntry.direction.asApiString(),
-            limit: amount
+            limit: amount,
+            filter: {lazy_load_members: true}
         }).response();
         const gapWriter = new GapWriter({
             roomId: this._roomId,

@@ -67,7 +67,11 @@ export default class Sync extends EventEmitter {
     }
 
     async _syncRequest(syncToken, timeout) {
-        this._currentRequest = this._hsApi.sync(syncToken, undefined, timeout);
+        let {syncFilterId} = this._session;
+        if (typeof syncFilterId !== "string") {
+            syncFilterId = (await this._hsApi.createFilter(this._session.user.id, {room: {state: {lazy_load_members: true}}}).response()).filter_id;
+        }
+        this._currentRequest = this._hsApi.sync(syncToken, syncFilterId, timeout);
         const response = await this._currentRequest.response();
         syncToken = response.next_batch;
         const storeNames = this._storage.storeNames;
@@ -81,7 +85,7 @@ export default class Sync extends EventEmitter {
         ]);
         const roomChanges = [];
         try {
-            this._session.persistSync(syncToken, response.account_data, syncTxn);
+            this._session.persistSync(syncToken, syncFilterId, response.account_data,  syncTxn);
             // to_device
             // presence
             if (response.rooms) {

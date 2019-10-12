@@ -48,7 +48,12 @@ export default class HomeServerApi {
     _request(method, csPath, queryParams = {}, body) {
         const queryString = Object.entries(queryParams)
             .filter(([, value]) => value !== undefined)
-            .map(([name, value]) => `${encodeURIComponent(name)}=${encodeURIComponent(value)}`)
+            .map(([name, value]) => {
+                if (typeof value === "object") {
+                    value = JSON.stringify(value);
+                }
+                return `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
+            })
             .join("&");
         const url = this._url(`${csPath}?${queryString}`);
         let bodyString;
@@ -117,11 +122,11 @@ export default class HomeServerApi {
 
     // params is from, dir and optionally to, limit, filter.
     messages(roomId, params) {
-        return this._get(`/rooms/${roomId}/messages`, params);
+        return this._get(`/rooms/${encodeURIComponent(roomId)}/messages`, params);
     }
 
     send(roomId, eventType, txnId, content) {
-        return this._put(`/rooms/${roomId}/send/${eventType}/${txnId}`, {}, content);
+        return this._put(`/rooms/${encodeURIComponent(roomId)}/send/${encodeURIComponent(eventType)}/${encodeURIComponent(txnId)}`, {}, content);
     }
 
     passwordLogin(username, password) {
@@ -133,5 +138,9 @@ export default class HomeServerApi {
           },
           "password": password
         });
+    }
+
+    createFilter(userId, filter) {
+        return this._post(`/user/${encodeURIComponent(userId)}/filter`, undefined, filter);
     }
 }
