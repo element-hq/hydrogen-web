@@ -2,8 +2,25 @@ import ListView from "../general/ListView.js";
 import TemplateView from "../general/TemplateView.js";
 
 class SessionPickerItem extends TemplateView {
+    constructor(vm) {
+        super(vm, true);
+        this._onDeleteClick = this._onDeleteClick.bind(this);
+    }
+
+    _onDeleteClick(event) {
+        event.stopPropagation();
+        event.preventDefault();
+        this.viewModel.delete();
+    }
+
     render(t) {
-        return t.li([vm => vm.userId]);
+        const deleteButton = t.button({
+            disabled: vm => vm.isDeleting,
+            onClick: event => this._onDeleteClick(event)
+        }, "Delete");
+        const userName = t.span({className: "userId"}, vm => vm.userId);
+        const errorMessage = t.if(vm => vm.error, t => t.span({className: "error"}, vm => vm.error));
+        return t.li([userName, errorMessage, deleteButton]);
     }
 }
 

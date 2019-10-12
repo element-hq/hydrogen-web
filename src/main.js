@@ -1,5 +1,5 @@
 import HomeServerApi from "./matrix/hs-api.js";
-import createIdbStorage from "./matrix/storage/idb/create.js";
+import StorageFactory from "./matrix/storage/idb/create.js";
 import SessionsStore from "./matrix/sessions-store/localstorage/SessionsStore.js";
 import BrawlViewModel from "./domain/BrawlViewModel.js";
 import BrawlView from "./ui/web/BrawlView.js";
@@ -7,7 +7,7 @@ import BrawlView from "./ui/web/BrawlView.js";
 export default async function main(container) {
     try {
         const vm = new BrawlViewModel({
-            createStorage: sessionId => createIdbStorage(`brawl_session_${sessionId}`),
+            storageFactory: new StorageFactory(),
             createHsApi: (homeServer, accessToken = null) => new HomeServerApi(homeServer, accessToken),
             sessionStore: new SessionsStore("brawl_sessions_v1"),
             clock: Date //just for `now` fn

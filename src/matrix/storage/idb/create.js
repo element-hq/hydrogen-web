@@ -1,9 +1,18 @@
 import Storage from "./storage.js";
-import { openDatabase } from "./utils.js";
+import { openDatabase, reqAsPromise } from "./utils.js";
 
-export default async function createIdbStorage(databaseName) {
-    const db = await openDatabase(databaseName, createStores, 1);
-    return new Storage(db);
+export default class StorageFactory {
+    async create(sessionId) {
+        const databaseName = `brawl_session_${sessionId}`;
+        const db = await openDatabase(databaseName, createStores, 1);
+        return new Storage(db);
+    }
+
+    delete(sessionId) {
+        const databaseName = `brawl_session_${sessionId}`;
+        const req = window.indexedDB.deleteDatabase(databaseName);
+        return reqAsPromise(req);
+    }
 }
 
 function createStores(db) {

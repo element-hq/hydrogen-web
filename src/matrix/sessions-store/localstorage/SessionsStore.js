@@ -42,4 +42,11 @@ export default class SessionsStore {
         sessions.push(sessionInfo);
         localStorage.setItem(this._name, JSON.stringify(sessions));
     }
+
+    async delete(sessionId) {
+        let sessions = await this.getAll();
+        sessions = sessions.filter(s => s.id !== sessionId);
+        localStorage.setItem(this._name, JSON.stringify(sessions));
+    }
+    
 }

@@ -6,9 +6,9 @@ import SessionPickerViewModel from "./SessionPickerViewModel.js";
 import EventEmitter from "../EventEmitter.js";
 
 export default class BrawlViewModel extends EventEmitter {
-    constructor({createStorage, sessionStore, createHsApi, clock}) {
+    constructor({storageFactory, sessionStore, createHsApi, clock}) {
         super();
-        this._createStorage = createStorage;
+        this._storageFactory = storageFactory;
         this._sessionStore = sessionStore;
         this._createHsApi = createHsApi;
         this._clock = clock;
@@ -32,6 +32,7 @@ export default class BrawlViewModel extends EventEmitter {
         this._clearSections();
         this._sessionPickerViewModel = new SessionPickerViewModel({
             sessionStore: this._sessionStore,
+            storageFactory: this._storageFactory,
             sessionCallback: sessionInfo => this._onSessionPicked(sessionInfo)
         });
         this.emit("change", "activeSection");
@@ -122,7 +123,7 @@ export default class BrawlViewModel extends EventEmitter {
             this._loading = true;
             this._loadingText = "Loading your conversations…";
             const hsApi = this._createHsApi(sessionInfo.homeServer, sessionInfo.accessToken);
-            const storage = await this._createStorage(sessionInfo.id);
+            const storage = await this._storageFactory.create(sessionInfo.id);
             // no need to pass access token to session
             const filteredSessionInfo = {
                 deviceId: sessionInfo.deviceId,
