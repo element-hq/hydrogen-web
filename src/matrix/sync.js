@@ -58,7 +58,8 @@ export default class Sync extends EventEmitter {
             } catch (err) {
                 this._isSyncing = false;
                 if (!(err instanceof RequestAbortError)) {
-                    console.error("stopping sync because of error", err.stack);
+                    console.error("stopping sync because of error");
+                    console.error(err);
                     this.emit("status", "error", err);
                 }
             }
@@ -112,7 +113,7 @@ export default class Sync extends EventEmitter {
             await syncTxn.complete();
             console.info("syncTxn committed!!");
         } catch (err) {
-            console.error("unable to commit sync tranaction", err.message);
+            console.error("unable to commit sync tranaction");
             throw err;
         }
         // emit room related events after txn has been closed
