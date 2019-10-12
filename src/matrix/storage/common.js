@@ -13,7 +13,7 @@ export const STORE_MAP = Object.freeze(STORE_NAMES.reduce((nameMap, name) => {
 }, {}));
 
 export class StorageError extends Error {
-    constructor(message, cause) {
+    constructor(message, cause, value) {
         let fullMessage = message;
         if (cause) {
             fullMessage += ": ";
@@ -26,5 +26,7 @@ export class StorageError extends Error {
         if (cause) {
             this.errcode = cause.name;
         }
+        this.cause = cause;
+        this.value = value;
     }
 }

@@ -93,12 +93,22 @@ export default class Store extends QueryTarget {
         return new QueryTarget(new QueryTargetWrapper(this._idbStore.index(indexName)));
     }
 
-    put(value) {
-        return reqAsPromise(this._idbStore.put(value));
+    async put(value) {
+        try {
+            return await reqAsPromise(this._idbStore.put(value));
+        } catch(err) {
+            const originalErr = err.cause;
+            throw new StorageError(`put on ${this._idbStore.name} failed`, originalErr, value);
+        }
     }
 
-    add(value) {
-        return reqAsPromise(this._idbStore.add(value));
+    async add(value) {
+        try {
+            return await reqAsPromise(this._idbStore.add(value));
+        } catch(err) {
+            const originalErr = err.cause;
+            throw new StorageError(`add on ${this._idbStore.name} failed`, originalErr, value);
+        }
     }
 
     delete(keyOrKeyRange) {
