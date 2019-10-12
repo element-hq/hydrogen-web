@@ -44,7 +44,7 @@ async function buildHtml() {
         `<script type="text/javascript">main(document.body);</script>`);
     removeOrEnableScript(doc("script#phone-debug-pre"), debug);
     removeOrEnableScript(doc("script#phone-debug-post"), debug);
-    removeOrEnableScript(doc("script#service-worker"), false);
+    removeOrEnableScript(doc("script#service-worker"), offline);
     if (offline) {
         doc("html").attr("manifest", "manifest.appcache");
         doc("head").append(`<link rel="manifest" href="manifest.json">`);
