@@ -40,9 +40,9 @@ class SessionItemViewModel extends EventEmitter {
     get userId() {
         return this._sessionInfo.userId;
     }
-    
-    get lastUsed() {
-        return this._sessionInfo.lastUsed;
+
+    get sessionInfo() {
+        return this._sessionInfo;
     }
 }
 
@@ -51,7 +51,7 @@ export default class SessionPickerViewModel {
         this._storageFactory = storageFactory;
         this._sessionStore = sessionStore;
         this._sessionCallback = sessionCallback;
-        this._sessions = new SortedArray((s1, s2) => (s1.lastUsed || 0) - (s2.lastUsed || 0));
+        this._sessions = new SortedArray((s1, s2) => (s1.sessionInfo.lastUsed || 0) - (s2.sessionInfo.lastUsed || 0));
     }
 
     async load() {
@@ -60,9 +60,9 @@ export default class SessionPickerViewModel {
     }
 
     pick(id) {
-        const session = this._sessions.array.find(s => s.id === id);
-        if (session) {
-            this._sessionCallback(session);
+        const sessionVM = this._sessions.array.find(s => s.id === id);
+        if (sessionVM) {
+            this._sessionCallback(sessionVM.sessionInfo);
         }
     }
 
