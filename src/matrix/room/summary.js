@@ -14,10 +14,25 @@ export default class RoomSummary {
 		this._inviteCount = 0;
 		this._joinCount = 0;
 		this._readMarkerEventId = null;
+        this._heroes = null;
+        this._canonicalAlias = null;
+        this._aliases = null;
 	}
 
 	get name() {
-		return this._name || this._roomId;
+		if (this._name) {
+            return this._name;
+        }
+        if (this._canonicalAlias) {
+            return this._canonicalAlias;
+        }
+        if (this._aliases) {
+            return this._aliases[0];
+        }
+        if (this._heroes) {
+            return this._heroes.join(", ");
+        }
+        return this._roomId;
 	}
 
 	get lastMessage() {
@@ -52,6 +67,9 @@ export default class RoomSummary {
 		this._inviteCount = summary.inviteCount;
 		this._joinCount = summary.joinCount;
 		this._readMarkerEventId = summary.readMarkerEventId;
+        this._heroes = summary.heroes;
+        this._aliases = summary.aliases;
+        this._canonicalAlias = summary.canonicalAlias;
 	}
 
 	_persist(txn) {
@@ -73,16 +91,19 @@ export default class RoomSummary {
 			inviteCount: this._inviteCount,
 			joinCount: this._joinCount,
 			readMarkerEventId: this._readMarkerEventId,
+            heroes: this._heroes,
+            aliases: this._aliases,
+            canonicalAlias: this._canonicalAlias,
 		};
 		return txn.roomSummary.set(summary);
 	}
 
 	_processSyncResponse(roomResponse, membership) {
-		// lets not do lazy loading for now
-		// if (roomResponse.summary) {
-		// 	this._updateSummary(roomResponse.summary);
-		// }
 		let changed = false;
+		if (roomResponse.summary) {
+            this._updateSummary(roomResponse.summary);
+            changed = true;
+		}
 		if (membership !== this._membership) {
 			this._membership = membership;
 			changed = true;
@@ -125,7 +146,15 @@ export default class RoomSummary {
 				this._lastMessageBody = body;
 				return true;
 			}
-		}
+		} else if (event.type === "m.room.canonical_alias") {
+            const content = event.content;
+            this._canonicalAlias = content.alias;
+            return true;
+        } else if (event.type === "m.room.aliases") {
+            const content = event.content;
+            this._aliases = content.aliases;
+            return true;
+        }
 		return false;
 	}
 
@@ -172,6 +201,5 @@ export default class RoomSummary {
 		if (Number.isInteger(joinCount)) {
 			this._joinCount = joinCount;
 		}
-		// this._recaculateNameIfNoneSet();
 	}
 }
