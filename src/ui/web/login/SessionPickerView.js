@@ -31,9 +31,14 @@ class SessionPickerItem extends TemplateView {
             disabled: vm => vm.isClearing,
             onClick: this._onClearClick,
         }, "Clear");
+
+        const json = t.if(vm => vm.json, t => {
+            return t.div(t.pre(vm => vm.json));
+        });
+
         const userName = t.span({className: "userId"}, vm => vm.userId);
         const errorMessage = t.if(vm => vm.error, t => t.span({className: "error"}, vm => vm.error));
-        return t.li([userName, errorMessage, clearButton, deleteButton]);
+        return t.li([t.div({className: "sessionInfo"}, [userName, errorMessage, clearButton, deleteButton]), json]);
     }
 }
 
@@ -41,8 +46,10 @@ export default class SessionPickerView extends TemplateView {
     mount() {
         this._sessionList = new ListView({
             list: this.viewModel.sessions,
-            onItemClick: (item) => {
-                this.viewModel.pick(item.viewModel.id);
+            onItemClick: (item, event) => {
+                if (event.target.closest(".sessionInfo")) {
+                    this.viewModel.pick(item.viewModel.id);
+                }
             },
         }, sessionInfo => {
             return new SessionPickerItem(sessionInfo);

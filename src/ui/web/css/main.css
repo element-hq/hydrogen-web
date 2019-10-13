@@ -41,6 +41,9 @@ body {
   font-size: 1.2em;
   background-color: grey;
   padding: 0.5em;
+}
+
+.SessionPickerView .sessionInfo {
   cursor: pointer;
   display: flex;
 }

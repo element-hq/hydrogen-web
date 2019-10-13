@@ -9,6 +9,7 @@ class SessionItemViewModel extends EventEmitter {
         this._isDeleting = false;
         this._isClearing = false;
         this._error = null;
+        this._showJSON = false;
     }
 
     get error() {
@@ -32,8 +33,8 @@ class SessionItemViewModel extends EventEmitter {
 
     async clear() {
         this._isClearing = true;
-        alert(JSON.stringify(this._sessionInfo, undefined, 2));
-        this.emit("change", "isClearing");
+        this._showJSON = true;
+        this.emit("change");
         try {
             await this._pickerVM.clear(this.id);
         } catch(err) {
@@ -64,6 +65,13 @@ class SessionItemViewModel extends EventEmitter {
 
     get sessionInfo() {
         return this._sessionInfo;
+    }
+
+    get json() {
+        if (this._showJSON) {
+            return JSON.stringify(this._sessionInfo, undefined, 2);
+        }
+        return null;
     }
 }
 
