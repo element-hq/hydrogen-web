@@ -5,22 +5,35 @@ class SessionPickerItem extends TemplateView {
     constructor(vm) {
         super(vm, true);
         this._onDeleteClick = this._onDeleteClick.bind(this);
+        this._onClearClick = this._onClearClick.bind(this);
     }
 
     _onDeleteClick(event) {
         event.stopPropagation();
         event.preventDefault();
-        this.viewModel.delete();
+        if (confirm("Are you sure?")) {
+            this.viewModel.delete();
+        }
+    }
+
+    _onClearClick(event) {
+        event.stopPropagation();
+        event.preventDefault();
+        this.viewModel.clear();
     }
 
     render(t) {
         const deleteButton = t.button({
             disabled: vm => vm.isDeleting,
-            onClick: event => this._onDeleteClick(event)
+            onClick: this._onDeleteClick,
         }, "Delete");
+        const clearButton = t.button({
+            disabled: vm => vm.isClearing,
+            onClick: this._onClearClick,
+        }, "Clear");
         const userName = t.span({className: "userId"}, vm => vm.userId);
         const errorMessage = t.if(vm => vm.error, t => t.span({className: "error"}, vm => vm.error));
-        return t.li([userName, errorMessage, deleteButton]);
+        return t.li([userName, errorMessage, clearButton, deleteButton]);
     }
 }
 

@@ -7,6 +7,7 @@ class SessionItemViewModel extends EventEmitter {
         this._pickerVM = pickerVM;
         this._sessionInfo = sessionInfo;
         this._isDeleting = false;
+        this._isClearing = false;
         this._error = null;
     }
 
@@ -29,8 +30,27 @@ class SessionItemViewModel extends EventEmitter {
         }
     }
 
+    async clear() {
+        this._isClearing = true;
+        this.emit("change", "isClearing");
+        try {
+            await this._pickerVM.clear(this.id);
+        } catch(err) {
+            this._error = err;
+            console.error(err);
+            this.emit("change", "error");
+        } finally {
+            this._isClearing = false;
+            this.emit("change", "isClearing");
+        }
+    }
+
     get isDeleting() {
         return this._isDeleting;
+    }
+
+    get isClearing() {
+        return this._isClearing;
     }
 
     get id() {
@@ -71,6 +91,10 @@ export default class SessionPickerViewModel {
         await this._sessionStore.delete(id);
         await this._storageFactory.delete(id);
         this._sessions.remove(idx);
+    }
+
+    async clear(id) {
+        await this._storageFactory.delete(id);
     }
 
     get sessions() {
