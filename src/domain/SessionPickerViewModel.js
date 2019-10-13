@@ -32,6 +32,7 @@ class SessionItemViewModel extends EventEmitter {
 
     async clear() {
         this._isClearing = true;
+        alert(JSON.stringify(this._sessionInfo, undefined, 2));
         this.emit("change", "isClearing");
         try {
             await this._pickerVM.clear(this.id);
@@ -71,7 +72,7 @@ export default class SessionPickerViewModel {
         this._storageFactory = storageFactory;
         this._sessionStore = sessionStore;
         this._sessionCallback = sessionCallback;
-        this._sessions = new SortedArray((s1, s2) => (s1.sessionInfo.lastUsed || 0) - (s2.sessionInfo.lastUsed || 0));
+        this._sessions = new SortedArray((s1, s2) => s1.id.localeCompare(s2.id));
     }
 
     async load() {
@@ -84,6 +85,15 @@ export default class SessionPickerViewModel {
         if (sessionVM) {
             this._sessionCallback(sessionVM.sessionInfo);
         }
+    }
+
+    async import(json) {
+        const sessionInfo = JSON.parse(json);
+        const sessionId = (Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)).toString();
+        sessionInfo.id = sessionId;
+        sessionInfo.lastUsed = sessionId;
+        await this._sessionStore.add(sessionInfo);
+        this._sessions.set(new SessionItemViewModel(sessionInfo, this));
     }
 
     async delete(id) {

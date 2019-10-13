@@ -54,7 +54,8 @@ export default class SessionPickerView extends TemplateView {
         return t.div({className: "SessionPickerView"}, [
             t.h1(["Pick a session"]),
             this._sessionList.mount(),
-            t.button({onClick: () => this.viewModel.cancel()}, ["Log in to a new session instead"])
+            t.p(t.button({onClick: () => this.viewModel.cancel()}, ["Log in to a new session instead"])),
+            t.p(t.button({onClick: () => this.viewModel.import(prompt("JSON"))}, ["Import Session JSON"]))
         ]);
     }
 
