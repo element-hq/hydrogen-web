@@ -5,14 +5,17 @@ view hierarchy:
             SessionView
                 SyncStatusBar
                 ListView(left-panel)
+                    RoomTile
                 SwitchView
                     RoomPlaceholderView
                     RoomView
                         MiddlePanel
                             ListView(timeline)
+                                event tiles (see ui/session/room/timeline/)
                             ComposerView
                         RightPanel
-            SessionStartView
-                SessionPickView
-                LoginView
+            SessionPickView
+                ListView
+                    SessionPickerItemView
+            LoginView
 ```

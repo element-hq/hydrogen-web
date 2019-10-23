@@ -62,6 +62,19 @@
 
 
 ## Megolm
+ - ??? does every sender in a room have their own megolm session (to send)? I suppose so, yes
+ - we need to pickle inbound and outbound sessions separately ... are they different entities?
+    - they are: OutboundGroupSession and InboundGroupSession
+    - should they be in different stores?
+        - e.g. we have a store for outbound sessions (to send ourselves) and one for inbound
+        - NO! the e2e implementation guide says specifically:
+            "It should store these details as an inbound session, just as it would when receiving them via an m.room_key event."
+        - wait, we probably have to store the session as BOTH an inbound and outbound session?
+            - the outbound one so we can keep using it to encrypt
+            - the inbound one to be able to decrypt our own messages? as we won't send a m.room_key to our own device
+        - so yes, we'll store our own outbound sessions. Riot doesn't do this and just starts new ones when starting the client,
+            but keeping this would probably give us better offline support/less network usage as we wouldn't have to create new megolm session most of the time
+        - and we store the inbound sessions (including the ones derived from our own outbound sessions) to be able to decrypt all messages
  - create new megolm session
      - create new outbound group session
      - get megolm session id and key, put in m.room_key event
@@ -70,6 +83,7 @@
  - receiving new megolm session
     - listen for m.room_key device message
     - decrypt using olm
+    - create inbound group session
     - store megolm session
  - encrypt megolm message
  - decrypt megolm message

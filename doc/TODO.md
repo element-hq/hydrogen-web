@@ -41,7 +41,7 @@
  - DONE: send messages
  - DONE: fill gaps with call to /messages
 
- - build script
+ - DONE: build script
     - DONE: take dev index.html, run some dom modifications to change script tag with `parse5`.
     - DONE: create js bundle, rollup
     - DONE: create css bundle, postcss, probably just need postcss-import for now, but good to have more options
@@ -51,21 +51,27 @@
  - deploy script
     - upload /target to github pages
 
- - offline available
+ - DONE: offline available
     - both offline mechanisms have (filelist, version) as input for their template:
         - create appcache manifest with (index.html, brawl.js, brawl.css) and print version number in it
         - create service worker wit file list to cache (at top const files = "%%FILES_ARRAY%%", version = "%%VERSION%%")
         - write web manifest
- - delete sessions from picker & option to close current session and go back to picker
+ - DONE: delete and clear sessions from picker
+ - option to close current session and go back to picker
  
+ - accept invite
+ - member list
+ - e2e encryption
+ - sync retry strategy
+    - instead of stopping sync on fetch error, show spinner and status and have auto retry strategy
+
  - create room
  - join room
- - accept invite
  - leave room
  - unread rooms, badge count, sort rooms by activity
 
- - create sync filter
- - lazy loading members
+ - DONE: create sync filter
+ - DONE: lazy loading members
  - decide denormalized data in summary vs reading from multiple stores PER room on load
  - allow Room/Summary class to be subclassed and store additional data?
  - store account data, support read markers
