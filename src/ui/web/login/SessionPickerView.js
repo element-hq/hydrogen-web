@@ -1,7 +1,7 @@
 import ListView from "../general/ListView.js";
 import TemplateView from "../general/TemplateView.js";
 
-class SessionPickerItem extends TemplateView {
+class SessionPickerItemView extends TemplateView {
     constructor(vm) {
         super(vm, true);
         this._onDeleteClick = this._onDeleteClick.bind(this);
@@ -52,7 +52,7 @@ export default class SessionPickerView extends TemplateView {
                 }
             },
         }, sessionInfo => {
-            return new SessionPickerItem(sessionInfo);
+            return new SessionPickerItemView(sessionInfo);
         });
         return super.mount();
     }

@@ -69,7 +69,7 @@ class SessionItemViewModel extends EventEmitter {
 
     get json() {
         if (this._showJSON) {
-            return JSON.stringify(this._sessionInfo, undefined, 2);
+            return JSON.stringify(this._sessionInfo);
         }
         return null;
     }
