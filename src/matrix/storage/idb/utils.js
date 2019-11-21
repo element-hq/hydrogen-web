@@ -35,7 +35,7 @@ export function reqAsPromise(req) {
 export function txnAsPromise(txn) {
     return new Promise((resolve, reject) => {
         txn.addEventListener("complete", resolve);
-        txn.addEventListener("abort", e => reject(wrapError(e)));
+        txn.addEventListener("abort", event => reject(wrapError(event.target.error)));
     });
 }
 
