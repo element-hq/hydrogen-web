@@ -93,10 +93,11 @@ export default class SendQueue {
         }
     }
 
-    async enqueueEvent(eventType, content) {
-        const pendingEvent = await this._createAndStoreEvent(eventType, content);
+    async enqueueEvent(eventType, content, log) {
+        const pendingEvent = await log.descend("store pending event").wrap(
+            log => this._createAndStoreEvent(eventType, content, log));
         this._pendingEvents.set(pendingEvent);
-        console.log("added to _pendingEvents set", this._pendingEvents.length);
+        log.set("pendingEvents", this._pendingEvents.length);
         if (!this._isSending && !this._offline) {
             this._sendLoop();
         }
@@ -127,7 +128,7 @@ export default class SendQueue {
         await txn.complete();
     }
 
-    async _createAndStoreEvent(eventType, content) {
+    async _createAndStoreEvent(eventType, content, logger) {
         console.log("_createAndStoreEvent");
         const txn = await this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
         let pendingEvent;

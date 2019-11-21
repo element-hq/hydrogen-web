@@ -3,7 +3,7 @@ import TimelineViewModel from "./timeline/TimelineViewModel.js";
 import {avatarInitials} from "../avatar.js";
 
 export default class RoomViewModel extends EventEmitter {
-    constructor({room, ownUserId, closeCallback}) {
+    constructor({room, ownUserId, closeCallback, logger}) {
         super();
         this._room = room;
         this._ownUserId = ownUserId;
@@ -12,6 +12,7 @@ export default class RoomViewModel extends EventEmitter {
         this._onRoomChange = this._onRoomChange.bind(this);
         this._timelineError = null;
         this._closeCallback = closeCallback;
+        this._logger = logger;
     }
 
     async load() {
@@ -64,12 +65,17 @@ export default class RoomViewModel extends EventEmitter {
         return avatarInitials(this._room.name);
     }
 
-    sendMessage(message) {
+    async sendMessage(message) {
         if (message) {
             try {
-                this._room.sendEvent("m.room.message", {msgtype: "m.text", body: message});
+                await this._logger.start("send message").wrapAsync(sendLogger => {
+                    return this._room.sendEvent(
+                        "m.room.message",
+                        {msgtype: "m.text", body: message},
+                        sendLogger
+                    );
+                });
             } catch (err) {
-                console.error(`room.sendMessage(): ${err.message}:\n${err.stack}`);
                 this._timelineError = err;
                 this.emit("change", "error");
                 return false;

@@ -52,8 +52,8 @@ export default class Room extends EventEmitter {
 		return this._syncWriter.load(txn);
 	}
 
-    sendEvent(eventType, content) {
-        this._sendQueue.enqueueEvent(eventType, content);
+    sendEvent(eventType, content, logger) {
+        return this._sendQueue.enqueueEvent(eventType, content, logger);
     }
 
     get name() {

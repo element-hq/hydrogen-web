@@ -6,12 +6,13 @@ import SessionPickerViewModel from "./SessionPickerViewModel.js";
 import EventEmitter from "../EventEmitter.js";
 
 export default class BrawlViewModel extends EventEmitter {
-    constructor({storageFactory, sessionStore, createHsApi, clock}) {
+    constructor({storageFactory, sessionStore, createHsApi, clock, logger}) {
         super();
         this._storageFactory = storageFactory;
         this._sessionStore = sessionStore;
         this._createHsApi = createHsApi;
         this._clock = clock;
+        this._logger = logger;
 
         this._loading = false;
         this._error = null;
@@ -58,7 +59,7 @@ export default class BrawlViewModel extends EventEmitter {
 
     _showSession(session, sync) {
         this._clearSections();
-        this._sessionViewModel = new SessionViewModel({session, sync});
+        this._sessionViewModel = new SessionViewModel({session, sync, logger: this._logger});
         this.emit("change", "activeSection");
     }
 

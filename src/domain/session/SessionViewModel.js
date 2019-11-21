@@ -4,7 +4,7 @@ import RoomViewModel from "./room/RoomViewModel.js";
 import SyncStatusViewModel from "./SyncStatusViewModel.js";
 
 export default class SessionViewModel extends EventEmitter {
-    constructor({session, sync}) {
+    constructor({session, sync, logger}) {
         super();
         this._session = session;
         this._syncStatusViewModel = new SyncStatusViewModel(sync);
@@ -17,6 +17,7 @@ export default class SessionViewModel extends EventEmitter {
             });
         });
         this._roomList = roomTileVMs.sortValues((a, b) => a.compare(b));
+        this._logger = logger;
     }
 
     get syncStatusViewModel() {
@@ -47,6 +48,7 @@ export default class SessionViewModel extends EventEmitter {
             room,
             ownUserId: this._session.user.id,
             closeCallback: () => this._closeCurrentRoom(),
+            logger: this._logger,
         });
         this._currentRoomViewModel.load();
         this.emit("change", "currentRoom");
