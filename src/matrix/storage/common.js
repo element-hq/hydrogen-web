@@ -17,8 +17,11 @@ export class StorageError extends Error {
         let fullMessage = message;
         if (cause) {
             fullMessage += ": ";
-            if (cause.name) {
-                fullMessage += `(${cause.name}) `;
+            if (typeof cause.name === "string") {
+                fullMessage += `(name: ${cause.name}) `;
+            }
+            if (typeof cause.code === "number") {
+                fullMessage += `(code: ${cause.name}) `;
             }
             fullMessage += cause.message;
         }
