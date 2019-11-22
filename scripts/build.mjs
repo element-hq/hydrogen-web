@@ -14,7 +14,7 @@ const __dirname = dirname(__filename);
 const projectDir = path.join(__dirname, "../");
 const targetDir = path.join(projectDir, "target");
 
-const debug = true;
+const debug = false;
 const offline = true;
 
 async function build() {
