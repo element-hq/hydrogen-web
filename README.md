@@ -18,4 +18,4 @@ If you find this interesting, feel free to reach me at `@bwindels:matrix.org`.
 
 # How to use
 
-I haven't made a deployment script yet for this, so for now you need to locally `yarn start` or `npm start` and point your browser to `http://localhost:3000`.
+You can [try Brawl here](https://bwindels.github.io/brawl/), or try it locally by running `yarn install` (only the first time) and `yarn start` in the terminal, and point your browser to `http://localhost:3000`.
