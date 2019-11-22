@@ -19,7 +19,8 @@ export default class LoginView extends TemplateView {
                 onClick: () => vm.login(username.value, password.value, homeserver.value),
                 disabled: vm => vm.loading
             }, "Log In")),
-            t.div(t.button({onClick: () => vm.cancel()}, ["Pick an existing session"]))
+            t.div(t.button({onClick: () => vm.cancel()}, ["Pick an existing session"])),
+            t.p(t.a({href: "https://github.com/bwindels/brawl-chat"}, ["Brawl on Github"]))
         ]);
     }
 }
