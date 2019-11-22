@@ -26,10 +26,10 @@ export default class RoomSummary {
         if (this._canonicalAlias) {
             return this._canonicalAlias;
         }
-        if (this._aliases) {
+        if (Array.isArray(this._aliases) && this._aliases.length !== 0) {
             return this._aliases[0];
         }
-        if (this._heroes) {
+        if (Array.isArray(this._heroes) && this._heroes.length !== 0) {
             return this._heroes.join(", ");
         }
         return this._roomId;
