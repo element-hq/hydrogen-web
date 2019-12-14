@@ -5,6 +5,10 @@ import LoginViewModel from "./LoginViewModel.js";
 import SessionPickerViewModel from "./SessionPickerViewModel.js";
 import EventEmitter from "../EventEmitter.js";
 
+export function createNewSessionId() {
+    return (Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)).toString();
+}
+
 export default class BrawlViewModel extends EventEmitter {
     constructor({storageFactory, sessionStore, createHsApi, clock}) {
         super();
@@ -93,7 +97,7 @@ export default class BrawlViewModel extends EventEmitter {
     async _onLoginFinished(loginData) {
         if (loginData) {
             // TODO: extract random() as it is a source of non-determinism
-            const sessionId = (Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)).toString();
+            const sessionId = createNewSessionId();
             const sessionInfo = {
                 id: sessionId,
                 deviceId: loginData.device_id,
