@@ -1,5 +1,6 @@
 import {SortedArray} from "../observable/index.js";
 import EventEmitter from "../EventEmitter.js";
+import {createNewSessionId} from "./BrawlViewModel.js"
 
 class SessionItemViewModel extends EventEmitter {
     constructor(sessionInfo, pickerVM) {
@@ -9,7 +10,7 @@ class SessionItemViewModel extends EventEmitter {
         this._isDeleting = false;
         this._isClearing = false;
         this._error = null;
-        this._showJSON = false;
+        this._exportDataUrl = null;
     }
 
     get error() {
@@ -33,7 +34,6 @@ class SessionItemViewModel extends EventEmitter {
 
     async clear() {
         this._isClearing = true;
-        this._showJSON = true;
         this.emit("change");
         try {
             await this._pickerVM.clear(this.id);
@@ -59,19 +59,42 @@ class SessionItemViewModel extends EventEmitter {
         return this._sessionInfo.id;
     }
 
-    get userId() {
-        return this._sessionInfo.userId;
+    get label() {
+        const {userId, comment} =  this._sessionInfo;
+        if (comment) {
+            return `${userId} (${comment})`;
+        } else {
+            return userId;
+        }
     }
 
     get sessionInfo() {
         return this._sessionInfo;
     }
 
-    get json() {
-        if (this._showJSON) {
-            return JSON.stringify(this._sessionInfo);
+    get exportDataUrl() {
+        return this._exportDataUrl;
+    }
+
+    async export() {
+        try {
+            const data = await this._pickerVM._exportData(this._sessionInfo.id);
+            const json = JSON.stringify(data, undefined, 2);
+            const blob = new Blob([json], {type: "application/json"});
+            this._exportDataUrl = URL.createObjectURL(blob);
+            this.emit("change", "exportDataUrl");
+        } catch (err) {
+            alert(err.message);
+            console.error(err);
         }
-        return null;
+    }
+
+    clearExport() {
+        if (this._exportDataUrl) {
+            URL.revokeObjectURL(this._exportDataUrl);
+            this._exportDataUrl = null;
+            this.emit("change", "exportDataUrl");
+        }
     }
 }
 
@@ -95,11 +118,19 @@ export default class SessionPickerViewModel {
         }
     }
 
+    async _exportData(id) {
+        const sessionInfo = await this._sessionStore.get(id);
+        const stores = await this._storageFactory.export(id);
+        const data = {sessionInfo, stores};
+        return data;
+    }
+
     async import(json) {
-        const sessionInfo = JSON.parse(json);
-        const sessionId = (Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)).toString();
-        sessionInfo.id = sessionId;
-        sessionInfo.lastUsed = sessionId;
+        const data = JSON.parse(json);
+        const {sessionInfo} = data;
+        sessionInfo.comment = `Imported on ${new Date().toLocaleString()} from id ${sessionInfo.id}.`;
+        sessionInfo.id = createNewSessionId();
+        await this._storageFactory.import(sessionInfo.id, data.stores);
         await this._sessionStore.add(sessionInfo);
         this._sessions.set(new SessionItemViewModel(sessionInfo, this));
     }

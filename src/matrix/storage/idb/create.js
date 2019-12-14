@@ -1,17 +1,30 @@
 import Storage from "./storage.js";
 import { openDatabase, reqAsPromise } from "./utils.js";
+import { exportSession, importSession } from "./export.js";
+
+const sessionName = sessionId => `brawl_session_${sessionId}`;
+const openDatabaseWithSessionId = sessionId => openDatabase(sessionName(sessionId), createStores, 1);
 
 export default class StorageFactory {
     async create(sessionId) {
-        const databaseName = `brawl_session_${sessionId}`;
-        const db = await openDatabase(databaseName, createStores, 1);
+        const db = await openDatabaseWithSessionId(sessionId);
         return new Storage(db);
     }
 
     delete(sessionId) {
-        const databaseName = `brawl_session_${sessionId}`;
+        const databaseName = sessionName(sessionId);
         const req = window.indexedDB.deleteDatabase(databaseName);
         return reqAsPromise(req);
+    }
+
+    async export(sessionId) {
+        const db = await openDatabaseWithSessionId(sessionId);
+        return await exportSession(db);
+    }
+
+    async import(sessionId, data) {
+        const db = await openDatabaseWithSessionId(sessionId);
+        return await importSession(db, data);
     }
 }
 
