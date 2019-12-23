@@ -1,30 +1,25 @@
 import {
     HomeServerError,
-    RequestAbortError,
-    NetworkError
 } from "./error.js";
 
 class RequestWrapper {
-    constructor(promise, controller) {
-        if (!controller) {
-            const abortPromise = new Promise((_, reject) => {
-                this._controller = {
-                    abort() {
-                        const err = new Error("fetch request aborted");
-                        err.name = "AbortError";
-                        reject(err);
-                    }
-                };
-            });
-            this._promise = Promise.race([promise, abortPromise]);
-        } else {
-            this._promise = promise;
-            this._controller = controller;
-        }
+    constructor(method, url, requestResult) {
+        this._requestResult = requestResult;
+        this._promise = this._requestResult.response().then(response => {
+            // ok?
+            if (response.status >= 200 && response.status < 300) {
+                return response.body;
+            } else {
+                switch (response.status) {
+                    default:
+                        throw new HomeServerError(method, url, response.body);
+                }
+            }
+        });
     }
 
     abort() {
-        this._controller.abort();
+        return this._requestResult.abort();
     }
 
     response() {
@@ -32,13 +27,13 @@ class RequestWrapper {
     }
 }
 
-// todo: everywhere here, encode params in the url that could have slashes ... mainly event ids?
 export default class HomeServerApi {
-    constructor(homeserver, accessToken) {
+    constructor({homeServer, accessToken, request}) {
         // store these both in a closure somehow so it's harder to get at in case of XSS?
         // one could change the homeserver as well so the token gets sent there, so both must be protected from read/write
-        this._homeserver = homeserver;
+        this._homeserver = homeServer;
         this._accessToken = accessToken;
+        this._requestFn = request;
     }
 
     _url(csPath) {
@@ -66,42 +61,12 @@ export default class HomeServerApi {
             headers.append("Content-Type", "application/json");
             bodyString = JSON.stringify(body);
         }
-        const controller = typeof AbortController === "function" ? new AbortController() : null;
-        // TODO: set authenticated headers with second arguments, cache them
-        let promise = fetch(url, {
+        const requestResult = this._requestFn(url, {
             method,
             headers,
             body: bodyString,
-            signal: controller && controller.signal,
-            mode: "cors",
-            credentials: "omit",
-            referrer: "no-referrer",
-            cache: "no-cache",
         });
-        promise = promise.then(async (response) => {
-            if (response.ok) {
-                return await response.json();
-            } else {
-                switch (response.status) {
-                    default:
-                        throw new HomeServerError(method, url, await response.json())
-                }
-            }
-        }, err => {
-            if (err.name === "AbortError") {
-                throw new RequestAbortError();
-            } else if (err instanceof TypeError) {
-                // Network errors are reported as TypeErrors, see
-                // https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch#Checking_that_the_fetch_was_successful
-                // this can either mean user is offline, server is offline, or a CORS error (server misconfiguration).
-                // 
-                // One could check navigator.onLine to rule out the first
-                // but the 2 later ones are indistinguishable from javascript.
-                throw new NetworkError(`${method} ${url}: ${err.message}`);
-            }
-            throw err;
-        });
-        return new RequestWrapper(promise, controller);
+        return new RequestWrapper(method, url, requestResult);
     }
 
     _post(csPath, queryParams, body) {
