@@ -18,9 +18,8 @@ function deduplicateEvents(events) {
 }
 
 export default class SyncWriter {
-    constructor({roomId, storage, fragmentIdComparer}) {
+    constructor({roomId, fragmentIdComparer}) {
         this._roomId = roomId;
-        this._storage = storage;
         this._fragmentIdComparer = fragmentIdComparer;
         this._lastLiveKey = null;
     }

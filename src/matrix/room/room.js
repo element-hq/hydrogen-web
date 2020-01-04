@@ -13,7 +13,7 @@ export default class Room extends EventEmitter {
         this._hsApi = hsApi;
 		this._summary = new RoomSummary(roomId);
         this._fragmentIdComparer = new FragmentIdComparer([]);
-		this._syncWriter = new SyncWriter({roomId, storage, fragmentIdComparer: this._fragmentIdComparer});
+		this._syncWriter = new SyncWriter({roomId, fragmentIdComparer: this._fragmentIdComparer});
         this._emitCollectionChange = emitCollectionChange;
         this._sendQueue = new SendQueue({roomId, storage, sendScheduler, pendingEvents});
         this._timeline = null;
