@@ -84,23 +84,23 @@ export default class SyncWriter {
     async writeSync(roomResponse, txn) {
         const entries = [];
         const timeline = roomResponse.timeline;
-        if (!this._lastLiveKey) {
+        let currentKey = this._lastLiveKey;
+        if (!currentKey) {
             // means we haven't synced this room yet (just joined or did initial sync)
             
             // as this is probably a limited sync, prev_batch should be there
             // (but don't fail if it isn't, we won't be able to back-paginate though)
             let liveFragment = await this._createLiveFragment(txn, timeline.prev_batch);
-            this._lastLiveKey = new EventKey(liveFragment.id, EventKey.defaultLiveKey.eventIndex);
+            currentKey = new EventKey(liveFragment.id, EventKey.defaultLiveKey.eventIndex);
             entries.push(FragmentBoundaryEntry.start(liveFragment, this._fragmentIdComparer));
         } else if (timeline.limited) {
             // replace live fragment for limited sync, *only* if we had a live fragment already
-            const oldFragmentId = this._lastLiveKey.fragmentId;
-            this._lastLiveKey = this._lastLiveKey.nextFragmentKey();
-            const {oldFragment, newFragment} = await this._replaceLiveFragment(oldFragmentId, this._lastLiveKey.fragmentId, timeline.prev_batch, txn);
+            const oldFragmentId = currentKey.fragmentId;
+            currentKey = currentKey.nextFragmentKey();
+            const {oldFragment, newFragment} = await this._replaceLiveFragment(oldFragmentId, currentKey.fragmentId, timeline.prev_batch, txn);
             entries.push(FragmentBoundaryEntry.end(oldFragment, this._fragmentIdComparer));
             entries.push(FragmentBoundaryEntry.start(newFragment, this._fragmentIdComparer));
         }
-        let currentKey = this._lastLiveKey;
         if (timeline.events) {
             const events = deduplicateEvents(timeline.events);
             for(const event of events) {
@@ -110,12 +110,6 @@ export default class SyncWriter {
                 entries.push(new EventEntry(entry, this._fragmentIdComparer));
             }
         }
-        // right thing to do? if the txn fails, not sure we'll continue anyways ...
-        // only advance the key once the transaction has succeeded 
-        txn.complete().then(() => {
-            this._lastLiveKey = currentKey;
-        })
-
         // persist state
         const state = roomResponse.state;
         if (state.events) {
@@ -132,7 +126,11 @@ export default class SyncWriter {
             }
         }
 
-        return entries;
+        return {entries, newLiveKey: currentKey};
+    }
+
+    setKeyOnCompleted(newLiveKey) {
+        this._lastLiveKey = newLiveKey;
     }
 }
 
