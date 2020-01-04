@@ -13,7 +13,7 @@ export default class Room extends EventEmitter {
         this._hsApi = hsApi;
 		this._summary = new RoomSummary(roomId);
         this._fragmentIdComparer = new FragmentIdComparer([]);
-		this._syncWriter = new SyncWriter({roomId, storage, fragmentIdComparer: this._fragmentIdComparer});
+		this._syncWriter = new SyncWriter({roomId, fragmentIdComparer: this._fragmentIdComparer});
         this._emitCollectionChange = emitCollectionChange;
         this._sendQueue = new SendQueue({roomId, storage, sendScheduler, pendingEvents});
         this._timeline = null;
@@ -22,19 +22,20 @@ export default class Room extends EventEmitter {
 
     async persistSync(roomResponse, membership, txn) {
 		const summaryChanged = this._summary.applySync(roomResponse, membership, txn);
-		const newTimelineEntries = await this._syncWriter.writeSync(roomResponse, txn);
+		const {entries, newLiveKey} = await this._syncWriter.writeSync(roomResponse, txn);
         let removedPendingEvents;
         if (roomResponse.timeline && roomResponse.timeline.events) {
             removedPendingEvents = this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn);
         }
-        return {summaryChanged, newTimelineEntries, removedPendingEvents};
+        return {summaryChanged, newTimelineEntries: entries, newLiveKey, removedPendingEvents};
     }
 
-    emitSync({summaryChanged, newTimelineEntries, removedPendingEvents}) {
+    emitSync({summaryChanged, newTimelineEntries, newLiveKey, removedPendingEvents}) {
         if (summaryChanged) {
             this.emit("change");
             this._emitCollectionChange(this);
         }
+        this._syncWriter.setKeyOnCompleted(newLiveKey);
         if (this._timeline) {
             this._timeline.appendLiveEntries(newTimelineEntries);
         }
