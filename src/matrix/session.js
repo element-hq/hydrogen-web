@@ -105,3 +105,51 @@ export default class Session {
         return this._user;
     }
 }
+
+export function tests() {
+    function createStorageMock(session, pendingEvents) {
+        return {
+            readTxn() {
+                return Promise.resolve({
+                    session: {
+                        get() {
+                            return Promise.resolve(Object.assign({}, session));
+                        }
+                    },
+                    pendingEvents: {
+                        getAll() {
+                            return Promise.resolve(pendingEvents);
+                        }
+                    }
+                });
+            }
+        };
+    }
+
+    return {
+        "session data is not modified until after sync": async (assert) => {
+            const session = new Session({storage: createStorageMock({
+                syncToken: "a",
+                syncFilterId: 5,
+            })});
+            await session.load();
+            let txnSetCalled = false;
+            const syncTxn = {
+                session: {
+                    set({syncToken, syncFilterId}) {
+                        txnSetCalled = true;
+                        assert.equals(syncToken, "b");
+                        assert.equals(syncFilterId, 6);
+                    }
+                }
+            };
+            const newSessionData = session.persistSync("b", 6, {}, syncTxn);
+            assert(txnSetCalled);
+            assert.equals(session.syncToken, "a");
+            assert.equals(session.syncFilterId, 5);
+            session.afterSync(newSessionData);
+            assert.equals(session.syncToken, "b");
+            assert.equals(session.syncFilterId, 6);
+        }
+    }
+}
