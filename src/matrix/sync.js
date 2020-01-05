@@ -85,8 +85,9 @@ export default class Sync extends EventEmitter {
             storeNames.pendingEvents,
         ]);
         const roomChanges = [];
+        let sessionChanges;
         try {
-            this._session.persistSync(syncToken, syncFilterId, response.account_data,  syncTxn);
+            sessionChanges = this._session.persistSync(syncToken, syncFilterId, response.account_data,  syncTxn);
             // to_device
             // presence
             if (response.rooms) {
@@ -116,6 +117,7 @@ export default class Sync extends EventEmitter {
             console.error("unable to commit sync tranaction");
             throw err;
         }
+        this._session.afterSync(sessionChanges);
         // emit room related events after txn has been closed
         for(let {room, changes} of roomChanges) {
             room.emitSync(changes);

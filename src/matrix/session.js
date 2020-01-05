@@ -79,9 +79,17 @@ export default class Session {
 
     persistSync(syncToken, syncFilterId, accountData, txn) {
         if (syncToken !== this._session.syncToken) {
-            this._session.syncToken = syncToken;
-            this._session.syncFilterId = syncFilterId;
-            txn.session.set(this._session);
+            // don't modify this._session because transaction might still fail
+            const newSessionData = Object.assign({}, this._session, {syncToken, syncFilterId});
+            txn.session.set(newSessionData);
+            return newSessionData;
+        }
+    }
+
+    afterSync(newSessionData) {
+        if (newSessionData) {
+            // sync transaction succeeded, modify object state now
+            this._session = newSessionData;
         }
     }
 
