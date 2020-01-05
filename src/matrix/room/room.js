@@ -30,7 +30,7 @@ export default class Room extends EventEmitter {
         return {summaryChanged, newTimelineEntries: entries, newLiveKey, removedPendingEvents};
     }
 
-    emitSync({summaryChanged, newTimelineEntries, newLiveKey, removedPendingEvents}) {
+    afterSync({summaryChanged, newTimelineEntries, newLiveKey, removedPendingEvents}) {
         if (summaryChanged) {
             this.emit("change");
             this._emitCollectionChange(this);

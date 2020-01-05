@@ -120,7 +120,7 @@ export default class Sync extends EventEmitter {
         this._session.afterSync(sessionChanges);
         // emit room related events after txn has been closed
         for(let {room, changes} of roomChanges) {
-            room.emitSync(changes);
+            room.afterSync(changes);
         }
 
         return syncToken;
