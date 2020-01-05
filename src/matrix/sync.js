@@ -87,7 +87,7 @@ export default class Sync extends EventEmitter {
         const roomChanges = [];
         let sessionChanges;
         try {
-            sessionChanges = this._session.persistSync(syncToken, syncFilterId, response.account_data,  syncTxn);
+            sessionChanges = this._session.writeSync(syncToken, syncFilterId, response.account_data,  syncTxn);
             // to_device
             // presence
             if (response.rooms) {
@@ -97,7 +97,7 @@ export default class Sync extends EventEmitter {
                         room = this._session.createRoom(roomId);
                     }
                     console.log(` * applying sync response to room ${roomId} ...`);
-                    const changes = await room.persistSync(roomResponse, membership, syncTxn);
+                    const changes = await room.writeSync(roomResponse, membership, syncTxn);
                     roomChanges.push({room, changes});
                 });
                 await Promise.all(promises);

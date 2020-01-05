@@ -20,7 +20,7 @@ export default class Room extends EventEmitter {
         this._user = user;
 	}
 
-    async persistSync(roomResponse, membership, txn) {
+    async writeSync(roomResponse, membership, txn) {
 		const summaryChanges = this._summary.writeSync(roomResponse, membership, txn);
 		const {entries, newLiveKey} = await this._syncWriter.writeSync(roomResponse, txn);
         let removedPendingEvents;
@@ -31,12 +31,12 @@ export default class Room extends EventEmitter {
     }
 
     afterSync({summaryChanges, newTimelineEntries, newLiveKey, removedPendingEvents}) {
+        this._syncWriter.afterSync(newLiveKey);
         if (summaryChanges) {
             this._summary.afterSync(summaryChanges);
             this.emit("change");
             this._emitCollectionChange(this);
         }
-        this._syncWriter.setKeyOnCompleted(newLiveKey);
         if (this._timeline) {
             this._timeline.appendLiveEntries(newTimelineEntries);
         }

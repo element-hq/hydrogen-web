@@ -77,7 +77,7 @@ export default class Session {
         return room;
     }
 
-    persistSync(syncToken, syncFilterId, accountData, txn) {
+    writeSync(syncToken, syncFilterId, accountData, txn) {
         if (syncToken !== this._session.syncToken) {
             // don't modify this._session because transaction might still fail
             const newSessionData = Object.assign({}, this._session, {syncToken, syncFilterId});
@@ -143,7 +143,7 @@ export function tests() {
                     }
                 }
             };
-            const newSessionData = session.persistSync("b", 6, {}, syncTxn);
+            const newSessionData = session.writeSync("b", 6, {}, syncTxn);
             assert(txnSetCalled);
             assert.equals(session.syncToken, "a");
             assert.equals(session.syncFilterId, 5);
