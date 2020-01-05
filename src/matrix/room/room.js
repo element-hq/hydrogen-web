@@ -25,6 +25,12 @@ export default class Room extends EventEmitter {
 		const {entries, newLiveKey} = await this._syncWriter.writeSync(roomResponse, txn);
         let removedPendingEvents;
         if (roomResponse.timeline && roomResponse.timeline.events) {
+            // XXX: in case of gappy sync, we won't ever delete our own remote echos!!!
+            // as we don't remove on filling a gap
+            // we should only try to send it again if it doesn't have a remoteId yet
+            // and also remove pending events on filling a gap
+            // so we show the pending event as long as we don't have the remote copy,
+            // but ensure to only send it once.
             removedPendingEvents = this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn);
         }
         return {summaryChanges, newTimelineEntries: entries, newLiveKey, removedPendingEvents};
