@@ -90,6 +90,10 @@
  - rotate megolm session
     - ??? does this happen automatically?
  - deactive sessions when members leave the room
+ 
+## SendQueue
+
+we'll need to pass an implementation of EventSender or something to SendQueue that does the actual requests to send a message, one implementation for non-e2ee rooms (upload attachment, send event OR redact, ...) and one for e2ee rooms that send the olm keys, etc ... encrypts the message before sending, reusing as much logic as possible. this will entail multiple sendScheduler.request slots, as we should only do one request per slot, making sure if we'd restart that steps completed in sending are stored so we don't run them again (advancing olm key, ...) or they are safe to rerun. The `E2eeEventSender` or so would then also be the thing that has a dependency on the memberlist for device tracking, which keeps the dependency tree clean (e.g. no setMembers on a class that does both e2ee and non-e2ee)
 
 ## Verifying devices
  - validate fingerprint
