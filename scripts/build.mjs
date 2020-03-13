@@ -90,7 +90,7 @@ async function buildOffline(version) {
     const webManifest = {
         name: "Brawl Chat",
         short_name: "Brawl",
-        display: "standalone",
+        display: "fullscreen",
         start_url: "index.html",
         icons: [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"}],
     };
