@@ -1,173 +1,140 @@
 // import SummaryMembers from "./members";
 
-class ChangeSet {
-    constructor(initialValues) {
-        this.values = initialValues;
-        this.changed = false;
-        const names = Object.keys(initialValues);
-        const propDefinitions = names.reduce((propDefinitions, name) => {
-            propDefinitions[name] = {
-                get: () => this.values[name],
-                set: value => {
-                    this.changed = true;
-                    this.values[name] = value;
-                }
-            }
-            return propDefinitions;
-        }, {});
-        Object.defineProperties(this, propDefinitions);
+
+function applySyncResponse(data, roomResponse, membership) {
+    if (roomResponse.summary) {
+        data = updateSummary(data, roomResponse.summary);
+    }
+    if (membership !== this._membership) {
+        data = data.cloneIfNeeded();
+        data.membership = membership;
+    }
+    // state comes before timeline
+    if (roomResponse.state) {
+        data = roomResponse.state.events.reduce(processEvent, data);
+    }
+    if (roomResponse.timeline) {
+        data = roomResponse.timeline.events.reduce(processEvent, data);
     }
 
-    clone() {
-        return new (this.constructor)(Object.assign({}, this.values));
+    return changed;
+}
+
+function processEvent(data, event) {
+    if (event.type === "m.room.encryption") {
+        if (!data.isEncrypted) {
+            data = data.cloneIfNeeded();
+            data.isEncrypted = true;
+        }
     }
+    if (event.type === "m.room.name") {
+        const newName = event.content && event.content.name;
+        if (newName !== data.name) {
+            data = data.cloneIfNeeded();
+            data.name = newName;
+        }
+    } else if (event.type === "m.room.member") {
+        return processMembership(data, event);
+    } else if (event.type === "m.room.message") {
+        const content = event.content;
+        const body = content && content.body;
+        const msgtype = content && content.msgtype;
+        if (msgtype === "m.text") {
+            data = data.cloneIfNeeded();
+            data.lastMessageBody = body;
+        }
+    } else if (event.type === "m.room.canonical_alias") {
+        const content = event.content;
+        data = data.cloneIfNeeded();
+        data.canonicalAlias = content.alias;
+    } else if (event.type === "m.room.aliases") {
+        const content = event.content;
+        data = data.cloneIfNeeded();
+        data.aliases = content.aliases;
+    }
+    return data;
+}
+
+function processMembership(data, event) {
+    const prevMembership = event.prev_content && event.prev_content.membership;
+    if (!event.content) {
+        return data;
+    }
+    const content = event.content;
+    const membership = content.membership;
+    // danger of a replayed event getting the count out of sync
+    // but summary api will solve this.
+    // otherwise we'd have to store all the member ids in here
+    if (membership !== prevMembership) {
+        data = data.cloneIfNeeded();
+        switch (prevMembership) {
+            case "invite": data.inviteCount -= 1; break;
+            case "join": data.joinCount -= 1; break;
+        }
+        switch (membership) {
+            case "invite": data.inviteCount += 1; break;
+            case "join": data.joinCount += 1; break;
+        }
+    }
+    return data;
+}
+
+function updateSummary(data, summary) {
+    const heroes = summary["m.heroes"];
+    const inviteCount = summary["m.joined_member_count"];
+    const joinCount = summary["m.invited_member_count"];
+
+    if (heroes) {
+        data = data.cloneIfNeeded();
+        data.heroes = heroes;
+    }
+    if (Number.isInteger(inviteCount)) {
+        data = data.cloneIfNeeded();
+        data.inviteCount = inviteCount;
+    }
+    if (Number.isInteger(joinCount)) {
+        data = data.cloneIfNeeded();
+        data.joinCount = joinCount;
+    }
+    return data;
 }
 
 class SummaryData extends ChangeSet {
-
-    constructor(roomId) {
-        this.roomId = roomId;
-        this.name = null;
-        this.lastMessageBody = null;
-        this.unreadCount = null;
-        this.mentionCount = null;
-        this.isEncrypted = null;
-        this.isDirectMessage = null;
-        this.membership = null;
-        this.inviteCount = 0;
-        this.joinCount = 0;
-        this.readMarkerEventId = null;
-        this.heroes = null;
-        this.canonicalAlias = null;
-        this.aliases = null;
+    constructor(copy, roomId) {
+        this.roomId = copy ? copy.roomId : roomId;
+        this.name = copy ? copy.name : null;
+        this.lastMessageBody = copy ? copy.lastMessageBody : null;
+        this.unreadCount = copy ? copy.unreadCount : null;
+        this.mentionCount = copy ? copy.mentionCount : null;
+        this.isEncrypted = copy ? copy.isEncrypted : null;
+        this.isDirectMessage = copy ? copy.isDirectMessage : null;
+        this.membership = copy ? copy.membership : null;
+        this.inviteCount = copy ? copy.inviteCount : 0;
+        this.joinCount = copy ? copy.joinCount : 0;
+        this.readMarkerEventId = copy ? copy.readMarkerEventId : null;
+        this.heroes = copy ? copy.heroes : null;
+        this.canonicalAlias = copy ? copy.canonicalAlias : null;
+        this.aliases = copy ? copy.aliases : null;
+        this.cloned = copy ? true : false;
     }
 
-    clone() {
-        const copy = new SummaryData(this.roomId);
-        copy.name = this.name;
-        copy.lastMessageBody = this.lastMessageBody;
-        copy.unreadCount = this.unreadCount;
-        copy.mentionCount = this.mentionCount;
-        copy.isEncrypted = this.isEncrypted;
-        copy.isDirectMessage = this.isDirectMessage;
-        copy.membership = this.membership;
-        copy.inviteCount = this.inviteCount;
-        copy.joinCount = this.joinCount;
-        copy.readMarkerEventId = this.readMarkerEventId;
-        copy.heroes = this.heroes;
-        copy.canonicalAlias = this.canonicalAlias;
-        copy.aliases = this.aliases;
+    cloneIfNeeded() {
+        if (this.cloned) {
+            return this;
+        } else {
+            return new SummaryData(this);
+        }
     }
 
-    applySyncResponse(roomResponse, membership) {
-        let changed = false;
-        if (roomResponse.summary) {
-            this._updateSummary(roomResponse.summary);
-            changed = true;
-        }
-        if (membership !== this._membership) {
-            this._membership = membership;
-            changed = true;
-        }
-        // state comes before timeline
-        if (roomResponse.state) {
-            changed = roomResponse.state.events.reduce((changed, e) => {
-                return this._processEvent(e) || changed;
-            }, changed);
-        }
-        if (roomResponse.timeline) {
-            changed = roomResponse.timeline.events.reduce((changed, e) => {
-                return this._processEvent(e) || changed;
-            }, changed);
-        }
-
-        return changed;
-    }
-
-    _processEvent(event) {
-        if (event.type === "m.room.encryption") {
-            if (!this.isEncrypted) {
-                this.isEncrypted = true;
-                return true;
-            }
-        }
-        if (event.type === "m.room.name") {
-            const newName = event.content && event.content.name;
-            if (newName !== this.name) {
-                this.name = newName;
-                return true;
-            }
-        } else if (event.type === "m.room.member") {
-            return this._processMembership(event);
-        } else if (event.type === "m.room.message") {
-            const content = event.content;
-            const body = content && content.body;
-            const msgtype = content && content.msgtype;
-            if (msgtype === "m.text") {
-                this.lastMessageBody = body;
-                return true;
-            }
-        } else if (event.type === "m.room.canonical_alias") {
-            const content = event.content;
-            this.canonicalAlias = content.alias;
-            return true;
-        } else if (event.type === "m.room.aliases") {
-            const content = event.content;
-            this.aliases = content.aliases;
-            return true;
-        }
-        return false;
-    }
-
-    _processMembership(event) {
-        let changed = false;
-        const prevMembership = event.prev_content && event.prev_content.membership;
-        if (!event.content) {
-            return changed;
-        }
-        const content = event.content;
-        const membership = content.membership;
-        // danger of a replayed event getting the count out of sync
-        // but summary api will solve this.
-        // otherwise we'd have to store all the member ids in here
-        if (membership !== prevMembership) {
-            switch (prevMembership) {
-                case "invite": this.inviteCount -= 1; break;
-                case "join": this.joinCount -= 1; break;
-            }
-            switch (membership) {
-                case "invite": this.inviteCount += 1; break;
-                case "join": this.joinCount += 1; break;
-            }
-            changed = true;
-        }
-        // if (membership === "join" && content.name) {
-        //  // TODO: avatar_url
-        //  changed = this._members.applyMember(content.name, content.state_key) || changed;
-        // }
-        return changed;
-    }
-
-    _updateSummary(summary) {
-        const heroes = summary["m.heroes"];
-        const inviteCount = summary["m.joined_member_count"];
-        const joinCount = summary["m.invited_member_count"];
-
-        if (heroes) {
-            this.heroes = heroes;
-        }
-        if (Number.isInteger(inviteCount)) {
-            this.inviteCount = inviteCount;
-        }
-        if (Number.isInteger(joinCount)) {
-            this.joinCount = joinCount;
-        }
+    serialize() {
+        const {cloned, ...serializedProps} = this;
+        return serializedProps;
     }
 }
 
 export default class RoomSummary {
 	constructor(roomId) {
-        this._data = new SummaryData(roomId);
+        this._data = new SummaryData(null, roomId);
 	}
 
 	get name() {
@@ -198,22 +165,22 @@ export default class RoomSummary {
 		return this._data.joinCount;
 	}
 
-    // writeSync is not a good name, this isn't writing at all!
-    // processSync?
 	writeSync(roomResponse, membership, txn) {
         // write changes to a clone that we only 
         // reassign back once the transaction was succesfully committed
         // in afterSync
-        const data = this._data.clone();
-		data.applySyncResponse(roomResponse, membership, data);
-		if (data.changed) {
+        this._data.cloned = false;
+		const data = applySyncResponse(this._data, roomResponse, membership);
+		if (data.cloned) {
             // need to think here how we want to persist
             // things like unread status (as read marker, or unread count)?
             // we could very well load additional things in the load method
             // ... the trade-off is between constantly writing the summary
             // on every sync, or doing a bit of extra reading on load
             // and have in-memory only variables for visualization
-            txn.roomSummary.set(data.values);
+            
+            // TODO: we don't want to write "cloned" here? values doesn't exist anymore in any case
+            txn.roomSummary.set(data.serialize());
             return data;
 		}
 	}
@@ -223,9 +190,7 @@ export default class RoomSummary {
     }
 
 	async load(summary) {
-        for(const [key, value] of Object.entries(summary)) {
-            this._data[key] = value;
-        }
+        this._data = new SummaryData(summary);
 	}
 }
 
