@@ -162,9 +162,11 @@ export function tests() {
     return {
         "membership trigger change": function(assert) {
             const summary = new RoomSummary("id");
-            const changes = summary.writeSync({}, "join");
+            let written = false;
+            const changes = summary.writeSync({}, "join", {roomSummary: {set: () => { written = true; }}});
             assert(changes);
-            assert(changes.changed);
+            assert(written);
+            assert.equal(changes.membership, "join");
         }
     }
 }

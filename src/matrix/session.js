@@ -107,7 +107,7 @@ export default class Session {
 }
 
 export function tests() {
-    function createStorageMock(session, pendingEvents) {
+    function createStorageMock(session, pendingEvents = []) {
         return {
             readTxn() {
                 return Promise.resolve({
@@ -120,9 +120,15 @@ export function tests() {
                         getAll() {
                             return Promise.resolve(pendingEvents);
                         }
+                    },
+                    roomSummary: {
+                        getAll() {
+                            return Promise.resolve([]);
+                        }
                     }
                 });
-            }
+            },
+            storeNames: {}
         };
     }
 
@@ -131,25 +137,25 @@ export function tests() {
             const session = new Session({storage: createStorageMock({
                 syncToken: "a",
                 syncFilterId: 5,
-            })});
+            }), sessionInfo: {userId: ""}});
             await session.load();
             let txnSetCalled = false;
             const syncTxn = {
                 session: {
                     set({syncToken, syncFilterId}) {
                         txnSetCalled = true;
-                        assert.equals(syncToken, "b");
-                        assert.equals(syncFilterId, 6);
+                        assert.equal(syncToken, "b");
+                        assert.equal(syncFilterId, 6);
                     }
                 }
             };
             const newSessionData = session.writeSync("b", 6, {}, syncTxn);
             assert(txnSetCalled);
-            assert.equals(session.syncToken, "a");
-            assert.equals(session.syncFilterId, 5);
+            assert.equal(session.syncToken, "a");
+            assert.equal(session.syncFilterId, 5);
             session.afterSync(newSessionData);
-            assert.equals(session.syncToken, "b");
-            assert.equals(session.syncFilterId, 6);
+            assert.equal(session.syncToken, "b");
+            assert.equal(session.syncFilterId, 6);
         }
     }
 }
