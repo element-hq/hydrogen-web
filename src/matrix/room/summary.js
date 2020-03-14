@@ -99,7 +99,7 @@ function updateSummary(data, summary) {
     return data;
 }
 
-class SummaryData extends ChangeSet {
+class SummaryData {
     constructor(copy, roomId) {
         this.roomId = copy ? copy.roomId : roomId;
         this.name = copy ? copy.name : null;
