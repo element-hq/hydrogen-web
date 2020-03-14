@@ -20,22 +20,23 @@ export default class Room extends EventEmitter {
         this._user = user;
 	}
 
-    async persistSync(roomResponse, membership, txn) {
-		const summaryChanged = this._summary.applySync(roomResponse, membership, txn);
+    async writeSync(roomResponse, membership, txn) {
+		const summaryChanges = this._summary.writeSync(roomResponse, membership, txn);
 		const {entries, newLiveKey} = await this._syncWriter.writeSync(roomResponse, txn);
         let removedPendingEvents;
         if (roomResponse.timeline && roomResponse.timeline.events) {
             removedPendingEvents = this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn);
         }
-        return {summaryChanged, newTimelineEntries: entries, newLiveKey, removedPendingEvents};
+        return {summaryChanges, newTimelineEntries: entries, newLiveKey, removedPendingEvents};
     }
 
-    emitSync({summaryChanged, newTimelineEntries, newLiveKey, removedPendingEvents}) {
-        if (summaryChanged) {
+    afterSync({summaryChanges, newTimelineEntries, newLiveKey, removedPendingEvents}) {
+        this._syncWriter.afterSync(newLiveKey);
+        if (summaryChanges) {
+            this._summary.afterSync(summaryChanges);
             this.emit("change");
             this._emitCollectionChange(this);
         }
-        this._syncWriter.setKeyOnCompleted(newLiveKey);
         if (this._timeline) {
             this._timeline.appendLiveEntries(newTimelineEntries);
         }

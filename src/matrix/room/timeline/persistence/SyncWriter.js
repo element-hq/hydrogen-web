@@ -129,7 +129,7 @@ export default class SyncWriter {
         return {entries, newLiveKey: currentKey};
     }
 
-    setKeyOnCompleted(newLiveKey) {
+    afterSync(newLiveKey) {
         this._lastLiveKey = newLiveKey;
     }
 }
