@@ -77,11 +77,19 @@ export default class Session {
         return room;
     }
 
-    persistSync(syncToken, syncFilterId, accountData, txn) {
+    writeSync(syncToken, syncFilterId, accountData, txn) {
         if (syncToken !== this._session.syncToken) {
-            this._session.syncToken = syncToken;
-            this._session.syncFilterId = syncFilterId;
-            txn.session.set(this._session);
+            // don't modify this._session because transaction might still fail
+            const newSessionData = Object.assign({}, this._session, {syncToken, syncFilterId});
+            txn.session.set(newSessionData);
+            return newSessionData;
+        }
+    }
+
+    afterSync(newSessionData) {
+        if (newSessionData) {
+            // sync transaction succeeded, modify object state now
+            this._session = newSessionData;
         }
     }
 
@@ -95,5 +103,53 @@ export default class Session {
 
     get user() {
         return this._user;
+    }
+}
+
+export function tests() {
+    function createStorageMock(session, pendingEvents) {
+        return {
+            readTxn() {
+                return Promise.resolve({
+                    session: {
+                        get() {
+                            return Promise.resolve(Object.assign({}, session));
+                        }
+                    },
+                    pendingEvents: {
+                        getAll() {
+                            return Promise.resolve(pendingEvents);
+                        }
+                    }
+                });
+            }
+        };
+    }
+
+    return {
+        "session data is not modified until after sync": async (assert) => {
+            const session = new Session({storage: createStorageMock({
+                syncToken: "a",
+                syncFilterId: 5,
+            })});
+            await session.load();
+            let txnSetCalled = false;
+            const syncTxn = {
+                session: {
+                    set({syncToken, syncFilterId}) {
+                        txnSetCalled = true;
+                        assert.equals(syncToken, "b");
+                        assert.equals(syncFilterId, 6);
+                    }
+                }
+            };
+            const newSessionData = session.writeSync("b", 6, {}, syncTxn);
+            assert(txnSetCalled);
+            assert.equals(session.syncToken, "a");
+            assert.equals(session.syncFilterId, 5);
+            session.afterSync(newSessionData);
+            assert.equals(session.syncToken, "b");
+            assert.equals(session.syncFilterId, 6);
+        }
     }
 }
