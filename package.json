@@ -24,7 +24,7 @@
   "devDependencies": {
     "cheerio": "^1.0.0-rc.3",
     "finalhandler": "^1.1.1",
-    "impunity": "^0.0.9",
+    "impunity": "^0.0.10",
     "postcss": "^7.0.18",
     "postcss-import": "^12.0.1",
     "rollup": "^1.15.6",
