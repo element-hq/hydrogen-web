@@ -97,7 +97,7 @@ export default class Sync extends EventEmitter {
                         room = this._session.createRoom(roomId);
                     }
                     console.log(` * applying sync response to room ${roomId} ...`);
-                    const changes = await room.persistSync(roomResponse, membership, syncTxn);
+                    const changes = await room.writeSync(roomResponse, membership, syncTxn);
                     roomChanges.push({room, changes});
                 });
                 await Promise.all(promises);
@@ -120,7 +120,7 @@ export default class Sync extends EventEmitter {
         this._session.afterSync(sessionChanges);
         // emit room related events after txn has been closed
         for(let {room, changes} of roomChanges) {
-            room.emitSync(changes);
+            room.afterSync(changes);
         }
 
         return syncToken;
