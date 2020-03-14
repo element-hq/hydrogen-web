@@ -17,7 +17,7 @@ function applySyncResponse(data, roomResponse, membership) {
         data = roomResponse.timeline.events.reduce(processEvent, data);
     }
 
-    return changed;
+    return data;
 }
 
 function processEvent(data, event) {
@@ -34,7 +34,7 @@ function processEvent(data, event) {
             data.name = newName;
         }
     } else if (event.type === "m.room.member") {
-        return processMembership(data, event);
+        data = processMembership(data, event);
     } else if (event.type === "m.room.message") {
         const content = event.content;
         const body = content && content.body;
@@ -166,12 +166,11 @@ export default class RoomSummary {
 	}
 
 	writeSync(roomResponse, membership, txn) {
-        // write changes to a clone that we only 
-        // reassign back once the transaction was succesfully committed
-        // in afterSync
+        // clear cloned flag, so cloneIfNeeded makes a copy and
+        // this._data is not modified if any field is changed.
         this._data.cloned = false;
 		const data = applySyncResponse(this._data, roomResponse, membership);
-		if (data.cloned) {
+		if (data !== this._data) {
             // need to think here how we want to persist
             // things like unread status (as read marker, or unread count)?
             // we could very well load additional things in the load method
