@@ -1,8 +1,8 @@
 export class HomeServerError extends Error {
-    constructor(method, url, body) {
-        super(`${body.error} on ${method} ${url}`);
-        this.errcode = body.errcode;
-        this.retry_after_ms = body.retry_after_ms;
+    constructor(method, url, body, status) {
+        super(`${body ? body.error : status} on ${method} ${url}`);
+        this.errcode = body ? body.errcode : null;
+        this.retry_after_ms = body ? body.retry_after_ms : 0;
     }
 
     get isFatal() {

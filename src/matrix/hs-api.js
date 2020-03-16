@@ -12,7 +12,7 @@ class RequestWrapper {
             } else {
                 switch (response.status) {
                     default:
-                        throw new HomeServerError(method, url, response.body);
+                        throw new HomeServerError(method, url, response.body, response.status);
                 }
             }
         });
