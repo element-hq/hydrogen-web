@@ -43,7 +43,7 @@ export default class SendQueue {
                         pendingEvent.eventType,
                         pendingEvent.txnId,
                         pendingEvent.content
-                    );
+                    ).response();
                 });
                 pendingEvent.remoteId = response.event_id;
                 // 
