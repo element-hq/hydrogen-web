@@ -134,6 +134,13 @@ export default class FragmentIdComparer {
 
     rebuild(fragments) {
         const islands = createIslands(fragments);
+        const fragmentJson = JSON.stringify(islands.map(i => {
+            return Array.from(i._idToSortIndex.entries())
+                .map(([id, idx]) => {return {id, idx};})
+                .sort((a, b) => a.idx - b.idx);
+        }));
+        const firstFragment = this._fragmentsById.values().next().value;
+        console.log("rebuilt fragment index", firstFragment && firstFragment.roomId, fragmentJson);
         this._idToIsland = new Map();
         for(let island of islands) {
             for(let id of island.fragmentIds) {
