@@ -1,6 +1,6 @@
 {
   "name": "brawl-chat",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "description": "A javascript matrix client prototype, trying to minize RAM usage by offloading as much as possible to IndexedDB",
   "main": "index.js",
   "directories": {
