@@ -172,3 +172,67 @@ export default class TilesCollection extends BaseObservableList {
         return this._tiles.length;
     }
 }
+
+import ObservableArray from "../../../../observable/list/ObservableArray.js";
+import UpdateAction from "./UpdateAction.js";
+
+export function tests() {
+
+    class TestTile {
+        constructor(entry, update) {
+            this.entry = entry;
+            this.update = update;
+        }
+        tryIncludeEntry() {
+            return false;
+        }
+        compareEntry(b) {
+            return this.entry.n - b.n;
+        }
+        removeEntry() {
+            return true;
+        }
+        get upperEntry() {
+            return this.entry;
+        }
+
+        get lowerEntry() {
+            return this.entry;
+        }
+        updateNextSibling() {}
+        updatePreviousSibling() {}
+        updateEntry() {
+            return UpdateAction.Nothing;
+        }
+    }
+
+    return {
+        "don't emit update before add": assert => {
+            class UpdateOnSiblingTile extends TestTile {
+                updateNextSibling() {
+                    // this happens with isContinuation
+                    this.update(this, "next");
+                }
+                updatePreviousSibling() {
+                    // this happens with isContinuation
+                    this.update(this, "previous");
+                }
+            }
+            const entries = new ObservableArray([{n: 5}, {n: 10}]);
+            const tiles = new TilesCollection(entries, (e, u) => new UpdateOnSiblingTile(e, u));
+            let receivedAdd = false;
+            tiles.subscribe({
+                onAdd(idx, tile) {
+                    assert(tile.entry.n, 7);
+                    receivedAdd = true;
+                },
+                onUpdate(idx, tile) {
+                    assert(tile.entry.n, 7);
+                    assert(!receivedAdd, "receiving update before add");
+                }
+            });
+            entries.insert(1, {n: 7});
+            assert(receivedAdd);
+        },
+    }
+}
