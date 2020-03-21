@@ -21,21 +21,26 @@ export default class SimpleTile {
     get hasDateSeparator() {
         return false;
     }
-    // TilesCollection contract? unused atm
-    get upperEntry() {
-        return this._entry;
-    }
-
-    // TilesCollection contract? unused atm
-    get lowerEntry() {
-        return this._entry;
-    }
 
     emitUpdate(paramName) {
         this._emitUpdate(this, paramName);
     }
 
-    // TilesCollection contract
+    get internalId() {
+        return this._entry.asEventKey().toString();
+    }
+
+    get isPending() {
+        return this._entry.isPending;
+    }
+    get upperEntry() {
+        return this._entry;
+    }
+
+    get lowerEntry() {
+        return this._entry;
+    }
+
     compareEntry(entry) {
         return this._entry.compare(entry);
     }
@@ -65,12 +70,5 @@ export default class SimpleTile {
     updateNextSibling(next) {
     
     }
-
-    get internalId() {
-        return this._entry.asEventKey().toString();
-    }
-
-    get isPending() {
-        return this._entry.isPending;
-    }
+    // TilesCollection contract above
 }
