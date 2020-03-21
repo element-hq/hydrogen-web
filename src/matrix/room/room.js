@@ -68,14 +68,35 @@ export default class Room extends EventEmitter {
             limit: amount,
             filter: {lazy_load_members: true}
         }).response();
-        const gapWriter = new GapWriter({
-            roomId: this._roomId,
-            storage: this._storage,
-            fragmentIdComparer: this._fragmentIdComparer
-        });
-        const newEntries = await gapWriter.writeFragmentFill(fragmentEntry, response);
+
+        const txn = await this._storage.readWriteTxn([
+            this._storage.storeNames.pendingEvents,
+            this._storage.storeNames.timelineEvents,
+            this._storage.storeNames.timelineFragments,
+        ]);
+        let removedPendingEvents;
+        let newEntries;
+        try {
+            // detect remote echos of pending messages in the gap
+            removedPendingEvents = this._sendQueue.removeRemoteEchos(response.chunk, txn);
+            // write new events into gap
+            const gapWriter = new GapWriter({
+                roomId: this._roomId,
+                storage: this._storage,
+                fragmentIdComparer: this._fragmentIdComparer
+            });
+            newEntries = await gapWriter.writeFragmentFill(fragmentEntry, response, txn);
+        } catch (err) {
+            txn.abort();
+            throw err;
+        }
+        await txn.complete();
+        // once txn is committed, emit events
+        if (removedPendingEvents) {
+            this._sendQueue.emitRemovals(removedPendingEvents);
+        }
         if (this._timeline) {
-            this._timeline.addGapEntries(newEntries)
+            this._timeline.addGapEntries(newEntries);
         }
     }
 
