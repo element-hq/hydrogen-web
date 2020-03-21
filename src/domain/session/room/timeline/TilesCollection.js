@@ -2,6 +2,10 @@ import BaseObservableList from "../../../../observable/list/BaseObservableList.j
 import sortedIndex from "../../../../utils/sortedIndex.js";
 
 // maps 1..n entries to 0..1 tile. Entries are what is stored in the timeline, either an event or fragmentboundary
+// for now, tileCreator should be stable in whether it returns a tile or not.
+// e.g. the decision to create a tile or not should be based on properties
+// not updated later on (e.g. event type)
+// also see big comment in onUpdate
 export default class TilesCollection extends BaseObservableList {
     constructor(entries, tileCreator) {
         super();
@@ -28,7 +32,7 @@ export default class TilesCollection extends BaseObservableList {
         let currentTile = null;
         for (let entry of this._entries) {
             if (!currentTile || !currentTile.tryIncludeEntry(entry)) {
-                currentTile = this._tileCreator(entry, this._emitSpontanousUpdate);
+                currentTile = this._tileCreator(entry);
                 if (currentTile) {
                     this._tiles.push(currentTile);
                 }
@@ -44,6 +48,11 @@ export default class TilesCollection extends BaseObservableList {
         }
         if (prevTile) {
             prevTile.updateNextSibling(null);
+        }
+        // now everything is wired up,
+        // allow tiles to emit updates
+        for (const tile of this._tiles) {
+            tile.setUpdateEmit(this._emitSpontanousUpdate);
         }
     }
 
@@ -93,10 +102,11 @@ export default class TilesCollection extends BaseObservableList {
             return;
         }
 
-        const newTile = this._tileCreator(entry, this._emitSpontanousUpdate);
+        const newTile = this._tileCreator(entry);
         if (newTile) {
             if (prevTile) {
                 prevTile.updateNextSibling(newTile);
+                // this emits an update while the add hasn't been emitted yet
                 newTile.updatePreviousSibling(prevTile);
             }
             if (nextTile) {
@@ -105,6 +115,9 @@ export default class TilesCollection extends BaseObservableList {
             }
             this._tiles.splice(tileIdx, 0, newTile);
             this.emitAdd(tileIdx, newTile);
+            // add event is emitted, now the tile
+            // can emit updates
+            newTile.setUpdateEmit(this._emitSpontanousUpdate);
         }
         // find position by sort key
         // ask siblings to be included? both? yes, twice: a (insert c here) b, ask a(c), if yes ask b(a), else ask b(c)? if yes then b(a)?
@@ -141,6 +154,7 @@ export default class TilesCollection extends BaseObservableList {
         this._tiles.splice(tileIdx, 1);
         prevTile && prevTile.updateNextSibling(nextTile);
         nextTile && nextTile.updatePreviousSibling(prevTile);
+        tile.setUpdateEmit(null);
         this.emitRemove(tileIdx, tile);
     }
 
@@ -170,5 +184,72 @@ export default class TilesCollection extends BaseObservableList {
 
     get length() {
         return this._tiles.length;
+    }
+}
+
+import ObservableArray from "../../../../observable/list/ObservableArray.js";
+import UpdateAction from "./UpdateAction.js";
+
+export function tests() {
+    class TestTile {
+        constructor(entry) {
+            this.entry = entry;
+            this.update = null;
+        }
+        setUpdateEmit(update) {
+            this.update = update;
+        }
+        tryIncludeEntry() {
+            return false;
+        }
+        compareEntry(b) {
+            return this.entry.n - b.n;
+        }
+        removeEntry() {
+            return true;
+        }
+        get upperEntry() {
+            return this.entry;
+        }
+
+        get lowerEntry() {
+            return this.entry;
+        }
+        updateNextSibling() {}
+        updatePreviousSibling() {}
+        updateEntry() {
+            return UpdateAction.Nothing;
+        }
+    }
+
+    return {
+        "don't emit update before add": assert => {
+            class UpdateOnSiblingTile extends TestTile {
+                updateNextSibling() {
+                    // this happens with isContinuation
+                    this.update && this.update(this, "next");
+                }
+                updatePreviousSibling() {
+                    // this happens with isContinuation
+                    this.update && this.update(this, "previous");
+                }
+            }
+            const entries = new ObservableArray([{n: 5}, {n: 10}]);
+            const tiles = new TilesCollection(entries, entry => new UpdateOnSiblingTile(entry));
+            let receivedAdd = false;
+            tiles.subscribe({
+                onAdd(idx, tile) {
+                    assert(tile.entry.n, 7);
+                    receivedAdd = true;
+                },
+                onUpdate(idx, tile) {
+                    if (tile.entry.n === 7) {
+                        assert(!receivedAdd, "receiving update before add");
+                    }
+                }
+            });
+            entries.insert(1, {n: 7});
+            assert(receivedAdd);
+        },
     }
 }

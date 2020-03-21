@@ -1,9 +1,9 @@
 import UpdateAction from "../UpdateAction.js";
 
 export default class SimpleTile {
-    constructor({entry, emitUpdate}) {
+    constructor({entry}) {
         this._entry = entry;
-        this._emitUpdate = emitUpdate;
+        this._emitUpdate = null;
     }
     // view model props for all subclasses
     // hmmm, could also do instanceof ... ?
@@ -21,21 +21,33 @@ export default class SimpleTile {
     get hasDateSeparator() {
         return false;
     }
-    // TilesCollection contract? unused atm
+
+    emitUpdate(paramName) {
+        if (this._emitUpdate) {
+            this._emitUpdate(this, paramName);
+        }
+    }
+
+    get internalId() {
+        return this._entry.asEventKey().toString();
+    }
+
+    get isPending() {
+        return this._entry.isPending;
+    }
+    // TilesCollection contract below
+    setUpdateEmit(emitUpdate) {
+        this._emitUpdate = emitUpdate;
+    }
+
     get upperEntry() {
         return this._entry;
     }
 
-    // TilesCollection contract? unused atm
     get lowerEntry() {
         return this._entry;
     }
 
-    emitUpdate(paramName) {
-        this._emitUpdate(this, paramName);
-    }
-
-    // TilesCollection contract
     compareEntry(entry) {
         return this._entry.compare(entry);
     }
@@ -65,12 +77,5 @@ export default class SimpleTile {
     updateNextSibling(next) {
     
     }
-
-    get internalId() {
-        return this._entry.asEventKey().toString();
-    }
-
-    get isPending() {
-        return this._entry.isPending;
-    }
+    // TilesCollection contract above
 }
