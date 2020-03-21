@@ -78,6 +78,14 @@ function createIslands(fragments) {
     return islands.map(a => new Island(a));
 }
 
+class Fragment {
+    constructor(id, previousId, nextId) {
+        this.id = id;
+        this.previousId = previousId;
+        this.nextId = nextId;
+    }
+}
+
 class Island {
     constructor(sortedFragments) {
         this._idToSortIndex = new Map();
@@ -149,8 +157,32 @@ export default class FragmentIdComparer {
         }
     }
 
+    /** use for fragments coming out of persistence, not newly created ones, or also fragments for a new island (like for a permalink) */
     add(fragment) {
-        this._fragmentsById.set(fragment.id, fragment);
+        const copy = new Fragment(fragment.id, fragment.previousId, fragment.nextId);
+        this._fragmentsById.set(fragment.id, copy);
+        this.rebuild(this._fragmentsById.values());
+    }
+
+    /** use for appending newly created fragments */
+    append(id, previousId) {
+        const fragment = new Fragment(id, previousId, null);
+        const prevFragment = this._fragmentsById.get(previousId);
+        if (prevFragment) {
+            prevFragment.nextId = id;
+        }
+        this._fragmentsById.set(id, fragment);
+        this.rebuild(this._fragmentsById.values());
+    }
+
+    /** use for prepending newly created fragments */
+    prepend(id, nextId) {
+        const fragment = new Fragment(id, null, nextId);
+        const nextFragment = this._fragmentsById.get(nextId);
+        if (nextFragment) {
+            nextFragment.previousId = id;
+        }
+        this._fragmentsById.set(id, fragment);
         this.rebuild(this._fragmentsById.values());
     }
 }
@@ -254,6 +286,22 @@ export function tests() {
             assert.throws(() => index.compare(1, 2));
             assert(index.compare(11, 12) < 0);
         },
+        test_append(assert) {
+            const index = new FragmentIdComparer([]);
+            // add livefragment when opening timeline,
+            // note that there is no nextId as the sync
+            // hasn't come in yet
+            index.add({id: 1});
+            // now sync comes in and replaces the live fragment
+            index.append(2, 1);
+            assert(index.compare(1, 2) < 0);
+        },
+        test_prepend(assert) {
+            const index = new FragmentIdComparer([]);
+            index.add({id: 2});
+            index.prepend(1, 2);
+            assert(index.compare(1, 2) < 0);
+        }
     }
 }
 //#endif

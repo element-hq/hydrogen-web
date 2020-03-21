@@ -77,7 +77,7 @@ export default class SyncWriter {
             nextToken: null
         };
         txn.timelineFragments.add(newFragment);
-        this._fragmentIdComparer.add(newFragment);
+        this._fragmentIdComparer.append(newFragmentId, oldFragmentId);
         return {oldFragment, newFragment};
     }
 
