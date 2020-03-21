@@ -18,7 +18,7 @@ export default class RoomViewModel extends EventEmitter {
         this._room.on("change", this._onRoomChange);
         try {
             this._timeline = await this._room.openTimeline();
-            this._timelineVM = new TimelineViewModel(this._timeline, this._ownUserId);
+            this._timelineVM = new TimelineViewModel(this._room, this._timeline, this._ownUserId);
             this.emit("change", "timelineViewModel");
         } catch (err) {
             console.error(`room.openTimeline(): ${err.message}:\n${err.stack}`);
