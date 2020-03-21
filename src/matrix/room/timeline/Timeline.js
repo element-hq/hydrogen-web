@@ -33,13 +33,7 @@ export default class Timeline {
 
     /** @package */
     appendLiveEntries(newEntries) {
-        try {
-            this._remoteEntries.setManySorted(newEntries);
-        } catch (err) {
-            console.error("error while appending live entries in roomId", this._roomId);
-            console.error(err.stack);
-            throw err;
-        }
+        this._remoteEntries.setManySorted(newEntries);
     }
 
     /** @public */
