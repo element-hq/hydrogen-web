@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+</head>
+<body>
+    <button id="doit">Do It!</button>
+	<script type="module">
+		function reqAsPromise(req) {
+			return new Promise((resolve, reject) => {
+				req.addEventListener("success", event => resolve(event.target.result));
+				req.addEventListener("error", event => reject(event.target.error));
+			});
+		}
+
+		function txnAsPromise(txn) {
+			return new Promise((resolve, reject) => {
+				txn.addEventListener("complete", resolve);
+				txn.addEventListener("abort", reject);
+			});
+		}
+
+		async function main() {
+			let isNew = false;
+			const openReq = window.indexedDB.open("two-read-write-txn", 1);
+			openReq.onupgradeneeded = (ev) => {
+				const db = ev.target.result;
+				const store = db.createObjectStore("test", {keyPath: "id"});
+                store.add({id: 6});
+			};
+			const db = await reqAsPromise(openReq);
+			
+            console.log("open txn1");
+            const txn1 = db.transaction("test", "readwrite");
+            
+            const test1 = txn1.objectStore("test");
+            console.log("request value1");
+            const value1 = await reqAsPromise(test1.get(6));
+            console.log("value1", value1);
+            value1.previous = 5;
+            value1.next = null;
+
+            let txn2, test2, prom2, value2;
+
+            // prevent deadlock
+            (async function() {
+                console.log("open txn2");
+                txn2 = db.transaction("test", "readwrite");
+                test2 = txn2.objectStore("test");
+                console.log("request value2");
+                prom2 = reqAsPromise(test2.get(6));
+                value2 = await prom2;
+                console.log("read value2");
+            })();
+            
+            console.log("write value1");
+            test1.put(value1);
+            await txnAsPromise(txn1);
+
+            await prom2;
+            console.log("value2", value2);            
+            value2.next = 7;
+            console.log("write value2");
+            test2.put(value2);
+            await txnAsPromise(txn2);
+
+            const txn3 = db.transaction("test", "readonly");
+            const value3 = await reqAsPromise(txn3.objectStore("test").get(6));
+
+            alert("done " + JSON.stringify(value3));
+
+		}
+        document.getElementById("doit").addEventListener("click", main);
+	</script>
+</body>
+</html>
