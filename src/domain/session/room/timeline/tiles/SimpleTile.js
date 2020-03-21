@@ -1,9 +1,9 @@
 import UpdateAction from "../UpdateAction.js";
 
 export default class SimpleTile {
-    constructor({entry, emitUpdate}) {
+    constructor({entry}) {
         this._entry = entry;
-        this._emitUpdate = emitUpdate;
+        this._emitUpdate = null;
     }
     // view model props for all subclasses
     // hmmm, could also do instanceof ... ?
@@ -23,7 +23,9 @@ export default class SimpleTile {
     }
 
     emitUpdate(paramName) {
-        this._emitUpdate(this, paramName);
+        if (this._emitUpdate) {
+            this._emitUpdate(this, paramName);
+        }
     }
 
     get internalId() {
@@ -33,6 +35,11 @@ export default class SimpleTile {
     get isPending() {
         return this._entry.isPending;
     }
+    // TilesCollection contract below
+    setUpdateEmit(emitUpdate) {
+        this._emitUpdate = emitUpdate;
+    }
+
     get upperEntry() {
         return this._entry;
     }
