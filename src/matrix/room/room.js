@@ -1,6 +1,7 @@
 import EventEmitter from "../../EventEmitter.js";
 import RoomSummary from "./summary.js";
 import SyncWriter from "./timeline/persistence/SyncWriter.js";
+import GapWriter from "./timeline/persistence/GapWriter.js";
 import Timeline from "./timeline/Timeline.js";
 import FragmentIdComparer from "./timeline/FragmentIdComparer.js";
 import SendQueue from "./sending/SendQueue.js";
@@ -58,6 +59,47 @@ export default class Room extends EventEmitter {
         this._sendQueue.enqueueEvent(eventType, content);
     }
 
+
+    /** @public */
+    async fillGap(fragmentEntry, amount) {
+        const response = await this._hsApi.messages(this._roomId, {
+            from: fragmentEntry.token,
+            dir: fragmentEntry.direction.asApiString(),
+            limit: amount,
+            filter: {lazy_load_members: true}
+        }).response();
+
+        const txn = await this._storage.readWriteTxn([
+            this._storage.storeNames.pendingEvents,
+            this._storage.storeNames.timelineEvents,
+            this._storage.storeNames.timelineFragments,
+        ]);
+        let removedPendingEvents;
+        let newEntries;
+        try {
+            // detect remote echos of pending messages in the gap
+            removedPendingEvents = this._sendQueue.removeRemoteEchos(response.chunk, txn);
+            // write new events into gap
+            const gapWriter = new GapWriter({
+                roomId: this._roomId,
+                storage: this._storage,
+                fragmentIdComparer: this._fragmentIdComparer
+            });
+            newEntries = await gapWriter.writeFragmentFill(fragmentEntry, response, txn);
+        } catch (err) {
+            txn.abort();
+            throw err;
+        }
+        await txn.complete();
+        // once txn is committed, emit events
+        if (removedPendingEvents) {
+            this._sendQueue.emitRemovals(removedPendingEvents);
+        }
+        if (this._timeline) {
+            this._timeline.addGapEntries(newEntries);
+        }
+    }
+
     get name() {
         return this._summary.name;
     }
@@ -73,7 +115,6 @@ export default class Room extends EventEmitter {
         this._timeline = new Timeline({
             roomId: this.id,
             storage: this._storage,
-            hsApi: this._hsApi,
             fragmentIdComparer: this._fragmentIdComparer,
             pendingEvents: this._sendQueue.pendingEvents,
             closeCallback: () => this._timeline = null,
