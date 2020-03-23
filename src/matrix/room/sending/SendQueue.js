@@ -64,13 +64,16 @@ export default class SendQueue {
         const removed = [];
         for (const event of events) {
             const txnId = event.unsigned && event.unsigned.transaction_id;
+            let idx;
             if (txnId) {
-                const idx = this._pendingEvents.array.findIndex(pe => pe.txnId === txnId);
-                if (idx !== -1) {
-                    const pendingEvent = this._pendingEvents.get(idx);
-                    txn.pendingEvents.remove(pendingEvent.roomId, pendingEvent.queueIndex);
-                    removed.push(pendingEvent);
-                }
+                idx = this._pendingEvents.array.findIndex(pe => pe.txnId === txnId);
+            } else {
+                idx = this._pendingEvents.array.findIndex(pe => pe.remoteId === event.event_id);
+            }
+            if (idx !== -1) {
+                const pendingEvent = this._pendingEvents.get(idx);
+                txn.pendingEvents.remove(pendingEvent.roomId, pendingEvent.queueIndex);
+                removed.push(pendingEvent);
             }
         }
         return removed;
