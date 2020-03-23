@@ -24,7 +24,7 @@ async function build() {
     await removeDirIfExists(targetDir);
     await fs.mkdir(targetDir);
     
-    await buildHtml();
+    await buildHtml(version);
     await buildJs();
     await buildCss();
     if (offline) {
@@ -34,7 +34,7 @@ async function build() {
     console.log(`built brawl ${version} successfully`);
 }
 
-async function buildHtml() {
+async function buildHtml(version) {
     // transform html file
     const devHtml = await fs.readFile(path.join(projectDir, "index.html"), "utf8");
     const doc = cheerio.load(devHtml);
@@ -45,6 +45,13 @@ async function buildHtml() {
     removeOrEnableScript(doc("script#phone-debug-pre"), debug);
     removeOrEnableScript(doc("script#phone-debug-post"), debug);
     removeOrEnableScript(doc("script#service-worker"), offline);
+
+    const versionScript = doc("script#version");
+    versionScript.attr("type", "text/javascript");
+    let vSource = versionScript.contents().text();
+    vSource = vSource.replace(`"%%VERSION%%"`, `"${version}"`);
+    versionScript.text(vSource);
+
     if (offline) {
         doc("html").attr("manifest", "manifest.appcache");
         doc("head").append(`<link rel="manifest" href="manifest.json">`);

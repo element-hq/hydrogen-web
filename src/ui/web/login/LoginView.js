@@ -1,4 +1,5 @@
 import TemplateView from "../general/TemplateView.js";
+import {brawlGithubLink} from "./common.js";
 
 export default class LoginView extends TemplateView {
     constructor(vm) {
@@ -20,7 +21,7 @@ export default class LoginView extends TemplateView {
                 disabled: vm => vm.loading
             }, "Log In")),
             t.div(t.button({onClick: () => vm.cancel()}, ["Pick an existing session"])),
-            t.p(t.a({href: "https://github.com/bwindels/brawl-chat"}, ["Brawl on Github"]))
+            t.p(brawlGithubLink(t))
         ]);
     }
 }

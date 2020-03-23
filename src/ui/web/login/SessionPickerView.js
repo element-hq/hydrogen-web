@@ -1,5 +1,6 @@
 import ListView from "../general/ListView.js";
 import TemplateView from "../general/TemplateView.js";
+import {brawlGithubLink} from "./common.js";
 
 function selectFileAsText(mimeType) {
     const input = document.createElement("input");
@@ -91,7 +92,7 @@ export default class SessionPickerView extends TemplateView {
             this._sessionList.mount(),
             t.p(t.button({onClick: () => this.viewModel.cancel()}, ["Log in to a new session instead"])),
             t.p(t.button({onClick: async () => this.viewModel.import(await selectFileAsText("application/json"))}, "Import")),
-            t.p(t.a({href: "https://github.com/bwindels/brawl-chat"}, ["Brawl on Github"]))
+            t.p(brawlGithubLink(t))
         ]);
     }
 
