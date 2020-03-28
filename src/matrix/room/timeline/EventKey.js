@@ -37,7 +37,11 @@ export default class EventKey {
     }
 
     static get defaultLiveKey() {
-        return new EventKey(Platform.minStorageKey, Platform.middleStorageKey);
+        return EventKey.defaultFragmentKey(Platform.minStorageKey);
+    }
+
+    static defaultFragmentKey(fragmentId) {
+        return new EventKey(fragmentId, Platform.middleStorageKey);
     }
 
     toString() {
