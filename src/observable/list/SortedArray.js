@@ -46,6 +46,15 @@ export default class SortedArray extends BaseObservableList {
         this.emitRemove(idx, item);
     }
 
+    reset() {
+        if (this._items.length !== 0) {
+            for (let i = this._items.length - 1; i >= 0; i -= 1) {
+                this.emitRemove(i, this._items[i]);
+            }
+            this._items = [];
+        }
+    }
+
     get array() {
         return this._items;
     }

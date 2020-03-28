@@ -35,8 +35,8 @@ export default class Session {
         // load rooms
         const rooms = await txn.roomSummary.getAll();
         await Promise.all(rooms.map(summary => {
-            const room = this.createRoom(summary.roomId, pendingEventsByRoomId.get(summary.roomId));
-            return room.load(summary, txn);
+            const room = this.createRoom(summary.roomId);
+            return room.load(summary, pendingEventsByRoomId.get(summary.roomId), txn);
         }));
     }
 
@@ -63,14 +63,13 @@ export default class Session {
         return this._rooms;
     }
 
-    createRoom(roomId, pendingEvents) {
+    createRoom(roomId) {
         const room = new Room({
             roomId,
             storage: this._storage,
             emitCollectionChange: this._roomUpdateCallback,
             hsApi: this._hsApi,
             sendScheduler: this._sendScheduler,
-            pendingEvents,
             user: this._user,
         });
         this._rooms.add(roomId, room);

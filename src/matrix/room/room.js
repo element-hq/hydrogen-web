@@ -7,7 +7,7 @@ import FragmentIdComparer from "./timeline/FragmentIdComparer.js";
 import SendQueue from "./sending/SendQueue.js";
 
 export default class Room extends EventEmitter {
-	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, pendingEvents, user}) {
+	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, user}) {
         super();
         this._roomId = roomId;
         this._storage = storage;
@@ -16,7 +16,7 @@ export default class Room extends EventEmitter {
         this._fragmentIdComparer = new FragmentIdComparer([]);
 		this._syncWriter = new SyncWriter({roomId, fragmentIdComparer: this._fragmentIdComparer});
         this._emitCollectionChange = emitCollectionChange;
-        this._sendQueue = new SendQueue({roomId, storage, sendScheduler, pendingEvents});
+        this._sendQueue = new SendQueue({roomId, storage, sendScheduler});
         this._timeline = null;
         this._user = user;
 	}
@@ -50,7 +50,8 @@ export default class Room extends EventEmitter {
         this._sendQueue.resumeSending();
     }
 
-	load(summary, txn) {
+	load(summary, pendingEvents, txn) {
+        this._sendQueue.load(pendingEvents);
 		this._summary.load(summary);
 		return this._syncWriter.load(txn);
 	}

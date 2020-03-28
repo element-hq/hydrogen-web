@@ -9,19 +9,24 @@ function makeTxnId() {
 }
 
 export default class SendQueue {
-    constructor({roomId, storage, sendScheduler, pendingEvents}) {
-        pendingEvents = pendingEvents || [];
+    constructor({roomId, storage, sendScheduler}) {
         this._roomId = roomId;
         this._storage = storage;
         this._sendScheduler = sendScheduler;
         this._pendingEvents = new SortedArray((a, b) => a.queueIndex - b.queueIndex);
-        if (pendingEvents.length) {
-            console.info(`SendQueue for room ${roomId} has ${pendingEvents.length} pending events`, pendingEvents);
-        }
-        this._pendingEvents.setManyUnsorted(pendingEvents.map(data => new PendingEvent(data)));
         this._isSending = false;
         this._offline = false;
         this._amountSent = 0;
+    }
+
+    load(pendingEvents) {
+        pendingEvents = pendingEvents || [];
+        this._amountSent = 0;
+        this._pendingEvents.reset();
+        if (pendingEvents.length) {
+            console.info(`SendQueue for room ${this._roomId} has ${pendingEvents.length} pending events`, pendingEvents);
+        }
+        this._pendingEvents.setManyUnsorted(pendingEvents.map(data => new PendingEvent(data)));
     }
 
     async _sendLoop() {
