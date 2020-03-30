@@ -40,7 +40,7 @@ export default class HomeServerApi {
         return `${this._homeserver}/_matrix/client/r0${csPath}`;
     }
 
-    _request(method, csPath, queryParams = {}, body) {
+    _request(method, url, queryParams = {}, body) {
         const queryString = Object.entries(queryParams)
             .filter(([, value]) => value !== undefined)
             .map(([name, value]) => {
@@ -50,7 +50,7 @@ export default class HomeServerApi {
                 return `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
             })
             .join("&");
-        const url = this._url(`${csPath}?${queryString}`);
+        url = `${url}?${queryString}`;
         let bodyString;
         const headers = new Headers();
         if (this._accessToken) {
@@ -70,15 +70,15 @@ export default class HomeServerApi {
     }
 
     _post(csPath, queryParams, body) {
-        return this._request("POST", csPath, queryParams, body);
+        return this._request("POST", this._url(csPath), queryParams, body);
     }
 
     _put(csPath, queryParams, body) {
-        return this._request("PUT", csPath, queryParams, body);
+        return this._request("PUT", this._url(csPath), queryParams, body);
     }
 
     _get(csPath, queryParams, body) {
-        return this._request("GET", csPath, queryParams, body);
+        return this._request("GET", this._url(csPath), queryParams, body);
     }
 
     sync(since, filter, timeout) {
@@ -107,5 +107,10 @@ export default class HomeServerApi {
 
     createFilter(userId, filter) {
         return this._post(`/user/${encodeURIComponent(userId)}/filter`, undefined, filter);
+    }
+
+    versions(timeout) {
+        // TODO: implement timeout
+        return this._request("GET", `${this._homeserver}/_matrix/client/versions`);
     }
 }
