@@ -18,6 +18,11 @@ export default class EventEntry extends BaseEntry {
         return this._eventEntry.event.content;
     }
 
+    get prevContent() {
+        const unsigned = this._eventEntry.event.unsigned;
+        return unsigned && unsigned.prev_content;
+    }
+
     get eventType() {
         return this._eventEntry.event.type;
     }
