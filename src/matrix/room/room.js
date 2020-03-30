@@ -56,7 +56,7 @@ export default class Room extends EventEmitter {
 	}
 
     sendEvent(eventType, content) {
-        this._sendQueue.enqueueEvent(eventType, content);
+        return this._sendQueue.enqueueEvent(eventType, content);
     }
 
 
