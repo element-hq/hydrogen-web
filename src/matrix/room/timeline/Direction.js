@@ -17,6 +17,10 @@ export default class Direction {
         return this.isForward ? "f" : "b";
     }
 
+    reverse() {
+        return this.isForward ? Direction.Backward : Direction.Forward
+    }
+
     static get Forward() {
         return _forward;
     }
