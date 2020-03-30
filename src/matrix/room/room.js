@@ -75,7 +75,7 @@ export default class Room extends EventEmitter {
             this._storage.storeNames.timelineFragments,
         ]);
         let removedPendingEvents;
-        let newEntries;
+        let gapResult;
         try {
             // detect remote echos of pending messages in the gap
             removedPendingEvents = this._sendQueue.removeRemoteEchos(response.chunk, txn);
@@ -85,18 +85,21 @@ export default class Room extends EventEmitter {
                 storage: this._storage,
                 fragmentIdComparer: this._fragmentIdComparer
             });
-            newEntries = await gapWriter.writeFragmentFill(fragmentEntry, response, txn);
+            gapResult = await gapWriter.writeFragmentFill(fragmentEntry, response, txn);
         } catch (err) {
             txn.abort();
             throw err;
         }
         await txn.complete();
-        // once txn is committed, emit events
+        // once txn is committed, update in-memory state & emit events
+        for (const fragment of gapResult.fragments) {
+            this._fragmentIdComparer.add(fragment);
+        }
         if (removedPendingEvents) {
             this._sendQueue.emitRemovals(removedPendingEvents);
         }
         if (this._timeline) {
-            this._timeline.addGapEntries(newEntries);
+            this._timeline.addGapEntries(gapResult.entries);
         }
     }
 

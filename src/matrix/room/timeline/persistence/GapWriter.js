@@ -99,6 +99,7 @@ export default class GapWriter {
 
     async _updateFragments(fragmentEntry, neighbourFragmentEntry, end, entries, txn) {
         const {direction} = fragmentEntry;
+        const changedFragments = [];
         directionalAppend(entries, fragmentEntry, direction);
         // set `end` as token, and if we found an event in the step before, link up the fragments in the fragment entry
         if (neighbourFragmentEntry) {
@@ -126,13 +127,16 @@ export default class GapWriter {
             txn.timelineFragments.update(neighbourFragmentEntry.fragment);
             directionalAppend(entries, neighbourFragmentEntry, direction);
 
-            // update fragmentIdComparer here after linking up fragments
-            this._fragmentIdComparer.add(fragmentEntry.fragment);
-            this._fragmentIdComparer.add(neighbourFragmentEntry.fragment);
+            // fragments that need to be changed in the fragmentIdComparer here
+            // after txn succeeds
+            changedFragments.push(fragmentEntry.fragment);
+            changedFragments.push(neighbourFragmentEntry.fragment);
         } else {
             fragmentEntry.token = end;
         }
         txn.timelineFragments.update(fragmentEntry.fragment);
+
+        return changedFragments;
     }
 
     async writeFragmentFill(fragmentEntry, response, txn) {
@@ -168,9 +172,9 @@ export default class GapWriter {
 
         // create entries for all events in chunk, add them to entries
         entries = this._storeEvents(nonOverlappingEvents, lastKey, direction, txn);
-        await this._updateFragments(fragmentEntry, neighbourFragmentEntry, end, entries, txn);
+        const fragments = await this._updateFragments(fragmentEntry, neighbourFragmentEntry, end, entries, txn);
     
-        return entries;
+        return {entries, fragments};
     }
 }
 
