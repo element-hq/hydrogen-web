@@ -11,6 +11,7 @@ export default class RoomViewModel extends EventEmitter {
         this._timelineVM = null;
         this._onRoomChange = this._onRoomChange.bind(this);
         this._timelineError = null;
+        this._sendError = null;
         this._closeCallback = closeCallback;
     }
 
@@ -57,6 +58,9 @@ export default class RoomViewModel extends EventEmitter {
         if (this._timelineError) {
             return `Something went wrong loading the timeline: ${this._timelineError.message}`;
         }
+        if (this._sendError) {
+            return `Something went wrong sending your message: ${this._sendError.message}`;
+        }
         return "";
     }
 
@@ -64,13 +68,14 @@ export default class RoomViewModel extends EventEmitter {
         return avatarInitials(this._room.name);
     }
 
-    sendMessage(message) {
+    async sendMessage(message) {
         if (message) {
             try {
-                this._room.sendEvent("m.room.message", {msgtype: "m.text", body: message});
+                await this._room.sendEvent("m.room.message", {msgtype: "m.text", body: message});
             } catch (err) {
                 console.error(`room.sendMessage(): ${err.message}:\n${err.stack}`);
-                this._timelineError = err;
+                this._sendError = err;
+                this._timelineError = null;
                 this.emit("change", "error");
                 return false;
             }
