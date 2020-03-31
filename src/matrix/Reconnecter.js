@@ -142,6 +142,8 @@ export class Reconnecter {
         this._versionsResponse = null;
 
         while (!this._versionsResponse) {
+            // TODO: should we wait first or request first?
+            // as we've just failed a request? I guess no harm in trying immediately
             try {
                 this._setState(ConnectionState.Reconnecting);
                 const versionsRequest = this._hsApi.versions(10000);
