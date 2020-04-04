@@ -60,6 +60,8 @@ we just set `include_redundant_members` and `/messages` and `/context` contain a
 
 If we go for this, we might want to think of a migration step to remove include_redundant_members? Well, maybe not before 1.0
 
+IMPORTANT: I'm not sure that with `include_redundant_members` all the member state events will be included in the sync response, we need to test this.
+
 ## Member list
 
 store name: members
