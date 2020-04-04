@@ -1,4 +1,4 @@
-import {RequestAbortError} from "./error.js";
+import {AbortError} from "./error.js";
 import EventEmitter from "../EventEmitter.js";
 
 const INCREMENTAL_TIMEOUT = 30000;
@@ -57,7 +57,7 @@ export default class Sync extends EventEmitter {
                 syncToken = await this._syncRequest(syncToken, INCREMENTAL_TIMEOUT);
             } catch (err) {
                 this._isSyncing = false;
-                if (!(err instanceof RequestAbortError)) {
+                if (!(err instanceof AbortError)) {
                     console.error("stopping sync because of error");
                     console.error(err);
                     this.emit("status", "error", err);

@@ -12,8 +12,7 @@ export class HomeServerError extends Error {
     }
 }
 
-export class RequestAbortError extends Error {
-}
+export {AbortError} from "../utils/error.js";
 
 export class NetworkError extends Error { 
 }

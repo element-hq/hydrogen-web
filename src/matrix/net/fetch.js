@@ -1,5 +1,5 @@
 import {
-    RequestAbortError,
+    AbortError,
     NetworkError
 } from "../error.js";
 
@@ -50,7 +50,7 @@ export default function fetchRequest(url, options) {
         return {status, body};
     }, err => {
         if (err.name === "AbortError") {
-            throw new RequestAbortError();
+            throw new AbortError();
         } else if (err instanceof TypeError) {
             // Network errors are reported as TypeErrors, see
             // https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch#Checking_that_the_fetch_was_successful
