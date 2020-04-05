@@ -5,6 +5,7 @@ import StorageFactory from "./matrix/storage/idb/create.js";
 import SessionsStore from "./matrix/sessions-store/localstorage/SessionsStore.js";
 import BrawlViewModel from "./domain/BrawlViewModel.js";
 import BrawlView from "./ui/web/BrawlView.js";
+import DOMClock from "./utils/DOMClock.js";
 
 export default async function main(container) {
     try {
@@ -17,14 +18,13 @@ export default async function main(container) {
         // const recorder = new RecordRequester(fetchRequest);
         // const request = recorder.request;
         // window.getBrawlFetchLog = () => recorder.log();
-
         // normal network:
         const request = fetchRequest;
         const vm = new BrawlViewModel({
             storageFactory: new StorageFactory(),
-            createHsApi: (homeServer, accessToken = null) => new HomeServerApi({homeServer, accessToken, request}),
+            createHsApi: (homeServer, accessToken, reconnector) => new HomeServerApi({homeServer, accessToken, request, reconnector}),
             sessionStore: new SessionsStore("brawl_sessions_v1"),
-            clock: Date //just for `now` fn
+            clock: new DOMClock(),
         });
         await vm.load();
         const view = new BrawlView(vm);

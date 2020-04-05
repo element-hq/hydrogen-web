@@ -126,7 +126,11 @@ export default class BrawlViewModel extends EventEmitter {
         try {
             this._loading = true;
             this._loadingText = "Loading your conversations…";
-            const hsApi = this._createHsApi(sessionInfo.homeServer, sessionInfo.accessToken);
+            const reconnector = new Reconnector(
+                new ExponentialRetryDelay(2000, this._clock.createTimeout),
+                this._clock.createMeasure
+            );
+            const hsApi = this._createHsApi(sessionInfo.homeServer, sessionInfo.accessToken, reconnector);
             const storage = await this._storageFactory.create(sessionInfo.id);
             // no need to pass access token to session
             const filteredSessionInfo = {
@@ -136,10 +140,16 @@ export default class BrawlViewModel extends EventEmitter {
             };
             const session = new Session({storage, sessionInfo: filteredSessionInfo, hsApi});
             // show spinner now, with title loading stored data?
-
             this.emit("change", "activeSection");
             await session.load();
-            const sync = new Sync({hsApi, storage, session});            
+            const sync = new Sync({hsApi, storage, session});
+
+            reconnector.on("state", state => {
+                if (state === ConnectionState.Online) {
+                    sync.start();
+                    session.notifyNetworkAvailable(reconnector.lastVersionsResponse);
+                }
+            });
             
             const needsInitialSync = !session.syncToken;
             if (!needsInitialSync) {

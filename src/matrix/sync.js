@@ -33,6 +33,7 @@ export default class Sync extends EventEmitter {
         return this._isSyncing;
     }
 
+    // this should not throw?
     // returns when initial sync is done
     async start() {
         if (this._isSyncing) {

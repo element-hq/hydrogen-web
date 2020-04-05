@@ -40,7 +40,7 @@ export default class Session {
         }));
     }
 
-    notifyNetworkAvailable() {
+    notifyNetworkAvailable(lastVersionResponse) {
         for (const [, room] of this._rooms) {
             room.resumeSending();
         }

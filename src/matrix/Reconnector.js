@@ -1,53 +1,49 @@
-class Clock {
-    // use cases
-    // StopWatch: not sure I like that name ... but measure time difference from start to current time
-    // Timeout: wait for a given number of ms, and be able to interrupt the wait
-    //  Clock.timeout() -> creates a new timeout?
-    // Now: get current timestamp
-    //  Clock.now(), or pass Clock.now so others can do now()
-    // 
-    // should use subinterfaces so we can only pass part needed to other constructors
-    // 
-}
-
-
 // need to prevent memory leaks here!
 export class DomOnlineDetected {
-    constructor(reconnecter) {
+    constructor(reconnector) {
         // window.addEventListener('offline', () => appendOnlineStatus(false));
         // window.addEventListener('online', () => appendOnlineStatus(true));
         // appendOnlineStatus(navigator.onLine);
-        // on online, reconnecter.tryNow()
+        // on online, reconnector.tryNow()
     }
 }
 
 export class ExponentialRetryDelay {
-    constructor(start = 2000, delay) {
+    constructor(start = 2000, createTimeout) {
         this._start = start;
         this._current = start;
-        this._delay = delay;
+        this._createTimeout = createTimeout;
         this._max = 60 * 5 * 1000; //5 min
-        this._timer = null;
+        this._timeout = null;
     }
 
     async waitForRetry() {
-        this._timer = this._delay(this._current);
+        this._timeout = this._createTimeout(this._current);
         try {
-            await this._timer.timeout();
+            await this._timeout.elapsed();
             // only increase delay if we didn't get interrupted
             const seconds = this._current / 1000;
             const powerOfTwo = (seconds * seconds) * 1000;
             this._current = Math.max(this._max, powerOfTwo);
+        } catch(err) {
+            // swallow AbortError, means skipWaiting was called
+            if (!(err instanceof AbortError)) {
+                throw err;
+            }
         } finally {
-            this._timer = null;
+            this._timeout = null;
+        }
+    }
+
+    skipWaiting() {
+        if (this._timeout) {
+            this._timeout.abort();
         }
     }
 
     reset() {
         this._current = this._start;
-        if (this._timer) {
-            this._timer.abort();
-        }
+        this.skipWaiting();
     }
 
     get nextValue() {
@@ -80,13 +76,12 @@ export const ConnectionState = createEnum(
     "Online"
 );
 
-export class Reconnecter {
-    constructor({hsApi, retryDelay, clock}) {
+export class Reconnector {
+    constructor({retryDelay, createTimeMeasure}) {
         this._online 
         this._retryDelay = retryDelay;
         this._currentDelay = null;
-        this._hsApi = hsApi;
-        this._clock = clock;
+        this._createTimeMeasure = createTimeMeasure;
         // assume online, and do our thing when something fails
         this._state = ConnectionState.Online;
         this._isReconnecting = false;
@@ -102,25 +97,22 @@ export class Reconnecter {
     }
 
     get retryIn() {
-        return  this._stateSince.measure();
+        if (this._state === ConnectionState.Waiting) {
+            return this._retryDelay.nextValue - this._stateSince.measure();
+        }
+        return 0;
     }
 
-    onRequestFailed() {
+    onRequestFailed(hsApi) {
         if (!this._isReconnecting) {
             this._setState(ConnectionState.Offline);
-            // do something with versions response of loop here?
-            // we might want to pass it to session to know what server supports?
-            // so emit it ...
-            this._reconnectLoop();
-            // start loop
+            this._reconnectLoop(hsApi);
         }
     }
 
-    // don't throw from here
     tryNow() {
-        // skip waiting
-        if (this._currentDelay) {
-            this._currentDelay.abort();
+        if (this._retryDelay) {
+            this._retryDelay.skipWaiting();
         }
     }
 
@@ -128,7 +120,7 @@ export class Reconnecter {
         if (state !== this._state) {
             this._state = state;
             if (this._state === ConnectionState.Waiting) {
-                this._stateSince = this._clock.stopwatch();
+                this._stateSince = this._createTimeMeasure();
             } else {
                 this._stateSince = null;
             }
@@ -136,30 +128,23 @@ export class Reconnecter {
         }
     }
     
-    async _reconnectLoop() {
+    async _reconnectLoop(hsApi) {
         this._isReconnecting = true;
-        this._retryDelay.reset();
         this._versionsResponse = null;
+        this._retryDelay.reset();
 
         while (!this._versionsResponse) {
-            // TODO: should we wait first or request first?
-            // as we've just failed a request? I guess no harm in trying immediately
             try {
                 this._setState(ConnectionState.Reconnecting);
-                const versionsRequest = this._hsApi.versions(10000);
+                // use 10s timeout, because we don't want to be waiting for
+                // a stale connection when we just came online again
+                const versionsRequest = hsApi.versions({timeout: 10000});
                 this._versionsResponse = await versionsRequest.response();
                 this._setState(ConnectionState.Online);
             } catch (err) {
+                // NetworkError or AbortError from timeout
                 this._setState(ConnectionState.Waiting);
-                this._currentDelay = this._retryDelay.next();
-                try {
-                    await this._currentDelay
-                } catch (err) {
-                    // waiting interrupted, we should retry immediately,
-                    // swallow error
-                } finally {
-                    this._currentDelay = null;
-                }
+                await this._retryDelay.waitForRetry();
             }
         }
     }
