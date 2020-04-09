@@ -1,13 +1,3 @@
-// need to prevent memory leaks here!
-export class DomOnlineDetected {
-    constructor(reconnector) {
-        // window.addEventListener('offline', () => appendOnlineStatus(false));
-        // window.addEventListener('online', () => appendOnlineStatus(true));
-        // appendOnlineStatus(navigator.onLine);
-        // on online, reconnector.tryNow()
-    }
-}
-
 export class ExponentialRetryDelay {
     constructor(start = 2000, createTimeout) {
         this._start = start;
@@ -76,7 +66,7 @@ export const ConnectionState = createEnum(
     "Online"
 );
 
-export class Reconnector {
+export class Reconnector extends ObservableValue {
     constructor({retryDelay, createTimeMeasure}) {
         this._online 
         this._retryDelay = retryDelay;
@@ -124,7 +114,7 @@ export class Reconnector {
             } else {
                 this._stateSince = null;
             }
-            this.emit("change", state);
+            this.emit(state);
         }
     }
     

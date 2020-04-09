@@ -1,6 +1,6 @@
-import {AbortError} from "./error.js";
+import {AbortError} from "../utils/error.js";
 
-class DOMTimeout {
+class Timeout {
     constructor(ms) {
         this._reject = null;
         this._handle = null;
@@ -27,7 +27,7 @@ class DOMTimeout {
     }
 }
 
-class DOMTimeMeasure {
+class TimeMeasure {
     constructor() {
         this._start = window.performance.now();
     }
@@ -37,13 +37,13 @@ class DOMTimeMeasure {
     }
 }
 
-export class DOMClock {
+export class Clock {
     createMeasure() {
-        return new DOMTimeMeasure();
+        return new TimeMeasure();
     }
 
     createTimeout(ms) {
-        return new DOMTimeout(ms);
+        return new Timeout(ms);
     }
 
     now() {

@@ -20,6 +20,7 @@ export default class BrawlViewModel extends EventEmitter {
         this._loading = false;
         this._error = null;
         this._sessionViewModel = null;
+        this._sessionSubscription = null;
         this._loginViewModel = null;
         this._sessionPickerViewModel = null;
     }
@@ -33,45 +34,35 @@ export default class BrawlViewModel extends EventEmitter {
     }
 
     async _showPicker() {
-        this._clearSections();
-        this._sessionPickerViewModel = new SessionPickerViewModel({
-            sessionStore: this._sessionStore,
-            storageFactory: this._storageFactory,
-            sessionCallback: sessionInfo => this._onSessionPicked(sessionInfo)
+        this._setSection(() => {
+            this._sessionPickerViewModel = new SessionPickerViewModel({
+                sessionStore: this._sessionStore,
+                storageFactory: this._storageFactory,
+                sessionCallback: sessionInfo => this._onSessionPicked(sessionInfo)
+            });
         });
-        this.emit("change", "activeSection");
         try {
             await this._sessionPickerViewModel.load();
         } catch (err) {
-            this._clearSections();
-            this._error = err;
-            this.emit("change", "activeSection");
+            this._setSection(() => this._error = err);
         }
     }
 
     _showLogin() {
-        this._clearSections();
-        this._loginViewModel = new LoginViewModel({
-            createHsApi: this._createHsApi,
-            defaultHomeServer: "https://matrix.org",
-            loginCallback: loginData => this._onLoginFinished(loginData)
-        });
-        this.emit("change", "activeSection");
+        this._setSection(() => {
+            this._loginViewModel = new LoginViewModel({
+                createHsApi: this._createHsApi,
+                defaultHomeServer: "https://matrix.org",
+                loginCallback: loginData => this._onLoginFinished(loginData)
+            });
+        })
 
     }
 
     _showSession(session, sync) {
-        this._clearSections();
-        this._sessionViewModel = new SessionViewModel({session, sync});
-        this.emit("change", "activeSection");
-    }
-
-    _clearSections() {
-        this._error = null;
-        this._loading = false;
-        this._sessionViewModel = null;
-        this._loginViewModel = null;
-        this._sessionPickerViewModel = null;
+        this._setSection(() => {
+            this._sessionViewModel = new SessionViewModel({session, sync});
+        });
     }
 
     get activeSection() {
@@ -86,6 +77,25 @@ export default class BrawlViewModel extends EventEmitter {
         } else {
             return "picker";
         }
+    }
+
+    _setSection(setter) {
+        const oldSection = this.activeSection;
+        // clear all members the activeSection depends on
+        this._error = null;
+        this._loading = false;
+        this._sessionViewModel = null;
+        this._loginViewModel = null;
+        this._sessionPickerViewModel = null;
+        // now set it again
+        setter();
+        const newSection = this.activeSection;
+        // remove session subscription when navigating away
+        if (oldSection === "session" && newSection !== oldSection) {
+            this._sessionSubscription();
+            this._sessionSubscription = null;
+        }
+        this.emit("change", "activeSection");
     }
 
     get loadingText() { return this._loadingText; }
@@ -123,51 +133,12 @@ export default class BrawlViewModel extends EventEmitter {
     }
 
     async _loadSession(sessionInfo) {
-        try {
-            this._loading = true;
-            this._loadingText = "Loading your conversations…";
-            const reconnector = new Reconnector(
-                new ExponentialRetryDelay(2000, this._clock.createTimeout),
-                this._clock.createMeasure
-            );
-            const hsApi = this._createHsApi(sessionInfo.homeServer, sessionInfo.accessToken, reconnector);
-            const storage = await this._storageFactory.create(sessionInfo.id);
-            // no need to pass access token to session
-            const filteredSessionInfo = {
-                deviceId: sessionInfo.deviceId,
-                userId: sessionInfo.userId,
-                homeServer: sessionInfo.homeServer,
-            };
-            const session = new Session({storage, sessionInfo: filteredSessionInfo, hsApi});
-            // show spinner now, with title loading stored data?
-            this.emit("change", "activeSection");
-            await session.load();
-            const sync = new Sync({hsApi, storage, session});
-
-            reconnector.on("state", state => {
-                if (state === ConnectionState.Online) {
-                    sync.start();
-                    session.notifyNetworkAvailable(reconnector.lastVersionsResponse);
-                }
-            });
-            
-            const needsInitialSync = !session.syncToken;
-            if (!needsInitialSync) {
-                this._showSession(session, sync);
-            }
-            this._loadingText = "Getting your conversations from the server…";
-            this.emit("change", "loadingText");
-            // update spinner title to initial sync
-            await sync.start();
-            if (needsInitialSync) {
-                this._showSession(session, sync);
-            }
-            // start sending pending messages
-            session.notifyNetworkAvailable();
-        } catch (err) {
-            console.error(err);
-            this._error = err;
-        }
-        this.emit("change", "activeSection");
+        this._setSection(() => {
+            // TODO this is pseudo code-ish
+            const container = this._createSessionContainer();
+            this._sessionViewModel = new SessionViewModel({session, sync});
+            this._sessionSubscription = this._activeSessionContainer.subscribe(this._updateSessionState);
+            this._activeSessionContainer.start(sessionInfo);
+        });
     }
 }

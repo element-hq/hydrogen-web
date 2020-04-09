@@ -31,6 +31,15 @@ export default class BaseObservableCollection {
     // Add iterator over handlers here
 }
 
+// like an EventEmitter, but doesn't have an event type
+export class ObservableValue extends BaseObservableCollection {
+    emit(argument) {
+        for (const h of this._handlers) {
+            h(argument);
+        }
+    }
+}
+
 export function tests() {
     class Collection extends BaseObservableCollection {
         constructor() {

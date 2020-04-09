@@ -31,6 +31,13 @@ export default class SessionViewModel extends EventEmitter {
         return this._currentRoomViewModel;
     }
 
+    dispose() {
+        if (this._currentRoomViewModel) {
+            this._currentRoomViewModel.dispose();
+            this._currentRoomViewModel = null;
+        }
+    }
+
     _closeCurrentRoom() {
         if (this._currentRoomViewModel) {
             this._currentRoomViewModel.dispose();
