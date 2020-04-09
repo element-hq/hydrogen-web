@@ -44,6 +44,7 @@
         - call /keys/query for all members in MemberList
         - verify signature on device keys
         - store devices
+    - track which e2ee rooms a user is in? This so we don't need to load the member list when figuring out for which rooms a device changes has an effect. Maybe not yet needed here but we will need it to recalculate room trust. Perhaps we can also reuse the membership store if we have an index on (only) userid so we can ask with one query which rooms a user is in.
  - implement maintaining one-time keys on server
     - update account with new new keys when /sync responded with device_one_time_keys_count < MAX/2
     - upload new one-time keys to /keys/upload
