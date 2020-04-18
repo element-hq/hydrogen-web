@@ -3,6 +3,7 @@ export class HomeServerError extends Error {
         super(`${body ? body.error : status} on ${method} ${url}`);
         this.errcode = body ? body.errcode : null;
         this.retry_after_ms = body ? body.retry_after_ms : 0;
+        this.statusCode = status;
     }
 
     get isFatal() {

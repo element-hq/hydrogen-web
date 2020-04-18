@@ -20,6 +20,14 @@ export default async function main(container) {
         // window.getBrawlFetchLog = () => recorder.log();
         // normal network:
         const request = fetchRequest;
+        const clock = new DOMClock();
+
+        const sessionContainer = new SessionContainer({
+            clock,
+            request,
+            storageFactory: new StorageFactory(),
+        });
+
         const vm = new BrawlViewModel({
             storageFactory: new StorageFactory(),
             createHsApi: (homeServer, accessToken, reconnector) => new HomeServerApi({homeServer, accessToken, request, reconnector}),

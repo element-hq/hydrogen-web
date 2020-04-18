@@ -1,4 +1,4 @@
-export class Online extends ObservableValue {
+export class OnlineStatus extends ObservableValue {
     constructor() {
         super();
         this._onOffline = this._onOffline.bind(this);

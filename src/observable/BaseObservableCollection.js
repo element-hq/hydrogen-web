@@ -32,11 +32,27 @@ export default class BaseObservableCollection {
 }
 
 // like an EventEmitter, but doesn't have an event type
-export class ObservableValue extends BaseObservableCollection {
+export class BaseObservableValue extends BaseObservableCollection {
     emit(argument) {
         for (const h of this._handlers) {
             h(argument);
         }
+    }
+}
+
+export class ObservableValue extends BaseObservableValue {
+    constructor(initialValue) {
+        super();
+        this._value = initialValue;
+    }
+
+    get() {
+        return this._value;
+    }
+
+    set(value) {
+        this._value = value;
+        this.emit(this._value);
     }
 }
 

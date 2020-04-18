@@ -81,7 +81,6 @@ export default class HomeServerApi {
             requestResult.response().then(() => timeout.abort());
         }
 
-
         const wrapper = new RequestWrapper(method, url, requestResult);
         
         if (this._reconnector) {

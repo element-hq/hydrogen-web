@@ -16,7 +16,7 @@ export class ExponentialRetryDelay {
             const powerOfTwo = (seconds * seconds) * 1000;
             this._current = Math.max(this._max, powerOfTwo);
         } catch(err) {
-            // swallow AbortError, means skipWaiting was called
+            // swallow AbortError, means abort was called
             if (!(err instanceof AbortError)) {
                 throw err;
             }
@@ -25,7 +25,7 @@ export class ExponentialRetryDelay {
         }
     }
 
-    skipWaiting() {
+    abort() {
         if (this._timeout) {
             this._timeout.abort();
         }
@@ -33,7 +33,7 @@ export class ExponentialRetryDelay {
 
     reset() {
         this._current = this._start;
-        this.skipWaiting();
+        this.abort();
     }
 
     get nextValue() {
@@ -66,14 +66,13 @@ export const ConnectionState = createEnum(
     "Online"
 );
 
-export class Reconnector extends ObservableValue {
-    constructor({retryDelay, createTimeMeasure}) {
-        this._online 
+export class Reconnector {
+    constructor({retryDelay, createTimeMeasure, isOnline}) {
+        this._isOnline = isOnline;
         this._retryDelay = retryDelay;
-        this._currentDelay = null;
         this._createTimeMeasure = createTimeMeasure;
         // assume online, and do our thing when something fails
-        this._state = ConnectionState.Online;
+        this._state = new ObservableValue(ConnectionState.Online);
         this._isReconnecting = false;
         this._versionsResponse = null;
     }
@@ -82,39 +81,53 @@ export class Reconnector extends ObservableValue {
         return this._versionsResponse;
     }
 
-    get state() {
+    get connectionState() {
         return this._state;
     }
 
     get retryIn() {
-        if (this._state === ConnectionState.Waiting) {
+        if (this._state.get() === ConnectionState.Waiting) {
             return this._retryDelay.nextValue - this._stateSince.measure();
         }
         return 0;
     }
 
-    onRequestFailed(hsApi) {
+    async onRequestFailed(hsApi) {
         if (!this._isReconnecting) {
             this._setState(ConnectionState.Offline);
-            this._reconnectLoop(hsApi);
+    
+            const isOnlineSubscription = this._isOnline && this._isOnline.subscribe(online => {
+                if (online) {
+                    this.tryNow();
+                }
+            });
+
+            try {
+                await this._reconnectLoop(hsApi);
+            } finally {
+                if (isOnlineSubscription) {
+                    // unsubscribe from this._isOnline
+                    isOnlineSubscription();
+                }
+            }
         }
     }
 
     tryNow() {
         if (this._retryDelay) {
-            this._retryDelay.skipWaiting();
+            // this will interrupt this._retryDelay.waitForRetry() in _reconnectLoop
+            this._retryDelay.abort();
         }
     }
 
     _setState(state) {
-        if (state !== this._state) {
-            this._state = state;
-            if (this._state === ConnectionState.Waiting) {
+        if (state !== this._state.get()) {
+            if (state === ConnectionState.Waiting) {
                 this._stateSince = this._createTimeMeasure();
             } else {
                 this._stateSince = null;
             }
-            this.emit(state);
+            this._state.set(state);
         }
     }
     
@@ -123,19 +136,34 @@ export class Reconnector extends ObservableValue {
         this._versionsResponse = null;
         this._retryDelay.reset();
 
-        while (!this._versionsResponse) {
-            try {
-                this._setState(ConnectionState.Reconnecting);
-                // use 10s timeout, because we don't want to be waiting for
-                // a stale connection when we just came online again
-                const versionsRequest = hsApi.versions({timeout: 10000});
-                this._versionsResponse = await versionsRequest.response();
-                this._setState(ConnectionState.Online);
-            } catch (err) {
-                // NetworkError or AbortError from timeout
-                this._setState(ConnectionState.Waiting);
-                await this._retryDelay.waitForRetry();
+        try {
+            while (!this._versionsResponse) {
+                try {
+                    this._setState(ConnectionState.Reconnecting);
+                    // use 10s timeout, because we don't want to be waiting for
+                    // a stale connection when we just came online again
+                    const versionsRequest = hsApi.versions({timeout: 10000});
+                    this._versionsResponse = await versionsRequest.response();
+                    this._setState(ConnectionState.Online);
+                } catch (err) {
+                    if (err instanceof NetworkError) {
+                        this._setState(ConnectionState.Waiting);
+                        try {
+                            await this._retryDelay.waitForRetry();
+                        } catch (err) {
+                            if (!(err instanceof AbortError)) {
+                                throw err;
+                            }
+                        }
+                    } else {
+                        throw err;
+                    }
+                }
             }
+        } catch (err) {
+            // nothing is catching the error above us,
+            // so just log here
+            console.err(err);
         }
     }
 }

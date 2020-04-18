@@ -57,7 +57,7 @@ export default function fetchRequest(url, options) {
             // this can either mean user is offline, server is offline, or a CORS error (server misconfiguration).
             // 
             // One could check navigator.onLine to rule out the first
-            // but the 2 later ones are indistinguishable from javascript.
+            // but the 2 latter ones are indistinguishable from javascript.
             throw new NetworkError(`${options.method} ${url}: ${err.message}`);
         }
         throw err;

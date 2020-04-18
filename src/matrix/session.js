@@ -40,7 +40,11 @@ export default class Session {
         }));
     }
 
-    notifyNetworkAvailable(lastVersionResponse) {
+    stop() {
+        this._sendScheduler.stop();
+    }
+
+    start(lastVersionResponse) {
         for (const [, room] of this._rooms) {
             room.resumeSending();
         }

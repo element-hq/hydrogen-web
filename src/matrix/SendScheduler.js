@@ -62,6 +62,10 @@ export class SendScheduler {
         // this._enabled;
     }
 
+    stop() {
+        // TODO: abort current requests and set offline
+    }
+
     // this should really be per roomId to avoid head-of-line blocking
     // 
     // takes a callback instead of returning a promise with the slot
