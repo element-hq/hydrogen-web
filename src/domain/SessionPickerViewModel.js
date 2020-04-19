@@ -99,15 +99,15 @@ class SessionItemViewModel extends EventEmitter {
 }
 
 export default class SessionPickerViewModel {
-    constructor({storageFactory, sessionStore, sessionCallback}) {
+    constructor({storageFactory, sessionInfoStorage, sessionCallback}) {
         this._storageFactory = storageFactory;
-        this._sessionStore = sessionStore;
+        this._sessionInfoStorage = sessionInfoStorage;
         this._sessionCallback = sessionCallback;
         this._sessions = new SortedArray((s1, s2) => s1.id.localeCompare(s2.id));
     }
 
     async load() {
-        const sessions = await this._sessionStore.getAll();
+        const sessions = await this._sessionInfoStorage.getAll();
         this._sessions.setManyUnsorted(sessions.map(s => new SessionItemViewModel(s, this)));
     }
 
@@ -119,7 +119,7 @@ export default class SessionPickerViewModel {
     }
 
     async _exportData(id) {
-        const sessionInfo = await this._sessionStore.get(id);
+        const sessionInfo = await this._sessionInfoStorage.get(id);
         const stores = await this._storageFactory.export(id);
         const data = {sessionInfo, stores};
         return data;
@@ -131,13 +131,13 @@ export default class SessionPickerViewModel {
         sessionInfo.comment = `Imported on ${new Date().toLocaleString()} from id ${sessionInfo.id}.`;
         sessionInfo.id = createNewSessionId();
         await this._storageFactory.import(sessionInfo.id, data.stores);
-        await this._sessionStore.add(sessionInfo);
+        await this._sessionInfoStorage.add(sessionInfo);
         this._sessions.set(new SessionItemViewModel(sessionInfo, this));
     }
 
     async delete(id) {
         const idx = this._sessions.array.findIndex(s => s.id === id);
-        await this._sessionStore.delete(id);
+        await this._sessionInfoStorage.delete(id);
         await this._storageFactory.delete(id);
         this._sessions.remove(idx);
     }

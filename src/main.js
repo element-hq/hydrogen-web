@@ -3,7 +3,7 @@ import HomeServerApi from "./matrix/net/HomeServerApi.js";
 import fetchRequest from "./matrix/net/fetch.js";
 import {Reconnector} from "./matrix/net/connection/Reconnector.js";
 import StorageFactory from "./matrix/storage/idb/create.js";
-import SessionsStore from "./matrix/sessions-store/localstorage/SessionsStore.js";
+import SessionInfoStorage from "./matrix/sessioninfo/localstorage/SessionInfoStorage.js";
 import BrawlViewModel from "./domain/BrawlViewModel.js";
 import BrawlView from "./ui/web/BrawlView.js";
 import DOMClock from "./ui/web/dom/Clock.js";
@@ -27,7 +27,7 @@ export default async function main(container) {
         const vm = new BrawlViewModel({
             storageFactory: new StorageFactory(),
             createHsApi: (homeServer, accessToken, reconnector) => new HomeServerApi({homeServer, accessToken, request, reconnector}),
-            sessionStore: new SessionsStore("brawl_sessions_v1"),
+            sessionInfoStorage: new SessionInfoStorage("brawl_sessions_v1"),
             clock: new DOMClock(),
         });
         await vm.load();

@@ -1,5 +1,5 @@
-import Session from "../matrix/session.js";
-import Sync from "../matrix/sync.js";
+import Session from "../matrix/Session.js";
+import Sync from "../matrix/Sync.js";
 import SessionViewModel from "./session/SessionViewModel.js";
 import LoginViewModel from "./LoginViewModel.js";
 import SessionPickerViewModel from "./SessionPickerViewModel.js";
@@ -10,10 +10,10 @@ export function createNewSessionId() {
 }
 
 export default class BrawlViewModel extends EventEmitter {
-    constructor({storageFactory, sessionStore, createHsApi, clock}) {
+    constructor({storageFactory, sessionInfoStorage, createHsApi, clock}) {
         super();
         this._storageFactory = storageFactory;
-        this._sessionStore = sessionStore;
+        this._sessionInfoStorage = sessionInfoStorage;
         this._createHsApi = createHsApi;
         this._clock = clock;
 
@@ -26,7 +26,7 @@ export default class BrawlViewModel extends EventEmitter {
     }
 
     async load() {
-        if (await this._sessionStore.hasAnySession()) {
+        if (await this._sessionInfoStorage.hasAnySession()) {
             this._showPicker();
         } else {
             this._showLogin();
@@ -36,7 +36,7 @@ export default class BrawlViewModel extends EventEmitter {
     async _showPicker() {
         this._setSection(() => {
             this._sessionPickerViewModel = new SessionPickerViewModel({
-                sessionStore: this._sessionStore,
+                sessionInfoStorage: this._sessionInfoStorage,
                 storageFactory: this._storageFactory,
                 sessionCallback: sessionInfo => this._onSessionPicked(sessionInfo)
             });
@@ -116,7 +116,7 @@ export default class BrawlViewModel extends EventEmitter {
                 accessToken: loginData.access_token,
                 lastUsed: this._clock.now()
             };
-            await this._sessionStore.add(sessionInfo);
+            await this._sessionInfoStorage.add(sessionInfo);
             this._loadSession(sessionInfo);
         } else {
             this._showPicker();
@@ -126,7 +126,7 @@ export default class BrawlViewModel extends EventEmitter {
     _onSessionPicked(sessionInfo) {
         if (sessionInfo) {
             this._loadSession(sessionInfo);
-            this._sessionStore.updateLastUsed(sessionInfo.id, this._clock.now());
+            this._sessionInfoStorage.updateLastUsed(sessionInfo.id, this._clock.now());
         } else {
             this._showLogin();
         }
