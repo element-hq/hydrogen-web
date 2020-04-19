@@ -6,8 +6,7 @@ export const LoadStatus = createEnum(
     "LoginFailed",
     "Loading",
     "Migrating",    //not used atm, but would fit here
-    "InitialSync",
-    "CatchupSync",
+    "FirstSync",
     "Error",
     "Ready",
 );
@@ -127,7 +126,6 @@ export class SessionContainer {
         if (!needsInitialSync) {
             this._status.set(LoadStatus.CatchupSync);
         } else {
-            this._status.set(LoadStatus.InitialSync);
         }
 
         this._sync = new Sync({hsApi, storage, session: this._session});
@@ -148,7 +146,8 @@ export class SessionContainer {
 
     async _waitForFirstSync() {
         try {
-            await this._sync.start();
+            this._sync.start();
+            this._status.set(LoadStatus.FirstSync);
         } catch (err) {
             // swallow ConnectionError here and continue,
             // as the reconnector above will call 

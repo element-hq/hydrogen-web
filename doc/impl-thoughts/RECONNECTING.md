@@ -41,11 +41,12 @@ rooms should report how many messages they have queued up, and each time they se
     - add waitFor (won't this leak if the promise never resolves?)
     - decide whether we want to inherit (no?)
  - DONE: cleanup Reconnector with recent changes, move generic code, make imports work
- - add SyncStatus as ObservableValue of enum in Sync
- - show load progress in LoginView/SessionPickView and do away with loading screen
+ - DONE: add SyncStatus as ObservableValue of enum in Sync
+ - cleanup SessionContainer
  - change main.js to pass in a creation function of a SessionContainer instead of everything it is replacing 
+ - show load progress in LoginView/SessionPickView and do away with loading screen
  - adjust BrawlViewModel, SessionPickViewModel and LoginViewModel to use a SessionContainer
- - rename SessionsStore to SessionInfoStorage
+ - DONE: rename SessionsStore to SessionInfoStorage
  - make sure we've renamed all \*State enums and fields to \*Status
  - add pendingMessageCount prop to SendQueue and Room, aggregate this in Session
  - add completedFirstSync to Sync, so we can check if the catchup or initial sync is still in progress
