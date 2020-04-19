@@ -1,6 +1,6 @@
 import createEnum from "../../utils/enum.js";
 import {AbortError} from "../../utils/error.js";
-import {NetworkError} from "../error.js"
+import {ConnectionError} from "../error.js"
 import ObservableValue from "../../observable/ObservableValue.js";
 
 export const ConnectionStatus = createEnum(
@@ -93,7 +93,7 @@ export class Reconnector {
                 this._versionsResponse = await versionsRequest.response();
                 this._setState(ConnectionStatus.Online);
             } catch (err) {
-                if (err instanceof NetworkError) {
+                if (err instanceof ConnectionError) {
                     this._setState(ConnectionStatus.Waiting);
                     try {
                         await this._retryDelay.waitForRetry();
@@ -122,7 +122,7 @@ export function tests() {
                     response() {
                         if (remainingFailures) {
                             remainingFailures -= 1;
-                            return Promise.reject(new NetworkError());
+                            return Promise.reject(new ConnectionError());
                         } else {
                             return Promise.resolve(42);
                         }

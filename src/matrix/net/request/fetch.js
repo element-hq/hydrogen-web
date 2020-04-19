@@ -1,6 +1,6 @@
 import {
     AbortError,
-    NetworkError
+    ConnectionError
 } from "../error.js";
 
 class RequestResult {
@@ -58,7 +58,7 @@ export default function fetchRequest(url, options) {
             // 
             // One could check navigator.onLine to rule out the first
             // but the 2 latter ones are indistinguishable from javascript.
-            throw new NetworkError(`${options.method} ${url}: ${err.message}`);
+            throw new ConnectionError(`${options.method} ${url}: ${err.message}`);
         }
         throw err;
     });

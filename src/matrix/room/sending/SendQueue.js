@@ -1,5 +1,5 @@
 import SortedArray from "../../../observable/list/SortedArray.js";
-import {NetworkError} from "../../error.js";
+import {ConnectionError} from "../../error.js";
 import PendingEvent from "./PendingEvent.js";
 
 function makeTxnId() {
@@ -52,7 +52,7 @@ export default class SendQueue {
                 console.log("keep sending?", this._amountSent, "<", this._pendingEvents.length);
             }
         } catch(err) {
-            if (err instanceof NetworkError) {
+            if (err instanceof ConnectionError) {
                 this._offline = true;
             }
         } finally {

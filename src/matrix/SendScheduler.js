@@ -1,5 +1,5 @@
 import Platform from "../Platform.js";
-import {HomeServerError, NetworkError} from "./error.js";
+import {HomeServerError, ConnectionError} from "./error.js";
 
 export class RateLimitingBackoff {
     constructor() {
@@ -88,7 +88,7 @@ export class SendScheduler {
                 // this can throw!
                 result = await this._doSend(request.sendCallback);
             } catch (err) {
-                if (err instanceof NetworkError) {
+                if (err instanceof ConnectionError) {
                     // we're offline, everybody will have
                     // to re-request slots when we come back online
                     this._offline = true;

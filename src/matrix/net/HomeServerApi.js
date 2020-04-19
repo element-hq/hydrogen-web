@@ -1,6 +1,6 @@
 import {
     HomeServerError,
-    NetworkError,
+    ConnectionError,
 } from "./error.js";
 
 class RequestWrapper {
@@ -85,7 +85,7 @@ export default class HomeServerApi {
         
         if (this._reconnector) {
             wrapper.response().catch(err => {
-                if (err instanceof NetworkError) {
+                if (err instanceof ConnectionError) {
                     this._reconnector.onRequestFailed(this);
                 }
             });

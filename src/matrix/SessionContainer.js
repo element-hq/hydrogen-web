@@ -81,7 +81,7 @@ export class SessionContainer {
                     this._loginFailure = LoginFailure.Unknown;
                 }
                 this._status.set(LoadStatus.LoginFailure);
-            } else if (err instanceof NetworkError) {
+            } else if (err instanceof ConnectionError) {
                 this._loginFailure = LoginFailure.Network;
                 this._status.set(LoadStatus.LoginFailure);
             } else {
@@ -150,10 +150,10 @@ export class SessionContainer {
         try {
             await this._sync.start();
         } catch (err) {
-            // swallow NetworkError here and continue,
+            // swallow ConnectionError here and continue,
             // as the reconnector above will call 
             // sync.start again to retry in this case
-            if (!(err instanceof NetworkError)) {
+            if (!(err instanceof ConnectionError)) {
                 throw err;
             }
         }
