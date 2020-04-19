@@ -36,9 +36,9 @@ rooms should report how many messages they have queued up, and each time they se
 
 # TODO
 
- - finish (Base)ObservableValue 
+ - DONE: finish (Base)ObservableValue 
     - put in own file
-    - add waitFor
+    - add waitFor (won't this leak if the promise never resolves?)
     - decide whether we want to inherit (no?)
  - cleanup Reconnector with recent changes, move generic code, make imports work
  - add SyncStatus as ObservableValue of enum in Sync

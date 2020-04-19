@@ -1,11 +1,13 @@
-import HomeServerApi from "./matrix/hs-api.js";
+import HomeServerApi from "./matrix/net/HomeServerApi.js";
 // import {RecordRequester, ReplayRequester} from "./matrix/net/replay.js";
 import fetchRequest from "./matrix/net/fetch.js";
+import {Reconnector} from "./matrix/net/connection/Reconnector.js";
 import StorageFactory from "./matrix/storage/idb/create.js";
 import SessionsStore from "./matrix/sessions-store/localstorage/SessionsStore.js";
 import BrawlViewModel from "./domain/BrawlViewModel.js";
 import BrawlView from "./ui/web/BrawlView.js";
-import DOMClock from "./utils/DOMClock.js";
+import DOMClock from "./ui/web/dom/Clock.js";
+import OnlineStatus from "./ui/web/dom/OnlineStatus.js";
 
 export default async function main(container) {
     try {
@@ -21,12 +23,6 @@ export default async function main(container) {
         // normal network:
         const request = fetchRequest;
         const clock = new DOMClock();
-
-        const sessionContainer = new SessionContainer({
-            clock,
-            request,
-            storageFactory: new StorageFactory(),
-        });
 
         const vm = new BrawlViewModel({
             storageFactory: new StorageFactory(),

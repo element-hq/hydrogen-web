@@ -1,4 +1,4 @@
-import {AbortError} from "../utils/error.js";
+import {AbortError} from "../../../utils/error.js";
 
 class Timeout {
     constructor(ms) {
@@ -37,7 +37,7 @@ class TimeMeasure {
     }
 }
 
-export class Clock {
+export default class Clock {
     createMeasure() {
         return new TimeMeasure();
     }

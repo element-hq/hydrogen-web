@@ -1,4 +1,6 @@
-export class OnlineStatus extends ObservableValue {
+import {BaseObservableValue} from "../../../observable/ObservableValue.js";
+
+export default class OnlineStatus extends BaseObservableValue {
     constructor() {
         super();
         this._onOffline = this._onOffline.bind(this);

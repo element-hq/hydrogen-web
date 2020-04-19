@@ -1,4 +1,4 @@
-export default class BaseObservableCollection {
+export default class BaseObservable {
     constructor() {
         this._handlers = new Set();
     }
@@ -31,33 +31,8 @@ export default class BaseObservableCollection {
     // Add iterator over handlers here
 }
 
-// like an EventEmitter, but doesn't have an event type
-export class BaseObservableValue extends BaseObservableCollection {
-    emit(argument) {
-        for (const h of this._handlers) {
-            h(argument);
-        }
-    }
-}
-
-export class ObservableValue extends BaseObservableValue {
-    constructor(initialValue) {
-        super();
-        this._value = initialValue;
-    }
-
-    get() {
-        return this._value;
-    }
-
-    set(value) {
-        this._value = value;
-        this.emit(this._value);
-    }
-}
-
 export function tests() {
-    class Collection extends BaseObservableCollection {
+    class Collection extends BaseObservable {
         constructor() {
             super();
             this.firstSubscribeCalls = 0;

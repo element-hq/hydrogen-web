@@ -34,7 +34,7 @@ export default class SwitchView {
         return this._childView;
     }
 }
-
+/*
 // SessionLoadView
 // should this be the new switch view?
 // and the other one be the BasicSwitchView?
@@ -50,8 +50,8 @@ new BoundSwitchView(vm, vm => vm.isLoading, (loading, vm) => {
         return new SessionView(vm.sessionViewModel);
     }
 });
-
-class BoundSwitchView extends SwitchView {
+*/
+export class BoundSwitchView extends SwitchView {
     constructor(value, mapper, viewCreator) {
         super(viewCreator(mapper(value), value));
         this._mapper = mapper;

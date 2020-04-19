@@ -1,4 +1,4 @@
-import HomeServerApi from "./hs-api.js";
+import HomeServerApi from "./net/HomeServerApi.js";
 
 export const LoadStatus = createEnum(
     "NotLoading",
@@ -131,7 +131,6 @@ export class SessionContainer {
         }
 
         this._sync = new Sync({hsApi, storage, session: this._session});
-
         // notify sync and session when back online
         this._reconnectSubscription = this._reconnector.connectionStatus.subscribe(state => {
             if (state === ConnectionStatus.Online) {
@@ -139,7 +138,15 @@ export class SessionContainer {
                 this._session.start(this._reconnector.lastVersionsResponse);
             }
         });
-        
+        await this._waitForFirstSync();
+        this._status.set(LoadStatus.Ready);
+
+        // if this fails, the reconnector will start polling versions to reconnect
+        const lastVersionsResponse = await hsApi.versions({timeout: 10000}).response();
+        this._session.start(lastVersionsResponse);
+    }
+
+    async _waitForFirstSync() {
         try {
             await this._sync.start();
         } catch (err) {
@@ -151,12 +158,18 @@ export class SessionContainer {
             }
         }
         // only transition into Ready once the first sync has succeeded
-        await this._sync.status.waitFor(s => s === SyncStatus.Syncing);
-        this._status.set(LoadStatus.Ready);
-
-        // if this fails, the reconnector will start polling versions to reconnect
-        const lastVersionsResponse = await hsApi.versions({timeout: 10000}).response();
-        this._session.start(lastVersionsResponse);
+        this._waitForFirstSyncHandle = this._sync.status.waitFor(s => s === SyncStatus.Syncing);
+        try {
+            await this._waitForFirstSyncHandle.promise;
+        } catch (err) {
+            // if dispose is called from stop, bail out
+            if (err instanceof AbortError) {
+                return;
+            }
+            throw err;
+        } finally {
+            this._waitForFirstSyncHandle = null;
+        }
     }
 
 
@@ -183,6 +196,10 @@ export class SessionContainer {
         this._reconnectSubscription = null;
         this._sync.stop();
         this._session.stop();
+        if (this._waitForFirstSyncHandle) {
+            this._waitForFirstSyncHandle.dispose();
+            this._waitForFirstSyncHandle = null;
+        }
     }
 }
 
