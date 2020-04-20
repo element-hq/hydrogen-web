@@ -47,9 +47,9 @@ rooms should report how many messages they have queued up, and each time they se
  - DONE: remove #ifdef
  - DONE: move EventEmitter to utils
  - DONE: move all lower-cased files
- - change main.js to pass in a creation function of a SessionContainer instead of everything it is replacing 
+ - DONE: change main.js to pass in a creation function of a SessionContainer instead of everything it is replacing 
+ - DONE: adjust BrawlViewModel, SessionPickViewModel and LoginViewModel to use a SessionContainer
  - show load progress in LoginView/SessionPickView and do away with loading screen
- - adjust BrawlViewModel, SessionPickViewModel and LoginViewModel to use a SessionContainer
  - DONE: rename SessionsStore to SessionInfoStorage
  - make sure we've renamed all \*State enums and fields to \*Status
  - add pendingMessageCount prop to SendQueue and Room, aggregate this in Session
