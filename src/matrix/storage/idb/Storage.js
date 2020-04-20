@@ -37,4 +37,8 @@ export class Storage {
             throw new StorageError("readWriteTxn failed", err);
         }
     }
+
+    close() {
+        this._db.close();
+    }
 }

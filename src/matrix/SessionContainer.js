@@ -39,6 +39,8 @@ export class SessionContainer {
         this._reconnector = null;
         this._session = null;
         this._sync = null;
+        this._sessionId = null;
+        this._storage = null;
     }
 
     _createNewSessionId() {
@@ -119,17 +121,18 @@ export class SessionContainer {
             request: this._request,
             reconnector: this._reconnector,
         });
-        const storage = await this._storageFactory.create(sessionInfo.id);
+        this._sessionId = sessionInfo.id;
+        this._storage = await this._storageFactory.create(sessionInfo.id);
         // no need to pass access token to session
         const filteredSessionInfo = {
             deviceId: sessionInfo.deviceId,
             userId: sessionInfo.userId,
             homeServer: sessionInfo.homeServer,
         };
-        this._session = new Session({storage, sessionInfo: filteredSessionInfo, hsApi});
+        this._session = new Session({storage: this._storage, sessionInfo: filteredSessionInfo, hsApi});
         await this._session.load();
         
-        this._sync = new Sync({hsApi, storage, session: this._session});
+        this._sync = new Sync({hsApi, storage: this._storage, session: this._session});
         // notify sync and session when back online
         this._reconnectSubscription = this._reconnector.connectionStatus.subscribe(state => {
             if (state === ConnectionStatus.Online) {
@@ -205,6 +208,21 @@ export class SessionContainer {
         if (this._waitForFirstSyncHandle) {
             this._waitForFirstSyncHandle.dispose();
             this._waitForFirstSyncHandle = null;
+        }
+        if (this._storage) {
+            this._storage.close();
+        }
+    }
+
+    async deleteSession() {
+        if (this._sessionId) {
+            // if one fails, don't block the other from trying
+            // also, run in parallel
+            await Promise.all([
+                this._storageFactory.delete(this._sessionId),
+                this._sessionInfoStorage.delete(this._sessionId),
+            ]);
+            this._sessionId = null;
         }
     }
 }
