@@ -1,13 +1,5 @@
 import {tag} from "./html.js";
 
-class UIView {
-    mount() {}
-    unmount() {}
-    update(_value) {}
-    // can only be called between a call to mount and unmount
-    root() {}
-}
-
 function insertAt(parentNode, idx, childNode) {
     const isLast = idx === parentNode.childElementCount;
     if (isLast) {
