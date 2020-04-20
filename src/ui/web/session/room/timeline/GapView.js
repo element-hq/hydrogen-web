@@ -1,6 +1,6 @@
-import TemplateView from "../../../general/TemplateView.js";
+import {TemplateView} from "../../../general/TemplateView.js";
 
-export default class GapView extends TemplateView {
+export class GapView extends TemplateView {
     render(t, vm) {
         const className = {
             GapView: true,

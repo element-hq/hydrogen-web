@@ -1,7 +1,7 @@
-import Transaction from "./transaction.js";
+import {Transaction} from "./transaction.js";
 import { STORE_MAP, STORE_NAMES } from "../common.js";
 
-export default class Storage {
+export class Storage {
 	constructor(initialStoreValues = {}) {
         this._validateStoreNames(Object.keys(initialStoreValues));
 		this.storeNames = STORE_MAP;

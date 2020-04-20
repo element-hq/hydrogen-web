@@ -1,6 +1,4 @@
-
-
-export default class Direction {
+export class Direction {
     constructor(isForward) {
         this._isForward = isForward;
     }

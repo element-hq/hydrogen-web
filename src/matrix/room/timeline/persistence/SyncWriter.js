@@ -1,6 +1,6 @@
-import EventKey from "../EventKey.js";
-import EventEntry from "../entries/EventEntry.js";
-import FragmentBoundaryEntry from "../entries/FragmentBoundaryEntry.js";
+import {EventKey} from "../EventKey.js";
+import {EventEntry} from "../entries/EventEntry.js";
+import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
 import {createEventEntry} from "./common.js";
 
 // Synapse bug? where the m.room.create event appears twice in sync response
@@ -17,7 +17,7 @@ function deduplicateEvents(events) {
     });
 }
 
-export default class SyncWriter {
+export class SyncWriter {
     constructor({roomId, fragmentIdComparer}) {
         this._roomId = roomId;
         this._fragmentIdComparer = fragmentIdComparer;

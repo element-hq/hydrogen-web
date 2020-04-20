@@ -1,4 +1,4 @@
-import Platform from "../Platform.js";
+import {Platform} from "../Platform.js";
 import {HomeServerError, ConnectionError} from "./error.js";
 
 export class RateLimitingBackoff {

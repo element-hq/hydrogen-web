@@ -1,6 +1,6 @@
-import SortedArray from "../../../observable/list/SortedArray.js";
+import {SortedArray} from "../../../observable/list/SortedArray.js";
 import {ConnectionError} from "../../error.js";
-import PendingEvent from "./PendingEvent.js";
+import {PendingEvent} from "./PendingEvent.js";
 
 function makeTxnId() {
     const n = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
@@ -8,7 +8,7 @@ function makeTxnId() {
     return "t" + "0".repeat(14 - str.length) + str;
 }
 
-export default class SendQueue {
+export class SendQueue {
     constructor({roomId, storage, sendScheduler, pendingEvents}) {
         pendingEvents = pendingEvents || [];
         this._roomId = roomId;

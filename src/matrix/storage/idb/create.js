@@ -1,11 +1,11 @@
-import Storage from "./storage.js";
+import {Storage} from "./storage.js";
 import { openDatabase, reqAsPromise } from "./utils.js";
 import { exportSession, importSession } from "./export.js";
 
 const sessionName = sessionId => `brawl_session_${sessionId}`;
 const openDatabaseWithSessionId = sessionId => openDatabase(sessionName(sessionId), createStores, 1);
 
-export default class StorageFactory {
+export class StorageFactory {
     async create(sessionId) {
         const db = await openDatabaseWithSessionId(sessionId);
         return new Storage(db);

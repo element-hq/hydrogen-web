@@ -1,4 +1,4 @@
-export default class BaseObservable {
+export class BaseObservable {
     constructor() {
         this._handlers = new Set();
     }

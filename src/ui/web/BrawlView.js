@@ -1,10 +1,10 @@
-import SessionView from "./session/SessionView.js";
-import LoginView from "./login/LoginView.js";
-import SessionPickerView from "./login/SessionPickerView.js";
-import TemplateView from "./general/TemplateView.js";
-import SwitchView from "./general/SwitchView.js";
+import {SessionView} from "./session/SessionView.js";
+import {LoginView} from "./login/LoginView.js";
+import {SessionPickerView} from "./login/SessionPickerView.js";
+import {TemplateView} from "./general/TemplateView.js";
+import {SwitchView} from "./general/SwitchView.js";
 
-export default class BrawlView {
+export class BrawlView {
     constructor(vm) {
         this._vm = vm;
         this._switcher = null;

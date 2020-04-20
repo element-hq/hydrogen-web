@@ -1,6 +1,6 @@
-import Template from "./Template.js";
+import {Template} from "./Template.js";
 
-export default class TemplateView {
+export class TemplateView {
     constructor(vm, bindToChangeEvent) {
         this.viewModel = vm;
         this._changeEventHandler = bindToChangeEvent ? this.update.bind(this, this.viewModel) : null;

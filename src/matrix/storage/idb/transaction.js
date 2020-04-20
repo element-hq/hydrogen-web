@@ -1,14 +1,14 @@
 import {txnAsPromise} from "./utils.js";
 import {StorageError} from "../common.js";
-import Store from "./store.js";
-import SessionStore from "./stores/SessionStore.js";
-import RoomSummaryStore from "./stores/RoomSummaryStore.js";
-import TimelineEventStore from "./stores/TimelineEventStore.js";
-import RoomStateStore from "./stores/RoomStateStore.js";
-import TimelineFragmentStore from "./stores/TimelineFragmentStore.js";
-import PendingEventStore from "./stores/PendingEventStore.js";
+import {Store} from "./store.js";
+import {SessionStore} from "./stores/SessionStore.js";
+import {RoomSummaryStore} from "./stores/RoomSummaryStore.js";
+import {TimelineEventStore} from "./stores/TimelineEventStore.js";
+import {RoomStateStore} from "./stores/RoomStateStore.js";
+import {TimelineFragmentStore} from "./stores/TimelineFragmentStore.js";
+import {PendingEventStore} from "./stores/PendingEventStore.js";
 
-export default class Transaction {
+export class Transaction {
     constructor(txn, allowedStoreNames) {
         this._txn = txn;
         this._allowedStoreNames = allowedStoreNames;

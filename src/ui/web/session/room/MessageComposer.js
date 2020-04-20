@@ -1,6 +1,6 @@
-import TemplateView from "../../general/TemplateView.js";
+import {TemplateView} from "../../general/TemplateView.js";
 
-export default class MessageComposer extends TemplateView {
+export class MessageComposer extends TemplateView {
     constructor(viewModel) {
         super(viewModel);
         this._input = null;

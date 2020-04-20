@@ -1,5 +1,5 @@
 import {AbortError} from "../utils/error.js";
-import BaseObservable from "./BaseObservable.js";
+import {BaseObservable} from "./BaseObservable.js";
 
 // like an EventEmitter, but doesn't have an event type
 export class BaseObservableValue extends BaseObservable {
@@ -49,7 +49,7 @@ class ResolvedWaitForHandle {
     dispose() {}
 }
 
-export default class ObservableValue extends BaseObservableValue {
+export class ObservableValue extends BaseObservableValue {
     constructor(initialValue) {
         super();
         this._value = initialValue;

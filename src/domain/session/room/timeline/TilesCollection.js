@@ -1,12 +1,12 @@
-import BaseObservableList from "../../../../observable/list/BaseObservableList.js";
-import sortedIndex from "../../../../utils/sortedIndex.js";
+import {BaseObservableList} from "../../../../observable/list/BaseObservableList.js";
+import {sortedIndex} from "../../../../utils/sortedIndex.js";
 
 // maps 1..n entries to 0..1 tile. Entries are what is stored in the timeline, either an event or fragmentboundary
 // for now, tileCreator should be stable in whether it returns a tile or not.
 // e.g. the decision to create a tile or not should be based on properties
 // not updated later on (e.g. event type)
 // also see big comment in onUpdate
-export default class TilesCollection extends BaseObservableList {
+export class TilesCollection extends BaseObservableList {
     constructor(entries, tileCreator) {
         super();
         this._entries = entries;
@@ -187,8 +187,8 @@ export default class TilesCollection extends BaseObservableList {
     }
 }
 
-import ObservableArray from "../../../../observable/list/ObservableArray.js";
-import UpdateAction from "./UpdateAction.js";
+import {ObservableArray} from "../../../../observable/list/ObservableArray.js";
+import {UpdateAction} from "./UpdateAction.js";
 
 export function tests() {
     class TestTile {

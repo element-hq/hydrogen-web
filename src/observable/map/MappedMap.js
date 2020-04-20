@@ -1,9 +1,9 @@
-import BaseObservableMap from "./BaseObservableMap.js";
+import {BaseObservableMap} from "./BaseObservableMap.js";
 /*
 so a mapped value can emit updates on it's own with this._updater that is passed in the mapping function
 how should the mapped value be notified of an update though? and can it then decide to not propagate the update?
 */
-export default class MappedMap extends BaseObservableMap {
+export class MappedMap extends BaseObservableMap {
     constructor(source, mapper) {
         super();
         this._source = source;

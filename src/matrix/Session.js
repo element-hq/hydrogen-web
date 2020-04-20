@@ -1,9 +1,9 @@
-import Room from "./room/room.js";
+import {Room} from "./room/room.js";
 import { ObservableMap } from "../observable/index.js";
 import { SendScheduler, RateLimitingBackoff } from "./SendScheduler.js";
-import User from "./User.js";
+import {User} from "./User.js";
 
-export default class Session {
+export class Session {
     // sessionInfo contains deviceId, userId and homeServer
     constructor({storage, hsApi, sessionInfo}) {
         this._storage = storage;

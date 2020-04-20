@@ -10,7 +10,7 @@ function insertAt(parentNode, idx, childNode) {
     }
 }
 
-export default class ListView {
+export class ListView {
     constructor({list, onItemClick, className}, childCreator) {
         this._onItemClick = onItemClick;
         this._list = list;

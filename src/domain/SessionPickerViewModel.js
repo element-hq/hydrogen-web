@@ -1,5 +1,5 @@
 import {SortedArray} from "../observable/index.js";
-import EventEmitter from "../EventEmitter.js";
+import {EventEmitter} from "../EventEmitter.js";
 import {createNewSessionId} from "./BrawlViewModel.js"
 
 class SessionItemViewModel extends EventEmitter {
@@ -98,7 +98,7 @@ class SessionItemViewModel extends EventEmitter {
     }
 }
 
-export default class SessionPickerViewModel {
+export class SessionPickerViewModel {
     constructor({storageFactory, sessionInfoStorage, sessionCallback}) {
         this._storageFactory = storageFactory;
         this._sessionInfoStorage = sessionInfoStorage;

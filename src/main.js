@@ -1,13 +1,13 @@
-import HomeServerApi from "./matrix/net/HomeServerApi.js";
+import {HomeServerApi} from "./matrix/net/HomeServerApi.js";
 // import {RecordRequester, ReplayRequester} from "./matrix/net/request/replay.js";
-import fetchRequest from "./matrix/net/request/fetch.js";
+import {fetchRequest} from "./matrix/net/request/fetch.js";
 import {Reconnector} from "./matrix/net/Reconnector.js";
-import StorageFactory from "./matrix/storage/idb/create.js";
-import SessionInfoStorage from "./matrix/sessioninfo/localstorage/SessionInfoStorage.js";
-import BrawlViewModel from "./domain/BrawlViewModel.js";
-import BrawlView from "./ui/web/BrawlView.js";
-import DOMClock from "./ui/web/dom/Clock.js";
-import OnlineStatus from "./ui/web/dom/OnlineStatus.js";
+import {StorageFactory} from "./matrix/storage/idb/create.js";
+import {SessionInfoStorage} from "./matrix/sessioninfo/localstorage/SessionInfoStorage.js";
+import {BrawlViewModel} from "./domain/BrawlViewModel.js";
+import {BrawlView} from "./ui/web/BrawlView.js";
+import {Clock as DOMClock} from "./ui/web/dom/Clock.js";
+import {OnlineStatus} from "./ui/web/dom/OnlineStatus.js";
 
 export default async function main(container) {
     try {

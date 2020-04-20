@@ -31,7 +31,7 @@ class RequestResult {
     }
 }
 
-export default function fetchRequest(url, options) {
+export function fetchRequest(url, options) {
     const controller = typeof AbortController === "function" ? new AbortController() : null;
     if (controller) {
         options = Object.assign(options, {

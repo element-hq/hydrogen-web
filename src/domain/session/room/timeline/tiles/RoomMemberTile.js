@@ -1,6 +1,6 @@
-import SimpleTile from "./SimpleTile.js";
+import {SimpleTile} from "./SimpleTile.js";
 
-export default class RoomNameTile extends SimpleTile {
+export class RoomMemberTile extends SimpleTile {
 
     get shape() {
         return "announcement";

@@ -14,7 +14,7 @@ store contains:
 	avatarUrl
 	lastSynced
 */
-export default class SessionStore {
+export class SessionStore {
 	constructor(sessionStore) {
 		this._sessionStore = sessionStore;
 	}

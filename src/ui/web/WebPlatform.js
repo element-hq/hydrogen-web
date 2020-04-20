@@ -1,4 +1,4 @@
-export default {
+export const WebPlatform = {
     get minStorageKey() {
         // for indexeddb, we use unsigned 32 bit integers as keys
         return 0;

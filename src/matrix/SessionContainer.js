@@ -1,11 +1,11 @@
-import createEnum from "../utils/enum.js";
-import ObservableValue from "../observable/ObservableValue.js";
-import HomeServerApi from "./net/HomeServerApi.js";
+import {createEnum} from "../utils/enum.js";
+import {ObservableValue} from "../observable/ObservableValue.js";
+import {HomeServerApi} from "./net/HomeServerApi.js";
 import {Reconnector, ConnectionStatus} from "./net/Reconnector.js";
-import ExponentialRetryDelay from "./net/ExponentialRetryDelay.js";
+import {ExponentialRetryDelay} from "./net/ExponentialRetryDelay.js";
 import {HomeServerError, ConnectionError, AbortError} from "./error.js";
 import {Sync, SyncStatus} from "./Sync.js";
-import Session from "./Session.js";
+import {Session} from "./Session.js";
 
 export const LoadStatus = createEnum(
     "NotLoading",
@@ -138,7 +138,7 @@ export class SessionContainer {
             }
         });
         await this._waitForFirstSync();
-        
+
         this._status.set(LoadStatus.Ready);
 
         // if the sync failed, and then the reconnector

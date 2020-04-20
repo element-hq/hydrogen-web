@@ -1,4 +1,4 @@
-export default class Store {
+export class Store {
     constructor(storeValue, writable) {
         this._storeValue = storeValue;
         this._writable = writable;

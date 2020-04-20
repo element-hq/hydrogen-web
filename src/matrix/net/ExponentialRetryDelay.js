@@ -1,6 +1,6 @@
 import {AbortError} from "../../utils/error.js";
 
-export default class ExponentialRetryDelay {
+export class ExponentialRetryDelay {
     constructor(createTimeout, start = 2000) {
         this._start = start;
         this._current = start;
@@ -43,7 +43,7 @@ export default class ExponentialRetryDelay {
 }
 
 
-import MockClock from "../../mocks/Clock.js";
+import {Clock as MockClock} from "../../mocks/Clock.js";
 
 export function tests() {
     return {

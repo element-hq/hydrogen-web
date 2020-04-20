@@ -1,4 +1,4 @@
-import QueryTarget from "./query-target.js";
+import {QueryTarget} from "./query-target.js";
 import { reqAsPromise } from "./utils.js";
 import { StorageError } from "../common.js";
 
@@ -80,7 +80,7 @@ class QueryTargetWrapper {
     }
 }
 
-export default class Store extends QueryTarget {
+export class Store extends QueryTarget {
     constructor(idbStore) {
         super(new QueryTargetWrapper(idbStore));
     }

@@ -1,4 +1,4 @@
-export default class SessionInfoStorage {
+export class SessionInfoStorage {
     constructor(name) {
         this._name = name;
     }

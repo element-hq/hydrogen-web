@@ -1,6 +1,6 @@
-import TemplateView from "../general/TemplateView.js";
+import {TemplateView} from "../general/TemplateView.js";
 
-export default class SyncStatusBar extends TemplateView {
+export class SyncStatusBar extends TemplateView {
     constructor(vm) {
         super(vm, true);
     }

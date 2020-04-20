@@ -1,6 +1,6 @@
-import BaseObservableMap from "./BaseObservableMap.js";
+import {BaseObservableMap} from "./BaseObservableMap.js";
 
-export default class ObservableMap extends BaseObservableMap {
+export class ObservableMap extends BaseObservableMap {
     constructor(initialValues) {
         super();
         this._values = new Map(initialValues);

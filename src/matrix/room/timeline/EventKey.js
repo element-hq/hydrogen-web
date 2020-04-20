@@ -1,7 +1,7 @@
-import Platform from "../../../Platform.js";
+import {Platform} from "../../../Platform.js";
 
 // key for events in the timelineEvents store
-export default class EventKey {
+export class EventKey {
     constructor(fragmentId, eventIndex) {
         this.fragmentId = fragmentId;
         this.eventIndex = eventIndex;

@@ -1,15 +1,15 @@
-import Session from "../matrix/Session.js";
+import {Session} from "../matrix/Session.js";
 import {Sync} from "../matrix/Sync.js";
-import SessionViewModel from "./session/SessionViewModel.js";
-import LoginViewModel from "./LoginViewModel.js";
-import SessionPickerViewModel from "./SessionPickerViewModel.js";
-import EventEmitter from "../EventEmitter.js";
+import {SessionViewModel} from "./session/SessionViewModel.js";
+import {LoginViewModel} from "./LoginViewModel.js";
+import {SessionPickerViewModel} from "./SessionPickerViewModel.js";
+import {EventEmitter} from "../EventEmitter.js";
 
 export function createNewSessionId() {
     return (Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)).toString();
 }
 
-export default class BrawlViewModel extends EventEmitter {
+export class BrawlViewModel extends EventEmitter {
     constructor({storageFactory, sessionInfoStorage, createHsApi, clock}) {
         super();
         this._storageFactory = storageFactory;

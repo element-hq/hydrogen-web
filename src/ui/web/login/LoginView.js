@@ -1,7 +1,7 @@
-import TemplateView from "../general/TemplateView.js";
+import {TemplateView} from "../general/TemplateView.js";
 import {brawlGithubLink} from "./common.js";
 
-export default class LoginView extends TemplateView {
+export class LoginView extends TemplateView {
     constructor(vm) {
         super(vm, true);
     }

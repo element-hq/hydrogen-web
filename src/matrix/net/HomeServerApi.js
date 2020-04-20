@@ -28,7 +28,7 @@ class RequestWrapper {
     }
 }
 
-export default class HomeServerApi {
+export class HomeServerApi {
     constructor({homeServer, accessToken, request, createTimeout, reconnector}) {
         // store these both in a closure somehow so it's harder to get at in case of XSS?
         // one could change the homeserver as well so the token gets sent there, so both must be protected from read/write

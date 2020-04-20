@@ -1,8 +1,8 @@
-import TemplateView from "../../general/TemplateView.js";
-import TimelineList from "./TimelineList.js";
-import MessageComposer from "./MessageComposer.js";
+import {TemplateView} from "../../general/TemplateView.js";
+import {TimelineList} from "./TimelineList.js";
+import {MessageComposer} from "./MessageComposer.js";
 
-export default class RoomView extends TemplateView {
+export class RoomView extends TemplateView {
     constructor(viewModel) {
         super(viewModel, true);
         this._timelineList = null;

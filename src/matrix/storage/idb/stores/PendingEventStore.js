@@ -1,5 +1,5 @@
 import { encodeUint32, decodeUint32 } from "../utils.js";
-import Platform from "../../../../Platform.js";
+import {Platform} from "../../../../Platform.js";
 
 function encodeKey(roomId, queueIndex) {
     return `${roomId}|${encodeUint32(queueIndex)}`;
@@ -11,7 +11,7 @@ function decodeKey(key) {
     return {roomId, queueIndex};
 }
 
-export default class PendingEventStore {
+export class PendingEventStore {
     constructor(eventStore) {
         this._eventStore = eventStore;
     }

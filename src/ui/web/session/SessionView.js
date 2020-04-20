@@ -1,12 +1,12 @@
-import ListView from "../general/ListView.js";
-import RoomTile from "./RoomTile.js";
-import RoomView from "./room/RoomView.js";
-import SwitchView from "../general/SwitchView.js";
-import RoomPlaceholderView from "./RoomPlaceholderView.js";
-import SyncStatusBar from "./SyncStatusBar.js";
+import {ListView} from "../general/ListView.js";
+import {RoomTile} from "./RoomTile.js";
+import {RoomView} from "./room/RoomView.js";
+import {SwitchView} from "../general/SwitchView.js";
+import {RoomPlaceholderView} from "./RoomPlaceholderView.js";
+import {SyncStatusBar} from "./SyncStatusBar.js";
 import {tag} from "../general/html.js";
 
-export default class SessionView {
+export class SessionView {
     constructor(viewModel) {
         this._viewModel = viewModel;
         this._middleSwitcher = null;

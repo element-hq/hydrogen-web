@@ -1,12 +1,12 @@
-import EventEmitter from "../../EventEmitter.js";
-import RoomSummary from "./summary.js";
-import SyncWriter from "./timeline/persistence/SyncWriter.js";
-import GapWriter from "./timeline/persistence/GapWriter.js";
-import Timeline from "./timeline/Timeline.js";
-import FragmentIdComparer from "./timeline/FragmentIdComparer.js";
-import SendQueue from "./sending/SendQueue.js";
+import {EventEmitter} from "../../EventEmitter.js";
+import {RoomSummary} from "./summary.js";
+import {SyncWriter} from "./timeline/persistence/SyncWriter.js";
+import {GapWriter} from "./timeline/persistence/GapWriter.js";
+import {Timeline} from "./timeline/Timeline.js";
+import {FragmentIdComparer} from "./timeline/FragmentIdComparer.js";
+import {SendQueue} from "./sending/SendQueue.js";
 
-export default class Room extends EventEmitter {
+export class Room extends EventEmitter {
 	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, pendingEvents, user}) {
         super();
         this._roomId = roomId;

@@ -22,7 +22,7 @@ function objHasFns(obj) {
     missing:
         - create views
 */
-export default class Template {
+export class Template {
     constructor(value, render) {
         this._value = value;
         this._eventListeners = null;

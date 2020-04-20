@@ -1,9 +1,9 @@
-import { SortedArray, MappedList, ConcatList } from "../../../observable/index.js";
-import Direction from "./Direction.js";
-import TimelineReader from "./persistence/TimelineReader.js";
-import PendingEventEntry from "./entries/PendingEventEntry.js";
+import {SortedArray, MappedList, ConcatList} from "../../../observable/index.js";
+import {Direction} from "./Direction.js";
+import {TimelineReader} from "./persistence/TimelineReader.js";
+import {PendingEventEntry} from "./entries/PendingEventEntry.js";
 
-export default class Timeline {
+export class Timeline {
     constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, user}) {
         this._roomId = roomId;
         this._storage = storage;

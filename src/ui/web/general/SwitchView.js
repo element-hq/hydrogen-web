@@ -1,4 +1,4 @@
-export default class SwitchView {
+export class SwitchView {
     constructor(defaultView) {
         this._childView = defaultView;
     }

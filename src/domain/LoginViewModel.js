@@ -1,6 +1,6 @@
-import EventEmitter from "../EventEmitter.js";
+import {EventEmitter} from "../EventEmitter.js";
 
-export default class LoginViewModel extends EventEmitter {
+export class LoginViewModel extends EventEmitter {
     constructor({loginCallback, defaultHomeServer, createHsApi}) {
         super();
         this._loginCallback = loginCallback;

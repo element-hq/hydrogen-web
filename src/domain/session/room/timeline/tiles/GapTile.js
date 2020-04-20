@@ -1,7 +1,7 @@
-import SimpleTile from "./SimpleTile.js";
-import UpdateAction from "../UpdateAction.js";
+import {SimpleTile} from "./SimpleTile.js";
+import {UpdateAction} from "../UpdateAction.js";
 
-export default class GapTile extends SimpleTile {
+export class GapTile extends SimpleTile {
     constructor(options, timeline) {
         super(options);
         this._timeline = timeline;

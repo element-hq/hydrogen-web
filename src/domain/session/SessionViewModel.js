@@ -1,9 +1,9 @@
-import EventEmitter from "../../EventEmitter.js";
-import RoomTileViewModel from "./roomlist/RoomTileViewModel.js";
-import RoomViewModel from "./room/RoomViewModel.js";
-import SyncStatusViewModel from "./SyncStatusViewModel.js";
+import {EventEmitter} from "../../EventEmitter.js";
+import {RoomTileViewModel} from "./roomlist/RoomTileViewModel.js";
+import {RoomViewModel} from "./room/RoomViewModel.js";
+import {SyncStatusViewModel} from "./SyncStatusViewModel.js";
 
-export default class SessionViewModel extends EventEmitter {
+export class SessionViewModel extends EventEmitter {
     constructor({session, sync}) {
         super();
         this._session = session;

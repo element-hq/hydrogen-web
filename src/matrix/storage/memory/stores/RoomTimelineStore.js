@@ -1,6 +1,6 @@
-import SortKey from "../../room/timeline/SortKey.js";
-import sortedIndex from "../../../utils/sortedIndex.js";
-import Store from "./Store.js";
+import {SortKey} from "../../room/timeline/SortKey.js";
+import {sortedIndex} from "../../../utils/sortedIndex.js";
+import {Store} from "./Store.js";
 
 function compareKeys(key, entry) {
     if (key.roomId === entry.roomId) {
@@ -65,7 +65,7 @@ class Range {
     }
 }
 
-export default class RoomTimelineStore extends Store {
+export class RoomTimelineStore extends Store {
     constructor(timeline, writable) {
         super(timeline || [], writable);
     }

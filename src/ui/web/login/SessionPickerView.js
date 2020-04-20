@@ -1,5 +1,5 @@
-import ListView from "../general/ListView.js";
-import TemplateView from "../general/TemplateView.js";
+import {ListView} from "../general/ListView.js";
+import {TemplateView} from "../general/TemplateView.js";
 import {brawlGithubLink} from "./common.js";
 
 function selectFileAsText(mimeType) {
@@ -71,7 +71,7 @@ class SessionPickerItemView extends TemplateView {
     }
 }
 
-export default class SessionPickerView extends TemplateView {
+export class SessionPickerView extends TemplateView {
     mount() {
         this._sessionList = new ListView({
             list: this.viewModel.sessions,

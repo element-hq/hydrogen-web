@@ -1,8 +1,8 @@
-import EventEmitter from "../../../EventEmitter.js";
-import TimelineViewModel from "./timeline/TimelineViewModel.js";
+import {EventEmitter} from "../../../EventEmitter.js";
+import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
 import {avatarInitials} from "../avatar.js";
 
-export default class RoomViewModel extends EventEmitter {
+export class RoomViewModel extends EventEmitter {
     constructor({room, ownUserId, closeCallback}) {
         super();
         this._room = room;

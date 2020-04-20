@@ -1,7 +1,7 @@
-import createEnum from "../../utils/enum.js";
+import {createEnum} from "../../utils/enum.js";
 import {AbortError} from "../../utils/error.js";
 import {ConnectionError} from "../error.js"
-import ObservableValue from "../../observable/ObservableValue.js";
+import {ObservableValue} from "../../observable/ObservableValue.js";
 
 export const ConnectionStatus = createEnum(
     "Offline",
@@ -111,8 +111,8 @@ export class Reconnector {
 }
 
 
-import MockClock from "../../mocks/Clock.js";
-import ExponentialRetryDelay from "./ExponentialRetryDelay.js";
+import {Clock as MockClock} from "../../mocks/Clock.js";
+import {ExponentialRetryDelay} from "./ExponentialRetryDelay.js";
 
 export function tests() {
     function createHsApiMock(remainingFailures) {

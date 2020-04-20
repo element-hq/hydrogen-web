@@ -99,7 +99,7 @@ class SummaryData {
     }
 }
 
-export default class RoomSummary {
+export class RoomSummary {
 	constructor(roomId) {
         this._data = new SummaryData(null, roomId);
 	}

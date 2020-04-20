@@ -1,5 +1,5 @@
-import BaseObservableList from "./BaseObservableList.js";
-import sortedIndex from "../../utils/sortedIndex.js";
+import {BaseObservableList} from "./BaseObservableList.js";
+import {sortedIndex} from "../../utils/sortedIndex.js";
 
 /*
 
@@ -29,7 +29,7 @@ with a node containing {value, leftCount, rightCount, leftNode, rightNode, paren
 // types modified outside of the collection (and affecting sort order) or not
 
 // no duplicates allowed for now
-export default class SortedMapList extends BaseObservableList {
+export class SortedMapList extends BaseObservableList {
     constructor(sourceMap, comparator) {
         super();
         this._sourceMap = sourceMap;
@@ -114,7 +114,7 @@ export default class SortedMapList extends BaseObservableList {
 }
 
 //#ifdef TESTS
-import ObservableMap from "../map/ObservableMap.js";
+import {ObservableMap} from "../map/ObservableMap.js";
 
 export function tests() {
     return {

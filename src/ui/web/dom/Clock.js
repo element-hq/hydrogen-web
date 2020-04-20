@@ -37,7 +37,7 @@ class TimeMeasure {
     }
 }
 
-export default class Clock {
+export class Clock {
     createMeasure() {
         return new TimeMeasure();
     }

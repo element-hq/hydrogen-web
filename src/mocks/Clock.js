@@ -1,4 +1,4 @@
-import ObservableValue from "../observable/ObservableValue.js";
+import {ObservableValue} from "../observable/ObservableValue.js";
 
 class Timeout {
     constructor(elapsed, ms) {
@@ -29,7 +29,7 @@ class TimeMeasure {
     }
 }
 
-export default class Clock {
+export class Clock {
     constructor(baseTimestamp = 0) {
         this._baseTimestamp = baseTimestamp;
         this._elapsed = new ObservableValue(0);
