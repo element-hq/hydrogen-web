@@ -111,7 +111,7 @@ export class Reconnector {
 }
 
 
-import MockClock from "../../../mocks/Clock.js";
+import MockClock from "../../mocks/Clock.js";
 import ExponentialRetryDelay from "./ExponentialRetryDelay.js";
 
 export function tests() {

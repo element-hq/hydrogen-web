@@ -1,6 +1,6 @@
 import {AbortError} from "./error.js";
 import ObservableValue from "../observable/ObservableValue.js";
-import {createEnum} from "../utils/enum.js";
+import createEnum from "../utils/enum.js";
 
 const INCREMENTAL_TIMEOUT = 30000;
 const SYNC_EVENT_LIMIT = 10;
@@ -27,7 +27,7 @@ function parseRooms(roomsSection, roomCallback) {
     return [];
 }
 
-export default class Sync {
+export class Sync {
     constructor({hsApi, session, storage}) {
         this._hsApi = hsApi;
         this._session = session;

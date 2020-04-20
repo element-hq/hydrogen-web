@@ -1,5 +1,5 @@
 import Session from "../matrix/Session.js";
-import Sync from "../matrix/Sync.js";
+import {Sync} from "../matrix/Sync.js";
 import SessionViewModel from "./session/SessionViewModel.js";
 import LoginViewModel from "./LoginViewModel.js";
 import SessionPickerViewModel from "./SessionPickerViewModel.js";

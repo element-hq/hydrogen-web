@@ -43,7 +43,7 @@ export default class ExponentialRetryDelay {
 }
 
 
-import MockClock from "../../../mocks/Clock.js";
+import MockClock from "../../mocks/Clock.js";
 
 export function tests() {
     return {

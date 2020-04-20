@@ -1,7 +1,7 @@
 import {
     HomeServerError,
     ConnectionError,
-} from "./error.js";
+} from "../error.js";
 
 class RequestWrapper {
     constructor(method, url, requestResult) {

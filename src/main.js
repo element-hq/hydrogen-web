@@ -1,7 +1,7 @@
 import HomeServerApi from "./matrix/net/HomeServerApi.js";
-// import {RecordRequester, ReplayRequester} from "./matrix/net/replay.js";
-import fetchRequest from "./matrix/net/fetch.js";
-import {Reconnector} from "./matrix/net/connection/Reconnector.js";
+// import {RecordRequester, ReplayRequester} from "./matrix/net/request/replay.js";
+import fetchRequest from "./matrix/net/request/fetch.js";
+import {Reconnector} from "./matrix/net/Reconnector.js";
 import StorageFactory from "./matrix/storage/idb/create.js";
 import SessionInfoStorage from "./matrix/sessioninfo/localstorage/SessionInfoStorage.js";
 import BrawlViewModel from "./domain/BrawlViewModel.js";

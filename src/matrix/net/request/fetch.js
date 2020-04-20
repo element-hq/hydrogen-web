@@ -1,7 +1,7 @@
 import {
     AbortError,
     ConnectionError
-} from "../error.js";
+} from "../../error.js";
 
 class RequestResult {
     constructor(promise, controller) {
