@@ -1,6 +1,6 @@
 import {txnAsPromise} from "./utils.js";
 import {StorageError} from "../common.js";
-import {Store} from "./store.js";
+import {Store} from "./Store.js";
 import {SessionStore} from "./stores/SessionStore.js";
 import {RoomSummaryStore} from "./stores/RoomSummaryStore.js";
 import {TimelineEventStore} from "./stores/TimelineEventStore.js";

@@ -1,4 +1,4 @@
-import {Transaction} from "./transaction.js";
+import {Transaction} from "./Transaction.js";
 import { STORE_NAMES, StorageError } from "../common.js";
 
 export class Storage {

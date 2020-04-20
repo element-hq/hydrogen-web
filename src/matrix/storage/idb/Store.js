@@ -1,4 +1,4 @@
-import {QueryTarget} from "./query-target.js";
+import {QueryTarget} from "./QueryTarget.js";
 import { reqAsPromise } from "./utils.js";
 import { StorageError } from "../common.js";
 

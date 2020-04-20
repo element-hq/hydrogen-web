@@ -1,4 +1,4 @@
-import {Room} from "./room/room.js";
+import {Room} from "./room/Room.js";
 import { ObservableMap } from "../observable/index.js";
 import { SendScheduler, RateLimitingBackoff } from "./SendScheduler.js";
 import {User} from "./User.js";

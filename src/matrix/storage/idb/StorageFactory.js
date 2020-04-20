@@ -1,4 +1,4 @@
-import {Storage} from "./storage.js";
+import {Storage} from "./Storage.js";
 import { openDatabase, reqAsPromise } from "./utils.js";
 import { exportSession, importSession } from "./export.js";
 
