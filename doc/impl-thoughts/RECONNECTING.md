@@ -44,6 +44,9 @@ rooms should report how many messages they have queued up, and each time they se
  - DONE: add SyncStatus as ObservableValue of enum in Sync
  - DONE: cleanup SessionContainer
  - move all imports to non-default
+ - remove #ifdef
+ - move EventEmitter to utils
+ - move all lower-cased files
  - change main.js to pass in a creation function of a SessionContainer instead of everything it is replacing 
  - show load progress in LoginView/SessionPickView and do away with loading screen
  - adjust BrawlViewModel, SessionPickViewModel and LoginViewModel to use a SessionContainer
