@@ -23,19 +23,21 @@ export default async function main(container) {
         const request = fetchRequest;
         const sessionInfoStorage = new SessionInfoStorage("brawl_sessions_v1");
         const clock = new Clock();
+        const storageFactory = new StorageFactory();
 
         const vm = new BrawlViewModel({
             createSessionContainer: () => {
                 return new SessionContainer({
                     random: Math.random,
                     onlineStatus: new OnlineStatus(),
-                    storageFactory: new StorageFactory(),
+                    storageFactory,
                     sessionInfoStorage,
                     request,
                     clock,
                 });
             },
             sessionInfoStorage,
+            storageFactory,
             clock,
         });
         await vm.load();

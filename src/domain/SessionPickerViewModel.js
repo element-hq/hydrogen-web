@@ -1,6 +1,7 @@
 import {SortedArray} from "../observable/index.js";
 import {EventEmitter} from "../utils/EventEmitter.js";
-import {createNewSessionId} from "./BrawlViewModel.js"
+import {LoadStatus} from "../matrix/SessionContainer.js";
+import {SyncStatus} from "../matrix/Sync.js";
 
 class SessionItemViewModel extends EventEmitter {
     constructor(sessionInfo, pickerVM) {
@@ -99,22 +100,58 @@ class SessionItemViewModel extends EventEmitter {
 }
 
 export class SessionPickerViewModel {
-    constructor({storageFactory, sessionInfoStorage, sessionCallback}) {
+    constructor({storageFactory, sessionInfoStorage, sessionCallback, createSessionContainer}) {
         this._storageFactory = storageFactory;
         this._sessionInfoStorage = sessionInfoStorage;
         this._sessionCallback = sessionCallback;
+        this._createSessionContainer = createSessionContainer;
         this._sessions = new SortedArray((s1, s2) => s1.id.localeCompare(s2.id));
+        this._loading = false;
     }
 
+    // this loads all the sessions
     async load() {
         const sessions = await this._sessionInfoStorage.getAll();
         this._sessions.setManyUnsorted(sessions.map(s => new SessionItemViewModel(s, this)));
     }
 
-    pick(id) {
+    // this is the loading of a single picked session
+    get loading() {
+        return this._loading;
+    }
+
+    get loadStatus() {
+        return this._sessionContainer && this._sessionContainer.loadStatus;
+    }
+
+    get loadError() {
+        if (this._sessionContainer) {
+            const error = this._sessionContainer.loadError;
+            if (error) {
+                return error.message;
+            }
+        }
+        return null;
+    }
+
+    async pick(id) {
         const sessionVM = this._sessions.array.find(s => s.id === id);
         if (sessionVM) {
-            this._sessionCallback(sessionVM.sessionInfo);
+            this._loading = true;
+            this.emit("change", "loading");
+            this._sessionContainer = this._createSessionContainer();
+            this._sessionContainer.startWithExistingSession(sessionVM.sessionInfo.id);
+            // TODO: allow to cancel here
+            const waitHandle = this._sessionContainer.loadStatus.waitFor(s => {
+                this.emit("change", "loadStatus");
+                // wait for initial sync, but not catchup sync
+                return (
+                        s === LoadStatus.FirstSync &&
+                        this._sessionContainer.sync.status === SyncStatus.CatchupSync
+                    ) || s === LoadStatus.Ready;
+            });
+            await waitHandle.promise;
+            this._sessionCallback(this._sessionContainer);
         }
     }
 
@@ -129,7 +166,7 @@ export class SessionPickerViewModel {
         const data = JSON.parse(json);
         const {sessionInfo} = data;
         sessionInfo.comment = `Imported on ${new Date().toLocaleString()} from id ${sessionInfo.id}.`;
-        sessionInfo.id = createNewSessionId();
+        sessionInfo.id = this._createSessionContainer().createNewSessionId();
         await this._storageFactory.import(sessionInfo.id, data.stores);
         await this._sessionInfoStorage.add(sessionInfo);
         this._sessions.set(new SessionItemViewModel(sessionInfo, this));

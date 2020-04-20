@@ -43,7 +43,7 @@ export class SessionContainer {
         this._storage = null;
     }
 
-    _createNewSessionId() {
+    createNewSessionId() {
         return (Math.floor(this._random() * Number.MAX_SAFE_INTEGER)).toString();
     }
 
@@ -54,6 +54,9 @@ export class SessionContainer {
         this._status.set(LoadStatus.Loading);
         try {
             const sessionInfo = await this._sessionInfoStorage.get(sessionId);
+            if (!sessionInfo) {
+                throw new Error("Invalid session id: " + sessionId);
+            }
             await this._loadSessionInfo(sessionInfo);
         } catch (err) {
             this._error = err;
@@ -70,7 +73,7 @@ export class SessionContainer {
         try {
             const hsApi = new HomeServerApi({homeServer, request: this._request});
             const loginData = await hsApi.passwordLogin(username, password).response();
-            const sessionId = this._createNewSessionId();
+            const sessionId = this.createNewSessionId();
             sessionInfo = {
                 id: sessionId,
                 deviceId: loginData.device_id,
@@ -211,6 +214,7 @@ export class SessionContainer {
         }
         if (this._storage) {
             this._storage.close();
+            this._storage = null;
         }
     }
 
@@ -226,42 +230,3 @@ export class SessionContainer {
         }
     }
 }
-
-/*
-function main() {
-    // these are only required for external classes,
-    // SessionFactory has it's defaults for internal classes
-    const sessionFactory = new SessionFactory({
-        Clock: DOMClock,
-        OnlineState: DOMOnlineState,
-        SessionInfoStorage: LocalStorageSessionStore,    // should be called SessionInfoStore?
-        StorageFactory: window.indexedDB ? IDBStorageFactory : MemoryStorageFactory,  // should be called StorageManager?
-        // should be moved to StorageFactory as `KeyBounds`?: minStorageKey, middleStorageKey, maxStorageKey
-        // would need to pass it into EventKey though
-        request,
-    });
-
-    // lets not do this in a first cut
-    // internally in the matrix lib
-    const room = new creator.ctor("Room", Room)({});
-
-    // or short
-    const sessionFactory = new SessionFactory(WebFactory);
-    // sessionFactory.sessionInfoStore
-    
-    // registration
-    // const registration = sessionFactory.registerUser();
-    // registration.stage
-    
-
-    const container = sessionFactory.startWithRegistration(registration);
-    const container = sessionFactory.startWithLogin(server, username, password);
-    const container = sessionFactory.startWithExistingSession(sessionId);
-    // container.loadStatus is an ObservableValue<LoadStatus>
-    await container.loadStatus.waitFor(s => s === LoadStatus.FirstSync && container.sync.status === SyncStatus.CatchupSync || s === LoadStatus.Ready);
-
-    // loader isn't needed anymore from now on
-    const {session, sync, reconnector} = container;
-    container.stop();
-}
-*/
