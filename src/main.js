@@ -1,12 +1,11 @@
-import {HomeServerApi} from "./matrix/net/HomeServerApi.js";
 // import {RecordRequester, ReplayRequester} from "./matrix/net/request/replay.js";
 import {fetchRequest} from "./matrix/net/request/fetch.js";
-import {Reconnector} from "./matrix/net/Reconnector.js";
+import {SessionContainer} from "./matrix/SessionContainer.js";
 import {StorageFactory} from "./matrix/storage/idb/StorageFactory.js";
 import {SessionInfoStorage} from "./matrix/sessioninfo/localstorage/SessionInfoStorage.js";
 import {BrawlViewModel} from "./domain/BrawlViewModel.js";
 import {BrawlView} from "./ui/web/BrawlView.js";
-import {Clock as DOMClock} from "./ui/web/dom/Clock.js";
+import {Clock} from "./ui/web/dom/Clock.js";
 import {OnlineStatus} from "./ui/web/dom/OnlineStatus.js";
 
 export default async function main(container) {
@@ -22,13 +21,22 @@ export default async function main(container) {
         // window.getBrawlFetchLog = () => recorder.log();
         // normal network:
         const request = fetchRequest;
-        const clock = new DOMClock();
+        const sessionInfoStorage = new SessionInfoStorage("brawl_sessions_v1");
+        const clock = new Clock();
 
         const vm = new BrawlViewModel({
-            storageFactory: new StorageFactory(),
-            createHsApi: (homeServer, accessToken, reconnector) => new HomeServerApi({homeServer, accessToken, request, reconnector}),
-            sessionInfoStorage: new SessionInfoStorage("brawl_sessions_v1"),
-            clock: new DOMClock(),
+            createSessionContainer: () => {
+                return new SessionContainer({
+                    random: Math.random,
+                    onlineStatus: new OnlineStatus(),
+                    storageFactory: new StorageFactory(),
+                    sessionInfoStorage,
+                    request,
+                    clock,
+                });
+            },
+            sessionInfoStorage,
+            clock,
         });
         await vm.load();
         const view = new BrawlView(vm);
