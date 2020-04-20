@@ -1,28 +1,24 @@
-import {Session} from "../matrix/Session.js";
-import {Sync} from "../matrix/Sync.js";
 import {SessionViewModel} from "./session/SessionViewModel.js";
 import {LoginViewModel} from "./LoginViewModel.js";
 import {SessionPickerViewModel} from "./SessionPickerViewModel.js";
 import {EventEmitter} from "../utils/EventEmitter.js";
 
-export function createNewSessionId() {
-    return (Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)).toString();
-}
-
 export class BrawlViewModel extends EventEmitter {
-    constructor({storageFactory, sessionInfoStorage, createHsApi, clock}) {
+    constructor({createSessionContainer, sessionInfoStorage, storageFactory, clock}) {
         super();
-        this._storageFactory = storageFactory;
+        this._createSessionContainer = createSessionContainer;
         this._sessionInfoStorage = sessionInfoStorage;
-        this._createHsApi = createHsApi;
+        this._storageFactory = storageFactory;
         this._clock = clock;
 
         this._loading = false;
         this._error = null;
         this._sessionViewModel = null;
-        this._sessionSubscription = null;
         this._loginViewModel = null;
         this._sessionPickerViewModel = null;
+
+        this._sessionContainer = null;
+        this._sessionCallback = this._sessionCallback.bind(this);
     }
 
     async load() {
@@ -33,12 +29,29 @@ export class BrawlViewModel extends EventEmitter {
         }
     }
 
+    _sessionCallback(sessionContainer) {
+        if (sessionContainer) {
+            this._setSection(() => {
+                this._sessionContainer = sessionContainer;
+                this._sessionViewModel = new SessionViewModel(sessionContainer);
+            });
+        } else {
+            // switch between picker and login
+            if (this.activeSection === "login") {
+                this._showPicker();
+            } else {
+                this._showLogin();
+            }
+        }
+    }
+
     async _showPicker() {
         this._setSection(() => {
             this._sessionPickerViewModel = new SessionPickerViewModel({
                 sessionInfoStorage: this._sessionInfoStorage,
                 storageFactory: this._storageFactory,
-                sessionCallback: sessionInfo => this._onSessionPicked(sessionInfo)
+                createSessionContainer: this._createSessionContainer,
+                sessionCallback: this._sessionCallback,
             });
         });
         try {
@@ -51,18 +64,12 @@ export class BrawlViewModel extends EventEmitter {
     _showLogin() {
         this._setSection(() => {
             this._loginViewModel = new LoginViewModel({
-                createHsApi: this._createHsApi,
                 defaultHomeServer: "https://matrix.org",
-                loginCallback: loginData => this._onLoginFinished(loginData)
+                createSessionContainer: this._createSessionContainer,
+                sessionCallback: this._sessionCallback,
             });
         })
 
-    }
-
-    _showSession(session, sync) {
-        this._setSection(() => {
-            this._sessionViewModel = new SessionViewModel({session, sync});
-        });
     }
 
     get activeSection() {
@@ -79,66 +86,26 @@ export class BrawlViewModel extends EventEmitter {
         }
     }
 
+
     _setSection(setter) {
-        const oldSection = this.activeSection;
         // clear all members the activeSection depends on
         this._error = null;
         this._loading = false;
         this._sessionViewModel = null;
         this._loginViewModel = null;
         this._sessionPickerViewModel = null;
+
+        if (this._sessionContainer) {
+            this._sessionContainer.stop();
+            this._sessionContainer = null;
+        }
         // now set it again
         setter();
-        const newSection = this.activeSection;
-        // remove session subscription when navigating away
-        if (oldSection === "session" && newSection !== oldSection) {
-            this._sessionSubscription();
-            this._sessionSubscription = null;
-        }
         this.emit("change", "activeSection");
     }
 
-    get loadingText() { return this._loadingText; }
+    get error() { return this._error; }
     get sessionViewModel() { return this._sessionViewModel; }
     get loginViewModel() { return this._loginViewModel; }
     get sessionPickerViewModel() { return this._sessionPickerViewModel; }
-    get errorText() { return this._error && this._error.message; }
-
-    async _onLoginFinished(loginData) {
-        if (loginData) {
-            // TODO: extract random() as it is a source of non-determinism
-            const sessionId = createNewSessionId();
-            const sessionInfo = {
-                id: sessionId,
-                deviceId: loginData.device_id,
-                userId: loginData.user_id,
-                homeServer: loginData.homeServerUrl,
-                accessToken: loginData.access_token,
-                lastUsed: this._clock.now()
-            };
-            await this._sessionInfoStorage.add(sessionInfo);
-            this._loadSession(sessionInfo);
-        } else {
-            this._showPicker();
-        }
-    }
-
-    _onSessionPicked(sessionInfo) {
-        if (sessionInfo) {
-            this._loadSession(sessionInfo);
-            this._sessionInfoStorage.updateLastUsed(sessionInfo.id, this._clock.now());
-        } else {
-            this._showLogin();
-        }
-    }
-
-    async _loadSession(sessionInfo) {
-        this._setSection(() => {
-            // TODO this is pseudo code-ish
-            const container = this._createSessionContainer();
-            this._sessionViewModel = new SessionViewModel({session, sync});
-            this._sessionSubscription = this._activeSessionContainer.subscribe(this._updateSessionState);
-            this._activeSessionContainer.start(sessionInfo);
-        });
-    }
 }
