@@ -180,7 +180,6 @@ export class FragmentIdComparer {
     }
 }
 
-//#ifdef TESTS
 export function tests() {
     return {
         test_1_island_3_fragments(assert) {
@@ -297,4 +296,3 @@ export function tests() {
         }
     }
 }
-//#endif

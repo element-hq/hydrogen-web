@@ -36,7 +36,7 @@ export class EventEmitter {
 
     onLastSubscriptionRemoved(name) {}
 }
-//#ifdef TESTS
+
 export function tests() {
     return {
         test_on_off(assert) {
@@ -72,4 +72,3 @@ export function tests() {
         }
     };
 }
-//#endif

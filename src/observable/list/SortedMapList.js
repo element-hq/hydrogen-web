@@ -113,7 +113,6 @@ export class SortedMapList extends BaseObservableList {
     }
 }
 
-//#ifdef TESTS
 import {ObservableMap} from "../map/ObservableMap.js";
 
 export function tests() {
@@ -250,4 +249,3 @@ export function tests() {
         },
     }
 }
-//#endif

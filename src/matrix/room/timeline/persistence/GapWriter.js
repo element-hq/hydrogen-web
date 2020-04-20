@@ -178,7 +178,6 @@ export class GapWriter {
     }
 }
 
-//#ifdef TESTS
 //import MemoryStorage from "../storage/memory/MemoryStorage.js";
 
 export function xtests() {
@@ -277,4 +276,3 @@ export function xtests() {
         },
     }
 }
-//#endif

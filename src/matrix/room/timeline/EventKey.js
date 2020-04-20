@@ -49,7 +49,6 @@ export class EventKey {
     }
 }
 
-//#ifdef TESTS
 export function xtests() {
     const fragmentIdComparer = {compare: (a, b) => a - b};
 
@@ -156,4 +155,3 @@ export function xtests() {
         }
     };
 }
-//#endif

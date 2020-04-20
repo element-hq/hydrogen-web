@@ -56,7 +56,6 @@ export class ObservableMap extends BaseObservableMap {
     }
 }
 
-//#ifdef TESTS
 export function tests() {
     return {
         test_initial_values(assert) {
@@ -152,4 +151,3 @@ export function tests() {
         },
     }
 }
-//#endif
