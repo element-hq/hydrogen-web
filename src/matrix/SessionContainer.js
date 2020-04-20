@@ -1,4 +1,11 @@
+import createEnum from "../utils/enum.js";
+import ObservableValue from "../observable/ObservableValue.js";
 import HomeServerApi from "./net/HomeServerApi.js";
+import {Reconnector, ConnectionStatus} from "./net/Reconnector.js";
+import ExponentialRetryDelay from "./net/ExponentialRetryDelay.js";
+import {HomeServerError, ConnectionError, AbortError} from "./error.js";
+import {Sync, SyncStatus} from "./Sync.js";
+import Session from "./Session.js";
 
 export const LoadStatus = createEnum(
     "NotLoading",
@@ -12,19 +19,19 @@ export const LoadStatus = createEnum(
 );
 
 export const LoginFailure = createEnum(
-    "Network",
+    "Connection",
     "Credentials",
     "Unknown",
 );
 
 export class SessionContainer {
-    constructor({clock, random, onlineStatus, request, storageFactory, sessionsStore}) {
+    constructor({clock, random, onlineStatus, request, storageFactory, sessionInfoStorage}) {
         this._random = random;
         this._clock = clock;
         this._onlineStatus = onlineStatus;
         this._request = request;
         this._storageFactory = storageFactory;
-        this._sessionsStore = sessionsStore;
+        this._sessionInfoStorage = sessionInfoStorage;
 
         this._status = new ObservableValue(LoadStatus.NotLoading);
         this._error = null;
@@ -44,7 +51,7 @@ export class SessionContainer {
         }
         this._status.set(LoadStatus.Loading);
         try {
-            const sessionInfo = await this._sessionsStore.get(sessionId);
+            const sessionInfo = await this._sessionInfoStorage.get(sessionId);
             await this._loadSessionInfo(sessionInfo);
         } catch (err) {
             this._error = err;
@@ -70,7 +77,7 @@ export class SessionContainer {
                 accessToken: loginData.access_token,
                 lastUsed: this._clock.now()
             };
-            await this._sessionsStore.add(sessionInfo);            
+            await this._sessionInfoStorage.add(sessionInfo);            
         } catch (err) {
             this._error = err;
             if (err instanceof HomeServerError) {
@@ -81,7 +88,7 @@ export class SessionContainer {
                 }
                 this._status.set(LoadStatus.LoginFailure);
             } else if (err instanceof ConnectionError) {
-                this._loginFailure = LoginFailure.Network;
+                this._loginFailure = LoginFailure.Connection;
                 this._status.set(LoadStatus.LoginFailure);
             } else {
                 this._status.set(LoadStatus.Error);
@@ -122,12 +129,6 @@ export class SessionContainer {
         this._session = new Session({storage, sessionInfo: filteredSessionInfo, hsApi});
         await this._session.load();
         
-        const needsInitialSync = !this._session.syncToken;
-        if (!needsInitialSync) {
-            this._status.set(LoadStatus.CatchupSync);
-        } else {
-        }
-
         this._sync = new Sync({hsApi, storage, session: this._session});
         // notify sync and session when back online
         this._reconnectSubscription = this._reconnector.connectionStatus.subscribe(state => {
@@ -137,17 +138,23 @@ export class SessionContainer {
             }
         });
         await this._waitForFirstSync();
+        
         this._status.set(LoadStatus.Ready);
 
-        // if this fails, the reconnector will start polling versions to reconnect
-        const lastVersionsResponse = await hsApi.versions({timeout: 10000}).response();
-        this._session.start(lastVersionsResponse);
+        // if the sync failed, and then the reconnector
+        // restored the connection, it would have already
+        // started to session, so check first
+        // to prevent an extra /versions request
+        if (!this._session.isStarted) {
+            const lastVersionsResponse = await hsApi.versions({timeout: 10000}).response();
+            this._session.start(lastVersionsResponse);
+        }
     }
 
     async _waitForFirstSync() {
         try {
-            this._sync.start();
             this._status.set(LoadStatus.FirstSync);
+            this._sync.start();
         } catch (err) {
             // swallow ConnectionError here and continue,
             // as the reconnector above will call 
@@ -209,7 +216,7 @@ function main() {
     const sessionFactory = new SessionFactory({
         Clock: DOMClock,
         OnlineState: DOMOnlineState,
-        SessionsStore: LocalStorageSessionStore,    // should be called SessionInfoStore?
+        SessionInfoStorage: LocalStorageSessionStore,    // should be called SessionInfoStore?
         StorageFactory: window.indexedDB ? IDBStorageFactory : MemoryStorageFactory,  // should be called StorageManager?
         // should be moved to StorageFactory as `KeyBounds`?: minStorageKey, middleStorageKey, maxStorageKey
         // would need to pass it into EventKey though
@@ -233,7 +240,7 @@ function main() {
     const container = sessionFactory.startWithLogin(server, username, password);
     const container = sessionFactory.startWithExistingSession(sessionId);
     // container.loadStatus is an ObservableValue<LoadStatus>
-    await container.loadStatus.waitFor(s => s === LoadStatus.Loaded || s === LoadStatus.CatchupSync);
+    await container.loadStatus.waitFor(s => s === LoadStatus.FirstSync && container.sync.status === SyncStatus.CatchupSync || s === LoadStatus.Ready);
 
     // loader isn't needed anymore from now on
     const {session, sync, reconnector} = container;

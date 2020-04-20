@@ -40,11 +40,28 @@ export default class Session {
         }));
     }
 
+    get isStarted() {
+        return this._sendScheduler.isStarted;
+    }
+
     stop() {
         this._sendScheduler.stop();
     }
 
-    start(lastVersionResponse) {
+    async start(lastVersionResponse) {
+        if (lastVersionResponse) {
+            // store /versions response
+            const txn = await this._storage.readWriteTxn([
+                this._storage.storeNames.session
+            ]);
+            const newSessionData = Object.assign({}, this._session, {serverVersions: lastVersionResponse});
+            txn.session.set(newSessionData);
+            // TODO: what can we do if this throws?
+            await txn.complete();
+            this._session = newSessionData;
+        }
+
+        this._sendScheduler.start();
         for (const [, room] of this._rooms) {
             room.resumeSending();
         }
