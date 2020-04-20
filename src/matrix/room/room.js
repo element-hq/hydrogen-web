@@ -1,4 +1,4 @@
-import {EventEmitter} from "../../EventEmitter.js";
+import {EventEmitter} from "../../utils/EventEmitter.js";
 import {RoomSummary} from "./summary.js";
 import {SyncWriter} from "./timeline/persistence/SyncWriter.js";
 import {GapWriter} from "./timeline/persistence/GapWriter.js";

@@ -1,5 +1,5 @@
 import {SortedArray} from "../observable/index.js";
-import {EventEmitter} from "../EventEmitter.js";
+import {EventEmitter} from "../utils/EventEmitter.js";
 import {createNewSessionId} from "./BrawlViewModel.js"
 
 class SessionItemViewModel extends EventEmitter {

@@ -1,4 +1,4 @@
-import {EventEmitter} from "../../EventEmitter.js";
+import {EventEmitter} from "../../utils/EventEmitter.js";
 
 export class SyncStatusViewModel extends EventEmitter {
     constructor(sync) {

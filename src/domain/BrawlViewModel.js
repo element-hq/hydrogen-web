@@ -3,7 +3,7 @@ import {Sync} from "../matrix/Sync.js";
 import {SessionViewModel} from "./session/SessionViewModel.js";
 import {LoginViewModel} from "./LoginViewModel.js";
 import {SessionPickerViewModel} from "./SessionPickerViewModel.js";
-import {EventEmitter} from "../EventEmitter.js";
+import {EventEmitter} from "../utils/EventEmitter.js";
 
 export function createNewSessionId() {
     return (Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)).toString();

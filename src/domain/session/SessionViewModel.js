@@ -1,4 +1,4 @@
-import {EventEmitter} from "../../EventEmitter.js";
+import {EventEmitter} from "../../utils/EventEmitter.js";
 import {RoomTileViewModel} from "./roomlist/RoomTileViewModel.js";
 import {RoomViewModel} from "./room/RoomViewModel.js";
 import {SyncStatusViewModel} from "./SyncStatusViewModel.js";

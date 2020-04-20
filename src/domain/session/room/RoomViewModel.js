@@ -1,4 +1,4 @@
-import {EventEmitter} from "../../../EventEmitter.js";
+import {EventEmitter} from "../../../utils/EventEmitter.js";
 import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
 import {avatarInitials} from "../avatar.js";
 
