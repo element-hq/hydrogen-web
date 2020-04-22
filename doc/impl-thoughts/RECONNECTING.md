@@ -66,7 +66,12 @@ rooms should report how many messages they have queued up, and each time they se
     NO: When connected, syncing and not sending anything, just hide the thing for now? although when you send messages it will just pop in and out all the time.
 
  - see if it makes sense for SendScheduler to use the same RetryDelay as Reconnector
- - finally adjust all file names to their class names? e.g. camel case
+ - DONE: finally adjust all file names to their class names? e.g. camel case
  - see if we want more dependency injection
     - for classes from outside sdk
     - for internal sdk classes? probably not yet
+
+
+
+
+thought: do we want to retry a request a couple of times when we can't reach the server before handing it over to the reconnector? Not that some requests may succeed while others may fail, like when matrix.org is really slow, some requests may timeout and others may not. Although starting a service like sync while it is still succeeding should be mostly fine. Perhaps we can pass a canRetry flag to the HomeServerApi that if we get a ConnectionError, we will retry. Only when the flag is not set, we'd call the Reconnector. The downside of this is that if 2 parts are doing requests, 1 retries and 1 does not, and the both requests fail, the other part of the code would still be retrying when the reconnector already kicked in. The HomeServerApi should perhaps tell the retryer if it should give up if a non-retrying request already caused the reconnector to kick in?
