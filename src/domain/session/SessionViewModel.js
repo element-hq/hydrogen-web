@@ -4,10 +4,10 @@ import {RoomViewModel} from "./room/RoomViewModel.js";
 import {SyncStatusViewModel} from "./SyncStatusViewModel.js";
 
 export class SessionViewModel extends EventEmitter {
-    constructor({session, sync}) {
+    constructor(sessionContainer) {
         super();
-        this._session = session;
-        this._syncStatusViewModel = new SyncStatusViewModel(sync);
+        this._session = sessionContainer.session;
+        this._syncStatusViewModel = new SyncStatusViewModel(sessionContainer.sync);
         this._currentRoomViewModel = null;
         const roomTileVMs = this._session.rooms.mapValues((room, emitUpdate) => {
             return new RoomTileViewModel({
