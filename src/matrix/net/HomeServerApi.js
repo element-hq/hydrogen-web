@@ -55,13 +55,13 @@ export class HomeServerApi {
             .join("&");
         url = `${url}?${queryString}`;
         let bodyString;
-        const headers = new Headers();
+        const headers = new Map();
         if (this._accessToken) {
-            headers.append("Authorization", `Bearer ${this._accessToken}`);
+            headers.set("Authorization", `Bearer ${this._accessToken}`);
         }
-        headers.append("Accept", "application/json");
+        headers.set("Accept", "application/json");
         if (body) {
-            headers.append("Content-Type", "application/json");
+            headers.set("Content-Type", "application/json");
             bodyString = JSON.stringify(body);
         }
         const requestResult = this._requestFn(url, {

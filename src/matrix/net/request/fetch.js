@@ -44,6 +44,13 @@ export function fetchRequest(url, options) {
         referrer: "no-referrer",
         cache: "no-cache",
     });
+    if (options.headers) {
+        const headers = new Headers();
+        for(const [name, value] of options.headers.entries()) {
+            headers.append(name, value);
+        }
+        options.headers = headers;
+    }
     const promise = fetch(url, options).then(async response => {
         const {status} = response;
         const body = await response.json();
