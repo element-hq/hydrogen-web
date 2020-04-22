@@ -40,6 +40,7 @@ export default async function main(container) {
             storageFactory,
             clock,
         });
+        window.__brawlViewModel = vm;
         await vm.load();
         const view = new BrawlView(vm);
         container.appendChild(view.mount());
