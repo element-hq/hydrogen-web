@@ -115,7 +115,7 @@ export class SessionContainer {
         this._status.set(LoadStatus.Loading);
         this._reconnector = new Reconnector({
             onlineStatus: this._onlineStatus,
-            delay: new ExponentialRetryDelay(2000, this._clock.createTimeout),
+            retryDelay: new ExponentialRetryDelay(this._clock.createTimeout),
             createMeasure: this._clock.createMeasure
         });
         const hsApi = new HomeServerApi({

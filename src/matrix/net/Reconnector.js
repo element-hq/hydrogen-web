@@ -137,7 +137,7 @@ export function tests() {
             const clock = new MockClock();
             const {createMeasure} = clock;
             const onlineStatus = new ObservableValue(false);
-            const retryDelay = new ExponentialRetryDelay(clock.createTimeout, 2000);
+            const retryDelay = new ExponentialRetryDelay(clock.createTimeout);
             const reconnector = new Reconnector({retryDelay, onlineStatus, createMeasure});
             const {connectionStatus} = reconnector;
             const statuses = [];
@@ -162,7 +162,7 @@ export function tests() {
             const clock = new MockClock();
             const {createMeasure} = clock;
             const onlineStatus = new ObservableValue(false);
-            const retryDelay = new ExponentialRetryDelay(clock.createTimeout, 2000);
+            const retryDelay = new ExponentialRetryDelay(clock.createTimeout);
             const reconnector = new Reconnector({retryDelay, onlineStatus, createMeasure});
             const {connectionStatus} = reconnector;
             reconnector.onRequestFailed(createHsApiMock(1));

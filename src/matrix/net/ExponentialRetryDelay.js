@@ -1,7 +1,8 @@
 import {AbortError} from "../../utils/error.js";
 
 export class ExponentialRetryDelay {
-    constructor(createTimeout, start = 2000) {
+    constructor(createTimeout) {
+        const start = 2000;
         this._start = start;
         this._current = start;
         this._createTimeout = createTimeout;
@@ -49,7 +50,7 @@ export function tests() {
     return {
         "test sequence": async assert => {
             const clock = new MockClock();
-            const retryDelay = new ExponentialRetryDelay(clock.createTimeout, 2000);
+            const retryDelay = new ExponentialRetryDelay(clock.createTimeout);
             let promise;
 
             assert.strictEqual(retryDelay.nextValue, 2000);
