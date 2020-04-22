@@ -11,7 +11,6 @@ export class BrawlViewModel extends EventEmitter {
         this._storageFactory = storageFactory;
         this._clock = clock;
 
-        this._loading = false;
         this._error = null;
         this._sessionViewModel = null;
         this._loginViewModel = null;
@@ -75,8 +74,6 @@ export class BrawlViewModel extends EventEmitter {
     get activeSection() {
         if (this._error) {
             return "error";
-        } else if(this._loading) {
-            return "loading";
         } else if (this._sessionViewModel) {
             return "session";
         } else if (this._loginViewModel) {
@@ -86,11 +83,9 @@ export class BrawlViewModel extends EventEmitter {
         }
     }
 
-
     _setSection(setter) {
         // clear all members the activeSection depends on
         this._error = null;
-        this._loading = false;
         this._sessionViewModel = null;
         this._loginViewModel = null;
         this._sessionPickerViewModel = null;

@@ -16,8 +16,6 @@ export class BrawlView {
         switch (this._vm.activeSection) {
             case "error":
                 return new StatusView({header: "Something went wrong", message: this._vm.errorText});
-            case "loading":
-                return new StatusView({header: "Loading", message: this._vm.loadingText});
             case "session":
                 return new SessionView(this._vm.sessionViewModel);
             case "login":
