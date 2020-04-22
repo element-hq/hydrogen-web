@@ -43,8 +43,8 @@ export class HomeServerApi {
         return `${this._homeserver}/_matrix/client/r0${csPath}`;
     }
 
-    _request(method, url, queryParams = {}, body, options) {
-        const queryString = Object.entries(queryParams)
+    _request(method, url, queryParams, body, options) {
+        const queryString = Object.entries(queryParams || {})
             .filter(([, value]) => value !== undefined)
             .map(([name, value]) => {
                 if (typeof value === "object") {
