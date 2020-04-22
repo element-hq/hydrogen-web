@@ -91,7 +91,7 @@ export class SessionContainer {
                 } else {
                     this._loginFailure = LoginFailure.Unknown;
                 }
-                this._status.set(LoadStatus.LoginFailure);
+                this._status.set(LoadStatus.LoginFailed);
             } else if (err instanceof ConnectionError) {
                 this._loginFailure = LoginFailure.Connection;
                 this._status.set(LoadStatus.LoginFailure);
