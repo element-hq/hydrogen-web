@@ -70,7 +70,7 @@ export class HomeServerApi {
             body: bodyString,
         });
 
-        if (options.timeout) {
+        if (options && options.timeout) {
             const timeout = this._createTimeout(options.timeout);
             // abort request if timeout finishes first
             timeout.elapsed().then(
