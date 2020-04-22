@@ -1,3 +1,5 @@
+import {errorToDOM} from "./error.js";
+
 export class SwitchView {
     constructor(defaultView) {
         this._childView = defaultView;
@@ -23,7 +25,12 @@ export class SwitchView {
         const oldRoot = this.root();
         this._childView.unmount();
         this._childView = newView;
-        const newRoot = this._childView.mount();
+        let newRoot;
+        try {
+            newRoot = this._childView.mount();
+        } catch (err) {
+            newRoot = errorToDOM(err);
+        }
         const parent = oldRoot.parentElement;
         if (parent) {
             parent.replaceChild(newRoot, oldRoot);
