@@ -86,7 +86,7 @@ export class SessionContainer {
         } catch (err) {
             this._error = err;
             if (err instanceof HomeServerError) {
-                if (err.statusCode === 403) {
+                if (err.errcode === "M_FORBIDDEN") {
                     this._loginFailure = LoginFailure.Credentials;
                 } else {
                     this._loginFailure = LoginFailure.Unknown;
