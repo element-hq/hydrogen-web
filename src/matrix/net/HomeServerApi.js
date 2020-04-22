@@ -138,3 +138,27 @@ export class HomeServerApi {
         return this._request("GET", `${this._homeserver}/_matrix/client/versions`, null, options);
     }
 }
+
+export function tests() {
+    function createRequestMock(result) {
+        return function() {
+            return {
+                abort() {},
+                response() {
+                    return Promise.resolve(result);
+                }
+            }
+        }
+    }
+
+    return {
+        "superficial happy path for GET": async assert => {
+            const hsApi = new HomeServerApi({
+                request: createRequestMock({body: 42, status: 200}),
+                homeServer: "https://hs.tld"
+            });
+            const result = await hsApi._get("foo", null, null, null).response();
+            assert.strictEqual(result, 42);
+        }
+    }
+}
