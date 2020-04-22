@@ -18,13 +18,13 @@ export class SyncStatusViewModel extends EventEmitter {
 
     onFirstSubscriptionAdded(name) {
         if (name === "change") {
-            this._sync.on("status", this._onStatus);
+            //this._sync.status.("status", this._onStatus);
         }
     }
 
     onLastSubscriptionRemoved(name) {
         if (name === "change") {
-            this._sync.on("status", this._onStatus);
+            //this._sync.status.("status", this._onStatus);
         }
     }
 
