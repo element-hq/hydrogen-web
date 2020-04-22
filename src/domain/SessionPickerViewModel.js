@@ -2,6 +2,7 @@ import {SortedArray} from "../observable/index.js";
 import {EventEmitter} from "../utils/EventEmitter.js";
 import {LoadStatus} from "../matrix/SessionContainer.js";
 import {SyncStatus} from "../matrix/Sync.js";
+import {loadLabel} from "./common.js";
 
 class SessionItemViewModel extends EventEmitter {
     constructor(sessionInfo, pickerVM) {
@@ -99,14 +100,79 @@ class SessionItemViewModel extends EventEmitter {
     }
 }
 
-export class SessionPickerViewModel {
+class LoadViewModel extends EventEmitter {
+    constructor({createSessionContainer, sessionCallback, sessionId}) {
+        super();
+        this._createSessionContainer = createSessionContainer;
+        this._sessionCallback = sessionCallback;
+        this._sessionId = sessionId;
+        this._loading = false;
+    }
+
+    async _start() {
+        try {
+            this._loading = true;
+            this.emit("change", "loading");
+            this._sessionContainer = this._createSessionContainer();
+            this._sessionContainer.startWithExistingSession(this._sessionId);
+            this._waitHandle = this._sessionContainer.loadStatus.waitFor(s => {
+                this.emit("change", "loadStatus");
+                // wait for initial sync, but not catchup sync
+                const isCatchupSync = s === LoadStatus.FirstSync &&
+                    this._sessionContainer.sync.status === SyncStatus.CatchupSync;
+                return isCatchupSync ||
+                    s === LoadStatus.Error ||
+                    s === LoadStatus.Ready;
+            });
+            try {
+                await this._waitHandle.promise;
+            } catch (err) {
+                // swallow AbortError
+            }
+            if (this._sessionContainer.loadStatus.get() !== LoadStatus.Error) {
+                this._sessionCallback(this._sessionContainer);
+            }
+        } catch (err) {
+            this._error = err;
+        } finally {
+            this._loading = false;
+            this.emit("change", "loading");
+        }
+    }
+
+    get loading() {
+        return this._loading;
+    }
+
+    goBack() {
+        if (this._sessionContainer) {
+            this._sessionContainer.stop();
+            this._sessionContainer = null;
+            if (this._waitHandle) {
+                this._waitHandle.dispose();
+            }
+        }
+        this._sessionCallback();
+    }
+
+    get loadLabel() {
+        const sc = this._sessionContainer;
+        return loadLabel(
+            sc && sc.loadStatus,
+            sc && sc.loadError || this._error);
+    }
+}
+
+export class SessionPickerViewModel extends EventEmitter {
     constructor({storageFactory, sessionInfoStorage, sessionCallback, createSessionContainer}) {
+        super();
         this._storageFactory = storageFactory;
         this._sessionInfoStorage = sessionInfoStorage;
         this._sessionCallback = sessionCallback;
         this._createSessionContainer = createSessionContainer;
         this._sessions = new SortedArray((s1, s2) => s1.id.localeCompare(s2.id));
-        this._loading = false;
+        this._loadViewModel = null;
+        this._error = null;
     }
 
     // this loads all the sessions
@@ -115,43 +181,33 @@ export class SessionPickerViewModel {
         this._sessions.setManyUnsorted(sessions.map(s => new SessionItemViewModel(s, this)));
     }
 
-    // this is the loading of a single picked session
-    get loading() {
-        return this._loading;
-    }
-
-    get loadStatus() {
-        return this._sessionContainer && this._sessionContainer.loadStatus;
-    }
-
-    get loadError() {
-        if (this._sessionContainer) {
-            const error = this._sessionContainer.loadError;
-            if (error) {
-                return error.message;
-            }
-        }
-        return null;
+    // for the loading of 1 picked session
+    get loadViewModel() {
+        return this._loadViewModel;
     }
 
     async pick(id) {
+        if (this._loadViewModel) {
+            return;
+        }
         const sessionVM = this._sessions.array.find(s => s.id === id);
         if (sessionVM) {
-            this._loading = true;
-            this.emit("change", "loading");
-            this._sessionContainer = this._createSessionContainer();
-            this._sessionContainer.startWithExistingSession(sessionVM.sessionInfo.id);
-            // TODO: allow to cancel here
-            const waitHandle = this._sessionContainer.loadStatus.waitFor(s => {
-                this.emit("change", "loadStatus");
-                // wait for initial sync, but not catchup sync
-                return (
-                        s === LoadStatus.FirstSync &&
-                        this._sessionContainer.sync.status === SyncStatus.CatchupSync
-                    ) || s === LoadStatus.Ready;
+            this._loadViewModel = new LoadViewModel({
+                createSessionContainer: this._createSessionContainer,
+                sessionCallback: sessionContainer => {
+                    if (sessionContainer) {
+                        // make parent view model move away
+                        this._sessionCallback(sessionContainer);
+                    } else {
+                        // show list of session again
+                        this._loadViewModel = null;
+                        this.emit("change", "loadViewModel");
+                    }
+                },
+                sessionId: sessionVM.id,
             });
-            await waitHandle.promise;
-            this._sessionCallback(this._sessionContainer);
+            this._loadViewModel.start();
+            this.emit("change", "loadViewModel");
         }
     }
 
