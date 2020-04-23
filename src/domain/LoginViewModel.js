@@ -3,19 +3,7 @@ import {LoadStatus, LoginFailure} from "../matrix/SessionContainer.js";
 import {AbortError} from "../utils/error.js";
 import {loadLabel} from "./common.js";
 
-function loadLoginLabel(loadStatus, loadError, loginFailure, homeserver) {
-    if (!loadError && loadStatus && loadStatus.get() === LoadStatus.LoginFailed) {
-        switch (loginFailure) {
-            case LoginFailure.LoginFailure:
-                return `Your username and/or password don't seem to be correct.`;
-            case LoginFailure.Connection:
-                return `Can't connect to ${homeserver}.`;
-            case LoginFailure.Unknown:
-                return `Something went wrong while checking your login and password.`;
-        }
-    }
-    return loadLabel(loadStatus, loadError);
-}
+
 
 export class LoginViewModel extends EventEmitter {
     constructor({sessionCallback, defaultHomeServer, createSessionContainer}) {
@@ -81,6 +69,28 @@ export class LoginViewModel extends EventEmitter {
     }
 
     get loadLabel() {
+        const sc = this._sessionContainer;
+        const error = this._error || (sc && sc.loadError);
+
+        if (error || (sc && sc.loadStatus.get() === LoadStatus.Error)) {
+            return `Something went wrong: ${error && error.message}.`;
+        }
+        if (loadStatus) {
+            switch (loadStatus.get()) {
+                case LoadStatus.NotLoading:
+                    return `Preparing…`;
+                case LoadStatus.Login:
+                    return `Checking your login and password…`;
+                case LoadStatus.Loading:
+                    return `Loading your conversations…`;
+                case LoadStatus.FirstSync:
+                    return `Getting your conversations from the server…`;
+                default:
+                    return this._sessionContainer.loadStatus.get();
+            }
+        }
+        return `Preparing…`;
+
         if (this._error) {
             return loadLabel(null, this._error);
         }
