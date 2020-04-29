@@ -75,10 +75,13 @@ export class TemplateView {
     }
 
     mount(options) {
+        const builder = new TemplateBuilder(this);
         if (this._render) {
-            this._root = this._render(this, this._value);
+            this._root = this._render(builder, this._value);
         } else if (this.render) {   // overriden in subclass
-            this._root = this.render(this, this._value);
+            this._root = this.render(builder, this._value);
+        } else {
+            throw new Error("no render function passed in, or overriden in subclass");
         }
         const parentProvidesUpdates = options && options.parentProvidesUpdates;
         if (!parentProvidesUpdates) {
@@ -133,6 +136,17 @@ export class TemplateView {
         }
         this._subViews.push(view);
     }
+}
+
+// what is passed to render
+class TemplateBuilder {
+    constructor(templateView) {
+        this._templateView = templateView;
+    }
+
+    get _value() {
+        return this._templateView._value;
+    }
 
     _addAttributeBinding(node, name, fn) {
         let prevValue = undefined;
@@ -143,7 +157,7 @@ export class TemplateView {
                 setAttribute(node, name, newValue);
             }
         };
-        this._addBinding(binding);
+        this._templateView._addBinding(binding);
         binding();
     }
 
@@ -163,7 +177,7 @@ export class TemplateView {
             }
         };
 
-        this._addBinding(binding);
+        this._templateView._addBinding(binding);
         return node;
     }
 
@@ -198,7 +212,7 @@ export class TemplateView {
             } else if (key.startsWith("on") && key.length > 2 && isFn) {
                 const eventName = key.substr(2, 1).toLowerCase() + key.substr(3);
                 const handler = value;
-                this._addEventListener(node, eventName, handler);
+                this._templateView._addEventListener(node, eventName, handler);
             } else if (isFn) {
                 this._addAttributeBinding(node, key, value);
             } else {
@@ -237,7 +251,7 @@ export class TemplateView {
                 node = newNode;
             }
         };
-        this._addBinding(binding);
+        this._templateView._addBinding(binding);
         return node;
     }
 
@@ -250,7 +264,7 @@ export class TemplateView {
         } catch (err) {
             return errorToDOM(err);
         }
-        this._addSubView(view);
+        this._templateView._addSubView(view);
         return root;
     }
 
@@ -281,16 +295,7 @@ export class TemplateView {
 }
 
 for (const tag of TAG_NAMES) {
-    TemplateView.prototype[tag] = function(attributes, children) {
+    TemplateBuilder.prototype[tag] = function(attributes, children) {
         return this.el(tag, attributes, children);
     };
 }
-
-// TODO: should we an instance of something else than the view itself into the render method? That way you can't call template functions outside of the render method.
-// methods that should be on the Template:
-// el & all the tag names
-// view
-// if
-// createTemplate
-// 
-// all the binding stuff goes on this class, we just set the bindings on the members of the view.
