@@ -46,7 +46,7 @@ class SessionPickerItemView extends TemplateView {
             disabled: vm => vm.isClearing,
             onClick: () => this.viewModel.export(),
         }, "Export");
-        const downloadExport = t.if(vm => vm.exportDataUrl, t.template((t, vm) => {
+        const downloadExport = t.if(vm => vm.exportDataUrl, t.createTemplate((t, vm) => {
             return t.a({
                 href: vm.exportDataUrl,
                 download: `brawl-session-${this.viewModel.id}.json`,
@@ -55,7 +55,7 @@ class SessionPickerItemView extends TemplateView {
         }));
 
         const userName = t.span({className: "userId"}, vm => vm.label);
-        const errorMessage = t.if(vm => vm.error, t.template(t => t.span({className: "error"}, vm => vm.error)));
+        const errorMessage = t.if(vm => vm.error, t.createTemplate(t => t.span({className: "error"}, vm => vm.error)));
         return t.li([t.div({className: "sessionInfo"}, [
             userName,
             errorMessage,

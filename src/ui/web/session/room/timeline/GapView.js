@@ -12,7 +12,7 @@ export class GapView extends TemplateView {
                 onClick: () => this.viewModel.fill(),
                 disabled: vm => vm.isLoading
             }, label),
-            t.if(vm => vm.error, t.template(t => t.strong(vm => vm.error)))
+            t.if(vm => vm.error, t.createTemplate(t => t.strong(vm => vm.error)))
         ]);
     }
 }

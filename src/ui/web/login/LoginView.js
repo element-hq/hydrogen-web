@@ -32,6 +32,6 @@ function renderLoadProgress(t) {
     return t.div({className: "loadProgress"}, [
         t.div({className: "spinner"}),
         t.p(vm => vm.loadLabel),
-        t.if(vm => vm.loading, t.template(t => t.button({onClick: vm => vm.cancel()}, "Cancel login")))
+        t.if(vm => vm.loading, t.createTemplate(t => t.button({onClick: vm => vm.cancel()}, "Cancel login")))
     ]);
 }
