@@ -13,7 +13,7 @@ export class LoginView extends TemplateView {
         const homeserver = t.input({type: "text", placeholder: vm.hsPlaceholder, value: vm.defaultHomeServer, disabled});
         return t.div({className: "LoginView form"}, [
             t.h1(["Log in to your homeserver"]),
-            t.if(vm => vm.error, t => t.div({className: "error"}, vm => vm.error)),
+            t.if(vm => vm.error, t.createTemplate(t => t.div({className: "error"}, vm => vm.error))),
             t.div(username),
             t.div(password),
             t.div(homeserver),
@@ -22,7 +22,7 @@ export class LoginView extends TemplateView {
                 disabled
             }, "Log In")),
             t.div(t.button({onClick: () => vm.goBack(), disabled}, ["Pick an existing session"])),
-            t.if(vm => vm.showLoadLabel, renderLoadProgress),
+            t.if(vm => vm.loadViewModel, vm => new SessionLoadView(vm.loadViewModel)),
             t.p(brawlGithubLink(t))
         ]);
     }
@@ -32,6 +32,6 @@ function renderLoadProgress(t) {
     return t.div({className: "loadProgress"}, [
         t.div({className: "spinner"}),
         t.p(vm => vm.loadLabel),
-        t.if(vm => vm.loading, t => t.button({onClick: vm => vm.cancel()}, "Cancel login"))
+        t.if(vm => vm.loading, t.template(t => t.button({onClick: vm => vm.cancel()}, "Cancel login")))
     ]);
 }

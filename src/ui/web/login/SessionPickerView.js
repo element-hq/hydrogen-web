@@ -27,10 +27,6 @@ function selectFileAsText(mimeType) {
 
 
 class SessionPickerItemView extends TemplateView {
-    constructor(vm) {
-        super(vm, true);
-    }
-
     _onDeleteClick() {
         if (confirm("Are you sure?")) {
             this.viewModel.delete();
@@ -50,16 +46,16 @@ class SessionPickerItemView extends TemplateView {
             disabled: vm => vm.isClearing,
             onClick: () => this.viewModel.export(),
         }, "Export");
-        const downloadExport = t.if(vm => vm.exportDataUrl, (t, vm) => {
+        const downloadExport = t.if(vm => vm.exportDataUrl, t.template((t, vm) => {
             return t.a({
                 href: vm.exportDataUrl,
                 download: `brawl-session-${this.viewModel.id}.json`,
                 onClick: () => setTimeout(() => this.viewModel.clearExport(), 100),
             }, "Download");
-        });
+        }));
 
         const userName = t.span({className: "userId"}, vm => vm.label);
-        const errorMessage = t.if(vm => vm.error, t => t.span({className: "error"}, vm => vm.error));
+        const errorMessage = t.if(vm => vm.error, t.template(t => t.span({className: "error"}, vm => vm.error)));
         return t.li([t.div({className: "sessionInfo"}, [
             userName,
             errorMessage,

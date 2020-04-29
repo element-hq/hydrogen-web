@@ -1,5 +1,6 @@
 import {SortedArray} from "../observable/index.js";
 import {EventEmitter} from "../utils/EventEmitter.js";
+import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
 
 class SessionItemViewModel extends EventEmitter {
     constructor(sessionInfo, pickerVM) {
@@ -127,7 +128,7 @@ export class SessionPickerViewModel extends EventEmitter {
         }
         const sessionVM = this._sessions.array.find(s => s.id === id);
         if (sessionVM) {
-            this._loadViewModel = new LoadViewModel({
+            this._loadViewModel = new SessionLoadViewModel({
                 createAndStartSessionContainer: () => {
                     const sessionContainer = this._createSessionContainer();
                     sessionContainer.startWithExistingSession(sessionVM.id);
@@ -182,6 +183,8 @@ export class SessionPickerViewModel extends EventEmitter {
     }
 
     cancel() {
-        this._sessionCallback();
+        if (!this._loadViewModel) {
+            this._sessionCallback();
+        }
     }
 }

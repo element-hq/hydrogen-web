@@ -17,15 +17,19 @@ export class BaseObservable {
             this.onSubscribeFirst();
         }
         return () => {
-            if (handler) {
-                this._handlers.delete(handler);
-                if (this._handlers.size === 0) {
-                    this.onUnsubscribeLast();
-                }
-                handler = null;
-            }
-            return null;
+            return this.unsubscribe(handler);
         };
+    }
+
+    unsubscribe(handler) {
+        if (handler) {
+            this._handlers.delete(handler);
+            if (this._handlers.size === 0) {
+                this.onUnsubscribeLast();
+            }
+            handler = null;
+        }
+        return null;
     }
 
     // Add iterator over handlers here

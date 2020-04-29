@@ -3,11 +3,12 @@ import {LoadStatus, LoginFailure} from "../matrix/SessionContainer.js";
 import {SyncStatus} from "../matrix/Sync.js";
 
 export class SessionLoadViewModel extends EventEmitter {
-    constructor({createAndStartSessionContainer, sessionCallback, homeserver}) {
+    constructor({createAndStartSessionContainer, sessionCallback, homeserver, deleteSessionOnCancel}) {
         super();
         this._createAndStartSessionContainer = createAndStartSessionContainer;
         this._sessionCallback = sessionCallback;
         this._homeserver = homeserver;
+        this._deleteSessionOnCancel = deleteSessionOnCancel;
         this._loading = false;
         this._error = null;
     }
@@ -33,7 +34,7 @@ export class SessionLoadViewModel extends EventEmitter {
             try {
                 await this._waitHandle.promise;
             } catch (err) {
-                // swallow AbortError
+                return; // aborted by goBack
             }
             // TODO: should we deal with no connection during initial sync 
             // and we're retrying as well here?
@@ -53,19 +54,31 @@ export class SessionLoadViewModel extends EventEmitter {
         }
     }
 
-    get loading() {
-        return this._loading;
+
+    async cancel() {
+        try {
+            if (this._sessionContainer) {
+                this._sessionContainer.stop();
+                if (this._deleteSessionOnCancel) {
+                    await this._sessionContainer.deletSession();
+                }
+                this._sessionContainer = null;
+            }
+            if (this._waitHandle) {
+                // rejects with AbortError
+                this._waitHandle.dispose();
+                this._waitHandle = null;
+            }
+            this._sessionCallback();
+        } catch (err) {
+            this._error = err;
+            this.emit("change");
+        }
     }
 
-    goBack() {
-        if (this._sessionContainer) {
-            this._sessionContainer.stop();
-            this._sessionContainer = null;
-            if (this._waitHandle) {
-                this._waitHandle.dispose();
-            }
-        }
-        this._sessionCallback();
+    // to show a spinner or not
+    get loading() {
+        return this._loading;
     }
 
     get loadLabel() {
