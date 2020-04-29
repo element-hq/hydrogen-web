@@ -181,24 +181,6 @@ class TemplateBuilder {
         return node;
     }
 
-    el(name, attributes, children) {
-        if (attributes && isChildren(attributes)) {
-            children = attributes;
-            attributes = null;
-        }
-
-        const node = document.createElement(name);
-        
-        if (attributes) {
-            this._setNodeAttributes(node, attributes);
-        }
-        if (children) {
-            this._setNodeChildren(node, children);
-        }
-
-        return node;
-    }
-
     _setNodeAttributes(node, attributes) {
         for(let [key, value] of Object.entries(attributes)) {
             const isFn = typeof value === "function";
@@ -252,6 +234,24 @@ class TemplateBuilder {
             }
         };
         this._templateView._addBinding(binding);
+        return node;
+    }
+
+    el(name, attributes, children) {
+        if (attributes && isChildren(attributes)) {
+            children = attributes;
+            attributes = null;
+        }
+
+        const node = document.createElement(name);
+        
+        if (attributes) {
+            this._setNodeAttributes(node, attributes);
+        }
+        if (children) {
+            this._setNodeChildren(node, children);
+        }
+
         return node;
     }
 
