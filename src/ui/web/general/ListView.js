@@ -10,6 +10,8 @@ function insertAt(parentNode, idx, childNode) {
     }
 }
 
+const MOUNT_ARGS = {parentProvidesUpdates: true};
+
 export class ListView {
     constructor({list, onItemClick, className}, childCreator) {
         this._onItemClick = onItemClick;
@@ -86,7 +88,7 @@ export class ListView {
         for (let item of this._list) {
             const child = this._childCreator(item);
             this._childInstances.push(child);
-            const childDomNode = child.mount();
+            const childDomNode = child.mount(MOUNT_ARGS);
             this._root.appendChild(childDomNode);
         }
     }
@@ -95,7 +97,7 @@ export class ListView {
         this.onBeforeListChanged();
         const child = this._childCreator(value);
         this._childInstances.splice(idx, 0, child);
-        insertAt(this._root, idx, child.mount());
+        insertAt(this._root, idx, child.mount(MOUNT_ARGS));
         this.onListChanged();
     }
 

@@ -1,5 +1,5 @@
 import { setAttribute, text, isChildren, classNames, TAG_NAMES } from "./html.js";
-
+import {errorToDOM} from "./error.js";
 
 function objHasFns(obj) {
     for(const value of Object.values(obj)) {
@@ -23,43 +23,39 @@ function objHasFns(obj) {
         - create views
 */
 export class Template {
-    constructor(value, render) {
+    constructor(value, render = undefined) {
         this._value = value;
+        this._render = render;
         this._eventListeners = null;
         this._bindings = null;
-        this._subTemplates = null;
-        this._root = render(this, this._value);
-        this._attach();
+        // this should become _subViews and also include templates.
+        // How do we know which ones we should update though?
+        // Wrapper class?
+        this._subViews = null;
+        this._root = null;
+        this._boundUpdateFromValue = null;
     }
 
-    root() {
-        return this._root;
-    }
+    _subscribe() {
+        this._boundUpdateFromValue = this._updateFromValue.bind(this);
 
-    update(value) {
-        this._value = value;
-        if (this._bindings) {
-            for (const binding of this._bindings) {
-                binding();
-            }
+        if (typeof this._value.on === "function") {
+            this._value.on("change", this._boundUpdateFromValue);
         }
-        if (this._subTemplates) {
-            for (const sub of this._subTemplates) {
-                sub.update(value);
-            }
+        else if (typeof this._value.subscribe === "function") {
+            this._value.subscribe(this._boundUpdateFromValue);
         }
     }
 
-    dispose() {
-        if (this._eventListeners) {
-            for (let {node, name, fn} of this._eventListeners) {
-                node.removeEventListener(name, fn);
+    _unsubscribe() {
+        if (this._boundUpdateFromValue) {
+            if (typeof this._value.off === "function") {
+                this._value.off("change", this._boundUpdateFromValue);
             }
-        }
-        if (this._subTemplates) {
-            for (const sub of this._subTemplates) {
-                sub.dispose();
+            else if (typeof this._value.unsubscribe === "function") {
+                this._value.unsubscribe(this._boundUpdateFromValue);
             }
+            this._boundUpdateFromValue = null;
         }
     }
 
@@ -67,6 +63,53 @@ export class Template {
         if (this._eventListeners) {
             for (let {node, name, fn} of this._eventListeners) {
                 node.addEventListener(name, fn);
+            }
+        }
+    }
+
+    _detach() {
+        if (this._eventListeners) {
+            for (let {node, name, fn} of this._eventListeners) {
+                node.removeEventListener(name, fn);
+            }
+        }
+    }
+
+    mount(options) {
+        if (this._render) {
+            this._root = this._render(this, this._value);
+        } else if (this.render) {   // overriden in subclass
+            this._root = this.render(this, this._value);
+        }
+        const parentProvidesUpdates = options && options.parentProvidesUpdates;
+        if (!parentProvidesUpdates) {
+            this._subscribe();
+        }
+        this._attach();
+        return this._root;
+    }
+
+    unmount() {
+        this._detach();
+        this._unsubscribe();
+        for (const v of this._subViews) {
+            v.unmount();
+        }
+    }
+
+    root() {
+        return this._root;
+    }
+
+    _updateFromValue() {
+        this.update(this._value);
+    }
+
+    update(value) {
+        this._value = value;
+        if (this._bindings) {
+            for (const binding of this._bindings) {
+                binding();
             }
         }
     }
@@ -85,11 +128,11 @@ export class Template {
         this._bindings.push(bindingFn);
     }
 
-    _addSubTemplate(t) {
-        if (!this._subTemplates) {
-            this._subTemplates = [];
+    _addSubView(view) {
+        if (!this._subViews) {
+            this._subViews = [];
         }
-        this._subTemplates.push(t);
+        this._subViews.push(view);
     }
 
     _addAttributeBinding(node, name, fn) {
@@ -199,19 +242,38 @@ export class Template {
         return node;
     }
 
+    // this insert a view, and is not a view factory for `if`, so returns the root element to insert in the template
+    // you should not call t.view() and not use the result (e.g. attach the result to the template DOM tree).
+    view(view) {
+        let root;
+        try {
+            root = view.mount();
+        } catch (err) {
+            return errorToDOM(err);
+        }
+        this._addSubView(view);
+        return root;
+    }
+
+    // sugar
+    createTemplate(render) {
+        return vm => new Template(vm, render);
+    }
+
     // creates a conditional subtemplate
-    if(fn, render) {
+    if(fn, viewCreator) {
         const boolFn = value => !!fn(value);
         return this._addReplaceNodeBinding(boolFn, (prevNode) => {
             if (prevNode && prevNode.nodeType !== Node.COMMENT_NODE) {
-                const templateIdx = this._subTemplates.findIndex(t => t.root() === prevNode);
-                const [template] = this._subTemplates.splice(templateIdx, 1);
-                template.dispose();
+                const viewIdx = this._subViews.findIndex(v => v.root() === prevNode);
+                if (viewIdx !== -1) {
+                    const [view] = this._subViews.splice(viewIdx, 1);
+                    view.unmount();
+                }
             }
             if (boolFn(this._value)) {
-                const template = new Template(this._value, render);
-                this._addSubTemplate(template);
-                return template.root();
+                const view = viewCreator(this._value);
+                return this.view(view);
             } else {
                 return document.createComment("if placeholder");
             }
