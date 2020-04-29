@@ -22,7 +22,7 @@ function objHasFns(obj) {
     missing:
         - create views
 */
-export class Template {
+export class TemplateView {
     constructor(value, render = undefined) {
         this._value = value;
         this._render = render;
@@ -257,7 +257,7 @@ export class Template {
 
     // sugar
     createTemplate(render) {
-        return vm => new Template(vm, render);
+        return vm => new TemplateView(vm, render);
     }
 
     // creates a conditional subtemplate
@@ -282,7 +282,9 @@ export class Template {
 }
 
 for (const tag of TAG_NAMES) {
-    Template.prototype[tag] = function(attributes, children) {
+    TemplateView.prototype[tag] = function(attributes, children) {
         return this.el(tag, attributes, children);
     };
 }
+
+// TODO: should we an instance of something else than the view itself into the render method? That way you can't call template functions outside of the render method.
