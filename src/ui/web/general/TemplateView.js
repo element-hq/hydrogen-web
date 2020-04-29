@@ -19,8 +19,7 @@ function objHasFns(obj) {
         - one way binding of text values (child fn value)
         - refs to get dom nodes
         - className binding returning object with className => enabled map
-    missing:
-        - create views
+        - add subviews inside the template
 */
 export class TemplateView {
     constructor(value, render = undefined) {
@@ -288,3 +287,10 @@ for (const tag of TAG_NAMES) {
 }
 
 // TODO: should we an instance of something else than the view itself into the render method? That way you can't call template functions outside of the render method.
+// methods that should be on the Template:
+// el & all the tag names
+// view
+// if
+// createTemplate
+// 
+// all the binding stuff goes on this class, we just set the bindings on the members of the view.
