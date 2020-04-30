@@ -16,7 +16,7 @@ export class MessageComposer extends TemplateView {
 
     _onKeyDown(event) {
         if (event.key === "Enter") {
-            if (this.viewModel.sendMessage(this._input.value)) {
+            if (this.value.sendMessage(this._input.value)) {
                 this._input.value = "";
             }
         }

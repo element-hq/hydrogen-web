@@ -35,6 +35,10 @@ export class TemplateView {
         this._boundUpdateFromValue = null;
     }
 
+    get value() {
+        return this._value;
+    }
+
     _subscribe() {
         this._boundUpdateFromValue = this._updateFromValue.bind(this);
 
@@ -94,8 +98,10 @@ export class TemplateView {
     unmount() {
         this._detach();
         this._unsubscribe();
-        for (const v of this._subViews) {
-            v.unmount();
+        if (this._subViews) {
+            for (const v of this._subViews) {
+                v.unmount();
+            }
         }
     }
 

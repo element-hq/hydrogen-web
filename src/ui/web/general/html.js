@@ -70,7 +70,7 @@ export function text(str) {
 export const TAG_NAMES = [
     "a", "ol", "ul", "li", "div", "h1", "h2", "h3", "h4", "h5", "h6",
     "p", "strong", "em", "span", "img", "section", "main", "article", "aside",
-    "pre", "button", "time", "input", "textarea"];
+    "pre", "button", "time", "input", "textarea", "svg", "circle"];
 
 export const tag = {};
 

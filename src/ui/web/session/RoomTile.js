@@ -10,6 +10,6 @@ export class RoomTile extends TemplateView {
 
     // called from ListView
     clicked() {
-        this.viewModel.open();
+        this.value.open();
     }
 }

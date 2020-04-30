@@ -4,7 +4,7 @@ import {MessageComposer} from "./MessageComposer.js";
 
 export class RoomView extends TemplateView {
     constructor(viewModel) {
-        super(viewModel, true);
+        super(viewModel);
         this._timelineList = null;
     }
 
@@ -26,7 +26,7 @@ export class RoomView extends TemplateView {
     }
 
     mount() {
-        this._composer = new MessageComposer(this.viewModel);
+        this._composer = new MessageComposer(this.value);
         this._timelineList = new TimelineList();
         return super.mount();
     }
@@ -40,7 +40,7 @@ export class RoomView extends TemplateView {
     update(value, prop) {
         super.update(value, prop);
         if (prop === "timelineViewModel") {
-            this._timelineList.update({viewModel: this.viewModel.timelineViewModel});
+            this._timelineList.update({viewModel: this.value.timelineViewModel});
         }
     }
 }

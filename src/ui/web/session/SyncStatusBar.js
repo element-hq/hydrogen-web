@@ -1,10 +1,6 @@
 import {TemplateView} from "../general/TemplateView.js";
 
 export class SyncStatusBar extends TemplateView {
-    constructor(vm) {
-        super(vm, true);
-    }
-
     render(t, vm) {
         return t.div({className: {
             "SyncStatusBar": true,

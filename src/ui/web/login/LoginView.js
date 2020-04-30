@@ -2,15 +2,11 @@ import {TemplateView} from "../general/TemplateView.js";
 import {brawlGithubLink} from "./common.js";
 
 export class LoginView extends TemplateView {
-    constructor(vm) {
-        super(vm, true);
-    }
-
     render(t, vm) {
-        const disabled = vm => vm.loading;
         const username = t.input({type: "text", placeholder: vm.usernamePlaceholder, disabled});
         const password = t.input({type: "password", placeholder: vm.passwordPlaceholder, disabled});
         const homeserver = t.input({type: "text", placeholder: vm.hsPlaceholder, value: vm.defaultHomeServer, disabled});
+        const disabled = vm => !!vm.loadViewModel;
         return t.div({className: "LoginView form"}, [
             t.h1(["Log in to your homeserver"]),
             t.if(vm => vm.error, t.createTemplate(t => t.div({className: "error"}, vm => vm.error))),
@@ -28,10 +24,17 @@ export class LoginView extends TemplateView {
     }
 }
 
-function renderLoadProgress(t) {
-    return t.div({className: "loadProgress"}, [
-        t.div({className: "spinner"}),
-        t.p(vm => vm.loadLabel),
-        t.if(vm => vm.loading, t.createTemplate(t => t.button({onClick: vm => vm.cancel()}, "Cancel login")))
-    ]);
+function spinner(t, extraClasses = undefined) {
+    return t.svg({className: Object.assign({"spinner": true}, extraClasses), viewBox:"0 0 100% 100%"}, 
+        t.circle({cx:"50%", cy:"50%", r:"45%", pathLength:"100"})
+    );
+}
+
+class SessionLoadView extends TemplateView {
+    render(t) {
+        return t.div([
+            spinner(t, {hidden: vm => !vm.loading}),
+            t.p(vm => vm.loadLabel)
+        ]);
+    }
 }

@@ -29,28 +29,28 @@ function selectFileAsText(mimeType) {
 class SessionPickerItemView extends TemplateView {
     _onDeleteClick() {
         if (confirm("Are you sure?")) {
-            this.viewModel.delete();
+            this.value.delete();
         }
     }
 
-    render(t) {
+    render(t, vm) {
         const deleteButton = t.button({
             disabled: vm => vm.isDeleting,
             onClick: this._onDeleteClick.bind(this),
         }, "Delete");
         const clearButton = t.button({
             disabled: vm => vm.isClearing,
-            onClick: () => this.viewModel.clear(),
+            onClick: () => vm.clear(),
         }, "Clear");
         const exportButton = t.button({
             disabled: vm => vm.isClearing,
-            onClick: () => this.viewModel.export(),
+            onClick: () => vm.export(),
         }, "Export");
         const downloadExport = t.if(vm => vm.exportDataUrl, t.createTemplate((t, vm) => {
             return t.a({
                 href: vm.exportDataUrl,
-                download: `brawl-session-${this.viewModel.id}.json`,
-                onClick: () => setTimeout(() => this.viewModel.clearExport(), 100),
+                download: `brawl-session-${vm.id}.json`,
+                onClick: () => setTimeout(() => vm.clearExport(), 100),
             }, "Download");
         }));
 
@@ -68,32 +68,24 @@ class SessionPickerItemView extends TemplateView {
 }
 
 export class SessionPickerView extends TemplateView {
-    mount() {
-        this._sessionList = new ListView({
-            list: this.viewModel.sessions,
+    render(t, vm) {
+        const sessionList = new ListView({
+            list: vm.sessions,
             onItemClick: (item, event) => {
                 if (event.target.closest(".userId")) {
-                    this.viewModel.pick(item.viewModel.id);
+                    vm.pick(item.value.id);
                 }
             },
         }, sessionInfo => {
             return new SessionPickerItemView(sessionInfo);
         });
-        return super.mount();
-    }
 
-    render(t) {
         return t.div({className: "SessionPickerView"}, [
             t.h1(["Pick a session"]),
-            this._sessionList.mount(),
-            t.p(t.button({onClick: () => this.viewModel.cancel()}, ["Log in to a new session instead"])),
-            t.p(t.button({onClick: async () => this.viewModel.import(await selectFileAsText("application/json"))}, "Import")),
+            t.view(sessionList),
+            t.p(t.button({onClick: () => vm.cancel()}, ["Log in to a new session instead"])),
+            t.p(t.button({onClick: async () => vm.import(await selectFileAsText("application/json"))}, "Import")),
             t.p(brawlGithubLink(t))
         ]);
-    }
-
-    unmount() {
-        super.unmount();
-        this._sessionList.unmount();
     }
 }
