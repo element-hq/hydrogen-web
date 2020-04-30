@@ -10,9 +10,20 @@ export class LoginViewModel extends EventEmitter {
         this._loadViewModel = null;
     }
 
-    get usernamePlaceholder() { return "Username"; }
-    get passwordPlaceholder() { return "Password"; }
-    get hsPlaceholder() { return "Your matrix homeserver"; }
+    // TODO: this will need to support binding
+    // if any of the expr is a function, assume the function is a binding, and return a binding function ourselves
+    i18n(parts, ...expr) {
+        // just concat for now
+        let result = "";
+        for (let i = 0; i < parts.length; ++i) {
+            result = result + parts[i];
+            if (i < expr.length) {
+                result = result + expr[i];
+            }
+        }
+        return result;
+    }
+
     get defaultHomeServer() { return this._defaultHomeServer; }
 
     get loadViewModel() {return this._loadViewModel; }
