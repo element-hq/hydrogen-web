@@ -32,7 +32,7 @@ function spinner(t, extraClasses = undefined) {
 
 class SessionLoadView extends TemplateView {
     render(t) {
-        return t.div([
+        return t.div({className: "SessionLoadView"}, [
             spinner(t, {hidden: vm => !vm.loading}),
             t.p(vm => vm.loadLabel)
         ]);

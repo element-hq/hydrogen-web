@@ -1,0 +1,12 @@
+.SessionLoadView {
+    display: flex;
+}
+
+.SessionLoadView p {
+    flex: 1;
+    margin: 0 0 0 10px;
+}
+
+.SessionLoadView .spinner {
+    --size: 20px;
+}

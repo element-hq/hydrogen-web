@@ -1,4 +1,4 @@
-import { setAttribute, text, isChildren, classNames, TAG_NAMES } from "./html.js";
+import { setAttribute, text, isChildren, classNames, TAG_NAMES, HTML_NS } from "./html.js";
 import {errorToDOM} from "./error.js";
 
 function objHasFns(obj) {
@@ -244,12 +244,16 @@ class TemplateBuilder {
     }
 
     el(name, attributes, children) {
+        return this.elNS(HTML_NS, name, attributes, children);
+    }
+
+    elNS(ns, name, attributes, children) {
         if (attributes && isChildren(attributes)) {
             children = attributes;
             attributes = null;
         }
 
-        const node = document.createElement(name);
+        const node = document.createElementNS(ns, name);
         
         if (attributes) {
             this._setNodeAttributes(node, attributes);
@@ -300,8 +304,11 @@ class TemplateBuilder {
     }
 }
 
-for (const tag of TAG_NAMES) {
-    TemplateBuilder.prototype[tag] = function(attributes, children) {
-        return this.el(tag, attributes, children);
-    };
+
+for (const [ns, tags] of Object.entries(TAG_NAMES)) {
+    for (const tag of tags) {
+        TemplateBuilder.prototype[tag] = function(attributes, children) {
+            return this.elNS(ns, tag, attributes, children);
+        };
+    }
 }
