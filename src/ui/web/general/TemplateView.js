@@ -40,13 +40,9 @@ export class TemplateView {
     }
 
     _subscribe() {
-        this._boundUpdateFromValue = this._updateFromValue.bind(this);
-
         if (typeof this._value.on === "function") {
+            this._boundUpdateFromValue = this._updateFromValue.bind(this);
             this._value.on("change", this._boundUpdateFromValue);
-        }
-        else if (typeof this._value.subscribe === "function") {
-            this._value.subscribe(this._boundUpdateFromValue);
         }
     }
 
@@ -54,9 +50,6 @@ export class TemplateView {
         if (this._boundUpdateFromValue) {
             if (typeof this._value.off === "function") {
                 this._value.off("change", this._boundUpdateFromValue);
-            }
-            else if (typeof this._value.unsubscribe === "function") {
-                this._value.unsubscribe(this._boundUpdateFromValue);
             }
             this._boundUpdateFromValue = null;
         }
@@ -103,17 +96,14 @@ export class TemplateView {
                 v.unmount();
             }
         }
-        if (typeof this._value.dispose === "function") {
-            this._value.dispose();
-        }
     }
 
     root() {
         return this._root;
     }
 
-    _updateFromValue() {
-        this.update(this._value);
+    _updateFromValue(changedProps) {
+        this.update(this._value, changedProps);
     }
 
     update(value) {
