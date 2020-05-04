@@ -60,6 +60,9 @@ export class Timeline {
 
     /** @public */
     close() {
-        this._closeCallback();
+        if (this._closeCallback) {
+            this._closeCallback();
+            this._closeCallback = null;
+        }
     }
 }
