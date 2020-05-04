@@ -1,5 +1,6 @@
 import {TemplateView} from "../general/TemplateView.js";
 import {brawlGithubLink} from "./common.js";
+import {spinner} from "../common.js";
 
 export class LoginView extends TemplateView {
     render(t, vm) {
@@ -22,12 +23,6 @@ export class LoginView extends TemplateView {
             t.p(brawlGithubLink(t))
         ]);
     }
-}
-
-function spinner(t, extraClasses = undefined) {
-    return t.svg({className: Object.assign({"spinner": true}, extraClasses), viewBox:"0 0 100% 100%"}, 
-        t.circle({cx:"50%", cy:"50%", r:"45%", pathLength:"100"})
-    );
 }
 
 class SessionLoadView extends TemplateView {
