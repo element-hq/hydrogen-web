@@ -55,7 +55,9 @@ export class ListView {
     }
 
     unmount() {
-        this._unloadList();
+        if (this._list) {
+            this._unloadList();
+        }
     }
 
     _onClick(event) {
