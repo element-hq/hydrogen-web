@@ -1,9 +1,9 @@
 import {SessionViewModel} from "./session/SessionViewModel.js";
 import {LoginViewModel} from "./LoginViewModel.js";
 import {SessionPickerViewModel} from "./SessionPickerViewModel.js";
-import {EventEmitter} from "../utils/EventEmitter.js";
+import {ViewModel} from "./ViewModel.js";
 
-export class BrawlViewModel extends EventEmitter {
+export class BrawlViewModel extends ViewModel {
     constructor({createSessionContainer, sessionInfoStorage, storageFactory, clock}) {
         super();
         this._createSessionContainer = createSessionContainer;
@@ -32,7 +32,7 @@ export class BrawlViewModel extends EventEmitter {
         if (sessionContainer) {
             this._setSection(() => {
                 this._sessionContainer = sessionContainer;
-                this._sessionViewModel = new SessionViewModel(sessionContainer);
+                this._sessionViewModel = new SessionViewModel(this.childOptions({sessionContainer}));
             });
         } else {
             // switch between picker and login
@@ -96,7 +96,7 @@ export class BrawlViewModel extends EventEmitter {
         }
         // now set it again
         setter();
-        this.emit("change", "activeSection");
+        this.emitChange("activeSection");
     }
 
     get error() { return this._error; }

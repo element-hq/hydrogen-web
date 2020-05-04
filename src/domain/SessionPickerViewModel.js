@@ -1,8 +1,8 @@
 import {SortedArray} from "../observable/index.js";
-import {EventEmitter} from "../utils/EventEmitter.js";
 import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
+import {ViewModel} from "./ViewModel.js";
 
-class SessionItemViewModel extends EventEmitter {
+class SessionItemViewModel extends ViewModel {
     constructor(sessionInfo, pickerVM) {
         super();
         this._pickerVM = pickerVM;
@@ -19,31 +19,31 @@ class SessionItemViewModel extends EventEmitter {
 
     async delete() {
         this._isDeleting = true;
-        this.emit("change", "isDeleting");
+        this.emitChange("isDeleting");
         try {
             await this._pickerVM.delete(this.id);
         } catch(err) {
             this._error = err;
             console.error(err);
-            this.emit("change", "error");
+            this.emitChange("error");
         } finally {
             this._isDeleting = false;
-            this.emit("change", "isDeleting");
+            this.emitChange("isDeleting");
         }
     }
 
     async clear() {
         this._isClearing = true;
-        this.emit("change");
+        this.emitChange();
         try {
             await this._pickerVM.clear(this.id);
         } catch(err) {
             this._error = err;
             console.error(err);
-            this.emit("change", "error");
+            this.emitChange("error");
         } finally {
             this._isClearing = false;
-            this.emit("change", "isClearing");
+            this.emitChange("isClearing");
         }
     }
 
@@ -82,7 +82,7 @@ class SessionItemViewModel extends EventEmitter {
             const json = JSON.stringify(data, undefined, 2);
             const blob = new Blob([json], {type: "application/json"});
             this._exportDataUrl = URL.createObjectURL(blob);
-            this.emit("change", "exportDataUrl");
+            this.emitChange("exportDataUrl");
         } catch (err) {
             alert(err.message);
             console.error(err);
@@ -93,13 +93,13 @@ class SessionItemViewModel extends EventEmitter {
         if (this._exportDataUrl) {
             URL.revokeObjectURL(this._exportDataUrl);
             this._exportDataUrl = null;
-            this.emit("change", "exportDataUrl");
+            this.emitChange("exportDataUrl");
         }
     }
 }
 
 
-export class SessionPickerViewModel extends EventEmitter {
+export class SessionPickerViewModel extends ViewModel {
     constructor({storageFactory, sessionInfoStorage, sessionCallback, createSessionContainer}) {
         super();
         this._storageFactory = storageFactory;
@@ -141,12 +141,12 @@ export class SessionPickerViewModel extends EventEmitter {
                     } else {
                         // show list of session again
                         this._loadViewModel = null;
-                        this.emit("change", "loadViewModel");
+                        this.emitChange("loadViewModel");
                     }
                 }
             });
             this._loadViewModel.start();
-            this.emit("change", "loadViewModel");
+            this.emitChange("loadViewModel");
         }
     }
 

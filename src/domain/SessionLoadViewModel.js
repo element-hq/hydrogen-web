@@ -1,8 +1,8 @@
-import {EventEmitter} from "../utils/EventEmitter.js";
 import {LoadStatus, LoginFailure} from "../matrix/SessionContainer.js";
 import {SyncStatus} from "../matrix/Sync.js";
+import {ViewModel} from "./ViewModel.js";
 
-export class SessionLoadViewModel extends EventEmitter {
+export class SessionLoadViewModel extends ViewModel {
     constructor({createAndStartSessionContainer, sessionCallback, homeserver, deleteSessionOnCancel}) {
         super();
         this._createAndStartSessionContainer = createAndStartSessionContainer;
@@ -19,10 +19,10 @@ export class SessionLoadViewModel extends EventEmitter {
         }
         try {
             this._loading = true;
-            this.emit("change");
+            this.emitChange();
             this._sessionContainer = this._createAndStartSessionContainer();
             this._waitHandle = this._sessionContainer.loadStatus.waitFor(s => {
-                this.emit("change");
+                this.emitChange();
                 // wait for initial sync, but not catchup sync
                 const isCatchupSync = s === LoadStatus.FirstSync &&
                     this._sessionContainer.sync.status === SyncStatus.CatchupSync;
@@ -50,7 +50,7 @@ export class SessionLoadViewModel extends EventEmitter {
             this._error = err;
         } finally {
             this._loading = false;
-            this.emit("change");
+            this.emitChange();
         }
     }
 
@@ -72,7 +72,7 @@ export class SessionLoadViewModel extends EventEmitter {
             this._sessionCallback();
         } catch (err) {
             this._error = err;
-            this.emit("change");
+            this.emitChange();
         }
     }
 

@@ -1,10 +1,11 @@
-import {EventEmitter} from "../../../utils/EventEmitter.js";
 import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
 import {avatarInitials} from "../avatar.js";
+import {ViewModel} from "../../ViewModel.js";
 
-export class RoomViewModel extends EventEmitter {
-    constructor({room, ownUserId, closeCallback}) {
-        super();
+export class RoomViewModel extends ViewModel {
+    constructor(options) {
+        super(options);
+        const {room, ownUserId, closeCallback} = options;
         this._room = room;
         this._ownUserId = ownUserId;
         this._timeline = null;
@@ -19,12 +20,16 @@ export class RoomViewModel extends EventEmitter {
         this._room.on("change", this._onRoomChange);
         try {
             this._timeline = await this._room.openTimeline();
-            this._timelineVM = new TimelineViewModel(this._room, this._timeline, this._ownUserId);
-            this.emit("change", "timelineViewModel");
+            this._timelineVM = new TimelineViewModel(this.childOptions({
+                room: this._room,
+                timeline: this._timeline,
+                ownUserId: this._ownUserId,
+            }));
+            this.emitChange("timelineViewModel");
         } catch (err) {
             console.error(`room.openTimeline(): ${err.message}:\n${err.stack}`);
             this._timelineError = err;
-            this.emit("change", "error");
+            this.emitChange("error");
         }
     }
 
@@ -43,7 +48,7 @@ export class RoomViewModel extends EventEmitter {
     // room doesn't tell us yet which fields changed,
     // so emit all fields originating from summary
     _onRoomChange() {
-        this.emit("change", "name");
+        this.emitChange("name");
     }
 
     get name() {
@@ -76,7 +81,7 @@ export class RoomViewModel extends EventEmitter {
                 console.error(`room.sendMessage(): ${err.message}:\n${err.stack}`);
                 this._sendError = err;
                 this._timelineError = null;
-                this.emit("change", "error");
+                this.emitChange("error");
                 return false;
             }
             return true;

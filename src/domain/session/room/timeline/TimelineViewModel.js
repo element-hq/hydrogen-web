@@ -18,7 +18,7 @@ import {TilesCollection} from "./TilesCollection.js";
 import {tilesCreator} from "./tilesCreator.js";
 
 export class TimelineViewModel {
-    constructor(room, timeline, ownUserId) {
+    constructor({room, timeline, ownUserId}) {
         this._timeline = timeline;
         // once we support sending messages we could do
         // timeline.entries.concat(timeline.pendingEvents)

@@ -1,6 +1,6 @@
-import {EventEmitter} from "../../utils/EventEmitter.js";
+import {ViewModel} from "../ViewModel.js";
 
-export class SyncStatusViewModel extends EventEmitter {
+export class SyncStatusViewModel extends ViewModel {
     constructor(sync) {
         super();
         this._sync = sync;
@@ -13,7 +13,7 @@ export class SyncStatusViewModel extends EventEmitter {
         } else if (status === "started") {
             this._error = null;
         }
-        this.emit("change");
+        this.emitChange();
     }
 
     onFirstSubscriptionAdded(name) {
@@ -30,7 +30,7 @@ export class SyncStatusViewModel extends EventEmitter {
 
     trySync() {
         this._sync.start();
-        this.emit("change");
+        this.emitChange();
     }
 
     get status() {

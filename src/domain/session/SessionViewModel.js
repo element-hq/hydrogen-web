@@ -1,13 +1,14 @@
-import {EventEmitter} from "../../utils/EventEmitter.js";
 import {RoomTileViewModel} from "./roomlist/RoomTileViewModel.js";
 import {RoomViewModel} from "./room/RoomViewModel.js";
 import {SyncStatusViewModel} from "./SyncStatusViewModel.js";
+import {ViewModel} from "../ViewModel.js";
 
-export class SessionViewModel extends EventEmitter {
-    constructor(sessionContainer) {
-        super();
+export class SessionViewModel extends ViewModel {
+    constructor(options) {
+        super(options);
+        const sessionContainer = options.sessionContainer;
         this._session = sessionContainer.session;
-        this._syncStatusViewModel = new SyncStatusViewModel(sessionContainer.sync);
+        this._syncStatusViewModel = new SyncStatusViewModel(this.childOptions(sessionContainer.sync));
         this._currentRoomViewModel = null;
         const roomTileVMs = this._session.rooms.mapValues((room, emitUpdate) => {
             return new RoomTileViewModel({
@@ -42,7 +43,7 @@ export class SessionViewModel extends EventEmitter {
         if (this._currentRoomViewModel) {
             this._currentRoomViewModel.dispose();
             this._currentRoomViewModel = null;
-            this.emit("change", "currentRoom");
+            this.emitChange("currentRoom");
         }
     }
 
@@ -50,13 +51,13 @@ export class SessionViewModel extends EventEmitter {
         if (this._currentRoomViewModel) {
             this._currentRoomViewModel.dispose();
         }
-        this._currentRoomViewModel = new RoomViewModel({
+        this._currentRoomViewModel = new RoomViewModel(this.childOptions({
             room,
             ownUserId: this._session.user.id,
             closeCallback: () => this._closeCurrentRoom(),
-        });
+        }));
         this._currentRoomViewModel.load();
-        this.emit("change", "currentRoom");
+        this.emitChange("currentRoom");
     }
 }
 
