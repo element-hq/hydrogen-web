@@ -159,8 +159,8 @@ export class SessionContainer {
 
     async _waitForFirstSync() {
         try {
-            this._status.set(LoadStatus.FirstSync);
             this._sync.start();
+            this._status.set(LoadStatus.FirstSync);
         } catch (err) {
             // swallow ConnectionError here and continue,
             // as the reconnector above will call 
