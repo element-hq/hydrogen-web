@@ -103,6 +103,9 @@ export class TemplateView {
                 v.unmount();
             }
         }
+        if (typeof this._value.dispose === "function") {
+            this._value.dispose();
+        }
     }
 
     root() {
