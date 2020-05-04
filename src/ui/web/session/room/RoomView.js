@@ -9,6 +9,7 @@ export class RoomView extends TemplateView {
     }
 
     render(t, vm) {
+        this._timelineList = new TimelineList();
         return t.div({className: "RoomView"}, [
             t.div({className: "TimelinePanel"}, [
                 t.div({className: "RoomHeader"}, [
@@ -19,22 +20,10 @@ export class RoomView extends TemplateView {
                     ]),
                 ]),
                 t.div({className: "RoomView_error"}, vm => vm.error),
-                this._timelineList.mount(),
-                this._composer.mount(),
+                t.view(this._timelineList),
+                t.view(new MessageComposer(this.value.composerViewModel)),
             ])
         ]);
-    }
-
-    mount() {
-        this._composer = new MessageComposer(this.value);
-        this._timelineList = new TimelineList();
-        return super.mount();
-    }
-
-    unmount() {
-        this._composer.unmount();
-        this._timelineList.unmount();
-        super.unmount();
     }
 
     update(value, prop) {

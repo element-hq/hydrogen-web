@@ -14,6 +14,7 @@ export class RoomViewModel extends ViewModel {
         this._timelineError = null;
         this._sendError = null;
         this._closeCallback = closeCallback;
+        this._composerVM = new ComposerViewModel(this);
     }
 
     async load() {
@@ -73,7 +74,9 @@ export class RoomViewModel extends ViewModel {
         return avatarInitials(this._room.name);
     }
 
-    async sendMessage(message) {
+
+    
+    async _sendMessage(message) {
         if (message) {
             try {
                 await this._room.sendEvent("m.room.message", {msgtype: "m.text", body: message});
@@ -87,5 +90,19 @@ export class RoomViewModel extends ViewModel {
             return true;
         }
         return false;
+    }
+
+    get composerViewModel() {
+        return this._composerVM;
+    }
+}
+
+class ComposerViewModel {
+    constructor(roomVM) {
+        this._roomVM = roomVM;
+    }
+
+    sendMessage(message) {
+        return this._roomVM._sendMessage(message);
     }
 }
