@@ -4,7 +4,6 @@ import {ConnectionError} from "../error.js"
 import {ObservableValue} from "../../observable/ObservableValue.js";
 
 export const ConnectionStatus = createEnum(
-    "Offline",
     "Waiting",
     "Reconnecting",
     "Online"
@@ -37,9 +36,7 @@ export class Reconnector {
     }
 
     async onRequestFailed(hsApi) {
-        if (!this._isReconnecting) {
-            this._setState(ConnectionStatus.Offline);
-    
+        if (!this._isReconnecting) {   
             const onlineStatusSubscription = this._onlineStatus && this._onlineStatus.subscribe(online => {
                 if (online) {
                     this.tryNow();
@@ -149,7 +146,6 @@ export function tests() {
             clock.elapse(2000);
             await connectionStatus.waitFor(s => s === ConnectionStatus.Online).promise;
             assert.deepEqual(statuses, [
-                ConnectionStatus.Offline,
                 ConnectionStatus.Reconnecting,
                 ConnectionStatus.Waiting,
                 ConnectionStatus.Reconnecting,
