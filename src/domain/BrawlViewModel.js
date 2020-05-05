@@ -33,6 +33,7 @@ export class BrawlViewModel extends ViewModel {
             this._setSection(() => {
                 this._sessionContainer = sessionContainer;
                 this._sessionViewModel = new SessionViewModel(this.childOptions({sessionContainer}));
+                this._sessionViewModel.start();
             });
         } else {
             // switch between picker and login

@@ -3,7 +3,7 @@ import {RoomTile} from "./RoomTile.js";
 import {RoomView} from "./room/RoomView.js";
 import {SwitchView} from "../general/SwitchView.js";
 import {RoomPlaceholderView} from "./RoomPlaceholderView.js";
-import {SyncStatusBar} from "./SyncStatusBar.js";
+import {SessionStatusView} from "./SessionStatusView.js";
 import {tag} from "../general/html.js";
 
 export class SessionView {
@@ -22,7 +22,7 @@ export class SessionView {
 
     mount() {
         this._viewModel.on("change", this._onViewModelChange);
-        this._syncStatusBar = new SyncStatusBar(this._viewModel.syncStatusViewModel);
+        this._sessionStatusBar = new SessionStatusView(this._viewModel.sessionStatusViewModel);
         this._roomList = new ListView(
             {
                 className: "RoomList",
@@ -34,7 +34,7 @@ export class SessionView {
         this._middleSwitcher = new SwitchView(new RoomPlaceholderView());
 
         this._root = tag.div({className: "SessionView"}, [
-            this._syncStatusBar.mount(),
+            this._sessionStatusBar.mount(),
             tag.div({className: "main"}, [
                 tag.div({className: "LeftPanel"}, this._roomList.mount()),
                 this._middleSwitcher.mount()

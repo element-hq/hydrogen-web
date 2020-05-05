@@ -8,7 +8,10 @@ export class SessionViewModel extends ViewModel {
         super(options);
         const sessionContainer = options.sessionContainer;
         this._session = sessionContainer.session;
-        this._syncStatusViewModel = new SyncStatusViewModel(this.childOptions(sessionContainer.sync));
+        this._sessionStatusViewModel = this.track(new SessionStatusViewModel(this.childOptions({
+            syncStatus: sessionContainer.sync.status,
+            reconnector: sessionContainer.reconnector
+        })));
         this._currentRoomViewModel = null;
         const roomTileVMs = this._session.rooms.mapValues((room, emitUpdate) => {
             return new RoomTileViewModel({
@@ -20,8 +23,12 @@ export class SessionViewModel extends ViewModel {
         this._roomList = roomTileVMs.sortValues((a, b) => a.compare(b));
     }
 
-    get syncStatusViewModel() {
-        return this._syncStatusViewModel;
+    start() {
+        this._sessionStatusViewModel.start();
+    }
+
+    get sessionStatusViewModel() {
+        return this._sessionStatusViewModel;
     }
 
     get roomList() {

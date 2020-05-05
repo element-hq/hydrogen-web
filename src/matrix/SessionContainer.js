@@ -71,7 +71,7 @@ export class SessionContainer {
         this._status.set(LoadStatus.Login);
         let sessionInfo;
         try {
-            const hsApi = new HomeServerApi({homeServer, request: this._request});
+            const hsApi = new HomeServerApi({homeServer, request: this._request, createTimeout: this._clock.createTimeout});
             const loginData = await hsApi.passwordLogin(username, password).response();
             const sessionId = this.createNewSessionId();
             sessionInfo = {
@@ -123,6 +123,7 @@ export class SessionContainer {
             accessToken: sessionInfo.accessToken,
             request: this._request,
             reconnector: this._reconnector,
+            createTimeout: this._clock.createTimeout
         });
         this._sessionId = sessionInfo.id;
         this._storage = await this._storageFactory.create(sessionInfo.id);
@@ -201,6 +202,10 @@ export class SessionContainer {
     /** only set at loadStatus InitialSync, CatchupSync or Ready */
     get session() {
         return this._session;
+    }
+
+    get reconnector() {
+        return this._reconnector;
     }
 
     stop() {
