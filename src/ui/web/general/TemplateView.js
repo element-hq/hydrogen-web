@@ -281,9 +281,10 @@ class TemplateBuilder {
         const boolFn = value => !!fn(value);
         return this._addReplaceNodeBinding(boolFn, (prevNode) => {
             if (prevNode && prevNode.nodeType !== Node.COMMENT_NODE) {
-                const viewIdx = this._subViews.findIndex(v => v.root() === prevNode);
+                const subViews = this._templateView._subViews;
+                const viewIdx = subViews.findIndex(v => v.root() === prevNode);
                 if (viewIdx !== -1) {
-                    const [view] = this._subViews.splice(viewIdx, 1);
+                    const [view] = subViews.splice(viewIdx, 1);
                     view.unmount();
                 }
             }
