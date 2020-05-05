@@ -49,17 +49,17 @@ rooms should report how many messages they have queued up, and each time they se
  - DONE: move all lower-cased files
  - DONE: change main.js to pass in a creation function of a SessionContainer instead of everything it is replacing 
  - DONE: adjust BrawlViewModel, SessionPickViewModel and LoginViewModel to use a SessionContainer
- - show load progress in LoginView/SessionPickView and do away with loading screen
+ - DONE: show load progress in LoginView/SessionPickView and do away with loading screen
  - DONE: rename SessionsStore to SessionInfoStorage
  - make sure we've renamed all \*State enums and fields to \*Status
  - add pendingMessageCount prop to SendQueue and Room, aggregate this in Session
- - add completedFirstSync to Sync, so we can check if the catchup or initial sync is still in progress
- - update SyncStatusViewModel to use reconnector.connectionStatus, sync.completedFirstSync, session.syncToken (is initial sync?) and session.pendingMessageCount to show these messages:
-    - disconnected, retrying in x seconds. [try now].
-    - reconnecting...
-    - doing catchup sync
+ - DONE: add completedFirstSync to Sync, so we can check if the catchup or initial sync is still in progress
+ - DONE: update SyncStatusViewModel to use reconnector.connectionStatus, sync.completedFirstSync, session.syncToken (is initial sync?) and session.pendingMessageCount to show these messages:
+    - DONE: disconnected, retrying in x seconds. [try now].
+    - DONE: reconnecting...
+    - DONE: doing catchup sync
     - syncing, sending x messages
-    - syncing
+    - DONE: syncing
 
     perhaps we will want to put this as an ObservableValue on the SessionContainer ?
 
