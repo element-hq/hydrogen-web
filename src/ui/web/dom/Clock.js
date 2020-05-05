@@ -25,7 +25,25 @@ class Timeout {
             this._reject = null;
         }
     }
+
+    dispose() {
+        this.abort();
+    }
 }
+
+class Interval {
+    constructor(ms, callback) {
+        this._handle = setInterval(callback, ms);
+    }
+
+    dispose() {
+        if (this._handle) {
+            clearInterval(this._handle);
+            this._handle = null;
+        }
+    }
+}
+
 
 class TimeMeasure {
     constructor() {
@@ -44,6 +62,10 @@ export class Clock {
 
     createTimeout(ms) {
         return new Timeout(ms);
+    }
+
+    createInterval(callback, ms) {
+        return new Interval(ms, callback);
     }
 
     now() {
