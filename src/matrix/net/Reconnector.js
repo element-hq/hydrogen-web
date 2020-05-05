@@ -92,13 +92,7 @@ export class Reconnector {
             } catch (err) {
                 if (err instanceof ConnectionError) {
                     this._setState(ConnectionStatus.Waiting);
-                    try {
-                        await this._retryDelay.waitForRetry();
-                    } catch (err) {
-                        if (!(err instanceof AbortError)) {
-                            throw err;
-                        }
-                    }
+                    await this._retryDelay.waitForRetry();
                 } else {
                     throw err;
                 }
