@@ -6,10 +6,10 @@ import {EventEmitter} from "../utils/EventEmitter.js";
 import {Disposables} from "../utils/Disposables.js";
 
 export class ViewModel extends EventEmitter {
-    constructor(options) {
+    constructor({clock} = {}) {
         super();
         this.disposables = null;
-        this._options = options;
+        this._options = {clock};
     }
 
     childOptions(explicitOptions) {
@@ -21,6 +21,7 @@ export class ViewModel extends EventEmitter {
             this.disposables = new Disposables();
         }
         this.disposables.track(disposable);
+        return disposable;
     }
 
     dispose() {
@@ -29,8 +30,18 @@ export class ViewModel extends EventEmitter {
         }
     }
 
+    disposeTracked(disposable) {
+        if (this.disposables) {
+            return this.disposables.disposeTracked(disposable);
+        }
+        return null;
+    }
+
     // TODO: this will need to support binding
     // if any of the expr is a function, assume the function is a binding, and return a binding function ourselves
+    // 
+    // translated string should probably always be bindings, unless we're fine with a refresh when changing the language?
+    // we probably are, if we're using routing with a url, we could just refresh.
     i18n(parts, ...expr) {
         // just concat for now
         let result = "";
@@ -45,5 +56,9 @@ export class ViewModel extends EventEmitter {
 
     emitChange(changedProps) {
         this.emit("change", changedProps);
+    }
+
+    get clock() {
+        return this._options.clock;
     }
 }

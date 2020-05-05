@@ -4,12 +4,12 @@ import {SessionPickerViewModel} from "./SessionPickerViewModel.js";
 import {ViewModel} from "./ViewModel.js";
 
 export class BrawlViewModel extends ViewModel {
-    constructor({createSessionContainer, sessionInfoStorage, storageFactory, clock}) {
-        super();
+    constructor(options) {
+        super(options);
+        const {createSessionContainer, sessionInfoStorage, storageFactory} = options;
         this._createSessionContainer = createSessionContainer;
         this._sessionInfoStorage = sessionInfoStorage;
         this._storageFactory = storageFactory;
-        this._clock = clock;
 
         this._error = null;
         this._sessionViewModel = null;

@@ -3,8 +3,9 @@ import {SyncStatus} from "../matrix/Sync.js";
 import {ViewModel} from "./ViewModel.js";
 
 export class SessionLoadViewModel extends ViewModel {
-    constructor({createAndStartSessionContainer, sessionCallback, homeserver, deleteSessionOnCancel}) {
-        super();
+    constructor(options) {
+        super(options);
+        const {createAndStartSessionContainer, sessionCallback, homeserver, deleteSessionOnCancel} = options;
         this._createAndStartSessionContainer = createAndStartSessionContainer;
         this._sessionCallback = sessionCallback;
         this._homeserver = homeserver;

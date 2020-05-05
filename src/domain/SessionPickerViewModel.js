@@ -4,7 +4,7 @@ import {ViewModel} from "./ViewModel.js";
 
 class SessionItemViewModel extends ViewModel {
     constructor(sessionInfo, pickerVM) {
-        super();
+        super({});
         this._pickerVM = pickerVM;
         this._sessionInfo = sessionInfo;
         this._isDeleting = false;
@@ -100,8 +100,9 @@ class SessionItemViewModel extends ViewModel {
 
 
 export class SessionPickerViewModel extends ViewModel {
-    constructor({storageFactory, sessionInfoStorage, sessionCallback, createSessionContainer}) {
-        super();
+    constructor(options) {
+        super(options);
+        const {storageFactory, sessionInfoStorage, sessionCallback, createSessionContainer} = options;
         this._storageFactory = storageFactory;
         this._sessionInfoStorage = sessionInfoStorage;
         this._sessionCallback = sessionCallback;
