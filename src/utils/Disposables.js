@@ -25,12 +25,16 @@ export class Disposables {
     }
 
     disposeTracked(value) {
+        if (value === undefined || value === null) {
+            return null;
+        }
         const idx = this._disposables.indexOf(value);
         if (idx !== -1) {
             const [foundValue] = this._disposables.splice(idx, 1);
             disposeValue(foundValue);
-            return true;
+        } else {
+            console.warn("disposable not found, did it leak?", value);
         }
-        return false;
+        return null;
     }
 }
