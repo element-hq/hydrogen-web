@@ -136,7 +136,7 @@ export class HomeServerApi {
     }
 
     versions(options = null) {
-        return this._request("GET", `${this._homeserver}/_matrix/client/versions`, null, options);
+        return this._request("GET", `${this._homeserver}/_matrix/client/versions`, null, null, options);
     }
 }
 
