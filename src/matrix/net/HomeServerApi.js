@@ -78,7 +78,8 @@ export class HomeServerApi {
                 () => {}    // ignore AbortError
             );
             // abort timeout if request finishes first
-            requestResult.response().then(() => timeout.abort());
+            const abort = () => timeout.abort();
+            requestResult.response().then(abort, abort);
         }
 
         const wrapper = new RequestWrapper(method, url, requestResult);
