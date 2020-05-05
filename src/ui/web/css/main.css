@@ -14,18 +14,31 @@
     color: white;
 }
 
-.hidden {
+.hiddenWithLayout {
     visibility: hidden;
 }
 
-.SyncStatusBar {
-    background-color: #555;
-    display: none;
+.hidden {
+    display: none !important;
 }
 
-.SyncStatusBar_shown {
-    display: unset;
+.SessionStatusView {
+    display: flex;
+    padding: 5px;
+    background-color: #555;
 }
+
+.SessionStatusView p {
+    margin: 0 10px;
+}
+
+.SessionStatusView button {
+    border: none;
+    background: none;
+    color: currentcolor;
+    text-decoration: underline;
+}
+
 
 .RoomPlaceholderView {
     display: flex;
