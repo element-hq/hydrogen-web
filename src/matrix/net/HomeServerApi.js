@@ -1,12 +1,13 @@
 import {
     HomeServerError,
     ConnectionError,
+    AbortError
 } from "../error.js";
 
 class RequestWrapper {
-    constructor(method, url, requestResult) {
+    constructor(method, url, requestResult, responsePromise) {
         this._requestResult = requestResult;
-        this._promise = this._requestResult.response().then(response => {
+        this._promise = responsePromise.then(response => {
             // ok?
             if (response.status >= 200 && response.status < 300) {
                 return response.body;
@@ -43,6 +44,35 @@ export class HomeServerApi {
         return `${this._homeserver}/_matrix/client/r0${csPath}`;
     }
 
+    _abortOnTimeout(timeoutAmount, requestResult, responsePromise) {
+        const timeout = this._createTimeout(timeoutAmount);
+        // abort request if timeout finishes first
+        let timedOut = false;
+        timeout.elapsed().then(
+            () => {
+                timedOut = true;
+                requestResult.abort();
+            },
+            () => {}    // ignore AbortError
+        );
+        // abort timeout if request finishes first
+        return responsePromise.then(
+            response => {
+                timeout.abort();
+                return response;
+            },
+            err => {
+                timeout.abort();
+                // map error to TimeoutError
+                if (err instanceof AbortError && timedOut) {
+                    throw new ConnectionError(`Request timed out after ${timeoutAmount}ms`, true);
+                } else {
+                    throw err;
+                }
+            }
+        );
+    }
+
     _request(method, url, queryParams, body, options) {
         const queryString = Object.entries(queryParams || {})
             .filter(([, value]) => value !== undefined)
@@ -70,23 +100,21 @@ export class HomeServerApi {
             body: bodyString,
         });
 
+        let responsePromise = requestResult.response();
+
         if (options && options.timeout) {
-            const timeout = this._createTimeout(options.timeout);
-            // abort request if timeout finishes first
-            timeout.elapsed().then(
-                () => requestResult.abort(),
-                () => {}    // ignore AbortError
+            responsePromise = this._abortOnTimeout(
+                options.timeout,
+                requestResult,
+                responsePromise
             );
-            // abort timeout if request finishes first
-            const abort = () => timeout.abort();
-            requestResult.response().then(abort, abort);
         }
 
-        const wrapper = new RequestWrapper(method, url, requestResult);
+        const wrapper = new RequestWrapper(method, url, requestResult, responsePromise);
         
         if (this._reconnector) {
             wrapper.response().catch(err => {
-                if (err instanceof ConnectionError) {
+                if (err.name === "ConnectionError") {
                     this._reconnector.onRequestFailed(this);
                 }
             });

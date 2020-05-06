@@ -1,6 +1,4 @@
 import {createEnum} from "../../utils/enum.js";
-import {AbortError} from "../../utils/error.js";
-import {ConnectionError} from "../error.js"
 import {ObservableValue} from "../../observable/ObservableValue.js";
 
 export const ConnectionStatus = createEnum(
@@ -84,13 +82,14 @@ export class Reconnector {
         while (!this._versionsResponse) {
             try {
                 this._setState(ConnectionStatus.Reconnecting);
-                // use 10s timeout, because we don't want to be waiting for
+                // use 30s timeout, as a tradeoff between not giving up
+                // too quickly on a slow server, and not waiting for
                 // a stale connection when we just came online again
-                const versionsRequest = hsApi.versions({timeout: 10000});
+                const versionsRequest = hsApi.versions({timeout: 30000});
                 this._versionsResponse = await versionsRequest.response();
                 this._setState(ConnectionStatus.Online);
             } catch (err) {
-                if (err instanceof ConnectionError) {
+                if (err.name === "ConnectionError") {
                     this._setState(ConnectionStatus.Waiting);
                     await this._retryDelay.waitForRetry();
                 } else {
@@ -104,6 +103,7 @@ export class Reconnector {
 
 import {Clock as MockClock} from "../../mocks/Clock.js";
 import {ExponentialRetryDelay} from "./ExponentialRetryDelay.js";
+import {ConnectionError} from "../error.js"
 
 export function tests() {
     function createHsApiMock(remainingFailures) {

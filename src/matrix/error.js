@@ -6,14 +6,20 @@ export class HomeServerError extends Error {
         this.statusCode = status;
     }
 
-    get isFatal() {
-        switch (this.errcode) {
-            
-        }
+    get name() {
+        return "HomeServerError";
     }
 }
 
 export {AbortError} from "../utils/error.js";
 
-export class ConnectionError extends Error { 
+export class ConnectionError extends Error {
+    constructor(message, isTimeout) {
+        super(message || "ConnectionError");
+        this.isTimeout = isTimeout;
+    }
+
+    get name() {
+        return "ConnectionError";
+    }
 }
