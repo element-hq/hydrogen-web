@@ -1,5 +1,5 @@
 function disposeValue(value) {
-    if (typeof d === "function") {
+    if (typeof value === "function") {
         value();
     } else {
         value.dispose();
