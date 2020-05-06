@@ -4,7 +4,7 @@ import {SessionLoadView} from "./SessionLoadView.js";
 
 export class LoginView extends TemplateView {
     render(t, vm) {
-        const disabled = vm => !!vm.loadViewModel;
+        const disabled = vm => !!vm.isBusy;
         const username = t.input({type: "text", placeholder: vm.i18n`Username`, disabled});
         const password = t.input({type: "password", placeholder: vm.i18n`Password`, disabled});
         const homeserver = t.input({type: "text", placeholder: vm.i18n`Your matrix homeserver`, value: vm.defaultHomeServer, disabled});
@@ -18,8 +18,8 @@ export class LoginView extends TemplateView {
                 onClick: () => vm.login(username.value, password.value, homeserver.value),
                 disabled
             }, vm.i18n`Log In`)),
-            t.div(t.button({onClick: () => vm.goBack(), disabled}, [vm.i18n`Pick an existing session`])),
-            t.if(vm => vm.loadViewModel, vm => new SessionLoadView(vm.loadViewModel)),
+            t.div(t.button({onClick: () => vm.cancel(), disabled}, [vm.i18n`Pick an existing session`])),
+            t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadView(loadViewModel) : null),
             t.p(brawlGithubLink(t))
         ]);
     }

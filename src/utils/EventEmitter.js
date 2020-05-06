@@ -12,6 +12,13 @@ export class EventEmitter {
         }
     }
 
+    disposableOn(name, callback) {
+        this.on(name, callback);
+        return () => {
+            this.off(name, callback);
+        }
+    }
+
     on(name, callback) {
         let handlers = this._handlersByName[name];
         if (!handlers) {

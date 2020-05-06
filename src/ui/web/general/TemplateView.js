@@ -276,10 +276,9 @@ class TemplateBuilder {
         return vm => new TemplateView(vm, render);
     }
 
-    // creates a conditional subtemplate
-    if(fn, viewCreator) {
-        const boolFn = value => !!fn(value);
-        return this._addReplaceNodeBinding(boolFn, (prevNode) => {
+    // map a value to a view, every time the value changes
+    mapView(mapFn, viewCreator) {
+        return this._addReplaceNodeBinding(mapFn, (prevNode) => {
             if (prevNode && prevNode.nodeType !== Node.COMMENT_NODE) {
                 const subViews = this._templateView._subViews;
                 const viewIdx = subViews.findIndex(v => v.root() === prevNode);
@@ -288,13 +287,21 @@ class TemplateBuilder {
                     view.unmount();
                 }
             }
-            if (boolFn(this._value)) {
-                const view = viewCreator(this._value);
+            const view = viewCreator(mapFn(this._value));
+            if (view) {
                 return this.view(view);
             } else {
-                return document.createComment("if placeholder");
+                return document.createComment("node binding placeholder");
             }
         });
+    }
+
+    // creates a conditional subtemplate
+    if(fn, viewCreator) {
+        return this.mapView(
+            value => !!fn(value),
+            enabled => enabled ? viewCreator(this._value) : null
+        );
     }
 }
 
