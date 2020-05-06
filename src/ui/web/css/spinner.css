@@ -23,7 +23,7 @@
     animation-timing-function: linear;
     fill: none;
     stroke: currentcolor;
-    stroke-width: calc(var(--size) * 0.1);
+    stroke-width: 12;
     stroke-linecap: butt;
 }
 

@@ -24,7 +24,7 @@
             }
         </script>
         <h1>View Gallery</h1>
-        <h2 name="session-status">Session Status</h2>
+        <h2 name="session-status">Session Status Bar</h2>
         <div id="session-status" class="brawl"></div>
         <script id="main" type="module">
             import {SessionStatusView} from "./session/SessionStatusView.js";
@@ -35,7 +35,7 @@
                 isConnectNowShown: true,
                 connectNow: () => alert("connecting now")
             }));
-            document.getElementById("login").appendChild(view.mount());
+            document.getElementById("session-status").appendChild(view.mount());
         </script>
         <h2 name="login">Login</h2>
         <div id="login" class="brawl"></div>
