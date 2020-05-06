@@ -34,7 +34,9 @@ export class Reconnector {
     }
 
     async onRequestFailed(hsApi) {
-        if (!this._isReconnecting) {   
+        if (!this._isReconnecting) {  
+            this._isReconnecting = true;
+ 
             const onlineStatusSubscription = this._onlineStatus && this._onlineStatus.subscribe(online => {
                 if (online) {
                     this.tryNow();
@@ -52,6 +54,7 @@ export class Reconnector {
                     // unsubscribe from this._onlineStatus
                     onlineStatusSubscription();
                 }
+                this._isReconnecting = false;
             }
         }
     }
@@ -75,7 +78,6 @@ export class Reconnector {
     }
     
     async _reconnectLoop(hsApi) {
-        this._isReconnecting = true;
         this._versionsResponse = null;
         this._retryDelay.reset();
 
