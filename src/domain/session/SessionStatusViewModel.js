@@ -8,22 +8,23 @@ const SessionStatus = createEnum(
     "Connecting",
     "FirstSync",
     "Sending",
-    "Syncing"
+    "Syncing",
+    "SyncError"
 );
 
 export class SessionStatusViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {syncStatus, reconnector} = options;
-        this._syncStatus = syncStatus;
+        const {sync, reconnector} = options;
+        this._sync = sync;
         this._reconnector = reconnector;
-        this._status = this._calculateState(reconnector.connectionStatus.get(), syncStatus.get());
+        this._status = this._calculateState(reconnector.connectionStatus.get(), sync.status.get());
         
     }
 
     start() {
         const update = () => this._updateStatus();
-        this.track(this._syncStatus.subscribe(update));
+        this.track(this._sync.status.subscribe(update));
         this.track(this._reconnector.connectionStatus.subscribe(update));
     }
 
@@ -41,6 +42,8 @@ export class SessionStatusViewModel extends ViewModel {
                 return this.i18n`Trying to reconnect now…`;
             case SessionStatus.FirstSync:
                 return this.i18n`Catching up with your conversations…`;
+            case SessionStatus.SyncError:
+                return this.i18n`Sync failed because of ${this._sync.error}`;
         }
         return "";
     }
@@ -58,7 +61,7 @@ export class SessionStatusViewModel extends ViewModel {
     _updateStatus() {
         const newStatus = this._calculateState(
             this._reconnector.connectionStatus.get(),
-            this._syncStatus.get()
+            this._sync.status.get()
         );
         if (newStatus !== this._status) {
             if (newStatus === SessionStatus.Disconnected) {
@@ -89,6 +92,8 @@ export class SessionStatusViewModel extends ViewModel {
                 case SyncStatus.InitialSync:
                 case SyncStatus.CatchupSync:
                     return SessionStatus.FirstSync;
+                case SyncStatus.Stopped:
+                    return SessionStatus.SyncError;
             }
         } /* else if (session.pendingMessageCount) {
             return SessionStatus.Sending;

@@ -9,7 +9,7 @@ export class SessionViewModel extends ViewModel {
         const {sessionContainer} = options;
         this._session = sessionContainer.session;
         this._sessionStatusViewModel = this.track(new SessionStatusViewModel(this.childOptions({
-            syncStatus: sessionContainer.sync.status,
+            sync: sessionContainer.sync,
             reconnector: sessionContainer.reconnector
         })));
         this._currentRoomViewModel = null;
