@@ -2,8 +2,9 @@ import {ViewModel} from "./ViewModel.js";
 import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
 
 export class LoginViewModel extends ViewModel {
-    constructor({sessionCallback, defaultHomeServer, createSessionContainer}) {
-        super();
+    constructor(options) {
+        super(options);
+        const {sessionCallback, defaultHomeServer, createSessionContainer} = options;
         this._createSessionContainer = createSessionContainer;
         this._sessionCallback = sessionCallback;
         this._defaultHomeServer = defaultHomeServer;
