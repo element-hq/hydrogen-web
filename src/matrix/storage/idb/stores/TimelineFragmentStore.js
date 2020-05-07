@@ -1,12 +1,12 @@
 import { StorageError } from "../../common.js";
-import Platform from "../../../../Platform.js";
+import {Platform} from "../../../../Platform.js";
 import { encodeUint32 } from "../utils.js";
 
 function encodeKey(roomId, fragmentId) {
     return `${roomId}|${encodeUint32(fragmentId)}`;
 }
 
-export default class RoomFragmentStore {
+export class TimelineFragmentStore {
     constructor(store) {
         this._store = store;
     }

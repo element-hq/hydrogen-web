@@ -1,10 +1,12 @@
-import HomeServerApi from "./matrix/hs-api.js";
-// import {RecordRequester, ReplayRequester} from "./matrix/net/replay.js";
-import fetchRequest from "./matrix/net/fetch.js";
-import StorageFactory from "./matrix/storage/idb/create.js";
-import SessionsStore from "./matrix/sessions-store/localstorage/SessionsStore.js";
-import BrawlViewModel from "./domain/BrawlViewModel.js";
-import BrawlView from "./ui/web/BrawlView.js";
+// import {RecordRequester, ReplayRequester} from "./matrix/net/request/replay.js";
+import {fetchRequest} from "./matrix/net/request/fetch.js";
+import {SessionContainer} from "./matrix/SessionContainer.js";
+import {StorageFactory} from "./matrix/storage/idb/StorageFactory.js";
+import {SessionInfoStorage} from "./matrix/sessioninfo/localstorage/SessionInfoStorage.js";
+import {BrawlViewModel} from "./domain/BrawlViewModel.js";
+import {BrawlView} from "./ui/web/BrawlView.js";
+import {Clock} from "./ui/web/dom/Clock.js";
+import {OnlineStatus} from "./ui/web/dom/OnlineStatus.js";
 
 export default async function main(container) {
     try {
@@ -17,15 +19,28 @@ export default async function main(container) {
         // const recorder = new RecordRequester(fetchRequest);
         // const request = recorder.request;
         // window.getBrawlFetchLog = () => recorder.log();
-
         // normal network:
         const request = fetchRequest;
+        const sessionInfoStorage = new SessionInfoStorage("brawl_sessions_v1");
+        const clock = new Clock();
+        const storageFactory = new StorageFactory();
+
         const vm = new BrawlViewModel({
-            storageFactory: new StorageFactory(),
-            createHsApi: (homeServer, accessToken = null) => new HomeServerApi({homeServer, accessToken, request}),
-            sessionStore: new SessionsStore("brawl_sessions_v1"),
-            clock: Date //just for `now` fn
+            createSessionContainer: () => {
+                return new SessionContainer({
+                    random: Math.random,
+                    onlineStatus: new OnlineStatus(),
+                    storageFactory,
+                    sessionInfoStorage,
+                    request,
+                    clock,
+                });
+            },
+            sessionInfoStorage,
+            storageFactory,
+            clock,
         });
+        window.__brawlViewModel = vm;
         await vm.load();
         const view = new BrawlView(vm);
         container.appendChild(view.mount());

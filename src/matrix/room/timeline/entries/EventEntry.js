@@ -1,6 +1,6 @@
-import BaseEntry from "./BaseEntry.js";
+import {BaseEntry} from "./BaseEntry.js";
 
-export default class EventEntry extends BaseEntry {
+export class EventEntry extends BaseEntry {
     constructor(eventEntry, fragmentIdComparer) {
         super(fragmentIdComparer);
         this._eventEntry = eventEntry;

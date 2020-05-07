@@ -1,6 +1,6 @@
 import {iterateCursor, reqAsPromise} from "./utils.js";
 
-export default class QueryTarget {
+export class QueryTarget {
     constructor(target) {
         this._target = target;
     }

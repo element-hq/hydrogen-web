@@ -1,6 +1,6 @@
-import BaseObservableMap from "./BaseObservableMap.js";
+import {BaseObservableMap} from "./BaseObservableMap.js";
 
-export default class FilteredMap extends BaseObservableMap {
+export class FilteredMap extends BaseObservableMap {
     constructor(source, mapper, updater) {
         super();
         this._source = source;

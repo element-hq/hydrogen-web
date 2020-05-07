@@ -1,4 +1,4 @@
-export default class RoomStateStore {
+export class RoomStateStore {
 	constructor(idbStore) {
 		this._roomStateStore = idbStore;
 	}

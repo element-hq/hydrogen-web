@@ -1,7 +1,7 @@
-import Transaction from "./transaction.js";
+import {Transaction} from "./Transaction.js";
 import { STORE_NAMES, StorageError } from "../common.js";
 
-export default class Storage {
+export class Storage {
     constructor(idbDatabase) {
         this._db = idbDatabase;
         const nameMap = STORE_NAMES.reduce((nameMap, name) => {
@@ -36,5 +36,9 @@ export default class Storage {
         } catch(err) {
             throw new StorageError("readWriteTxn failed", err);
         }
+    }
+
+    close() {
+        this._db.close();
     }
 }

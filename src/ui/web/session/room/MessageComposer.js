@@ -1,6 +1,6 @@
-import TemplateView from "../../general/TemplateView.js";
+import {TemplateView} from "../../general/TemplateView.js";
 
-export default class MessageComposer extends TemplateView {
+export class MessageComposer extends TemplateView {
     constructor(viewModel) {
         super(viewModel);
         this._input = null;
@@ -16,7 +16,7 @@ export default class MessageComposer extends TemplateView {
 
     _onKeyDown(event) {
         if (event.key === "Enter") {
-            if (this.viewModel.sendMessage(this._input.value)) {
+            if (this.value.sendMessage(this._input.value)) {
                 this._input.value = "";
             }
         }

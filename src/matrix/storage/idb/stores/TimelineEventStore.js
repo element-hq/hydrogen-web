@@ -1,7 +1,7 @@
-import EventKey from "../../../room/timeline/EventKey.js";
+import {EventKey} from "../../../room/timeline/EventKey.js";
 import { StorageError } from "../../common.js";
 import { encodeUint32 } from "../utils.js";
-import Platform from "../../../../Platform.js";
+import {Platform} from "../../../../Platform.js";
 
 function encodeKey(roomId, fragmentId, eventIndex) {
     return `${roomId}|${encodeUint32(fragmentId)}|${encodeUint32(eventIndex)}`;
@@ -81,7 +81,7 @@ class Range {
  * @property  {?Event} event if an event entry, the event
  * @property  {?Gap} gap if a gap entry, the gap
 */
-export default class TimelineEventStore {
+export class TimelineEventStore {
     constructor(timelineStore) {
         this._timelineStore = timelineStore;
     }

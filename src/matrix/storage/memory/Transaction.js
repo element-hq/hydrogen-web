@@ -1,6 +1,6 @@
-import RoomTimelineStore from "./stores/RoomTimelineStore.js";
+import {RoomTimelineStore} from "./stores/RoomTimelineStore.js";
 
-export default class Transaction {
+export class Transaction {
     constructor(storeValues, writable) {
         this._storeValues = storeValues;
         this._txnStoreValues = {};

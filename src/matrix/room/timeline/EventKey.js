@@ -1,7 +1,7 @@
-import Platform from "../../../Platform.js";
+import {Platform} from "../../../Platform.js";
 
 // key for events in the timelineEvents store
-export default class EventKey {
+export class EventKey {
     constructor(fragmentId, eventIndex) {
         this.fragmentId = fragmentId;
         this.eventIndex = eventIndex;
@@ -49,7 +49,6 @@ export default class EventKey {
     }
 }
 
-//#ifdef TESTS
 export function xtests() {
     const fragmentIdComparer = {compare: (a, b) => a - b};
 
@@ -156,4 +155,3 @@ export function xtests() {
         }
     };
 }
-//#endif

@@ -1,9 +1,9 @@
-import Room from "./room/room.js";
+import {Room} from "./room/Room.js";
 import { ObservableMap } from "../observable/index.js";
 import { SendScheduler, RateLimitingBackoff } from "./SendScheduler.js";
-import User from "./User.js";
+import {User} from "./User.js";
 
-export default class Session {
+export class Session {
     // sessionInfo contains deviceId, userId and homeServer
     constructor({storage, hsApi, sessionInfo}) {
         this._storage = storage;
@@ -40,7 +40,28 @@ export default class Session {
         }));
     }
 
-    notifyNetworkAvailable() {
+    get isStarted() {
+        return this._sendScheduler.isStarted;
+    }
+
+    stop() {
+        this._sendScheduler.stop();
+    }
+
+    async start(lastVersionResponse) {
+        if (lastVersionResponse) {
+            // store /versions response
+            const txn = await this._storage.readWriteTxn([
+                this._storage.storeNames.session
+            ]);
+            const newSessionData = Object.assign({}, this._session, {serverVersions: lastVersionResponse});
+            txn.session.set(newSessionData);
+            // TODO: what can we do if this throws?
+            await txn.complete();
+            this._session = newSessionData;
+        }
+
+        this._sendScheduler.start();
         for (const [, room] of this._rooms) {
             room.resumeSending();
         }

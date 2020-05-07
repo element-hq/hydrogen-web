@@ -1,8 +1,8 @@
-import EventKey from "../EventKey.js";
-import EventEntry from "../entries/EventEntry.js";
+import {EventKey} from "../EventKey.js";
+import {EventEntry} from "../entries/EventEntry.js";
 import {createEventEntry, directionalAppend} from "./common.js";
 
-export default class GapWriter {
+export class GapWriter {
     constructor({roomId, storage, fragmentIdComparer}) {
         this._roomId = roomId;
         this._storage = storage;
@@ -178,7 +178,6 @@ export default class GapWriter {
     }
 }
 
-//#ifdef TESTS
 //import MemoryStorage from "../storage/memory/MemoryStorage.js";
 
 export function xtests() {
@@ -277,4 +276,3 @@ export function xtests() {
         },
     }
 }
-//#endif

@@ -1,13 +1,17 @@
-import EventEmitter from "../../EventEmitter.js";
-import RoomTileViewModel from "./roomlist/RoomTileViewModel.js";
-import RoomViewModel from "./room/RoomViewModel.js";
-import SyncStatusViewModel from "./SyncStatusViewModel.js";
+import {RoomTileViewModel} from "./roomlist/RoomTileViewModel.js";
+import {RoomViewModel} from "./room/RoomViewModel.js";
+import {SessionStatusViewModel} from "./SessionStatusViewModel.js";
+import {ViewModel} from "../ViewModel.js";
 
-export default class SessionViewModel extends EventEmitter {
-    constructor({session, sync}) {
-        super();
-        this._session = session;
-        this._syncStatusViewModel = new SyncStatusViewModel(sync);
+export class SessionViewModel extends ViewModel {
+    constructor(options) {
+        super(options);
+        const {sessionContainer} = options;
+        this._session = sessionContainer.session;
+        this._sessionStatusViewModel = this.track(new SessionStatusViewModel(this.childOptions({
+            sync: sessionContainer.sync,
+            reconnector: sessionContainer.reconnector
+        })));
         this._currentRoomViewModel = null;
         const roomTileVMs = this._session.rooms.mapValues((room, emitUpdate) => {
             return new RoomTileViewModel({
@@ -19,8 +23,12 @@ export default class SessionViewModel extends EventEmitter {
         this._roomList = roomTileVMs.sortValues((a, b) => a.compare(b));
     }
 
-    get syncStatusViewModel() {
-        return this._syncStatusViewModel;
+    start() {
+        this._sessionStatusViewModel.start();
+    }
+
+    get sessionStatusViewModel() {
+        return this._sessionStatusViewModel;
     }
 
     get roomList() {
@@ -33,23 +41,22 @@ export default class SessionViewModel extends EventEmitter {
 
     _closeCurrentRoom() {
         if (this._currentRoomViewModel) {
-            this._currentRoomViewModel.dispose();
-            this._currentRoomViewModel = null;
-            this.emit("change", "currentRoom");
+            this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
+            this.emitChange("currentRoom");
         }
     }
 
     _openRoom(room) {
         if (this._currentRoomViewModel) {
-            this._currentRoomViewModel.dispose();
+            this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
         }
-        this._currentRoomViewModel = new RoomViewModel({
+        this._currentRoomViewModel = this.track(new RoomViewModel(this.childOptions({
             room,
             ownUserId: this._session.user.id,
             closeCallback: () => this._closeCurrentRoom(),
-        });
+        })));
         this._currentRoomViewModel.load();
-        this.emit("change", "currentRoom");
+        this.emitChange("currentRoom");
     }
 }
 

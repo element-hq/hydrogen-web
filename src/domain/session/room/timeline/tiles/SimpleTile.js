@@ -1,6 +1,6 @@
-import UpdateAction from "../UpdateAction.js";
+import {UpdateAction} from "../UpdateAction.js";
 
-export default class SimpleTile {
+export class SimpleTile {
     constructor({entry}) {
         this._entry = entry;
         this._emitUpdate = null;

@@ -1,10 +1,10 @@
-import SessionView from "./session/SessionView.js";
-import LoginView from "./login/LoginView.js";
-import SessionPickerView from "./login/SessionPickerView.js";
-import TemplateView from "./general/TemplateView.js";
-import SwitchView from "./general/SwitchView.js";
+import {SessionView} from "./session/SessionView.js";
+import {LoginView} from "./login/LoginView.js";
+import {SessionPickerView} from "./login/SessionPickerView.js";
+import {TemplateView} from "./general/TemplateView.js";
+import {SwitchView} from "./general/SwitchView.js";
 
-export default class BrawlView {
+export class BrawlView {
     constructor(vm) {
         this._vm = vm;
         this._switcher = null;
@@ -16,8 +16,6 @@ export default class BrawlView {
         switch (this._vm.activeSection) {
             case "error":
                 return new StatusView({header: "Something went wrong", message: this._vm.errorText});
-            case "loading":
-                return new StatusView({header: "Loading", message: this._vm.loadingText});
             case "session":
                 return new SessionView(this._vm.sessionViewModel);
             case "login":

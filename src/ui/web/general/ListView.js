@@ -1,13 +1,5 @@
 import {tag} from "./html.js";
 
-class UIView {
-    mount() {}
-    unmount() {}
-    update(_value) {}
-    // can only be called between a call to mount and unmount
-    root() {}
-}
-
 function insertAt(parentNode, idx, childNode) {
     const isLast = idx === parentNode.childElementCount;
     if (isLast) {
@@ -18,7 +10,9 @@ function insertAt(parentNode, idx, childNode) {
     }
 }
 
-export default class ListView {
+const MOUNT_ARGS = {parentProvidesUpdates: true};
+
+export class ListView {
     constructor({list, onItemClick, className}, childCreator) {
         this._onItemClick = onItemClick;
         this._list = list;
@@ -61,7 +55,9 @@ export default class ListView {
     }
 
     unmount() {
-        this._unloadList();
+        if (this._list) {
+            this._unloadList();
+        }
     }
 
     _onClick(event) {
@@ -94,7 +90,7 @@ export default class ListView {
         for (let item of this._list) {
             const child = this._childCreator(item);
             this._childInstances.push(child);
-            const childDomNode = child.mount();
+            const childDomNode = child.mount(MOUNT_ARGS);
             this._root.appendChild(childDomNode);
         }
     }
@@ -103,7 +99,7 @@ export default class ListView {
         this.onBeforeListChanged();
         const child = this._childCreator(value);
         this._childInstances.splice(idx, 0, child);
-        insertAt(this._root, idx, child.mount());
+        insertAt(this._root, idx, child.mount(MOUNT_ARGS));
         this.onListChanged();
     }
 

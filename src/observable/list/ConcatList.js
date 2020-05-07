@@ -1,6 +1,6 @@
-import BaseObservableList from "./BaseObservableList.js";
+import {BaseObservableList} from "./BaseObservableList.js";
 
-export default class ConcatList extends BaseObservableList {
+export class ConcatList extends BaseObservableList {
     constructor(...sourceLists) {
         super();
         this._sourceLists = sourceLists;
@@ -86,7 +86,7 @@ export default class ConcatList extends BaseObservableList {
     }
 }
 
-import ObservableArray from "./ObservableArray.js";
+import {ObservableArray} from "./ObservableArray.js";
 export async function tests() {
     return {
         test_length(assert) {

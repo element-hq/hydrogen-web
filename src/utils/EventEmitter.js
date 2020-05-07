@@ -1,4 +1,4 @@
-export default class EventEmitter {
+export class EventEmitter {
     constructor() {
         this._handlersByName = {};
     }
@@ -9,6 +9,13 @@ export default class EventEmitter {
             for(const h of handlers) {
                 h(...values);
             }
+        }
+    }
+
+    disposableOn(name, callback) {
+        this.on(name, callback);
+        return () => {
+            this.off(name, callback);
         }
     }
 
@@ -36,7 +43,7 @@ export default class EventEmitter {
 
     onLastSubscriptionRemoved(name) {}
 }
-//#ifdef TESTS
+
 export function tests() {
     return {
         test_on_off(assert) {
@@ -72,4 +79,3 @@ export function tests() {
         }
     };
 }
-//#endif

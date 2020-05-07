@@ -1,0 +1,193 @@
+import {
+    HomeServerError,
+    ConnectionError,
+    AbortError
+} from "../error.js";
+
+class RequestWrapper {
+    constructor(method, url, requestResult, responsePromise) {
+        this._requestResult = requestResult;
+        this._promise = responsePromise.then(response => {
+            // ok?
+            if (response.status >= 200 && response.status < 300) {
+                return response.body;
+            } else {
+                switch (response.status) {
+                    default:
+                        throw new HomeServerError(method, url, response.body, response.status);
+                }
+            }
+        });
+    }
+
+    abort() {
+        return this._requestResult.abort();
+    }
+
+    response() {
+        return this._promise;
+    }
+}
+
+export class HomeServerApi {
+    constructor({homeServer, accessToken, request, createTimeout, reconnector}) {
+        // store these both in a closure somehow so it's harder to get at in case of XSS?
+        // one could change the homeserver as well so the token gets sent there, so both must be protected from read/write
+        this._homeserver = homeServer;
+        this._accessToken = accessToken;
+        this._requestFn = request;
+        this._createTimeout = createTimeout;
+        this._reconnector = reconnector;
+    }
+
+    _url(csPath) {
+        return `${this._homeserver}/_matrix/client/r0${csPath}`;
+    }
+
+    _abortOnTimeout(timeoutAmount, requestResult, responsePromise) {
+        const timeout = this._createTimeout(timeoutAmount);
+        // abort request if timeout finishes first
+        let timedOut = false;
+        timeout.elapsed().then(
+            () => {
+                timedOut = true;
+                requestResult.abort();
+            },
+            () => {}    // ignore AbortError
+        );
+        // abort timeout if request finishes first
+        return responsePromise.then(
+            response => {
+                timeout.abort();
+                return response;
+            },
+            err => {
+                timeout.abort();
+                // map error to TimeoutError
+                if (err instanceof AbortError && timedOut) {
+                    throw new ConnectionError(`Request timed out after ${timeoutAmount}ms`, true);
+                } else {
+                    throw err;
+                }
+            }
+        );
+    }
+
+    _request(method, url, queryParams, body, options) {
+        const queryString = Object.entries(queryParams || {})
+            .filter(([, value]) => value !== undefined)
+            .map(([name, value]) => {
+                if (typeof value === "object") {
+                    value = JSON.stringify(value);
+                }
+                return `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
+            })
+            .join("&");
+        url = `${url}?${queryString}`;
+        let bodyString;
+        const headers = new Map();
+        if (this._accessToken) {
+            headers.set("Authorization", `Bearer ${this._accessToken}`);
+        }
+        headers.set("Accept", "application/json");
+        if (body) {
+            headers.set("Content-Type", "application/json");
+            bodyString = JSON.stringify(body);
+        }
+        const requestResult = this._requestFn(url, {
+            method,
+            headers,
+            body: bodyString,
+        });
+
+        let responsePromise = requestResult.response();
+
+        if (options && options.timeout) {
+            responsePromise = this._abortOnTimeout(
+                options.timeout,
+                requestResult,
+                responsePromise
+            );
+        }
+
+        const wrapper = new RequestWrapper(method, url, requestResult, responsePromise);
+        
+        if (this._reconnector) {
+            wrapper.response().catch(err => {
+                if (err.name === "ConnectionError") {
+                    this._reconnector.onRequestFailed(this);
+                }
+            });
+        }
+
+        return wrapper;
+    }
+
+    _post(csPath, queryParams, body, options) {
+        return this._request("POST", this._url(csPath), queryParams, body, options);
+    }
+
+    _put(csPath, queryParams, body, options) {
+        return this._request("PUT", this._url(csPath), queryParams, body, options);
+    }
+
+    _get(csPath, queryParams, body, options) {
+        return this._request("GET", this._url(csPath), queryParams, body, options);
+    }
+
+    sync(since, filter, timeout, options = null) {
+        return this._get("/sync", {since, timeout, filter}, null, options);
+    }
+
+    // params is from, dir and optionally to, limit, filter.
+    messages(roomId, params, options = null) {
+        return this._get(`/rooms/${encodeURIComponent(roomId)}/messages`, params, null, options);
+    }
+
+    send(roomId, eventType, txnId, content, options = null) {
+        return this._put(`/rooms/${encodeURIComponent(roomId)}/send/${encodeURIComponent(eventType)}/${encodeURIComponent(txnId)}`, {}, content, options);
+    }
+
+    passwordLogin(username, password, options = null) {
+        return this._post("/login", null, {
+          "type": "m.login.password",
+          "identifier": {
+            "type": "m.id.user",
+            "user": username
+          },
+          "password": password
+        }, options);
+    }
+
+    createFilter(userId, filter, options = null) {
+        return this._post(`/user/${encodeURIComponent(userId)}/filter`, null, filter, options);
+    }
+
+    versions(options = null) {
+        return this._request("GET", `${this._homeserver}/_matrix/client/versions`, null, null, options);
+    }
+}
+
+export function tests() {
+    function createRequestMock(result) {
+        return function() {
+            return {
+                abort() {},
+                response() {
+                    return Promise.resolve(result);
+                }
+            }
+        }
+    }
+
+    return {
+        "superficial happy path for GET": async assert => {
+            const hsApi = new HomeServerApi({
+                request: createRequestMock({body: 42, status: 200}),
+                homeServer: "https://hs.tld"
+            });
+            const result = await hsApi._get("foo", null, null, null).response();
+            assert.strictEqual(result, 42);
+        }
+    }
+}

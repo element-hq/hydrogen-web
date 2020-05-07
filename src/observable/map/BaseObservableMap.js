@@ -1,6 +1,6 @@
-import BaseObservableCollection from "../BaseObservableCollection.js";
+import {BaseObservable} from "../BaseObservable.js";
 
-export default class BaseObservableMap extends BaseObservableCollection {
+export class BaseObservableMap extends BaseObservable {
     emitReset() {
         for(let h of this._handlers) {
             h.onReset();

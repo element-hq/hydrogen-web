@@ -1,4 +1,4 @@
-export default class BaseObservableCollection {
+export class BaseObservable {
     constructor() {
         this._handlers = new Set();
     }
@@ -17,22 +17,26 @@ export default class BaseObservableCollection {
             this.onSubscribeFirst();
         }
         return () => {
-            if (handler) {
-                this._handlers.delete(handler);
-                if (this._handlers.size === 0) {
-                    this.onUnsubscribeLast();
-                }
-                handler = null;
-            }
-            return null;
+            return this.unsubscribe(handler);
         };
+    }
+
+    unsubscribe(handler) {
+        if (handler) {
+            this._handlers.delete(handler);
+            if (this._handlers.size === 0) {
+                this.onUnsubscribeLast();
+            }
+            handler = null;
+        }
+        return null;
     }
 
     // Add iterator over handlers here
 }
 
 export function tests() {
-    class Collection extends BaseObservableCollection {
+    class Collection extends BaseObservable {
         constructor() {
             super();
             this.firstSubscribeCalls = 0;

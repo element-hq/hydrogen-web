@@ -1,7 +1,7 @@
 import {
-    RequestAbortError,
-    NetworkError
-} from "../error.js";
+    AbortError,
+    ConnectionError
+} from "../../error.js";
 
 class RequestLogItem {
     constructor(url, options) {
@@ -23,8 +23,8 @@ class RequestLogItem {
     handleError(err) {
         this.end = performance.now();
         this.error = {
-            aborted: err instanceof RequestAbortError,
-            network: err instanceof NetworkError,
+            aborted: err instanceof AbortError,
+            network: err instanceof ConnectionError,
             message: err.message,
         };
     }
@@ -96,9 +96,9 @@ class ReplayRequestResult {
         if (this._item.error || this._aborted) {
             const error = this._item.error;
             if (error.aborted || this._aborted) {
-                throw new RequestAbortError(error.message);
+                throw new AbortError(error.message);
             } else if (error.network) {
-                throw new NetworkError(error.message);
+                throw new ConnectionError(error.message);
             } else {
                 throw new Error(error.message);
             }

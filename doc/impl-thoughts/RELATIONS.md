@@ -10,3 +10,5 @@ alternatively, SyncWriter/SendQueue could have a section with updatedEntries apa
 SendQueue will need to pass the non-sent state (redactions & relations) about an event that has it's remote echo received to the SyncWriter so it doesn't flash while redactions and relations for it still have to be synced.
 
 Also, related ids should be processed recursively. If event 3 is a redaction of event 2, a reaction to event 1, all 3 entries should be considered as updated.
+
+As a UI for reactions, we could show (👍 14 + 1) where the + 1 is our own local echo (perhaps style it pulsating and/or in grey?). Clicking it again would just show 14 and when the remote echo comes in it would turn into 15.

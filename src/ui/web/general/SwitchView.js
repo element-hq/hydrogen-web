@@ -1,4 +1,6 @@
-export default class SwitchView {
+import {errorToDOM} from "./error.js";
+
+export class SwitchView {
     constructor(defaultView) {
         this._childView = defaultView;
     }
@@ -23,7 +25,12 @@ export default class SwitchView {
         const oldRoot = this.root();
         this._childView.unmount();
         this._childView = newView;
-        const newRoot = this._childView.mount();
+        let newRoot;
+        try {
+            newRoot = this._childView.mount();
+        } catch (err) {
+            newRoot = errorToDOM(err);
+        }
         const parent = oldRoot.parentElement;
         if (parent) {
             parent.replaceChild(newRoot, oldRoot);
@@ -32,5 +39,40 @@ export default class SwitchView {
 
     get childView() {
         return this._childView;
+    }
+}
+/*
+// SessionLoadView
+// should this be the new switch view?
+// and the other one be the BasicSwitchView?
+new BoundSwitchView(vm, vm => vm.isLoading, (loading, vm) => {
+    if (loading) {
+        return new InlineTemplateView(vm, t => {
+            return t.div({className: "loading"}, [
+                t.span({className: "spinner"}),
+                t.span(vm => vm.loadingText)
+            ]);
+        });
+    } else {
+        return new SessionView(vm.sessionViewModel);
+    }
+});
+*/
+export class BoundSwitchView extends SwitchView {
+    constructor(value, mapper, viewCreator) {
+        super(viewCreator(mapper(value), value));
+        this._mapper = mapper;
+        this._viewCreator = viewCreator;
+        this._mappedValue = mapper(value);
+    }
+
+    update(value) {
+        const mappedValue = this._mapper(value);
+        if (mappedValue !== this._mappedValue) {
+            this._mappedValue = mappedValue;
+            this.switch(this._viewCreator(this._mappedValue, value));
+        } else {
+            super.update(value);
+        }
     }
 }

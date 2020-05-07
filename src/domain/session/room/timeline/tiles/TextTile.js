@@ -1,6 +1,6 @@
-import MessageTile from "./MessageTile.js";
+import {MessageTile} from "./MessageTile.js";
 
-export default class TextTile extends MessageTile {
+export class TextTile extends MessageTile {
     get text() {
         const content = this._getContent();
         const body = content && content.body;

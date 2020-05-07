@@ -33,12 +33,16 @@ export function setAttribute(el, name, value) {
 }
 
 export function el(elementName, attributes, children) {
+    return elNS(HTML_NS, elementName, attributes, children);
+}
+
+export function elNS(ns, elementName, attributes, children) {
     if (attributes && isChildren(attributes)) {
         children = attributes;
         attributes = null;
     }
 
-    const e = document.createElement(elementName);
+    const e = document.createElementNS(ns, elementName);
 
     if (attributes) {
         for (let [name, value] of Object.entries(attributes)) {
@@ -67,15 +71,24 @@ export function text(str) {
     return document.createTextNode(str);
 }
 
-export const TAG_NAMES = [
-    "a", "ol", "ul", "li", "div", "h1", "h2", "h3", "h4", "h5", "h6",
-    "p", "strong", "em", "span", "img", "section", "main", "article", "aside",
-    "pre", "button", "time", "input", "textarea"];
+export const HTML_NS = "http://www.w3.org/1999/xhtml";
+export const SVG_NS = "http://www.w3.org/2000/svg";
+
+export const TAG_NAMES = {
+    [HTML_NS]: [
+        "a", "ol", "ul", "li", "div", "h1", "h2", "h3", "h4", "h5", "h6",
+        "p", "strong", "em", "span", "img", "section", "main", "article", "aside",
+        "pre", "button", "time", "input", "textarea"],
+    [SVG_NS]: ["svg", "circle"]
+};
 
 export const tag = {};
 
-for (const tagName of TAG_NAMES) {
-    tag[tagName] = function(attributes, children) {
-        return el(tagName, attributes, children);
+
+for (const [ns, tags] of Object.entries(TAG_NAMES)) {
+    for (const tagName of tags) {
+        tag[tagName] = function(attributes, children) {
+            return elNS(ns, tagName, attributes, children);
+        }
     }
 }

@@ -1,7 +1,7 @@
-import BaseObservableList from "./BaseObservableList.js";
-import sortedIndex from "../../utils/sortedIndex.js";
+import {BaseObservableList} from "./BaseObservableList.js";
+import {sortedIndex} from "../../utils/sortedIndex.js";
 
-export default class SortedArray extends BaseObservableList {
+export class SortedArray extends BaseObservableList {
     constructor(comparator) {
         super();
         this._comparator = comparator;

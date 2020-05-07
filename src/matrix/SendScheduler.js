@@ -1,5 +1,5 @@
-import Platform from "../Platform.js";
-import {HomeServerError, NetworkError} from "./error.js";
+import {Platform} from "../Platform.js";
+import {HomeServerError, ConnectionError} from "./error.js";
 
 export class RateLimitingBackoff {
     constructor() {
@@ -48,7 +48,7 @@ export class SendScheduler {
         this._hsApi = hsApi;
         this._sendRequests = [];
         this._sendScheduled = false;
-        this._offline = false;
+        this._stopped = false;
         this._waitTime = 0;
         this._backoff = backoff;
         /* 
@@ -62,6 +62,18 @@ export class SendScheduler {
         // this._enabled;
     }
 
+    stop() {
+        // TODO: abort current requests and set offline
+    }
+
+    start() {
+        this._stopped = false;
+    }
+
+    get isStarted() {
+        return !this._stopped;
+    }
+
     // this should really be per roomId to avoid head-of-line blocking
     // 
     // takes a callback instead of returning a promise with the slot
@@ -70,7 +82,7 @@ export class SendScheduler {
         let request;
         const promise = new Promise((resolve, reject) => request = {resolve, reject, sendCallback});
         this._sendRequests.push(request);
-        if (!this._sendScheduled && !this._offline) {
+        if (!this._sendScheduled && !this._stopped) {
             this._sendLoop();
         }
         return promise;
@@ -84,10 +96,10 @@ export class SendScheduler {
                 // this can throw!
                 result = await this._doSend(request.sendCallback);
             } catch (err) {
-                if (err instanceof NetworkError) {
+                if (err instanceof ConnectionError) {
                     // we're offline, everybody will have
                     // to re-request slots when we come back online
-                    this._offline = true;
+                    this._stopped = true;
                     for (const r of this._sendRequests) {
                         r.reject(err);
                     }

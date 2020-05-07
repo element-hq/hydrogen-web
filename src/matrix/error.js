@@ -3,17 +3,23 @@ export class HomeServerError extends Error {
         super(`${body ? body.error : status} on ${method} ${url}`);
         this.errcode = body ? body.errcode : null;
         this.retry_after_ms = body ? body.retry_after_ms : 0;
+        this.statusCode = status;
     }
 
-    get isFatal() {
-        switch (this.errcode) {
-            
-        }
+    get name() {
+        return "HomeServerError";
     }
 }
 
-export class RequestAbortError extends Error {
-}
+export {AbortError} from "../utils/error.js";
 
-export class NetworkError extends Error { 
+export class ConnectionError extends Error {
+    constructor(message, isTimeout) {
+        super(message || "ConnectionError");
+        this.isTimeout = isTimeout;
+    }
+
+    get name() {
+        return "ConnectionError";
+    }
 }

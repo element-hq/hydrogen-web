@@ -1,8 +1,16 @@
-import {RequestAbortError} from "./error.js";
-import EventEmitter from "../EventEmitter.js";
+import {AbortError} from "./error.js";
+import {ObservableValue} from "../observable/ObservableValue.js";
+import {createEnum} from "../utils/enum.js";
 
 const INCREMENTAL_TIMEOUT = 30000;
 const SYNC_EVENT_LIMIT = 10;
+
+export const SyncStatus = createEnum(
+    "InitialSync",
+    "CatchupSync",
+    "Syncing",
+    "Stopped"
+);
 
 function parseRooms(roomsSection, roomCallback) {
     if (roomsSection) {
@@ -19,60 +27,64 @@ function parseRooms(roomsSection, roomCallback) {
     return [];
 }
 
-export default class Sync extends EventEmitter {
+export class Sync {
     constructor({hsApi, session, storage}) {
-        super();
         this._hsApi = hsApi;
         this._session = session;
         this._storage = storage;
-        this._isSyncing = false;
         this._currentRequest = null;
+        this._status = new ObservableValue(SyncStatus.Stopped);
+        this._error = null;
     }
 
-    get isSyncing() {
-        return this._isSyncing;
+    get status() {
+        return this._status;
     }
 
-    // returns when initial sync is done
-    async start() {
-        if (this._isSyncing) {
+    /** the error that made the sync stop */
+    get error() {
+        return this._error;
+    }
+
+    start() {
+        // not already syncing?
+        if (this._status.get() !== SyncStatus.Stopped) {
             return;
         }
-        this._isSyncing = true;
-        this.emit("status", "started");
         let syncToken = this._session.syncToken;
-        // do initial sync if needed
-        if (!syncToken) {
-            // need to create limit filter here
-            syncToken = await this._syncRequest();
+        if (syncToken) {
+            this._status.set(SyncStatus.CatchupSync);
+        } else {
+            this._status.set(SyncStatus.InitialSync);
         }
         this._syncLoop(syncToken);
     }
 
     async _syncLoop(syncToken) {
         // if syncToken is falsy, it will first do an initial sync ... 
-        while(this._isSyncing) {
+        while(this._status.get() !== SyncStatus.Stopped) {
             try {
                 console.log(`starting sync request with since ${syncToken} ...`);
-                syncToken = await this._syncRequest(syncToken, INCREMENTAL_TIMEOUT);
+                const timeout = syncToken ? INCREMENTAL_TIMEOUT : undefined; 
+                syncToken = await this._syncRequest(syncToken, timeout);
+                this._status.set(SyncStatus.Syncing);
             } catch (err) {
-                this._isSyncing = false;
-                if (!(err instanceof RequestAbortError)) {
-                    console.error("stopping sync because of error");
-                    console.error(err);
-                    this.emit("status", "error", err);
+                if (!(err instanceof AbortError)) {
+                    this._error = err;
+                    this._status.set(SyncStatus.Stopped);
                 }
             }
         }
-        this.emit("status", "stopped");
     }
 
     async _syncRequest(syncToken, timeout) {
         let {syncFilterId} = this._session;
         if (typeof syncFilterId !== "string") {
-            syncFilterId = (await this._hsApi.createFilter(this._session.user.id, {room: {state: {lazy_load_members: true}}}).response()).filter_id;
+            this._currentRequest = this._hsApi.createFilter(this._session.user.id, {room: {state: {lazy_load_members: true}}});
+            syncFilterId = (await this._currentRequest.response()).filter_id;
         }
-        this._currentRequest = this._hsApi.sync(syncToken, syncFilterId, timeout);
+        const totalRequestTimeout = timeout + (80 * 1000);  // same as riot-web, don't get stuck on wedged long requests
+        this._currentRequest = this._hsApi.sync(syncToken, syncFilterId, timeout, {timeout: totalRequestTimeout});
         const response = await this._currentRequest.response();
         syncToken = response.next_batch;
         const storeNames = this._storage.storeNames;
@@ -127,10 +139,10 @@ export default class Sync extends EventEmitter {
     }
 
     stop() {
-        if (!this._isSyncing) {
+        if (this._status.get() === SyncStatus.Stopped) {
             return;
         }
-        this._isSyncing = false;
+        this._status.set(SyncStatus.Stopped);
         if (this._currentRequest) {
             this._currentRequest.abort();
             this._currentRequest = null;

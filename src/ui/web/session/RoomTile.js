@@ -1,6 +1,6 @@
-import TemplateView from "../general/TemplateView.js";
+import {TemplateView} from "../general/TemplateView.js";
 
-export default class RoomTile extends TemplateView {
+export class RoomTile extends TemplateView {
     render(t) {
         return t.li([
             t.div({className: "avatar medium"}, vm => vm.avatarInitials),
@@ -10,6 +10,6 @@ export default class RoomTile extends TemplateView {
 
     // called from ListView
     clicked() {
-        this.viewModel.open();
+        this.value.open();
     }
 }

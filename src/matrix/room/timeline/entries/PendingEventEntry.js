@@ -1,6 +1,6 @@
-import BaseEntry, {PENDING_FRAGMENT_ID} from "./BaseEntry.js";
+import {BaseEntry, PENDING_FRAGMENT_ID} from "./BaseEntry.js";
 
-export default class PendingEventEntry extends BaseEntry {
+export class PendingEventEntry extends BaseEntry {
     constructor({pendingEvent, user}) {
         super(null);
         this._pendingEvent = pendingEvent;

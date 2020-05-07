@@ -1,6 +1,6 @@
 import {tag} from "../general/html.js";
 
-export default class RoomPlaceholderView {
+export class RoomPlaceholderView {
     constructor() {
         this._root = null;
     }

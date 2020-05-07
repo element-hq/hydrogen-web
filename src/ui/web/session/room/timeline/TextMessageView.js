@@ -1,6 +1,6 @@
-import TemplateView from "../../../general/TemplateView.js";
+import {TemplateView} from "../../../general/TemplateView.js";
 
-export default class TextMessageView extends TemplateView {
+export class TextMessageView extends TemplateView {
     render(t, vm) {
         // no bindings ... should this be a template view?
         return t.li(

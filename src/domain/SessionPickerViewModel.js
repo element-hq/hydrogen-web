@@ -1,10 +1,10 @@
 import {SortedArray} from "../observable/index.js";
-import EventEmitter from "../EventEmitter.js";
-import {createNewSessionId} from "./BrawlViewModel.js"
+import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
+import {ViewModel} from "./ViewModel.js";
 
-class SessionItemViewModel extends EventEmitter {
+class SessionItemViewModel extends ViewModel {
     constructor(sessionInfo, pickerVM) {
-        super();
+        super({});
         this._pickerVM = pickerVM;
         this._sessionInfo = sessionInfo;
         this._isDeleting = false;
@@ -19,31 +19,31 @@ class SessionItemViewModel extends EventEmitter {
 
     async delete() {
         this._isDeleting = true;
-        this.emit("change", "isDeleting");
+        this.emitChange("isDeleting");
         try {
             await this._pickerVM.delete(this.id);
         } catch(err) {
             this._error = err;
             console.error(err);
-            this.emit("change", "error");
+            this.emitChange("error");
         } finally {
             this._isDeleting = false;
-            this.emit("change", "isDeleting");
+            this.emitChange("isDeleting");
         }
     }
 
     async clear() {
         this._isClearing = true;
-        this.emit("change");
+        this.emitChange();
         try {
             await this._pickerVM.clear(this.id);
         } catch(err) {
             this._error = err;
             console.error(err);
-            this.emit("change", "error");
+            this.emitChange("error");
         } finally {
             this._isClearing = false;
-            this.emit("change", "isClearing");
+            this.emitChange("isClearing");
         }
     }
 
@@ -82,7 +82,7 @@ class SessionItemViewModel extends EventEmitter {
             const json = JSON.stringify(data, undefined, 2);
             const blob = new Blob([json], {type: "application/json"});
             this._exportDataUrl = URL.createObjectURL(blob);
-            this.emit("change", "exportDataUrl");
+            this.emitChange("exportDataUrl");
         } catch (err) {
             alert(err.message);
             console.error(err);
@@ -93,33 +93,66 @@ class SessionItemViewModel extends EventEmitter {
         if (this._exportDataUrl) {
             URL.revokeObjectURL(this._exportDataUrl);
             this._exportDataUrl = null;
-            this.emit("change", "exportDataUrl");
+            this.emitChange("exportDataUrl");
         }
     }
 }
 
-export default class SessionPickerViewModel {
-    constructor({storageFactory, sessionStore, sessionCallback}) {
+
+export class SessionPickerViewModel extends ViewModel {
+    constructor(options) {
+        super(options);
+        const {storageFactory, sessionInfoStorage, sessionCallback, createSessionContainer} = options;
         this._storageFactory = storageFactory;
-        this._sessionStore = sessionStore;
+        this._sessionInfoStorage = sessionInfoStorage;
         this._sessionCallback = sessionCallback;
+        this._createSessionContainer = createSessionContainer;
         this._sessions = new SortedArray((s1, s2) => s1.id.localeCompare(s2.id));
+        this._loadViewModel = null;
+        this._error = null;
     }
 
+    // this loads all the sessions
     async load() {
-        const sessions = await this._sessionStore.getAll();
+        const sessions = await this._sessionInfoStorage.getAll();
         this._sessions.setManyUnsorted(sessions.map(s => new SessionItemViewModel(s, this)));
     }
 
-    pick(id) {
+    // for the loading of 1 picked session
+    get loadViewModel() {
+        return this._loadViewModel;
+    }
+
+    async pick(id) {
+        if (this._loadViewModel) {
+            return;
+        }
         const sessionVM = this._sessions.array.find(s => s.id === id);
         if (sessionVM) {
-            this._sessionCallback(sessionVM.sessionInfo);
+            this._loadViewModel = new SessionLoadViewModel({
+                createAndStartSessionContainer: () => {
+                    const sessionContainer = this._createSessionContainer();
+                    sessionContainer.startWithExistingSession(sessionVM.id);
+                    return sessionContainer;
+                },
+                sessionCallback: sessionContainer => {
+                    if (sessionContainer) {
+                        // make parent view model move away
+                        this._sessionCallback(sessionContainer);
+                    } else {
+                        // show list of session again
+                        this._loadViewModel = null;
+                        this.emitChange("loadViewModel");
+                    }
+                }
+            });
+            this._loadViewModel.start();
+            this.emitChange("loadViewModel");
         }
     }
 
     async _exportData(id) {
-        const sessionInfo = await this._sessionStore.get(id);
+        const sessionInfo = await this._sessionInfoStorage.get(id);
         const stores = await this._storageFactory.export(id);
         const data = {sessionInfo, stores};
         return data;
@@ -129,15 +162,15 @@ export default class SessionPickerViewModel {
         const data = JSON.parse(json);
         const {sessionInfo} = data;
         sessionInfo.comment = `Imported on ${new Date().toLocaleString()} from id ${sessionInfo.id}.`;
-        sessionInfo.id = createNewSessionId();
+        sessionInfo.id = this._createSessionContainer().createNewSessionId();
         await this._storageFactory.import(sessionInfo.id, data.stores);
-        await this._sessionStore.add(sessionInfo);
+        await this._sessionInfoStorage.add(sessionInfo);
         this._sessions.set(new SessionItemViewModel(sessionInfo, this));
     }
 
     async delete(id) {
         const idx = this._sessions.array.findIndex(s => s.id === id);
-        await this._sessionStore.delete(id);
+        await this._sessionInfoStorage.delete(id);
         await this._storageFactory.delete(id);
         this._sessions.remove(idx);
     }
@@ -151,6 +184,8 @@ export default class SessionPickerViewModel {
     }
 
     cancel() {
-        this._sessionCallback();
+        if (!this._loadViewModel) {
+            this._sessionCallback();
+        }
     }
 }

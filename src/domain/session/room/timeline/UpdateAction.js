@@ -1,4 +1,4 @@
-export default class UpdateAction {
+export class UpdateAction {
     constructor(remove, update, updateParams) {
         this._remove = remove;
         this._update = update;

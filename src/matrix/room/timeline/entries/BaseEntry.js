@@ -1,8 +1,8 @@
 //entries can be sorted, first by fragment, then by entry index.
-import EventKey from "../EventKey.js";
+import {EventKey} from "../EventKey.js";
 export const PENDING_FRAGMENT_ID = Number.MAX_SAFE_INTEGER;
 
-export default class BaseEntry {
+export class BaseEntry {
     constructor(fragmentIdComparer) {
         this._fragmentIdComparer = fragmentIdComparer;
     }

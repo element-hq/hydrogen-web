@@ -1,6 +1,6 @@
-import SimpleTile from "./SimpleTile.js";
+import {SimpleTile} from "./SimpleTile.js";
 
-export default class MessageTile extends SimpleTile {
+export class MessageTile extends SimpleTile {
 
     constructor(options) {
         super(options);

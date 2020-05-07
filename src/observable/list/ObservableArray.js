@@ -1,6 +1,6 @@
-import BaseObservableList from "./BaseObservableList.js";
+import {BaseObservableList} from "./BaseObservableList.js";
 
-export default class ObservableArray extends BaseObservableList {
+export class ObservableArray extends BaseObservableList {
     constructor(initialValues = []) {
         super();
         this._items = initialValues;

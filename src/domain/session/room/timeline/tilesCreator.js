@@ -1,10 +1,10 @@
-import GapTile from "./tiles/GapTile.js";
-import TextTile from "./tiles/TextTile.js";
-import LocationTile from "./tiles/LocationTile.js";
-import RoomNameTile from "./tiles/RoomNameTile.js";
-import RoomMemberTile from "./tiles/RoomMemberTile.js";
+import {GapTile} from "./tiles/GapTile.js";
+import {TextTile} from "./tiles/TextTile.js";
+import {LocationTile} from "./tiles/LocationTile.js";
+import {RoomNameTile} from "./tiles/RoomNameTile.js";
+import {RoomMemberTile} from "./tiles/RoomMemberTile.js";
 
-export default function ({room, ownUserId}) {
+export function tilesCreator({room, ownUserId}) {
     return function tilesCreator(entry, emitUpdate) {
         const options = {entry, emitUpdate, ownUserId};
         if (entry.isGap) {

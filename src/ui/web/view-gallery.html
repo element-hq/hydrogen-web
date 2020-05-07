@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+        <link rel="stylesheet" type="text/css" href="css/main.css">
+	</head>
+	<body>
+        <script type="text/javascript">
+            function vm(o) {
+                // fake EventEmitter
+                o.on = () => {};
+                o.off = () => {};
+                o.i18n = (parts, ...expr) => {
+                    let result = "";
+                    for (let i = 0; i < parts.length; ++i) {
+                        result = result + parts[i];
+                        if (i < expr.length) {
+                            result = result + expr[i];
+                        }
+                    }
+                    return result;
+                };
+                return o;
+            }
+        </script>
+        <h1>View Gallery</h1>
+        <h2 name="session-status">Session Status Bar</h2>
+        <div id="session-status" class="brawl"></div>
+        <script id="main" type="module">
+            import {SessionStatusView} from "./session/SessionStatusView.js";
+            const view = new SessionStatusView(vm({
+                isShown: true,
+                statusLabel: "Doing something something",
+                isWaiting: true,
+                isConnectNowShown: true,
+                connectNow: () => alert("connecting now")
+            }));
+            document.getElementById("session-status").appendChild(view.mount());
+        </script>
+        <h2 name="login">Login</h2>
+        <div id="login" class="brawl"></div>
+        <script id="main" type="module">
+            import {LoginView} from "./login/LoginView.js";
+            const view = new LoginView(vm({
+                defaultHomeServer: "https://hs.tld",
+                login: () => alert("Logging in!"),
+                goBack: () => alert("Going back"),
+            }));
+            document.getElementById("login").appendChild(view.mount());
+        </script>
+        <h2 name="login-loading">Login Loading</h2>
+        <div id="login-loading" class="brawl"></div>
+		<script id="main" type="module">
+			import {LoginView} from "./login/LoginView.js";
+            const view = new LoginView(vm({
+                loadViewModel: vm({
+                    loadLabel: "Doing something important...",
+                    loading: true,
+                }),
+                defaultHomeServer: "https://hs.tld",
+            }));
+            document.getElementById("login-loading").appendChild(view.mount());
+		</script>
+
+	</body>
+</html>

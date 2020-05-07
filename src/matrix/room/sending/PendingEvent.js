@@ -1,4 +1,4 @@
-export default class PendingEvent {
+export class PendingEvent {
     constructor(data) {
         this._data = data;
     }

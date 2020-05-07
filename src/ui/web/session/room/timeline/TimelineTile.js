@@ -1,6 +1,6 @@
 import {tag} from "../../../general/html.js";
 
-export default class TimelineTile {
+export class TimelineTile {
     constructor(tileVM) {
         this._tileVM = tileVM;
         this._root = null;

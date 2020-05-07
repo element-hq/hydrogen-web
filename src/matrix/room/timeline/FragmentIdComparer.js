@@ -114,7 +114,7 @@ class Island {
 /*
 index for fast lookup of how two fragments can be sorted
 */
-export default class FragmentIdComparer {
+export class FragmentIdComparer {
     constructor(fragments) {
         this._fragmentsById = fragments.reduce((map, f) => {map.set(f.id, f); return map;}, new Map());
         this.rebuild(fragments);
@@ -180,7 +180,6 @@ export default class FragmentIdComparer {
     }
 }
 
-//#ifdef TESTS
 export function tests() {
     return {
         test_1_island_3_fragments(assert) {
@@ -297,4 +296,3 @@ export function tests() {
         }
     }
 }
-//#endif

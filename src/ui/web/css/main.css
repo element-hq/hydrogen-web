@@ -1,24 +1,44 @@
 @import url('layout.css');
+@import url('login.css');
 @import url('left-panel.css');
 @import url('room.css');
 @import url('timeline.css');
 @import url('avatar.css');
+@import url('spinner.css');
 
-body {
+.brawl {
     margin: 0;
-    font-family: sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, Cantarell, sans-serif,
+                "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     background-color: black;
     color: white;
 }
 
-.SyncStatusBar {
-    background-color: #555;
-    display: none;
+.hiddenWithLayout {
+    visibility: hidden;
 }
 
-.SyncStatusBar_shown {
-    display: unset;
+.hidden {
+    display: none !important;
 }
+
+.SessionStatusView {
+    display: flex;
+    padding: 5px;
+    background-color: #555;
+}
+
+.SessionStatusView p {
+    margin: 0 10px;
+}
+
+.SessionStatusView button {
+    border: none;
+    background: none;
+    color: currentcolor;
+    text-decoration: underline;
+}
+
 
 .RoomPlaceholderView {
     display: flex;

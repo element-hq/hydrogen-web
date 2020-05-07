@@ -1,9 +1,9 @@
-import { SortedArray, MappedList, ConcatList } from "../../../observable/index.js";
-import Direction from "./Direction.js";
-import TimelineReader from "./persistence/TimelineReader.js";
-import PendingEventEntry from "./entries/PendingEventEntry.js";
+import {SortedArray, MappedList, ConcatList} from "../../../observable/index.js";
+import {Direction} from "./Direction.js";
+import {TimelineReader} from "./persistence/TimelineReader.js";
+import {PendingEventEntry} from "./entries/PendingEventEntry.js";
 
-export default class Timeline {
+export class Timeline {
     constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, user}) {
         this._roomId = roomId;
         this._storage = storage;
@@ -29,6 +29,9 @@ export default class Timeline {
         this._remoteEntries.setManySorted(entries);
     }
 
+    // TODO: should we rather have generic methods for
+    // - adding new entries
+    // - updating existing entries (redaction, relations)
     /** @package */
     appendLiveEntries(newEntries) {
         this._remoteEntries.setManySorted(newEntries);
@@ -60,6 +63,9 @@ export default class Timeline {
 
     /** @public */
     close() {
-        this._closeCallback();
+        if (this._closeCallback) {
+            this._closeCallback();
+            this._closeCallback = null;
+        }
     }
 }

@@ -1,9 +1,9 @@
-import BaseEntry from "./BaseEntry.js";
-import Direction from "../Direction.js";
+import {BaseEntry} from "./BaseEntry.js";
+import {Direction} from "../Direction.js";
 import {isValidFragmentId} from "../common.js";
-import Platform from "../../../../Platform.js";
+import {Platform} from "../../../../Platform.js";
 
-export default class FragmentBoundaryEntry extends BaseEntry {
+export class FragmentBoundaryEntry extends BaseEntry {
     constructor(fragment, isFragmentStart, fragmentIdComparer) {
         super(fragmentIdComparer);
         this._fragment = fragment;

@@ -1,9 +1,9 @@
-import ListView from "../../general/ListView.js";
-import GapView from "./timeline/GapView.js";
-import TextMessageView from "./timeline/TextMessageView.js";
-import AnnouncementView from "./timeline/AnnouncementView.js";
+import {ListView} from "../../general/ListView.js";
+import {GapView} from "./timeline/GapView.js";
+import {TextMessageView} from "./timeline/TextMessageView.js";
+import {AnnouncementView} from "./timeline/AnnouncementView.js";
 
-export default class TimelineList extends ListView {
+export class TimelineList extends ListView {
     constructor(options = {}) {
         options.className = "Timeline";
         super(options, entry => {

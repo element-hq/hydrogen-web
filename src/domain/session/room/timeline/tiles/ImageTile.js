@@ -1,6 +1,6 @@
-import MessageTile from "./MessageTile.js";
+import {MessageTile} from "./MessageTile.js";
 
-export default class ImageTile extends MessageTile {
+export class ImageTile extends MessageTile {
     constructor(options) {
         super(options);
 

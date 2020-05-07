@@ -1,0 +1,34 @@
+@keyframes spinner {
+    0% {
+        transform: rotate(0);
+        stroke-dasharray: 0 0 10 90;
+    }
+    45% {
+        stroke-dasharray: 0 0 90 10;
+    }
+    75% {
+        stroke-dasharray: 0 50 50 0;
+    }
+    100% {
+        transform: rotate(360deg);
+        stroke-dasharray: 10 90 0 0;
+    }
+}
+
+.spinner circle {
+    transform-origin: 50% 50%;
+    animation-name: spinner;
+    animation-duration: 2s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+    fill: none;
+    stroke: currentcolor;
+    stroke-width: 12;
+    stroke-linecap: butt;
+}
+
+.spinner {
+    --size: 20px;
+    width: var(--size);
+    height: var(--size);
+}

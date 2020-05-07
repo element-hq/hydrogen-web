@@ -1,6 +1,6 @@
-import BaseObservableList from "./BaseObservableList.js";
+import {BaseObservableList} from "./BaseObservableList.js";
 
-export default class MappedList extends BaseObservableList {
+export class MappedList extends BaseObservableList {
     constructor(sourceList, mapper, updater) {
         super();
         this._sourceList = sourceList;

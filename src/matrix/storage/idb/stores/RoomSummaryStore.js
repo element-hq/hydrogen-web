@@ -11,7 +11,7 @@ store contains:
 	inviteCount
 	joinCount
 */
-export default class RoomSummaryStore {
+export class RoomSummaryStore {
 	constructor(summaryStore) {
 		this._summaryStore = summaryStore;
 	}

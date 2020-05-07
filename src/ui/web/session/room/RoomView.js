@@ -1,14 +1,15 @@
-import TemplateView from "../../general/TemplateView.js";
-import TimelineList from "./TimelineList.js";
-import MessageComposer from "./MessageComposer.js";
+import {TemplateView} from "../../general/TemplateView.js";
+import {TimelineList} from "./TimelineList.js";
+import {MessageComposer} from "./MessageComposer.js";
 
-export default class RoomView extends TemplateView {
+export class RoomView extends TemplateView {
     constructor(viewModel) {
-        super(viewModel, true);
+        super(viewModel);
         this._timelineList = null;
     }
 
     render(t, vm) {
+        this._timelineList = new TimelineList();
         return t.div({className: "RoomView"}, [
             t.div({className: "TimelinePanel"}, [
                 t.div({className: "RoomHeader"}, [
@@ -19,28 +20,16 @@ export default class RoomView extends TemplateView {
                     ]),
                 ]),
                 t.div({className: "RoomView_error"}, vm => vm.error),
-                this._timelineList.mount(),
-                this._composer.mount(),
+                t.view(this._timelineList),
+                t.view(new MessageComposer(this.value.composerViewModel)),
             ])
         ]);
-    }
-
-    mount() {
-        this._composer = new MessageComposer(this.viewModel);
-        this._timelineList = new TimelineList();
-        return super.mount();
-    }
-
-    unmount() {
-        this._composer.unmount();
-        this._timelineList.unmount();
-        super.unmount();
     }
 
     update(value, prop) {
         super.update(value, prop);
         if (prop === "timelineViewModel") {
-            this._timelineList.update({viewModel: this.viewModel.timelineViewModel});
+            this._timelineList.update({viewModel: this.value.timelineViewModel});
         }
     }
 }

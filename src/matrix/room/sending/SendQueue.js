@@ -1,6 +1,6 @@
-import SortedArray from "../../../observable/list/SortedArray.js";
-import {NetworkError} from "../../error.js";
-import PendingEvent from "./PendingEvent.js";
+import {SortedArray} from "../../../observable/list/SortedArray.js";
+import {ConnectionError} from "../../error.js";
+import {PendingEvent} from "./PendingEvent.js";
 
 function makeTxnId() {
     const n = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
@@ -8,7 +8,7 @@ function makeTxnId() {
     return "t" + "0".repeat(14 - str.length) + str;
 }
 
-export default class SendQueue {
+export class SendQueue {
     constructor({roomId, storage, sendScheduler, pendingEvents}) {
         pendingEvents = pendingEvents || [];
         this._roomId = roomId;
@@ -31,7 +31,6 @@ export default class SendQueue {
             while (this._amountSent < this._pendingEvents.length) {
                 const pendingEvent = this._pendingEvents.get(this._amountSent);
                 console.log("trying to send", pendingEvent.content.body);
-                this._amountSent += 1;
                 if (pendingEvent.remoteId) {
                     continue;
                 }
@@ -50,9 +49,10 @@ export default class SendQueue {
                 console.log("writing remoteId now");
                 await this._tryUpdateEvent(pendingEvent);
                 console.log("keep sending?", this._amountSent, "<", this._pendingEvents.length);
+                this._amountSent += 1;
             }
         } catch(err) {
-            if (err instanceof NetworkError) {
+            if (err instanceof ConnectionError) {
                 this._offline = true;
             }
         } finally {

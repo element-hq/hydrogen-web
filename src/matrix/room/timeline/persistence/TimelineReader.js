@@ -1,9 +1,9 @@
 import {directionalConcat, directionalAppend} from "./common.js";
-import Direction from "../Direction.js";
-import EventEntry from "../entries/EventEntry.js";
-import FragmentBoundaryEntry from "../entries/FragmentBoundaryEntry.js";
+import {Direction} from "../Direction.js";
+import {EventEntry} from "../entries/EventEntry.js";
+import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
 
-export default class TimelineReader {
+export class TimelineReader {
     constructor({roomId, storage, fragmentIdComparer}) {
         this._roomId = roomId;
         this._storage = storage;

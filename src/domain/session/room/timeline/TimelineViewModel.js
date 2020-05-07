@@ -14,11 +14,11 @@ the timeline (counted in tiles), which results to a range in sortKeys we want on
 to the room timeline, which unload entries from memory.
 when loading, it just reads events from a sortkey backwards or forwards...
 */
-import TilesCollection from "./TilesCollection.js";
-import tilesCreator from "./tilesCreator.js";
+import {TilesCollection} from "./TilesCollection.js";
+import {tilesCreator} from "./tilesCreator.js";
 
-export default class TimelineViewModel {
-    constructor(room, timeline, ownUserId) {
+export class TimelineViewModel {
+    constructor({room, timeline, ownUserId}) {
         this._timeline = timeline;
         // once we support sending messages we could do
         // timeline.entries.concat(timeline.pendingEvents)
