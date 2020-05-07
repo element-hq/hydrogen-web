@@ -152,7 +152,7 @@ export class SessionContainer {
         // restored the connection, it would have already
         // started to session, so check first
         // to prevent an extra /versions request
-        if (!this._session.isStarted) {
+        if (this._session.isStarted) {
             const lastVersionsResponse = await hsApi.versions({timeout: 10000}).response();
             this._session.start(lastVersionsResponse);
         }
