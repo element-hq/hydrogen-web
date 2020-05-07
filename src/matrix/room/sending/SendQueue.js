@@ -31,7 +31,6 @@ export class SendQueue {
             while (this._amountSent < this._pendingEvents.length) {
                 const pendingEvent = this._pendingEvents.get(this._amountSent);
                 console.log("trying to send", pendingEvent.content.body);
-                this._amountSent += 1;
                 if (pendingEvent.remoteId) {
                     continue;
                 }
@@ -50,6 +49,7 @@ export class SendQueue {
                 console.log("writing remoteId now");
                 await this._tryUpdateEvent(pendingEvent);
                 console.log("keep sending?", this._amountSent, "<", this._pendingEvents.length);
+                this._amountSent += 1;
             }
         } catch(err) {
             if (err instanceof ConnectionError) {
