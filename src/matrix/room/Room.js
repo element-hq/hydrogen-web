@@ -115,12 +115,16 @@ export class Room extends EventEmitter {
         if (this._timeline) {
             throw new Error("not dealing with load race here for now");
         }
+        console.log(`opening the timeline for ${this._roomId}`);
         this._timeline = new Timeline({
             roomId: this.id,
             storage: this._storage,
             fragmentIdComparer: this._fragmentIdComparer,
             pendingEvents: this._sendQueue.pendingEvents,
-            closeCallback: () => this._timeline = null,
+            closeCallback: () => {
+                console.log(`closing the timeline for ${this._roomId}`);
+                this._timeline = null;
+            },
             user: this._user,
         });
         await this._timeline.load();
