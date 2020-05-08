@@ -77,6 +77,7 @@ export class SessionPickerView extends TemplateView {
                     vm.pick(item.value.id);
                 }
             },
+            parentProvidesUpdates: false,
         }, sessionInfo => {
             return new SessionPickerItemView(sessionInfo);
         });
