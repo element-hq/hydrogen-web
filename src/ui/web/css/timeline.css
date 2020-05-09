@@ -26,6 +26,11 @@
     font-weight: bold;
 }
 
+.message-container img {
+    max-width: 100%;
+    display: block;
+}
+
 .TextMessageView {
     display: flex;
     min-width: 0;
