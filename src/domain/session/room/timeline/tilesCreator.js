@@ -1,5 +1,6 @@
 import {GapTile} from "./tiles/GapTile.js";
 import {TextTile} from "./tiles/TextTile.js";
+import {ImageTile} from "./tiles/ImageTile.js";
 import {LocationTile} from "./tiles/LocationTile.js";
 import {RoomNameTile} from "./tiles/RoomNameTile.js";
 import {RoomMemberTile} from "./tiles/RoomMemberTile.js";
@@ -20,8 +21,7 @@ export function tilesCreator({room, ownUserId}) {
                         case "m.emote":
                             return new TextTile(options);
                         case "m.image":
-                            return null; // not supported yet
-                            // return new ImageTile(options);
+                            return new ImageTile(options, room);
                         case "m.location":
                             return new LocationTile(options);
                         default:

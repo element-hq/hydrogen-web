@@ -73,8 +73,8 @@ export class HomeServerApi {
         );
     }
 
-    _request(method, url, queryParams, body, options) {
-        const queryString = Object.entries(queryParams || {})
+    _encodeQueryParams(queryParams) {
+        return Object.entries(queryParams || {})
             .filter(([, value]) => value !== undefined)
             .map(([name, value]) => {
                 if (typeof value === "object") {
@@ -83,6 +83,10 @@ export class HomeServerApi {
                 return `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
             })
             .join("&");
+    }
+
+    _request(method, url, queryParams, body, options) {
+        const queryString = this._encodeQueryParams(queryParams);
         url = `${url}?${queryString}`;
         let bodyString;
         const headers = new Map();
@@ -165,6 +169,35 @@ export class HomeServerApi {
 
     versions(options = null) {
         return this._request("GET", `${this._homeserver}/_matrix/client/versions`, null, null, options);
+    }
+
+    _parseMxcUrl(url) {
+        const prefix = "mxc://";
+        if (url.startsWith(prefix)) {
+            return url.substr(prefix.length).split("/", 2);
+        } else {
+            return null;
+        }
+    }
+
+    mxcUrlThumbnail(url, width, height, method) {
+        const parts = this._parseMxcUrl(url);
+        if (parts) {
+            const [serverName, mediaId] = parts;
+            const httpUrl = `${this._homeserver}/_matrix/media/r0/thumbnail/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`;
+            return httpUrl + "?" + this._encodeQueryParams({width, height, method});
+        }
+        return null;
+    }
+
+    mxcUrl(url) {
+        const parts = this._parseMxcUrl(url);
+        if (parts) {
+            const [serverName, mediaId] = parts;
+            return `${this._homeserver}/_matrix/media/r0/download/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`;
+        } else {
+            return null;
+        }
     }
 }
 
