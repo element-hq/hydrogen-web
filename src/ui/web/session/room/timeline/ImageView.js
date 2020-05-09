@@ -7,7 +7,7 @@ export class ImageView extends TemplateView {
             t.div({className: "message-container"}, [
                 t.div({className: "sender"}, vm => vm.isContinuation ? "" : vm.sender),
                 t.div(t.a({href: vm.url, target: "_blank"},
-                    t.img({src: vm.thumbnailUrl, width: vm.thumbnailWidth, heigth: vm.thumbnailHeigth, loading: "lazy", alt: vm.label}))),
+                    t.img({src: vm.thumbnailUrl, width: vm.thumbnailWidth, height: vm.thumbnailHeight, loading: "lazy", alt: vm.label}))),
                 t.p(t.time(vm.date + " " + vm.time)),
             ])
         );

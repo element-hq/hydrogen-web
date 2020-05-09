@@ -11,7 +11,7 @@ export class ImageTile extends MessageTile {
 
     get thumbnailUrl() {
         const mxcUrl = this._getContent().url;
-        return this._room.mxcUrlThumbnail(mxcUrl, this.thumbnailWidth, this.thumbnailHeigth, "scale");
+        return this._room.mxcUrlThumbnail(mxcUrl, this.thumbnailWidth, this.thumbnailHeight, "scale");
     }
 
     get url() {
@@ -33,7 +33,7 @@ export class ImageTile extends MessageTile {
         return Math.round(info.w * this._scaleFactor());
     }
 
-    get thumbnailHeigth() {
+    get thumbnailHeight() {
         const {info} = this._getContent();
         return Math.round(info.h * this._scaleFactor());
     }
