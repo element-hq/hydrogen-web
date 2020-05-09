@@ -1,6 +1,7 @@
 import {ListView} from "../../general/ListView.js";
 import {GapView} from "./timeline/GapView.js";
 import {TextMessageView} from "./timeline/TextMessageView.js";
+import {ImageView} from "./timeline/ImageView.js";
 import {AnnouncementView} from "./timeline/AnnouncementView.js";
 
 export class TimelineList extends ListView {
@@ -10,7 +11,8 @@ export class TimelineList extends ListView {
             switch (entry.shape) {
                 case "gap": return new GapView(entry);
                 case "announcement": return new AnnouncementView(entry);
-                case "message":return new TextMessageView(entry);
+                case "message": return new TextMessageView(entry);
+                case "image": return new ImageView(entry);
             }
         });
         this._atBottom = false;

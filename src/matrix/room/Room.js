@@ -130,5 +130,13 @@ export class Room extends EventEmitter {
         await this._timeline.load();
         return this._timeline;
     }
+
+    mxcUrlThumbnail(url, width, height, method) {
+        return this._hsApi.mxcUrlThumbnail(url, width, height, method);
+    }
+
+    mxcUrl(url) {
+        return this._hsApi.mxcUrl(url);
+    }
 }
 
