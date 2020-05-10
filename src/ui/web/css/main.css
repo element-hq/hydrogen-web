@@ -12,6 +12,8 @@
                 "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     background-color: black;
     color: white;
+    /* make sure to disable rubber-banding and pull to refresh in a PWA if we'd end up having a scrollbar */
+    overscroll-behavior: none;
 }
 
 .hiddenWithLayout {

@@ -3,6 +3,7 @@
     background: #333;
     color: white;
     overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .LeftPanel ul {

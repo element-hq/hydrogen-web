@@ -1,6 +1,7 @@
 
 .TimelinePanel ul {
     overflow-y: auto;
+    overscroll-behavior: contain;
     list-style: none;
     padding: 0;
     margin: 0;
