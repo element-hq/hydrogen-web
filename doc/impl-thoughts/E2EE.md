@@ -3,6 +3,20 @@
  - implement MemberList as ObservableMap
     - make sure we have all members (as we're using lazy loading members), and store these somehow
         - do we need to update /members on every limited sync response or did we find a way around this?
+        - fields:
+            - user id
+            - room id
+            - membership (invite, join, leave, ban)
+            - display name
+            - avatar url
+            - needs disambiguation in member list? (e.g. display name is not unique)
+            - device tracking status
+        - key [room id, user id] so we can easily get who is in a room by looking at [room id, min] -> [room id, max]
+            should the display name also be part of the key so the list is sorted by name? or have a sorting field of some sort
+        - index on:
+            - user_id (to see which rooms a user is in, e.g. to recalculate trust on key changes)
+            - [room id, display name] to determine disambiguation?
+        - for just e2ee without showing the list in the UI, we can do with only some of these things.
  - implement creating/loading an olm account
     - add libolm as dependency
     - store pickled account
@@ -29,8 +43,8 @@
     - store devices
         - id
         - userid
-        - signing KP
-        - identity KP
+        - signing PK
+        - identity PK
         - algorithms
         - device name
         - verified
