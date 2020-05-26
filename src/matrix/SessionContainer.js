@@ -152,6 +152,10 @@ export class SessionContainer {
         // restored the connection, it would have already
         // started to session, so check first
         // to prevent an extra /versions request
+        
+        // TODO: this doesn't look logical, but works. Why?
+        // I think because isStarted is true by default. That's probably not what we intend.
+        // I think there is a bug here, in that even if the reconnector already started the session, we'd still do this.
         if (this._session.isStarted) {
             const lastVersionsResponse = await hsApi.versions({timeout: 10000}).response();
             this._session.start(lastVersionsResponse);
