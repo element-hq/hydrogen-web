@@ -6,6 +6,7 @@ A minimal [Matrix](https://matrix.org/) chat client, focused on performance, off
 
 Brawl can currently log you in, or pick an existing session, sync already joined rooms, fill gaps in the timeline, and send text messages. Everything is stored locally.
 
+Here's an (outdated) GIF of what that looks like, also see link below to try it out:
 ![Showing multiple sessions, and sending messages](https://bwindels.github.io/brawl-chat/images/brawl-sending.gif)
 
 ## Why
