@@ -2,7 +2,10 @@
 ## Olm
  - implement MemberList as ObservableMap
     - make sure we have all members (as we're using lazy loading members), and store these somehow
+        - keep in mind that the server might not support lazy loading? E.g. we should store in a memberlist all the membership events passed by sync, perhaps with a flag if we already attempted to fetch all. We could also check if the server announces lazy loading support in the version response (I think r0.6.0).
         - do we need to update /members on every limited sync response or did we find a way around this?
+            - I don't think we need to ... we get all state events that were sent during the gap in `room.state`
+            - I tested this with riot and synapse, and indeed, we get membership events from the gap on a limited sync. This could be clearer in the spec though.
         - fields:
             - user id
             - room id
