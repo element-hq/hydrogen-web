@@ -14,7 +14,7 @@
         - key [room id, user id] so we can easily get who is in a room by looking at [room id, min] -> [room id, max]
             should the display name also be part of the key so the list is sorted by name? or have a sorting field of some sort
         - index on:
-            - user_id (to see which rooms a user is in, e.g. to recalculate trust on key changes)
+            - [user_id, room_id] to see which rooms a user is in, e.g. to recalculate trust on key changes
             - [room id, display name] to determine disambiguation?
         - for just e2ee without showing the list in the UI, we can do with only some of these things.
  - implement creating/loading an olm account
@@ -236,7 +236,7 @@ other:
 we should adjust the session store to become a key value store rather than just a single value, we can split up in:
     - syncData (filterId, syncToken, syncCount)
     - serverConfig (/versions response)
-    - serialized olm account
+    - serialized olm Account
 so we don't have write all of that on every sync to update the sync token
 
 new stores:
@@ -252,7 +252,9 @@ outbound-megolm-sessions
 
 we should create constants with sets of store names that are needed for certain use cases, like write timeline will require [timeline, fragments, inbound-megolm-sessions] which we can reuse when filling the gap, writing timeline sync, ...
 
+room summary should gain a field tracking if members have been loaded or not?
 
 main things to figure out:
     - how to decrypt? what indices do we need? is it reasonable to do this without having all EncryptionUser/devices in memory?
         - big part of this is how we can find the matching olm session for an incoming event/create a new olm session
+            - can we mark some olm sessions as "spent" once they are too old/have used max messages? or do we need to look into all past olm sessions for a senderKey/device?

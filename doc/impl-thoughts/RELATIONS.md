@@ -12,3 +12,7 @@ SendQueue will need to pass the non-sent state (redactions & relations) about an
 Also, related ids should be processed recursively. If event 3 is a redaction of event 2, a reaction to event 1, all 3 entries should be considered as updated.
 
 As a UI for reactions, we could show (👍 14 + 1) where the + 1 is our own local echo (perhaps style it pulsating and/or in grey?). Clicking it again would just show 14 and when the remote echo comes in it would turn into 15.
+
+
+
+wrt to how to store relations in indexeddb, we could store all local ids of related events (per type?) on the related-to event, so we can fetch them in one query for *all* events that have related events that were fetched in a range, without needing another index that would slow down writes. So that would only add 1 query which we only need to do when there are relations in the TimelineReader. what do we do though if we receive the relating event before the related-to event? An index would fix this mostly ... or we need a temp store where we store unresolved relations...
