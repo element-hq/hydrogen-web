@@ -121,7 +121,8 @@ we'll need to pass an implementation of EventSender or something to SendQueue th
  - use AES-CTR from https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto
 
 ## Notes
-  - libolm api docs (also for js api) would be great
+  - libolm api docs (also for js api) would be great. Found something that could work:
+    https://gitlab.matrix.org/matrix-org/olm/-/blob/master/javascript/index.d.ts
 
 
 ## OO Design
