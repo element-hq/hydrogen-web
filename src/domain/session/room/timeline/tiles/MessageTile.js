@@ -1,7 +1,6 @@
 import {SimpleTile} from "./SimpleTile.js";
 
 export class MessageTile extends SimpleTile {
-
     constructor(options) {
         super(options);
         this._isOwn = this._entry.sender === options.ownUserId;

@@ -20,10 +20,10 @@ export class SessionLoadViewModel extends ViewModel {
         }
         try {
             this._loading = true;
-            this.emitChange();
+            this.emitChange("loading");
             this._sessionContainer = this._createAndStartSessionContainer();
             this._waitHandle = this._sessionContainer.loadStatus.waitFor(s => {
-                this.emitChange();
+                this.emitChange("loadLabel");
                 // wait for initial sync, but not catchup sync
                 const isCatchupSync = s === LoadStatus.FirstSync &&
                     this._sessionContainer.sync.status.get() === SyncStatus.CatchupSync;
@@ -51,7 +51,7 @@ export class SessionLoadViewModel extends ViewModel {
             this._error = err;
         } finally {
             this._loading = false;
-            this.emitChange();
+            this.emitChange("loading");
         }
     }
 
