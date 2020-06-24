@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no">
+    <meta name="application-name" content="Brawl Chat"/>
+    <meta name="msapplication-navbutton-color" content="red"/>
+    <style type="text/css">
+        html {
+            height: 100%;
+            display: flex;
+            min-height: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, Cantarell, sans-serif,
+                "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+            background-color: black;
+            color: white;
+            margin: 0;
+        }
+
+        .timeline-panel {
+            height: 100vh;
+            overflow-y: auto;
+            /* for position sticky of date separators */
+            position: relative;
+        }
+
+        .timeline-panel ul {
+            flex: 1;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .timeline-panel li {
+        }
+
+        .message {
+            display: grid;
+            min-width: 0;
+        }
+
+        .message.own .message-container {
+            margin-left: auto;
+        }
+
+        .message-container {
+            flex: 0 1 auto;
+            max-width: 80%;
+            padding: 5px 10px;
+            margin: 5px 10px;
+            background: blue;
+        }
+
+        .message-container .sender {
+            margin: 5px 0;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .text-message .message-container time {
+            float: right;
+            padding: 2px 0 0px 20px;
+            font-size: 0.9em;
+            color: lightblue;
+        }
+
+        .image-message .message-container time {
+            display: block;
+            text-align: right;
+        }
+
+        .image-message img {
+            width: 100%;
+        }
+
+        .message-container time {
+            font-size: 0.9em;
+            color: lightblue;
+        }
+
+        .own time {
+            color: lightgreen;
+        }
+
+        .own .message-container {
+            background-color: darkgreen;
+        }
+
+        .message {
+              grid-template-areas:
+                "date date date"
+                "sender-avatar message gap"
+        }
+
+        .message.own {
+              grid-template-areas:
+                "date date date"
+                "gap message sender-avatar"
+        }
+
+        .continuation .sender {
+            display: none;
+        }
+
+        .continuation .sender-avatar {
+            display: none;
+        }
+
+        .sender-avatar {
+            grid-area: sender-avatar;
+        }
+
+        .message-container {
+            grid-area: message;
+        }
+
+        .date-separator {
+            grid-area: date;
+            display: flex;
+            justify-content: center;
+            margin: 10px 0;
+            position: sticky;
+            top: 10px;
+        }
+
+        .date-separator div {
+            background: #333;
+            color: white;
+            font-weight: bold;
+            border-radius: 1rem;
+            padding: 0 1rem;
+        }
+
+        .announcement {
+            margin: 5px 0;
+            padding: 5px 10%;
+            display: flex;
+            align-items: center;
+        }
+
+        .announcement > div {
+            margin: 0 auto;
+            padding: 10px 20px;
+            background-color: #333;
+            font-size: 0.9em;
+            color: #CCC;
+            text-align: center;
+        }
+        
+        .message-container p {
+            margin: 5px 0;
+        }
+
+        .avatar {
+            --avatar-size: 32px;
+            width: var(--avatar-size);
+            height: var(--avatar-size);
+            border-radius: 100px;
+            overflow: hidden;
+            flex-shrink: 0;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            line-height: var(--avatar-size);
+            font-size: calc(var(--avatar-size) * 0.6);
+            text-align: center;
+            letter-spacing: calc(var(--avatar-size) * -0.05);
+            background: white;
+            color: black;
+        }
+
+        .avatar.large {
+            --avatar-size: 40px;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="timeline-panel">
+            <script type="text/javascript">
+                const tiles = [
+                    {
+                        type: "message",
+                        body: "Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1",
+                        sender: "Bruno",
+                        date: "May 17",
+                        time: "15:24"
+                    },
+                    {
+                        type: "message",
+                        body: "Sounds about right",
+                        sender: "Other Bruno",
+                        date: "May 17",
+                        time: "15:24"
+                    },
+                    {
+                        type: "message",
+                        body: "You wee prick!",
+                        sender: "Other Bruno",
+                        date: "May 17",
+                        time: "15:24"
+                    },
+                    {
+                        type: "message",
+                        body: "Oh, don't get me started!!",
+                        sender: "Bruno",
+                        date: "May 17",
+                        time: "15:26"
+                    },
+                    {
+                        type: "announcement",
+                        body: "Bruno added a ghettoblaster to the room"
+                        date: "May 17"
+                    },
+                    {
+                        type: "message",
+                        body: "Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1",
+                        sender: "Bruno",
+                        date: "May 17",
+                        time: "15:24"
+                    },
+                    {
+                        type: "message",
+                        body: "Sounds about right",
+                        sender: "Other Bruno",
+                        date: "May 17",
+                        time: "15:24"
+                    },
+
+
+                    {
+                        type: "message",
+                        body: "Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1",
+                        sender: "Bruno",
+                        date: "May 18",
+                        time: "15:24"
+                    },
+                    {
+                        type: "message",
+                        body: "Sounds about right",
+                        sender: "Other Bruno",
+                        date: "May 18",
+                        time: "15:24"
+                    },
+                    {
+                        type: "message",
+                        body: "You wee prick!",
+                        sender: "Other Bruno",
+                        date: "May 18",
+                        time: "15:24"
+                    },
+                    {
+                        type: "message",
+                        body: "Oh, don't get me started!!",
+                        sender: "Bruno",
+                        date: "May 18",
+                        time: "15:26"
+                    },
+                    {
+                        type: "announcement",
+                        body: "Bruno added a ghettoblaster to the room"
+                        date: "May 18"
+                    },
+                    {
+                        type: "message",
+                        body: "Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1",
+                        sender: "Bruno",
+                        date: "May 18",
+                        time: "15:24"
+                    },
+                    {
+                        type: "message",
+                        body: "Sounds about right",
+                        sender: "Other Bruno",
+                        date: "May 18",
+                        time: "15:24"
+                    },
+                    
+                ];
+            </script>
+            <ul>
+                <!--
+                    we would need a container like this for sticky dates to work well,
+                    but that could be somewhat tricky to make work in Brawl:
+                        - the list view would have to support a hierarchy rather than a flat list. Is there anything else we could use this for?
+                            - this might be doable, just mapping the child instance index back from a dom event like in _onClick would need to index set as a data attribute perhaps?
+                        - we'd have to fabricate an entry in the TilesCollection out of thin air (e.g. not an event) to render the date separator in the container? Or perhaps that could be logic of the container creation code?
+
+                        so a tile entry could have a group property, and if the group property is not yet known or different than the previous/next tile or something, we create a new one, with a function that maps the group info to a View (which would render the container and the date separator). The view would also need to provide a way to add tile nodes at a given index, see insertAt in onAdd there.
+
+                        e.g a GroupListView, and if onAdd, a given property on the item is different from both the previous and next item, create a new group view. Could pass a group function, item => item.date
+
+                        another group could be a continuation entry, so we can have the avatar only show once and stay sticky for a group of messages,
+                        this could work with a group function like item => item.sender, where this only looks at the immediate siblings of an item to see if they belong to the same group.
+
+                        so nested groups could make sense indeed
+
+                        it would be good if the nesting could all be handled at the top level in case of multiple levels
+
+                        also, to have the sticky avatars, they would need to be a sibling of event tiles, because they need to stick to their parent,
+                        the sender container. So the DOM would be different, which is annoying but sort of ok, if we can make the code not too different for
+                        other layouts we might want.
+                -->
+                <div class="day-container">
+                    <div class="date-separator"><div>May 17</div></div>
+                    <div class="sender-container">
+                        <li class="message text-message own">
+                            <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                            <div class="message-container">
+                                <div class="sender">Bruno</div>
+                                <p>Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1<time>15:24</time></p>
+                            </div>
+                        </li>
+                        
+                    </div>
+                    <li class="message text-message not-own">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Other Bruno</div>
+                            <p>Sounds about right<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message not-own continuation">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Other Bruno</div>
+                            <p>You wee prick!<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Bruno</div>
+                            <p>Oh, don't get me started!!<time>15:26</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message own continuation">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Bruno</div>
+                            <p>Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1<time>15:24</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message not-own">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Other Bruno</div>
+                            <p>Sounds about right<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="announcement">
+                        <div>Bruno added a ghettoblaster to the room</div>
+                    </li>
+                    <li class="message text-message not-own continuation">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Other Bruno</div>
+                            <p>You wee prick!<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Bruno</div>
+                            <p>Oh, don't get me started!!<time>15:26</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message own continuation">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Bruno</div>
+                            <p>Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1<time>15:24</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message not-own">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Other Bruno</div>
+                            <p>Sounds about right<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message not-own continuation">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Other Bruno</div>
+                            <p>You wee prick!<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Bruno</div>
+                            <p>Oh, don't get me started!!<time>15:26</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message own continuation">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Bruno</div>
+                            <p>Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1<time>15:24</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message not-own">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Other Bruno</div>
+                            <p>Sounds about right<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message not-own continuation">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Other Bruno</div>
+                            <p>You wee prick!<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Bruno</div>
+                            <p>Oh, don't get me started!!<time>15:26</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message own continuation">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Bruno</div>
+                            <p>Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1<time>15:24</time></p>
+                            
+                        </div>
+                    </li>
+                </div>
+                <div class="day-container">
+                    <div class="date-separator"><div>Sml</div></div>
+                    <li class="message text-message not-own">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Other Bruno</div>
+                            <p>Sounds about right<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message not-own continuation">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Other Bruno</div>
+                            <p>You wee prick!<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Bruno</div>
+                            <p>Oh, don't get me started!!<time>15:26</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message own continuation">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Bruno</div>
+                            <p>Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1<time>15:24</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message not-own">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Other Bruno</div>
+                            <p>Sounds about right<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message image-message not-own continuation">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Other Bruno</div>
+                            <p><img src="me.jpg" alt="Picture"/><time>15:25</time></p>
+                        </div>
+                    </li>
+                </div>
+                <div class="day-container">
+                    <div class="date-separator"><div>Yesterday</div></div>
+                    <li class="message text-message own">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Bruno</div>
+                            <p>Oh, don't get me started!!<time>15:26</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message own continuation">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Bruno</div>
+                            <p>Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1<time>15:24</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message not-own">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Other Bruno</div>
+                            <p>Sounds about right<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message not-own continuation">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Other Bruno</div>
+                            <p>You wee prick!<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Bruno</div>
+                            <p>Oh, don't get me started!!<time>15:26</time></p>
+                            
+                        </div>
+                    </li>
+                    <li class="message text-message own continuation">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Bruno</div>
+                            <p>Message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1, message 1<time>15:24</time></p>
+                            
+                        </div>
+                    </li>
+                </div>
+                <div class="day-container">
+                    <div class="date-separator"><div>Today</div></div>
+                    <li class="message text-message not-own">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Other Bruno</div>
+                            <p>Sounds about right<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="message text-message not-own continuation">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Other Bruno</div>
+                            <p>You wee prick!<time>15:25</time></p>
+                        </div>
+                    </li>
+                    <li class="announcement">
+                        <div>Other Bruno raised the blackjack limit of the room to 50€</div>
+                    </li>
+                    <li class="message text-message own">
+                        <div class="sender-avatar avatar medium"><img src="me.jpg" alt="Avatar for some room"/></div>
+                        <div class="message-container">
+                            <div class="sender">Bruno</div>
+                            <p>Oh, don't get me started!!<time>15:26</time></p>
+                        </div>
+                    </li>
+                </div>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
