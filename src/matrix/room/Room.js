@@ -34,7 +34,7 @@ export class Room extends EventEmitter {
     afterSync({summaryChanges, newTimelineEntries, newLiveKey, removedPendingEvents}) {
         this._syncWriter.afterSync(newLiveKey);
         if (summaryChanges) {
-            this._summary.afterSync(summaryChanges);
+            this._summary.applyChanges(summaryChanges);
             this.emit("change");
             this._emitCollectionChange(this);
         }
@@ -58,6 +58,40 @@ export class Room extends EventEmitter {
     sendEvent(eventType, content) {
         return this._sendQueue.enqueueEvent(eventType, content);
     }
+
+    async loadMemberList() {
+        let members;
+        if (!this._summary.hasFetchedMembers) {
+            // we need to get the syncToken here!
+            const memberResponse = await this._hsApi.members(this._roomId, syncToken).response;
+
+            const txn = await this._storage.readWriteTxn([
+                this._storage.storeNames.roomSummary,
+                this._storage.storeNames.roomMembers,
+            ]);
+            const summaryChanges = this._summary.writeHasFetchedMembers(true, txn);
+            const {roomMembers} = txn;
+            const memberEvents = memberResponse.chunk;
+            if (!Array.isArray(memberEvents)) {
+                throw new Error("malformed");
+            }
+            members = await Promise.all(memberEvents.map(async memberEvent => {
+                const userId = memberEvent && memberEvent.state_key;
+                if (!userId) {
+                    throw new Error("malformed");
+                }
+                const memberData = await roomMembers.get(this._roomId, userId);
+                const member = updateOrCreateMember(this._roomId, memberData, event);
+                if (member) {
+                    roomMembers.set(member.serialize());
+                }
+                return member;
+            }));
+            await txn.complete();
+            this._summary.applyChanges(summaryChanges);
+        }
+        return new MemberList(this._roomId, members, this._storage);
+    } 
 
 
     /** @public */

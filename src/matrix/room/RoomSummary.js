@@ -82,6 +82,7 @@ class SummaryData {
         this.heroes = copy ? copy.heroes : null;
         this.canonicalAlias = copy ? copy.canonicalAlias : null;
         this.altAliases = copy ? copy.altAliases : null;
+        this.hasFetchedMembers = copy ? copy.hasFetchedMembers : false;
         this.cloned = copy ? true : false;
     }
 
@@ -132,6 +133,17 @@ export class RoomSummary {
 		return this._data.joinCount;
 	}
 
+    get hasFetchedMembers() {
+        return this._data.hasFetchedMembers;
+    }
+
+    writeHasFetchedMembers(value, txn) {
+        const data = new SummaryData(this._data);
+        data.hasFetchedMembers = value;
+        txn.roomSummary.set(data.serialize());
+        return data;
+    }
+
 	writeSync(roomResponse, membership, txn) {
         // clear cloned flag, so cloneIfNeeded makes a copy and
         // this._data is not modified if any field is changed.
@@ -149,7 +161,7 @@ export class RoomSummary {
 		}
 	}
 
-    afterSync(data) {
+    applyChanges(data) {
         this._data = data;
     }
 

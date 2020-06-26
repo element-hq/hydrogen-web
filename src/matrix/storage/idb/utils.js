@@ -15,8 +15,9 @@ export function openDatabase(name, createObjectStore, version) {
     const req = window.indexedDB.open(name, version);
     req.onupgradeneeded = (ev) => {
         const db = ev.target.result;
+        const txn = ev.target.transaction;
         const oldVersion = ev.oldVersion;
-        createObjectStore(db, oldVersion, version);
+        createObjectStore(db, txn, oldVersion, version);
     }; 
     return reqAsPromise(req);
 }
@@ -52,7 +53,10 @@ export function iterateCursor(cursorRequest, processValue) {
                 resolve(false);
                 return; // end of results
             }
-            const {done, jumpTo} = processValue(cursor.value, cursor.key);
+            const result = processValue(cursor.value, cursor.key);
+            const done = result && result.done;
+            const jumpTo = result && result.jumpTo;
+
             if (done) {
                 resolve(true);
             } else if(jumpTo) {

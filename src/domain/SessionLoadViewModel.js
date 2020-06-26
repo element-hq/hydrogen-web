@@ -51,6 +51,7 @@ export class SessionLoadViewModel extends ViewModel {
             this._error = err;
         } finally {
             this._loading = false;
+            // loadLabel in case of sc.loadError also gets updated through this
             this.emitChange("loading");
         }
     }

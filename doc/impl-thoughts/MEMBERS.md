@@ -1,3 +1,11 @@
+# TODO
+
+## Member list
+
+ - support migrations in StorageFactory
+ - migrate all stores from key to key_path
+ - how to deal with members coming from backfill? do we even need to store them?
+
 # How to store members?
 
 All of this is assuming we'll use lazy loading of members.
