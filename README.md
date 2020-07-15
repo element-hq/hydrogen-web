@@ -1,6 +1,6 @@
 # Brawl
 
-A minimal [Matrix](https://matrix.org/) chat client, focused on performance, offline functionality and working on my Lumia 950 Windows Phone.
+A minimal [Matrix](https://matrix.org/) chat client, focused on performance and offline functionality.
 
 ## Status
 
