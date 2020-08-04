@@ -112,8 +112,8 @@ async function buildCss() {
     const cssMainFile = path.join(projectDir, "src/ui/web/css/main.css");
     const preCss = await fs.readFile(cssMainFile, "utf8");
     const cssBundler = postcss([postcssImport]);
-    const postCss = await cssBundler.process(preCss, {from: cssMainFile});
-    await fs.writeFile(path.join(targetDir, "brawl.css"), postCss, "utf8");
+    const result = await cssBundler.process(preCss, {from: cssMainFile});
+    await fs.writeFile(path.join(targetDir, "brawl.css"), result.css, "utf8");
 }
 
 
