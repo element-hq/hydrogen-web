@@ -1,5 +1,5 @@
 // import {RecordRequester, ReplayRequester} from "./matrix/net/request/replay.js";
-import {fetchRequest} from "./matrix/net/request/fetch.js";
+import {createFetchRequest} from "./matrix/net/request/fetch.js";
 import {SessionContainer} from "./matrix/SessionContainer.js";
 import {StorageFactory} from "./matrix/storage/idb/StorageFactory.js";
 import {SessionInfoStorage} from "./matrix/sessioninfo/localstorage/SessionInfoStorage.js";
@@ -16,13 +16,13 @@ export default async function main(container) {
         // const request = replay.request;
 
         // to record:
-        // const recorder = new RecordRequester(fetchRequest);
+        // const recorder = new RecordRequester(createFetchRequest(clock.createTimeout));
         // const request = recorder.request;
         // window.getBrawlFetchLog = () => recorder.log();
         // normal network:
-        const request = fetchRequest;
-        const sessionInfoStorage = new SessionInfoStorage("brawl_sessions_v1");
         const clock = new Clock();
+        const request = createFetchRequest(clock.createTimeout);
+        const sessionInfoStorage = new SessionInfoStorage("brawl_sessions_v1");
         const storageFactory = new StorageFactory();
 
         const vm = new BrawlViewModel({
