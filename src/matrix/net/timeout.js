@@ -15,6 +15,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {
+    AbortError,
+    ConnectionError
+} from "../error.js";
+
+
 export function abortOnTimeout(createTimeout, timeoutAmount, requestResult, responsePromise) {
     const timeout = createTimeout(timeoutAmount);
     // abort request if timeout finishes first
