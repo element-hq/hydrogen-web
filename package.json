@@ -16,7 +16,7 @@
     "url": "git+https://github.com/bwindels/brawl-chat.git"
   },
   "author": "Bruno Windels",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/bwindels/brawl-chat/issues"
   },
