@@ -7,15 +7,33 @@ import postcss from "postcss";
 import postcssImport from "postcss-import";
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+// needed for legacy bundle
+import babel from '@rollup/plugin-babel';
+// needed to find the polyfill modules in the main-legacy.js bundle
+import { nodeResolve } from '@rollup/plugin-node-resolve';
+// needed because some of the polyfills are written as commonjs modules
+import commonjs from '@rollup/plugin-commonjs';
 
+const PROJECT_ID = "hydrogen";
+const PROJECT_SHORT_NAME = "Hydrogen";
+const PROJECT_NAME = "Hydrogen Chat";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectDir = path.join(__dirname, "../");
 const targetDir = path.join(projectDir, "target");
 
-const debug = false;
-const offline = true;
+const {debug, noOffline, legacy} = process.argv.reduce((params, param) => {
+    if (param.startsWith("--")) {
+        params[param.substr(2)] = true;
+    }
+    return params;
+}, {
+    debug: false,
+    noOffline: false,
+    legacy: false
+});
+const offline = !noOffline;
 
 async function build() {
     // get version number
@@ -23,24 +41,31 @@ async function build() {
     // clear target dir
     await removeDirIfExists(targetDir);
     await fs.mkdir(targetDir);
-    
-    await buildHtml(version);
-    await buildJs();
+    let bundleName = `${PROJECT_ID}.js`;
+    if (legacy) {
+        bundleName = `${PROJECT_ID}-legacy.js`;
+    }
+    await buildHtml(version, bundleName);
+    if (legacy) {
+        await buildJsLegacy(bundleName);
+    } else {
+        await buildJs(bundleName);
+    }
     await buildCss();
     if (offline) {
-        await buildOffline(version);
+        await buildOffline(version, bundleName);
     }
 
-    console.log(`built brawl ${version} successfully`);
+    console.log(`built ${PROJECT_ID}${legacy ? " legacy" : ""} ${version} successfully`);
 }
 
-async function buildHtml(version) {
+async function buildHtml(version, bundleName) {
     // transform html file
     const devHtml = await fs.readFile(path.join(projectDir, "index.html"), "utf8");
     const doc = cheerio.load(devHtml);
-    doc("link[rel=stylesheet]").attr("href", "brawl.css");
+    doc("link[rel=stylesheet]").attr("href", `${PROJECT_ID}.css`);
     doc("script#main").replaceWith(
-        `<script type="text/javascript" src="brawl.js"></script>` +
+        `<script type="text/javascript" src="${bundleName}"></script>` +
         `<script type="text/javascript">main(document.body);</script>`);
     removeOrEnableScript(doc("script#phone-debug-pre"), debug);
     removeOrEnableScript(doc("script#phone-debug-post"), debug);
@@ -59,12 +84,12 @@ async function buildHtml(version) {
     await fs.writeFile(path.join(targetDir, "index.html"), doc.html(), "utf8");
 }
 
-async function buildJs() {
+async function buildJs(bundleName) {
     // create js bundle
     const rollupConfig = {
         input: 'src/main.js',
         output: {
-            file: path.join(targetDir, "brawl.js"),
+            file: path.join(targetDir, bundleName),
             format: 'iife',
             name: 'main'
         }
@@ -73,9 +98,38 @@ async function buildJs() {
     await bundle.write(rollupConfig);
 }
 
-async function buildOffline(version) {
+async function buildJsLegacy(bundleName) {
+    // compile down to whatever IE 11 needs
+    const babelPlugin = babel.babel({
+        babelHelpers: 'bundled',
+        presets: [
+            [
+                "@babel/preset-env",
+                {
+                    useBuiltIns: "entry",
+                    corejs: "3",
+                    targets: "IE 11"
+                }
+            ]
+        ]
+    });
+    // create js bundle
+    const rollupConfig = {
+        input: 'src/main-legacy.js',
+        output: {
+            file: path.join(targetDir, bundleName),
+            format: 'iife',
+            name: 'main'
+        },
+        plugins: [commonjs(), nodeResolve(), babelPlugin]
+    };
+    const bundle = await rollup.rollup(rollupConfig);
+    await bundle.write(rollupConfig);
+}
+
+async function buildOffline(version, bundleName) {
     // write offline availability
-    const offlineFiles = ["brawl.js", "brawl.css", "index.html", "icon-192.png"];
+    const offlineFiles = [bundleName, `${PROJECT_ID}.css`, "index.html", "icon-192.png"];
 
     // write appcache manifest
     const manifestLines = [
@@ -95,8 +149,8 @@ async function buildOffline(version) {
     await fs.writeFile(path.join(targetDir, "sw.js"), swSource, "utf8");
     // write web manifest
     const webManifest = {
-        name: "Brawl Chat",
-        short_name: "Brawl",
+        name:PROJECT_NAME,
+        short_name: PROJECT_SHORT_NAME,
         display: "fullscreen",
         start_url: "index.html",
         icons: [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"}],
@@ -113,7 +167,7 @@ async function buildCss() {
     const preCss = await fs.readFile(cssMainFile, "utf8");
     const cssBundler = postcss([postcssImport]);
     const result = await cssBundler.process(preCss, {from: cssMainFile});
-    await fs.writeFile(path.join(targetDir, "brawl.css"), result.css, "utf8");
+    await fs.writeFile(path.join(targetDir, `${PROJECT_ID}.css`), result.css, "utf8");
 }
 
 
