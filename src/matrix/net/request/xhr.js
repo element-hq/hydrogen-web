@@ -90,8 +90,8 @@ export function tests() {
     return {
         "add cache buster": assert => {
             const random = () => 0.5;
-            assert.equals(addCacheBuster("http://foo", random), "http://foo?_cacheBuster=5");
-            assert.equals(addCacheBuster("http://foo?bar=baz", random), "http://foo?bar=baz&_cacheBuster=5");
+            assert.equal(addCacheBuster("http://foo", random), "http://foo?_cacheBuster=4503599627370496");
+            assert.equal(addCacheBuster("http://foo?bar=baz", random), "http://foo?bar=baz&_cacheBuster=4503599627370496");
         }
     }
 }
