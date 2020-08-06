@@ -18,6 +18,7 @@ limitations under the License.
 // polyfills needed for IE11
 import "core-js/stable";
 import "regenerator-runtime/runtime";
+import "mdn-polyfills/Element.prototype.closest";
 
 import {xhrRequest} from "./matrix/net/request/xhr.js";
 import {SessionContainer} from "./matrix/SessionContainer.js";
