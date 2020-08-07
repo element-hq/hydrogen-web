@@ -33,6 +33,9 @@ import commonjs from '@rollup/plugin-commonjs';
 // multi-entry plugin so we can add polyfill file to main
 import multi from '@rollup/plugin-multi-entry';
 
+import cssvariables from "postcss-css-variables";
+import flexbugsFixes from "postcss-flexbugs-fixes";
+
 const PROJECT_ID = "hydrogen";
 const PROJECT_SHORT_NAME = "Hydrogen";
 const PROJECT_NAME = "Hydrogen Chat";
@@ -67,10 +70,11 @@ async function build() {
     await buildHtml(version, bundleName);
     if (legacy) {
         await buildJsLegacy(bundleName);
+        await buildCssLegacy();
     } else {
         await buildJs(bundleName);
+        await buildCss();
     }
-    await buildCss();
     if (offline) {
         await buildOffline(version, bundleName);
     }
@@ -181,6 +185,15 @@ async function buildCss() {
     const cssMainFile = path.join(projectDir, "src/ui/web/css/main.css");
     const preCss = await fs.readFile(cssMainFile, "utf8");
     const cssBundler = postcss([postcssImport]);
+    const result = await cssBundler.process(preCss, {from: cssMainFile});
+    await fs.writeFile(path.join(targetDir, `${PROJECT_ID}.css`), result.css, "utf8");
+}
+
+async function buildCssLegacy() {
+    // create css bundle
+    const cssMainFile = path.join(projectDir, "src/ui/web/css/main.css");
+    const preCss = await fs.readFile(cssMainFile, "utf8");
+    const cssBundler = postcss([postcssImport, cssvariables(), flexbugsFixes()]);
     const result = await cssBundler.process(preCss, {from: cssMainFile});
     await fs.writeFile(path.join(targetDir, `${PROJECT_ID}.css`), result.css, "utf8");
 }
