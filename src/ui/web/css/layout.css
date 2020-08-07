@@ -51,7 +51,7 @@ body {
 }
 
 .RoomPlaceholderView, .RoomView {
-    flex: 1 0 0px;
+    flex: 1 0 0;
     min-width: 0;
 }
 
@@ -71,7 +71,7 @@ body {
 }
 
 .TimelinePanel ul {
-    flex: 1 0 0px;
+    flex: 1 0 0;
 }
 
 .RoomHeader {
