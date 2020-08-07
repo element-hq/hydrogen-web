@@ -1,5 +1,5 @@
 {
-  "name": "brawl-chat",
+  "name": "hydrogen-web",
   "version": "0.0.27",
   "description": "A javascript matrix client prototype, trying to minize RAM usage by offloading as much as possible to IndexedDB",
   "main": "index.js",
@@ -13,14 +13,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bwindels/brawl-chat.git"
+    "url": "git@github.com:vector-im/hydrogen-web.git"
   },
-  "author": "Bruno Windels",
+  "author": "matrix.org",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/bwindels/brawl-chat/issues"
+    "url": "https://github.com/vector-im/hydrogen-web/issues"
   },
-  "homepage": "https://github.com/bwindels/brawl-chat#readme",
+  "homepage": "https://github.com/vector-im/hydrogen-web/#readme",
   "devDependencies": {
     "@babel/core": "^7.11.1",
     "@babel/preset-env": "^7.11.0",
