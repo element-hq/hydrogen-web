@@ -22,14 +22,20 @@ limitations under the License.
 @import url('avatar.css');
 @import url('spinner.css');
 
+/* only if the body contains the whole app (e.g. we're not embedded in a page), make some changes */
+body.brawl {
+    /* make sure to disable rubber-banding and pull to refresh in a PWA if we'd end up having a scrollbar */
+    overscroll-behavior: none;
+    /* disable rubberband scrolling on document in IE11 */
+    overflow: hidden;
+}
+
 .brawl {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, Cantarell, sans-serif,
                 "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     background-color: black;
     color: white;
-    /* make sure to disable rubber-banding and pull to refresh in a PWA if we'd end up having a scrollbar */
-    overscroll-behavior: none;
 }
 
 .hiddenWithLayout {

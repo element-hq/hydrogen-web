@@ -34,6 +34,8 @@
     "impunity": "^0.0.11",
     "mdn-polyfills": "^5.20.0",
     "postcss": "^7.0.18",
+    "postcss-css-variables": "^0.17.0",
+    "postcss-flexbugs-fixes": "^4.2.1",
     "postcss-import": "^12.0.1",
     "regenerator-runtime": "^0.13.7",
     "rollup": "^1.15.6",
