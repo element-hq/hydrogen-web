@@ -242,8 +242,8 @@ class TemplateBuilder {
             if (prevValue !== newValue) {
                 prevValue = newValue;
                 const newNode = renderNode(node);
-                if (node.parentElement) {
-                    node.parentElement.replaceChild(newNode, node);
+                if (node.parentNode) {
+                    node.parentNode.replaceChild(newNode, node);
                 }
                 node = newNode;
             }
