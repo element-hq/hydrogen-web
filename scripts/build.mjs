@@ -30,6 +30,8 @@ import babel from '@rollup/plugin-babel';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 // needed because some of the polyfills are written as commonjs modules
 import commonjs from '@rollup/plugin-commonjs';
+// multi-entry plugin so we can add polyfill file to main
+import multi from '@rollup/plugin-multi-entry';
 
 const PROJECT_ID = "hydrogen";
 const PROJECT_SHORT_NAME = "Hydrogen";
@@ -83,7 +85,7 @@ async function buildHtml(version, bundleName) {
     doc("link[rel=stylesheet]").attr("href", `${PROJECT_ID}.css`);
     doc("script#main").replaceWith(
         `<script type="text/javascript" src="${bundleName}"></script>` +
-        `<script type="text/javascript">main(document.body);</script>`);
+        `<script type="text/javascript">${PROJECT_ID}Bundle.main(document.body);</script>`);
     removeOrEnableScript(doc("script#phone-debug-pre"), debug);
     removeOrEnableScript(doc("script#phone-debug-post"), debug);
     removeOrEnableScript(doc("script#service-worker"), offline);
@@ -107,7 +109,7 @@ async function buildJs(bundleName) {
     await bundle.write({
         file: path.join(targetDir, bundleName),
         format: 'iife',
-        name: 'main'
+        name: `${PROJECT_ID}Bundle`
     });
 }
 
@@ -129,14 +131,14 @@ async function buildJsLegacy(bundleName) {
     });
     // create js bundle
     const rollupConfig = {
-        input: 'src/main-legacy.js',
-        plugins: [commonjs(), nodeResolve(), babelPlugin]
+        input: ['src/legacy-polyfill.js', 'src/main.js'],
+        plugins: [multi(), commonjs(), nodeResolve(), babelPlugin]
     };
     const bundle = await rollup.rollup(rollupConfig);
     await bundle.write({
         file: path.join(targetDir, bundleName),
         format: 'iife',
-        name: 'main'
+        name: `${PROJECT_ID}Bundle`
     });
 }
 
