@@ -19,6 +19,12 @@ limitations under the License.
 import "core-js/stable";
 import "regenerator-runtime/runtime";
 import "mdn-polyfills/Element.prototype.closest";
+// TODO: contribute this to mdn-polyfills
+if (!Element.prototype.remove) {
+    Element.prototype.remove = function remove() {
+        this.parentNode.removeChild(this);
+    };
+}
 
 import {xhrRequest} from "./matrix/net/request/xhr.js";
 import {SessionContainer} from "./matrix/SessionContainer.js";
