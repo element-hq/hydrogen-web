@@ -103,16 +103,12 @@ async function buildHtml(version, bundleName) {
 
 async function buildJs(bundleName) {
     // create js bundle
-    const rollupConfig = {
-        input: 'src/main.js',
-        output: {
-            file: path.join(targetDir, bundleName),
-            format: 'iife',
-            name: 'main'
-        }
-    };
-    const bundle = await rollup.rollup(rollupConfig);
-    await bundle.write(rollupConfig);
+    const bundle = await rollup.rollup({input: 'src/main.js'});
+    await bundle.write({
+        file: path.join(targetDir, bundleName),
+        format: 'iife',
+        name: 'main'
+    });
 }
 
 async function buildJsLegacy(bundleName) {
@@ -133,15 +129,14 @@ async function buildJsLegacy(bundleName) {
     // create js bundle
     const rollupConfig = {
         input: 'src/main-legacy.js',
-        output: {
-            file: path.join(targetDir, bundleName),
-            format: 'iife',
-            name: 'main'
-        },
         plugins: [commonjs(), nodeResolve(), babelPlugin]
     };
     const bundle = await rollup.rollup(rollupConfig);
-    await bundle.write(rollupConfig);
+    await bundle.write({
+        file: path.join(targetDir, bundleName),
+        format: 'iife',
+        name: 'main'
+    });
 }
 
 async function buildOffline(version, bundleName) {
