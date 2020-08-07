@@ -47,7 +47,7 @@ export class SwitchView {
         } catch (err) {
             newRoot = errorToDOM(err);
         }
-        const parent = oldRoot.parentElement;
+        const parent = oldRoot.parentNode;
         if (parent) {
             parent.replaceChild(newRoot, oldRoot);
         }
