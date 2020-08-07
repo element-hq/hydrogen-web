@@ -115,6 +115,7 @@ async function buildJsLegacy(bundleName) {
     // compile down to whatever IE 11 needs
     const babelPlugin = babel.babel({
         babelHelpers: 'bundled',
+        exclude: 'node_modules/**',
         presets: [
             [
                 "@babel/preset-env",
