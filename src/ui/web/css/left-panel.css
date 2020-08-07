@@ -49,7 +49,7 @@ limitations under the License.
 
 .LeftPanel div.description {
     margin: 0;
-    flex: 1 1 0;
+    flex: 1 1 0px;
     min-width: 0;
 }
 
