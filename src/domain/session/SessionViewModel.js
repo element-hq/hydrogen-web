@@ -28,12 +28,13 @@ export class SessionViewModel extends ViewModel {
             sync: sessionContainer.sync,
             reconnector: sessionContainer.reconnector
         })));
+        this._currentRoomTileViewModel = null;
         this._currentRoomViewModel = null;
-        const roomTileVMs = this._session.rooms.mapValues((room, emitUpdate) => {
+        const roomTileVMs = this._session.rooms.mapValues((room, emitChange) => {
             return new RoomTileViewModel({
                 room,
-                emitUpdate,
-                emitOpen: room => this._openRoom(room)
+                emitChange,
+                emitOpen: this._openRoom.bind(this)
             });
         });
         this._roomList = roomTileVMs.sortValues((a, b) => a.compare(b));
@@ -62,7 +63,11 @@ export class SessionViewModel extends ViewModel {
         }
     }
 
-    _openRoom(room) {
+    _openRoom(room, roomTileVM) {
+        if (this._currentRoomTileViewModel) {
+            this._currentRoomTileViewModel.close();
+        }
+        this._currentRoomTileViewModel = roomTileVM;
         if (this._currentRoomViewModel) {
             this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
         }
