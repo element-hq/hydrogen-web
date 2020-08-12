@@ -84,11 +84,10 @@ async function build() {
     await buildHtml(doc, version, bundleName);
     if (legacy) {
         await buildJsLegacy(bundleName);
-        await buildCssLegacy();
     } else {
         await buildJs(bundleName);
-        await buildCss();
     }
+    await buildCssBundles(legacy ? buildCssLegacy : buildCss, themes);
     if (offline) {
         await buildOffline(version, bundleName);
     }
@@ -231,22 +230,29 @@ async function buildOffline(version, bundleName) {
     await fs.writeFile(path.join(targetDir, "icon-192.png"), icon);
 }
 
-async function buildCss() {
-    // create css bundle
-    const cssMainFile = path.join(projectDir, "src/ui/web/css/main.css");
-    const preCss = await fs.readFile(cssMainFile, "utf8");
-    const cssBundler = postcss([postcssImport]);
-    const result = await cssBundler.process(preCss, {from: cssMainFile});
-    await fs.writeFile(path.join(targetDir, `${PROJECT_ID}.css`), result.css, "utf8");
+async function buildCssBundles(buildFn, themes) {
+    const cssMainFile = path.join(cssDir, "main.css");
+    await buildFn(cssMainFile, path.join(targetDir, `${PROJECT_ID}.css`));
+    for (const theme of themes) {
+        await buildFn(
+            path.join(cssDir, `themes/${theme}/theme.css`),
+            path.join(targetDir, `themes/${theme}/bundle.css`)
+        );
+    }
 }
 
-async function buildCssLegacy() {
-    // create css bundle
-    const cssMainFile = path.join(projectDir, "src/ui/web/css/main.css");
-    const preCss = await fs.readFile(cssMainFile, "utf8");
+async function buildCss(entryPath, bundlePath) {
+    const preCss = await fs.readFile(entryPath, "utf8");
+    const cssBundler = postcss([postcssImport]);
+    const result = await cssBundler.process(preCss, {from: entryPath});
+    await fs.writeFile(bundlePath, result.css, "utf8");
+}
+
+async function buildCssLegacy(entryPath, bundlePath) {
+    const preCss = await fs.readFile(entryPath, "utf8");
     const cssBundler = postcss([postcssImport, cssvariables(), flexbugsFixes()]);
-    const result = await cssBundler.process(preCss, {from: cssMainFile});
-    await fs.writeFile(path.join(targetDir, `${PROJECT_ID}.css`), result.css, "utf8");
+    const result = await cssBundler.process(preCss, {from: entryPath});
+    await fs.writeFile(bundlePath, result.css, "utf8");
 }
 
 function removeOrEnableScript(scriptNode, enable) {
