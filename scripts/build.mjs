@@ -90,8 +90,6 @@ async function buildHtml(version, bundleName) {
     doc("script#main").replaceWith(
         `<script type="text/javascript" src="${bundleName}"></script>` +
         `<script type="text/javascript">${PROJECT_ID}Bundle.main(document.body);</script>`);
-    removeOrEnableScript(doc("script#phone-debug-pre"), debug);
-    removeOrEnableScript(doc("script#phone-debug-post"), debug);
     removeOrEnableScript(doc("script#service-worker"), offline);
 
     const versionScript = doc("script#version");
