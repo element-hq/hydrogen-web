@@ -1,0 +1,15 @@
+/** from https://gist.github.com/mfornos/9991865 */
+
+@font-face {
+  font-family: 'emoji';
+  src: local('Apple Color Emoji'),
+       local('Segoe UI Emoji'),
+       local('Segoe UI Symbol'),
+       local('Noto Color Emoji'),
+       local('Android Emoji'),
+       local('EmojiSymbols'),
+       local('Symbola');
+
+  /* Emoji unicode blocks */
+  unicode-range: U+1F300-1F5FF, U+1F600-1F64F, U+1F680-1F6FF, U+2600-26FF;
+}

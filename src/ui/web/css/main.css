@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
+@import url('font.css');
 @import url('layout.css');
 @import url('login.css');
 @import url('left-panel.css');
