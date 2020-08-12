@@ -43,6 +43,7 @@ const PROJECT_NAME = "Hydrogen Chat";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectDir = path.join(__dirname, "../");
+const cssDir = path.join(projectDir, "src/ui/web/css/");
 const targetDir = path.join(projectDir, "target");
 
 const {debug, noOffline, legacy} = process.argv.reduce((params, param) => {
@@ -76,6 +77,10 @@ async function build() {
         themes.push(themeName);
     });
 
+    // also creates the directories where the theme css bundles are placed in,
+    // so do it first
+    const themeAssets = await copyThemeAssets(themes, legacy);
+
     await buildHtml(doc, version, bundleName);
     if (legacy) {
         await buildJsLegacy(bundleName);
@@ -104,6 +109,27 @@ async function findThemes(doc, callback) {
             callback(themeName, theme);
         }
     });
+}
+
+async function copyThemeAssets(themes, legacy) {
+    const assets = [];
+    // create theme directories and copy assets
+    await fs.mkdir(path.join(targetDir, "themes"));
+    for (const theme of themes) {
+        assets.push(`themes/${theme}/bundle.css`);
+        const themeDstFolder = path.join(targetDir, `themes/${theme}`);
+        await fs.mkdir(themeDstFolder);
+        const themeSrcFolder = path.join(cssDir, `themes/${theme}`);
+        await copyFolder(themeSrcFolder, themeDstFolder, file => {
+            const isUnneededFont = legacy ? file.endsWith(".woff2") : file.endsWith(".woff");
+            if (!file.endsWith(".css") && !isUnneededFont) {
+                assets.push(file.substr(cssDir.length));
+                return true;
+            }
+            return false;
+        });
+    }
+    return assets;
 }
 
 async function buildHtml(doc, version, bundleName) {
@@ -223,7 +249,6 @@ async function buildCssLegacy() {
     await fs.writeFile(path.join(targetDir, `${PROJECT_ID}.css`), result.css, "utf8");
 }
 
-
 function removeOrEnableScript(scriptNode, enable) {
     if (enable) {
         scriptNode.attr("type", "text/javascript");
@@ -234,12 +259,24 @@ function removeOrEnableScript(scriptNode, enable) {
 
 async function removeDirIfExists(targetDir) {
     try {
-        const files = await fs.readdir(targetDir);
-        await Promise.all(files.map(filename => fs.unlink(path.join(targetDir, filename))));
-        await fs.rmdir(targetDir);
+        await fs.rmdir(targetDir, {recursive: true});
     } catch (err) {
         if (err.code !== "ENOENT") {
             throw err;
+        }
+    }
+}
+
+async function copyFolder(srcRoot, dstRoot, filter) {
+    const dirEnts = await fs.readdir(srcRoot, {withFileTypes: true});
+    for (const dirEnt of dirEnts) {
+        const dstPath = path.join(dstRoot, dirEnt.name);
+        const srcPath = path.join(srcRoot, dirEnt.name);
+        if (dirEnt.isDirectory()) {
+            await fs.mkdir(dstPath);
+            await copyFolder(srcPath, dstPath, filter);
+        } else if (dirEnt.isFile() && filter(srcPath)) {
+            await fs.copyFile(srcPath, dstPath);
         }
     }
 }
