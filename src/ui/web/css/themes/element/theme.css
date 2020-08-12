@@ -20,18 +20,18 @@ limitations under the License.
 .hydrogen {
     font-family: 'Inter', sans-serif, 'emoji';
     background-color: white;
-    color: black;
+    color: #2e2f32;
 }
 
 .avatar {
     border-radius: 100%;
-    background: black;
+    background: #3D88FA;
+
     color: white;
 }
 
 .LeftPanel {
-    background: #333;
-    color: white;
+    background: rgba(245, 245, 245, 0.90);
 }
 
 .LeftPanel ul {
@@ -47,16 +47,8 @@ limitations under the License.
 }
 
 .LeftPanel li.active {
-    background: lightgray;
-    color: black;
-}
-
-.LeftPanel li {
-    border-bottom: 1px #555 solid;
-}
-
-.LeftPanel li:last-child {
-    border-bottom: none;
+    background: rgba(141, 151, 165, 0.1);
+    border-radius: 5px;
 }
 
 .LeftPanel li > * {
@@ -73,7 +65,16 @@ a {
 
 .SessionStatusView {
     padding: 5px;
-    background-color: #555;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background-color: #3D88FA;
+    color: white;
+    border-radius: 10px;
+}
+
+.room-shown .SessionStatusView {
+    top: 72px;
 }
 
 .RoomPlaceholderView {
@@ -86,10 +87,9 @@ a {
   background-color: grey;
 }
 
-
 .RoomHeader {
+    background: rgba(245, 245, 245, 0.90);
     padding: 10px;
-    background-color: #333;
 }
 
 .RoomHeader button {
@@ -115,11 +115,6 @@ a {
     font-size: 0.8em;
 }
 
-.RoomHeader {
-    padding: 10px;
-    background-color: #333;
-}
-
 .RoomView_error {
     color: red;
 }
@@ -130,10 +125,8 @@ a {
 }
 
 .message-container {
-    max-width: 80%;
     padding: 5px 10px;
     margin: 5px 10px;
-    background: blue;
 }
 
 .message-container .sender {
@@ -145,7 +138,6 @@ a {
 .TextMessageView .message-container time {
     padding: 2px 0 0px 20px;
     font-size: 0.9em;
-    color: lightblue;
 }
 
 .message-container time {
@@ -153,24 +145,8 @@ a {
     color: lightblue;
 }
 
-.own time {
-    color: lightgreen;
-}
-
-.own .message-container {
-    background-color: darkgreen;
-}
-
-.TextMessageView.own .message-container {
-    margin-left: auto;
-}
-
 .TextMessageView.pending .message-container {
-    background-color: #333;
-}
-
-.TextMessageView .message-container time {
-    float: right;
+    color: #ccc;
 }
 
 .message-container p {
@@ -185,8 +161,8 @@ a {
 .AnnouncementView > div {
     margin: 0 auto;
     padding: 10px 20px;
-    background-color: #333;
+    background-color: rgba(245, 245, 245, 0.90);
     font-size: 0.9em;
-    color: #CCC;
     text-align: center;
+    border-radius: 10px;
 }
