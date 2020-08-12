@@ -67,7 +67,16 @@ async function build() {
     if (legacy) {
         bundleName = `${PROJECT_ID}-legacy.js`;
     }
-    await buildHtml(version, bundleName);
+
+
+    const devHtml = await fs.readFile(path.join(projectDir, "index.html"), "utf8");
+    const doc = cheerio.load(devHtml);
+    const themes = [];
+    findThemes(doc, themeName => {
+        themes.push(themeName);
+    });
+
+    await buildHtml(doc, version, bundleName);
     if (legacy) {
         await buildJsLegacy(bundleName);
         await buildCssLegacy();
@@ -82,11 +91,29 @@ async function build() {
     console.log(`built ${PROJECT_ID}${legacy ? " legacy" : ""} ${version} successfully`);
 }
 
-async function buildHtml(version, bundleName) {
+async function findThemes(doc, callback) {
+    doc("link[rel~=stylesheet][title]").each((i, el) => {
+        const theme = doc(el);
+        const href = theme.attr("href");
+        const themesPrefix = "/themes/";
+        const prefixIdx = href.indexOf(themesPrefix);
+        if (prefixIdx !== -1) {
+            const themeNameStart = prefixIdx + themesPrefix.length;
+            const themeNameEnd = href.indexOf("/", themeNameStart);
+            const themeName = href.substr(themeNameStart, themeNameEnd - themeNameStart);
+            callback(themeName, theme);
+        }
+    });
+}
+
+async function buildHtml(doc, version, bundleName) {
     // transform html file
-    const devHtml = await fs.readFile(path.join(projectDir, "index.html"), "utf8");
-    const doc = cheerio.load(devHtml);
-    doc("link[rel=stylesheet]").attr("href", `${PROJECT_ID}.css`);
+    // change path to main.css to css bundle
+    doc("link[rel=stylesheet]:not([title])").attr("href", `${PROJECT_ID}.css`);
+    // change paths to all theme stylesheets
+    findThemes(doc, (themeName, theme) => {
+        theme.attr("href", `themes/${themeName}/bundle.css`);
+    });
     doc("script#main").replaceWith(
         `<script type="text/javascript" src="${bundleName}"></script>` +
         `<script type="text/javascript">${PROJECT_ID}Bundle.main(document.body);</script>`);
