@@ -44,10 +44,6 @@ limitations under the License.
     min-width: 0;
 }
 
-.TextMessageView .message-container time {
-    float: right;
-}
-
 .AnnouncementView {
     display: flex;
     align-items: center;
