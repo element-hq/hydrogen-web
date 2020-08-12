@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,6 +22,8 @@ limitations under the License.
 @import url('timeline.css');
 @import url('avatar.css');
 @import url('spinner.css');
+@import url('form.css');
+@import url('status.css');
 
 /* only if the body contains the whole app (e.g. we're not embedded in a page), make some changes */
 body.hydrogen {
@@ -32,10 +35,6 @@ body.hydrogen {
 
 .hydrogen {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, Cantarell, sans-serif,
-                "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-    background-color: black;
-    color: white;
 }
 
 .hiddenWithLayout {
@@ -45,78 +44,3 @@ body.hydrogen {
 .hidden {
     display: none !important;
 }
-
-.SessionStatusView {
-    display: flex;
-    padding: 5px;
-    background-color: #555;
-}
-
-.SessionStatusView p {
-    margin: 0 10px;
-    word-break: break-all;
-    word-break: break-word;
-}
-
-.SessionStatusView button {
-    border: none;
-    background: none;
-    color: currentcolor;
-    text-decoration: underline;
-}
-
-
-.RoomPlaceholderView {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: row;
-}
-
-.SessionPickerView {
-  padding: 0.4em;
-}
-
-.SessionPickerView ul {
-  list-style: none;
-  padding: 0;
-}
-
-.SessionPickerView li {
-  margin: 0.4em 0;
-  font-size: 1.2em;
-  background-color: grey;
-  padding: 0.5em;
-}
-
-.SessionPickerView .sessionInfo {
-  cursor: pointer;
-  display: flex;
-}
-
-.SessionPickerView li span.userId {
-  flex: 1;
-}
-
-.SessionPickerView li span.error {
-  margin: 0 20px;
-}
-
-.LoginView {
-  padding: 0.4em;
-}
-
-a {
-    color: white;
-}
-
-.form > div {
-  margin: 0.4em 0;
-}
-
-.form input {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-}
-

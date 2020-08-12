@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,41 +15,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
-.TimelinePanel ul {
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    list-style: none;
-    padding: 0;
-    margin: 0;
+.SessionStatusView {
+    display: flex;
 }
 
-.TimelinePanel li {
-}
-
-.message-container {
-    flex: 0 1 auto;
-    /* first try break-all, then break-word, which isn't supported everywhere */
-    word-break: break-all;  
+.SessionStatusView p {
+    margin: 0 10px;
+    word-break: break-all;
     word-break: break-word;
 }
 
-.message-container img {
-    display: block;
-    width: 100%;
-    height: auto;
-}
-
-.TextMessageView {
-    display: flex;
-    min-width: 0;
-}
-
-.TextMessageView .message-container time {
-    float: right;
-}
-
-.AnnouncementView {
-    display: flex;
-    align-items: center;
+.SessionStatusView button {
+    border: none;
+    background: none;
+    color: currentcolor;
+    text-decoration: underline;
 }

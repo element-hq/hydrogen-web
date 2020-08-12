@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -37,6 +38,12 @@ limitations under the License.
     animation-duration: 2s;
     animation-iteration-count: infinite;
     animation-timing-function: linear;
+    /**
+     * TODO
+     * see if with IE11 we can just set a static stroke state and make it rotate?
+     */
+    stroke-dasharray: 0 0 10 90;
+
     fill: none;
     stroke: currentcolor;
     stroke-width: 12;
