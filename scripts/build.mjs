@@ -89,7 +89,7 @@ async function build() {
     }
     await buildCssBundles(legacy ? buildCssLegacy : buildCss, themes);
     if (offline) {
-        await buildOffline(version, bundleName);
+        await buildOffline(version, bundleName, themeAssets);
     }
 
     console.log(`built ${PROJECT_ID}${legacy ? " legacy" : ""} ${version} successfully`);
@@ -196,9 +196,17 @@ async function buildJsLegacy(bundleName) {
     });
 }
 
-async function buildOffline(version, bundleName) {
+async function buildOffline(version, bundleName, themeAssets) {
+    const {offlineAssets, cacheAssets} = themeAssets.reduce((result, asset) => {
+        if (asset.endsWith(".css")) {
+            result.offlineAssets.push(asset);
+        } else {
+            result.cacheAssets.push(asset);
+        }
+        return result;
+    }, {offlineAssets: [], cacheAssets: []});
     // write offline availability
-    const offlineFiles = [bundleName, `${PROJECT_ID}.css`, "index.html", "icon-192.png"];
+    const offlineFiles = [bundleName, `${PROJECT_ID}.css`, "index.html", "icon-192.png"].concat(offlineAssets);
 
     // write appcache manifest
     const manifestLines = [
@@ -214,7 +222,8 @@ async function buildOffline(version, bundleName) {
     // write service worker
     let swSource = await fs.readFile(path.join(projectDir, "src/service-worker.template.js"), "utf8");
     swSource = swSource.replace(`"%%VERSION%%"`, `"${version}"`);
-    swSource = swSource.replace(`"%%FILES%%"`, JSON.stringify(offlineFiles));
+    swSource = swSource.replace(`"%%OFFLINE_FILES%%"`, JSON.stringify(offlineFiles));
+    swSource = swSource.replace(`"%%CACHE_FILES%%"`, JSON.stringify(cacheAssets));
     await fs.writeFile(path.join(targetDir, "sw.js"), swSource, "utf8");
     // write web manifest
     const webManifest = {
