@@ -28,19 +28,9 @@ limitations under the License.
 
 .message-container {
     flex: 0 1 auto;
-    max-width: 80%;
-    padding: 5px 10px;
-    margin: 5px 10px;
-    background: blue;
     /* first try break-all, then break-word, which isn't supported everywhere */
     word-break: break-all;  
     word-break: break-word;
-}
-
-.message-container .sender {
-    margin: 5px 0;
-    font-size: 0.9em;
-    font-weight: bold;
 }
 
 .message-container img {
@@ -54,50 +44,7 @@ limitations under the License.
     min-width: 0;
 }
 
-.TextMessageView.own .message-container {
-    margin-left: auto;
-}
-
-.TextMessageView .message-container time {
-    float: right;
-    padding: 2px 0 0px 20px;
-    font-size: 0.9em;
-    color: lightblue;
-}
-
-.message-container time {
-    font-size: 0.9em;
-    color: lightblue;
-}
-
-.own time {
-    color: lightgreen;
-}
-
-.own .message-container {
-    background-color: darkgreen;
-}
-
-.TextMessageView.pending .message-container {
-    background-color: #333;
-}
-
-.message-container p {
-    margin: 5px 0;
-}
-
 .AnnouncementView {
-    margin: 5px 0;
-    padding: 5px 10%;
     display: flex;
     align-items: center;
-}
-
-.AnnouncementView > div {
-    margin: 0 auto;
-    padding: 10px 20px;
-    background-color: #333;
-    font-size: 0.9em;
-    color: #CCC;
-    text-align: center;
 }

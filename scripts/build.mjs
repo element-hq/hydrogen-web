@@ -43,6 +43,7 @@ const PROJECT_NAME = "Hydrogen Chat";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectDir = path.join(__dirname, "../");
+const cssDir = path.join(projectDir, "src/ui/web/css/");
 const targetDir = path.join(projectDir, "target");
 
 const {debug, noOffline, legacy} = process.argv.reduce((params, param) => {
@@ -67,31 +68,80 @@ async function build() {
     if (legacy) {
         bundleName = `${PROJECT_ID}-legacy.js`;
     }
-    await buildHtml(version, bundleName);
+
+
+    const devHtml = await fs.readFile(path.join(projectDir, "index.html"), "utf8");
+    const doc = cheerio.load(devHtml);
+    const themes = [];
+    findThemes(doc, themeName => {
+        themes.push(themeName);
+    });
+
+    // also creates the directories where the theme css bundles are placed in,
+    // so do it first
+    const themeAssets = await copyThemeAssets(themes, legacy);
+
+    await buildHtml(doc, version, bundleName);
     if (legacy) {
         await buildJsLegacy(bundleName);
-        await buildCssLegacy();
     } else {
         await buildJs(bundleName);
-        await buildCss();
     }
+    await buildCssBundles(legacy ? buildCssLegacy : buildCss, themes);
     if (offline) {
-        await buildOffline(version, bundleName);
+        await buildOffline(version, bundleName, themeAssets);
     }
 
     console.log(`built ${PROJECT_ID}${legacy ? " legacy" : ""} ${version} successfully`);
 }
 
-async function buildHtml(version, bundleName) {
+async function findThemes(doc, callback) {
+    doc("link[rel~=stylesheet][title]").each((i, el) => {
+        const theme = doc(el);
+        const href = theme.attr("href");
+        const themesPrefix = "/themes/";
+        const prefixIdx = href.indexOf(themesPrefix);
+        if (prefixIdx !== -1) {
+            const themeNameStart = prefixIdx + themesPrefix.length;
+            const themeNameEnd = href.indexOf("/", themeNameStart);
+            const themeName = href.substr(themeNameStart, themeNameEnd - themeNameStart);
+            callback(themeName, theme);
+        }
+    });
+}
+
+async function copyThemeAssets(themes, legacy) {
+    const assets = [];
+    // create theme directories and copy assets
+    await fs.mkdir(path.join(targetDir, "themes"));
+    for (const theme of themes) {
+        assets.push(`themes/${theme}/bundle.css`);
+        const themeDstFolder = path.join(targetDir, `themes/${theme}`);
+        await fs.mkdir(themeDstFolder);
+        const themeSrcFolder = path.join(cssDir, `themes/${theme}`);
+        await copyFolder(themeSrcFolder, themeDstFolder, file => {
+            const isUnneededFont = legacy ? file.endsWith(".woff2") : file.endsWith(".woff");
+            if (!file.endsWith(".css") && !isUnneededFont) {
+                assets.push(file.substr(cssDir.length));
+                return true;
+            }
+            return false;
+        });
+    }
+    return assets;
+}
+
+async function buildHtml(doc, version, bundleName) {
     // transform html file
-    const devHtml = await fs.readFile(path.join(projectDir, "index.html"), "utf8");
-    const doc = cheerio.load(devHtml);
-    doc("link[rel=stylesheet]").attr("href", `${PROJECT_ID}.css`);
+    // change path to main.css to css bundle
+    doc("link[rel=stylesheet]:not([title])").attr("href", `${PROJECT_ID}.css`);
+    // change paths to all theme stylesheets
+    findThemes(doc, (themeName, theme) => {
+        theme.attr("href", `themes/${themeName}/bundle.css`);
+    });
     doc("script#main").replaceWith(
         `<script type="text/javascript" src="${bundleName}"></script>` +
         `<script type="text/javascript">${PROJECT_ID}Bundle.main(document.body);</script>`);
-    removeOrEnableScript(doc("script#phone-debug-pre"), debug);
-    removeOrEnableScript(doc("script#phone-debug-post"), debug);
     removeOrEnableScript(doc("script#service-worker"), offline);
 
     const versionScript = doc("script#version");
@@ -146,9 +196,17 @@ async function buildJsLegacy(bundleName) {
     });
 }
 
-async function buildOffline(version, bundleName) {
+async function buildOffline(version, bundleName, themeAssets) {
+    const {offlineAssets, cacheAssets} = themeAssets.reduce((result, asset) => {
+        if (asset.endsWith(".css")) {
+            result.offlineAssets.push(asset);
+        } else {
+            result.cacheAssets.push(asset);
+        }
+        return result;
+    }, {offlineAssets: [], cacheAssets: []});
     // write offline availability
-    const offlineFiles = [bundleName, `${PROJECT_ID}.css`, "index.html", "icon-192.png"];
+    const offlineFiles = [bundleName, `${PROJECT_ID}.css`, "index.html", "icon-192.png"].concat(offlineAssets);
 
     // write appcache manifest
     const manifestLines = [
@@ -164,7 +222,8 @@ async function buildOffline(version, bundleName) {
     // write service worker
     let swSource = await fs.readFile(path.join(projectDir, "src/service-worker.template.js"), "utf8");
     swSource = swSource.replace(`"%%VERSION%%"`, `"${version}"`);
-    swSource = swSource.replace(`"%%FILES%%"`, JSON.stringify(offlineFiles));
+    swSource = swSource.replace(`"%%OFFLINE_FILES%%"`, JSON.stringify(offlineFiles));
+    swSource = swSource.replace(`"%%CACHE_FILES%%"`, JSON.stringify(cacheAssets));
     await fs.writeFile(path.join(targetDir, "sw.js"), swSource, "utf8");
     // write web manifest
     const webManifest = {
@@ -180,24 +239,30 @@ async function buildOffline(version, bundleName) {
     await fs.writeFile(path.join(targetDir, "icon-192.png"), icon);
 }
 
-async function buildCss() {
-    // create css bundle
-    const cssMainFile = path.join(projectDir, "src/ui/web/css/main.css");
-    const preCss = await fs.readFile(cssMainFile, "utf8");
+async function buildCssBundles(buildFn, themes) {
+    const cssMainFile = path.join(cssDir, "main.css");
+    await buildFn(cssMainFile, path.join(targetDir, `${PROJECT_ID}.css`));
+    for (const theme of themes) {
+        await buildFn(
+            path.join(cssDir, `themes/${theme}/theme.css`),
+            path.join(targetDir, `themes/${theme}/bundle.css`)
+        );
+    }
+}
+
+async function buildCss(entryPath, bundlePath) {
+    const preCss = await fs.readFile(entryPath, "utf8");
     const cssBundler = postcss([postcssImport]);
-    const result = await cssBundler.process(preCss, {from: cssMainFile});
-    await fs.writeFile(path.join(targetDir, `${PROJECT_ID}.css`), result.css, "utf8");
+    const result = await cssBundler.process(preCss, {from: entryPath});
+    await fs.writeFile(bundlePath, result.css, "utf8");
 }
 
-async function buildCssLegacy() {
-    // create css bundle
-    const cssMainFile = path.join(projectDir, "src/ui/web/css/main.css");
-    const preCss = await fs.readFile(cssMainFile, "utf8");
+async function buildCssLegacy(entryPath, bundlePath) {
+    const preCss = await fs.readFile(entryPath, "utf8");
     const cssBundler = postcss([postcssImport, cssvariables(), flexbugsFixes()]);
-    const result = await cssBundler.process(preCss, {from: cssMainFile});
-    await fs.writeFile(path.join(targetDir, `${PROJECT_ID}.css`), result.css, "utf8");
+    const result = await cssBundler.process(preCss, {from: entryPath});
+    await fs.writeFile(bundlePath, result.css, "utf8");
 }
-
 
 function removeOrEnableScript(scriptNode, enable) {
     if (enable) {
@@ -209,12 +274,24 @@ function removeOrEnableScript(scriptNode, enable) {
 
 async function removeDirIfExists(targetDir) {
     try {
-        const files = await fs.readdir(targetDir);
-        await Promise.all(files.map(filename => fs.unlink(path.join(targetDir, filename))));
-        await fs.rmdir(targetDir);
+        await fs.rmdir(targetDir, {recursive: true});
     } catch (err) {
         if (err.code !== "ENOENT") {
             throw err;
+        }
+    }
+}
+
+async function copyFolder(srcRoot, dstRoot, filter) {
+    const dirEnts = await fs.readdir(srcRoot, {withFileTypes: true});
+    for (const dirEnt of dirEnts) {
+        const dstPath = path.join(dstRoot, dirEnt.name);
+        const srcPath = path.join(srcRoot, dirEnt.name);
+        if (dirEnt.isDirectory()) {
+            await fs.mkdir(dstPath);
+            await copyFolder(srcPath, dstPath, filter);
+        } else if (dirEnt.isFile() && filter(srcPath)) {
+            await fs.copyFile(srcPath, dstPath);
         }
     }
 }

@@ -3,6 +3,7 @@
 	<head>
 		<meta charset="utf-8">
         <link rel="stylesheet" type="text/css" href="css/main.css">
+        <link rel="stylesheet" type="text/css" href="css/themes/bubbles/theme.css">
 	</head>
 	<body>
         <script type="text/javascript">
@@ -53,6 +54,7 @@
 		<script id="main" type="module">
 			import {LoginView} from "./login/LoginView.js";
             const view = new LoginView(vm({
+                isBusy: true,
                 loadViewModel: vm({
                     loadLabel: "Doing something important...",
                     loading: true,

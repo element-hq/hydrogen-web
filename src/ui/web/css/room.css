@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,10 +15,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+.RoomPlaceholderView {
+    display: flex;
+    flex-direction: row;
+}
 
 .RoomHeader {
-    padding: 10px;
-    background-color: #333;
+    align-items: center;
 }
 
 .RoomHeader > *:last-child {
@@ -30,16 +34,7 @@ limitations under the License.
 }
 
 .RoomHeader button {
-    width: 40px;
-    height: 40px;
-    display: none;
-    font-size: 1.5em;
-    padding: 0;
     display: block;
-    background: white;
-    border: none;
-    font-weight: bolder;
-    line-height: 40px;
 }
 
 .RoomHeader .back {
@@ -52,22 +47,9 @@ limitations under the License.
 }
 
 .RoomHeader .topic {
-    font-size: 0.8em;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-}
-
-.back::before {
-    content: "☰";
-}
-
-.more::before {
-    content: "⋮";
-}
-
-.RoomHeader {
-    align-items: center;
 }
 
 .RoomHeader .description {
@@ -82,14 +64,8 @@ limitations under the License.
     margin: 0;
 }
 
-.RoomView_error {
-    color: red;
-}
-
 .MessageComposer > input {
     display: block;
     width: 100%;
     box-sizing: border-box;
-    padding: 0.8em;
-    border: none;
 }

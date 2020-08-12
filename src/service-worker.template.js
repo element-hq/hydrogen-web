@@ -15,13 +15,17 @@ limitations under the License.
 */
 
 const VERSION = "%%VERSION%%";
-const FILES = "%%FILES%%";
-const cacheName = `brawl-${VERSION}`;
+const OFFLINE_FILES = "%%OFFLINE_FILES%%";
+// TODO: cache these files when requested
+// The difficulty is that these are relative filenames, and we don't have access to document.baseURI
+// Clients.match({type: "window"}).url and assume they are all the same? they really should be ... safari doesn't support this though
+const CACHE_FILES = "%%CACHE_FILES%%";
+const cacheName = `hydrogen-${VERSION}`;
 
 self.addEventListener('install', function(e) {
     e.waitUntil(
         caches.open(cacheName).then(function(cache) {
-            return cache.addAll(FILES);
+            return cache.addAll(OFFLINE_FILES);
         })
     );
 });

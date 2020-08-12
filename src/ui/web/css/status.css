@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,31 +15,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
-.LeftPanel {
-    overflow-y: auto;
-    overscroll-behavior: contain;
-}
-
-.LeftPanel ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.LeftPanel li {
+.SessionStatusView {
     display: flex;
-    align-items: center;
 }
 
-.LeftPanel div.description {
-    margin: 0;
-    flex: 1 1 0;
-    min-width: 0;
+.SessionStatusView p {
+    margin: 0 10px;
+    word-break: break-all;
+    word-break: break-word;
 }
 
-.LeftPanel .description > * {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+.SessionStatusView button {
+    border: none;
+    background: none;
+    color: currentcolor;
+    text-decoration: underline;
 }
