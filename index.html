@@ -3,16 +3,15 @@
 	<head>
 		<meta charset="utf-8">
         <meta name="viewport" content="width=device-width, user-scalable=no">
-        <meta name="application-name" content="Brawl Chat"/>
+        <meta name="application-name" content="Hydrogen Chat"/>
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black">
-        <meta name="apple-mobile-web-app-title" content="Brawl Chat">
+        <meta name="apple-mobile-web-app-title" content="Hydrogen Chat">
         <meta name="description" content="A matrix chat application">
         <link rel="stylesheet" type="text/css" href="src/ui/web/css/main.css">
 	</head>
-	<body class="brawl">
+	<body class="hydrogen">
         <script id="version" type="disabled">
-            window.BRAWL_VERSION = "%%VERSION%%";
         </script>
         <script id="phone-debug-pre" type="disabled">
             window.DEBUG = true;
@@ -26,6 +25,7 @@
             console.log = console.info = console.warn = (...params) => {
                 window.debugConsoleBuffer = window.debugConsoleBuffer + params.join(" ") + "\n";
             };
+            window.HYDROGEN_VERSION = "%%VERSION%%";
         </script>
 		<script id="main" type="module">
 			import main from "./src/main.js";

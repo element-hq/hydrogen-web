@@ -16,7 +16,7 @@ limitations under the License.
 
 import {ListView} from "../general/ListView.js";
 import {TemplateView} from "../general/TemplateView.js";
-import {brawlGithubLink} from "./common.js";
+import {hydrogenGithubLink} from "./common.js";
 import {SessionLoadView} from "./SessionLoadView.js";
 
 function selectFileAsText(mimeType) {
@@ -104,7 +104,7 @@ export class SessionPickerView extends TemplateView {
             t.p(t.button({onClick: () => vm.cancel()}, ["Log in to a new session instead"])),
             t.p(t.button({onClick: async () => vm.import(await selectFileAsText("application/json"))}, "Import")),
             t.if(vm => vm.loadViewModel, vm => new SessionLoadView(vm.loadViewModel)),
-            t.p(brawlGithubLink(t))
+            t.p(hydrogenGithubLink(t))
         ]);
     }
 }
