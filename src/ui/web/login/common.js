@@ -14,10 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export function brawlGithubLink(t) {
-    if (window.BRAWL_VERSION) {
-        return t.a({target: "_blank", href: `https://github.com/bwindels/brawl-chat/releases/tag/v${window.BRAWL_VERSION}`}, `Brawl v${window.BRAWL_VERSION} on Github`);
+export function hydrogenGithubLink(t) {
+    if (window.HYDROGEN_VERSION) {
+        return t.a({target: "_blank",
+            href: `https://github.com/vector-im/hydrogen-web/releases/tag/v${window.HYDROGEN_VERSION}`},
+            `Hydrogen v${window.HYDROGEN_VERSION} on Github`);
     } else {
-        return t.a({target: "_blank", href: "https://github.com/bwindels/brawl-chat"}, "Brawl on Github");
+        return t.a({target: "_blank", href: "https://github.com/vector-im/hydrogen-web"},
+            "Hydrogen on Github");
     }
 }

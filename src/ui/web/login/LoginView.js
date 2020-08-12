@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {TemplateView} from "../general/TemplateView.js";
-import {brawlGithubLink} from "./common.js";
+import {hydrogenGithubLink} from "./common.js";
 import {SessionLoadView} from "./SessionLoadView.js";
 
 export class LoginView extends TemplateView {
@@ -35,8 +35,9 @@ export class LoginView extends TemplateView {
                 disabled
             }, vm.i18n`Log In`)),
             t.div(t.button({onClick: () => vm.cancel(), disabled}, [vm.i18n`Pick an existing session`])),
+            // use t.mapView rather than t.if to create a new view when the view model changes too
             t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadView(loadViewModel) : null),
-            t.p(brawlGithubLink(t))
+            t.p(hydrogenGithubLink(t))
         ]);
     }
 }
