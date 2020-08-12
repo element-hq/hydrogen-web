@@ -18,17 +18,19 @@ import {TemplateView} from "../../../general/TemplateView.js";
 
 export class ImageView extends TemplateView {
     render(t, vm) {
+        // replace with css aspect-ratio once supported
+        const heightRatioPercent = (vm.thumbnailHeight / vm.thumbnailWidth) * 100;
         const image = t.img({
             src: vm.thumbnailUrl,
             width: vm.thumbnailWidth,
             height: vm.thumbnailHeight,
             loading: "lazy",
-            style: `max-width: ${vm.thumbnailWidth}px`,
             alt: vm.label,
         });
         const linkContainer = t.a({
             href: vm.url,
-            target: "_blank"
+            target: "_blank",
+            style: `padding-top: ${heightRatioPercent}%; width: ${vm.thumbnailWidth}px;`
         }, image);
 
         return t.li(

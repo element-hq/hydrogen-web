@@ -33,10 +33,29 @@ limitations under the License.
     word-break: break-word;
 }
 
+.message-container .sender {
+    margin: 5px 0;
+    font-size: 0.9em;
+    font-weight: bold;
+}
+
+.message-container a {
+    display: block;
+    position: relative;
+    max-width: 100%;
+    /* width and padding-top set inline to maintain aspect ratio,
+    replace with css aspect-ratio once supported */
+}
+
 .message-container img {
     display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
     width: 100%;
-    height: auto;
+    height: 100%;
 }
 
 .TextMessageView {
