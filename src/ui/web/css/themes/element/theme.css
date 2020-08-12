@@ -46,6 +46,11 @@ limitations under the License.
     align-items: center;
 }
 
+.LeftPanel li.active {
+    background: lightgray;
+    color: black;
+}
+
 .LeftPanel li {
     border-bottom: 1px #555 solid;
 }
@@ -65,7 +70,6 @@ limitations under the License.
 a {
     color: white;
 }
-
 
 .SessionStatusView {
     padding: 5px;
