@@ -54,6 +54,7 @@
 		<script id="main" type="module">
 			import {LoginView} from "./login/LoginView.js";
             const view = new LoginView(vm({
+                isBusy: true,
                 loadViewModel: vm({
                     loadLabel: "Doing something important...",
                     loading: true,
