@@ -22,10 +22,10 @@ import {EventEmitter} from "../utils/EventEmitter.js";
 import {Disposables} from "../utils/Disposables.js";
 
 export class ViewModel extends EventEmitter {
-    constructor({clock} = {}) {
+    constructor({clock, emitChange} = {}) {
         super();
         this.disposables = null;
-        this._options = {clock};
+        this._options = {clock, emitChange};
     }
 
     childOptions(explicitOptions) {
@@ -71,7 +71,11 @@ export class ViewModel extends EventEmitter {
     }
 
     emitChange(changedProps) {
-        this.emit("change", changedProps);
+        if (this._options.emitChange) {
+            this._options.emitChange(changedProps);
+        } else {
+            this.emit("change", changedProps);
+        }
     }
 
     get clock() {
