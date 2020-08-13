@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {SimpleTile} from "./SimpleTile.js";
+import {getIdentifierColorNumber} from "../../../avatar.js";
 
 export class MessageTile extends SimpleTile {
     constructor(options) {
@@ -30,6 +31,10 @@ export class MessageTile extends SimpleTile {
 
     get sender() {
         return this._entry.sender;
+    }
+
+    get senderColorNumber() {
+        return getIdentifierColorNumber(this._entry.sender);
     }
 
     get date() {

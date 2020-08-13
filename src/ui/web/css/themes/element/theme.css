@@ -21,6 +21,15 @@ limitations under the License.
     font-family: 'Inter', sans-serif, 'emoji';
     background-color: white;
     color: #2e2f32;
+    
+    --usercolor1: #368BD6;
+    --usercolor2: #AC3BA8;
+    --usercolor3: #03B381;
+    --usercolor4: #E64F7A;
+    --usercolor5: #FF812D;
+    --usercolor6: #2DC2C5;
+    --usercolor7: #5C56F5;
+    --usercolor8: #74D12C;
 }
 
 .avatar {
@@ -29,6 +38,15 @@ limitations under the License.
 
     color: white;
 }
+
+.hydrogen .avatar.usercolor1 { background-color: var(--usercolor1); }
+.hydrogen .avatar.usercolor2 { background-color: var(--usercolor2); }
+.hydrogen .avatar.usercolor3 { background-color: var(--usercolor3); }
+.hydrogen .avatar.usercolor4 { background-color: var(--usercolor4); }
+.hydrogen .avatar.usercolor5 { background-color: var(--usercolor5); }
+.hydrogen .avatar.usercolor6 { background-color: var(--usercolor6); }
+.hydrogen .avatar.usercolor7 { background-color: var(--usercolor7); }
+.hydrogen .avatar.usercolor8 { background-color: var(--usercolor8); }
 
 .LeftPanel {
     background: rgba(245, 245, 245, 0.90);
@@ -134,6 +152,15 @@ a {
     font-size: 0.9em;
     font-weight: bold;
 }
+
+.hydrogen .sender.usercolor1 { color: var(--usercolor1); }
+.hydrogen .sender.usercolor2 { color: var(--usercolor2); }
+.hydrogen .sender.usercolor3 { color: var(--usercolor3); }
+.hydrogen .sender.usercolor4 { color: var(--usercolor4); }
+.hydrogen .sender.usercolor5 { color: var(--usercolor5); }
+.hydrogen .sender.usercolor6 { color: var(--usercolor6); }
+.hydrogen .sender.usercolor7 { color: var(--usercolor7); }
+.hydrogen .sender.usercolor8 { color: var(--usercolor8); }
 
 .TextMessageView .message-container time {
     padding: 2px 0 0px 20px;

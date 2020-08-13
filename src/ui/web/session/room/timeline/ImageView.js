@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../../general/TemplateView.js";
+import {renderMessage} from "./common.js";
 
 export class ImageView extends TemplateView {
     render(t, vm) {
@@ -33,13 +34,8 @@ export class ImageView extends TemplateView {
             style: `padding-top: ${heightRatioPercent}%; width: ${vm.thumbnailWidth}px;`
         }, image);
 
-        return t.li(
-            {className: {"TextMessageView": true, own: vm.isOwn, pending: vm.isPending}},
-            t.div({className: "message-container"}, [
-                t.div({className: "sender"}, vm => vm.isContinuation ? "" : vm.sender),
-                t.div(linkContainer),
-                t.p(t.time(vm.date + " " + vm.time)),
-            ])
+        return renderMessage(t, vm,
+            [t.div(linkContainer), t.p(t.time(vm.date + " " + vm.time))]
         );
     }
 }
