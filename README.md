@@ -1,6 +1,6 @@
 # Hydrogen
 
-A minimal [Matrix](https://matrix.org/) chat client, focused on performance, offline functionality, and broad browser support.
+A minimal [Matrix](https://matrix.org/) chat client, focused on performance, offline functionality, and broad browser support. This is work in progress and not yet ready for primetime. We're currently not accepting any externally reported issues (features, bug reports, ...) at this time.
 
 ## Goals
 
