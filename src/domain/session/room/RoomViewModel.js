@@ -115,12 +115,28 @@ export class RoomViewModel extends ViewModel {
     }
 }
 
-class ComposerViewModel {
+class ComposerViewModel extends ViewModel {
     constructor(roomVM) {
+        super();
         this._roomVM = roomVM;
+        this._isEmpty = true;
     }
 
     sendMessage(message) {
-        return this._roomVM._sendMessage(message);
+        const success = this._roomVM._sendMessage(message);
+        if (success) {
+            this._isEmpty = true;
+            this.emitChange("canSend");
+        }
+        return success;
+    }
+
+    get canSend() {
+        return !this._isEmpty;
+    }
+
+    setInput(text) {
+        this._isEmpty = text.length === 0;
+        this.emitChange("canSend");
     }
 }
