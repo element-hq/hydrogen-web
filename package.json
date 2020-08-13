@@ -29,6 +29,7 @@
     "@rollup/plugin-multi-entry": "^3.0.1",
     "@rollup/plugin-node-resolve": "^8.4.0",
     "cheerio": "^1.0.0-rc.3",
+    "commander": "^6.0.0",
     "core-js": "^3.6.5",
     "finalhandler": "^1.1.1",
     "impunity": "^0.0.11",
@@ -39,6 +40,7 @@
     "postcss-import": "^12.0.1",
     "regenerator-runtime": "^0.13.7",
     "rollup": "^1.15.6",
-    "serve-static": "^1.13.2"
+    "serve-static": "^1.13.2",
+    "xxhash": "^0.3.0"
   }
 }
