@@ -78,10 +78,11 @@ async function build() {
     const cssBundlePaths = await buildCssBundles(legacy ? buildCssLegacy : buildCss, themes, themeAssets);
     const assetPaths = createAssetPaths(jsBundlePath, cssBundlePaths, themeAssets);
 
+    let manifestPath;
     if (offline) {
-        await buildOffline(version, assetPaths);
+        manifestPath = await buildOffline(version, assetPaths);
     }
-    await buildHtml(doc, version, assetPaths);
+    await buildHtml(doc, version, assetPaths, manifestPath);
 
     console.log(`built ${PROJECT_ID}${legacy ? " legacy" : ""} ${version} successfully`);
 }
@@ -140,7 +141,7 @@ async function copyThemeAssets(themes, legacy) {
     return assets;
 }
 
-async function buildHtml(doc, version, assetPaths) {
+async function buildHtml(doc, version, assetPaths, manifestPath) {
     // transform html file
     // change path to main.css to css bundle
     doc("link[rel=stylesheet]:not([title])").attr("href", assetPaths.cssMainBundle());
@@ -161,7 +162,7 @@ async function buildHtml(doc, version, assetPaths) {
 
     if (offline) {
         doc("html").attr("manifest", "manifest.appcache");
-        doc("head").append(`<link rel="manifest" href="manifest.json">`);
+        doc("head").append(`<link rel="manifest" href="${manifestPath.substr(targetDir.length)}">`);
     }
     await fs.writeFile(path.join(targetDir, "index.html"), doc.html(), "utf8");
 }
@@ -245,11 +246,14 @@ async function buildOffline(version, assetPaths) {
         start_url: "index.html",
         icons: [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"}],
     };
-    await fs.writeFile(path.join(targetDir, "manifest.json"), JSON.stringify(webManifest), "utf8");
+    const manifestJson = JSON.stringify(webManifest);
+    const manifestPath = resource("manifest.json", manifestJson);
+    await fs.writeFile(manifestPath, manifestJson, "utf8");
     // copy icon
     // should this icon have a content hash as well?
     let icon = await fs.readFile(path.join(projectDir, "icon.png"));
     await fs.writeFile(path.join(targetDir, "icon-192.png"), icon);
+    return manifestPath;
 }
 
 async function buildCssBundles(buildFn, themes, themeAssets) {
