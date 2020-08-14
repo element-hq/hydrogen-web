@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
-import {avatarInitials, getIdentifierColorNumber} from "../avatar.js";
+import {avatarInitials, getIdentifierColorNumber} from "../../avatar.js";
 import {ViewModel} from "../../ViewModel.js";
 
 export class RoomViewModel extends ViewModel {

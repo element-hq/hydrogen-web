@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {SimpleTile} from "./SimpleTile.js";
-import {getIdentifierColorNumber} from "../../../avatar.js";
+import {getIdentifierColorNumber} from "../../../../avatar.js";
 
 export class MessageTile extends SimpleTile {
     constructor(options) {
