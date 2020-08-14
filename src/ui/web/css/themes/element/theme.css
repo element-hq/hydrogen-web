@@ -72,6 +72,22 @@ limitations under the License.
     flex: 1 0 auto;
 }
 
+.form-row {
+    margin: 12px 0;
+}
+
+.form-row input {
+    padding: 12px;
+    border: 1px solid rgba(141, 151, 165, 0.15);
+    border-radius: 8px;
+    margin-top: 5px;
+    font-size: 1em;
+}
+
+.form-row label, .form-row input {
+    display: block;
+}
+
 button.styled.secondary {
     color: #03B381;
 }
