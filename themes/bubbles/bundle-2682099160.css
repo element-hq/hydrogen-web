@@ -1,0 +1,184 @@
+/*
+Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+.hydrogen {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, Cantarell, sans-serif, 'emoji';
+    background-color: black;
+    color: white;
+}
+
+.avatar {
+    border-radius: 100%;
+    background: white;
+    color: black;
+}
+
+.LeftPanel {
+    background: #333;
+    color: white;
+}
+
+.LeftPanel ul {
+    padding: 0;
+    margin: 0;
+}
+
+.LeftPanel li {
+    margin: 5px;
+    padding: 10px;
+    /* vertical align */
+    align-items: center;
+}
+
+.LeftPanel li {
+    border-bottom: 1px #555 solid;
+}
+
+.LeftPanel li:last-child {
+    border-bottom: none;
+}
+
+.LeftPanel li > * {
+    margin-right: 10px;
+}
+
+.LeftPanel .description .last-message {
+    font-size: 0.8em;
+}
+
+a {
+    color: white;
+}
+
+.SessionStatusView {
+    padding: 5px;
+    background-color: #555;
+}
+
+.RoomPlaceholderView {
+    align-items: center;
+    justify-content: center;
+}
+
+.SessionPickerView li {
+  font-size: 1.2em;
+  background-color: grey;
+}
+
+.RoomHeader {
+    padding: 10px;
+    background-color: #333;
+}
+
+.RoomHeader button {
+    width: 40px;
+    height: 40px;
+    font-size: 1.5em;
+    padding: 0;
+    background: white;
+    border: none;
+    font-weight: bolder;
+    line-height: 40px;
+}
+
+.back::before {
+    content: "☰";
+}
+
+.more::before {
+    content: "⋮";
+}
+
+.RoomHeader .topic {
+    font-size: 0.8em;
+}
+
+.RoomHeader {
+    padding: 10px;
+    background-color: #333;
+}
+
+.RoomView_error {
+    color: red;
+}
+
+.MessageComposer > input {
+    padding: 0.8em;
+    border: none;
+}
+
+.message-container {
+    max-width: 80%;
+    padding: 5px 10px;
+    margin: 5px 10px;
+    background: blue;
+}
+
+.message-container .sender {
+    margin: 5px 0;
+    font-size: 0.9em;
+    font-weight: bold;
+}
+
+.TextMessageView .message-container time {
+    padding: 2px 0 0px 20px;
+    font-size: 0.9em;
+    color: lightblue;
+}
+
+.message-container time {
+    font-size: 0.9em;
+    color: lightblue;
+}
+
+.own time {
+    color: lightgreen;
+}
+
+.own .message-container {
+    background-color: darkgreen;
+}
+
+.TextMessageView.own .message-container {
+    margin-left: auto;
+}
+
+.TextMessageView.pending .message-container {
+    background-color: #333;
+}
+
+.TextMessageView .message-container time {
+    float: right;
+}
+
+.message-container p {
+    margin: 5px 0;
+}
+
+.AnnouncementView {
+    margin: 5px 0;
+    padding: 5px 10%;
+}
+
+.AnnouncementView > div {
+    margin: 0 auto;
+    padding: 10px 20px;
+    background-color: #333;
+    font-size: 0.9em;
+    color: #CCC;
+    text-align: center;
+}

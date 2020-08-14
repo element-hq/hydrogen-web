@@ -1,0 +1,26 @@
+<!DOCTYPE html><html manifest="manifest.appcache"><head>
+		<meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, user-scalable=no">
+        <meta name="application-name" content="Hydrogen Chat">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black">
+        <meta name="apple-mobile-web-app-title" content="Hydrogen Chat">
+        <meta name="description" content="A matrix chat application">
+        <link rel="stylesheet" type="text/css" href="hydrogen-465980817.css">
+        <link rel="stylesheet" type="text/css" href="themes/element/bundle-1467704481.css" title="Element Theme">
+        <link rel="alternate stylesheet" type="text/css" href="themes/bubbles/bundle-2682099160.css" title="Bubbles Theme">
+	<link rel="manifest" href="manifest-2714077836.json"></head>
+	<body class="hydrogen">
+        <script id="version" type="text/javascript">
+            window.HYDROGEN_VERSION = "0.0.27";
+        </script>
+		<script type="text/javascript" src="hydrogen-legacy-907456704.js"></script><script type="text/javascript">hydrogenBundle.main(document.body);</script>
+        <script id="service-worker" type="text/javascript">
+            if('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js')
+                    .then(function() { console.log("Service Worker registered"); });
+            }
+        </script>
+	
+
+</body></html>

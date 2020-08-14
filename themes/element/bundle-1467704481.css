@@ -1,0 +1,506 @@
+/*
+Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+@font-face {
+  font-family: 'Inter';
+  font-style:  normal;
+  font-weight: 100;
+  font-display: swap;
+  src: url("inter/Inter-Thin.woff2?v=3.13") format("woff2"),
+       url("inter/Inter-Thin-1593561269.woff") format("woff");
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style:  italic;
+  font-weight: 100;
+  font-display: swap;
+  src: url("inter/Inter-ThinItalic.woff2?v=3.13") format("woff2"),
+       url("inter/Inter-ThinItalic-1888295987.woff") format("woff");
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style:  normal;
+  font-weight: 200;
+  font-display: swap;
+  src: url("inter/Inter-ExtraLight.woff2?v=3.13") format("woff2"),
+       url("inter/Inter-ExtraLight-3277895962.woff") format("woff");
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style:  italic;
+  font-weight: 200;
+  font-display: swap;
+  src: url("inter/Inter-ExtraLightItalic.woff2?v=3.13") format("woff2"),
+       url("inter/Inter-ExtraLightItalic-3022762143.woff") format("woff");
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style:  normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("inter/Inter-Light.woff2?v=3.13") format("woff2"),
+       url("inter/Inter-Light-3990448997.woff") format("woff");
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style:  italic;
+  font-weight: 300;
+  font-display: swap;
+  src: url("inter/Inter-LightItalic.woff2?v=3.13") format("woff2"),
+       url("inter/Inter-LightItalic-412813693.woff") format("woff");
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style:  normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("inter/Inter-Regular.woff2?v=3.13") format("woff2"),
+       url("inter/Inter-Regular-2779214592.woff") format("woff");
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style:  italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("inter/Inter-Italic.woff2?v=3.13") format("woff2"),
+       url("inter/Inter-Italic-4024721388.woff") format("woff");
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style:  normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("inter/Inter-Medium.woff2?v=3.13") format("woff2"),
+       url("inter/Inter-Medium-2285329551.woff") format("woff");
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style:  italic;
+  font-weight: 500;
+  font-display: swap;
+  src: url("inter/Inter-MediumItalic.woff2?v=3.13") format("woff2"),
+       url("inter/Inter-MediumItalic-1722521156.woff") format("woff");
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style:  normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("inter/Inter-SemiBold.woff2?v=3.13") format("woff2"),
+       url("inter/Inter-SemiBold-1906312195.woff") format("woff");
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style:  italic;
+  font-weight: 600;
+  font-display: swap;
+  src: url("inter/Inter-SemiBoldItalic.woff2?v=3.13") format("woff2"),
+       url("inter/Inter-SemiBoldItalic-3778207334.woff") format("woff");
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style:  normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("inter/Inter-Bold.woff2?v=3.13") format("woff2"),
+       url("inter/Inter-Bold-4187626158.woff") format("woff");
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style:  italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url("inter/Inter-BoldItalic.woff2?v=3.13") format("woff2"),
+       url("inter/Inter-BoldItalic-641187949.woff") format("woff");
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style:  normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("inter/Inter-ExtraBold.woff2?v=3.13") format("woff2"),
+       url("inter/Inter-ExtraBold-3888913940.woff") format("woff");
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style:  italic;
+  font-weight: 800;
+  font-display: swap;
+  src: url("inter/Inter-ExtraBoldItalic.woff2?v=3.13") format("woff2"),
+       url("inter/Inter-ExtraBoldItalic-2880676406.woff") format("woff");
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style:  normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("inter/Inter-Black.woff2?v=3.13") format("woff2"),
+       url("inter/Inter-Black-276207522.woff") format("woff");
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style:  italic;
+  font-weight: 900;
+  font-display: swap;
+  src: url("inter/Inter-BlackItalic.woff2?v=3.13") format("woff2"),
+       url("inter/Inter-BlackItalic-3159247813.woff") format("woff");
+}
+
+.hydrogen {
+    font-family: 'Inter', sans-serif, 'emoji';
+    font-size: 15px;
+    background-color: white;
+    color: #2e2f32;
+}
+
+.avatar {
+    border-radius: 100%;
+    background: #3D88FA;
+    color: white;
+}
+
+.hydrogen .avatar.usercolor1 { background-color: #368BD6; }
+
+.hydrogen .avatar.usercolor2 { background-color: #AC3BA8; }
+
+.hydrogen .avatar.usercolor3 { background-color: #03B381; }
+
+.hydrogen .avatar.usercolor4 { background-color: #E64F7A; }
+
+.hydrogen .avatar.usercolor5 { background-color: #FF812D; }
+
+.hydrogen .avatar.usercolor6 { background-color: #2DC2C5; }
+
+.hydrogen .avatar.usercolor7 { background-color: #5C56F5; }
+
+.hydrogen .avatar.usercolor8 { background-color: #74D12C; }
+
+.logo {
+    height: 48px;
+    min-width: 48px;
+    background-image: url('element-logo-2959259787.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+/** buttons */
+
+.button-row {
+    display: flex;
+}
+
+.button-row > * {
+    margin-right: 10px;
+}
+
+.button-row > *:last-child {
+    margin-right: 0px;
+}
+
+.button-row button {
+    margin: 10px 0;
+    flex: 1 0 auto;
+}
+
+.form-row {
+    margin: 12px 0;
+}
+
+.form-row input {
+    padding: 12px;
+    border: 1px solid rgba(141, 151, 165, 0.15);
+    border-radius: 8px;
+    margin-top: 5px;
+    font-size: 1em;
+}
+
+.form-row label, .form-row input {
+    display: block;
+}
+
+button.styled.secondary {
+    color: #03B381;
+}
+
+button.styled.primary {
+    background-color: #03B381;
+    border-radius: 8px;
+    color: white;
+}
+
+button.styled.primary.destructive {
+    background-color: #FF4B55;
+}
+
+button.styled.secondary.destructive {
+    color: #FF4B55;
+}
+
+button.styled {
+    border: none;
+    padding: 10px;
+    background: none;
+    font-weight: 500;
+}
+
+.PreSessionScreen {
+    padding: 30px;
+}
+
+.PreSessionScreen h1 {
+    font-size: 16px;
+    text-align: center;
+}
+
+@media screen and (min-width: 600px) {
+    .PreSessionScreen {
+        box-shadow: 0px 6px 32px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+}
+
+.PreSessionScreen .logo {
+    height: 48px;
+    min-width: 48px;
+}
+
+.LeftPanel {
+    background: rgba(245, 245, 245, 0.90);
+}
+
+.LeftPanel ul {
+    padding: 0;
+    margin: 0;
+}
+
+.LeftPanel li {
+    margin: 5px 10px;
+    padding: 5px;
+    /* vertical align */
+    align-items: center;
+}
+
+.LeftPanel li.active {
+    background: rgba(141, 151, 165, 0.1);
+    border-radius: 5px;
+}
+
+.LeftPanel li > * {
+    margin-right: 10px;
+}
+
+.LeftPanel .description .last-message {
+    font-size: 0.8em;
+}
+
+a {
+    color: inherit;
+}
+
+.SessionStatusView {
+    padding: 5px;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background-color: #3D88FA;
+    color: white;
+    border-radius: 10px;
+}
+
+.room-shown .SessionStatusView {
+    top: 72px;
+}
+
+.RoomPlaceholderView {
+    align-items: center;
+    justify-content: center;
+}
+
+.SessionPickerView li {
+  font-size: 1.2em;
+}
+
+.SessionPickerView .session-info {
+    padding: 12px;
+    border: 1px solid rgba(141, 151, 165, 0.15);
+    border-radius: 8px;
+    background-image: url('icons/chevron-right-787082136.svg');
+    background-position: center right 30px;
+    background-repeat: no-repeat;
+    font-weight: 500;
+}
+
+.SessionPickerView .session-actions {
+    margin: 10px 0 20px 0;
+    display: flex;
+}
+
+.SessionPickerView .session-actions > * {
+    margin-right: 10px;
+}
+
+.SessionPickerView .session-actions > *:last-child {
+    margin-right: 0px;
+}
+
+.SessionPickerView .session-actions button {
+    border: none;
+    background: none;
+    color: inherit;
+}
+
+.SessionPickerView button.destructive {
+    color: #FF4B55;
+}
+
+.RoomHeader {
+    background: rgba(245, 245, 245, 0.90);
+    padding: 10px;
+}
+
+.RoomHeader button {
+    width: 40px;
+    height: 40px;
+    font-size: 1.5em;
+    padding: 0;
+    background: white;
+    border: none;
+    font-weight: bolder;
+    line-height: 40px;
+}
+
+.back::before {
+    content: "☰";
+}
+
+.more::before {
+    content: "⋮";
+}
+
+.RoomHeader .topic {
+    font-size: 0.8em;
+}
+
+.RoomView_error {
+    color: red;
+}
+
+.MessageComposer {
+    border-top: 1px solid rgba(245, 245, 245, 0.90);
+}
+
+.MessageComposer > input {
+    padding: 0.8em;
+    border: none;
+}
+
+.MessageComposer > button.send {
+    margin: 8px;
+    width: 32px;
+    height: 32px;
+    display: block;
+    border-radius: 100%;
+    border: none;
+    text-indent: 200%;
+    overflow: hidden;
+
+    background-color: #03B381;
+    background-image: url('icons/send-4065347741.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.MessageComposer > button.send:disabled {
+    background-color: #E3E8F0;
+}
+
+.message-container {
+    padding: 2px 10px;
+    margin: 5px 10px 0 10px;
+}
+
+.TextMessageView.continuation .message-container {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.message-container .sender {
+    margin: 5px 0;
+    font-size: 0.9em;
+    font-weight: bold;
+}
+
+.hydrogen .sender.usercolor1 { color: #368BD6; }
+
+.hydrogen .sender.usercolor2 { color: #AC3BA8; }
+
+.hydrogen .sender.usercolor3 { color: #03B381; }
+
+.hydrogen .sender.usercolor4 { color: #E64F7A; }
+
+.hydrogen .sender.usercolor5 { color: #FF812D; }
+
+.hydrogen .sender.usercolor6 { color: #2DC2C5; }
+
+.hydrogen .sender.usercolor7 { color: #5C56F5; }
+
+.hydrogen .sender.usercolor8 { color: #74D12C; }
+
+.message-container time {
+    padding: 2px 0 0px 10px;
+    font-size: 0.8em;
+    color: #aaa;
+}
+
+.TextMessageView.pending .message-container {
+    color: #ccc;
+}
+
+.message-container p {
+    margin: 5px 0;
+}
+
+.AnnouncementView {
+    margin: 5px 0;
+    padding: 5px 10%;
+}
+
+.AnnouncementView > div {
+    margin: 0 auto;
+    padding: 10px 20px;
+    background-color: rgba(245, 245, 245, 0.90);
+    font-size: 0.9em;
+    text-align: center;
+    border-radius: 10px;
+}
