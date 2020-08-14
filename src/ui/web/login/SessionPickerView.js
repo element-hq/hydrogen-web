@@ -52,9 +52,10 @@ class SessionPickerItemView extends TemplateView {
 
     render(t, vm) {
         const deleteButton = t.button({
+            className: "destructive",
             disabled: vm => vm.isDeleting,
             onClick: this._onDeleteClick.bind(this),
-        }, "Delete");
+        }, "Sign Out");
         const clearButton = t.button({
             disabled: vm => vm.isClearing,
             onClick: () => vm.clear(),
@@ -70,17 +71,20 @@ class SessionPickerItemView extends TemplateView {
                 onClick: () => setTimeout(() => vm.clearExport(), 100),
             }, "Download");
         }));
-
-        const userName = t.span({className: "userId"}, vm => vm.label);
-        const errorMessage = t.if(vm => vm.error, t.createTemplate(t => t.span({className: "error"}, vm => vm.error)));
-        return t.li([t.div({className: "sessionInfo"}, [
-            userName,
-            errorMessage,
-            downloadExport,
-            exportButton,
-            clearButton,
-            deleteButton,
-        ])]);
+        const errorMessage = t.if(vm => vm.error, t.createTemplate(t => t.p({className: "error"}, vm => vm.error)));
+        return t.li([
+            t.div({className: "session-info"}, [
+                t.div({className: `avatar usercolor${vm.avatarColorNumber}`}, vm => vm.avatarInitials),
+                t.div({className: "user-id"}, vm => vm.label),
+            ]),
+            t.div({className: "session-actions"}, [
+                deleteButton,
+                exportButton,
+                downloadExport,
+                clearButton,
+            ]),
+            errorMessage
+        ]);
     }
 }
 
@@ -89,7 +93,7 @@ export class SessionPickerView extends TemplateView {
         const sessionList = new ListView({
             list: vm.sessions,
             onItemClick: (item, event) => {
-                if (event.target.closest(".userId")) {
+                if (event.target.closest(".session-info")) {
                     vm.pick(item.value.id);
                 }
             },
@@ -98,13 +102,24 @@ export class SessionPickerView extends TemplateView {
             return new SessionPickerItemView(sessionInfo);
         });
 
-        return t.div({className: "SessionPickerView"}, [
-            t.h1(["Pick a session"]),
-            t.view(sessionList),
-            t.p(t.button({onClick: () => vm.cancel()}, ["Log in to a new session instead"])),
-            t.p(t.button({onClick: async () => vm.import(await selectFileAsText("application/json"))}, "Import")),
-            t.if(vm => vm.loadViewModel, vm => new SessionLoadView(vm.loadViewModel)),
-            t.p(hydrogenGithubLink(t))
+        return t.div({className: "PreSessionScreen"}, [
+            t.div({className: "logo"}),
+            t.div({className: "SessionPickerView"}, [
+                t.h1(["Continue as …"]),
+                t.view(sessionList),
+                t.div({className: "button-row"}, [
+                    t.button({
+                        className: "styled secondary",
+                        onClick: async () => vm.import(await selectFileAsText("application/json"))
+                    }, vm.i18n`Import a session`),
+                    t.button({
+                        className: "styled primary",
+                        onClick: () => vm.cancel()
+                    }, vm.i18n`Sign In`)
+                ]),
+                t.if(vm => vm.loadViewModel, vm => new SessionLoadView(vm.loadViewModel)),
+                t.p(hydrogenGithubLink(t))
+            ])
         ]);
     }
 }

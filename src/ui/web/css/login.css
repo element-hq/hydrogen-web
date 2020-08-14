@@ -31,16 +31,18 @@ limitations under the License.
     padding: 0.5em;
 }
 
-.SessionPickerView .sessionInfo {
+.SessionPickerView .session-info {
     cursor: pointer;
     display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-.SessionPickerView li span.userId {
+.SessionPickerView li .user-id {
     flex: 1;
 }
 
-.SessionPickerView li span.error {
+.SessionPickerView li .error {
     margin: 0 20px;
 }
 

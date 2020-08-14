@@ -36,7 +36,6 @@ limitations under the License.
 .avatar {
     border-radius: 100%;
     background: #3D88FA;
-
     color: white;
 }
 
@@ -48,6 +47,76 @@ limitations under the License.
 .hydrogen .avatar.usercolor6 { background-color: var(--usercolor6); }
 .hydrogen .avatar.usercolor7 { background-color: var(--usercolor7); }
 .hydrogen .avatar.usercolor8 { background-color: var(--usercolor8); }
+
+.logo {
+    height: 48px;
+    min-width: 48px;
+    background-image: url('element-logo.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+/** buttons */
+.button-row {
+    display: flex;
+}
+.button-row > * {
+    margin-right: 10px;
+}
+.button-row > *:last-child {
+    margin-right: 0px;
+}
+
+.button-row button {
+    margin: 10px 0;
+    flex: 1 0 auto;
+}
+
+button.styled.secondary {
+    color: #03B381;
+}
+
+button.styled.primary {
+    background-color: #03B381;
+    border-radius: 8px;
+    color: white;
+}
+
+button.styled.primary.destructive {
+    background-color: #FF4B55;
+}
+
+button.styled.secondary.destructive {
+    color: #FF4B55;
+}
+
+button.styled {
+    border: none;
+    padding: 10px;
+    background: none;
+    font-weight: 500;
+}
+
+.PreSessionScreen {
+    padding: 30px;
+}
+
+.PreSessionScreen h1 {
+    font-size: 16px;
+    text-align: center;
+}
+
+@media screen and (min-width: 600px) {
+    .PreSessionScreen {
+        box-shadow: 0px 6px 32px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+}
+
+.PreSessionScreen .logo {
+    height: 48px;
+    min-width: 48px;
+}
 
 .LeftPanel {
     background: rgba(245, 245, 245, 0.90);
@@ -79,7 +148,7 @@ limitations under the License.
 }
 
 a {
-    color: white;
+    color: inherit;
 }
 
 .SessionStatusView {
@@ -103,8 +172,40 @@ a {
 
 .SessionPickerView li {
   font-size: 1.2em;
-  background-color: grey;
 }
+
+.SessionPickerView .session-info {
+    padding: 12px;
+    border: 1px solid rgba(141, 151, 165, 0.15);
+    border-radius: 8px;
+    background-image: url('icons/chevron-right.svg');
+    background-position: center right 30px;
+    background-repeat: no-repeat;
+    font-weight: 500;
+}
+
+.SessionPickerView .session-actions {
+    margin: 10px 0 20px 0;
+    display: flex;
+}
+
+.SessionPickerView .session-actions > * {
+    margin-right: 10px;
+}
+.SessionPickerView .session-actions > *:last-child {
+    margin-right: 0px;
+}
+
+.SessionPickerView .session-actions button {
+    border: none;
+    background: none;
+    color: inherit;
+}
+
+.SessionPickerView button.destructive {
+    color: #FF4B55;
+}
+
 
 .RoomHeader {
     background: rgba(245, 245, 245, 0.90);
