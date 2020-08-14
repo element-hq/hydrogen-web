@@ -34,6 +34,8 @@ import { nodeResolve } from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 // multi-entry plugin so we can add polyfill file to main
 import multi from '@rollup/plugin-multi-entry';
+// replace urls of asset names with content hashed version
+import postcssUrl from "postcss-url";
 
 import cssvariables from "postcss-css-variables";
 import flexbugsFixes from "postcss-flexbugs-fixes";
@@ -73,7 +75,7 @@ async function build() {
     // so do it first
     const themeAssets = await copyThemeAssets(themes, legacy);
     const jsBundlePath = await (legacy ? buildJsLegacy() : buildJs());
-    const cssBundlePaths = await buildCssBundles(legacy ? buildCssLegacy : buildCss, themes);
+    const cssBundlePaths = await buildCssBundles(legacy ? buildCssLegacy : buildCss, themes, themeAssets);
     const assetPaths = createAssetPaths(jsBundlePath, cssBundlePaths, themeAssets);
 
     if (offline) {
@@ -96,7 +98,7 @@ function createAssetPaths(jsBundlePath, cssBundlePaths, themeAssets) {
         cssMainBundle: () => trim(cssBundlePaths.main),
         cssThemeBundle: themeName => trim(cssBundlePaths.themes[themeName]),
         cssThemeBundles: () => Object.values(cssBundlePaths.themes).map(a => trim(a)),
-        otherAssets: () => themeAssets.map(a => trim(a))
+        otherAssets: () => Object.values(themeAssets).map(a => trim(a))
     };
 }
 
@@ -125,7 +127,7 @@ async function createDirs(targetDir, themes) {
 }
 
 async function copyThemeAssets(themes, legacy) {
-    const assets = [];
+    const assets = {};
     for (const theme of themes) {
         const themeDstFolder = path.join(targetDir, `themes/${theme}`);
         const themeSrcFolder = path.join(cssSrcDir, `themes/${theme}`);
@@ -133,7 +135,7 @@ async function copyThemeAssets(themes, legacy) {
             const isUnneededFont = legacy ? file.endsWith(".woff2") : file.endsWith(".woff");
             return !file.endsWith(".css") && !isUnneededFont;
         });
-        assets.push(...themeAssets);
+        Object.assign(assets, themeAssets);
     }
     return assets;
 }
@@ -250,13 +252,20 @@ async function buildOffline(version, assetPaths) {
     await fs.writeFile(path.join(targetDir, "icon-192.png"), icon);
 }
 
-async function buildCssBundles(buildFn, themes) {
+async function buildCssBundles(buildFn, themes, themeAssets) {
     const bundleCss = await buildFn(path.join(cssSrcDir, "main.css"));
     const mainDstPath = resource(`${PROJECT_ID}.css`, bundleCss);
     await fs.writeFile(mainDstPath, bundleCss, "utf8");
     const bundlePaths = {main: mainDstPath, themes: {}};
     for (const theme of themes) {
-        const themeCss = await buildFn(path.join(cssSrcDir, `themes/${theme}/theme.css`));
+        const urlBase = path.join(targetDir, `themes/${theme}/`);
+        const assetUrlMapper = ({absolutePath}) => {
+            const hashedDstPath = themeAssets[absolutePath];
+            if (hashedDstPath && hashedDstPath.startsWith(urlBase)) {
+                return hashedDstPath.substr(urlBase.length);
+            }
+        };
+        const themeCss = await buildFn(path.join(cssSrcDir, `themes/${theme}/theme.css`), assetUrlMapper);
         const themeDstPath = resource(`themes/${theme}/bundle.css`, themeCss);
         await fs.writeFile(themeDstPath, themeCss, "utf8");
         bundlePaths.themes[theme] = themeDstPath;
@@ -264,16 +273,28 @@ async function buildCssBundles(buildFn, themes) {
     return bundlePaths;
 }
 
-async function buildCss(entryPath) {
+async function buildCss(entryPath, urlMapper = null) {
     const preCss = await fs.readFile(entryPath, "utf8");
-    const cssBundler = postcss([postcssImport]);
+    const options = [postcssImport];
+    if (urlMapper) {
+        options.push(postcssUrl({url: urlMapper}));
+    }
+    const cssBundler = postcss(options);
     const result = await cssBundler.process(preCss, {from: entryPath});
     return result.css;
 }
 
-async function buildCssLegacy(entryPath) {
+async function buildCssLegacy(entryPath, urlMapper = null) {
     const preCss = await fs.readFile(entryPath, "utf8");
-    const cssBundler = postcss([postcssImport, cssvariables(), flexbugsFixes()]);
+    const options = [
+        postcssImport,
+        cssvariables(),
+        flexbugsFixes()
+    ];
+    if (urlMapper) {
+        options.push(postcssUrl({url: urlMapper}));
+    }
+    const cssBundler = postcss(options);
     const result = await cssBundler.process(preCss, {from: entryPath});
     return result.css;
 }
@@ -297,19 +318,19 @@ async function removeDirIfExists(targetDir) {
 }
 
 async function copyFolder(srcRoot, dstRoot, filter) {
-    const assetPaths = [];
+    const assetPaths = {};
     const dirEnts = await fs.readdir(srcRoot, {withFileTypes: true});
     for (const dirEnt of dirEnts) {
         const dstPath = path.join(dstRoot, dirEnt.name);
         const srcPath = path.join(srcRoot, dirEnt.name);
         if (dirEnt.isDirectory()) {
             await fs.mkdir(dstPath);
-            assetPaths.push(... await copyFolder(srcPath, dstPath, filter));
+            Object.assign(assetPaths, await copyFolder(srcPath, dstPath, filter));
         } else if (dirEnt.isFile() && filter(srcPath)) {
             const content = await fs.readFile(srcPath);
             const hashedDstPath = resource(dstPath, content);
             await fs.writeFile(hashedDstPath, content);
-            assetPaths.push(hashedDstPath);
+            assetPaths[srcPath] = hashedDstPath;
         }
     }
     return assetPaths;
