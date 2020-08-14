@@ -17,9 +17,9 @@ limitations under the License.
 import {TemplateView} from "../general/TemplateView.js";
 
 export class RoomTile extends TemplateView {
-    render(t) {
+    render(t, vm) {
         return t.li({"className": {"active": vm => vm.isOpen}}, [
-            t.div({className: "avatar medium"}, vm => vm.avatarInitials),
+            t.div({className: `avatar medium usercolor${vm.avatarColorNumber}`}, vm => vm.avatarInitials),
             t.div({className: "description"}, t.div({className: "name"}, vm => vm.name))
         ]);
     }

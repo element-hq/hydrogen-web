@@ -19,6 +19,16 @@ html {
     height: 100%;
 }
 
+
+@media screen and (min-width: 600px) {
+    .PreSessionScreen {
+        width: 600px;
+        box-sizing: border-box;
+        margin: 0 auto;
+        margin-top: 50px;
+    }
+}
+
 .SessionView {
     display: flex;
     flex-direction: column;

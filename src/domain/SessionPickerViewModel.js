@@ -17,6 +17,7 @@ limitations under the License.
 import {SortedArray} from "../observable/index.js";
 import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
 import {ViewModel} from "./ViewModel.js";
+import {avatarInitials, getIdentifierColorNumber} from "./avatar.js";
 
 class SessionItemViewModel extends ViewModel {
     constructor(sessionInfo, pickerVM) {
@@ -111,6 +112,14 @@ class SessionItemViewModel extends ViewModel {
             this._exportDataUrl = null;
             this.emitChange("exportDataUrl");
         }
+    }
+
+    get avatarColorNumber() {
+        return getIdentifierColorNumber(this._sessionInfo.userId);
+    }
+
+    get avatarInitials() {
+        return avatarInitials(this._sessionInfo.userId);
     }
 }
 

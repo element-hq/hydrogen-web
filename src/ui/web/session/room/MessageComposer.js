@@ -22,19 +22,32 @@ export class MessageComposer extends TemplateView {
         this._input = null;
     }
 
-    render(t) {
+    render(t, vm) {
         this._input = t.input({
             placeholder: "Send a message ...",
-            onKeydown: e => this._onKeyDown(e)
+            onKeydown: e => this._onKeyDown(e),
+            onInput: () => vm.setInput(this._input.value),
         });
-        return t.div({className: "MessageComposer"}, [this._input]);
+        return t.div({className: "MessageComposer"}, [
+            this._input,
+            t.button({
+                className: "send",
+                title: vm.i18n`Send`,
+                disabled: vm => !vm.canSend,
+                onClick: () => this._trySend(),
+            }, vm.i18n`Send`),
+        ]);
+    }
+
+    _trySend() {
+        if (this.value.sendMessage(this._input.value)) {
+            this._input.value = "";
+        }
     }
 
     _onKeyDown(event) {
         if (event.key === "Enter") {
-            if (this.value.sendMessage(this._input.value)) {
-                this._input.value = "";
-            }
+            this._trySend();
         }
     }
 }

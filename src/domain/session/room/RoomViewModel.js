@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
-import {avatarInitials} from "../avatar.js";
+import {avatarInitials, getIdentifierColorNumber} from "../../avatar.js";
 import {ViewModel} from "../../ViewModel.js";
 
 export class RoomViewModel extends ViewModel {
@@ -90,7 +90,9 @@ export class RoomViewModel extends ViewModel {
         return avatarInitials(this._room.name);
     }
 
-
+    get avatarColorNumber() {
+        return getIdentifierColorNumber(this._room.id)
+    }
     
     async _sendMessage(message) {
         if (message) {
@@ -113,12 +115,28 @@ export class RoomViewModel extends ViewModel {
     }
 }
 
-class ComposerViewModel {
+class ComposerViewModel extends ViewModel {
     constructor(roomVM) {
+        super();
         this._roomVM = roomVM;
+        this._isEmpty = true;
     }
 
     sendMessage(message) {
-        return this._roomVM._sendMessage(message);
+        const success = this._roomVM._sendMessage(message);
+        if (success) {
+            this._isEmpty = true;
+            this.emitChange("canSend");
+        }
+        return success;
+    }
+
+    get canSend() {
+        return !this._isEmpty;
+    }
+
+    setInput(text) {
+        this._isEmpty = text.length === 0;
+        this.emitChange("canSend");
     }
 }

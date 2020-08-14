@@ -64,8 +64,12 @@ limitations under the License.
     margin: 0;
 }
 
+.MessageComposer {
+    display: flex;
+}
+
 .MessageComposer > input {
     display: block;
-    width: 100%;
+    flex: 1;
     box-sizing: border-box;
 }

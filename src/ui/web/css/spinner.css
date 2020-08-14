@@ -42,7 +42,7 @@ limitations under the License.
      * TODO
      * see if with IE11 we can just set a static stroke state and make it rotate?
      */
-    stroke-dasharray: 0 0 10 90;
+    stroke-dasharray: 0 0 85 85;
 
     fill: none;
     stroke: currentcolor;

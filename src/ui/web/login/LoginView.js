@@ -21,23 +21,49 @@ import {SessionLoadView} from "./SessionLoadView.js";
 export class LoginView extends TemplateView {
     render(t, vm) {
         const disabled = vm => !!vm.isBusy;
-        const username = t.input({type: "text", placeholder: vm.i18n`Username`, disabled});
-        const password = t.input({type: "password", placeholder: vm.i18n`Password`, disabled});
-        const homeserver = t.input({type: "text", placeholder: vm.i18n`Your matrix homeserver`, value: vm.defaultHomeServer, disabled});
-        return t.div({className: "LoginView form"}, [
-            t.h1([vm.i18n`Log in to your homeserver`]),
-            t.if(vm => vm.error, t.createTemplate(t => t.div({className: "error"}, vm => vm.error))),
-            t.div(username),
-            t.div(password),
-            t.div(homeserver),
-            t.div(t.button({
-                onClick: () => vm.login(username.value, password.value, homeserver.value),
-                disabled
-            }, vm.i18n`Log In`)),
-            t.div(t.button({onClick: () => vm.cancel(), disabled}, [vm.i18n`Pick an existing session`])),
-            // use t.mapView rather than t.if to create a new view when the view model changes too
-            t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadView(loadViewModel) : null),
-            t.p(hydrogenGithubLink(t))
+        const username = t.input({
+            id: "username",
+            type: "text",
+            placeholder: vm.i18n`Username`,
+            disabled
+        });
+        const password = t.input({
+            id: "password",
+            type: "password",
+            placeholder: vm.i18n`Password`,
+            disabled
+        });
+        const homeserver = t.input({
+            id: "homeserver",
+            type: "text",
+            placeholder: vm.i18n`Your matrix homeserver`,
+            value: vm.defaultHomeServer, 
+            disabled
+        });
+        
+        return t.div({className: "PreSessionScreen"}, [
+            t.div({className: "logo"}),
+            t.div({className: "LoginView form"}, [
+                t.h1([vm.i18n`Sign In`]),
+                t.if(vm => vm.error, t.createTemplate(t => t.div({className: "error"}, vm => vm.error))),
+                t.div({className: "form-row"}, [t.label({for: "username"}, vm.i18n`Username`), username]),
+                t.div({className: "form-row"}, [t.label({for: "password"}, vm.i18n`Password`), password]),
+                t.div({className: "form-row"}, [t.label({for: "homeserver"}, vm.i18n`Homeserver`), homeserver]),
+                t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadView(loadViewModel) : null),
+                t.div({className: "button-row"}, [
+                    t.button({
+                        className: "styled secondary",
+                        onClick: () => vm.cancel(), disabled
+                    }, [vm.i18n`Go Back`]),
+                    t.button({
+                        className: "styled primary",
+                        onClick: () => vm.login(username.value, password.value, homeserver.value),
+                        disabled
+                    }, vm.i18n`Log In`),
+                ]),
+                // use t.mapView rather than t.if to create a new view when the view model changes too
+                t.p(hydrogenGithubLink(t))
+            ])
         ]);
     }
 }

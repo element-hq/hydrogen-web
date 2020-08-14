@@ -19,19 +19,123 @@ limitations under the License.
 
 .hydrogen {
     font-family: 'Inter', sans-serif, 'emoji';
+    font-size: 15px;
     background-color: white;
-    color: black;
+    color: #2e2f32;
+    
+    --usercolor1: #368BD6;
+    --usercolor2: #AC3BA8;
+    --usercolor3: #03B381;
+    --usercolor4: #E64F7A;
+    --usercolor5: #FF812D;
+    --usercolor6: #2DC2C5;
+    --usercolor7: #5C56F5;
+    --usercolor8: #74D12C;
 }
 
 .avatar {
     border-radius: 100%;
-    background: black;
+    background: #3D88FA;
     color: white;
 }
 
-.LeftPanel {
-    background: #333;
+.hydrogen .avatar.usercolor1 { background-color: var(--usercolor1); }
+.hydrogen .avatar.usercolor2 { background-color: var(--usercolor2); }
+.hydrogen .avatar.usercolor3 { background-color: var(--usercolor3); }
+.hydrogen .avatar.usercolor4 { background-color: var(--usercolor4); }
+.hydrogen .avatar.usercolor5 { background-color: var(--usercolor5); }
+.hydrogen .avatar.usercolor6 { background-color: var(--usercolor6); }
+.hydrogen .avatar.usercolor7 { background-color: var(--usercolor7); }
+.hydrogen .avatar.usercolor8 { background-color: var(--usercolor8); }
+
+.logo {
+    height: 48px;
+    min-width: 48px;
+    background-image: url('element-logo.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+/** buttons */
+.button-row {
+    display: flex;
+}
+.button-row > * {
+    margin-right: 10px;
+}
+.button-row > *:last-child {
+    margin-right: 0px;
+}
+
+.button-row button {
+    margin: 10px 0;
+    flex: 1 0 auto;
+}
+
+.form-row {
+    margin: 12px 0;
+}
+
+.form-row input {
+    padding: 12px;
+    border: 1px solid rgba(141, 151, 165, 0.15);
+    border-radius: 8px;
+    margin-top: 5px;
+    font-size: 1em;
+}
+
+.form-row label, .form-row input {
+    display: block;
+}
+
+button.styled.secondary {
+    color: #03B381;
+}
+
+button.styled.primary {
+    background-color: #03B381;
+    border-radius: 8px;
     color: white;
+}
+
+button.styled.primary.destructive {
+    background-color: #FF4B55;
+}
+
+button.styled.secondary.destructive {
+    color: #FF4B55;
+}
+
+button.styled {
+    border: none;
+    padding: 10px;
+    background: none;
+    font-weight: 500;
+}
+
+.PreSessionScreen {
+    padding: 30px;
+}
+
+.PreSessionScreen h1 {
+    font-size: 16px;
+    text-align: center;
+}
+
+@media screen and (min-width: 600px) {
+    .PreSessionScreen {
+        box-shadow: 0px 6px 32px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+}
+
+.PreSessionScreen .logo {
+    height: 48px;
+    min-width: 48px;
+}
+
+.LeftPanel {
+    background: rgba(245, 245, 245, 0.90);
 }
 
 .LeftPanel ul {
@@ -40,23 +144,15 @@ limitations under the License.
 }
 
 .LeftPanel li {
-    margin: 5px;
-    padding: 10px;
+    margin: 5px 10px;
+    padding: 5px;
     /* vertical align */
     align-items: center;
 }
 
 .LeftPanel li.active {
-    background: lightgray;
-    color: black;
-}
-
-.LeftPanel li {
-    border-bottom: 1px #555 solid;
-}
-
-.LeftPanel li:last-child {
-    border-bottom: none;
+    background: rgba(141, 151, 165, 0.1);
+    border-radius: 5px;
 }
 
 .LeftPanel li > * {
@@ -68,12 +164,21 @@ limitations under the License.
 }
 
 a {
-    color: white;
+    color: inherit;
 }
 
 .SessionStatusView {
     padding: 5px;
-    background-color: #555;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background-color: #3D88FA;
+    color: white;
+    border-radius: 10px;
+}
+
+.room-shown .SessionStatusView {
+    top: 72px;
 }
 
 .RoomPlaceholderView {
@@ -83,13 +188,44 @@ a {
 
 .SessionPickerView li {
   font-size: 1.2em;
-  background-color: grey;
+}
+
+.SessionPickerView .session-info {
+    padding: 12px;
+    border: 1px solid rgba(141, 151, 165, 0.15);
+    border-radius: 8px;
+    background-image: url('icons/chevron-right.svg');
+    background-position: center right 30px;
+    background-repeat: no-repeat;
+    font-weight: 500;
+}
+
+.SessionPickerView .session-actions {
+    margin: 10px 0 20px 0;
+    display: flex;
+}
+
+.SessionPickerView .session-actions > * {
+    margin-right: 10px;
+}
+.SessionPickerView .session-actions > *:last-child {
+    margin-right: 0px;
+}
+
+.SessionPickerView .session-actions button {
+    border: none;
+    background: none;
+    color: inherit;
+}
+
+.SessionPickerView button.destructive {
+    color: #FF4B55;
 }
 
 
 .RoomHeader {
+    background: rgba(245, 245, 245, 0.90);
     padding: 10px;
-    background-color: #333;
 }
 
 .RoomHeader button {
@@ -115,13 +251,12 @@ a {
     font-size: 0.8em;
 }
 
-.RoomHeader {
-    padding: 10px;
-    background-color: #333;
-}
-
 .RoomView_error {
     color: red;
+}
+
+.MessageComposer {
+    border-top: 1px solid rgba(245, 245, 245, 0.90);
 }
 
 .MessageComposer > input {
@@ -129,11 +264,35 @@ a {
     border: none;
 }
 
+.MessageComposer > button.send {
+    margin: 8px;
+    width: 32px;
+    height: 32px;
+    display: block;
+    border-radius: 100%;
+    border: none;
+    text-indent: 200%;
+    overflow: hidden;
+
+    background-color: #03B381;
+    background-image: url('icons/send.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.MessageComposer > button.send:disabled {
+    background-color: #E3E8F0;
+}
+
+
 .message-container {
-    max-width: 80%;
-    padding: 5px 10px;
-    margin: 5px 10px;
-    background: blue;
+    padding: 2px 10px;
+    margin: 5px 10px 0 10px;
+}
+
+.TextMessageView.continuation .message-container {
+    margin-top: 0;
+    margin-bottom: 0;
 }
 
 .message-container .sender {
@@ -142,35 +301,23 @@ a {
     font-weight: bold;
 }
 
-.TextMessageView .message-container time {
-    padding: 2px 0 0px 20px;
-    font-size: 0.9em;
-    color: lightblue;
-}
+.hydrogen .sender.usercolor1 { color: var(--usercolor1); }
+.hydrogen .sender.usercolor2 { color: var(--usercolor2); }
+.hydrogen .sender.usercolor3 { color: var(--usercolor3); }
+.hydrogen .sender.usercolor4 { color: var(--usercolor4); }
+.hydrogen .sender.usercolor5 { color: var(--usercolor5); }
+.hydrogen .sender.usercolor6 { color: var(--usercolor6); }
+.hydrogen .sender.usercolor7 { color: var(--usercolor7); }
+.hydrogen .sender.usercolor8 { color: var(--usercolor8); }
 
 .message-container time {
-    font-size: 0.9em;
-    color: lightblue;
-}
-
-.own time {
-    color: lightgreen;
-}
-
-.own .message-container {
-    background-color: darkgreen;
-}
-
-.TextMessageView.own .message-container {
-    margin-left: auto;
+    padding: 2px 0 0px 10px;
+    font-size: 0.8em;
+    color: #aaa;
 }
 
 .TextMessageView.pending .message-container {
-    background-color: #333;
-}
-
-.TextMessageView .message-container time {
-    float: right;
+    color: #ccc;
 }
 
 .message-container p {
@@ -185,8 +332,8 @@ a {
 .AnnouncementView > div {
     margin: 0 auto;
     padding: 10px 20px;
-    background-color: #333;
+    background-color: rgba(245, 245, 245, 0.90);
     font-size: 0.9em;
-    color: #CCC;
     text-align: center;
+    border-radius: 10px;
 }
