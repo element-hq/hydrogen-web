@@ -21,6 +21,7 @@ import {GapWriter} from "./timeline/persistence/GapWriter.js";
 import {Timeline} from "./timeline/Timeline.js";
 import {FragmentIdComparer} from "./timeline/FragmentIdComparer.js";
 import {SendQueue} from "./sending/SendQueue.js";
+import {WrappedError} from "../error.js"
 
 export class Room extends EventEmitter {
 	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, pendingEvents, user}) {
@@ -67,8 +68,12 @@ export class Room extends EventEmitter {
     }
 
 	load(summary, txn) {
-		this._summary.load(summary);
-		return this._syncWriter.load(txn);
+        try {
+            this._summary.load(summary);
+            return this._syncWriter.load(txn);
+        } catch (err) {
+            throw new WrappedError(`Could not load room ${this._roomId}`, err);
+        }
 	}
 
     sendEvent(eventType, content) {
