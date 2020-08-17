@@ -92,9 +92,12 @@ export class TimelineList extends ListView {
         super.unmount();
     }
 
-    loadList() {
+    async loadList() {
         super.loadList();
         const root = this.root();
+        // yield so the browser can render the list
+        // and we can measure the content below
+        await Promise.resolve();
         const {scrollHeight, clientHeight} = root;
         if (scrollHeight > clientHeight) {
             root.scrollTop = root.scrollHeight;
