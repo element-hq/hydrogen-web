@@ -62,14 +62,6 @@ export class GapTile extends SimpleTile {
         return this._loading;
     }
 
-    get isUp() {
-        return this._entry.direction.isBackward;
-    }
-
-    get isDown() {
-        return this._entry.direction.isForward;
-    }
-
     get error() {
         if (this._error) {
             const dir = this._entry.prev_batch ? "previous" : "next";
