@@ -39,7 +39,7 @@ export class TimelineList extends ListView {
 
     async _onScroll() {
         const root = this.root();
-        if (root.scrollTop === 0 && !this._topLoadingPromise && this._viewModel) {
+        if (root.scrollTop < 100 && !this._topLoadingPromise && this._viewModel) {
             const beforeFromBottom = this._distanceFromBottom();
             this._topLoadingPromise = this._viewModel.loadAtTop();
             await this._topLoadingPromise;
