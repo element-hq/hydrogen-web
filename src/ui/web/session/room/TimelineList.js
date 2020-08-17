@@ -21,8 +21,11 @@ import {ImageView} from "./timeline/ImageView.js";
 import {AnnouncementView} from "./timeline/AnnouncementView.js";
 
 export class TimelineList extends ListView {
-    constructor(options = {}) {
-        options.className = "Timeline";
+    constructor(viewModel) {
+        const options = {
+            className: "Timeline",
+            list: viewModel.tiles,
+        }
         super(options, entry => {
             switch (entry.shape) {
                 case "gap": return new GapView(entry);
@@ -34,7 +37,7 @@ export class TimelineList extends ListView {
         this._atBottom = false;
         this._onScroll = this._onScroll.bind(this);
         this._topLoadingPromise = null;
-        this._viewModel = null;
+        this._viewModel = viewModel;
     }
 
     async _onScroll() {
@@ -50,12 +53,7 @@ export class TimelineList extends ListView {
         }
     }
 
-    update(attributes) {
-        if(attributes.viewModel) {
-            this._viewModel = attributes.viewModel;
-            attributes.list = attributes.viewModel.tiles;
         }
-        super.update(attributes);
     }
 
     mount() {

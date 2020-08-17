@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,16 +17,11 @@ limitations under the License.
 
 import {TemplateView} from "../../general/TemplateView.js";
 import {TimelineList} from "./TimelineList.js";
+import {TimelineLoadingView} from "./TimelineLoadingView.js";
 import {MessageComposer} from "./MessageComposer.js";
 
 export class RoomView extends TemplateView {
-    constructor(viewModel) {
-        super(viewModel);
-        this._timelineList = null;
-    }
-
     render(t, vm) {
-        this._timelineList = new TimelineList();
         return t.div({className: "RoomView"}, [
             t.div({className: "TimelinePanel"}, [
                 t.div({className: "RoomHeader"}, [
@@ -36,16 +32,13 @@ export class RoomView extends TemplateView {
                     ]),
                 ]),
                 t.div({className: "RoomView_error"}, vm => vm.error),
-                t.view(this._timelineList),
+                t.mapView(vm => vm.timelineViewModel, timelineViewModel => {
+                    return timelineViewModel ?
+                        new TimelineList(timelineViewModel) :
+                        new TimelineLoadingView(vm);    // vm is just needed for i18n
+                }),
                 t.view(new MessageComposer(this.value.composerViewModel)),
             ])
         ]);
-    }
-
-    update(value, prop) {
-        super.update(value, prop);
-        if (prop === "timelineViewModel") {
-            this._timelineList.update({viewModel: this.value.timelineViewModel});
-        }
     }
 }
