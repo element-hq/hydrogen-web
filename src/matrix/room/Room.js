@@ -83,6 +83,9 @@ export class Room extends EventEmitter {
 
     /** @public */
     async fillGap(fragmentEntry, amount) {
+        if (fragmentEntry.edgeReached) {
+            return;
+        }
         const response = await this._hsApi.messages(this._roomId, {
             from: fragmentEntry.token,
             dir: fragmentEntry.direction.asApiString(),

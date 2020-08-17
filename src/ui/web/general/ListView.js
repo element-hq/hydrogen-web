@@ -102,12 +102,14 @@ export class ListView {
         }
         this._subscription = this._list.subscribe(this);
         this._childInstances = [];
+        const fragment = document.createDocumentFragment();
         for (let item of this._list) {
             const child = this._childCreator(item);
             this._childInstances.push(child);
             const childDomNode = child.mount(this._mountArgs);
-            this._root.appendChild(childDomNode);
+            fragment.appendChild(childDomNode);
         }
+        this._root.appendChild(fragment);
     }
 
     onAdd(idx, value) {

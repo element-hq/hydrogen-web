@@ -41,6 +41,8 @@ export class GapTile extends SimpleTile {
                 this.emitChange("isLoading");
             }
         }
+        // edgeReached will have been updated by fillGap
+        return this._entry.edgeReached;
     }
 
     updateEntry(entry, params) {
@@ -58,14 +60,6 @@ export class GapTile extends SimpleTile {
 
     get isLoading() {
         return this._loading;
-    }
-
-    get isUp() {
-        return this._entry.direction.isBackward;
-    }
-
-    get isDown() {
-        return this._entry.direction.isForward;
     }
 
     get error() {

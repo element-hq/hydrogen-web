@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,13 +43,16 @@ export class TimelineViewModel {
         this._tiles = new TilesCollection(timeline.entries, tilesCreator({room, ownUserId}));
     }
 
-    // doesn't fill gaps, only loads stored entries/tiles
-    loadAtTop() {
+    /**
+     * @return {bool} startReached if the start of the timeline was reached
+     */
+    async loadAtTop() {
         const firstTile = this._tiles.getFirst();
         if (firstTile.shape === "gap") {
             return firstTile.fill();
         } else {
-            return this._timeline.loadAtTop(50);
+            await this._timeline.loadAtTop(50);
+            return false;
         }
     }
 

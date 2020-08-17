@@ -20,6 +20,7 @@ import {ImageTile} from "./tiles/ImageTile.js";
 import {LocationTile} from "./tiles/LocationTile.js";
 import {RoomNameTile} from "./tiles/RoomNameTile.js";
 import {RoomMemberTile} from "./tiles/RoomMemberTile.js";
+import {EncryptedEventTile} from "./tiles/EncryptedEventTile.js";
 
 export function tilesCreator({room, ownUserId}) {
     return function tilesCreator(entry, emitUpdate) {
@@ -49,6 +50,8 @@ export function tilesCreator({room, ownUserId}) {
                     return new RoomNameTile(options);
                 case "m.room.member":
                     return new RoomMemberTile(options);
+                case "m.room.encrypted":
+                    return new EncryptedEventTile(options);
                 default:
                     // unknown type not rendered
                     return null;
