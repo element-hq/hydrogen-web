@@ -67,3 +67,18 @@ limitations under the License.
     display: flex;
     align-items: center;
 }
+
+.GapView {
+    visibility: hidden;
+    display: flex;
+    padding: 10px 20px;
+}
+
+.GapView.isLoading {
+    visibility: visible;
+}
+
+.GapView > div {
+    flex: 1;
+    margin-left: 10px;
+}
