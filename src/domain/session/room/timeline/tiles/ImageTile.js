@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {MessageTile} from "./MessageTile.js";
+import {readPath, Type} from "../../../../../utils/validate.js";
 
 const MAX_HEIGHT = 300;
 const MAX_WIDTH = 400;
@@ -26,19 +27,21 @@ export class ImageTile extends MessageTile {
     }
 
     get thumbnailUrl() {
-        const mxcUrl = this._getContent().url;
-        if (mxcUrl) {
+        try {
+            const mxcUrl = readPath(this._getContent(), ["url"], Type.String);
             return this._room.mxcUrlThumbnail(mxcUrl, this.thumbnailWidth, this.thumbnailHeight, "scale");
+        } catch (err) {
+            return null;
         }
-        return null;
     }
 
     get url() {
-        const mxcUrl = this._getContent().url;
-        if (mxcUrl) {
+        try {
+            const mxcUrl = readPath(this._getContent(), ["url"], Type.String);
             return this._room.mxcUrl(mxcUrl);
+        } catch (err) {
+            return null;
         }
-        return null;
     }
 
     _scaleFactor() {

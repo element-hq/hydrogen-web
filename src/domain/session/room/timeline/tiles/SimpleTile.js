@@ -15,11 +15,12 @@ limitations under the License.
 */
 
 import {UpdateAction} from "../UpdateAction.js";
+import {ViewModel} from "../../../../ViewModel.js";
 
-export class SimpleTile {
+export class SimpleTile extends ViewModel {
     constructor({entry}) {
+        super();
         this._entry = entry;
-        this._emitUpdate = null;
     }
     // view model props for all subclasses
     // hmmm, could also do instanceof ... ?
@@ -38,12 +39,6 @@ export class SimpleTile {
         return false;
     }
 
-    emitUpdate(paramName) {
-        if (this._emitUpdate) {
-            this._emitUpdate(this, paramName);
-        }
-    }
-
     get internalId() {
         return this._entry.asEventKey().toString();
     }
@@ -53,7 +48,7 @@ export class SimpleTile {
     }
     // TilesCollection contract below
     setUpdateEmit(emitUpdate) {
-        this._emitUpdate = emitUpdate;
+        this.updateOptions({emitChange: paramName => emitUpdate(this, paramName)});
     }
 
     get upperEntry() {

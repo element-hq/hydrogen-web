@@ -62,7 +62,7 @@ export class MessageTile extends SimpleTile {
         const isContinuation = prev && prev instanceof MessageTile && prev.sender === this.sender;
         if (isContinuation !== this._isContinuation) {
             this._isContinuation = isContinuation;
-            this.emitUpdate("isContinuation");
+            this.emitChange("isContinuation");
         }
     }
 }

@@ -21,8 +21,11 @@ import {ImageView} from "./timeline/ImageView.js";
 import {AnnouncementView} from "./timeline/AnnouncementView.js";
 
 export class TimelineList extends ListView {
-    constructor(options = {}) {
-        options.className = "Timeline";
+    constructor(viewModel) {
+        const options = {
+            className: "Timeline",
+            list: viewModel.tiles,
+        }
         super(options, entry => {
             switch (entry.shape) {
                 case "gap": return new GapView(entry);
@@ -34,28 +37,42 @@ export class TimelineList extends ListView {
         this._atBottom = false;
         this._onScroll = this._onScroll.bind(this);
         this._topLoadingPromise = null;
-        this._viewModel = null;
+        this._viewModel = viewModel;
     }
 
-    async _onScroll() {
-        const root = this.root();
-        if (root.scrollTop === 0 && !this._topLoadingPromise && this._viewModel) {
-            const beforeFromBottom = this._distanceFromBottom();
-            this._topLoadingPromise = this._viewModel.loadAtTop();
-            await this._topLoadingPromise;
-            const fromBottom = this._distanceFromBottom();
-            const amountGrown = fromBottom - beforeFromBottom;
-            root.scrollTop = root.scrollTop + amountGrown;
+    async _loadAtTopWhile(predicate) {
+        try {
+            while (predicate()) {
+                // fill, not enough content to fill timeline
+                this._topLoadingPromise = this._viewModel.loadAtTop();
+                await this._topLoadingPromise;
+            }
+        }
+        catch (err) {
+            //ignore error, as it is handled in the VM
+        }
+        finally {
             this._topLoadingPromise = null;
         }
     }
 
-    update(attributes) {
-        if(attributes.viewModel) {
-            this._viewModel = attributes.viewModel;
-            attributes.list = attributes.viewModel.tiles;
+    async _onScroll() {
+        const PAGINATE_OFFSET = 100;
+        const root = this.root();
+        if (root.scrollTop < PAGINATE_OFFSET && !this._topLoadingPromise && this._viewModel) {
+            // to calculate total amountGrown to check when we stop loading
+            let beforeContentHeight = root.scrollHeight;
+            // to adjust scrollTop every time
+            let lastContentHeight = beforeContentHeight;
+            // load until pagination offset is reached again
+            this._loadAtTopWhile(() => {
+                const contentHeight = root.scrollHeight;
+                const amountGrown = contentHeight - beforeContentHeight;
+                root.scrollTop = root.scrollTop + (contentHeight - lastContentHeight);
+                lastContentHeight = contentHeight;
+                return amountGrown < PAGINATE_OFFSET;
+            });
         }
-        super.update(attributes);
     }
 
     mount() {
@@ -72,7 +89,15 @@ export class TimelineList extends ListView {
     loadList() {
         super.loadList();
         const root = this.root();
-        root.scrollTop = root.scrollHeight;
+        const {scrollHeight, clientHeight} = root;
+        if (scrollHeight > clientHeight) {
+            root.scrollTop = root.scrollHeight;
+        }
+        // load while viewport is not filled
+        this._loadAtTopWhile(() => {
+            const {scrollHeight, clientHeight} = root;
+            return scrollHeight <= clientHeight;
+        });
     }
 
     onBeforeListChanged() {
@@ -86,8 +111,8 @@ export class TimelineList extends ListView {
     }
 
     onListChanged() {
+        const root = this.root();
         if (this._atBottom) {
-            const root = this.root();
             root.scrollTop = root.scrollHeight;
         }
     }

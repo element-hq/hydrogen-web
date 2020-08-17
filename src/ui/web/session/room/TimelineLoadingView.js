@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,19 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../../general/TemplateView.js";
-import {spinner} from "../../../common.js";
+import {TemplateView} from "../../general/TemplateView.js";
+import {spinner} from "../../common.js";
 
-export class GapView extends TemplateView {
+export class TimelineLoadingView extends TemplateView {
     render(t, vm) {
-        const className = {
-            GapView: true,
-            isLoading: vm => vm.isLoading
-        };
-        return t.li({className}, [
+        return t.div({className: "TimelineLoadingView"}, [
             spinner(t),
-            t.div(vm.i18n`Loading more messages …`),
-            t.if(vm => vm.error, t.createTemplate(t => t.strong(vm => vm.error)))
+            t.div(vm.i18n`Loading messages…`)
         ]);
     }
 }

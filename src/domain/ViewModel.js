@@ -70,6 +70,10 @@ export class ViewModel extends EventEmitter {
         return result;
     }
 
+    updateOptions(options) {
+        this._options = Object.assign(this._options, options);
+    }
+
     emitChange(changedProps) {
         if (this._options.emitChange) {
             this._options.emitChange(changedProps);

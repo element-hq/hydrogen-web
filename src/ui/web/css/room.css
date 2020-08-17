@@ -73,3 +73,13 @@ limitations under the License.
     flex: 1;
     box-sizing: border-box;
 }
+
+.TimelineLoadingView {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.TimelineLoadingView div {
+    margin-left: 10px;
+}

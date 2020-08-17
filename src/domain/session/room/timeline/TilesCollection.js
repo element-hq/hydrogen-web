@@ -201,6 +201,10 @@ export class TilesCollection extends BaseObservableList {
     get length() {
         return this._tiles.length;
     }
+
+    getFirst() {
+        return this._tiles[0];
+    }
 }
 
 import {ObservableArray} from "../../../../observable/list/ObservableArray.js";
