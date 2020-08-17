@@ -14,6 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+export class WrappedError extends Error {
+    constructor(message, cause) {
+        super(`${message}: ${cause.message}`);
+        this.cause = cause;
+    }
+
+    get name() {
+        return "WrappedError";
+    }
+}
+
 export class HomeServerError extends Error {
     constructor(method, url, body, status) {
         super(`${body ? body.error : status} on ${method} ${url}`);

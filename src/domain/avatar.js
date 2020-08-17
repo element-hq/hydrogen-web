@@ -15,18 +15,11 @@ limitations under the License.
 */
 
 export function avatarInitials(name) {
-    let words = name.split(" ");
-    if (words.length === 1) {
-        words = words[0].split("-");
+    let firstChar = name.charAt(0);
+    if (firstChar === "!" || firstChar === "@" || firstChar === "#") {
+        firstChar = name.charAt(1);
     }
-    words = words.slice(0, 2);
-    return words.reduce((i, w) => {
-        let firstChar = w.charAt(0);
-        if (firstChar === "!" || firstChar === "@" || firstChar === "#") {
-            firstChar = w.charAt(1);
-        }
-        return i + firstChar.toUpperCase();
-    }, "");
+    return firstChar.toUpperCase();
 }
 
 /**

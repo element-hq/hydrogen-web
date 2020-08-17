@@ -45,8 +45,12 @@ export class RoomTileViewModel extends ViewModel {
     }
 
     compare(other) {
-        // sort by name for now
-        return this._room.name.localeCompare(other._room.name);
+        // sort alphabetically
+        const nameCmp = this._room.name.localeCompare(other._room.name);
+        if (nameCmp === 0) {
+            return this._room.id.localeCompare(other._room.id);
+        }
+        return nameCmp;
     }
 
     get isOpen() {
