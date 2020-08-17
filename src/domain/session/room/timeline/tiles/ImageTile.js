@@ -27,12 +27,18 @@ export class ImageTile extends MessageTile {
 
     get thumbnailUrl() {
         const mxcUrl = this._getContent().url;
-        return this._room.mxcUrlThumbnail(mxcUrl, this.thumbnailWidth, this.thumbnailHeight, "scale");
+        if (mxcUrl) {
+            return this._room.mxcUrlThumbnail(mxcUrl, this.thumbnailWidth, this.thumbnailHeight, "scale");
+        }
+        return null;
     }
 
     get url() {
         const mxcUrl = this._getContent().url;
-        return this._room.mxcUrl(mxcUrl);   
+        if (mxcUrl) {
+            return this._room.mxcUrl(mxcUrl);
+        }
+        return null;
     }
 
     _scaleFactor() {
