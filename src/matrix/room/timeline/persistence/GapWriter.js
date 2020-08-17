@@ -178,6 +178,14 @@ export class GapWriter {
         if (fragmentEntry.token !== start) {
             throw new Error("start is not equal to prev_batch or next_batch");
         }
+
+        // begin (or end) of timeline reached
+        if (chunk.length === 0) {
+            fragmentEntry.edgeReached = true;
+            await txn.timelineFragments.update(fragmentEntry.fragment);
+            return {entries: [fragmentEntry], fragments: []};
+        }
+
         // find last event in fragment so we get the eventIndex to begin creating keys at
         let lastKey = await this._findFragmentEdgeEventKey(fragmentEntry, txn);
         // find out if any event in chunk is already present using findFirstOrLastOccurringEventId

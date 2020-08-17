@@ -60,7 +60,7 @@ export class FragmentBoundaryEntry extends BaseEntry {
     }
 
     get isGap() {
-        return !!this.token;
+        return !!this.token && !this.edgeReached;
     }
 
     get token() {
@@ -78,6 +78,25 @@ export class FragmentBoundaryEntry extends BaseEntry {
             this.fragment.nextToken = token;
         }
     }
+
+    get edgeReached() {
+        if (this.started) {
+            return this.fragment.startReached;
+        } else {
+            return this.fragment.endReached;
+        }
+    }
+
+    set edgeReached(reached) {
+        
+        if (this.started) {
+            this.fragment.startReached = reached;
+        } else {
+            this.fragment.endReached = reached;
+        }
+    }
+
+    
 
     get linkedFragmentId() {
         if (this.started) {

@@ -45,7 +45,10 @@ export class TimelineList extends ListView {
             while (predicate()) {
                 // fill, not enough content to fill timeline
                 this._topLoadingPromise = this._viewModel.loadAtTop();
-                await this._topLoadingPromise;
+                const startReached = await this._topLoadingPromise;
+                if (startReached) {
+                    break;
+                }
             }
         }
         catch (err) {
