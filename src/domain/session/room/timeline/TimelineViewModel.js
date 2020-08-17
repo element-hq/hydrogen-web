@@ -44,7 +44,12 @@ export class TimelineViewModel {
 
     // doesn't fill gaps, only loads stored entries/tiles
     loadAtTop() {
-        return this._timeline.loadAtTop(50);
+        const firstTile = this._tiles.getFirst();
+        if (firstTile.shape === "gap") {
+            return firstTile.fill();
+        } else {
+            return this._timeline.loadAtTop(50);
+        }
     }
 
     unloadAtTop(tileAmount) {
