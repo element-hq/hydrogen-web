@@ -183,7 +183,7 @@ async function buildJs() {
         name: `${PROJECT_ID}Bundle`
     });
     const code = output[0].code;
-    const bundlePath = resource(`${PROJECT_ID}.mjs`, code);
+    const bundlePath = resource(`${PROJECT_ID}.js`, code);
     await fs.writeFile(bundlePath, code, "utf8");
     return bundlePath;
 }
