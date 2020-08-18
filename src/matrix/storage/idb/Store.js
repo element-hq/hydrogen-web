@@ -114,7 +114,7 @@ export class Store extends QueryTarget {
             return await reqAsPromise(this._idbStore.put(value));
         } catch(err) {
             const originalErr = err.cause;
-            throw new StorageError(`put on ${this._idbStore.name} failed`, originalErr, value);
+            throw new StorageError(`put on ${err.databaseName}.${err.storeName} failed`, originalErr, value);
         }
     }
 
@@ -123,11 +123,17 @@ export class Store extends QueryTarget {
             return await reqAsPromise(this._idbStore.add(value));
         } catch(err) {
             const originalErr = err.cause;
-            throw new StorageError(`add on ${this._idbStore.name} failed`, originalErr, value);
+            throw new StorageError(`add on ${err.databaseName}.${err.storeName} failed`, originalErr, value);
         }
     }
 
-    delete(keyOrKeyRange) {
-        return reqAsPromise(this._idbStore.delete(keyOrKeyRange));
+    async delete(keyOrKeyRange) {
+        try {
+            return await reqAsPromise(this._idbStore.delete(keyOrKeyRange));
+        } catch(err) {
+            const originalErr = err.cause;
+            throw new StorageError(`delete on ${err.databaseName}.${err.storeName} failed`, originalErr, keyOrKeyRange);
+        }
+        
     }
 }

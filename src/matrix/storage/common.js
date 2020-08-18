@@ -39,6 +39,11 @@ export class StorageError extends Error {
             if (typeof cause.code === "number") {
                 fullMessage += `(code: ${cause.name}) `;
             }
+        }
+        if (value) {
+            fullMessage += `(value: ${JSON.stringify(value)}) `;
+        }
+        if (cause) {
             fullMessage += cause.message;
         }
         super(fullMessage);
@@ -47,5 +52,9 @@ export class StorageError extends Error {
         }
         this.cause = cause;
         this.value = value;
+    }
+
+    get name() {
+        return "StorageError";
     }
 }

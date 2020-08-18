@@ -15,7 +15,18 @@ limitations under the License.
 */
 
 import { StorageError } from "../common.js";
+import { readPath } from "../../../utils/validate.js";
 
+class WrappedDOMException extends StorageError {
+    constructor(request) {
+        // protect against browsers not implementing any of these properties by using readPath
+        const storeName = readPath(request, ["source", "name"], "<unknown store>");
+        const databaseName = readPath(request, ["source", "transaction", "db", "name"], "<unknown db>");
+        super(`Failed IDBRequest on ${databaseName}.${storeName}`, request.error);
+        this.storeName = storeName;
+        this.databaseName = databaseName;
+    }
+}
 
 // storage keys are defined to be unsigned 32bit numbers in WebPlatform.js, which is assumed by idb
 export function encodeUint32(n) {
@@ -37,21 +48,17 @@ export function openDatabase(name, createObjectStore, version) {
     return reqAsPromise(req);
 }
 
-function wrapError(err) {
-    return new StorageError(`wrapped DOMException`, err);
-}
-
 export function reqAsPromise(req) {
     return new Promise((resolve, reject) => {
         req.addEventListener("success", event => resolve(event.target.result));
-        req.addEventListener("error", event => reject(wrapError(event.target.error)));
+        req.addEventListener("error", event => reject(new WrappedDOMException(event.target)));
     });
 }
 
 export function txnAsPromise(txn) {
     return new Promise((resolve, reject) => {
         txn.addEventListener("complete", resolve);
-        txn.addEventListener("abort", event => reject(wrapError(event.target.error)));
+        txn.addEventListener("abort", event => reject(new WrappedDOMException(event.target)));
     });
 }
 
