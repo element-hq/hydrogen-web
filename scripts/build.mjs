@@ -52,13 +52,14 @@ const targetDir = path.join(projectDir, "target/");
 
 const program = new commander.Command();
 program
-    .option("--legacy", "make a build for IE11")
     .option("--no-offline", "make a build without a service worker or appcache manifest")
 program.parse(process.argv);
-const {debug, noOffline, legacy} = program;
+const {debug, noOffline} = program;
 const offline = !noOffline;
 
 async function build() {
+    // only used for CSS for now, using legacy for all targets for now
+    const legacy = true;
     // get version number
     const version = JSON.parse(await fs.readFile(path.join(projectDir, "package.json"), "utf8")).version;
 
@@ -74,9 +75,10 @@ async function build() {
     // also creates the directories where the theme css bundles are placed in,
     // so do it first
     const themeAssets = await copyThemeAssets(themes, legacy);
-    const jsBundlePath = await (legacy ? buildJsLegacy() : buildJs());
+    const jsBundlePath = await buildJs();
+    const jsLegacyBundlePath = await buildJsLegacy();
     const cssBundlePaths = await buildCssBundles(legacy ? buildCssLegacy : buildCss, themes, themeAssets);
-    const assetPaths = createAssetPaths(jsBundlePath, cssBundlePaths, themeAssets);
+    const assetPaths = createAssetPaths(jsBundlePath, jsLegacyBundlePath, cssBundlePaths, themeAssets);
 
     let manifestPath;
     if (offline) {
@@ -84,10 +86,10 @@ async function build() {
     }
     await buildHtml(doc, version, assetPaths, manifestPath);
 
-    console.log(`built ${PROJECT_ID}${legacy ? " legacy" : ""} ${version} successfully`);
+    console.log(`built ${PROJECT_ID} ${version} successfully`);
 }
 
-function createAssetPaths(jsBundlePath, cssBundlePaths, themeAssets) {
+function createAssetPaths(jsBundlePath, jsLegacyBundlePath, cssBundlePaths, themeAssets) {
     function trim(path) {
         if (!path.startsWith(targetDir)) {
             throw new Error("invalid target path: " + targetDir);
@@ -96,6 +98,7 @@ function createAssetPaths(jsBundlePath, cssBundlePaths, themeAssets) {
     }
     return {
         jsBundle: () => trim(jsBundlePath),
+        jsLegacyBundle: () => trim(jsLegacyBundlePath),
         cssMainBundle: () => trim(cssBundlePaths.main),
         cssThemeBundle: themeName => trim(cssBundlePaths.themes[themeName]),
         cssThemeBundles: () => Object.values(cssBundlePaths.themes).map(a => trim(a)),
@@ -150,8 +153,9 @@ async function buildHtml(doc, version, assetPaths, manifestPath) {
         theme.attr("href", assetPaths.cssThemeBundle(themeName));
     });
     doc("script#main").replaceWith(
-        `<script type="text/javascript" src="${assetPaths.jsBundle()}"></script>` +
-        `<script type="text/javascript">${PROJECT_ID}Bundle.main(document.body);</script>`);
+        `<script type="module">import {main} from "./${assetPaths.jsBundle()}"; main(document.body);</script>` +
+        `<script type="text/javascript" nomodule src="${assetPaths.jsLegacyBundle()}"></script>` +
+        `<script type="text/javascript" nomodule>${PROJECT_ID}Bundle.main(document.body);</script>`);
     removeOrEnableScript(doc("script#service-worker"), offline);
 
     const versionScript = doc("script#version");
@@ -171,11 +175,11 @@ async function buildJs() {
     // create js bundle
     const bundle = await rollup.rollup({input: 'src/main.js'});
     const {output} = await bundle.generate({
-        format: 'iife',
+        format: 'es',
         name: `${PROJECT_ID}Bundle`
     });
     const code = output[0].code;
-    const bundlePath = resource(`${PROJECT_ID}.js`, code);
+    const bundlePath = resource(`${PROJECT_ID}.mjs`, code);
     await fs.writeFile(bundlePath, code, "utf8");
     return bundlePath;
 }
@@ -215,27 +219,27 @@ async function buildJsLegacy() {
 async function buildOffline(version, assetPaths) {
     // write offline availability
     const offlineFiles = [
-        assetPaths.jsBundle(),
         assetPaths.cssMainBundle(),
         "index.html",
         "icon-192.png",
     ].concat(assetPaths.cssThemeBundles());
 
     // write appcache manifest
-    const manifestLines = [
+    const appCacheLines = [
         `CACHE MANIFEST`,
         `# v${version}`,
         `NETWORK`,
         `"*"`,
         `CACHE`,
     ];
-    manifestLines.push(...offlineFiles);
-    const manifest = manifestLines.join("\n") + "\n";
-    await fs.writeFile(path.join(targetDir, "manifest.appcache"), manifest, "utf8");
+    appCacheLines.push(assetPaths.jsLegacyBundle(), ...offlineFiles);
+    const swOfflineFiles = [assetPaths.jsBundle(), ...offlineFiles];
+    const appCacheManifest = appCacheLines.join("\n") + "\n";
+    await fs.writeFile(path.join(targetDir, "manifest.appcache"), appCacheManifest, "utf8");
     // write service worker
     let swSource = await fs.readFile(path.join(projectDir, "src/service-worker.template.js"), "utf8");
     swSource = swSource.replace(`"%%VERSION%%"`, `"${version}"`);
-    swSource = swSource.replace(`"%%OFFLINE_FILES%%"`, JSON.stringify(offlineFiles));
+    swSource = swSource.replace(`"%%OFFLINE_FILES%%"`, JSON.stringify(swOfflineFiles));
     swSource = swSource.replace(`"%%CACHE_FILES%%"`, JSON.stringify(assetPaths.otherAssets()));
     await fs.writeFile(path.join(targetDir, "sw.js"), swSource, "utf8");
     // write web manifest
