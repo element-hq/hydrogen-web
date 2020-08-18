@@ -34,6 +34,7 @@ import { nodeResolve } from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 // multi-entry plugin so we can add polyfill file to main
 import multi from '@rollup/plugin-multi-entry';
+import removeJsComments from 'rollup-plugin-cleanup';
 // replace urls of asset names with content hashed version
 import postcssUrl from "postcss-url";
 
@@ -173,7 +174,10 @@ async function buildHtml(doc, version, assetPaths, manifestPath) {
 
 async function buildJs() {
     // create js bundle
-    const bundle = await rollup.rollup({input: 'src/main.js'});
+    const bundle = await rollup.rollup({
+        input: 'src/main.js',
+        plugins: [removeJsComments({comments: "none"})]
+    });
     const {output} = await bundle.generate({
         format: 'es',
         name: `${PROJECT_ID}Bundle`
@@ -203,7 +207,7 @@ async function buildJsLegacy() {
     // create js bundle
     const rollupConfig = {
         input: ['src/legacy-polyfill.js', 'src/main.js'],
-        plugins: [multi(), commonjs(), nodeResolve(), babelPlugin]
+        plugins: [multi(), commonjs(), nodeResolve(), babelPlugin, removeJsComments({comments: "none"})]
     };
     const bundle = await rollup.rollup(rollupConfig);
     const {output} = await bundle.generate({
