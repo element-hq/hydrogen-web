@@ -126,6 +126,11 @@ export class HomeServerApi {
         return this._get(`/rooms/${encodeURIComponent(roomId)}/messages`, params, null, options);
     }
 
+    // params is at, membership and not_membership
+    members(roomId, params, options = null) {
+        return this._get(`/rooms/${encodeURIComponent(roomId)}/members`, params, null, options);
+    }
+
     send(roomId, eventType, txnId, content, options = null) {
         return this._put(`/rooms/${encodeURIComponent(roomId)}/send/${encodeURIComponent(eventType)}/${encodeURIComponent(txnId)}`, {}, content, options);
     }
