@@ -21,7 +21,7 @@ export class MessageTile extends SimpleTile {
     constructor(options) {
         super(options);
         this._isOwn = this._entry.sender === options.ownUserId;
-        this._date = new Date(this._entry.timestamp);
+        this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : null;
         this._isContinuation = false;
     }
 
@@ -38,11 +38,11 @@ export class MessageTile extends SimpleTile {
     }
 
     get date() {
-        return this._date.toLocaleDateString({}, {month: "numeric", day: "numeric"});
+        return this._date && this._date.toLocaleDateString({}, {month: "numeric", day: "numeric"});
     }
 
     get time() {
-        return this._date.toLocaleTimeString({}, {hour: "numeric", minute: "2-digit"});
+        return this._date && this._date.toLocaleTimeString({}, {hour: "numeric", minute: "2-digit"});
     }
 
     get isOwn() {
