@@ -22,9 +22,9 @@ import {RoomNameTile} from "./tiles/RoomNameTile.js";
 import {RoomMemberTile} from "./tiles/RoomMemberTile.js";
 import {EncryptedEventTile} from "./tiles/EncryptedEventTile.js";
 
-export function tilesCreator({room, ownUserId}) {
+export function tilesCreator({room, ownUserId, clock}) {
     return function tilesCreator(entry, emitUpdate) {
-        const options = {entry, emitUpdate, ownUserId};
+        const options = {entry, emitUpdate, ownUserId, clock};
         if (entry.isGap) {
             return new GapTile(options, room);
         } else if (entry.eventType) {

@@ -20,6 +20,7 @@ import {getIdentifierColorNumber} from "../../../../avatar.js";
 export class MessageTile extends SimpleTile {
     constructor(options) {
         super(options);
+        this._clock = options.clock;
         this._isOwn = this._entry.sender === options.ownUserId;
         this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : null;
         this._isContinuation = false;
@@ -59,7 +60,14 @@ export class MessageTile extends SimpleTile {
 
     updatePreviousSibling(prev) {
         super.updatePreviousSibling(prev);
-        const isContinuation = prev && prev instanceof MessageTile && prev.sender === this.sender;
+        let isContinuation = false;
+        if (prev && prev instanceof MessageTile && prev.sender === this.sender) {
+            // timestamp is null for pending events
+            const myTimestamp = this._entry.timestamp || this._clock.now();
+            const otherTimestamp = prev._entry.timestamp || this._clock.now();
+            // other message was sent less than 5min ago
+            isContinuation = (myTimestamp - otherTimestamp) < (5 * 60 * 1000);
+        }
         if (isContinuation !== this._isContinuation) {
             this._isContinuation = isContinuation;
             this.emitChange("isContinuation");
