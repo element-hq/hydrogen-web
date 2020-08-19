@@ -1,5 +1,6 @@
 import {iterateCursor} from "./utils.js";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/RoomMember.js";
+import {RoomMemberStore} from "./stores/RoomMemberStore.js";
 
 // FUNCTIONS SHOULD ONLY BE APPENDED!!
 // the index in the array is the database version
@@ -30,10 +31,7 @@ function createInitialStores(db) {
 }
 //v2
 async function createMemberStore(db, txn) {
-    const roomMembers = db.createObjectStore("roomMembers", {keyPath: [
-        "roomId",
-        "userId"
-    ]});
+    const roomMembers = new RoomMemberStore(db.createObjectStore("roomMembers", {keyPath: "key"}));
     // migrate existing member state events over
     const roomState = txn.objectStore("roomState");
     await iterateCursor(roomState.openCursor(), entry => {
@@ -41,25 +39,8 @@ async function createMemberStore(db, txn) {
             roomState.delete(entry.key);
             const member = RoomMember.fromMemberEvent(entry.roomId, entry.event);
             if (member) {
-                roomMembers.add(member.serialize());
+                roomMembers.set(member.serialize());
             }
         }
     });
-}
-
-function migrateKeyPathToArray(db, isNew) {
-    if (isNew) {
-        // create the new stores with the final name
-    } else {
-        // create the new stores with a tmp name
-        // migrate the data over
-        // change the name
-    }
-
-    // maybe it is ok to just run all the migration steps?
-    // it might be a bit slower to create a store twice ...
-    // but at least the path of migration or creating a new store
-    // will go through the same code
-    // 
-    // might not even be slower, as this is all happening within one transaction
 }
