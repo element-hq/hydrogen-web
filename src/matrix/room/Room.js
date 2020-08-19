@@ -22,7 +22,7 @@ import {Timeline} from "./timeline/Timeline.js";
 import {FragmentIdComparer} from "./timeline/FragmentIdComparer.js";
 import {SendQueue} from "./sending/SendQueue.js";
 import {WrappedError} from "../error.js"
-import {fetchOrloadMembers} from "./members/load.js";
+import {fetchOrLoadMembers} from "./members/load.js";
 import {MemberList} from "./members/MemberList.js";
 
 export class Room extends EventEmitter {
@@ -98,7 +98,7 @@ export class Room extends EventEmitter {
             this._memberList.retain();
             return this._memberList;
         } else {
-            const members = await fetchOrloadMembers({
+            const members = await fetchOrLoadMembers({
                 summary: this._summary,
                 roomId: this._roomId,
                 hsApi: this._hsApi,
