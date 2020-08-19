@@ -17,12 +17,16 @@ limitations under the License.
 
 @import url('inter.css');
 
+:root {
+    font-size: 10px;
+}
+
+
 .hydrogen {
     font-family: 'Inter', sans-serif, 'emoji';
-    font-size: 15px;
     background-color: white;
     color: #2e2f32;
-    
+    font-size: 1.4rem;
     --usercolor1: #368BD6;
     --usercolor2: #AC3BA8;
     --usercolor3: #03B381;
@@ -136,6 +140,7 @@ button.styled {
 
 .LeftPanel {
     background: rgba(245, 245, 245, 0.90);
+    font-size: 1.5rem;
 }
 
 .LeftPanel ul {
@@ -228,6 +233,10 @@ a {
     padding: 10px;
 }
 
+.RoomHeader h2 {
+    font-size: 1.8rem;
+}
+
 .RoomHeader button {
     width: 40px;
     height: 40px;
@@ -297,7 +306,6 @@ a {
 
 .message-container .sender {
     margin: 5px 0;
-    font-size: 0.9em;
     font-weight: bold;
 }
 
@@ -333,7 +341,6 @@ a {
     margin: 0 auto;
     padding: 10px 20px;
     background-color: rgba(245, 245, 245, 0.90);
-    font-size: 0.9em;
     text-align: center;
     border-radius: 10px;
 }
