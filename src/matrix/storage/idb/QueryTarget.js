@@ -62,11 +62,11 @@ export class QueryTarget {
     }
 
     selectWhile(range, predicate) {
-        return this._selectWhile(range, predicate, "next", false);
+        return this._selectWhile(range, predicate, "next");
     }
 
     selectWhileReverse(range, predicate) {
-        return this._selectWhile(range, predicate, "prev", false);
+        return this._selectWhile(range, predicate, "prev");
     }
 
     async selectAll(range, direction) {
@@ -151,20 +151,31 @@ export class QueryTarget {
     }
 
     _selectLimit(range, amount, direction) {
-        return this._selectWhile(range, (results) => {
+        return this._selectUntil(range, (results) => {
             return results.length === amount;
-        }, direction, true);
+        }, direction);
     }
 
-    async _selectWhile(range, predicate, direction, includeFailingPredicateResult) {
+    async _selectUntil(range, predicate, direction) {
         const cursor = this._openCursor(range, direction);
         const results = [];
         await iterateCursor(cursor, (value) => {
-            const passesPredicate = predicate(results, value);
-            if (passesPredicate || includeFailingPredicateResult) {
+            results.push(value);
+            return {done: predicate(results, value)};
+        });
+        return results;
+    }
+
+    // allows you to fetch one too much that won't get added when the predicate fails
+    async _selectWhile(range, predicate, direction) {
+        const cursor = this._openCursor(range, direction);
+        const results = [];
+        await iterateCursor(cursor, (value) => {
+            const passesPredicate = predicate(value);
+            if (passesPredicate) {
                 results.push(value);
             }
-            return {done: passesPredicate};
+            return {done: !passesPredicate};
         });
         return results;
     }
