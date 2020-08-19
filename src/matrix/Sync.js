@@ -18,7 +18,6 @@ limitations under the License.
 import {AbortError} from "./error.js";
 import {ObservableValue} from "../observable/ObservableValue.js";
 import {createEnum} from "../utils/enum.js";
-import {readPath, Type} from "../utils/validate.js";
 
 const INCREMENTAL_TIMEOUT = 30000;
 const SYNC_EVENT_LIMIT = 10;
@@ -47,8 +46,8 @@ function parseRooms(roomsSection, roomCallback) {
 
 function timelineIsEmpty(roomResponse) {
     try {
-        const events = readPath(roomResponse, ["timeline", "events"], Type.Array);
-        return events.length === 0;
+        const events = roomResponse?.timeline?.events;
+        return Array.isArray(events) && events.length === 0;
     } catch (err) {
         return true;
     }

@@ -35,8 +35,7 @@ export class EventEntry extends BaseEntry {
     }
 
     get prevContent() {
-        const unsigned = this._eventEntry.event.unsigned;
-        return unsigned && unsigned.prev_content;
+        return this._eventEntry.event.unsigned?.prev_content;
     }
 
     get eventType() {
