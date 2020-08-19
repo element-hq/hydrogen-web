@@ -15,13 +15,12 @@ limitations under the License.
 */
 
 import { StorageError } from "../common.js";
-import { readPath } from "../../../utils/validate.js";
 
 class WrappedDOMException extends StorageError {
     constructor(request) {
-        // protect against browsers not implementing any of these properties by using readPath
-        const storeName = readPath(request, ["source", "name"], "<unknown store>");
-        const databaseName = readPath(request, ["source", "transaction", "db", "name"], "<unknown db>");
+        const source = request?.source;
+        const storeName = source?.name || "<unknown store>";
+        const databaseName = source?.transaction?.db?.name || "<unknown db>";
         super(`Failed IDBRequest on ${databaseName}.${storeName}`, request.error);
         this.storeName = storeName;
         this.databaseName = databaseName;
