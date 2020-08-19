@@ -41,6 +41,7 @@ export class Room extends EventEmitter {
         this._changedMembersDuringSync = null;
 	}
 
+    /** @package */
     async writeSync(roomResponse, membership, txn) {
 		const summaryChanges = this._summary.writeSync(roomResponse, membership, txn);
 		const {entries, newLiveKey, changedMembers} = await this._syncWriter.writeSync(roomResponse, txn);
@@ -51,6 +52,7 @@ export class Room extends EventEmitter {
         return {summaryChanges, newTimelineEntries: entries, newLiveKey, removedPendingEvents, changedMembers};
     }
 
+    /** @package */
     afterSync({summaryChanges, newTimelineEntries, newLiveKey, removedPendingEvents, changedMembers}) {
         this._syncWriter.afterSync(newLiveKey);
         if (changedMembers.length) {
@@ -76,10 +78,12 @@ export class Room extends EventEmitter {
         }
 	}
 
+    /** @package */
     resumeSending() {
         this._sendQueue.resumeSending();
     }
 
+    /** @package */
 	load(summary, txn) {
         try {
             this._summary.load(summary);
@@ -89,10 +93,12 @@ export class Room extends EventEmitter {
         }
 	}
 
+    /** @public */
     sendEvent(eventType, content) {
         return this._sendQueue.enqueueEvent(eventType, content);
     }
 
+    /** @public */
     async loadMemberList() {
         if (this._memberList) {
             this._memberList.retain();
@@ -161,14 +167,17 @@ export class Room extends EventEmitter {
         }
     }
 
+    /** @public */
     get name() {
         return this._summary.name;
     }
 
+    /** @public */
     get id() {
         return this._roomId;
     }
 
+    /** @public */
     async openTimeline() {
         if (this._timeline) {
             throw new Error("not dealing with load race here for now");
@@ -189,10 +198,12 @@ export class Room extends EventEmitter {
         return this._timeline;
     }
 
+    /** @public */
     mxcUrlThumbnail(url, width, height, method) {
         return this._hsApi.mxcUrlThumbnail(url, width, height, method);
     }
 
+    /** @public */
     mxcUrl(url) {
         return this._hsApi.mxcUrl(url);
     }
