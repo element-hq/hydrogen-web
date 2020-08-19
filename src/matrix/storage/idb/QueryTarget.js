@@ -62,11 +62,11 @@ export class QueryTarget {
     }
 
     selectWhile(range, predicate) {
-        return this._selectWhile(range, predicate, "next");
+        return this._selectWhile(range, predicate, "next", false);
     }
 
     selectWhileReverse(range, predicate) {
-        return this._selectWhile(range, predicate, "prev");
+        return this._selectWhile(range, predicate, "prev", false);
     }
 
     async selectAll(range, direction) {
@@ -153,15 +153,18 @@ export class QueryTarget {
     _selectLimit(range, amount, direction) {
         return this._selectWhile(range, (results) => {
             return results.length === amount;
-        }, direction);
+        }, direction, true);
     }
 
-    async _selectWhile(range, predicate, direction) {
+    async _selectWhile(range, predicate, direction, includeFailingPredicateResult) {
         const cursor = this._openCursor(range, direction);
         const results = [];
         await iterateCursor(cursor, (value) => {
-            results.push(value);
-            return {done: predicate(results)};
+            const passesPredicate = predicate(results, value);
+            if (passesPredicate || includeFailingPredicateResult) {
+                results.push(value);
+            }
+            return {done: passesPredicate};
         });
         return results;
     }

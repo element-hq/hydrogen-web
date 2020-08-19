@@ -34,4 +34,10 @@ export class RoomMemberStore {
         return this._roomMembersStore.put(member);
 	}
 
+    getAll(roomId) {
+        const range = IDBKeyRange.lowerBound(encodeKey(roomId, ""));
+        return this._roomMembersStore.selectWhile(range, member => {
+            return member.roomId === roomId;
+        });
+    }
 }
