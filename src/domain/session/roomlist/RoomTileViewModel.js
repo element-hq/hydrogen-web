@@ -1,23 +1,60 @@
-import {avatarInitials} from "../avatar.js";
+/*
+Copyright 2020 Bruno Windels <bruno@windels.cloud>
 
-export class RoomTileViewModel {
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+import {avatarInitials, getIdentifierColorNumber} from "../../avatar.js";
+import {ViewModel} from "../../ViewModel.js";
+
+export class RoomTileViewModel extends ViewModel {
     // we use callbacks to parent VM instead of emit because
     // it would be annoying to keep track of subscriptions in
     // parent for all RoomTileViewModels
     // emitUpdate is ObservableMap/ObservableList update mechanism
-    constructor({room, emitUpdate, emitOpen}) {
+    constructor(options) {
+        super(options);
+        const {room, emitOpen} = options;
         this._room = room;
-        this._emitUpdate = emitUpdate;
         this._emitOpen = emitOpen;
+        this._isOpen = false;
+    }
+
+    // called by parent for now (later should integrate with router)
+    close() {
+        if (this._isOpen) {
+            this._isOpen = false;
+            this.emitChange("isOpen");
+        }
     }
 
     open() {
-        this._emitOpen(this._room);
+        this._isOpen = true;
+        this.emitChange("isOpen");
+        this._emitOpen(this._room, this);
     }
 
     compare(other) {
-        // sort by name for now
-        return this._room.name.localeCompare(other._room.name);
+        // sort alphabetically
+        const nameCmp = this._room.name.localeCompare(other._room.name);
+        if (nameCmp === 0) {
+            return this._room.id.localeCompare(other._room.id);
+        }
+        return nameCmp;
+    }
+
+    get isOpen() {
+        return this._isOpen;
     }
 
     get name() {
@@ -26,5 +63,9 @@ export class RoomTileViewModel {
 
     get avatarInitials() {
         return avatarInitials(this._room.name);
+    }
+
+    get avatarColorNumber() {
+        return getIdentifierColorNumber(this._room.id)
     }
 }

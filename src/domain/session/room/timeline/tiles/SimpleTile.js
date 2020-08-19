@@ -1,9 +1,26 @@
-import {UpdateAction} from "../UpdateAction.js";
+/*
+Copyright 2020 Bruno Windels <bruno@windels.cloud>
 
-export class SimpleTile {
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+import {UpdateAction} from "../UpdateAction.js";
+import {ViewModel} from "../../../../ViewModel.js";
+
+export class SimpleTile extends ViewModel {
     constructor({entry}) {
+        super();
         this._entry = entry;
-        this._emitUpdate = null;
     }
     // view model props for all subclasses
     // hmmm, could also do instanceof ... ?
@@ -22,12 +39,6 @@ export class SimpleTile {
         return false;
     }
 
-    emitUpdate(paramName) {
-        if (this._emitUpdate) {
-            this._emitUpdate(this, paramName);
-        }
-    }
-
     get internalId() {
         return this._entry.asEventKey().toString();
     }
@@ -37,7 +48,7 @@ export class SimpleTile {
     }
     // TilesCollection contract below
     setUpdateEmit(emitUpdate) {
-        this._emitUpdate = emitUpdate;
+        this.updateOptions({emitChange: paramName => emitUpdate(this, paramName)});
     }
 
     get upperEntry() {

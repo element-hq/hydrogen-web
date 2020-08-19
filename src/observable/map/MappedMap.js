@@ -1,6 +1,22 @@
+/*
+Copyright 2020 Bruno Windels <bruno@windels.cloud>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 import {BaseObservableMap} from "./BaseObservableMap.js";
 /*
-so a mapped value can emit updates on it's own with this._updater that is passed in the mapping function
+so a mapped value can emit updates on it's own with this._emitSpontaneousUpdate that is passed in the mapping function
 how should the mapped value be notified of an update though? and can it then decide to not propagate the update?
 */
 export class MappedMap extends BaseObservableMap {
@@ -9,14 +25,18 @@ export class MappedMap extends BaseObservableMap {
         this._source = source;
         this._mapper = mapper;
         this._mappedValues = new Map();
-        this._updater = (key, params) => {  // this should really be (value, params) but can't make that work for now
-            const value = this._mappedValues.get(key);
-            this.onUpdate(key, value, params);
-        };
+    }
+
+    _emitSpontaneousUpdate(key, params) {
+        const value = this._mappedValues.get(key);
+        if (value) {
+            this.emitUpdate(key, value, params);
+        }
     }
 
     onAdd(key, value) {
-        const mappedValue = this._mapper(value, this._updater);
+        const emitSpontaneousUpdate = this._emitSpontaneousUpdate.bind(this, key);
+        const mappedValue = this._mapper(value, emitSpontaneousUpdate);
         this._mappedValues.set(key, mappedValue);
         this.emitAdd(key, mappedValue);
     }
@@ -31,17 +51,16 @@ export class MappedMap extends BaseObservableMap {
     onUpdate(key, value, params) {
         const mappedValue = this._mappedValues.get(key);
         if (mappedValue !== undefined) {
-            const newParams = this._updater(value, params);
-            // if (newParams !== undefined) {
-                this.emitUpdate(key, mappedValue, newParams);
-            // }
+            // TODO: map params somehow if needed?
+            this.emitUpdate(key, mappedValue, params);
         }
     }
 
     onSubscribeFirst() {
         this._subscription = this._source.subscribe(this);
         for (let [key, value] of this._source) {
-            const mappedValue = this._mapper(value, this._updater);
+            const emitSpontaneousUpdate = this._emitSpontaneousUpdate.bind(this, key);
+            const mappedValue = this._mapper(value, emitSpontaneousUpdate);
             this._mappedValues.set(key, mappedValue);
         }
         super.onSubscribeFirst();

@@ -1,3 +1,20 @@
+/*
+Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 import {AbortError} from "./error.js";
 import {ObservableValue} from "../observable/ObservableValue.js";
 import {createEnum} from "../utils/enum.js";
@@ -25,6 +42,15 @@ function parseRooms(roomsSection, roomCallback) {
         }
     }
     return [];
+}
+
+function timelineIsEmpty(roomResponse) {
+    try {
+        const events = roomResponse?.timeline?.events;
+        return Array.isArray(events) && events.length === 0;
+    } catch (err) {
+        return true;
+    }
 }
 
 export class Sync {
@@ -86,6 +112,7 @@ export class Sync {
         const totalRequestTimeout = timeout + (80 * 1000);  // same as riot-web, don't get stuck on wedged long requests
         this._currentRequest = this._hsApi.sync(syncToken, syncFilterId, timeout, {timeout: totalRequestTimeout});
         const response = await this._currentRequest.response();
+        const isInitialSync = !syncToken;
         syncToken = response.next_batch;
         const storeNames = this._storage.storeNames;
         const syncTxn = await this._storage.readWriteTxn([
@@ -105,6 +132,11 @@ export class Sync {
             // presence
             if (response.rooms) {
                 const promises = parseRooms(response.rooms, async (roomId, roomResponse, membership) => {
+                    // ignore rooms with empty timelines during initial sync,
+                    // see https://github.com/vector-im/hydrogen-web/issues/15
+                    if (isInitialSync && timelineIsEmpty(roomResponse)) {
+                        return;
+                    }
                     let room = this._session.rooms.get(roomId);
                     if (!room) {
                         room = this._session.createRoom(roomId);

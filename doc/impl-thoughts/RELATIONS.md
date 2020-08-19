@@ -16,3 +16,7 @@ As a UI for reactions, we could show (👍 14 + 1) where the + 1 is our own loca
 
 
 wrt to how to store relations in indexeddb, we could store all local ids of related events (per type?) on the related-to event, so we can fetch them in one query for *all* events that have related events that were fetched in a range, without needing another index that would slow down writes. So that would only add 1 query which we only need to do when there are relations in the TimelineReader. what do we do though if we receive the relating event before the related-to event? An index would fix this mostly ... or we need a temp store where we store unresolved relations...
+
+Replies should definitely use this relation mechanism, so we can easily show the most up to date version of the replied-to event.
+
+Redactions can de done separately

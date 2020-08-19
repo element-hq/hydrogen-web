@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Bruno Windels <bruno@windels.cloud>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 import {ListView} from "../../general/ListView.js";
 import {GapView} from "./timeline/GapView.js";
 import {TextMessageView} from "./timeline/TextMessageView.js";
@@ -5,8 +21,11 @@ import {ImageView} from "./timeline/ImageView.js";
 import {AnnouncementView} from "./timeline/AnnouncementView.js";
 
 export class TimelineList extends ListView {
-    constructor(options = {}) {
-        options.className = "Timeline";
+    constructor(viewModel) {
+        const options = {
+            className: "Timeline",
+            list: viewModel.tiles,
+        }
         super(options, entry => {
             switch (entry.shape) {
                 case "gap": return new GapView(entry);
@@ -18,28 +37,48 @@ export class TimelineList extends ListView {
         this._atBottom = false;
         this._onScroll = this._onScroll.bind(this);
         this._topLoadingPromise = null;
-        this._viewModel = null;
+        this._viewModel = viewModel;
     }
 
-    async _onScroll() {
-        const root = this.root();
-        if (root.scrollTop === 0 && !this._topLoadingPromise && this._viewModel) {
-            const beforeFromBottom = this._distanceFromBottom();
-            this._topLoadingPromise = this._viewModel.loadAtTop();
-            await this._topLoadingPromise;
-            const fromBottom = this._distanceFromBottom();
-            const amountGrown = fromBottom - beforeFromBottom;
-            root.scrollTop = root.scrollTop + amountGrown;
+    async _loadAtTopWhile(predicate) {
+        if (this._topLoadingPromise) {
+            return;
+        }
+        try {
+            while (predicate()) {
+                // fill, not enough content to fill timeline
+                this._topLoadingPromise = this._viewModel.loadAtTop();
+                const startReached = await this._topLoadingPromise;
+                if (startReached) {
+                    break;
+                }
+            }
+        }
+        catch (err) {
+            //ignore error, as it is handled in the VM
+        }
+        finally {
             this._topLoadingPromise = null;
         }
     }
 
-    update(attributes) {
-        if(attributes.viewModel) {
-            this._viewModel = attributes.viewModel;
-            attributes.list = attributes.viewModel.tiles;
+    async _onScroll() {
+        const PAGINATE_OFFSET = 100;
+        const root = this.root();
+        if (root.scrollTop < PAGINATE_OFFSET && !this._topLoadingPromise && this._viewModel) {
+            // to calculate total amountGrown to check when we stop loading
+            let beforeContentHeight = root.scrollHeight;
+            // to adjust scrollTop every time
+            let lastContentHeight = beforeContentHeight;
+            // load until pagination offset is reached again
+            this._loadAtTopWhile(() => {
+                const contentHeight = root.scrollHeight;
+                const amountGrown = contentHeight - beforeContentHeight;
+                root.scrollTop = root.scrollTop + (contentHeight - lastContentHeight);
+                lastContentHeight = contentHeight;
+                return amountGrown < PAGINATE_OFFSET;
+            });
         }
-        super.update(attributes);
     }
 
     mount() {
@@ -53,10 +92,21 @@ export class TimelineList extends ListView {
         super.unmount();
     }
 
-    loadList() {
+    async loadList() {
         super.loadList();
         const root = this.root();
-        root.scrollTop = root.scrollHeight;
+        // yield so the browser can render the list
+        // and we can measure the content below
+        await Promise.resolve();
+        const {scrollHeight, clientHeight} = root;
+        if (scrollHeight > clientHeight) {
+            root.scrollTop = root.scrollHeight;
+        }
+        // load while viewport is not filled
+        this._loadAtTopWhile(() => {
+            const {scrollHeight, clientHeight} = root;
+            return scrollHeight <= clientHeight;
+        });
     }
 
     onBeforeListChanged() {
@@ -70,8 +120,8 @@ export class TimelineList extends ListView {
     }
 
     onListChanged() {
+        const root = this.root();
         if (this._atBottom) {
-            const root = this.root();
             root.scrollTop = root.scrollHeight;
         }
     }

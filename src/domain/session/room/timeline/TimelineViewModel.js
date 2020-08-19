@@ -1,4 +1,21 @@
 /*
+Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+/*
 need better naming, but
 entry = event or gap from matrix layer
 tile = item on visual timeline like event, date separator?, group of joined events
@@ -16,19 +33,30 @@ when loading, it just reads events from a sortkey backwards or forwards...
 */
 import {TilesCollection} from "./TilesCollection.js";
 import {tilesCreator} from "./tilesCreator.js";
+import {ViewModel} from "../../../ViewModel.js";
 
-export class TimelineViewModel {
-    constructor({room, timeline, ownUserId}) {
+export class TimelineViewModel extends ViewModel {
+    constructor(options) {
+        super(options);
+        const {room, timeline, ownUserId} = options;
         this._timeline = timeline;
         // once we support sending messages we could do
         // timeline.entries.concat(timeline.pendingEvents)
         // for an ObservableList that also contains local echos
-        this._tiles = new TilesCollection(timeline.entries, tilesCreator({room, ownUserId}));
+        this._tiles = new TilesCollection(timeline.entries, tilesCreator({room, ownUserId, clock: this.clock}));
     }
 
-    // doesn't fill gaps, only loads stored entries/tiles
-    loadAtTop() {
-        return this._timeline.loadAtTop(50);
+    /**
+     * @return {bool} startReached if the start of the timeline was reached
+     */
+    async loadAtTop() {
+        const firstTile = this._tiles.getFirst();
+        if (firstTile.shape === "gap") {
+            return firstTile.fill();
+        } else {
+            await this._timeline.loadAtTop(50);
+            return false;
+        }
     }
 
     unloadAtTop(tileAmount) {

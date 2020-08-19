@@ -1,5 +1,31 @@
+/*
+Copyright 2020 Bruno Windels <bruno@windels.cloud>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 import { StorageError } from "../common.js";
 
+class WrappedDOMException extends StorageError {
+    constructor(request) {
+        const source = request?.source;
+        const storeName = source?.name || "<unknown store>";
+        const databaseName = source?.transaction?.db?.name || "<unknown db>";
+        super(`Failed IDBRequest on ${databaseName}.${storeName}`, request.error);
+        this.storeName = storeName;
+        this.databaseName = databaseName;
+    }
+}
 
 // storage keys are defined to be unsigned 32bit numbers in WebPlatform.js, which is assumed by idb
 export function encodeUint32(n) {
@@ -22,21 +48,17 @@ export function openDatabase(name, createObjectStore, version) {
     return reqAsPromise(req);
 }
 
-function wrapError(err) {
-    return new StorageError(`wrapped DOMException`, err);
-}
-
 export function reqAsPromise(req) {
     return new Promise((resolve, reject) => {
         req.addEventListener("success", event => resolve(event.target.result));
-        req.addEventListener("error", event => reject(wrapError(event.target.error)));
+        req.addEventListener("error", event => reject(new WrappedDOMException(event.target)));
     });
 }
 
 export function txnAsPromise(txn) {
     return new Promise((resolve, reject) => {
         txn.addEventListener("complete", resolve);
-        txn.addEventListener("abort", event => reject(wrapError(event.target.error)));
+        txn.addEventListener("abort", event => reject(new WrappedDOMException(event.target)));
     });
 }
 

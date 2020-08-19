@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Bruno Windels <bruno@windels.cloud>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 import {EventEmitter} from "../../utils/EventEmitter.js";
 import {RoomSummary} from "./RoomSummary.js";
 import {SyncWriter} from "./timeline/persistence/SyncWriter.js";
@@ -5,6 +21,7 @@ import {GapWriter} from "./timeline/persistence/GapWriter.js";
 import {Timeline} from "./timeline/Timeline.js";
 import {FragmentIdComparer} from "./timeline/FragmentIdComparer.js";
 import {SendQueue} from "./sending/SendQueue.js";
+import {WrappedError} from "../error.js"
 
 export class Room extends EventEmitter {
 	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, pendingEvents, user}) {
@@ -51,8 +68,12 @@ export class Room extends EventEmitter {
     }
 
 	load(summary, txn) {
-		this._summary.load(summary);
-		return this._syncWriter.load(txn);
+        try {
+            this._summary.load(summary);
+            return this._syncWriter.load(txn);
+        } catch (err) {
+            throw new WrappedError(`Could not load room ${this._roomId}`, err);
+        }
 	}
 
     sendEvent(eventType, content) {
@@ -96,6 +117,9 @@ export class Room extends EventEmitter {
 
     /** @public */
     async fillGap(fragmentEntry, amount) {
+        if (fragmentEntry.edgeReached) {
+            return;
+        }
         const response = await this._hsApi.messages(this._roomId, {
             from: fragmentEntry.token,
             dir: fragmentEntry.direction.asApiString(),

@@ -3,6 +3,7 @@
 	<head>
 		<meta charset="utf-8">
         <link rel="stylesheet" type="text/css" href="css/main.css">
+        <link rel="stylesheet" type="text/css" href="css/themes/element/theme.css">
 	</head>
 	<body>
         <script type="text/javascript">
@@ -25,7 +26,7 @@
         </script>
         <h1>View Gallery</h1>
         <h2 name="session-status">Session Status Bar</h2>
-        <div id="session-status" class="brawl"></div>
+        <div id="session-status" class="hydrogen"></div>
         <script id="main" type="module">
             import {SessionStatusView} from "./session/SessionStatusView.js";
             const view = new SessionStatusView(vm({
@@ -38,7 +39,7 @@
             document.getElementById("session-status").appendChild(view.mount());
         </script>
         <h2 name="login">Login</h2>
-        <div id="login" class="brawl"></div>
+        <div id="login" class="hydrogen"></div>
         <script id="main" type="module">
             import {LoginView} from "./login/LoginView.js";
             const view = new LoginView(vm({
@@ -49,10 +50,11 @@
             document.getElementById("login").appendChild(view.mount());
         </script>
         <h2 name="login-loading">Login Loading</h2>
-        <div id="login-loading" class="brawl"></div>
+        <div id="login-loading" class="hydrogen"></div>
 		<script id="main" type="module">
 			import {LoginView} from "./login/LoginView.js";
             const view = new LoginView(vm({
+                isBusy: true,
                 loadViewModel: vm({
                     loadLabel: "Doing something important...",
                     loading: true,

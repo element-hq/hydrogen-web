@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Bruno Windels <bruno@windels.cloud>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 import {QueryTarget} from "./QueryTarget.js";
 import { reqAsPromise } from "./utils.js";
 import { StorageError } from "../common.js";
@@ -98,7 +114,7 @@ export class Store extends QueryTarget {
             return await reqAsPromise(this._idbStore.put(value));
         } catch(err) {
             const originalErr = err.cause;
-            throw new StorageError(`put on ${this._idbStore.name} failed`, originalErr, value);
+            throw new StorageError(`put on ${err.databaseName}.${err.storeName} failed`, originalErr, value);
         }
     }
 
@@ -107,11 +123,17 @@ export class Store extends QueryTarget {
             return await reqAsPromise(this._idbStore.add(value));
         } catch(err) {
             const originalErr = err.cause;
-            throw new StorageError(`add on ${this._idbStore.name} failed`, originalErr, value);
+            throw new StorageError(`add on ${err.databaseName}.${err.storeName} failed`, originalErr, value);
         }
     }
 
-    delete(keyOrKeyRange) {
-        return reqAsPromise(this._idbStore.delete(keyOrKeyRange));
+    async delete(keyOrKeyRange) {
+        try {
+            return await reqAsPromise(this._idbStore.delete(keyOrKeyRange));
+        } catch(err) {
+            const originalErr = err.cause;
+            throw new StorageError(`delete on ${err.databaseName}.${err.storeName} failed`, originalErr, keyOrKeyRange);
+        }
+        
     }
 }

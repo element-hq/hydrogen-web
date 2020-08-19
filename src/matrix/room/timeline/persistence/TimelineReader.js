@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Bruno Windels <bruno@windels.cloud>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 import {directionalConcat, directionalAppend} from "./common.js";
 import {Direction} from "../Direction.js";
 import {EventEntry} from "../entries/EventEntry.js";
@@ -44,8 +60,8 @@ export class TimelineReader {
                 let fragmentEntry = new FragmentBoundaryEntry(fragment, direction.isBackward, this._fragmentIdComparer);
                 // append or prepend fragmentEntry, reuse func from GapWriter?
                 directionalAppend(entries, fragmentEntry, direction);
-                // don't count it in amount perhaps? or do?
-                if (fragmentEntry.hasLinkedFragment) {
+                // only continue loading if the fragment boundary can't be backfilled
+                if (!fragmentEntry.token && fragmentEntry.hasLinkedFragment) {
                     const nextFragment = await fragmentStore.get(this._roomId, fragmentEntry.linkedFragmentId);
                     this._fragmentIdComparer.add(nextFragment);
                     const nextFragmentEntry = new FragmentBoundaryEntry(nextFragment, direction.isForward, this._fragmentIdComparer);

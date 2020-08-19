@@ -1,13 +1,30 @@
+/*
+Copyright 2020 Bruno Windels <bruno@windels.cloud>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 import {GapTile} from "./tiles/GapTile.js";
 import {TextTile} from "./tiles/TextTile.js";
 import {ImageTile} from "./tiles/ImageTile.js";
 import {LocationTile} from "./tiles/LocationTile.js";
 import {RoomNameTile} from "./tiles/RoomNameTile.js";
 import {RoomMemberTile} from "./tiles/RoomMemberTile.js";
+import {EncryptedEventTile} from "./tiles/EncryptedEventTile.js";
 
-export function tilesCreator({room, ownUserId}) {
+export function tilesCreator({room, ownUserId, clock}) {
     return function tilesCreator(entry, emitUpdate) {
-        const options = {entry, emitUpdate, ownUserId};
+        const options = {entry, emitUpdate, ownUserId, clock};
         if (entry.isGap) {
             return new GapTile(options, room);
         } else if (entry.eventType) {
@@ -33,6 +50,8 @@ export function tilesCreator({room, ownUserId}) {
                     return new RoomNameTile(options);
                 case "m.room.member":
                     return new RoomMemberTile(options);
+                case "m.room.encrypted":
+                    return new EncryptedEventTile(options);
                 default:
                     // unknown type not rendered
                     return null;
