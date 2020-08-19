@@ -76,8 +76,8 @@ export function iterateCursor(cursorRequest, processValue) {
                 return; // end of results
             }
             const result = processValue(cursor.value, cursor.key);
-            const done = result && result.done;
-            const jumpTo = result && result.jumpTo;
+            const done = result?.done;
+            const jumpTo = result?.jumpTo;
 
             if (done) {
                 resolve(true);
