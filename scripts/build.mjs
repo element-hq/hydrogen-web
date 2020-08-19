@@ -20,7 +20,7 @@ import fsRoot from "fs";
 const fs = fsRoot.promises;
 import path from "path";
 import XXHash from 'xxhash';
-import rollup from 'rollup';
+import { rollup } from 'rollup';
 import postcss from "postcss";
 import postcssImport from "postcss-import";
 import { fileURLToPath } from 'url';
@@ -174,7 +174,7 @@ async function buildHtml(doc, version, assetPaths, manifestPath) {
 
 async function buildJs() {
     // create js bundle
-    const bundle = await rollup.rollup({
+    const bundle = await rollup({
         input: 'src/main.js',
         plugins: [removeJsComments({comments: "none"})]
     });
@@ -209,7 +209,7 @@ async function buildJsLegacy() {
         input: ['src/legacy-polyfill.js', 'src/main.js'],
         plugins: [multi(), commonjs(), nodeResolve(), babelPlugin, removeJsComments({comments: "none"})]
     };
-    const bundle = await rollup.rollup(rollupConfig);
+    const bundle = await rollup(rollupConfig);
     const {output} = await bundle.generate({
         format: 'iife',
         name: `${PROJECT_ID}Bundle`
