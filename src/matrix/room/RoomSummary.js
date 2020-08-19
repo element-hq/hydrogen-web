@@ -27,7 +27,12 @@ function applySyncResponse(data, roomResponse, membership) {
         data = roomResponse.state.events.reduce(processEvent, data);
     }
     if (roomResponse.timeline) {
-        data = roomResponse.timeline.events.reduce(processEvent, data);
+        const {timeline} = roomResponse;
+        if (timeline.prev_batch) {
+            data = data.cloneIfNeeded();
+            data.lastPaginationToken = timeline.prev_batch;
+        }
+        data = timeline.events.reduce(processEvent, data);
     }
 
     return data;
@@ -99,6 +104,7 @@ class SummaryData {
         this.canonicalAlias = copy ? copy.canonicalAlias : null;
         this.altAliases = copy ? copy.altAliases : null;
         this.hasFetchedMembers = copy ? copy.hasFetchedMembers : false;
+        this.lastPaginationToken = copy ? copy.lastPaginationToken : null;
         this.cloned = copy ? true : false;
     }
 
@@ -151,6 +157,10 @@ export class RoomSummary {
 
     get hasFetchedMembers() {
         return this._data.hasFetchedMembers;
+    }
+
+    get lastPaginationToken() {
+        return this._data.lastPaginationToken;
     }
 
     writeHasFetchedMembers(value, txn) {

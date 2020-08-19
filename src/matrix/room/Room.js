@@ -99,7 +99,7 @@ export class Room extends EventEmitter {
         } else {
             let members;
             if (!this._summary.hasFetchedMembers) {
-                const paginationToken = throw new Error("not implemented");
+                const paginationToken = this._summary.lastPaginationToken;
                 // TODO: move all of this out of Room
                 
                 // if any members are changed by sync while we're fetching members,
