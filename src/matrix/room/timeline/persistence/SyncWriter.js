@@ -18,7 +18,7 @@ import {EventKey} from "../EventKey.js";
 import {EventEntry} from "../entries/EventEntry.js";
 import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
 import {createEventEntry} from "./common.js";
-import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../RoomMember.js";
+import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";
 
 // Synapse bug? where the m.room.create event appears twice in sync response
 // when first syncing the room

@@ -1,5 +1,5 @@
 import {iterateCursor} from "./utils.js";
-import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/RoomMember.js";
+import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/RoomMember.js";
 import {RoomMemberStore} from "./stores/RoomMemberStore.js";
 
 // FUNCTIONS SHOULD ONLY BE APPENDED!!
