@@ -22,6 +22,7 @@ import {Timeline} from "./timeline/Timeline.js";
 import {FragmentIdComparer} from "./timeline/FragmentIdComparer.js";
 import {SendQueue} from "./sending/SendQueue.js";
 import {WrappedError} from "../error.js"
+import {RoomMember} from "./RoomMember.js";
 
 export class Room extends EventEmitter {
 	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, pendingEvents, user}) {
@@ -92,42 +93,72 @@ export class Room extends EventEmitter {
     }
 
     async loadMemberList() {
-        let members;
-        if (!this._summary.hasFetchedMembers) {
-            // we need to get the syncToken here!
-            const memberResponse = await this._hsApi.members(this._roomId, syncToken).response;
+        if (this._memberList) {
+            this._memberList.retain();
+            return this._memberList;
+        } else {
+            let members;
+            if (!this._summary.hasFetchedMembers) {
+                const paginationToken = throw new Error("not implemented");
+                // TODO: move all of this out of Room
+                
+                // if any members are changed by sync while we're fetching members,
+                // they will end up here, so we check not to override them
+                this._changedMembersDuringSync = new Map();
+                
+                const memberResponse = await this._hsApi.members(this._roomId, {at: paginationToken}).response;
 
-            const txn = await this._storage.readWriteTxn([
-                this._storage.storeNames.roomSummary,
-                this._storage.storeNames.roomMembers,
-            ]);
-            const summaryChanges = this._summary.writeHasFetchedMembers(true, txn);
-            const {roomMembers} = txn;
-            const memberEvents = memberResponse.chunk;
-            if (!Array.isArray(memberEvents)) {
-                throw new Error("malformed");
-            }
-            members = await Promise.all(memberEvents.map(async memberEvent => {
-                const userId = memberEvent && memberEvent.state_key;
-                if (!userId) {
+                const txn = await this._storage.readWriteTxn([
+                    this._storage.storeNames.roomSummary,
+                    this._storage.storeNames.roomMembers,
+                ]);
+                const summaryChanges = this._summary.writeHasFetchedMembers(true, txn);
+                const {roomMembers} = txn;
+                const memberEvents = memberResponse.chunk;
+                if (!Array.isArray(memberEvents)) {
                     throw new Error("malformed");
                 }
-                const memberData = await roomMembers.get(this._roomId, userId);
-                const member = updateOrCreateMember(this._roomId, memberData, event);
-                if (member) {
-                    roomMembers.set(member.serialize());
-                }
-                return member;
-            }));
-            await txn.complete();
-            this._summary.applyChanges(summaryChanges);
+                members = await Promise.all(memberEvents.map(async memberEvent => {
+                    const userId = memberEvent?.state_key;
+                    if (!userId) {
+                        throw new Error("malformed");
+                    }
+                    // this member was changed during a sync that happened while calling /members
+                    // and thus is more recent. Fetch it instead of overwriting.
+                    if (this._changedMembersDuringSync.has(userId)) {
+                        const memberData = await roomMembers.get(this._roomId, userId);
+                        if (memberData) {
+                            return new RoomMember(memberData);
+                        }
+                    } else {
+                        const member = RoomMember.fromMemberEvent(this._roomId, memberEvent);
+                        if (member) {
+                            roomMembers.set(member.serialize());
+                        }
+                        return member;
+                    }
+                }));
+                this._changedMembersDuringSync = null;
+                await txn.complete();
+                this._summary.applyChanges(summaryChanges);
+            } else {
+                const txn = await this._storage.readTxn([
+                    this._storage.storeNames.roomMembers,
+                ]);
+                const memberDatas = await txn.roomMembers.getAll(this._roomId);
+                members = memberDatas.map(d => new RoomMember(d));
+            }
+            this._memberList = new MemberList({
+                members,
+                closeCallback: () => { this._memberList = null; }
+            });
+            return this._memberList;
         }
-        return new MemberList(this._roomId, members, this._storage);
     } 
-
 
     /** @public */
     async fillGap(fragmentEntry, amount) {
+        // TODO move some/all of this out of Room
         if (fragmentEntry.edgeReached) {
             return;
         }
