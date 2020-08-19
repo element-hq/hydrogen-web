@@ -22,7 +22,7 @@ import {Timeline} from "./timeline/Timeline.js";
 import {FragmentIdComparer} from "./timeline/FragmentIdComparer.js";
 import {SendQueue} from "./sending/SendQueue.js";
 import {WrappedError} from "../error.js"
-import {RoomMember} from "./members/RoomMember.js";
+import {fetchOrloadMembers} from "./members/load.js";
 import {MemberList} from "./members/MemberList.js";
 
 export class Room extends EventEmitter {
@@ -98,57 +98,14 @@ export class Room extends EventEmitter {
             this._memberList.retain();
             return this._memberList;
         } else {
-            let members;
-            if (!this._summary.hasFetchedMembers) {
-                const paginationToken = this._summary.lastPaginationToken;
-                // TODO: move all of this out of Room
-                
-                // if any members are changed by sync while we're fetching members,
-                // they will end up here, so we check not to override them
-                this._changedMembersDuringSync = new Map();
-                
-                const memberResponse = await this._hsApi.members(this._roomId, {at: paginationToken}).response;
-
-                const txn = await this._storage.readWriteTxn([
-                    this._storage.storeNames.roomSummary,
-                    this._storage.storeNames.roomMembers,
-                ]);
-                const summaryChanges = this._summary.writeHasFetchedMembers(true, txn);
-                const {roomMembers} = txn;
-                const memberEvents = memberResponse.chunk;
-                if (!Array.isArray(memberEvents)) {
-                    throw new Error("malformed");
-                }
-                members = await Promise.all(memberEvents.map(async memberEvent => {
-                    const userId = memberEvent?.state_key;
-                    if (!userId) {
-                        throw new Error("malformed");
-                    }
-                    // this member was changed during a sync that happened while calling /members
-                    // and thus is more recent. Fetch it instead of overwriting.
-                    if (this._changedMembersDuringSync.has(userId)) {
-                        const memberData = await roomMembers.get(this._roomId, userId);
-                        if (memberData) {
-                            return new RoomMember(memberData);
-                        }
-                    } else {
-                        const member = RoomMember.fromMemberEvent(this._roomId, memberEvent);
-                        if (member) {
-                            roomMembers.set(member.serialize());
-                        }
-                        return member;
-                    }
-                }));
-                this._changedMembersDuringSync = null;
-                await txn.complete();
-                this._summary.applyChanges(summaryChanges);
-            } else {
-                const txn = await this._storage.readTxn([
-                    this._storage.storeNames.roomMembers,
-                ]);
-                const memberDatas = await txn.roomMembers.getAll(this._roomId);
-                members = memberDatas.map(d => new RoomMember(d));
-            }
+            const members = await fetchOrloadMembers({
+                summary: this._summary,
+                roomId: this._roomId,
+                hsApi: this._hsApi,
+                storage: this._storage,
+                // to handle race between /members and /sync
+                setChangedMembersMap: map => this._changedMembersDuringSync = map,
+            });
             this._memberList = new MemberList({
                 members,
                 closeCallback: () => { this._memberList = null; }
