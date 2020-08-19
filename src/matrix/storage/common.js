@@ -38,7 +38,7 @@ export class StorageError extends Error {
                 fullMessage += `(name: ${cause.name}) `;
             }
             if (typeof cause.code === "number") {
-                fullMessage += `(code: ${cause.name}) `;
+                fullMessage += `(code: ${cause.code}) `;
             }
         }
         if (value) {
