@@ -27,7 +27,7 @@
     "@rollup/plugin-babel": "^5.1.0",
     "@rollup/plugin-commonjs": "^14.0.0",
     "@rollup/plugin-multi-entry": "^3.0.1",
-    "@rollup/plugin-node-resolve": "^8.4.0",
+    "@rollup/plugin-node-resolve": "^9.0.0",
     "cheerio": "^1.0.0-rc.3",
     "commander": "^6.0.0",
     "core-js": "^3.6.5",
