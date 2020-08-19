@@ -98,34 +98,14 @@ export class SyncWriter {
         return {oldFragment, newFragment};
     }
 
-    async _writeMember(event, txn) {
-        if (!event) {
-            return;
-        }
-        
-        const userId = event.state_key;
-        const {content} = event;
-        
-        if (!userId || !content) {
-            return;
-        }
-
-        let member;
-        if (memberData) {
-            member = new RoomMember(memberData);
-            member.updateWithMemberEvent(event);
-        } else {
-            member = RoomMember.fromMemberEvent(this._roomId, event);
-        }
-    }
-
-    async _writeStateEvent(event, txn) {
+    _writeStateEvent(event, txn) {
         if (event.type === MEMBER_EVENT_TYPE) {
-            const userId = event && event.state_key;
+            const userId = event.state_key;
             if (userId) {
-                const memberData = await txn.roomMembers.get(this._roomId, userId);
-                const member = updateOrCreateMember(this._roomId, memberData, event);
+                const member = RoomMember.fromMemberEvent(this._roomId, event);
                 if (member) {
+                    // as this is sync, we can just replace the member
+                    // if it is there already
                     txn.roomMembers.set(member.serialize());
                 }
             }

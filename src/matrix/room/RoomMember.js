@@ -5,44 +5,25 @@ export class RoomMember {
         this._data = data;
     }
 
-    static async updateOrCreateMember(roomId, memberData, memberEvent) {
-        if (!memberEvent) {
-            return;
-        }
-        
-        const userId = memberEvent.state_key;
-        const {content} = memberEvent;
-        
-        if (!userId || !content) {
-            return;
-        }
-
-        let member;
-        if (memberData) {
-            member = new RoomMember(memberData);
-            member.updateWithMemberEvent(memberEvent);
-        } else {
-            member = RoomMember.fromMemberEvent(this._roomId, memberEvent);
-        }
-        return member;
-    }
-
     static fromMemberEvent(roomId, memberEvent) {
         const userId = memberEvent && memberEvent.state_key;
         if (!userId) {
             return;
         }
-
-        const member = new RoomMember({
-            roomId: roomId,
-            userId: userId,
-            avatarUrl: null,
-            displayName: null,
-            membership: null,
-            deviceTrackingStatus: 0,
+        const {content} = memberEvent;
+        const membership = content?.membership;
+        const avatarUrl = content?.avatar_url;
+        const displayName = content?.displayname;
+        if (typeof membership !== "string") {
+            return;
+        }
+        return new RoomMember({
+            roomId,
+            userId,
+            membership,
+            avatarUrl,
+            displayName,
         });
-        member.updateWithMemberEvent(memberEvent);
-        return member;
     }
 
     get roomId() {
@@ -53,17 +34,7 @@ export class RoomMember {
         return this._data.userId;
     }
 
-    updateWithMemberEvent(event) {
-        if (!event || !event.content) {
-            return;
-        }
-        const {content} = event;
-        this._data.membership = content.membership;
-        this._data.avatarUrl = content.avatar_url;
-        this._data.displayName = content.displayname;
-    }
-
     serialize() {
-        return this.data;
+        return this._data;
     }
 }
