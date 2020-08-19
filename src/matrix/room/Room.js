@@ -36,20 +36,31 @@ export class Room extends EventEmitter {
         this._sendQueue = new SendQueue({roomId, storage, sendScheduler, pendingEvents});
         this._timeline = null;
         this._user = user;
+        this._changedMembersDuringSync = null;
 	}
 
     async writeSync(roomResponse, membership, txn) {
 		const summaryChanges = this._summary.writeSync(roomResponse, membership, txn);
-		const {entries, newLiveKey} = await this._syncWriter.writeSync(roomResponse, txn);
+		const {entries, newLiveKey, changedMembers} = await this._syncWriter.writeSync(roomResponse, txn);
         let removedPendingEvents;
         if (roomResponse.timeline && roomResponse.timeline.events) {
             removedPendingEvents = this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn);
         }
-        return {summaryChanges, newTimelineEntries: entries, newLiveKey, removedPendingEvents};
+        return {summaryChanges, newTimelineEntries: entries, newLiveKey, removedPendingEvents, changedMembers};
     }
 
-    afterSync({summaryChanges, newTimelineEntries, newLiveKey, removedPendingEvents}) {
+    afterSync({summaryChanges, newTimelineEntries, newLiveKey, removedPendingEvents, changedMembers}) {
         this._syncWriter.afterSync(newLiveKey);
+        if (changedMembers.length) {
+            if (this._changedMembersDuringSync) {
+                for (const member of changedMembers) {
+                    this._changedMembersDuringSync.set(member.userId, member);
+                }
+            }
+            if (this._memberList) {
+                this._memberList.afterSync(changedMembers);
+            }
+        }
         if (summaryChanges) {
             this._summary.applyChanges(summaryChanges);
             this.emit("change");

@@ -108,28 +108,37 @@ export class SyncWriter {
                     // if it is there already
                     txn.roomMembers.set(member.serialize());
                 }
+                return member;
             }
         } else {
             txn.roomState.set(this._roomId, event);
         }
     }
 
-    async _writeStateEvents(roomResponse, txn) {
+    _writeStateEvents(roomResponse, txn) {
+        const changedMembers = [];
         // persist state
         const {state, timeline} = roomResponse;
         if (state.events) {
             for (const event of state.events) {
-                await this._writeStateEvent(event, txn);
+                const member = this._writeStateEvent(event, txn);
+                if (member) {
+                    changedMembers.push(member);
+                }
             }
         }
         // persist live state events in timeline
         if (timeline.events) {
             for (const event of timeline.events) {
                 if (typeof event.state_key === "string") {
-                    this._writeStateEvent(event, txn);
+                    const member = this._writeStateEvent(event, txn);
+                    if (member) {
+                        changedMembers.push(member);
+                    }
                 }
             }
         }
+        return changedMembers;
     }
 
     _writeTimeline(entries, timeline, currentKey, txn) {
@@ -165,12 +174,13 @@ export class SyncWriter {
             entries.push(FragmentBoundaryEntry.end(oldFragment, this._fragmentIdComparer));
             entries.push(FragmentBoundaryEntry.start(newFragment, this._fragmentIdComparer));
         }
-        
-        await this._writeStateEvents(roomResponse, txn);
+        // important this happens before _writeTimeline so
+        // members are available in the transaction
+        const changedMembers = this._writeStateEvents(roomResponse, txn);
 
         currentKey = this._writeTimeline(entries, timeline, currentKey, txn);
 
-        return {entries, newLiveKey: currentKey};
+        return {entries, newLiveKey: currentKey, changedMembers};
     }
 
     afterSync(newLiveKey) {
