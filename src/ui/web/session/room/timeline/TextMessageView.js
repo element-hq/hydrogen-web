@@ -20,7 +20,7 @@ import {renderMessage} from "./common.js";
 export class TextMessageView extends TemplateView {
     render(t, vm) {
         return renderMessage(t, vm,
-            [t.p([vm.text, t.time(vm.date + " " + vm.time)])]
+            [t.p([vm.text, t.time({className: {hidden: !vm.date}}, vm.date + " " + vm.time)])]
         );
     }
 }

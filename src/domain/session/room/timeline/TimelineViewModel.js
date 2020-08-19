@@ -33,14 +33,17 @@ when loading, it just reads events from a sortkey backwards or forwards...
 */
 import {TilesCollection} from "./TilesCollection.js";
 import {tilesCreator} from "./tilesCreator.js";
+import {ViewModel} from "../../../ViewModel.js";
 
-export class TimelineViewModel {
-    constructor({room, timeline, ownUserId}) {
+export class TimelineViewModel extends ViewModel {
+    constructor(options) {
+        super(options);
+        const {room, timeline, ownUserId} = options;
         this._timeline = timeline;
         // once we support sending messages we could do
         // timeline.entries.concat(timeline.pendingEvents)
         // for an ObservableList that also contains local echos
-        this._tiles = new TilesCollection(timeline.entries, tilesCreator({room, ownUserId}));
+        this._tiles = new TilesCollection(timeline.entries, tilesCreator({room, ownUserId, clock: this.clock}));
     }
 
     /**

@@ -17,12 +17,16 @@ limitations under the License.
 
 @import url('inter.css');
 
+:root {
+    font-size: 10px;
+}
+
+
 .hydrogen {
     font-family: 'Inter', sans-serif, 'emoji';
-    font-size: 15px;
     background-color: white;
     color: #2e2f32;
-    
+    font-size: 1.4rem;
     --usercolor1: #368BD6;
     --usercolor2: #AC3BA8;
     --usercolor3: #03B381;
@@ -136,6 +140,7 @@ button.styled {
 
 .LeftPanel {
     background: rgba(245, 245, 245, 0.90);
+    font-size: 1.5rem;
 }
 
 .LeftPanel ul {
@@ -144,7 +149,7 @@ button.styled {
 }
 
 .LeftPanel li {
-    margin: 5px 10px;
+    margin: 3px 10px;
     padding: 5px;
     /* vertical align */
     align-items: center;
@@ -222,10 +227,14 @@ a {
     color: #FF4B55;
 }
 
-
 .RoomHeader {
     background: rgba(245, 245, 245, 0.90);
     padding: 10px;
+}
+
+.RoomHeader h2 {
+    font-size: 1.8rem;
+    font-weight: 600;
 }
 
 .RoomHeader button {
@@ -248,7 +257,7 @@ a {
 }
 
 .RoomHeader .topic {
-    font-size: 0.8em;
+    font-size: 14rem;
 }
 
 .RoomView_error {
@@ -284,9 +293,16 @@ a {
     background-color: #E3E8F0;
 }
 
+ul.Timeline > li:not(.continuation) {
+    margin-top: 7px;
+}
+
+ul.Timeline > li.continuation .sender {
+    display: none;
+}
 
 .message-container {
-    padding: 2px 10px;
+    padding: 1px 10px 0px 10px;
     margin: 5px 10px 0 10px;
 }
 
@@ -296,9 +312,9 @@ a {
 }
 
 .message-container .sender {
-    margin: 5px 0;
-    font-size: 0.9em;
+    margin: 6px 0;
     font-weight: bold;
+    line-height: 1.7rem;
 }
 
 .hydrogen .sender.usercolor1 { color: var(--usercolor1); }
@@ -313,6 +329,7 @@ a {
 .message-container time {
     padding: 2px 0 0px 10px;
     font-size: 0.8em;
+    line-height: normal;
     color: #aaa;
 }
 
@@ -321,7 +338,8 @@ a {
 }
 
 .message-container p {
-    margin: 5px 0;
+    margin: 3px 0;
+    line-height: 2.2rem;
 }
 
 .AnnouncementView {
@@ -333,7 +351,6 @@ a {
     margin: 0 auto;
     padding: 10px 20px;
     background-color: rgba(245, 245, 245, 0.90);
-    font-size: 0.9em;
     text-align: center;
     border-radius: 10px;
 }
