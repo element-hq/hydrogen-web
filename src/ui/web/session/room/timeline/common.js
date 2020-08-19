@@ -20,9 +20,9 @@ export function renderMessage(t, vm, children) {
         "TextMessageView": true,
         own: vm.isOwn,
         pending: vm.isPending,
-        continuation: vm.isContinuation,
+        continuation: vm => vm.isContinuation,
     };
-    const sender = t.div({className: `sender usercolor${vm.senderColorNumber}`}, vm => vm.isContinuation ? "" : vm.sender);
+    const sender = t.div({className: `sender usercolor${vm.senderColorNumber}`}, vm.sender);
     children = [sender].concat(children);
     return t.li(
         {className: classes},
