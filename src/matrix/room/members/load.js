@@ -37,33 +37,44 @@ async function fetchMembers({summary, roomId, hsApi, storage, setChangedMembersM
         storage.storeNames.roomSummary,
         storage.storeNames.roomMembers,
     ]);
-    const summaryChanges = summary.writeHasFetchedMembers(true, txn);
-    const {roomMembers} = txn;
-    const memberEvents = memberResponse.chunk;
-    if (!Array.isArray(memberEvents)) {
-        throw new Error("malformed");
-    }
-    const members = await Promise.all(memberEvents.map(async memberEvent => {
-        const userId = memberEvent?.state_key;
-        if (!userId) {
+
+    let summaryChanges;
+    let members;
+    
+    try {
+        summaryChanges = summary.writeHasFetchedMembers(true, txn);
+        const {roomMembers} = txn;
+        const memberEvents = memberResponse.chunk;
+        if (!Array.isArray(memberEvents)) {
             throw new Error("malformed");
         }
-        // this member was changed during a sync that happened while calling /members
-        // and thus is more recent, so don't overwrite
-        if (changedMembersDuringSync.has(userId)) {
-            const memberData = await roomMembers.get(roomId, userId);
-            if (memberData) {
-                return new RoomMember(memberData);
+        members = await Promise.all(memberEvents.map(async memberEvent => {
+            const userId = memberEvent?.state_key;
+            if (!userId) {
+                throw new Error("malformed");
             }
-        } else {
-            const member = RoomMember.fromMemberEvent(roomId, memberEvent);
-            if (member) {
-                roomMembers.set(member.serialize());
+            // this member was changed during a sync that happened while calling /members
+            // and thus is more recent, so don't overwrite
+            const changedMember = changedMembersDuringSync.get(userId);
+            if (changedMember) {
+                return changedMember;
+            } else {
+                const member = RoomMember.fromMemberEvent(roomId, memberEvent);
+                if (member) {
+                    roomMembers.set(member.serialize());
+                }
+                return member;
             }
-            return member;
-        }
-    }));
-    setChangedMembersMap(null);
+        }));
+    } catch (err) {
+        // abort txn on any error
+        txn.abort();
+        throw err;
+    } finally {
+        // important this gets cleared
+        // or otherwise Room remains in "fetching-members" mode
+        setChangedMembersMap(null);
+    }
     await txn.complete();
     summary.applyChanges(summaryChanges);
     return members;
