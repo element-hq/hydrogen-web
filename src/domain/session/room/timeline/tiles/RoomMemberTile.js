@@ -23,36 +23,37 @@ export class RoomMemberTile extends SimpleTile {
     }
 
     get announcement() {
-        const {sender, content, prevContent} = this._entry;
-        const name = this._entry.displayName || sender;
+        const {sender, content, prevContent, stateKey} = this._entry;
+        const senderName =  this._entry.displayName || sender;
+        const targetName = sender === stateKey ? senderName : (this._entry.content?.displayname || stateKey);
         const membership = content && content.membership;
         const prevMembership = prevContent && prevContent.membership;
 
         if (prevMembership === "join" && membership === "join") {
             if (content.avatar_url !== prevContent.avatar_url) {
-                return `${name} changed their avatar`; 
+                return `${senderName} changed their avatar`; 
             } else if (content.displayname !== prevContent.displayname) {
-                return `${name} changed their name to ${content.displayname}`; 
+                return `${senderName} changed their name to ${content.displayname}`; 
             }
         } else if (membership === "join") {
-            return `${name} joined the room`;
+            return `${targetName} joined the room`;
         } else if (membership === "invite") {
-            return `${name} was invited to the room by ${sender}`;
+            return `${targetName} was invited to the room by ${senderName}`;
         } else if (prevMembership === "invite") {
             if (membership === "join") {
-                return `${name} accepted the invitation to join the room`;
+                return `${targetName} accepted the invitation to join the room`;
             } else if (membership === "leave") {
-                return `${name} declined the invitation to join the room`;
+                return `${targetName} declined the invitation to join the room`;
             }
         } else if (membership === "leave") {
-            if (name === sender) {
-                return `${name} left the room`;
+            if (stateKey === sender) {
+                return `${targetName} left the room`;
             } else {
                 const reason = content.reason;
-                return `${name} was kicked from the room by ${sender}${reason ? `: ${reason}` : ""}`;
+                return `${targetName} was kicked from the room by ${senderName}${reason ? `: ${reason}` : ""}`;
             }
         } else if (membership === "ban") {
-            return `${name} was banned from the room by ${sender}`;
+            return `${targetName} was banned from the room by ${senderName}`;
         }
         
         return `${sender} membership changed to ${content.membership}`;
