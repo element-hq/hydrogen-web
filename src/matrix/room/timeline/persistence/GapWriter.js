@@ -105,7 +105,7 @@ export class GapWriter {
         // e.g. order is moving away from the `from` point.
         let key = startKey;
         for (let i = 0; i < events.length; ++i) {
-            const event = events[0];
+            const event = events[i];
             key = key.nextKeyForDirection(direction);
             const eventStorageEntry = createEventEntry(key, this._roomId, event);
             const memberEvent = this._findMemberEvent(event.sender, state, events, i, direction);
