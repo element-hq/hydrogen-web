@@ -20,6 +20,7 @@ import {getIdentifierColorNumber} from "../../../../avatar.js";
 export class MessageTile extends SimpleTile {
     constructor(options) {
         super(options);
+        this._mediaRepository = options.mediaRepository;
         this._clock = options.clock;
         this._isOwn = this._entry.sender === options.ownUserId;
         this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : null;

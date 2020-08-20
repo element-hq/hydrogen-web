@@ -201,14 +201,8 @@ export class Room extends EventEmitter {
         return this._timeline;
     }
 
-    /** @public */
-    mxcUrlThumbnail(url, width, height, method) {
-        return this._hsApi.mxcUrlThumbnail(url, width, height, method);
-    }
-
-    /** @public */
-    mxcUrl(url) {
-        return this._hsApi.mxcUrl(url);
+    get mediaRepository() {
+        return this._hsApi.mediaRepository;
     }
 }
 

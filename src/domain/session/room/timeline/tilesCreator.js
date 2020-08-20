@@ -24,7 +24,8 @@ import {EncryptedEventTile} from "./tiles/EncryptedEventTile.js";
 
 export function tilesCreator({room, ownUserId, clock}) {
     return function tilesCreator(entry, emitUpdate) {
-        const options = {entry, emitUpdate, ownUserId, clock};
+        const options = {entry, emitUpdate, ownUserId, clock,
+            mediaRepository: room.mediaRepository};
         if (entry.isGap) {
             return new GapTile(options, room);
         } else if (entry.eventType) {
@@ -38,7 +39,7 @@ export function tilesCreator({room, ownUserId, clock}) {
                         case "m.emote":
                             return new TextTile(options);
                         case "m.image":
-                            return new ImageTile(options, room);
+                            return new ImageTile(options);
                         case "m.location":
                             return new LocationTile(options);
                         default:
