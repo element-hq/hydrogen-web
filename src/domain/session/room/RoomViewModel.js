@@ -87,12 +87,23 @@ export class RoomViewModel extends ViewModel {
         return "";
     }
 
-    get avatarInitials() {
+    get avatarLetter() {
         return avatarInitials(this._room.name);
     }
 
     get avatarColorNumber() {
         return getIdentifierColorNumber(this._room.id)
+    }
+
+    get avatarUrl() {
+        if (this._room.avatarUrl) {
+            return this._room.mediaRepository.mxcUrlThumbnail(this._room.avatarUrl, 32, 32, "crop");
+        }
+        return null;
+    }
+
+    get avatarTitle() {
+        return this.name;
     }
     
     async _sendMessage(message) {

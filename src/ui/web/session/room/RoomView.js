@@ -19,6 +19,7 @@ import {TemplateView} from "../../general/TemplateView.js";
 import {TimelineList} from "./TimelineList.js";
 import {TimelineLoadingView} from "./TimelineLoadingView.js";
 import {MessageComposer} from "./MessageComposer.js";
+import {renderAvatar} from "../../common.js";
 
 export class RoomView extends TemplateView {
     render(t, vm) {
@@ -26,7 +27,7 @@ export class RoomView extends TemplateView {
             t.div({className: "TimelinePanel"}, [
                 t.div({className: "RoomHeader"}, [
                     t.button({className: "back", onClick: () => vm.close()}),
-                    t.div({className: `avatar usercolor${vm.avatarColorNumber}`}, vm => vm.avatarInitials),
+                    renderAvatar(t, vm, 32),
                     t.div({className: "room-description"}, [
                         t.h2(vm => vm.name),
                     ]),
