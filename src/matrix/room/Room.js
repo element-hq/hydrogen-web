@@ -130,7 +130,10 @@ export class Room extends EventEmitter {
             from: fragmentEntry.token,
             dir: fragmentEntry.direction.asApiString(),
             limit: amount,
-            filter: {lazy_load_members: true}
+            filter: {
+                lazy_load_members: true,
+                include_redundant_members: true,
+            }
         }).response();
 
         const txn = await this._storage.readWriteTxn([
