@@ -34,6 +34,12 @@ function applySyncResponse(data, roomResponse, membership) {
         }
         data = timeline.events.reduce(processEvent, data);
     }
+    const unreadNotifications = roomResponse.unread_notifications;
+    if (unreadNotifications) {
+        data = data.cloneIfNeeded();
+        data.highlightCount = unreadNotifications.highlight_count;
+        data.notificationCount = unreadNotifications.notification_count;
+    }
 
     return data;
 }
@@ -112,6 +118,8 @@ class SummaryData {
         this.hasFetchedMembers = copy ? copy.hasFetchedMembers : false;
         this.lastPaginationToken = copy ? copy.lastPaginationToken : null;
         this.avatarUrl = copy ? copy.avatarUrl : null;
+        this.notificationCount = copy ? copy.notificationCount : 0;
+        this.highlightCount = copy ? copy.highlightCount : 0;
         this.cloned = copy ? true : false;
     }
 
