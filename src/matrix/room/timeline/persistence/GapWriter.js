@@ -132,7 +132,10 @@ export class GapWriter {
                 return RoomMember.fromMemberEvent(this._roomId, event)?.serialize();
             }
         }
-        // look into newer events, but using prev_content if found
+        // look into newer events, but using prev_content if found.
+        // We do this before looking into `state` because it is not well specified
+        // in the spec whether the events in there represent state before or after `chunk`.
+        // So we look both directions first in chunk to make sure it doesn't matter.
         for (let i = index; i >= 0 && i < events.length; i -= inc) {
             const event = events[i];
             if (isOurUser(event)) {
