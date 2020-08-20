@@ -180,6 +180,10 @@ export class Room extends EventEmitter {
         return this._roomId;
     }
 
+    get avatarUrl() {
+        return this._summary.avatarUrl;
+    }
+
     /** @public */
     async openTimeline() {
         if (this._timeline) {
