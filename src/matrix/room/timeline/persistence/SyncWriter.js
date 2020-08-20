@@ -118,7 +118,7 @@ export class SyncWriter {
     _writeStateEvents(roomResponse, txn) {
         const changedMembers = [];
         // persist state
-        const {state, timeline} = roomResponse;
+        const {state} = roomResponse;
         if (state.events) {
             for (const event of state.events) {
                 const member = this._writeStateEvent(event, txn);
@@ -127,31 +127,29 @@ export class SyncWriter {
                 }
             }
         }
-        // persist live state events in timeline
+        return changedMembers;
+    }
+
+    _writeTimeline(entries, timeline, currentKey, txn) {
+        const changedMembers = [];
         if (timeline.events) {
-            for (const event of timeline.events) {
+            const events = deduplicateEvents(timeline.events);
+            for(const event of events) {
+                // process live state events first, so new member info is available
                 if (typeof event.state_key === "string") {
                     const member = this._writeStateEvent(event, txn);
                     if (member) {
                         changedMembers.push(member);
                     }
                 }
-            }
-        }
-        return changedMembers;
-    }
-
-    _writeTimeline(entries, timeline, currentKey, txn) {
-        if (timeline.events) {
-            const events = deduplicateEvents(timeline.events);
-            for(const event of events) {
+                // store event in timeline
                 currentKey = currentKey.nextKey();
                 const entry = createEventEntry(currentKey, this._roomId, event);
                 txn.timelineEvents.insert(entry);
                 entries.push(new EventEntry(entry, this._fragmentIdComparer));
             }
         }
-        return currentKey;
+        return {currentKey, changedMembers};
     }
 
     async writeSync(roomResponse, txn) {
@@ -177,8 +175,9 @@ export class SyncWriter {
         // important this happens before _writeTimeline so
         // members are available in the transaction
         const changedMembers = this._writeStateEvents(roomResponse, txn);
-
-        currentKey = this._writeTimeline(entries, timeline, currentKey, txn);
+        const timelineResult = this._writeTimeline(entries, timeline, currentKey, txn);
+        currentKey = timelineResult.currentKey;
+        changedMembers.push(...timelineResult.changedMembers);
 
         return {entries, newLiveKey: currentKey, changedMembers};
     }
