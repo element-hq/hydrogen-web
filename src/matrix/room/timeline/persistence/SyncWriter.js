@@ -130,11 +130,21 @@ export class SyncWriter {
         return changedMembers;
     }
 
-    _writeTimeline(entries, timeline, currentKey, txn) {
+    async _writeTimeline(entries, timeline, currentKey, txn) {
         const changedMembers = [];
         if (timeline.events) {
             const events = deduplicateEvents(timeline.events);
             for(const event of events) {
+                // store event in timeline
+                currentKey = currentKey.nextKey();
+                const entry = createEventEntry(currentKey, this._roomId, event);
+                let member = this._findMember(event.sender);
+                if (member) {
+                    entry.displayName = member.displayName;
+                    entry.avatarUrl = member.avatarUrl;
+                }
+                txn.timelineEvents.insert(entry);
+                entries.push(new EventEntry(entry, this._fragmentIdComparer));
                 // process live state events first, so new member info is available
                 if (typeof event.state_key === "string") {
                     const member = this._writeStateEvent(event, txn);
@@ -142,14 +152,24 @@ export class SyncWriter {
                         changedMembers.push(member);
                     }
                 }
-                // store event in timeline
-                currentKey = currentKey.nextKey();
-                const entry = createEventEntry(currentKey, this._roomId, event);
-                txn.timelineEvents.insert(entry);
-                entries.push(new EventEntry(entry, this._fragmentIdComparer));
             }
         }
         return {currentKey, changedMembers};
+    }
+
+    async _findMember(userId, events, txn) {
+        // TODO: perhaps add a small cache here?
+        const memberData = await txn.roomMembers.get(this._roomId, event.sender);
+        if (memberData) {
+            return new RoomMember(memberData);
+        } else {
+            const memberEvent = events.find(e => {
+                return e.type === MEMBER_EVENT_TYPE && e.state_key === event.sender;
+            });
+            if (memberEvent) {
+                return RoomMember.fromMemberEvent(this._roomId, memberEvent); 
+            }
+        }
     }
 
     async writeSync(roomResponse, txn) {
@@ -175,7 +195,7 @@ export class SyncWriter {
         // important this happens before _writeTimeline so
         // members are available in the transaction
         const changedMembers = this._writeStateEvents(roomResponse, txn);
-        const timelineResult = this._writeTimeline(entries, timeline, currentKey, txn);
+        const timelineResult = await this._writeTimeline(entries, timeline, currentKey, txn);
         currentKey = timelineResult.currentKey;
         changedMembers.push(...timelineResult.changedMembers);
 
