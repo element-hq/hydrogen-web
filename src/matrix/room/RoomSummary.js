@@ -46,15 +46,21 @@ function processEvent(data, event) {
         }
     }
     if (event.type === "m.room.name") {
-        const newName = event.content && event.content.name;
+        const newName = event.content?.name;
         if (newName !== data.name) {
             data = data.cloneIfNeeded();
             data.name = newName;
         }
+    } if (event.type === "m.room.avatar") {
+        const newUrl = event.content?.url;
+        if (newUrl !== data.avatarUrl) {
+            data = data.cloneIfNeeded();
+            data.avatarUrl = newUrl;
+        }
     } else if (event.type === "m.room.message") {
-        const content = event.content;
-        const body = content && content.body;
-        const msgtype = content && content.msgtype;
+        const {content} = event;
+        const body = content?.body;
+        const msgtype = content?.msgtype;
         if (msgtype === "m.text") {
             data = data.cloneIfNeeded();
             data.lastMessageBody = body;
@@ -105,6 +111,7 @@ class SummaryData {
         this.altAliases = copy ? copy.altAliases : null;
         this.hasFetchedMembers = copy ? copy.hasFetchedMembers : false;
         this.lastPaginationToken = copy ? copy.lastPaginationToken : null;
+        this.avatarUrl = copy ? copy.avatarUrl : null;
         this.cloned = copy ? true : false;
     }
 
@@ -154,6 +161,10 @@ export class RoomSummary {
 	get joinCount() {
 		return this._data.joinCount;
 	}
+
+    get avatarUrl() {
+        return this._data.avatarUrl;
+    }
 
     get hasFetchedMembers() {
         return this._data.hasFetchedMembers;
