@@ -138,13 +138,14 @@ export class SyncWriter {
                 // store event in timeline
                 currentKey = currentKey.nextKey();
                 const entry = createEventEntry(currentKey, this._roomId, event);
-                let member = this._findMember(event.sender);
-                if (member) {
-                    entry.displayName = member.displayName;
-                    entry.avatarUrl = member.avatarUrl;
+                let memberData = await this._findMemberData(event.sender, events, txn);
+                if (memberData) {
+                    entry.displayName = memberData.displayName;
+                    entry.avatarUrl = memberData.avatarUrl;
                 }
                 txn.timelineEvents.insert(entry);
                 entries.push(new EventEntry(entry, this._fragmentIdComparer));
+                
                 // process live state events first, so new member info is available
                 if (typeof event.state_key === "string") {
                     const member = this._writeStateEvent(event, txn);
@@ -157,17 +158,21 @@ export class SyncWriter {
         return {currentKey, changedMembers};
     }
 
-    async _findMember(userId, events, txn) {
+    async _findMemberData(userId, events, txn) {
         // TODO: perhaps add a small cache here?
-        const memberData = await txn.roomMembers.get(this._roomId, event.sender);
+        const memberData = await txn.roomMembers.get(this._roomId, userId);
         if (memberData) {
-            return new RoomMember(memberData);
+            console.log("got memberData from store", this._roomId, userId, memberData);
+            return memberData;
         } else {
+            // sometimes the member event isn't included in state, but rather in the timeline,
+            // even if it is not the first event in the timeline. In this case, go look for the
+            // first occurence
             const memberEvent = events.find(e => {
-                return e.type === MEMBER_EVENT_TYPE && e.state_key === event.sender;
+                return e.type === MEMBER_EVENT_TYPE && e.state_key === userId;
             });
             if (memberEvent) {
-                return RoomMember.fromMemberEvent(this._roomId, memberEvent); 
+                return RoomMember.fromMemberEvent(this._roomId, memberEvent)?.serialize(); 
             }
         }
     }
