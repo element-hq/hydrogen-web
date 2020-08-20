@@ -27,7 +27,18 @@ export class RoomMember {
         if (typeof userId !== "string") {
             return;
         }
-        const {content} = memberEvent;
+        return this._fromMemberEventContent(roomId, userId, memberEvent.content);
+    }
+
+    static fromReplacingMemberEvent(roomId, memberEvent) {
+        const userId = memberEvent && memberEvent.state_key;
+        if (typeof userId !== "string") {
+            return;
+        }
+        return this._fromMemberEventContent(roomId, userId, memberEvent.prev_content);
+    }
+
+    static _fromMemberEventContent(roomId, userId, content) {
         const membership = content?.membership;
         const avatarUrl = content?.avatar_url;
         const displayName = content?.displayname;

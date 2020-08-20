@@ -108,9 +108,8 @@ export class GapWriter {
             const event = events[i];
             key = key.nextKeyForDirection(direction);
             const eventStorageEntry = createEventEntry(key, this._roomId, event);
-            const memberEvent = this._findMemberEvent(event.sender, state, events, i, direction);
-            if (memberEvent) {
-                const memberData = RoomMember.fromMemberEvent(memberEvent)?.serialize();
+            const memberData = this._findMemberData(event.sender, state, events, i, direction);
+            if (memberData) {
                 eventStorageEntry.displayName = memberData?.displayName;
                 eventStorageEntry.avatarUrl = memberData?.avatarUrl;
             }
@@ -121,28 +120,29 @@ export class GapWriter {
         return entries;
     }
 
-    _findMemberEvent(userId, state, events, index, direction) {
+    _findMemberData(userId, state, events, index, direction) {
         function isOurUser(event) {
             return event.type === MEMBER_EVENT_TYPE && event.state_key === userId;
         }
-        // older messages are further in the array when going backwards
+        // older messages are at a higher index in the array when going backwards
         const inc = direction.isBackward ? 1 : -1;
         for (let i = index + inc; i >= 0 && i < events.length; i += inc) {
             const event = events[i];
             if (isOurUser(event)) {
-                return event;
+                return RoomMember.fromMemberEvent(this._roomId, event)?.serialize();
             }
         }
-        const stateMemberEvent = state.find(isOurUser);
-        if (stateMemberEvent) {
-            return stateMemberEvent;
-        }
-        // look into newer events as a fallback, even though it is techically not correct
-        for (let i = index - inc; i >= 0 && i < events.length; i -= inc) {
+        // look into newer events, but using prev_content if found
+        for (let i = index; i >= 0 && i < events.length; i -= inc) {
             const event = events[i];
             if (isOurUser(event)) {
-                return event;
+                return RoomMember.fromReplacingMemberEvent(this._roomId, event)?.serialize();
             }
+        }
+        // assuming the member hasn't changed within the chunk, just take it from state if it's there
+        const stateMemberEvent = state.find(isOurUser);
+        if (stateMemberEvent) {
+            return RoomMember.fromMemberEvent(this._roomId, stateMemberEvent)?.serialize();
         }
     }
 
