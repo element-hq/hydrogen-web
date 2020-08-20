@@ -15,6 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {renderAvatar} from "../../../common.js";
+
 export function renderMessage(t, vm, children) {
     const classes = {
         "TextMessageView": true,
@@ -23,16 +25,8 @@ export function renderMessage(t, vm, children) {
         continuation: vm => vm.isContinuation,
     };
 
-    const hasAvatar = !!vm.avatarUrl;
-    const avatarClasses = {
-        avatar: true,
-        [`usercolor${vm.avatarColorNumber}`]: !hasAvatar,
-    };
-    const avatarContent = hasAvatar ?
-        t.img({src: vm.avatarUrl, width: "30", height: "30", title: vm.sender}) :
-        vm.avatarLetter;
     const profile = t.div({className: "profile"}, [
-        t.div({className: avatarClasses}, [avatarContent]),
+        renderAvatar(t, vm, 30),
         t.div({className: `sender usercolor${vm.avatarColorNumber}`}, vm.sender)
     ]);
     children = [profile].concat(children);

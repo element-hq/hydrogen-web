@@ -35,6 +35,7 @@ export class MessageTile extends SimpleTile {
         return this._entry.displayName || this._entry.sender;
     }
 
+    // Avatar view model contract
     get avatarColorNumber() {
         return getIdentifierColorNumber(this._entry.sender);
     }
@@ -48,6 +49,10 @@ export class MessageTile extends SimpleTile {
 
     get avatarLetter() {
         return avatarInitials(this.sender);
+    }
+
+    get avatarTitle() {
+        return this.sender;
     }
 
     get date() {

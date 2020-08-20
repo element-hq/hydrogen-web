@@ -19,3 +19,23 @@ export function spinner(t, extraClasses = undefined) {
         t.circle({cx:"50%", cy:"50%", r:"45%", pathLength:"100"})
     );
 }
+
+/**
+ * @param  {TemplateBuilder} t
+ * @param  {Object} vm   view model with {avatarUrl, avatarColorNumber, avatarTitle, avatarLetter}
+ * @param  {Number} size
+ * @return {Element}
+ */
+export function renderAvatar(t, vm, size) {
+    const hasAvatar = !!vm.avatarUrl;
+    const avatarClasses = {
+        avatar: true,
+        [`usercolor${vm.avatarColorNumber}`]: !hasAvatar,
+    };
+    // TODO: handle updates from default to img or reverse
+    const sizeStr = size.toString();
+    const avatarContent = hasAvatar ?
+        t.img({src: vm => vm.avatarUrl, width: sizeStr, height: sizeStr, title: vm => vm.avatarTitle}) :
+        vm => vm.avatarLetter;
+    return t.div({className: avatarClasses}, [avatarContent]);
+}
