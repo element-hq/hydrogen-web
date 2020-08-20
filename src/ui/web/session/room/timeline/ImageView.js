@@ -22,6 +22,7 @@ export class ImageView extends TemplateView {
         // replace with css aspect-ratio once supported
         const heightRatioPercent = (vm.thumbnailHeight / vm.thumbnailWidth) * 100;
         const image = t.img({
+            className: "picture",
             src: vm.thumbnailUrl,
             width: vm.thumbnailWidth,
             height: vm.thumbnailHeight,

@@ -20,15 +20,10 @@ const MAX_HEIGHT = 300;
 const MAX_WIDTH = 400;
 
 export class ImageTile extends MessageTile {
-    constructor(options, room) {
-        super(options);
-        this._room = room;
-    }
-
     get thumbnailUrl() {
         const mxcUrl = this._getContent()?.url;
         if (typeof mxcUrl === "string") {
-            return this._room.mxcUrlThumbnail(mxcUrl, this.thumbnailWidth, this.thumbnailHeight, "scale");
+            return this._mediaRepository.mxcUrlThumbnail(mxcUrl, this.thumbnailWidth, this.thumbnailHeight, "scale");
         }
         return null;
     }
@@ -36,7 +31,7 @@ export class ImageTile extends MessageTile {
     get url() {
         const mxcUrl = this._getContent()?.url;
         if (typeof mxcUrl === "string") {
-            return this._room.mxcUrl(mxcUrl);
+            return this._mediaRepository.mxcUrl(mxcUrl);
         }
         return null;
     }

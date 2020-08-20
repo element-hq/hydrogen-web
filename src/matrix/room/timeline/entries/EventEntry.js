@@ -50,6 +50,14 @@ export class EventEntry extends BaseEntry {
         return this._eventEntry.event.sender;
     }
 
+    get displayName() {
+        return this._eventEntry.displayName;
+    }
+
+    get avatarUrl() {
+        return this._eventEntry.avatarUrl;
+    }
+
     get timestamp() {
         return this._eventEntry.event.origin_server_ts;
     }

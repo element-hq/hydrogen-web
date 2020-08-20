@@ -19,15 +19,15 @@ export class RoomStateStore {
 		this._roomStateStore = idbStore;
 	}
 
-	async getEvents(type) {
+	async getAllForType(type) {
 
 	}
 
-	async getEventsForKey(type, stateKey) {
-
+	async get(type, stateKey) {
+        
 	}
 
-	async setStateEvent(roomId, event) {
+	async set(roomId, event) {
         const key = `${roomId}|${event.type}|${event.state_key}`;
         const entry = {roomId, event, key};
 		return this._roomStateStore.put(entry);

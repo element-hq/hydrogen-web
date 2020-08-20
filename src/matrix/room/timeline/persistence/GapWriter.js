@@ -17,6 +17,7 @@ limitations under the License.
 import {EventKey} from "../EventKey.js";
 import {EventEntry} from "../entries/EventEntry.js";
 import {createEventEntry, directionalAppend} from "./common.js";
+import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";
 
 export class GapWriter {
     constructor({roomId, storage, fragmentIdComparer}) {
@@ -98,19 +99,54 @@ export class GapWriter {
         }
     }
 
-    _storeEvents(events, startKey, direction, txn) {
+    _storeEvents(events, startKey, direction, state, txn) {
         const entries = [];
         // events is in reverse chronological order for backwards pagination,
         // e.g. order is moving away from the `from` point.
         let key = startKey;
-        for(let event of events) {
+        for (let i = 0; i < events.length; ++i) {
+            const event = events[i];
             key = key.nextKeyForDirection(direction);
             const eventStorageEntry = createEventEntry(key, this._roomId, event);
+            const memberData = this._findMemberData(event.sender, state, events, i, direction);
+            if (memberData) {
+                eventStorageEntry.displayName = memberData?.displayName;
+                eventStorageEntry.avatarUrl = memberData?.avatarUrl;
+            }
             txn.timelineEvents.insert(eventStorageEntry);
             const eventEntry = new EventEntry(eventStorageEntry, this._fragmentIdComparer);
             directionalAppend(entries, eventEntry, direction);
         }
         return entries;
+    }
+
+    _findMemberData(userId, state, events, index, direction) {
+        function isOurUser(event) {
+            return event.type === MEMBER_EVENT_TYPE && event.state_key === userId;
+        }
+        // older messages are at a higher index in the array when going backwards
+        const inc = direction.isBackward ? 1 : -1;
+        for (let i = index + inc; i >= 0 && i < events.length; i += inc) {
+            const event = events[i];
+            if (isOurUser(event)) {
+                return RoomMember.fromMemberEvent(this._roomId, event)?.serialize();
+            }
+        }
+        // look into newer events, but using prev_content if found.
+        // We do this before looking into `state` because it is not well specified
+        // in the spec whether the events in there represent state before or after `chunk`.
+        // So we look both directions first in chunk to make sure it doesn't matter.
+        for (let i = index; i >= 0 && i < events.length; i -= inc) {
+            const event = events[i];
+            if (isOurUser(event)) {
+                return RoomMember.fromReplacingMemberEvent(this._roomId, event)?.serialize();
+            }
+        }
+        // assuming the member hasn't changed within the chunk, just take it from state if it's there
+        const stateMemberEvent = state.find(isOurUser);
+        if (stateMemberEvent) {
+            return RoomMember.fromMemberEvent(this._roomId, stateMemberEvent)?.serialize();
+        }
     }
 
     async _updateFragments(fragmentEntry, neighbourFragmentEntry, end, entries, txn) {
@@ -158,7 +194,7 @@ export class GapWriter {
     async writeFragmentFill(fragmentEntry, response, txn) {
         const {fragmentId, direction} = fragmentEntry;
         // chunk is in reverse-chronological order when backwards
-        const {chunk, start, end} = response;
+        const {chunk, start, end, state} = response;
         let entries;
 
         if (!Array.isArray(chunk)) {
@@ -195,7 +231,7 @@ export class GapWriter {
         } = await this._findOverlappingEvents(fragmentEntry, chunk, txn);
 
         // create entries for all events in chunk, add them to entries
-        entries = this._storeEvents(nonOverlappingEvents, lastKey, direction, txn);
+        entries = this._storeEvents(nonOverlappingEvents, lastKey, direction, state, txn);
         const fragments = await this._updateFragments(fragmentEntry, neighbourFragmentEntry, end, entries, txn);
     
         return {entries, fragments};

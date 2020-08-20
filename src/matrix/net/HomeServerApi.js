@@ -45,6 +45,18 @@ class RequestWrapper {
     }
 }
 
+function encodeQueryParams(queryParams) {
+    return Object.entries(queryParams || {})
+        .filter(([, value]) => value !== undefined)
+        .map(([name, value]) => {
+            if (typeof value === "object") {
+                value = JSON.stringify(value);
+            }
+            return `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
+        })
+        .join("&");
+}
+
 export class HomeServerApi {
     constructor({homeServer, accessToken, request, createTimeout, reconnector}) {
         // store these both in a closure somehow so it's harder to get at in case of XSS?
@@ -54,26 +66,15 @@ export class HomeServerApi {
         this._requestFn = request;
         this._createTimeout = createTimeout;
         this._reconnector = reconnector;
+        this._mediaRepository = new MediaRepository(homeServer);
     }
 
     _url(csPath) {
         return `${this._homeserver}/_matrix/client/r0${csPath}`;
     }
 
-    _encodeQueryParams(queryParams) {
-        return Object.entries(queryParams || {})
-            .filter(([, value]) => value !== undefined)
-            .map(([name, value]) => {
-                if (typeof value === "object") {
-                    value = JSON.stringify(value);
-                }
-                return `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
-            })
-            .join("&");
-    }
-
     _request(method, url, queryParams, body, options) {
-        const queryString = this._encodeQueryParams(queryParams);
+        const queryString = encodeQueryParams(queryParams);
         url = `${url}?${queryString}`;
         let bodyString;
         const headers = new Map();
@@ -126,6 +127,11 @@ export class HomeServerApi {
         return this._get(`/rooms/${encodeURIComponent(roomId)}/messages`, params, null, options);
     }
 
+    // params is at, membership and not_membership
+    members(roomId, params, options = null) {
+        return this._get(`/rooms/${encodeURIComponent(roomId)}/members`, params, null, options);
+    }
+
     send(roomId, eventType, txnId, content, options = null) {
         return this._put(`/rooms/${encodeURIComponent(roomId)}/send/${encodeURIComponent(eventType)}/${encodeURIComponent(txnId)}`, {}, content, options);
     }
@@ -149,13 +155,14 @@ export class HomeServerApi {
         return this._request("GET", `${this._homeserver}/_matrix/client/versions`, null, null, options);
     }
 
-    _parseMxcUrl(url) {
-        const prefix = "mxc://";
-        if (url.startsWith(prefix)) {
-            return url.substr(prefix.length).split("/", 2);
-        } else {
-            return null;
-        }
+    get mediaRepository() {
+        return this._mediaRepository;
+    }
+}
+
+class MediaRepository {
+    constructor(homeserver) {
+        this._homeserver = homeserver;
     }
 
     mxcUrlThumbnail(url, width, height, method) {
@@ -163,7 +170,7 @@ export class HomeServerApi {
         if (parts) {
             const [serverName, mediaId] = parts;
             const httpUrl = `${this._homeserver}/_matrix/media/r0/thumbnail/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`;
-            return httpUrl + "?" + this._encodeQueryParams({width, height, method});
+            return httpUrl + "?" + encodeQueryParams({width, height, method});
         }
         return null;
     }
@@ -173,6 +180,15 @@ export class HomeServerApi {
         if (parts) {
             const [serverName, mediaId] = parts;
             return `${this._homeserver}/_matrix/media/r0/download/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`;
+        } else {
+            return null;
+        }
+    }
+
+    _parseMxcUrl(url) {
+        const prefix = "mxc://";
+        if (url.startsWith(prefix)) {
+            return url.substr(prefix.length).split("/", 2);
         } else {
             return null;
         }

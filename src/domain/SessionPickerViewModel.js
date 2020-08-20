@@ -184,13 +184,18 @@ export class SessionPickerViewModel extends ViewModel {
     }
 
     async import(json) {
-        const data = JSON.parse(json);
-        const {sessionInfo} = data;
-        sessionInfo.comment = `Imported on ${new Date().toLocaleString()} from id ${sessionInfo.id}.`;
-        sessionInfo.id = this._createSessionContainer().createNewSessionId();
-        await this._storageFactory.import(sessionInfo.id, data.stores);
-        await this._sessionInfoStorage.add(sessionInfo);
-        this._sessions.set(new SessionItemViewModel(sessionInfo, this));
+        try {
+            const data = JSON.parse(json);
+            const {sessionInfo} = data;
+            sessionInfo.comment = `Imported on ${new Date().toLocaleString()} from id ${sessionInfo.id}.`;
+            sessionInfo.id = this._createSessionContainer().createNewSessionId();
+            await this._storageFactory.import(sessionInfo.id, data.stores);
+            await this._sessionInfoStorage.add(sessionInfo);
+            this._sessions.set(new SessionItemViewModel(sessionInfo, this));
+        } catch (err) {
+            alert(err.message);
+            console.error(err);
+        }
     }
 
     async delete(id) {

@@ -18,6 +18,7 @@ import {EventKey} from "../EventKey.js";
 import {EventEntry} from "../entries/EventEntry.js";
 import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
 import {createEventEntry} from "./common.js";
+import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";
 
 // Synapse bug? where the m.room.create event appears twice in sync response
 // when first syncing the room
@@ -97,9 +98,87 @@ export class SyncWriter {
         return {oldFragment, newFragment};
     }
 
+    _writeStateEvent(event, txn) {
+        if (event.type === MEMBER_EVENT_TYPE) {
+            const userId = event.state_key;
+            if (userId) {
+                const member = RoomMember.fromMemberEvent(this._roomId, event);
+                if (member) {
+                    // as this is sync, we can just replace the member
+                    // if it is there already
+                    txn.roomMembers.set(member.serialize());
+                }
+                return member;
+            }
+        } else {
+            txn.roomState.set(this._roomId, event);
+        }
+    }
+
+    _writeStateEvents(roomResponse, txn) {
+        const changedMembers = [];
+        // persist state
+        const {state} = roomResponse;
+        if (state.events) {
+            for (const event of state.events) {
+                const member = this._writeStateEvent(event, txn);
+                if (member) {
+                    changedMembers.push(member);
+                }
+            }
+        }
+        return changedMembers;
+    }
+
+    async _writeTimeline(entries, timeline, currentKey, txn) {
+        const changedMembers = [];
+        if (timeline.events) {
+            const events = deduplicateEvents(timeline.events);
+            for(const event of events) {
+                // store event in timeline
+                currentKey = currentKey.nextKey();
+                const entry = createEventEntry(currentKey, this._roomId, event);
+                let memberData = await this._findMemberData(event.sender, events, txn);
+                if (memberData) {
+                    entry.displayName = memberData.displayName;
+                    entry.avatarUrl = memberData.avatarUrl;
+                }
+                txn.timelineEvents.insert(entry);
+                entries.push(new EventEntry(entry, this._fragmentIdComparer));
+                
+                // process live state events first, so new member info is available
+                if (typeof event.state_key === "string") {
+                    const member = this._writeStateEvent(event, txn);
+                    if (member) {
+                        changedMembers.push(member);
+                    }
+                }
+            }
+        }
+        return {currentKey, changedMembers};
+    }
+
+    async _findMemberData(userId, events, txn) {
+        // TODO: perhaps add a small cache here?
+        const memberData = await txn.roomMembers.get(this._roomId, userId);
+        if (memberData) {
+            return memberData;
+        } else {
+            // sometimes the member event isn't included in state, but rather in the timeline,
+            // even if it is not the first event in the timeline. In this case, go look for the
+            // first occurence
+            const memberEvent = events.find(e => {
+                return e.type === MEMBER_EVENT_TYPE && e.state_key === userId;
+            });
+            if (memberEvent) {
+                return RoomMember.fromMemberEvent(this._roomId, memberEvent)?.serialize(); 
+            }
+        }
+    }
+
     async writeSync(roomResponse, txn) {
         const entries = [];
-        const timeline = roomResponse.timeline;
+        const {timeline} = roomResponse;
         let currentKey = this._lastLiveKey;
         if (!currentKey) {
             // means we haven't synced this room yet (just joined or did initial sync)
@@ -117,32 +196,14 @@ export class SyncWriter {
             entries.push(FragmentBoundaryEntry.end(oldFragment, this._fragmentIdComparer));
             entries.push(FragmentBoundaryEntry.start(newFragment, this._fragmentIdComparer));
         }
-        if (timeline.events) {
-            const events = deduplicateEvents(timeline.events);
-            for(const event of events) {
-                currentKey = currentKey.nextKey();
-                const entry = createEventEntry(currentKey, this._roomId, event);
-                txn.timelineEvents.insert(entry);
-                entries.push(new EventEntry(entry, this._fragmentIdComparer));
-            }
-        }
-        // persist state
-        const state = roomResponse.state;
-        if (state.events) {
-            for (const event of state.events) {
-                txn.roomState.setStateEvent(this._roomId, event);
-            }
-        }
-        // persist live state events in timeline
-        if (timeline.events) {
-            for (const event of timeline.events) {
-                if (typeof event.state_key === "string") {
-                    txn.roomState.setStateEvent(this._roomId, event);
-                }
-            }
-        }
+        // important this happens before _writeTimeline so
+        // members are available in the transaction
+        const changedMembers = this._writeStateEvents(roomResponse, txn);
+        const timelineResult = await this._writeTimeline(entries, timeline, currentKey, txn);
+        currentKey = timelineResult.currentKey;
+        changedMembers.push(...timelineResult.changedMembers);
 
-        return {entries, newLiveKey: currentKey};
+        return {entries, newLiveKey: currentKey, changedMembers};
     }
 
     afterSync(newLiveKey) {

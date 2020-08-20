@@ -110,7 +110,7 @@ export class SessionContainer {
                 this._status.set(LoadStatus.LoginFailed);
             } else if (err instanceof ConnectionError) {
                 this._loginFailure = LoginFailure.Connection;
-                this._status.set(LoadStatus.LoginFailure);
+                this._status.set(LoadStatus.LoginFailed);
             } else {
                 this._status.set(LoadStatus.Error);
             }
@@ -191,9 +191,14 @@ export class SessionContainer {
             }
         }
         // only transition into Ready once the first sync has succeeded
-        this._waitForFirstSyncHandle = this._sync.status.waitFor(s => s === SyncStatus.Syncing);
+        this._waitForFirstSyncHandle = this._sync.status.waitFor(s => s === SyncStatus.Syncing || s === SyncStatus.Stopped);
         try {
             await this._waitForFirstSyncHandle.promise;
+            if (this._sync.status.get() === SyncStatus.Stopped) {
+                if (this._sync.error) {
+                    throw this._sync.error;
+                }
+            }
         } catch (err) {
             // if dispose is called from stop, bail out
             if (err instanceof AbortError) {

@@ -119,6 +119,7 @@ export class Sync {
             storeNames.session,
             storeNames.roomSummary,
             storeNames.roomState,
+            storeNames.roomMembers,
             storeNames.timelineEvents,
             storeNames.timelineFragments,
             storeNames.pendingEvents,
@@ -148,6 +149,7 @@ export class Sync {
             }
         } catch(err) {
             console.warn("aborting syncTxn because of error");
+            console.error(err);
             // avoid corrupting state by only
             // storing the sync up till the point
             // the exception occurred

@@ -18,6 +18,7 @@ export const STORE_NAMES = Object.freeze([
     "session",
     "roomState",
     "roomSummary",
+    "roomMembers",
     "timelineEvents",
     "timelineFragments",
     "pendingEvents",
@@ -37,7 +38,7 @@ export class StorageError extends Error {
                 fullMessage += `(name: ${cause.name}) `;
             }
             if (typeof cause.code === "number") {
-                fullMessage += `(code: ${cause.name}) `;
+                fullMessage += `(code: ${cause.code}) `;
             }
         }
         if (value) {

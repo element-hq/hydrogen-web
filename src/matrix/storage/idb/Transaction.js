@@ -21,6 +21,7 @@ import {SessionStore} from "./stores/SessionStore.js";
 import {RoomSummaryStore} from "./stores/RoomSummaryStore.js";
 import {TimelineEventStore} from "./stores/TimelineEventStore.js";
 import {RoomStateStore} from "./stores/RoomStateStore.js";
+import {RoomMemberStore} from "./stores/RoomMemberStore.js";
 import {TimelineFragmentStore} from "./stores/TimelineFragmentStore.js";
 import {PendingEventStore} from "./stores/PendingEventStore.js";
 
@@ -70,6 +71,10 @@ export class Transaction {
 
     get roomState() {
         return this._store("roomState", idbStore => new RoomStateStore(idbStore));
+    }
+
+    get roomMembers() {
+        return this._store("roomMembers", idbStore => new RoomMemberStore(idbStore));
     }
 
     get pendingEvents() {

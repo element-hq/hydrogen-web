@@ -22,6 +22,8 @@ import {Timeline} from "./timeline/Timeline.js";
 import {FragmentIdComparer} from "./timeline/FragmentIdComparer.js";
 import {SendQueue} from "./sending/SendQueue.js";
 import {WrappedError} from "../error.js"
+import {fetchOrLoadMembers} from "./members/load.js";
+import {MemberList} from "./members/MemberList.js";
 
 export class Room extends EventEmitter {
 	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, pendingEvents, user}) {
@@ -36,22 +38,35 @@ export class Room extends EventEmitter {
         this._sendQueue = new SendQueue({roomId, storage, sendScheduler, pendingEvents});
         this._timeline = null;
         this._user = user;
+        this._changedMembersDuringSync = null;
 	}
 
+    /** @package */
     async writeSync(roomResponse, membership, txn) {
 		const summaryChanges = this._summary.writeSync(roomResponse, membership, txn);
-		const {entries, newLiveKey} = await this._syncWriter.writeSync(roomResponse, txn);
+		const {entries, newLiveKey, changedMembers} = await this._syncWriter.writeSync(roomResponse, txn);
         let removedPendingEvents;
         if (roomResponse.timeline && roomResponse.timeline.events) {
             removedPendingEvents = this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn);
         }
-        return {summaryChanges, newTimelineEntries: entries, newLiveKey, removedPendingEvents};
+        return {summaryChanges, newTimelineEntries: entries, newLiveKey, removedPendingEvents, changedMembers};
     }
 
-    afterSync({summaryChanges, newTimelineEntries, newLiveKey, removedPendingEvents}) {
+    /** @package */
+    afterSync({summaryChanges, newTimelineEntries, newLiveKey, removedPendingEvents, changedMembers}) {
         this._syncWriter.afterSync(newLiveKey);
+        if (changedMembers.length) {
+            if (this._changedMembersDuringSync) {
+                for (const member of changedMembers) {
+                    this._changedMembersDuringSync.set(member.userId, member);
+                }
+            }
+            if (this._memberList) {
+                this._memberList.afterSync(changedMembers);
+            }
+        }
         if (summaryChanges) {
-            this._summary.afterSync(summaryChanges);
+            this._summary.applyChanges(summaryChanges);
             this.emit("change");
             this._emitCollectionChange(this);
         }
@@ -63,10 +78,12 @@ export class Room extends EventEmitter {
         }
 	}
 
+    /** @package */
     resumeSending() {
         this._sendQueue.resumeSending();
     }
 
+    /** @package */
 	load(summary, txn) {
         try {
             this._summary.load(summary);
@@ -76,13 +93,36 @@ export class Room extends EventEmitter {
         }
 	}
 
+    /** @public */
     sendEvent(eventType, content) {
         return this._sendQueue.enqueueEvent(eventType, content);
     }
 
+    /** @public */
+    async loadMemberList() {
+        if (this._memberList) {
+            this._memberList.retain();
+            return this._memberList;
+        } else {
+            const members = await fetchOrLoadMembers({
+                summary: this._summary,
+                roomId: this._roomId,
+                hsApi: this._hsApi,
+                storage: this._storage,
+                // to handle race between /members and /sync
+                setChangedMembersMap: map => this._changedMembersDuringSync = map,
+            });
+            this._memberList = new MemberList({
+                members,
+                closeCallback: () => { this._memberList = null; }
+            });
+            return this._memberList;
+        }
+    } 
 
     /** @public */
     async fillGap(fragmentEntry, amount) {
+        // TODO move some/all of this out of Room
         if (fragmentEntry.edgeReached) {
             return;
         }
@@ -90,7 +130,10 @@ export class Room extends EventEmitter {
             from: fragmentEntry.token,
             dir: fragmentEntry.direction.asApiString(),
             limit: amount,
-            filter: {lazy_load_members: true}
+            filter: {
+                lazy_load_members: true,
+                include_redundant_members: true,
+            }
         }).response();
 
         const txn = await this._storage.readWriteTxn([
@@ -127,14 +170,17 @@ export class Room extends EventEmitter {
         }
     }
 
+    /** @public */
     get name() {
         return this._summary.name;
     }
 
+    /** @public */
     get id() {
         return this._roomId;
     }
 
+    /** @public */
     async openTimeline() {
         if (this._timeline) {
             throw new Error("not dealing with load race here for now");
@@ -155,12 +201,8 @@ export class Room extends EventEmitter {
         return this._timeline;
     }
 
-    mxcUrlThumbnail(url, width, height, method) {
-        return this._hsApi.mxcUrlThumbnail(url, width, height, method);
-    }
-
-    mxcUrl(url) {
-        return this._hsApi.mxcUrl(url);
+    get mediaRepository() {
+        return this._hsApi.mediaRepository;
     }
 }
 

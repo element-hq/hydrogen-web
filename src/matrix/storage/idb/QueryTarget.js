@@ -151,17 +151,31 @@ export class QueryTarget {
     }
 
     _selectLimit(range, amount, direction) {
-        return this._selectWhile(range, (results) => {
+        return this._selectUntil(range, (results) => {
             return results.length === amount;
         }, direction);
     }
 
-    async _selectWhile(range, predicate, direction) {
+    async _selectUntil(range, predicate, direction) {
         const cursor = this._openCursor(range, direction);
         const results = [];
         await iterateCursor(cursor, (value) => {
             results.push(value);
-            return {done: predicate(results)};
+            return {done: predicate(results, value)};
+        });
+        return results;
+    }
+
+    // allows you to fetch one too much that won't get added when the predicate fails
+    async _selectWhile(range, predicate, direction) {
+        const cursor = this._openCursor(range, direction);
+        const results = [];
+        await iterateCursor(cursor, (value) => {
+            const passesPredicate = predicate(value);
+            if (passesPredicate) {
+                results.push(value);
+            }
+            return {done: !passesPredicate};
         });
         return results;
     }
