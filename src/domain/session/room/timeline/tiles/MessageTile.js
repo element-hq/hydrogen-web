@@ -31,7 +31,7 @@ export class MessageTile extends SimpleTile {
     }
 
     get sender() {
-        return this._entry.sender;
+        return this._entry.displayName || this._entry.sender;
     }
 
     get senderColorNumber() {
