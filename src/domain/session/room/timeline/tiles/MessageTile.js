@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {SimpleTile} from "./SimpleTile.js";
-import {getIdentifierColorNumber} from "../../../../avatar.js";
+import {getIdentifierColorNumber, avatarInitials} from "../../../../avatar.js";
 
 export class MessageTile extends SimpleTile {
     constructor(options) {
@@ -35,8 +35,19 @@ export class MessageTile extends SimpleTile {
         return this._entry.displayName || this._entry.sender;
     }
 
-    get senderColorNumber() {
+    get avatarColorNumber() {
         return getIdentifierColorNumber(this._entry.sender);
+    }
+
+    get avatarUrl() {
+        if (this._entry.avatarUrl) {
+            return this._mediaRepository.mxcUrlThumbnail(this._entry.avatarUrl, 30, 30, "crop");
+        }
+        return null;
+    }
+
+    get avatarLetter() {
+        return avatarInitials(this.sender);
     }
 
     get date() {

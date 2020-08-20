@@ -297,13 +297,23 @@ ul.Timeline > li:not(.continuation) {
     margin-top: 7px;
 }
 
-ul.Timeline > li.continuation .sender {
+ul.Timeline > li.continuation .profile {
     display: none;
 }
+
 
 .message-container {
     padding: 1px 10px 0px 10px;
     margin: 5px 10px 0 10px;
+}
+
+.message-container .profile {
+    display: flex;
+    align-items: center;
+}
+
+.message-container .avatar {
+    --avatar-size: 25px;
 }
 
 .TextMessageView.continuation .message-container {
@@ -313,6 +323,7 @@ ul.Timeline > li.continuation .sender {
 
 .message-container .sender {
     margin: 6px 0;
+    margin-left: 6px;
     font-weight: bold;
     line-height: 1.7rem;
 }

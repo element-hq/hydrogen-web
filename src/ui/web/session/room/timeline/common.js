@@ -22,8 +22,20 @@ export function renderMessage(t, vm, children) {
         pending: vm.isPending,
         continuation: vm => vm.isContinuation,
     };
-    const sender = t.div({className: `sender usercolor${vm.senderColorNumber}`}, vm.sender);
-    children = [sender].concat(children);
+
+    const hasAvatar = !!vm.avatarUrl;
+    const avatarClasses = {
+        avatar: true,
+        [`usercolor${vm.avatarColorNumber}`]: !hasAvatar,
+    };
+    const avatarContent = hasAvatar ?
+        t.img({src: vm.avatarUrl, width: "30", height: "30", title: vm.sender}) :
+        vm.avatarLetter;
+    const profile = t.div({className: "profile"}, [
+        t.div({className: avatarClasses}, [avatarContent]),
+        t.div({className: `sender usercolor${vm.avatarColorNumber}`}, vm.sender)
+    ]);
+    children = [profile].concat(children);
     return t.li(
         {className: classes},
         t.div({className: "message-container"}, children)
