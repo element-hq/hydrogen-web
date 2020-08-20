@@ -162,7 +162,6 @@ export class SyncWriter {
         // TODO: perhaps add a small cache here?
         const memberData = await txn.roomMembers.get(this._roomId, userId);
         if (memberData) {
-            console.log("got memberData from store", this._roomId, userId, memberData);
             return memberData;
         } else {
             // sometimes the member event isn't included in state, but rather in the timeline,
