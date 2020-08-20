@@ -36,6 +36,9 @@ export class GapTile extends SimpleTile {
                 console.error(`timeline.fillGap(): ${err.message}:\n${err.stack}`);
                 this._error = err;
                 this.emitChange("error");
+                // rethrow so caller of this method
+                // knows not to keep calling this for now
+                throw err;
             } finally {
                 this._loading = false;
                 this.emitChange("isLoading");
