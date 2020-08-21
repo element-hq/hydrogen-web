@@ -36,7 +36,7 @@ export class Session {
         const txn = await this._storage.readTxn([
             this._storage.storeNames.session,
             this._storage.storeNames.roomSummary,
-            this._storage.storeNames.roomState,
+            this._storage.storeNames.roomMembers,
             this._storage.storeNames.timelineEvents,
             this._storage.storeNames.timelineFragments,
             this._storage.storeNames.pendingEvents,
