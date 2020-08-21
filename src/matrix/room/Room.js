@@ -184,6 +184,23 @@ export class Room extends EventEmitter {
         return this._summary.avatarUrl;
     }
 
+    async clearUnread() {
+        const txn = await this._storage.readWriteTxn([
+            this._storage.storeNames.roomSummary,
+        ]);
+        let data;
+        try {
+            data = this._summary.writeClearUnread(txn);
+        } catch (err) {
+            txn.abort();
+            throw err;
+        }
+        await txn.complete();
+        this._summary.applyChanges(data);
+        this.emit("change");
+        this._emitCollectionChange(this);
+    }
+
     /** @public */
     async openTimeline() {
         if (this._timeline) {

@@ -191,6 +191,15 @@ export class RoomSummary {
         return this._data.lastPaginationToken;
     }
 
+    writeClearUnread(txn) {
+        const data = new SummaryData(this._data);
+        data.isUnread = false;
+        data.notificationCount = 0;
+        data.highlightCount = 0;
+        txn.roomSummary.set(data.serialize());
+        return data;
+    }
+
     writeHasFetchedMembers(value, txn) {
         const data = new SummaryData(this._data);
         data.hasFetchedMembers = value;
