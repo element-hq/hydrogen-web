@@ -84,7 +84,7 @@ export class RoomViewModel extends ViewModel {
     }
 
     get name() {
-        return this._room.name;
+        return this._room.name || this.i18n`Empty Room`;
     }
 
     get timelineViewModel() {
@@ -102,7 +102,7 @@ export class RoomViewModel extends ViewModel {
     }
 
     get avatarLetter() {
-        return avatarInitials(this._room.name);
+        return avatarInitials(this.name);
     }
 
     get avatarColorNumber() {

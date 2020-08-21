@@ -54,6 +54,14 @@ export class RoomMember {
         });
     }
 
+    get displayName() {
+        return this._data.displayName;
+    }
+
+    get avatarUrl() {
+        return this._data.avatarUrl;
+    }
+
     get roomId() {
         return this._data.roomId;
     }

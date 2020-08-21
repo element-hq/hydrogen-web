@@ -70,7 +70,7 @@ export class RoomTileViewModel extends ViewModel {
         const timeDiff = theirTimestamp - myTimestamp;
         if (timeDiff === 0) {
             // sort alphabetically
-            const nameCmp = this._room.name.localeCompare(other._room.name);
+            const nameCmp = this.name.localeCompare(other.name);
             if (nameCmp === 0) {
                 return this._room.id.localeCompare(other._room.id);
             }
@@ -88,12 +88,12 @@ export class RoomTileViewModel extends ViewModel {
     }
 
     get name() {
-        return this._room.name;
+        return this._room.name || this.i18n`Empty Room`;
     }
 
     // Avatar view model contract
     get avatarLetter() {
-        return avatarInitials(this._room.name);
+        return avatarInitials(this.name);
     }
 
     get avatarColorNumber() {

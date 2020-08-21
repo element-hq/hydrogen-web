@@ -73,7 +73,6 @@ function processStateEvent(data, event) {
         const content = event.content;
         data = data.cloneIfNeeded();
         data.canonicalAlias = content.alias;
-        data.altAliases = content.alt_aliases;
     }
     return data;
 }
@@ -97,10 +96,10 @@ function processTimelineEvent(data, event, isInitialSync, isTimelineOpen, ownUse
 
 function updateSummary(data, summary) {
     const heroes = summary["m.heroes"];
-    const inviteCount = summary["m.joined_member_count"];
-    const joinCount = summary["m.invited_member_count"];
+    const joinCount = summary["m.joined_member_count"];
+    const inviteCount = summary["m.invited_member_count"];
 
-    if (heroes) {
+    if (heroes && Array.isArray(heroes)) {
         data = data.cloneIfNeeded();
         data.heroes = heroes;
     }
@@ -129,7 +128,6 @@ class SummaryData {
         this.joinCount = copy ? copy.joinCount : 0;
         this.heroes = copy ? copy.heroes : null;
         this.canonicalAlias = copy ? copy.canonicalAlias : null;
-        this.altAliases = copy ? copy.altAliases : null;
         this.hasFetchedMembers = copy ? copy.hasFetchedMembers : false;
         this.lastPaginationToken = copy ? copy.lastPaginationToken : null;
         this.avatarUrl = copy ? copy.avatarUrl : null;
@@ -165,14 +163,12 @@ export class RoomSummary {
         if (this._data.canonicalAlias) {
             return this._data.canonicalAlias;
         }
-        if (Array.isArray(this._data.altAliases) && this._data.altAliases.length !== 0) {
-            return this._data.altAliases[0];
-        }
-        if (Array.isArray(this._data.heroes) && this._data.heroes.length !== 0) {
-            return this._data.heroes.join(", ");
-        }
-        return this._data.roomId;
+        return null;
 	}
+
+    get heroes() {
+        return this._data.heroes;
+    }
 
     get isUnread() {
         return this._data.isUnread;
@@ -240,12 +236,6 @@ export class RoomSummary {
             isInitialSync, isTimelineOpen,
             this._ownUserId);
 		if (data !== this._data) {
-            // need to think here how we want to persist
-            // things like unread status (as read marker, or unread count)?
-            // we could very well load additional things in the load method
-            // ... the trade-off is between constantly writing the summary
-            // on every sync, or doing a bit of extra reading on load
-            // and have in-memory only variables for visualization
             txn.roomSummary.set(data.serialize());
             return data;
 		}
