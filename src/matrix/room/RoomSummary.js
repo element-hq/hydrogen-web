@@ -73,7 +73,6 @@ function processStateEvent(data, event) {
         const content = event.content;
         data = data.cloneIfNeeded();
         data.canonicalAlias = content.alias;
-        data.altAliases = content.alt_aliases;
     }
     return data;
 }
@@ -129,7 +128,6 @@ class SummaryData {
         this.joinCount = copy ? copy.joinCount : 0;
         this.heroes = copy ? copy.heroes : null;
         this.canonicalAlias = copy ? copy.canonicalAlias : null;
-        this.altAliases = copy ? copy.altAliases : null;
         this.hasFetchedMembers = copy ? copy.hasFetchedMembers : false;
         this.lastPaginationToken = copy ? copy.lastPaginationToken : null;
         this.avatarUrl = copy ? copy.avatarUrl : null;
@@ -164,9 +162,6 @@ export class RoomSummary {
         }
         if (this._data.canonicalAlias) {
             return this._data.canonicalAlias;
-        }
-        if (Array.isArray(this._data.altAliases) && this._data.altAliases.length !== 0) {
-            return this._data.altAliases[0];
         }
         if (Array.isArray(this._data.heroes) && this._data.heroes.length !== 0) {
             return this._data.heroes.join(", ");
