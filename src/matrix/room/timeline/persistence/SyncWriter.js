@@ -119,7 +119,7 @@ export class SyncWriter {
         const changedMembers = [];
         // persist state
         const {state} = roomResponse;
-        if (state.events) {
+        if (Array.isArray(state?.events)) {
             for (const event of state.events) {
                 const member = this._writeStateEvent(event, txn);
                 if (member) {
