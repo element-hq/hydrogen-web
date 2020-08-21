@@ -44,7 +44,7 @@ function applySyncResponse(data, roomResponse, membership, isInitialSync, isTime
     const unreadNotifications = roomResponse.unread_notifications;
     if (unreadNotifications) {
         data = data.cloneIfNeeded();
-        data.highlightCount = unreadNotifications.highlight_count;
+        data.highlightCount = unreadNotifications.highlight_count || 0;
         data.notificationCount = unreadNotifications.notification_count;
     }
 
@@ -180,6 +180,10 @@ export class RoomSummary {
 
     get notificationCount() {
         return this._data.notificationCount;
+    }
+
+    get highlightCount() {
+        return this._data.highlightCount;
     }
 
 	get lastMessage() {

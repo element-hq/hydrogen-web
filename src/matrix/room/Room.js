@@ -200,6 +200,10 @@ export class Room extends EventEmitter {
     get notificationCount() {
         return this._summary.notificationCount;
     }
+    
+    get highlightCount() {
+        return this._summary.highlightCount;
+    }
 
     async _getLastEventId() {
         const lastKey = this._syncWriter.lastMessageKey;
