@@ -110,4 +110,12 @@ export class RoomTileViewModel extends ViewModel {
     get avatarTitle() {
         return this.name;
     }
+
+    get badgeCount() {
+        return this._room.notificationCount;
+    }
+
+    get isHighlighted() {
+        return this._room.highlightCount !== 0;
+    }
 }
