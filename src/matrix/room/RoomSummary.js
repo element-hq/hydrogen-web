@@ -236,12 +236,6 @@ export class RoomSummary {
             isInitialSync, isTimelineOpen,
             this._ownUserId);
 		if (data !== this._data) {
-            // need to think here how we want to persist
-            // things like unread status (as read marker, or unread count)?
-            // we could very well load additional things in the load method
-            // ... the trade-off is between constantly writing the summary
-            // on every sync, or doing a bit of extra reading on load
-            // and have in-memory only variables for visualization
             txn.roomSummary.set(data.serialize());
             return data;
 		}
