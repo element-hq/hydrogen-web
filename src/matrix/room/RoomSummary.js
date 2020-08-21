@@ -113,9 +113,9 @@ class SummaryData {
         this.name = copy ? copy.name : null;
         this.lastMessageBody = copy ? copy.lastMessageBody : null;
         this.lastMessageTimestamp = copy ? copy.lastMessageTimestamp : null;
-        this.isUnread = copy ? copy.isUnread : null;
         this.isEncrypted = copy ? copy.isEncrypted : null;
         this.isDirectMessage = copy ? copy.isDirectMessage : null;
+        this.isUnread = copy ? copy.isUnread : false;
         this.membership = copy ? copy.membership : null;
         this.inviteCount = copy ? copy.inviteCount : 0;
         this.joinCount = copy ? copy.joinCount : 0;
