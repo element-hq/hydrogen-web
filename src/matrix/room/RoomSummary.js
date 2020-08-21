@@ -97,8 +97,8 @@ function processTimelineEvent(data, event, isInitialSync, isTimelineOpen, ownUse
 
 function updateSummary(data, summary) {
     const heroes = summary["m.heroes"];
-    const inviteCount = summary["m.joined_member_count"];
-    const joinCount = summary["m.invited_member_count"];
+    const joinCount = summary["m.joined_member_count"];
+    const inviteCount = summary["m.invited_member_count"];
 
     if (heroes && Array.isArray(heroes)) {
         data = data.cloneIfNeeded();
