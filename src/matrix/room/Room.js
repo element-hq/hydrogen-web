@@ -197,20 +197,22 @@ export class Room extends EventEmitter {
     }
 
     async clearUnread() {
-        const txn = await this._storage.readWriteTxn([
-            this._storage.storeNames.roomSummary,
-        ]);
-        let data;
-        try {
-            data = this._summary.writeClearUnread(txn);
-        } catch (err) {
-            txn.abort();
-            throw err;
+        if (this.isUnread) {
+            const txn = await this._storage.readWriteTxn([
+                this._storage.storeNames.roomSummary,
+            ]);
+            let data;
+            try {
+                data = this._summary.writeClearUnread(txn);
+            } catch (err) {
+                txn.abort();
+                throw err;
+            }
+            await txn.complete();
+            this._summary.applyChanges(data);
+            this.emit("change");
+            this._emitCollectionChange(this);
         }
-        await txn.complete();
-        this._summary.applyChanges(data);
-        this.emit("change");
-        this._emitCollectionChange(this);
     }
 
     /** @public */
