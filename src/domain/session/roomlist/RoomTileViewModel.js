@@ -22,10 +22,6 @@ function isSortedAsUnread(vm) {
 }
 
 export class RoomTileViewModel extends ViewModel {
-    // we use callbacks to parent VM instead of emit because
-    // it would be annoying to keep track of subscriptions in
-    // parent for all RoomTileViewModels
-    // emitUpdate is ObservableMap/ObservableList update mechanism
     constructor(options) {
         super(options);
         const {room, emitOpen} = options;
