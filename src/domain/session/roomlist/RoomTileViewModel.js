@@ -62,8 +62,16 @@ export class RoomTileViewModel extends ViewModel {
             }
             return 1;
         }
-
-        const timeDiff = theirRoom.lastMessageTimestamp - myRoom.lastMessageTimestamp;
+        const myTimestamp = myRoom.lastMessageTimestamp;
+        const theirTimestamp = theirRoom.lastMessageTimestamp;
+        // rooms with a timestamp come before rooms without one
+        if ((myTimestamp === null) !== (theirTimestamp === null)) {
+            if (theirTimestamp === null) {
+                return -1;
+            }
+            return 1;
+        }
+        const timeDiff = theirTimestamp - myTimestamp;
         if (timeDiff === 0) {
             // sort alphabetically
             const nameCmp = this._room.name.localeCompare(other._room.name);
