@@ -163,10 +163,7 @@ export class RoomSummary {
         if (this._data.canonicalAlias) {
             return this._data.canonicalAlias;
         }
-        if (Array.isArray(this._data.heroes) && this._data.heroes.length !== 0) {
-            return this._data.heroes.join(", ");
-        }
-        return this._data.roomId;
+        return null;
 	}
 
     get heroes() {
