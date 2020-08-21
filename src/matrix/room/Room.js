@@ -184,6 +184,18 @@ export class Room extends EventEmitter {
         return this._summary.avatarUrl;
     }
 
+    get lastMessageTimestamp() {
+        return this._summary.lastMessageTimestamp;
+    }
+
+    get isUnread() {
+        return this._summary.isUnread;
+    }
+
+    get notificationCount() {
+        return this._summary.notificationCount;
+    }
+
     async clearUnread() {
         const txn = await this._storage.readWriteTxn([
             this._storage.storeNames.roomSummary,
