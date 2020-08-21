@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-function applySyncResponse(data, roomResponse, membership, isInitialSync) {
+function applySyncResponse(data, roomResponse, membership, isInitialSync, isTimelineOpen, ownUserId) {
     if (roomResponse.summary) {
         data = updateSummary(data, roomResponse.summary);
     }
@@ -25,7 +25,7 @@ function applySyncResponse(data, roomResponse, membership, isInitialSync) {
     // state comes before timeline
     if (roomResponse.state) {
         data = roomResponse.state.events.reduce((data, event) => {
-            return processEvent(data, event, isInitialSync);
+            return processEvent(data, event, isInitialSync, isTimelineOpen, ownUserId);
         }, data);
     }
     if (roomResponse.timeline) {
@@ -35,7 +35,7 @@ function applySyncResponse(data, roomResponse, membership, isInitialSync) {
             data.lastPaginationToken = timeline.prev_batch;
         }
         data = timeline.events.reduce((data, event) => {
-            return processEvent(data, event, isInitialSync);
+            return processEvent(data, event, isInitialSync, isTimelineOpen, ownUserId);
         }, data);
     }
     const unreadNotifications = roomResponse.unread_notifications;
@@ -48,7 +48,7 @@ function applySyncResponse(data, roomResponse, membership, isInitialSync) {
     return data;
 }
 
-function processEvent(data, event, isInitialSync) {
+function processEvent(data, event, isInitialSync, isTimelineOpen, ownUserId) {
     if (event.type === "m.room.encryption") {
         if (!data.isEncrypted) {
             data = data.cloneIfNeeded();
@@ -69,7 +69,7 @@ function processEvent(data, event, isInitialSync) {
     } else if (event.type === "m.room.message") {
         data = data.cloneIfNeeded();
         data.lastMessageTimestamp = event.origin_server_ts;
-        if (!isInitialSync) {
+        if (!isInitialSync && event.sender !== ownUserId && !isTimelineOpen) {
             data.isUnread = true;
         }
         const {content} = event;
@@ -145,7 +145,8 @@ class SummaryData {
 }
 
 export class RoomSummary {
-	constructor(roomId) {
+	constructor(roomId, ownUserId) {
+        this._ownUserId = ownUserId;
         this._data = new SummaryData(null, roomId);
 	}
 
@@ -167,6 +168,10 @@ export class RoomSummary {
 
     get isUnread() {
         return this._data.isUnread;
+    }
+
+    get notificationCount() {
+        return this._data.notificationCount;
     }
 
 	get lastMessage() {
@@ -213,11 +218,15 @@ export class RoomSummary {
         return data;
     }
 
-	writeSync(roomResponse, membership, isInitialSync, txn) {
+	writeSync(roomResponse, membership, isInitialSync, isTimelineOpen, txn) {
         // clear cloned flag, so cloneIfNeeded makes a copy and
         // this._data is not modified if any field is changed.
         this._data.cloned = false;
-		const data = applySyncResponse(this._data, roomResponse, membership, isInitialSync);
+		const data = applySyncResponse(
+            this._data, roomResponse,
+            membership,
+            isInitialSync, isTimelineOpen,
+            this._ownUserId);
 		if (data !== this._data) {
             // need to think here how we want to persist
             // things like unread status (as read marker, or unread count)?

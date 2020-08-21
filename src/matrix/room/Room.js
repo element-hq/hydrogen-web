@@ -31,7 +31,7 @@ export class Room extends EventEmitter {
         this._roomId = roomId;
         this._storage = storage;
         this._hsApi = hsApi;
-		this._summary = new RoomSummary(roomId);
+		this._summary = new RoomSummary(roomId, user.id);
         this._fragmentIdComparer = new FragmentIdComparer([]);
 		this._syncWriter = new SyncWriter({roomId, fragmentIdComparer: this._fragmentIdComparer});
         this._emitCollectionChange = emitCollectionChange;
@@ -43,7 +43,12 @@ export class Room extends EventEmitter {
 
     /** @package */
     async writeSync(roomResponse, membership, isInitialSync, txn) {
-		const summaryChanges = this._summary.writeSync(roomResponse, membership, isInitialSync, txn);
+        const isTimelineOpen = !!this._timeline;
+		const summaryChanges = this._summary.writeSync(
+            roomResponse,
+            membership,
+            isInitialSync, isTimelineOpen,
+            txn);
 		const {entries, newLiveKey, changedMembers} = await this._syncWriter.writeSync(roomResponse, txn);
         let removedPendingEvents;
         if (roomResponse.timeline && roomResponse.timeline.events) {
