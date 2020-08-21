@@ -100,7 +100,7 @@ function updateSummary(data, summary) {
     const inviteCount = summary["m.joined_member_count"];
     const joinCount = summary["m.invited_member_count"];
 
-    if (heroes) {
+    if (heroes && Array.isArray(heroes)) {
         data = data.cloneIfNeeded();
         data.heroes = heroes;
     }
@@ -173,6 +173,10 @@ export class RoomSummary {
         }
         return this._data.roomId;
 	}
+
+    get heroes() {
+        return this._data.heroes;
+    }
 
     get isUnread() {
         return this._data.isUnread;

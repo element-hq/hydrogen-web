@@ -24,6 +24,7 @@ import {SendQueue} from "./sending/SendQueue.js";
 import {WrappedError} from "../error.js"
 import {fetchOrLoadMembers} from "./members/load.js";
 import {MemberList} from "./members/MemberList.js";
+import {Heroes} from "./members/Heroes.js";
 
 export class Room extends EventEmitter {
 	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, pendingEvents, user}) {
@@ -50,15 +51,32 @@ export class Room extends EventEmitter {
             isInitialSync, isTimelineOpen,
             txn);
 		const {entries, newLiveKey, changedMembers} = await this._syncWriter.writeSync(roomResponse, txn);
+        // room name disappeared, open heroes
+        if (!summaryChanges.name && summaryChanges.heroes && !this._heroes) {
+            this._heroes = new Heroes(this._roomId);
+        }
+        // fetch new members while we have txn open,
+        // but don't make any in-memory changes yet
+        let heroChanges;
+        if (summaryChanges.heroes && this._heroes) {
+            heroChanges = await this._heroes.calculateChanges(summaryChanges.heroes, changedMembers, txn);
+        }
         let removedPendingEvents;
         if (roomResponse.timeline && roomResponse.timeline.events) {
             removedPendingEvents = this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn);
         }
-        return {summaryChanges, newTimelineEntries: entries, newLiveKey, removedPendingEvents, changedMembers};
+        return {
+            summaryChanges,
+            newTimelineEntries: entries,
+            newLiveKey,
+            removedPendingEvents,
+            changedMembers,
+            heroChanges
+        };
     }
 
     /** @package */
-    afterSync({summaryChanges, newTimelineEntries, newLiveKey, removedPendingEvents, changedMembers}) {
+    afterSync({summaryChanges, newTimelineEntries, newLiveKey, removedPendingEvents, changedMembers, heroChanges}) {
         this._syncWriter.afterSync(newLiveKey);
         if (changedMembers.length) {
             if (this._changedMembersDuringSync) {
@@ -70,8 +88,22 @@ export class Room extends EventEmitter {
                 this._memberList.afterSync(changedMembers);
             }
         }
+        let emitChange = false;
         if (summaryChanges) {
             this._summary.applyChanges(summaryChanges);
+            if (this._summary.name && this._heroes) {
+                this._heroes = null;
+            }
+            emitChange = true;
+        }
+        if (this._heroes && heroChanges) {
+            const oldName = this.name;
+            this._heroes.applyChanges(heroChanges, this._summary);
+            if (oldName !== this.name) {
+                emitChange = true;
+            }
+        }
+        if (emitChange) {
             this.emit("change");
             this._emitCollectionChange(this);
         }
@@ -89,9 +121,15 @@ export class Room extends EventEmitter {
     }
 
     /** @package */
-	load(summary, txn) {
+	async load(summary, txn) {
         try {
             this._summary.load(summary);
+            // need to load members for name?
+            if (!this._summary.name && this._summary.heroes) {
+                this._heroes = new Heroes(this._roomId);
+                const changes = await this._heroes.calculateChanges(this._summary.heroes, [], txn);
+                this._heroes.applyChanges(changes, this._summary);
+            }
             return this._syncWriter.load(txn);
         } catch (err) {
             throw new WrappedError(`Could not load room ${this._roomId}`, err);
@@ -177,6 +215,9 @@ export class Room extends EventEmitter {
 
     /** @public */
     get name() {
+        if (this._heroes) {
+            return this._heroes.roomName;
+        }
         return this._summary.name;
     }
 
@@ -186,7 +227,12 @@ export class Room extends EventEmitter {
     }
 
     get avatarUrl() {
-        return this._summary.avatarUrl;
+        if (this._summary.avatarUrl) {
+            return this._summary.avatarUrl;
+        } else if (this._heroes) {
+            return this._heroes.roomAvatarUrl;
+        }
+        return null;
     }
 
     get lastMessageTimestamp() {
