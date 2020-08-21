@@ -24,9 +24,7 @@ function applySyncResponse(data, roomResponse, membership, isInitialSync, isTime
     }
     // state comes before timeline
     if (roomResponse.state) {
-        data = roomResponse.state.events.reduce((data, event) => {
-            return processEvent(data, event, isInitialSync, isTimelineOpen, ownUserId);
-        }, data);
+        data = roomResponse.state.events.reduce(processStateEvent, data);
     }
     if (roomResponse.timeline) {
         const {timeline} = roomResponse;
@@ -35,7 +33,12 @@ function applySyncResponse(data, roomResponse, membership, isInitialSync, isTime
             data.lastPaginationToken = timeline.prev_batch;
         }
         data = timeline.events.reduce((data, event) => {
-            return processEvent(data, event, isInitialSync, isTimelineOpen, ownUserId);
+            if (typeof event.state_key === "string") {
+                return processStateEvent(data, event);
+            } else {
+                return processTimelineEvent(data, event,
+                    isInitialSync, isTimelineOpen, ownUserId);
+            }
         }, data);
     }
     const unreadNotifications = roomResponse.unread_notifications;
@@ -48,7 +51,7 @@ function applySyncResponse(data, roomResponse, membership, isInitialSync, isTime
     return data;
 }
 
-function processEvent(data, event, isInitialSync, isTimelineOpen, ownUserId) {
+function processStateEvent(data, event) {
     if (event.type === "m.room.encryption") {
         if (!data.isEncrypted) {
             data = data.cloneIfNeeded();
@@ -66,7 +69,17 @@ function processEvent(data, event, isInitialSync, isTimelineOpen, ownUserId) {
             data = data.cloneIfNeeded();
             data.avatarUrl = newUrl;
         }
-    } else if (event.type === "m.room.message") {
+    } else if (event.type === "m.room.canonical_alias") {
+        const content = event.content;
+        data = data.cloneIfNeeded();
+        data.canonicalAlias = content.alias;
+        data.altAliases = content.alt_aliases;
+    }
+    return data;
+}
+
+function processTimelineEvent(data, event, isInitialSync, isTimelineOpen, ownUserId) {
+    if (event.type === "m.room.message") {
         data = data.cloneIfNeeded();
         data.lastMessageTimestamp = event.origin_server_ts;
         if (!isInitialSync && event.sender !== ownUserId && !isTimelineOpen) {
@@ -78,11 +91,6 @@ function processEvent(data, event, isInitialSync, isTimelineOpen, ownUserId) {
         if (msgtype === "m.text") {
             data.lastMessageBody = body;
         }
-    } else if (event.type === "m.room.canonical_alias") {
-        const content = event.content;
-        data = data.cloneIfNeeded();
-        data.canonicalAlias = content.alias;
-        data.altAliases = content.alt_aliases;
     }
     return data;
 }
