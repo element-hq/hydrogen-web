@@ -301,6 +301,9 @@ ul.Timeline > li.continuation .profile {
     display: none;
 }
 
+ul.Timeline > li.continuation time {
+    display: none;
+}
 
 .message-container {
     padding: 1px 10px 0px 10px;
