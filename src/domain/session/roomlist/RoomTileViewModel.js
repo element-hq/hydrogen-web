@@ -17,6 +17,10 @@ limitations under the License.
 import {avatarInitials, getIdentifierColorNumber} from "../../avatar.js";
 import {ViewModel} from "../../ViewModel.js";
 
+function isSortedAsUnread(vm) {
+    return vm.isUnread || (vm.isOpen && vm._wasUnreadWhenOpening);
+}
+
 export class RoomTileViewModel extends ViewModel {
     // we use callbacks to parent VM instead of emit because
     // it would be annoying to keep track of subscriptions in
@@ -28,6 +32,7 @@ export class RoomTileViewModel extends ViewModel {
         this._room = room;
         this._emitOpen = emitOpen;
         this._isOpen = false;
+        this._wasUnreadWhenOpening = false;
     }
 
     // called by parent for now (later should integrate with router)
@@ -40,17 +45,32 @@ export class RoomTileViewModel extends ViewModel {
 
     open() {
         this._isOpen = true;
+        this._wasUnreadWhenOpening = this._room.isUnread;
         this.emitChange("isOpen");
         this._emitOpen(this._room, this);
     }
 
     compare(other) {
-        // sort alphabetically
-        const nameCmp = this._room.name.localeCompare(other._room.name);
-        if (nameCmp === 0) {
-            return this._room.id.localeCompare(other._room.id);
+        const myRoom = this._room;
+        const theirRoom = other._room;
+
+        if (isSortedAsUnread(this) !== isSortedAsUnread(other)) {
+            if (isSortedAsUnread(this)) {
+                return -1;
+            }
+            return 1;
         }
-        return nameCmp;
+
+        const timeDiff = theirRoom.lastMessageTimestamp - myRoom.lastMessageTimestamp;
+        if (timeDiff === 0) {
+            // sort alphabetically
+            const nameCmp = this._room.name.localeCompare(other._room.name);
+            if (nameCmp === 0) {
+                return this._room.id.localeCompare(other._room.id);
+            }
+            return nameCmp;
+        }
+        return timeDiff;
     }
 
     get isOpen() {
