@@ -150,6 +150,10 @@ class SummaryData {
     }
 }
 
+export function needsHeroes(data) {
+    return !data.name && !data.canonicalAlias && data.heroes && data.heroes.length > 0;
+}
+
 export class RoomSummary {
 	constructor(roomId, ownUserId) {
         this._ownUserId = ownUserId;
@@ -168,6 +172,10 @@ export class RoomSummary {
 
     get heroes() {
         return this._data.heroes;
+    }
+
+    get needsHeroes() {
+        return needsHeroes(this._data);
     }
 
     get isUnread() {

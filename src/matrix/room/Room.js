@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {EventEmitter} from "../../utils/EventEmitter.js";
-import {RoomSummary} from "./RoomSummary.js";
+import {RoomSummary, needsHeroes} from "./RoomSummary.js";
 import {SyncWriter} from "./timeline/persistence/SyncWriter.js";
 import {GapWriter} from "./timeline/persistence/GapWriter.js";
 import {Timeline} from "./timeline/Timeline.js";
@@ -51,14 +51,14 @@ export class Room extends EventEmitter {
             isInitialSync, isTimelineOpen,
             txn);
 		const {entries, newLiveKey, changedMembers} = await this._syncWriter.writeSync(roomResponse, txn);
-        // room name disappeared, open heroes
-        if (!summaryChanges.name && summaryChanges.heroes && !this._heroes) {
-            this._heroes = new Heroes(this._roomId);
-        }
         // fetch new members while we have txn open,
         // but don't make any in-memory changes yet
         let heroChanges;
-        if (summaryChanges.heroes && this._heroes) {
+        if (needsHeroes(summaryChanges)) {
+            // room name disappeared, open heroes
+            if (!this._heroes) {
+                this._heroes = new Heroes(this._roomId);
+            }
             heroChanges = await this._heroes.calculateChanges(summaryChanges.heroes, changedMembers, txn);
         }
         let removedPendingEvents;
@@ -91,7 +91,7 @@ export class Room extends EventEmitter {
         let emitChange = false;
         if (summaryChanges) {
             this._summary.applyChanges(summaryChanges);
-            if (this._summary.name && this._heroes) {
+            if (!this._summary.needsHeroes) {
                 this._heroes = null;
             }
             emitChange = true;
@@ -125,7 +125,7 @@ export class Room extends EventEmitter {
         try {
             this._summary.load(summary);
             // need to load members for name?
-            if (!this._summary.name && this._summary.heroes) {
+            if (this._summary.needsHeroes) {
                 this._heroes = new Heroes(this._roomId);
                 const changes = await this._heroes.calculateChanges(this._summary.heroes, [], txn);
                 this._heroes.applyChanges(changes, this._summary);
