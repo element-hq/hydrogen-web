@@ -50,14 +50,13 @@ function processEvent(data, event) {
             data = data.cloneIfNeeded();
             data.isEncrypted = true;
         }
-    }
-    if (event.type === "m.room.name") {
+    } else if (event.type === "m.room.name") {
         const newName = event.content?.name;
         if (newName !== data.name) {
             data = data.cloneIfNeeded();
             data.name = newName;
         }
-    } if (event.type === "m.room.avatar") {
+    } else if (event.type === "m.room.avatar") {
         const newUrl = event.content?.url;
         if (newUrl !== data.avatarUrl) {
             data = data.cloneIfNeeded();
