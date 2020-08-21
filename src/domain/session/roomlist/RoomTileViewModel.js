@@ -44,10 +44,12 @@ export class RoomTileViewModel extends ViewModel {
     }
 
     open() {
-        this._isOpen = true;
-        this._wasUnreadWhenOpening = this._room.isUnread;
-        this.emitChange("isOpen");
-        this._emitOpen(this._room, this);
+        if (!this._isOpen) {
+            this._isOpen = true;
+            this._wasUnreadWhenOpening = this._room.isUnread;
+            this.emitChange("isOpen");
+            this._emitOpen(this._room, this);
+        }
     }
 
     compare(other) {
