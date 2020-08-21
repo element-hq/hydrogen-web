@@ -214,10 +214,6 @@ export class Room extends EventEmitter {
 
     async clearUnread() {
         if (this.isUnread || this.notificationCount) {
-            const lastEventId = await this._getLastEventId();
-            if (lastEventId) {
-                await this._hsApi.receipt(this._roomId, "m.read", lastEventId);
-            }
             const txn = await this._storage.readWriteTxn([
                 this._storage.storeNames.roomSummary,
             ]);
@@ -232,6 +228,18 @@ export class Room extends EventEmitter {
             this._summary.applyChanges(data);
             this.emit("change");
             this._emitCollectionChange(this);
+            
+            try {
+                const lastEventId = await this._getLastEventId();
+                if (lastEventId) {
+                    await this._hsApi.receipt(this._roomId, "m.read", lastEventId);
+                }
+            } catch (err) {
+                // ignore ConnectionError
+                if (err.name !== "ConnectionError") {
+                    throw err;
+                }
+            }
         }
     }
 
