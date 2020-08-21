@@ -42,8 +42,8 @@ export class Room extends EventEmitter {
 	}
 
     /** @package */
-    async writeSync(roomResponse, membership, txn) {
-		const summaryChanges = this._summary.writeSync(roomResponse, membership, txn);
+    async writeSync(roomResponse, membership, isInitialSync, txn) {
+		const summaryChanges = this._summary.writeSync(roomResponse, membership, isInitialSync, txn);
 		const {entries, newLiveKey, changedMembers} = await this._syncWriter.writeSync(roomResponse, txn);
         let removedPendingEvents;
         if (roomResponse.timeline && roomResponse.timeline.events) {
