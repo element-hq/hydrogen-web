@@ -79,4 +79,8 @@ export class MappedMap extends BaseObservableMap {
     [Symbol.iterator]() {
         return this._mappedValues.entries();
     }
+
+    get size() {
+        return this._mappedValues.size;
+    }
 }
