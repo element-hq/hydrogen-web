@@ -63,11 +63,13 @@ function processEvent(data, event) {
             data.avatarUrl = newUrl;
         }
     } else if (event.type === "m.room.message") {
+        data = data.cloneIfNeeded();
+        data.lastMessageTimestamp = event.origin_server_ts;
+        data.isUnread = true;
         const {content} = event;
         const body = content?.body;
         const msgtype = content?.msgtype;
         if (msgtype === "m.text") {
-            data = data.cloneIfNeeded();
             data.lastMessageBody = body;
         }
     } else if (event.type === "m.room.canonical_alias") {
@@ -104,8 +106,8 @@ class SummaryData {
         this.roomId = copy ? copy.roomId : roomId;
         this.name = copy ? copy.name : null;
         this.lastMessageBody = copy ? copy.lastMessageBody : null;
-        this.unreadCount = copy ? copy.unreadCount : null;
-        this.mentionCount = copy ? copy.mentionCount : null;
+        this.lastMessageTimestamp = copy ? copy.lastMessageTimestamp : null;
+        this.isUnread = copy ? copy.isUnread : null;
         this.isEncrypted = copy ? copy.isEncrypted : null;
         this.isDirectMessage = copy ? copy.isDirectMessage : null;
         this.membership = copy ? copy.membership : null;
@@ -157,9 +159,17 @@ export class RoomSummary {
         return this._data.roomId;
 	}
 
+    get isUnread() {
+        return this._data.isUnread;
+    }
+
 	get lastMessage() {
 		return this._data.lastMessageBody;
 	}
+
+    get lastMessageTimestamp() {
+        return this._data.lastMessageTimestamp;
+    }
 
 	get inviteCount() {
 		return this._data.inviteCount;
