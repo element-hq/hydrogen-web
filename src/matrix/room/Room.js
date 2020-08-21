@@ -31,7 +31,7 @@ export class Room extends EventEmitter {
         this._roomId = roomId;
         this._storage = storage;
         this._hsApi = hsApi;
-		this._summary = new RoomSummary(roomId);
+		this._summary = new RoomSummary(roomId, user.id);
         this._fragmentIdComparer = new FragmentIdComparer([]);
 		this._syncWriter = new SyncWriter({roomId, fragmentIdComparer: this._fragmentIdComparer});
         this._emitCollectionChange = emitCollectionChange;
@@ -42,8 +42,13 @@ export class Room extends EventEmitter {
 	}
 
     /** @package */
-    async writeSync(roomResponse, membership, txn) {
-		const summaryChanges = this._summary.writeSync(roomResponse, membership, txn);
+    async writeSync(roomResponse, membership, isInitialSync, txn) {
+        const isTimelineOpen = !!this._timeline;
+		const summaryChanges = this._summary.writeSync(
+            roomResponse,
+            membership,
+            isInitialSync, isTimelineOpen,
+            txn);
 		const {entries, newLiveKey, changedMembers} = await this._syncWriter.writeSync(roomResponse, txn);
         let removedPendingEvents;
         if (roomResponse.timeline && roomResponse.timeline.events) {
@@ -182,6 +187,64 @@ export class Room extends EventEmitter {
 
     get avatarUrl() {
         return this._summary.avatarUrl;
+    }
+
+    get lastMessageTimestamp() {
+        return this._summary.lastMessageTimestamp;
+    }
+
+    get isUnread() {
+        return this._summary.isUnread;
+    }
+
+    get notificationCount() {
+        return this._summary.notificationCount;
+    }
+    
+    get highlightCount() {
+        return this._summary.highlightCount;
+    }
+
+    async _getLastEventId() {
+        const lastKey = this._syncWriter.lastMessageKey;
+        if (lastKey) {
+            const txn = await this._storage.readTxn([
+                this._storage.storeNames.timelineEvents,
+            ]);
+            const eventEntry = await txn.timelineEvents.get(this._roomId, lastKey);
+            return eventEntry?.event?.event_id;
+        }
+    }
+
+    async clearUnread() {
+        if (this.isUnread || this.notificationCount) {
+            const txn = await this._storage.readWriteTxn([
+                this._storage.storeNames.roomSummary,
+            ]);
+            let data;
+            try {
+                data = this._summary.writeClearUnread(txn);
+            } catch (err) {
+                txn.abort();
+                throw err;
+            }
+            await txn.complete();
+            this._summary.applyChanges(data);
+            this.emit("change");
+            this._emitCollectionChange(this);
+            
+            try {
+                const lastEventId = await this._getLastEventId();
+                if (lastEventId) {
+                    await this._hsApi.receipt(this._roomId, "m.read", lastEventId);
+                }
+            } catch (err) {
+                // ignore ConnectionError
+                if (err.name !== "ConnectionError") {
+                    throw err;
+                }
+            }
+        }
     }
 
     /** @public */

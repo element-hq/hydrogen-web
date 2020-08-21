@@ -32,6 +32,7 @@ export class RoomViewModel extends ViewModel {
         this._sendError = null;
         this._closeCallback = closeCallback;
         this._composerVM = new ComposerViewModel(this);
+        this._clearUnreadTimout = null;
     }
 
     async load() {
@@ -49,6 +50,15 @@ export class RoomViewModel extends ViewModel {
             this._timelineError = err;
             this.emitChange("error");
         }
+        this._clearUnreadTimout = this.clock.createTimeout(2000);
+        try {
+            await this._clearUnreadTimout.elapsed();
+            await this._room.clearUnread();
+        } catch (err) {
+            if (err.name !== "AbortError") {
+                throw err;
+            }    
+        }
     }
 
     dispose() {
@@ -56,6 +66,10 @@ export class RoomViewModel extends ViewModel {
         if (this._timeline) {
             // will stop the timeline from delivering updates on entries
             this._timeline.close();
+        }
+        if (this._clearUnreadTimout) {
+            this._clearUnreadTimout.abort();
+            this._clearUnreadTimout = null;
         }
     }
 

@@ -142,7 +142,7 @@ export class Sync {
                         room = this._session.createRoom(roomId);
                     }
                     console.log(` * applying sync response to room ${roomId} ...`);
-                    const changes = await room.writeSync(roomResponse, membership, syncTxn);
+                    const changes = await room.writeSync(roomResponse, membership, isInitialSync, syncTxn);
                     roomChanges.push({room, changes});
                 });
                 await Promise.all(promises);

@@ -209,6 +209,10 @@ export class SyncWriter {
     afterSync(newLiveKey) {
         this._lastLiveKey = newLiveKey;
     }
+
+    get lastMessageKey() {
+        return this._lastLiveKey;
+    }
 }
 
 //import MemoryStorage from "../storage/memory/MemoryStorage.js";

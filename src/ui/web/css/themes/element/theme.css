@@ -164,8 +164,30 @@ button.styled {
     margin-right: 10px;
 }
 
-.LeftPanel .description .last-message {
-    font-size: 0.8em;
+.LeftPanel .description {
+    align-items: baseline;
+}
+
+.LeftPanel .name.unread {
+    font-weight: 600;
+}
+
+.LeftPanel .badge {
+    min-width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 1.6rem;
+    box-sizing: border-box;
+    padding: 0.1rem 0.3rem;
+    background-color: #61708b;
+    color: white;
+    font-weight: bold;
+    font-size: 1rem;
+    line-height: 1.4rem;
+    text-align: center;
+}
+
+.LeftPanel .badge.highlighted {
+    background-color: #ff4b55;
 }
 
 a {
@@ -301,6 +323,9 @@ ul.Timeline > li.continuation .profile {
     display: none;
 }
 
+ul.Timeline > li.continuation time {
+    display: none;
+}
 
 .message-container {
     padding: 1px 10px 0px 10px;

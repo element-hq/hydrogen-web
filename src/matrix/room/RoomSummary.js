@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-function applySyncResponse(data, roomResponse, membership) {
+function applySyncResponse(data, roomResponse, membership, isInitialSync, isTimelineOpen, ownUserId) {
     if (roomResponse.summary) {
         data = updateSummary(data, roomResponse.summary);
     }
@@ -24,7 +24,7 @@ function applySyncResponse(data, roomResponse, membership) {
     }
     // state comes before timeline
     if (roomResponse.state) {
-        data = roomResponse.state.events.reduce(processEvent, data);
+        data = roomResponse.state.events.reduce(processStateEvent, data);
     }
     if (roomResponse.timeline) {
         const {timeline} = roomResponse;
@@ -32,50 +32,65 @@ function applySyncResponse(data, roomResponse, membership) {
             data = data.cloneIfNeeded();
             data.lastPaginationToken = timeline.prev_batch;
         }
-        data = timeline.events.reduce(processEvent, data);
+        data = timeline.events.reduce((data, event) => {
+            if (typeof event.state_key === "string") {
+                return processStateEvent(data, event);
+            } else {
+                return processTimelineEvent(data, event,
+                    isInitialSync, isTimelineOpen, ownUserId);
+            }
+        }, data);
     }
     const unreadNotifications = roomResponse.unread_notifications;
     if (unreadNotifications) {
         data = data.cloneIfNeeded();
-        data.highlightCount = unreadNotifications.highlight_count;
+        data.highlightCount = unreadNotifications.highlight_count || 0;
         data.notificationCount = unreadNotifications.notification_count;
     }
 
     return data;
 }
 
-function processEvent(data, event) {
+function processStateEvent(data, event) {
     if (event.type === "m.room.encryption") {
         if (!data.isEncrypted) {
             data = data.cloneIfNeeded();
             data.isEncrypted = true;
         }
-    }
-    if (event.type === "m.room.name") {
+    } else if (event.type === "m.room.name") {
         const newName = event.content?.name;
         if (newName !== data.name) {
             data = data.cloneIfNeeded();
             data.name = newName;
         }
-    } if (event.type === "m.room.avatar") {
+    } else if (event.type === "m.room.avatar") {
         const newUrl = event.content?.url;
         if (newUrl !== data.avatarUrl) {
             data = data.cloneIfNeeded();
             data.avatarUrl = newUrl;
-        }
-    } else if (event.type === "m.room.message") {
-        const {content} = event;
-        const body = content?.body;
-        const msgtype = content?.msgtype;
-        if (msgtype === "m.text") {
-            data = data.cloneIfNeeded();
-            data.lastMessageBody = body;
         }
     } else if (event.type === "m.room.canonical_alias") {
         const content = event.content;
         data = data.cloneIfNeeded();
         data.canonicalAlias = content.alias;
         data.altAliases = content.alt_aliases;
+    }
+    return data;
+}
+
+function processTimelineEvent(data, event, isInitialSync, isTimelineOpen, ownUserId) {
+    if (event.type === "m.room.message") {
+        data = data.cloneIfNeeded();
+        data.lastMessageTimestamp = event.origin_server_ts;
+        if (!isInitialSync && event.sender !== ownUserId && !isTimelineOpen) {
+            data.isUnread = true;
+        }
+        const {content} = event;
+        const body = content?.body;
+        const msgtype = content?.msgtype;
+        if (msgtype === "m.text") {
+            data.lastMessageBody = body;
+        }
     }
     return data;
 }
@@ -105,10 +120,10 @@ class SummaryData {
         this.roomId = copy ? copy.roomId : roomId;
         this.name = copy ? copy.name : null;
         this.lastMessageBody = copy ? copy.lastMessageBody : null;
-        this.unreadCount = copy ? copy.unreadCount : null;
-        this.mentionCount = copy ? copy.mentionCount : null;
-        this.isEncrypted = copy ? copy.isEncrypted : null;
-        this.isDirectMessage = copy ? copy.isDirectMessage : null;
+        this.lastMessageTimestamp = copy ? copy.lastMessageTimestamp : null;
+        this.isUnread = copy ? copy.isUnread : false;
+        this.isEncrypted = copy ? copy.isEncrypted : false;
+        this.isDirectMessage = copy ? copy.isDirectMessage : false;
         this.membership = copy ? copy.membership : null;
         this.inviteCount = copy ? copy.inviteCount : 0;
         this.joinCount = copy ? copy.joinCount : 0;
@@ -138,7 +153,8 @@ class SummaryData {
 }
 
 export class RoomSummary {
-	constructor(roomId) {
+	constructor(roomId, ownUserId) {
+        this._ownUserId = ownUserId;
         this._data = new SummaryData(null, roomId);
 	}
 
@@ -158,9 +174,25 @@ export class RoomSummary {
         return this._data.roomId;
 	}
 
+    get isUnread() {
+        return this._data.isUnread;
+    }
+
+    get notificationCount() {
+        return this._data.notificationCount;
+    }
+
+    get highlightCount() {
+        return this._data.highlightCount;
+    }
+
 	get lastMessage() {
 		return this._data.lastMessageBody;
 	}
+
+    get lastMessageTimestamp() {
+        return this._data.lastMessageTimestamp;
+    }
 
 	get inviteCount() {
 		return this._data.inviteCount;
@@ -182,6 +214,15 @@ export class RoomSummary {
         return this._data.lastPaginationToken;
     }
 
+    writeClearUnread(txn) {
+        const data = new SummaryData(this._data);
+        data.isUnread = false;
+        data.notificationCount = 0;
+        data.highlightCount = 0;
+        txn.roomSummary.set(data.serialize());
+        return data;
+    }
+
     writeHasFetchedMembers(value, txn) {
         const data = new SummaryData(this._data);
         data.hasFetchedMembers = value;
@@ -189,11 +230,15 @@ export class RoomSummary {
         return data;
     }
 
-	writeSync(roomResponse, membership, txn) {
+	writeSync(roomResponse, membership, isInitialSync, isTimelineOpen, txn) {
         // clear cloned flag, so cloneIfNeeded makes a copy and
         // this._data is not modified if any field is changed.
         this._data.cloned = false;
-		const data = applySyncResponse(this._data, roomResponse, membership);
+		const data = applySyncResponse(
+            this._data, roomResponse,
+            membership,
+            isInitialSync, isTimelineOpen,
+            this._ownUserId);
 		if (data !== this._data) {
             // need to think here how we want to persist
             // things like unread status (as read marker, or unread count)?
