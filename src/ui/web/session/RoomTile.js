@@ -21,7 +21,7 @@ export class RoomTile extends TemplateView {
     render(t, vm) {
         return t.li({"className": {"active": vm => vm.isOpen}}, [
             renderAvatar(t, vm, 32),
-            t.div({className: "description"}, t.div({className: "name"}, vm => vm.name))
+            t.div({className: "description"}, t.div({className: {"name": true, unread: vm => vm.isUnread}}, vm => vm.name))
         ]);
     }
 

@@ -57,6 +57,10 @@ export class RoomTileViewModel extends ViewModel {
         return this._isOpen;
     }
 
+    get isUnread() {
+        return this._room.isUnread;
+    }
+
     get name() {
         return this._room.name;
     }
