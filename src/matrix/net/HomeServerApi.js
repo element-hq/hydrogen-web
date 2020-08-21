@@ -136,6 +136,11 @@ export class HomeServerApi {
         return this._put(`/rooms/${encodeURIComponent(roomId)}/send/${encodeURIComponent(eventType)}/${encodeURIComponent(txnId)}`, {}, content, options);
     }
 
+    receipt(roomId, receiptType, eventId, options = null) {
+        return this._post(`/rooms/${encodeURIComponent(roomId)}/receipt/${encodeURIComponent(receiptType)}/${encodeURIComponent(eventId)}`,
+            {}, {}, options);
+    }
+
     passwordLogin(username, password, options = null) {
         return this._post("/login", null, {
           "type": "m.login.password",

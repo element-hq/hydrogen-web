@@ -201,8 +201,23 @@ export class Room extends EventEmitter {
         return this._summary.notificationCount;
     }
 
+    async _getLastEventId() {
+        const lastKey = this._syncWriter.lastMessageKey;
+        if (lastKey) {
+            const txn = await this._storage.readTxn([
+                this._storage.storeNames.timelineEvents,
+            ]);
+            const eventEntry = await txn.timelineEvents.get(this._roomId, lastKey);
+            return eventEntry?.event?.event_id;
+        }
+    }
+
     async clearUnread() {
-        if (this.isUnread) {
+        if (this.isUnread || this.notificationCount) {
+            const lastEventId = await this._getLastEventId();
+            if (lastEventId) {
+                await this._hsApi.receipt(this._roomId, "m.read", lastEventId);
+            }
             const txn = await this._storage.readWriteTxn([
                 this._storage.storeNames.roomSummary,
             ]);
