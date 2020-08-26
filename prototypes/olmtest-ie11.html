@@ -14,7 +14,7 @@
 </head>
 <body>
     <script type="text/javascript">
-        if (!Math.imul) Math.imul = function(a, b) {
+        if (!Math.imul) Math.imul = function(a,b) {return (a*b)|0;}/* function(a, b) {
           var aHi = (a >>> 16) & 0xffff;
           var aLo = a & 0xffff;
           var bHi = (b >>> 16) & 0xffff;
@@ -22,7 +22,7 @@
           // the shift by 0 fixes the sign on the high part
           // the final |0 converts the unsigned value into a signed value
           return ((aLo * bLo) + (((aHi * bLo + aLo * bHi) << 16) >>> 0) | 0);
-        };
+        };*/
 
         if (!Math.clz32) Math.clz32 = (function(log, LN2){
           return function(x) {
@@ -110,7 +110,6 @@
             });
         }
         document.addEventListener("DOMContentLoaded", main);
-        main();
     </script>
     <pre id="log"></pre>
     <button id="start">Loading...</button>
