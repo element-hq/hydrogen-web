@@ -44,5 +44,8 @@
     "rollup-plugin-cleanup": "^3.1.1",
     "serve-static": "^1.13.2",
     "xxhash": "^0.3.0"
+  },
+  "dependencies": {
+    "olm": "https://packages.matrix.org/npm/olm/olm-3.1.4.tgz"
   }
 }
