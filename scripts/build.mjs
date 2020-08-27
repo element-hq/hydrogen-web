@@ -19,7 +19,7 @@ import cheerio from "cheerio";
 import fsRoot from "fs";
 const fs = fsRoot.promises;
 import path from "path";
-import XXHash from 'xxhash';
+import xxhash from 'xxhashjs';
 import { rollup } from 'rollup';
 import postcss from "postcss";
 import postcssImport from "postcss-import";
@@ -361,7 +361,7 @@ function resource(relPath, content) {
 }
 
 function contentHash(str) {
-    var hasher = new XXHash(0);
+    var hasher = new xxhash.h32(0);
     hasher.update(str);
     return hasher.digest();
 }
