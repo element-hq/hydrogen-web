@@ -57,24 +57,20 @@ export class SessionViewModel extends ViewModel {
     }
 
     _closeCurrentRoom() {
-        if (this._currentRoomViewModel) {
-            this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
-            this.emitChange("currentRoom");
-        }
+        this._currentRoomTileViewModel?.close();
+        this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
     }
 
     _openRoom(room, roomTileVM) {
-        if (this._currentRoomTileViewModel) {
-            this._currentRoomTileViewModel.close();
-        }
+        this._closeCurrentRoom();
         this._currentRoomTileViewModel = roomTileVM;
-        if (this._currentRoomViewModel) {
-            this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
-        }
         this._currentRoomViewModel = this.track(new RoomViewModel(this.childOptions({
             room,
             ownUserId: this._session.user.id,
-            closeCallback: () => this._closeCurrentRoom(),
+            closeCallback: () => {
+                this._closeCurrentRoom();
+                this.emitChange("currentRoom");
+            },
         })));
         this._currentRoomViewModel.load();
         this.emitChange("currentRoom");
