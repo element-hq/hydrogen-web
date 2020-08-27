@@ -142,8 +142,9 @@ export class GapWriter {
                 return RoomMember.fromReplacingMemberEvent(this._roomId, event)?.serialize();
             }
         }
-        // assuming the member hasn't changed within the chunk, just take it from state if it's there
-        const stateMemberEvent = state.find(isOurUser);
+        // assuming the member hasn't changed within the chunk, just take it from state if it's there.
+        // Don't assume state is set though, as it can be empty at the top of the timeline in some circumstances 
+        const stateMemberEvent = state?.find(isOurUser);
         if (stateMemberEvent) {
             return RoomMember.fromMemberEvent(this._roomId, stateMemberEvent)?.serialize();
         }
