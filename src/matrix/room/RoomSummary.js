@@ -263,7 +263,7 @@ export function tests() {
         "membership trigger change": function(assert) {
             const summary = new RoomSummary("id");
             let written = false;
-            const changes = summary.writeSync({}, "join", {roomSummary: {set: () => { written = true; }}});
+            const changes = summary.writeSync({}, "join", false, false, {roomSummary: {set: () => { written = true; }}});
             assert(changes);
             assert(written);
             assert.equal(changes.membership, "join");
