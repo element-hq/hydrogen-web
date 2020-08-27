@@ -23,6 +23,7 @@ import { dirname } from 'path';
 // needed to translate commonjs modules to esm
 import commonjs from '@rollup/plugin-commonjs';
 // multi-entry plugin so we can add polyfill file to main
+import {removeDirIfExists} from "./common.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -41,12 +42,23 @@ async function commonjsToESM(src, dst) {
     await fs.writeFile(dst, code, "utf8");
 }
 
-async function transpile() {
-    await fs.mkdir(path.join(projectDir, "lib/another-json/"));
+async function populateLib() {
+    const libDir = path.join(projectDir, "lib/");
+    const modulesDir = path.join(projectDir, "node_modules/");
+    await removeDirIfExists(libDir);
+    await fs.mkdir(libDir);
+    const olmSrcDir = path.join(modulesDir, "olm/");
+    const olmDstDir = path.join(libDir, "olm/");
+    await fs.mkdir(olmDstDir);
+    for (const file of ["olm.js", "olm.wasm", "olm_legacy.js"]) {
+        await fs.symlink(path.join(olmSrcDir, file), path.join(olmDstDir, file));
+    }
+    // transpile another-json to esm
+    await fs.mkdir(path.join(libDir, "another-json/"));
     await commonjsToESM(
-        path.join(projectDir, 'node_modules/another-json/another-json.js'),
-        path.join(projectDir, "lib/another-json/index.js")
+        path.join(modulesDir, 'another-json/another-json.js'),
+        path.join(libDir, "another-json/index.js")
     );
 }
 
-transpile();
+populateLib();
