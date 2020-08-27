@@ -18,7 +18,11 @@
         </script>
 		<script id="main" type="module">
 			import {main} from "./src/main.js";
-			main(document.body);
+			main(document.body, {
+                wasm: "lib/olm/olm.wasm",
+                legacyBundle: "lib/olm/olm_legacy.js",
+                wasmBundle: "lib/olm/olm.js",
+            });
 		</script>
         <script id="service-worker" type="disabled">
             if('serviceWorker' in navigator) {

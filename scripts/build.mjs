@@ -58,6 +58,12 @@ program.parse(process.argv);
 const {debug, noOffline} = program;
 const offline = !noOffline;
 
+const olmFiles = {
+    wasm: "olm-4289088762.wasm",
+    legacyBundle: "olm_legacy-3232457086.js",
+    wasmBundle: "olm-1421970081.js",
+};
+
 async function build() {
     // only used for CSS for now, using legacy for all targets for now
     const legacy = true;
@@ -73,6 +79,8 @@ async function build() {
     // clear target dir
     await removeDirIfExists(targetDir);
     await createDirs(targetDir, themes);
+    // copy assets
+    await copyFolder(path.join(projectDir, "lib/olm/"), targetDir, );
     // also creates the directories where the theme css bundles are placed in,
     // so do it first
     const themeAssets = await copyThemeAssets(themes, legacy);
@@ -154,9 +162,9 @@ async function buildHtml(doc, version, assetPaths, manifestPath) {
         theme.attr("href", assetPaths.cssThemeBundle(themeName));
     });
     doc("script#main").replaceWith(
-        `<script type="module">import {main} from "./${assetPaths.jsBundle()}"; main(document.body);</script>` +
+        `<script type="module">import {main} from "./${assetPaths.jsBundle()}"; main(document.body, ${JSON.stringify(olmFiles)});</script>` +
         `<script type="text/javascript" nomodule src="${assetPaths.jsLegacyBundle()}"></script>` +
-        `<script type="text/javascript" nomodule>${PROJECT_ID}Bundle.main(document.body);</script>`);
+        `<script type="text/javascript" nomodule>${PROJECT_ID}Bundle.main(document.body, ${JSON.stringify(olmFiles)});</script>`);
     removeOrEnableScript(doc("script#service-worker"), offline);
 
     const versionScript = doc("script#version");
@@ -338,7 +346,7 @@ async function copyFolder(srcRoot, dstRoot, filter) {
         if (dirEnt.isDirectory()) {
             await fs.mkdir(dstPath);
             Object.assign(assetPaths, await copyFolder(srcPath, dstPath, filter));
-        } else if (dirEnt.isFile() && filter(srcPath)) {
+        } else if ((dirEnt.isFile() || dirEnt.isSymbolicLink()) && (!filter || filter(srcPath))) {
             const content = await fs.readFile(srcPath);
             const hashedDstPath = resource(dstPath, content);
             await fs.writeFile(hashedDstPath, content);
