@@ -21,7 +21,7 @@ import {User} from "./User.js";
 
 export class Session {
     // sessionInfo contains deviceId, userId and homeServer
-    constructor({storage, hsApi, sessionInfo}) {
+    constructor({storage, hsApi, sessionInfo, olm}) {
         this._storage = storage;
         this._hsApi = hsApi;
         this._session = null;
@@ -30,6 +30,7 @@ export class Session {
         this._sendScheduler = new SendScheduler({hsApi, backoff: new RateLimitingBackoff()});
         this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
         this._user = new User(sessionInfo.userId);
+        this._olm = olm;
     }
 
     async load() {
