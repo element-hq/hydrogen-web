@@ -27,21 +27,33 @@ export class RoomMember {
         if (typeof userId !== "string") {
             return;
         }
-        return this._fromMemberEventContent(roomId, userId, memberEvent.content);
+        const content = memberEvent.content;
+        const prevContent = memberEvent.unsigned?.prev_content;
+        const membership = content?.membership;
+        // fall back to prev_content for these as synapse doesn't (always?)
+        // put them on content for "leave" memberships
+        const displayName = content?.displayname || prevContent?.displayname;
+        const avatarUrl = content?.avatar_url || prevContent?.avatar_url;
+        return this._validateAndCreateMember(roomId, userId, membership, displayName, avatarUrl);
     }
-
+    /**
+     * Creates a (historical) member from a member event that is the next member event
+     * after the point in time where we need a member for. This will use `prev_content`.
+     */
     static fromReplacingMemberEvent(roomId, memberEvent) {
         const userId = memberEvent && memberEvent.state_key;
         if (typeof userId !== "string") {
             return;
         }
-        return this._fromMemberEventContent(roomId, userId, memberEvent.prev_content);
+        const content = memberEvent.unsigned?.prev_content
+        return this._validateAndCreateMember(roomId, userId,
+            content?.membership,
+            content?.displayname,
+            content?.avatar_url
+        );
     }
 
-    static _fromMemberEventContent(roomId, userId, content) {
-        const membership = content?.membership;
-        const avatarUrl = content?.avatar_url;
-        const displayName = content?.displayname;
+    static _validateAndCreateMember(roomId, userId, membership, displayName, avatarUrl) {
         if (typeof membership !== "string") {
             return;
         }
