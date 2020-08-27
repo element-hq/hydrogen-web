@@ -51,4 +51,90 @@ export class Account {
         this._deviceId = deviceId;
         this._areDeviceKeysUploaded = areDeviceKeysUploaded;
     }
+
+    async uploadKeys(storage) {
+        const oneTimeKeys = JSON.parse(this._account.one_time_keys());
+        // only one algorithm supported by olm atm, so hardcode its name
+        const oneTimeKeysEntries = Object.entries(oneTimeKeys.curve25519);
+        if (oneTimeKeysEntries.length || !this._areDeviceKeysUploaded) {
+            const payload = {};
+            if (!this._areDeviceKeysUploaded) {
+                const identityKeys = JSON.parse(this._account.identity_keys());
+                payload.device_keys = this._deviceKeysPayload(identityKeys);
+            }
+            if (oneTimeKeysEntries.length) {
+                payload.one_time_keys = this._oneTimeKeysPayload(oneTimeKeysEntries);
+            }
+            await this._hsApi.uploadKeys(payload);
+
+            await this._updateSessionStorage(storage, sessionStore => {
+                if (oneTimeKeysEntries.length) {
+                    this._account.mark_keys_as_published();
+                    sessionStore.set(ACCOUNT_SESSION_KEY, this._account.pickle(this._pickleKey));
+                }
+                if (!this._areDeviceKeysUploaded) {
+                    this._areDeviceKeysUploaded = true;
+                    sessionStore.set(DEVICE_KEY_FLAG_SESSION_KEY, this._areDeviceKeysUploaded);
+                }
+            });
+        }
+    }
+
+    _deviceKeysPayload(identityKeys) {
+        const obj = {
+            user_id: this._userId,
+            device_id: this._deviceId,
+            algorithms: [
+                "m.olm.v1.curve25519-aes-sha2",
+                "m.megolm.v1.aes-sha2"
+            ],
+            keys: {}
+        };
+        for (const [algorithm, pubKey] of Object.entries(identityKeys)) {
+            obj.keys[`${algorithm}:${this._deviceId}`] = pubKey;
+        }
+        this.signObject(obj);
+        return obj;
+    }
+
+    _oneTimeKeysPayload(oneTimeKeysEntries) {
+        const obj = {};
+        for (const [keyId, pubKey] of oneTimeKeysEntries) {
+            const keyObj = {
+                key: pubKey  
+            };
+            this.signObject(keyObj);
+            obj[`signed_curve25519:${keyId}`] = keyObj;
+        }
+        return obj;
+    }
+
+    async _updateSessionStorage(storage, callback) {
+        const txn = await storage.readWriteTxn([
+            storage.storeNames.session
+        ]);
+        try {
+            callback(txn.session);
+        } catch (err) {
+            txn.abort();
+            throw err;
+        }
+        await txn.complete();
+    }
+
+    signObject(obj) {
+        const sigs = obj.signatures || {};
+        const unsigned = obj.unsigned;
+
+        delete obj.signatures;
+        delete obj.unsigned;
+
+        sigs[this._userId] = sigs[this._userId] || {};
+        sigs[this._userId]["ed25519:" + this._deviceId] = 
+            this._account.sign(anotherjson.stringify(obj));
+        obj.signatures = sigs;
+        if (unsigned !== undefined) {
+            obj.unsigned = unsigned;
+        }
+    }
 }

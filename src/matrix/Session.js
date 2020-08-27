@@ -60,6 +60,7 @@ export class Session {
                 }
                 await txn.complete();
             }
+            await this._e2eeAccount.uploadKeys(this._storage);
         }
     }
 
