@@ -37,6 +37,11 @@ function addScript(src) {
 }
 
 async function loadOlm(olmPaths) {
+    // make crypto.getRandomValues available without
+    // a prefix on IE11, needed by olm to work
+    if (window.msCrypto && !window.crypto) {
+        window.crypto = window.msCrypto;
+    }
     if (olmPaths) {
         if (window.WebAssembly) {
             await addScript(olmPaths.wasmBundle);
