@@ -251,6 +251,11 @@ export class Room extends EventEmitter {
         return this._summary.highlightCount;
     }
 
+    get isLowPriority() {
+        const tags = this._summary.tags;
+        return !!(tags && tags['m.lowpriority']);
+    }
+
     async _getLastEventId() {
         const lastKey = this._syncWriter.lastMessageKey;
         if (lastKey) {
