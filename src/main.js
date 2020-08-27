@@ -26,10 +26,34 @@ import {BrawlView} from "./ui/web/BrawlView.js";
 import {Clock} from "./ui/web/dom/Clock.js";
 import {OnlineStatus} from "./ui/web/dom/OnlineStatus.js";
 
+function addScript(src) {
+    return new Promise(function (resolve, reject) {
+        var s = document.createElement("script");
+        s.setAttribute("src", src );
+        s.onload=resolve;
+        s.onerror=reject;
+        document.body.appendChild(s);
+    });
+}
+
+async function loadOlm(olmPaths) {
+    if (olmPaths) {
+        if (window.WebAssembly) {
+            await addScript(olmPaths.wasmBundle);
+            await window.Olm.init({locateFile: () => olmPaths.wasm});
+        } else {
+            await addScript(olmPaths.legacyBundle);
+            await window.Olm.init();
+        }
+        return window.Olm;
+    }
+    return null;
+}
+
 // Don't use a default export here, as we use multiple entries during legacy build,
 // which does not support default exports,
 // see https://github.com/rollup/plugins/tree/master/packages/multi-entry
-export async function main(container) {
+export async function main(container, olmPaths) {
     try {
         // to replay:
         // const fetchLog = await (await fetch("/fetchlogs/constrainterror.json")).json();
@@ -59,6 +83,7 @@ export async function main(container) {
                     sessionInfoStorage,
                     request,
                     clock,
+                    olmPromise: loadOlm(olmPaths),
                 });
             },
             sessionInfoStorage,
