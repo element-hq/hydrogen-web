@@ -24,7 +24,7 @@ export class Session {
     constructor({storage, hsApi, sessionInfo, olm}) {
         this._storage = storage;
         this._hsApi = hsApi;
-        this._session = null;
+        this._syncInfo = null;
         this._sessionInfo = sessionInfo;
         this._rooms = new ObservableMap();
         this._sendScheduler = new SendScheduler({hsApi, backoff: new RateLimitingBackoff()});
@@ -43,11 +43,7 @@ export class Session {
             this._storage.storeNames.pendingEvents,
         ]);
         // restore session object
-        this._session = await txn.session.get();
-        if (!this._session) {
-            this._session = {};
-            return;
-        }
+        this._syncInfo = await txn.session.get("sync");
         const pendingEventsByRoomId = await this._getPendingEventsByRoom(txn);
         // load rooms
         const rooms = await txn.roomSummary.getAll();
@@ -71,11 +67,9 @@ export class Session {
             const txn = await this._storage.readWriteTxn([
                 this._storage.storeNames.session
             ]);
-            const newSessionData = Object.assign({}, this._session, {serverVersions: lastVersionResponse});
-            txn.session.set(newSessionData);
+            txn.session.set("serverVersions", lastVersionResponse);
             // TODO: what can we do if this throws?
             await txn.complete();
-            this._session = newSessionData;
         }
 
         this._sendScheduler.start();
@@ -116,27 +110,27 @@ export class Session {
     }
 
     writeSync(syncToken, syncFilterId, accountData, txn) {
-        if (syncToken !== this._session.syncToken) {
-            // don't modify this._session because transaction might still fail
-            const newSessionData = Object.assign({}, this._session, {syncToken, syncFilterId});
-            txn.session.set(newSessionData);
-            return newSessionData;
+        if (syncToken !== this.syncToken) {
+            const syncInfo = {token: syncToken, filterId: syncFilterId};
+            // don't modify `this` because transaction might still fail
+            txn.session.set("sync", syncInfo);
+            return syncInfo;
         }
     }
 
-    afterSync(newSessionData) {
-        if (newSessionData) {
+    afterSync(syncInfo) {
+        if (syncInfo) {
             // sync transaction succeeded, modify object state now
-            this._session = newSessionData;
+            this._syncInfo = syncInfo;
         }
     }
 
     get syncToken() {
-        return this._session.syncToken;
+        return this._syncInfo?.token;
     }
 
     get syncFilterId() {
-        return this._session.syncFilterId;
+        return this._syncInfo?.filterId;
     }
 
     get user() {
@@ -150,8 +144,8 @@ export function tests() {
             readTxn() {
                 return Promise.resolve({
                     session: {
-                        get() {
-                            return Promise.resolve(Object.assign({}, session));
+                        get(key) {
+                            return Promise.resolve(session[key]);
                         }
                     },
                     pendingEvents: {
@@ -173,22 +167,23 @@ export function tests() {
     return {
         "session data is not modified until after sync": async (assert) => {
             const session = new Session({storage: createStorageMock({
-                syncToken: "a",
-                syncFilterId: 5,
+                sync: {token: "a", filterId: 5}
             }), sessionInfo: {userId: ""}});
             await session.load();
-            let txnSetCalled = false;
+            let syncSet = false;
             const syncTxn = {
                 session: {
-                    set({syncToken, syncFilterId}) {
-                        txnSetCalled = true;
-                        assert.equal(syncToken, "b");
-                        assert.equal(syncFilterId, 6);
+                    set(key, value) {
+                        if (key === "sync") {
+                            assert.equal(value.token, "b");
+                            assert.equal(value.filterId, 6);
+                            syncSet = true;
+                        }
                     }
                 }
             };
             const newSessionData = session.writeSync("b", 6, {}, syncTxn);
-            assert(txnSetCalled);
+            assert(syncSet);
             assert.equal(session.syncToken, "a");
             assert.equal(session.syncFilterId, 5);
             session.afterSync(newSessionData);
