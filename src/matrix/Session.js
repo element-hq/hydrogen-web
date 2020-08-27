@@ -24,8 +24,7 @@ export class Session {
     constructor({storage, hsApi, sessionInfo}) {
         this._storage = storage;
         this._hsApi = hsApi;
-        this._syncToken = null;
-        this._syncFilterId = null;
+        this._syncInfo = null;
         this._sessionInfo = sessionInfo;
         this._rooms = new ObservableMap();
         this._sendScheduler = new SendScheduler({hsApi, backoff: new RateLimitingBackoff()});
@@ -43,12 +42,7 @@ export class Session {
             this._storage.storeNames.pendingEvents,
         ]);
         // restore session object
-        const [syncToken, syncFilterId] = await Promise.all([
-            txn.session.get("syncToken"),
-            txn.session.get("syncFilterId")
-        ]);
-        this._syncToken = syncToken;
-        this._syncFilterId = syncFilterId;
+        this._syncInfo = await txn.session.get("sync");
         const pendingEventsByRoomId = await this._getPendingEventsByRoom(txn);
         // load rooms
         const rooms = await txn.roomSummary.getAll();
@@ -115,28 +109,27 @@ export class Session {
     }
 
     writeSync(syncToken, syncFilterId, accountData, txn) {
-        if (syncToken !== this._syncToken) {
+        if (syncToken !== this.syncToken) {
+            const syncInfo = {token: syncToken, filterId: syncFilterId};
             // don't modify `this` because transaction might still fail
-            txn.session.set("syncToken", syncToken);
-            txn.session.set("syncFilterId", syncFilterId);
-            return {syncToken, syncFilterId};
+            txn.session.set("sync", syncInfo);
+            return syncInfo;
         }
     }
 
-    afterSync(changes) {
-        if (changes) {
+    afterSync(syncInfo) {
+        if (syncInfo) {
             // sync transaction succeeded, modify object state now
-            this._syncToken = changes.syncToken;
-            this._syncFilterId = changes.syncFilterId;
+            this._syncInfo = syncInfo;
         }
     }
 
     get syncToken() {
-        return this._syncToken;
+        return this._syncInfo?.token;
     }
 
     get syncFilterId() {
-        return this._syncFilterId;
+        return this._syncInfo?.filterId;
     }
 
     get user() {
@@ -173,28 +166,23 @@ export function tests() {
     return {
         "session data is not modified until after sync": async (assert) => {
             const session = new Session({storage: createStorageMock({
-                syncToken: "a",
-                syncFilterId: 5,
+                sync: {token: "a", filterId: 5}
             }), sessionInfo: {userId: ""}});
             await session.load();
-            let syncTokenSet = false;
-            let syncFilterIdSet = false;
+            let syncSet = false;
             const syncTxn = {
                 session: {
                     set(key, value) {
-                        if (key === "syncToken") {
-                            assert.equal(value, "b");
-                            syncTokenSet = true;
-                        } else if (key === "syncFilterId") {
-                            assert.equal(value, 6);
-                            syncFilterIdSet = true;
+                        if (key === "sync") {
+                            assert.equal(value.token, "b");
+                            assert.equal(value.filterId, 6);
+                            syncSet = true;
                         }
                     }
                 }
             };
             const newSessionData = session.writeSync("b", 6, {}, syncTxn);
-            assert(syncTokenSet);
-            assert(syncFilterIdSet);
+            assert(syncSet);
             assert.equal(session.syncToken, "a");
             assert.equal(session.syncFilterId, 5);
             session.afterSync(newSessionData);

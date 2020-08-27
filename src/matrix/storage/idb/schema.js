@@ -54,10 +54,10 @@ async function migrateSession(db, txn) {
         const entry = await reqAsPromise(session.get(PRE_MIGRATION_KEY));
         if (entry) {
             session.delete(PRE_MIGRATION_KEY);
+            const {syncToken, syncFilterId, serverVersions} = entry.value;
             const store = new SessionStore(session);
-            for (const [key, value] of Object.entries(entry.value)) {
-                store.set(key, value);
-            }
+            store.set("sync", {token: syncToken, filterId: syncFilterId});
+            store.set("serverVersions", serverVersions);
         }
     } catch (err) {
         txn.abort();
