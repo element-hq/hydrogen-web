@@ -18,6 +18,8 @@ import {Room} from "./room/Room.js";
 import { ObservableMap } from "../observable/index.js";
 import { SendScheduler, RateLimitingBackoff } from "./SendScheduler.js";
 import {User} from "./User.js";
+import {Account as E2EEAccount} from "./e2ee/Account.js";
+const PICKLE_KEY = "DEFAULT_KEY";
 
 export class Session {
     // sessionInfo contains deviceId, userId and homeServer
@@ -31,6 +33,35 @@ export class Session {
         this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
         this._user = new User(sessionInfo.userId);
         this._olm = olm;
+        this._e2eeAccount = null;
+    }
+
+    async beforeFirstSync(isNewLogin) {
+        if (this._olm) {
+            if (isNewLogin && this._e2eeAccount) {
+                throw new Error("there should not be an e2ee account already on a fresh login");
+            }
+            if (!this._e2eeAccount) {
+                const txn = await this._storage.readWriteTxn([
+                    this._storage.storeNames.session
+                ]);
+                try {
+                    this._e2eeAccount = await E2EEAccount.create({
+                        hsApi: this._hsApi,
+                        olm: this._olm,
+                        pickleKey: PICKLE_KEY,
+                        userId: this._sessionInfo.userId,
+                        deviceId: this._sessionInfo.deviceId,
+                        txn
+                    });
+                } catch (err) {
+                    txn.abort();
+                    throw err;
+                }
+                await txn.complete();
+            }
+            await this._e2eeAccount.uploadKeys(this._storage);
+        }
     }
 
     async load() {
@@ -44,6 +75,17 @@ export class Session {
         ]);
         // restore session object
         this._syncInfo = await txn.session.get("sync");
+        // restore e2ee account, if any
+        if (this._olm) {
+            this._e2eeAccount = await E2EEAccount.load({
+                hsApi: this._hsApi,
+                olm: this._olm,
+                pickleKey: PICKLE_KEY,
+                userId: this._sessionInfo.userId,
+                deviceId: this._sessionInfo.deviceId,
+                txn
+            });
+        }
         const pendingEventsByRoomId = await this._getPendingEventsByRoom(txn);
         // load rooms
         const rooms = await txn.roomSummary.getAll();

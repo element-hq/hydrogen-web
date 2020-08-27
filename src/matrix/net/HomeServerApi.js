@@ -160,6 +160,10 @@ export class HomeServerApi {
         return this._request("GET", `${this._homeserver}/_matrix/client/versions`, null, null, options);
     }
 
+    uploadKeys(payload, options = null) {
+        return this._post("/keys/upload", null, payload, options);
+    }
+
     get mediaRepository() {
         return this._mediaRepository;
     }
