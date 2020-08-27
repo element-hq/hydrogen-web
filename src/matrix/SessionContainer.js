@@ -74,7 +74,7 @@ export class SessionContainer {
             if (!sessionInfo) {
                 throw new Error("Invalid session id: " + sessionId);
             }
-            await this._loadSessionInfo(sessionInfo);
+            await this._loadSessionInfo(sessionInfo, false);
         } catch (err) {
             this._error = err;
             this._status.set(LoadStatus.Error);
@@ -121,14 +121,14 @@ export class SessionContainer {
         // LoadStatus.Error in case of an error,
         // so separate try/catch
         try {
-            await this._loadSessionInfo(sessionInfo);
+            await this._loadSessionInfo(sessionInfo, true);
         } catch (err) {
             this._error = err;
             this._status.set(LoadStatus.Error);
         }
     }
 
-    async _loadSessionInfo(sessionInfo) {
+    async _loadSessionInfo(sessionInfo, isNewLogin) {
         this._status.set(LoadStatus.Loading);
         this._reconnector = new Reconnector({
             onlineStatus: this._onlineStatus,
@@ -153,6 +153,7 @@ export class SessionContainer {
         const olm = await this._olmPromise;
         this._session = new Session({storage: this._storage, sessionInfo: filteredSessionInfo, hsApi, olm});
         await this._session.load();
+        await this._session.beforeFirstSync(isNewLogin);
         
         this._sync = new Sync({hsApi, storage: this._storage, session: this._session});
         // notify sync and session when back online
