@@ -59,7 +59,7 @@ export class RoomTileViewModel extends ViewModel {
 
         let buf = "";
         function log(...args) {
-            buf = buf + args.join(" ") + "\n";
+            buf = buf + args.map(a => a+"").join(" ") + "\n";
         }
         function logResult(result) {
             if (result === 0) {
@@ -86,7 +86,7 @@ export class RoomTileViewModel extends ViewModel {
         const theirTimestampValid = Number.isSafeInteger(theirTimestamp);
         // if either does not have a timestamp, put the one with a timestamp first
         if (myTimestampValid !== theirTimestampValid) {
-            log("checking if either does not have lastMessageTimestamp ...");
+            log("checking if either does not have lastMessageTimestamp ...", myTimestamp, theirTimestamp);
             if (theirTimestamp === null) {
                 return logResult(-1);
             }
@@ -94,7 +94,7 @@ export class RoomTileViewModel extends ViewModel {
         }
         const timeDiff = theirTimestamp - myTimestamp;
         if (timeDiff === 0 || !theirTimestampValid || !myTimestampValid) {
-            log("checking name ...");
+            log("checking name ...", myTimestamp, theirTimestamp);
             // sort alphabetically
             const nameCmp = this.name.localeCompare(other.name);
             if (nameCmp === 0) {
