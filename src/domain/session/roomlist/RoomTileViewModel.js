@@ -69,7 +69,7 @@ export class RoomTileViewModel extends ViewModel {
             } else {
                 log(`${myRoom.name || myRoom.id} comes first`, result);
             }
-            console.log(buf);
+            console.info(buf);
             return result;
         }
         log(`comparing ${myRoom.name || theirRoom.id} and ${theirRoom.name || theirRoom.id} ...`);
