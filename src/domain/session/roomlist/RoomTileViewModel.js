@@ -87,7 +87,7 @@ export class RoomTileViewModel extends ViewModel {
         // if either does not have a timestamp, put the one with a timestamp first
         if (myTimestampValid !== theirTimestampValid) {
             log("checking if either does not have lastMessageTimestamp ...", myTimestamp, theirTimestamp);
-            if (theirTimestamp === null) {
+            if (!theirTimestampValid) {
                 return logResult(-1);
             }
             return logResult(1);
