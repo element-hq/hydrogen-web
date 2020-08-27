@@ -92,7 +92,6 @@ export class Heroes {
     get roomAvatarUrl() {
         if (this._members.size === 1) {
             for (const member of this._members.values()) {
-                console.log("roomAvatarUrl", member, member.avatarUrl);
                 return member.avatarUrl;
             }
         }
