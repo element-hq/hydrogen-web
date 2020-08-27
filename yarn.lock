@@ -1300,10 +1300,10 @@ http-errors@~1.7.2:
     statuses ">= 1.5.0 < 2"
     toidentifier "1.0.0"
 
-impunity@^0.0.11:
-  version "0.0.11"
-  resolved "https://registry.yarnpkg.com/impunity/-/impunity-0.0.11.tgz#216da6860ad17dd360fdaa2b15d7006579b5dd8a"
-  integrity sha512-EZUlc/Qx7oaRXZY+PtewrPby63sWZQsEtjGFB05XfbL/20SBkR8ksFnBahkeOD2/ErNkO3vh8AV0oDbdSSS8jQ==
+impunity@^0.0.12:
+  version "0.0.12"
+  resolved "https://registry.yarnpkg.com/impunity/-/impunity-0.0.12.tgz#cb65316fe04eaf2bbd09ac23430cfdcf8e099ff5"
+  integrity sha512-XID4Ua0CGClVG/dN3jv2lftIIv4orXQ6iGNdqyU8yKKof6+Zp09BEo/XvOIWlRTO90GGINE88f6gx60yPdLvaQ==
   dependencies:
     colors "^1.3.3"
     commander "^2.19.0"
