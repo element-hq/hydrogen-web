@@ -54,10 +54,23 @@ export class RoomMember {
         });
     }
 
+    /**
+     * @return {String?} the display name, if any
+     */
     get displayName() {
         return this._data.displayName;
     }
 
+    /**
+     * @return {String} the display name or userId
+     */
+    get name() {
+        return this._data.displayName || this._data.userId;
+    }
+
+    /**
+     * @return {String?} the avatar mxc url, if any
+     */
     get avatarUrl() {
         return this._data.avatarUrl;
     }
