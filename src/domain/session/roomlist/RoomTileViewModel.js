@@ -82,8 +82,10 @@ export class RoomTileViewModel extends ViewModel {
         }
         const myTimestamp = myRoom.lastMessageTimestamp;
         const theirTimestamp = theirRoom.lastMessageTimestamp;
-        // rooms with a timestamp come before rooms without one
-        if ((myTimestamp === null) !== (theirTimestamp === null)) {
+        const myTimestampValid = Number.isSafeInteger(myTimestamp);
+        const theirTimestampValid = Number.isSafeInteger(theirTimestamp);
+        // if either does not have a timestamp, put the one with a timestamp first
+        if (myTimestampValid !== theirTimestampValid) {
             log("checking if either does not have lastMessageTimestamp ...");
             if (theirTimestamp === null) {
                 return logResult(-1);
@@ -91,7 +93,7 @@ export class RoomTileViewModel extends ViewModel {
             return logResult(1);
         }
         const timeDiff = theirTimestamp - myTimestamp;
-        if (timeDiff === 0 || !Number.isSafeInteger(theirTimestamp) || !Number.isSafeInteger(myTimestamp)) {
+        if (timeDiff === 0 || !theirTimestampValid || !myTimestampValid) {
             log("checking name ...");
             // sort alphabetically
             const nameCmp = this.name.localeCompare(other.name);
