@@ -1,12 +1,14 @@
-import {iterateCursor} from "./utils.js";
+import {iterateCursor, reqAsPromise} from "./utils.js";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/RoomMember.js";
 import {RoomMemberStore} from "./stores/RoomMemberStore.js";
+import {SessionStore} from "./stores/SessionStore.js";
 
 // FUNCTIONS SHOULD ONLY BE APPENDED!!
 // the index in the array is the database version
 export const schema = [
     createInitialStores,
     createMemberStore,
+    migrateSession,
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -43,4 +45,22 @@ async function createMemberStore(db, txn) {
             }
         }
     });
+}
+
+async function migrateSession(db, txn) {
+    const session = txn.objectStore("session");
+    try {
+        const PRE_MIGRATION_KEY = 1;
+        const entry = await reqAsPromise(session.get(PRE_MIGRATION_KEY));
+        if (entry) {
+            session.delete(PRE_MIGRATION_KEY);
+            const {syncToken, syncFilterId, serverVersions} = entry.value;
+            const store = new SessionStore(session);
+            store.set("sync", {token: syncToken, filterId: syncFilterId});
+            store.set("serverVersions", serverVersions);
+        }
+    } catch (err) {
+        txn.abort();
+        console.error("could not migrate session", err.stack);
+    }
 }
