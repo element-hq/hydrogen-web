@@ -49,34 +49,61 @@ export class RoomTileViewModel extends ViewModel {
     }
 
     compare(other) {
+        /*
+        put unread rooms first
+        then put rooms with a timestamp first, and sort by name
+        then sort by name for rooms without a timestamp
+         */
         const myRoom = this._room;
         const theirRoom = other._room;
 
+        let buf = "";
+        function log(...args) {
+            buf = buf + args.map(a => a+"").join(" ") + "\n";
+        }
+        function logResult(result) {
+            if (result === 0) {
+                log("rooms are equal (should not happen)", result);
+            } else if (result > 0) {
+                log(`${theirRoom.name || theirRoom.id} comes first`, result);
+            } else {
+                log(`${myRoom.name || myRoom.id} comes first`, result);
+            }
+            console.info(buf);
+            return result;
+        }
+        log(`comparing ${myRoom.name || theirRoom.id} and ${theirRoom.name || theirRoom.id} ...`);
+        log("comparing isUnread...");
         if (isSortedAsUnread(this) !== isSortedAsUnread(other)) {
             if (isSortedAsUnread(this)) {
-                return -1;
+                return logResult(-1);
             }
-            return 1;
+            return logResult(1);
         }
         const myTimestamp = myRoom.lastMessageTimestamp;
         const theirTimestamp = theirRoom.lastMessageTimestamp;
-        // rooms with a timestamp come before rooms without one
-        if ((myTimestamp === null) !== (theirTimestamp === null)) {
+        const myTimestampValid = Number.isSafeInteger(myTimestamp);
+        const theirTimestampValid = Number.isSafeInteger(theirTimestamp);
+        // if either does not have a timestamp, put the one with a timestamp first
+        if (myTimestampValid !== theirTimestampValid) {
+            log("checking if either does not have lastMessageTimestamp ...", myTimestamp, theirTimestamp);
             if (theirTimestamp === null) {
-                return -1;
+                return logResult(-1);
             }
-            return 1;
+            return logResult(1);
         }
         const timeDiff = theirTimestamp - myTimestamp;
-        if (timeDiff === 0) {
+        if (timeDiff === 0 || !theirTimestampValid || !myTimestampValid) {
+            log("checking name ...", myTimestamp, theirTimestamp);
             // sort alphabetically
             const nameCmp = this.name.localeCompare(other.name);
             if (nameCmp === 0) {
-                return this._room.id.localeCompare(other._room.id);
+                return logResult(this._room.id.localeCompare(other._room.id));
             }
-            return nameCmp;
+            return logResult(nameCmp);
         }
-        return timeDiff;
+        log("checking timestamp ...");
+        return logResult(timeDiff);
     }
 
     get isOpen() {
