@@ -22,12 +22,12 @@ function calculateRoomName(sortedMembers, summary) {
         if (sortedMembers.length > 1) {
             const lastMember = sortedMembers[sortedMembers.length - 1];
             const firstMembers = sortedMembers.slice(0, sortedMembers.length - 1);
-            return firstMembers.map(m => m.displayName).join(", ") + " and " + lastMember.displayName;
+            return firstMembers.map(m => m.name).join(", ") + " and " + lastMember.name;
         } else {
-            return sortedMembers[0].displayName;
+            return sortedMembers[0].name;
         }
     } else if (sortedMembers.length < countWithoutMe) {
-        return sortedMembers.map(m => m.displayName).join(", ") + ` and ${countWithoutMe} others`;
+        return sortedMembers.map(m => m.name).join(", ") + ` and ${countWithoutMe} others`;
     } else {
         // Empty Room
         return null;
@@ -81,7 +81,7 @@ export class Heroes {
         for (const member of updatedHeroMembers) {
             this._members.set(member.userId, member);
         }
-        const sortedMembers = Array.from(this._members.values()).sort((a, b) => a.displayName.localeCompare(b.displayName));
+        const sortedMembers = Array.from(this._members.values()).sort((a, b) => a.name.localeCompare(b.name));
         this._roomName = calculateRoomName(sortedMembers, summary);
     }
 
