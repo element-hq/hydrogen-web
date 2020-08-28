@@ -115,7 +115,7 @@ export class Account {
             storage.storeNames.session
         ]);
         try {
-            callback(txn.session);
+            await callback(txn.session);
         } catch (err) {
             txn.abort();
             throw err;
