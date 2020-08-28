@@ -18,6 +18,8 @@ import anotherjson from "../../../lib/another-json/index.js";
 
 const ACCOUNT_SESSION_KEY = "olmAccount";
 const DEVICE_KEY_FLAG_SESSION_KEY = "areDeviceKeysUploaded";
+const OLM_ALGORITHM = "m.olm.v1.curve25519-aes-sha2";
+const MEGOLM_ALGORITHM = "m.megolm.v1.aes-sha2";
 
 export class Account {
     static async load({olm, pickleKey, hsApi, userId, deviceId, txn}) {
@@ -84,10 +86,7 @@ export class Account {
         const obj = {
             user_id: this._userId,
             device_id: this._deviceId,
-            algorithms: [
-                "m.olm.v1.curve25519-aes-sha2",
-                "m.megolm.v1.aes-sha2"
-            ],
+            algorithms: [OLM_ALGORITHM, MEGOLM_ALGORITHM],
             keys: {}
         };
         for (const [algorithm, pubKey] of Object.entries(identityKeys)) {
