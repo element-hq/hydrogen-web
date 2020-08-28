@@ -17,74 +17,80 @@ limitations under the License.
 
 import {RoomMember} from "./RoomMember.js";
 
-async function loadMembers({roomId, storage}) {
-    const txn = await storage.readTxn([
-        storage.storeNames.roomMembers,
-    ]);
+export async function loadMembers(roomId, txn) {
     const memberDatas = await txn.roomMembers.getAll(roomId);
     return memberDatas.map(d => new RoomMember(d));
 }
 
-async function fetchMembers({summary, roomId, hsApi, storage, setChangedMembersMap}) {
+export async function fetchMemberSnapshot({summary, roomId, hsApi, setChangedMembersMap}) {
     // if any members are changed by sync while we're fetching members,
     // they will end up here, so we check not to override them
     const changedMembersDuringSync = new Map();
     setChangedMembersMap(changedMembersDuringSync);
     
-    const memberResponse = await hsApi.members(roomId, {at: summary.lastPaginationToken}).response;
+    const memberResponse = await hsApi.members(roomId, {at: summary.lastPaginationToken}).response();
+    if (!Array.isArray(memberResponse?.chunk)) {
+        throw new Error("malformed");
+    }
+    return new MemberSnapshot({memberEvents: memberResponse.chunk,
+        setChangedMembersMap, changedMembersDuringSync, summary, roomId});
+}
 
-    const txn = await storage.readWriteTxn([
-        storage.storeNames.roomSummary,
-        storage.storeNames.roomMembers,
-    ]);
+/** Container for fetching /members while handling race with /sync. Can be persisted as part of a wider transaction */
+class MemberSnapshot {
+    constructor({memberEvents, setChangedMembersMap, changedMembersDuringSync, summary, roomId}) {
+        this._memberEvents = memberEvents;
+        this._setChangedMembersMap = setChangedMembersMap;
+        this._changedMembersDuringSync = changedMembersDuringSync;
+        this._summary = summary;
+        this._roomId = roomId;
+        this._members = null;
+    }
 
-    let summaryChanges;
-    let members;
-    
-    try {
-        summaryChanges = summary.writeHasFetchedMembers(true, txn);
-        const {roomMembers} = txn;
-        const memberEvents = memberResponse.chunk;
-        if (!Array.isArray(memberEvents)) {
-            throw new Error("malformed");
-        }
-        members = await Promise.all(memberEvents.map(async memberEvent => {
+    write(txn) {
+        let summaryChanges;        
+        // this needs to happen after the txn is opened to prevent a race
+        // between awaiting the opening of the txn and the sync
+        this._members = this._memberEvents.map(memberEvent => {
             const userId = memberEvent?.state_key;
             if (!userId) {
                 throw new Error("malformed");
             }
             // this member was changed during a sync that happened while calling /members
             // and thus is more recent, so don't overwrite
-            const changedMember = changedMembersDuringSync.get(userId);
+            const changedMember = this._changedMembersDuringSync.get(userId);
             if (changedMember) {
                 return changedMember;
             } else {
-                const member = RoomMember.fromMemberEvent(roomId, memberEvent);
-                if (member) {
-                    roomMembers.set(member.serialize());
-                }
-                return member;
+                return RoomMember.fromMemberEvent(this._roomId, memberEvent);
             }
-        }));
-    } catch (err) {
-        // abort txn on any error
-        txn.abort();
-        throw err;
-    } finally {
+        });
+        // store members
+        const {roomMembers} = txn;
+        for (const member of this._members) {
+            if (member) {
+                roomMembers.set(member.serialize());
+            }
+        }
+        // store flag
+        summaryChanges = this._summary.writeHasFetchedMembers(true, txn);
+        return summaryChanges;
+    }
+
+    applyWrite(summaryChanges) {
+        this._summary.applyChanges(summaryChanges);
+    }
+
+    get members() {
+        if (!this._members) {
+            throw new Error("call write first");
+        }
+        return this._members;
+    }
+
+    dispose() {
         // important this gets cleared
         // or otherwise Room remains in "fetching-members" mode
-        setChangedMembersMap(null);
-    }
-    await txn.complete();
-    summary.applyChanges(summaryChanges);
-    return members;
-}
-
-export async function fetchOrLoadMembers(options) {
-    const {summary} = options;
-    if (!summary.hasFetchedMembers) {
-        return fetchMembers(options);
-    } else {
-        return loadMembers(options);
+        this._setChangedMembersMap(null);
     }
 }

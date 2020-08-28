@@ -22,7 +22,7 @@ import {Timeline} from "./timeline/Timeline.js";
 import {FragmentIdComparer} from "./timeline/FragmentIdComparer.js";
 import {SendQueue} from "./sending/SendQueue.js";
 import {WrappedError} from "../error.js"
-import {fetchOrLoadMembers} from "./members/load.js";
+import {loadMembers, fetchMemberSnapshot} from "./members/load.js";
 import {MemberList} from "./members/MemberList.js";
 import {Heroes} from "./members/Heroes.js";
 
@@ -141,20 +141,60 @@ export class Room extends EventEmitter {
         return this._sendQueue.enqueueEvent(eventType, content);
     }
 
+    /**
+     * @package
+     * @return {MemberSnapshot} the member snapshot, be sure to call dispose
+     */
+    async fetchMemberSnapshot() {
+        if (!this.hasFetchedMembers) {
+            if (this._changedMembersDuringSync) {
+                throw new Error("already snapshot being written");
+            }
+            return await fetchMemberSnapshot({
+                summary: this._summary,
+                roomId: this._roomId,
+                hsApi: this._hsApi,
+                // to handle race between /members and /sync
+                setChangedMembersMap: map => this._changedMembersDuringSync = map,
+            });
+        }
+    }
+
+    async _fetchAndWriteMembers() {
+        const snapshot = this.fetchMemberSnapshot();
+        try {  
+            const txn = await this._storage.readWriteTxn([
+                this._storage.storeNames.roomSummary,
+                this._storage.storeNames.roomMembers,
+            ]);
+            let changes;
+            try {
+                changes = snapshot.write(txn);
+            } catch (err) {
+                txn.abort();
+                throw err;
+            }
+            await txn.complete();
+            snapshot.applyWrite(changes);
+            return snapshot.members;
+        } finally {
+            snapshot.dispose();
+        }
+    }
+
     /** @public */
     async loadMemberList() {
         if (this._memberList) {
             this._memberList.retain();
             return this._memberList;
         } else {
-            const members = await fetchOrLoadMembers({
-                summary: this._summary,
-                roomId: this._roomId,
-                hsApi: this._hsApi,
-                storage: this._storage,
-                // to handle race between /members and /sync
-                setChangedMembersMap: map => this._changedMembersDuringSync = map,
-            });
+            let members;
+            if (this.hasFetchedMembers) {
+                const txn = await this._storage.readTxn([this._storage.storeNames.roomMembers]);
+                members = await loadMembers(this._roomId, txn);
+            } else {
+                members = await this._fetchAndWriteMembers();
+            }
             this._memberList = new MemberList({
                 members,
                 closeCallback: () => { this._memberList = null; }
@@ -254,6 +294,10 @@ export class Room extends EventEmitter {
     get isLowPriority() {
         const tags = this._summary.tags;
         return !!(tags && tags['m.lowpriority']);
+    }
+
+    get hasFetchedMembers() {
+        return this._summary.hasFetchedMembers;
     }
 
     async _getLastEventId() {
