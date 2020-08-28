@@ -16,8 +16,10 @@ limitations under the License.
 
 import anotherjson from "../../../lib/another-json/index.js";
 
-const ACCOUNT_SESSION_KEY = "olmAccount";
-const DEVICE_KEY_FLAG_SESSION_KEY = "areDeviceKeysUploaded";
+// use common prefix so it's easy to clear properties that are not e2ee related during session clear
+export const SESSION_KEY_PREFIX = "e2ee:";
+const ACCOUNT_SESSION_KEY = SESSION_KEY_PREFIX + "olmAccount";
+const DEVICE_KEY_FLAG_SESSION_KEY = SESSION_KEY_PREFIX + "areDeviceKeysUploaded";
 const OLM_ALGORITHM = "m.olm.v1.curve25519-aes-sha2";
 const MEGOLM_ALGORITHM = "m.megolm.v1.aes-sha2";
 
