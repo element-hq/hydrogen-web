@@ -16,8 +16,13 @@ limitations under the License.
 
 import anotherjson from "../../../lib/another-json/index.js";
 
-const ACCOUNT_SESSION_KEY = "olmAccount";
-const DEVICE_KEY_FLAG_SESSION_KEY = "areDeviceKeysUploaded";
+// use common prefix so it's easy to clear properties that are not e2ee related during session clear
+export const SESSION_KEY_PREFIX = "e2ee:";
+const ACCOUNT_SESSION_KEY = SESSION_KEY_PREFIX + "olmAccount";
+const DEVICE_KEY_FLAG_SESSION_KEY = SESSION_KEY_PREFIX + "areDeviceKeysUploaded";
+const SERVER_OTK_COUNT_SESSION_KEY = SESSION_KEY_PREFIX + "serverOTKCount";
+const OLM_ALGORITHM = "m.olm.v1.curve25519-aes-sha2";
+const MEGOLM_ALGORITHM = "m.megolm.v1.aes-sha2";
 
 export class Account {
     static async load({olm, pickleKey, hsApi, userId, deviceId, txn}) {
@@ -26,7 +31,9 @@ export class Account {
             const account = new olm.Account();
             const areDeviceKeysUploaded = await txn.session.get(DEVICE_KEY_FLAG_SESSION_KEY);
             account.unpickle(pickleKey, pickledAccount);
-            return new Account({pickleKey, hsApi, account, userId, deviceId, areDeviceKeysUploaded});
+            const serverOTKCount = await txn.session.get(SERVER_OTK_COUNT_SESSION_KEY);
+            return new Account({pickleKey, hsApi, account, userId,
+                deviceId, areDeviceKeysUploaded, serverOTKCount});
         }
     }
 
@@ -40,16 +47,19 @@ export class Account {
         const areDeviceKeysUploaded = false;
         await txn.session.add(ACCOUNT_SESSION_KEY, pickledAccount);
         await txn.session.add(DEVICE_KEY_FLAG_SESSION_KEY, areDeviceKeysUploaded);
-        return new Account({pickleKey, hsApi, account, userId, deviceId, areDeviceKeysUploaded});
+        await txn.session.add(SERVER_OTK_COUNT_SESSION_KEY, 0);
+        return new Account({pickleKey, hsApi, account, userId,
+            deviceId, areDeviceKeysUploaded, serverOTKCount: 0});
     }
 
-    constructor({pickleKey, hsApi, account, userId, deviceId, areDeviceKeysUploaded}) {
+    constructor({pickleKey, hsApi, account, userId, deviceId, areDeviceKeysUploaded, serverOTKCount}) {
         this._pickleKey = pickleKey;
         this._hsApi = hsApi;
         this._account = account;
         this._userId = userId;
         this._deviceId = deviceId;
         this._areDeviceKeysUploaded = areDeviceKeysUploaded;
+        this._serverOTKCount = serverOTKCount;
     }
 
     async uploadKeys(storage) {
@@ -65,12 +75,17 @@ export class Account {
             if (oneTimeKeysEntries.length) {
                 payload.one_time_keys = this._oneTimeKeysPayload(oneTimeKeysEntries);
             }
-            await this._hsApi.uploadKeys(payload);
-
+            const response = await this._hsApi.uploadKeys(payload).response();
+            this._serverOTKCount = response?.one_time_key_counts?.signed_curve25519;
+            // TODO: should we not modify this in the txn like we do elsewhere?
+            // we'd have to pickle and unpickle the account to clone it though ...
+            // and the upload has succeed at this point, so in-memory would be correct
+            // but in-storage not if the txn fails. 
             await this._updateSessionStorage(storage, sessionStore => {
                 if (oneTimeKeysEntries.length) {
                     this._account.mark_keys_as_published();
                     sessionStore.set(ACCOUNT_SESSION_KEY, this._account.pickle(this._pickleKey));
+                    sessionStore.set(SERVER_OTK_COUNT_SESSION_KEY, this._serverOTKCount);
                 }
                 if (!this._areDeviceKeysUploaded) {
                     this._areDeviceKeysUploaded = true;
@@ -80,14 +95,52 @@ export class Account {
         }
     }
 
+    async generateOTKsIfNeeded(storage) {
+        const maxOTKs = this._account.max_number_of_one_time_keys();
+        const limit = maxOTKs / 2;
+        if (this._serverOTKCount < limit) {
+            // TODO: cache unpublishedOTKCount, so we don't have to parse this JSON on every sync iteration
+            // for now, we only determine it when serverOTKCount is sufficiently low, which is should rarely be,
+            // and recheck
+            const oneTimeKeys = JSON.parse(this._account.one_time_keys());
+            const oneTimeKeysEntries = Object.entries(oneTimeKeys.curve25519);
+            const unpublishedOTKCount = oneTimeKeysEntries.length;
+            const totalOTKCount = this._serverOTKCount + unpublishedOTKCount;
+            if (totalOTKCount < limit) {
+                // we could in theory also generated the keys and store them in
+                // writeSync, but then we would have to clone the account to avoid side-effects.
+                await this._updateSessionStorage(storage, sessionStore => {
+                    const newKeyCount = maxOTKs - totalOTKCount;
+                    this._account.generate_one_time_keys(newKeyCount);
+                    sessionStore.set(ACCOUNT_SESSION_KEY, this._account.pickle(this._pickleKey));
+                });
+                return true;
+            }
+        }
+        return false;
+    }
+
+    writeSync(deviceOneTimeKeysCount, txn) {
+        // we only upload signed_curve25519 otks
+        const otkCount = deviceOneTimeKeysCount.signed_curve25519;
+        if (Number.isSafeInteger(otkCount) && otkCount !== this._serverOTKCount) {
+            txn.session.set(SERVER_OTK_COUNT_SESSION_KEY, otkCount);
+            return otkCount;
+        }
+    }
+
+    afterSync(otkCount) {
+        // could also be undefined
+        if (Number.isSafeInteger(otkCount)) {
+            this._serverOTKCount = otkCount;
+        }
+    }
+
     _deviceKeysPayload(identityKeys) {
         const obj = {
             user_id: this._userId,
             device_id: this._deviceId,
-            algorithms: [
-                "m.olm.v1.curve25519-aes-sha2",
-                "m.megolm.v1.aes-sha2"
-            ],
+            algorithms: [OLM_ALGORITHM, MEGOLM_ALGORITHM],
             keys: {}
         };
         for (const [algorithm, pubKey] of Object.entries(identityKeys)) {
@@ -114,7 +167,7 @@ export class Account {
             storage.storeNames.session
         ]);
         try {
-            callback(txn.session);
+            await callback(txn.session);
         } catch (err) {
             txn.abort();
             throw err;

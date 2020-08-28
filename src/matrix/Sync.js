@@ -100,6 +100,12 @@ export class Sync {
                     this._status.set(SyncStatus.Stopped);
                 }
             }
+            try {
+                await this._session.afterSyncCompleted();
+            } catch (err) {
+                console.err("error during after sync completed, continuing to sync.",  err.stack);
+                // swallowing error here apart from logging
+            }
         }
     }
 
@@ -127,7 +133,7 @@ export class Sync {
         const roomChanges = [];
         let sessionChanges;
         try {
-            sessionChanges = this._session.writeSync(syncToken, syncFilterId, response.account_data,  syncTxn);
+            sessionChanges = this._session.writeSync(response, syncFilterId, syncTxn);
             // to_device
             // presence
             if (response.rooms) {

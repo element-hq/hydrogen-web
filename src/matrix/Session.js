@@ -60,6 +60,7 @@ export class Session {
                 }
                 await txn.complete();
             }
+            await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
             await this._e2eeAccount.uploadKeys(this._storage);
         }
     }
@@ -151,19 +152,39 @@ export class Session {
         return room;
     }
 
-    writeSync(syncToken, syncFilterId, accountData, txn) {
+    writeSync(syncResponse, syncFilterId, txn) {
+        const changes = {};
+        const syncToken = syncResponse.next_batch;
+        const deviceOneTimeKeysCount = syncResponse.device_one_time_keys_count;
+
+        if (this._e2eeAccount && deviceOneTimeKeysCount) {
+            changes.e2eeAccountChanges = this._e2eeAccount.writeSync(deviceOneTimeKeysCount, txn);
+        }
         if (syncToken !== this.syncToken) {
             const syncInfo = {token: syncToken, filterId: syncFilterId};
             // don't modify `this` because transaction might still fail
             txn.session.set("sync", syncInfo);
-            return syncInfo;
+            changes.syncInfo = syncInfo;
         }
+        return changes;
     }
 
-    afterSync(syncInfo) {
+    afterSync({syncInfo, e2eeAccountChanges}) {
         if (syncInfo) {
             // sync transaction succeeded, modify object state now
             this._syncInfo = syncInfo;
+        }
+        if (this._e2eeAccount && e2eeAccountChanges) {
+            this._e2eeAccount.afterSync(e2eeAccountChanges);
+        }
+    }
+
+    async afterSyncCompleted() {
+        const needsToUploadOTKs = await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
+        if (needsToUploadOTKs) {
+            // TODO: we could do this in parallel with sync if it proves to be too slow
+            // but I'm not sure how to not swallow errors in that case
+            await this._e2eeAccount.uploadKeys(this._storage);
         }
     }
 
