@@ -15,14 +15,12 @@ limitations under the License.
 */
 
 import anotherjson from "../../../lib/another-json/index.js";
+import {SESSION_KEY_PREFIX, OLM_ALGORITHM, MEGOLM_ALGORITHM} from "./common.js";
 
 // use common prefix so it's easy to clear properties that are not e2ee related during session clear
-export const SESSION_KEY_PREFIX = "e2ee:";
 const ACCOUNT_SESSION_KEY = SESSION_KEY_PREFIX + "olmAccount";
 const DEVICE_KEY_FLAG_SESSION_KEY = SESSION_KEY_PREFIX + "areDeviceKeysUploaded";
 const SERVER_OTK_COUNT_SESSION_KEY = SESSION_KEY_PREFIX + "serverOTKCount";
-const OLM_ALGORITHM = "m.olm.v1.curve25519-aes-sha2";
-const MEGOLM_ALGORITHM = "m.megolm.v1.aes-sha2";
 
 export class Account {
     static async load({olm, pickleKey, hsApi, userId, deviceId, txn}) {
