@@ -256,6 +256,10 @@ export class Room extends EventEmitter {
         return !!(tags && tags['m.lowpriority']);
     }
 
+    get isEncrypted() {
+        return !!this._summary.encryption;
+    }
+
     async _getLastEventId() {
         const lastKey = this._syncWriter.lastMessageKey;
         if (lastKey) {

@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {MEGOLM_ALGORITHM} from "../e2ee/common.js";
+
 function applySyncResponse(data, roomResponse, membership, isInitialSync, isTimelineOpen, ownUserId) {
     if (roomResponse.summary) {
         data = updateSummary(data, roomResponse.summary);
@@ -68,9 +70,10 @@ function processRoomAccountData(data, event) {
 
 function processStateEvent(data, event) {
     if (event.type === "m.room.encryption") {
-        if (!data.isEncrypted) {
+        const algorithm = event.content?.algorithm;
+        if (!data.encryption && algorithm === MEGOLM_ALGORITHM) {
             data = data.cloneIfNeeded();
-            data.isEncrypted = true;
+            data.encryption = event.content;
         }
     } else if (event.type === "m.room.name") {
         const newName = event.content?.name;
@@ -136,7 +139,7 @@ class SummaryData {
         this.lastMessageBody = copy ? copy.lastMessageBody : null;
         this.lastMessageTimestamp = copy ? copy.lastMessageTimestamp : null;
         this.isUnread = copy ? copy.isUnread : false;
-        this.isEncrypted = copy ? copy.isEncrypted : false;
+        this.encryption = copy ? copy.encryption : null;
         this.isDirectMessage = copy ? copy.isDirectMessage : false;
         this.membership = copy ? copy.membership : null;
         this.inviteCount = copy ? copy.inviteCount : 0;
@@ -190,6 +193,11 @@ export class RoomSummary {
         return this._data.heroes;
     }
 
+    get encryption() {
+        return this._data.encryption;
+    }
+
+    // whether the room name should be determined with Heroes
     get needsHeroes() {
         return needsHeroes(this._data);
     }
