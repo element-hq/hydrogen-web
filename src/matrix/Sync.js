@@ -100,6 +100,12 @@ export class Sync {
                     this._status.set(SyncStatus.Stopped);
                 }
             }
+            try {
+                await this._session.afterSyncCompleted();
+            } catch (err) {
+                console.err("error during after sync completed, continuing to sync.",  err.stack);
+                // swallowing error here apart from logging
+            }
         }
     }
 

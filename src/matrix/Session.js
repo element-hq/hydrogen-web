@@ -60,6 +60,7 @@ export class Session {
                 }
                 await txn.complete();
             }
+            await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
             await this._e2eeAccount.uploadKeys(this._storage);
         }
     }
@@ -175,6 +176,15 @@ export class Session {
         }
         if (this._e2eeAccount && e2eeAccountChanges) {
             this._e2eeAccount.afterSync(e2eeAccountChanges);
+        }
+    }
+
+    async afterSyncCompleted() {
+        const needsToUploadOTKs = await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
+        if (needsToUploadOTKs) {
+            // TODO: we could do this in parallel with sync if it proves to be too slow
+            // but I'm not sure how to not swallow errors in that case
+            await this._e2eeAccount.uploadKeys(this._storage);
         }
     }
 

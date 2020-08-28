@@ -95,6 +95,31 @@ export class Account {
         }
     }
 
+    async generateOTKsIfNeeded(storage) {
+        const maxOTKs = this._account.max_number_of_one_time_keys();
+        const limit = maxOTKs / 2;
+        if (this._serverOTKCount < limit) {
+            // TODO: cache unpublishedOTKCount, so we don't have to parse this JSON on every sync iteration
+            // for now, we only determine it when serverOTKCount is sufficiently low, which is should rarely be,
+            // and recheck
+            const oneTimeKeys = JSON.parse(this._account.one_time_keys());
+            const oneTimeKeysEntries = Object.entries(oneTimeKeys.curve25519);
+            const unpublishedOTKCount = oneTimeKeysEntries.length;
+            const totalOTKCount = this._serverOTKCount + unpublishedOTKCount;
+            if (totalOTKCount < limit) {
+                // we could in theory also generated the keys and store them in
+                // writeSync, but then we would have to clone the account to avoid side-effects.
+                await this._updateSessionStorage(storage, sessionStore => {
+                    const newKeyCount = maxOTKs - totalOTKCount;
+                    this._account.generate_one_time_keys(newKeyCount);
+                    sessionStore.set(ACCOUNT_SESSION_KEY, this._account.pickle(this._pickleKey));
+                });
+                return true;
+            }
+        }
+        return false;
+    }
+
     writeSync(deviceOneTimeKeysCount, txn) {
         // we only upload signed_curve25519 otks
         const otkCount = deviceOneTimeKeysCount.signed_curve25519;
