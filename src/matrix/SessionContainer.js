@@ -237,10 +237,16 @@ export class SessionContainer {
     }
 
     stop() {
-        this._reconnectSubscription();
-        this._reconnectSubscription = null;
-        this._sync.stop();
-        this._session.stop();
+        if (this._reconnectSubscription) {
+            this._reconnectSubscription();
+            this._reconnectSubscription = null;
+        }
+        if (this._sync) {
+            this._sync.stop();
+        }
+        if (this._session) {
+            this._session.stop();
+        }
         if (this._waitForFirstSyncHandle) {
             this._waitForFirstSyncHandle.dispose();
             this._waitForFirstSyncHandle = null;
