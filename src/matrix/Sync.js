@@ -127,7 +127,7 @@ export class Sync {
         const roomChanges = [];
         let sessionChanges;
         try {
-            sessionChanges = this._session.writeSync(syncToken, syncFilterId, response.account_data,  syncTxn);
+            sessionChanges = this._session.writeSync(response, syncFilterId, syncTxn);
             // to_device
             // presence
             if (response.rooms) {

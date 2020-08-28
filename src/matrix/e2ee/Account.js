@@ -20,6 +20,7 @@ import anotherjson from "../../../lib/another-json/index.js";
 export const SESSION_KEY_PREFIX = "e2ee:";
 const ACCOUNT_SESSION_KEY = SESSION_KEY_PREFIX + "olmAccount";
 const DEVICE_KEY_FLAG_SESSION_KEY = SESSION_KEY_PREFIX + "areDeviceKeysUploaded";
+const SERVER_OTK_COUNT_SESSION_KEY = SESSION_KEY_PREFIX + "serverOTKCount";
 const OLM_ALGORITHM = "m.olm.v1.curve25519-aes-sha2";
 const MEGOLM_ALGORITHM = "m.megolm.v1.aes-sha2";
 
@@ -30,7 +31,9 @@ export class Account {
             const account = new olm.Account();
             const areDeviceKeysUploaded = await txn.session.get(DEVICE_KEY_FLAG_SESSION_KEY);
             account.unpickle(pickleKey, pickledAccount);
-            return new Account({pickleKey, hsApi, account, userId, deviceId, areDeviceKeysUploaded});
+            const serverOTKCount = await txn.session.get(SERVER_OTK_COUNT_SESSION_KEY);
+            return new Account({pickleKey, hsApi, account, userId,
+                deviceId, areDeviceKeysUploaded, serverOTKCount});
         }
     }
 
@@ -44,16 +47,19 @@ export class Account {
         const areDeviceKeysUploaded = false;
         await txn.session.add(ACCOUNT_SESSION_KEY, pickledAccount);
         await txn.session.add(DEVICE_KEY_FLAG_SESSION_KEY, areDeviceKeysUploaded);
-        return new Account({pickleKey, hsApi, account, userId, deviceId, areDeviceKeysUploaded});
+        await txn.session.add(SERVER_OTK_COUNT_SESSION_KEY, 0);
+        return new Account({pickleKey, hsApi, account, userId,
+            deviceId, areDeviceKeysUploaded, serverOTKCount: 0});
     }
 
-    constructor({pickleKey, hsApi, account, userId, deviceId, areDeviceKeysUploaded}) {
+    constructor({pickleKey, hsApi, account, userId, deviceId, areDeviceKeysUploaded, serverOTKCount}) {
         this._pickleKey = pickleKey;
         this._hsApi = hsApi;
         this._account = account;
         this._userId = userId;
         this._deviceId = deviceId;
         this._areDeviceKeysUploaded = areDeviceKeysUploaded;
+        this._serverOTKCount = serverOTKCount;
     }
 
     async uploadKeys(storage) {
@@ -69,18 +75,39 @@ export class Account {
             if (oneTimeKeysEntries.length) {
                 payload.one_time_keys = this._oneTimeKeysPayload(oneTimeKeysEntries);
             }
-            await this._hsApi.uploadKeys(payload);
-
+            const response = await this._hsApi.uploadKeys(payload).response();
+            this._serverOTKCount = response?.one_time_key_counts?.signed_curve25519;
+            // TODO: should we not modify this in the txn like we do elsewhere?
+            // we'd have to pickle and unpickle the account to clone it though ...
+            // and the upload has succeed at this point, so in-memory would be correct
+            // but in-storage not if the txn fails. 
             await this._updateSessionStorage(storage, sessionStore => {
                 if (oneTimeKeysEntries.length) {
                     this._account.mark_keys_as_published();
                     sessionStore.set(ACCOUNT_SESSION_KEY, this._account.pickle(this._pickleKey));
+                    sessionStore.set(SERVER_OTK_COUNT_SESSION_KEY, this._serverOTKCount);
                 }
                 if (!this._areDeviceKeysUploaded) {
                     this._areDeviceKeysUploaded = true;
                     sessionStore.set(DEVICE_KEY_FLAG_SESSION_KEY, this._areDeviceKeysUploaded);
                 }
             });
+        }
+    }
+
+    writeSync(deviceOneTimeKeysCount, txn) {
+        // we only upload signed_curve25519 otks
+        const otkCount = deviceOneTimeKeysCount.signed_curve25519;
+        if (Number.isSafeInteger(otkCount) && otkCount !== this._serverOTKCount) {
+            txn.session.set(SERVER_OTK_COUNT_SESSION_KEY, otkCount);
+            return otkCount;
+        }
+    }
+
+    afterSync(otkCount) {
+        // could also be undefined
+        if (Number.isSafeInteger(otkCount)) {
+            this._serverOTKCount = otkCount;
         }
     }
 
