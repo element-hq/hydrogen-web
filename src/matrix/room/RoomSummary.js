@@ -22,6 +22,9 @@ function applySyncResponse(data, roomResponse, membership, isInitialSync, isTime
         data = data.cloneIfNeeded();
         data.membership = membership;
     }
+    if (roomResponse.account_data) {
+        data = roomResponse.account_data.events.reduce(processRoomAccountData, data);
+    }
     // state comes before timeline
     if (roomResponse.state) {
         data = roomResponse.state.events.reduce(processStateEvent, data);
@@ -48,6 +51,18 @@ function applySyncResponse(data, roomResponse, membership, isInitialSync, isTime
         data.notificationCount = unreadNotifications.notification_count;
     }
 
+    return data;
+}
+
+function processRoomAccountData(data, event) {
+    if (event?.type === "m.tag") {
+        let tags = event?.content?.tags;
+        if (!tags || Array.isArray(tags) || typeof tags !== "object") {
+            tags = null;
+        }
+        data = data.cloneIfNeeded();
+        data.tags = tags;
+    }
     return data;
 }
 
@@ -133,6 +148,7 @@ class SummaryData {
         this.avatarUrl = copy ? copy.avatarUrl : null;
         this.notificationCount = copy ? copy.notificationCount : 0;
         this.highlightCount = copy ? copy.highlightCount : 0;
+        this.tags = copy ? copy.tags : null;
         this.cloned = copy ? true : false;
     }
 
@@ -216,6 +232,10 @@ export class RoomSummary {
 
     get lastPaginationToken() {
         return this._data.lastPaginationToken;
+    }
+
+    get tags() {
+        return this._data.tags;
     }
 
     writeClearUnread(txn) {

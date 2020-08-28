@@ -73,6 +73,13 @@ export class RoomTileViewModel extends ViewModel {
             return result;
         }
         log(`comparing ${myRoom.name || theirRoom.id} and ${theirRoom.name || theirRoom.id} ...`);
+        log("comparing isLowPriority...");
+        if (myRoom.isLowPriority !== theirRoom.isLowPriority) {
+            if (myRoom.isLowPriority) {
+                return logResult(1);
+            }
+            return logResult(-1);
+        }
         log("comparing isUnread...");
         if (isSortedAsUnread(this) !== isSortedAsUnread(other)) {
             if (isSortedAsUnread(this)) {
