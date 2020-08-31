@@ -133,7 +133,6 @@ export class Sync {
         const roomChanges = [];
         let sessionChanges;
         try {
-            sessionChanges = this._session.writeSync(response, syncFilterId, syncTxn);
             // to_device
             // presence
             if (response.rooms) {
@@ -153,6 +152,7 @@ export class Sync {
                 });
                 await Promise.all(promises);
             }
+            sessionChanges = await this._session.writeSync(response, syncFilterId, roomChanges, syncTxn);
         } catch(err) {
             console.warn("aborting syncTxn because of error");
             console.error(err);
