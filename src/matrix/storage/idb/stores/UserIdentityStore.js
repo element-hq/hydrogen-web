@@ -24,10 +24,10 @@ export class UserIdentityStore {
     }
 
     set(userIdentity) {
-        return this._store.set(userIdentity);
+        this._store.put(userIdentity);
     }
 
     remove(userId) {
-        return this._eventStore.delete(userId);
+        return this._store.delete(userId);
     }
 }

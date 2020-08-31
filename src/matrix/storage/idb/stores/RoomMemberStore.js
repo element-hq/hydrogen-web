@@ -50,7 +50,7 @@ export class RoomMemberStore {
         const userIds = [];
         const range = IDBKeyRange.lowerBound(encodeKey(roomId, ""));
         await this._roomMembersStore.iterateKeys(range, key => {
-            const decodedKey = decodedKey(key);
+            const decodedKey = decodeKey(key);
             // prevent running into the next room
             if (decodedKey.roomId === roomId) {
                 userIds.push(decodedKey.userId);
