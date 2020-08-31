@@ -24,7 +24,7 @@ const DEVICE_KEYS_SIGNATURE_ALGORITHM = "ed25519";
 // map 1 device from /keys/query response to DeviceIdentity
 function deviceKeysAsDeviceIdentity(deviceSection) {
     const deviceId = deviceSection["device_id"];
-    const userId = deviceSection["userId_id"];
+    const userId = deviceSection["user_id"];
     return {
         userId,
         deviceId,
