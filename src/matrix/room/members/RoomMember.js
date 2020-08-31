@@ -123,11 +123,11 @@ export class MemberChange {
         return this._memberEvent.state_key;
     }
 
-    previousMembership() {
+    get previousMembership() {
         return getPrevContentFromStateEvent(this._memberEvent)?.membership;
     }
 
-    membership() {
+    get membership() {
         return this._memberEvent.content?.membership;
     }
 }
