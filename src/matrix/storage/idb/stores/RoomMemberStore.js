@@ -19,6 +19,11 @@ function encodeKey(roomId, userId) {
     return `${roomId}|${userId}`;
 }
 
+function decodeKey(key) {
+    const [roomId, userId] = key.split("|");
+    return {roomId, userId};
+}
+
 // no historical members
 export class RoomMemberStore {
     constructor(roomMembersStore) {
@@ -39,5 +44,20 @@ export class RoomMemberStore {
         return this._roomMembersStore.selectWhile(range, member => {
             return member.roomId === roomId;
         });
+    }
+
+    async getAllUserIds(roomId) {
+        const userIds = [];
+        const range = IDBKeyRange.lowerBound(encodeKey(roomId, ""));
+        await this._roomMembersStore.iterateKeys(range, key => {
+            const decodedKey = decodedKey(key);
+            // prevent running into the next room
+            if (decodedKey.roomId === roomId) {
+                userIds.push(decodedKey.userId);
+                return false;   // fetch more
+            }
+            return true; // done
+        });
+        return userIds;
     }
 }

@@ -331,5 +331,15 @@ export class Room extends EventEmitter {
     get mediaRepository() {
         return this._hsApi.mediaRepository;
     }
+
+    /** @package */
+    writeIsTrackingMembers(value, txn) {
+        return this._summary.writeIsTrackingMembers(value, txn);
+    }
+
+    /** @package */
+    applyIsTrackingMembersChanges(changes) {
+        this._summary.applyChanges(changes);
+    }
 }
 

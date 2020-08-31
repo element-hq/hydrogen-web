@@ -105,6 +105,13 @@ export class QueryTarget {
         return maxKey;
     }
 
+    async iterateKeys(range, callback) {
+        const cursor = this._target.openKeyCursor(range, "next");
+        await iterateCursor(cursor, (_, key) => {
+            return {done: callback(key)};
+        });
+    }
+
     /**
      * Checks if a given set of keys exist.
      * Calls `callback(key, found)` for each key in `keys`, in key sorting order (or reversed if backwards=true).

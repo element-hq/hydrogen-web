@@ -114,7 +114,11 @@ export class MemberChange {
         return this._member;
     }
 
-    userId() {
+    get roomId() {
+        return this._roomId;
+    }
+
+    get userId() {
         return this._memberEvent.state_key;
     }
 
