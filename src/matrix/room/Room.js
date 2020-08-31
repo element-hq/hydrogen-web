@@ -260,6 +260,10 @@ export class Room extends EventEmitter {
         return !!this._summary.encryption;
     }
 
+    get isTrackingMembers() {
+        return this._summary.isTrackingMembers;
+    }
+
     async _getLastEventId() {
         const lastKey = this._syncWriter.lastMessageKey;
         if (lastKey) {

@@ -147,6 +147,7 @@ class SummaryData {
         this.heroes = copy ? copy.heroes : null;
         this.canonicalAlias = copy ? copy.canonicalAlias : null;
         this.hasFetchedMembers = copy ? copy.hasFetchedMembers : false;
+        this.isTrackingMembers = copy ? copy.isTrackingMembers : false;
         this.lastPaginationToken = copy ? copy.lastPaginationToken : null;
         this.avatarUrl = copy ? copy.avatarUrl : null;
         this.notificationCount = copy ? copy.notificationCount : 0;
@@ -238,6 +239,10 @@ export class RoomSummary {
         return this._data.hasFetchedMembers;
     }
 
+    get isTrackingMembers() {
+        return this._data.isTrackingMembers;
+    }
+
     get lastPaginationToken() {
         return this._data.lastPaginationToken;
     }
@@ -258,6 +263,13 @@ export class RoomSummary {
     writeHasFetchedMembers(value, txn) {
         const data = new SummaryData(this._data);
         data.hasFetchedMembers = value;
+        txn.roomSummary.set(data.serialize());
+        return data;
+    }
+
+    writeIsTrackingMembers(value, txn) {
+        const data = new SummaryData(this._data);
+        data.isTrackingMembers = value;
         txn.roomSummary.set(data.serialize());
         return data;
     }
