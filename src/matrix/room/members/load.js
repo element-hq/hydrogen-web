@@ -31,7 +31,7 @@ async function fetchMembers({summary, roomId, hsApi, storage, setChangedMembersM
     const changedMembersDuringSync = new Map();
     setChangedMembersMap(changedMembersDuringSync);
     
-    const memberResponse = await hsApi.members(roomId, {at: summary.lastPaginationToken}).response;
+    const memberResponse = await hsApi.members(roomId, {at: summary.lastPaginationToken}).response();
 
     const txn = await storage.readWriteTxn([
         storage.storeNames.roomSummary,
