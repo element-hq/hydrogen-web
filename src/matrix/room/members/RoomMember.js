@@ -1,5 +1,4 @@
 /*
-Copyright 2020 Bruno Windels <bruno@windels.cloud>
 Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {getPrevContentFromStateEvent} from "../common.js";
+
 export const EVENT_TYPE = "m.room.member";
 
 export class RoomMember {
@@ -28,7 +29,7 @@ export class RoomMember {
             return;
         }
         const content = memberEvent.content;
-        const prevContent = memberEvent.unsigned?.prev_content;
+        const prevContent = getPrevContentFromStateEvent(memberEvent);
         const membership = content?.membership;
         // fall back to prev_content for these as synapse doesn't (always?)
         // put them on content for "leave" memberships
@@ -45,7 +46,7 @@ export class RoomMember {
         if (typeof userId !== "string") {
             return;
         }
-        const content = memberEvent.unsigned?.prev_content
+        const content = getPrevContentFromStateEvent(memberEvent);
         return this._validateAndCreateMember(roomId, userId,
             content?.membership,
             content?.displayname,
@@ -123,7 +124,7 @@ export class MemberChange {
     }
 
     previousMembership() {
-        return this._memberEvent.unsigned?.prev_content?.membership;
+        return getPrevContentFromStateEvent(this._memberEvent)?.membership;
     }
 
     membership() {
