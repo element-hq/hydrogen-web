@@ -173,15 +173,15 @@ export class Session {
             changes.syncInfo = syncInfo;
         }
         if (this._deviceTracker) {
-            const deviceLists = syncResponse.device_lists;
-            if (deviceLists) {
-                await this._deviceTracker.writeDeviceChanges(deviceLists, txn);
-            }
             for (const {room, changes} of roomChanges) {
                 if (room.isTrackingMembers && changes.memberChanges?.size) {
                     await this._deviceTracker.writeMemberChanges(room, changes.memberChanges, txn);
                 }
             } 
+            const deviceLists = syncResponse.device_lists;
+            if (deviceLists) {
+                await this._deviceTracker.writeDeviceChanges(deviceLists, txn);
+            }
         }
         return changes;
     }
