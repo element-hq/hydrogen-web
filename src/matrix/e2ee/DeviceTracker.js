@@ -40,7 +40,7 @@ export class DeviceTracker {
         this._storage = storage;
         this._getSyncToken = getSyncToken;
         this._identityChangedForRoom = null;
-        this._olm = olm;
+        this._olmUtil = new olm.Utility();
     }
 
     async writeDeviceChanges(deviceLists, txn) {
@@ -217,7 +217,7 @@ export class DeviceTracker {
                 throw new Error("no signature");
             }
             // throws when signature is invalid
-            this._olm.Utility.ed25519_verify(key, canonicalJson, signature);
+            this._olmUtil.ed25519_verify(key, canonicalJson, signature);
             return true;
         } catch (err) {
             console.warn("Invalid device signature, ignoring device.", key, canonicalJson, signature, err);
