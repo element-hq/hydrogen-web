@@ -47,9 +47,13 @@ export class DeviceTracker {
         const {userIdentities} = txn;
         if (Array.isArray(deviceLists.changed) && deviceLists.changed.length) {
             await Promise.all(deviceLists.changed.map(async userId => {
-                const user = await userIdentities.get(userId)
-                user.deviceTrackingStatus = TRACKING_STATUS_OUTDATED;
-                userIdentities.set(user);
+                const user = await userIdentities.get(userId);
+                if (user) {
+                    user.deviceTrackingStatus = TRACKING_STATUS_OUTDATED;
+                    userIdentities.set(user);
+                } else {
+                    console.warn("changed device userid not found", userId);
+                }
             }));
         }
     }
