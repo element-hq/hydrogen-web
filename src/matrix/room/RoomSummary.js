@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {MEGOLM_ALGORITHM} from "../e2ee/common.js";
+
 function applySyncResponse(data, roomResponse, membership, isInitialSync, isTimelineOpen, ownUserId) {
     if (roomResponse.summary) {
         data = updateSummary(data, roomResponse.summary);
@@ -68,9 +70,10 @@ function processRoomAccountData(data, event) {
 
 function processStateEvent(data, event) {
     if (event.type === "m.room.encryption") {
-        if (!data.isEncrypted) {
+        const algorithm = event.content?.algorithm;
+        if (!data.encryption && algorithm === MEGOLM_ALGORITHM) {
             data = data.cloneIfNeeded();
-            data.isEncrypted = true;
+            data.encryption = event.content;
         }
     } else if (event.type === "m.room.name") {
         const newName = event.content?.name;
@@ -113,7 +116,9 @@ function updateSummary(data, summary) {
     const heroes = summary["m.heroes"];
     const joinCount = summary["m.joined_member_count"];
     const inviteCount = summary["m.invited_member_count"];
-
+    // TODO: we could easily calculate if all members are available here and set hasFetchedMembers?
+    // so we can avoid calling /members...
+    // we'd need to do a count query in the roomMembers store though ...
     if (heroes && Array.isArray(heroes)) {
         data = data.cloneIfNeeded();
         data.heroes = heroes;
@@ -136,7 +141,7 @@ class SummaryData {
         this.lastMessageBody = copy ? copy.lastMessageBody : null;
         this.lastMessageTimestamp = copy ? copy.lastMessageTimestamp : null;
         this.isUnread = copy ? copy.isUnread : false;
-        this.isEncrypted = copy ? copy.isEncrypted : false;
+        this.encryption = copy ? copy.encryption : null;
         this.isDirectMessage = copy ? copy.isDirectMessage : false;
         this.membership = copy ? copy.membership : null;
         this.inviteCount = copy ? copy.inviteCount : 0;
@@ -144,6 +149,7 @@ class SummaryData {
         this.heroes = copy ? copy.heroes : null;
         this.canonicalAlias = copy ? copy.canonicalAlias : null;
         this.hasFetchedMembers = copy ? copy.hasFetchedMembers : false;
+        this.isTrackingMembers = copy ? copy.isTrackingMembers : false;
         this.lastPaginationToken = copy ? copy.lastPaginationToken : null;
         this.avatarUrl = copy ? copy.avatarUrl : null;
         this.notificationCount = copy ? copy.notificationCount : 0;
@@ -190,6 +196,11 @@ export class RoomSummary {
         return this._data.heroes;
     }
 
+    get encryption() {
+        return this._data.encryption;
+    }
+
+    // whether the room name should be determined with Heroes
     get needsHeroes() {
         return needsHeroes(this._data);
     }
@@ -230,6 +241,10 @@ export class RoomSummary {
         return this._data.hasFetchedMembers;
     }
 
+    get isTrackingMembers() {
+        return this._data.isTrackingMembers;
+    }
+
     get lastPaginationToken() {
         return this._data.lastPaginationToken;
     }
@@ -250,6 +265,13 @@ export class RoomSummary {
     writeHasFetchedMembers(value, txn) {
         const data = new SummaryData(this._data);
         data.hasFetchedMembers = value;
+        txn.roomSummary.set(data.serialize());
+        return data;
+    }
+
+    writeIsTrackingMembers(value, txn) {
+        const data = new SummaryData(this._data);
+        data.isTrackingMembers = value;
         txn.roomSummary.set(data.serialize());
         return data;
     }

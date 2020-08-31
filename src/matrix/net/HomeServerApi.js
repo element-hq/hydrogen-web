@@ -164,6 +164,10 @@ export class HomeServerApi {
         return this._post("/keys/upload", null, payload, options);
     }
 
+    queryKeys(queryRequest, options = null) {
+        return this._post("/keys/query", null, queryRequest, options);
+    }
+
     get mediaRepository() {
         return this._mediaRepository;
     }

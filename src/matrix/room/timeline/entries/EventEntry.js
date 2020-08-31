@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {BaseEntry} from "./BaseEntry.js";
+import {getPrevContentFromStateEvent} from "../../common.js";
 
 export class EventEntry extends BaseEntry {
     constructor(eventEntry, fragmentIdComparer) {
@@ -35,7 +36,7 @@ export class EventEntry extends BaseEntry {
     }
 
     get prevContent() {
-        return this._eventEntry.event.unsigned?.prev_content;
+        return getPrevContentFromStateEvent(this._eventEntry.event);
     }
 
     get eventType() {

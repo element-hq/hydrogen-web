@@ -100,11 +100,13 @@ export class Sync {
                     this._status.set(SyncStatus.Stopped);
                 }
             }
-            try {
-                await this._session.afterSyncCompleted();
-            } catch (err) {
-                console.err("error during after sync completed, continuing to sync.",  err.stack);
-                // swallowing error here apart from logging
+            if (!this._error) {
+                try {
+                    await this._session.afterSyncCompleted();
+                } catch (err) {
+                    console.err("error during after sync completed, continuing to sync.",  err.stack);
+                    // swallowing error here apart from logging
+                }
             }
         }
     }
@@ -129,11 +131,11 @@ export class Sync {
             storeNames.timelineEvents,
             storeNames.timelineFragments,
             storeNames.pendingEvents,
+            storeNames.userIdentities,
         ]);
         const roomChanges = [];
         let sessionChanges;
         try {
-            sessionChanges = this._session.writeSync(response, syncFilterId, syncTxn);
             // to_device
             // presence
             if (response.rooms) {
@@ -153,6 +155,7 @@ export class Sync {
                 });
                 await Promise.all(promises);
             }
+            sessionChanges = await this._session.writeSync(response, syncFilterId, roomChanges, syncTxn);
         } catch(err) {
             console.warn("aborting syncTxn because of error");
             console.error(err);

@@ -22,6 +22,8 @@ export const STORE_NAMES = Object.freeze([
     "timelineEvents",
     "timelineFragments",
     "pendingEvents",
+    "userIdentities",
+    "deviceIdentities",
 ]);
 
 export const STORE_MAP = Object.freeze(STORE_NAMES.reduce((nameMap, name) => {

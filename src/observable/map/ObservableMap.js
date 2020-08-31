@@ -70,6 +70,10 @@ export class ObservableMap extends BaseObservableMap {
     [Symbol.iterator]() {
         return this._values.entries();
     }
+
+    values() {
+        return this._values.values();
+    }
 }
 
 export function tests() {

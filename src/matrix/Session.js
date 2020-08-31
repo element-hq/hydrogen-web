@@ -19,6 +19,7 @@ import { ObservableMap } from "../observable/index.js";
 import { SendScheduler, RateLimitingBackoff } from "./SendScheduler.js";
 import {User} from "./User.js";
 import {Account as E2EEAccount} from "./e2ee/Account.js";
+import {DeviceTracker} from "./e2ee/DeviceTracker.js";
 const PICKLE_KEY = "DEFAULT_KEY";
 
 export class Session {
@@ -34,6 +35,11 @@ export class Session {
         this._user = new User(sessionInfo.userId);
         this._olm = olm;
         this._e2eeAccount = null;
+        this._deviceTracker = olm ? new DeviceTracker({
+            storage,
+            getSyncToken: () => this.syncToken,
+            olm,
+        }) : null;
     }
 
     async beforeFirstSync(isNewLogin) {
@@ -152,7 +158,7 @@ export class Session {
         return room;
     }
 
-    writeSync(syncResponse, syncFilterId, txn) {
+    async writeSync(syncResponse, syncFilterId, roomChanges, txn) {
         const changes = {};
         const syncToken = syncResponse.next_batch;
         const deviceOneTimeKeysCount = syncResponse.device_one_time_keys_count;
@@ -165,6 +171,17 @@ export class Session {
             // don't modify `this` because transaction might still fail
             txn.session.set("sync", syncInfo);
             changes.syncInfo = syncInfo;
+        }
+        if (this._deviceTracker) {
+            for (const {room, changes} of roomChanges) {
+                if (room.isTrackingMembers && changes.memberChanges?.size) {
+                    await this._deviceTracker.writeMemberChanges(room, changes.memberChanges, txn);
+                }
+            } 
+            const deviceLists = syncResponse.device_lists;
+            if (deviceLists) {
+                await this._deviceTracker.writeDeviceChanges(deviceLists, txn);
+            }
         }
         return changes;
     }
