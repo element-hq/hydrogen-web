@@ -145,6 +145,7 @@ export class Room extends EventEmitter {
     /** @public */
     async loadMemberList() {
         if (this._memberList) {
+            // TODO: also await fetchOrLoadMembers promise here
             this._memberList.retain();
             return this._memberList;
         } else {
