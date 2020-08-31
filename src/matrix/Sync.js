@@ -131,6 +131,7 @@ export class Sync {
             storeNames.timelineEvents,
             storeNames.timelineFragments,
             storeNames.pendingEvents,
+            storeNames.userIdentities,
         ]);
         const roomChanges = [];
         let sessionChanges;
