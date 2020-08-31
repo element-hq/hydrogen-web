@@ -244,7 +244,7 @@ export class DeviceTracker {
         // we check which ones have the roomId for the room we're looking at.
         
         // So, this will also contain non-joined memberships
-        const userIds = await txn.roomMembers.getAllUserIds();
+        const userIds = await txn.roomMembers.getAllUserIds(roomId);
         const allMemberIdentities = await Promise.all(userIds.map(userId => txn.userIdentities.get(userId)));
         identities = allMemberIdentities.filter(identity => {
             // identity will be missing for any userIds that don't have 
