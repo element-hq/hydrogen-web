@@ -24,6 +24,8 @@ import {RoomStateStore} from "./stores/RoomStateStore.js";
 import {RoomMemberStore} from "./stores/RoomMemberStore.js";
 import {TimelineFragmentStore} from "./stores/TimelineFragmentStore.js";
 import {PendingEventStore} from "./stores/PendingEventStore.js";
+import {UserIdentityStore} from "./stores/UserIdentityStore.js";
+import {DeviceIdentityStore} from "./stores/DeviceIdentityStore.js";
 
 export class Transaction {
     constructor(txn, allowedStoreNames) {
@@ -81,6 +83,14 @@ export class Transaction {
         return this._store("pendingEvents", idbStore => new PendingEventStore(idbStore));
     }
 
+    get userIdentities() {
+        return this._store("userIdentities", idbStore => new UserIdentityStore(idbStore));
+    }
+
+    get deviceIdentities() {
+        return this._store("deviceIdentities", idbStore => new DeviceIdentityStore(idbStore));
+    }
+    
     complete() {
         return txnAsPromise(this._txn);
     }
