@@ -137,7 +137,7 @@ export class DeviceTracker {
         // TODO: we need to handle the race here between /sync and /keys/query just like we need to do for the member list ...
         // there are multiple requests going out for /keys/query though and only one for /members
 
-        const deviceKeyResponse = await hsApi.keysQuery({
+        const deviceKeyResponse = await hsApi.queryKeys({
             "timeout": 10000,
             "device_keys": userIds.reduce((deviceKeysMap, userId) => {
                 deviceKeysMap[userId] = [];
