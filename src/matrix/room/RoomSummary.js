@@ -116,7 +116,9 @@ function updateSummary(data, summary) {
     const heroes = summary["m.heroes"];
     const joinCount = summary["m.joined_member_count"];
     const inviteCount = summary["m.invited_member_count"];
-
+    // TODO: we could easily calculate if all members are available here and set hasFetchedMembers?
+    // so we can avoid calling /members...
+    // we'd need to do a count query in the roomMembers store though ...
     if (heroes && Array.isArray(heroes)) {
         data = data.cloneIfNeeded();
         data.heroes = heroes;
