@@ -186,8 +186,8 @@ export class DeviceTracker {
     }
 
     _filterVerifiedDeviceKeys(keyQueryDeviceKeysResponse) {
-        const verifiedKeys = Object.entries(keyQueryDeviceKeysResponse).map((userId, keysByDevice) => {
-            const verifiedKeys = Object.entries(keysByDevice).filter((deviceId, deviceKeys) => {
+        const verifiedKeys = Object.entries(keyQueryDeviceKeysResponse).map(([userId, keysByDevice]) => {
+            const verifiedEntries = Object.entries(keysByDevice).filter(([deviceId, deviceKeys]) => {
                 const deviceIdOnKeys = deviceKeys["device_id"];
                 const userIdOnKeys = deviceKeys["user_id"];
                 if (userIdOnKeys !== userId) {
@@ -198,6 +198,7 @@ export class DeviceTracker {
                 }
                 return this._verifyUserDeviceKeys(deviceKeys);
             });
+            const verifiedKeys = verifiedEntries.map(([, deviceKeys]) => deviceKeys);
             return {userId, verifiedKeys};
         });
         return verifiedKeys;
