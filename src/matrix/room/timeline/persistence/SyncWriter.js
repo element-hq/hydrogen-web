@@ -18,7 +18,7 @@ import {EventKey} from "../EventKey.js";
 import {EventEntry} from "../entries/EventEntry.js";
 import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
 import {createEventEntry} from "./common.js";
-import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";
+import {MemberChange, RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";
 
 // Synapse bug? where the m.room.create event appears twice in sync response
 // when first syncing the room
@@ -102,13 +102,13 @@ export class SyncWriter {
         if (event.type === MEMBER_EVENT_TYPE) {
             const userId = event.state_key;
             if (userId) {
-                const member = RoomMember.fromMemberEvent(this._roomId, event);
-                if (member) {
+                const memberChange = new MemberChange(this._roomId, event);
+                if (memberChange.member) {
                     // as this is sync, we can just replace the member
                     // if it is there already
-                    txn.roomMembers.set(member.serialize());
+                    txn.roomMembers.set(memberChange.member.serialize());
+                    return memberChange;
                 }
-                return member;
             }
         } else {
             txn.roomState.set(this._roomId, event);
@@ -116,22 +116,22 @@ export class SyncWriter {
     }
 
     _writeStateEvents(roomResponse, txn) {
-        const changedMembers = [];
+        const memberChanges = new Map();
         // persist state
         const {state} = roomResponse;
         if (Array.isArray(state?.events)) {
             for (const event of state.events) {
-                const member = this._writeStateEvent(event, txn);
-                if (member) {
-                    changedMembers.push(member);
+                const memberChange = this._writeStateEvent(event, txn);
+                if (memberChange) {
+                    memberChanges.set(memberChange.userId, memberChange);
                 }
             }
         }
-        return changedMembers;
+        return memberChanges;
     }
 
     async _writeTimeline(entries, timeline, currentKey, txn) {
-        const changedMembers = [];
+        const memberChanges = new Map();
         if (timeline.events) {
             const events = deduplicateEvents(timeline.events);
             for(const event of events) {
@@ -148,14 +148,14 @@ export class SyncWriter {
                 
                 // process live state events first, so new member info is available
                 if (typeof event.state_key === "string") {
-                    const member = this._writeStateEvent(event, txn);
-                    if (member) {
-                        changedMembers.push(member);
+                    const memberChange = this._writeStateEvent(event, txn);
+                    if (memberChange) {
+                        memberChanges.set(memberChange.userId, memberChange);
                     }
                 }
             }
         }
-        return {currentKey, changedMembers};
+        return {currentKey, memberChanges};
     }
 
     async _findMemberData(userId, events, txn) {
@@ -198,12 +198,14 @@ export class SyncWriter {
         }
         // important this happens before _writeTimeline so
         // members are available in the transaction
-        const changedMembers = this._writeStateEvents(roomResponse, txn);
+        const memberChanges = this._writeStateEvents(roomResponse, txn);
         const timelineResult = await this._writeTimeline(entries, timeline, currentKey, txn);
         currentKey = timelineResult.currentKey;
-        changedMembers.push(...timelineResult.changedMembers);
-
-        return {entries, newLiveKey: currentKey, changedMembers};
+        // merge member changes from state and timeline, giving precedence to the latter
+        for (const [userId, memberChange] of timelineResult.memberChanges.entries()) {
+            memberChanges.set(userId, memberChange);
+        }
+        return {entries, newLiveKey: currentKey, memberChanges};
     }
 
     afterSync(newLiveKey) {

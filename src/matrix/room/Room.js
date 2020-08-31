@@ -51,7 +51,7 @@ export class Room extends EventEmitter {
             membership,
             isInitialSync, isTimelineOpen,
             txn);
-		const {entries, newLiveKey, changedMembers} = await this._syncWriter.writeSync(roomResponse, txn);
+		const {entries, newLiveKey, memberChanges} = await this._syncWriter.writeSync(roomResponse, txn);
         // fetch new members while we have txn open,
         // but don't make any in-memory changes yet
         let heroChanges;
@@ -60,7 +60,7 @@ export class Room extends EventEmitter {
             if (!this._heroes) {
                 this._heroes = new Heroes(this._roomId);
             }
-            heroChanges = await this._heroes.calculateChanges(summaryChanges.heroes, changedMembers, txn);
+            heroChanges = await this._heroes.calculateChanges(summaryChanges.heroes, memberChanges, txn);
         }
         let removedPendingEvents;
         if (roomResponse.timeline && roomResponse.timeline.events) {
@@ -71,22 +71,22 @@ export class Room extends EventEmitter {
             newTimelineEntries: entries,
             newLiveKey,
             removedPendingEvents,
-            changedMembers,
+            memberChanges,
             heroChanges
         };
     }
 
     /** @package */
-    afterSync({summaryChanges, newTimelineEntries, newLiveKey, removedPendingEvents, changedMembers, heroChanges}) {
+    afterSync({summaryChanges, newTimelineEntries, newLiveKey, removedPendingEvents, memberChanges, heroChanges}) {
         this._syncWriter.afterSync(newLiveKey);
-        if (changedMembers.length) {
+        if (memberChanges.size) {
             if (this._changedMembersDuringSync) {
-                for (const member of changedMembers) {
-                    this._changedMembersDuringSync.set(member.userId, member);
+                for (const [userId, memberChange] of memberChanges.entries()) {
+                    this._changedMembersDuringSync.set(userId, memberChange.member);
                 }
             }
             if (this._memberList) {
-                this._memberList.afterSync(changedMembers);
+                this._memberList.afterSync(memberChanges);
             }
         }
         let emitChange = false;

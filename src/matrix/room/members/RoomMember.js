@@ -99,3 +99,30 @@ export class RoomMember {
         return this._data;
     }
 }
+
+export class MemberChange {
+    constructor(roomId, memberEvent) {
+        this._roomId = roomId;
+        this._memberEvent = memberEvent;
+        this._member = null;
+    }
+
+    get member() {
+        if (!this._member) {
+            this._member = RoomMember.fromMemberEvent(this._roomId, this._memberEvent);
+        }
+        return this._member;
+    }
+
+    userId() {
+        return this._memberEvent.state_key;
+    }
+
+    previousMembership() {
+        return this._memberEvent.unsigned?.prev_content?.membership;
+    }
+
+    membership() {
+        return this._memberEvent.content?.membership;
+    }
+}

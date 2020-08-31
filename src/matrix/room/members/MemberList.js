@@ -26,9 +26,9 @@ export class MemberList {
         this._retentionCount = 1;
     }
 
-    afterSync(updatedMembers) {
-        for (const member of updatedMembers) {
-            this._members.add(member.userId, member);
+    afterSync(memberChanges) {
+        for (const [userId, memberChange] of memberChanges.entries()) {
+            this._members.add(userId, memberChange.member);
         }
     }
 

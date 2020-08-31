@@ -42,11 +42,11 @@ export class Heroes {
 
     /**
      * @param  {string[]} newHeroes      array of user ids
-     * @param  {RoomMember[]} changedMembers array of changed members in this sync
+     * @param  {Map<string, MemberChange>} memberChanges map of changed memberships
      * @param  {Transaction} txn
      * @return {Promise}
      */
-    async calculateChanges(newHeroes, changedMembers, txn) {
+    async calculateChanges(newHeroes, memberChanges, txn) {
         const updatedHeroMembers = new Map();
         const removedUserIds = [];
         // remove non-present members
@@ -56,9 +56,9 @@ export class Heroes {
             }
         }
         // update heroes with synced member changes
-        for (const member of changedMembers) {
-            if (this._members.has(member.userId) || newHeroes.indexOf(member.userId) !== -1) {
-                updatedHeroMembers.set(member.userId, member);
+        for (const [userId, memberChange] of memberChanges.entries()) {
+            if (this._members.has(userId) || newHeroes.indexOf(userId) !== -1) {
+                updatedHeroMembers.set(userId, memberChange.member);
             }
         }
         // load member for new heroes from storage
