@@ -67,6 +67,10 @@ export class RoomMember {
         });
     }
 
+    get membership() {
+        return this._data.membership;
+    }
+
     /**
      * @return {String?} the display name, if any
      */
