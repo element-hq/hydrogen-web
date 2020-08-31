@@ -40,6 +40,7 @@ export class Room extends EventEmitter {
         this._timeline = null;
         this._user = user;
         this._changedMembersDuringSync = null;
+        this._memberList = null;
 	}
 
     /** @package */
