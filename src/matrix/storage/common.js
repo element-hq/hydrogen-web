@@ -24,6 +24,7 @@ export const STORE_NAMES = Object.freeze([
     "pendingEvents",
     "userIdentities",
     "deviceIdentities",
+    "olmSessions",
 ]);
 
 export const STORE_MAP = Object.freeze(STORE_NAMES.reduce((nameMap, name) => {
