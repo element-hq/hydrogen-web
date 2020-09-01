@@ -18,3 +18,11 @@ limitations under the License.
 export const SESSION_KEY_PREFIX = "e2ee:";
 export const OLM_ALGORITHM = "m.olm.v1.curve25519-aes-sha2";
 export const MEGOLM_ALGORITHM = "m.megolm.v1.aes-sha2";
+
+export class DecryptionError extends Error {
+    constructor(code, detailsObj = null) {
+        super(`Decryption error ${code}${detailsObj ? ": "+JSON.stringify(detailsObj) : ""}`);
+        this.code = code;
+        this.details = detailsObj;
+    }
+}

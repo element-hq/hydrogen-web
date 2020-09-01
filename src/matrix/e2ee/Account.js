@@ -31,7 +31,7 @@ export class Account {
             account.unpickle(pickleKey, pickledAccount);
             const serverOTKCount = await txn.session.get(SERVER_OTK_COUNT_SESSION_KEY);
             return new Account({pickleKey, hsApi, account, userId,
-                deviceId, areDeviceKeysUploaded, serverOTKCount});
+                deviceId, areDeviceKeysUploaded, serverOTKCount, olm});
         }
     }
 
@@ -47,10 +47,11 @@ export class Account {
         await txn.session.add(DEVICE_KEY_FLAG_SESSION_KEY, areDeviceKeysUploaded);
         await txn.session.add(SERVER_OTK_COUNT_SESSION_KEY, 0);
         return new Account({pickleKey, hsApi, account, userId,
-            deviceId, areDeviceKeysUploaded, serverOTKCount: 0});
+            deviceId, areDeviceKeysUploaded, serverOTKCount: 0, olm});
     }
 
-    constructor({pickleKey, hsApi, account, userId, deviceId, areDeviceKeysUploaded, serverOTKCount}) {
+    constructor({pickleKey, hsApi, account, userId, deviceId, areDeviceKeysUploaded, serverOTKCount, olm}) {
+        this._olm = olm;
         this._pickleKey = pickleKey;
         this._hsApi = hsApi;
         this._account = account;
@@ -58,6 +59,11 @@ export class Account {
         this._deviceId = deviceId;
         this._areDeviceKeysUploaded = areDeviceKeysUploaded;
         this._serverOTKCount = serverOTKCount;
+        this._identityKeys = JSON.parse(this._account.identity_keys());
+    }
+
+    get identityKeys() {
+        return this._identityKeys;
     }
 
     async uploadKeys(storage) {
@@ -116,6 +122,21 @@ export class Account {
             }
         }
         return false;
+    }
+
+    createInboundOlmSession(senderKey, body) {
+        const newSession = new this._olm.Session();
+        newSession.create_inbound_from(this._account, senderKey, body);
+        return newSession;
+    }
+
+    writeRemoveOneTimeKey(session, txn) {
+        // this is side-effecty and will have applied the change if the txn fails,
+        // but don't want to clone the account for now
+        // and it is not the worst thing to think we have used a OTK when
+        // decrypting the message that actually used it threw for some reason.
+        this._account.remove_one_time_keys(session);
+        txn.session.set(ACCOUNT_SESSION_KEY, this._account.pickle(this._pickleKey));
     }
 
     writeSync(deviceOneTimeKeysCount, txn) {
