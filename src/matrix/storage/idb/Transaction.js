@@ -26,6 +26,7 @@ import {TimelineFragmentStore} from "./stores/TimelineFragmentStore.js";
 import {PendingEventStore} from "./stores/PendingEventStore.js";
 import {UserIdentityStore} from "./stores/UserIdentityStore.js";
 import {DeviceIdentityStore} from "./stores/DeviceIdentityStore.js";
+import {OlmSessionStore} from "./stores/OlmSessionStore.js";
 
 export class Transaction {
     constructor(txn, allowedStoreNames) {
@@ -91,6 +92,10 @@ export class Transaction {
         return this._store("deviceIdentities", idbStore => new DeviceIdentityStore(idbStore));
     }
     
+    get olmSessions() {
+        return this._store("olmSessions", idbStore => new OlmSessionStore(idbStore));
+    }
+
     complete() {
         return txnAsPromise(this._txn);
     }

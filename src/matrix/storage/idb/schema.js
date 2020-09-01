@@ -10,6 +10,7 @@ export const schema = [
     createMemberStore,
     migrateSession,
     createIdentityStores,
+    createOlmSessionStore,
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -69,4 +70,9 @@ async function migrateSession(db, txn) {
 function createIdentityStores(db) {
     db.createObjectStore("userIdentities", {keyPath: "userId"});
     db.createObjectStore("deviceIdentities", {keyPath: "key"});
+}
+
+//v5
+function createOlmSessionStore(db) {
+    db.createObjectStore("olmSessions", {keyPath: "key"});
 }

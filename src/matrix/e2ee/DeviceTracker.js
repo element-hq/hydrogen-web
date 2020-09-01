@@ -36,11 +36,11 @@ function deviceKeysAsDeviceIdentity(deviceSection) {
 }
 
 export class DeviceTracker {
-    constructor({storage, getSyncToken, olm}) {
+    constructor({storage, getSyncToken, olmUtil}) {
         this._storage = storage;
         this._getSyncToken = getSyncToken;
         this._identityChangedForRoom = null;
-        this._olmUtil = new olm.Utility();
+        this._olmUtil = olmUtil;
     }
 
     async writeDeviceChanges(deviceLists, txn) {

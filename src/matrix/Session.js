@@ -35,10 +35,11 @@ export class Session {
         this._user = new User(sessionInfo.userId);
         this._olm = olm;
         this._e2eeAccount = null;
+        const olmUtil = olm ? new olm.Utility() : null;
         this._deviceTracker = olm ? new DeviceTracker({
             storage,
             getSyncToken: () => this.syncToken,
-            olm,
+            olmUtil,
         }) : null;
     }
 
