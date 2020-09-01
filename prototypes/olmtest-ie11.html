@@ -61,6 +61,16 @@
                     JSON.parse(bob.identity_keys()).curve25519,
                     bobOneTimeKey
                 );
+                log("alice outbound session created");
+                var aliceSessionPickled = aliceSession.pickle("secret");
+                log("aliceSession pickled", aliceSessionPickled);
+                try {
+                    var tmp = new Olm.Session();
+                    tmp.unpickle("secret", aliceSessionPickled);
+                    log("aliceSession unpickled");
+                } finally {
+                    tmp.free();
+                }
                 var message = aliceSession.encrypt("hello secret world");
                 log("message", message);
                 // decrypt
