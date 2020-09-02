@@ -49,7 +49,7 @@ export class Decryption {
                         session: session.pickle(this._pickleKey),
                         claimedKeys: event.keys,
                     };
-                    txn.megOlmInboundSessions.set(sessionEntry);
+                    txn.inboundGroupSessions.set(sessionEntry);
                     newSessions.push(sessionEntry);
                 } finally {
                     session.free();
