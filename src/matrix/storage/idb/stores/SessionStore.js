@@ -14,22 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/**
-store contains:
-	loginData {
-		device_id
-		home_server
-		access_token
-		user_id
-	}
-	// flags {
-	// 	lazyLoading?
-	// }
-	syncToken
-	displayName
-	avatarUrl
-	lastSynced
-*/
 export class SessionStore {
 	constructor(sessionStore) {
 		this._sessionStore = sessionStore;
