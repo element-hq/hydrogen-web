@@ -16,6 +16,7 @@ limitations under the License.
 
 import {DecryptionError} from "../common.js";
 import {groupBy} from "../../../utils/groupBy.js";
+import {Session} from "./Session.js";
 
 const SESSION_LIMIT_PER_SENDER_KEY = 4;
 
@@ -166,44 +167,6 @@ export class Decryption {
         // TODO: how important is it to verify the message?
         // we should look at payload.keys.ed25519 for that... and compare it to the key we have fetched
         // from /keys/query, which we might not have done yet at this point.
-    }
-}
-
-class Session {
-    constructor(data, pickleKey, olm, isNew = false) {
-        this.data = data;
-        this._olm = olm;
-        this._pickleKey = pickleKey;
-        this.isNew = isNew;
-        this.isModified = isNew;
-    }
-
-    static create(senderKey, olmSession, olm, pickleKey, timestamp) {
-        return new Session({
-            session: olmSession.pickle(pickleKey),
-            sessionId: olmSession.session_id(),
-            senderKey,
-            lastUsed: timestamp,
-        }, pickleKey, olm, true);
-    }
-
-    get id() {
-        return this.data.sessionId;
-    }
-
-    load() {
-        const session = new this._olm.Session();
-        session.unpickle(this._pickleKey, this.data.session);
-        return session;
-    }
-
-    unload(olmSession) {
-        olmSession.free();
-    }
-
-    save(olmSession) {
-        this.data.session = olmSession.pickle(this._pickleKey);
-        this.isModified = true;
     }
 }
 
