@@ -11,6 +11,7 @@ export const schema = [
     migrateSession,
     createIdentityStores,
     createOlmSessionStore,
+    createInboundGroupSessionsStore,
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -75,4 +76,9 @@ function createIdentityStores(db) {
 //v5
 function createOlmSessionStore(db) {
     db.createObjectStore("olmSessions", {keyPath: "key"});
+}
+
+//v6
+function createInboundGroupSessionsStore(db) {
+    db.createObjectStore("inboundGroupSessions", {keyPath: "key"});
 }

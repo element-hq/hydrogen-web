@@ -20,10 +20,15 @@ import {OLM_ALGORITHM, MEGOLM_ALGORITHM} from "./e2ee/common.js";
 const PENDING_ENCRYPTED_EVENTS = "pendingEncryptedDeviceEvents";
 
 export class DeviceMessageHandler {
-    constructor({storage, olmDecryption, megolmEncryption}) {
+    constructor({storage}) {
         this._storage = storage;
+        this._olmDecryption = null;
+        this._megolmDecryption = null;
+    }
+
+    enableEncryption({olmDecryption, megolmDecryption}) {
         this._olmDecryption = olmDecryption;
-        this._megolmEncryption = megolmEncryption;
+        this._megolmDecryption = megolmDecryption;
     }
 
     async writeSync(toDeviceEvents, txn) {
@@ -35,25 +40,28 @@ export class DeviceMessageHandler {
         // we don't handle anything other for now
     }
 
-    async _handleDecryptedEvents(payloads, txn) {
+    async _writeDecryptedEvents(payloads, txn) {
         const megOlmRoomKeysPayloads = payloads.filter(p => {
-            return p.event.type === "m.room_key" && p.event.content?.algorithm === MEGOLM_ALGORITHM;
+            return p.event?.type === "m.room_key" && p.event.content?.algorithm === MEGOLM_ALGORITHM;
         });
         let megolmChanges;
         if (megOlmRoomKeysPayloads.length) {
-            megolmChanges = await this._megolmEncryption.addRoomKeys(megOlmRoomKeysPayloads, txn);
+            megolmChanges = await this._megolmDecryption.addRoomKeys(megOlmRoomKeysPayloads, txn);
         }
         return {megolmChanges};
     }
 
     applyChanges({megolmChanges}) {
         if (megolmChanges) {
-            this._megolmEncryption.applyRoomKeyChanges(megolmChanges);
+            this._megolmDecryption.applyRoomKeyChanges(megolmChanges);
         }
     }
 
     // not safe to call multiple times without awaiting first call
     async decryptPending() {
+        if (!this._olmDecryption) {
+            return;
+        }
         const readTxn = await this._storage.readTxn([this._storage.storeNames.session]);
         const pendingEvents = this._getPendingEvents(readTxn);
         // only know olm for now
@@ -66,11 +74,11 @@ export class DeviceMessageHandler {
             // both to remove the pending events and to modify the olm account
             this._storage.storeNames.session,
             this._storage.storeNames.olmSessions,
-            // this._storage.storeNames.megolmInboundSessions,
+            this._storage.storeNames.inboundGroupSessions,
         ]);
         let changes;
         try {
-            changes = await this._handleDecryptedEvent(decryptChanges.payloads, txn);
+            changes = await this._writeDecryptedEvents(decryptChanges.payloads, txn);
             decryptChanges.write(txn);
             txn.session.remove(PENDING_ENCRYPTED_EVENTS);
         } catch (err) {

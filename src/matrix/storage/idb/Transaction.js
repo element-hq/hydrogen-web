@@ -27,6 +27,7 @@ import {PendingEventStore} from "./stores/PendingEventStore.js";
 import {UserIdentityStore} from "./stores/UserIdentityStore.js";
 import {DeviceIdentityStore} from "./stores/DeviceIdentityStore.js";
 import {OlmSessionStore} from "./stores/OlmSessionStore.js";
+import {InboundGroupSessionStore} from "./stores/InboundGroupSessionStore.js";
 
 export class Transaction {
     constructor(txn, allowedStoreNames) {
@@ -94,6 +95,10 @@ export class Transaction {
     
     get olmSessions() {
         return this._store("olmSessions", idbStore => new OlmSessionStore(idbStore));
+    }
+    
+    get inboundGroupSessions() {
+        return this._store("inboundGroupSessions", idbStore => new InboundGroupSessionStore(idbStore));
     }
 
     complete() {
