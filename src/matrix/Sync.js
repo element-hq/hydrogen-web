@@ -105,7 +105,7 @@ export class Sync {
                     // TODO: run this in parallel with the next sync request
                     await this._session.afterSyncCompleted();
                 } catch (err) {
-                    console.err("error during after sync completed, continuing to sync.",  err.stack);
+                    console.error("error during after sync completed, continuing to sync.",  err.stack);
                     // swallowing error here apart from logging
                 }
             }
