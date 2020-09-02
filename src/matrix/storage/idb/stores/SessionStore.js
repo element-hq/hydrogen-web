@@ -47,7 +47,7 @@ export class SessionStore {
 	}
 
     add(key, value) {
-        return this._sessionStore.put({key, value});
+        return this._sessionStore.add({key, value});
     }
 
     remove(key) {
