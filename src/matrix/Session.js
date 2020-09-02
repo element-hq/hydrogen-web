@@ -63,7 +63,7 @@ export class Session {
             storage: this._storage,
             olm: this._olm,
         });
-        const megolmDecryption = new MegOlmDecryption({pickleKey: PICKLE_KEY});
+        const megolmDecryption = new MegOlmDecryption({pickleKey: PICKLE_KEY, olm: this._olm});
         this._deviceMessageHandler.enableEncryption({olmDecryption, megolmDecryption});
     }
 

@@ -16,8 +16,9 @@ limitations under the License.
 
 // senderKey is a curve25519 key
 export class Decryption {
-    constructor({pickleKey}) {
+    constructor({pickleKey, olm}) {
         this._pickleKey = pickleKey;
+        this._olm = olm;
     }
 
     async addRoomKeys(payloads, txn) {
