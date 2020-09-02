@@ -19,12 +19,16 @@ import { ObservableMap } from "../observable/index.js";
 import { SendScheduler, RateLimitingBackoff } from "./SendScheduler.js";
 import {User} from "./User.js";
 import {Account as E2EEAccount} from "./e2ee/Account.js";
+import {DeviceMessageHandler} from "./DeviceMessageHandler.js";
+import {Decryption as OlmDecryption} from "./e2ee/olm/Decryption.js";
+import {Decryption as MegOlmDecryption} from "./e2ee/megolm/Decryption.js";
 import {DeviceTracker} from "./e2ee/DeviceTracker.js";
 const PICKLE_KEY = "DEFAULT_KEY";
 
 export class Session {
     // sessionInfo contains deviceId, userId and homeServer
-    constructor({storage, hsApi, sessionInfo, olm}) {
+    constructor({clock, storage, hsApi, sessionInfo, olm}) {
+        this._clock = clock;
         this._storage = storage;
         this._hsApi = hsApi;
         this._syncInfo = null;
@@ -33,16 +37,36 @@ export class Session {
         this._sendScheduler = new SendScheduler({hsApi, backoff: new RateLimitingBackoff()});
         this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
         this._user = new User(sessionInfo.userId);
+        this._deviceMessageHandler = new DeviceMessageHandler({storage});
         this._olm = olm;
+        this._olmUtil = null;
         this._e2eeAccount = null;
-        const olmUtil = olm ? new olm.Utility() : null;
-        this._deviceTracker = olm ? new DeviceTracker({
-            storage,
-            getSyncToken: () => this.syncToken,
-            olmUtil,
-        }) : null;
+        this._deviceTracker = null;
+        if (olm) {
+            this._olmUtil = new olm.Utility();
+            this._deviceTracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => this.syncToken,
+                olmUtil: this._olmUtil,
+            });
+        }
     }
 
+    // called once this._e2eeAccount is assigned
+    _setupEncryption() {
+        const olmDecryption = new OlmDecryption({
+            account: this._e2eeAccount,
+            pickleKey: PICKLE_KEY,
+            now: this._clock.now,
+            ownUserId: this._user.id,
+            storage: this._storage,
+            olm: this._olm,
+        });
+        const megolmDecryption = new MegOlmDecryption({pickleKey: PICKLE_KEY, olm: this._olm});
+        this._deviceMessageHandler.enableEncryption({olmDecryption, megolmDecryption});
+    }
+
+    // called after load
     async beforeFirstSync(isNewLogin) {
         if (this._olm) {
             if (isNewLogin && this._e2eeAccount) {
@@ -66,9 +90,11 @@ export class Session {
                     throw err;
                 }
                 await txn.complete();
+                this._setupEncryption();
             }
             await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
             await this._e2eeAccount.uploadKeys(this._storage);
+            await this._deviceMessageHandler.decryptPending();
         }
     }
 
@@ -93,6 +119,9 @@ export class Session {
                 deviceId: this._sessionInfo.deviceId,
                 txn
             });
+            if (this._e2eeAccount) {
+                this._setupEncryption();
+            }
         }
         const pendingEventsByRoomId = await this._getPendingEventsByRoom(txn);
         // load rooms
@@ -175,6 +204,7 @@ export class Session {
         }
         if (this._deviceTracker) {
             for (const {room, changes} of roomChanges) {
+                // TODO: move this so the room passes this to it's "encryption" object in its own writeSync method?
                 if (room.isTrackingMembers && changes.memberChanges?.size) {
                     await this._deviceTracker.writeMemberChanges(room, changes.memberChanges, txn);
                 }
@@ -183,6 +213,11 @@ export class Session {
             if (deviceLists) {
                 await this._deviceTracker.writeDeviceChanges(deviceLists, txn);
             }
+        }
+
+        const toDeviceEvents = syncResponse.to_device?.events;
+        if (Array.isArray(toDeviceEvents)) {
+            this._deviceMessageHandler.writeSync(toDeviceEvents, txn);
         }
         return changes;
     }
@@ -199,11 +234,14 @@ export class Session {
 
     async afterSyncCompleted() {
         const needsToUploadOTKs = await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
+        const promises = [this._deviceMessageHandler.decryptPending()];
         if (needsToUploadOTKs) {
             // TODO: we could do this in parallel with sync if it proves to be too slow
             // but I'm not sure how to not swallow errors in that case
-            await this._e2eeAccount.uploadKeys(this._storage);
+            promises.push(this._e2eeAccount.uploadKeys(this._storage));
         }
+        // run key upload and decryption in parallel
+        await Promise.all(promises);
     }
 
     get syncToken() {

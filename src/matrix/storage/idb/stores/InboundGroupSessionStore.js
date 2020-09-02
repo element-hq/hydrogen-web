@@ -14,16 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// use common prefix so it's easy to clear properties that are not e2ee related during session clear
-export const SESSION_KEY_PREFIX = "e2ee:";
-export const OLM_ALGORITHM = "m.olm.v1.curve25519-aes-sha2";
-export const MEGOLM_ALGORITHM = "m.megolm.v1.aes-sha2";
+function encodeKey(roomId, senderKey, sessionId) {
+    return `${roomId}|${senderKey}|${sessionId}`;
+}
 
-export class DecryptionError extends Error {
-    constructor(code, event, detailsObj = null) {
-        super(`Decryption error ${code}${detailsObj ? ": "+JSON.stringify(detailsObj) : ""}`);
-        this.code = code;
-        this.event = event;
-        this.details = detailsObj;
+export class InboundGroupSessionStore {
+    constructor(store) {
+        this._store = store;
+    }
+
+    async has(roomId, senderKey, sessionId) {
+        const key = encodeKey(roomId, senderKey, sessionId);
+        const fetchedKey = await this._store.getKey(key);
+        return key === fetchedKey;
+    }
+
+    set(session) {
+        session.key = encodeKey(session.roomId, session.senderKey, session.sessionId);
+        this._store.put(session);
     }
 }

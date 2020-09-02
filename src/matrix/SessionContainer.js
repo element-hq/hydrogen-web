@@ -151,7 +151,8 @@ export class SessionContainer {
             homeServer: sessionInfo.homeServer,
         };
         const olm = await this._olmPromise;
-        this._session = new Session({storage: this._storage, sessionInfo: filteredSessionInfo, hsApi, olm});
+        this._session = new Session({storage: this._storage,
+            sessionInfo: filteredSessionInfo, hsApi, olm, clock: this._clock});
         await this._session.load();
         await this._session.beforeFirstSync(isNewLogin);
         
