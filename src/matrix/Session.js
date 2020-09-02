@@ -27,7 +27,8 @@ const PICKLE_KEY = "DEFAULT_KEY";
 
 export class Session {
     // sessionInfo contains deviceId, userId and homeServer
-    constructor({storage, hsApi, sessionInfo, olm, clock}) {
+    constructor({clock, storage, hsApi, sessionInfo, olm}) {
+        this._clock = clock;
         this._storage = storage;
         this._hsApi = hsApi;
         this._syncInfo = null;
@@ -36,13 +37,11 @@ export class Session {
         this._sendScheduler = new SendScheduler({hsApi, backoff: new RateLimitingBackoff()});
         this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
         this._user = new User(sessionInfo.userId);
-        this._clock = clock;
+        this._deviceMessageHandler = new DeviceMessageHandler({storage});
         this._olm = olm;
         this._olmUtil = null;
         this._e2eeAccount = null;
         this._deviceTracker = null;
-        this._olmDecryption = null;
-        this._deviceMessageHandler = new DeviceMessageHandler({storage});
         if (olm) {
             this._olmUtil = new olm.Utility();
             this._deviceTracker = new DeviceTracker({
