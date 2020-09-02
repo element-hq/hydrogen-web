@@ -63,8 +63,12 @@ export class SessionLoadViewModel extends ViewModel {
             if (loadStatus === LoadStatus.FirstSync || loadStatus === LoadStatus.Ready) {
                 this._sessionCallback(this._sessionContainer);
             }
+            if (this._sessionContainer.loadError) {
+                console.error("session load error", this._sessionContainer.loadError);
+            }
         } catch (err) {
             this._error = err;
+            console.error("error thrown during session load", err.stack);
         } finally {
             this._loading = false;
             // loadLabel in case of sc.loadError also gets updated through this
