@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import anotherjson from "../../../lib/another-json/index.js";
+
 // use common prefix so it's easy to clear properties that are not e2ee related during session clear
 export const SESSION_KEY_PREFIX = "e2ee:";
 export const OLM_ALGORITHM = "m.olm.v1.curve25519-aes-sha2";
@@ -25,5 +27,26 @@ export class DecryptionError extends Error {
         this.code = code;
         this.event = event;
         this.details = detailsObj;
+    }
+}
+
+export const SIGNATURE_ALGORITHM = "ed25519";
+
+export function verifyEd25519Signature(olmUtil, userId, deviceOrKeyId, ed25519Key, value) {
+    const clone = Object.assign({}, value);
+    delete clone.unsigned;
+    delete clone.signatures;
+    const canonicalJson = anotherjson.stringify(clone);
+    const signature = value?.signatures?.[userId]?.[`${SIGNATURE_ALGORITHM}:${deviceOrKeyId}`];
+    try {
+        if (!signature) {
+            throw new Error("no signature");
+        }
+        // throws when signature is invalid
+        this._olmUtil.ed25519_verify(ed25519Key, canonicalJson, signature);
+        return true;
+    } catch (err) {
+        console.warn("Invalid signature, ignoring.", ed25519Key, canonicalJson, signature, err);
+        return false;
     }
 }

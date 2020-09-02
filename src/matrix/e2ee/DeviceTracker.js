@@ -14,12 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import anotherjson from "../../../lib/another-json/index.js";
+import {verifyEd25519Signature, SIGNATURE_ALGORITHM} from "./common.js";
 
 const TRACKING_STATUS_OUTDATED = 0;
 const TRACKING_STATUS_UPTODATE = 1;
-
-const DEVICE_KEYS_SIGNATURE_ALGORITHM = "ed25519";
 
 // map 1 device from /keys/query response to DeviceIdentity
 function deviceKeysAsDeviceIdentity(deviceSection) {
@@ -200,7 +198,7 @@ export class DeviceTracker {
                 if (deviceIdOnKeys !== deviceId) {
                     return false;
                 }
-                return this._verifyUserDeviceKeys(deviceKeys);
+                return this._hasValidSignature(deviceKeys);
             });
             const verifiedKeys = verifiedEntries.map(([, deviceKeys]) => deviceKeys);
             return {userId, verifiedKeys};
@@ -208,26 +206,11 @@ export class DeviceTracker {
         return verifiedKeys;
     }
 
-    _verifyUserDeviceKeys(deviceSection) {
+    _hasValidSignature(deviceSection) {
         const deviceId = deviceSection["device_id"];
         const userId = deviceSection["user_id"];
-        const clone = Object.assign({}, deviceSection);
-        delete clone.unsigned;
-        delete clone.signatures;
-        const canonicalJson = anotherjson.stringify(clone);
-        const key = deviceSection?.keys?.[`${DEVICE_KEYS_SIGNATURE_ALGORITHM}:${deviceId}`];
-        const signature = deviceSection?.signatures?.[userId]?.[`${DEVICE_KEYS_SIGNATURE_ALGORITHM}:${deviceId}`];
-        try {
-            if (!signature) {
-                throw new Error("no signature");
-            }
-            // throws when signature is invalid
-            this._olmUtil.ed25519_verify(key, canonicalJson, signature);
-            return true;
-        } catch (err) {
-            console.warn("Invalid device signature, ignoring device.", key, canonicalJson, signature, err);
-            return false;
-        }
+        const ed25519Key = deviceSection?.keys?.[`${SIGNATURE_ALGORITHM}:${deviceId}`];
+        return verifyEd25519Signature(this._olmUtil, userId, deviceId, ed25519Key, deviceSection);
     }
 
     /**
