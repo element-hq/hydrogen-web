@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {DecryptionError} from "../common.js";
+import {groupBy} from "../../../utils/groupBy.js";
 
 const SESSION_LIMIT_PER_SENDER_KEY = 4;
 
@@ -49,16 +50,7 @@ export class Decryption {
     // 
     // doing it one by one would be possible, but we would lose the opportunity for parallelization
     async decryptAll(events) {
-        const eventsPerSenderKey = events.reduce((map, event) => {
-            const senderKey = event.content?.["sender_key"];
-            let list = map.get(senderKey);
-            if (!list) {
-                list = [];
-                map.set(senderKey, list);
-            }
-            list.push(event);
-            return map;
-        }, new Map());
+        const eventsPerSenderKey = groupBy(events, event => event.content?.["sender_key"]);
         const timestamp = this._now();
         const readSessionsTxn = await this._storage.readTxn([this._storage.storeNames.olmSessions]);
         // decrypt events for different sender keys in parallel
