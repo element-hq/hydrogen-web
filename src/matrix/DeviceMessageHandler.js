@@ -51,7 +51,7 @@ export class DeviceMessageHandler {
         return {megolmChanges};
     }
 
-    applyChanges({megolmChanges}) {
+    _applyDecryptChanges({megolmChanges}) {
         if (megolmChanges) {
             this._megolmDecryption.applyRoomKeyChanges(megolmChanges);
         }
@@ -86,7 +86,7 @@ export class DeviceMessageHandler {
             throw err;
         }
         await txn.complete();
-        this._applyChanges(changes);
+        this._applyDecryptChanges(changes);
     }
 
     async _getPendingEvents(txn) {
