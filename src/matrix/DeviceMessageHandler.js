@@ -34,7 +34,7 @@ export class DeviceMessageHandler {
     async writeSync(toDeviceEvents, txn) {
         const encryptedEvents = toDeviceEvents.filter(e => e.type === "m.room.encrypted");
         // store encryptedEvents
-        let pendingEvents = this._getPendingEvents(txn);
+        let pendingEvents = await this._getPendingEvents(txn);
         pendingEvents = pendingEvents.concat(encryptedEvents);
         txn.session.set(PENDING_ENCRYPTED_EVENTS, pendingEvents);
         // we don't handle anything other for now
@@ -63,7 +63,7 @@ export class DeviceMessageHandler {
             return;
         }
         const readTxn = await this._storage.readTxn([this._storage.storeNames.session]);
-        const pendingEvents = this._getPendingEvents(readTxn);
+        const pendingEvents = await this._getPendingEvents(readTxn);
         // only know olm for now
         const olmEvents = pendingEvents.filter(e => e.content?.algorithm === OLM_ALGORITHM);
         const decryptChanges = await this._olmDecryption.decryptAll(olmEvents);
