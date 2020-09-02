@@ -49,4 +49,8 @@ export class SessionStore {
     add(key, value) {
         return this._sessionStore.put({key, value});
     }
+
+    remove(key) {
+        this._sessionStore.delete(key);
+    }
 }
