@@ -5,3 +5,4 @@
     otherwise synchronous errors can get swallowed
  - only named exports, no default exports
     otherwise it becomes hard to remember what was a default/named export
+ - should we return promises from storage mutation calls? probably not, as we don't await them anywhere. only read calls should return promises?
