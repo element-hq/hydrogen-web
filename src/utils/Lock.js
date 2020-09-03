@@ -67,15 +67,15 @@ export function tests() {
             const lock = new Lock();
             lock.take();
 
-            let first = false;
+            let first;
             lock.released().then(() => first = lock.take());
-            let second = false;
+            let second;
             lock.released().then(() => second = lock.take());
             const promise = lock.released();
             lock.release();
             await promise;
-            assert.equal(first, true);
-            assert.equal(second, false);
+            assert.strictEqual(first, true);
+            assert.strictEqual(second, false);
         },
         "await non-taken lock": async assert => {
             const lock = new Lock();
