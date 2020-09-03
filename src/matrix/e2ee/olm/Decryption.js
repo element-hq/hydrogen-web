@@ -67,7 +67,7 @@ export class Decryption {
             const payloads = results.reduce((all, r) => all.concat(r.payloads), []);
             const errors = results.reduce((all, r) => all.concat(r.errors), []);
             const senderKeyDecryptions = results.map(r => r.senderKeyDecryption);
-            return new DecryptionChanges(senderKeyDecryptions, payloads, errors, locks);
+            return new DecryptionChanges(senderKeyDecryptions, payloads, errors, this._account, locks);
         } catch (err) {
             // make sure the locks are release if something throws
             for (const lock of locks) {
