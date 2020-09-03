@@ -28,6 +28,7 @@ import {UserIdentityStore} from "./stores/UserIdentityStore.js";
 import {DeviceIdentityStore} from "./stores/DeviceIdentityStore.js";
 import {OlmSessionStore} from "./stores/OlmSessionStore.js";
 import {InboundGroupSessionStore} from "./stores/InboundGroupSessionStore.js";
+import {OutboundGroupSessionStore} from "./stores/OutboundGroupSessionStore.js";
 
 export class Transaction {
     constructor(txn, allowedStoreNames) {
@@ -100,7 +101,10 @@ export class Transaction {
     get inboundGroupSessions() {
         return this._store("inboundGroupSessions", idbStore => new InboundGroupSessionStore(idbStore));
     }
-
+    
+    get outboundGroupSessions() {
+        return this._store("outboundGroupSessions", idbStore => new OutboundGroupSessionStore(idbStore));
+    }
     complete() {
         return txnAsPromise(this._txn);
     }

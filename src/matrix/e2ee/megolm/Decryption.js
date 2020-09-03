@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// senderKey is a curve25519 key
 export class Decryption {
     constructor({pickleKey, olm}) {
         this._pickleKey = pickleKey;
