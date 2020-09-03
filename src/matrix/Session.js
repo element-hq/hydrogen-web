@@ -60,6 +60,7 @@ export class Session {
 
     // called once this._e2eeAccount is assigned
     _setupEncryption() {
+        console.log("loaded e2ee account with keys", this._e2eeAccount.identityKeys);
         const senderKeyLock = new LockMap();
         const olmDecryption = new OlmDecryption({
             account: this._e2eeAccount,
