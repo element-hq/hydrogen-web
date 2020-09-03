@@ -111,7 +111,12 @@ export class Decryption {
             plaintext = createResult.plaintext;
         }
         if (typeof plaintext === "string") {
-            const payload = JSON.parse(plaintext);
+            let payload;
+            try {
+                payload = JSON.parse(plaintext);
+            } catch (err) {
+                throw new DecryptionError("Could not JSON decode plaintext", event, {plaintext, err});
+            }
             this._validatePayload(payload, event);
             return {event: payload, senderKey};
         } else {
