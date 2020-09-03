@@ -33,6 +33,11 @@ export class SendQueue {
         this._isSending = false;
         this._offline = false;
         this._amountSent = 0;
+        this._roomEncryption = null;
+    }
+
+    enableEncryption(roomEncryption) {
+        this._roomEncryption = roomEncryption;
     }
 
     async _sendLoop() {
@@ -44,6 +49,13 @@ export class SendQueue {
                 console.log("trying to send", pendingEvent.content.body);
                 if (pendingEvent.remoteId) {
                     continue;
+                }
+                if (pendingEvent.needsEncryption) {
+                    const {type, content} = await this._sendScheduler.request(async hsApi => {
+                        return await this._roomEncryption.encrypt(pendingEvent.eventType, pendingEvent.content, hsApi);
+                    });
+                    pendingEvent.setEncrypted(type, content);
+                    await this._tryUpdateEvent(pendingEvent);
                 }
                 console.log("really sending now");
                 const response = await this._sendScheduler.request(hsApi => {
@@ -156,7 +168,8 @@ export class SendQueue {
                 queueIndex,
                 eventType,
                 content,
-                txnId: makeTxnId()
+                txnId: makeTxnId(),
+                needsEncryption: !!this._roomEncryption
             });
             console.log("_createAndStoreEvent: adding to pendingEventsStore");
             pendingEventsStore.add(pendingEvent.data);
