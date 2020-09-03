@@ -18,9 +18,29 @@ function encodeKey(senderKey, sessionId) {
     return `${senderKey}|${sessionId}`;
 }
 
+function decodeKey(key) {
+    const [senderKey, sessionId] = key.split("|");
+    return {senderKey, sessionId};
+}
+
 export class OlmSessionStore {
     constructor(store) {
         this._store = store;
+    }
+
+    async getSessionIds(senderKey) {
+        const sessionIds = [];
+        const range = IDBKeyRange.lowerBound(encodeKey(senderKey, ""));
+        await this._store.iterateKeys(range, key => {
+            const decodedKey = decodeKey(key);
+            // prevent running into the next room
+            if (decodedKey.senderKey === senderKey) {
+                sessionIds.push(decodedKey.sessionId);
+                return false;   // fetch more
+            }
+            return true; // done
+        });
+        return sessionIds;
     }
 
     getAll(senderKey) {
