@@ -17,14 +17,16 @@ limitations under the License.
 import {groupBy} from "../../utils/groupBy.js";
 import {makeTxnId} from "../common.js";
 
+const ENCRYPTED_TYPE = "m.room.encrypted";
 
 export class RoomEncryption {
-    constructor({room, deviceTracker, olmEncryption, encryptionEventContent}) {
+    constructor({room, deviceTracker, olmEncryption, megolmEncryption, encryptionParams}) {
         this._room = room;
         this._deviceTracker = deviceTracker;
         this._olmEncryption = olmEncryption;
+        this._megolmEncryption = megolmEncryption;
         // content of the m.room.encryption event
-        this._encryptionEventContent = encryptionEventContent;
+        this._encryptionParams = encryptionParams;
     }
 
     async writeMemberChanges(memberChanges, txn) {
@@ -32,15 +34,19 @@ export class RoomEncryption {
     }
 
     async encrypt(type, content, hsApi) {
-        await this._deviceTracker.trackRoom(this._room);
-        const devices = await this._deviceTracker.deviceIdentitiesForTrackedRoom(this._room.id, hsApi);
-        const messages = await this._olmEncryption.encrypt("m.foo", {body: "hello at " + new Date()}, devices, hsApi);
-        await this._sendMessagesToDevices("m.room.encrypted", messages, hsApi);
-        return {type, content};
-        // return {
-        //     type: "m.room.encrypted",
-        //     content: encryptedContent,
-        // }
+        const megolmResult = await this._megolmEncryption.encrypt(this._room.id, type, content, this._encryptionParams);
+        // share the new megolm session if needed
+        if (megolmResult.roomKeyMessage) {
+            await this._deviceTracker.trackRoom(this._room);
+            const devices = await this._deviceTracker.deviceIdentitiesForTrackedRoom(this._room.id, hsApi);
+            const messages = await this._olmEncryption.encrypt(
+                "m.room_key", megolmResult.roomKeyMessage, devices, hsApi);
+            await this._sendMessagesToDevices(ENCRYPTED_TYPE, messages, hsApi);
+        }
+        return {
+            type: ENCRYPTED_TYPE,
+            content: megolmResult.content
+        };
     }
 
     async _sendMessagesToDevices(type, messages, hsApi) {

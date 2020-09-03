@@ -23,6 +23,7 @@ import {DeviceMessageHandler} from "./DeviceMessageHandler.js";
 import {Decryption as OlmDecryption} from "./e2ee/olm/Decryption.js";
 import {Encryption as OlmEncryption} from "./e2ee/olm/Encryption.js";
 import {Decryption as MegOlmDecryption} from "./e2ee/megolm/Decryption.js";
+import {Encryption as MegOlmEncryption} from "./e2ee/megolm/Encryption.js";
 import {RoomEncryption} from "./e2ee/RoomEncryption.js";
 import {DeviceTracker} from "./e2ee/DeviceTracker.js";
 import {LockMap} from "../utils/LockMap.js";
@@ -83,11 +84,19 @@ export class Session {
             olmUtil: this._olmUtil,
             senderKeyLock
         });
+        this._megolmEncryption = new MegOlmEncryption({
+            account: this._e2eeAccount,
+            pickleKey: PICKLE_KEY,
+            olm: this._olm,
+            storage: this._storage,
+            now: this._clock.now,
+            ownDeviceId: this._sessionInfo.deviceId,
+        })
         const megolmDecryption = new MegOlmDecryption({pickleKey: PICKLE_KEY, olm: this._olm});
         this._deviceMessageHandler.enableEncryption({olmDecryption, megolmDecryption});
     }
 
-    _createRoomEncryption(room, encryptionEventContent) {
+    _createRoomEncryption(room, encryptionParams) {
         // TODO: this will actually happen when users start using the e2ee version for the first time
 
         // this should never happen because either a session was already synced once
@@ -103,7 +112,8 @@ export class Session {
             room,
             deviceTracker: this._deviceTracker,
             olmEncryption: this._olmEncryption,
-            encryptionEventContent
+            megolmEncryption: this._megolmEncryption,
+            encryptionParams
         });
     }
 
