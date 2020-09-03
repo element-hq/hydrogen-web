@@ -7,7 +7,7 @@
     "doc": "doc"
   },
   "scripts": {
-    "test": "node_modules/.bin/impunity --entry-point src/main.js --force-esm",
+    "test": "node_modules/.bin/impunity --entry-point src/main.js --force-esm-dirs lib/ src/",
     "start": "node scripts/serve-local.js",
     "build": "node --experimental-modules scripts/build.mjs"
   },
@@ -32,7 +32,7 @@
     "commander": "^6.0.0",
     "core-js": "^3.6.5",
     "finalhandler": "^1.1.1",
-    "impunity": "^0.0.12",
+    "impunity": "^1.0.0",
     "mdn-polyfills": "^5.20.0",
     "postcss": "^7.0.32",
     "postcss-css-variables": "^0.17.0",
