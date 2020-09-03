@@ -107,7 +107,8 @@ export class Encryption {
 
     _encryptForDevice(type, content, target) {
         const {session, device} = target;
-        const message = session.encrypt(this._buildPlainTextMessageForDevice(type, content, device));
+        const plaintext = JSON.stringify(this._buildPlainTextMessageForDevice(type, content, device));
+        const message = session.encrypt(plaintext);
         const encryptedContent = {
             algorithm: OLM_ALGORITHM,
             sender_key: this._account.identityKeys.curve25519,
