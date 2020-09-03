@@ -145,6 +145,7 @@ export class Encryption {
             for (const target of newEncryptionTargets) {
                 target.dispose();
             }
+            throw err;
         }
         return newEncryptionTargets;
     }
