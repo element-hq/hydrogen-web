@@ -31,11 +31,11 @@ function findFirstSessionId(sessionIds) {
 const OTK_ALGORITHM = "signed_curve25519";
 
 export class Encryption {
-    constructor({account, olm, olmUtil, userId, storage, now, pickleKey, senderKeyLock}) {
+    constructor({account, olm, olmUtil, ownUserId, storage, now, pickleKey, senderKeyLock}) {
         this._account = account;
         this._olm = olm;
         this._olmUtil = olmUtil;
-        this._userId = userId;
+        this._ownUserId = ownUserId;
         this._storage = storage;
         this._now = now;
         this._pickleKey = pickleKey;
@@ -127,7 +127,7 @@ export class Encryption {
                 "ed25519": device.ed25519Key
             },
             recipient: device.userId,
-            sender: this._userId,
+            sender: this._ownUserId,
             content,
             type
         }
