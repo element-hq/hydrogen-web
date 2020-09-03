@@ -67,8 +67,8 @@ export class Encryption {
                 await this._loadSessions(existingEncryptionTargets);
                 encryptionTargets = encryptionTargets.concat(existingEncryptionTargets);
                 const messages = encryptionTargets.map(target => {
-                    const content = this._encryptForDevice(type, content, target);
-                    return new EncryptedMessage(content, target.device);
+                    const encryptedContent = this._encryptForDevice(type, content, target);
+                    return new EncryptedMessage(encryptedContent, target.device);
                 });
                 await this._storeSessions(encryptionTargets, timestamp);
                 return messages;
