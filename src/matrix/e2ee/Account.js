@@ -138,7 +138,7 @@ export class Account {
     createOutboundOlmSession(theirIdentityKey, theirOneTimeKey) {
         const newSession = new this._olm.Session();
         try {
-            newSession.create_outbound_from(this._account, theirIdentityKey, theirOneTimeKey);
+            newSession.create_outbound(this._account, theirIdentityKey, theirOneTimeKey);
             return newSession;
         } catch (err) {
             newSession.free();
