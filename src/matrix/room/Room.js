@@ -88,7 +88,9 @@ export class Room extends EventEmitter {
         // encryption got enabled
         if (!this._summary.encryption && summaryChanges.encryption && !this._roomEncryption) {
             this._roomEncryption = this._createRoomEncryption(this, summaryChanges.encryption);
-            this._sendQueue.enableEncryption(this._roomEncryption);
+            if (this._roomEncryption) {
+                this._sendQueue.enableEncryption(this._roomEncryption);
+            }
         }
         if (memberChanges.size) {
             if (this._changedMembersDuringSync) {
@@ -138,7 +140,9 @@ export class Room extends EventEmitter {
             this._summary.load(summary);
             if (this._summary.encryption) {
                 this._roomEncryption = this._createRoomEncryption(this, this._summary.encryption);
-                this._sendQueue.enableEncryption(this._roomEncryption);
+                if (this._roomEncryption) {
+                    this._sendQueue.enableEncryption(this._roomEncryption);
+                }
             }
             // need to load members for name?
             if (this._summary.needsHeroes) {

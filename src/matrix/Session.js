@@ -24,6 +24,7 @@ import {Decryption as OlmDecryption} from "./e2ee/olm/Decryption.js";
 import {Encryption as OlmEncryption} from "./e2ee/olm/Encryption.js";
 import {Decryption as MegOlmDecryption} from "./e2ee/megolm/Decryption.js";
 import {Encryption as MegOlmEncryption} from "./e2ee/megolm/Encryption.js";
+import {MEGOLM_ALGORITHM} from "./e2ee/common.js";
 import {RoomEncryption} from "./e2ee/RoomEncryption.js";
 import {DeviceTracker} from "./e2ee/DeviceTracker.js";
 import {LockMap} from "../utils/LockMap.js";
@@ -107,6 +108,10 @@ export class Session {
         // so any incoming synced rooms won't be there yet
         if (!this._olmEncryption) {
             throw new Error("creating room encryption before encryption got globally enabled");
+        }
+        // only support megolm
+        if (encryptionParams.algorithm !== MEGOLM_ALGORITHM) {
+            return null;
         }
         return new RoomEncryption({
             room,
