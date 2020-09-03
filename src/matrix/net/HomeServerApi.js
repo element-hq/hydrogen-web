@@ -172,6 +172,10 @@ export class HomeServerApi {
         return this._post("/keys/claim", null, payload, options);
     }
 
+    sendToDevice(type, payload, txnId, options = null) {
+        return this._put(`/sendToDevice/${encodeURIComponent(type)}/${encodeURIComponent(txnId)}`, null, payload, options);
+    }
+
     get mediaRepository() {
         return this._mediaRepository;
     }

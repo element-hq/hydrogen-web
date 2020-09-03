@@ -23,6 +23,7 @@ import {DeviceMessageHandler} from "./DeviceMessageHandler.js";
 import {Decryption as OlmDecryption} from "./e2ee/olm/Decryption.js";
 import {Encryption as OlmEncryption} from "./e2ee/olm/Encryption.js";
 import {Decryption as MegOlmDecryption} from "./e2ee/megolm/Decryption.js";
+import {RoomEncryption} from "./e2ee/RoomEncryption.js";
 import {DeviceTracker} from "./e2ee/DeviceTracker.js";
 import {LockMap} from "../utils/LockMap.js";
 
@@ -56,6 +57,7 @@ export class Session {
                 ownDeviceId: sessionInfo.deviceId,
             });
         }
+        this._createRoomEncryption = this._createRoomEncryption.bind(this);
     }
 
     // called once this._e2eeAccount is assigned
@@ -83,6 +85,26 @@ export class Session {
         });
         const megolmDecryption = new MegOlmDecryption({pickleKey: PICKLE_KEY, olm: this._olm});
         this._deviceMessageHandler.enableEncryption({olmDecryption, megolmDecryption});
+    }
+
+    _createRoomEncryption(room, encryptionEventContent) {
+        // TODO: this will actually happen when users start using the e2ee version for the first time
+
+        // this should never happen because either a session was already synced once
+        // and thus an e2ee account was created as well and _setupEncryption is called from load
+        // OR
+        // this is a new session and loading it will load zero rooms, thus not calling this method.
+        // in this case _setupEncryption is called from beforeFirstSync, right after load,
+        // so any incoming synced rooms won't be there yet
+        if (!this._olmEncryption) {
+            throw new Error("creating room encryption before encryption got globally enabled");
+        }
+        return new RoomEncryption({
+            room,
+            deviceTracker: this._deviceTracker,
+            olmEncryption: this._olmEncryption,
+            encryptionEventContent
+        });
     }
 
     // called after load
@@ -202,6 +224,7 @@ export class Session {
             sendScheduler: this._sendScheduler,
             pendingEvents,
             user: this._user,
+            createRoomEncryption: this._createRoomEncryption
         });
         this._rooms.add(roomId, room);
         return room;
@@ -222,12 +245,6 @@ export class Session {
             changes.syncInfo = syncInfo;
         }
         if (this._deviceTracker) {
-            for (const {room, changes} of roomChanges) {
-                // TODO: move this so the room passes this to it's "encryption" object in its own writeSync method?
-                if (room.isTrackingMembers && changes.memberChanges?.size) {
-                    await this._deviceTracker.writeMemberChanges(room, changes.memberChanges, txn);
-                }
-            } 
             const deviceLists = syncResponse.device_lists;
             if (deviceLists) {
                 await this._deviceTracker.writeDeviceChanges(deviceLists, txn);

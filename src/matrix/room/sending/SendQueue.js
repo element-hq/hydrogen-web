@@ -17,12 +17,7 @@ limitations under the License.
 import {SortedArray} from "../../../observable/list/SortedArray.js";
 import {ConnectionError} from "../../error.js";
 import {PendingEvent} from "./PendingEvent.js";
-
-function makeTxnId() {
-    const n = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
-    const str = n.toString(16);
-    return "t" + "0".repeat(14 - str.length) + str;
-}
+import {makeTxnId} from "../../common.js";
 
 export class SendQueue {
     constructor({roomId, storage, sendScheduler, pendingEvents}) {

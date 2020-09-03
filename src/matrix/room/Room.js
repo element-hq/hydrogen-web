@@ -27,7 +27,7 @@ import {MemberList} from "./members/MemberList.js";
 import {Heroes} from "./members/Heroes.js";
 
 export class Room extends EventEmitter {
-	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, pendingEvents, user}) {
+	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, pendingEvents, user, createRoomEncryption}) {
         super();
         this._roomId = roomId;
         this._storage = storage;
@@ -41,6 +41,8 @@ export class Room extends EventEmitter {
         this._user = user;
         this._changedMembersDuringSync = null;
         this._memberList = null;
+        this._createRoomEncryption = createRoomEncryption;
+        this._roomEncryption = null;
 	}
 
     /** @package */
@@ -62,6 +64,10 @@ export class Room extends EventEmitter {
             }
             heroChanges = await this._heroes.calculateChanges(summaryChanges.heroes, memberChanges, txn);
         }
+        // pass member changes to device tracker
+        if (this._roomEncryption && this.isTrackingMembers && memberChanges?.size) {
+            await this._roomEncryption.writeMemberChanges(memberChanges, txn);
+        }
         let removedPendingEvents;
         if (roomResponse.timeline && roomResponse.timeline.events) {
             removedPendingEvents = this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn);
@@ -79,6 +85,10 @@ export class Room extends EventEmitter {
     /** @package */
     afterSync({summaryChanges, newTimelineEntries, newLiveKey, removedPendingEvents, memberChanges, heroChanges}) {
         this._syncWriter.afterSync(newLiveKey);
+        // encryption got enabled
+        if (!this._summary.encryption && summaryChanges.encryption && !this._roomEncryption) {
+            this._roomEncryption = this._createRoomEncryption(this, summaryChanges.encryption);
+        }
         if (memberChanges.size) {
             if (this._changedMembersDuringSync) {
                 for (const [userId, memberChange] of memberChanges.entries()) {
@@ -125,6 +135,9 @@ export class Room extends EventEmitter {
 	async load(summary, txn) {
         try {
             this._summary.load(summary);
+            if (this._summary.encryption) {
+                this._roomEncryption = this._createRoomEncryption(this, this._summary.encryption);
+            }
             // need to load members for name?
             if (this._summary.needsHeroes) {
                 this._heroes = new Heroes(this._roomId);
