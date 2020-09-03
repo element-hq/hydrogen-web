@@ -64,6 +64,9 @@ export class DeviceMessageHandler {
         }
         const readTxn = await this._storage.readTxn([this._storage.storeNames.session]);
         const pendingEvents = await this._getPendingEvents(readTxn);
+        if (pendingEvents.length === 0) {
+           return;
+        }
         // only know olm for now
         const olmEvents = pendingEvents.filter(e => e.content?.algorithm === OLM_ALGORITHM);
         const decryptChanges = await this._olmDecryption.decryptAll(olmEvents);

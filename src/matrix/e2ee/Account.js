@@ -126,8 +126,24 @@ export class Account {
 
     createInboundOlmSession(senderKey, body) {
         const newSession = new this._olm.Session();
-        newSession.create_inbound_from(this._account, senderKey, body);
-        return newSession;
+        try {
+            newSession.create_inbound_from(this._account, senderKey, body);
+            return newSession;
+        } catch (err) {
+            newSession.free();
+            throw err;
+        }
+    }
+
+    createOutboundOlmSession(theirIdentityKey, theirOneTimeKey) {
+        const newSession = new this._olm.Session();
+        try {
+            newSession.create_outbound(this._account, theirIdentityKey, theirOneTimeKey);
+            return newSession;
+        } catch (err) {
+            newSession.free();
+            throw err;
+        }
     }
 
     writeRemoveOneTimeKey(session, txn) {

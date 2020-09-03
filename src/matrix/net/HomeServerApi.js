@@ -168,6 +168,10 @@ export class HomeServerApi {
         return this._post("/keys/query", null, queryRequest, options);
     }
 
+    claimKeys(payload, options = null) {
+        return this._post("/keys/claim", null, payload, options);
+    }
+
     get mediaRepository() {
         return this._mediaRepository;
     }

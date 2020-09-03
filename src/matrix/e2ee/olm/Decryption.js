@@ -15,6 +15,8 @@ limitations under the License.
 */
 
 import {DecryptionError} from "../common.js";
+import {groupBy} from "../../../utils/groupBy.js";
+import {Session} from "./Session.js";
 
 const SESSION_LIMIT_PER_SENDER_KEY = 4;
 
@@ -29,14 +31,14 @@ function sortSessions(sessions) {
 }
 
 export class Decryption {
-    constructor({account, pickleKey, now, ownUserId, storage, olm}) {
+    constructor({account, pickleKey, now, ownUserId, storage, olm, senderKeyLock}) {
         this._account = account;
         this._pickleKey = pickleKey;
         this._now = now;
         this._ownUserId = ownUserId;
         this._storage = storage;
         this._olm = olm;
-        this._createOutboundSessionPromise = null;
+        this._senderKeyLock = senderKeyLock;
     }
 
     // we need decryptAll because there is some parallelization we can do for decrypting different sender keys at once
@@ -49,26 +51,30 @@ export class Decryption {
     // 
     // doing it one by one would be possible, but we would lose the opportunity for parallelization
     async decryptAll(events) {
-        const eventsPerSenderKey = events.reduce((map, event) => {
-            const senderKey = event.content?.["sender_key"];
-            let list = map.get(senderKey);
-            if (!list) {
-                list = [];
-                map.set(senderKey, list);
-            }
-            list.push(event);
-            return map;
-        }, new Map());
+        const eventsPerSenderKey = groupBy(events, event => event.content?.["sender_key"]);
         const timestamp = this._now();
-        const readSessionsTxn = await this._storage.readTxn([this._storage.storeNames.olmSessions]);
-        // decrypt events for different sender keys in parallel
-        const results = await Promise.all(Array.from(eventsPerSenderKey.entries()).map(([senderKey, events]) => {
-            return this._decryptAllForSenderKey(senderKey, events, timestamp, readSessionsTxn);
+        // take a lock on all senderKeys so encryption or other calls to decryptAll (should not happen)
+        // don't modify the sessions at the same time
+        const locks = await Promise.all(Array.from(eventsPerSenderKey.keys()).map(senderKey => {
+            return this._senderKeyLock.takeLock(senderKey);
         }));
-        const payloads = results.reduce((all, r) => all.concat(r.payloads), []);
-        const errors = results.reduce((all, r) => all.concat(r.errors), []);
-        const senderKeyDecryptions = results.map(r => r.senderKeyDecryption);
-        return new DecryptionChanges(senderKeyDecryptions, payloads, errors);
+        try {
+            const readSessionsTxn = await this._storage.readTxn([this._storage.storeNames.olmSessions]);
+            // decrypt events for different sender keys in parallel
+            const results = await Promise.all(Array.from(eventsPerSenderKey.entries()).map(([senderKey, events]) => {
+                return this._decryptAllForSenderKey(senderKey, events, timestamp, readSessionsTxn);
+            }));
+            const payloads = results.reduce((all, r) => all.concat(r.payloads), []);
+            const errors = results.reduce((all, r) => all.concat(r.errors), []);
+            const senderKeyDecryptions = results.map(r => r.senderKeyDecryption);
+            return new DecryptionChanges(senderKeyDecryptions, payloads, errors, this._account, locks);
+        } catch (err) {
+            // make sure the locks are release if something throws
+            for (const lock of locks) {
+                lock.release();
+            }
+            throw err;
+        }
     }
 
     async _decryptAllForSenderKey(senderKey, events, timestamp, readSessionsTxn) {
@@ -105,7 +111,12 @@ export class Decryption {
             plaintext = createResult.plaintext;
         }
         if (typeof plaintext === "string") {
-            const payload = JSON.parse(plaintext);
+            let payload;
+            try {
+                payload = JSON.parse(plaintext);
+            } catch (err) {
+                throw new DecryptionError("Could not JSON decode plaintext", event, {plaintext, err});
+            }
             this._validatePayload(payload, event);
             return {event: payload, senderKey};
         } else {
@@ -177,44 +188,6 @@ export class Decryption {
     }
 }
 
-class Session {
-    constructor(data, pickleKey, olm, isNew = false) {
-        this.data = data;
-        this._olm = olm;
-        this._pickleKey = pickleKey;
-        this.isNew = isNew;
-        this.isModified = isNew;
-    }
-
-    static create(senderKey, olmSession, olm, pickleKey, timestamp) {
-        return new Session({
-            session: olmSession.pickle(pickleKey),
-            sessionId: olmSession.session_id(),
-            senderKey,
-            lastUsed: timestamp,
-        }, pickleKey, olm, true);
-    }
-
-    get id() {
-        return this.data.sessionId;
-    }
-
-    load() {
-        const session = new this._olm.Session();
-        session.unpickle(this._pickleKey, this.data.session);
-        return session;
-    }
-
-    unload(olmSession) {
-        olmSession.free();
-    }
-
-    save(olmSession) {
-        this.data.session = olmSession.pickle(this._pickleKey);
-        this.isModified = true;
-    }
-}
-
 // decryption helper for a single senderKey
 class SenderKeyDecryption {
     constructor(senderKey, sessions, olm, timestamp) {
@@ -280,11 +253,12 @@ class SenderKeyDecryption {
 }
 
 class DecryptionChanges {
-    constructor(senderKeyDecryptions, payloads, errors, account) {
+    constructor(senderKeyDecryptions, payloads, errors, account, locks) {
         this._senderKeyDecryptions = senderKeyDecryptions;
         this._account = account;    
         this.payloads = payloads;
         this.errors = errors;
+        this._locks = locks;
     }
 
     get hasNewSessions() {
@@ -292,25 +266,31 @@ class DecryptionChanges {
     }
 
     write(txn) {
-        for (const senderKeyDecryption of this._senderKeyDecryptions) {
-            for (const session of senderKeyDecryption.getModifiedSessions()) {
-                txn.olmSessions.set(session.data);
-                if (session.isNew) {
-                    const olmSession = session.load();
-                    try {
-                        this._account.writeRemoveOneTimeKey(olmSession, txn);
-                    } finally {
-                        session.unload(olmSession);
+        try {
+            for (const senderKeyDecryption of this._senderKeyDecryptions) {
+                for (const session of senderKeyDecryption.getModifiedSessions()) {
+                    txn.olmSessions.set(session.data);
+                    if (session.isNew) {
+                        const olmSession = session.load();
+                        try {
+                            this._account.writeRemoveOneTimeKey(olmSession, txn);
+                        } finally {
+                            session.unload(olmSession);
+                        }
+                    }
+                }
+                if (senderKeyDecryption.sessions.length > SESSION_LIMIT_PER_SENDER_KEY) {
+                    const {senderKey, sessions} = senderKeyDecryption;
+                    // >= because index is zero-based
+                    for (let i = sessions.length - 1; i >= SESSION_LIMIT_PER_SENDER_KEY ; i -= 1) {
+                        const session = sessions[i];
+                        txn.olmSessions.remove(senderKey, session.id);
                     }
                 }
             }
-            if (senderKeyDecryption.sessions.length > SESSION_LIMIT_PER_SENDER_KEY) {
-                const {senderKey, sessions} = senderKeyDecryption;
-                // >= because index is zero-based
-                for (let i = sessions.length - 1; i >= SESSION_LIMIT_PER_SENDER_KEY ; i -= 1) {
-                    const session = sessions[i];
-                    txn.olmSessions.remove(senderKey, session.id);
-                }
+        } finally {
+            for (const lock of this._locks) {
+                lock.release();
             }
         }
     }

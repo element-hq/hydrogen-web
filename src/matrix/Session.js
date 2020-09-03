@@ -21,8 +21,11 @@ import {User} from "./User.js";
 import {Account as E2EEAccount} from "./e2ee/Account.js";
 import {DeviceMessageHandler} from "./DeviceMessageHandler.js";
 import {Decryption as OlmDecryption} from "./e2ee/olm/Decryption.js";
+import {Encryption as OlmEncryption} from "./e2ee/olm/Encryption.js";
 import {Decryption as MegOlmDecryption} from "./e2ee/megolm/Decryption.js";
 import {DeviceTracker} from "./e2ee/DeviceTracker.js";
+import {LockMap} from "../utils/LockMap.js";
+
 const PICKLE_KEY = "DEFAULT_KEY";
 
 export class Session {
@@ -42,18 +45,23 @@ export class Session {
         this._olmUtil = null;
         this._e2eeAccount = null;
         this._deviceTracker = null;
+        this._olmEncryption = null;
         if (olm) {
             this._olmUtil = new olm.Utility();
             this._deviceTracker = new DeviceTracker({
                 storage,
                 getSyncToken: () => this.syncToken,
                 olmUtil: this._olmUtil,
+                ownUserId: sessionInfo.userId,
+                ownDeviceId: sessionInfo.deviceId,
             });
         }
     }
 
     // called once this._e2eeAccount is assigned
     _setupEncryption() {
+        console.log("loaded e2ee account with keys", this._e2eeAccount.identityKeys);
+        const senderKeyLock = new LockMap();
         const olmDecryption = new OlmDecryption({
             account: this._e2eeAccount,
             pickleKey: PICKLE_KEY,
@@ -61,6 +69,17 @@ export class Session {
             ownUserId: this._user.id,
             storage: this._storage,
             olm: this._olm,
+            senderKeyLock
+        });
+        this._olmEncryption = new OlmEncryption({
+            account: this._e2eeAccount,
+            pickleKey: PICKLE_KEY,
+            now: this._clock.now,
+            ownUserId: this._user.id,
+            storage: this._storage,
+            olm: this._olm,
+            olmUtil: this._olmUtil,
+            senderKeyLock
         });
         const megolmDecryption = new MegOlmDecryption({pickleKey: PICKLE_KEY, olm: this._olm});
         this._deviceMessageHandler.enableEncryption({olmDecryption, megolmDecryption});
