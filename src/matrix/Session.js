@@ -18,8 +18,8 @@ import {Room} from "./room/Room.js";
 import { ObservableMap } from "../observable/index.js";
 import { SendScheduler, RateLimitingBackoff } from "./SendScheduler.js";
 import {User} from "./User.js";
-import {Account as E2EEAccount} from "./e2ee/Account.js";
 import {DeviceMessageHandler} from "./DeviceMessageHandler.js";
+import {Account as E2EEAccount} from "./e2ee/Account.js";
 import {Decryption as OlmDecryption} from "./e2ee/olm/Decryption.js";
 import {Encryption as OlmEncryption} from "./e2ee/olm/Encryption.js";
 import {Decryption as MegOlmDecryption} from "./e2ee/megolm/Decryption.js";
@@ -69,19 +69,19 @@ export class Session {
         const olmDecryption = new OlmDecryption({
             account: this._e2eeAccount,
             pickleKey: PICKLE_KEY,
+            olm: this._olm,
+            storage: this._storage,
             now: this._clock.now,
             ownUserId: this._user.id,
-            storage: this._storage,
-            olm: this._olm,
             senderKeyLock
         });
         this._olmEncryption = new OlmEncryption({
             account: this._e2eeAccount,
             pickleKey: PICKLE_KEY,
+            olm: this._olm,
+            storage: this._storage,
             now: this._clock.now,
             ownUserId: this._user.id,
-            storage: this._storage,
-            olm: this._olm,
             olmUtil: this._olmUtil,
             senderKeyLock
         });
