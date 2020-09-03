@@ -34,11 +34,13 @@ function deviceKeysAsDeviceIdentity(deviceSection) {
 }
 
 export class DeviceTracker {
-    constructor({storage, getSyncToken, olmUtil}) {
+    constructor({storage, getSyncToken, olmUtil, ownUserId, ownDeviceId}) {
         this._storage = storage;
         this._getSyncToken = getSyncToken;
         this._identityChangedForRoom = null;
         this._olmUtil = olmUtil;
+        this._ownUserId = ownUserId;
+        this._ownDeviceId = ownDeviceId;
     }
 
     async writeDeviceChanges(deviceLists, txn) {
@@ -198,6 +200,10 @@ export class DeviceTracker {
                 if (deviceIdOnKeys !== deviceId) {
                     return false;
                 }
+                // don't store our own device
+                if (userId === this._ownUserId && deviceId === this._ownDeviceId) {
+                    return false;
+                }
                 return this._hasValidSignature(deviceKeys);
             });
             const verifiedKeys = verifiedEntries.map(([, deviceKeys]) => deviceKeys);
@@ -258,6 +264,10 @@ export class DeviceTracker {
         if (queriedDevices && queriedDevices.length) {
             flattenedDevices = flattenedDevices.concat(queriedDevices);
         }
-        return flattenedDevices;
+        // filter out our own devices if it got in somehow (even though we should not store it)
+        const devices = flattenedDevices.filter(device => {
+            return !(device.userId === this._ownUserId && device.deviceId === this._ownDeviceId);
+        });
+        return devices;
     }
 }

@@ -50,6 +50,8 @@ export class Session {
                 storage,
                 getSyncToken: () => this.syncToken,
                 olmUtil: this._olmUtil,
+                ownUserId: sessionInfo.userId,
+                ownDeviceId: sessionInfo.deviceId,
             });
         }
     }
