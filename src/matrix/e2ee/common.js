@@ -43,7 +43,7 @@ export function verifyEd25519Signature(olmUtil, userId, deviceOrKeyId, ed25519Ke
             throw new Error("no signature");
         }
         // throws when signature is invalid
-        this._olmUtil.ed25519_verify(ed25519Key, canonicalJson, signature);
+        olmUtil.ed25519_verify(ed25519Key, canonicalJson, signature);
         return true;
     } catch (err) {
         console.warn("Invalid signature, ignoring.", ed25519Key, canonicalJson, signature, err);
