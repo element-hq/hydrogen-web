@@ -31,7 +31,7 @@ function findFirstSessionId(sessionIds) {
 const OTK_ALGORITHM = "signed_curve25519";
 
 export class Encryption {
-    constructor({account, olm, olmUtil, userId, storage, now, pickleKey}) {
+    constructor({account, olm, olmUtil, userId, storage, now, pickleKey, senderKeyLock}) {
         this._account = account;
         this._olm = olm;
         this._olmUtil = olmUtil;
@@ -39,37 +39,47 @@ export class Encryption {
         this._storage = storage;
         this._now = now;
         this._pickleKey = pickleKey;
+        this._senderKeyLock = senderKeyLock;
     }
 
     async encrypt(type, content, devices, hsApi) {
-        const {
-            devicesWithoutSession,
-            existingEncryptionTargets
-        } = await this._findExistingSessions(devices);
-    
-        const timestamp = this._now(); 
-
-        let encryptionTargets = [];
+        // TODO: see if we can only hold some of the locks until after the /keys/claim call (if needed) 
+        // take a lock on all senderKeys so decryption and other calls to encrypt (should not happen)
+        // don't modify the sessions at the same time
+        const locks = await Promise.all(devices.map(device => {
+            return this._senderKeyLock.takeLock(device.curve25519Key);
+        }));
         try {
-            if (devicesWithoutSession.length) {
-                const newEncryptionTargets = await this._createNewSessions(
-                    devicesWithoutSession, hsApi, timestamp);
-                encryptionTargets = encryptionTargets.concat(newEncryptionTargets);
+            const {
+                devicesWithoutSession,
+                existingEncryptionTargets,
+            } = await this._findExistingSessions(devices);
+        
+            const timestamp = this._now(); 
+
+            let encryptionTargets = [];
+            try {
+                if (devicesWithoutSession.length) {
+                    const newEncryptionTargets = await this._createNewSessions(
+                        devicesWithoutSession, hsApi, timestamp);
+                    encryptionTargets = encryptionTargets.concat(newEncryptionTargets);
+                }
+                await this._loadSessions(existingEncryptionTargets);
+                encryptionTargets = encryptionTargets.concat(existingEncryptionTargets);
+                const messages = encryptionTargets.map(target => {
+                    const content = this._encryptForDevice(type, content, target);
+                    return new EncryptedMessage(content, target.device);
+                });
+                await this._storeSessions(encryptionTargets, timestamp);
+                return messages;
+            } finally {
+                for (const target of encryptionTargets) {
+                    target.dispose();
+                }
             }
-            // TODO: if we read and write in two different txns,
-            // is there a chance we overwrite a session modified by the decryption during sync?
-            // I think so. We'll have to have a lock while sending ...
-            await this._loadSessions(existingEncryptionTargets);
-            encryptionTargets = encryptionTargets.concat(existingEncryptionTargets);
-            const messages = encryptionTargets.map(target => {
-                const content = this._encryptForDevice(type, content, target);
-                return new EncryptedMessage(content, target.device);
-            });
-            await this._storeSessions(encryptionTargets, timestamp);
-            return messages;
         } finally {
-            for (const target of encryptionTargets) {
-                target.dispose();
+            for (const lock of locks) {
+                lock.release();
             }
         }
     }

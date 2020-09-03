@@ -23,6 +23,8 @@ import {DeviceMessageHandler} from "./DeviceMessageHandler.js";
 import {Decryption as OlmDecryption} from "./e2ee/olm/Decryption.js";
 import {Decryption as MegOlmDecryption} from "./e2ee/megolm/Decryption.js";
 import {DeviceTracker} from "./e2ee/DeviceTracker.js";
+import {LockMap} from "../utils/LockMap.js";
+
 const PICKLE_KEY = "DEFAULT_KEY";
 
 export class Session {
@@ -54,6 +56,7 @@ export class Session {
 
     // called once this._e2eeAccount is assigned
     _setupEncryption() {
+        const senderKeyLock = new LockMap();
         const olmDecryption = new OlmDecryption({
             account: this._e2eeAccount,
             pickleKey: PICKLE_KEY,
@@ -61,6 +64,7 @@ export class Session {
             ownUserId: this._user.id,
             storage: this._storage,
             olm: this._olm,
+            senderKeyLock
         });
         const megolmDecryption = new MegOlmDecryption({pickleKey: PICKLE_KEY, olm: this._olm});
         this._deviceMessageHandler.enableEncryption({olmDecryption, megolmDecryption});
