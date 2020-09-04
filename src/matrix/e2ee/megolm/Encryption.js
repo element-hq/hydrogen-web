@@ -36,6 +36,7 @@ export class Encryption {
             let roomKeyMessage;
             let encryptedContent;
             try {
+                // TODO: we could consider keeping the session in memory for the current room
                 let sessionEntry = await txn.outboundGroupSessions.get(roomId);
                 if (sessionEntry) {
                     session.unpickle(this._pickleKey, sessionEntry.session);
@@ -114,6 +115,11 @@ export class Encryption {
             session_id: session.session_id(),
             session_key: session.session_key(),
             algorithm: MEGOLM_ALGORITHM,
+            // if we need to do this, do we need to create
+            // the room key message after or before having encrypted
+            // with the new session? I guess before as we do now
+            // because the chain_index is where you should start decrypting?
+            // 
             // chain_index: session.message_index()
         }
     }
