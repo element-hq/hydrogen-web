@@ -111,6 +111,7 @@ export class Decryption {
                 return;
             }
 
+            // TODO: compare first_known_index to see which session to keep
             const hasSession = await txn.inboundGroupSessions.has(roomId, senderKey, sessionId);
             if (!hasSession) {
                 const session = new this._olm.InboundGroupSession();
