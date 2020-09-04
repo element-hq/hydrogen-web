@@ -299,7 +299,7 @@ export class Room extends EventEmitter {
             });
             gapResult = await gapWriter.writeFragmentFill(fragmentEntry, response, txn);
             if (this._roomEncryption) {
-                gapResult.entries = await this._decryptEntries(gapResult.entries, false, txn);
+                gapResult.entries = await this._decryptEntries(gapResult.entries, txn, false);
             }
         } catch (err) {
             txn.abort();
