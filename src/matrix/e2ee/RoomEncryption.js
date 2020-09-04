@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {MEGOLM_ALGORITHM} from "./common.js";
 import {groupBy} from "../../utils/groupBy.js";
 import {makeTxnId} from "../common.js";
 
@@ -44,57 +45,43 @@ export class RoomEncryption {
         return await this._deviceTracker.writeMemberChanges(this._room, memberChanges, txn);
     }
 
-    async decryptNewSyncEvent(id, event, txn) {
-        const payload = await this._megolmDecryption.decryptNewEvent(
-            this._room.id, event, this._megolmSyncCache, txn);
+    async decrypt(event, isSync, retryData, txn) {
+        if (event.content?.algorithm !== MEGOLM_ALGORITHM) {
+            throw new Error("Unsupported algorithm: " + event.content?.algorithm);
+        }
+        let sessionCache = isSync ? this._megolmSyncCache : this._megolmBackfillCache;
+        const payload = await this._megolmDecryption.decrypt(
+            this._room.id, event, sessionCache, txn);
         if (!payload) {
-            this._addMissingSessionEvent(id, event);
+            this._addMissingSessionEvent(event, isSync, retryData);
         }
         return payload;
     }
 
-    async decryptNewGapEvent(id, event, txn) {
-        const payload = await this._megolmDecryption.decryptNewEvent(
-            this._room.id, event, this._megolmBackfillCache, txn);
-        if (!payload) {
-            this._addMissingSessionEvent(id, event);
-        }
-        return payload;
-    }
-
-    async decryptStoredEvent(id, event, txn) {
-        const payload = await this._megolmDecryption.decryptStoredEvent(
-            this._room.id, event, this._megolmBackfillCache, txn);
-        if (!payload) {
-            this._addMissingSessionEvent(id, event);
-        }
-        return payload;
-    }
-
-    _addMissingSessionEvent(id, event) {
+    _addMissingSessionEvent(event, isSync, data) {
         const senderKey = event.content?.["sender_key"];
         const sessionId = event.content?.["session_id"];
         const key = `${senderKey}|${sessionId}`;
         let eventIds = this._eventIdsByMissingSession.get(key);
         if (!eventIds) {
-            eventIds = new Set();
+            eventIds = new Map();
             this._eventIdsByMissingSession.set(key, eventIds);
         }
-        eventIds.add(id);
+        eventIds.set(event.event_id, {data, isSync});
     }
 
     applyRoomKeys(roomKeys) {
         // retry decryption with the new sessions
-        const idsToRetry = [];
+        const retryEntries = [];
         for (const roomKey of roomKeys) {
             const key = `${roomKey.senderKey}|${roomKey.sessionId}`;
-            const idsForSession = this._eventIdsByMissingSession.get(key);
-            if (idsForSession) {
+            const entriesForSession = this._eventIdsByMissingSession.get(key);
+            if (entriesForSession) {
                 this._eventIdsByMissingSession.delete(key);
-                idsToRetry.push(...Array.from(idsForSession));
+                retryEntries.push(...entriesForSession.values());
             }
         }
-        return idsToRetry;
+        return retryEntries;
     }
 
     async encrypt(type, content, hsApi) {

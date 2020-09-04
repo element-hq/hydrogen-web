@@ -28,19 +28,7 @@ export class Decryption {
         return new SessionCache();
     }
 
-    async decryptNewEvent(roomId, event, sessionCache, txn) {
-        const {payload, messageIndex} = this._decrypt(roomId, event, sessionCache, txn);
-        const sessionId = event.content?.["session_id"];
-        this._handleReplayAttacks(roomId, sessionId, messageIndex, event, txn);
-        return payload;
-    }
-
-    async decryptStoredEvent(roomId, event, sessionCache, txn) {
-        const {payload} = this._decrypt(roomId, event, sessionCache, txn);
-        return payload;
-    }
-
-    async _decrypt(roomId, event, sessionCache, txn) {
+    async decrypt(roomId, event, sessionCache, txn) {
         const senderKey = event.content?.["sender_key"];
         const sessionId = event.content?.["session_id"];
         const ciphertext = event.content?.ciphertext;
@@ -75,16 +63,18 @@ export class Decryption {
         try {
             payload = JSON.parse(plaintext);
         } catch (err) {
-            throw new DecryptionError("NOT_JSON", event, {plaintext, err});
+            throw new DecryptionError("PLAINTEXT_NOT_JSON", event, {plaintext, err});
         }
         if (payload.room_id !== roomId) {
             throw new DecryptionError("MEGOLM_WRONG_ROOM", event,
                 {encryptedRoomId: payload.room_id, eventRoomId: roomId});
         }
-        return {payload, messageIndex};
+        await this._handleReplayAttack(roomId, sessionId, messageIndex, event, txn);
+        // TODO: verify event came from said senderKey
+        return payload;
     }
 
-    async _handleReplayAttacks(roomId, sessionId, messageIndex, event, txn) {
+    async _handleReplayAttack(roomId, sessionId, messageIndex, event, txn) {
         const eventId = event.event_id;
         const timestamp = event.origin_server_ts;
         const decryption = await txn.groupSessionDecryptions.get(roomId, sessionId, messageIndex);
@@ -92,7 +82,7 @@ export class Decryption {
             // the one with the newest timestamp should be the attack
             const decryptedEventIsBad = decryption.timestamp < timestamp;
             const badEventId = decryptedEventIsBad ? eventId : decryption.eventId;
-            throw new DecryptionError("MEGOLM_REPLAY_ATTACK", event, {badEventId, otherEventId: decryption.eventId});
+            throw new DecryptionError("MEGOLM_REPLAYED_INDEX", event, {badEventId, otherEventId: decryption.eventId});
         }
         if (!decryption) {
             txn.groupSessionDecryptions.set({

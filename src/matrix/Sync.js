@@ -133,6 +133,8 @@ export class Sync {
             storeNames.timelineFragments,
             storeNames.pendingEvents,
             storeNames.userIdentities,
+            storeNames.inboundGroupSessions,
+            storeNames.groupSessionDecryptions,
         ]);
         const roomChanges = [];
         let sessionChanges;

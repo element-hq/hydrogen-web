@@ -41,6 +41,22 @@ export class SortedArray extends BaseObservableList {
         }
     }
 
+    replace(item) {
+        const idx = this.indexOf(item);
+        if (idx !== -1) {
+            this._items[idx] = item;
+        }
+    }
+
+    indexOf(item) {
+        const idx = sortedIndex(this._items, item, this._comparator);
+        if (idx < this._items.length && this._comparator(this._items[idx], item) === 0) {
+            return idx;
+        } else {
+            return -1;
+        }
+    }
+
     set(item, updateParams = null) {
         const idx = sortedIndex(this._items, item, this._comparator);
         if (idx >= this._items.length || this._comparator(this._items[idx], item) !== 0) {
