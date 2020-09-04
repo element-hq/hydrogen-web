@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {OLM_ALGORITHM, MEGOLM_ALGORITHM} from "./e2ee/common.js";
+import {groupBy} from "../utils/groupBy.js";
 
 // key to store in session store
 const PENDING_ENCRYPTED_EVENTS = "pendingEncryptedDeviceEvents";
@@ -44,21 +45,23 @@ export class DeviceMessageHandler {
         const megOlmRoomKeysPayloads = payloads.filter(p => {
             return p.event?.type === "m.room_key" && p.event.content?.algorithm === MEGOLM_ALGORITHM;
         });
-        let megolmChanges;
+        let roomKeys;
         if (megOlmRoomKeysPayloads.length) {
-            megolmChanges = await this._megolmDecryption.addRoomKeys(megOlmRoomKeysPayloads, txn);
+            roomKeys = await this._megolmDecryption.addRoomKeys(megOlmRoomKeysPayloads, txn);
         }
-        return {megolmChanges};
+        return {roomKeys};
     }
 
-    _applyDecryptChanges({megolmChanges}) {
-        if (megolmChanges) {
-            this._megolmDecryption.applyRoomKeyChanges(megolmChanges);
+    _applyDecryptChanges(rooms, {roomKeys}) {
+        const roomKeysByRoom = groupBy(roomKeys, s => s.roomId);
+        for (const [roomId, roomKeys] of roomKeysByRoom) {
+            const room = rooms.get(roomId);
+            room?.notifyRoomKeys(roomKeys);
         }
     }
 
     // not safe to call multiple times without awaiting first call
-    async decryptPending() {
+    async decryptPending(rooms) {
         if (!this._olmDecryption) {
             return;
         }
@@ -89,7 +92,7 @@ export class DeviceMessageHandler {
             throw err;
         }
         await txn.complete();
-        this._applyDecryptChanges(changes);
+        this._applyDecryptChanges(rooms, changes);
     }
 
     async _getPendingEvents(txn) {

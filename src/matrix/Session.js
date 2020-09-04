@@ -49,6 +49,9 @@ export class Session {
         this._e2eeAccount = null;
         this._deviceTracker = null;
         this._olmEncryption = null;
+        this._megolmEncryption = null;
+        this._megolmDecryption = null;
+
         if (olm) {
             this._olmUtil = new olm.Utility();
             this._deviceTracker = new DeviceTracker({
@@ -92,9 +95,12 @@ export class Session {
             storage: this._storage,
             now: this._clock.now,
             ownDeviceId: this._sessionInfo.deviceId,
-        })
-        const megolmDecryption = new MegOlmDecryption({pickleKey: PICKLE_KEY, olm: this._olm});
-        this._deviceMessageHandler.enableEncryption({olmDecryption, megolmDecryption});
+        });
+        this._megolmDecryption = new MegOlmDecryption({
+            pickleKey: PICKLE_KEY,
+            olm: this._olm,
+        });
+        this._deviceMessageHandler.enableEncryption({olmDecryption, megolmDecryption: this._megolmDecryption});
     }
 
     _createRoomEncryption(room, encryptionParams) {
@@ -118,6 +124,7 @@ export class Session {
             deviceTracker: this._deviceTracker,
             olmEncryption: this._olmEncryption,
             megolmEncryption: this._megolmEncryption,
+            megolmDecryption: this._megolmDecryption,
             encryptionParams
         });
     }
@@ -150,7 +157,7 @@ export class Session {
             }
             await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
             await this._e2eeAccount.uploadKeys(this._storage);
-            await this._deviceMessageHandler.decryptPending();
+            await this._deviceMessageHandler.decryptPending(this.rooms);
         }
     }
 
@@ -285,7 +292,7 @@ export class Session {
 
     async afterSyncCompleted() {
         const needsToUploadOTKs = await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
-        const promises = [this._deviceMessageHandler.decryptPending()];
+        const promises = [this._deviceMessageHandler.decryptPending(this.rooms)];
         if (needsToUploadOTKs) {
             // TODO: we could do this in parallel with sync if it proves to be too slow
             // but I'm not sure how to not swallow errors in that case

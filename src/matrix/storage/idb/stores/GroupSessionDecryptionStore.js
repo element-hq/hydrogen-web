@@ -14,27 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-function encodeKey(roomId, senderKey, sessionId) {
-    return `${roomId}|${senderKey}|${sessionId}`;
+function encodeKey(roomId, sessionId, messageIndex) {
+    return `${roomId}|${sessionId}|${messageIndex}`;
 }
 
-export class InboundGroupSessionStore {
+export class GroupSessionDecryptionStore {
     constructor(store) {
         this._store = store;
     }
 
-    async has(roomId, senderKey, sessionId) {
-        const key = encodeKey(roomId, senderKey, sessionId);
-        const fetchedKey = await this._store.getKey(key);
-        return key === fetchedKey;
+    get(roomId, sessionId, messageIndex) {
+        return this._store.get(encodeKey(roomId, sessionId, messageIndex));
     }
 
-    get(roomId, senderKey, sessionId) {
-        return this._store.get(encodeKey(roomId, senderKey, sessionId));
-    }
-
-    set(session) {
-        session.key = encodeKey(session.roomId, session.senderKey, session.sessionId);
-        this._store.put(session);
+    set(decryption) {
+        decryption.key = encodeKey(decryption.roomId, decryption.sessionId, decryption.messageIndex);
+        this._store.put(decryption);
     }
 }

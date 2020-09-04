@@ -14,23 +14,75 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {MEGOLM_ALGORITHM} from "./common.js";
 import {groupBy} from "../../utils/groupBy.js";
 import {makeTxnId} from "../common.js";
 
 const ENCRYPTED_TYPE = "m.room.encrypted";
 
 export class RoomEncryption {
-    constructor({room, deviceTracker, olmEncryption, megolmEncryption, encryptionParams}) {
+    constructor({room, deviceTracker, olmEncryption, megolmEncryption, megolmDecryption, encryptionParams}) {
         this._room = room;
         this._deviceTracker = deviceTracker;
         this._olmEncryption = olmEncryption;
         this._megolmEncryption = megolmEncryption;
+        this._megolmDecryption = megolmDecryption;
         // content of the m.room.encryption event
         this._encryptionParams = encryptionParams;
+
+        this._megolmBackfillCache = this._megolmDecryption.createSessionCache();
+        this._megolmSyncCache = this._megolmDecryption.createSessionCache();
+        // not `event_id`, but an internal event id passed in to the decrypt methods
+        this._eventIdsByMissingSession = new Map();
+    }
+
+    notifyTimelineClosed() {
+        // empty the backfill cache when closing the timeline
+        this._megolmBackfillCache.dispose();
+        this._megolmBackfillCache = this._megolmDecryption.createSessionCache();
     }
 
     async writeMemberChanges(memberChanges, txn) {
         return await this._deviceTracker.writeMemberChanges(this._room, memberChanges, txn);
+    }
+
+    async decrypt(event, isSync, retryData, txn) {
+        if (event.content?.algorithm !== MEGOLM_ALGORITHM) {
+            throw new Error("Unsupported algorithm: " + event.content?.algorithm);
+        }
+        let sessionCache = isSync ? this._megolmSyncCache : this._megolmBackfillCache;
+        const payload = await this._megolmDecryption.decrypt(
+            this._room.id, event, sessionCache, txn);
+        if (!payload) {
+            this._addMissingSessionEvent(event, isSync, retryData);
+        }
+        return payload;
+    }
+
+    _addMissingSessionEvent(event, isSync, data) {
+        const senderKey = event.content?.["sender_key"];
+        const sessionId = event.content?.["session_id"];
+        const key = `${senderKey}|${sessionId}`;
+        let eventIds = this._eventIdsByMissingSession.get(key);
+        if (!eventIds) {
+            eventIds = new Map();
+            this._eventIdsByMissingSession.set(key, eventIds);
+        }
+        eventIds.set(event.event_id, {data, isSync});
+    }
+
+    applyRoomKeys(roomKeys) {
+        // retry decryption with the new sessions
+        const retryEntries = [];
+        for (const roomKey of roomKeys) {
+            const key = `${roomKey.senderKey}|${roomKey.sessionId}`;
+            const entriesForSession = this._eventIdsByMissingSession.get(key);
+            if (entriesForSession) {
+                this._eventIdsByMissingSession.delete(key);
+                retryEntries.push(...entriesForSession.values());
+            }
+        }
+        return retryEntries;
     }
 
     async encrypt(type, content, hsApi) {

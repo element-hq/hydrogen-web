@@ -18,6 +18,7 @@ import {SortedArray, MappedList, ConcatList} from "../../../observable/index.js"
 import {Direction} from "./Direction.js";
 import {TimelineReader} from "./persistence/TimelineReader.js";
 import {PendingEventEntry} from "./entries/PendingEventEntry.js";
+import {EventEntry} from "./entries/EventEntry.js";
 
 export class Timeline {
     constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, user}) {
@@ -43,6 +44,27 @@ export class Timeline {
     async load() {
         const entries = await this._timelineReader.readFromEnd(50);
         this._remoteEntries.setManySorted(entries);
+    }
+
+    findEntry(eventKey) {
+        // a storage event entry has a fragmentId and eventIndex property, used for sorting,
+        // just like an EventKey, so this will work, but perhaps a bit brittle.
+        const entry = new EventEntry(eventKey, this._fragmentIdComparer);
+        try {
+            const idx = this._remoteEntries.indexOf(entry);
+            if (idx !== -1) {
+                return this._remoteEntries.get(idx);
+            }
+        } catch (err) {
+            // fragmentIdComparer threw, ignore
+            return;
+        }
+    }
+
+    replaceEntries(entries) {
+        for (const entry of entries) {
+            this._remoteEntries.replace(entry);
+        }
     }
 
     // TODO: should we rather have generic methods for
@@ -83,5 +105,9 @@ export class Timeline {
             this._closeCallback();
             this._closeCallback = null;
         }
+    }
+
+    enableEncryption(decryptEntries) {
+        this._timelineReader.enableEncryption(decryptEntries);
     }
 }
