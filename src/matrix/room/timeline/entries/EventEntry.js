@@ -22,7 +22,7 @@ export class EventEntry extends BaseEntry {
         super(fragmentIdComparer);
         this._eventEntry = eventEntry;
         this._decryptionError = null;
-        this._isEncrypted = false;
+        this._decryptedEvent = null;
     }
 
     get event() {
@@ -38,7 +38,7 @@ export class EventEntry extends BaseEntry {
     }
 
     get content() {
-        return this._eventEntry.event.content;
+        return this._decryptedEvent?.content || this._eventEntry.event.content;
     }
 
     get prevContent() {
@@ -46,7 +46,7 @@ export class EventEntry extends BaseEntry {
     }
 
     get eventType() {
-        return this._eventEntry.event.type;
+        return this._decryptedEvent?.type || this._eventEntry.event.type;
     }
 
     get stateKey() {
@@ -74,8 +74,7 @@ export class EventEntry extends BaseEntry {
     }
 
     replaceWithDecrypted(event) {
-        this._eventEntry.event = event;
-        this._isEncrypted = true;
+        this._decryptedEvent = event;
     }
 
     setDecryptionError(err) {
