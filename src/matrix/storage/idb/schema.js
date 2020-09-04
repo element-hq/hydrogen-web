@@ -13,6 +13,7 @@ export const schema = [
     createOlmSessionStore,
     createInboundGroupSessionsStore,
     createOutboundGroupSessionsStore,
+    createGroupSessionDecryptions,
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -89,3 +90,7 @@ function createOutboundGroupSessionsStore(db) {
     db.createObjectStore("outboundGroupSessions", {keyPath: "roomId"});
 }
 
+//v8
+function createGroupSessionDecryptions(db) {
+    db.createObjectStore("groupSessionDecryptions", {keyPath: "key"});
+}
