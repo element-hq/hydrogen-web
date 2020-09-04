@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-function encodeKey(roomId, senderKey, sessionId) {
-    return `${roomId}|${senderKey}|${sessionId}`;
+function encodeKey(roomId, sessionId, messageIndex) {
+    return `${roomId}|${sessionId}|${messageIndex}`;
 }
 
 export class GroupSessionDecryptionStore {
