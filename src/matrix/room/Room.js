@@ -45,6 +45,15 @@ export class Room extends EventEmitter {
         this._roomEncryption = null;
 	}
 
+    notifyRoomKeys(roomKeys) {
+        if (this._roomEncryption) {
+            const internalIdsToRetry = this._roomEncryption.applyRoomKeys(roomKeys);
+            if (this._timeline) {
+
+            }
+        }
+    }
+
     async _decryptSyncEntries(entries, txn) {
         await Promise.all(entries.map(async e => {
             if (e.eventType === "m.room.encrypted") {

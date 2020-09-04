@@ -30,6 +30,8 @@ export class RoomEncryption {
 
         this._megolmBackfillCache = this._megolmDecryption.createSessionCache();
         this._megolmSyncCache = this._megolmDecryption.createSessionCache();
+        // not `event_id`, but an internal event id passed in to the decrypt methods
+        this._eventIdsByMissingSession = new Map();
     }
 
     notifyTimelineClosed() {
@@ -45,19 +47,54 @@ export class RoomEncryption {
     async decryptNewSyncEvent(id, event, txn) {
         const payload = await this._megolmDecryption.decryptNewEvent(
             this._room.id, event, this._megolmSyncCache, txn);
+        if (!payload) {
+            this._addMissingSessionEvent(id, event);
+        }
         return payload;
     }
 
     async decryptNewGapEvent(id, event, txn) {
         const payload = await this._megolmDecryption.decryptNewEvent(
             this._room.id, event, this._megolmBackfillCache, txn);
+        if (!payload) {
+            this._addMissingSessionEvent(id, event);
+        }
         return payload;
     }
 
     async decryptStoredEvent(id, event, txn) {
         const payload = await this._megolmDecryption.decryptStoredEvent(
             this._room.id, event, this._megolmBackfillCache, txn);
+        if (!payload) {
+            this._addMissingSessionEvent(id, event);
+        }
         return payload;
+    }
+
+    _addMissingSessionEvent(id, event) {
+        const senderKey = event.content?.["sender_key"];
+        const sessionId = event.content?.["session_id"];
+        const key = `${senderKey}|${sessionId}`;
+        let eventIds = this._eventIdsByMissingSession.get(key);
+        if (!eventIds) {
+            eventIds = new Set();
+            this._eventIdsByMissingSession.set(key, eventIds);
+        }
+        eventIds.add(id);
+    }
+
+    applyRoomKeys(roomKeys) {
+        // retry decryption with the new sessions
+        const idsToRetry = [];
+        for (const roomKey of roomKeys) {
+            const key = `${roomKey.senderKey}|${roomKey.sessionId}`;
+            const idsForSession = this._eventIdsByMissingSession.get(key);
+            if (idsForSession) {
+                this._eventIdsByMissingSession.delete(key);
+                idsToRetry.push(...Array.from(idsForSession));
+            }
+        }
+        return idsToRetry;
     }
 
     async encrypt(type, content, hsApi) {
