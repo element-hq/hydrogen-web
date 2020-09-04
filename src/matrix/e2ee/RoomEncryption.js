@@ -27,10 +27,37 @@ export class RoomEncryption {
         this._megolmEncryption = megolmEncryption;
         // content of the m.room.encryption event
         this._encryptionParams = encryptionParams;
+
+        this._megolmBackfillCache = this._megolmDecryption.createSessionCache();
+        this._megolmSyncCache = this._megolmDecryption.createSessionCache();
+    }
+
+    notifyTimelineClosed() {
+        // empty the backfill cache when closing the timeline
+        this._megolmBackfillCache.dispose();
+        this._megolmBackfillCache = this._megolmDecryption.createSessionCache();
     }
 
     async writeMemberChanges(memberChanges, txn) {
         return await this._deviceTracker.writeMemberChanges(this._room, memberChanges, txn);
+    }
+
+    async decryptNewSyncEvent(id, event, txn) {
+        const payload = await this._megolmDecryption.decryptNewEvent(
+            this._room.id, event, this._megolmSyncCache, txn);
+        return payload;
+    }
+
+    async decryptNewGapEvent(id, event, txn) {
+        const payload = await this._megolmDecryption.decryptNewEvent(
+            this._room.id, event, this._megolmBackfillCache, txn);
+        return payload;
+    }
+
+    async decryptStoredEvent(id, event, txn) {
+        const payload = await this._megolmDecryption.decryptStoredEvent(
+            this._room.id, event, this._megolmBackfillCache, txn);
+        return payload;
     }
 
     async encrypt(type, content, hsApi) {

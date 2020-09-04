@@ -45,6 +45,22 @@ export class Room extends EventEmitter {
         this._roomEncryption = null;
 	}
 
+    async _decryptSyncEntries(entries, txn) {
+        await Promise.all(entries.map(async e => {
+            if (e.eventType === "m.room.encrypted") {
+                try {
+                    const decryptedEvent = await this._roomEncryption.decryptNewSyncEvent(e.internalId, e.event, txn);
+                    if (decryptedEvent) {
+                        e.replaceWithDecrypted(decryptedEvent);
+                    }
+                } catch (err) {
+                    e.setDecryptionError(err);
+                }
+            }
+        }));
+        return entries;
+    }
+
     /** @package */
     async writeSync(roomResponse, membership, isInitialSync, txn) {
         const isTimelineOpen = !!this._timeline;
@@ -53,7 +69,13 @@ export class Room extends EventEmitter {
             membership,
             isInitialSync, isTimelineOpen,
             txn);
-		const {entries, newLiveKey, memberChanges} = await this._syncWriter.writeSync(roomResponse, txn);
+		const {entries: encryptedEntries, newLiveKey, memberChanges} =
+            await this._syncWriter.writeSync(roomResponse, txn);
+        // decrypt if applicable
+        let entries = encryptedEntries;
+        if (this._roomEncryption) {
+            entries = await this._decryptSyncEntries(encryptedEntries, txn);
+        }
         // fetch new members while we have txn open,
         // but don't make any in-memory changes yet
         let heroChanges;
@@ -341,6 +363,9 @@ export class Room extends EventEmitter {
             closeCallback: () => {
                 console.log(`closing the timeline for ${this._roomId}`);
                 this._timeline = null;
+                if (this._roomEncryption) {
+                    this._roomEncryption.notifyTimelineClosed();
+                }
             },
             user: this._user,
         });

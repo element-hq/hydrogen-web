@@ -150,7 +150,7 @@ export class Session {
             }
             await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
             await this._e2eeAccount.uploadKeys(this._storage);
-            await this._deviceMessageHandler.decryptPending();
+            await this._deviceMessageHandler.decryptPending(this.rooms);
         }
     }
 
@@ -285,7 +285,7 @@ export class Session {
 
     async afterSyncCompleted() {
         const needsToUploadOTKs = await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
-        const promises = [this._deviceMessageHandler.decryptPending()];
+        const promises = [this._deviceMessageHandler.decryptPending(this.rooms)];
         if (needsToUploadOTKs) {
             // TODO: we could do this in parallel with sync if it proves to be too slow
             // but I'm not sure how to not swallow errors in that case
