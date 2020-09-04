@@ -22,6 +22,7 @@ export class EventEntry extends BaseEntry {
         super(fragmentIdComparer);
         this._eventEntry = eventEntry;
         this._decryptionError = null;
+        this._isEncrypted = false;
     }
 
     get fragmentId() {
@@ -30,10 +31,6 @@ export class EventEntry extends BaseEntry {
 
     get entryIndex() {
         return this._eventEntry.eventIndex;
-    }
-
-    get internalId() {
-        return `${this.fragmentId}|${this.entryIndex}`;
     }
 
     get content() {
@@ -74,6 +71,7 @@ export class EventEntry extends BaseEntry {
 
     replaceWithDecrypted(event) {
         this._eventEntry.event = event;
+        this._isEncrypted = true;
     }
 
     setDecryptionError(err) {

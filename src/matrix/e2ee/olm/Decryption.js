@@ -115,7 +115,7 @@ export class Decryption {
             try {
                 payload = JSON.parse(plaintext);
             } catch (err) {
-                throw new DecryptionError("NOT_JSON", event, {plaintext, err});
+                throw new DecryptionError("PLAINTEXT_NOT_JSON", event, {plaintext, err});
             }
             this._validatePayload(payload, event);
             return {event: payload, senderKey};
