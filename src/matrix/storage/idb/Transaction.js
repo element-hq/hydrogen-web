@@ -108,7 +108,7 @@ export class Transaction {
     }
 
     get groupSessionDecryptions() {
-        return this._store("groupSessionDecryptions", idbStore => new OutboundGroupSessionStore(idbStore));
+        return this._store("groupSessionDecryptions", idbStore => new GroupSessionDecryptionStore(idbStore));
     }
 
     complete() {
