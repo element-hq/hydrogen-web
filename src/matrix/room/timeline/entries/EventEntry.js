@@ -25,6 +25,10 @@ export class EventEntry extends BaseEntry {
         this._isEncrypted = false;
     }
 
+    get event() {
+        return this._eventEntry.event;
+    }
+
     get fragmentId() {
         return this._eventEntry.fragmentId;
     }
