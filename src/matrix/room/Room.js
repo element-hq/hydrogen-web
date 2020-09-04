@@ -92,7 +92,9 @@ export class Room extends EventEmitter {
         this._roomEncryption = this._createRoomEncryption(this, encryptionParams);
         if (this._roomEncryption) {
             this._sendQueue.enableEncryption(this._roomEncryption);
-            this._timeline.enableEncryption(this._decryptEntries.bind(this));
+            if (this._timeline) {
+                this._timeline.enableEncryption(this._decryptEntries.bind(this));
+            }
         }
     }
 
