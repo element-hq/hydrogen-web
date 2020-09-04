@@ -42,7 +42,7 @@ export class Encryption {
                 }
                 if (!sessionEntry || this._needsToRotate(session, sessionEntry.createdAt, encryptionParams)) {
                     // in the case of rotating, recreate a session as we already unpickled into it
-                    if (session) {
+                    if (sessionEntry) {
                         session.free();
                         session = new this._olm.OutboundGroupSession();
                     }
