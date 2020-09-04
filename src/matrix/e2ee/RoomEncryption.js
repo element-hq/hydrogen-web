@@ -21,11 +21,12 @@ import {makeTxnId} from "../common.js";
 const ENCRYPTED_TYPE = "m.room.encrypted";
 
 export class RoomEncryption {
-    constructor({room, deviceTracker, olmEncryption, megolmEncryption, encryptionParams}) {
+    constructor({room, deviceTracker, olmEncryption, megolmEncryption, megolmDecryption, encryptionParams}) {
         this._room = room;
         this._deviceTracker = deviceTracker;
         this._olmEncryption = olmEncryption;
         this._megolmEncryption = megolmEncryption;
+        this._megolmDecryption = megolmDecryption;
         // content of the m.room.encryption event
         this._encryptionParams = encryptionParams;
 
