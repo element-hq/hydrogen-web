@@ -115,13 +115,13 @@ export class Decryption {
             try {
                 payload = JSON.parse(plaintext);
             } catch (err) {
-                throw new DecryptionError("Could not JSON decode plaintext", event, {plaintext, err});
+                throw new DecryptionError("NOT_JSON", event, {plaintext, err});
             }
             this._validatePayload(payload, event);
             return {event: payload, senderKey};
         } else {
-            throw new DecryptionError("Didn't find any session to decrypt with", event,
-                {sessionIds: senderKeyDecryption.sessions.map(s => s.id)});
+            throw new DecryptionError("OLM_NO_MATCHING_SESSION", event,
+                {knownSessionIds: senderKeyDecryption.sessions.map(s => s.id)});
         }
     }
 
