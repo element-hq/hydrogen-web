@@ -34,12 +34,14 @@ export class RoomEncryption {
         this._megolmSyncCache = this._megolmDecryption.createSessionCache();
         // not `event_id`, but an internal event id passed in to the decrypt methods
         this._eventIdsByMissingSession = new Map();
+        this._senderDeviceCache = new Map();
     }
 
     notifyTimelineClosed() {
         // empty the backfill cache when closing the timeline
         this._megolmBackfillCache.dispose();
         this._megolmBackfillCache = this._megolmDecryption.createSessionCache();
+        this._senderDeviceCache = new Map();    // purge the sender device cache
     }
 
     async writeMemberChanges(memberChanges, txn) {
@@ -56,7 +58,23 @@ export class RoomEncryption {
         if (!result) {
             this._addMissingSessionEvent(event, isSync, retryData);
         }
+        if (result && isTimelineOpen) {
+            await this._verifyDecryptionResult(result, txn);
+        }
         return result;
+    }
+
+    async _verifyDecryptionResult(result, txn) {
+        let device = this._senderDeviceCache.get(result.senderCurve25519Key);
+        if (!device) {
+            device = await this._deviceTracker.getDeviceByCurve25519Key(result.senderCurve25519Key, txn);
+            this._senderDeviceCache.set(result.senderCurve25519Key, device);
+        }
+        if (device) {
+            result.setDevice(device);
+        } else if (!this._room.isTrackingMembers) {
+            result.setRoomNotTrackedYet();
+        }
     }
 
     _addMissingSessionEvent(event, isSync, data) {

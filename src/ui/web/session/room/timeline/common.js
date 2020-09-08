@@ -22,6 +22,7 @@ export function renderMessage(t, vm, children) {
         "TextMessageView": true,
         own: vm.isOwn,
         pending: vm.isPending,
+        unverified: vm.isUnverified,
         continuation: vm => vm.isContinuation,
     };
 

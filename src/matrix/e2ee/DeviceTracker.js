@@ -270,4 +270,8 @@ export class DeviceTracker {
         });
         return devices;
     }
+
+    async getDeviceByCurve25519Key(curve25519Key, txn) {
+        return await txn.deviceIdentities.getByCurve25519Key(curve25519Key);
+    }
 }

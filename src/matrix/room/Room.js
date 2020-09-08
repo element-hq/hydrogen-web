@@ -57,6 +57,7 @@ export class Room extends EventEmitter {
                     this._storage.storeNames.timelineEvents,
                     this._storage.storeNames.inboundGroupSessions,
                     this._storage.storeNames.groupSessionDecryptions,
+                    this._storage.storeNames.deviceIdentities,
                 ]);
                 try {
                     for (const retryEntry of retryEntries) {
@@ -280,6 +281,7 @@ export class Room extends EventEmitter {
             stores = stores.concat([
                 this._storage.storeNames.inboundGroupSessions,
                 this._storage.storeNames.groupSessionDecryptions,
+                this._storage.storeNames.deviceIdentities,
             ]);
         }
         const txn = await this._storage.readWriteTxn(stores);

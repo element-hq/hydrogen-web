@@ -71,6 +71,10 @@ export class MessageTile extends SimpleTile {
         return this._isContinuation;
     }
 
+    get isUnverified() {
+        return this._entry.isUnverified;
+    }
+
     _getContent() {
         return this._entry.content;
     }

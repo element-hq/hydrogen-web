@@ -135,6 +135,7 @@ export class Sync {
             storeNames.userIdentities,
             storeNames.inboundGroupSessions,
             storeNames.groupSessionDecryptions,
+            storeNames.deviceIdentities,
         ]);
         const roomChanges = [];
         let sessionChanges;

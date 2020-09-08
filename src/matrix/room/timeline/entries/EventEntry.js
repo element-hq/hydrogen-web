@@ -78,6 +78,16 @@ export class EventEntry extends BaseEntry {
         this._decryptionResult = result;
     }
 
+    get isEncrypted() {
+        return this._eventEntry.event.type === "m.room.encrypted";
+    }
+
+    get isVerified() {
+        return this.isEncrypted && this._decryptionResult?.isVerified;
+    }
+
+    get isUnverified() {
+        return this.isEncrypted && this._decryptionResult?.isUnverified;
     }
 
     setDecryptionError(err) {

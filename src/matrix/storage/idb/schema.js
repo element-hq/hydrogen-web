@@ -14,6 +14,7 @@ export const schema = [
     createInboundGroupSessionsStore,
     createOutboundGroupSessionsStore,
     createGroupSessionDecryptions,
+    addSenderKeyIndexToDeviceStore
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -93,4 +94,10 @@ function createOutboundGroupSessionsStore(db) {
 //v8
 function createGroupSessionDecryptions(db) {
     db.createObjectStore("groupSessionDecryptions", {keyPath: "key"});
+}
+
+//v9
+function addSenderKeyIndexToDeviceStore(db, txn) {
+    const deviceIdentities = txn.objectStore("deviceIdentities");
+    deviceIdentities.createIndex("byCurve25519Key", "curve25519Key", {unique: true});
 }
