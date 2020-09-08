@@ -65,7 +65,7 @@ export class DeviceTracker {
     }
 
     async trackRoom(room) {
-        if (room.isTrackingMembers) {
+        if (room.isTrackingMembers || !room.isEncrypted) {
             return;
         }
         const memberList = await room.loadMemberList();
@@ -230,8 +230,7 @@ export class DeviceTracker {
      * @param  {String} roomId [description]
      * @return {[type]}        [description]
      */
-    async deviceIdentitiesForTrackedRoom(roomId, hsApi) {
-        let identities;
+    async devicesForTrackedRoom(roomId, hsApi) {
         const txn = await this._storage.readTxn([
             this._storage.storeNames.roomMembers,
             this._storage.storeNames.userIdentities,
@@ -243,8 +242,27 @@ export class DeviceTracker {
         
         // So, this will also contain non-joined memberships
         const userIds = await txn.roomMembers.getAllUserIds(roomId);
-        const allMemberIdentities = await Promise.all(userIds.map(userId => txn.userIdentities.get(userId)));
-        identities = allMemberIdentities.filter(identity => {
+
+        return await this._devicesForUserIds(roomId, userIds, txn, hsApi);
+    }
+
+    async devicesForRoomMembers(roomId, userIds, hsApi) {
+        const txn = await this._storage.readTxn([
+            this._storage.storeNames.userIdentities,
+        ]);
+        return await this._devicesForUserIds(roomId, userIds, txn, hsApi);
+    }
+
+    /**
+     * @param  {string} roomId  [description]
+     * @param  {Array<string>} userIds a set of user ids to try and find the identity for. Will be check to belong to roomId.
+     * @param  {Transaction} userIdentityTxn to read the user identities
+     * @param  {HomeServerApi} hsApi
+     * @return {Array<DeviceIdentity>}
+     */
+    async _devicesForUserIds(roomId, userIds, userIdentityTxn, hsApi) {
+        const allMemberIdentities = await Promise.all(userIds.map(userId => userIdentityTxn.userIdentities.get(userId)));
+        const identities = allMemberIdentities.filter(identity => {
             // identity will be missing for any userIds that don't have 
             // membership join in any of your encrypted rooms
             return identity && identity.roomIds.includes(roomId);
