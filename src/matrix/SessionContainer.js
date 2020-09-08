@@ -28,6 +28,7 @@ export const LoadStatus = createEnum(
     "Login",
     "LoginFailed",
     "Loading",
+    "SessionSetup", // upload e2ee keys, ...
     "Migrating",    //not used atm, but would fit here
     "FirstSync",
     "Error",
@@ -154,6 +155,7 @@ export class SessionContainer {
         this._session = new Session({storage: this._storage,
             sessionInfo: filteredSessionInfo, hsApi, olm, clock: this._clock});
         await this._session.load();
+        this._status.set(LoadStatus.SessionSetup);
         await this._session.beforeFirstSync(isNewLogin);
         
         this._sync = new Sync({hsApi, storage: this._storage, session: this._session});

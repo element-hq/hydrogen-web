@@ -127,6 +127,8 @@ export class SessionLoadViewModel extends ViewModel {
                             return `Something went wrong while checking your login and password.`;
                     }
                     break;
+                case LoadStatus.SessionSetup:
+                    return `Setting up your encryption keys…`;
                 case LoadStatus.Loading:
                     return `Loading your conversations…`;
                 case LoadStatus.FirstSync:
