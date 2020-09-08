@@ -128,6 +128,22 @@ export class RoomEncryption {
         };
     }
 
+    needsToShareKeys(memberChanges) {
+        for (const m of memberChanges.values()) {
+            if (m.member.needsRoomKey) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    async shareRoomKeyToPendingMembers(hsApi) {
+        // sucks to call this for all encrypted rooms on startup?
+        const txn = await this._storage.readTxn([this._storage.storeNames.roomMembers]);
+        const pendingUserIds = await txn.roomMembers.getUserIdsNeedingRoomKey(this._room.id);
+        return await this._shareRoomKey(pendingUserIds, hsApi);
+    }
+
     async shareRoomKeyForMemberChanges(memberChanges, hsApi) {
         const pendingUserIds = [];
         for (const m of memberChanges.values()) {

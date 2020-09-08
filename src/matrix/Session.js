@@ -125,6 +125,7 @@ export class Session {
             olmEncryption: this._olmEncryption,
             megolmEncryption: this._megolmEncryption,
             megolmDecryption: this._megolmDecryption,
+            storage: this._storage,
             encryptionParams
         });
     }

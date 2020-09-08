@@ -157,7 +157,8 @@ export class Room extends EventEmitter {
             newLiveKey,
             removedPendingEvents,
             memberChanges,
-            heroChanges
+            heroChanges,
+            needsAfterSyncCompleted: this._roomEncryption?.needsToShareKeys(memberChanges)
         };
     }
 
@@ -203,6 +204,17 @@ export class Room extends EventEmitter {
             this._sendQueue.emitRemovals(removedPendingEvents);
         }
 	}
+
+    /**
+     * Only called if the result of writeSync had `needsAfterSyncCompleted` set.
+     * Can be used to do longer running operations that resulted from the last sync,
+     * like network operations.
+     */
+    async afterSyncCompleted({memberChanges}) {
+        if (this._roomEncryption) {
+            await this._roomEncryption.shareRoomKeyForMemberChanges(memberChanges, this._hsApi);
+        }
+    }
 
     /** @package */
     resumeSending() {
