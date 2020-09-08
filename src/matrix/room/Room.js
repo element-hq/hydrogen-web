@@ -167,7 +167,6 @@ export class Room extends EventEmitter {
      * Called with the changes returned from `writeSync` to apply them and emit changes.
      * No storage or network operations should be done here.
      */
-    /** @package */
     afterSync({summaryChanges, newTimelineEntries, newLiveKey, removedPendingEvents, memberChanges, heroChanges}) {
         this._syncWriter.afterSync(newLiveKey);
         if (!this._summary.encryption && summaryChanges.encryption && !this._roomEncryption) {
