@@ -89,7 +89,7 @@ export class SessionContainer {
         let sessionInfo;
         try {
             const hsApi = new HomeServerApi({homeServer, request: this._request, createTimeout: this._clock.createTimeout});
-            const loginData = await hsApi.passwordLogin(username, password).response();
+            const loginData = await hsApi.passwordLogin(username, password, "Hydrogen").response();
             const sessionId = this.createNewSessionId();
             sessionInfo = {
                 id: sessionId,
