@@ -188,9 +188,6 @@ export class Decryption {
         if (!payload.type) {
             throw new DecryptionError("missing type on payload", event, {payload});
         }
-        if (!payload.content) {
-            throw new DecryptionError("missing content on payload", event, {payload});
-        }
         if (typeof payload.keys?.ed25519 !== "string") {
             throw new DecryptionError("Missing or invalid claimed ed25519 key on payload", event, {payload});
         }
