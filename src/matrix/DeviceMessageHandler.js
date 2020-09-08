@@ -60,10 +60,12 @@ export class DeviceMessageHandler {
     }
 
     _applyDecryptChanges(rooms, {roomKeys}) {
-        const roomKeysByRoom = groupBy(roomKeys, s => s.roomId);
-        for (const [roomId, roomKeys] of roomKeysByRoom) {
-            const room = rooms.get(roomId);
-            room?.notifyRoomKeys(roomKeys);
+        if (roomKeys && roomKeys.length) {
+            const roomKeysByRoom = groupBy(roomKeys, s => s.roomId);
+            for (const [roomId, roomKeys] of roomKeysByRoom) {
+                const room = rooms.get(roomId);
+                room?.notifyRoomKeys(roomKeys);
+            }
         }
     }
 
