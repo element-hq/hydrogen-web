@@ -51,8 +51,6 @@ export class DeviceTracker {
                 if (user) {
                     user.deviceTrackingStatus = TRACKING_STATUS_OUTDATED;
                     userIdentities.set(user);
-                } else {
-                    console.warn("changed device userid not found", userId);
                 }
             }));
         }
