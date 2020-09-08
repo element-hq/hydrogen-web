@@ -221,6 +221,8 @@ export class Sync {
             storeNames.inboundGroupSessions,
             storeNames.groupSessionDecryptions,
             storeNames.deviceIdentities,
+            // to discard outbound session when somebody leaves a room
+            storeNames.outboundGroupSessions
         ]);
     }
 
