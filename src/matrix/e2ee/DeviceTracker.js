@@ -291,7 +291,8 @@ export class DeviceTracker {
         }
         // filter out our own device
         const devices = flattenedDevices.filter(device => {
-            return !(device.userId === this._ownUserId && device.deviceId === this._ownDeviceId);
+            const isOwnDevice = device.userId === this._ownUserId && device.deviceId === this._ownDeviceId;
+            return !isOwnDevice;
         });
         return devices;
     }
