@@ -205,10 +205,6 @@ export class DeviceTracker {
                 if (typeof ed25519Key !== "string" || typeof curve25519Key !== "string") {
                     return false;
                 }
-                // don't store our own device
-                if (userId === this._ownUserId && deviceId === this._ownDeviceId) {
-                    return false;
-                }
                 return this._hasValidSignature(deviceKeys);
             });
             const verifiedKeys = verifiedEntries.map(([, deviceKeys]) => deviceKeys);
@@ -287,7 +283,7 @@ export class DeviceTracker {
         if (queriedDevices && queriedDevices.length) {
             flattenedDevices = flattenedDevices.concat(queriedDevices);
         }
-        // filter out our own devices if it got in somehow (even though we should not store it)
+        // filter out our own device
         const devices = flattenedDevices.filter(device => {
             return !(device.userId === this._ownUserId && device.deviceId === this._ownDeviceId);
         });
