@@ -217,7 +217,7 @@ export class Session {
 
         this._sendScheduler.start();
         for (const [, room] of this._rooms) {
-            room.resumeSending();
+            room.start();
         }
     }
 

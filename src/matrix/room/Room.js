@@ -217,7 +217,16 @@ export class Room extends EventEmitter {
     }
 
     /** @package */
-    resumeSending() {
+    async start() {
+        if (this._roomEncryption) {
+            try {
+                // if we got interrupted last time sending keys to newly joined members
+                await this._roomEncryption.shareRoomKeyToPendingMembers(this._hsApi);
+            } catch (err) {
+                // we should not throw here
+                console.error(`could not send out pending room keys for room ${this.id}`, err.stack);
+            }
+        }
         this._sendQueue.resumeSending();
     }
 
