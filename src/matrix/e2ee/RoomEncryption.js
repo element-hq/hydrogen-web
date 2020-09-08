@@ -56,6 +56,9 @@ export class RoomEncryption {
     }
 
     async decrypt(event, isSync, isTimelineOpen, retryData, txn) {
+        if (event.redacted_because || event.unsigned?.redacted_because) {
+            return;
+        }
         if (event.content?.algorithm !== MEGOLM_ALGORITHM) {
             throw new Error("Unsupported algorithm: " + event.content?.algorithm);
         }
