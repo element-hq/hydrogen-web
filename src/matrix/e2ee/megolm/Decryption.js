@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {DecryptionError} from "../common.js";
+import {DecryptionResult} from "../DecryptionResult.js";
 
 const CACHE_MAX_SIZE = 10;
 
@@ -28,6 +29,14 @@ export class Decryption {
         return new SessionCache();
     }
 
+    /**
+     * [decrypt description]
+     * @param  {[type]} roomId       [description]
+     * @param  {[type]} event        [description]
+     * @param  {[type]} sessionCache [description]
+     * @param  {[type]} txn          [description]
+     * @return {DecryptionResult?} the decrypted event result, or undefined if the session id is not known.
+     */
     async decrypt(roomId, event, sessionCache, txn) {
         const senderKey = event.content?.["sender_key"];
         const sessionId = event.content?.["session_id"];
@@ -41,8 +50,13 @@ export class Decryption {
             throw new DecryptionError("MEGOLM_INVALID_EVENT", event);
         }
 
-        let session = sessionCache.get(roomId, senderKey, sessionId);
-        if (!session) {
+        let session;
+        let claimedKeys;
+        const cacheEntry = sessionCache.get(roomId, senderKey, sessionId);
+        if (cacheEntry) {
+            session = cacheEntry.session;
+            claimedKeys = cacheEntry.claimedKeys;
+        } else {
             const sessionEntry = await txn.inboundGroupSessions.get(roomId, senderKey, sessionId);
             if (sessionEntry) {
                 session = new this._olm.InboundGroupSession();
@@ -52,7 +66,8 @@ export class Decryption {
                     session.free();
                     throw err;
                 }
-                sessionCache.add(roomId, senderKey, session);
+                claimedKeys = sessionEntry.claimedKeys;
+                sessionCache.add(roomId, senderKey, session, claimedKeys);
             }
         }
         if (!session) {
@@ -70,8 +85,7 @@ export class Decryption {
                 {encryptedRoomId: payload.room_id, eventRoomId: roomId});
         }
         await this._handleReplayAttack(roomId, sessionId, messageIndex, event, txn);
-        // TODO: verify event came from said senderKey
-        return payload;
+        return new DecryptionResult(payload, senderKey, claimedKeys);
     }
 
     async _handleReplayAttack(roomId, sessionId, messageIndex, event, txn) {
@@ -142,6 +156,17 @@ class SessionCache {
         this._sessions = [];
     }
 
+    /**
+     * @type {CacheEntry}
+     * @property {InboundGroupSession} session the unpickled session
+     * @property {Object} claimedKeys an object with the claimed ed25519 key
+     *
+     * 
+     * @param  {string} roomId
+     * @param  {string} senderKey
+     * @param  {string} sessionId
+     * @return {CacheEntry?}
+     */
     get(roomId, senderKey, sessionId) {
         const idx = this._sessions.findIndex(s => {
             return s.roomId === roomId &&
@@ -155,13 +180,13 @@ class SessionCache {
                 this._sessions.splice(idx, 1);
                 this._sessions.unshift(entry);
             }
-            return entry.session;
+            return entry;
         }
     }
 
-    add(roomId, senderKey, session) {
+    add(roomId, senderKey, session, claimedKeys) {
         // add new at top
-        this._sessions.unshift({roomId, senderKey, session});
+        this._sessions.unshift({roomId, senderKey, session, claimedKeys});
         if (this._sessions.length > CACHE_MAX_SIZE) {
             // free sessions we're about to remove
             for (let i = CACHE_MAX_SIZE; i < this._sessions.length; i += 1) {

@@ -26,7 +26,6 @@ import {fetchOrLoadMembers} from "./members/load.js";
 import {MemberList} from "./members/MemberList.js";
 import {Heroes} from "./members/Heroes.js";
 import {EventEntry} from "./timeline/entries/EventEntry.js";
-import {EventKey} from "./timeline/EventKey.js";
 
 export class Room extends EventEmitter {
 	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, pendingEvents, user, createRoomEncryption}) {
@@ -101,12 +100,10 @@ export class Room extends EventEmitter {
     async _decryptEntry(entry, txn, isSync) {
         if (entry.eventType === "m.room.encrypted") {
             try {
-                const {fragmentId, entryIndex} = entry;
-                const key = new EventKey(fragmentId, entryIndex);
-                const decryptedEvent = await this._roomEncryption.decrypt(
-                    entry.event, isSync, key, txn);
-                if (decryptedEvent) {
-                    entry.replaceWithDecrypted(decryptedEvent);
+                const decryptionResult = await this._roomEncryption.decrypt(
+                    entry.event, isSync, !!this._timeline, entry.asEventKey(), txn);
+                if (decryptionResult) {
+                    entry.setDecryptionResult(decryptionResult);
                 }
             } catch (err) {
                 console.warn("event decryption error", err, entry.event);

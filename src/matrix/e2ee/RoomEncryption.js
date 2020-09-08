@@ -46,17 +46,17 @@ export class RoomEncryption {
         return await this._deviceTracker.writeMemberChanges(this._room, memberChanges, txn);
     }
 
-    async decrypt(event, isSync, retryData, txn) {
+    async decrypt(event, isSync, isTimelineOpen, retryData, txn) {
         if (event.content?.algorithm !== MEGOLM_ALGORITHM) {
             throw new Error("Unsupported algorithm: " + event.content?.algorithm);
         }
         let sessionCache = isSync ? this._megolmSyncCache : this._megolmBackfillCache;
-        const payload = await this._megolmDecryption.decrypt(
+        const result = await this._megolmDecryption.decrypt(
             this._room.id, event, sessionCache, txn);
-        if (!payload) {
+        if (!result) {
             this._addMissingSessionEvent(event, isSync, retryData);
         }
-        return payload;
+        return result;
     }
 
     _addMissingSessionEvent(event, isSync, data) {
