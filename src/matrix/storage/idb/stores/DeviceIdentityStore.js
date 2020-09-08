@@ -38,4 +38,8 @@ export class DeviceIdentityStore {
         deviceIdentity.key = encodeKey(deviceIdentity.userId, deviceIdentity.deviceId);
         return this._store.put(deviceIdentity);
     }
+
+    getByCurve25519Key(curve25519Key) {
+        return this._store.index("byCurve25519Key").get(curve25519Key);
+    }
 }

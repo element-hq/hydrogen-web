@@ -26,6 +26,14 @@ export class Encryption {
         this._ownDeviceId = ownDeviceId;
     }
 
+    /**
+     * Encrypts a message with megolm
+     * @param  {string} roomId           
+     * @param  {string} type             event type to encrypt
+     * @param  {string} content          content to encrypt
+     * @param  {object} encryptionParams the content of the m.room.encryption event
+     * @return {Promise<EncryptionResult>}
+     */
     async encrypt(roomId, type, content, encryptionParams) {
         let session = new this._olm.OutboundGroupSession();
         try {
@@ -145,6 +153,14 @@ export class Encryption {
     }
 }
 
+/**
+ * @property {object?} roomKeyMessage  if encrypting this message
+ *                                     created a new outbound session,
+ *                                     this contains the content of the m.room_key message
+ *                                     that should be sent out over olm.
+ * @property {object} content  the encrypted message as the content of
+ *                             the m.room.encrypted event that should be sent out   
+ */
 class EncryptionResult {
     constructor(content, roomKeyMessage) {
         this.content = content;

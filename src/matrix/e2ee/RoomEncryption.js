@@ -34,29 +34,47 @@ export class RoomEncryption {
         this._megolmSyncCache = this._megolmDecryption.createSessionCache();
         // not `event_id`, but an internal event id passed in to the decrypt methods
         this._eventIdsByMissingSession = new Map();
+        this._senderDeviceCache = new Map();
     }
 
     notifyTimelineClosed() {
         // empty the backfill cache when closing the timeline
         this._megolmBackfillCache.dispose();
         this._megolmBackfillCache = this._megolmDecryption.createSessionCache();
+        this._senderDeviceCache = new Map();    // purge the sender device cache
     }
 
     async writeMemberChanges(memberChanges, txn) {
         return await this._deviceTracker.writeMemberChanges(this._room, memberChanges, txn);
     }
 
-    async decrypt(event, isSync, retryData, txn) {
+    async decrypt(event, isSync, isTimelineOpen, retryData, txn) {
         if (event.content?.algorithm !== MEGOLM_ALGORITHM) {
             throw new Error("Unsupported algorithm: " + event.content?.algorithm);
         }
         let sessionCache = isSync ? this._megolmSyncCache : this._megolmBackfillCache;
-        const payload = await this._megolmDecryption.decrypt(
+        const result = await this._megolmDecryption.decrypt(
             this._room.id, event, sessionCache, txn);
-        if (!payload) {
+        if (!result) {
             this._addMissingSessionEvent(event, isSync, retryData);
         }
-        return payload;
+        if (result && isTimelineOpen) {
+            await this._verifyDecryptionResult(result, txn);
+        }
+        return result;
+    }
+
+    async _verifyDecryptionResult(result, txn) {
+        let device = this._senderDeviceCache.get(result.senderCurve25519Key);
+        if (!device) {
+            device = await this._deviceTracker.getDeviceByCurve25519Key(result.senderCurve25519Key, txn);
+            this._senderDeviceCache.set(result.senderCurve25519Key, device);
+        }
+        if (device) {
+            result.setDevice(device);
+        } else if (!this._room.isTrackingMembers) {
+            result.setRoomNotTrackedYet();
+        }
     }
 
     _addMissingSessionEvent(event, isSync, data) {

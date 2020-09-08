@@ -26,8 +26,8 @@ function deviceKeysAsDeviceIdentity(deviceSection) {
     return {
         userId,
         deviceId,
-        ed25519Key: deviceSection.keys?.[`ed25519:${deviceId}`],
-        curve25519Key: deviceSection.keys?.[`curve25519:${deviceId}`],
+        ed25519Key: deviceSection.keys[`ed25519:${deviceId}`],
+        curve25519Key: deviceSection.keys[`curve25519:${deviceId}`],
         algorithms: deviceSection.algorithms,
         displayName: deviceSection.unsigned?.device_display_name,
     };
@@ -200,6 +200,11 @@ export class DeviceTracker {
                 if (deviceIdOnKeys !== deviceId) {
                     return false;
                 }
+                const ed25519Key = deviceKeys.keys?.[`ed25519:${deviceId}`];
+                const curve25519Key = deviceKeys.keys?.[`curve25519:${deviceId}`];
+                if (typeof ed25519Key !== "string" || typeof curve25519Key !== "string") {
+                    return false;
+                }
                 // don't store our own device
                 if (userId === this._ownUserId && deviceId === this._ownDeviceId) {
                     return false;
@@ -269,5 +274,9 @@ export class DeviceTracker {
             return !(device.userId === this._ownUserId && device.deviceId === this._ownDeviceId);
         });
         return devices;
+    }
+
+    async getDeviceByCurve25519Key(curve25519Key, txn) {
+        return await txn.deviceIdentities.getByCurve25519Key(curve25519Key);
     }
 }

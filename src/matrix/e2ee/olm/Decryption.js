@@ -17,6 +17,7 @@ limitations under the License.
 import {DecryptionError} from "../common.js";
 import {groupBy} from "../../../utils/groupBy.js";
 import {Session} from "./Session.js";
+import {DecryptionResult} from "../DecryptionResult.js";
 
 const SESSION_LIMIT_PER_SENDER_KEY = 4;
 
@@ -50,6 +51,13 @@ export class Decryption {
     // and also can avoid side-effects before all can be stored this way
     // 
     // doing it one by one would be possible, but we would lose the opportunity for parallelization
+    // 
+    
+    /**
+     * [decryptAll description]
+     * @param  {[type]} events
+     * @return {Promise<DecryptionChanges>}        [description]
+     */
     async decryptAll(events) {
         const eventsPerSenderKey = groupBy(events, event => event.content?.["sender_key"]);
         const timestamp = this._now();
@@ -61,15 +69,16 @@ export class Decryption {
         try {
             const readSessionsTxn = await this._storage.readTxn([this._storage.storeNames.olmSessions]);
             // decrypt events for different sender keys in parallel
-            const results = await Promise.all(Array.from(eventsPerSenderKey.entries()).map(([senderKey, events]) => {
+            const senderKeyOperations = await Promise.all(Array.from(eventsPerSenderKey.entries()).map(([senderKey, events]) => {
                 return this._decryptAllForSenderKey(senderKey, events, timestamp, readSessionsTxn);
             }));
-            const payloads = results.reduce((all, r) => all.concat(r.payloads), []);
-            const errors = results.reduce((all, r) => all.concat(r.errors), []);
-            const senderKeyDecryptions = results.map(r => r.senderKeyDecryption);
-            return new DecryptionChanges(senderKeyDecryptions, payloads, errors, this._account, locks);
+            const results = senderKeyOperations.reduce((all, r) => all.concat(r.results), []);
+            const errors = senderKeyOperations.reduce((all, r) => all.concat(r.errors), []);
+            const senderKeyDecryptions = senderKeyOperations.map(r => r.senderKeyDecryption);
+            return new DecryptionChanges(senderKeyDecryptions, results, errors, this._account, locks);
         } catch (err) {
             // make sure the locks are release if something throws
+            // otherwise they will be released in DecryptionChanges after having written
             for (const lock of locks) {
                 lock.release();
             }
@@ -80,18 +89,18 @@ export class Decryption {
     async _decryptAllForSenderKey(senderKey, events, timestamp, readSessionsTxn) {
         const sessions = await this._getSessions(senderKey, readSessionsTxn);
         const senderKeyDecryption = new SenderKeyDecryption(senderKey, sessions, this._olm, timestamp);
-        const payloads = [];
+        const results = [];
         const errors = [];
         // events for a single senderKey need to be decrypted one by one
         for (const event of events) {
             try {
-                const payload = this._decryptForSenderKey(senderKeyDecryption, event, timestamp);
-                payloads.push(payload);
+                const result = this._decryptForSenderKey(senderKeyDecryption, event, timestamp);
+                results.push(result);
             } catch (err) {
                 errors.push(err);
             }
         }
-        return {payloads, errors, senderKeyDecryption};
+        return {results, errors, senderKeyDecryption};
     }
 
     _decryptForSenderKey(senderKeyDecryption, event, timestamp) {
@@ -118,7 +127,7 @@ export class Decryption {
                 throw new DecryptionError("PLAINTEXT_NOT_JSON", event, {plaintext, err});
             }
             this._validatePayload(payload, event);
-            return {event: payload, senderKey};
+            return new DecryptionResult(payload, senderKey, payload.keys);
         } else {
             throw new DecryptionError("OLM_NO_MATCHING_SESSION", event,
                 {knownSessionIds: senderKeyDecryption.sessions.map(s => s.id)});
@@ -182,9 +191,9 @@ export class Decryption {
         if (!payload.content) {
             throw new DecryptionError("missing content on payload", event, {payload});
         }
-        // TODO: how important is it to verify the message?
-        // we should look at payload.keys.ed25519 for that... and compare it to the key we have fetched
-        // from /keys/query, which we might not have done yet at this point.
+        if (typeof payload.keys?.ed25519 !== "string") {
+            throw new DecryptionError("Missing or invalid claimed ed25519 key on payload", event, {payload});
+        }
     }
 }
 
@@ -252,11 +261,15 @@ class SenderKeyDecryption {
     }
 }
 
+/**
+ * @property {Array<DecryptionResult>} results
+ * @property {Array<DecryptionError>} errors  see DecryptionError.event to retrieve the event that failed to decrypt.
+ */
 class DecryptionChanges {
-    constructor(senderKeyDecryptions, payloads, errors, account, locks) {
+    constructor(senderKeyDecryptions, results, errors, account, locks) {
         this._senderKeyDecryptions = senderKeyDecryptions;
         this._account = account;    
-        this.payloads = payloads;
+        this.results = results;
         this.errors = errors;
         this._locks = locks;
     }

@@ -141,14 +141,15 @@ export class HomeServerApi {
             {}, {}, options);
     }
 
-    passwordLogin(username, password, options = null) {
+    passwordLogin(username, password, initialDeviceDisplayName, options = null) {
         return this._post("/login", null, {
           "type": "m.login.password",
           "identifier": {
             "type": "m.id.user",
             "user": username
           },
-          "password": password
+          "password": password,
+          "initial_device_display_name": initialDeviceDisplayName
         }, options);
     }
 

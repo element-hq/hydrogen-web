@@ -41,13 +41,20 @@ export class DeviceMessageHandler {
         // we don't handle anything other for now
     }
 
-    async _writeDecryptedEvents(payloads, txn) {
-        const megOlmRoomKeysPayloads = payloads.filter(p => {
-            return p.event?.type === "m.room_key" && p.event.content?.algorithm === MEGOLM_ALGORITHM;
+    /**
+     * [_writeDecryptedEvents description]
+     * @param  {Array<DecryptionResult>} olmResults
+     * @param  {[type]} txn        [description]
+     * @return {[type]}            [description]
+     */
+    async _writeDecryptedEvents(olmResults, txn) {
+        const megOlmRoomKeysResults = olmResults.filter(r => {
+            return r.event?.type === "m.room_key" && r.event.content?.algorithm === MEGOLM_ALGORITHM;
         });
         let roomKeys;
-        if (megOlmRoomKeysPayloads.length) {
-            roomKeys = await this._megolmDecryption.addRoomKeys(megOlmRoomKeysPayloads, txn);
+        if (megOlmRoomKeysResults.length) {
+            console.log("new room keys", megOlmRoomKeysResults);
+            roomKeys = await this._megolmDecryption.addRoomKeys(megOlmRoomKeysResults, txn);
         }
         return {roomKeys};
     }
@@ -84,7 +91,7 @@ export class DeviceMessageHandler {
         ]);
         let changes;
         try {
-            changes = await this._writeDecryptedEvents(decryptChanges.payloads, txn);
+            changes = await this._writeDecryptedEvents(decryptChanges.results, txn);
             decryptChanges.write(txn);
             txn.session.remove(PENDING_ENCRYPTED_EVENTS);
         } catch (err) {

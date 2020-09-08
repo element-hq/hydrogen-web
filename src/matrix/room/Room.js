@@ -26,7 +26,6 @@ import {fetchOrLoadMembers} from "./members/load.js";
 import {MemberList} from "./members/MemberList.js";
 import {Heroes} from "./members/Heroes.js";
 import {EventEntry} from "./timeline/entries/EventEntry.js";
-import {EventKey} from "./timeline/EventKey.js";
 
 export class Room extends EventEmitter {
 	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, pendingEvents, user, createRoomEncryption}) {
@@ -58,13 +57,14 @@ export class Room extends EventEmitter {
                     this._storage.storeNames.timelineEvents,
                     this._storage.storeNames.inboundGroupSessions,
                     this._storage.storeNames.groupSessionDecryptions,
+                    this._storage.storeNames.deviceIdentities,
                 ]);
                 try {
                     for (const retryEntry of retryEntries) {
                         const {data: eventKey} = retryEntry;
                         let entry = this._timeline?.findEntry(eventKey);
                         if (!entry) {
-                            const storageEntry = await txn.timelineEvents.get(this._roomId, eventKey.fragmentId, eventKey.entryIndex);
+                            const storageEntry = await txn.timelineEvents.get(this._roomId, eventKey);
                             if (storageEntry) {
                                 entry = new EventEntry(storageEntry, this._fragmentIdComparer);
                             }
@@ -101,12 +101,10 @@ export class Room extends EventEmitter {
     async _decryptEntry(entry, txn, isSync) {
         if (entry.eventType === "m.room.encrypted") {
             try {
-                const {fragmentId, entryIndex} = entry;
-                const key = new EventKey(fragmentId, entryIndex);
-                const decryptedEvent = await this._roomEncryption.decrypt(
-                    entry.event, isSync, key, txn);
-                if (decryptedEvent) {
-                    entry.replaceWithDecrypted(decryptedEvent);
+                const decryptionResult = await this._roomEncryption.decrypt(
+                    entry.event, isSync, !!this._timeline, entry.asEventKey(), txn);
+                if (decryptionResult) {
+                    entry.setDecryptionResult(decryptionResult);
                 }
             } catch (err) {
                 console.warn("event decryption error", err, entry.event);
@@ -283,6 +281,7 @@ export class Room extends EventEmitter {
             stores = stores.concat([
                 this._storage.storeNames.inboundGroupSessions,
                 this._storage.storeNames.groupSessionDecryptions,
+                this._storage.storeNames.deviceIdentities,
             ]);
         }
         const txn = await this._storage.readWriteTxn(stores);

@@ -38,6 +38,7 @@ export class TimelineReader {
                 this._storage.storeNames.timelineFragments,
                 this._storage.storeNames.inboundGroupSessions,
                 this._storage.storeNames.groupSessionDecryptions,
+                this._storage.storeNames.deviceIdentities,
             ]);
 
         } else {
