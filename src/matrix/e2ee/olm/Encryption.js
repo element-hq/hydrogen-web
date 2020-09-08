@@ -29,6 +29,9 @@ function findFirstSessionId(sessionIds) {
 }
 
 const OTK_ALGORITHM = "signed_curve25519";
+// only encrypt this amount of olm messages at once otherwise we run out of wasm memory
+// with all the sessions loaded at the same time
+const MAX_BATCH_SIZE = 50;
 
 export class Encryption {
     constructor({account, olm, olmUtil, ownUserId, storage, now, pickleKey, senderKeyLock}) {
@@ -43,6 +46,16 @@ export class Encryption {
     }
 
     async encrypt(type, content, devices, hsApi) {
+        let messages = [];
+        for (let i = 0; i < devices.length ; i += MAX_BATCH_SIZE) {
+            const batchDevices = devices.slice(i, i + MAX_BATCH_SIZE);
+            const batchMessages = await this._encryptForMaxDevices(type, content, batchDevices, hsApi);
+            messages = messages.concat(batchMessages);
+        }
+        return messages;
+    }
+
+    async _encryptForMaxDevices(type, content, devices, hsApi) {
         // TODO: see if we can only hold some of the locks until after the /keys/claim call (if needed) 
         // take a lock on all senderKeys so decryption and other calls to encrypt (should not happen)
         // don't modify the sessions at the same time
