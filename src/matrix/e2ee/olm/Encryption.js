@@ -182,6 +182,9 @@ export class Encryption {
             timeout: 10000,
             one_time_keys: oneTimeKeys
         }).response();
+        if (Object.keys(claimResponse.failures).length) {
+            console.warn("failures for claiming one time keys", oneTimeKeys, claimResponse.failures);
+        }
         // TODO: log claimResponse.failures
         const userKeyMap = claimResponse?.["one_time_keys"];
         return this._verifyAndCreateOTKTargets(userKeyMap, devicesByUser);
