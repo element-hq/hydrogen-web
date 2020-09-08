@@ -219,7 +219,7 @@ export class SyncWriter {
         }
         // important this happens before _writeTimeline so
         // members are available in the transaction
-        const memberChanges = this._writeStateEvents(roomResponse, trackNewlyJoined, txn);
+        const memberChanges = await this._writeStateEvents(roomResponse, trackNewlyJoined, txn);
         const timelineResult = await this._writeTimeline(entries, timeline, currentKey, trackNewlyJoined, txn);
         currentKey = timelineResult.currentKey;
         // merge member changes from state and timeline, giving precedence to the latter
