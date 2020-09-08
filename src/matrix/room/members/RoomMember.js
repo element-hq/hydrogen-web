@@ -67,6 +67,14 @@ export class RoomMember {
         });
     }
 
+    get needsRoomKey() {
+        return this._data.needsRoomKey;
+    }
+
+    set needsRoomKey(value) {
+        this._data.needsRoomKey = !!value;
+    }
+
     get membership() {
         return this._data.membership;
     }
@@ -133,5 +141,13 @@ export class MemberChange {
 
     get membership() {
         return this._memberEvent.content?.membership;
+    }
+
+    get hasLeft() {
+        return this.previousMembership === "join" && this.membership !== "join";
+    }
+
+    get hasJoined() {
+        return this.previousMembership !== "join" && this.membership === "join";
     }
 }

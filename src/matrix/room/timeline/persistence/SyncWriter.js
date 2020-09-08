@@ -98,39 +98,47 @@ export class SyncWriter {
         return {oldFragment, newFragment};
     }
 
-    _writeStateEvent(event, txn) {
-        if (event.type === MEMBER_EVENT_TYPE) {
-            const userId = event.state_key;
-            if (userId) {
-                const memberChange = new MemberChange(this._roomId, event);
-                if (memberChange.member) {
-                    // as this is sync, we can just replace the member
-                    // if it is there already
-                    txn.roomMembers.set(memberChange.member.serialize());
-                    return memberChange;
+    async _writeMember(event, trackNewlyJoined, txn) {
+        const userId = event.state_key;
+        if (userId) {
+            const memberChange = new MemberChange(this._roomId, event);
+            const {member} = memberChange;
+            if (member) {
+                if (trackNewlyJoined) {
+                    const existingMemberData = await txn.roomMembers.get(this._roomId, userId);
+                    // mark new members so we know who needs our the room key for our outbound megolm session
+                    member.needsRoomKey = existingMemberData?.needsRoomKey || memberChange.hasJoined;
                 }
+                txn.roomMembers.set(member.serialize());
+                return memberChange;
             }
+        }
+    }
+
+    async _writeStateEvent(event, trackNewlyJoined, txn) {
+        if (event.type === MEMBER_EVENT_TYPE) {
+            return await this._writeMember(event, trackNewlyJoined, txn);
         } else {
             txn.roomState.set(this._roomId, event);
         }
     }
 
-    _writeStateEvents(roomResponse, txn) {
+    async _writeStateEvents(roomResponse, trackNewlyJoined, txn) {
         const memberChanges = new Map();
         // persist state
         const {state} = roomResponse;
         if (Array.isArray(state?.events)) {
-            for (const event of state.events) {
-                const memberChange = this._writeStateEvent(event, txn);
+            await Promise.all(state.events.map(async event => {
+                const memberChange = await this._writeStateEvent(event, trackNewlyJoined, txn);
                 if (memberChange) {
                     memberChanges.set(memberChange.userId, memberChange);
                 }
-            }
+            }));
         }
         return memberChanges;
     }
 
-    async _writeTimeline(entries, timeline, currentKey, txn) {
+    async _writeTimeline(entries, timeline, currentKey, trackNewlyJoined, txn) {
         const memberChanges = new Map();
         if (timeline.events) {
             const events = deduplicateEvents(timeline.events);
@@ -145,15 +153,17 @@ export class SyncWriter {
                 }
                 txn.timelineEvents.insert(entry);
                 entries.push(new EventEntry(entry, this._fragmentIdComparer));
-                
-                // process live state events first, so new member info is available
-                if (typeof event.state_key === "string") {
-                    const memberChange = this._writeStateEvent(event, txn);
-                    if (memberChange) {
-                        memberChanges.set(memberChange.userId, memberChange);
-                    }
-                }
             }
+            // process live state events first, so new member info is available
+            // also run async state event writing in parallel
+            await Promise.all(events.filter(event => {
+                return typeof event.state_key === "string";
+            }).map(async stateEvent => {
+                const memberChange = await this._writeStateEvent(stateEvent, trackNewlyJoined, txn);
+                if (memberChange) {
+                    memberChanges.set(memberChange.userId, memberChange);
+                }
+            }));
         }
         return {currentKey, memberChanges};
     }
@@ -176,7 +186,18 @@ export class SyncWriter {
         }
     }
 
-    async writeSync(roomResponse, txn) {
+    /**
+     * @type {SyncWriterResult}
+     * @property {Array<BaseEntry>} entries new timeline entries written
+     * @property {EventKey} newLiveKey the advanced key to write events at
+     * @property {Map<string, MemberChange>} memberChanges member changes in the processed sync ny user id
+     * 
+     * @param  {Object}  roomResponse [description]
+     * @param  {Boolean} trackNewlyJoined  needed to know if we need to keep track whether a user needs keys when they join an encrypted room
+     * @param  {Transaction}  txn     
+     * @return {SyncWriterResult}
+     */
+    async writeSync(roomResponse, trackNewlyJoined, txn) {
         const entries = [];
         const {timeline} = roomResponse;
         let currentKey = this._lastLiveKey;
@@ -198,8 +219,8 @@ export class SyncWriter {
         }
         // important this happens before _writeTimeline so
         // members are available in the transaction
-        const memberChanges = this._writeStateEvents(roomResponse, txn);
-        const timelineResult = await this._writeTimeline(entries, timeline, currentKey, txn);
+        const memberChanges = await this._writeStateEvents(roomResponse, trackNewlyJoined, txn);
+        const timelineResult = await this._writeTimeline(entries, timeline, currentKey, trackNewlyJoined, txn);
         currentKey = timelineResult.currentKey;
         // merge member changes from state and timeline, giving precedence to the latter
         for (const [userId, memberChange] of timelineResult.memberChanges.entries()) {

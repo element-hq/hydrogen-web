@@ -125,6 +125,7 @@ export class Session {
             olmEncryption: this._olmEncryption,
             megolmEncryption: this._megolmEncryption,
             megolmDecryption: this._megolmDecryption,
+            storage: this._storage,
             encryptionParams
         });
     }
@@ -216,7 +217,7 @@ export class Session {
 
         this._sendScheduler.start();
         for (const [, room] of this._rooms) {
-            room.resumeSending();
+            room.start();
         }
     }
 

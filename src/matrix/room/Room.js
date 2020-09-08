@@ -127,7 +127,7 @@ export class Room extends EventEmitter {
             isInitialSync, isTimelineOpen,
             txn);
 		const {entries: encryptedEntries, newLiveKey, memberChanges} =
-            await this._syncWriter.writeSync(roomResponse, txn);
+            await this._syncWriter.writeSync(roomResponse, this.isTrackingMembers, txn);
         // decrypt if applicable
         let entries = encryptedEntries;
         if (this._roomEncryption) {
@@ -157,11 +157,16 @@ export class Room extends EventEmitter {
             newLiveKey,
             removedPendingEvents,
             memberChanges,
-            heroChanges
+            heroChanges,
+            needsAfterSyncCompleted: this._roomEncryption?.needsToShareKeys(memberChanges)
         };
     }
 
-    /** @package */
+    /**
+     * @package
+     * Called with the changes returned from `writeSync` to apply them and emit changes.
+     * No storage or network operations should be done here.
+     */
     afterSync({summaryChanges, newTimelineEntries, newLiveKey, removedPendingEvents, memberChanges, heroChanges}) {
         this._syncWriter.afterSync(newLiveKey);
         if (!this._summary.encryption && summaryChanges.encryption && !this._roomEncryption) {
@@ -204,8 +209,28 @@ export class Room extends EventEmitter {
         }
 	}
 
+    /**
+     * Only called if the result of writeSync had `needsAfterSyncCompleted` set.
+     * Can be used to do longer running operations that resulted from the last sync,
+     * like network operations.
+     */
+    async afterSyncCompleted({memberChanges}) {
+        if (this._roomEncryption) {
+            await this._roomEncryption.shareRoomKeyForMemberChanges(memberChanges, this._hsApi);
+        }
+    }
+
     /** @package */
-    resumeSending() {
+    async start() {
+        if (this._roomEncryption) {
+            try {
+                // if we got interrupted last time sending keys to newly joined members
+                await this._roomEncryption.shareRoomKeyToPendingMembers(this._hsApi);
+            } catch (err) {
+                // we should not throw here
+                console.error(`could not send out pending room keys for room ${this.id}`, err.stack);
+            }
+        }
         this._sendQueue.resumeSending();
     }
 

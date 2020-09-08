@@ -26,6 +26,23 @@ export class Encryption {
         this._ownDeviceId = ownDeviceId;
     }
 
+    discardOutboundSession(roomId, txn) {
+        txn.outboundGroupSessions.remove(roomId);
+    }
+
+    async createRoomKeyMessage(roomId, txn) {
+        let sessionEntry = await txn.outboundGroupSessions.get(roomId);
+        if (sessionEntry) {
+            const session = new this._olm.OutboundGroupSession();
+            try {
+                session.unpickle(this._pickleKey, sessionEntry.session);
+                return this._createRoomKeyMessage(session, roomId);
+            } finally {
+                session.free();
+            }
+        }
+    }
+
     /**
      * Encrypts a message with megolm
      * @param  {string} roomId           
@@ -123,12 +140,9 @@ export class Encryption {
             session_id: session.session_id(),
             session_key: session.session_key(),
             algorithm: MEGOLM_ALGORITHM,
-            // if we need to do this, do we need to create
-            // the room key message after or before having encrypted
-            // with the new session? I guess before as we do now
-            // because the chain_index is where you should start decrypting?
-            // 
-            // chain_index: session.message_index()
+            // chain_index is ignored by element-web if not all clients
+            // but let's send it anyway, as element-web does so
+            chain_index: session.message_index()
         }
     }
 

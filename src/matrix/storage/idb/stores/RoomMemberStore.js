@@ -60,4 +60,19 @@ export class RoomMemberStore {
         });
         return userIds;
     }
+
+    async getUserIdsNeedingRoomKey(roomId) {
+        const userIds = [];
+        const range = IDBKeyRange.lowerBound(encodeKey(roomId, ""));
+        await this._roomMembersStore.iterateWhile(range, member => {
+            if (member.roomId !== roomId) {
+                return false;
+            }
+            if (member.needsRoomKey) {
+                userIds.push(member.userId);
+            }
+            return true;
+        });
+        return userIds;
+    }
 }

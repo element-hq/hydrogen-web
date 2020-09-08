@@ -187,6 +187,14 @@ export class QueryTarget {
         return results;
     }
 
+    async iterateWhile(range, predicate) {
+        const cursor = this._openCursor(range, "next");
+        await iterateCursor(cursor, (value) => {
+            const passesPredicate = predicate(value);
+            return {done: !passesPredicate};
+        });
+    }
+
     async _find(range, predicate, direction) {
         const cursor = this._openCursor(range, direction);
         let result;
