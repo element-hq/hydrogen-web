@@ -127,7 +127,7 @@ export class Room extends EventEmitter {
             isInitialSync, isTimelineOpen,
             txn);
 		const {entries: encryptedEntries, newLiveKey, memberChanges} =
-            await this._syncWriter.writeSync(roomResponse, txn);
+            await this._syncWriter.writeSync(roomResponse, this.isTrackingMembers, txn);
         // decrypt if applicable
         let entries = encryptedEntries;
         if (this._roomEncryption) {
