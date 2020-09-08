@@ -53,6 +53,7 @@ export class DeviceMessageHandler {
         });
         let roomKeys;
         if (megOlmRoomKeysResults.length) {
+            console.log("new room keys", megOlmRoomKeysResults);
             roomKeys = await this._megolmDecryption.addRoomKeys(megOlmRoomKeysResults, txn);
         }
         return {roomKeys};
