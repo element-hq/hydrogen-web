@@ -96,7 +96,11 @@ export class Decryption {
             // the one with the newest timestamp should be the attack
             const decryptedEventIsBad = decryption.timestamp < timestamp;
             const badEventId = decryptedEventIsBad ? eventId : decryption.eventId;
-            throw new DecryptionError("MEGOLM_REPLAYED_INDEX", event, {badEventId, otherEventId: decryption.eventId});
+            throw new DecryptionError("MEGOLM_REPLAYED_INDEX", event, {
+                messageIndex,
+                badEventId,
+                otherEventId: decryption.eventId
+            });
         }
         if (!decryption) {
             txn.groupSessionDecryptions.set({
