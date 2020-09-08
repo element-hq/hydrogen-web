@@ -45,8 +45,11 @@ export class RoomEncryption {
     }
 
     async writeMemberChanges(memberChanges, txn) {
-        if (memberChanges.some(m => m.hasLeft)) {
-            this._megolmEncryption.discardOutboundSession(this._room.id, txn);
+        for (const m of memberChanges.values()) {
+            if (m.hasLeft) {
+                this._megolmEncryption.discardOutboundSession(this._room.id, txn);
+                break;
+            }
         }
         return await this._deviceTracker.writeMemberChanges(this._room, memberChanges, txn);
     }
