@@ -109,9 +109,19 @@ export class Decryption {
         }
     }
 
-    async addRoomKeys(payloads, txn) {
+    /**
+     * @type {MegolmInboundSessionDescription}
+     * @property {string} senderKey the sender key of the session
+     * @property {string} sessionId the session identifier
+     * 
+     * Adds room keys as inbound group sessions
+     * @param {Array<OlmDecryptionResult>} decryptionResults an array of m.room_key decryption results.
+     * @param {[type]} txn      a storage transaction with read/write on inboundGroupSessions
+     * @return {Promise<Array<MegolmInboundSessionDescription>>} an array with the newly added sessions
+     */
+    async addRoomKeys(decryptionResults, txn) {
         const newSessions = [];
-        for (const {senderKey, event} of payloads) {
+        for (const {senderCurve25519Key: senderKey, event, claimedEd25519Key} of decryptionResults) {
             const roomId = event.content?.["room_id"];
             const sessionId = event.content?.["session_id"];
             const sessionKey = event.content?.["session_key"];
@@ -136,7 +146,7 @@ export class Decryption {
                         senderKey,
                         sessionId,
                         session: session.pickle(this._pickleKey),
-                        claimedKeys: event.keys,
+                        claimedKeys: {ed25519: claimedEd25519Key},
                     };
                     txn.inboundGroupSessions.set(sessionEntry);
                     newSessions.push(sessionEntry);
