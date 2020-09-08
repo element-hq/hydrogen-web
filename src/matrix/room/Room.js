@@ -64,7 +64,7 @@ export class Room extends EventEmitter {
                         const {data: eventKey} = retryEntry;
                         let entry = this._timeline?.findEntry(eventKey);
                         if (!entry) {
-                            const storageEntry = await txn.timelineEvents.get(this._roomId, eventKey.fragmentId, eventKey.entryIndex);
+                            const storageEntry = await txn.timelineEvents.get(this._roomId, eventKey);
                             if (storageEntry) {
                                 entry = new EventEntry(storageEntry, this._fragmentIdComparer);
                             }
