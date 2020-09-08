@@ -190,6 +190,7 @@ export class DeviceTracker {
     }
 
     _filterVerifiedDeviceKeys(keyQueryDeviceKeysResponse) {
+        const curve25519Keys = new Set();
         const verifiedKeys = Object.entries(keyQueryDeviceKeysResponse).map(([userId, keysByDevice]) => {
             const verifiedEntries = Object.entries(keysByDevice).filter(([deviceId, deviceKeys]) => {
                 const deviceIdOnKeys = deviceKeys["device_id"];
@@ -205,6 +206,11 @@ export class DeviceTracker {
                 if (typeof ed25519Key !== "string" || typeof curve25519Key !== "string") {
                     return false;
                 }
+                if (curve25519Keys.has(curve25519Key)) {
+                    console.warn("ignoring device with duplicate curve25519 key in /keys/query response", deviceKeys);
+                    return false;
+                }
+                curve25519Keys.add(curve25519Key);
                 return this._hasValidSignature(deviceKeys);
             });
             const verifiedKeys = verifiedEntries.map(([, deviceKeys]) => deviceKeys);
