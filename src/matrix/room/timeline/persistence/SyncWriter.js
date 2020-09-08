@@ -107,7 +107,7 @@ export class SyncWriter {
                 if (trackNewlyJoined) {
                     const existingMemberData = await txn.roomMembers.get(this._roomId, userId);
                     // mark new members so we know who needs our the room key for our outbound megolm session
-                    member.needsRoomKey = existingMemberData.needsRoomKey || memberChange.hasJoined;
+                    member.needsRoomKey = existingMemberData?.needsRoomKey || memberChange.hasJoined;
                 }
                 txn.roomMembers.set(member.serialize());
                 return memberChange;
