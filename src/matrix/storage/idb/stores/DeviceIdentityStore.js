@@ -36,7 +36,7 @@ export class DeviceIdentityStore {
 
     set(deviceIdentity) {
         deviceIdentity.key = encodeKey(deviceIdentity.userId, deviceIdentity.deviceId);
-        return this._store.put(deviceIdentity);
+        this._store.put(deviceIdentity);
     }
 
     getByCurve25519Key(curve25519Key) {
