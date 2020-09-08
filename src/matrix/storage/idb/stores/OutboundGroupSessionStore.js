@@ -19,6 +19,10 @@ export class OutboundGroupSessionStore {
         this._store = store;
     }
 
+    remove(roomId) {
+        this._store.delete(roomId);
+    }
+
     get(roomId) {
         return this._store.get(roomId);
     }

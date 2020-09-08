@@ -26,6 +26,10 @@ export class Encryption {
         this._ownDeviceId = ownDeviceId;
     }
 
+    discardOutboundSession(roomId, txn) {
+        txn.outboundGroupSessions.remove(roomId);
+    }
+
     /**
      * Encrypts a message with megolm
      * @param  {string} roomId           

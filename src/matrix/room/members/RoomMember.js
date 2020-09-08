@@ -134,4 +134,8 @@ export class MemberChange {
     get membership() {
         return this._memberEvent.content?.membership;
     }
+
+    get hasLeft() {
+        return this.previousMembership === "join" && this.membership !== "join";
+    }
 }
