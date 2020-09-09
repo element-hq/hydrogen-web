@@ -31,12 +31,8 @@ function applySyncResponse(data, roomResponse, membership, isInitialSync, isTime
     if (roomResponse.state) {
         data = roomResponse.state.events.reduce(processStateEvent, data);
     }
-    if (roomResponse.timeline) {
-        const {timeline} = roomResponse;
-        if (timeline.prev_batch) {
-            data = data.cloneIfNeeded();
-            data.lastPaginationToken = timeline.prev_batch;
-        }
+    const {timeline} = roomResponse;
+    if (timeline && Array.isArray(timeline.events)) {
         data = timeline.events.reduce((data, event) => {
             if (typeof event.state_key === "string") {
                 return processStateEvent(data, event);
@@ -150,7 +146,6 @@ class SummaryData {
         this.canonicalAlias = copy ? copy.canonicalAlias : null;
         this.hasFetchedMembers = copy ? copy.hasFetchedMembers : false;
         this.isTrackingMembers = copy ? copy.isTrackingMembers : false;
-        this.lastPaginationToken = copy ? copy.lastPaginationToken : null;
         this.avatarUrl = copy ? copy.avatarUrl : null;
         this.notificationCount = copy ? copy.notificationCount : 0;
         this.highlightCount = copy ? copy.highlightCount : 0;
@@ -244,11 +239,7 @@ export class RoomSummary {
     get isTrackingMembers() {
         return this._data.isTrackingMembers;
     }
-
-    get lastPaginationToken() {
-        return this._data.lastPaginationToken;
-    }
-
+    
     get tags() {
         return this._data.tags;
     }

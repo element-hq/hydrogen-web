@@ -28,7 +28,7 @@ import {Heroes} from "./members/Heroes.js";
 import {EventEntry} from "./timeline/entries/EventEntry.js";
 
 export class Room extends EventEmitter {
-	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, pendingEvents, user, createRoomEncryption}) {
+	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, pendingEvents, user, createRoomEncryption, getSyncToken}) {
         super();
         this._roomId = roomId;
         this._storage = storage;
@@ -44,6 +44,7 @@ export class Room extends EventEmitter {
         this._memberList = null;
         this._createRoomEncryption = createRoomEncryption;
         this._roomEncryption = null;
+        this._getSyncToken = getSyncToken;
 	}
 
     async notifyRoomKeys(roomKeys) {
@@ -270,6 +271,7 @@ export class Room extends EventEmitter {
                 roomId: this._roomId,
                 hsApi: this._hsApi,
                 storage: this._storage,
+                syncToken: this._getSyncToken(),
                 // to handle race between /members and /sync
                 setChangedMembersMap: map => this._changedMembersDuringSync = map,
             });

@@ -51,12 +51,13 @@ export class Session {
         this._olmEncryption = null;
         this._megolmEncryption = null;
         this._megolmDecryption = null;
+        this._getSyncToken = () => this.syncToken;
 
         if (olm) {
             this._olmUtil = new olm.Utility();
             this._deviceTracker = new DeviceTracker({
                 storage,
-                getSyncToken: () => this.syncToken,
+                getSyncToken: this._getSyncToken,
                 olmUtil: this._olmUtil,
                 ownUserId: sessionInfo.userId,
                 ownDeviceId: sessionInfo.deviceId,
@@ -241,6 +242,7 @@ export class Session {
     createRoom(roomId, pendingEvents) {
         const room = new Room({
             roomId,
+            getSyncToken: this._getSyncToken,
             storage: this._storage,
             emitCollectionChange: this._roomUpdateCallback,
             hsApi: this._hsApi,
