@@ -23,6 +23,14 @@ class QueryTargetWrapper {
         this._qt = qt;
     }
 
+    get keyPath() {
+        if (this._qt.objectStore) {
+            return this._qt.objectStore.keyPath;
+        } else {
+            return this._qt.keyPath;
+        }
+    }
+
     supports(methodName) {
         return !!this._qt[methodName];
     }

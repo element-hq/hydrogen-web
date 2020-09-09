@@ -42,7 +42,15 @@ export class QueryTarget {
     }
 
     getKey(key) {
-        return reqAsPromise(this._target.getKey(key));
+        if (this._target.supports("getKey")) {
+            return reqAsPromise(this._target.getKey(key));
+        } else {
+            return reqAsPromise(this._target.get(key)).then(value => {
+                if (value) {
+                    return value[this._target.keyPath];
+                }
+            });
+        }
     }
 
     reduce(range, reducer, initialValue) {
