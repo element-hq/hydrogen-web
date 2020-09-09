@@ -49,7 +49,7 @@ export class Room extends EventEmitter {
 
     async notifyRoomKeys(roomKeys) {
         if (this._roomEncryption) {
-            // array of {data, source}
+            // array of {data, isSync}
             let retryEntries = this._roomEncryption.applyRoomKeys(roomKeys);
             let decryptedEntries = [];
             if (retryEntries.length) {
