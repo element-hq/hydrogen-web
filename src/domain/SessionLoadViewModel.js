@@ -82,7 +82,7 @@ export class SessionLoadViewModel extends ViewModel {
             if (this._sessionContainer) {
                 this._sessionContainer.stop();
                 if (this._deleteSessionOnCancel) {
-                    await this._sessionContainer.deletSession();
+                    await this._sessionContainer.deleteSession();
                 }
                 this._sessionContainer = null;
             }
