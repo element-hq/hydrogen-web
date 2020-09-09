@@ -358,7 +358,7 @@ async function copyFolder(srcRoot, dstRoot, filter) {
 
 function resource(relPath, content) {
     let fullPath = relPath;
-    if (!relPath.startsWith("/")) {
+    if (!path.isAbsolute(relPath)) {
         fullPath = path.join(targetDir, relPath);
     }
     const hash = contentHash(Buffer.from(content));
