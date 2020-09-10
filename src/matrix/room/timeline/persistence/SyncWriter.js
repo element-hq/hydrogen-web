@@ -140,7 +140,7 @@ export class SyncWriter {
 
     async _writeTimeline(entries, timeline, currentKey, trackNewlyJoined, txn) {
         const memberChanges = new Map();
-        if (timeline.events) {
+        if (Array.isArray(timeline.events)) {
             const events = deduplicateEvents(timeline.events);
             for(const event of events) {
                 // store event in timeline
@@ -220,6 +220,7 @@ export class SyncWriter {
         // important this happens before _writeTimeline so
         // members are available in the transaction
         const memberChanges = await this._writeStateEvents(roomResponse, trackNewlyJoined, txn);
+        // TODO: remove trackNewlyJoined and pass in memberChanges
         const timelineResult = await this._writeTimeline(entries, timeline, currentKey, trackNewlyJoined, txn);
         currentKey = timelineResult.currentKey;
         // merge member changes from state and timeline, giving precedence to the latter
