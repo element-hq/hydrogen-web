@@ -19,7 +19,6 @@ import {Disposables} from "../../../utils/Disposables.js";
 import {Direction} from "./Direction.js";
 import {TimelineReader} from "./persistence/TimelineReader.js";
 import {PendingEventEntry} from "./entries/PendingEventEntry.js";
-import {EventEntry} from "./entries/EventEntry.js";
 
 export class Timeline {
     constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, user}) {
@@ -99,10 +98,9 @@ export class Timeline {
     }
 
     /** @public */
-    close() {
+    dispose() {
         if (this._closeCallback) {
-            this._readerRequest?.dispose();
-            this._readerRequest = null;
+            this._disposables.dispose();
             this._closeCallback();
             this._closeCallback = null;
         }

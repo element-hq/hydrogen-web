@@ -94,7 +94,6 @@ export class WorkerPool {
                 }
                 this._requests.delete(message.replyToId);
             }
-            console.log("got worker reply", message, this._requests.size);
             this._sendPending();
         } else if (e.type === "error") {
             console.error("worker error", e);
@@ -119,13 +118,11 @@ export class WorkerPool {
 
     _sendPending() {
         this._pendingFlag = false;
-        console.log("seeing if there is anything to send", this._requests.size);
         let success;
         do {
             success = false;
             const request = this._getPendingRequest();
             if (request) {
-                console.log("sending pending request", request);
                 const worker = this._getFreeWorker();
                 if (worker) {
                     this._sendWith(request, worker);
@@ -138,7 +135,6 @@ export class WorkerPool {
     _sendWith(request, worker) {
         request._worker = worker;
         worker.busy = true;
-        console.log("sending message to worker", request._message);
         worker.worker.postMessage(request._message);
     }
 
@@ -162,7 +158,7 @@ export class WorkerPool {
     // assumes all workers are free atm
     sendAll(message) {
         const promises = this._workers.map(worker => {
-            const request = this._enqueueRequest(message);
+            const request = this._enqueueRequest(Object.assign({}, message));
             this._sendWith(request, worker);
             return request.response();
         });
@@ -208,6 +204,6 @@ export class DecryptionWorker {
 
     async init() {
         await this._workerPool.sendAll({type: "load_olm", path: "olm_legacy-3232457086.js"});
-        // return this._send({type: "load_olm", path: "../lib/olm/olm_legacy.js"});
+        //await this._workerPool.sendAll({type: "load_olm", path: "../lib/olm/olm_legacy.js"});
     }
 }

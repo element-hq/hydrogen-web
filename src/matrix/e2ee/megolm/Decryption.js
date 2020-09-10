@@ -39,8 +39,8 @@ export class Decryption {
     constructor({pickleKey, olm}) {
         this._pickleKey = pickleKey;
         this._olm = olm;
-        // this._decryptor = new DecryptionWorker(new Worker("./src/worker.js"));
         this._decryptor = new DecryptionWorker(new WorkerPool("worker-1039452087.js", 4));
+        //this._decryptor = new DecryptionWorker(new WorkerPool("./src/worker.js", 4));
         this._initPromise = this._decryptor.init();
     }
 

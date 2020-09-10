@@ -28,6 +28,9 @@ export class Disposables {
     }
 
     track(disposable) {
+        if (this.isDisposed) {
+            throw new Error("Already disposed, check isDisposed after await if needed");
+        }
         this._disposables.push(disposable);
         return disposable;
     }
@@ -41,8 +44,12 @@ export class Disposables {
         }
     }
 
+    get isDisposed() {
+        return this._disposables === null;
+    }
+
     disposeTracked(value) {
-        if (value === undefined || value === null) {
+        if (value === undefined || value === null || this.isDisposed) {
             return null;
         }
         const idx = this._disposables.indexOf(value);

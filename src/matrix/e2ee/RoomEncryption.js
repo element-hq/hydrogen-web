@@ -292,11 +292,9 @@ class BatchDecryptionResult {
     constructor(results, errors) {
         this.results = results;
         this.errors = errors;
-        console.log("BatchDecryptionResult", this);
     }
 
     applyToEntries(entries) {
-        console.log("BatchDecryptionResult.applyToEntries", this);
         for (const entry of entries) {
             const result = this.results.get(entry.id);
             if (result) {

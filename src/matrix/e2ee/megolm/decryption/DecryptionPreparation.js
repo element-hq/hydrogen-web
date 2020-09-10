@@ -28,6 +28,9 @@ export class DecryptionPreparation {
     }
 
     async decrypt() {
+        // console.log("start sleeping");
+        // await new Promise(resolve => setTimeout(resolve, 5000));
+        // console.log("done sleeping");
         try {
             const errors = this._initialErrors;
             const results = new Map();

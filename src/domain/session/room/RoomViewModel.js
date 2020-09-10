@@ -38,7 +38,7 @@ export class RoomViewModel extends ViewModel {
     async load() {
         this._room.on("change", this._onRoomChange);
         try {
-            this._timeline = this._room.openTimeline();
+            this._timeline = this.track(this._room.openTimeline());
             await this._timeline.load();
             this._timelineVM = new TimelineViewModel(this.childOptions({
                 room: this._room,
@@ -63,17 +63,15 @@ export class RoomViewModel extends ViewModel {
     }
 
     dispose() {
-        // this races with enable, on the await openTimeline()
-        if (this._timeline) {
-            // will stop the timeline from delivering updates on entries
-            this._timeline.close();
-        }
+        super.dispose();
         if (this._clearUnreadTimout) {
             this._clearUnreadTimout.abort();
             this._clearUnreadTimout = null;
         }
     }
 
+    // called from view to close room
+    // parent vm will dispose this vm
     close() {
         this._closeCallback();
     }
