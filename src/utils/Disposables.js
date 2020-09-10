@@ -29,6 +29,7 @@ export class Disposables {
 
     track(disposable) {
         this._disposables.push(disposable);
+        return disposable;
     }
 
     dispose() {

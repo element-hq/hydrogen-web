@@ -19,6 +19,24 @@ import {Direction} from "../Direction.js";
 import {EventEntry} from "../entries/EventEntry.js";
 import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
 
+class ReaderRequest {
+    constructor(fn) {
+        this.decryptRequest = null;
+        this._promise = fn(this);
+    }
+
+    complete() {
+        return this._promise;
+    }
+
+    dispose() {
+        if (this.decryptRequest) {
+            this.decryptRequest.dispose();
+            this.decryptRequest = null;
+        }
+    }
+}
+
 export class TimelineReader {
     constructor({roomId, storage, fragmentIdComparer}) {
         this._roomId = roomId;
@@ -42,12 +60,33 @@ export class TimelineReader {
         return this._storage.readTxn(stores);
     }
 
-    async readFrom(eventKey, direction, amount) {
-        const txn = await this._openTxn();
-        return await this._readFrom(eventKey, direction, amount, txn);
+    readFrom(eventKey, direction, amount) {
+        return new ReaderRequest(async r => {
+            const txn = await this._openTxn();
+            return await this._readFrom(eventKey, direction, amount, r, txn);
+        });
     }
 
-    async _readFrom(eventKey, direction, amount, txn) {
+    readFromEnd(amount) {
+        return new ReaderRequest(async r => {
+            const txn = await this._openTxn();
+            const liveFragment = await txn.timelineFragments.liveFragment(this._roomId);
+            let entries;
+            // room hasn't been synced yet
+            if (!liveFragment) {
+                entries = [];
+            } else {
+                this._fragmentIdComparer.add(liveFragment);
+                const liveFragmentEntry = FragmentBoundaryEntry.end(liveFragment, this._fragmentIdComparer);
+                const eventKey = liveFragmentEntry.asEventKey();
+                entries = await this._readFrom(eventKey, Direction.Backward, amount, r, txn);
+                entries.unshift(liveFragmentEntry);
+            }
+            return entries;
+        });
+    }
+
+    async _readFrom(eventKey, direction, amount, r, txn) {
         let entries = [];
         const timelineStore = txn.timelineEvents;
         const fragmentStore = txn.timelineFragments;
@@ -83,25 +122,12 @@ export class TimelineReader {
         }
 
         if (this._decryptEntries) {
-            await this._decryptEntries(entries, txn);
-        }
-
-        return entries;
-    }
-
-    async readFromEnd(amount) {
-        const txn = await this._openTxn();
-        const liveFragment = await txn.timelineFragments.liveFragment(this._roomId);
-        let entries;
-        // room hasn't been synced yet
-        if (!liveFragment) {
-            entries = [];
-        } else {
-            this._fragmentIdComparer.add(liveFragment);
-            const liveFragmentEntry = FragmentBoundaryEntry.end(liveFragment, this._fragmentIdComparer);
-            const eventKey = liveFragmentEntry.asEventKey();
-            entries = await this._readFrom(eventKey, Direction.Backward, amount, txn);
-            entries.unshift(liveFragmentEntry);
+            r.decryptRequest = this._decryptEntries(entries, txn);
+            try {
+                await r.decryptRequest.complete();
+            } finally {
+                r.decryptRequest = null;
+            }
         }
         return entries;
     }

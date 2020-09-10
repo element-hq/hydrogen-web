@@ -65,7 +65,8 @@ export class Room extends EventEmitter {
                         retryEntries.push(new EventEntry(storageEntry, this._fragmentIdComparer));
                     }
                 }
-                await this._decryptEntries(DecryptionSource.Retry, retryEntries, txn);
+                const decryptRequest = this._decryptEntries(DecryptionSource.Retry, retryEntries, txn);
+                await decryptRequest.complete();
                 if (this._timeline) {
                     // only adds if already present
                     this._timeline.replaceEntries(retryEntries);
@@ -89,31 +90,39 @@ export class Room extends EventEmitter {
      * Used for decrypting when loading/filling the timeline, and retrying decryption,
      * not during sync, where it is split up during the multiple phases.
      */
-    async _decryptEntries(source, entries, inboundSessionTxn = null) {
-        if (!inboundSessionTxn) {
-            inboundSessionTxn = await this._storage.readTxn([this._storage.storeNames.inboundGroupSessions]);
-        }
-        const events = entries.filter(entry => {
-            return entry.eventType === EVENT_ENCRYPTED_TYPE;
-        }).map(entry => entry.event);
-        const isTimelineOpen = this._isTimelineOpen;
-        const preparation = await this._roomEncryption.prepareDecryptAll(events, source, isTimelineOpen, inboundSessionTxn);
-        const changes = await preparation.decrypt();
-        const stores = [this._storage.storeNames.groupSessionDecryptions];
-        if (isTimelineOpen) {
-            // read to fetch devices if timeline is open
-            stores.push(this._storage.storeNames.deviceIdentities);
-        }
-        const writeTxn = await this._storage.readWriteTxn(stores);
-        let decryption;
-        try {
-            decryption = await changes.write(writeTxn);
-        } catch (err) {
-            writeTxn.abort();
-            throw err;
-        }
-        await writeTxn.complete();
-        decryption.applyToEntries(entries);
+    _decryptEntries(source, entries, inboundSessionTxn = null) {
+        const request = new DecryptionRequest(async r => {
+            if (!inboundSessionTxn) {
+                inboundSessionTxn = await this._storage.readTxn([this._storage.storeNames.inboundGroupSessions]);
+            }
+            if (r.cancelled) return;
+            const events = entries.filter(entry => {
+                return entry.eventType === EVENT_ENCRYPTED_TYPE;
+            }).map(entry => entry.event);
+            const isTimelineOpen = this._isTimelineOpen;
+            r.preparation = await this._roomEncryption.prepareDecryptAll(events, source, isTimelineOpen, inboundSessionTxn);
+            if (r.cancelled) return;
+            // TODO: should this throw an AbortError?
+            const changes = await r.preparation.decrypt();
+            r.preparation = null;
+            if (r.cancelled) return;
+            const stores = [this._storage.storeNames.groupSessionDecryptions];
+            if (isTimelineOpen) {
+                // read to fetch devices if timeline is open
+                stores.push(this._storage.storeNames.deviceIdentities);
+            }
+            const writeTxn = await this._storage.readWriteTxn(stores);
+            let decryption;
+            try {
+                decryption = await changes.write(writeTxn);
+            } catch (err) {
+                writeTxn.abort();
+                throw err;
+            }
+            await writeTxn.complete();
+            decryption.applyToEntries(entries);
+        });
+        return request;
     }
 
     get needsPrepareSync() {
@@ -349,7 +358,8 @@ export class Room extends EventEmitter {
         }
         await txn.complete();
         if (this._roomEncryption) {
-            await this._decryptEntries(DecryptionSource.Timeline, gapResult.entries);
+            const decryptRequest = this._decryptEntries(DecryptionSource.Timeline, gapResult.entries);
+            await decryptRequest.complete();
         }
         // once txn is committed, update in-memory state & emit events
         for (const fragment of gapResult.fragments) {
@@ -461,7 +471,7 @@ export class Room extends EventEmitter {
     }
 
     /** @public */
-    async openTimeline() {
+    openTimeline() {
         if (this._timeline) {
             throw new Error("not dealing with load race here for now");
         }
@@ -483,7 +493,6 @@ export class Room extends EventEmitter {
         if (this._roomEncryption) {
             this._timeline.enableEncryption(this._decryptEntries.bind(this, DecryptionSource.Timeline));
         }
-        await this._timeline.load();
         return this._timeline;
     }
 
@@ -502,3 +511,25 @@ export class Room extends EventEmitter {
     }
 }
 
+class DecryptionRequest {
+    constructor(decryptFn) {
+        this._cancelled = false;
+        this.preparation = null;
+        this._promise = decryptFn(this);
+    }
+
+    complete() {
+        return this._promise;
+    }
+
+    get cancelled() {
+        return this._cancelled;
+    }
+
+    dispose() {
+        this._cancelled = true;
+        if (this.preparation) {
+            this.preparation.dispose();
+        }
+    }
+}

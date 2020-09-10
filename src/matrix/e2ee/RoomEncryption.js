@@ -268,7 +268,7 @@ class DecryptionPreparation {
     }
 
     dispose() {
-        this._megolmDecryptionChanges.dispose();
+        this._megolmDecryptionPreparation.dispose();
     }
 }
 

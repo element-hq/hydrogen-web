@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {SortedArray, MappedList, ConcatList} from "../../../observable/index.js";
+import {Disposables} from "../../../utils/Disposables.js";
 import {Direction} from "./Direction.js";
 import {TimelineReader} from "./persistence/TimelineReader.js";
 import {PendingEventEntry} from "./entries/PendingEventEntry.js";
@@ -26,12 +27,14 @@ export class Timeline {
         this._storage = storage;
         this._closeCallback = closeCallback;
         this._fragmentIdComparer = fragmentIdComparer;
+        this._disposables = new Disposables();
         this._remoteEntries = new SortedArray((a, b) => a.compare(b));
         this._timelineReader = new TimelineReader({
             roomId: this._roomId,
             storage: this._storage,
             fragmentIdComparer: this._fragmentIdComparer
         });
+        this._readerRequest = null;
         const localEntries = new MappedList(pendingEvents, pe => {
             return new PendingEventEntry({pendingEvent: pe, user});
         }, (pee, params) => {
@@ -42,8 +45,14 @@ export class Timeline {
 
     /** @package */
     async load() {
-        const entries = await this._timelineReader.readFromEnd(25);
-        this._remoteEntries.setManySorted(entries);
+        // 30 seems to be a good amount to fill the entire screen
+        const readerRequest = this._disposables.track(this._timelineReader.readFromEnd(30));
+        try {
+            const entries = await readerRequest.complete();
+            this._remoteEntries.setManySorted(entries);
+        } finally {
+            this._disposables.disposeTracked(readerRequest);
+        }
     }
 
     replaceEntries(entries) {
@@ -71,12 +80,17 @@ export class Timeline {
         if (!firstEventEntry) {
             return;
         }
-        const entries = await this._timelineReader.readFrom(
+        const readerRequest = this._disposables.track(this._timelineReader.readFrom(
             firstEventEntry.asEventKey(),
             Direction.Backward,
             amount
-        );
-        this._remoteEntries.setManySorted(entries);
+        ));
+        try {
+            const entries = await readerRequest.complete();
+            this._remoteEntries.setManySorted(entries);
+        } finally {
+            this._disposables.disposeTracked(readerRequest);
+        }
     }
 
     /** @public */
@@ -87,6 +101,8 @@ export class Timeline {
     /** @public */
     close() {
         if (this._closeCallback) {
+            this._readerRequest?.dispose();
+            this._readerRequest = null;
             this._closeCallback();
             this._closeCallback = null;
         }

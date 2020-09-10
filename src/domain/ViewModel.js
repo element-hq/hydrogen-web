@@ -36,8 +36,7 @@ export class ViewModel extends EventEmitter {
         if (!this.disposables) {
             this.disposables = new Disposables();
         }
-        this.disposables.track(disposable);
-        return disposable;
+        return this.disposables.track(disposable);
     }
 
     dispose() {

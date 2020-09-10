@@ -94,13 +94,13 @@ class MessageHandler {
     }
 
     async _handleMessage(message) {
-        switch (message.type) {
-            case "load_olm":
-                this._sendReply(message, await this._loadOlm(message.path));
-                break;
-            case "megolm_decrypt":
-                this._sendReply(message, this._megolmDecrypt(message.sessionKey, message.ciphertext));
-                break;
+        const {type} = message;
+        if (type === "ping") {
+            this._sendReply(message, {type: "pong"});
+        } else if (type === "load_olm") {
+            this._sendReply(message, await this._loadOlm(message.path));
+        } else if (type === "megolm_decrypt") {
+            this._sendReply(message, this._megolmDecrypt(message.sessionKey, message.ciphertext));
         }
     }
 }

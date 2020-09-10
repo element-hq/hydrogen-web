@@ -27,6 +27,7 @@ export class SessionDecryption {
         this._sessionInfo = sessionInfo;
         this._events = events;
         this._decryptor = decryptor;
+        this._decryptionRequests = decryptor ? [] : null;
     }
 
     async decryptAll() {
@@ -39,7 +40,16 @@ export class SessionDecryption {
             try {
                 const {session} = this._sessionInfo;
                 const ciphertext = event.content.ciphertext;
-                const {plaintext, message_index: messageIndex} = await this._decryptor.decrypt(session, ciphertext);
+                let decryptionResult;
+                if (this._decryptor) {
+                    const request = this._decryptor.decrypt(session, ciphertext);
+                    this._decryptionRequests.push(request);
+                    decryptionResult = await request.response();
+                } else {
+                    decryptionResult = session.decrypt(ciphertext);
+                }
+                const plaintext = decryptionResult.plaintext;
+                const messageIndex = decryptionResult.message_index;
                 let payload;
                 try {
                     payload = JSON.parse(plaintext);
@@ -54,6 +64,10 @@ export class SessionDecryption {
                 const result = new DecryptionResult(payload, this._sessionInfo.senderKey, this._sessionInfo.claimedKeys);
                 results.set(event.event_id, result);
             } catch (err) {
+                // ignore AbortError from cancelling decryption requests in dispose method
+                if (err.name === "AbortError") {
+                    return;
+                }
                 if (!errors) {
                     errors = new Map();
                 }
@@ -65,6 +79,12 @@ export class SessionDecryption {
     }
 
     dispose() {
+        if (this._decryptionRequests) {
+            for (const r of this._decryptionRequests) {
+                r.abort();
+            }
+        }
+        // TODO: cancel decryptions here
         this._sessionInfo.release();
     }
 }

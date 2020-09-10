@@ -21,7 +21,7 @@ import {SessionInfo} from "./decryption/SessionInfo.js";
 import {DecryptionPreparation} from "./decryption/DecryptionPreparation.js";
 import {SessionDecryption} from "./decryption/SessionDecryption.js";
 import {SessionCache} from "./decryption/SessionCache.js";
-import {DecryptionWorker} from "./decryption/DecryptionWorker.js";
+import {DecryptionWorker, WorkerPool} from "./decryption/DecryptionWorker.js";
 
 function getSenderKey(event) {
     return event.content?.["sender_key"];
@@ -40,7 +40,7 @@ export class Decryption {
         this._pickleKey = pickleKey;
         this._olm = olm;
         // this._decryptor = new DecryptionWorker(new Worker("./src/worker.js"));
-        this._decryptor = new DecryptionWorker(new Worker("worker-3074010154.js"));
+        this._decryptor = new DecryptionWorker(new WorkerPool("worker-1039452087.js", 4));
         this._initPromise = this._decryptor.init();
     }
 

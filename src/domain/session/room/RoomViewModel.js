@@ -38,7 +38,8 @@ export class RoomViewModel extends ViewModel {
     async load() {
         this._room.on("change", this._onRoomChange);
         try {
-            this._timeline = await this._room.openTimeline();
+            this._timeline = this._room.openTimeline();
+            await this._timeline.load();
             this._timelineVM = new TimelineViewModel(this.childOptions({
                 room: this._room,
                 timeline: this._timeline,
