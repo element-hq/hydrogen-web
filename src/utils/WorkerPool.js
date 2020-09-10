@@ -94,7 +94,6 @@ export class WorkerPool {
     }
 
     handleEvent(e) {
-        console.log("WorkerPool event", e);
         if (e.type === "message") {
             const message = e.data;
             const request = this._requests.get(message.replyToId);

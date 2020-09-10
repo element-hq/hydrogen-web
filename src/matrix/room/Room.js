@@ -102,7 +102,6 @@ export class Room extends EventEmitter {
             const isTimelineOpen = this._isTimelineOpen;
             r.preparation = await this._roomEncryption.prepareDecryptAll(events, source, isTimelineOpen, inboundSessionTxn);
             if (r.cancelled) return;
-            // TODO: should this throw an AbortError?
             const changes = await r.preparation.decrypt();
             r.preparation = null;
             if (r.cancelled) return;
