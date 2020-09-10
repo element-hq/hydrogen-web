@@ -163,10 +163,14 @@ async function buildHtml(doc, version, assetPaths, manifestPath) {
     findThemes(doc, (themeName, theme) => {
         theme.attr("href", assetPaths.cssThemeBundle(themeName));
     });
+    const pathsJSON = JSON.stringify({
+        worker: assetPaths.jsWorker(),
+        olm: olmFiles
+    });
     doc("script#main").replaceWith(
-        `<script type="module">import {main} from "./${assetPaths.jsBundle()}"; main(document.body, ${JSON.stringify(olmFiles)});</script>` +
+        `<script type="module">import {main} from "./${assetPaths.jsBundle()}"; main(document.body, ${pathsJSON});</script>` +
         `<script type="text/javascript" nomodule src="${assetPaths.jsLegacyBundle()}"></script>` +
-        `<script type="text/javascript" nomodule>${PROJECT_ID}Bundle.main(document.body, ${JSON.stringify(olmFiles)});</script>`);
+        `<script type="text/javascript" nomodule>${PROJECT_ID}Bundle.main(document.body, ${pathsJSON});</script>`);
     removeOrEnableScript(doc("script#service-worker"), offline);
 
     const versionScript = doc("script#version");

@@ -21,7 +21,7 @@ import {SessionInfo} from "./decryption/SessionInfo.js";
 import {DecryptionPreparation} from "./decryption/DecryptionPreparation.js";
 import {SessionDecryption} from "./decryption/SessionDecryption.js";
 import {SessionCache} from "./decryption/SessionCache.js";
-import {DecryptionWorker, WorkerPool} from "./decryption/DecryptionWorker.js";
+import {DecryptionWorker} from "./decryption/DecryptionWorker.js";
 
 function getSenderKey(event) {
     return event.content?.["sender_key"];
@@ -36,12 +36,10 @@ function getCiphertext(event) {
 }
 
 export class Decryption {
-    constructor({pickleKey, olm}) {
+    constructor({pickleKey, olm, workerPool}) {
         this._pickleKey = pickleKey;
         this._olm = olm;
-        this._decryptor = new DecryptionWorker(new WorkerPool("worker-1039452087.js", 4));
-        //this._decryptor = new DecryptionWorker(new WorkerPool("./src/worker.js", 4));
-        this._initPromise = this._decryptor.init();
+        this._decryptor = workerPool ? new DecryptionWorker(workerPool) : null;
     }
 
     createSessionCache(fallback) {
@@ -58,7 +56,6 @@ export class Decryption {
      * @return {DecryptionPreparation}
      */
     async prepareDecryptAll(roomId, events, sessionCache, txn) {
-        await this._initPromise;
         const errors = new Map();
         const validEvents = [];
 

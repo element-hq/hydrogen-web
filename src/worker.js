@@ -96,7 +96,7 @@ class MessageHandler {
     async _handleMessage(message) {
         const {type} = message;
         if (type === "ping") {
-            this._sendReply(message, {type: "pong"});
+            this._sendReply(message, {type: "success"});
         } else if (type === "load_olm") {
             this._sendReply(message, await this._loadOlm(message.path));
         } else if (type === "megolm_decrypt") {

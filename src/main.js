@@ -25,6 +25,7 @@ import {BrawlViewModel} from "./domain/BrawlViewModel.js";
 import {BrawlView} from "./ui/web/BrawlView.js";
 import {Clock} from "./ui/web/dom/Clock.js";
 import {OnlineStatus} from "./ui/web/dom/OnlineStatus.js";
+import {WorkerPool} from "./utils/WorkerPool.js";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -55,10 +56,27 @@ async function loadOlm(olmPaths) {
     return null;
 }
 
+// make path relative to basePath,
+// assuming it and basePath are relative to document
+function relPath(path, basePath) {
+    const idx = basePath.lastIndexOf("/");
+    const dir = idx === -1 ? "" : basePath.slice(0, idx);
+    const dirCount = dir.length ? dir.split("/").length : 0;
+    return "../".repeat(dirCount) + path;
+}
+
+async function loadWorker(paths) {
+    const workerPool = new WorkerPool(paths.worker, 4);
+    await workerPool.init();
+    const path = relPath(paths.olm.legacyBundle, paths.worker);
+    await workerPool.sendAll({type: "load_olm", path});
+    return workerPool;
+}
+
 // Don't use a default export here, as we use multiple entries during legacy build,
 // which does not support default exports,
 // see https://github.com/rollup/plugins/tree/master/packages/multi-entry
-export async function main(container, olmPaths) {
+export async function main(container, paths) {
     try {
         // to replay:
         // const fetchLog = await (await fetch("/fetchlogs/constrainterror.json")).json();
@@ -79,6 +97,13 @@ export async function main(container, olmPaths) {
         const sessionInfoStorage = new SessionInfoStorage("brawl_sessions_v1");
         const storageFactory = new StorageFactory();
 
+        // if wasm is not supported, we'll want
+        // to run some olm operations in a worker (mainly for IE11)
+        let workerPromise;
+        if (!window.WebAssembly) {
+            workerPromise = loadWorker(paths);
+        }
+
         const vm = new BrawlViewModel({
             createSessionContainer: () => {
                 return new SessionContainer({
@@ -88,7 +113,8 @@ export async function main(container, olmPaths) {
                     sessionInfoStorage,
                     request,
                     clock,
-                    olmPromise: loadOlm(olmPaths),
+                    olmPromise: loadOlm(paths.olm),
+                    workerPromise,
                 });
             },
             sessionInfoStorage,
