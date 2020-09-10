@@ -84,10 +84,11 @@ async function build() {
     // also creates the directories where the theme css bundles are placed in,
     // so do it first
     const themeAssets = await copyThemeAssets(themes, legacy);
-    const jsBundlePath = await buildJs();
-    const jsLegacyBundlePath = await buildJsLegacy();
+    const jsBundlePath = await buildJs("src/main.js", `${PROJECT_ID}.js`);
+    const jsLegacyBundlePath = await buildJsLegacy("src/main.js", `${PROJECT_ID}-legacy.js`);
+    const jsWorkerPath = await buildWorkerJsLegacy("src/worker.js", `worker.js`);
     const cssBundlePaths = await buildCssBundles(legacy ? buildCssLegacy : buildCss, themes, themeAssets);
-    const assetPaths = createAssetPaths(jsBundlePath, jsLegacyBundlePath, cssBundlePaths, themeAssets);
+    const assetPaths = createAssetPaths(jsBundlePath, jsLegacyBundlePath, jsWorkerPath, cssBundlePaths, themeAssets);
 
     let manifestPath;
     if (offline) {
@@ -98,7 +99,7 @@ async function build() {
     console.log(`built ${PROJECT_ID} ${version} successfully`);
 }
 
-function createAssetPaths(jsBundlePath, jsLegacyBundlePath, cssBundlePaths, themeAssets) {
+function createAssetPaths(jsBundlePath, jsLegacyBundlePath, jsWorkerPath, cssBundlePaths, themeAssets) {
     function trim(path) {
         if (!path.startsWith(targetDir)) {
             throw new Error("invalid target path: " + targetDir);
@@ -108,6 +109,7 @@ function createAssetPaths(jsBundlePath, jsLegacyBundlePath, cssBundlePaths, them
     return {
         jsBundle: () => trim(jsBundlePath),
         jsLegacyBundle: () => trim(jsLegacyBundlePath),
+        jsWorker: () => trim(jsWorkerPath),
         cssMainBundle: () => trim(cssBundlePaths.main),
         cssThemeBundle: themeName => trim(cssBundlePaths.themes[themeName]),
         cssThemeBundles: () => Object.values(cssBundlePaths.themes).map(a => trim(a)),
@@ -180,23 +182,24 @@ async function buildHtml(doc, version, assetPaths, manifestPath) {
     await fs.writeFile(path.join(targetDir, "index.html"), doc.html(), "utf8");
 }
 
-async function buildJs() {
+async function buildJs(inputFile, outputName) {
     // create js bundle
     const bundle = await rollup({
-        input: 'src/main.js',
+        input: inputFile,
         plugins: [removeJsComments({comments: "none"})]
     });
     const {output} = await bundle.generate({
         format: 'es',
+        // TODO: can remove this?
         name: `${PROJECT_ID}Bundle`
     });
     const code = output[0].code;
-    const bundlePath = resource(`${PROJECT_ID}.js`, code);
+    const bundlePath = resource(outputName, code);
     await fs.writeFile(bundlePath, code, "utf8");
     return bundlePath;
 }
 
-async function buildJsLegacy() {
+async function buildJsLegacy(inputFile, outputName) {
     // compile down to whatever IE 11 needs
     const babelPlugin = babel.babel({
         babelHelpers: 'bundled',
@@ -214,7 +217,7 @@ async function buildJsLegacy() {
     });
     // create js bundle
     const rollupConfig = {
-        input: ['src/legacy-polyfill.js', 'src/main.js'],
+        input: ['src/legacy-polyfill.js', inputFile],
         plugins: [multi(), commonjs(), nodeResolve(), babelPlugin, removeJsComments({comments: "none"})]
     };
     const bundle = await rollup(rollupConfig);
@@ -223,7 +226,39 @@ async function buildJsLegacy() {
         name: `${PROJECT_ID}Bundle`
     });
     const code = output[0].code;
-    const bundlePath = resource(`${PROJECT_ID}-legacy.js`, code);
+    const bundlePath = resource(outputName, code);
+    await fs.writeFile(bundlePath, code, "utf8");
+    return bundlePath;
+}
+
+async function buildWorkerJsLegacy(inputFile, outputName) {
+    // compile down to whatever IE 11 needs
+    const babelPlugin = babel.babel({
+        babelHelpers: 'bundled',
+        exclude: 'node_modules/**',
+        presets: [
+            [
+                "@babel/preset-env",
+                {
+                    useBuiltIns: "entry",
+                    corejs: "3",
+                    targets: "IE 11"
+                }
+            ]
+        ]
+    });
+    // create js bundle
+    const rollupConfig = {
+        input: ['src/worker-polyfill.js', inputFile],
+        plugins: [multi(), commonjs(), nodeResolve(), babelPlugin, removeJsComments({comments: "none"})]
+    };
+    const bundle = await rollup(rollupConfig);
+    const {output} = await bundle.generate({
+        format: 'iife',
+        name: `${PROJECT_ID}Bundle`
+    });
+    const code = output[0].code;
+    const bundlePath = resource(outputName, code);
     await fs.writeFile(bundlePath, code, "utf8");
     return bundlePath;
 }

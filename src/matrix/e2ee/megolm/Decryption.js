@@ -21,6 +21,7 @@ import {SessionInfo} from "./decryption/SessionInfo.js";
 import {DecryptionPreparation} from "./decryption/DecryptionPreparation.js";
 import {SessionDecryption} from "./decryption/SessionDecryption.js";
 import {SessionCache} from "./decryption/SessionCache.js";
+import {DecryptionWorker} from "./decryption/DecryptionWorker.js";
 
 function getSenderKey(event) {
     return event.content?.["sender_key"];
@@ -38,7 +39,9 @@ export class Decryption {
     constructor({pickleKey, olm}) {
         this._pickleKey = pickleKey;
         this._olm = olm;
-        // this._worker = new MessageHandler(new Worker("worker-2580578233.js"));
+        // this._decryptor = new DecryptionWorker(new Worker("./src/worker.js"));
+        this._decryptor = new DecryptionWorker(new Worker("worker-3074010154.js"));
+        this._initPromise = this._decryptor.init();
     }
 
     createSessionCache(fallback) {
@@ -55,6 +58,7 @@ export class Decryption {
      * @return {DecryptionPreparation}
      */
     async prepareDecryptAll(roomId, events, sessionCache, txn) {
+        await this._initPromise;
         const errors = new Map();
         const validEvents = [];
 
@@ -85,7 +89,7 @@ export class Decryption {
                     errors.set(event.event_id, new DecryptionError("MEGOLM_NO_SESSION", event));
                 }
             } else {
-                sessionDecryptions.push(new SessionDecryption(sessionInfo, eventsForSession));
+                sessionDecryptions.push(new SessionDecryption(sessionInfo, eventsForSession, this._decryptor));
             }
         }));
 

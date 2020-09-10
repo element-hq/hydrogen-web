@@ -42,7 +42,7 @@ export class Timeline {
 
     /** @package */
     async load() {
-        const entries = await this._timelineReader.readFromEnd(50);
+        const entries = await this._timelineReader.readFromEnd(25);
         this._remoteEntries.setManySorted(entries);
     }
 

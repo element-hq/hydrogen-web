@@ -15,12 +15,5 @@ limitations under the License.
 */
 
 // polyfills needed for IE11
-import "core-js/stable";
 import "regenerator-runtime/runtime";
-import "mdn-polyfills/Element.prototype.closest";
-// TODO: contribute this to mdn-polyfills
-if (!Element.prototype.remove) {
-    Element.prototype.remove = function remove() {
-        this.parentNode.removeChild(this);
-    };
-}
+import "core-js/modules/es.promise";
