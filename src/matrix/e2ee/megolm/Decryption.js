@@ -15,102 +15,102 @@ limitations under the License.
 */
 
 import {DecryptionError} from "../common.js";
-import {DecryptionResult} from "../DecryptionResult.js";
+import {groupBy} from "../../../utils/groupBy.js";
 
-const CACHE_MAX_SIZE = 10;
+import {SessionInfo} from "./decryption/SessionInfo.js";
+import {DecryptionPreparation} from "./decryption/DecryptionPreparation.js";
+import {SessionDecryption} from "./decryption/SessionDecryption.js";
+import {SessionCache} from "./decryption/SessionCache.js";
+import {DecryptionWorker} from "./decryption/DecryptionWorker.js";
+
+function getSenderKey(event) {
+    return event.content?.["sender_key"];
+}
+
+function getSessionId(event) {
+    return event.content?.["session_id"];
+}
+
+function getCiphertext(event) {
+    return event.content?.ciphertext;
+}
 
 export class Decryption {
-    constructor({pickleKey, olm}) {
+    constructor({pickleKey, olm, workerPool}) {
         this._pickleKey = pickleKey;
         this._olm = olm;
+        this._decryptor = workerPool ? new DecryptionWorker(workerPool) : null;
     }
 
-    createSessionCache() {
-        return new SessionCache();
+    createSessionCache(fallback) {
+        return new SessionCache(fallback);
     }
 
     /**
-     * [decrypt description]
+     * Reads all the state from storage to be able to decrypt the given events.
+     * Decryption can then happen outside of a storage transaction.
      * @param  {[type]} roomId       [description]
-     * @param  {[type]} event        [description]
+     * @param  {[type]} events        [description]
      * @param  {[type]} sessionCache [description]
      * @param  {[type]} txn          [description]
-     * @return {DecryptionResult?} the decrypted event result, or undefined if the session id is not known.
+     * @return {DecryptionPreparation}
      */
-    async decrypt(roomId, event, sessionCache, txn) {
-        const senderKey = event.content?.["sender_key"];
-        const sessionId = event.content?.["session_id"];
-        const ciphertext = event.content?.ciphertext;
+    async prepareDecryptAll(roomId, events, sessionCache, txn) {
+        const errors = new Map();
+        const validEvents = [];
 
-        if (
-            typeof senderKey !== "string" ||
-            typeof sessionId !== "string" ||
-            typeof ciphertext !== "string"
-        ) {
-            throw new DecryptionError("MEGOLM_INVALID_EVENT", event);
+        for (const event of events) {
+            const isValid = typeof getSenderKey(event) === "string" &&
+                            typeof getSessionId(event) === "string" &&
+                            typeof getCiphertext(event) === "string";
+            if (isValid) {
+                validEvents.push(event);
+            } else {
+                errors.set(event.event_id, new DecryptionError("MEGOLM_INVALID_EVENT", event))
+            }
         }
 
-        let session;
-        let claimedKeys;
-        const cacheEntry = sessionCache.get(roomId, senderKey, sessionId);
-        if (cacheEntry) {
-            session = cacheEntry.session;
-            claimedKeys = cacheEntry.claimedKeys;
-        } else {
+        const eventsBySession = groupBy(validEvents, event => {
+            return `${getSenderKey(event)}|${getSessionId(event)}`;
+        });
+
+        const sessionDecryptions = [];
+
+        await Promise.all(Array.from(eventsBySession.values()).map(async eventsForSession => {
+            const first = eventsForSession[0];
+            const senderKey = getSenderKey(first);
+            const sessionId = getSessionId(first);
+            const sessionInfo = await this._getSessionInfo(roomId, senderKey, sessionId, sessionCache, txn);
+            if (!sessionInfo) {
+                for (const event of eventsForSession) {
+                    errors.set(event.event_id, new DecryptionError("MEGOLM_NO_SESSION", event));
+                }
+            } else {
+                sessionDecryptions.push(new SessionDecryption(sessionInfo, eventsForSession, this._decryptor));
+            }
+        }));
+
+        return new DecryptionPreparation(roomId, sessionDecryptions, errors);
+    }
+
+    async _getSessionInfo(roomId, senderKey, sessionId, sessionCache, txn) {
+        let sessionInfo;
+        sessionInfo = sessionCache.get(roomId, senderKey, sessionId);
+        if (!sessionInfo) {
             const sessionEntry = await txn.inboundGroupSessions.get(roomId, senderKey, sessionId);
             if (sessionEntry) {
-                session = new this._olm.InboundGroupSession();
+                let session = new this._olm.InboundGroupSession();
                 try {
                     session.unpickle(this._pickleKey, sessionEntry.session);
+                    sessionInfo = new SessionInfo(roomId, senderKey, session, sessionEntry.claimedKeys);
                 } catch (err) {
                     session.free();
                     throw err;
                 }
-                claimedKeys = sessionEntry.claimedKeys;
-                sessionCache.add(roomId, senderKey, session, claimedKeys);
+                sessionCache.add(sessionInfo);
             }
         }
-        if (!session) {
-            return;
-        }
-        const {plaintext, message_index: messageIndex} = session.decrypt(ciphertext);
-        let payload;
-        try {
-            payload = JSON.parse(plaintext);
-        } catch (err) {
-            throw new DecryptionError("PLAINTEXT_NOT_JSON", event, {plaintext, err});
-        }
-        if (payload.room_id !== roomId) {
-            throw new DecryptionError("MEGOLM_WRONG_ROOM", event,
-                {encryptedRoomId: payload.room_id, eventRoomId: roomId});
-        }
-        await this._handleReplayAttack(roomId, sessionId, messageIndex, event, txn);
-        return new DecryptionResult(payload, senderKey, claimedKeys);
-    }
-
-    async _handleReplayAttack(roomId, sessionId, messageIndex, event, txn) {
-        const eventId = event.event_id;
-        const timestamp = event.origin_server_ts;
-        const decryption = await txn.groupSessionDecryptions.get(roomId, sessionId, messageIndex);
-        if (decryption && decryption.eventId !== eventId) {
-            // the one with the newest timestamp should be the attack
-            const decryptedEventIsBad = decryption.timestamp < timestamp;
-            const badEventId = decryptedEventIsBad ? eventId : decryption.eventId;
-            throw new DecryptionError("MEGOLM_REPLAYED_INDEX", event, {
-                messageIndex,
-                badEventId,
-                otherEventId: decryption.eventId
-            });
-        }
-        if (!decryption) {
-            txn.groupSessionDecryptions.set({
-                roomId,
-                sessionId,
-                messageIndex,
-                eventId,
-                timestamp
-            });
-        }
+        return sessionInfo;
     }
 
     /**
@@ -165,55 +165,3 @@ export class Decryption {
     }
 }
 
-class SessionCache {
-    constructor() {
-        this._sessions = [];
-    }
-
-    /**
-     * @type {CacheEntry}
-     * @property {InboundGroupSession} session the unpickled session
-     * @property {Object} claimedKeys an object with the claimed ed25519 key
-     *
-     * 
-     * @param  {string} roomId
-     * @param  {string} senderKey
-     * @param  {string} sessionId
-     * @return {CacheEntry?}
-     */
-    get(roomId, senderKey, sessionId) {
-        const idx = this._sessions.findIndex(s => {
-            return s.roomId === roomId &&
-                s.senderKey === senderKey &&
-                sessionId === s.session.session_id();
-        });
-        if (idx !== -1) {
-            const entry = this._sessions[idx];
-            // move to top
-            if (idx > 0) {
-                this._sessions.splice(idx, 1);
-                this._sessions.unshift(entry);
-            }
-            return entry;
-        }
-    }
-
-    add(roomId, senderKey, session, claimedKeys) {
-        // add new at top
-        this._sessions.unshift({roomId, senderKey, session, claimedKeys});
-        if (this._sessions.length > CACHE_MAX_SIZE) {
-            // free sessions we're about to remove
-            for (let i = CACHE_MAX_SIZE; i < this._sessions.length; i += 1) {
-                this._sessions[i].session.free();
-            }
-            this._sessions = this._sessions.slice(0, CACHE_MAX_SIZE);
-        }
-    }
-
-    dispose() {
-        for (const entry of this._sessions) {
-            entry.session.free();
-        }
-
-    }
-}

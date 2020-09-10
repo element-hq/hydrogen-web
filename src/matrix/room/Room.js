@@ -26,6 +26,9 @@ import {fetchOrLoadMembers} from "./members/load.js";
 import {MemberList} from "./members/MemberList.js";
 import {Heroes} from "./members/Heroes.js";
 import {EventEntry} from "./timeline/entries/EventEntry.js";
+import {DecryptionSource} from "../e2ee/common.js";
+
+const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 
 export class Room extends EventEmitter {
 	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, pendingEvents, user, createRoomEncryption, getSyncToken}) {
@@ -49,43 +52,27 @@ export class Room extends EventEmitter {
 
     async notifyRoomKeys(roomKeys) {
         if (this._roomEncryption) {
-            // array of {data, isSync}
-            let retryEntries = this._roomEncryption.applyRoomKeys(roomKeys);
-            let decryptedEntries = [];
-            if (retryEntries.length) {
-                // groupSessionDecryptions can be written, the other stores not
-                const txn = await this._storage.readWriteTxn([
+            let retryEventIds = this._roomEncryption.applyRoomKeys(roomKeys);
+            if (retryEventIds.length) {
+                const retryEntries = [];
+                const txn = await this._storage.readTxn([
                     this._storage.storeNames.timelineEvents,
                     this._storage.storeNames.inboundGroupSessions,
-                    this._storage.storeNames.groupSessionDecryptions,
-                    this._storage.storeNames.deviceIdentities,
                 ]);
-                try {
-                    for (const retryEntry of retryEntries) {
-                        const {data: eventKey} = retryEntry;
-                        let entry = this._timeline?.findEntry(eventKey);
-                        if (!entry) {
-                            const storageEntry = await txn.timelineEvents.get(this._roomId, eventKey);
-                            if (storageEntry) {
-                                entry = new EventEntry(storageEntry, this._fragmentIdComparer);
-                            }
-                        }
-                        if (entry) {
-                            entry = await this._decryptEntry(entry, txn, retryEntry.isSync);
-                            decryptedEntries.push(entry);
-                        }
+                for (const eventId of retryEventIds) {
+                    const storageEntry = await txn.timelineEvents.getByEventId(this._roomId, eventId);
+                    if (storageEntry) {
+                        retryEntries.push(new EventEntry(storageEntry, this._fragmentIdComparer));
                     }
-                } catch (err) {
-                    txn.abort();
-                    throw err;
                 }
-                await txn.complete();
+                const decryptRequest = this._decryptEntries(DecryptionSource.Retry, retryEntries, txn);
+                await decryptRequest.complete();
+                if (this._timeline) {
+                    // only adds if already present
+                    this._timeline.replaceEntries(retryEntries);
+                }
+                // pass decryptedEntries to roomSummary
             }
-            if (this._timeline) {
-                // only adds if already present
-                this._timeline.replaceEntries(decryptedEntries);
-            }
-            // pass decryptedEntries to roomSummary
         }
     }
 
@@ -94,46 +81,95 @@ export class Room extends EventEmitter {
         if (this._roomEncryption) {
             this._sendQueue.enableEncryption(this._roomEncryption);
             if (this._timeline) {
-                this._timeline.enableEncryption(this._decryptEntries.bind(this));
+                this._timeline.enableEncryption(this._decryptEntries.bind(this, DecryptionSource.Timeline));
             }
         }
     }
 
-    async _decryptEntry(entry, txn, isSync) {
-        if (entry.eventType === "m.room.encrypted") {
+    /**
+     * Used for decrypting when loading/filling the timeline, and retrying decryption,
+     * not during sync, where it is split up during the multiple phases.
+     */
+    _decryptEntries(source, entries, inboundSessionTxn = null) {
+        const request = new DecryptionRequest(async r => {
+            if (!inboundSessionTxn) {
+                inboundSessionTxn = await this._storage.readTxn([this._storage.storeNames.inboundGroupSessions]);
+            }
+            if (r.cancelled) return;
+            const events = entries.filter(entry => {
+                return entry.eventType === EVENT_ENCRYPTED_TYPE;
+            }).map(entry => entry.event);
+            const isTimelineOpen = this._isTimelineOpen;
+            r.preparation = await this._roomEncryption.prepareDecryptAll(events, source, isTimelineOpen, inboundSessionTxn);
+            if (r.cancelled) return;
+            const changes = await r.preparation.decrypt();
+            r.preparation = null;
+            if (r.cancelled) return;
+            const stores = [this._storage.storeNames.groupSessionDecryptions];
+            if (isTimelineOpen) {
+                // read to fetch devices if timeline is open
+                stores.push(this._storage.storeNames.deviceIdentities);
+            }
+            const writeTxn = await this._storage.readWriteTxn(stores);
+            let decryption;
             try {
-                const decryptionResult = await this._roomEncryption.decrypt(
-                    entry.event, isSync, !!this._timeline, entry.asEventKey(), txn);
-                if (decryptionResult) {
-                    entry.setDecryptionResult(decryptionResult);
-                }
+                decryption = await changes.write(writeTxn);
             } catch (err) {
-                console.warn("event decryption error", err, entry.event);
-                entry.setDecryptionError(err);
+                writeTxn.abort();
+                throw err;
             }
-        }
-        return entry;
+            await writeTxn.complete();
+            decryption.applyToEntries(entries);
+        });
+        return request;
     }
 
-    async _decryptEntries(entries, txn, isSync = false) {
-        return await Promise.all(entries.map(async e => this._decryptEntry(e, txn, isSync)));
+    get needsPrepareSync() {
+        // only encrypted rooms need the prepare sync steps
+        return !!this._roomEncryption;
+    }
+
+    async prepareSync(roomResponse, txn) {
+        if (this._roomEncryption) {
+            const events = roomResponse?.timeline?.events;
+            if (Array.isArray(events)) {
+                const eventsToDecrypt = events.filter(event => {
+                    return event?.type === EVENT_ENCRYPTED_TYPE;
+                });
+                const preparation = await this._roomEncryption.prepareDecryptAll(
+                    eventsToDecrypt, DecryptionSource.Sync, this._isTimelineOpen, txn);
+                return preparation;
+            }
+        }
+    }
+
+    async afterPrepareSync(preparation) {
+        if (preparation) {
+            const decryptChanges = await preparation.decrypt();
+            return decryptChanges;
+        }
     }
 
     /** @package */
-    async writeSync(roomResponse, membership, isInitialSync, txn) {
-        const isTimelineOpen = !!this._timeline;
+    async writeSync(roomResponse, membership, isInitialSync, decryptChanges, txn) {
+        let decryption;
+        if (this._roomEncryption && decryptChanges) {
+            decryption = await decryptChanges.write(txn);
+        }
+		const {entries, newLiveKey, memberChanges} =
+            await this._syncWriter.writeSync(roomResponse, this.isTrackingMembers, txn);
+        if (decryption) {
+            decryption.applyToEntries(entries);
+        }
+        // pass member changes to device tracker
+        if (this._roomEncryption && this.isTrackingMembers && memberChanges?.size) {
+            await this._roomEncryption.writeMemberChanges(memberChanges, txn);
+        }
 		const summaryChanges = this._summary.writeSync(
             roomResponse,
             membership,
-            isInitialSync, isTimelineOpen,
+            isInitialSync, this._isTimelineOpen,
             txn);
-		const {entries: encryptedEntries, newLiveKey, memberChanges} =
-            await this._syncWriter.writeSync(roomResponse, this.isTrackingMembers, txn);
-        // decrypt if applicable
-        let entries = encryptedEntries;
-        if (this._roomEncryption) {
-            entries = await this._decryptEntries(encryptedEntries, txn, true);
-        }
         // fetch new members while we have txn open,
         // but don't make any in-memory changes yet
         let heroChanges;
@@ -143,10 +179,6 @@ export class Room extends EventEmitter {
                 this._heroes = new Heroes(this._roomId);
             }
             heroChanges = await this._heroes.calculateChanges(summaryChanges.heroes, memberChanges, txn);
-        }
-        // pass member changes to device tracker
-        if (this._roomEncryption && this.isTrackingMembers && memberChanges?.size) {
-            await this._roomEncryption.writeMemberChanges(memberChanges, txn);
         }
         let removedPendingEvents;
         if (roomResponse.timeline && roomResponse.timeline.events) {
@@ -159,7 +191,6 @@ export class Room extends EventEmitter {
             removedPendingEvents,
             memberChanges,
             heroChanges,
-            needsAfterSyncCompleted: this._roomEncryption?.needsToShareKeys(memberChanges)
         };
     }
 
@@ -209,6 +240,10 @@ export class Room extends EventEmitter {
             this._sendQueue.emitRemovals(removedPendingEvents);
         }
 	}
+
+    needsAfterSyncCompleted({memberChanges}) {
+        return this._roomEncryption?.needsToShareKeys(memberChanges);
+    }
 
     /**
      * Only called if the result of writeSync had `needsAfterSyncCompleted` set.
@@ -299,19 +334,11 @@ export class Room extends EventEmitter {
             }
         }).response();
 
-        let stores = [
+        const txn = await this._storage.readWriteTxn([
             this._storage.storeNames.pendingEvents,
             this._storage.storeNames.timelineEvents,
             this._storage.storeNames.timelineFragments,
-        ];
-        if (this._roomEncryption) {
-            stores = stores.concat([
-                this._storage.storeNames.inboundGroupSessions,
-                this._storage.storeNames.groupSessionDecryptions,
-                this._storage.storeNames.deviceIdentities,
-            ]);
-        }
-        const txn = await this._storage.readWriteTxn(stores);
+        ]);
         let removedPendingEvents;
         let gapResult;
         try {
@@ -324,14 +351,15 @@ export class Room extends EventEmitter {
                 fragmentIdComparer: this._fragmentIdComparer,
             });
             gapResult = await gapWriter.writeFragmentFill(fragmentEntry, response, txn);
-            if (this._roomEncryption) {
-                gapResult.entries = await this._decryptEntries(gapResult.entries, txn, false);
-            }
         } catch (err) {
             txn.abort();
             throw err;
         }
         await txn.complete();
+        if (this._roomEncryption) {
+            const decryptRequest = this._decryptEntries(DecryptionSource.Timeline, gapResult.entries);
+            await decryptRequest.complete();
+        }
         // once txn is committed, update in-memory state & emit events
         for (const fragment of gapResult.fragments) {
             this._fragmentIdComparer.add(fragment);
@@ -406,6 +434,10 @@ export class Room extends EventEmitter {
         }
     }
 
+    get _isTimelineOpen() {
+        return !!this._timeline;
+    }
+
     async clearUnread() {
         if (this.isUnread || this.notificationCount) {
             const txn = await this._storage.readWriteTxn([
@@ -438,7 +470,7 @@ export class Room extends EventEmitter {
     }
 
     /** @public */
-    async openTimeline() {
+    openTimeline() {
         if (this._timeline) {
             throw new Error("not dealing with load race here for now");
         }
@@ -458,9 +490,8 @@ export class Room extends EventEmitter {
             user: this._user,
         });
         if (this._roomEncryption) {
-            this._timeline.enableEncryption(this._decryptEntries.bind(this));
+            this._timeline.enableEncryption(this._decryptEntries.bind(this, DecryptionSource.Timeline));
         }
-        await this._timeline.load();
         return this._timeline;
     }
 
@@ -479,3 +510,25 @@ export class Room extends EventEmitter {
     }
 }
 
+class DecryptionRequest {
+    constructor(decryptFn) {
+        this._cancelled = false;
+        this.preparation = null;
+        this._promise = decryptFn(this);
+    }
+
+    complete() {
+        return this._promise;
+    }
+
+    get cancelled() {
+        return this._cancelled;
+    }
+
+    dispose() {
+        this._cancelled = true;
+        if (this.preparation) {
+            this.preparation.dispose();
+        }
+    }
+}

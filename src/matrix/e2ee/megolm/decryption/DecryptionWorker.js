@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// polyfills needed for IE11
-import "core-js/stable";
-import "regenerator-runtime/runtime";
-import "mdn-polyfills/Element.prototype.closest";
-// TODO: contribute this to mdn-polyfills
-if (!Element.prototype.remove) {
-    Element.prototype.remove = function remove() {
-        this.parentNode.removeChild(this);
-    };
+export class DecryptionWorker {
+    constructor(workerPool) {
+        this._workerPool = workerPool;
+    }
+
+    decrypt(session, ciphertext) {
+        const sessionKey = session.export_session(session.first_known_index());
+        return this._workerPool.send({type: "megolm_decrypt", ciphertext, sessionKey});
+    }
 }

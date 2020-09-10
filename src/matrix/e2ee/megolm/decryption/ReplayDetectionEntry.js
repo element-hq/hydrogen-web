@@ -14,13 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// polyfills needed for IE11
-import "core-js/stable";
-import "regenerator-runtime/runtime";
-import "mdn-polyfills/Element.prototype.closest";
-// TODO: contribute this to mdn-polyfills
-if (!Element.prototype.remove) {
-    Element.prototype.remove = function remove() {
-        this.parentNode.removeChild(this);
-    };
+export class ReplayDetectionEntry {
+    constructor(sessionId, messageIndex, event) {
+        this.sessionId = sessionId;
+        this.messageIndex = messageIndex;
+        this.eventId = event.event_id;
+        this.timestamp = event.origin_server_ts;
+    }
 }

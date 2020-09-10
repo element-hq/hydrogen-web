@@ -29,21 +29,6 @@ export const SyncStatus = createEnum(
     "Stopped"
 );
 
-function parseRooms(roomsSection, roomCallback) {
-    if (roomsSection) {
-        const allMemberships = ["join", "invite", "leave"];
-        for(const membership of allMemberships) {
-            const membershipSection = roomsSection[membership];
-            if (membershipSection) {
-                return Object.entries(membershipSection).map(([roomId, roomResponse]) => {
-                    return roomCallback(roomId, roomResponse, membership);
-                });
-            }
-        }
-    }
-    return [];
-}
-
 function timelineIsEmpty(roomResponse) {
     try {
         const events = roomResponse?.timeline?.events;
@@ -53,6 +38,26 @@ function timelineIsEmpty(roomResponse) {
     }
 }
 
+/**
+ * Sync steps in js-pseudocode:
+ * ```js
+ * let preparation;
+ * if (room.needsPrepareSync) {
+ *     // can only read some stores
+ *     preparation = await room.prepareSync(roomResponse, prepareTxn);
+ *     // can do async work that is not related to storage (such as decryption)
+ *     preparation = await room.afterPrepareSync(preparation);
+ * }
+ * // writes and calculates changes
+ * const changes = await room.writeSync(roomResponse, membership, isInitialSync, preparation, syncTxn);
+ * // applies and emits changes once syncTxn is committed
+ * room.afterSync(changes);
+ * if (room.needsAfterSyncCompleted(changes)) {
+ *     // can do network requests
+ *     await room.afterSyncCompleted(changes);
+ * }
+ * ```
+ */
 export class Sync {
     constructor({hsApi, session, storage}) {
         this._hsApi = hsApi;
@@ -90,13 +95,13 @@ export class Sync {
         let afterSyncCompletedPromise = Promise.resolve();
         // if syncToken is falsy, it will first do an initial sync ... 
         while(this._status.get() !== SyncStatus.Stopped) {
-            let roomChanges;
+            let roomStates;
             try {
                 console.log(`starting sync request with since ${syncToken} ...`);
                 const timeout = syncToken ? INCREMENTAL_TIMEOUT : undefined; 
                 const syncResult = await this._syncRequest(syncToken, timeout, afterSyncCompletedPromise);
                 syncToken = syncResult.syncToken;
-                roomChanges = syncResult.roomChanges;
+                roomStates = syncResult.roomStates;
                 this._status.set(SyncStatus.Syncing);
             } catch (err) {
                 if (!(err instanceof AbortError)) {
@@ -105,12 +110,12 @@ export class Sync {
                 }
             }
             if (!this._error) {
-                afterSyncCompletedPromise = this._runAfterSyncCompleted(roomChanges);
+                afterSyncCompletedPromise = this._runAfterSyncCompleted(roomStates);
             }
         }
     }
 
-    async _runAfterSyncCompleted(roomChanges) {
+    async _runAfterSyncCompleted(roomStates) {
         const sessionPromise = (async () => {
             try {
                 await this._session.afterSyncCompleted();
@@ -118,23 +123,22 @@ export class Sync {
                 console.error("error during session afterSyncCompleted, continuing",  err.stack);
             }
         })();
-        let allPromises = [sessionPromise];
 
-        const roomsNeedingAfterSyncCompleted = roomChanges.filter(rc => {
-            return rc.changes.needsAfterSyncCompleted;
+        const roomsNeedingAfterSyncCompleted = roomStates.filter(rs => {
+            return rs.room.needsAfterSyncCompleted(rs.changes);
         });
-        if (roomsNeedingAfterSyncCompleted.length) {
-            allPromises = allPromises.concat(roomsNeedingAfterSyncCompleted.map(async ({room, changes}) => {
-                try {
-                    await room.afterSyncCompleted(changes);
-                } catch (err) {
-                    console.error(`error during room ${room.id} afterSyncCompleted, continuing`,  err.stack);
-                }
-            }));
-        }
+        const roomsPromises = roomsNeedingAfterSyncCompleted.map(async rs => {
+            try {
+                await rs.room.afterSyncCompleted(rs.changes);
+            } catch (err) {
+                console.error(`error during room ${rs.room.id} afterSyncCompleted, continuing`,  err.stack);
+            }
+        });
         // run everything in parallel,
         // we don't want to delay the next sync too much
-        await Promise.all(allPromises);
+        // Also, since all promises won't reject (as they have a try/catch)
+        // it's fine to use Promise.all
+        await Promise.all(roomsPromises.concat(sessionPromise));
     }
 
     async _syncRequest(syncToken, timeout, prevAfterSyncCompletedPromise) {
@@ -152,16 +156,17 @@ export class Sync {
 
         const isInitialSync = !syncToken;
         syncToken = response.next_batch;
-        const syncTxn = await this._openSyncTxn();
-        let roomChanges = [];
+        const roomStates = this._parseRoomsResponse(response.rooms, isInitialSync);
+        await this._prepareRooms(roomStates);
         let sessionChanges;
+        const syncTxn = await this._openSyncTxn();
         try {
-            // to_device
-            // presence
-            if (response.rooms) {
-                roomChanges = await this._writeRoomResponses(response.rooms, isInitialSync, syncTxn);
-            }
-            sessionChanges = await this._session.writeSync(response, syncFilterId, roomChanges, syncTxn);
+            await Promise.all(roomStates.map(async rs => {
+                console.log(` * applying sync response to room ${rs.room.id} ...`);
+                rs.changes = await rs.room.writeSync(
+                    rs.roomResponse, rs.membership, isInitialSync, rs.preparation, syncTxn);
+            }));
+            sessionChanges = await this._session.writeSync(response, syncFilterId, syncTxn);
         } catch(err) {
             console.warn("aborting syncTxn because of error");
             console.error(err);
@@ -180,31 +185,31 @@ export class Sync {
         }
         this._session.afterSync(sessionChanges);
         // emit room related events after txn has been closed
-        for(let {room, changes} of roomChanges) {
-            room.afterSync(changes);
+        for(let rs of roomStates) {
+            rs.room.afterSync(rs.changes);
         }
 
-        return {syncToken, roomChanges};
+        return {syncToken, roomStates};
     }
 
-    async _writeRoomResponses(roomResponses, isInitialSync, syncTxn) {
-        const roomChanges = [];
-        const promises = parseRooms(roomResponses, async (roomId, roomResponse, membership) => {
-            // ignore rooms with empty timelines during initial sync,
-            // see https://github.com/vector-im/hydrogen-web/issues/15
-            if (isInitialSync && timelineIsEmpty(roomResponse)) {
-                return;
-            }
-            let room = this._session.rooms.get(roomId);
-            if (!room) {
-                room = this._session.createRoom(roomId);
-            }
-            console.log(` * applying sync response to room ${roomId} ...`);
-            const changes = await room.writeSync(roomResponse, membership, isInitialSync, syncTxn);
-            roomChanges.push({room, changes});
-        });
-        await Promise.all(promises);
-        return roomChanges;
+    async _openPrepareSyncTxn() {
+        const storeNames = this._storage.storeNames;
+        return await this._storage.readTxn([
+            storeNames.inboundGroupSessions,
+        ]);
+    }
+
+    async _prepareRooms(roomStates) {
+        const prepareRoomStates = roomStates.filter(rs => rs.room.needsPrepareSync);
+        if (prepareRoomStates.length) {
+            const prepareTxn = await this._openPrepareSyncTxn();
+            await Promise.all(prepareRoomStates.map(async rs => {
+                rs.preparation = await rs.room.prepareSync(rs.roomResponse, prepareTxn);
+            }));
+            await Promise.all(prepareRoomStates.map(async rs => {
+                rs.preparation = await rs.room.afterPrepareSync(rs.preparation);
+            }));
+        }
     }
 
     async _openSyncTxn() {
@@ -218,13 +223,39 @@ export class Sync {
             storeNames.timelineFragments,
             storeNames.pendingEvents,
             storeNames.userIdentities,
-            storeNames.inboundGroupSessions,
             storeNames.groupSessionDecryptions,
             storeNames.deviceIdentities,
             // to discard outbound session when somebody leaves a room
             storeNames.outboundGroupSessions
         ]);
     }
+    
+    _parseRoomsResponse(roomsSection, isInitialSync) {
+        const roomStates = [];
+        if (roomsSection) {
+            // don't do "invite", "leave" for now
+            const allMemberships = ["join"];
+            for(const membership of allMemberships) {
+                const membershipSection = roomsSection[membership];
+                if (membershipSection) {
+                    for (const [roomId, roomResponse] of Object.entries(membershipSection)) {
+                        // ignore rooms with empty timelines during initial sync,
+                        // see https://github.com/vector-im/hydrogen-web/issues/15
+                        if (isInitialSync && timelineIsEmpty(roomResponse)) {
+                            return;
+                        }
+                        let room = this._session.rooms.get(roomId);
+                        if (!room) {
+                            room = this._session.createRoom(roomId);
+                        }
+                        roomStates.push(new RoomSyncProcessState(room, roomResponse, membership));
+                    }
+                }
+            }
+        }
+        return roomStates;
+    }
+
 
     stop() {
         if (this._status.get() === SyncStatus.Stopped) {
@@ -235,5 +266,15 @@ export class Sync {
             this._currentRequest.abort();
             this._currentRequest = null;
         }
+    }
+}
+
+class RoomSyncProcessState {
+    constructor(room, roomResponse, membership) {
+        this.room = room;
+        this.roomResponse = roomResponse;
+        this.membership = membership;
+        this.preparation = null;
+        this.changes = null;
     }
 }

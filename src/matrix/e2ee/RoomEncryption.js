@@ -14,8 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {MEGOLM_ALGORITHM} from "./common.js";
+import {MEGOLM_ALGORITHM, DecryptionSource} from "./common.js";
 import {groupBy} from "../../utils/groupBy.js";
+import {mergeMap} from "../../utils/mergeMap.js";
 import {makeTxnId} from "../common.js";
 
 const ENCRYPTED_TYPE = "m.room.encrypted";
@@ -55,23 +56,54 @@ export class RoomEncryption {
         return await this._deviceTracker.writeMemberChanges(this._room, memberChanges, txn);
     }
 
-    async decrypt(event, isSync, isTimelineOpen, retryData, txn) {
-        if (event.redacted_because || event.unsigned?.redacted_because) {
-            return;
+    // this happens before entries exists, as they are created by the syncwriter
+    // but we want to be able to map it back to something in the timeline easily
+    // when retrying decryption.
+    async prepareDecryptAll(events, source, isTimelineOpen, txn) {
+        const errors = [];
+        const validEvents = [];
+        for (const event of events) {
+            if (event.redacted_because || event.unsigned?.redacted_because) {
+                continue;
+            }
+            if (event.content?.algorithm !== MEGOLM_ALGORITHM) {
+                errors.set(event.event_id, new Error("Unsupported algorithm: " + event.content?.algorithm));
+            }
+            validEvents.push(event);
         }
-        if (event.content?.algorithm !== MEGOLM_ALGORITHM) {
-            throw new Error("Unsupported algorithm: " + event.content?.algorithm);
+        let customCache;
+        let sessionCache;
+        if (source === DecryptionSource.Sync) {
+            sessionCache = this._megolmSyncCache;
+        } else if (source === DecryptionSource.Timeline) {
+            sessionCache = this._megolmBackfillCache;
+        } else if (source === DecryptionSource.Retry) {
+            // when retrying, we could have mixed events from at the bottom of the timeline (sync)
+            // and somewhere else, so create a custom cache we use just for this operation.
+            customCache = this._megolmEncryption.createSessionCache();
+            sessionCache = customCache;
+        } else {
+            throw new Error("Unknown source: " + source);
         }
-        let sessionCache = isSync ? this._megolmSyncCache : this._megolmBackfillCache;
-        const result = await this._megolmDecryption.decrypt(
-            this._room.id, event, sessionCache, txn);
-        if (!result) {
-            this._addMissingSessionEvent(event, isSync, retryData);
+        const preparation = await this._megolmDecryption.prepareDecryptAll(
+            this._room.id, validEvents, sessionCache, txn);
+        if (customCache) {
+            customCache.dispose();
         }
-        if (result && isTimelineOpen) {
-            await this._verifyDecryptionResult(result, txn);
+        return new DecryptionPreparation(preparation, errors, {isTimelineOpen}, this);
+    }
+
+    async _processDecryptionResults(results, errors, flags, txn) {
+        for (const error of errors.values()) {
+            if (error.code === "MEGOLM_NO_SESSION") {
+                this._addMissingSessionEvent(error.event);
+            }
         }
-        return result;
+        if (flags.isTimelineOpen) {
+            for (const result of results.values()) {
+                await this._verifyDecryptionResult(result, txn);
+            }
+        }
     }
 
     async _verifyDecryptionResult(result, txn) {
@@ -87,30 +119,30 @@ export class RoomEncryption {
         }
     }
 
-    _addMissingSessionEvent(event, isSync, data) {
+    _addMissingSessionEvent(event) {
         const senderKey = event.content?.["sender_key"];
         const sessionId = event.content?.["session_id"];
         const key = `${senderKey}|${sessionId}`;
         let eventIds = this._eventIdsByMissingSession.get(key);
         if (!eventIds) {
-            eventIds = new Map();
+            eventIds = new Set();
             this._eventIdsByMissingSession.set(key, eventIds);
         }
-        eventIds.set(event.event_id, {data, isSync});
+        eventIds.add(event.event_id);
     }
 
     applyRoomKeys(roomKeys) {
         // retry decryption with the new sessions
-        const retryEntries = [];
+        const retryEventIds = [];
         for (const roomKey of roomKeys) {
             const key = `${roomKey.senderKey}|${roomKey.sessionId}`;
             const entriesForSession = this._eventIdsByMissingSession.get(key);
             if (entriesForSession) {
                 this._eventIdsByMissingSession.delete(key);
-                retryEntries.push(...entriesForSession.values());
+                retryEventIds.push(...entriesForSession);
             }
         }
-        return retryEntries;
+        return retryEventIds;
     }
 
     async encrypt(type, content, hsApi) {
@@ -212,5 +244,67 @@ export class RoomEncryption {
         };
         const txnId = makeTxnId();
         await hsApi.sendToDevice(type, payload, txnId).response();
+    }
+}
+
+/**
+ * wrappers around megolm decryption classes to be able to post-process
+ * the decryption results before turning them
+ */
+class DecryptionPreparation {
+    constructor(megolmDecryptionPreparation, extraErrors, flags, roomEncryption) {
+        this._megolmDecryptionPreparation = megolmDecryptionPreparation;
+        this._extraErrors = extraErrors;
+        this._flags = flags;
+        this._roomEncryption = roomEncryption;
+    }
+
+    async decrypt() {
+        return new DecryptionChanges(
+            await this._megolmDecryptionPreparation.decrypt(),
+            this._extraErrors,
+            this._flags,
+            this._roomEncryption);
+    }
+
+    dispose() {
+        this._megolmDecryptionPreparation.dispose();
+    }
+}
+
+class DecryptionChanges {
+    constructor(megolmDecryptionChanges, extraErrors, flags, roomEncryption) {
+        this._megolmDecryptionChanges = megolmDecryptionChanges;
+        this._extraErrors = extraErrors;
+        this._flags = flags;
+        this._roomEncryption = roomEncryption;
+    }
+
+    async write(txn) {
+        const {results, errors} = await this._megolmDecryptionChanges.write(txn);
+        mergeMap(this._extraErrors, errors);
+        await this._roomEncryption._processDecryptionResults(results, errors, this._flags, txn);
+        return new BatchDecryptionResult(results, errors);
+    }
+}
+
+class BatchDecryptionResult {
+    constructor(results, errors) {
+        this.results = results;
+        this.errors = errors;
+    }
+
+    applyToEntries(entries) {
+        for (const entry of entries) {
+            const result = this.results.get(entry.id);
+            if (result) {
+                entry.setDecryptionResult(result);
+            } else {
+                const error = this.errors.get(entry.id);
+                if (error) {
+                    entry.setDecryptionError(error);
+                }
+            }
+        }
     }
 }

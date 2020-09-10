@@ -14,13 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+
 // polyfills needed for IE11
-import "core-js/stable";
+// just enough to run olm, have promises and async/await
 import "regenerator-runtime/runtime";
-import "mdn-polyfills/Element.prototype.closest";
-// TODO: contribute this to mdn-polyfills
-if (!Element.prototype.remove) {
-    Element.prototype.remove = function remove() {
-        this.parentNode.removeChild(this);
-    };
-}
+import "core-js/modules/es.promise";
+import "core-js/modules/es.math.imul";
+import "core-js/modules/es.math.clz32";

@@ -33,7 +33,7 @@ const PICKLE_KEY = "DEFAULT_KEY";
 
 export class Session {
     // sessionInfo contains deviceId, userId and homeServer
-    constructor({clock, storage, hsApi, sessionInfo, olm}) {
+    constructor({clock, storage, hsApi, sessionInfo, olm, workerPool}) {
         this._clock = clock;
         this._storage = storage;
         this._hsApi = hsApi;
@@ -52,6 +52,7 @@ export class Session {
         this._megolmEncryption = null;
         this._megolmDecryption = null;
         this._getSyncToken = () => this.syncToken;
+        this._workerPool = workerPool;
 
         if (olm) {
             this._olmUtil = new olm.Utility();
@@ -100,6 +101,7 @@ export class Session {
         this._megolmDecryption = new MegOlmDecryption({
             pickleKey: PICKLE_KEY,
             olm: this._olm,
+            workerPool: this._workerPool,
         });
         this._deviceMessageHandler.enableEncryption({olmDecryption, megolmDecryption: this._megolmDecryption});
     }
@@ -202,6 +204,7 @@ export class Session {
     }
 
     stop() {
+        this._workerPool?.dispose();
         this._sendScheduler.stop();
     }
 
@@ -255,7 +258,7 @@ export class Session {
         return room;
     }
 
-    async writeSync(syncResponse, syncFilterId, roomChanges, txn) {
+    async writeSync(syncResponse, syncFilterId, txn) {
         const changes = {};
         const syncToken = syncResponse.next_batch;
         const deviceOneTimeKeysCount = syncResponse.device_one_time_keys_count;
@@ -362,7 +365,7 @@ export function tests() {
                     }
                 }
             };
-            const newSessionData = await session.writeSync({next_batch: "b"}, 6, {}, syncTxn);
+            const newSessionData = await session.writeSync({next_batch: "b"}, 6, syncTxn);
             assert(syncSet);
             assert.equal(session.syncToken, "a");
             assert.equal(session.syncFilterId, 5);
