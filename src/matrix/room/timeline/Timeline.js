@@ -46,21 +46,6 @@ export class Timeline {
         this._remoteEntries.setManySorted(entries);
     }
 
-    findEntry(eventKey) {
-        // a storage event entry has a fragmentId and eventIndex property, used for sorting,
-        // just like an EventKey, so this will work, but perhaps a bit brittle.
-        const entry = new EventEntry(eventKey, this._fragmentIdComparer);
-        try {
-            const idx = this._remoteEntries.indexOf(entry);
-            if (idx !== -1) {
-                return this._remoteEntries.get(idx);
-            }
-        } catch (err) {
-            // fragmentIdComparer threw, ignore
-            return;
-        }
-    }
-
     replaceEntries(entries) {
         for (const entry of entries) {
             this._remoteEntries.replace(entry);
