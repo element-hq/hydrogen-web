@@ -116,30 +116,52 @@ export class Room extends EventEmitter {
         decryption.applyToEntries(entries);
     }
 
-            }
-        }
-        return entry;
+    get needsPrepareSync() {
+        // only encrypted rooms need the prepare sync steps
+        return !!this._roomEncryption;
     }
 
-    async _decryptEntries(entries, txn, isSync = false) {
-        return await Promise.all(entries.map(async e => this._decryptEntry(e, txn, isSync)));
+    async prepareSync(roomResponse, txn) {
+        if (this._roomEncryption) {
+            const events = roomResponse?.timeline?.events;
+            if (Array.isArray(events)) {
+                const eventsToDecrypt = events.filter(event => {
+                    return event?.type === EVENT_ENCRYPTED_TYPE;
+                });
+                const preparation = await this._roomEncryption.prepareDecryptAll(
+                    eventsToDecrypt, DecryptionSource.Sync, this._isTimelineOpen, txn);
+                return preparation;
+            }
+        }
+    }
+
+    async afterPrepareSync(preparation) {
+        if (preparation) {
+            const decryptChanges = await preparation.decrypt();
+            return decryptChanges;
+        }
     }
 
     /** @package */
-    async writeSync(roomResponse, membership, isInitialSync, txn) {
-        const isTimelineOpen = !!this._timeline;
+    async writeSync(roomResponse, membership, isInitialSync, decryptChanges, txn) {
+        let decryption;
+        if (this._roomEncryption && decryptChanges) {
+            decryption = await decryptChanges.write(txn);
+        }
+		const {entries, newLiveKey, memberChanges} =
+            await this._syncWriter.writeSync(roomResponse, this.isTrackingMembers, txn);
+        if (decryption) {
+            decryption.applyToEntries(entries);
+        }
+        // pass member changes to device tracker
+        if (this._roomEncryption && this.isTrackingMembers && memberChanges?.size) {
+            await this._roomEncryption.writeMemberChanges(memberChanges, txn);
+        }
 		const summaryChanges = this._summary.writeSync(
             roomResponse,
             membership,
-            isInitialSync, isTimelineOpen,
+            isInitialSync, this._isTimelineOpen,
             txn);
-		const {entries: encryptedEntries, newLiveKey, memberChanges} =
-            await this._syncWriter.writeSync(roomResponse, this.isTrackingMembers, txn);
-        // decrypt if applicable
-        let entries = encryptedEntries;
-        if (this._roomEncryption) {
-            entries = await this._decryptEntries(encryptedEntries, txn, true);
-        }
         // fetch new members while we have txn open,
         // but don't make any in-memory changes yet
         let heroChanges;
@@ -149,10 +171,6 @@ export class Room extends EventEmitter {
                 this._heroes = new Heroes(this._roomId);
             }
             heroChanges = await this._heroes.calculateChanges(summaryChanges.heroes, memberChanges, txn);
-        }
-        // pass member changes to device tracker
-        if (this._roomEncryption && this.isTrackingMembers && memberChanges?.size) {
-            await this._roomEncryption.writeMemberChanges(memberChanges, txn);
         }
         let removedPendingEvents;
         if (roomResponse.timeline && roomResponse.timeline.events) {
@@ -165,7 +183,6 @@ export class Room extends EventEmitter {
             removedPendingEvents,
             memberChanges,
             heroChanges,
-            needsAfterSyncCompleted: this._roomEncryption?.needsToShareKeys(memberChanges)
         };
     }
 
@@ -215,6 +232,10 @@ export class Room extends EventEmitter {
             this._sendQueue.emitRemovals(removedPendingEvents);
         }
 	}
+
+    needsAfterSyncCompleted({memberChanges}) {
+        return this._roomEncryption?.needsToShareKeys(memberChanges);
+    }
 
     /**
      * Only called if the result of writeSync had `needsAfterSyncCompleted` set.

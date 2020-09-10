@@ -255,7 +255,7 @@ export class Session {
         return room;
     }
 
-    async writeSync(syncResponse, syncFilterId, roomChanges, txn) {
+    async writeSync(syncResponse, syncFilterId, txn) {
         const changes = {};
         const syncToken = syncResponse.next_batch;
         const deviceOneTimeKeysCount = syncResponse.device_one_time_keys_count;
@@ -362,7 +362,7 @@ export function tests() {
                     }
                 }
             };
-            const newSessionData = await session.writeSync({next_batch: "b"}, 6, {}, syncTxn);
+            const newSessionData = await session.writeSync({next_batch: "b"}, 6, syncTxn);
             assert(syncSet);
             assert.equal(session.syncToken, "a");
             assert.equal(session.syncFilterId, 5);
