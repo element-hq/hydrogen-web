@@ -243,8 +243,7 @@ export class Room extends EventEmitter {
 	}
 
     needsAfterSyncCompleted({memberChanges}) {
-        const result = this._roomEncryption?.needsToShareKeys(memberChanges);
-        return result;
+        return this._roomEncryption?.needsToShareKeys(memberChanges);
     }
 
     /**
