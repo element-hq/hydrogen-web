@@ -66,10 +66,7 @@ export class DecryptionChanges {
         }
 
         if (!decryption) {
-            txn.groupSessionDecryptions.set({
-                roomId,
-                sessionId,
-                messageIndex,
+            txn.groupSessionDecryptions.set(roomId, sessionId, messageIndex, {
                 eventId,
                 timestamp
             });

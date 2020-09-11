@@ -27,8 +27,8 @@ export class GroupSessionDecryptionStore {
         return this._store.get(encodeKey(roomId, sessionId, messageIndex));
     }
 
-    set(decryption) {
-        decryption.key = encodeKey(decryption.roomId, decryption.sessionId, decryption.messageIndex);
+    set(roomId, sessionId, messageIndex, decryption) {
+        decryption.key = encodeKey(roomId, sessionId, messageIndex);
         this._store.put(decryption);
     }
 }
