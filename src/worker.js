@@ -32,6 +32,44 @@ function asSuccessMessage(payload) {
 class MessageHandler {
     constructor() {
         this._olm = null;
+        this._randomValues = self.crypto ? null : [];
+    }
+
+    _feedRandomValues(randomValues) {
+        if (this._randomValues) {
+            this._randomValues.push(...randomValues);
+        }
+    }
+
+    _checkRandomValuesUsed() {
+        if (this._randomValues && this._randomValues.length !== 0) {
+            throw new Error(`${this._randomValues.length} random values left`);
+        }
+    }
+
+    _getRandomValues(typedArray) {
+        if (!(typedArray instanceof Uint8Array)) {
+            throw new Error("only Uint8Array is supported: " + JSON.stringify({
+                Int8Array: typedArray instanceof Int8Array,
+                Uint8Array: typedArray instanceof Uint8Array,
+                Int16Array: typedArray instanceof Int16Array,
+                Uint16Array: typedArray instanceof Uint16Array,
+                Int32Array: typedArray instanceof Int32Array,
+                Uint32Array: typedArray instanceof Uint32Array,
+            }));
+        }
+        if (this._randomValues.length === 0) {
+            throw new Error("no more random values, needed one of length " + typedArray.length);
+        }
+        const precalculated = this._randomValues.shift();
+        if (precalculated.length !== typedArray.length) {
+            throw new Error(`typedArray length (${typedArray.length}) does not match precalculated length (${precalculated.length})`);
+        }
+        // copy values
+        for (let i = 0; i < typedArray.length; ++i) {
+            typedArray[i] = precalculated[i];
+        }
+        return typedArray;
     }
 
     handleEvent(e) {
@@ -47,7 +85,7 @@ class MessageHandler {
 
     _toMessage(fn) {
         try {
-            let payload = fn();
+            const payload = fn();
             if (payload instanceof Promise) {
                 return payload.then(
                     payload => asSuccessMessage(payload),
@@ -63,18 +101,15 @@ class MessageHandler {
 
     _loadOlm(path) {
         return this._toMessage(async () => {
-            // might have some problems here with window vs self as global object?
-            if (self.msCrypto && !self.crypto) {
-                self.crypto = self.msCrypto;
+            if (!self.crypto) {
+                self.crypto = {getRandomValues: this._getRandomValues.bind(this)};
             }
-            self.importScripts(path);
-            const olm = self.olm_exports;
-            // mangle the globals enough to make olm load believe it is running in a browser
+            // mangle the globals enough to make olm believe it is running in a browser
             self.window = self;
             self.document = {};
+            self.importScripts(path);
+            const olm = self.olm_exports;
             await olm.init();
-            delete self.document;
-            delete self.window;
             this._olm = olm;
         });
     }
@@ -93,6 +128,17 @@ class MessageHandler {
         });
     }
 
+    _olmCreateAccountAndOTKs(randomValues, otkAmount) {
+        return this._toMessage(() => {
+            this._feedRandomValues(randomValues);
+            const account = new this._olm.Account();
+            account.create();
+            account.generate_one_time_keys(otkAmount);
+            this._checkRandomValuesUsed();
+            return account.pickle("");
+        });
+    }
+
     async _handleMessage(message) {
         const {type} = message;
         if (type === "ping") {
@@ -101,6 +147,8 @@ class MessageHandler {
             this._sendReply(message, await this._loadOlm(message.path));
         } else if (type === "megolm_decrypt") {
             this._sendReply(message, this._megolmDecrypt(message.sessionKey, message.ciphertext));
+        } else if (type === "olm_create_account_otks") {
+            this._sendReply(message, this._olmCreateAccountAndOTKs(message.randomValues, message.otkAmount));
         }
     }
 }

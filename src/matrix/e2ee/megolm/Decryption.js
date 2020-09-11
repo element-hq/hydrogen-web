@@ -21,7 +21,6 @@ import {SessionInfo} from "./decryption/SessionInfo.js";
 import {DecryptionPreparation} from "./decryption/DecryptionPreparation.js";
 import {SessionDecryption} from "./decryption/SessionDecryption.js";
 import {SessionCache} from "./decryption/SessionCache.js";
-import {DecryptionWorker} from "./decryption/DecryptionWorker.js";
 
 function getSenderKey(event) {
     return event.content?.["sender_key"];
@@ -36,10 +35,10 @@ function getCiphertext(event) {
 }
 
 export class Decryption {
-    constructor({pickleKey, olm, workerPool}) {
+    constructor({pickleKey, olm, olmWorker}) {
         this._pickleKey = pickleKey;
         this._olm = olm;
-        this._decryptor = workerPool ? new DecryptionWorker(workerPool) : null;
+        this._olmWorker = olmWorker;
     }
 
     createSessionCache(fallback) {
@@ -86,7 +85,7 @@ export class Decryption {
                     errors.set(event.event_id, new DecryptionError("MEGOLM_NO_SESSION", event));
                 }
             } else {
-                sessionDecryptions.push(new SessionDecryption(sessionInfo, eventsForSession, this._decryptor));
+                sessionDecryptions.push(new SessionDecryption(sessionInfo, eventsForSession, this._olmWorker));
             }
         }));
 

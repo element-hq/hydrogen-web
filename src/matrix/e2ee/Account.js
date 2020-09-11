@@ -23,7 +23,7 @@ const DEVICE_KEY_FLAG_SESSION_KEY = SESSION_KEY_PREFIX + "areDeviceKeysUploaded"
 const SERVER_OTK_COUNT_SESSION_KEY = SESSION_KEY_PREFIX + "serverOTKCount";
 
 export class Account {
-    static async load({olm, pickleKey, hsApi, userId, deviceId, txn}) {
+    static async load({olm, pickleKey, hsApi, userId, deviceId, olmWorker, txn}) {
         const pickledAccount = await txn.session.get(ACCOUNT_SESSION_KEY);
         if (pickledAccount) {
             const account = new olm.Account();
@@ -31,26 +31,39 @@ export class Account {
             account.unpickle(pickleKey, pickledAccount);
             const serverOTKCount = await txn.session.get(SERVER_OTK_COUNT_SESSION_KEY);
             return new Account({pickleKey, hsApi, account, userId,
-                deviceId, areDeviceKeysUploaded, serverOTKCount, olm});
+                deviceId, areDeviceKeysUploaded, serverOTKCount, olm, olmWorker});
         }
     }
 
-    static async create({olm, pickleKey, hsApi, userId, deviceId, txn}) {
+    static async create({olm, pickleKey, hsApi, userId, deviceId, olmWorker, storage}) {
         const account = new olm.Account();
-        account.create();
-        account.generate_one_time_keys(account.max_number_of_one_time_keys());
+        if (olmWorker) {
+            await olmWorker.createAccountAndOTKs(account, account.max_number_of_one_time_keys());
+        } else {
+            account.create();
+            account.generate_one_time_keys(account.max_number_of_one_time_keys());
+        }
         const pickledAccount = account.pickle(pickleKey);
-        // add will throw if the key already exists
-        // we would not want to overwrite olmAccount here
         const areDeviceKeysUploaded = false;
-        await txn.session.add(ACCOUNT_SESSION_KEY, pickledAccount);
-        await txn.session.add(DEVICE_KEY_FLAG_SESSION_KEY, areDeviceKeysUploaded);
-        await txn.session.add(SERVER_OTK_COUNT_SESSION_KEY, 0);
+        const txn = await storage.readWriteTxn([
+            storage.storeNames.session
+        ]);
+        try {
+            // add will throw if the key already exists
+            // we would not want to overwrite olmAccount here
+            txn.session.add(ACCOUNT_SESSION_KEY, pickledAccount);
+            txn.session.add(DEVICE_KEY_FLAG_SESSION_KEY, areDeviceKeysUploaded);
+            txn.session.add(SERVER_OTK_COUNT_SESSION_KEY, 0);
+        } catch (err) {
+            txn.abort();
+            throw err;
+        }
+        await txn.complete();
         return new Account({pickleKey, hsApi, account, userId,
-            deviceId, areDeviceKeysUploaded, serverOTKCount: 0, olm});
+            deviceId, areDeviceKeysUploaded, serverOTKCount: 0, olm, olmWorker});
     }
 
-    constructor({pickleKey, hsApi, account, userId, deviceId, areDeviceKeysUploaded, serverOTKCount, olm}) {
+    constructor({pickleKey, hsApi, account, userId, deviceId, areDeviceKeysUploaded, serverOTKCount, olm, olmWorker}) {
         this._olm = olm;
         this._pickleKey = pickleKey;
         this._hsApi = hsApi;
@@ -59,6 +72,7 @@ export class Account {
         this._deviceId = deviceId;
         this._areDeviceKeysUploaded = areDeviceKeysUploaded;
         this._serverOTKCount = serverOTKCount;
+        this._olmWorker = olmWorker;
         this._identityKeys = JSON.parse(this._account.identity_keys());
     }
 

@@ -153,13 +153,13 @@ export class SessionContainer {
             homeServer: sessionInfo.homeServer,
         };
         const olm = await this._olmPromise;
-        let workerPool = null;
+        let olmWorker = null;
         if (this._workerPromise) {
-            workerPool = await this._workerPromise;
+            olmWorker = await this._workerPromise;
         }
         this._session = new Session({storage: this._storage,
             sessionInfo: filteredSessionInfo, hsApi, olm,
-            clock: this._clock, workerPool});
+            clock: this._clock, olmWorker});
         await this._session.load();
         this._status.set(LoadStatus.SessionSetup);
         await this._session.beforeFirstSync(isNewLogin);

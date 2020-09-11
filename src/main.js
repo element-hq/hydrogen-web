@@ -26,6 +26,7 @@ import {BrawlView} from "./ui/web/BrawlView.js";
 import {Clock} from "./ui/web/dom/Clock.js";
 import {OnlineStatus} from "./ui/web/dom/OnlineStatus.js";
 import {WorkerPool} from "./utils/WorkerPool.js";
+import {OlmWorker} from "./matrix/e2ee/OlmWorker.js";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -65,12 +66,13 @@ function relPath(path, basePath) {
     return "../".repeat(dirCount) + path;
 }
 
-async function loadWorker(paths) {
+async function loadOlmWorker(paths) {
     const workerPool = new WorkerPool(paths.worker, 4);
     await workerPool.init();
     const path = relPath(paths.olm.legacyBundle, paths.worker);
     await workerPool.sendAll({type: "load_olm", path});
-    return workerPool;
+    const olmWorker = new OlmWorker(workerPool);
+    return olmWorker;
 }
 
 // Don't use a default export here, as we use multiple entries during legacy build,
@@ -100,9 +102,9 @@ export async function main(container, paths) {
         // if wasm is not supported, we'll want
         // to run some olm operations in a worker (mainly for IE11)
         let workerPromise;
-        if (!window.WebAssembly) {
-            workerPromise = loadWorker(paths);
-        }
+        // if (!window.WebAssembly) {
+            workerPromise = loadOlmWorker(paths);
+        // }
 
         const vm = new BrawlViewModel({
             createSessionContainer: () => {
