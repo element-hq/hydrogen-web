@@ -203,7 +203,7 @@ async function buildJs(inputFile, outputName) {
     return bundlePath;
 }
 
-async function buildJsLegacy(inputFile, outputName) {
+async function buildJsLegacy(inputFile, outputName, polyfillFile = null) {
     // compile down to whatever IE 11 needs
     const babelPlugin = babel.babel({
         babelHelpers: 'bundled',
@@ -219,9 +219,12 @@ async function buildJsLegacy(inputFile, outputName) {
             ]
         ]
     });
+    if (!polyfillFile) {
+        polyfillFile = 'src/legacy-polyfill.js';
+    }
     // create js bundle
     const rollupConfig = {
-        input: ['src/legacy-polyfill.js', inputFile],
+        input: [polyfillFile, inputFile],
         plugins: [multi(), commonjs(), nodeResolve(), babelPlugin, removeJsComments({comments: "none"})]
     };
     const bundle = await rollup(rollupConfig);
@@ -235,36 +238,9 @@ async function buildJsLegacy(inputFile, outputName) {
     return bundlePath;
 }
 
-async function buildWorkerJsLegacy(inputFile, outputName) {
-    // compile down to whatever IE 11 needs
-    const babelPlugin = babel.babel({
-        babelHelpers: 'bundled',
-        exclude: 'node_modules/**',
-        presets: [
-            [
-                "@babel/preset-env",
-                {
-                    useBuiltIns: "entry",
-                    corejs: "3",
-                    targets: "IE 11"
-                }
-            ]
-        ]
-    });
-    // create js bundle
-    const rollupConfig = {
-        input: ['src/worker-polyfill.js', inputFile],
-        plugins: [multi(), commonjs(), nodeResolve(), babelPlugin, removeJsComments({comments: "none"})]
-    };
-    const bundle = await rollup(rollupConfig);
-    const {output} = await bundle.generate({
-        format: 'iife',
-        name: `${PROJECT_ID}Bundle`
-    });
-    const code = output[0].code;
-    const bundlePath = resource(outputName, code);
-    await fs.writeFile(bundlePath, code, "utf8");
-    return bundlePath;
+function buildWorkerJsLegacy(inputFile, outputName) {
+    const polyfillFile = 'src/worker-polyfill.js';
+    return buildJsLegacy(inputFile, outputName, polyfillFile);
 }
 
 async function buildOffline(version, assetPaths) {
