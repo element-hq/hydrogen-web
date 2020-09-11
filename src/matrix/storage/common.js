@@ -28,6 +28,7 @@ export const STORE_NAMES = Object.freeze([
     "inboundGroupSessions",
     "outboundGroupSessions",
     "groupSessionDecryptions",
+    "operations"
 ]);
 
 export const STORE_MAP = Object.freeze(STORE_NAMES.reduce((nameMap, name) => {

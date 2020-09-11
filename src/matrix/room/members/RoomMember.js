@@ -67,14 +67,6 @@ export class RoomMember {
         });
     }
 
-    get needsRoomKey() {
-        return this._data.needsRoomKey;
-    }
-
-    set needsRoomKey(value) {
-        this._data.needsRoomKey = !!value;
-    }
-
     get membership() {
         return this._data.membership;
     }

@@ -74,4 +74,6 @@ function createE2EEStores(db) {
     db.createObjectStore("inboundGroupSessions", {keyPath: "key"});
     db.createObjectStore("outboundGroupSessions", {keyPath: "roomId"});
     db.createObjectStore("groupSessionDecryptions", {keyPath: "key"});
+    const operations = db.createObjectStore("operations", {keyPath: "id"});
+    operations.createIndex("byTypeAndScope", "typeScopeKey", {unique: false});
 }

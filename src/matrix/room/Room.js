@@ -158,7 +158,7 @@ export class Room extends EventEmitter {
             decryption = await decryptChanges.write(txn);
         }
 		const {entries, newLiveKey, memberChanges} =
-            await this._syncWriter.writeSync(roomResponse, this.isTrackingMembers, txn);
+            await this._syncWriter.writeSync(roomResponse, txn);
         if (decryption) {
             decryption.applyToEntries(entries);
         }
@@ -251,21 +251,24 @@ export class Room extends EventEmitter {
      * Can be used to do longer running operations that resulted from the last sync,
      * like network operations.
      */
-    async afterSyncCompleted({memberChanges}) {
+    async afterSyncCompleted() {
         if (this._roomEncryption) {
-            await this._roomEncryption.shareRoomKeyForMemberChanges(memberChanges, this._hsApi);
+            await this._roomEncryption.flushPendingRoomKeyShares(this._hsApi);
         }
     }
 
     /** @package */
-    async start() {
+    async start(pendingOperations) {
         if (this._roomEncryption) {
             try {
-                // if we got interrupted last time sending keys to newly joined members
-                await this._roomEncryption.shareRoomKeyToPendingMembers(this._hsApi);
+                const roomKeyShares = pendingOperations?.get("share_room_key");
+                if (roomKeyShares) {
+                    // if we got interrupted last time sending keys to newly joined members
+                    await this._roomEncryption.flushPendingRoomKeyShares(this._hsApi, roomKeyShares);
+                }
             } catch (err) {
                 // we should not throw here
-                console.error(`could not send out pending room keys for room ${this.id}`, err.stack);
+                console.error(`could not send out (all) pending room keys for room ${this.id}`, err.stack);
             }
         }
         this._sendQueue.resumeSending();
