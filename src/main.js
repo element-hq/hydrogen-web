@@ -102,9 +102,9 @@ export async function main(container, paths) {
         // if wasm is not supported, we'll want
         // to run some olm operations in a worker (mainly for IE11)
         let workerPromise;
-        // if (!window.WebAssembly) {
+        if (!window.WebAssembly) {
             workerPromise = loadOlmWorker(paths);
-        // }
+        }
 
         const vm = new BrawlViewModel({
             createSessionContainer: () => {
