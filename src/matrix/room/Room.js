@@ -243,7 +243,8 @@ export class Room extends EventEmitter {
 	}
 
     needsAfterSyncCompleted({memberChanges}) {
-        return this._roomEncryption?.needsToShareKeys(memberChanges);
+        const result = this._roomEncryption?.needsToShareKeys(memberChanges);
+        return result;
     }
 
     /**
@@ -251,9 +252,9 @@ export class Room extends EventEmitter {
      * Can be used to do longer running operations that resulted from the last sync,
      * like network operations.
      */
-    async afterSyncCompleted({memberChanges}) {
+    async afterSyncCompleted() {
         if (this._roomEncryption) {
-            await this._roomEncryption.shareRoomKeyForMemberChanges(memberChanges, this._hsApi);
+            await this._roomEncryption.flushPendingRoomKeyShares(this._hsApi);
         }
     }
 
