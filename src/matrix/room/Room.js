@@ -158,7 +158,7 @@ export class Room extends EventEmitter {
             decryption = await decryptChanges.write(txn);
         }
 		const {entries, newLiveKey, memberChanges} =
-            await this._syncWriter.writeSync(roomResponse, this.isTrackingMembers, txn);
+            await this._syncWriter.writeSync(roomResponse, txn);
         if (decryption) {
             decryption.applyToEntries(entries);
         }
