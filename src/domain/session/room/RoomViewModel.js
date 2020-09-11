@@ -90,6 +90,10 @@ export class RoomViewModel extends ViewModel {
         return this._timelineVM;
     }
 
+    get isEncrypted() {
+        return this._room.isEncrypted;
+    }
+
     get error() {
         if (this._timelineError) {
             return `Something went wrong loading the timeline: ${this._timelineError.message}`;
@@ -145,6 +149,10 @@ class ComposerViewModel extends ViewModel {
         super();
         this._roomVM = roomVM;
         this._isEmpty = true;
+    }
+
+    get isEncrypted() {
+        return this._roomVM.isEncrypted;
     }
 
     sendMessage(message) {

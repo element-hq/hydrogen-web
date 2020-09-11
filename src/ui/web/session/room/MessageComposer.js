@@ -24,7 +24,7 @@ export class MessageComposer extends TemplateView {
 
     render(t, vm) {
         this._input = t.input({
-            placeholder: "Send a message ...",
+            placeholder: vm.isEncrypted ? "Send an encrypted message…" : "Send a message…",
             onKeydown: e => this._onKeyDown(e),
             onInput: () => vm.setInput(this._input.value),
         });
