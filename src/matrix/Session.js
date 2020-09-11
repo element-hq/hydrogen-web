@@ -28,6 +28,7 @@ import {MEGOLM_ALGORITHM} from "./e2ee/common.js";
 import {RoomEncryption} from "./e2ee/RoomEncryption.js";
 import {DeviceTracker} from "./e2ee/DeviceTracker.js";
 import {LockMap} from "../utils/LockMap.js";
+import {groupBy} from "../utils/groupBy.js";
 
 const PICKLE_KEY = "DEFAULT_KEY";
 
@@ -212,9 +213,20 @@ export class Session {
             await txn.complete();
         }
 
+        const opsTxn = await this._storage.readWriteTxn([
+            this._storage.storeNames.operations
+        ]);
+        const operations = await opsTxn.operations.getAll();
+        const operationsByScope = groupBy(operations, o => o.scope);
+
         this._sendScheduler.start();
         for (const [, room] of this._rooms) {
-            room.start();
+            let roomOperationsByType;
+            const roomOperations = operationsByScope.get(room.id);
+            if (roomOperations) {
+                roomOperationsByType = groupBy(roomOperations, r => r.type);
+            }
+            room.start(roomOperationsByType);
         }
     }
 
