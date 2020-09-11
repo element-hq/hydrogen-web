@@ -9,7 +9,8 @@ export const schema = [
     createInitialStores,
     createMemberStore,
     migrateSession,
-    createE2EEStores
+    createE2EEStores,
+    migrateEncryptionFlag
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -76,4 +77,23 @@ function createE2EEStores(db) {
     db.createObjectStore("groupSessionDecryptions", {keyPath: "key"});
     const operations = db.createObjectStore("operations", {keyPath: "id"});
     operations.createIndex("byTypeAndScope", "typeScopeKey", {unique: false});
+}
+
+// v5
+async function migrateEncryptionFlag(db, txn) {
+    // migrate room summary isEncrypted -> encryption prop
+    const roomSummary = txn.objectStore("roomSummary");
+    const roomState = txn.objectStore("roomState");
+    const summaries = [];
+    await iterateCursor(roomSummary.openCursor(), summary => {
+        summaries.push(summary);
+    });
+    for (const summary of summaries) {
+        const encryptionEntry = await reqAsPromise(roomState.get(`${summary.roomId}|m.room.encryption|`));
+        if (encryptionEntry) {
+            summary.encryption = encryptionEntry?.event?.content;
+            delete summary.isEncrypted;
+            roomSummary.put(summary);
+        }
+    }
 }
