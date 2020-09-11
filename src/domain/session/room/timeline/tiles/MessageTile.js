@@ -31,8 +31,12 @@ export class MessageTile extends SimpleTile {
         return "message";
     }
 
+    get displayName() {
+        return this._entry.displayName || this.sender;
+    }
+
     get sender() {
-        return this._entry.displayName || this._entry.sender;
+        return this._entry.sender;
     }
 
     // Avatar view model contract
@@ -52,7 +56,7 @@ export class MessageTile extends SimpleTile {
     }
 
     get avatarTitle() {
-        return this.sender;
+        return this.displayName;
     }
 
     get date() {

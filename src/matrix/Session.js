@@ -245,7 +245,8 @@ export class Session {
             sendScheduler: this._sendScheduler,
             pendingEvents,
             user: this._user,
-            createRoomEncryption: this._createRoomEncryption
+            createRoomEncryption: this._createRoomEncryption,
+            clock: this._clock
         });
         this._rooms.add(roomId, room);
         return room;

@@ -21,7 +21,7 @@ import {TimelineReader} from "./persistence/TimelineReader.js";
 import {PendingEventEntry} from "./entries/PendingEventEntry.js";
 
 export class Timeline {
-    constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, user}) {
+    constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, user, clock}) {
         this._roomId = roomId;
         this._storage = storage;
         this._closeCallback = closeCallback;
@@ -35,7 +35,7 @@ export class Timeline {
         });
         this._readerRequest = null;
         const localEntries = new MappedList(pendingEvents, pe => {
-            return new PendingEventEntry({pendingEvent: pe, user});
+            return new PendingEventEntry({pendingEvent: pe, user, clock});
         }, (pee, params) => {
             pee.notifyUpdate(params);
         });
