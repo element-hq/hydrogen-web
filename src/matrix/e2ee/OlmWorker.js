@@ -14,13 +14,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export class DecryptionWorker {
+export class OlmWorker {
     constructor(workerPool) {
         this._workerPool = workerPool;
     }
 
-    decrypt(session, ciphertext) {
+    megolmDecrypt(session, ciphertext) {
         const sessionKey = session.export_session(session.first_known_index());
         return this._workerPool.send({type: "megolm_decrypt", ciphertext, sessionKey});
+    }
+
+    async createAccountAndOTKs(account, otkAmount) {
+        // IE11 does not support getRandomValues in a worker, so we have to generate the values upfront.
+        let randomValues;
+        if (window.msCrypto) {
+            randomValues = [
+                window.msCrypto.getRandomValues(new Uint8Array(64)),
+                window.msCrypto.getRandomValues(new Uint8Array(otkAmount * 32)),
+            ];
+        }
+        const pickle = await this._workerPool.send({type: "olm_create_account_otks", randomValues, otkAmount}).response();
+        account.unpickle("", pickle);
+    }
+
+    dispose() {
+        this._workerPool.dispose();
     }
 }

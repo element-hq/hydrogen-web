@@ -33,7 +33,7 @@ const PICKLE_KEY = "DEFAULT_KEY";
 
 export class Session {
     // sessionInfo contains deviceId, userId and homeServer
-    constructor({clock, storage, hsApi, sessionInfo, olm, workerPool}) {
+    constructor({clock, storage, hsApi, sessionInfo, olm, olmWorker}) {
         this._clock = clock;
         this._storage = storage;
         this._hsApi = hsApi;
@@ -52,7 +52,7 @@ export class Session {
         this._megolmEncryption = null;
         this._megolmDecryption = null;
         this._getSyncToken = () => this.syncToken;
-        this._workerPool = workerPool;
+        this._olmWorker = olmWorker;
 
         if (olm) {
             this._olmUtil = new olm.Utility();
@@ -101,7 +101,7 @@ export class Session {
         this._megolmDecryption = new MegOlmDecryption({
             pickleKey: PICKLE_KEY,
             olm: this._olm,
-            workerPool: this._workerPool,
+            olmWorker: this._olmWorker,
         });
         this._deviceMessageHandler.enableEncryption({olmDecryption, megolmDecryption: this._megolmDecryption});
     }
@@ -140,23 +140,15 @@ export class Session {
                 throw new Error("there should not be an e2ee account already on a fresh login");
             }
             if (!this._e2eeAccount) {
-                const txn = await this._storage.readWriteTxn([
-                    this._storage.storeNames.session
-                ]);
-                try {
-                    this._e2eeAccount = await E2EEAccount.create({
-                        hsApi: this._hsApi,
-                        olm: this._olm,
-                        pickleKey: PICKLE_KEY,
-                        userId: this._sessionInfo.userId,
-                        deviceId: this._sessionInfo.deviceId,
-                        txn
-                    });
-                } catch (err) {
-                    txn.abort();
-                    throw err;
-                }
-                await txn.complete();
+                this._e2eeAccount = await E2EEAccount.create({
+                    hsApi: this._hsApi,
+                    olm: this._olm,
+                    pickleKey: PICKLE_KEY,
+                    userId: this._sessionInfo.userId,
+                    deviceId: this._sessionInfo.deviceId,
+                    olmWorker: this._olmWorker,
+                    storage: this._storage,
+                });
                 this._setupEncryption();
             }
             await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
@@ -184,6 +176,7 @@ export class Session {
                 pickleKey: PICKLE_KEY,
                 userId: this._sessionInfo.userId,
                 deviceId: this._sessionInfo.deviceId,
+                olmWorker: this._olmWorker,
                 txn
             });
             if (this._e2eeAccount) {
@@ -204,7 +197,7 @@ export class Session {
     }
 
     stop() {
-        this._workerPool?.dispose();
+        this._olmWorker?.dispose();
         this._sendScheduler.stop();
     }
 

@@ -22,12 +22,12 @@ import {ReplayDetectionEntry} from "./ReplayDetectionEntry.js";
  * Does the actual decryption of all events for a given megolm session in a batch
  */
 export class SessionDecryption {
-    constructor(sessionInfo, events, decryptor) {
+    constructor(sessionInfo, events, olmWorker) {
         sessionInfo.retain();
         this._sessionInfo = sessionInfo;
         this._events = events;
-        this._decryptor = decryptor;
-        this._decryptionRequests = decryptor ? [] : null;
+        this._olmWorker = olmWorker;
+        this._decryptionRequests = olmWorker ? [] : null;
     }
 
     async decryptAll() {
@@ -41,8 +41,8 @@ export class SessionDecryption {
                 const {session} = this._sessionInfo;
                 const ciphertext = event.content.ciphertext;
                 let decryptionResult;
-                if (this._decryptor) {
-                    const request = this._decryptor.decrypt(session, ciphertext);
+                if (this._olmWorker) {
+                    const request = this._olmWorker.megolmDecrypt(session, ciphertext);
                     this._decryptionRequests.push(request);
                     decryptionResult = await request.response();
                 } else {
