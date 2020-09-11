@@ -30,6 +30,7 @@ import {OlmSessionStore} from "./stores/OlmSessionStore.js";
 import {InboundGroupSessionStore} from "./stores/InboundGroupSessionStore.js";
 import {OutboundGroupSessionStore} from "./stores/OutboundGroupSessionStore.js";
 import {GroupSessionDecryptionStore} from "./stores/GroupSessionDecryptionStore.js";
+import {OperationStore} from "./stores/OperationStore.js";
 
 export class Transaction {
     constructor(txn, allowedStoreNames) {
@@ -109,6 +110,10 @@ export class Transaction {
 
     get groupSessionDecryptions() {
         return this._store("groupSessionDecryptions", idbStore => new GroupSessionDecryptionStore(idbStore));
+    }
+
+    get operations() {
+        return this._store("operations", idbStore => new OperationStore(idbStore));
     }
 
     complete() {
