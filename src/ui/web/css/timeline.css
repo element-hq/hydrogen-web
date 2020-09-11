@@ -77,6 +77,6 @@ limitations under the License.
 }
 
 .GapView > div {
-    flex: 1;
-    margin-left: 10px;
+    flex: 1 1 0;
+    margin-right: 10px;
 }

@@ -17,10 +17,11 @@ limitations under the License.
 import {BaseEntry, PENDING_FRAGMENT_ID} from "./BaseEntry.js";
 
 export class PendingEventEntry extends BaseEntry {
-    constructor({pendingEvent, user}) {
+    constructor({pendingEvent, user, clock}) {
         super(null);
         this._pendingEvent = pendingEvent;
         this._user = user;
+        this._clock = clock;
     }
 
     get fragmentId() {
@@ -52,7 +53,7 @@ export class PendingEventEntry extends BaseEntry {
     }
 
     get timestamp() {
-        return null;
+        return this._clock.now();
     }
 
     get isPending() {

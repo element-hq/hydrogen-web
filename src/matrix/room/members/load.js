@@ -25,13 +25,13 @@ async function loadMembers({roomId, storage}) {
     return memberDatas.map(d => new RoomMember(d));
 }
 
-async function fetchMembers({summary, roomId, hsApi, storage, setChangedMembersMap}) {
+async function fetchMembers({summary, syncToken, roomId, hsApi, storage, setChangedMembersMap}) {
     // if any members are changed by sync while we're fetching members,
     // they will end up here, so we check not to override them
     const changedMembersDuringSync = new Map();
     setChangedMembersMap(changedMembersDuringSync);
     
-    const memberResponse = await hsApi.members(roomId, {at: summary.lastPaginationToken}).response;
+    const memberResponse = await hsApi.members(roomId, {at: syncToken}).response();
 
     const txn = await storage.readWriteTxn([
         storage.storeNames.roomSummary,

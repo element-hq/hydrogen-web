@@ -15,9 +15,18 @@ limitations under the License.
 */
 
 export function spinner(t, extraClasses = undefined) {
-    return t.svg({className: Object.assign({"spinner": true}, extraClasses), viewBox:"0 0 100 100"}, 
-        t.circle({cx:"50%", cy:"50%", r:"45%", pathLength:"100"})
-    );
+    if (document.body.classList.contains("ie11")) {
+        return t.div({className: "spinner"}, [
+            t.div(),
+            t.div(),
+            t.div(),
+            t.div(),
+        ]);
+    } else {
+        return t.svg({className: Object.assign({"spinner": true}, extraClasses), viewBox:"0 0 100 100"}, 
+            t.circle({cx:"50%", cy:"50%", r:"45%", pathLength:"100"})
+        );
+    }
 }
 
 /**

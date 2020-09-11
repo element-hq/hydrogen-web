@@ -141,14 +141,15 @@ export class HomeServerApi {
             {}, {}, options);
     }
 
-    passwordLogin(username, password, options = null) {
+    passwordLogin(username, password, initialDeviceDisplayName, options = null) {
         return this._post("/login", null, {
           "type": "m.login.password",
           "identifier": {
             "type": "m.id.user",
             "user": username
           },
-          "password": password
+          "password": password,
+          "initial_device_display_name": initialDeviceDisplayName
         }, options);
     }
 
@@ -158,6 +159,22 @@ export class HomeServerApi {
 
     versions(options = null) {
         return this._request("GET", `${this._homeserver}/_matrix/client/versions`, null, null, options);
+    }
+
+    uploadKeys(payload, options = null) {
+        return this._post("/keys/upload", null, payload, options);
+    }
+
+    queryKeys(queryRequest, options = null) {
+        return this._post("/keys/query", null, queryRequest, options);
+    }
+
+    claimKeys(payload, options = null) {
+        return this._post("/keys/claim", null, payload, options);
+    }
+
+    sendToDevice(type, payload, txnId, options = null) {
+        return this._put(`/sendToDevice/${encodeURIComponent(type)}/${encodeURIComponent(txnId)}`, null, payload, options);
     }
 
     get mediaRepository() {

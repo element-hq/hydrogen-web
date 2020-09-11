@@ -907,6 +907,11 @@
   dependencies:
     "@types/node" "*"
 
+another-json@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/another-json/-/another-json-0.2.0.tgz#b5f4019c973b6dd5c6506a2d93469cb6d32aeedc"
+  integrity sha1-tfQBnJc7bdXGUGotk0acttMq7tw=
+
 ansi-styles@^3.2.1:
   version "3.2.1"
   resolved "https://registry.yarnpkg.com/ansi-styles/-/ansi-styles-3.2.1.tgz#41fbb20243e50b12be0f04b8dedbf07520ce841d"
@@ -1490,6 +1495,10 @@ object.assign@^4.1.0:
     function-bind "^1.1.1"
     has-symbols "^1.0.0"
     object-keys "^1.0.11"
+
+"olm@https://packages.matrix.org/npm/olm/olm-3.1.4.tgz":
+  version "3.1.4"
+  resolved "https://packages.matrix.org/npm/olm/olm-3.1.4.tgz#0f03128b7d3b2f614d2216409a1dfccca765fdb3"
 
 on-finished@~2.3.0:
   version "2.3.0"

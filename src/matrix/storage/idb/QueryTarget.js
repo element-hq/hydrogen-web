@@ -42,7 +42,15 @@ export class QueryTarget {
     }
 
     getKey(key) {
-        return reqAsPromise(this._target.getKey(key));
+        if (this._target.supports("getKey")) {
+            return reqAsPromise(this._target.getKey(key));
+        } else {
+            return reqAsPromise(this._target.get(key)).then(value => {
+                if (value) {
+                    return value[this._target.keyPath];
+                }
+            });
+        }
     }
 
     reduce(range, reducer, initialValue) {
@@ -103,6 +111,13 @@ export class QueryTarget {
             return {done: true};
         });
         return maxKey;
+    }
+
+    async iterateKeys(range, callback) {
+        const cursor = this._target.openKeyCursor(range, "next");
+        await iterateCursor(cursor, (_, key) => {
+            return {done: callback(key)};
+        });
     }
 
     /**
@@ -178,6 +193,14 @@ export class QueryTarget {
             return {done: !passesPredicate};
         });
         return results;
+    }
+
+    async iterateWhile(range, predicate) {
+        const cursor = this._openCursor(range, "next");
+        await iterateCursor(cursor, (value) => {
+            const passesPredicate = predicate(value);
+            return {done: !passesPredicate};
+        });
     }
 
     async _find(range, predicate, direction) {

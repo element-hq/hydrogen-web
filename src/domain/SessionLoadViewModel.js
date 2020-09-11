@@ -82,7 +82,7 @@ export class SessionLoadViewModel extends ViewModel {
             if (this._sessionContainer) {
                 this._sessionContainer.stop();
                 if (this._deleteSessionOnCancel) {
-                    await this._sessionContainer.deletSession();
+                    await this._sessionContainer.deleteSession();
                 }
                 this._sessionContainer = null;
             }
@@ -127,6 +127,8 @@ export class SessionLoadViewModel extends ViewModel {
                             return `Something went wrong while checking your login and password.`;
                     }
                     break;
+                case LoadStatus.SessionSetup:
+                    return `Setting up your encryption keys…`;
                 case LoadStatus.Loading:
                     return `Loading your conversations…`;
                 case LoadStatus.FirstSync:

@@ -22,6 +22,13 @@ export const STORE_NAMES = Object.freeze([
     "timelineEvents",
     "timelineFragments",
     "pendingEvents",
+    "userIdentities",
+    "deviceIdentities",
+    "olmSessions",
+    "inboundGroupSessions",
+    "outboundGroupSessions",
+    "groupSessionDecryptions",
+    "operations"
 ]);
 
 export const STORE_MAP = Object.freeze(STORE_NAMES.reduce((nameMap, name) => {

@@ -25,12 +25,67 @@ import {BrawlViewModel} from "./domain/BrawlViewModel.js";
 import {BrawlView} from "./ui/web/BrawlView.js";
 import {Clock} from "./ui/web/dom/Clock.js";
 import {OnlineStatus} from "./ui/web/dom/OnlineStatus.js";
+import {WorkerPool} from "./utils/WorkerPool.js";
+import {OlmWorker} from "./matrix/e2ee/OlmWorker.js";
+
+function addScript(src) {
+    return new Promise(function (resolve, reject) {
+        var s = document.createElement("script");
+        s.setAttribute("src", src );
+        s.onload=resolve;
+        s.onerror=reject;
+        document.body.appendChild(s);
+    });
+}
+
+async function loadOlm(olmPaths) {
+    // make crypto.getRandomValues available without
+    // a prefix on IE11, needed by olm to work
+    if (window.msCrypto && !window.crypto) {
+        window.crypto = window.msCrypto;
+    }
+    if (olmPaths) {
+        if (window.WebAssembly) {
+            await addScript(olmPaths.wasmBundle);
+            await window.Olm.init({locateFile: () => olmPaths.wasm});
+        } else {
+            await addScript(olmPaths.legacyBundle);
+            await window.Olm.init();
+        }
+        return window.Olm;
+    }
+    return null;
+}
+
+// make path relative to basePath,
+// assuming it and basePath are relative to document
+function relPath(path, basePath) {
+    const idx = basePath.lastIndexOf("/");
+    const dir = idx === -1 ? "" : basePath.slice(0, idx);
+    const dirCount = dir.length ? dir.split("/").length : 0;
+    return "../".repeat(dirCount) + path;
+}
+
+async function loadOlmWorker(paths) {
+    const workerPool = new WorkerPool(paths.worker, 4);
+    await workerPool.init();
+    const path = relPath(paths.olm.legacyBundle, paths.worker);
+    await workerPool.sendAll({type: "load_olm", path});
+    const olmWorker = new OlmWorker(workerPool);
+    return olmWorker;
+}
 
 // Don't use a default export here, as we use multiple entries during legacy build,
 // which does not support default exports,
 // see https://github.com/rollup/plugins/tree/master/packages/multi-entry
-export async function main(container) {
+export async function main(container, paths) {
     try {
+        const isIE11 = !!window.MSInputMethodContext && !!document.documentMode;
+        if (isIE11) {
+            document.body.className += " ie11";
+        } else {
+            document.body.className += " not-ie11";
+        }
         // to replay:
         // const fetchLog = await (await fetch("/fetchlogs/constrainterror.json")).json();
         // const replay = new ReplayRequester(fetchLog, {delay: false});
@@ -50,6 +105,13 @@ export async function main(container) {
         const sessionInfoStorage = new SessionInfoStorage("brawl_sessions_v1");
         const storageFactory = new StorageFactory();
 
+        // if wasm is not supported, we'll want
+        // to run some olm operations in a worker (mainly for IE11)
+        let workerPromise;
+        if (!window.WebAssembly) {
+            workerPromise = loadOlmWorker(paths);
+        }
+
         const vm = new BrawlViewModel({
             createSessionContainer: () => {
                 return new SessionContainer({
@@ -59,6 +121,8 @@ export async function main(container) {
                     sessionInfoStorage,
                     request,
                     clock,
+                    olmPromise: loadOlm(paths.olm),
+                    workerPromise,
                 });
             },
             sessionInfoStorage,

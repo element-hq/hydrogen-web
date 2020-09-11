@@ -22,12 +22,13 @@ export function renderMessage(t, vm, children) {
         "TextMessageView": true,
         own: vm.isOwn,
         pending: vm.isPending,
+        unverified: vm.isUnverified,
         continuation: vm => vm.isContinuation,
     };
 
     const profile = t.div({className: "profile"}, [
         renderAvatar(t, vm, 30),
-        t.div({className: `sender usercolor${vm.avatarColorNumber}`}, vm.sender)
+        t.div({className: `sender usercolor${vm.avatarColorNumber}`}, vm.displayName)
     ]);
     children = [profile].concat(children);
     return t.li(

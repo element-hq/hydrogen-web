@@ -25,9 +25,13 @@ import {WrappedError} from "../error.js"
 import {fetchOrLoadMembers} from "./members/load.js";
 import {MemberList} from "./members/MemberList.js";
 import {Heroes} from "./members/Heroes.js";
+import {EventEntry} from "./timeline/entries/EventEntry.js";
+import {DecryptionSource} from "../e2ee/common.js";
+
+const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 
 export class Room extends EventEmitter {
-	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, pendingEvents, user}) {
+	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, pendingEvents, user, createRoomEncryption, getSyncToken, clock}) {
         super();
         this._roomId = roomId;
         this._storage = storage;
@@ -40,17 +44,133 @@ export class Room extends EventEmitter {
         this._timeline = null;
         this._user = user;
         this._changedMembersDuringSync = null;
+        this._memberList = null;
+        this._createRoomEncryption = createRoomEncryption;
+        this._roomEncryption = null;
+        this._getSyncToken = getSyncToken;
+        this._clock = clock;
 	}
 
+    async notifyRoomKeys(roomKeys) {
+        if (this._roomEncryption) {
+            let retryEventIds = this._roomEncryption.applyRoomKeys(roomKeys);
+            if (retryEventIds.length) {
+                const retryEntries = [];
+                const txn = await this._storage.readTxn([
+                    this._storage.storeNames.timelineEvents,
+                    this._storage.storeNames.inboundGroupSessions,
+                ]);
+                for (const eventId of retryEventIds) {
+                    const storageEntry = await txn.timelineEvents.getByEventId(this._roomId, eventId);
+                    if (storageEntry) {
+                        retryEntries.push(new EventEntry(storageEntry, this._fragmentIdComparer));
+                    }
+                }
+                const decryptRequest = this._decryptEntries(DecryptionSource.Retry, retryEntries, txn);
+                await decryptRequest.complete();
+                if (this._timeline) {
+                    // only adds if already present
+                    this._timeline.replaceEntries(retryEntries);
+                }
+                // pass decryptedEntries to roomSummary
+            }
+        }
+    }
+
+    _enableEncryption(encryptionParams) {
+        this._roomEncryption = this._createRoomEncryption(this, encryptionParams);
+        if (this._roomEncryption) {
+            this._sendQueue.enableEncryption(this._roomEncryption);
+            if (this._timeline) {
+                this._timeline.enableEncryption(this._decryptEntries.bind(this, DecryptionSource.Timeline));
+            }
+        }
+    }
+
+    /**
+     * Used for decrypting when loading/filling the timeline, and retrying decryption,
+     * not during sync, where it is split up during the multiple phases.
+     */
+    _decryptEntries(source, entries, inboundSessionTxn = null) {
+        const request = new DecryptionRequest(async r => {
+            if (!inboundSessionTxn) {
+                inboundSessionTxn = await this._storage.readTxn([this._storage.storeNames.inboundGroupSessions]);
+            }
+            if (r.cancelled) return;
+            const events = entries.filter(entry => {
+                return entry.eventType === EVENT_ENCRYPTED_TYPE;
+            }).map(entry => entry.event);
+            const isTimelineOpen = this._isTimelineOpen;
+            r.preparation = await this._roomEncryption.prepareDecryptAll(events, source, isTimelineOpen, inboundSessionTxn);
+            if (r.cancelled) return;
+            const changes = await r.preparation.decrypt();
+            r.preparation = null;
+            if (r.cancelled) return;
+            const stores = [this._storage.storeNames.groupSessionDecryptions];
+            if (isTimelineOpen) {
+                // read to fetch devices if timeline is open
+                stores.push(this._storage.storeNames.deviceIdentities);
+            }
+            const writeTxn = await this._storage.readWriteTxn(stores);
+            let decryption;
+            try {
+                decryption = await changes.write(writeTxn);
+            } catch (err) {
+                writeTxn.abort();
+                throw err;
+            }
+            await writeTxn.complete();
+            decryption.applyToEntries(entries);
+        });
+        return request;
+    }
+
+    get needsPrepareSync() {
+        // only encrypted rooms need the prepare sync steps
+        return !!this._roomEncryption;
+    }
+
+    async prepareSync(roomResponse, txn) {
+        if (this._roomEncryption) {
+            const events = roomResponse?.timeline?.events;
+            if (Array.isArray(events)) {
+                const eventsToDecrypt = events.filter(event => {
+                    return event?.type === EVENT_ENCRYPTED_TYPE;
+                });
+                const preparation = await this._roomEncryption.prepareDecryptAll(
+                    eventsToDecrypt, DecryptionSource.Sync, this._isTimelineOpen, txn);
+                return preparation;
+            }
+        }
+    }
+
+    async afterPrepareSync(preparation) {
+        if (preparation) {
+            const decryptChanges = await preparation.decrypt();
+            return decryptChanges;
+        }
+    }
+
     /** @package */
-    async writeSync(roomResponse, membership, isInitialSync, txn) {
-        const isTimelineOpen = !!this._timeline;
+    async writeSync(roomResponse, membership, isInitialSync, decryptChanges, txn) {
+        let decryption;
+        if (this._roomEncryption && decryptChanges) {
+            decryption = await decryptChanges.write(txn);
+        }
+		const {entries, newLiveKey, memberChanges} =
+            await this._syncWriter.writeSync(roomResponse, txn);
+        if (decryption) {
+            decryption.applyToEntries(entries);
+        }
+        // pass member changes to device tracker
+        if (this._roomEncryption && this.isTrackingMembers && memberChanges?.size) {
+            await this._roomEncryption.writeMemberChanges(memberChanges, txn);
+        }
 		const summaryChanges = this._summary.writeSync(
             roomResponse,
             membership,
-            isInitialSync, isTimelineOpen,
+            isInitialSync, this._isTimelineOpen,
             txn);
-		const {entries, newLiveKey, changedMembers} = await this._syncWriter.writeSync(roomResponse, txn);
         // fetch new members while we have txn open,
         // but don't make any in-memory changes yet
         let heroChanges;
@@ -59,7 +179,7 @@ export class Room extends EventEmitter {
             if (!this._heroes) {
                 this._heroes = new Heroes(this._roomId);
             }
-            heroChanges = await this._heroes.calculateChanges(summaryChanges.heroes, changedMembers, txn);
+            heroChanges = await this._heroes.calculateChanges(summaryChanges.heroes, memberChanges, txn);
         }
         let removedPendingEvents;
         if (roomResponse.timeline && roomResponse.timeline.events) {
@@ -70,22 +190,29 @@ export class Room extends EventEmitter {
             newTimelineEntries: entries,
             newLiveKey,
             removedPendingEvents,
-            changedMembers,
-            heroChanges
+            memberChanges,
+            heroChanges,
         };
     }
 
-    /** @package */
-    afterSync({summaryChanges, newTimelineEntries, newLiveKey, removedPendingEvents, changedMembers, heroChanges}) {
+    /**
+     * @package
+     * Called with the changes returned from `writeSync` to apply them and emit changes.
+     * No storage or network operations should be done here.
+     */
+    afterSync({summaryChanges, newTimelineEntries, newLiveKey, removedPendingEvents, memberChanges, heroChanges}) {
         this._syncWriter.afterSync(newLiveKey);
-        if (changedMembers.length) {
+        if (!this._summary.encryption && summaryChanges.encryption && !this._roomEncryption) {
+            this._enableEncryption(summaryChanges.encryption);
+        }
+        if (memberChanges.size) {
             if (this._changedMembersDuringSync) {
-                for (const member of changedMembers) {
-                    this._changedMembersDuringSync.set(member.userId, member);
+                for (const [userId, memberChange] of memberChanges.entries()) {
+                    this._changedMembersDuringSync.set(userId, memberChange.member);
                 }
             }
             if (this._memberList) {
-                this._memberList.afterSync(changedMembers);
+                this._memberList.afterSync(memberChanges);
             }
         }
         let emitChange = false;
@@ -115,8 +242,35 @@ export class Room extends EventEmitter {
         }
 	}
 
+    needsAfterSyncCompleted({memberChanges}) {
+        return this._roomEncryption?.needsToShareKeys(memberChanges);
+    }
+
+    /**
+     * Only called if the result of writeSync had `needsAfterSyncCompleted` set.
+     * Can be used to do longer running operations that resulted from the last sync,
+     * like network operations.
+     */
+    async afterSyncCompleted() {
+        if (this._roomEncryption) {
+            await this._roomEncryption.flushPendingRoomKeyShares(this._hsApi);
+        }
+    }
+
     /** @package */
-    resumeSending() {
+    async start(pendingOperations) {
+        if (this._roomEncryption) {
+            try {
+                const roomKeyShares = pendingOperations?.get("share_room_key");
+                if (roomKeyShares) {
+                    // if we got interrupted last time sending keys to newly joined members
+                    await this._roomEncryption.flushPendingRoomKeyShares(this._hsApi, roomKeyShares);
+                }
+            } catch (err) {
+                // we should not throw here
+                console.error(`could not send out (all) pending room keys for room ${this.id}`, err.stack);
+            }
+        }
         this._sendQueue.resumeSending();
     }
 
@@ -124,6 +278,9 @@ export class Room extends EventEmitter {
 	async load(summary, txn) {
         try {
             this._summary.load(summary);
+            if (this._summary.encryption) {
+                this._enableEncryption(this._summary.encryption);
+            }
             // need to load members for name?
             if (this._summary.needsHeroes) {
                 this._heroes = new Heroes(this._roomId);
@@ -144,6 +301,7 @@ export class Room extends EventEmitter {
     /** @public */
     async loadMemberList() {
         if (this._memberList) {
+            // TODO: also await fetchOrLoadMembers promise here
             this._memberList.retain();
             return this._memberList;
         } else {
@@ -152,6 +310,7 @@ export class Room extends EventEmitter {
                 roomId: this._roomId,
                 hsApi: this._hsApi,
                 storage: this._storage,
+                syncToken: this._getSyncToken(),
                 // to handle race between /members and /sync
                 setChangedMembersMap: map => this._changedMembersDuringSync = map,
             });
@@ -193,7 +352,7 @@ export class Room extends EventEmitter {
             const gapWriter = new GapWriter({
                 roomId: this._roomId,
                 storage: this._storage,
-                fragmentIdComparer: this._fragmentIdComparer
+                fragmentIdComparer: this._fragmentIdComparer,
             });
             gapResult = await gapWriter.writeFragmentFill(fragmentEntry, response, txn);
         } catch (err) {
@@ -201,6 +360,10 @@ export class Room extends EventEmitter {
             throw err;
         }
         await txn.complete();
+        if (this._roomEncryption) {
+            const decryptRequest = this._decryptEntries(DecryptionSource.Timeline, gapResult.entries);
+            await decryptRequest.complete();
+        }
         // once txn is committed, update in-memory state & emit events
         for (const fragment of gapResult.fragments) {
             this._fragmentIdComparer.add(fragment);
@@ -256,6 +419,14 @@ export class Room extends EventEmitter {
         return !!(tags && tags['m.lowpriority']);
     }
 
+    get isEncrypted() {
+        return !!this._summary.encryption;
+    }
+
+    get isTrackingMembers() {
+        return this._summary.isTrackingMembers;
+    }
+
     async _getLastEventId() {
         const lastKey = this._syncWriter.lastMessageKey;
         if (lastKey) {
@@ -265,6 +436,10 @@ export class Room extends EventEmitter {
             const eventEntry = await txn.timelineEvents.get(this._roomId, lastKey);
             return eventEntry?.event?.event_id;
         }
+    }
+
+    get _isTimelineOpen() {
+        return !!this._timeline;
     }
 
     async clearUnread() {
@@ -299,7 +474,7 @@ export class Room extends EventEmitter {
     }
 
     /** @public */
-    async openTimeline() {
+    openTimeline() {
         if (this._timeline) {
             throw new Error("not dealing with load race here for now");
         }
@@ -312,15 +487,53 @@ export class Room extends EventEmitter {
             closeCallback: () => {
                 console.log(`closing the timeline for ${this._roomId}`);
                 this._timeline = null;
+                if (this._roomEncryption) {
+                    this._roomEncryption.notifyTimelineClosed();
+                }
             },
             user: this._user,
+            clock: this._clock
         });
-        await this._timeline.load();
+        if (this._roomEncryption) {
+            this._timeline.enableEncryption(this._decryptEntries.bind(this, DecryptionSource.Timeline));
+        }
         return this._timeline;
     }
 
     get mediaRepository() {
         return this._hsApi.mediaRepository;
     }
+
+    /** @package */
+    writeIsTrackingMembers(value, txn) {
+        return this._summary.writeIsTrackingMembers(value, txn);
+    }
+
+    /** @package */
+    applyIsTrackingMembersChanges(changes) {
+        this._summary.applyChanges(changes);
+    }
 }
 
+class DecryptionRequest {
+    constructor(decryptFn) {
+        this._cancelled = false;
+        this.preparation = null;
+        this._promise = decryptFn(this);
+    }
+
+    complete() {
+        return this._promise;
+    }
+
+    get cancelled() {
+        return this._cancelled;
+    }
+
+    dispose() {
+        this._cancelled = true;
+        if (this.preparation) {
+            this.preparation.dispose();
+        }
+    }
+}

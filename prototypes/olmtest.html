@@ -12,13 +12,13 @@
     </style>
 </head>
 <body>
-    <script type="text/javascript" src="../lib/olm.js"></script>
+    <script type="text/javascript" src="../lib/olm/olm.js"></script>
     <script type="module">
 
         async function main() {
             const Olm = window.Olm;
             await Olm.init({
-                locateFile: () => "../lib/olm.wasm",
+                locateFile: () => "../lib/olm/olm.wasm",
             });
             const alice = new Olm.Account();
             alice.create();

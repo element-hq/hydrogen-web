@@ -26,5 +26,12 @@ export class PendingEvent {
     get remoteId() { return this._data.remoteId; }
     set remoteId(value) { this._data.remoteId = value; }
     get content() { return this._data.content; }
+    get needsEncryption() { return this._data.needsEncryption; }
     get data() { return this._data; }
+
+    setEncrypted(type, content) {
+        this._data.eventType = type;
+        this._data.content = content;
+        this._data.needsEncryption = false;
+    }
 }

@@ -373,6 +373,10 @@ ul.Timeline > li.continuation time {
     color: #ccc;
 }
 
+.TextMessageView.unverified .message-container {
+    color: #ff4b55;
+}
+
 .message-container p {
     margin: 3px 0;
     line-height: 2.2rem;

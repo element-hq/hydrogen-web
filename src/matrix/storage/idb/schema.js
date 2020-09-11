@@ -9,6 +9,7 @@ export const schema = [
     createInitialStores,
     createMemberStore,
     migrateSession,
+    createE2EEStores
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -46,7 +47,7 @@ async function createMemberStore(db, txn) {
         }
     });
 }
-
+//v3
 async function migrateSession(db, txn) {
     const session = txn.objectStore("session");
     try {
@@ -63,4 +64,16 @@ async function migrateSession(db, txn) {
         txn.abort();
         console.error("could not migrate session", err.stack);
     }
+}
+//v4
+function createE2EEStores(db) {
+    db.createObjectStore("userIdentities", {keyPath: "userId"});
+    const deviceIdentities = db.createObjectStore("deviceIdentities", {keyPath: "key"});
+    deviceIdentities.createIndex("byCurve25519Key", "curve25519Key", {unique: true});
+    db.createObjectStore("olmSessions", {keyPath: "key"});
+    db.createObjectStore("inboundGroupSessions", {keyPath: "key"});
+    db.createObjectStore("outboundGroupSessions", {keyPath: "roomId"});
+    db.createObjectStore("groupSessionDecryptions", {keyPath: "key"});
+    const operations = db.createObjectStore("operations", {keyPath: "id"});
+    operations.createIndex("byTypeAndScope", "typeScopeKey", {unique: false});
 }

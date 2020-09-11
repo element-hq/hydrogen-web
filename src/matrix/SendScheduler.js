@@ -121,7 +121,7 @@ export class SendScheduler {
                     }
                     this._sendRequests = [];
                 }
-                console.error("error for request", request);
+                console.error("error for request", err);
                 request.reject(err);
                 break;
             }

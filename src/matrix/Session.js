@@ -18,10 +18,24 @@ import {Room} from "./room/Room.js";
 import { ObservableMap } from "../observable/index.js";
 import { SendScheduler, RateLimitingBackoff } from "./SendScheduler.js";
 import {User} from "./User.js";
+import {DeviceMessageHandler} from "./DeviceMessageHandler.js";
+import {Account as E2EEAccount} from "./e2ee/Account.js";
+import {Decryption as OlmDecryption} from "./e2ee/olm/Decryption.js";
+import {Encryption as OlmEncryption} from "./e2ee/olm/Encryption.js";
+import {Decryption as MegOlmDecryption} from "./e2ee/megolm/Decryption.js";
+import {Encryption as MegOlmEncryption} from "./e2ee/megolm/Encryption.js";
+import {MEGOLM_ALGORITHM} from "./e2ee/common.js";
+import {RoomEncryption} from "./e2ee/RoomEncryption.js";
+import {DeviceTracker} from "./e2ee/DeviceTracker.js";
+import {LockMap} from "../utils/LockMap.js";
+import {groupBy} from "../utils/groupBy.js";
+
+const PICKLE_KEY = "DEFAULT_KEY";
 
 export class Session {
     // sessionInfo contains deviceId, userId and homeServer
-    constructor({storage, hsApi, sessionInfo}) {
+    constructor({clock, storage, hsApi, sessionInfo, olm, olmWorker}) {
+        this._clock = clock;
         this._storage = storage;
         this._hsApi = hsApi;
         this._syncInfo = null;
@@ -30,6 +44,118 @@ export class Session {
         this._sendScheduler = new SendScheduler({hsApi, backoff: new RateLimitingBackoff()});
         this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
         this._user = new User(sessionInfo.userId);
+        this._deviceMessageHandler = new DeviceMessageHandler({storage});
+        this._olm = olm;
+        this._olmUtil = null;
+        this._e2eeAccount = null;
+        this._deviceTracker = null;
+        this._olmEncryption = null;
+        this._megolmEncryption = null;
+        this._megolmDecryption = null;
+        this._getSyncToken = () => this.syncToken;
+        this._olmWorker = olmWorker;
+
+        if (olm) {
+            this._olmUtil = new olm.Utility();
+            this._deviceTracker = new DeviceTracker({
+                storage,
+                getSyncToken: this._getSyncToken,
+                olmUtil: this._olmUtil,
+                ownUserId: sessionInfo.userId,
+                ownDeviceId: sessionInfo.deviceId,
+            });
+        }
+        this._createRoomEncryption = this._createRoomEncryption.bind(this);
+    }
+
+    // called once this._e2eeAccount is assigned
+    _setupEncryption() {
+        console.log("loaded e2ee account with keys", this._e2eeAccount.identityKeys);
+        const senderKeyLock = new LockMap();
+        const olmDecryption = new OlmDecryption({
+            account: this._e2eeAccount,
+            pickleKey: PICKLE_KEY,
+            olm: this._olm,
+            storage: this._storage,
+            now: this._clock.now,
+            ownUserId: this._user.id,
+            senderKeyLock
+        });
+        this._olmEncryption = new OlmEncryption({
+            account: this._e2eeAccount,
+            pickleKey: PICKLE_KEY,
+            olm: this._olm,
+            storage: this._storage,
+            now: this._clock.now,
+            ownUserId: this._user.id,
+            olmUtil: this._olmUtil,
+            senderKeyLock
+        });
+        this._megolmEncryption = new MegOlmEncryption({
+            account: this._e2eeAccount,
+            pickleKey: PICKLE_KEY,
+            olm: this._olm,
+            storage: this._storage,
+            now: this._clock.now,
+            ownDeviceId: this._sessionInfo.deviceId,
+        });
+        this._megolmDecryption = new MegOlmDecryption({
+            pickleKey: PICKLE_KEY,
+            olm: this._olm,
+            olmWorker: this._olmWorker,
+        });
+        this._deviceMessageHandler.enableEncryption({olmDecryption, megolmDecryption: this._megolmDecryption});
+    }
+
+    _createRoomEncryption(room, encryptionParams) {
+        // TODO: this will actually happen when users start using the e2ee version for the first time
+
+        // this should never happen because either a session was already synced once
+        // and thus an e2ee account was created as well and _setupEncryption is called from load
+        // OR
+        // this is a new session and loading it will load zero rooms, thus not calling this method.
+        // in this case _setupEncryption is called from beforeFirstSync, right after load,
+        // so any incoming synced rooms won't be there yet
+        if (!this._olmEncryption) {
+            throw new Error("creating room encryption before encryption got globally enabled");
+        }
+        // only support megolm
+        if (encryptionParams.algorithm !== MEGOLM_ALGORITHM) {
+            return null;
+        }
+        return new RoomEncryption({
+            room,
+            deviceTracker: this._deviceTracker,
+            olmEncryption: this._olmEncryption,
+            megolmEncryption: this._megolmEncryption,
+            megolmDecryption: this._megolmDecryption,
+            storage: this._storage,
+            encryptionParams
+        });
+    }
+
+    // called after load
+    async beforeFirstSync(isNewLogin) {
+        if (this._olm) {
+            if (isNewLogin && this._e2eeAccount) {
+                throw new Error("there should not be an e2ee account already on a fresh login");
+            }
+            if (!this._e2eeAccount) {
+                this._e2eeAccount = await E2EEAccount.create({
+                    hsApi: this._hsApi,
+                    olm: this._olm,
+                    pickleKey: PICKLE_KEY,
+                    userId: this._sessionInfo.userId,
+                    deviceId: this._sessionInfo.deviceId,
+                    olmWorker: this._olmWorker,
+                    storage: this._storage,
+                });
+                this._setupEncryption();
+            }
+            await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
+            await this._e2eeAccount.uploadKeys(this._storage);
+            await this._deviceMessageHandler.decryptPending(this.rooms);
+        }
     }
 
     async load() {
@@ -43,6 +169,21 @@ export class Session {
         ]);
         // restore session object
         this._syncInfo = await txn.session.get("sync");
+        // restore e2ee account, if any
+        if (this._olm) {
+            this._e2eeAccount = await E2EEAccount.load({
+                hsApi: this._hsApi,
+                olm: this._olm,
+                pickleKey: PICKLE_KEY,
+                userId: this._sessionInfo.userId,
+                deviceId: this._sessionInfo.deviceId,
+                olmWorker: this._olmWorker,
+                txn
+            });
+            if (this._e2eeAccount) {
+                this._setupEncryption();
+            }
+        }
         const pendingEventsByRoomId = await this._getPendingEventsByRoom(txn);
         // load rooms
         const rooms = await txn.roomSummary.getAll();
@@ -57,6 +198,7 @@ export class Session {
     }
 
     stop() {
+        this._olmWorker?.dispose();
         this._sendScheduler.stop();
     }
 
@@ -71,9 +213,20 @@ export class Session {
             await txn.complete();
         }
 
+        const opsTxn = await this._storage.readWriteTxn([
+            this._storage.storeNames.operations
+        ]);
+        const operations = await opsTxn.operations.getAll();
+        const operationsByScope = groupBy(operations, o => o.scope);
+
         this._sendScheduler.start();
         for (const [, room] of this._rooms) {
-            room.resumeSending();
+            let roomOperationsByType;
+            const roomOperations = operationsByScope.get(room.id);
+            if (roomOperations) {
+                roomOperationsByType = groupBy(roomOperations, r => r.type);
+            }
+            room.start(roomOperationsByType);
         }
     }
 
@@ -97,31 +250,68 @@ export class Session {
     createRoom(roomId, pendingEvents) {
         const room = new Room({
             roomId,
+            getSyncToken: this._getSyncToken,
             storage: this._storage,
             emitCollectionChange: this._roomUpdateCallback,
             hsApi: this._hsApi,
             sendScheduler: this._sendScheduler,
             pendingEvents,
             user: this._user,
+            createRoomEncryption: this._createRoomEncryption,
+            clock: this._clock
         });
         this._rooms.add(roomId, room);
         return room;
     }
 
-    writeSync(syncToken, syncFilterId, accountData, txn) {
+    async writeSync(syncResponse, syncFilterId, txn) {
+        const changes = {};
+        const syncToken = syncResponse.next_batch;
+        const deviceOneTimeKeysCount = syncResponse.device_one_time_keys_count;
+
+        if (this._e2eeAccount && deviceOneTimeKeysCount) {
+            changes.e2eeAccountChanges = this._e2eeAccount.writeSync(deviceOneTimeKeysCount, txn);
+        }
         if (syncToken !== this.syncToken) {
             const syncInfo = {token: syncToken, filterId: syncFilterId};
             // don't modify `this` because transaction might still fail
             txn.session.set("sync", syncInfo);
-            return syncInfo;
+            changes.syncInfo = syncInfo;
         }
+        if (this._deviceTracker) {
+            const deviceLists = syncResponse.device_lists;
+            if (deviceLists) {
+                await this._deviceTracker.writeDeviceChanges(deviceLists, txn);
+            }
+        }
+
+        const toDeviceEvents = syncResponse.to_device?.events;
+        if (Array.isArray(toDeviceEvents)) {
+            this._deviceMessageHandler.writeSync(toDeviceEvents, txn);
+        }
+        return changes;
     }
 
-    afterSync(syncInfo) {
+    afterSync({syncInfo, e2eeAccountChanges}) {
         if (syncInfo) {
             // sync transaction succeeded, modify object state now
             this._syncInfo = syncInfo;
         }
+        if (this._e2eeAccount && e2eeAccountChanges) {
+            this._e2eeAccount.afterSync(e2eeAccountChanges);
+        }
+    }
+
+    async afterSyncCompleted() {
+        const needsToUploadOTKs = await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
+        const promises = [this._deviceMessageHandler.decryptPending(this.rooms)];
+        if (needsToUploadOTKs) {
+            // TODO: we could do this in parallel with sync if it proves to be too slow
+            // but I'm not sure how to not swallow errors in that case
+            promises.push(this._e2eeAccount.uploadKeys(this._storage));
+        }
+        // run key upload and decryption in parallel
+        await Promise.all(promises);
     }
 
     get syncToken() {
@@ -181,7 +371,7 @@ export function tests() {
                     }
                 }
             };
-            const newSessionData = session.writeSync("b", 6, {}, syncTxn);
+            const newSessionData = await session.writeSync({next_batch: "b"}, 6, syncTxn);
             assert(syncSet);
             assert.equal(session.syncToken, "a");
             assert.equal(session.syncFilterId, 5);

@@ -28,6 +28,7 @@ export const LoadStatus = createEnum(
     "Login",
     "LoginFailed",
     "Loading",
+    "SessionSetup", // upload e2ee keys, ...
     "Migrating",    //not used atm, but would fit here
     "FirstSync",
     "Error",
@@ -41,7 +42,7 @@ export const LoginFailure = createEnum(
 );
 
 export class SessionContainer {
-    constructor({clock, random, onlineStatus, request, storageFactory, sessionInfoStorage}) {
+    constructor({clock, random, onlineStatus, request, storageFactory, sessionInfoStorage, olmPromise, workerPromise}) {
         this._random = random;
         this._clock = clock;
         this._onlineStatus = onlineStatus;
@@ -57,6 +58,8 @@ export class SessionContainer {
         this._sync = null;
         this._sessionId = null;
         this._storage = null;
+        this._olmPromise = olmPromise;
+        this._workerPromise = workerPromise;
     }
 
     createNewSessionId() {
@@ -73,7 +76,7 @@ export class SessionContainer {
             if (!sessionInfo) {
                 throw new Error("Invalid session id: " + sessionId);
             }
-            await this._loadSessionInfo(sessionInfo);
+            await this._loadSessionInfo(sessionInfo, false);
         } catch (err) {
             this._error = err;
             this._status.set(LoadStatus.Error);
@@ -88,7 +91,7 @@ export class SessionContainer {
         let sessionInfo;
         try {
             const hsApi = new HomeServerApi({homeServer, request: this._request, createTimeout: this._clock.createTimeout});
-            const loginData = await hsApi.passwordLogin(username, password).response();
+            const loginData = await hsApi.passwordLogin(username, password, "Hydrogen").response();
             const sessionId = this.createNewSessionId();
             sessionInfo = {
                 id: sessionId,
@@ -120,14 +123,14 @@ export class SessionContainer {
         // LoadStatus.Error in case of an error,
         // so separate try/catch
         try {
-            await this._loadSessionInfo(sessionInfo);
+            await this._loadSessionInfo(sessionInfo, true);
         } catch (err) {
             this._error = err;
             this._status.set(LoadStatus.Error);
         }
     }
 
-    async _loadSessionInfo(sessionInfo) {
+    async _loadSessionInfo(sessionInfo, isNewLogin) {
         this._status.set(LoadStatus.Loading);
         this._reconnector = new Reconnector({
             onlineStatus: this._onlineStatus,
@@ -149,8 +152,17 @@ export class SessionContainer {
             userId: sessionInfo.userId,
             homeServer: sessionInfo.homeServer,
         };
-        this._session = new Session({storage: this._storage, sessionInfo: filteredSessionInfo, hsApi});
+        const olm = await this._olmPromise;
+        let olmWorker = null;
+        if (this._workerPromise) {
+            olmWorker = await this._workerPromise;
+        }
+        this._session = new Session({storage: this._storage,
+            sessionInfo: filteredSessionInfo, hsApi, olm,
+            clock: this._clock, olmWorker});
         await this._session.load();
+        this._status.set(LoadStatus.SessionSetup);
+        await this._session.beforeFirstSync(isNewLogin);
         
         this._sync = new Sync({hsApi, storage: this._storage, session: this._session});
         // notify sync and session when back online
@@ -234,10 +246,16 @@ export class SessionContainer {
     }
 
     stop() {
-        this._reconnectSubscription();
-        this._reconnectSubscription = null;
-        this._sync.stop();
-        this._session.stop();
+        if (this._reconnectSubscription) {
+            this._reconnectSubscription();
+            this._reconnectSubscription = null;
+        }
+        if (this._sync) {
+            this._sync.stop();
+        }
+        if (this._session) {
+            this._session.stop();
+        }
         if (this._waitForFirstSyncHandle) {
             this._waitForFirstSyncHandle.dispose();
             this._waitForFirstSyncHandle = null;

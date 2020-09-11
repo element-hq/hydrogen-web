@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type="text/css">
+        pre {
+            font-family: monospace;
+            display: block;
+            white-space: pre;
+            font-size: 2em;
+        }
+    </style>
+</head>
+<body>
+    <script type="text/javascript">
+        if (!Math.imul) Math.imul = function(a,b) {return (a*b)|0;}/* function(a, b) {
+          var aHi = (a >>> 16) & 0xffff;
+          var aLo = a & 0xffff;
+          var bHi = (b >>> 16) & 0xffff;
+          var bLo = b & 0xffff;
+          // the shift by 0 fixes the sign on the high part
+          // the final |0 converts the unsigned value into a signed value
+          return ((aLo * bLo) + (((aHi * bLo + aLo * bHi) << 16) >>> 0) | 0);
+        };*/
+
+        if (!Math.clz32) Math.clz32 = (function(log, LN2){
+          return function(x) {
+            // Let n be ToUint32(x).
+            // Let p be the number of leading zero bits in 
+            // the 32-bit binary representation of n.
+            // Return p.
+            var asUint = x >>> 0;
+            if (asUint === 0) {
+              return 32;
+            }
+            return 31 - (log(asUint) / LN2 | 0) |0; // the "| 0" acts like math.floor
+          };
+        })(Math.log, Math.LN2);
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"></script>
+    <script type="text/javascript" src="../lib/olm/olm_legacy.js"></script>
+    <script type="text/javascript">
+        function doit(log) {           
+                var alice = new Olm.Account();
+                alice.create();
+                log("alice", alice.identity_keys());
+
+                var bob = new Olm.Account();
+                bob.unpickle("secret", "EWfA87or4GgQ+wqVkyuFiW9gUk3FI6QSXgp8E2dS5RFLvXgy4oFvxwQ1gVnbMkdJz2Hy9ex9UmJ/ZyuRU0aRt0IwXpw/SUNq4IQeVJ7J/miXW7rV4Ep+4RSEf945KbDrokDCS2CoL5PIfv/NYyey32gA0hMi8wWIfIlOxFBV4SBJYSC+Qd54VjprwCg0Sn9vjQouKVrM/+5jzsv9+JK5OpWW0Vrb3qrXwyAOEAQ4WlOQcqZHAyPQIw");
+                log("bob", bob.identity_keys());
+                // generate OTK on receiver side
+                bob.generate_one_time_keys(1);
+                var bobOneTimeKeys = JSON.parse(bob.one_time_keys());
+                var otkName = Object.getOwnPropertyNames(bobOneTimeKeys.curve25519)[0];
+                var bobOneTimeKey = bobOneTimeKeys.curve25519[otkName];
+                // encrypt
+                var aliceSession = new Olm.Session();
+                aliceSession.create_outbound(
+                    alice,
+                    JSON.parse(bob.identity_keys()).curve25519,
+                    bobOneTimeKey
+                );
+                log("alice outbound session created");
+                var aliceSessionPickled = aliceSession.pickle("secret");
+                log("aliceSession pickled", aliceSessionPickled);
+                try {
+                    var tmp = new Olm.Session();
+                    tmp.unpickle("secret", aliceSessionPickled);
+                    log("aliceSession unpickled");
+                } finally {
+                    tmp.free();
+                }
+                var message = aliceSession.encrypt("hello secret world");
+                log("message", message);
+                // decrypt
+                var bobSession = new Olm.Session();
+                bobSession.create_inbound(bob, message.body);
+                var plaintext = bobSession.decrypt(message.type, message.body);
+                log("plaintext", plaintext);
+                // remove Bob's OTK as it was used to start an olm session
+                log("bob OTK before removing", bob.one_time_keys());
+                bob.remove_one_time_keys(bobSession);
+                log("bob OTK after removing", bob.one_time_keys());
+        }
+
+        if (window.msCrypto && !window.crypto) {
+            window.crypto = window.msCrypto;
+        }
+
+        function doRun(e) {
+            e.target.setAttribute("disabled", "disabled");
+            var logEl = document.getElementById("log");
+            logEl.innerText = "";
+            var startTime = performance.now();
+            function log() {
+                var timeDiff = Math.round(performance.now() - startTime).toString();
+                while (timeDiff.length < 5) {
+                    timeDiff = "0" + timeDiff;
+                }
+                logEl.appendChild(document.createTextNode(timeDiff + " "));
+                for (var i = 0; i <  arguments.length; i += 1) {
+                    var value = arguments[i];
+                    if (typeof value !== "string") {
+                        value = JSON.stringify(value);
+                    }
+                    logEl.appendChild(document.createTextNode(value + " "));
+                }
+                logEl.appendChild(document.createTextNode("\n"));
+            }
+            doit(log);
+            e.target.removeAttribute("disabled");
+        }
+
+        function main() {
+             Olm.init(   ).then(function() {
+                var startButton = document.getElementById("start");
+                startButton.innerText = "Start";
+                startButton.addEventListener("click", doRun);
+            });
+        }
+        document.addEventListener("DOMContentLoaded", main);
+    </script>
+    <pre id="log"></pre>
+    <button id="start">Loading...</button>
+</body>
+</html>
+ 

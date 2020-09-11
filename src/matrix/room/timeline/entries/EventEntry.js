@@ -15,11 +15,18 @@ limitations under the License.
 */
 
 import {BaseEntry} from "./BaseEntry.js";
+import {getPrevContentFromStateEvent} from "../../common.js";
 
 export class EventEntry extends BaseEntry {
     constructor(eventEntry, fragmentIdComparer) {
         super(fragmentIdComparer);
         this._eventEntry = eventEntry;
+        this._decryptionError = null;
+        this._decryptionResult = null;
+    }
+
+    get event() {
+        return this._eventEntry.event;
     }
 
     get fragmentId() {
@@ -31,15 +38,16 @@ export class EventEntry extends BaseEntry {
     }
 
     get content() {
-        return this._eventEntry.event.content;
+        return this._decryptionResult?.event?.content || this._eventEntry.event.content;
     }
 
     get prevContent() {
-        return this._eventEntry.event.unsigned?.prev_content;
+        // doesn't look at _decryptionResult because state events are not encrypted
+        return getPrevContentFromStateEvent(this._eventEntry.event);
     }
 
     get eventType() {
-        return this._eventEntry.event.type;
+        return this._decryptionResult?.event?.type || this._eventEntry.event.type;
     }
 
     get stateKey() {
@@ -64,5 +72,25 @@ export class EventEntry extends BaseEntry {
 
     get id() {
         return this._eventEntry.event.event_id;
+    }
+
+    setDecryptionResult(result) {
+        this._decryptionResult = result;
+    }
+
+    get isEncrypted() {
+        return this._eventEntry.event.type === "m.room.encrypted";
+    }
+
+    get isVerified() {
+        return this.isEncrypted && this._decryptionResult?.isVerified;
+    }
+
+    get isUnverified() {
+        return this.isEncrypted && this._decryptionResult?.isUnverified;
+    }
+
+    setDecryptionError(err) {
+        this._decryptionError = err;
     }
 }

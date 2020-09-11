@@ -24,6 +24,13 @@ import {RoomStateStore} from "./stores/RoomStateStore.js";
 import {RoomMemberStore} from "./stores/RoomMemberStore.js";
 import {TimelineFragmentStore} from "./stores/TimelineFragmentStore.js";
 import {PendingEventStore} from "./stores/PendingEventStore.js";
+import {UserIdentityStore} from "./stores/UserIdentityStore.js";
+import {DeviceIdentityStore} from "./stores/DeviceIdentityStore.js";
+import {OlmSessionStore} from "./stores/OlmSessionStore.js";
+import {InboundGroupSessionStore} from "./stores/InboundGroupSessionStore.js";
+import {OutboundGroupSessionStore} from "./stores/OutboundGroupSessionStore.js";
+import {GroupSessionDecryptionStore} from "./stores/GroupSessionDecryptionStore.js";
+import {OperationStore} from "./stores/OperationStore.js";
 
 export class Transaction {
     constructor(txn, allowedStoreNames) {
@@ -79,6 +86,34 @@ export class Transaction {
 
     get pendingEvents() {
         return this._store("pendingEvents", idbStore => new PendingEventStore(idbStore));
+    }
+
+    get userIdentities() {
+        return this._store("userIdentities", idbStore => new UserIdentityStore(idbStore));
+    }
+
+    get deviceIdentities() {
+        return this._store("deviceIdentities", idbStore => new DeviceIdentityStore(idbStore));
+    }
+    
+    get olmSessions() {
+        return this._store("olmSessions", idbStore => new OlmSessionStore(idbStore));
+    }
+    
+    get inboundGroupSessions() {
+        return this._store("inboundGroupSessions", idbStore => new InboundGroupSessionStore(idbStore));
+    }
+    
+    get outboundGroupSessions() {
+        return this._store("outboundGroupSessions", idbStore => new OutboundGroupSessionStore(idbStore));
+    }
+
+    get groupSessionDecryptions() {
+        return this._store("groupSessionDecryptions", idbStore => new GroupSessionDecryptionStore(idbStore));
+    }
+
+    get operations() {
+        return this._store("operations", idbStore => new OperationStore(idbStore));
     }
 
     complete() {

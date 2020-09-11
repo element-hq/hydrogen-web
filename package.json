@@ -9,7 +9,8 @@
   "scripts": {
     "test": "node_modules/.bin/impunity --entry-point src/main.js --force-esm-dirs lib/ src/",
     "start": "node scripts/serve-local.js",
-    "build": "node --experimental-modules scripts/build.mjs"
+    "build": "node --experimental-modules scripts/build.mjs",
+    "postinstall": "node ./scripts/post-install.mjs"
   },
   "repository": {
     "type": "git",
@@ -44,5 +45,9 @@
     "rollup-plugin-cleanup": "^3.1.1",
     "serve-static": "^1.13.2",
     "xxhashjs": "^0.2.2"
+  },
+  "dependencies": {
+    "another-json": "^0.2.0",
+    "olm": "https://packages.matrix.org/npm/olm/olm-3.1.4.tgz"
   }
 }
