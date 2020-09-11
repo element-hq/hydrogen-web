@@ -9,12 +9,7 @@ export const schema = [
     createInitialStores,
     createMemberStore,
     migrateSession,
-    createIdentityStores,
-    createOlmSessionStore,
-    createInboundGroupSessionsStore,
-    createOutboundGroupSessionsStore,
-    createGroupSessionDecryptions,
-    addSenderKeyIndexToDeviceStore
+    createE2EEStores
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -71,33 +66,12 @@ async function migrateSession(db, txn) {
     }
 }
 //v4
-function createIdentityStores(db) {
+function createE2EEStores(db) {
     db.createObjectStore("userIdentities", {keyPath: "userId"});
-    db.createObjectStore("deviceIdentities", {keyPath: "key"});
-}
-
-//v5
-function createOlmSessionStore(db) {
-    db.createObjectStore("olmSessions", {keyPath: "key"});
-}
-
-//v6
-function createInboundGroupSessionsStore(db) {
-    db.createObjectStore("inboundGroupSessions", {keyPath: "key"});
-}
-
-//v7
-function createOutboundGroupSessionsStore(db) {
-    db.createObjectStore("outboundGroupSessions", {keyPath: "roomId"});
-}
-
-//v8
-function createGroupSessionDecryptions(db) {
-    db.createObjectStore("groupSessionDecryptions", {keyPath: "key"});
-}
-
-//v9
-function addSenderKeyIndexToDeviceStore(db, txn) {
-    const deviceIdentities = txn.objectStore("deviceIdentities");
+    const deviceIdentities = db.createObjectStore("deviceIdentities", {keyPath: "key"});
     deviceIdentities.createIndex("byCurve25519Key", "curve25519Key", {unique: true});
+    db.createObjectStore("olmSessions", {keyPath: "key"});
+    db.createObjectStore("inboundGroupSessions", {keyPath: "key"});
+    db.createObjectStore("outboundGroupSessions", {keyPath: "roomId"});
+    db.createObjectStore("groupSessionDecryptions", {keyPath: "key"});
 }
