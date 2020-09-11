@@ -80,6 +80,12 @@ async function loadOlmWorker(paths) {
 // see https://github.com/rollup/plugins/tree/master/packages/multi-entry
 export async function main(container, paths) {
     try {
+        const isIE11 = !!window.MSInputMethodContext && !!document.documentMode;
+        if (isIE11) {
+            document.body.className += " ie11";
+        } else {
+            document.body.className += " not-ie11";
+        }
         // to replay:
         // const fetchLog = await (await fetch("/fetchlogs/constrainterror.json")).json();
         // const replay = new ReplayRequester(fetchLog, {delay: false});
