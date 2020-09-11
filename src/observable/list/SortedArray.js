@@ -45,6 +45,7 @@ export class SortedArray extends BaseObservableList {
         const idx = this.indexOf(item);
         if (idx !== -1) {
             this._items[idx] = item;
+            this.emitUpdate(idx, item, null);
         }
     }
 

@@ -64,9 +64,9 @@ export class SimpleTile extends ViewModel {
     }
 
     // update received for already included (falls within sort keys) entry
-    updateEntry(entry) {
+    updateEntry(entry, params) {
         this._entry = entry;
-        return UpdateAction.Nothing();
+        return UpdateAction.Update(params);
     }
 
     // return whether the tile should be removed

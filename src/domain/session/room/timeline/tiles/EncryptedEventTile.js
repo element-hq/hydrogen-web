@@ -15,8 +15,19 @@ limitations under the License.
 */
 
 import {MessageTile} from "./MessageTile.js";
+import {UpdateAction} from "../UpdateAction.js";
 
 export class EncryptedEventTile extends MessageTile {
+    updateEntry(entry, params) {
+        const parentResult = super.updateEntry(entry, params);
+        // event got decrypted, recreate the tile and replace this one with it
+        if (entry.eventType !== "m.room.encrypted") {
+            return UpdateAction.Replace();
+        } else {
+            return parentResult;
+        }
+    }
+
     get text() {
         return this.i18n`**Encrypted message**`;
     }

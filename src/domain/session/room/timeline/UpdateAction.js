@@ -15,10 +15,15 @@ limitations under the License.
 */
 
 export class UpdateAction {
-    constructor(remove, update, updateParams) {
+    constructor(remove, update, replace, updateParams) {
         this._remove = remove;
         this._update = update;
+        this._replace = replace;
         this._updateParams = updateParams;
+    }
+
+    get shouldReplace() {
+        return this._replace;
     }
 
     get shouldRemove() {
@@ -34,14 +39,18 @@ export class UpdateAction {
     }
 
     static Remove() {
-        return new UpdateAction(true, false, null);
+        return new UpdateAction(true, false, false, null);
     }
 
     static Update(newParams) {
-        return new UpdateAction(false, true, newParams);
+        return new UpdateAction(false, true, false, newParams);
     }
 
     static Nothing() {
-        return new UpdateAction(false, false, null);
+        return new UpdateAction(false, false, false, null);
+    }
+
+    static Replace() {
+        return new UpdateAction(false, false, true, null);
     }
 }
