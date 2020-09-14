@@ -168,6 +168,7 @@ export class Room extends EventEmitter {
         }
 		const summaryChanges = this._summary.writeSync(
             roomResponse,
+            entries,
             membership,
             isInitialSync, this._isTimelineOpen,
             txn);

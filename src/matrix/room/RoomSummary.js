@@ -16,7 +16,7 @@ limitations under the License.
 
 import {MEGOLM_ALGORITHM} from "../e2ee/common.js";
 
-function applySyncResponse(data, roomResponse, membership, isInitialSync, isTimelineOpen, ownUserId) {
+function applySyncResponse(data, roomResponse, timelineEntries, membership, isInitialSync, isTimelineOpen, ownUserId) {
     if (roomResponse.summary) {
         data = updateSummary(data, roomResponse.summary);
     }
@@ -31,13 +31,12 @@ function applySyncResponse(data, roomResponse, membership, isInitialSync, isTime
     if (roomResponse.state) {
         data = roomResponse.state.events.reduce(processStateEvent, data);
     }
-    const {timeline} = roomResponse;
-    if (timeline && Array.isArray(timeline.events)) {
-        data = timeline.events.reduce((data, event) => {
-            if (typeof event.state_key === "string") {
-                return processStateEvent(data, event);
+    if (timelineEntries.length) {
+        data = timelineEntries.reduce((data, entry) => {
+            if (typeof entry.stateKey === "string") {
+                return processStateEvent(data, entry.event);
             } else {
-                return processTimelineEvent(data, event,
+                return processTimelineEvent(data, entry,
                     isInitialSync, isTimelineOpen, ownUserId);
             }
         }, data);
@@ -91,17 +90,19 @@ function processStateEvent(data, event) {
     return data;
 }
 
-function processTimelineEvent(data, event, isInitialSync, isTimelineOpen, ownUserId) {
-    if (event.type === "m.room.message") {
+function processTimelineEvent(data, eventEntry, isInitialSync, isTimelineOpen, ownUserId) {
+    if (eventEntry.eventType === "m.room.message") {
+        console.log("new message", eventEntry.timestamp, eventEntry.content?.body);
         data = data.cloneIfNeeded();
-        data.lastMessageTimestamp = event.origin_server_ts;
-        if (!isInitialSync && event.sender !== ownUserId && !isTimelineOpen) {
+        data.lastMessageTimestamp = eventEntry.timestamp;
+        if (!isInitialSync && eventEntry.sender !== ownUserId && !isTimelineOpen) {
+            console.log("also marking unread");
             data.isUnread = true;
         }
-        const {content} = event;
+        const {content} = eventEntry;
         const body = content?.body;
         const msgtype = content?.msgtype;
-        if (msgtype === "m.text") {
+        if (msgtype === "m.text" && !eventEntry.isEncrypted) {
             data.lastMessageBody = body;
         }
     }
@@ -267,12 +268,13 @@ export class RoomSummary {
         return data;
     }
 
-	writeSync(roomResponse, membership, isInitialSync, isTimelineOpen, txn) {
+	writeSync(roomResponse, timelineEntries, membership, isInitialSync, isTimelineOpen, txn) {
         // clear cloned flag, so cloneIfNeeded makes a copy and
         // this._data is not modified if any field is changed.
         this._data.cloned = false;
 		const data = applySyncResponse(
             this._data, roomResponse,
+            timelineEntries,
             membership,
             isInitialSync, isTimelineOpen,
             this._ownUserId);
