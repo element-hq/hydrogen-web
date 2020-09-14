@@ -50,6 +50,10 @@ export class TimelineViewModel extends ViewModel {
      * @return {bool} startReached if the start of the timeline was reached
      */
     async loadAtTop() {
+        if (this.isDisposed) {
+            // stop loading more, we switched room
+            return true;
+        }
         const firstTile = this._tiles.getFirst();
         if (firstTile.shape === "gap") {
             return firstTile.fill();
