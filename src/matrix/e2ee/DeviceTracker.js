@@ -169,7 +169,7 @@ export class DeviceTracker {
     }
 
     async _storeQueriedDevicesForUserId(userId, deviceIdentities, txn) {
-        const knownDeviceIds = await txn.deviceIdentities.getAllForUserId(userId);
+        const knownDeviceIds = await txn.deviceIdentities.getAllDeviceIds(userId);
         // delete any devices that we know off but are not in the response anymore.
         // important this happens before checking if the ed25519 key changed,
         // otherwise we would end up deleting existing devices with changed keys.
