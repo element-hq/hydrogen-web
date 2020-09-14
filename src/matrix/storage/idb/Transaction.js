@@ -36,12 +36,7 @@ export class Transaction {
     constructor(txn, allowedStoreNames) {
         this._txn = txn;
         this._allowedStoreNames = allowedStoreNames;
-        this._stores = {
-            session: null,
-            roomSummary: null,
-            roomTimeline: null,
-            roomState: null,
-        };
+        this._stores = {};
     }
 
     _idbStore(name) {
