@@ -93,4 +93,8 @@ export class EventEntry extends BaseEntry {
     setDecryptionError(err) {
         this._decryptionError = err;
     }
+
+    get decryptionError() {
+        return this._decryptionError;
+    }
 }

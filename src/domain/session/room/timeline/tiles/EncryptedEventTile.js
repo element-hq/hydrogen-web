@@ -28,7 +28,17 @@ export class EncryptedEventTile extends MessageTile {
         }
     }
 
+    get shape() {
+        return "message-status"
+    }
+
     get text() {
-        return this.i18n`**Encrypted message**`;
+        const decryptionError = this._entry.decryptionError;
+        const code = decryptionError?.code;
+        if (code === "MEGOLM_NO_SESSION") {
+            return this.i18n`The sender hasn't sent us the key for this message yet.`;
+        } else {
+            return decryptionError?.message || this.i18n`"Could not decrypt message because of unknown reason."`;
+        }
     }
 }
