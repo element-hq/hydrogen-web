@@ -16,7 +16,19 @@ limitations under the License.
 
 import {MEGOLM_ALGORITHM} from "../e2ee/common.js";
 
-function applySyncResponse(data, roomResponse, membership, isInitialSync, isTimelineOpen, ownUserId) {
+
+function applyTimelineEntries(data, timelineEntries, isInitialSync, isTimelineOpen, ownUserId) {
+    if (timelineEntries.length) {
+        data = timelineEntries.reduce((data, entry) => {
+            return processTimelineEvent(data, entry,
+                isInitialSync, isTimelineOpen, ownUserId);
+        }, data);
+    }
+    return data;
+}
+
+
+function applySyncResponse(data, roomResponse, membership) {
     if (roomResponse.summary) {
         data = updateSummary(data, roomResponse.summary);
     }
@@ -32,14 +44,15 @@ function applySyncResponse(data, roomResponse, membership, isInitialSync, isTime
         data = roomResponse.state.events.reduce(processStateEvent, data);
     }
     const {timeline} = roomResponse;
+    // process state events in timeline
+    // non-state events are handled by applyTimelineEntries
+    // so decryption is handled properly
     if (timeline && Array.isArray(timeline.events)) {
         data = timeline.events.reduce((data, event) => {
             if (typeof event.state_key === "string") {
                 return processStateEvent(data, event);
-            } else {
-                return processTimelineEvent(data, event,
-                    isInitialSync, isTimelineOpen, ownUserId);
             }
+            return data;
         }, data);
     }
     const unreadNotifications = roomResponse.unread_notifications;
@@ -91,17 +104,21 @@ function processStateEvent(data, event) {
     return data;
 }
 
-function processTimelineEvent(data, event, isInitialSync, isTimelineOpen, ownUserId) {
-    if (event.type === "m.room.message") {
-        data = data.cloneIfNeeded();
-        data.lastMessageTimestamp = event.origin_server_ts;
-        if (!isInitialSync && event.sender !== ownUserId && !isTimelineOpen) {
+function processTimelineEvent(data, eventEntry, isInitialSync, isTimelineOpen, ownUserId) {
+    if (eventEntry.eventType === "m.room.message") {
+        if (!data.lastMessageTimestamp || eventEntry.timestamp > data.lastMessageTimestamp) {
+            data = data.cloneIfNeeded();
+            data.lastMessageTimestamp = eventEntry.timestamp;
+        }
+        if (!isInitialSync && eventEntry.sender !== ownUserId && !isTimelineOpen) {
+            data = data.cloneIfNeeded();
             data.isUnread = true;
         }
-        const {content} = event;
+        const {content} = eventEntry;
         const body = content?.body;
         const msgtype = content?.msgtype;
-        if (msgtype === "m.text") {
+        if (msgtype === "m.text" && !eventEntry.isEncrypted) {
+            data = data.cloneIfNeeded();
             data.lastMessageBody = body;
         }
     }
@@ -267,13 +284,34 @@ export class RoomSummary {
         return data;
     }
 
-	writeSync(roomResponse, membership, isInitialSync, isTimelineOpen, txn) {
+    /**
+     * after retrying decryption
+     */
+    processTimelineEntries(timelineEntries, isInitialSync, isTimelineOpen) {
+        // clear cloned flag, so cloneIfNeeded makes a copy and
+        // this._data is not modified if any field is changed.
+        
+        processTimelineEvent
+
+        this._data.cloned = false;
+        const data = applyTimelineEntries(
+            this._data,
+            timelineEntries,
+            isInitialSync, isTimelineOpen,
+            this._ownUserId);
+        if (data !== this._data) {
+            return data;
+        }
+    }
+
+	writeSync(roomResponse, timelineEntries, membership, isInitialSync, isTimelineOpen, txn) {
         // clear cloned flag, so cloneIfNeeded makes a copy and
         // this._data is not modified if any field is changed.
         this._data.cloned = false;
-		const data = applySyncResponse(
-            this._data, roomResponse,
-            membership,
+        let data = applySyncResponse(this._data, roomResponse, membership);
+        data = applyTimelineEntries(
+            data,
+            timelineEntries,
             isInitialSync, isTimelineOpen,
             this._ownUserId);
 		if (data !== this._data) {
@@ -281,6 +319,25 @@ export class RoomSummary {
             return data;
 		}
 	}
+
+    /**
+     * Only to be used with processTimelineEntries,
+     * other methods like writeSync, writeHasFetchedMembers,
+     * writeIsTrackingMembers, ... take a txn directly.
+     */
+    async writeAndApplyChanges(data, storage) {
+        const txn = await storage.readTxn([
+            storage.storeNames.roomSummary,
+        ]);
+        try {
+            txn.roomSummary.set(data.serialize());
+        } catch (err) {
+            txn.abort();
+            throw err;
+        }
+        await txn.complete();
+        this.applyChanges(data);
+    }
 
     applyChanges(data) {
         this._data = data;

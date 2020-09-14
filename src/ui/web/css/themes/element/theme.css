@@ -327,6 +327,11 @@ ul.Timeline > li.continuation time {
     display: none;
 }
 
+ul.Timeline > li.messageStatus .message-container > p {
+    font-style: italic;
+    color: #777;
+}
+
 .message-container {
     padding: 1px 10px 0px 10px;
     margin: 5px 10px 0 10px;

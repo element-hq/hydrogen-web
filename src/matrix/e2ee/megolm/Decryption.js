@@ -138,12 +138,23 @@ export class Decryption {
                 return;
             }
 
-            // TODO: compare first_known_index to see which session to keep
-            const hasSession = await txn.inboundGroupSessions.has(roomId, senderKey, sessionId);
-            if (!hasSession) {
-                const session = new this._olm.InboundGroupSession();
-                try {
-                    session.create(sessionKey);
+            const session = new this._olm.InboundGroupSession();
+            try {
+                session.create(sessionKey);
+
+                let incomingSessionIsBetter = true;
+                const existingSessionEntry = await txn.inboundGroupSessions.get(roomId, senderKey, sessionId);
+                if (existingSessionEntry) {
+                    const existingSession = new this._olm.InboundGroupSession();
+                    try {
+                        existingSession.unpickle(this._pickleKey, existingSessionEntry.session);
+                        incomingSessionIsBetter = session.first_known_index() < existingSession.first_known_index();
+                    } finally {
+                        existingSession.free();
+                    }
+                }
+
+                if (incomingSessionIsBetter) {
                     const sessionEntry = {
                         roomId,
                         senderKey,
@@ -153,9 +164,9 @@ export class Decryption {
                     };
                     txn.inboundGroupSessions.set(sessionEntry);
                     newSessions.push(sessionEntry);
-                } finally {
-                    session.free();
                 }
+            } finally {
+                session.free();
             }
 
         }

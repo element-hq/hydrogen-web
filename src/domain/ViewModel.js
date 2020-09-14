@@ -25,6 +25,7 @@ export class ViewModel extends EventEmitter {
     constructor({clock, emitChange} = {}) {
         super();
         this.disposables = null;
+        this._isDisposed = false;
         this._options = {clock, emitChange};
     }
 
@@ -43,6 +44,11 @@ export class ViewModel extends EventEmitter {
         if (this.disposables) {
             this.disposables.dispose();
         }
+        this._isDisposed = true;
+    }
+
+    get isDisposed() {
+        return this._isDisposed;
     }
 
     disposeTracked(disposable) {

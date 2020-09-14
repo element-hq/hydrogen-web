@@ -145,7 +145,7 @@ export class TilesCollection extends BaseObservableList {
         if (tile) {
             const action = tile.updateEntry(entry, params);
             if (action.shouldReplace) {
-                this._replaceTile(tileIdx, this._tileCreator(entry));
+                this._replaceTile(tileIdx, tile, this._tileCreator(entry));
             }
             if (action.shouldRemove) {
                 this._removeTile(tileIdx, tile);
@@ -167,7 +167,8 @@ export class TilesCollection extends BaseObservableList {
         //   merge with neighbours? ... hard to imagine use case for this  ...
     }
 
-    _replaceTile(tileIdx, newTile) {
+    _replaceTile(tileIdx, existingTile, newTile) {
+        existingTile.dispose();
         const prevTile = this._getTileAtIdx(tileIdx - 1);
         const nextTile = this._getTileAtIdx(tileIdx + 1);
         this._tiles[tileIdx] = newTile;
@@ -184,7 +185,7 @@ export class TilesCollection extends BaseObservableList {
         this._tiles.splice(tileIdx, 1);
         prevTile && prevTile.updateNextSibling(nextTile);
         nextTile && nextTile.updatePreviousSibling(prevTile);
-        tile.setUpdateEmit(null);
+        tile.dispose();
         this.emitRemove(tileIdx, tile);
     }
 
@@ -254,6 +255,8 @@ export function tests() {
         updateEntry() {
             return UpdateAction.Nothing;
         }
+
+        dispose() {}
     }
 
     return {

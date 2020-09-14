@@ -48,7 +48,13 @@ export class SimpleTile extends ViewModel {
     }
     // TilesCollection contract below
     setUpdateEmit(emitUpdate) {
-        this.updateOptions({emitChange: paramName => emitUpdate(this, paramName)});
+        this.updateOptions({emitChange: paramName => {
+            if (emitUpdate) {
+                emitUpdate(this, paramName);
+            } else {
+                console.trace("Tile is emitting event after being disposed");
+            }
+        }});
     }
 
     get upperEntry() {
@@ -87,6 +93,11 @@ export class SimpleTile extends ViewModel {
     // let item know it has a new sibling
     updateNextSibling(next) {
     
+    }
+
+    dispose() {
+        this.setUpdateEmit(null);
+        super.dispose();
     }
     // TilesCollection contract above
 }

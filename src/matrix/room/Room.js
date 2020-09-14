@@ -68,11 +68,17 @@ export class Room extends EventEmitter {
                 }
                 const decryptRequest = this._decryptEntries(DecryptionSource.Retry, retryEntries, txn);
                 await decryptRequest.complete();
-                if (this._timeline) {
-                    // only adds if already present
-                    this._timeline.replaceEntries(retryEntries);
+
+                this._timeline?.replaceEntries(retryEntries);
+                // we would ideally write the room summary in the same txn as the groupSessionDecryptions in the
+                // _decryptEntries entries and could even know which events have been decrypted for the first
+                // time from DecryptionChanges.write and only pass those to the summary. As timeline changes
+                // are not essential to the room summary, it's fine to write this in a separate txn for now.
+                const changes = this._summary.processTimelineEntries(retryEntries, false, this._isTimelineOpen);
+                if (changes) {
+                    this._summary.writeAndApplyChanges(changes, this._storage);
+                    this._emitUpdate();
                 }
-                // pass decryptedEntries to roomSummary
             }
         }
     }
@@ -168,13 +174,14 @@ export class Room extends EventEmitter {
         }
 		const summaryChanges = this._summary.writeSync(
             roomResponse,
+            entries,
             membership,
             isInitialSync, this._isTimelineOpen,
             txn);
         // fetch new members while we have txn open,
         // but don't make any in-memory changes yet
         let heroChanges;
-        if (needsHeroes(summaryChanges)) {
+        if (summaryChanges && needsHeroes(summaryChanges)) {
             // room name disappeared, open heroes
             if (!this._heroes) {
                 this._heroes = new Heroes(this._roomId);
@@ -231,8 +238,7 @@ export class Room extends EventEmitter {
             }
         }
         if (emitChange) {
-            this.emit("change");
-            this._emitCollectionChange(this);
+            this._emitUpdate();
         }
         if (this._timeline) {
             this._timeline.appendLiveEntries(newTimelineEntries);
@@ -442,6 +448,13 @@ export class Room extends EventEmitter {
         return !!this._timeline;
     }
 
+    _emitUpdate() {
+        // once for event emitter listeners
+        this.emit("change");
+        // and once for collection listeners
+        this._emitCollectionChange(this);
+    }
+
     async clearUnread() {
         if (this.isUnread || this.notificationCount) {
             const txn = await this._storage.readWriteTxn([
@@ -456,8 +469,7 @@ export class Room extends EventEmitter {
             }
             await txn.complete();
             this._summary.applyChanges(data);
-            this.emit("change");
-            this._emitCollectionChange(this);
+            this._emitUpdate();
             
             try {
                 const lastEventId = await this._getLastEventId();

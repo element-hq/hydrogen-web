@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,14 +16,13 @@ limitations under the License.
 
 import {SimpleTile} from "./SimpleTile.js";
 
-export class RoomNameTile extends SimpleTile {
-    
+export class EncryptionEnabledTile extends SimpleTile {
     get shape() {
         return "announcement";
     }
 
     get announcement() {
-        const content = this._entry.content;
-        return `${this._entry.displayName || this._entry.sender} named the room "${content?.name}"`
+        const senderName =  this._entry.displayName || this._entry.sender;
+        return this.i18n`${senderName} has enabled end-to-end encryption`;
     }
 }

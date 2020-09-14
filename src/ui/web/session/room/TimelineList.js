@@ -30,7 +30,9 @@ export class TimelineList extends ListView {
             switch (entry.shape) {
                 case "gap": return new GapView(entry);
                 case "announcement": return new AnnouncementView(entry);
-                case "message": return new TextMessageView(entry);
+                case "message":
+                case "message-status":
+                    return new TextMessageView(entry);
                 case "image": return new ImageView(entry);
             }
         });

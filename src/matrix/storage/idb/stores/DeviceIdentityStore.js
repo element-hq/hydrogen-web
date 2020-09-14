@@ -18,6 +18,11 @@ function encodeKey(userId, deviceId) {
     return `${userId}|${deviceId}`;
 }
 
+function decodeKey(key) {
+    const [userId, deviceId] = key.split("|");
+    return {userId, deviceId};
+}
+
 export class DeviceIdentityStore {
     constructor(store) {
         this._store = store;
@@ -28,6 +33,21 @@ export class DeviceIdentityStore {
         return this._store.selectWhile(range, device => {
             return device.userId === userId;
         });
+    }
+
+    async getAllDeviceIds(userId) {
+        const deviceIds = [];
+        const range = IDBKeyRange.lowerBound(encodeKey(userId, ""));
+        await this._store.iterateKeys(range, key => {
+            const decodedKey = decodeKey(key);
+            // prevent running into the next room
+            if (decodedKey.userId === userId) {
+                deviceIds.push(decodedKey.deviceId);
+                return false;   // fetch more
+            }
+            return true; // done
+        });
+        return deviceIds;
     }
 
     get(userId, deviceId) {
@@ -41,5 +61,9 @@ export class DeviceIdentityStore {
 
     getByCurve25519Key(curve25519Key) {
         return this._store.index("byCurve25519Key").get(curve25519Key);
+    }
+
+    remove(userId, deviceId) {
+        this._store.delete(encodeKey(userId, deviceId));
     }
 }

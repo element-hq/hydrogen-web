@@ -64,6 +64,9 @@ const olmFiles = {
     wasmBundle: "olm-1421970081.js",
 };
 
+// IDEA: how about instead of assetPaths we maintain a mapping between the source file and the target file
+// so throughout the build script we can refer to files by their source name
+
 async function build() {
     // only used for CSS for now, using legacy for all targets for now
     const legacy = true;
@@ -80,7 +83,7 @@ async function build() {
     await removeDirIfExists(targetDir);
     await createDirs(targetDir, themes);
     // copy assets
-    await copyFolder(path.join(projectDir, "lib/olm/"), targetDir, );
+    await copyFolder(path.join(projectDir, "lib/olm/"), targetDir);
     // also creates the directories where the theme css bundles are placed in,
     // so do it first
     const themeAssets = await copyThemeAssets(themes, legacy);
@@ -88,9 +91,19 @@ async function build() {
     const jsLegacyBundlePath = await buildJsLegacy("src/main.js", `${PROJECT_ID}-legacy.js`);
     const jsWorkerPath = await buildWorkerJsLegacy("src/worker.js", `worker.js`);
     const cssBundlePaths = await buildCssBundles(legacy ? buildCssLegacy : buildCss, themes, themeAssets);
-    const assetPaths = createAssetPaths(jsBundlePath, jsLegacyBundlePath, jsWorkerPath, cssBundlePaths, themeAssets);
 
     let manifestPath;
+    // copy icons
+    let iconPng = await fs.readFile(path.join(projectDir, "icon.png"));
+    let iconPngPath = resource("icon.png", iconPng);
+    await fs.writeFile(iconPngPath, iconPng);
+    let iconSvg = await fs.readFile(path.join(projectDir, "icon.svg"));
+    let iconSvgPath = resource("icon.svg", iconSvg);
+    await fs.writeFile(iconSvgPath, iconSvg);
+
+    const assetPaths = createAssetPaths(jsBundlePath, jsLegacyBundlePath, jsWorkerPath,
+        iconPngPath, iconSvgPath, cssBundlePaths, themeAssets);
+
     if (offline) {
         manifestPath = await buildOffline(version, assetPaths);
     }
@@ -99,7 +112,7 @@ async function build() {
     console.log(`built ${PROJECT_ID} ${version} successfully`);
 }
 
-function createAssetPaths(jsBundlePath, jsLegacyBundlePath, jsWorkerPath, cssBundlePaths, themeAssets) {
+function createAssetPaths(jsBundlePath, jsLegacyBundlePath, jsWorkerPath, iconPngPath, iconSvgPath, cssBundlePaths, themeAssets) {
     function trim(path) {
         if (!path.startsWith(targetDir)) {
             throw new Error("invalid target path: " + targetDir);
@@ -113,7 +126,9 @@ function createAssetPaths(jsBundlePath, jsLegacyBundlePath, jsWorkerPath, cssBun
         cssMainBundle: () => trim(cssBundlePaths.main),
         cssThemeBundle: themeName => trim(cssBundlePaths.themes[themeName]),
         cssThemeBundles: () => Object.values(cssBundlePaths.themes).map(a => trim(a)),
-        otherAssets: () => Object.values(themeAssets).map(a => trim(a))
+        otherAssets: () => Object.values(themeAssets).map(a => trim(a)),
+        iconSvgPath: () => trim(iconSvgPath),
+        iconPngPath: () => trim(iconPngPath),
     };
 }
 
@@ -248,7 +263,8 @@ async function buildOffline(version, assetPaths) {
     const offlineFiles = [
         assetPaths.cssMainBundle(),
         "index.html",
-        "icon-192.png",
+        assetPaths.iconPngPath(),
+        assetPaths.iconSvgPath(),
     ].concat(assetPaths.cssThemeBundles());
 
     // write appcache manifest
@@ -275,15 +291,15 @@ async function buildOffline(version, assetPaths) {
         short_name: PROJECT_SHORT_NAME,
         display: "fullscreen",
         start_url: "index.html",
-        icons: [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"}],
+        icons: [
+            {"src": assetPaths.iconPngPath(), "sizes": "384x384", "type": "image/png"},
+            {"src": assetPaths.iconSvgPath(), "type": "image/svg+xml"},
+        ],
+        theme_color: "#0DBD8B"
     };
     const manifestJson = JSON.stringify(webManifest);
     const manifestPath = resource("manifest.json", manifestJson);
     await fs.writeFile(manifestPath, manifestJson, "utf8");
-    // copy icon
-    // should this icon have a content hash as well?
-    let icon = await fs.readFile(path.join(projectDir, "icon.png"));
-    await fs.writeFile(path.join(targetDir, "icon-192.png"), icon);
     return manifestPath;
 }
 

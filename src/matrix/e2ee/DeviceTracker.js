@@ -149,36 +149,17 @@ export class DeviceTracker {
         }).response();
 
         const verifiedKeysPerUser = this._filterVerifiedDeviceKeys(deviceKeyResponse["device_keys"]);
-        const flattenedVerifiedKeysPerUser = verifiedKeysPerUser.reduce((all, {verifiedKeys}) => all.concat(verifiedKeys), []);
-        const deviceIdentitiesWithPossibleChangedKeys = flattenedVerifiedKeysPerUser.map(deviceKeysAsDeviceIdentity);
-
         const txn = await this._storage.readWriteTxn([
             this._storage.storeNames.userIdentities,
             this._storage.storeNames.deviceIdentities,
         ]);
         let deviceIdentities;
         try {
-            // check ed25519 key has not changed if we've seen the device before
-            deviceIdentities = await Promise.all(deviceIdentitiesWithPossibleChangedKeys.map(async (deviceIdentity) => {
-                const existingDevice = await txn.deviceIdentities.get(deviceIdentity.userId, deviceIdentity.deviceId);
-                if (!existingDevice || existingDevice.ed25519Key === deviceIdentity.ed25519Key) {
-                    return deviceIdentity;
-                }
-                // ignore devices where the keys have changed
-                return null;
+            const devicesIdentitiesPerUser = await Promise.all(verifiedKeysPerUser.map(async ({userId, verifiedKeys}) => {
+                const deviceIdentities = verifiedKeys.map(deviceKeysAsDeviceIdentity);
+                return await this._storeQueriedDevicesForUserId(userId, deviceIdentities, txn);
             }));
-            // filter out nulls
-            deviceIdentities = deviceIdentities.filter(di => !!di);
-            // store devices
-            for (const deviceIdentity of deviceIdentities) {
-                txn.deviceIdentities.set(deviceIdentity);
-            }
-            // mark user identities as up to date
-            await Promise.all(verifiedKeysPerUser.map(async ({userId}) => {
-                const identity = await txn.userIdentities.get(userId);
-                identity.deviceTrackingStatus = TRACKING_STATUS_UPTODATE;
-                txn.userIdentities.set(identity);
-            }));
+            deviceIdentities = devicesIdentitiesPerUser.reduce((all, devices) => all.concat(devices), []);
         } catch (err) {
             txn.abort();
             throw err;
@@ -187,6 +168,46 @@ export class DeviceTracker {
         return deviceIdentities;
     }
 
+    async _storeQueriedDevicesForUserId(userId, deviceIdentities, txn) {
+        const knownDeviceIds = await txn.deviceIdentities.getAllDeviceIds(userId);
+        // delete any devices that we know off but are not in the response anymore.
+        // important this happens before checking if the ed25519 key changed,
+        // otherwise we would end up deleting existing devices with changed keys.
+        for (const deviceId of knownDeviceIds) {
+            if (deviceIdentities.every(di => di.deviceId !== deviceId)) {
+                txn.deviceIdentities.remove(userId, deviceId);
+            }
+        }
+
+        // all the device identities as we will have them in storage
+        const allDeviceIdentities = [];
+        const deviceIdentitiesToStore = [];
+        // filter out devices that have changed their ed25519 key since last time we queried them
+        deviceIdentities = await Promise.all(deviceIdentities.map(async deviceIdentity => {
+            if (knownDeviceIds.includes(deviceIdentity.deviceId)) {
+                const existingDevice = await txn.deviceIdentities.get(deviceIdentity.userId, deviceIdentity.deviceId);
+                if (existingDevice.ed25519Key !== deviceIdentity.ed25519Key) {
+                    allDeviceIdentities.push(existingDevice);
+                }
+            }
+            allDeviceIdentities.push(deviceIdentity);
+            deviceIdentitiesToStore.push(deviceIdentity);
+        }));
+        // store devices
+        for (const deviceIdentity of deviceIdentitiesToStore) {
+            txn.deviceIdentities.set(deviceIdentity);
+        }
+        // mark user identities as up to date
+        const identity = await txn.userIdentities.get(userId);
+        identity.deviceTrackingStatus = TRACKING_STATUS_UPTODATE;
+        txn.userIdentities.set(identity);
+
+        return allDeviceIdentities;
+    }
+
+    /**
+     * @return {Array<{userId, verifiedKeys: Array<DeviceSection>>}
+     */
     _filterVerifiedDeviceKeys(keyQueryDeviceKeysResponse) {
         const curve25519Keys = new Set();
         const verifiedKeys = Object.entries(keyQueryDeviceKeysResponse).map(([userId, keysByDevice]) => {
