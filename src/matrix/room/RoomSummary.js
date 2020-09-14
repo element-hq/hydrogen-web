@@ -52,6 +52,7 @@ function applySyncResponse(data, roomResponse, membership) {
             if (typeof event.state_key === "string") {
                 return processStateEvent(data, event);
             }
+            return data;
         }, data);
     }
     const unreadNotifications = roomResponse.unread_notifications;
@@ -307,9 +308,9 @@ export class RoomSummary {
         // clear cloned flag, so cloneIfNeeded makes a copy and
         // this._data is not modified if any field is changed.
         this._data.cloned = false;
-		let data = applySyncResponse(this._data, roomResponse, membership);
+        let data = applySyncResponse(this._data, roomResponse, membership);
         data = applyTimelineEntries(
-            this._data,
+            data,
             timelineEntries,
             isInitialSync, isTimelineOpen,
             this._ownUserId);

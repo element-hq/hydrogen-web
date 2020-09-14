@@ -181,7 +181,7 @@ export class Room extends EventEmitter {
         // fetch new members while we have txn open,
         // but don't make any in-memory changes yet
         let heroChanges;
-        if (needsHeroes(summaryChanges)) {
+        if (summaryChanges && needsHeroes(summaryChanges)) {
             // room name disappeared, open heroes
             if (!this._heroes) {
                 this._heroes = new Heroes(this._roomId);
