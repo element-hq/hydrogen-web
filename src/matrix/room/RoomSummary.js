@@ -92,11 +92,9 @@ function processStateEvent(data, event) {
 
 function processTimelineEvent(data, eventEntry, isInitialSync, isTimelineOpen, ownUserId) {
     if (eventEntry.eventType === "m.room.message") {
-        console.log("new message", eventEntry.timestamp, eventEntry.content?.body);
         data = data.cloneIfNeeded();
         data.lastMessageTimestamp = eventEntry.timestamp;
         if (!isInitialSync && eventEntry.sender !== ownUserId && !isTimelineOpen) {
-            console.log("also marking unread");
             data.isUnread = true;
         }
         const {content} = eventEntry;
