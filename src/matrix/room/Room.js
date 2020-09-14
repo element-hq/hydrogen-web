@@ -70,8 +70,15 @@ export class Room extends EventEmitter {
                 await decryptRequest.complete();
 
                 this._timeline?.replaceEntries(retryEntries);
+                // we would ideally write the room summary in the same txn as the groupSessionDecryptions in the
+                // _decryptEntries entries and could even know which events have been decrypted for the first
+                // time from DecryptionChanges.write and only pass those to the summary. As timeline changes
+                // are not essential to the room summary, it's fine to write this in a separate txn for now.
+                const changes = this._summary.processTimelineEntries(retryEntries, false, this._isTimelineOpen);
+                if (changes) {
+                    this._summary.writeAndApplyChanges(changes, this._storage);
+                    this._emitUpdate();
                 }
-                // pass decryptedEntries to roomSummary
             }
         }
     }
