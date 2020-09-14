@@ -231,8 +231,7 @@ export class Room extends EventEmitter {
             }
         }
         if (emitChange) {
-            this.emit("change");
-            this._emitCollectionChange(this);
+            this._emitUpdate();
         }
         if (this._timeline) {
             this._timeline.appendLiveEntries(newTimelineEntries);
@@ -442,6 +441,13 @@ export class Room extends EventEmitter {
         return !!this._timeline;
     }
 
+    _emitUpdate() {
+        // once for event emitter listeners
+        this.emit("change");
+        // and once for collection listeners
+        this._emitCollectionChange(this);
+    }
+
     async clearUnread() {
         if (this.isUnread || this.notificationCount) {
             const txn = await this._storage.readWriteTxn([
@@ -456,8 +462,7 @@ export class Room extends EventEmitter {
             }
             await txn.complete();
             this._summary.applyChanges(data);
-            this.emit("change");
-            this._emitCollectionChange(this);
+            this._emitUpdate();
             
             try {
                 const lastEventId = await this._getLastEventId();
