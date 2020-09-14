@@ -56,7 +56,7 @@ export class TimelineViewModel extends ViewModel {
         }
         const firstTile = this._tiles.getFirst();
         if (firstTile.shape === "gap") {
-            return firstTile.fill();
+            return await firstTile.fill();
         } else {
             await this._timeline.loadAtTop(10);
             return false;
