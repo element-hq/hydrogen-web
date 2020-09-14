@@ -295,6 +295,7 @@ async function buildOffline(version, assetPaths) {
             {"src": assetPaths.iconPngPath(), "sizes": "384x384", "type": "image/png"},
             {"src": assetPaths.iconSvgPath(), "type": "image/svg+xml"},
         ],
+        theme_color: "#0DBD8B"
     };
     const manifestJson = JSON.stringify(webManifest);
     const manifestPath = resource("manifest.json", manifestJson);
