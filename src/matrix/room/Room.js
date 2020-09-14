@@ -68,9 +68,8 @@ export class Room extends EventEmitter {
                 }
                 const decryptRequest = this._decryptEntries(DecryptionSource.Retry, retryEntries, txn);
                 await decryptRequest.complete();
-                if (this._timeline) {
-                    // only adds if already present
-                    this._timeline.replaceEntries(retryEntries);
+
+                this._timeline?.replaceEntries(retryEntries);
                 }
                 // pass decryptedEntries to roomSummary
             }
