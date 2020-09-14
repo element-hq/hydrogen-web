@@ -105,6 +105,7 @@ export async function main(container, paths) {
         const sessionInfoStorage = new SessionInfoStorage("brawl_sessions_v1");
         const storageFactory = new StorageFactory();
 
+        const olmPromise = loadOlm(paths.olm);
         // if wasm is not supported, we'll want
         // to run some olm operations in a worker (mainly for IE11)
         let workerPromise;
@@ -121,7 +122,7 @@ export async function main(container, paths) {
                     sessionInfoStorage,
                     request,
                     clock,
-                    olmPromise: loadOlm(paths.olm),
+                    olmPromise,
                     workerPromise,
                 });
             },
