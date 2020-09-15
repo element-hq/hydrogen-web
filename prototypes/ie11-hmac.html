@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+</head>
+<body>
+    <script src="https://dl.dropboxusercontent.com/s/r55397ld512etib/EncoderDecoderTogether.min.js?dl=0" nomodule="" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"></script>
+    <script src="deps/jsSHA/dist/sha512.js"></script>
+    <script type="text/javascript">
+
+        function decodeBase64(base64) {
+            const binStr = window.atob(base64);
+            const len = binStr.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binStr.charCodeAt(i);
+            }
+            return bytes;
+        }
+
+        function encodeBase64(bytes) {
+            let binStr = "";
+            for (let i = 0; i < bytes.length; i++) {
+                binStr += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binStr);
+        }
+
+        function subtleCryptoResult(promiseOrOp, method) {
+            if (promiseOrOp instanceof Promise) {
+                return promiseOrOp;
+            } else {
+                return new Promise(function(resolve, reject) {
+                    promiseOrOp.oncomplete = function(e) {resolve(e.target.result);}
+                    promiseOrOp.onerror = function(e) {
+                        reject(new Error("Crypto error on " + method));
+                    }
+                });
+            }
+        }
+
+        const subtleCrypto = (window.crypto || window.msCrypto).subtle;
+
+        function computeFallback(key, data, hash) {
+            const shaObj = new jsSHA(hash, "UINT8ARRAY", {
+                "hmacKey": {
+                    "value": key,
+                    "format": "UINT8ARRAY"
+                }
+            });
+            shaObj.update(data);
+            return Promise.resolve(shaObj.getHash("UINT8ARRAY"));
+        }
+
+        function compute(key, data, hash) {
+            const opts = {
+                name: 'HMAC',
+                hash: {name: hash},
+            };
+            return subtleCryptoResult(subtleCrypto.importKey(
+                'raw',
+                key,
+                opts,
+                false,
+                ['sign']
+            ), "importKey").then(function (hmacKey) {
+                console.log("hmacKey", hmacKey);
+                return subtleCryptoResult(subtleCrypto.sign(
+                    opts,
+                    hmacKey,
+                    data
+                ), "sign");
+            }).then(function(buffer) {
+                return new Uint8Array(buffer);
+            });
+        }
+
+        const te = new TextEncoder();
+        computeFallback(
+            new Uint8Array(te.encode("I am a key!!")),
+            new Uint8Array(te.encode("I am some data!!")),
+            "SHA-512"
+        ).then(function(mac) {
+            // should be 9bpJS7myNR/ttCfts+woXJSapVb19qqFRntGh17rHydOBB8+pplZFG8Cc4Qkxxznri4nWyzhFWcWnenY9vd5rA==
+            alert(encodeBase64(mac));
+        })
+    </script>
+</body>
+</html>
+ 
