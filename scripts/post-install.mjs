@@ -81,6 +81,13 @@ async function populateLib() {
         path.join(modulesDir, 'bs58/index.js'),
         path.join(libDir, "bs58/index.js")
     );
+    // transpile aesjs to esm
+    await fs.mkdir(path.join(libDir, "aes-js/"));
+    await commonjsToESM(
+        path.join(modulesDir, 'aes-js/index.js'),
+        path.join(libDir, "aes-js/index.js")
+    );
+    
 }
 
 populateLib();
