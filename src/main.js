@@ -78,7 +78,7 @@ async function loadOlmWorker(paths) {
 // Don't use a default export here, as we use multiple entries during legacy build,
 // which does not support default exports,
 // see https://github.com/rollup/plugins/tree/master/packages/multi-entry
-export async function main(container, paths) {
+export async function main(container, paths, legacyExtras) {
     try {
         const isIE11 = !!window.MSInputMethodContext && !!document.documentMode;
         if (isIE11) {
