@@ -92,12 +92,12 @@
         const keyId = "HB6AKfUD4avkZfPfyjcJ6iJPWDp4f9WM";
         const cryptoDriver = new bundle.CryptoDriver((window.crypto || window.msCrypto).subtle);
         window.Olm.init().then(function() {
-            //bundle.deriveSSSSKey(cryptoDriver, prompt("passphrase"), ssssKeyAccountData).then(function(ssssKey) {
-                const ssssKey = new Uint8Array(32);
-                const bytes = [123, 47, 138, 15, 190, 69, 224, 204, 88, 246, 203, 65, 243, 234, 91, 17, 250, 107, 104, 51, 211, 252, 81, 67, 80, 191, 105, 208, 127, 87, 107, 231];
-                for (var i = bytes.length - 1; i >= 0; i--) {
-                    ssssKey[i] = bytes[i];
-                }
+            bundle.deriveSSSSKey(cryptoDriver, prompt("passphrase"), ssssKeyAccountData).then(function(ssssKey) {
+                // const ssssKey = new Uint8Array(32);
+                // const bytes = [123, 47, 138, 15, 190, 69, 224, 204, 88, 246, 203, 65, 243, 234, 91, 17, 250, 107, 104, 51, 211, 252, 81, 67, 80, 191, 105, 208, 127, 87, 107, 231];
+                // for (var i = bytes.length - 1; i >= 0; i--) {
+                //     ssssKey[i] = bytes[i];
+                // }
                 console.log("ssssKey", ssssKey);
                 bundle.decryptSecret(cryptoDriver, keyId, ssssKey, megolmBackupKeyAccountData).then(function(backupKeyBase64) {
                     console.log("backupKeyBase64", backupKeyBase64);
@@ -106,7 +106,7 @@
                         alert(session.session_key);
                     });
                 });
-            //});
+            });
         });
     </script>
 </body>
