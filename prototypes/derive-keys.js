@@ -1,3 +1,5 @@
+import bs58 from "../lib/bs58/index.js";
+
 function subtleCryptoResult(promiseOrOp, method) {
     if (promiseOrOp instanceof Promise) {
         return promiseOrOp;
@@ -190,6 +192,7 @@ class CryptoDeriveDriver {
      * @return {BufferSource}
      */
     async pbkdf2(password, iterations, salt, hash, length) {
+        // check for existance of deriveBits, which IE11 does not have
         const key = await subtleCryptoResult(this._subtleCrypto.importKey(
             'raw',
             password,
@@ -419,4 +422,37 @@ export async function decryptSession(backupKeyBase64, backupInfo, sessionRespons
         sessionResponse.session_data.ciphertext,
     );
     return JSON.parse(sessionInfo);
+}
+
+const OLM_RECOVERY_KEY_PREFIX = [0x8B, 0x01];
+
+
+export async function deserializeSSSSKey(recoverykey) {
+    const result = bs58.decode(recoverykey.replace(/ /g, ''));
+
+    let parity = 0;
+    for (const b of result) {
+        parity ^= b;
+    }
+    if (parity !== 0) {
+        throw new Error("Incorrect parity");
+    }
+
+    for (let i = 0; i < OLM_RECOVERY_KEY_PREFIX.length; ++i) {
+        if (result[i] !== OLM_RECOVERY_KEY_PREFIX[i]) {
+            throw new Error("Incorrect prefix");
+        }
+    }
+
+    if (
+        result.length !==
+        OLM_RECOVERY_KEY_PREFIX.length + window.Olm.PRIVATE_KEY_LENGTH + 1
+    ) {
+        throw new Error("Incorrect length");
+    }
+
+    return Uint8Array.from(result.slice(
+        OLM_RECOVERY_KEY_PREFIX.length,
+        OLM_RECOVERY_KEY_PREFIX.length + window.Olm.PRIVATE_KEY_LENGTH,
+    ));
 }
