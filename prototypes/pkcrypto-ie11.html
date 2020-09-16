@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+</head>
+<body>
+    <script type="text/javascript">
+        if (!Math.imul) Math.imul = function(a, b) {
+          var aHi = (a >>> 16) & 0xffff;
+          var aLo = a & 0xffff;
+          var bHi = (b >>> 16) & 0xffff;
+          var bLo = b & 0xffff;
+          // the shift by 0 fixes the sign on the high part
+          // the final |0 converts the unsigned value into a signed value
+          return ((aLo * bLo) + (((aHi * bLo + aLo * bHi) << 16) >>> 0) | 0);
+        };
+
+        if (!Math.clz32) Math.clz32 = (function(log, LN2){
+          return function(x) {
+            // Let n be ToUint32(x).
+            // Let p be the number of leading zero bits in 
+            // the 32-bit binary representation of n.
+            // Return p.
+            var asUint = x >>> 0;
+            if (asUint === 0) {
+              return 32;
+            }
+            return 31 - (log(asUint) / LN2 | 0) |0; // the "| 0" acts like math.floor
+          };
+        })(Math.log, Math.LN2);
+    </script>
+    <!-- removing this line will make it work -->
+    <script src="https://dl.dropboxusercontent.com/s/r55397ld512etib/EncoderDecoderTogether.min.js?dl=0" nomodule="" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"></script>
+    <script type="text/javascript" src="../lib/olm/olm_legacy.js"></script>
+    <script type="text/javascript">
+        window.Olm.init().then(function() {
+            const bytes = [
+                34, 123, 54,  9, 124,  89, 230, 120,
+                43, 232, 19, 78, 129, 170, 255,   5,
+                90, 143, 56, 99, 101, 140, 240,   3,
+                 7, 121, 41, 22,  67, 231,  85,  32
+            ];
+            var privKey = new Uint8Array(32);
+            for (var i = bytes.length - 1; i >= 0; i--) {
+                privKey[i] = bytes[i];
+            }
+            console.log("privKey", privKey);
+            const decryption = new window.Olm.PkDecryption();
+            let backupPubKey;
+            try {
+                backupPubKey = decryption.init_with_private_key(privKey);
+                console.log("backupPubKey", backupPubKey.length, backupPubKey);
+            } catch (e) {
+                decryption.free();
+                throw e;
+            }
+        });
+    </script>
+</body>
+</html>
+ 
