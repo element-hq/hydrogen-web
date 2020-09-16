@@ -1,10 +1,10 @@
-function subtleCryptoResult(promiseOrOp) {
+function subtleCryptoResult(promiseOrOp, method) {
     if (promiseOrOp instanceof Promise) {
         return promiseOrOp;
     } else {
         return new Promise((resolve, reject) => {
             promiseOrOp.oncomplete = e => resolve(e.target.result);
-            promiseOrOp.onerror = e => reject(e);
+            promiseOrOp.onerror = e => reject(new Error("Crypto error on " + method));
         });
     }
 }
@@ -22,41 +22,43 @@ class CryptoHMACDriver {
      * @return {boolean}
      */
     async verify(key, mac, data, hash) {
+        const opts = {
+            name: 'HMAC',
+            hash: {name: hashName(hash)},
+        };
         const hmacKey = await subtleCryptoResult(this._subtleCrypto.importKey(
             'raw',
             key,
-            {
-                name: 'HMAC',
-                hash: {name: hashName(hash)},
-            },
+            opts,
             false,
             ['verify'],
-        ));
+        ), "importKey");
         const isVerified = await subtleCryptoResult(this._subtleCrypto.verify(
-            {name: "HMAC"},
+            opts,
             hmacKey,
             mac,
             data,
-        ));
+        ), "verify");
         return isVerified;
     }
 
     async compute(key, data, hash) {
+        const opts = {
+            name: 'HMAC',
+            hash: {name: hashName(hash)},
+        };
         const hmacKey = await subtleCryptoResult(this._subtleCrypto.importKey(
             'raw',
             key,
-            {
-                name: 'HMAC',
-                hash: {name: hashName(hash)},
-            },
+            opts,
             false,
             ['sign'],
-        ));
+        ), "importKey");
         const buffer = await subtleCryptoResult(this._subtleCrypto.sign(
-            {name: "HMAC"},
+            opts,
             hmacKey,
             data,
-        ));
+        ), "sign");
         return new Uint8Array(buffer);
     }
 }
@@ -67,11 +69,42 @@ const nwbo = (num, len) => {
   return arr;
 };
 
+class CryptoLegacyHMACDriver {
+    constructor(hmacDriver) {
+        this._hmacDriver = hmacDriver;
+    }
+
+    async verify(key, mac, data, hash) {
+        if (hash === "SHA-512") {
+            throw new Error("SHA-512 HMAC verification is not implemented yet");
+        } else {
+            return this._hmacDriver.verify(key, mac, data, hash)
+        }
+    }
+
+    async compute(key, data, hash) {
+        if (hash === "SHA-256") {
+            return await this._hmacDriver.compute(key, data, hash);
+        } else {
+            const shaObj = new window.jsSHA(hash, "UINT8ARRAY", {
+                "hmacKey": {
+                    "value": key,
+                    "format": "UINT8ARRAY"
+                }
+            });
+            shaObj.update(data);
+            return shaObj.getHash("UINT8ARRAY");
+        }
+    }
+}
+
 class CryptoLegacyDeriveDriver {
     constructor(cryptoDriver) {
         this._cryptoDriver = cryptoDriver;
     }
 
+    // adapted from https://github.com/junkurihara/jscu/blob/develop/packages/js-crypto-pbkdf/src/pbkdf.ts#L21
+    // could also consider https://github.com/brix/crypto-js/blob/develop/src/pbkdf2.js although not async
     async pbkdf2(password, iterations, salt, hash, length) {
         const dkLen = length / 8;
         if (iterations <= 0) {
@@ -163,7 +196,7 @@ class CryptoDeriveDriver {
             {name: 'PBKDF2'},
             false,
             ['deriveBits'],
-        ));
+        ), "importKey");
         const keybits = await subtleCryptoResult(this._subtleCrypto.deriveBits(
             {
                 name: 'PBKDF2',
@@ -173,7 +206,7 @@ class CryptoDeriveDriver {
             },
             key,
             length,
-        ));
+        ), "deriveBits");
         return new Uint8Array(keybits);
     }
 
@@ -193,7 +226,7 @@ class CryptoDeriveDriver {
             {name: "HKDF"},
             false,
             ["deriveBits"],
-        ));
+        ), "importKey");
         const keybits = await subtleCryptoResult(this._subtleCrypto.deriveBits({
                 name: "HKDF",
                 salt,
@@ -202,7 +235,7 @@ class CryptoDeriveDriver {
             },
             hkdfkey,
             length,
-        ));
+        ), "deriveBits");
         return new Uint8Array(keybits);
     }
 }
@@ -219,24 +252,50 @@ class CryptoAESDriver {
      * @return {BufferSource}            [description]
      */
     async decrypt(key, iv, ciphertext) {
-        const aesKey = await subtleCryptoResult(this._subtleCrypto.importKey(
-            'raw',
-            key,
-            {name: 'AES-CTR'},
-            false,
-            ['decrypt'],
-        ));
-        const plaintext = await subtleCryptoResult(this._subtleCrypto.decrypt(
-            // see https://developer.mozilla.org/en-US/docs/Web/API/AesCtrParams
-            {
-                name: "AES-CTR",
-                counter: iv,
-                length: 64,
-            },
-            aesKey,
-            ciphertext,
-        ));
-        return new Uint8Array(plaintext);
+        const opts = {
+            name: "AES-CTR",
+            counter: iv,
+            length: 64,
+        };
+        let aesKey;
+        try {
+            aesKey = await subtleCryptoResult(this._subtleCrypto.importKey(
+                'raw',
+                key,
+                opts,
+                false,
+                ['decrypt'],
+            ), "importKey");
+        } catch (err) {
+            throw new Error(`Could not import key for AES-CTR decryption: ${err.message}`);
+        }
+        try {
+            const plaintext = await subtleCryptoResult(this._subtleCrypto.decrypt(
+                // see https://developer.mozilla.org/en-US/docs/Web/API/AesCtrParams
+                opts,
+                aesKey,
+                ciphertext,
+            ), "decrypt");
+            return new Uint8Array(plaintext);
+        } catch (err) {
+            throw new Error(`Could not decrypt with AES-CTR: ${err.message}`);
+        }
+    }
+}
+
+
+class CryptoLegacyAESDriver {
+    /**
+     * [decrypt description]
+     * @param  {BufferSource} key        [description]
+     * @param  {BufferSource} iv         [description]
+     * @param  {BufferSource} ciphertext [description]
+     * @return {BufferSource}            [description]
+     */
+    async decrypt(key, iv, ciphertext) {
+        const aesjs = window.aesjs;
+        var aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(iv));
+        return aesCtr.decrypt(ciphertext);
     }
 }
 
@@ -249,13 +308,14 @@ function hashName(name) {
 
 export class CryptoDriver {
     constructor(subtleCrypto) {
-        this.aes = new CryptoAESDriver(subtleCrypto);
+        this.aes = new CryptoLegacyAESDriver();
+        // this.aes = new CryptoAESDriver(subtleCrypto);
         //this.derive = new CryptoDeriveDriver(subtleCrypto);
         this.derive = new CryptoLegacyDeriveDriver(this);
         // subtleCrypto.deriveBits ?
         //     new CryptoDeriveDriver(subtleCrypto) :
         //     new CryptoLegacyDeriveDriver(this);
-        this.hmac = new CryptoHMACDriver(subtleCrypto);
+        this.hmac = new CryptoLegacyHMACDriver(new CryptoHMACDriver(subtleCrypto));
         this._subtleCrypto = subtleCrypto;
     }
 
@@ -334,6 +394,7 @@ export async function decryptSecret(cryptoDriver, keyId, ssssKey, event) {
 
 export async function decryptSession(backupKeyBase64, backupInfo, sessionResponse) {
     const privKey = decodeBase64(backupKeyBase64);
+    console.log("privKey", privKey);
 
     const decryption = new window.Olm.PkDecryption();
     let backupPubKey;
@@ -348,7 +409,7 @@ export async function decryptSession(backupKeyBase64, backupInfo, sessionRespons
     // doesn't match the one in the auth_data, the user has enetered
     // a different recovery key / the wrong passphrase.
     if (backupPubKey !== backupInfo.auth_data.public_key) {
-        console.log({backupPubKey})
+        console.log("backupPubKey", backupPubKey.length, backupPubKey);
         throw new Error("bad backup key");
     }
 
