@@ -22,18 +22,34 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 // needed to translate commonjs modules to esm
 import commonjs from '@rollup/plugin-commonjs';
-// multi-entry plugin so we can add polyfill file to main
+import { nodeResolve } from '@rollup/plugin-node-resolve';
 import {removeDirIfExists} from "./common.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectDir = path.join(__dirname, "../");
 
+/** function used to resolve common-js require calls below. */
+function packageIterator(request, start, defaultIterator) {
+    // this is just working for bs58, would need to tune it further for other dependencies
+    if (request === "safe-buffer") {
+        return [path.join(projectDir, "/scripts/package-overrides/safe-buffer")];
+    } else if (request === "buffer/") {
+        return [path.join(projectDir, "/scripts/package-overrides/buffer")];
+    } else {
+        return defaultIterator();
+    }
+}
+
 async function commonjsToESM(src, dst) {
     // create js bundle
     const bundle = await rollup({
         input: src,
-        plugins: [commonjs()]
+        plugins: [commonjs(), nodeResolve({
+            browser: true,
+            preferBuiltins: false,
+            customResolveOptions: {packageIterator}
+        })]
     });
     const {output} = await bundle.generate({
         format: 'es'
@@ -58,6 +74,12 @@ async function populateLib() {
     await commonjsToESM(
         path.join(modulesDir, 'another-json/another-json.js'),
         path.join(libDir, "another-json/index.js")
+    );
+    // transpile bs58 to esm
+    await fs.mkdir(path.join(libDir, "bs58/"));
+    await commonjsToESM(
+        path.join(modulesDir, 'bs58/index.js'),
+        path.join(libDir, "bs58/index.js")
     );
 }
 
