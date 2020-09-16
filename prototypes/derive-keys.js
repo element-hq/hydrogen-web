@@ -338,7 +338,7 @@ export class CryptoDriver {
     }
 }
 
-function decodeBase64(base64) {
+export function decodeBase64(base64) {
     const binStr = window.atob(base64);
     const len = binStr.length;
     const bytes = new Uint8Array(len);
