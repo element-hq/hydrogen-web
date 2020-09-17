@@ -47,7 +47,7 @@ export async function readKey(txn) {
     return new Key(new KeyDescription(keyData.id, keyAccountData), keyData.binaryKey);
 }
 
-export async function keyFromCredential(type, credential, storage, cryptoDriver) {
+export async function keyFromCredential(type, credential, storage, cryptoDriver, olm) {
     const keyDescription = await readDefaultKeyDescription(storage);
     if (!keyDescription) {
         throw new Error("Could not find any secret storage key in account data");
@@ -56,7 +56,7 @@ export async function keyFromCredential(type, credential, storage, cryptoDriver)
     if (type === "passphrase") {
         key = await keyFromPassphrase(keyDescription, credential, cryptoDriver);
     } else if (type === "recoverykey") {
-        key = keyFromRecoveryKey(this._olm, keyDescription, credential);
+        key = keyFromRecoveryKey(olm, keyDescription, credential);
     } else {
         throw new Error(`Invalid type: ${type}`);
     }
