@@ -82,10 +82,10 @@ export async function writeKey(storage, key) {
 }
 
 export async function readKey(txn) {
-    const key = await txn.session.get("ssssKey");
-    if (!key) {
+    const keyData = await txn.session.get("ssssKey");
+    if (!keyData) {
         return;
     }
-    const keyAccountData = await txn.accountData.get(`m.secret_storage.key.${key.id}`);
-    return new Key(new KeyDescription(key.id, keyAccountData), key.binaryKey);
+    const keyAccountData = await txn.accountData.get(`m.secret_storage.key.${keyData.id}`);
+    return new Key(new KeyDescription(keyData.id, keyAccountData), keyData.binaryKey);
 }
