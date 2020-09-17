@@ -36,6 +36,7 @@ import {
     writeKey as ssssWriteKey,
 } from "./ssss/index.js";
 import {SecretStorage} from "./ssss/SecretStorage.js";
+import {ObservableValue} from "../observable/ObservableValue.js";
 
 const PICKLE_KEY = "DEFAULT_KEY";
 
@@ -74,6 +75,7 @@ export class Session {
             });
         }
         this._createRoomEncryption = this._createRoomEncryption.bind(this);
+        this.needsSessionBackup = new ObservableValue(false);
     }
 
     // called once this._e2eeAccount is assigned
@@ -140,6 +142,11 @@ export class Session {
             storage: this._storage,
             sessionBackup: this._sessionBackup,
             encryptionParams,
+            notifyMissingMegolmSession: () => {
+                if (!this._sessionBackup) {
+                    this.needsSessionBackup.set(true)
+                }
+            },
         });
     }
 
@@ -185,6 +192,7 @@ export class Session {
                 }
             }
         }
+        this.needsSessionBackup.set(false);
     }
 
     // called after load

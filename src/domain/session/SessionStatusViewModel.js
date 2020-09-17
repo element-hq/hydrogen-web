@@ -31,10 +31,11 @@ const SessionStatus = createEnum(
 export class SessionStatusViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {sync, reconnector} = options;
+        const {sync, reconnector, session} = options;
         this._sync = sync;
         this._reconnector = reconnector;
         this._status = this._calculateState(reconnector.connectionStatus.get(), sync.status.get());
+        this._session = session;
         
     }
 
@@ -42,10 +43,13 @@ export class SessionStatusViewModel extends ViewModel {
         const update = () => this._updateStatus();
         this.track(this._sync.status.subscribe(update));
         this.track(this._reconnector.connectionStatus.subscribe(update));
+        this.track(this._session.needsSessionBackup.subscribe(() => {
+            this.emitChange();
+        }));
     }
 
     get isShown() {
-        return this._status !== SessionStatus.Syncing;
+        return this._session.needsSessionBackup.get() || this._status !== SessionStatus.Syncing;
     }
 
     get statusLabel() {
@@ -60,6 +64,9 @@ export class SessionStatusViewModel extends ViewModel {
                 return this.i18n`Catching up with your conversations…`;
             case SessionStatus.SyncError:
                 return this.i18n`Sync failed because of ${this._sync.error}`;
+        }
+        if (this._session.needsSessionBackup.get()) {
+            return this.i18n`Some messages could not be decrypted. Connect to your secret storage to decrypt them.`;
         }
         return "";
     }
@@ -122,9 +129,19 @@ export class SessionStatusViewModel extends ViewModel {
         return this._status === SessionStatus.Disconnected;
     }
 
+    get isSecretStorageShown() {
+        return this._session.needsSessionBackup.get();
+    }
+
     connectNow() {
         if (this.isConnectNowShown) {
             this._reconnector.tryNow();
+        }
+    }
+
+    enterPassphrase(passphrase) {
+        if (passphrase) {
+            this._session.enableSecretStorage("passphrase", passphrase);
         }
     }
 }

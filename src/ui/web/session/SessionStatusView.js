@@ -26,6 +26,7 @@ export class SessionStatusView extends TemplateView {
             spinner(t, {hidden: vm => !vm.isWaiting}),
             t.p(vm => vm.statusLabel),
             t.if(vm => vm.isConnectNowShown, t.createTemplate(t => t.button({onClick: () => vm.connectNow()}, "Retry now"))),
+            t.if(vm => vm.isSecretStorageShown, t.createTemplate(t => t.button({onClick: () => vm.enterPassphrase(prompt("passphrase"))}, "Enter passphrase"))),
             window.DEBUG ? t.button({id: "showlogs"}, "Show logs") : ""
         ]);
     }

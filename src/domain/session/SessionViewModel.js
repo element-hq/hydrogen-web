@@ -26,7 +26,8 @@ export class SessionViewModel extends ViewModel {
         this._session = sessionContainer.session;
         this._sessionStatusViewModel = this.track(new SessionStatusViewModel(this.childOptions({
             sync: sessionContainer.sync,
-            reconnector: sessionContainer.reconnector
+            reconnector: sessionContainer.reconnector,
+            session: sessionContainer.session,
         })));
         this._currentRoomTileViewModel = null;
         this._currentRoomViewModel = null;
