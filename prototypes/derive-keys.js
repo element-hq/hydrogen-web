@@ -1,4 +1,4 @@
-import bs58 from "../lib/bs58/index.js";
+import {base58} from "../src/utils/base-encoding.js";
 
 function subtleCryptoResult(promiseOrOp, method) {
     if (promiseOrOp instanceof Promise) {
@@ -428,7 +428,7 @@ const OLM_RECOVERY_KEY_PREFIX = [0x8B, 0x01];
 
 
 export async function deserializeSSSSKey(recoverykey) {
-    const result = bs58.decode(recoverykey.replace(/ /g, ''));
+    const result = base58.decode(recoverykey.replace(/ /g, ''));
 
     let parity = 0;
     for (const b of result) {
