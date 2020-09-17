@@ -139,9 +139,13 @@ export class SessionStatusViewModel extends ViewModel {
         }
     }
 
-    enterPassphrase(passphrase) {
+    async enterPassphrase(passphrase) {
         if (passphrase) {
-            this._session.enableSecretStorage("recoverykey", passphrase);
+            try {
+                await this._session.enableSecretStorage("recoverykey", passphrase);
+            } catch (err) {
+                alert(`Could not set up secret storage: ${err.message}`);
+            }
         }
     }
 }
