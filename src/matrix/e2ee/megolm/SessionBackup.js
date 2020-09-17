@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {base64} from "../../utils/base-encoding.js";
+import base64 from "../../../../lib/base64-arraybuffer/index.js";
 
 export class SessionBackup {
     constructor({backupInfo, decryption, hsApi}) {
@@ -40,7 +40,7 @@ export class SessionBackup {
     static async fromSecretStorage({olm, secretStorage, hsApi, txn}) {
         const base64PrivateKey = await secretStorage.readSecret("m.megolm_backup.v1", txn);
         if (base64PrivateKey) {
-            const privateKey = base64.decode(base64PrivateKey);
+            const privateKey = new Uint8Array(base64.decode(base64PrivateKey));
             const backupInfo = await hsApi.roomKeysVersion().response();
             const expectedPubKey = backupInfo.auth_data.public_key;
             const decryption = new olm.PkDecryption();

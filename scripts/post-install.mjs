@@ -75,11 +75,17 @@ async function populateLib() {
         path.join(modulesDir, 'another-json/another-json.js'),
         path.join(libDir, "another-json/index.js")
     );
-    // transpile base-x to esm
-    await fs.mkdir(path.join(libDir, "base-x/"));
+    // transpile bs58 to esm
+    await fs.mkdir(path.join(libDir, "bs58/"));
     await commonjsToESM(
-        path.join(modulesDir, 'base-x/src/index.js'),
-        path.join(libDir, "base-x/index.js")
+        path.join(modulesDir, 'bs58/index.js'),
+        path.join(libDir, "bs58/index.js")
+    );
+    // transpile base64-arraybuffer to esm
+    await fs.mkdir(path.join(libDir, "base64-arraybuffer/"));
+    await commonjsToESM(
+        path.join(modulesDir, 'base64-arraybuffer/lib/base64-arraybuffer.js'),
+        path.join(libDir, "base64-arraybuffer/index.js")
     );
     // transpile aesjs to esm
     await fs.mkdir(path.join(libDir, "aes-js/"));
@@ -87,7 +93,6 @@ async function populateLib() {
         path.join(modulesDir, 'aes-js/index.js'),
         path.join(libDir, "aes-js/index.js")
     );
-    
 }
 
 populateLib();

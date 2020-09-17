@@ -49,7 +49,8 @@
   "dependencies": {
     "aes-js": "^3.1.2",
     "another-json": "^0.2.0",
-    "base-x": "^3.0.8",
+    "base64-arraybuffer": "^0.2.0",
+    "bs58": "^4.0.1",
     "olm": "https://packages.matrix.org/npm/olm/olm-3.1.4.tgz"
   }
 }
