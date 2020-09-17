@@ -42,7 +42,7 @@ export const LoginFailure = createEnum(
 );
 
 export class SessionContainer {
-    constructor({clock, random, onlineStatus, request, storageFactory, sessionInfoStorage, olmPromise, workerPromise}) {
+    constructor({clock, random, onlineStatus, request, storageFactory, sessionInfoStorage, olmPromise, workerPromise, cryptoDriver}) {
         this._random = random;
         this._clock = clock;
         this._onlineStatus = onlineStatus;
@@ -60,6 +60,7 @@ export class SessionContainer {
         this._storage = null;
         this._olmPromise = olmPromise;
         this._workerPromise = workerPromise;
+        this._cryptoDriver = cryptoDriver;
     }
 
     createNewSessionId() {
@@ -159,7 +160,7 @@ export class SessionContainer {
         }
         this._session = new Session({storage: this._storage,
             sessionInfo: filteredSessionInfo, hsApi, olm,
-            clock: this._clock, olmWorker});
+            clock: this._clock, olmWorker, cryptoDriver: this._cryptoDriver});
         await this._session.load();
         this._status.set(LoadStatus.SessionSetup);
         await this._session.beforeFirstSync(isNewLogin);

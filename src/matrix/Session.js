@@ -34,7 +34,7 @@ const PICKLE_KEY = "DEFAULT_KEY";
 
 export class Session {
     // sessionInfo contains deviceId, userId and homeServer
-    constructor({clock, storage, hsApi, sessionInfo, olm, olmWorker}) {
+    constructor({clock, storage, hsApi, sessionInfo, olm, olmWorker, cryptoDriver}) {
         this._clock = clock;
         this._storage = storage;
         this._hsApi = hsApi;

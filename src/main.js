@@ -25,6 +25,7 @@ import {BrawlViewModel} from "./domain/BrawlViewModel.js";
 import {BrawlView} from "./ui/web/BrawlView.js";
 import {Clock} from "./ui/web/dom/Clock.js";
 import {OnlineStatus} from "./ui/web/dom/OnlineStatus.js";
+import {CryptoDriver} from "./ui/web/dom/CryptoDriver.js";
 import {WorkerPool} from "./utils/WorkerPool.js";
 import {OlmWorker} from "./matrix/e2ee/OlmWorker.js";
 
@@ -122,6 +123,7 @@ export async function main(container, paths, legacyExtras) {
                     sessionInfoStorage,
                     request,
                     clock,
+                    cryptoDriver: new CryptoDriver(legacyExtras?.crypto),
                     olmPromise,
                     workerPromise,
                 });
