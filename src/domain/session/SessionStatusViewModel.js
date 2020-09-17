@@ -141,7 +141,7 @@ export class SessionStatusViewModel extends ViewModel {
 
     enterPassphrase(passphrase) {
         if (passphrase) {
-            this._session.enableSecretStorage("passphrase", passphrase);
+            this._session.enableSecretStorage("recoverykey", passphrase);
         }
     }
 }
