@@ -244,7 +244,7 @@ async function buildJsLegacy(inputFile, outputName, extraFile, polyfillFile) {
     // create js bundle
     const rollupConfig = {
         input: inputFiles,
-        plugins: [multi(), commonjs(), nodeResolve(), babelPlugin, removeJsComments({comments: "none"})]
+        plugins: [multi(), commonjs(), nodeResolve(), babelPlugin]
     };
     const bundle = await rollup(rollupConfig);
     const {output} = await bundle.generate({

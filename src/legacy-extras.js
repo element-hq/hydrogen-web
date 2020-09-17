@@ -1,3 +1,2 @@
-//import aesjs from "../lib/aes-js/index.js";
-let aesjs = "aesjs";
+import aesjs from "../lib/aes-js/index.js";
 export const legacyExtras = {aesjs};
