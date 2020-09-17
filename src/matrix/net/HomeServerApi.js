@@ -176,6 +176,17 @@ export class HomeServerApi {
     sendToDevice(type, payload, txnId, options = null) {
         return this._put(`/sendToDevice/${encodeURIComponent(type)}/${encodeURIComponent(txnId)}`, null, payload, options);
     }
+    
+    roomKeysVersion(version = null, options = null) {
+        if (!version) {
+            version = "";
+        }
+        return this._get(`/room_keys/version/${encodeURIComponent(version)}`, null, null, options);
+    }
+
+    roomKeyForRoomAndSession(version, roomId, sessionId, options = null) {
+        return this._get(`/room_keys/keys/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`, {version}, null, options);
+    }
 
     get mediaRepository() {
         return this._mediaRepository;

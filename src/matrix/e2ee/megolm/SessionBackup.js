@@ -25,32 +25,32 @@ export class SessionBackup {
     }
 
     async getSession(roomId, sessionId) {
-        const sessionResponse = await this._hsApi.roomKey(this._backupInfo.version, roomId, sessionId).response();
-        let sessionInfo;
+        const sessionResponse = await this._hsApi.roomKeyForRoomAndSession(this._backupInfo.version, roomId, sessionId).response();
         const decryption = new this._olm.PkDecryption();
         try {
             decryption.init_with_private_key(this._privateKey);
-            sessionInfo = this._decryption.decrypt(
+            const sessionInfo = this._decryption.decrypt(
                 sessionResponse.session_data.ephemeral,
                 sessionResponse.session_data.mac,
                 sessionResponse.session_data.ciphertext,
             );
+            return JSON.parse(sessionInfo);
         } finally {
             decryption.free();
         }
-        return JSON.parse(sessionInfo);
     }
 
     static async fromSecretStorage({olm, secretStorage, hsApi}) {
-        const backupInfo = await hsApi.roomKeysVersion().response();
         const base64PrivateKey = await secretStorage.readSecret("m.megolm_backup.v1");
         if (base64PrivateKey) {
             const privateKey = base64.decode(base64PrivateKey);
+            const backupInfo = await hsApi.roomKeysVersion().response();
+            const expectedPubKey = backupInfo.auth_data.public_key;
             const decryption = new olm.PkDecryption();
             try {
-                const pubKey = decryption.init_with_private_key(this._privateKey);
-                if (pubKey !== backupInfo.auth_data.public_key) {
-                    throw new Error(`Bad backup key, public key does not match. Calculated ${pubKey} but expected ${backupInfo.auth_data.public_key}`);
+                const pubKey = decryption.init_with_private_key(privateKey);
+                if (pubKey !== expectedPubKey) {
+                    throw new Error(`Bad backup key, public key does not match. Calculated ${pubKey} but expected ${expectedPubKey}`);
                 }
             } finally {
                 decryption.free();
