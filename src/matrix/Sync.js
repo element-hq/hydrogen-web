@@ -228,7 +228,8 @@ export class Sync {
             // to discard outbound session when somebody leaves a room
             // and to create room key messages when somebody leaves
             storeNames.outboundGroupSessions,
-            storeNames.operations
+            storeNames.operations,
+            storeNames.accountData,
         ]);
     }
     

@@ -31,6 +31,7 @@ import {InboundGroupSessionStore} from "./stores/InboundGroupSessionStore.js";
 import {OutboundGroupSessionStore} from "./stores/OutboundGroupSessionStore.js";
 import {GroupSessionDecryptionStore} from "./stores/GroupSessionDecryptionStore.js";
 import {OperationStore} from "./stores/OperationStore.js";
+import {AccountDataStore} from "./stores/AccountDataStore.js";
 
 export class Transaction {
     constructor(txn, allowedStoreNames) {
@@ -109,6 +110,10 @@ export class Transaction {
 
     get operations() {
         return this._store("operations", idbStore => new OperationStore(idbStore));
+    }
+
+    get accountData() {
+        return this._store("accountData", idbStore => new AccountDataStore(idbStore));
     }
 
     complete() {

@@ -289,6 +289,16 @@ export class Session {
         if (Array.isArray(toDeviceEvents)) {
             this._deviceMessageHandler.writeSync(toDeviceEvents, txn);
         }
+
+        // store account data
+        const accountData = syncResponse["account_data"];
+        if (Array.isArray(accountData?.events)) {
+            for (const event of accountData.events) {
+                if (typeof event.type === "string") {
+                    txn.accountData.set(event);
+                }
+            }
+        }
         return changes;
     }
 
