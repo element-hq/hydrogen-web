@@ -137,39 +137,45 @@ export class RoomEncryption {
         let eventIds = this._eventIdsByMissingSession.get(key);
         // new missing session
         if (!eventIds) {
-            this._requestMissingSessionFromBackup(sessionId).catch(err => {
-                console.error(`Could not get session ${sessionId} from backup`, err);
-            });
+            this._requestMissingSessionFromBackup(senderKey, sessionId);
             eventIds = new Set();
             this._eventIdsByMissingSession.set(key, eventIds);
         }
         eventIds.add(event.event_id);
     }
 
-    async _requestMissingSessionFromBackup(sessionId) {
+    async _requestMissingSessionFromBackup(senderKey, sessionId) {
         if (!this._sessionBackup) {
-            // somehow prompt for passphrase here
+            this._notifyMissingMegolmSession();
             return;
         }
-        const session = await this._sessionBackup.getSession(this._room.id, sessionId);
-        if (session?.algorithm === MEGOLM_ALGORITHM) {
-            const txn = await this._storage.readWriteTxn([this._storage.storeNames.inboundGroupSessions]);
-            let roomKey;
-            try {
-                roomKey = await this._megolmDecryption.addRoomKeyFromBackup(
-                    this._room.id, sessionId, session, txn);
-            } catch (err) {
-                txn.abort();
-                throw err;
-            }
-            await txn.complete();
+        try {
+            const session = await this._sessionBackup.getSession(this._room.id, sessionId);
+            if (session?.algorithm === MEGOLM_ALGORITHM) {
+                if (session["sender_key"] !== senderKey) {
+                    console.warn("Got session key back from backup with different sender key, ignoring", {session, senderKey});
+                    return;
+                }
+                const txn = await this._storage.readWriteTxn([this._storage.storeNames.inboundGroupSessions]);
+                let roomKey;
+                try {
+                    roomKey = await this._megolmDecryption.addRoomKeyFromBackup(
+                        this._room.id, sessionId, session, txn);
+                } catch (err) {
+                    txn.abort();
+                    throw err;
+                }
+                await txn.complete();
 
-            if (roomKey) {
-                // this will call into applyRoomKeys below
-                await this._room.notifyRoomKeys([roomKey]);
+                if (roomKey) {
+                    // this will call into applyRoomKeys below
+                    await this._room.notifyRoomKeys([roomKey]);
+                }
+            } else if (session?.algorithm) {
+                console.info(`Backed-up session of unknown algorithm: ${session.algorithm}`);
             }
-        } else if (session?.algorithm) {
-            console.info(`Backed-up session of unknown algorithm: ${session.algorithm}`);
+        } catch (err) {
+            console.error(`Could not get session ${sessionId} from backup`, err);
         }
     }
 
