@@ -19,15 +19,26 @@ import {Key} from "./common.js";
 const DEFAULT_ITERATIONS = 500000;
 const DEFAULT_BITSIZE = 256;
 
+/**
+ * @param  {KeyDescription} keyDescription
+ * @param  {string} passphrase
+ * @param  {CryptoDriver} cryptoDriver
+ * @return {Key}
+ */
 export async function keyFromPassphrase(keyDescription, passphrase, cryptoDriver) {
     const {passphraseParams} = keyDescription;
     if (!passphraseParams) {
         throw new Error("not a passphrase key");
     }
+    if (passphraseParams.algorithm !== "m.pbkdf2") {
+        throw new Error(`Unsupported passphrase algorithm: ${passphraseParams.algorithm}`);
+    }
+    // TODO: we should we move this to platform specific code
     const textEncoder = new TextEncoder();
     const keyBits = await cryptoDriver.derive.pbkdf2(
         textEncoder.encode(passphrase),
         passphraseParams.iterations || DEFAULT_ITERATIONS,
+        // salt is just a random string, not encoded in any way
         textEncoder.encode(passphraseParams.salt),
         "SHA-512",
         passphraseParams.bits || DEFAULT_BITSIZE);

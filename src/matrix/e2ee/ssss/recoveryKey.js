@@ -18,6 +18,12 @@ import {Key} from "./common.js";
 
 const OLM_RECOVERY_KEY_PREFIX = [0x8B, 0x01];
 
+/**
+ * @param  {Olm} olm
+ * @param  {KeyDescription} keyDescription
+ * @param  {string} recoveryKey
+ * @return {Key}
+ */
 export function keyFromRecoveryKey(olm, keyDescription, recoveryKey) {
     const result = base58.decode(recoveryKey.replace(/ /g, ''));
 

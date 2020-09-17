@@ -62,6 +62,9 @@ export async function readDefaultKeyDescription(storage) {
         return;
     }
     const keyAccountData = await txn.accountData.get(`m.secret_storage.key.${id}`);
+    if (!keyAccountData) {
+        return;
+    }
     return new KeyDescription(id, keyAccountData);
 }
 

@@ -17,7 +17,7 @@ limitations under the License.
 import {base64} from "../../../utils/base-encoding.js";
 
 export class SecretStorage {
-    constructor(key, storage, cryptoDriver) {
+    constructor({key, storage, cryptoDriver}) {
         this._key = key;
         this._storage = storage;
         this._cryptoDriver = cryptoDriver;
@@ -36,13 +36,11 @@ export class SecretStorage {
             throw new Error(`Secret ${accountData.type} is not encrypted for key ${this._key.id}`);
         }
 
-        let json;
         if (this._key.algorithm === "m.secret_storage.v1.aes-hmac-sha2") {
-            json = await this._decryptAESSecret(accountData.type, encryptedData);
+            return await this._decryptAESSecret(accountData.type, encryptedData);
         } else {
             throw new Error(`Unsupported algorithm for key ${this._key.id}: ${this._key.algorithm}`);
         }
-        return JSON.parse(json);
     }
 
     async _decryptAESSecret(type, encryptedData) {
