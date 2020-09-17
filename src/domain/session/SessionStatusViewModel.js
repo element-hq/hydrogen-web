@@ -36,7 +36,6 @@ export class SessionStatusViewModel extends ViewModel {
         this._reconnector = reconnector;
         this._status = this._calculateState(reconnector.connectionStatus.get(), sync.status.get());
         this._session = session;
-        
     }
 
     start() {
@@ -66,7 +65,7 @@ export class SessionStatusViewModel extends ViewModel {
                 return this.i18n`Sync failed because of ${this._sync.error}`;
         }
         if (this._session.needsSessionBackup.get()) {
-            return this.i18n`Some messages could not be decrypted. Connect to your secret storage to decrypt them.`;
+            return this.i18n`Set up secret storage to decrypt older messages.`;
         }
         return "";
     }
@@ -130,7 +129,8 @@ export class SessionStatusViewModel extends ViewModel {
     }
 
     get isSecretStorageShown() {
-        return this._session.needsSessionBackup.get();
+        // TODO: we need a model here where we can have multiple messages queued up and their buttons don't bleed into each other.
+        return this._status === SessionStatus.Syncing && this._session.needsSessionBackup.get();
     }
 
     connectNow() {
