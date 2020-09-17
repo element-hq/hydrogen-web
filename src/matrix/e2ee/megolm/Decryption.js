@@ -138,10 +138,16 @@ export class Decryption {
                 return;
             }
 
-            const sessionEntry = await this._writeInboundSession(
-                roomId, senderKey, claimedEd25519Key, sessionId, sessionKey, txn);
-            if (sessionEntry) {
-                newSessions.push(sessionEntry);
+            const session = new this._olm.InboundGroupSession();
+            try {
+                session.create(sessionKey);
+                const sessionEntry = await this._writeInboundSession(
+                    session, roomId, senderKey, claimedEd25519Key, sessionId, txn);
+                if (sessionEntry) {
+                    newSessions.push(sessionEntry);
+                }
+            } finally {
+                session.free();
             }
         }
         // this will be passed to the Room in notifyRoomKeys
@@ -171,40 +177,39 @@ export class Decryption {
         ) {
             return;
         }
-        return await this._writeInboundSession(
-            roomId, senderKey, claimedEd25519Key, sessionId, sessionKey, txn);
-    }
-
-    async _writeInboundSession(roomId, senderKey, claimedEd25519Key, sessionId, sessionKey, txn) {
         const session = new this._olm.InboundGroupSession();
         try {
-            session.create(sessionKey);
-
-            let incomingSessionIsBetter = true;
-            const existingSessionEntry = await txn.inboundGroupSessions.get(roomId, senderKey, sessionId);
-            if (existingSessionEntry) {
-                const existingSession = new this._olm.InboundGroupSession();
-                try {
-                    existingSession.unpickle(this._pickleKey, existingSessionEntry.session);
-                    incomingSessionIsBetter = session.first_known_index() < existingSession.first_known_index();
-                } finally {
-                    existingSession.free();
-                }
-            }
-
-            if (incomingSessionIsBetter) {
-                const sessionEntry = {
-                    roomId,
-                    senderKey,
-                    sessionId,
-                    session: session.pickle(this._pickleKey),
-                    claimedKeys: {ed25519: claimedEd25519Key},
-                };
-                txn.inboundGroupSessions.set(sessionEntry);
-                return sessionEntry;
-            }
+            session.import_session(sessionKey);
+            return await this._writeInboundSession(
+                session, roomId, senderKey, claimedEd25519Key, sessionId, txn);
         } finally {
             session.free();
+        }
+    }
+
+    async _writeInboundSession(session, roomId, senderKey, claimedEd25519Key, sessionId, txn) {
+        let incomingSessionIsBetter = true;
+        const existingSessionEntry = await txn.inboundGroupSessions.get(roomId, senderKey, sessionId);
+        if (existingSessionEntry) {
+            const existingSession = new this._olm.InboundGroupSession();
+            try {
+                existingSession.unpickle(this._pickleKey, existingSessionEntry.session);
+                incomingSessionIsBetter = session.first_known_index() < existingSession.first_known_index();
+            } finally {
+                existingSession.free();
+            }
+        }
+
+        if (incomingSessionIsBetter) {
+            const sessionEntry = {
+                roomId,
+                senderKey,
+                sessionId,
+                session: session.pickle(this._pickleKey),
+                claimedKeys: {ed25519: claimedEd25519Key},
+            };
+            txn.inboundGroupSessions.set(sessionEntry);
+            return sessionEntry;
         }
     }
 }
