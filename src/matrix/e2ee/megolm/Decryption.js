@@ -159,6 +159,7 @@ export class Decryption {
     async addRoomKeyFromBackup(roomId, sessionId, sessionInfo, txn) {
         const sessionKey = sessionInfo["session_key"];
         const senderKey = sessionInfo["sender_key"];
+        // TODO: can we just trust this?
         const claimedEd25519Key = sessionInfo["sender_claimed_keys"]?.["ed25519"];
 
         if (

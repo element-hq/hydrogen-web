@@ -23,12 +23,19 @@ import {Account as E2EEAccount} from "./e2ee/Account.js";
 import {Decryption as OlmDecryption} from "./e2ee/olm/Decryption.js";
 import {Encryption as OlmEncryption} from "./e2ee/olm/Encryption.js";
 import {Decryption as MegOlmDecryption} from "./e2ee/megolm/Decryption.js";
+import {SessionBackup} from "./e2ee/megolm/SessionBackup.js";
 import {Encryption as MegOlmEncryption} from "./e2ee/megolm/Encryption.js";
 import {MEGOLM_ALGORITHM} from "./e2ee/common.js";
 import {RoomEncryption} from "./e2ee/RoomEncryption.js";
 import {DeviceTracker} from "./e2ee/DeviceTracker.js";
 import {LockMap} from "../utils/LockMap.js";
 import {groupBy} from "../utils/groupBy.js";
+import {
+    keyFromCredential as ssssKeyFromCredential,
+    readKey as ssssReadKey,
+    writeKey as ssssWriteKey,
+    SecretStorage
+} from "./ssss/index.js"
 
 const PICKLE_KEY = "DEFAULT_KEY";
 
@@ -54,6 +61,7 @@ export class Session {
         this._megolmDecryption = null;
         this._getSyncToken = () => this.syncToken;
         this._olmWorker = olmWorker;
+        this._cryptoDriver = cryptoDriver;
 
         if (olm) {
             this._olmUtil = new olm.Utility();
@@ -130,8 +138,52 @@ export class Session {
             megolmEncryption: this._megolmEncryption,
             megolmDecryption: this._megolmDecryption,
             storage: this._storage,
-            encryptionParams
+            sessionBackup: this._sessionBackup,
+            encryptionParams,
         });
+    }
+
+    /**
+     * Enable secret storage by providing the secret storage credential.
+     * This will also see if there is a megolm session backup and try to enable that if so.
+     * 
+     * @param  {string} type       either "passphrase" or "recoverykey"
+     * @param  {string} credential either the passphrase or the recovery key, depending on the type
+     * @return {Promise} resolves or rejects after having tried to enable secret storage
+     */
+    async enableSecretStorage(type, credential) {
+        if (!this._olm) {
+            throw new Error("olm required");
+        }
+        const key = ssssKeyFromCredential(type, credential, this._storage, this._cryptoDriver);
+        // write the key
+        let txn = await this._storage.readWriteTxn([
+            this._storage.storeNames.session,
+        ]);
+        try {
+            ssssWriteKey(key, txn);
+        } catch (err) {
+            txn.abort();
+            throw err;
+        }
+        await txn.complete();
+        // and create session backup, which needs to read from accountData
+        txn = await this._storage.readTxn([
+            this._storage.storeNames.accountData,
+        ]);
+        await this._createSessionBackup(key, txn);
+    }
+
+    async _createSessionBackup(ssssKey, txn) {
+        const secretStorage = new SecretStorage({key: ssssKey, cryptoDriver: this._cryptoDriver});
+        this._sessionBackup = await SessionBackup.fromSecretStorage({olm: this._olm, secretStorage, hsApi: this._hsApi, txn});
+        if (this._sessionBackup) {
+            for (const room of this._rooms.values()) {
+                if (room.isEncrypted) {
+                    room.enableSessionBackup(this._sessionBackup);
+                }
+            }
+        }
     }
 
     // called after load
@@ -155,6 +207,17 @@ export class Session {
             await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
             await this._e2eeAccount.uploadKeys(this._storage);
             await this._deviceMessageHandler.decryptPending(this.rooms);
+
+            const txn = await this._storage.readTxn([
+                this._storage.storeNames.session,
+                this._storage.storeNames.accountData,
+            ]);
+            // try set up session backup if we stored the ssss key
+            const ssssKey = await ssssReadKey(txn);
+            if (ssssKey) {
+                // txn will end here as this does a network request
+                await this._createSessionBackup(ssssKey, txn);
+            }
         }
     }
 
@@ -200,6 +263,7 @@ export class Session {
     stop() {
         this._olmWorker?.dispose();
         this._sendScheduler.stop();
+        this._sessionBackup?.dispose();
     }
 
     async start(lastVersionResponse) {

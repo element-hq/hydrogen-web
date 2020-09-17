@@ -17,31 +17,28 @@ limitations under the License.
 import {base64} from "../../utils/base-encoding.js";
 
 export class SessionBackup {
-    constructor({olm, backupInfo, privateKey, hsApi}) {
-        this._olm = olm;
+    constructor({backupInfo, decryption, hsApi}) {
         this._backupInfo = backupInfo;
-        this._privateKey = privateKey;
+        this._decryption = decryption;
         this._hsApi = hsApi;
     }
 
     async getSession(roomId, sessionId) {
         const sessionResponse = await this._hsApi.roomKeyForRoomAndSession(this._backupInfo.version, roomId, sessionId).response();
-        const decryption = new this._olm.PkDecryption();
-        try {
-            decryption.init_with_private_key(this._privateKey);
-            const sessionInfo = this._decryption.decrypt(
-                sessionResponse.session_data.ephemeral,
-                sessionResponse.session_data.mac,
-                sessionResponse.session_data.ciphertext,
-            );
-            return JSON.parse(sessionInfo);
-        } finally {
-            decryption.free();
-        }
+        const sessionInfo = this._decryption.decrypt(
+            sessionResponse.session_data.ephemeral,
+            sessionResponse.session_data.mac,
+            sessionResponse.session_data.ciphertext,
+        );
+        return JSON.parse(sessionInfo);
     }
 
-    static async fromSecretStorage({olm, secretStorage, hsApi}) {
-        const base64PrivateKey = await secretStorage.readSecret("m.megolm_backup.v1");
+    dispose() {
+        this._decryption.free();
+    }
+
+    static async fromSecretStorage({olm, secretStorage, hsApi, txn}) {
+        const base64PrivateKey = await secretStorage.readSecret("m.megolm_backup.v1", txn);
         if (base64PrivateKey) {
             const privateKey = base64.decode(base64PrivateKey);
             const backupInfo = await hsApi.roomKeysVersion().response();
@@ -52,10 +49,11 @@ export class SessionBackup {
                 if (pubKey !== expectedPubKey) {
                     throw new Error(`Bad backup key, public key does not match. Calculated ${pubKey} but expected ${expectedPubKey}`);
                 }
-            } finally {
+            } catch(err) {
                 decryption.free();
+                throw err;
             }
-            return new SessionBackup({olm, backupInfo, privateKey, hsApi});
+            return new SessionBackup({backupInfo, decryption, hsApi});
         }
     }
 }

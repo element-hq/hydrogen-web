@@ -429,6 +429,10 @@ export class Room extends EventEmitter {
         return !!this._summary.encryption;
     }
 
+    enableSessionBackup(sessionBackup) {
+        this._roomEncryption?.enableSessionBackup(sessionBackup);
+    }
+
     get isTrackingMembers() {
         return this._summary.isTrackingMembers;
     }

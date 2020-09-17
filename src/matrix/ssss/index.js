@@ -34,17 +34,8 @@ async function readDefaultKeyDescription(storage) {
     return new KeyDescription(id, keyAccountData);
 }
 
-export async function writeKey(storage, key) {
-    const txn = await storage.readWriteTxn([
-        storage.storeNames.session
-    ]);
-    try {
-        txn.session.set("ssssKey", {id: key.id, binaryKey: key.binaryKey});
-    } catch (err) {
-        txn.abort();
-        throw err;
-    }
-    await txn.complete();
+export async function writeKey(key, txn) {
+    txn.session.set("ssssKey", {id: key.id, binaryKey: key.binaryKey});
 }
 
 export async function readKey(txn) {

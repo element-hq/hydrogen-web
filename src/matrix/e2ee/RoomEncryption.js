@@ -22,7 +22,7 @@ import {makeTxnId} from "../common.js";
 const ENCRYPTED_TYPE = "m.room.encrypted";
 
 export class RoomEncryption {
-    constructor({room, deviceTracker, olmEncryption, megolmEncryption, megolmDecryption, encryptionParams, storage}) {
+    constructor({room, deviceTracker, olmEncryption, megolmEncryption, megolmDecryption, encryptionParams, storage, sessionBackup}) {
         this._room = room;
         this._deviceTracker = deviceTracker;
         this._olmEncryption = olmEncryption;
@@ -37,10 +37,13 @@ export class RoomEncryption {
         this._eventIdsByMissingSession = new Map();
         this._senderDeviceCache = new Map();
         this._storage = storage;
-        this._sessionBackup = null;
+        this._sessionBackup = sessionBackup;
     }
 
-    setSessionBackup(sessionBackup) {
+    enableSessionBackup(sessionBackup) {
+        if (this._sessionBackup) {
+            return;
+        }
         this._sessionBackup = sessionBackup;
         // TODO: query session backup for all missing sessions so far
         // can we query multiple? no, only for sessionId, all for room, or all

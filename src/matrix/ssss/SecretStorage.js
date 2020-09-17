@@ -17,16 +17,12 @@ limitations under the License.
 import {base64} from "../../utils/base-encoding.js";
 
 export class SecretStorage {
-    constructor({key, storage, cryptoDriver}) {
+    constructor({key, cryptoDriver}) {
         this._key = key;
-        this._storage = storage;
         this._cryptoDriver = cryptoDriver;
     }
 
-    async readSecret(name) {
-        const txn = await this._storage.readTxn([
-            this._storage.storeNames.accountData
-        ]);
+    async readSecret(name, txn) {
         const accountData = await txn.accountData.get(name);
         if (!accountData) {
             return;
