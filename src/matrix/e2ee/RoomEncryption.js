@@ -37,6 +37,13 @@ export class RoomEncryption {
         this._eventIdsByMissingSession = new Map();
         this._senderDeviceCache = new Map();
         this._storage = storage;
+        this._sessionBackup = null;
+    }
+
+    setSessionBackup(sessionBackup) {
+        this._sessionBackup = sessionBackup;
+        // TODO: query session backup for all missing sessions so far
+        // can we query multiple? no, only for sessionId, all for room, or all
     }
 
     notifyTimelineClosed() {
@@ -125,13 +132,53 @@ export class RoomEncryption {
         const sessionId = event.content?.["session_id"];
         const key = `${senderKey}|${sessionId}`;
         let eventIds = this._eventIdsByMissingSession.get(key);
+        // new missing session
         if (!eventIds) {
+            this._requestMissingSessionFromBackup(sessionId).catch(err => {
+                console.error(`Could not get session ${sessionId} from backup`, err);
+            });
             eventIds = new Set();
             this._eventIdsByMissingSession.set(key, eventIds);
         }
         eventIds.add(event.event_id);
     }
 
+    async _requestMissingSessionFromBackup(sessionId) {
+        if (!this._sessionBackup) {
+            // somehow prompt for passphrase here
+            return;
+        }
+        const session = await this._sessionBackup.getSession(this._room.id, sessionId);
+        if (session?.algorithm === MEGOLM_ALGORITHM) {
+            const txn = await this._storage.readWriteTxn([this._storage.storeNames.inboundGroupSessions]);
+            let roomKey;
+            try {
+                roomKey = await this._megolmDecryption.addRoomKeyFromBackup(
+                    this._room.id, sessionId, session, txn);
+            } catch (err) {
+                txn.abort();
+                throw err;
+            }
+            await txn.complete();
+
+            if (roomKey) {
+                // this will call into applyRoomKeys below
+                await this._room.notifyRoomKeys([roomKey]);
+            }
+        } else if (session?.algorithm) {
+            console.info(`Backed-up session of unknown algorithm: ${session.algorithm}`);
+        }
+    }
+
+    /**
+     * @type {RoomKeyDescription}
+     * @property {RoomKeyDescription} senderKey the curve25519 key of the sender
+     * @property {RoomKeyDescription} sessionId
+     * 
+     * 
+     * @param  {Array<RoomKeyDescription>} roomKeys
+     * @return {Array<string>} the event ids that should be retried to decrypt
+     */
     applyRoomKeys(roomKeys) {
         // retry decryption with the new sessions
         const retryEventIds = [];
