@@ -162,24 +162,24 @@ export class Session {
         if (!this._olm) {
             throw new Error("olm required");
         }
-        const key = await ssssKeyFromCredential(type, credential, this._storage, this._cryptoDriver);
+        const key = await ssssKeyFromCredential(type, credential, this._storage, this._cryptoDriver, this._olm);
         // and create session backup, which needs to read from accountData
-        txn = await this._storage.readTxn([
+        const readTxn = await this._storage.readTxn([
             this._storage.storeNames.accountData,
         ]);
-        await this._createSessionBackup(key, txn);
+        await this._createSessionBackup(key, readTxn);
         // only after having read a secret, write the key
         // as we only find out if it was good if the MAC verification succeeds
-        let txn = await this._storage.readWriteTxn([
+        const writeTxn = await this._storage.readWriteTxn([
             this._storage.storeNames.session,
         ]);
         try {
-            ssssWriteKey(key, txn);
+            ssssWriteKey(key, writeTxn);
         } catch (err) {
-            txn.abort();
+            writeTxn.abort();
             throw err;
         }
-        await txn.complete();
+        await writeTxn.complete();
     }
 
     async _createSessionBackup(ssssKey, txn) {
