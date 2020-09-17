@@ -178,10 +178,11 @@ export class HomeServerApi {
     }
     
     roomKeysVersion(version = null, options = null) {
-        if (!version) {
-            version = "";
+        let versionPart = "";
+        if (version) {
+            versionPart = `/${encodeURIComponent(version)}`;
         }
-        return this._get(`/room_keys/version/${encodeURIComponent(version)}`, null, null, options);
+        return this._get(`/room_keys/version${versionPart}`, null, null, options);
     }
 
     roomKeyForRoomAndSession(version, roomId, sessionId, options = null) {

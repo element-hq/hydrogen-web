@@ -34,8 +34,8 @@ import {
     keyFromCredential as ssssKeyFromCredential,
     readKey as ssssReadKey,
     writeKey as ssssWriteKey,
-    SecretStorage
-} from "./ssss/index.js"
+} from "./ssss/index.js";
+import {SecretStorage} from "./ssss/SecretStorage.js";
 
 const PICKLE_KEY = "DEFAULT_KEY";
 
@@ -155,8 +155,14 @@ export class Session {
         if (!this._olm) {
             throw new Error("olm required");
         }
-        const key = ssssKeyFromCredential(type, credential, this._storage, this._cryptoDriver);
-        // write the key
+        const key = await ssssKeyFromCredential(type, credential, this._storage, this._cryptoDriver);
+        // and create session backup, which needs to read from accountData
+        txn = await this._storage.readTxn([
+            this._storage.storeNames.accountData,
+        ]);
+        await this._createSessionBackup(key, txn);
+        // only after having read a secret, write the key
+        // as we only find out if it was good if the MAC verification succeeds
         let txn = await this._storage.readWriteTxn([
             this._storage.storeNames.session,
         ]);
@@ -167,11 +173,6 @@ export class Session {
             throw err;
         }
         await txn.complete();
-        // and create session backup, which needs to read from accountData
-        txn = await this._storage.readTxn([
-            this._storage.storeNames.accountData,
-        ]);
-        await this._createSessionBackup(key, txn);
     }
 
     async _createSessionBackup(ssssKey, txn) {
