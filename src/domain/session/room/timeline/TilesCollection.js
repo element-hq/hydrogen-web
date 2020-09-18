@@ -145,7 +145,12 @@ export class TilesCollection extends BaseObservableList {
         if (tile) {
             const action = tile.updateEntry(entry, params);
             if (action.shouldReplace) {
-                this._replaceTile(tileIdx, tile, this._tileCreator(entry));
+                const newTile = this._tileCreator(entry);
+                if (newTile) {
+                    this._replaceTile(tileIdx, tile, newTile);
+                } else {
+                    this._removeTile(tileIdx, tile);
+                }
             }
             if (action.shouldRemove) {
                 this._removeTile(tileIdx, tile);
