@@ -246,7 +246,7 @@ export class SessionContainer {
         return this._reconnector;
     }
 
-    stop() {
+    dispose() {
         if (this._reconnectSubscription) {
             this._reconnectSubscription();
             this._reconnectSubscription = null;
@@ -255,7 +255,7 @@ export class SessionContainer {
             this._sync.stop();
         }
         if (this._session) {
-            this._session.stop();
+            this._session.dispose();
         }
         if (this._waitForFirstSyncHandle) {
             this._waitForFirstSyncHandle.dispose();
