@@ -144,6 +144,7 @@ export class SessionStatusViewModel extends ViewModel {
             try {
                 await this._session.enableSecretStorage("recoverykey", passphrase);
             } catch (err) {
+                console.error(err);
                 alert(`Could not set up secret storage: ${err.message}`);
             }
         }
