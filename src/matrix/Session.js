@@ -147,6 +147,7 @@ export class Session {
                     this.needsSessionBackup.set(true)
                 }
             },
+            clock: this._clock
         });
     }
 
