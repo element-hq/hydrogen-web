@@ -50,7 +50,7 @@ export async function readKey(txn) {
 export async function keyFromCredential(type, credential, storage, cryptoDriver, olm) {
     const keyDescription = await readDefaultKeyDescription(storage);
     if (!keyDescription) {
-        throw new Error("Could not find any secret storage key in account data");
+        throw new Error("Could not find a default secret storage key in account data");
     }
     let key;
     if (type === "passphrase") {
