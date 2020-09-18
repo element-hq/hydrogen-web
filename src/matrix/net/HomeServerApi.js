@@ -73,13 +73,13 @@ export class HomeServerApi {
         return `${this._homeserver}/_matrix/client/r0${csPath}`;
     }
 
-    _request(method, url, queryParams, body, options) {
+    _baseRequest(method, url, queryParams, body, options, accessToken) {
         const queryString = encodeQueryParams(queryParams);
         url = `${url}?${queryString}`;
         let bodyString;
         const headers = new Map();
-        if (this._accessToken) {
-            headers.set("Authorization", `Bearer ${this._accessToken}`);
+        if (accessToken) {
+            headers.set("Authorization", `Bearer ${accessToken}`);
         }
         headers.set("Accept", "application/json");
         if (body) {
@@ -106,16 +106,24 @@ export class HomeServerApi {
         return wrapper;
     }
 
+    _unauthedRequest(method, url, queryParams, body, options) {
+        return this._baseRequest(method, url, queryParams, body, options, null);
+    }
+
+    _authedRequest(method, url, queryParams, body, options) {
+        return this._baseRequest(method, url, queryParams, body, options, this._accessToken);
+    }
+
     _post(csPath, queryParams, body, options) {
-        return this._request("POST", this._url(csPath), queryParams, body, options);
+        return this._authedRequest("POST", this._url(csPath), queryParams, body, options);
     }
 
     _put(csPath, queryParams, body, options) {
-        return this._request("PUT", this._url(csPath), queryParams, body, options);
+        return this._authedRequest("PUT", this._url(csPath), queryParams, body, options);
     }
 
     _get(csPath, queryParams, body, options) {
-        return this._request("GET", this._url(csPath), queryParams, body, options);
+        return this._authedRequest("GET", this._url(csPath), queryParams, body, options);
     }
 
     sync(since, filter, timeout, options = null) {
@@ -142,7 +150,7 @@ export class HomeServerApi {
     }
 
     passwordLogin(username, password, initialDeviceDisplayName, options = null) {
-        return this._post("/login", null, {
+        return this._unauthedRequest("POST", this._url("/login"), null, {
           "type": "m.login.password",
           "identifier": {
             "type": "m.id.user",
@@ -158,7 +166,7 @@ export class HomeServerApi {
     }
 
     versions(options = null) {
-        return this._request("GET", `${this._homeserver}/_matrix/client/versions`, null, null, options);
+        return this._unauthedRequest("GET", `${this._homeserver}/_matrix/client/versions`, null, null, options);
     }
 
     uploadKeys(payload, options = null) {
