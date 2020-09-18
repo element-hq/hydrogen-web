@@ -105,6 +105,8 @@ export class Sync {
                 this._status.set(SyncStatus.Syncing);
             } catch (err) {
                 if (!(err instanceof AbortError)) {
+                    console.warn("stopping sync because of error");
+                    console.error(err);
                     this._error = err;
                     this._status.set(SyncStatus.Stopped);
                 }
@@ -168,8 +170,6 @@ export class Sync {
             }));
             sessionChanges = await this._session.writeSync(response, syncFilterId, syncTxn);
         } catch(err) {
-            console.warn("aborting syncTxn because of error");
-            console.error(err);
             // avoid corrupting state by only
             // storing the sync up till the point
             // the exception occurred
