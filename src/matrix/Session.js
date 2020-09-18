@@ -269,10 +269,13 @@ export class Session {
         return this._sendScheduler.isStarted;
     }
 
-    stop() {
+    dispose() {
         this._olmWorker?.dispose();
         this._sendScheduler.stop();
         this._sessionBackup?.dispose();
+        for (const room of this._rooms.values()) {
+            room.dispose();
+        }
     }
 
     async start(lastVersionResponse) {

@@ -529,6 +529,11 @@ export class Room extends EventEmitter {
     applyIsTrackingMembersChanges(changes) {
         this._summary.applyChanges(changes);
     }
+
+    dispose() {
+        this._roomEncryption?.dispose();
+        this._timeline?.dispose();
+    }
 }
 
 class DecryptionRequest {

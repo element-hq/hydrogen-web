@@ -39,6 +39,7 @@ export class RoomEncryption {
         this._storage = storage;
         this._sessionBackup = sessionBackup;
         this._notifyMissingMegolmSession = notifyMissingMegolmSession;
+        this._disposed = false;
     }
 
     async enableSessionBackup(sessionBackup) {
@@ -321,6 +322,10 @@ export class RoomEncryption {
         };
         const txnId = makeTxnId();
         await hsApi.sendToDevice(type, payload, txnId).response();
+    }
+
+    dispose() {
+        this._disposed = true;
     }
 }
 
