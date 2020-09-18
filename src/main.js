@@ -81,6 +81,7 @@ async function loadOlmWorker(paths) {
 // see https://github.com/rollup/plugins/tree/master/packages/multi-entry
 export async function main(container, paths, legacyExtras) {
     try {
+        // TODO: add .legacy to body in (legacy)platform.createAndMountRootView; and use body:not(.legacy) if needed for modern stuff
         const isIE11 = !!window.MSInputMethodContext && !!document.documentMode;
         if (isIE11) {
             document.body.className += " ie11";
@@ -134,6 +135,7 @@ export async function main(container, paths, legacyExtras) {
         });
         window.__brawlViewModel = vm;
         await vm.load();
+        // TODO: replace with platform.createAndMountRootView(vm, container);
         const view = new BrawlView(vm);
         container.appendChild(view.mount());
     } catch(err) {
