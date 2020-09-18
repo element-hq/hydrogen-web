@@ -209,8 +209,8 @@ class CryptoLegacyAESDriver {
      */
     async decrypt(key, iv, ciphertext) {
         const aesjs = this._aesjs;
-        var aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(iv));
-        return aesCtr.decrypt(ciphertext);
+        var aesCtr = new aesjs.ModeOfOperation.ctr(new Uint8Array(key), new aesjs.Counter(new Uint8Array(iv)));
+        return aesCtr.decrypt(new Uint8Array(ciphertext));
     }
 }
 
