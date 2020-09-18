@@ -87,6 +87,9 @@ async function populateLib() {
         path.join(modulesDir, 'base64-arraybuffer/lib/base64-arraybuffer.js'),
         path.join(libDir, "base64-arraybuffer/index.js")
     );
+    // this probably should no go in here, we can just import "aes-js" from legacy-extras.js
+    // as that file is never loaded from a browser
+    
     // transpile aesjs to esm
     await fs.mkdir(path.join(libDir, "aes-js/"));
     await commonjsToESM(

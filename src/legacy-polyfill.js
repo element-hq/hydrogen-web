@@ -18,6 +18,13 @@ limitations under the License.
 import "core-js/stable";
 import "regenerator-runtime/runtime";
 import "mdn-polyfills/Element.prototype.closest";
+// olm.init needs utf-16le, and this polyfill was
+// the only one I could find supporting it.
+// TODO: because the library sees a commonjs environment,
+// it will also include the file supporting *all* the encodings,
+// weighing a good extra 500kb :-(
+import "text-encoding";
+
 // TODO: contribute this to mdn-polyfills
 if (!Element.prototype.remove) {
     Element.prototype.remove = function remove() {
