@@ -93,14 +93,13 @@ export class Sync {
     }
 
     async _syncLoop(syncToken) {
-        let afterSyncCompletedPromise = Promise.resolve();
         // if syncToken is falsy, it will first do an initial sync ... 
         while(this._status.get() !== SyncStatus.Stopped) {
             let roomStates;
             try {
                 console.log(`starting sync request with since ${syncToken} ...`);
                 const timeout = syncToken ? INCREMENTAL_TIMEOUT : undefined; 
-                const syncResult = await this._syncRequest(syncToken, timeout, afterSyncCompletedPromise);
+                const syncResult = await this._syncRequest(syncToken, timeout);
                 syncToken = syncResult.syncToken;
                 roomStates = syncResult.roomStates;
                 this._status.set(SyncStatus.Syncing);
@@ -113,7 +112,7 @@ export class Sync {
                 }
             }
             if (this._status.get() !== SyncStatus.Stopped) {
-                afterSyncCompletedPromise = this._runAfterSyncCompleted(roomStates);
+                await this._runAfterSyncCompleted(roomStates);
             }
         }
     }
@@ -144,7 +143,7 @@ export class Sync {
         await Promise.all(roomsPromises.concat(sessionPromise));
     }
 
-    async _syncRequest(syncToken, timeout, prevAfterSyncCompletedPromise) {
+    async _syncRequest(syncToken, timeout) {
         let {syncFilterId} = this._session;
         if (typeof syncFilterId !== "string") {
             this._currentRequest = this._hsApi.createFilter(this._session.user.id, {room: {state: {lazy_load_members: true}}});
@@ -153,9 +152,6 @@ export class Sync {
         const totalRequestTimeout = timeout + (80 * 1000);  // same as riot-web, don't get stuck on wedged long requests
         this._currentRequest = this._hsApi.sync(syncToken, syncFilterId, timeout, {timeout: totalRequestTimeout});
         const response = await this._currentRequest.response();
-        // wait here for the afterSyncCompleted step of the previous sync to complete
-        // before we continue processing this sync response
-        await prevAfterSyncCompletedPromise;
 
         const isInitialSync = !syncToken;
         syncToken = response.next_batch;
