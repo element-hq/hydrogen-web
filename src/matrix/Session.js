@@ -384,7 +384,7 @@ export class Session {
             // sync transaction succeeded, modify object state now
             this._syncInfo = syncInfo;
         }
-        if (this._e2eeAccount && e2eeAccountChanges) {
+        if (this._e2eeAccount) {
             this._e2eeAccount.afterSync(e2eeAccountChanges);
         }
     }

@@ -171,7 +171,7 @@ export class Account {
 
     writeSync(deviceOneTimeKeysCount, txn) {
         // we only upload signed_curve25519 otks
-        const otkCount = deviceOneTimeKeysCount.signed_curve25519;
+        const otkCount = deviceOneTimeKeysCount.signed_curve25519 || 0;
         if (Number.isSafeInteger(otkCount) && otkCount !== this._serverOTKCount) {
             txn.session.set(SERVER_OTK_COUNT_SESSION_KEY, otkCount);
             return otkCount;
