@@ -142,10 +142,21 @@ export class SessionStatusViewModel extends ViewModel {
     async enterPassphrase(passphrase) {
         if (passphrase) {
             try {
-                await this._session.enableSecretStorage("recoverykey", passphrase);
+                await this._session.enableSecretStorage("passphrase", passphrase);
             } catch (err) {
                 console.error(err);
-                alert(`Could not set up secret storage: ${err.message}`);
+                alert(`Could not set up secret storage with passphrase: ${err.message}`);
+            }
+        }
+    }
+
+    async enterSecurityKey(securityKey) {
+        if (securityKey) {
+            try {
+                await this._session.enableSecretStorage("recoverykey", securityKey);
+            } catch (err) {
+                console.error(err);
+                alert(`Could not set up secret storage with securityKey: ${err.message}`);
             }
         }
     }
