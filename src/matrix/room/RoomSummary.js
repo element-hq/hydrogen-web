@@ -326,7 +326,7 @@ export class RoomSummary {
      * writeIsTrackingMembers, ... take a txn directly.
      */
     async writeAndApplyChanges(data, storage) {
-        const txn = await storage.readTxn([
+        const txn = await storage.readWriteTxn([
             storage.storeNames.roomSummary,
         ]);
         try {

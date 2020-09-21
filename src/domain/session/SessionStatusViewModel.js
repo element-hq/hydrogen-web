@@ -31,21 +31,24 @@ const SessionStatus = createEnum(
 export class SessionStatusViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {sync, reconnector} = options;
+        const {sync, reconnector, session} = options;
         this._sync = sync;
         this._reconnector = reconnector;
         this._status = this._calculateState(reconnector.connectionStatus.get(), sync.status.get());
-        
+        this._session = session;
     }
 
     start() {
         const update = () => this._updateStatus();
         this.track(this._sync.status.subscribe(update));
         this.track(this._reconnector.connectionStatus.subscribe(update));
+        this.track(this._session.needsSessionBackup.subscribe(() => {
+            this.emitChange();
+        }));
     }
 
     get isShown() {
-        return this._status !== SessionStatus.Syncing;
+        return this._session.needsSessionBackup.get() || this._status !== SessionStatus.Syncing;
     }
 
     get statusLabel() {
@@ -60,6 +63,9 @@ export class SessionStatusViewModel extends ViewModel {
                 return this.i18n`Catching up with your conversations…`;
             case SessionStatus.SyncError:
                 return this.i18n`Sync failed because of ${this._sync.error}`;
+        }
+        if (this._session.needsSessionBackup.get()) {
+            return this.i18n`Set up secret storage to decrypt older messages.`;
         }
         return "";
     }
@@ -122,9 +128,25 @@ export class SessionStatusViewModel extends ViewModel {
         return this._status === SessionStatus.Disconnected;
     }
 
+    get isSecretStorageShown() {
+        // TODO: we need a model here where we can have multiple messages queued up and their buttons don't bleed into each other.
+        return this._status === SessionStatus.Syncing && this._session.needsSessionBackup.get();
+    }
+
     connectNow() {
         if (this.isConnectNowShown) {
             this._reconnector.tryNow();
+        }
+    }
+
+    async enterPassphrase(passphrase) {
+        if (passphrase) {
+            try {
+                await this._session.enableSecretStorage("recoverykey", passphrase);
+            } catch (err) {
+                console.error(err);
+                alert(`Could not set up secret storage: ${err.message}`);
+            }
         }
     }
 }

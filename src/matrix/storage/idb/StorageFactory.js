@@ -19,7 +19,7 @@ import { openDatabase, reqAsPromise } from "./utils.js";
 import { exportSession, importSession } from "./export.js";
 import { schema } from "./schema.js";
 
-const sessionName = sessionId => `brawl_session_${sessionId}`;
+const sessionName = sessionId => `hydrogen_session_${sessionId}`;
 const openDatabaseWithSessionId = sessionId => openDatabase(sessionName(sessionId), createStores, schema.length);
 
 export class StorageFactory {

@@ -25,6 +25,7 @@ import {BrawlViewModel} from "./domain/BrawlViewModel.js";
 import {BrawlView} from "./ui/web/BrawlView.js";
 import {Clock} from "./ui/web/dom/Clock.js";
 import {OnlineStatus} from "./ui/web/dom/OnlineStatus.js";
+import {CryptoDriver} from "./ui/web/dom/CryptoDriver.js";
 import {WorkerPool} from "./utils/WorkerPool.js";
 import {OlmWorker} from "./matrix/e2ee/OlmWorker.js";
 
@@ -78,8 +79,9 @@ async function loadOlmWorker(paths) {
 // Don't use a default export here, as we use multiple entries during legacy build,
 // which does not support default exports,
 // see https://github.com/rollup/plugins/tree/master/packages/multi-entry
-export async function main(container, paths) {
+export async function main(container, paths, legacyExtras) {
     try {
+        // TODO: add .legacy to body in (legacy)platform.createAndMountRootView; and use body:not(.legacy) if needed for modern stuff
         const isIE11 = !!window.MSInputMethodContext && !!document.documentMode;
         if (isIE11) {
             document.body.className += " ie11";
@@ -122,6 +124,7 @@ export async function main(container, paths) {
                     sessionInfoStorage,
                     request,
                     clock,
+                    cryptoDriver: new CryptoDriver(legacyExtras?.crypto),
                     olmPromise,
                     workerPromise,
                 });
@@ -132,6 +135,7 @@ export async function main(container, paths) {
         });
         window.__brawlViewModel = vm;
         await vm.load();
+        // TODO: replace with platform.createAndMountRootView(vm, container);
         const view = new BrawlView(vm);
         container.appendChild(view.mount());
     } catch(err) {

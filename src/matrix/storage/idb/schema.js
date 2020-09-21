@@ -10,7 +10,8 @@ export const schema = [
     createMemberStore,
     migrateSession,
     createE2EEStores,
-    migrateEncryptionFlag
+    migrateEncryptionFlag,
+    createAccountDataStore
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -96,4 +97,9 @@ async function migrateEncryptionFlag(db, txn) {
             roomSummary.put(summary);
         }
     }
+}
+
+// v6
+function createAccountDataStore(db) {
+    db.createObjectStore("accountData", {keyPath: "type"});
 }

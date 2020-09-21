@@ -17,7 +17,7 @@ limitations under the License.
 import anotherjson from "../../../lib/another-json/index.js";
 import {createEnum} from "../../utils/enum.js";
 
-export const DecryptionSource = createEnum(["Sync", "Timeline", "Retry"]);
+export const DecryptionSource = createEnum("Sync", "Timeline", "Retry");
 
 // use common prefix so it's easy to clear properties that are not e2ee related during session clear
 export const SESSION_KEY_PREFIX = "e2ee:";

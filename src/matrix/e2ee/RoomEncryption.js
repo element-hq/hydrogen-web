@@ -21,8 +21,17 @@ import {makeTxnId} from "../common.js";
 
 const ENCRYPTED_TYPE = "m.room.encrypted";
 
+function encodeMissingSessionKey(senderKey, sessionId) {
+    return `${senderKey}|${sessionId}`;
+}
+
+function decodeMissingSessionKey(key) {
+    const [senderKey, sessionId] = key.split("|");
+    return {senderKey, sessionId};
+}
+
 export class RoomEncryption {
-    constructor({room, deviceTracker, olmEncryption, megolmEncryption, megolmDecryption, encryptionParams, storage}) {
+    constructor({room, deviceTracker, olmEncryption, megolmEncryption, megolmDecryption, encryptionParams, storage, sessionBackup, notifyMissingMegolmSession, clock}) {
         this._room = room;
         this._deviceTracker = deviceTracker;
         this._olmEncryption = olmEncryption;
@@ -37,6 +46,21 @@ export class RoomEncryption {
         this._eventIdsByMissingSession = new Map();
         this._senderDeviceCache = new Map();
         this._storage = storage;
+        this._sessionBackup = sessionBackup;
+        this._notifyMissingMegolmSession = notifyMissingMegolmSession;
+        this._clock = clock;
+        this._disposed = false;
+    }
+
+    async enableSessionBackup(sessionBackup) {
+        if (this._sessionBackup) {
+            return;
+        }
+        this._sessionBackup = sessionBackup;
+        for(const key of this._eventIdsByMissingSession.keys()) {
+            const {senderKey, sessionId} = decodeMissingSessionKey(key);
+            await this._requestMissingSessionFromBackup(senderKey, sessionId, null);
+        }
     }
 
     notifyTimelineClosed() {
@@ -81,7 +105,7 @@ export class RoomEncryption {
         } else if (source === DecryptionSource.Retry) {
             // when retrying, we could have mixed events from at the bottom of the timeline (sync)
             // and somewhere else, so create a custom cache we use just for this operation.
-            customCache = this._megolmEncryption.createSessionCache();
+            customCache = this._megolmDecryption.createSessionCache();
             sessionCache = customCache;
         } else {
             throw new Error("Unknown source: " + source);
@@ -91,13 +115,13 @@ export class RoomEncryption {
         if (customCache) {
             customCache.dispose();
         }
-        return new DecryptionPreparation(preparation, errors, {isTimelineOpen}, this);
+        return new DecryptionPreparation(preparation, errors, {isTimelineOpen, source}, this);
     }
 
     async _processDecryptionResults(results, errors, flags, txn) {
         for (const error of errors.values()) {
             if (error.code === "MEGOLM_NO_SESSION") {
-                this._addMissingSessionEvent(error.event);
+                this._addMissingSessionEvent(error.event, flags.source);
             }
         }
         if (flags.isTimelineOpen) {
@@ -120,23 +144,78 @@ export class RoomEncryption {
         }
     }
 
-    _addMissingSessionEvent(event) {
+    _addMissingSessionEvent(event, source) {
         const senderKey = event.content?.["sender_key"];
         const sessionId = event.content?.["session_id"];
-        const key = `${senderKey}|${sessionId}`;
+        const key = encodeMissingSessionKey(senderKey, sessionId);
         let eventIds = this._eventIdsByMissingSession.get(key);
+        // new missing session
         if (!eventIds) {
+            this._requestMissingSessionFromBackup(senderKey, sessionId, source);
             eventIds = new Set();
             this._eventIdsByMissingSession.set(key, eventIds);
         }
         eventIds.add(event.event_id);
     }
 
+    async _requestMissingSessionFromBackup(senderKey, sessionId, source) {
+        if (!this._sessionBackup) {
+            this._notifyMissingMegolmSession();
+            return;
+        }
+        // if the message came from sync, wait 10s to see if the room key arrives,
+        // and only after that proceed to request from backup
+        if (source === DecryptionSource.Sync) {
+            await this._clock.createTimeout(10000).elapsed();
+            if (this._disposed || !this._eventIdsByMissingSession.has(encodeMissingSessionKey(senderKey, sessionId))) {
+                return;
+            }
+        }
+
+        try {
+            const session = await this._sessionBackup.getSession(this._room.id, sessionId);
+            if (session?.algorithm === MEGOLM_ALGORITHM) {
+                if (session["sender_key"] !== senderKey) {
+                    console.warn("Got session key back from backup with different sender key, ignoring", {session, senderKey});
+                    return;
+                }
+                const txn = await this._storage.readWriteTxn([this._storage.storeNames.inboundGroupSessions]);
+                let roomKey;
+                try {
+                    roomKey = await this._megolmDecryption.addRoomKeyFromBackup(
+                        this._room.id, sessionId, session, txn);
+                } catch (err) {
+                    txn.abort();
+                    throw err;
+                }
+                await txn.complete();
+
+                if (roomKey) {
+                    // this will call into applyRoomKeys below
+                    await this._room.notifyRoomKeys([roomKey]);
+                }
+            } else if (session?.algorithm) {
+                console.info(`Backed-up session of unknown algorithm: ${session.algorithm}`);
+            }
+        } catch (err) {
+            console.error(`Could not get session ${sessionId} from backup`, err);
+        }
+    }
+
+    /**
+     * @type {RoomKeyDescription}
+     * @property {RoomKeyDescription} senderKey the curve25519 key of the sender
+     * @property {RoomKeyDescription} sessionId
+     * 
+     * 
+     * @param  {Array<RoomKeyDescription>} roomKeys
+     * @return {Array<string>} the event ids that should be retried to decrypt
+     */
     applyRoomKeys(roomKeys) {
         // retry decryption with the new sessions
         const retryEventIds = [];
         for (const roomKey of roomKeys) {
-            const key = `${roomKey.senderKey}|${roomKey.sessionId}`;
+            const key = encodeMissingSessionKey(roomKey.senderKey, roomKey.sessionId);
             const entriesForSession = this._eventIdsByMissingSession.get(key);
             if (entriesForSession) {
                 this._eventIdsByMissingSession.delete(key);
@@ -262,6 +341,10 @@ export class RoomEncryption {
         };
         const txnId = makeTxnId();
         await hsApi.sendToDevice(type, payload, txnId).response();
+    }
+
+    dispose() {
+        this._disposed = true;
     }
 }
 

@@ -88,7 +88,7 @@ async function build() {
     // so do it first
     const themeAssets = await copyThemeAssets(themes, legacy);
     const jsBundlePath = await buildJs("src/main.js", `${PROJECT_ID}.js`);
-    const jsLegacyBundlePath = await buildJsLegacy("src/main.js", `${PROJECT_ID}-legacy.js`);
+    const jsLegacyBundlePath = await buildJsLegacy("src/main.js", `${PROJECT_ID}-legacy.js`, 'src/legacy-extras.js');
     const jsWorkerPath = await buildWorkerJsLegacy("src/worker.js", `worker.js`);
     const cssBundlePaths = await buildCssBundles(legacy ? buildCssLegacy : buildCss, themes, themeAssets);
 
@@ -185,7 +185,7 @@ async function buildHtml(doc, version, assetPaths, manifestPath) {
     doc("script#main").replaceWith(
         `<script type="module">import {main} from "./${assetPaths.jsBundle()}"; main(document.body, ${pathsJSON});</script>` +
         `<script type="text/javascript" nomodule src="${assetPaths.jsLegacyBundle()}"></script>` +
-        `<script type="text/javascript" nomodule>${PROJECT_ID}Bundle.main(document.body, ${pathsJSON});</script>`);
+        `<script type="text/javascript" nomodule>${PROJECT_ID}Bundle.main(document.body, ${pathsJSON}, ${PROJECT_ID}Bundle.legacyExtras);</script>`);
     removeOrEnableScript(doc("script#service-worker"), offline);
 
     const versionScript = doc("script#version");
@@ -218,7 +218,7 @@ async function buildJs(inputFile, outputName) {
     return bundlePath;
 }
 
-async function buildJsLegacy(inputFile, outputName, polyfillFile = null) {
+async function buildJsLegacy(inputFile, outputName, extraFile, polyfillFile) {
     // compile down to whatever IE 11 needs
     const babelPlugin = babel.babel({
         babelHelpers: 'bundled',
@@ -237,10 +237,14 @@ async function buildJsLegacy(inputFile, outputName, polyfillFile = null) {
     if (!polyfillFile) {
         polyfillFile = 'src/legacy-polyfill.js';
     }
+    const inputFiles = [polyfillFile, inputFile];
+    if (extraFile) {
+        inputFiles.push(extraFile);
+    }
     // create js bundle
     const rollupConfig = {
-        input: [polyfillFile, inputFile],
-        plugins: [multi(), commonjs(), nodeResolve(), babelPlugin, removeJsComments({comments: "none"})]
+        input: inputFiles,
+        plugins: [multi(), commonjs(), nodeResolve(), babelPlugin]
     };
     const bundle = await rollup(rollupConfig);
     const {output} = await bundle.generate({
@@ -255,7 +259,7 @@ async function buildJsLegacy(inputFile, outputName, polyfillFile = null) {
 
 function buildWorkerJsLegacy(inputFile, outputName) {
     const polyfillFile = 'src/worker-polyfill.js';
-    return buildJsLegacy(inputFile, outputName, polyfillFile);
+    return buildJsLegacy(inputFile, outputName, null, polyfillFile);
 }
 
 async function buildOffline(version, assetPaths) {

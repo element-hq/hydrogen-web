@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+</head>
+<body>
+    <script src="https://unpkg.com/text-encoding@0.6.4/lib/encoding-indexes.js"></script>
+    <script src="https://unpkg.com/text-encoding@0.6.4/lib/encoding.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"></script>
+    <script src="deps/jsSHA/dist/sha512.js"></script>
+    <script type="text/javascript" src="https://cdn.rawgit.com/ricmoo/aes-js/e27b99df/index.js"></script>
+    <script type="text/javascript" src="derive-keys-bundle.js"></script>    
+    <script type="text/javascript">
+        if (!Math.imul) Math.imul = function(a, b) {
+          var aHi = (a >>> 16) & 0xffff;
+          var aLo = a & 0xffff;
+          var bHi = (b >>> 16) & 0xffff;
+          var bLo = b & 0xffff;
+          // the shift by 0 fixes the sign on the high part
+          // the final |0 converts the unsigned value into a signed value
+          return ((aLo * bLo) + (((aHi * bLo + aLo * bHi) << 16) >>> 0) | 0);
+        };
+
+        if (!Math.clz32) Math.clz32 = (function(log, LN2){
+          return function(x) {
+            // Let n be ToUint32(x).
+            // Let p be the number of leading zero bits in 
+            // the 32-bit binary representation of n.
+            // Return p.
+            var asUint = x >>> 0;
+            if (asUint === 0) {
+              return 32;
+            }
+            return 31 - (log(asUint) / LN2 | 0) |0; // the "| 0" acts like math.floor
+          };
+        })(Math.log, Math.LN2);
+    </script>
+    <script type="text/javascript" src="../lib/olm/olm_legacy.js"></script>
+    <script type="text/javascript">
+        // sample data from account with recovery key
+        const ssssKeyAccountData = {
+  "type": "m.secret_storage.key.le4jDjlxrIMZDSKu1EudJL5Tc4U5qI0d",
+  "content": {
+    "algorithm": "m.secret_storage.v1.aes-hmac-sha2",
+    "iv": "YPhwwArIUTwasbROMFd1PQ==",
+    "mac": "khWXeBzKtZi8SX6I7m/9yPoLB1yv1u9l+NNi6WF4+ek="
+  }
+};
+    const megolmBackupKeyAccountData = {
+  "type": "m.megolm_backup.v1",
+  "content": {
+    "encrypted": {
+      "le4jDjlxrIMZDSKu1EudJL5Tc4U5qI0d": {
+        "iv": "PiqYdySj9s4RsaLc1oDF1w==",
+        "ciphertext": "62fjUs1xkF3BvqVEvAEoDH9jcYiotkcJHG/VNtzSrPBlrmOYQyPA93L2rKo=",
+        "mac": "vtq+kEg5XaRdw08aPiQi7+w9qUiDCQKo/jKNTvrN4ho="
+      }
+    }
+  }
+};
+
+const backupInfo =  {
+    "algorithm": "m.megolm_backup.v1.curve25519-aes-sha2",
+    "auth_data": {
+        "public_key": "tY/jSdfy2q1pS8Ux+LP8xr/RMn9NDElwofH+E5sFG38",
+        "signatures": {
+            "@bruno-test4s2:matrix.org": {
+                "ed25519:KTLGZUJCYZ": "YPuzpLo4OZL5+HQTkbDnUKpIuCmL50Q7RnMs9cRfKqyS+CMPm0RBU1ttPO6XOZ+TjZ4VThXU50LUkmpJiKM+Aw",
+                "ed25519:l17fdsfeS7qUKIYzgx3LxIcHnjPM00+Ge5dTk7Msy04": "epDo+d9foXXcnXChZaEOCKNYzofOMBXQF3FCMDJ52hxvxh9K1w+2zOOAwWEKOts88gubgIsdRQedkuhuIm2LCg"
+            }
+        }
+    },
+    "count": 1,
+    "etag": "1",
+    "version": "1"
+};
+
+const sessionResponse = {
+    "first_message_index": 0,
+    "forwarded_count": 0,
+    "is_verified": true,
+    "session_data": {
+        "ciphertext": "+a8OCF0v5U5GYTNAMwgNEqSItxy4hea073zlWCp+ocr4mUQDuUZyOo+DGHDPPvSOnhJA2waSV05wna/Jmig7NAzuJJy8eEd0dHmGiA16eUMFiUz0HYFseDXs0dDGF38shz1C6CXYRjTOS3S7JWLVzeeYy632BMGvGjWMvAuOpm4NgV9fLB5J6nYVb/wvU3Mf8mw/eT5k8AUJA/CAD6zM7T9skEJhuFoi5kdPfBoozUbScA5xcPVmE6aY08zZ6QpiZ7lsyWoIRDbRxaBxL82T2CnpcngE/SAHF+eJ9ZWK3txolYLT/KAfKlAVLV7yWXkYL7oxrW8DI/5ZQFXUqzqqqfAB7Qz2AIvCdUVqhDGwuDr5noCMlKYEwyYR0VC2i4ZyXdtLdOjKBS2eTqDcwdv2gcaOnbJJcIEuGMKVg89/rKqpWncY/+NOBTQhuts05+Wi+9wU+OlGlNFvhkOgp1BaP0Q7T4pkxgj4OSbf3t1UfthltJSX8TS9ZGd3DVDI8swQuMBvF9H+7kAeO2IWTMSe57MYvlk0aw/gPFdI06lcOvH2nAr9C2HNsuYhyO4XGZOAg8HHzkjLlzNU+zJk1MfRIXRoVgbIh1hApcK9HhyTBzg",
+        "ephemeral": "z0JE6swJZbrmRYOWGvEI6zhIzoJ57lhzp1uujVS2jUs",
+        "mac": "+AAASqA+4U8"
+    }
+};
+const keyId = "le4jDjlxrIMZDSKu1EudJL5Tc4U5qI0d";
+        // sample data with account with recovery passphrase
+        // const ssssKeyAccountData = 
+        // {
+        //   "type": "m.secret_storage.key.HB6AKfUD4avkZfPfyjcJ6iJPWDp4f9WM",
+        //   "content": {
+        //     "algorithm": "m.secret_storage.v1.aes-hmac-sha2",
+        //     "passphrase": {
+        //       "algorithm": "m.pbkdf2",
+        //       "iterations": 500000,
+        //       "salt": "tfY5mgvQBr3Gd5Dy1IBiKf7fLquL4Y9O"
+        //     },
+        //     "iv": "xitm4hxsqagkbyEmXj0tUw==",
+        //     "mac": "nagOYz7FKrdlFEKM9ij78th0O2p7YVGgl+p0LHr4EBE="
+        //   }
+        // };
+
+        // const megolmBackupKeyAccountData = {
+        //   "type": "m.megolm_backup.v1",
+        //   "content": {
+        //     "encrypted": {
+        //       "HB6AKfUD4avkZfPfyjcJ6iJPWDp4f9WM": {
+        //         "iv": "HpzOY5DxYFJCxw5Vi6BBOQ==",
+        //         "ciphertext": "u1TJjaaGKVDGExg9hu2fIUZ0gjToMcMReyhn4nsXgnhm7Dvz6E/4p+nSF3w=",
+        //         "mac": "08ckDbQK9wB2jiE4n4sfp2sw83q/0C2/gEz2LuHMEPg="
+        //       }
+        //     }
+        //   }
+        // };
+        // const backupInfo = {
+        //     "algorithm": "m.megolm_backup.v1.curve25519-aes-sha2",
+        //     "auth_data": {
+        //         "public_key": "Vw2cwhbxFg/GQ2rr4VRIQ+Oh74lP7IxY6oN4R9q992k",
+        //         "signatures": {
+        //             "@bruno-test4s:matrix.org": {
+        //                 "ed25519:XAIKJXBCNZ": "AFBp1T2x8hyPSi2hCHg6IzNy67RxULj3/7LYZgVT3Ruz49v5h1+jAScTxZj5jrItxo2LCzSORH+yABHjPIqOBQ",
+        //                 "ed25519:lukepZkTmPcJS6wCl12B0tIURIO8YbMd5QJLf8UOugI": "a1ZJa+1+p9Gm5Po1B619ZDy4xidHmLt82vXVPH7vWTjny1r3JI2iM4fB2qh8vEiASNlFyVrFx//gQrz9Y1IJBA"
+        //             }
+        //         }
+        //     },
+        //     "count": 1,
+        //     "etag": "1",
+        //     "version": "1"
+        // };
+        // const sessionResponse = {
+        //     "first_message_index": 0,
+        //     "forwarded_count": 0,
+        //     "is_verified": true,
+        //     "session_data": {
+        //         "ciphertext": "1NoC8/GZWeGjneuoFDcqpbMYOJ8bjDFiw2O4/YOKC59x9RqSejLyM8qLL5FzlV+uW7anPVED8t9m+p2t1kKa15LxlcdzXjLPCv1QGYlhotbUhN8eRUobQuLqsD5Dl/QqNxv+Xl65tEaQhUeF30NmSesw6GHvP93vB3mTN8Yz9QyaQtvgoI/Q6c4d+yGmFVE2dlhXdOs7Hrylrg8UyM1QI+qpNJ3L9ETcqiXCG/FJIdM87LmNnHPX65TWK5xsu1JKWCI2BY1KFVDyxm40FyHHypUPYoT9RqPnygHtYoTiZzyaVxqUu2vg08Bv0t1VH2SNDGs5aZYQN5S1JNAHrXE+cWSg0rfVb160Z4FJC/89wO8fw/uXqJehqMVuC9BSU/zsKcZ797U92qDnIb6QQuMYKRgh9JrEugqJN9ocL7F8W9fW2oFfUYRyvOZRSf387hGrapEGBKx7Owb7UoXvWyb4C5hc5SFNvej+yg98+Fi4hzlGH26DqzJdLcxU5P/MWfZc222QqPFuFspe6f0Ts5jnJhjCQhXWoM4G6mtvGbOm2ESSJULj8U4JSDz8GsxrmojR/pBpywBvuy/mx//htnacnTRqYJz+PZVtV63rfaZlEtU",
+        //         "ephemeral": "wXBeLoazggBmFS0eiVY9H/qq5o1yt2/NIKWcq384EHc",
+        //         "mac": "w3IfO5vL9Bc"
+        //     }
+        // };
+        //const keyId = "HB6AKfUD4avkZfPfyjcJ6iJPWDp4f9WM";
+        const cryptoDriver = new bundle.CryptoDriver((window.crypto || window.msCrypto).subtle);
+        window.Olm.init().then(function() {
+            bundle.deserializeSSSSKey("EsUH dBfj L7XF Kdej TNmK 2CdP R7NQ KnQH zA1o 8kDg piuJ QEZh", ssssKeyAccountData).then(function(ssssKey) {
+            //bundle.deriveSSSSKey(cryptoDriver, prompt("passphrase"), ssssKeyAccountData).then(function(ssssKey) {
+                // const ssssKey = new Uint8Array(32);
+                // const bytes = [123, 47, 138, 15, 190, 69, 224, 204, 88, 246, 203, 65, 243, 234, 91, 17, 250, 107, 104, 51, 211, 252, 81, 67, 80, 191, 105, 208, 127, 87, 107, 231];
+                // for (var i = bytes.length - 1; i >= 0; i--) {
+                //     ssssKey[i] = bytes[i];
+                // }
+                console.log("ssssKey", ssssKey);
+                bundle.decryptSecret(cryptoDriver, keyId, ssssKey, megolmBackupKeyAccountData).then(function(backupKeyBase64) {
+                    console.log("backupKeyBase64", backupKeyBase64);
+                    bundle.decryptSession(backupKeyBase64, backupInfo, sessionResponse).then(function(session) {
+                        console.log("session", session);
+                        alert(session.session_key);
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+ 

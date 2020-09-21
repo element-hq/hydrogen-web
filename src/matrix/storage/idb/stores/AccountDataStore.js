@@ -14,13 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export function createEnum(...values) {
-    const obj = {};
-    for (const value of values) {
-        if (typeof value !== "string") {
-            throw new Error("Invalid enum value name" + value?.toString());
-        }
-        obj[value] = value;
-    }
-    return Object.freeze(obj);
+export class AccountDataStore {
+	constructor(store) {
+		this._store = store;
+	}
+
+	async get(type) {
+		return await this._store.get(type);
+	}
+
+	set(event) {
+		return this._store.put(event);
+	}
 }

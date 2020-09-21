@@ -23,18 +23,26 @@ import {Account as E2EEAccount} from "./e2ee/Account.js";
 import {Decryption as OlmDecryption} from "./e2ee/olm/Decryption.js";
 import {Encryption as OlmEncryption} from "./e2ee/olm/Encryption.js";
 import {Decryption as MegOlmDecryption} from "./e2ee/megolm/Decryption.js";
+import {SessionBackup} from "./e2ee/megolm/SessionBackup.js";
 import {Encryption as MegOlmEncryption} from "./e2ee/megolm/Encryption.js";
 import {MEGOLM_ALGORITHM} from "./e2ee/common.js";
 import {RoomEncryption} from "./e2ee/RoomEncryption.js";
 import {DeviceTracker} from "./e2ee/DeviceTracker.js";
 import {LockMap} from "../utils/LockMap.js";
 import {groupBy} from "../utils/groupBy.js";
+import {
+    keyFromCredential as ssssKeyFromCredential,
+    readKey as ssssReadKey,
+    writeKey as ssssWriteKey,
+} from "./ssss/index.js";
+import {SecretStorage} from "./ssss/SecretStorage.js";
+import {ObservableValue} from "../observable/ObservableValue.js";
 
 const PICKLE_KEY = "DEFAULT_KEY";
 
 export class Session {
     // sessionInfo contains deviceId, userId and homeServer
-    constructor({clock, storage, hsApi, sessionInfo, olm, olmWorker}) {
+    constructor({clock, storage, hsApi, sessionInfo, olm, olmWorker, cryptoDriver}) {
         this._clock = clock;
         this._storage = storage;
         this._hsApi = hsApi;
@@ -54,6 +62,7 @@ export class Session {
         this._megolmDecryption = null;
         this._getSyncToken = () => this.syncToken;
         this._olmWorker = olmWorker;
+        this._cryptoDriver = cryptoDriver;
 
         if (olm) {
             this._olmUtil = new olm.Utility();
@@ -66,6 +75,7 @@ export class Session {
             });
         }
         this._createRoomEncryption = this._createRoomEncryption.bind(this);
+        this.needsSessionBackup = new ObservableValue(false);
     }
 
     // called once this._e2eeAccount is assigned
@@ -130,8 +140,60 @@ export class Session {
             megolmEncryption: this._megolmEncryption,
             megolmDecryption: this._megolmDecryption,
             storage: this._storage,
-            encryptionParams
+            sessionBackup: this._sessionBackup,
+            encryptionParams,
+            notifyMissingMegolmSession: () => {
+                if (!this._sessionBackup) {
+                    this.needsSessionBackup.set(true)
+                }
+            },
+            clock: this._clock
         });
+    }
+
+    /**
+     * Enable secret storage by providing the secret storage credential.
+     * This will also see if there is a megolm session backup and try to enable that if so.
+     * 
+     * @param  {string} type       either "passphrase" or "recoverykey"
+     * @param  {string} credential either the passphrase or the recovery key, depending on the type
+     * @return {Promise} resolves or rejects after having tried to enable secret storage
+     */
+    async enableSecretStorage(type, credential) {
+        if (!this._olm) {
+            throw new Error("olm required");
+        }
+        const key = await ssssKeyFromCredential(type, credential, this._storage, this._cryptoDriver, this._olm);
+        // and create session backup, which needs to read from accountData
+        const readTxn = await this._storage.readTxn([
+            this._storage.storeNames.accountData,
+        ]);
+        await this._createSessionBackup(key, readTxn);
+        // only after having read a secret, write the key
+        // as we only find out if it was good if the MAC verification succeeds
+        const writeTxn = await this._storage.readWriteTxn([
+            this._storage.storeNames.session,
+        ]);
+        try {
+            ssssWriteKey(key, writeTxn);
+        } catch (err) {
+            writeTxn.abort();
+            throw err;
+        }
+        await writeTxn.complete();
+    }
+
+    async _createSessionBackup(ssssKey, txn) {
+        const secretStorage = new SecretStorage({key: ssssKey, cryptoDriver: this._cryptoDriver});
+        this._sessionBackup = await SessionBackup.fromSecretStorage({olm: this._olm, secretStorage, hsApi: this._hsApi, txn});
+        if (this._sessionBackup) {
+            for (const room of this._rooms.values()) {
+                if (room.isEncrypted) {
+                    room.enableSessionBackup(this._sessionBackup);
+                }
+            }
+        }
+        this.needsSessionBackup.set(false);
     }
 
     // called after load
@@ -155,6 +217,17 @@ export class Session {
             await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
             await this._e2eeAccount.uploadKeys(this._storage);
             await this._deviceMessageHandler.decryptPending(this.rooms);
+
+            const txn = await this._storage.readTxn([
+                this._storage.storeNames.session,
+                this._storage.storeNames.accountData,
+            ]);
+            // try set up session backup if we stored the ssss key
+            const ssssKey = await ssssReadKey(txn);
+            if (ssssKey) {
+                // txn will end here as this does a network request
+                await this._createSessionBackup(ssssKey, txn);
+            }
         }
     }
 
@@ -197,9 +270,13 @@ export class Session {
         return this._sendScheduler.isStarted;
     }
 
-    stop() {
+    dispose() {
         this._olmWorker?.dispose();
         this._sendScheduler.stop();
+        this._sessionBackup?.dispose();
+        for (const room of this._rooms.values()) {
+            room.dispose();
+        }
     }
 
     async start(lastVersionResponse) {
@@ -289,6 +366,16 @@ export class Session {
         if (Array.isArray(toDeviceEvents)) {
             this._deviceMessageHandler.writeSync(toDeviceEvents, txn);
         }
+
+        // store account data
+        const accountData = syncResponse["account_data"];
+        if (Array.isArray(accountData?.events)) {
+            for (const event of accountData.events) {
+                if (typeof event.type === "string") {
+                    txn.accountData.set(event);
+                }
+            }
+        }
         return changes;
     }
 
@@ -306,8 +393,6 @@ export class Session {
         const needsToUploadOTKs = await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
         const promises = [this._deviceMessageHandler.decryptPending(this.rooms)];
         if (needsToUploadOTKs) {
-            // TODO: we could do this in parallel with sync if it proves to be too slow
-            // but I'm not sure how to not swallow errors in that case
             promises.push(this._e2eeAccount.uploadKeys(this._storage));
         }
         // run key upload and decryption in parallel

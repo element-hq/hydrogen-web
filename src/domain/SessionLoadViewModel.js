@@ -80,7 +80,7 @@ export class SessionLoadViewModel extends ViewModel {
     async cancel() {
         try {
             if (this._sessionContainer) {
-                this._sessionContainer.stop();
+                this._sessionContainer.dispose();
                 if (this._deleteSessionOnCancel) {
                     await this._sessionContainer.deleteSession();
                 }
