@@ -389,11 +389,17 @@ export class Session {
         }
     }
 
-    async afterSyncCompleted() {
-        const needsToUploadOTKs = await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
+    async afterSyncCompleted(isCatchupSync) {
         const promises = [this._deviceMessageHandler.decryptPending(this.rooms)];
-        if (needsToUploadOTKs) {
-            promises.push(this._e2eeAccount.uploadKeys(this._storage));
+        // we don't start uploading one-time keys until we've caught up with
+        // to-device messages, to help us avoid throwing away one-time-keys that we
+        // are about to receive messages for
+        // (https://github.com/vector-im/riot-web/issues/2782).
+        if (!isCatchupSync) {
+            const needsToUploadOTKs = await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
+            if (needsToUploadOTKs) {
+                promises.push(this._e2eeAccount.uploadKeys(this._storage));
+            }
         }
         // run key upload and decryption in parallel
         await Promise.all(promises);

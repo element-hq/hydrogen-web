@@ -98,11 +98,27 @@ export class Sync {
             let roomStates;
             try {
                 console.log(`starting sync request with since ${syncToken} ...`);
-                const timeout = syncToken ? INCREMENTAL_TIMEOUT : undefined; 
+                // unless we are happily syncing already, we want the server to return
+                // as quickly as possible, even if there are no events queued. This
+                // serves two purposes:
+                //
+                // * When the connection dies, we want to know asap when it comes back,
+                //   so that we can hide the error from the user. (We don't want to
+                //   have to wait for an event or a timeout).
+                //
+                // * We want to know if the server has any to_device messages queued up
+                //   for us. We do that by calling it with a zero timeout until it
+                //   doesn't give us any more to_device messages.
+                const timeout = this._status.get() === SyncStatus.Syncing ? INCREMENTAL_TIMEOUT : 0; 
                 const syncResult = await this._syncRequest(syncToken, timeout);
                 syncToken = syncResult.syncToken;
                 roomStates = syncResult.roomStates;
-                this._status.set(SyncStatus.Syncing);
+                // initial sync or catchup sync
+                if (this._status.get() !== SyncStatus.Syncing && syncResult.hadToDeviceMessages) {
+                    this._status.set(SyncStatus.CatchupSync);
+                } else {
+                    this._status.set(SyncStatus.Syncing);
+                }
             } catch (err) {
                 if (!(err instanceof AbortError)) {
                     console.warn("stopping sync because of error");
@@ -118,9 +134,10 @@ export class Sync {
     }
 
     async _runAfterSyncCompleted(roomStates) {
+        const isCatchupSync = this._status.get() === SyncStatus.CatchupSync;
         const sessionPromise = (async () => {
             try {
-                await this._session.afterSyncCompleted();
+                await this._session.afterSyncCompleted(isCatchupSync);
             } catch (err) {
                 console.error("error during session afterSyncCompleted, continuing",  err.stack);
             }
@@ -186,7 +203,12 @@ export class Sync {
             rs.room.afterSync(rs.changes);
         }
 
-        return {syncToken, roomStates};
+        const toDeviceEvents = response.to_device?.events;
+        return {
+            syncToken,
+            roomStates,
+            hadToDeviceMessages: Array.isArray(toDeviceEvents) && toDeviceEvents.length > 0,
+        };
     }
 
     async _openPrepareSyncTxn() {
