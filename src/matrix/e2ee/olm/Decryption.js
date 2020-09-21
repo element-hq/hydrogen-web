@@ -115,7 +115,12 @@ export class Decryption {
         }
         // could not decrypt with any existing session
         if (typeof plaintext !== "string" && isPreKeyMessage(message)) {
-            const createResult = this._createSessionAndDecrypt(senderKey, message, timestamp);
+            let createResult;
+            try {
+                createResult = this._createSessionAndDecrypt(senderKey, message, timestamp);
+            } catch (error) {
+                throw new DecryptionError(`Could not create inbound olm session: ${error.message}`, event, {senderKey, error});
+            }
             senderKeyDecryption.addNewSession(createResult.session);
             plaintext = createResult.plaintext;
         }
@@ -123,8 +128,8 @@ export class Decryption {
             let payload;
             try {
                 payload = JSON.parse(plaintext);
-            } catch (err) {
-                throw new DecryptionError("PLAINTEXT_NOT_JSON", event, {plaintext, err});
+            } catch (error) {
+                throw new DecryptionError("PLAINTEXT_NOT_JSON", event, {plaintext, error});
             }
             this._validatePayload(payload, event);
             return new DecryptionResult(payload, senderKey, payload.keys);
