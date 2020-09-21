@@ -246,7 +246,7 @@ export class Sync {
                         // ignore rooms with empty timelines during initial sync,
                         // see https://github.com/vector-im/hydrogen-web/issues/15
                         if (isInitialSync && timelineIsEmpty(roomResponse)) {
-                            return;
+                            continue;
                         }
                         let room = this._session.rooms.get(roomId);
                         if (!room) {
