@@ -82,6 +82,7 @@ export class Sync {
         if (this._status.get() !== SyncStatus.Stopped) {
             return;
         }
+        this._error = null;
         let syncToken = this._session.syncToken;
         if (syncToken) {
             this._status.set(SyncStatus.CatchupSync);
@@ -111,7 +112,7 @@ export class Sync {
                     this._status.set(SyncStatus.Stopped);
                 }
             }
-            if (!this._error) {
+            if (this._status.get() !== SyncStatus.Stopped) {
                 afterSyncCompletedPromise = this._runAfterSyncCompleted(roomStates);
             }
         }
