@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {AbortError} from "../utils/error.js";
-import {HomeServerError} from "./error.js";
-import {HomeServerApi} from "./net/HomeServerApi.js";
-import {ExponentialRetryDelay} from "./net/ExponentialRetryDelay.js";
+import {AbortError} from "../../utils/error.js";
+import {HomeServerError} from "../error.js";
+import {HomeServerApi} from "./HomeServerApi.js";
+import {ExponentialRetryDelay} from "./ExponentialRetryDelay.js";
 
 class Request {
     constructor(methodName, args) {
@@ -58,7 +58,7 @@ for (const methodName of Object.getOwnPropertyNames(HomeServerApi.prototype)) {
     }
 }
 
-export class SendScheduler {
+export class RequestScheduler {
     constructor({hsApi, clock}) {
         this._hsApi = hsApi;
         this._clock = clock;
