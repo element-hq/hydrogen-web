@@ -42,10 +42,10 @@ const PICKLE_KEY = "DEFAULT_KEY";
 
 export class Session {
     // sessionInfo contains deviceId, userId and homeServer
-    constructor({clock, storage, unwrappedHsApi, sessionInfo, olm, olmWorker, cryptoDriver, mediaRepository}) {
+    constructor({clock, storage, hsApi, sessionInfo, olm, olmWorker, cryptoDriver, mediaRepository}) {
         this._clock = clock;
         this._storage = storage;
-        this._requestScheduler = new RequestScheduler({hsApi: unwrappedHsApi, clock});
+        this._requestScheduler = new RequestScheduler({hsApi, clock});
         this._hsApi = this._requestScheduler.createHomeServerApiWrapper();
         this._mediaRepository = mediaRepository;
         this._syncInfo = null;
