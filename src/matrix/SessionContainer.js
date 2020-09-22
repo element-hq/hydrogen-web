@@ -19,6 +19,7 @@ import {ObservableValue} from "../observable/ObservableValue.js";
 import {HomeServerApi} from "./net/HomeServerApi.js";
 import {Reconnector, ConnectionStatus} from "./net/Reconnector.js";
 import {ExponentialRetryDelay} from "./net/ExponentialRetryDelay.js";
+import {MediaRepository} from "./net/MediaRepository.js";
 import {HomeServerError, ConnectionError, AbortError} from "./error.js";
 import {Sync, SyncStatus} from "./Sync.js";
 import {Session} from "./Session.js";
@@ -158,9 +159,16 @@ export class SessionContainer {
         if (this._workerPromise) {
             olmWorker = await this._workerPromise;
         }
-        this._session = new Session({storage: this._storage,
-            sessionInfo: filteredSessionInfo, hsApi, olm,
-            clock: this._clock, olmWorker, cryptoDriver: this._cryptoDriver});
+        this._session = new Session({
+            storage: this._storage,
+            sessionInfo: filteredSessionInfo,
+            hsApi,
+            olm,
+            clock: this._clock,
+            olmWorker,
+            cryptoDriver: this._cryptoDriver,
+            mediaRepository: new MediaRepository(sessionInfo.homeServer)
+        });
         await this._session.load();
         this._status.set(LoadStatus.SessionSetup);
         await this._session.beforeFirstSync(isNewLogin);

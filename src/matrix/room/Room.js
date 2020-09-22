@@ -31,11 +31,12 @@ import {DecryptionSource} from "../e2ee/common.js";
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 
 export class Room extends EventEmitter {
-	constructor({roomId, storage, hsApi, emitCollectionChange, sendScheduler, pendingEvents, user, createRoomEncryption, getSyncToken, clock}) {
+	constructor({roomId, storage, hsApi, mediaRepository, emitCollectionChange, sendScheduler, pendingEvents, user, createRoomEncryption, getSyncToken, clock}) {
         super();
         this._roomId = roomId;
         this._storage = storage;
         this._hsApi = hsApi;
+        this._mediaRepository = mediaRepository;
 		this._summary = new RoomSummary(roomId, user.id);
         this._fragmentIdComparer = new FragmentIdComparer([]);
 		this._syncWriter = new SyncWriter({roomId, fragmentIdComparer: this._fragmentIdComparer});
@@ -517,7 +518,7 @@ export class Room extends EventEmitter {
     }
 
     get mediaRepository() {
-        return this._hsApi.mediaRepository;
+        return this._mediaRepository;
     }
 
     /** @package */

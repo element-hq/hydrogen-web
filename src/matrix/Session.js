@@ -42,10 +42,11 @@ const PICKLE_KEY = "DEFAULT_KEY";
 
 export class Session {
     // sessionInfo contains deviceId, userId and homeServer
-    constructor({clock, storage, hsApi, sessionInfo, olm, olmWorker, cryptoDriver}) {
+    constructor({clock, storage, hsApi, sessionInfo, olm, olmWorker, cryptoDriver, mediaRepository}) {
         this._clock = clock;
         this._storage = storage;
         this._hsApi = hsApi;
+        this._mediaRepository = mediaRepository;
         this._syncInfo = null;
         this._sessionInfo = sessionInfo;
         this._rooms = new ObservableMap();
@@ -332,7 +333,8 @@ export class Session {
             emitCollectionChange: this._roomUpdateCallback,
             hsApi: this._hsApi,
             sendScheduler: this._sendScheduler,
-            pendingEvents,
+._hsApi,
+            mediaRepository: this._mediaRep            pendingEvents,
             user: this._user,
             createRoomEncryption: this._createRoomEncryption,
             clock: this._clock

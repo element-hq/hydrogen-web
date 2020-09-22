@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,11 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {
-    HomeServerError,
-    ConnectionError,
-    AbortError
-} from "../error.js";
+import {HomeServerError} from "../error.js";
+import {encodeQueryParams} from "./common.js";
 
 class RequestWrapper {
     constructor(method, url, requestResult) {
@@ -45,18 +43,6 @@ class RequestWrapper {
     }
 }
 
-function encodeQueryParams(queryParams) {
-    return Object.entries(queryParams || {})
-        .filter(([, value]) => value !== undefined)
-        .map(([name, value]) => {
-            if (typeof value === "object") {
-                value = JSON.stringify(value);
-            }
-            return `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
-        })
-        .join("&");
-}
-
 export class HomeServerApi {
     constructor({homeServer, accessToken, request, createTimeout, reconnector}) {
         // store these both in a closure somehow so it's harder to get at in case of XSS?
@@ -66,7 +52,6 @@ export class HomeServerApi {
         this._requestFn = request;
         this._createTimeout = createTimeout;
         this._reconnector = reconnector;
-        this._mediaRepository = new MediaRepository(homeServer);
     }
 
     _url(csPath) {
@@ -195,45 +180,6 @@ export class HomeServerApi {
 
     roomKeyForRoomAndSession(version, roomId, sessionId, options = null) {
         return this._get(`/room_keys/keys/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`, {version}, null, options);
-    }
-
-    get mediaRepository() {
-        return this._mediaRepository;
-    }
-}
-
-class MediaRepository {
-    constructor(homeserver) {
-        this._homeserver = homeserver;
-    }
-
-    mxcUrlThumbnail(url, width, height, method) {
-        const parts = this._parseMxcUrl(url);
-        if (parts) {
-            const [serverName, mediaId] = parts;
-            const httpUrl = `${this._homeserver}/_matrix/media/r0/thumbnail/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`;
-            return httpUrl + "?" + encodeQueryParams({width, height, method});
-        }
-        return null;
-    }
-
-    mxcUrl(url) {
-        const parts = this._parseMxcUrl(url);
-        if (parts) {
-            const [serverName, mediaId] = parts;
-            return `${this._homeserver}/_matrix/media/r0/download/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`;
-        } else {
-            return null;
-        }
-    }
-
-    _parseMxcUrl(url) {
-        const prefix = "mxc://";
-        if (url.startsWith(prefix)) {
-            return url.substr(prefix.length).split("/", 2);
-        } else {
-            return null;
-        }
     }
 }
 
