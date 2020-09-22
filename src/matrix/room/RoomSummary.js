@@ -122,6 +122,23 @@ function processTimelineEvent(data, eventEntry, isInitialSync, isTimelineOpen, o
             data.lastMessageBody = body;
         }
     }
+    // store the event key of the last decrypted event so when decryption does succeed,
+    // we can attempt to re-decrypt from this point to update the room summary
+    if (!!data.encryption && eventEntry.isEncrypted && eventEntry.isDecrypted) {
+        let hasLargerEventKey = true;
+        if (data.lastDecryptedEventKey) {
+            try {
+                hasLargerEventKey = eventEntry.compare(data.lastDecryptedEventKey) > 0;
+            } catch (err) {
+                hasLargerEventKey = false;
+            }
+        }
+        if (hasLargerEventKey) {
+            data = data.cloneIfNeeded();
+            const {fragmentId, entryIndex} = eventEntry;
+            data.lastDecryptedEventKey = {fragmentId, entryIndex};
+        }
+    }
     return data;
 }
 
@@ -155,6 +172,7 @@ class SummaryData {
         this.lastMessageTimestamp = copy ? copy.lastMessageTimestamp : null;
         this.isUnread = copy ? copy.isUnread : false;
         this.encryption = copy ? copy.encryption : null;
+        this.lastDecryptedEventKey = copy ? copy.lastDecryptedEventKey : null;
         this.isDirectMessage = copy ? copy.isDirectMessage : false;
         this.membership = copy ? copy.membership : null;
         this.inviteCount = copy ? copy.inviteCount : 0;
@@ -261,6 +279,10 @@ export class RoomSummary {
         return this._data.tags;
     }
 
+    get lastDecryptedEventKey() {
+        return this._data.lastDecryptedEventKey;
+    }
+
     writeClearUnread(txn) {
         const data = new SummaryData(this._data);
         data.isUnread = false;
@@ -290,9 +312,6 @@ export class RoomSummary {
     processTimelineEntries(timelineEntries, isInitialSync, isTimelineOpen) {
         // clear cloned flag, so cloneIfNeeded makes a copy and
         // this._data is not modified if any field is changed.
-        
-        processTimelineEvent
-
         this._data.cloned = false;
         const data = applyTimelineEntries(
             this._data,

@@ -52,6 +52,15 @@ export class Room extends EventEmitter {
         this._clock = clock;
 	}
 
+    _readEntriesToRetryDecryption(retryEventIds) {
+        const readFromEventKey = retryEventIds.length !== 0;
+        const stores = 
+        const txn = await this._storage.readTxn([
+            this._storage.storeNames.timelineEvents,
+            this._storage.storeNames.inboundGroupSessions,
+        ]);
+    }
+
     async notifyRoomKeys(roomKeys) {
         if (this._roomEncryption) {
             let retryEventIds = this._roomEncryption.applyRoomKeys(roomKeys);
