@@ -31,7 +31,7 @@ import {DecryptionSource} from "../e2ee/common.js";
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 
 export class Room extends EventEmitter {
-	constructor({roomId, storage, hsApi, mediaRepository, emitCollectionChange, sendScheduler, pendingEvents, user, createRoomEncryption, getSyncToken, clock}) {
+	constructor({roomId, storage, hsApi, mediaRepository, emitCollectionChange, pendingEvents, user, createRoomEncryption, getSyncToken, clock}) {
         super();
         this._roomId = roomId;
         this._storage = storage;
@@ -41,7 +41,7 @@ export class Room extends EventEmitter {
         this._fragmentIdComparer = new FragmentIdComparer([]);
 		this._syncWriter = new SyncWriter({roomId, fragmentIdComparer: this._fragmentIdComparer});
         this._emitCollectionChange = emitCollectionChange;
-        this._sendQueue = new SendQueue({roomId, storage, sendScheduler, pendingEvents});
+        this._sendQueue = new SendQueue({roomId, storage, hsApi, pendingEvents});
         this._timeline = null;
         this._user = user;
         this._changedMembersDuringSync = null;

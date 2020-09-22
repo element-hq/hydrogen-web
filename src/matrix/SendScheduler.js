@@ -14,72 +14,70 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {Platform} from "../Platform.js";
-import {HomeServerError, ConnectionError} from "./error.js";
+import {AbortError} from "../utils/error.js";
+import {HomeServerError} from "./error.js";
+import {HomeServerApi} from "./net/HomeServerApi.js";
+import {ExponentialRetryDelay} from "./net/ExponentialRetryDelay.js";
 
-export class RateLimitingBackoff {
-    constructor() {
-        this._remainingRateLimitedRequest = 0;
+class Request {
+    constructor(methodName, args) {
+        this._methodName = methodName;
+        this._args = args;
+        this._responsePromise = new Promise((resolve, reject) => {
+            this._resolve = resolve;
+            this._reject = reject;
+        });
+        this._requestResult = null;
     }
 
-    async waitAfterLimitExceeded(retryAfterMs) {
-        // this._remainingRateLimitedRequest = 5;
-        // if (typeof retryAfterMs !== "number") {
-        // } else {
-        // }
-        if (!retryAfterMs) {
-            retryAfterMs = 5000;
+    abort() {
+        if (this._requestResult) {
+            this._requestResult.abort();
+        } else {
+            this._reject(new AbortError());
         }
-        await Platform.delay(retryAfterMs);
     }
 
-    // do we have to know about succeeding requests?
-    // we can just 
-
-    async waitForNextSend() {
-        // this._remainingRateLimitedRequest = Math.max(0, this._remainingRateLimitedRequest - 1);
+    response() {
+        return this._responsePromise;
     }
 }
 
-/*
-this represents a slot to do one rate limited api call.
-because rate-limiting is handled here, it should only
-try to do one call, so the SendScheduler can safely
-retry if the call ends up being rate limited.
-This is also why we have this abstraction it hsApi is not
-passed straight to SendQueue when it is its turn to send.
-e.g. we wouldn't want to repeat the callback in SendQueue that could
-have other side-effects before the call to hsApi that we wouldn't want
-repeated (setting up progress handlers for file uploads,
-... a UI update to say it started sending?
- ... updating storage would probably only happen once the call succeeded
- ... doing multiple hsApi calls for e.g. a file upload before sending a image message (they should individually be retried)
-) maybe it is a bit overengineering, but lets stick with it for now.
-At least the above is a clear definition why we have this class
-*/
-//class SendSlot -- obsolete
+class HomeServerApiWrapper {
+    constructor(scheduler) {
+        this._scheduler = scheduler;
+    }
+}
+
+// add request-wrapping methods to prototype
+for (const methodName of Object.getOwnPropertyNames(HomeServerApi.prototype)) {
+    if (methodName !== "constructor" && !methodName.startsWith("_")) {
+        HomeServerApiWrapper.prototype[methodName] = function(...args) {
+            return this._scheduler._hsApiRequest(methodName, args);
+        };
+    }
+}
 
 export class SendScheduler {
-    constructor({hsApi, backoff}) {
+    constructor({hsApi, clock}) {
         this._hsApi = hsApi;
-        this._sendRequests = [];
-        this._sendScheduled = false;
+        this._clock = clock;
+        this._requests = new Set();
+        this._isRateLimited = false;
+        this._isDrainingRateLimit = false;
         this._stopped = false;
-        this._waitTime = 0;
-        this._backoff = backoff;
-        /* 
-        we should have some sort of flag here that we enable
-        after all the rooms have been notified that they can resume
-        sending, so that from session, we can say scheduler.enable();
-        this way, when we have better scheduling, it won't be first come,
-        first serve, when there are a lot of events in different rooms to send,
-        but we can apply some priorization of who should go first
-        */
-        // this._enabled;
+    }
+
+    createHomeServerApiWrapper() {
+        return new HomeServerApiWrapper(this);
     }
 
     stop() {
-        // TODO: abort current requests and set offline
+        this._stopped = true;
+        for (const request of this._requests) {
+            request.abort();
+        }
+        this._requests.clear();
     }
 
     start() {
@@ -90,60 +88,45 @@ export class SendScheduler {
         return !this._stopped;
     }
 
-    // this should really be per roomId to avoid head-of-line blocking
-    // 
-    // takes a callback instead of returning a promise with the slot
-    // to make sure the scheduler doesn't get blocked by a slot that is not consumed
-    request(sendCallback) {
-        let request;
-        const promise = new Promise((resolve, reject) => request = {resolve, reject, sendCallback});
-        this._sendRequests.push(request);
-        if (!this._sendScheduled && !this._stopped) {
-            this._sendLoop();
-        }
-        return promise;
+    _hsApiRequest(name, args) {
+        const request = new Request(name, args);
+        this._doSend(request);
+        return request;
     }
 
-    async _sendLoop() {
-        while (this._sendRequests.length) {
-            const request = this._sendRequests.shift();
-            let result;
-            try {
-                // this can throw!
-                result = await this._doSend(request.sendCallback);
-            } catch (err) {
-                if (err instanceof ConnectionError) {
-                    // we're offline, everybody will have
-                    // to re-request slots when we come back online
-                    this._stopped = true;
-                    for (const r of this._sendRequests) {
-                        r.reject(err);
+    async _doSend(request) {
+        this._requests.add(request);
+        try {
+            let retryDelay;
+            while (!this._stopped) {
+                try {
+                    const requestResult = this._hsApi[request._methodName].apply(this._hsApi, request._args);
+                    // so the request can be aborted
+                    request._requestResult = requestResult;
+                    const response = await requestResult.response();
+                    request._resolve(response);
+                    return;
+                } catch (err) {
+                    if (err instanceof HomeServerError && err.errcode === "M_LIMIT_EXCEEDED") {
+                        if (Number.isSafeInteger(err.retry_after_ms)) {
+                            await this._clock.createTimeout(err.retry_after_ms).elapsed();
+                        } else {
+                            if (!retryDelay) {
+                                retryDelay = new ExponentialRetryDelay(this._clock.createTimeout);
+                            }
+                            await retryDelay.waitForRetry();
+                        }
+                    } else {
+                        request._reject(err);
+                        return;
                     }
-                    this._sendRequests = [];
-                }
-                console.error("error for request", err);
-                request.reject(err);
-                break;
-            }
-            request.resolve(result);
-        }
-        // do next here instead of in _doSend
-    }
-
-    async _doSend(sendCallback) {
-        this._sendScheduled = false;
-        await this._backoff.waitForNextSend();
-        // loop is left by return or throw
-        while (true) { // eslint-disable-line no-constant-condition
-            try {
-                return await sendCallback(this._hsApi);
-            } catch (err) {
-                if (err instanceof HomeServerError && err.errcode === "M_LIMIT_EXCEEDED") {
-                    await this._backoff.waitAfterLimitExceeded(err.retry_after_ms);
-                } else {
-                    throw err;
                 }
             }
+            if (this._stopped) {
+                request.abort();
+            }
+        } finally {
+            this._requests.delete(request);
         }
     }
 }

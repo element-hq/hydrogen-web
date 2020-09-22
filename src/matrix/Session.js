@@ -16,7 +16,7 @@ limitations under the License.
 
 import {Room} from "./room/Room.js";
 import { ObservableMap } from "../observable/index.js";
-import { SendScheduler, RateLimitingBackoff } from "./SendScheduler.js";
+import {SendScheduler} from "./SendScheduler.js";
 import {User} from "./User.js";
 import {DeviceMessageHandler} from "./DeviceMessageHandler.js";
 import {Account as E2EEAccount} from "./e2ee/Account.js";
@@ -42,15 +42,15 @@ const PICKLE_KEY = "DEFAULT_KEY";
 
 export class Session {
     // sessionInfo contains deviceId, userId and homeServer
-    constructor({clock, storage, hsApi, sessionInfo, olm, olmWorker, cryptoDriver, mediaRepository}) {
+    constructor({clock, storage, unwrappedHsApi, sessionInfo, olm, olmWorker, cryptoDriver, mediaRepository}) {
         this._clock = clock;
         this._storage = storage;
-        this._hsApi = hsApi;
+        this._sendScheduler = new SendScheduler({hsApi: unwrappedHsApi, clock});
+        this._hsApi = this._sendScheduler.createHomeServerApiWrapper();
         this._mediaRepository = mediaRepository;
         this._syncInfo = null;
         this._sessionInfo = sessionInfo;
         this._rooms = new ObservableMap();
-        this._sendScheduler = new SendScheduler({hsApi, backoff: new RateLimitingBackoff()});
         this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
         this._user = new User(sessionInfo.userId);
         this._deviceMessageHandler = new DeviceMessageHandler({storage});
@@ -332,9 +332,8 @@ export class Session {
             storage: this._storage,
             emitCollectionChange: this._roomUpdateCallback,
             hsApi: this._hsApi,
-            sendScheduler: this._sendScheduler,
-._hsApi,
-            mediaRepository: this._mediaRep            pendingEvents,
+            mediaRepository: this._mediaRepository,
+            pendingEvents,
             user: this._user,
             createRoomEncryption: this._createRoomEncryption,
             clock: this._clock
