@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -65,11 +66,12 @@ export class RequestScheduler {
         this._requests = new Set();
         this._isRateLimited = false;
         this._isDrainingRateLimit = false;
-        this._stopped = false;
+        this._stopped = true;
+        this._wrapper = new HomeServerApiWrapper(this);
     }
 
-    createHomeServerApiWrapper() {
-        return new HomeServerApiWrapper(this);
+    get hsApi() {
+        return this._wrapper;
     }
 
     stop() {
@@ -82,10 +84,6 @@ export class RequestScheduler {
 
     start() {
         this._stopped = false;
-    }
-
-    get isStarted() {
-        return !this._stopped;
     }
 
     _hsApiRequest(name, args) {

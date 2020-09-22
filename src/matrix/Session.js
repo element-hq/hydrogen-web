@@ -16,7 +16,6 @@ limitations under the License.
 
 import {Room} from "./room/Room.js";
 import { ObservableMap } from "../observable/index.js";
-import {RequestScheduler} from "./net/RequestScheduler.js";
 import {User} from "./User.js";
 import {DeviceMessageHandler} from "./DeviceMessageHandler.js";
 import {Account as E2EEAccount} from "./e2ee/Account.js";
@@ -45,8 +44,7 @@ export class Session {
     constructor({clock, storage, hsApi, sessionInfo, olm, olmWorker, cryptoDriver, mediaRepository}) {
         this._clock = clock;
         this._storage = storage;
-        this._requestScheduler = new RequestScheduler({hsApi, clock});
-        this._hsApi = this._requestScheduler.createHomeServerApiWrapper();
+        this._hsApi = hsApi;
         this._mediaRepository = mediaRepository;
         this._syncInfo = null;
         this._sessionInfo = sessionInfo;
@@ -267,13 +265,8 @@ export class Session {
         }));
     }
 
-    get isStarted() {
-        return this._requestScheduler.isStarted;
-    }
-
     dispose() {
         this._olmWorker?.dispose();
-        this._requestScheduler.stop();
         this._sessionBackup?.dispose();
         for (const room of this._rooms.values()) {
             room.dispose();
@@ -297,7 +290,6 @@ export class Session {
         const operations = await opsTxn.operations.getAll();
         const operationsByScope = groupBy(operations, o => o.scope);
 
-        this._requestScheduler.start();
         for (const [, room] of this._rooms) {
             let roomOperationsByType;
             const roomOperations = operationsByScope.get(room.id);

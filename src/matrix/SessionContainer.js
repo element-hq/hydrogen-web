@@ -20,6 +20,7 @@ import {HomeServerApi} from "./net/HomeServerApi.js";
 import {Reconnector, ConnectionStatus} from "./net/Reconnector.js";
 import {ExponentialRetryDelay} from "./net/ExponentialRetryDelay.js";
 import {MediaRepository} from "./net/MediaRepository.js";
+import {RequestScheduler} from "./net/RequestScheduler.js";
 import {HomeServerError, ConnectionError, AbortError} from "./error.js";
 import {Sync, SyncStatus} from "./Sync.js";
 import {Session} from "./Session.js";
@@ -50,7 +51,7 @@ export class SessionContainer {
         this._request = request;
         this._storageFactory = storageFactory;
         this._sessionInfoStorage = sessionInfoStorage;
-
+        this._sessionStartedByReconnector = false;
         this._status = new ObservableValue(LoadStatus.NotLoading);
         this._error = null;
         this._loginFailure = null;
@@ -59,6 +60,7 @@ export class SessionContainer {
         this._sync = null;
         this._sessionId = null;
         this._storage = null;
+        this._requestScheduler = null;
         this._olmPromise = olmPromise;
         this._workerPromise = workerPromise;
         this._cryptoDriver = cryptoDriver;
@@ -133,6 +135,7 @@ export class SessionContainer {
     }
 
     async _loadSessionInfo(sessionInfo, isNewLogin) {
+        this._sessionStartedByReconnector = false;
         this._status.set(LoadStatus.Loading);
         this._reconnector = new Reconnector({
             onlineStatus: this._onlineStatus,
@@ -159,10 +162,12 @@ export class SessionContainer {
         if (this._workerPromise) {
             olmWorker = await this._workerPromise;
         }
+        this._requestScheduler = new RequestScheduler({hsApi, clock: this._clock});
+        this._requestScheduler.start();
         this._session = new Session({
             storage: this._storage,
             sessionInfo: filteredSessionInfo,
-            hsApi,
+            hsApi: this._requestScheduler.hsApi,
             olm,
             clock: this._clock,
             olmWorker,
@@ -173,11 +178,14 @@ export class SessionContainer {
         this._status.set(LoadStatus.SessionSetup);
         await this._session.beforeFirstSync(isNewLogin);
         
-        this._sync = new Sync({hsApi, storage: this._storage, session: this._session});
+        this._sync = new Sync({hsApi: this._requestScheduler.hsApi, storage: this._storage, session: this._session});
         // notify sync and session when back online
         this._reconnectSubscription = this._reconnector.connectionStatus.subscribe(state => {
             if (state === ConnectionStatus.Online) {
+                // needs to happen before sync and session or it would abort all requests
+                this._requestScheduler.start();
                 this._sync.start();
+                this._sessionStartedByReconnector = true;
                 this._session.start(this._reconnector.lastVersionsResponse);
             }
         });
@@ -189,11 +197,7 @@ export class SessionContainer {
         // restored the connection, it would have already
         // started to session, so check first
         // to prevent an extra /versions request
-        
-        // TODO: this doesn't look logical, but works. Why?
-        // I think because isStarted is true by default. That's probably not what we intend.
-        // I think there is a bug here, in that even if the reconnector already started the session, we'd still do this.
-        if (this._session.isStarted) {
+        if (!this._sessionStartedByReconnector) {
             const lastVersionsResponse = await hsApi.versions({timeout: 10000}).response();
             this._session.start(lastVersionsResponse);
         }
@@ -258,6 +262,9 @@ export class SessionContainer {
         if (this._reconnectSubscription) {
             this._reconnectSubscription();
             this._reconnectSubscription = null;
+        }
+        if (this._requestScheduler) {
+            this._requestScheduler.stop();
         }
         if (this._sync) {
             this._sync.stop();
