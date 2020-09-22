@@ -16,7 +16,6 @@ limitations under the License.
 
 import {Room} from "./room/Room.js";
 import { ObservableMap } from "../observable/index.js";
-import { SendScheduler, RateLimitingBackoff } from "./SendScheduler.js";
 import {User} from "./User.js";
 import {DeviceMessageHandler} from "./DeviceMessageHandler.js";
 import {Account as E2EEAccount} from "./e2ee/Account.js";
@@ -42,14 +41,14 @@ const PICKLE_KEY = "DEFAULT_KEY";
 
 export class Session {
     // sessionInfo contains deviceId, userId and homeServer
-    constructor({clock, storage, hsApi, sessionInfo, olm, olmWorker, cryptoDriver}) {
+    constructor({clock, storage, hsApi, sessionInfo, olm, olmWorker, cryptoDriver, mediaRepository}) {
         this._clock = clock;
         this._storage = storage;
         this._hsApi = hsApi;
+        this._mediaRepository = mediaRepository;
         this._syncInfo = null;
         this._sessionInfo = sessionInfo;
         this._rooms = new ObservableMap();
-        this._sendScheduler = new SendScheduler({hsApi, backoff: new RateLimitingBackoff()});
         this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
         this._user = new User(sessionInfo.userId);
         this._deviceMessageHandler = new DeviceMessageHandler({storage});
@@ -266,13 +265,8 @@ export class Session {
         }));
     }
 
-    get isStarted() {
-        return this._sendScheduler.isStarted;
-    }
-
     dispose() {
         this._olmWorker?.dispose();
-        this._sendScheduler.stop();
         this._sessionBackup?.dispose();
         for (const room of this._rooms.values()) {
             room.dispose();
@@ -296,7 +290,6 @@ export class Session {
         const operations = await opsTxn.operations.getAll();
         const operationsByScope = groupBy(operations, o => o.scope);
 
-        this._sendScheduler.start();
         for (const [, room] of this._rooms) {
             let roomOperationsByType;
             const roomOperations = operationsByScope.get(room.id);
@@ -331,7 +324,7 @@ export class Session {
             storage: this._storage,
             emitCollectionChange: this._roomUpdateCallback,
             hsApi: this._hsApi,
-            sendScheduler: this._sendScheduler,
+            mediaRepository: this._mediaRepository,
             pendingEvents,
             user: this._user,
             createRoomEncryption: this._createRoomEncryption,

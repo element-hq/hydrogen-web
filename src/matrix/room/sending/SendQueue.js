@@ -20,11 +20,11 @@ import {PendingEvent} from "./PendingEvent.js";
 import {makeTxnId} from "../../common.js";
 
 export class SendQueue {
-    constructor({roomId, storage, sendScheduler, pendingEvents}) {
+    constructor({roomId, storage, hsApi, pendingEvents}) {
         pendingEvents = pendingEvents || [];
         this._roomId = roomId;
         this._storage = storage;
-        this._sendScheduler = sendScheduler;
+        this._hsApi = hsApi;
         this._pendingEvents = new SortedArray((a, b) => a.queueIndex - b.queueIndex);
         if (pendingEvents.length) {
             console.info(`SendQueue for room ${roomId} has ${pendingEvents.length} pending events`, pendingEvents);
@@ -51,22 +51,18 @@ export class SendQueue {
                     continue;
                 }
                 if (pendingEvent.needsEncryption) {
-                    const {type, content} = await this._sendScheduler.request(async hsApi => {
-                        return await this._roomEncryption.encrypt(pendingEvent.eventType, pendingEvent.content, hsApi);
-                    });
+                    const {type, content} = await this._roomEncryption.encrypt(
+                        pendingEvent.eventType, pendingEvent.content, this._hsApi);
                     pendingEvent.setEncrypted(type, content);
                     await this._tryUpdateEvent(pendingEvent);
                 }
                 console.log("really sending now");
-                const response = await this._sendScheduler.request(hsApi => {
-                    console.log("got sendScheduler slot");
-                    return hsApi.send(
+                const response = await this._hsApi.send(
                         pendingEvent.roomId,
                         pendingEvent.eventType,
                         pendingEvent.txnId,
                         pendingEvent.content
                     ).response();
-                });
                 pendingEvent.remoteId = response.event_id;
                 // 
                 console.log("writing remoteId now");

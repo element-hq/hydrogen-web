@@ -159,10 +159,6 @@ export class RoomEncryption {
     }
 
     async _requestMissingSessionFromBackup(senderKey, sessionId, source) {
-        if (!this._sessionBackup) {
-            this._notifyMissingMegolmSession();
-            return;
-        }
         // if the message came from sync, wait 10s to see if the room key arrives,
         // and only after that proceed to request from backup
         if (source === DecryptionSource.Sync) {
@@ -170,6 +166,11 @@ export class RoomEncryption {
             if (this._disposed || !this._eventIdsByMissingSession.has(encodeMissingSessionKey(senderKey, sessionId))) {
                 return;
             }
+        }
+        // show prompt to enable secret storage
+        if (!this._sessionBackup) {
+            this._notifyMissingMegolmSession();
+            return;
         }
 
         try {
