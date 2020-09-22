@@ -81,7 +81,7 @@ async function loadOlmWorker(paths) {
 // see https://github.com/rollup/plugins/tree/master/packages/multi-entry
 export async function main(container, paths, legacyExtras) {
     try {
-        // TODO: add .legacy to body in (legacy)platform.createAndMountRootView; and use body:not(.legacy) if needed for modern stuff
+        // TODO: add .legacy to .hydrogen (container) in (legacy)platform.createAndMountRootView; and use .hydrogen:not(.legacy) if needed for modern stuff
         const isIE11 = !!window.MSInputMethodContext && !!document.documentMode;
         if (isIE11) {
             document.body.className += " ie11";
@@ -104,7 +104,7 @@ export async function main(container, paths, legacyExtras) {
         } else {
             request = xhrRequest;
         }
-        const sessionInfoStorage = new SessionInfoStorage("brawl_sessions_v1");
+        const sessionInfoStorage = new SessionInfoStorage("hydrogen_sessions_v1");
         const storageFactory = new StorageFactory();
 
         const olmPromise = loadOlm(paths.olm);
