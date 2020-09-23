@@ -37,8 +37,11 @@ class ReaderRequest {
     }
 }
 
-
-export async function readFromWithTxn(eventKey, direction, amount, r, txn) {
+/**
+ * Raw because it doesn't do decryption and in the future it should not read relations either.
+ * It is just about reading entries and following fragment links
+ */
+export async function readRawTimelineEntriesWithTxn(eventKey, direction, amount, r, txn) {
     let entries = [];
     const timelineStore = txn.timelineEvents;
     const fragmentStore = txn.timelineFragments;
@@ -130,7 +133,7 @@ export class TimelineReader {
     }
 
     async _readFrom(eventKey, direction, amount, r, txn) {
-        const entries = readFromWithTxn(eventKey, direction, amount, r, txn);
+        const entries = readRawTimelineEntriesWithTxn(eventKey, direction, amount, r, txn);
         if (this._decryptEntries) {
             r.decryptRequest = this._decryptEntries(entries, txn);
             try {

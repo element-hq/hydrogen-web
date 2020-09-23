@@ -131,6 +131,12 @@ function processTimelineEvent(data, eventEntry, isInitialSync, isTimelineOpen, o
             try {
                 hasLargerEventKey = eventEntry.compare(data.lastDecryptedEventKey) > 0;
             } catch (err) {
+                // TODO: load the fragments in between here?
+                // this could happen if an earlier event gets decrypted that
+                // is in a fragment different from the live one and the timeline is not open.
+                // In this case, we will just read too many events once per app load
+                // and then keep the mapping in memory. When eventually an event is decrypted in
+                // the live fragment, this should stop failing and the event key will be written.
                 hasLargerEventKey = false;
             }
         }

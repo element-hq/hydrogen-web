@@ -222,9 +222,26 @@ export class RoomEncryption {
         return eventIds;
     }
 
+    /**
+     * caches mapping of session to event id of all encrypted candidates
+     * and filters to return only the candidates for the given room key
+     */
     findAndCacheEntriesForRoomKey(roomKey, candidateEntries) {
-        // add all to _missingSessionCandidates
-        // filter messages to roomKey
+        const matches = [];
+
+        for (const entry of candidateEntries) {
+            if (entry.eventType === ENCRYPTED_TYPE) {
+                this._missingSessionCandidates.addEvent(entry.event);
+                const senderKey = entry.event?.content?.["sender_key"];
+                const sessionId = entry.event?.content?.["session_id"];
+                if (senderKey === roomKey.senderKey && sessionId === roomKey.sessionId) {
+                    matches.push(entry);
+                }
+            }
+        }
+        
+        return matches;
+        
     }
 
     async encrypt(type, content, hsApi) {

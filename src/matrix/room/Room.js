@@ -15,9 +15,10 @@ limitations under the License.
 */
 
 import {EventEmitter} from "../../utils/EventEmitter.js";
-import {RoomSummary, needsHeroes} from "./RoomSummary.js";
+import {RoomSummary} from "./RoomSummary.js";
 import {SyncWriter} from "./timeline/persistence/SyncWriter.js";
 import {GapWriter} from "./timeline/persistence/GapWriter.js";
+import {readRawTimelineEntriesWithTxn} from "./timeline/persistence/TimelineReader.js";
 import {Timeline} from "./timeline/Timeline.js";
 import {FragmentIdComparer} from "./timeline/FragmentIdComparer.js";
 import {SendQueue} from "./sending/SendQueue.js";
@@ -26,6 +27,8 @@ import {fetchOrLoadMembers} from "./members/load.js";
 import {MemberList} from "./members/MemberList.js";
 import {Heroes} from "./members/Heroes.js";
 import {EventEntry} from "./timeline/entries/EventEntry.js";
+import {EventKey} from "./timeline/EventKey.js";
+import {Direction} from "./timeline/Direction.js";
 import {DecryptionSource} from "../e2ee/common.js";
 
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
@@ -54,10 +57,13 @@ export class Room extends EventEmitter {
 
     _readRetryDecryptCandidateEntries(sinceEventKey, txn) {
         if (sinceEventKey) {
-            return readFromWithTxn(sinceEventKey, Direction.Forward, Number.MAX_SAFE_INTEGER, txn);
+            return readRawTimelineEntriesWithTxn(sinceEventKey, Direction.Forward, Number.MAX_SAFE_INTEGER, txn);
         } else {
-            // all messages for room
-            return readFromWithTxn(this._syncWriter.lastMessageKey, Direction.Backward, Number.MAX_SAFE_INTEGER, txn);
+            // all messages for room ...
+            // if you haven't decrypted any message in a room yet,
+            // it's unlikely you will have tons of them.
+            // so this should be fine as a last resort
+            return readRawTimelineEntriesWithTxn(this._syncWriter.lastMessageKey, Direction.Backward, Number.MAX_SAFE_INTEGER, txn);
         }
     }
 
