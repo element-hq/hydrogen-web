@@ -41,17 +41,14 @@ function timelineIsEmpty(roomResponse) {
 /**
  * Sync steps in js-pseudocode:
  * ```js
- * let preparation;
- * if (room.needsPrepareSync) {
- *     // can only read some stores
- *     preparation = await room.prepareSync(roomResponse, prepareTxn);
- *     // can do async work that is not related to storage (such as decryption)
- *     preparation = await room.afterPrepareSync(preparation);
- * }
+ * // can only read some stores
+ * const preparation = await room.prepareSync(roomResponse, membership, prepareTxn);
+ * // can do async work that is not related to storage (such as decryption)
+ * await room.afterPrepareSync(preparation);
  * // writes and calculates changes
- * const changes = await room.writeSync(roomResponse, membership, isInitialSync, preparation, syncTxn);
+ * const changes = await room.writeSync(roomResponse, isInitialSync, preparation, syncTxn);
  * // applies and emits changes once syncTxn is committed
- * room.afterSync(changes);
+ * room.afterSync(changes, preparation);
  * if (room.needsAfterSyncCompleted(changes)) {
  *     // can do network requests
  *     await room.afterSyncCompleted(changes);
@@ -173,14 +170,14 @@ export class Sync {
         const isInitialSync = !syncToken;
         syncToken = response.next_batch;
         const roomStates = this._parseRoomsResponse(response.rooms, isInitialSync);
-        await this._prepareRooms(roomStates);
+        await this._prepareRooms(roomStates, isInitialSync);
         let sessionChanges;
         const syncTxn = await this._openSyncTxn();
         try {
             await Promise.all(roomStates.map(async rs => {
                 console.log(` * applying sync response to room ${rs.room.id} ...`);
                 rs.changes = await rs.room.writeSync(
-                    rs.roomResponse, rs.membership, isInitialSync, rs.preparation, syncTxn);
+                    rs.roomResponse, isInitialSync, rs.preparation, syncTxn);
             }));
             sessionChanges = await this._session.writeSync(response, syncFilterId, syncTxn);
         } catch(err) {
@@ -219,16 +216,11 @@ export class Sync {
     }
 
     async _prepareRooms(roomStates) {
-        const prepareRoomStates = roomStates.filter(rs => rs.room.needsPrepareSync);
-        if (prepareRoomStates.length) {
-            const prepareTxn = await this._openPrepareSyncTxn();
-            await Promise.all(prepareRoomStates.map(async rs => {
-                rs.preparation = await rs.room.prepareSync(rs.roomResponse, prepareTxn);
-            }));
-            await Promise.all(prepareRoomStates.map(async rs => {
-                rs.preparation = await rs.room.afterPrepareSync(rs.preparation);
-            }));
-        }
+        const prepareTxn = await this._openPrepareSyncTxn();
+        await Promise.all(roomStates.map(async rs => {
+            rs.preparation = await rs.room.prepareSync(rs.roomResponse, rs.membership, prepareTxn);
+        }));
+        await Promise.all(roomStates.map(rs => rs.room.afterPrepareSync(rs.preparation)));
     }
 
     async _openSyncTxn() {

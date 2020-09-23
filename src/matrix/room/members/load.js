@@ -82,7 +82,7 @@ async function fetchMembers({summary, syncToken, roomId, hsApi, storage, setChan
 
 export async function fetchOrLoadMembers(options) {
     const {summary} = options;
-    if (!summary.hasFetchedMembers) {
+    if (!summary.data.hasFetchedMembers) {
         return fetchMembers(options);
     } else {
         return loadMembers(options);

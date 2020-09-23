@@ -39,16 +39,17 @@ function applySyncResponse(data, roomResponse, membership) {
     if (roomResponse.account_data) {
         data = roomResponse.account_data.events.reduce(processRoomAccountData, data);
     }
+    const stateEvents = roomResponse?.state?.events;
     // state comes before timeline
-    if (roomResponse.state) {
-        data = roomResponse.state.events.reduce(processStateEvent, data);
+    if (Array.isArray(stateEvents)) {
+        data = stateEvents.reduce(processStateEvent, data);
     }
-    const {timeline} = roomResponse;
+    const timelineEvents = roomResponse?.timeline?.events;
     // process state events in timeline
     // non-state events are handled by applyTimelineEntries
     // so decryption is handled properly
-    if (timeline && Array.isArray(timeline.events)) {
-        data = timeline.events.reduce((data, event) => {
+    if (Array.isArray(timelineEvents)) {
+        data = timelineEvents.reduce((data, event) => {
             if (typeof event.state_key === "string") {
                 return processStateEvent(data, event);
             }
@@ -200,87 +201,27 @@ class SummaryData {
         const {cloned, ...serializedProps} = this;
         return serializedProps;
     }
-}
 
-export function needsHeroes(data) {
-    return !data.name && !data.canonicalAlias && data.heroes && data.heroes.length > 0;
+    applyTimelineEntries(timelineEntries, isInitialSync, isTimelineOpen, ownUserId) {
+        return applyTimelineEntries(this, timelineEntries, isInitialSync, isTimelineOpen, ownUserId);
+    }
+
+    applySyncResponse(roomResponse, membership) {
+        return applySyncResponse(this, roomResponse, membership);
+    }
+
+    get needsHeroes() {
+        return !this.name && !this.canonicalAlias && this.heroes && this.heroes.length > 0;
+    }
 }
 
 export class RoomSummary {
-	constructor(roomId, ownUserId) {
-        this._ownUserId = ownUserId;
+	constructor(roomId) {
         this._data = new SummaryData(null, roomId);
 	}
 
-	get name() {
-		if (this._data.name) {
-            return this._data.name;
-        }
-        if (this._data.canonicalAlias) {
-            return this._data.canonicalAlias;
-        }
-        return null;
-	}
-
-    get heroes() {
-        return this._data.heroes;
-    }
-
-    get encryption() {
-        return this._data.encryption;
-    }
-
-    // whether the room name should be determined with Heroes
-    get needsHeroes() {
-        return needsHeroes(this._data);
-    }
-
-    get isUnread() {
-        return this._data.isUnread;
-    }
-
-    get notificationCount() {
-        return this._data.notificationCount;
-    }
-
-    get highlightCount() {
-        return this._data.highlightCount;
-    }
-
-	get lastMessage() {
-		return this._data.lastMessageBody;
-	}
-
-    get lastMessageTimestamp() {
-        return this._data.lastMessageTimestamp;
-    }
-
-	get inviteCount() {
-		return this._data.inviteCount;
-	}
-
-	get joinCount() {
-		return this._data.joinCount;
-	}
-
-    get avatarUrl() {
-        return this._data.avatarUrl;
-    }
-
-    get hasFetchedMembers() {
-        return this._data.hasFetchedMembers;
-    }
-
-    get isTrackingMembers() {
-        return this._data.isTrackingMembers;
-    }
-    
-    get tags() {
-        return this._data.tags;
-    }
-
-    get lastDecryptedEventKey() {
-        return this._data.lastDecryptedEventKey;
+    get data() {
+        return this._data;
     }
 
     writeClearUnread(txn) {
@@ -306,45 +247,17 @@ export class RoomSummary {
         return data;
     }
 
-    /**
-     * after retrying decryption
-     */
-    processTimelineEntries(timelineEntries, isInitialSync, isTimelineOpen) {
-        // clear cloned flag, so cloneIfNeeded makes a copy and
-        // this._data is not modified if any field is changed.
-        this._data.cloned = false;
-        const data = applyTimelineEntries(
-            this._data,
-            timelineEntries,
-            isInitialSync, isTimelineOpen,
-            this._ownUserId);
-        if (data !== this._data) {
-            return data;
-        }
-    }
-
-	writeSync(roomResponse, timelineEntries, membership, isInitialSync, isTimelineOpen, txn) {
-        // clear cloned flag, so cloneIfNeeded makes a copy and
-        // this._data is not modified if any field is changed.
-        this._data.cloned = false;
-        let data = applySyncResponse(this._data, roomResponse, membership);
-        data = applyTimelineEntries(
-            data,
-            timelineEntries,
-            isInitialSync, isTimelineOpen,
-            this._ownUserId);
+	writeData(data, txn) {
 		if (data !== this._data) {
             txn.roomSummary.set(data.serialize());
             return data;
 		}
 	}
 
-    /**
-     * Only to be used with processTimelineEntries,
-     * other methods like writeSync, writeHasFetchedMembers,
-     * writeIsTrackingMembers, ... take a txn directly.
-     */
-    async writeAndApplyChanges(data, storage) {
+    async writeAndApplyData(data, storage) {
+        if (data === this._data) {
+            return;
+        }
         const txn = await storage.readWriteTxn([
             storage.storeNames.roomSummary,
         ]);
@@ -360,6 +273,9 @@ export class RoomSummary {
 
     applyChanges(data) {
         this._data = data;
+        // clear cloned flag, so cloneIfNeeded makes a copy and
+        // this._data is not modified if any field is changed.
+        this._data.cloned = false;
     }
 
 	async load(summary) {

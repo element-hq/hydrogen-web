@@ -16,8 +16,8 @@ limitations under the License.
 
 import {RoomMember} from "./RoomMember.js";
 
-function calculateRoomName(sortedMembers, summary) {
-    const countWithoutMe = summary.joinCount + summary.inviteCount - 1;
+function calculateRoomName(sortedMembers, summaryData) {
+    const countWithoutMe = summaryData.joinCount + summaryData.inviteCount - 1;
     if (sortedMembers.length >= countWithoutMe) {
         if (sortedMembers.length > 1) {
             const lastMember = sortedMembers[sortedMembers.length - 1];
@@ -74,7 +74,7 @@ export class Heroes {
         return {updatedHeroMembers: updatedHeroMembers.values(), removedUserIds};
     }
 
-    applyChanges({updatedHeroMembers, removedUserIds}, summary) {
+    applyChanges({updatedHeroMembers, removedUserIds}, summaryData) {
         for (const userId of removedUserIds) {
             this._members.delete(userId);
         }
@@ -82,7 +82,7 @@ export class Heroes {
             this._members.set(member.userId, member);
         }
         const sortedMembers = Array.from(this._members.values()).sort((a, b) => a.name.localeCompare(b.name));
-        this._roomName = calculateRoomName(sortedMembers, summary);
+        this._roomName = calculateRoomName(sortedMembers, summaryData);
     }
 
     get roomName() {
