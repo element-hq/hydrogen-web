@@ -48,7 +48,7 @@ function timelineIsEmpty(roomResponse) {
  * // writes and calculates changes
  * const changes = await room.writeSync(roomResponse, isInitialSync, preparation, syncTxn);
  * // applies and emits changes once syncTxn is committed
- * room.afterSync(changes, preparation);
+ * room.afterSync(changes);
  * if (room.needsAfterSyncCompleted(changes)) {
  *     // can do network requests
  *     await room.afterSyncCompleted(changes);
@@ -170,7 +170,7 @@ export class Sync {
         const isInitialSync = !syncToken;
         syncToken = response.next_batch;
         const roomStates = this._parseRoomsResponse(response.rooms, isInitialSync);
-        await this._prepareRooms(roomStates, isInitialSync);
+        await this._prepareRooms(roomStates);
         let sessionChanges;
         const syncTxn = await this._openSyncTxn();
         try {
