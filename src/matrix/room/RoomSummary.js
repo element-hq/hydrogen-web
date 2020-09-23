@@ -262,7 +262,7 @@ export class RoomSummary {
 
     async writeAndApplyData(data, storage) {
         if (data === this._data) {
-            return;
+            return false;
         }
         const txn = await storage.readWriteTxn([
             storage.storeNames.roomSummary,
@@ -275,6 +275,7 @@ export class RoomSummary {
         }
         await txn.complete();
         this.applyChanges(data);
+        return true;
     }
 
     applyChanges(data) {
