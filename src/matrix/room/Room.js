@@ -114,7 +114,7 @@ export class Room extends EventEmitter {
             // _decryptEntries entries and could even know which events have been decrypted for the first
             // time from DecryptionChanges.write and only pass those to the summary. As timeline changes
             // are not essential to the room summary, it's fine to write this in a separate txn for now.
-            const changes = this._summary.data.applyTimelineEntries(retryEntries, false, this._isTimelineOpen);
+            const changes = this._summary.data.applyTimelineEntries(retryEntries, false, false);
             if (await this._summary.writeAndApplyData(changes, this._storage)) {
                 this._emitUpdate();
             }
@@ -218,7 +218,7 @@ export class Room extends EventEmitter {
         }
         // also apply (decrypted) timeline entries to the summary changes
         summaryChanges = summaryChanges.applyTimelineEntries(
-            entries, isInitialSync, this._isTimelineOpen, this._user.id);
+            entries, isInitialSync, !this._isTimelineOpen, this._user.id);
         // write summary changes, and unset if nothing was actually changed
         summaryChanges = this._summary.writeData(summaryChanges, txn);
         // fetch new members while we have txn open,

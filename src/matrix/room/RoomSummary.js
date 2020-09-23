@@ -17,11 +17,11 @@ limitations under the License.
 import {MEGOLM_ALGORITHM} from "../e2ee/common.js";
 
 
-function applyTimelineEntries(data, timelineEntries, isInitialSync, isTimelineOpen, ownUserId) {
+function applyTimelineEntries(data, timelineEntries, isInitialSync, canMarkUnread, ownUserId) {
     if (timelineEntries.length) {
         data = timelineEntries.reduce((data, entry) => {
             return processTimelineEvent(data, entry,
-                isInitialSync, isTimelineOpen, ownUserId);
+                isInitialSync, canMarkUnread, ownUserId);
         }, data);
     }
     return data;
@@ -105,13 +105,13 @@ function processStateEvent(data, event) {
     return data;
 }
 
-function processTimelineEvent(data, eventEntry, isInitialSync, isTimelineOpen, ownUserId) {
+function processTimelineEvent(data, eventEntry, isInitialSync, canMarkUnread, ownUserId) {
     if (eventEntry.eventType === "m.room.message") {
         if (!data.lastMessageTimestamp || eventEntry.timestamp > data.lastMessageTimestamp) {
             data = data.cloneIfNeeded();
             data.lastMessageTimestamp = eventEntry.timestamp;
         }
-        if (!isInitialSync && eventEntry.sender !== ownUserId && !isTimelineOpen) {
+        if (!isInitialSync && eventEntry.sender !== ownUserId && canMarkUnread) {
             data = data.cloneIfNeeded();
             data.isUnread = true;
         }
@@ -208,8 +208,8 @@ class SummaryData {
         return serializedProps;
     }
 
-    applyTimelineEntries(timelineEntries, isInitialSync, isTimelineOpen, ownUserId) {
-        return applyTimelineEntries(this, timelineEntries, isInitialSync, isTimelineOpen, ownUserId);
+    applyTimelineEntries(timelineEntries, isInitialSync, canMarkUnread, ownUserId) {
+        return applyTimelineEntries(this, timelineEntries, isInitialSync, canMarkUnread, ownUserId);
     }
 
     applySyncResponse(roomResponse, membership) {
