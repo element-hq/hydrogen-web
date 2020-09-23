@@ -291,7 +291,7 @@ export class RoomSummary {
 
 export function tests() {
     return {
-        "membership trigger change": async function(assert) {
+        "membership trigger change": function(assert) {
             const summary = new RoomSummary("id");
             let written = false;
             let changes = summary.data.applySyncResponse({}, "join");
