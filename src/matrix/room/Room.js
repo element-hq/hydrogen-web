@@ -52,42 +52,63 @@ export class Room extends EventEmitter {
         this._clock = clock;
 	}
 
-    _readEntriesToRetryDecryption(retryEventIds) {
-        const readFromEventKey = retryEventIds.length !== 0;
-        const stores = 
-        const txn = await this._storage.readTxn([
-            this._storage.storeNames.timelineEvents,
-            this._storage.storeNames.inboundGroupSessions,
-        ]);
+    _readRetryDecryptCandidateEntries(sinceEventKey, txn) {
+        if (sinceEventKey) {
+            return readFromWithTxn(sinceEventKey, Direction.Forward, Number.MAX_SAFE_INTEGER, txn);
+        } else {
+            // all messages for room
+            return readFromWithTxn(this._syncWriter.lastMessageKey, Direction.Backward, Number.MAX_SAFE_INTEGER, txn);
+        }
     }
 
-    async notifyRoomKeys(roomKeys) {
-        if (this._roomEncryption) {
-            let retryEventIds = this._roomEncryption.applyRoomKeys(roomKeys);
-            if (retryEventIds.length) {
-                const retryEntries = [];
-                const txn = await this._storage.readTxn([
-                    this._storage.storeNames.timelineEvents,
-                    this._storage.storeNames.inboundGroupSessions,
-                ]);
-                for (const eventId of retryEventIds) {
-                    const storageEntry = await txn.timelineEvents.getByEventId(this._roomId, eventId);
-                    if (storageEntry) {
-                        retryEntries.push(new EventEntry(storageEntry, this._fragmentIdComparer));
-                    }
+    async notifyRoomKey(roomKey) {
+        if (!this._roomEncryption) {
+            return;
+        }
+        const retryEventIds = this._roomEncryption.getEventIdsForRoomKey(roomKey);
+        const stores = [
+            this._storage.storeNames.timelineEvents,
+            this._storage.storeNames.inboundGroupSessions,
+        ];
+        let txn;
+        let retryEntries;
+        if (retryEventIds) {
+            retryEntries = [];
+            txn = await this._storage.readTxn(stores);
+            for (const eventId of retryEventIds) {
+                const storageEntry = await txn.timelineEvents.getByEventId(this._roomId, eventId);
+                if (storageEntry) {
+                    retryEntries.push(new EventEntry(storageEntry, this._fragmentIdComparer));
                 }
-                const decryptRequest = this._decryptEntries(DecryptionSource.Retry, retryEntries, txn);
-                await decryptRequest.complete();
+            }
+        } else {
+            // we only look for messages since lastDecryptedEventKey because
+            // the timeline must be closed (otherwise getEventIdsForRoomKey would have found the event ids)
+            // and to update the summary we only care about events since lastDecryptedEventKey
+            const key = this._summary.data.lastDecryptedEventKey;
+            // key might be missing if we haven't decrypted any events in this room
+            const sinceEventKey = key && new EventKey(key.fragmentId, key.entryIndex);
+            // check we have not already decrypted the most recent event in the room
+            // otherwise we know that the messages for this room key will not update the room summary
+            if (!sinceEventKey || !sinceEventKey.equals(this._syncWriter.lastMessageKey)) {
+                txn = await this._storage.readTxn(stores.concat(this._storage.storeNames.timelineFragments));
+                const candidateEntries = await this._readRetryDecryptCandidateEntries(sinceEventKey, txn);
+                retryEntries = this._roomEncryption.findAndCacheEntriesForRoomKey(roomKey, candidateEntries);
+            }
+        }
+        if (retryEntries?.length) {
+            const decryptRequest = this._decryptEntries(DecryptionSource.Retry, retryEntries, txn);
+            // this will close txn while awaiting decryption
+            await decryptRequest.complete();
 
-                this._timeline?.replaceEntries(retryEntries);
-                // we would ideally write the room summary in the same txn as the groupSessionDecryptions in the
-                // _decryptEntries entries and could even know which events have been decrypted for the first
-                // time from DecryptionChanges.write and only pass those to the summary. As timeline changes
-                // are not essential to the room summary, it's fine to write this in a separate txn for now.
-                const changes = this._summary.data.applyTimelineEntries(retryEntries, false, this._isTimelineOpen);
-                if (await this._summary.writeAndApplyData(changes, this._storage)) {
-                    this._emitUpdate();
-                }
+            this._timeline?.replaceEntries(retryEntries);
+            // we would ideally write the room summary in the same txn as the groupSessionDecryptions in the
+            // _decryptEntries entries and could even know which events have been decrypted for the first
+            // time from DecryptionChanges.write and only pass those to the summary. As timeline changes
+            // are not essential to the room summary, it's fine to write this in a separate txn for now.
+            const changes = this._summary.data.applyTimelineEntries(retryEntries, false, this._isTimelineOpen);
+            if (await this._summary.writeAndApplyData(changes, this._storage)) {
+                this._emitUpdate();
             }
         }
     }
@@ -203,7 +224,7 @@ export class Room extends EventEmitter {
             heroChanges = await this._heroes.calculateChanges(summaryChanges.heroes, memberChanges, txn);
         }
         let removedPendingEvents;
-        if (roomResponse.timeline && roomResponse.timeline.events) {
+        if (Array.isArray(roomResponse.timeline?.events)) {
             removedPendingEvents = this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn);
         }
         return {

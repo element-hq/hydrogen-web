@@ -46,6 +46,7 @@ export async function readFromWithTxn(eventKey, direction, amount, r, txn) {
     while (entries.length < amount && eventKey) {
         let eventsWithinFragment;
         if (direction.isForward) {
+            // TODO: should we pass amount - entries.length here?
             eventsWithinFragment = await timelineStore.eventsAfter(this._roomId, eventKey, amount);
         } else {
             eventsWithinFragment = await timelineStore.eventsBefore(this._roomId, eventKey, amount);
@@ -56,6 +57,10 @@ export async function readFromWithTxn(eventKey, direction, amount, r, txn) {
 
         if (entries.length < amount) {
             const fragment = await fragmentStore.get(this._roomId, eventKey.fragmentId);
+            // TODO: why does the first fragment not need to be added? (the next *is* added below)
+            // it looks like this would be fine when loading in the sync island
+            // (as the live fragment should be added already) but not for permalinks when we support them
+            // 
             // this._fragmentIdComparer.addFragment(fragment);
             let fragmentEntry = new FragmentBoundaryEntry(fragment, direction.isBackward, this._fragmentIdComparer);
             // append or prepend fragmentEntry, reuse func from GapWriter?
