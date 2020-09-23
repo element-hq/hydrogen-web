@@ -41,7 +41,7 @@ class ReaderRequest {
  * Raw because it doesn't do decryption and in the future it should not read relations either.
  * It is just about reading entries and following fragment links
  */
-export async function readRawTimelineEntriesWithTxn(eventKey, direction, amount, r, txn) {
+export async function readRawTimelineEntriesWithTxn(roomId, eventKey, direction, amount, fragmentIdComparer, txn) {
     let entries = [];
     const timelineStore = txn.timelineEvents;
     const fragmentStore = txn.timelineFragments;
@@ -50,29 +50,29 @@ export async function readRawTimelineEntriesWithTxn(eventKey, direction, amount,
         let eventsWithinFragment;
         if (direction.isForward) {
             // TODO: should we pass amount - entries.length here?
-            eventsWithinFragment = await timelineStore.eventsAfter(this._roomId, eventKey, amount);
+            eventsWithinFragment = await timelineStore.eventsAfter(roomId, eventKey, amount);
         } else {
-            eventsWithinFragment = await timelineStore.eventsBefore(this._roomId, eventKey, amount);
+            eventsWithinFragment = await timelineStore.eventsBefore(roomId, eventKey, amount);
         }
-        let eventEntries = eventsWithinFragment.map(e => new EventEntry(e, this._fragmentIdComparer));
+        let eventEntries = eventsWithinFragment.map(e => new EventEntry(e, fragmentIdComparer));
         entries = directionalConcat(entries, eventEntries, direction);
         // prepend or append eventsWithinFragment to entries, and wrap them in EventEntry
 
         if (entries.length < amount) {
-            const fragment = await fragmentStore.get(this._roomId, eventKey.fragmentId);
+            const fragment = await fragmentStore.get(roomId, eventKey.fragmentId);
             // TODO: why does the first fragment not need to be added? (the next *is* added below)
             // it looks like this would be fine when loading in the sync island
             // (as the live fragment should be added already) but not for permalinks when we support them
             // 
-            // this._fragmentIdComparer.addFragment(fragment);
-            let fragmentEntry = new FragmentBoundaryEntry(fragment, direction.isBackward, this._fragmentIdComparer);
+            // fragmentIdComparer.addFragment(fragment);
+            let fragmentEntry = new FragmentBoundaryEntry(fragment, direction.isBackward, fragmentIdComparer);
             // append or prepend fragmentEntry, reuse func from GapWriter?
             directionalAppend(entries, fragmentEntry, direction);
             // only continue loading if the fragment boundary can't be backfilled
             if (!fragmentEntry.token && fragmentEntry.hasLinkedFragment) {
-                const nextFragment = await fragmentStore.get(this._roomId, fragmentEntry.linkedFragmentId);
-                this._fragmentIdComparer.add(nextFragment);
-                const nextFragmentEntry = new FragmentBoundaryEntry(nextFragment, direction.isForward, this._fragmentIdComparer);
+                const nextFragment = await fragmentStore.get(roomId, fragmentEntry.linkedFragmentId);
+                fragmentIdComparer.add(nextFragment);
+                const nextFragmentEntry = new FragmentBoundaryEntry(nextFragment, direction.isForward, fragmentIdComparer);
                 directionalAppend(entries, nextFragmentEntry, direction);
                 eventKey = nextFragmentEntry.asEventKey();
             } else {
@@ -133,7 +133,7 @@ export class TimelineReader {
     }
 
     async _readFrom(eventKey, direction, amount, r, txn) {
-        const entries = readRawTimelineEntriesWithTxn(eventKey, direction, amount, r, txn);
+        const entries = await readRawTimelineEntriesWithTxn(this._roomId, eventKey, direction, amount, this._fragmentIdComparer, txn);
         if (this._decryptEntries) {
             r.decryptRequest = this._decryptEntries(entries, txn);
             try {

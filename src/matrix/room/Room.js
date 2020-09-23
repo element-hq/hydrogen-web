@@ -57,13 +57,15 @@ export class Room extends EventEmitter {
 
     _readRetryDecryptCandidateEntries(sinceEventKey, txn) {
         if (sinceEventKey) {
-            return readRawTimelineEntriesWithTxn(sinceEventKey, Direction.Forward, Number.MAX_SAFE_INTEGER, txn);
+            return readRawTimelineEntriesWithTxn(this._roomId, sinceEventKey,
+                Direction.Forward, Number.MAX_SAFE_INTEGER, this._fragmentIdComparer, txn);
         } else {
             // all messages for room ...
             // if you haven't decrypted any message in a room yet,
             // it's unlikely you will have tons of them.
             // so this should be fine as a last resort
-            return readRawTimelineEntriesWithTxn(this._syncWriter.lastMessageKey, Direction.Backward, Number.MAX_SAFE_INTEGER, txn);
+            return readRawTimelineEntriesWithTxn(this._roomId, this._syncWriter.lastMessageKey,
+                Direction.Backward, Number.MAX_SAFE_INTEGER, this._fragmentIdComparer, txn);
         }
     }
 
