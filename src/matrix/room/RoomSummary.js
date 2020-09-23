@@ -291,10 +291,12 @@ export class RoomSummary {
 
 export function tests() {
     return {
-        "membership trigger change": function(assert) {
+        "membership trigger change": async function(assert) {
             const summary = new RoomSummary("id");
             let written = false;
-            const changes = summary.writeSync({}, "join", false, false, {roomSummary: {set: () => { written = true; }}});
+            let changes = summary.data.applySyncResponse({}, "join");
+            const txn = {roomSummary: {set: () => { written = true; }}};
+            changes = summary.writeData(changes, txn);
             assert(changes);
             assert(written);
             assert.equal(changes.membership, "join");
