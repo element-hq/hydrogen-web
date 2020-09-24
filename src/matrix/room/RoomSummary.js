@@ -17,11 +17,11 @@ limitations under the License.
 import {MEGOLM_ALGORITHM} from "../e2ee/common.js";
 
 
-function applyTimelineEntries(data, timelineEntries, isInitialSync, isTimelineOpen, ownUserId) {
+function applyTimelineEntries(data, timelineEntries, isInitialSync, canMarkUnread, ownUserId) {
     if (timelineEntries.length) {
         data = timelineEntries.reduce((data, entry) => {
             return processTimelineEvent(data, entry,
-                isInitialSync, isTimelineOpen, ownUserId);
+                isInitialSync, canMarkUnread, ownUserId);
         }, data);
     }
     return data;
@@ -39,16 +39,17 @@ function applySyncResponse(data, roomResponse, membership) {
     if (roomResponse.account_data) {
         data = roomResponse.account_data.events.reduce(processRoomAccountData, data);
     }
+    const stateEvents = roomResponse?.state?.events;
     // state comes before timeline
-    if (roomResponse.state) {
-        data = roomResponse.state.events.reduce(processStateEvent, data);
+    if (Array.isArray(stateEvents)) {
+        data = stateEvents.reduce(processStateEvent, data);
     }
-    const {timeline} = roomResponse;
+    const timelineEvents = roomResponse?.timeline?.events;
     // process state events in timeline
     // non-state events are handled by applyTimelineEntries
     // so decryption is handled properly
-    if (timeline && Array.isArray(timeline.events)) {
-        data = timeline.events.reduce((data, event) => {
+    if (Array.isArray(timelineEvents)) {
+        data = timelineEvents.reduce((data, event) => {
             if (typeof event.state_key === "string") {
                 return processStateEvent(data, event);
             }
@@ -104,13 +105,13 @@ function processStateEvent(data, event) {
     return data;
 }
 
-function processTimelineEvent(data, eventEntry, isInitialSync, isTimelineOpen, ownUserId) {
+function processTimelineEvent(data, eventEntry, isInitialSync, canMarkUnread, ownUserId) {
     if (eventEntry.eventType === "m.room.message") {
         if (!data.lastMessageTimestamp || eventEntry.timestamp > data.lastMessageTimestamp) {
             data = data.cloneIfNeeded();
             data.lastMessageTimestamp = eventEntry.timestamp;
         }
-        if (!isInitialSync && eventEntry.sender !== ownUserId && !isTimelineOpen) {
+        if (!isInitialSync && eventEntry.sender !== ownUserId && canMarkUnread) {
             data = data.cloneIfNeeded();
             data.isUnread = true;
         }
@@ -120,6 +121,29 @@ function processTimelineEvent(data, eventEntry, isInitialSync, isTimelineOpen, o
         if (msgtype === "m.text" && !eventEntry.isEncrypted) {
             data = data.cloneIfNeeded();
             data.lastMessageBody = body;
+        }
+    }
+    // store the event key of the last decrypted event so when decryption does succeed,
+    // we can attempt to re-decrypt from this point to update the room summary
+    if (!!data.encryption && eventEntry.isEncrypted && eventEntry.isDecrypted) {
+        let hasLargerEventKey = true;
+        if (data.lastDecryptedEventKey) {
+            try {
+                hasLargerEventKey = eventEntry.compare(data.lastDecryptedEventKey) > 0;
+            } catch (err) {
+                // TODO: load the fragments in between here?
+                // this could happen if an earlier event gets decrypted that
+                // is in a fragment different from the live one and the timeline is not open.
+                // In this case, we will just read too many events once per app load
+                // and then keep the mapping in memory. When eventually an event is decrypted in
+                // the live fragment, this should stop failing and the event key will be written.
+                hasLargerEventKey = false;
+            }
+        }
+        if (hasLargerEventKey) {
+            data = data.cloneIfNeeded();
+            const {fragmentId, entryIndex} = eventEntry;
+            data.lastDecryptedEventKey = {fragmentId, entryIndex};
         }
     }
     return data;
@@ -155,6 +179,7 @@ class SummaryData {
         this.lastMessageTimestamp = copy ? copy.lastMessageTimestamp : null;
         this.isUnread = copy ? copy.isUnread : false;
         this.encryption = copy ? copy.encryption : null;
+        this.lastDecryptedEventKey = copy ? copy.lastDecryptedEventKey : null;
         this.isDirectMessage = copy ? copy.isDirectMessage : false;
         this.membership = copy ? copy.membership : null;
         this.inviteCount = copy ? copy.inviteCount : 0;
@@ -182,83 +207,27 @@ class SummaryData {
         const {cloned, ...serializedProps} = this;
         return serializedProps;
     }
-}
 
-export function needsHeroes(data) {
-    return !data.name && !data.canonicalAlias && data.heroes && data.heroes.length > 0;
+    applyTimelineEntries(timelineEntries, isInitialSync, canMarkUnread, ownUserId) {
+        return applyTimelineEntries(this, timelineEntries, isInitialSync, canMarkUnread, ownUserId);
+    }
+
+    applySyncResponse(roomResponse, membership) {
+        return applySyncResponse(this, roomResponse, membership);
+    }
+
+    get needsHeroes() {
+        return !this.name && !this.canonicalAlias && this.heroes && this.heroes.length > 0;
+    }
 }
 
 export class RoomSummary {
-	constructor(roomId, ownUserId) {
-        this._ownUserId = ownUserId;
+	constructor(roomId) {
         this._data = new SummaryData(null, roomId);
 	}
 
-	get name() {
-		if (this._data.name) {
-            return this._data.name;
-        }
-        if (this._data.canonicalAlias) {
-            return this._data.canonicalAlias;
-        }
-        return null;
-	}
-
-    get heroes() {
-        return this._data.heroes;
-    }
-
-    get encryption() {
-        return this._data.encryption;
-    }
-
-    // whether the room name should be determined with Heroes
-    get needsHeroes() {
-        return needsHeroes(this._data);
-    }
-
-    get isUnread() {
-        return this._data.isUnread;
-    }
-
-    get notificationCount() {
-        return this._data.notificationCount;
-    }
-
-    get highlightCount() {
-        return this._data.highlightCount;
-    }
-
-	get lastMessage() {
-		return this._data.lastMessageBody;
-	}
-
-    get lastMessageTimestamp() {
-        return this._data.lastMessageTimestamp;
-    }
-
-	get inviteCount() {
-		return this._data.inviteCount;
-	}
-
-	get joinCount() {
-		return this._data.joinCount;
-	}
-
-    get avatarUrl() {
-        return this._data.avatarUrl;
-    }
-
-    get hasFetchedMembers() {
-        return this._data.hasFetchedMembers;
-    }
-
-    get isTrackingMembers() {
-        return this._data.isTrackingMembers;
-    }
-    
-    get tags() {
-        return this._data.tags;
+    get data() {
+        return this._data;
     }
 
     writeClearUnread(txn) {
@@ -284,48 +253,17 @@ export class RoomSummary {
         return data;
     }
 
-    /**
-     * after retrying decryption
-     */
-    processTimelineEntries(timelineEntries, isInitialSync, isTimelineOpen) {
-        // clear cloned flag, so cloneIfNeeded makes a copy and
-        // this._data is not modified if any field is changed.
-        
-        processTimelineEvent
-
-        this._data.cloned = false;
-        const data = applyTimelineEntries(
-            this._data,
-            timelineEntries,
-            isInitialSync, isTimelineOpen,
-            this._ownUserId);
-        if (data !== this._data) {
-            return data;
-        }
-    }
-
-	writeSync(roomResponse, timelineEntries, membership, isInitialSync, isTimelineOpen, txn) {
-        // clear cloned flag, so cloneIfNeeded makes a copy and
-        // this._data is not modified if any field is changed.
-        this._data.cloned = false;
-        let data = applySyncResponse(this._data, roomResponse, membership);
-        data = applyTimelineEntries(
-            data,
-            timelineEntries,
-            isInitialSync, isTimelineOpen,
-            this._ownUserId);
+	writeData(data, txn) {
 		if (data !== this._data) {
             txn.roomSummary.set(data.serialize());
             return data;
 		}
 	}
 
-    /**
-     * Only to be used with processTimelineEntries,
-     * other methods like writeSync, writeHasFetchedMembers,
-     * writeIsTrackingMembers, ... take a txn directly.
-     */
-    async writeAndApplyChanges(data, storage) {
+    async writeAndApplyData(data, storage) {
+        if (data === this._data) {
+            return false;
+        }
         const txn = await storage.readWriteTxn([
             storage.storeNames.roomSummary,
         ]);
@@ -337,10 +275,14 @@ export class RoomSummary {
         }
         await txn.complete();
         this.applyChanges(data);
+        return true;
     }
 
     applyChanges(data) {
         this._data = data;
+        // clear cloned flag, so cloneIfNeeded makes a copy and
+        // this._data is not modified if any field is changed.
+        this._data.cloned = false;
     }
 
 	async load(summary) {
@@ -353,7 +295,9 @@ export function tests() {
         "membership trigger change": function(assert) {
             const summary = new RoomSummary("id");
             let written = false;
-            const changes = summary.writeSync({}, "join", false, false, {roomSummary: {set: () => { written = true; }}});
+            let changes = summary.data.applySyncResponse({}, "join");
+            const txn = {roomSummary: {set: () => { written = true; }}};
+            changes = summary.writeData(changes, txn);
             assert(changes);
             assert(written);
             assert.equal(changes.membership, "join");

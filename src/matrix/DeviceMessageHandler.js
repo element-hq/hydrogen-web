@@ -59,12 +59,12 @@ export class DeviceMessageHandler {
         return {roomKeys};
     }
 
-    _applyDecryptChanges(rooms, {roomKeys}) {
-        if (roomKeys && roomKeys.length) {
-            const roomKeysByRoom = groupBy(roomKeys, s => s.roomId);
-            for (const [roomId, roomKeys] of roomKeysByRoom) {
-                const room = rooms.get(roomId);
-                room?.notifyRoomKeys(roomKeys);
+    async _applyDecryptChanges(rooms, {roomKeys}) {
+        if (Array.isArray(roomKeys)) {
+            for (const roomKey of roomKeys) {
+                const room = rooms.get(roomKey.roomId);
+                // TODO: this is less parallized than it could be (like sync)
+                await room?.notifyRoomKey(roomKey);
             }
         }
     }
@@ -101,7 +101,7 @@ export class DeviceMessageHandler {
             throw err;
         }
         await txn.complete();
-        this._applyDecryptChanges(rooms, changes);
+        await this._applyDecryptChanges(rooms, changes);
     }
 
     async _getPendingEvents(txn) {

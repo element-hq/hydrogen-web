@@ -63,6 +63,10 @@ export class EventKey {
     toString() {
         return `[${this.fragmentId}/${this.eventIndex}]`;
     }
+
+    equals(other) {
+        return this.fragmentId === other?.fragmentId && this.eventIndex === other?.eventIndex;
+    }
 }
 
 export function xtests() {

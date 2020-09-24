@@ -42,8 +42,12 @@ export class RoomEncryption {
 
         this._megolmBackfillCache = this._megolmDecryption.createSessionCache();
         this._megolmSyncCache = this._megolmDecryption.createSessionCache();
-        // not `event_id`, but an internal event id passed in to the decrypt methods
-        this._eventIdsByMissingSession = new Map();
+        // session => event ids of messages we tried to decrypt and the session was missing
+        this._missingSessions = new SessionToEventIdsMap();
+        // sessions that may or may not be missing, but that while
+        // looking for a particular session came up as a candidate and were
+        // added to the cache to prevent further lookups from storage
+        this._missingSessionCandidates = new SessionToEventIdsMap();
         this._senderDeviceCache = new Map();
         this._storage = storage;
         this._sessionBackup = sessionBackup;
@@ -57,8 +61,7 @@ export class RoomEncryption {
             return;
         }
         this._sessionBackup = sessionBackup;
-        for(const key of this._eventIdsByMissingSession.keys()) {
-            const {senderKey, sessionId} = decodeMissingSessionKey(key);
+        for(const {senderKey, sessionId} of this._missingSessions.getSessions()) {
             await this._requestMissingSessionFromBackup(senderKey, sessionId, null);
         }
     }
@@ -115,13 +118,17 @@ export class RoomEncryption {
         if (customCache) {
             customCache.dispose();
         }
-        return new DecryptionPreparation(preparation, errors, {isTimelineOpen, source}, this);
+        return new DecryptionPreparation(preparation, errors, {isTimelineOpen, source}, this, events);
     }
 
-    async _processDecryptionResults(results, errors, flags, txn) {
-        for (const error of errors.values()) {
-            if (error.code === "MEGOLM_NO_SESSION") {
-                this._addMissingSessionEvent(error.event, flags.source);
+    async _processDecryptionResults(events, results, errors, flags, txn) {
+        for (const event of events) {
+            const error = errors.get(event.event_id);
+            if (error?.code === "MEGOLM_NO_SESSION") {
+                this._addMissingSessionEvent(event, flags.source);
+            } else {
+                this._missingSessions.removeEvent(event);
+                this._missingSessionCandidates.removeEvent(event);
             }
         }
         if (flags.isTimelineOpen) {
@@ -145,17 +152,12 @@ export class RoomEncryption {
     }
 
     _addMissingSessionEvent(event, source) {
-        const senderKey = event.content?.["sender_key"];
-        const sessionId = event.content?.["session_id"];
-        const key = encodeMissingSessionKey(senderKey, sessionId);
-        let eventIds = this._eventIdsByMissingSession.get(key);
-        // new missing session
-        if (!eventIds) {
+        const isNewSession = this._missingSessions.addEvent(event);
+        if (isNewSession) {
+            const senderKey = event.content?.["sender_key"];
+            const sessionId = event.content?.["session_id"];
             this._requestMissingSessionFromBackup(senderKey, sessionId, source);
-            eventIds = new Set();
-            this._eventIdsByMissingSession.set(key, eventIds);
         }
-        eventIds.add(event.event_id);
     }
 
     async _requestMissingSessionFromBackup(senderKey, sessionId, source) {
@@ -163,7 +165,7 @@ export class RoomEncryption {
         // and only after that proceed to request from backup
         if (source === DecryptionSource.Sync) {
             await this._clock.createTimeout(10000).elapsed();
-            if (this._disposed || !this._eventIdsByMissingSession.has(encodeMissingSessionKey(senderKey, sessionId))) {
+            if (this._disposed || !this._missingSessions.hasSession(senderKey, sessionId)) {
                 return;
             }
         }
@@ -192,8 +194,8 @@ export class RoomEncryption {
                 await txn.complete();
 
                 if (roomKey) {
-                    // this will call into applyRoomKeys below
-                    await this._room.notifyRoomKeys([roomKey]);
+                    // this will reattempt decryption
+                    await this._room.notifyRoomKey(roomKey);
                 }
             } else if (session?.algorithm) {
                 console.info(`Backed-up session of unknown algorithm: ${session.algorithm}`);
@@ -212,18 +214,36 @@ export class RoomEncryption {
      * @param  {Array<RoomKeyDescription>} roomKeys
      * @return {Array<string>} the event ids that should be retried to decrypt
      */
-    applyRoomKeys(roomKeys) {
-        // retry decryption with the new sessions
-        const retryEventIds = [];
-        for (const roomKey of roomKeys) {
-            const key = encodeMissingSessionKey(roomKey.senderKey, roomKey.sessionId);
-            const entriesForSession = this._eventIdsByMissingSession.get(key);
-            if (entriesForSession) {
-                this._eventIdsByMissingSession.delete(key);
-                retryEventIds.push(...entriesForSession);
+    getEventIdsForRoomKey(roomKey) {
+        // TODO: we could concat both results here, and only put stuff in
+        // candidates if it is not in missing sessions to use a bit less memory
+        let eventIds = this._missingSessions.getEventIds(roomKey.senderKey, roomKey.sessionId);
+        if (!eventIds) {
+            eventIds = this._missingSessionCandidates.getEventIds(roomKey.senderKey, roomKey.sessionId);
+        }
+        return eventIds;
+    }
+
+    /**
+     * caches mapping of session to event id of all encrypted candidates
+     * and filters to return only the candidates for the given room key
+     */
+    findAndCacheEntriesForRoomKey(roomKey, candidateEntries) {
+        const matches = [];
+
+        for (const entry of candidateEntries) {
+            if (entry.eventType === ENCRYPTED_TYPE) {
+                this._missingSessionCandidates.addEvent(entry.event);
+                const senderKey = entry.event?.content?.["sender_key"];
+                const sessionId = entry.event?.content?.["session_id"];
+                if (senderKey === roomKey.senderKey && sessionId === roomKey.sessionId) {
+                    matches.push(entry);
+                }
             }
         }
-        return retryEventIds;
+        
+        return matches;
+        
     }
 
     async encrypt(type, content, hsApi) {
@@ -354,11 +374,12 @@ export class RoomEncryption {
  * the decryption results before turning them
  */
 class DecryptionPreparation {
-    constructor(megolmDecryptionPreparation, extraErrors, flags, roomEncryption) {
+    constructor(megolmDecryptionPreparation, extraErrors, flags, roomEncryption, events) {
         this._megolmDecryptionPreparation = megolmDecryptionPreparation;
         this._extraErrors = extraErrors;
         this._flags = flags;
         this._roomEncryption = roomEncryption;
+        this._events = events;
     }
 
     async decrypt() {
@@ -366,7 +387,8 @@ class DecryptionPreparation {
             await this._megolmDecryptionPreparation.decrypt(),
             this._extraErrors,
             this._flags,
-            this._roomEncryption);
+            this._roomEncryption,
+            this._events);
     }
 
     dispose() {
@@ -375,17 +397,18 @@ class DecryptionPreparation {
 }
 
 class DecryptionChanges {
-    constructor(megolmDecryptionChanges, extraErrors, flags, roomEncryption) {
+    constructor(megolmDecryptionChanges, extraErrors, flags, roomEncryption, events) {
         this._megolmDecryptionChanges = megolmDecryptionChanges;
         this._extraErrors = extraErrors;
         this._flags = flags;
         this._roomEncryption = roomEncryption;
+        this._events = events;
     }
 
     async write(txn) {
         const {results, errors} = await this._megolmDecryptionChanges.write(txn);
         mergeMap(this._extraErrors, errors);
-        await this._roomEncryption._processDecryptionResults(results, errors, this._flags, txn);
+        await this._roomEncryption._processDecryptionResults(this._events, results, errors, this._flags, txn);
         return new BatchDecryptionResult(results, errors);
     }
 }
@@ -408,5 +431,60 @@ class BatchDecryptionResult {
                 }
             }
         }
+    }
+}
+
+class SessionToEventIdsMap {
+    constructor() {
+        this._eventIdsBySession = new Map();
+    }
+
+    addEvent(event) {
+        let isNewSession = false;
+        const senderKey = event.content?.["sender_key"];
+        const sessionId = event.content?.["session_id"];
+        const key = encodeMissingSessionKey(senderKey, sessionId);
+        let eventIds = this._eventIdsBySession.get(key);
+        // new missing session
+        if (!eventIds) {
+            eventIds = new Set();
+            this._eventIdsBySession.set(key, eventIds);
+            isNewSession = true;
+        }
+        eventIds.add(event.event_id);
+        return isNewSession;
+    }
+
+    getEventIds(senderKey, sessionId) {
+        const key = encodeMissingSessionKey(senderKey, sessionId);
+        const entriesForSession = this._eventIdsBySession.get(key);
+        if (entriesForSession) {
+            return [...entriesForSession];
+        }
+    }
+
+    getSessions() {
+        return Array.from(this._eventIdsBySession.keys()).map(decodeMissingSessionKey);
+    }
+
+    hasSession(senderKey, sessionId) {
+        return this._eventIdsBySession.has(encodeMissingSessionKey(senderKey, sessionId));
+    }
+
+    removeEvent(event) {
+        let hasRemovedSession = false;
+        const senderKey = event.content?.["sender_key"];
+        const sessionId = event.content?.["session_id"];
+        const key = encodeMissingSessionKey(senderKey, sessionId);
+        let eventIds = this._eventIdsBySession.get(key);
+        if (eventIds) {
+            if (eventIds.delete(event.event_id)) {
+                if (!eventIds.length) {
+                    this._eventIdsBySession.delete(key);
+                    hasRemovedSession = true;
+                }
+            }
+        }
+        return hasRemovedSession;
     }
 }
