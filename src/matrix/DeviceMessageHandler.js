@@ -15,7 +15,6 @@ limitations under the License.
 */
 
 import {OLM_ALGORITHM, MEGOLM_ALGORITHM} from "./e2ee/common.js";
-import {groupBy} from "../utils/groupBy.js";
 
 // key to store in session store
 const PENDING_ENCRYPTED_EVENTS = "pendingEncryptedDeviceEvents";
@@ -32,13 +31,20 @@ export class DeviceMessageHandler {
         this._megolmDecryption = megolmDecryption;
     }
 
+    /**
+     * @return {bool} whether messages are waiting to be decrypted and `decryptPending` should be called.
+     */
     async writeSync(toDeviceEvents, txn) {
         const encryptedEvents = toDeviceEvents.filter(e => e.type === "m.room.encrypted");
+        if (!encryptedEvents.length) {
+            return false;
+        }
         // store encryptedEvents
         let pendingEvents = await this._getPendingEvents(txn);
         pendingEvents = pendingEvents.concat(encryptedEvents);
         txn.session.set(PENDING_ENCRYPTED_EVENTS, pendingEvents);
         // we don't handle anything other for now
+        return true;
     }
 
     /**

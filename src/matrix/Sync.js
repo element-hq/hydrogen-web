@@ -93,6 +93,7 @@ export class Sync {
         // if syncToken is falsy, it will first do an initial sync ... 
         while(this._status.get() !== SyncStatus.Stopped) {
             let roomStates;
+            let sessionChanges;
             try {
                 console.log(`starting sync request with since ${syncToken} ...`);
                 // unless we are happily syncing already, we want the server to return
@@ -110,6 +111,7 @@ export class Sync {
                 const syncResult = await this._syncRequest(syncToken, timeout);
                 syncToken = syncResult.syncToken;
                 roomStates = syncResult.roomStates;
+                sessionChanges = syncResult.sessionChanges;
                 // initial sync or catchup sync
                 if (this._status.get() !== SyncStatus.Syncing && syncResult.hadToDeviceMessages) {
                     this._status.set(SyncStatus.CatchupSync);
@@ -125,16 +127,21 @@ export class Sync {
                 }
             }
             if (this._status.get() !== SyncStatus.Stopped) {
-                await this._runAfterSyncCompleted(roomStates);
+                // TODO: if we're not going to run this phase in parallel with the next
+                // sync request (because this causes OTKs to be uploaded twice)
+                // should we move this inside _syncRequest?
+                // Alternatively, we can try to fix the OTK upload issue while still
+                // running in parallel. 
+                await this._runAfterSyncCompleted(sessionChanges, roomStates);
             }
         }
     }
 
-    async _runAfterSyncCompleted(roomStates) {
+    async _runAfterSyncCompleted(sessionChanges, roomStates) {
         const isCatchupSync = this._status.get() === SyncStatus.CatchupSync;
         const sessionPromise = (async () => {
             try {
-                await this._session.afterSyncCompleted(isCatchupSync);
+                await this._session.afterSyncCompleted(sessionChanges, isCatchupSync);
             } catch (err) {
                 console.error("error during session afterSyncCompleted, continuing",  err.stack);
             }
@@ -204,6 +211,7 @@ export class Sync {
         return {
             syncToken,
             roomStates,
+            sessionChanges,
             hadToDeviceMessages: Array.isArray(toDeviceEvents) && toDeviceEvents.length > 0,
         };
     }

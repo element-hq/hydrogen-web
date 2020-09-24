@@ -335,7 +335,11 @@ export class Session {
     }
 
     async writeSync(syncResponse, syncFilterId, txn) {
-        const changes = {};
+        const changes = {
+            syncInfo: null,
+            e2eeAccountChanges: null,
+            deviceMessageDecryptionPending: false
+        };
         const syncToken = syncResponse.next_batch;
         const deviceOneTimeKeysCount = syncResponse.device_one_time_keys_count;
 
@@ -357,7 +361,8 @@ export class Session {
 
         const toDeviceEvents = syncResponse.to_device?.events;
         if (Array.isArray(toDeviceEvents)) {
-            this._deviceMessageHandler.writeSync(toDeviceEvents, txn);
+            changes.deviceMessageDecryptionPending =
+                await this._deviceMessageHandler.writeSync(toDeviceEvents, txn);
         }
 
         // store account data
@@ -382,8 +387,11 @@ export class Session {
         }
     }
 
-    async afterSyncCompleted(isCatchupSync) {
-        const promises = [this._deviceMessageHandler.decryptPending(this.rooms)];
+    async afterSyncCompleted(changes, isCatchupSync) {
+        const promises = [];
+        if (changes.deviceMessageDecryptionPending) {
+            promises.push(this._deviceMessageHandler.decryptPending(this.rooms));
+        }
         // we don't start uploading one-time keys until we've caught up with
         // to-device messages, to help us avoid throwing away one-time-keys that we
         // are about to receive messages for
@@ -394,8 +402,10 @@ export class Session {
                 promises.push(this._e2eeAccount.uploadKeys(this._storage));
             }
         }
-        // run key upload and decryption in parallel
-        await Promise.all(promises);
+        if (promises.length) {
+            // run key upload and decryption in parallel
+            await Promise.all(promises);
+        }
     }
 
     get syncToken() {
