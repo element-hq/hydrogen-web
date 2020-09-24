@@ -58,9 +58,16 @@ function applySyncResponse(data, roomResponse, membership) {
     }
     const unreadNotifications = roomResponse.unread_notifications;
     if (unreadNotifications) {
-        data = data.cloneIfNeeded();
-        data.highlightCount = unreadNotifications.highlight_count || 0;
-        data.notificationCount = unreadNotifications.notification_count;
+        const highlightCount = unreadNotifications.highlight_count || 0;
+        if (highlightCount !== data.highlightCount) {
+            data = data.cloneIfNeeded();
+            data.highlightCount = highlightCount;
+        }
+        const notificationCount = unreadNotifications.notification_count;
+        if (notificationCount !== data.notificationCount) {
+            data = data.cloneIfNeeded();
+            data.notificationCount = notificationCount;
+        }
     }
 
     return data;
