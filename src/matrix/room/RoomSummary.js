@@ -223,7 +223,8 @@ class SummaryData {
 
 export class RoomSummary {
 	constructor(roomId) {
-        this._data = new SummaryData(null, roomId);
+        this._data = null;
+        this.applyChanges(new SummaryData(null, roomId));
 	}
 
     get data() {
@@ -286,7 +287,7 @@ export class RoomSummary {
     }
 
 	async load(summary) {
-        this._data = new SummaryData(summary);
+        this.applyChanges(new SummaryData(summary));
 	}
 }
 
