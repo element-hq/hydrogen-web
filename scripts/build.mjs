@@ -93,16 +93,9 @@ async function build() {
     const cssBundlePaths = await buildCssBundles(legacy ? buildCssLegacy : buildCss, themes, themeAssets);
 
     let manifestPath;
-    // copy icons
-    let iconPng = await fs.readFile(path.join(projectDir, "icon.png"));
-    let iconPngPath = resource("icon.png", iconPng);
-    await fs.writeFile(iconPngPath, iconPng);
-    let iconSvg = await fs.readFile(path.join(projectDir, "icon.svg"));
-    let iconSvgPath = resource("icon.svg", iconSvg);
-    await fs.writeFile(iconSvgPath, iconSvg);
 
     const assetPaths = createAssetPaths(jsBundlePath, jsLegacyBundlePath, jsWorkerPath,
-        iconPngPath, iconSvgPath, cssBundlePaths, themeAssets);
+        cssBundlePaths, themeAssets);
 
     if (offline) {
         manifestPath = await buildOffline(version, assetPaths);
@@ -112,13 +105,14 @@ async function build() {
     console.log(`built ${PROJECT_ID} ${version} successfully`);
 }
 
-function createAssetPaths(jsBundlePath, jsLegacyBundlePath, jsWorkerPath, iconPngPath, iconSvgPath, cssBundlePaths, themeAssets) {
-    function trim(path) {
-        if (!path.startsWith(targetDir)) {
-            throw new Error("invalid target path: " + targetDir);
-        }
-        return path.substr(targetDir.length);
+function trim(path) {
+    if (!path.startsWith(targetDir)) {
+        throw new Error("invalid target path: " + targetDir);
     }
+    return path.substr(targetDir.length);
+}
+
+function createAssetPaths(jsBundlePath, jsLegacyBundlePath, jsWorkerPath, cssBundlePaths, themeAssets) {
     return {
         jsBundle: () => trim(jsBundlePath),
         jsLegacyBundle: () => trim(jsLegacyBundlePath),
@@ -127,8 +121,6 @@ function createAssetPaths(jsBundlePath, jsLegacyBundlePath, jsWorkerPath, iconPn
         cssThemeBundle: themeName => trim(cssBundlePaths.themes[themeName]),
         cssThemeBundles: () => Object.values(cssBundlePaths.themes).map(a => trim(a)),
         otherAssets: () => Object.values(themeAssets).map(a => trim(a)),
-        iconSvgPath: () => trim(iconSvgPath),
-        iconPngPath: () => trim(iconPngPath),
     };
 }
 
@@ -263,13 +255,20 @@ function buildWorkerJsLegacy(inputFile, outputName) {
 }
 
 async function buildOffline(version, assetPaths) {
+    // write web manifest
+    const webManifest = JSON.parse(await fs.readFile(path.join(projectDir, "assets/manifest.json"), "utf8"));
+    for (const icon of webManifest.icons) {
+        let iconData = await fs.readFile(path.join(projectDir, icon.src));
+        let iconPath = resource(path.basename(icon.src), iconData);
+        await fs.writeFile(iconPath, iconData);
+        icon.src = trim(iconPath);
+    }
     // write offline availability
     const offlineFiles = [
         assetPaths.cssMainBundle(),
         "index.html",
-        assetPaths.iconPngPath(),
-        assetPaths.iconSvgPath(),
-    ].concat(assetPaths.cssThemeBundles());
+    ].concat(assetPaths.cssThemeBundles())
+    .concat(webManifest.icons.map(i => i.src));
 
     // write appcache manifest
     const appCacheLines = [
@@ -289,18 +288,6 @@ async function buildOffline(version, assetPaths) {
     swSource = swSource.replace(`"%%OFFLINE_FILES%%"`, JSON.stringify(swOfflineFiles));
     swSource = swSource.replace(`"%%CACHE_FILES%%"`, JSON.stringify(assetPaths.otherAssets()));
     await fs.writeFile(path.join(targetDir, "sw.js"), swSource, "utf8");
-    // write web manifest
-    const webManifest = {
-        name:PROJECT_NAME,
-        short_name: PROJECT_SHORT_NAME,
-        display: "fullscreen",
-        start_url: "index.html",
-        icons: [
-            {"src": assetPaths.iconPngPath(), "sizes": "384x384", "type": "image/png"},
-            {"src": assetPaths.iconSvgPath(), "type": "image/svg+xml"},
-        ],
-        theme_color: "#0DBD8B"
-    };
     const manifestJson = JSON.stringify(webManifest);
     const manifestPath = resource("manifest.json", manifestJson);
     await fs.writeFile(manifestPath, manifestJson, "utf8");
