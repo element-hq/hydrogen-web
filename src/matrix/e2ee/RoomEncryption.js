@@ -215,6 +215,8 @@ export class RoomEncryption {
      * @return {Array<string>} the event ids that should be retried to decrypt
      */
     getEventIdsForRoomKey(roomKey) {
+        // TODO: we could concat both results here, and only put stuff in
+        // candidates if it is not in missing sessions to use a bit less memory
         let eventIds = this._missingSessions.getEventIds(roomKey.senderKey, roomKey.sessionId);
         if (!eventIds) {
             eventIds = this._missingSessionCandidates.getEventIds(roomKey.senderKey, roomKey.sessionId);
