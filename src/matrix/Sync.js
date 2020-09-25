@@ -184,7 +184,7 @@ export class Sync {
         const roomStates = this._parseRoomsResponse(response.rooms, isInitialSync);
         await this._prepareRooms(roomStates);
         let sessionChanges;
-        const syncTxn = await this._openSyncTxn();
+        const syncTxn = this._openSyncTxn();
         try {
             await Promise.all(roomStates.map(async rs => {
                 console.log(` * applying sync response to room ${rs.room.id} ...`);
@@ -221,24 +221,24 @@ export class Sync {
         };
     }
 
-    async _openPrepareSyncTxn() {
+    _openPrepareSyncTxn() {
         const storeNames = this._storage.storeNames;
-        return await this._storage.readTxn([
+        return this._storage.readTxn([
             storeNames.inboundGroupSessions,
         ]);
     }
 
     async _prepareRooms(roomStates) {
-        const prepareTxn = await this._openPrepareSyncTxn();
+        const prepareTxn = this._openPrepareSyncTxn();
         await Promise.all(roomStates.map(async rs => {
             rs.preparation = await rs.room.prepareSync(rs.roomResponse, rs.membership, prepareTxn);
         }));
         await Promise.all(roomStates.map(rs => rs.room.afterPrepareSync(rs.preparation)));
     }
 
-    async _openSyncTxn() {
+    _openSyncTxn() {
         const storeNames = this._storage.storeNames;
-        return await this._storage.readWriteTxn([
+        return this._storage.readWriteTxn([
             storeNames.session,
             storeNames.roomSummary,
             storeNames.roomState,

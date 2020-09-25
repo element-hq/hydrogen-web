@@ -54,7 +54,7 @@ export class Encryption {
     async encrypt(roomId, type, content, encryptionParams) {
         let session = new this._olm.OutboundGroupSession();
         try {
-            const txn = await this._storage.readWriteTxn([
+            const txn = this._storage.readWriteTxn([
                 this._storage.storeNames.inboundGroupSessions,
                 this._storage.storeNames.outboundGroupSessions,
             ]);

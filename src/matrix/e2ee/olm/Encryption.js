@@ -98,7 +98,7 @@ export class Encryption {
     }
 
     async _findExistingSessions(devices) {
-        const txn = await this._storage.readTxn([this._storage.storeNames.olmSessions]);
+        const txn = this._storage.readTxn([this._storage.storeNames.olmSessions]);
         const sessionIdsForDevice = await Promise.all(devices.map(async device => {
             return await txn.olmSessions.getSessionIds(device.curve25519Key);
         }));
@@ -213,7 +213,7 @@ export class Encryption {
     }
 
     async _loadSessions(encryptionTargets) {
-        const txn = await this._storage.readTxn([this._storage.storeNames.olmSessions]);
+        const txn = this._storage.readTxn([this._storage.storeNames.olmSessions]);
         // given we run loading in parallel, there might still be some
         // storage requests that will finish later once one has failed.
         // those should not allocate a session anymore.
@@ -239,7 +239,7 @@ export class Encryption {
     }
 
     async _storeSessions(encryptionTargets, timestamp) {
-        const txn = await this._storage.readWriteTxn([this._storage.storeNames.olmSessions]);
+        const txn = this._storage.readWriteTxn([this._storage.storeNames.olmSessions]);
         try {
             for (const target of encryptionTargets) {
                 const sessionEntry = createSessionEntry(

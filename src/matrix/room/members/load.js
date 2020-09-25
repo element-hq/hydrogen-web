@@ -18,7 +18,7 @@ limitations under the License.
 import {RoomMember} from "./RoomMember.js";
 
 async function loadMembers({roomId, storage}) {
-    const txn = await storage.readTxn([
+    const txn = storage.readTxn([
         storage.storeNames.roomMembers,
     ]);
     const memberDatas = await txn.roomMembers.getAll(roomId);
@@ -33,7 +33,7 @@ async function fetchMembers({summary, syncToken, roomId, hsApi, storage, setChan
     
     const memberResponse = await hsApi.members(roomId, {at: syncToken}).response();
 
-    const txn = await storage.readWriteTxn([
+    const txn = storage.readWriteTxn([
         storage.storeNames.roomSummary,
         storage.storeNames.roomMembers,
     ]);

@@ -80,7 +80,7 @@ export class DeviceMessageHandler {
         if (!this._olmDecryption) {
             return;
         }
-        const readTxn = await this._storage.readTxn([this._storage.storeNames.session]);
+        const readTxn = this._storage.readTxn([this._storage.storeNames.session]);
         const pendingEvents = await this._getPendingEvents(readTxn);
         if (pendingEvents.length === 0) {
            return;
@@ -91,7 +91,7 @@ export class DeviceMessageHandler {
         for (const err of decryptChanges.errors) {
             console.warn("decryption failed for event", err, err.event);
         }
-        const txn = await this._storage.readWriteTxn([
+        const txn = this._storage.readWriteTxn([
             // both to remove the pending events and to modify the olm account
             this._storage.storeNames.session,
             this._storage.storeNames.olmSessions,

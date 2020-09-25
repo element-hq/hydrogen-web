@@ -67,7 +67,7 @@ export class Decryption {
             return this._senderKeyLock.takeLock(senderKey);
         }));
         try {
-            const readSessionsTxn = await this._storage.readTxn([this._storage.storeNames.olmSessions]);
+            const readSessionsTxn = this._storage.readTxn([this._storage.storeNames.olmSessions]);
             // decrypt events for different sender keys in parallel
             const senderKeyOperations = await Promise.all(Array.from(eventsPerSenderKey.entries()).map(([senderKey, events]) => {
                 return this._decryptAllForSenderKey(senderKey, events, timestamp, readSessionsTxn);
