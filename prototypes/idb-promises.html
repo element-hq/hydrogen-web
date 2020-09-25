@@ -5,87 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
-    <!-- <script type="text/javascript" src="promifill.js"></script> -->
-    <script type="text/javascript">
-        const PENDING = 1;
-        const RESOLVED = 2;
-        const REJECTED = 3;
-
-        function noop() {};
-
-        function SyncPromise(fn) {
-            this._listeners = [];
-            this._value = null;
-            this._state = PENDING;
-            fn(this._resolve.bind(this), this._reject.bind(this));
-        }
-
-        SyncPromise.prototype = {
-            then: function(onResolved, onRejected) {
-                if (this._state === PENDING) {
-                    this._listeners.push({onRejected: onRejected, onResolved: onResolved});
-                } else if (this._state === RESOLVED) {
-                    onResolved(this._value);
-                } else if (this._state === REJECTED) {
-                    onRejected(this._value);
-                }
-                return this;
-            },
-            catch: function(onRejected) {
-                return this.then(noop, onRejected);
-            },
-            finally: function(onResolved) {
-                return this.then(onResolved, noop);
-            },
-            _chain: function(value) {
-                if (value && typeof value.then === "function") {
-                    value.then(function(value) {
-                        self._resolve(value);
-                    }, function(err) {
-                        self._reject(err);
-                    });
-                    return true;
-                } else {
-                    return false;
-                }
-            },
-            _resolve: function(value) {
-                 if (!this._chain(value)) {
-                    this._state = RESOLVED;
-                    this._value = value;
-                    for (var i = 0; i < this._listeners.length; i += 1) {
-                        this._listeners[i].onResolved(value);
-                    }
-                }
-            },
-            _reject: function(err) {
-                this._state = REJECTED;
-                this._value = err;
-                for (var i = 0; i < this._listeners.length; i += 1) {
-                    this._listeners[i].onRejected(err);
-                }
-            }
-        }
-
-        SyncPromise.resolve = function(value) {
-            return new SyncPromise(function(resolve) {
-                resolve(value);
-            });
-        }
-
-        SyncPromise.reject = function(value) {
-            return new SyncPromise(function(_, reject) {
-                reject(value);
-            });
-        }
-        window.Promise = SyncPromise;
-    </script>
+    <script type="text/javascript" src="promifill.js"></script>
     <!-- <script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"></script> -->
     <script type="text/javascript">
+        //window.Promise = Promifill;
         function reqAsPromise(req) {
             return new Promise(function (resolve, reject) {
-                req.onsuccess = function() {resolve(req);};
-                req.onerror = function(e) {reject(new Error("IDB request failed: " + e.target.error.message));};
+                req.onsuccess = function() {
+                    resolve(req);
+                    Promise.flushQueue && Promise.flushQueue();
+                };
+                req.onerror = function(e) {
+                    reject(new Error("IDB request failed: " + e.target.error.message));
+                    Promise.flushQueue && Promise.flushQueue();
+                };
             });
         }
 
@@ -108,8 +41,8 @@
                 });
             },
             openTxn: function(mode, storeName) {
-                const tx = this._database.transaction([storeName], mode);
-                const store = tx.objectStore(storeName);
+                const txn = this._database.transaction([storeName], mode);
+                const store = txn.objectStore(storeName);
                 return Promise.resolve(store);
             },
             _createStores: function(db) {
@@ -128,9 +61,13 @@
                         cursor.continue();
                     } else {
                         resolve(results);
+                        Promise.flushQueue && Promise.flushQueue();
                     }
                 };
-                request.onerror = function(e) {reject(new Error("IDB request failed: " + e.target.error.message));};
+                request.onerror = function(e) {
+                    reject(new Error("IDB request failed: " + e.target.error.message));
+                    Promise.flushQueue && Promise.flushQueue();
+                };
             });
         }
 

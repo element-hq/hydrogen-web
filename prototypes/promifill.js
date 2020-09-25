@@ -267,6 +267,12 @@ var Promifill = /*#__PURE__*/function () {
         }
       });
     }
+  }, {
+    key: "flushQueue",
+    value: function flushQueue() {
+        console.log("running promise sync by flushing queue");
+      schedule.flushQueue();
+    }
   }]);
 
   return Promifill;
@@ -379,14 +385,15 @@ var schedule = function () {
 
     while (microtasks.length > 0 && (_microtasks$shift = microtasks.shift(), handler = _microtasks$shift.handler, value = _microtasks$shift.value, _microtasks$shift)) {
       var _microtasks$shift;
-
+      console.log("running handler with", value);
       handler(value);
     }
   };
 
   var Strategy = getStrategy();
   var ctrl = new Strategy(run);
-  return function (observers) {
+
+  var scheduleFn = function scheduleFn(observers) {
     if (observers.length == 0) {
       return;
     }
@@ -395,6 +402,12 @@ var schedule = function () {
     observers.length = 0;
     ctrl.trigger();
   };
+
+  scheduleFn.flushQueue = function () {
+    run();
+  };
+
+  return scheduleFn;
 }();
 
 var isIterable = function isIterable(subject) {
@@ -428,6 +441,4 @@ var isEmptyIterable = function isEmptyIterable(subject) {
   return true;
 };
 
-//if (!window.Promise) {
-    window.Promise = Promifill;
-//}
+window.Promifill = Promifill;
