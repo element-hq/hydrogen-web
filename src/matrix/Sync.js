@@ -120,7 +120,7 @@ export class Sync {
                 }
             } catch (err) {
                 this._status.set(SyncStatus.Stopped);
-                if (!(err instanceof AbortError)) {
+                if (err.name !== AbortError) {
                     console.warn("stopping sync because of error");
                     console.error(err);
                     this._error = err;
