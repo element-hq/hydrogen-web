@@ -119,8 +119,13 @@ export class Sync {
                     this._status.set(SyncStatus.Syncing);
                 }
             } catch (err) {
+                // retry same request on timeout
+                if (err.name === "ConnectionError" && err.isTimeout) {
+                    // don't run afterSyncCompleted
+                    continue;
+                }
                 this._status.set(SyncStatus.Stopped);
-                if (!(err instanceof AbortError)) {
+                if (err.name !== AbortError) {
                     console.warn("stopping sync because of error");
                     console.error(err);
                     this._error = err;

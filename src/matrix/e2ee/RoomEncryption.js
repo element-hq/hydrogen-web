@@ -54,6 +54,7 @@ export class RoomEncryption {
         this._notifyMissingMegolmSession = notifyMissingMegolmSession;
         this._clock = clock;
         this._disposed = false;
+        this._isFlushingRoomKeyShares = false;
     }
 
     async enableSessionBackup(sessionBackup) {
@@ -321,25 +322,34 @@ export class RoomEncryption {
     }
 
     async flushPendingRoomKeyShares(hsApi, operations = null) {
-        if (!operations) {
-            const txn = await this._storage.readTxn([this._storage.storeNames.operations]);
-            operations = await txn.operations.getAllByTypeAndScope("share_room_key", this._room.id);
+        // this has to be reentrant as it can be called from Room.start while still running
+        if (this._isFlushingRoomKeyShares) {
+            return;
         }
-        for (const operation of operations) {
-            // just to be sure
-            if (operation.type !== "share_room_key") {
-                continue;
+        this._isFlushingRoomKeyShares = true;
+        try {
+            if (!operations) {
+                const txn = await this._storage.readTxn([this._storage.storeNames.operations]);
+                operations = await txn.operations.getAllByTypeAndScope("share_room_key", this._room.id);
             }
-            const devices = await this._deviceTracker.devicesForRoomMembers(this._room.id, operation.userIds, hsApi);
-            await this._sendRoomKey(operation.roomKeyMessage, devices, hsApi);
-            const removeTxn = await this._storage.readWriteTxn([this._storage.storeNames.operations]);
-            try {
-                removeTxn.operations.remove(operation.id);
-            } catch (err) {
-                removeTxn.abort();
-                throw err;
+            for (const operation of operations) {
+                // just to be sure
+                if (operation.type !== "share_room_key") {
+                    continue;
+                }
+                const devices = await this._deviceTracker.devicesForRoomMembers(this._room.id, operation.userIds, hsApi);
+                await this._sendRoomKey(operation.roomKeyMessage, devices, hsApi);
+                const removeTxn = await this._storage.readWriteTxn([this._storage.storeNames.operations]);
+                try {
+                    removeTxn.operations.remove(operation.id);
+                } catch (err) {
+                    removeTxn.abort();
+                    throw err;
+                }
+                await removeTxn.complete();
             }
-            await removeTxn.complete();
+        } finally {
+            this._isFlushingRoomKeyShares = false;
         }
     }
 
