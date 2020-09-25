@@ -82,6 +82,10 @@ export class HomeServerApi {
         
         if (this._reconnector) {
             wrapper.response().catch(err => {
+                // Some endpoints such as /sync legitimately time-out
+                // (which is also reported as a ConnectionError) and will re-attempt,
+                // but spinning up the reconnector in this case is ok,
+                // as all code ran on session and sync start should be reentrant
                 if (err.name === "ConnectionError") {
                     this._reconnector.onRequestFailed(this);
                 }
