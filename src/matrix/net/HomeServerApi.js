@@ -75,7 +75,7 @@ export class HomeServerApi {
             method,
             headers,
             body: bodyString,
-            timeout: options && options.timeout
+            timeout: options?.timeout
         });
 
         const wrapper = new RequestWrapper(method, url, requestResult);
