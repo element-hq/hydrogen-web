@@ -82,7 +82,7 @@ export class Room extends EventEmitter {
         let retryEntries;
         if (retryEventIds) {
             retryEntries = [];
-            txn = await this._storage.readTxn(stores);
+            txn = this._storage.readTxn(stores);
             for (const eventId of retryEventIds) {
                 const storageEntry = await txn.timelineEvents.getByEventId(this._roomId, eventId);
                 if (storageEntry) {
@@ -99,7 +99,7 @@ export class Room extends EventEmitter {
             // check we have not already decrypted the most recent event in the room
             // otherwise we know that the messages for this room key will not update the room summary
             if (!sinceEventKey || !sinceEventKey.equals(this._syncWriter.lastMessageKey)) {
-                txn = await this._storage.readTxn(stores.concat(this._storage.storeNames.timelineFragments));
+                txn = this._storage.readTxn(stores.concat(this._storage.storeNames.timelineFragments));
                 const candidateEntries = await this._readRetryDecryptCandidateEntries(sinceEventKey, txn);
                 retryEntries = this._roomEncryption.findAndCacheEntriesForRoomKey(roomKey, candidateEntries);
             }
@@ -138,7 +138,7 @@ export class Room extends EventEmitter {
     _decryptEntries(source, entries, inboundSessionTxn = null) {
         const request = new DecryptionRequest(async r => {
             if (!inboundSessionTxn) {
-                inboundSessionTxn = await this._storage.readTxn([this._storage.storeNames.inboundGroupSessions]);
+                inboundSessionTxn = this._storage.readTxn([this._storage.storeNames.inboundGroupSessions]);
             }
             if (r.cancelled) return;
             const events = entries.filter(entry => {
@@ -155,7 +155,7 @@ export class Room extends EventEmitter {
                 // read to fetch devices if timeline is open
                 stores.push(this._storage.storeNames.deviceIdentities);
             }
-            const writeTxn = await this._storage.readWriteTxn(stores);
+            const writeTxn = this._storage.readWriteTxn(stores);
             let decryption;
             try {
                 decryption = await changes.write(writeTxn);
@@ -387,7 +387,7 @@ export class Room extends EventEmitter {
             }
         }).response();
 
-        const txn = await this._storage.readWriteTxn([
+        const txn = this._storage.readWriteTxn([
             this._storage.storeNames.pendingEvents,
             this._storage.storeNames.timelineEvents,
             this._storage.storeNames.timelineFragments,
@@ -490,7 +490,7 @@ export class Room extends EventEmitter {
     async _getLastEventId() {
         const lastKey = this._syncWriter.lastMessageKey;
         if (lastKey) {
-            const txn = await this._storage.readTxn([
+            const txn = this._storage.readTxn([
                 this._storage.storeNames.timelineEvents,
             ]);
             const eventEntry = await txn.timelineEvents.get(this._roomId, lastKey);
@@ -511,7 +511,7 @@ export class Room extends EventEmitter {
 
     async clearUnread() {
         if (this.isUnread || this.notificationCount) {
-            const txn = await this._storage.readWriteTxn([
+            const txn = this._storage.readWriteTxn([
                 this._storage.storeNames.roomSummary,
             ]);
             let data;

@@ -129,7 +129,7 @@ export class SendQueue {
     }
 
     async _tryUpdateEvent(pendingEvent) {
-        const txn = await this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
+        const txn = this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
         console.log("_tryUpdateEvent: got txn");
         try {
             // pendingEvent might have been removed already here
@@ -151,7 +151,7 @@ export class SendQueue {
 
     async _createAndStoreEvent(eventType, content) {
         console.log("_createAndStoreEvent");
-        const txn = await this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
+        const txn = this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
         let pendingEvent;
         try {
             const pendingEventsStore = txn.pendingEvents;

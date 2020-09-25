@@ -164,13 +164,13 @@ export class Session {
         }
         const key = await ssssKeyFromCredential(type, credential, this._storage, this._cryptoDriver, this._olm);
         // and create session backup, which needs to read from accountData
-        const readTxn = await this._storage.readTxn([
+        const readTxn = this._storage.readTxn([
             this._storage.storeNames.accountData,
         ]);
         await this._createSessionBackup(key, readTxn);
         // only after having read a secret, write the key
         // as we only find out if it was good if the MAC verification succeeds
-        const writeTxn = await this._storage.readWriteTxn([
+        const writeTxn = this._storage.readWriteTxn([
             this._storage.storeNames.session,
         ]);
         try {
@@ -217,7 +217,7 @@ export class Session {
             await this._e2eeAccount.uploadKeys(this._storage);
             await this._deviceMessageHandler.decryptPending(this.rooms);
 
-            const txn = await this._storage.readTxn([
+            const txn = this._storage.readTxn([
                 this._storage.storeNames.session,
                 this._storage.storeNames.accountData,
             ]);
@@ -231,7 +231,7 @@ export class Session {
     }
 
     async load() {
-        const txn = await this._storage.readTxn([
+        const txn = this._storage.readTxn([
             this._storage.storeNames.session,
             this._storage.storeNames.roomSummary,
             this._storage.storeNames.roomMembers,
@@ -276,7 +276,7 @@ export class Session {
     async start(lastVersionResponse) {
         if (lastVersionResponse) {
             // store /versions response
-            const txn = await this._storage.readWriteTxn([
+            const txn = this._storage.readWriteTxn([
                 this._storage.storeNames.session
             ]);
             txn.session.set("serverVersions", lastVersionResponse);
@@ -284,7 +284,7 @@ export class Session {
             await txn.complete();
         }
 
-        const opsTxn = await this._storage.readWriteTxn([
+        const opsTxn = this._storage.readWriteTxn([
             this._storage.storeNames.operations
         ]);
         const operations = await opsTxn.operations.getAll();

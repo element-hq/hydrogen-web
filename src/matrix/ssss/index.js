@@ -19,7 +19,7 @@ import {keyFromPassphrase} from "./passphrase.js";
 import {keyFromRecoveryKey} from "./recoveryKey.js";
 
 async function readDefaultKeyDescription(storage) {
-    const txn = await storage.readTxn([
+    const txn = storage.readTxn([
         storage.storeNames.accountData
     ]);
     const defaultKeyEvent = await txn.accountData.get("m.secret_storage.default_key");

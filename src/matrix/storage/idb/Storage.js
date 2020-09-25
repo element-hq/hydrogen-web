@@ -34,7 +34,7 @@ export class Storage {
         }
     }
 
-    async readTxn(storeNames) {
+    readTxn(storeNames) {
         this._validateStoreNames(storeNames);
         try {
             const txn = this._db.transaction(storeNames, "readonly");
@@ -44,7 +44,7 @@ export class Storage {
         }
     }
 
-    async readWriteTxn(storeNames) {
+    readWriteTxn(storeNames) {
         this._validateStoreNames(storeNames);
         try {
             const txn = this._db.transaction(storeNames, "readwrite");
