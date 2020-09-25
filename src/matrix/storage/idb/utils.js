@@ -16,7 +16,7 @@ limitations under the License.
 
 import { StorageError } from "../common.js";
 
-class WrappedDOMException extends StorageError {
+class IDBRequestError extends StorageError {
     constructor(request) {
         const source = request?.source;
         const storeName = source?.name || "<unknown store>";
@@ -50,15 +50,27 @@ export function openDatabase(name, createObjectStore, version) {
 
 export function reqAsPromise(req) {
     return new Promise((resolve, reject) => {
-        req.addEventListener("success", event => resolve(event.target.result));
-        req.addEventListener("error", event => reject(new WrappedDOMException(event.target)));
+        req.addEventListener("success", event => {
+            resolve(event.target.result);
+            Promise.flushQueue && Promise.flushQueue();
+        });
+        req.addEventListener("error", () => {
+            reject(new IDBRequestError(req));
+            Promise.flushQueue && Promise.flushQueue();
+        });
     });
 }
 
 export function txnAsPromise(txn) {
     return new Promise((resolve, reject) => {
-        txn.addEventListener("complete", resolve);
-        txn.addEventListener("abort", event => reject(new WrappedDOMException(event.target)));
+        txn.addEventListener("complete", () => {
+            resolve();
+            Promise.flushQueue && Promise.flushQueue();
+        });
+        txn.addEventListener("abort", () => {
+            reject(new IDBRequestError(txn));
+            Promise.flushQueue && Promise.flushQueue();
+        });
     });
 }
 
@@ -66,13 +78,15 @@ export function iterateCursor(cursorRequest, processValue) {
     // TODO: does cursor already have a value here??
     return new Promise((resolve, reject) => {
         cursorRequest.onerror = () => {
-            reject(new StorageError("Query failed", cursorRequest.error));
+            reject(new IDBRequestError(cursorRequest));
+            Promise.flushQueue && Promise.flushQueue();
         };
         // collect results
         cursorRequest.onsuccess = (event) => {
             const cursor = event.target.result;
             if (!cursor) {
                 resolve(false);
+                Promise.flushQueue && Promise.flushQueue();
                 return; // end of results
             }
             const result = processValue(cursor.value, cursor.key);
@@ -81,6 +95,7 @@ export function iterateCursor(cursorRequest, processValue) {
 
             if (done) {
                 resolve(true);
+                Promise.flushQueue && Promise.flushQueue();
             } else if(jumpTo) {
                 cursor.continue(jumpTo);
             } else {

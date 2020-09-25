@@ -15,6 +15,10 @@ limitations under the License.
 */
 
 // polyfills needed for IE11
+
+const hasNativePromise = typeof window.Promise === "function";
+
+// TODO: don't include a polyfill for promises as we already provide one
 import "core-js/stable";
 import "regenerator-runtime/runtime";
 import "mdn-polyfills/Element.prototype.closest";
@@ -24,6 +28,12 @@ import "mdn-polyfills/Element.prototype.closest";
 // it will also include the file supporting *all* the encodings,
 // weighing a good extra 500kb :-(
 import "text-encoding";
+import {Promifill} from "./utils/Promifill.js";
+
+// console.log("hasNativePromise", hasNativePromise);
+// if (!hasNativePromise) {
+    window.Promise = Promifill;
+// }
 
 // TODO: contribute this to mdn-polyfills
 if (!Element.prototype.remove) {
