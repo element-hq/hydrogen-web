@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <!-- <script type="text/javascript" src="promifill.js"></script> -->
+    <script type="text/javascript">
+        const PENDING = 1;
+        const RESOLVED = 2;
+        const REJECTED = 3;
+
+        function noop() {};
+
+        function SyncPromise(fn) {
+            this._listeners = [];
+            this._value = null;
+            this._state = PENDING;
+            fn(this._resolve.bind(this), this._reject.bind(this));
+        }
+
+        SyncPromise.prototype = {
+            then: function(onResolved, onRejected) {
+                if (this._state === PENDING) {
+                    this._listeners.push({onRejected: onRejected, onResolved: onResolved});
+                } else if (this._state === RESOLVED) {
+                    onResolved(this._value);
+                } else if (this._state === REJECTED) {
+                    onRejected(this._value);
+                }
+                return this;
+            },
+            catch: function(onRejected) {
+                return this.then(noop, onRejected);
+            },
+            finally: function(onResolved) {
+                return this.then(onResolved, noop);
+            },
+            _chain: function(value) {
+                if (value && typeof value.then === "function") {
+                    value.then(function(value) {
+                        self._resolve(value);
+                    }, function(err) {
+                        self._reject(err);
+                    });
+                    return true;
+                } else {
+                    return false;
+                }
+            },
+            _resolve: function(value) {
+                 if (!this._chain(value)) {
+                    this._state = RESOLVED;
+                    this._value = value;
+                    for (var i = 0; i < this._listeners.length; i += 1) {
+                        this._listeners[i].onResolved(value);
+                    }
+                }
+            },
+            _reject: function(err) {
+                this._state = REJECTED;
+                this._value = err;
+                for (var i = 0; i < this._listeners.length; i += 1) {
+                    this._listeners[i].onRejected(err);
+                }
+            }
+        }
+
+        SyncPromise.resolve = function(value) {
+            return new SyncPromise(function(resolve) {
+                resolve(value);
+            });
+        }
+
+        SyncPromise.reject = function(value) {
+            return new SyncPromise(function(_, reject) {
+                reject(value);
+            });
+        }
+        window.Promise = SyncPromise;
+    </script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"></script> -->
+    <script type="text/javascript">
+        function reqAsPromise(req) {
+            return new Promise(function (resolve, reject) {
+                req.onsuccess = function() {resolve(req);};
+                req.onerror = function(e) {reject(new Error("IDB request failed: " + e.target.error.message));};
+            });
+        }
+
+        function Storage(databaseName) {
+            this._databaseName = databaseName;
+            this._database = null;
+        }
+
+        Storage.prototype = {
+            open: function() {
+                const req = window.indexedDB.open(this._databaseName);
+                const self = this;
+                req.onupgradeneeded = function(ev) {
+                    const db = ev.target.result;
+                    const oldVersion = ev.oldVersion;
+                    self._createStores(db, oldVersion);
+                }; 
+                return reqAsPromise(req).then(function() {
+                    self._database = req.result;
+                });
+            },
+            openTxn: function(mode, storeName) {
+                const tx = this._database.transaction([storeName], mode);
+                const store = tx.objectStore(storeName);
+                return Promise.resolve(store);
+            },
+            _createStores: function(db) {
+                db.createObjectStore("foos", {keyPath: ["id"]});
+            }
+        };
+
+        function getAll(store) {
+            const request = store.openCursor();
+            const results = [];
+            return new Promise(function(resolve, reject) {
+                request.onsuccess = function(event) {
+                    const cursor = event.target.result;
+                    if(cursor) {
+                        results.push(cursor.value);
+                        cursor.continue();
+                    } else {
+                        resolve(results);
+                    }
+                };
+                request.onerror = function(e) {reject(new Error("IDB request failed: " + e.target.error.message));};
+            });
+        }
+
+        function main() {
+            let storage = new Storage("idb-promises");
+            let store;
+            storage.open().then(function() {
+                return storage.openTxn("readwrite", "foos");
+            }).then(function(s) {
+                store = s;
+                store.clear();
+                store.add({id: 5, name: "foo"});
+                store.add({id: 6, name: "bar"});
+                return getAll(store);
+            }).then(function(all) {
+                console.log("all1", all);
+                store.add({id: 7, name: "bazzz"});
+                return getAll(store);
+            }).then(function(all) {
+                console.log("all2", all);
+            }).catch(function(err) {
+                console.error(err.message + ": " + err.stack);
+            });
+        }
+        main();
+
+
+        /*
+        
+        we basically want something like this for IE11/Win7:
+            
+            return new Promise(function (resolve, reject) {
+                req.onsuccess = function() {
+                    resolve(req);
+                    Promise?.flushQueue();
+                };
+                req.onerror = function(e) {
+                    reject(new Error("IDB request failed: " + e.target.error.message));
+                    Promise?.flushQueue();
+                };
+            });
+
+        we don't have this problem on platforms with a native promise implementation, so we can just have our own (forked) promise polyfill? 
+         */
+    </script>
+</body>
+</html>
+ 
