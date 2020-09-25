@@ -103,7 +103,9 @@ export class WorkerPool {
                     if (message.type === "success") {
                         request._resolve(message.payload);
                     } else if (message.type === "error") {
-                        request._reject(new Error(message.stack));
+                        const err = new Error(message.message);
+                        err.stack = message.stack;
+                        request._reject(err);
                     }
                     request._dispose();
                 }
