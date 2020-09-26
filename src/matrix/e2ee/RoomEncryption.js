@@ -251,6 +251,7 @@ export class RoomEncryption {
         await this._deviceTracker.trackRoom(this._room);
         const megolmResult = await this._megolmEncryption.encrypt(this._room.id, type, content, this._encryptionParams);
         if (megolmResult.roomKeyMessage) {
+            // TODO: should we await this??
             this._shareNewRoomKey(megolmResult.roomKeyMessage, hsApi);
         }
         return {
