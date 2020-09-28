@@ -39,5 +39,3 @@ if (!Element.prototype.remove) {
         this.parentNode.removeChild(this);
     };
 }
-
-
