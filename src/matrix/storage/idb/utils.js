@@ -52,11 +52,11 @@ export function reqAsPromise(req) {
     return new Promise((resolve, reject) => {
         req.addEventListener("success", event => {
             resolve(event.target.result);
-            Promise.flushQueue && Promise.flushQueue();
+            Promise._flush && Promise._flush();
         });
         req.addEventListener("error", () => {
             reject(new IDBRequestError(req));
-            Promise.flushQueue && Promise.flushQueue();
+            Promise._flush && Promise._flush();
         });
     });
 }
@@ -65,11 +65,11 @@ export function txnAsPromise(txn) {
     return new Promise((resolve, reject) => {
         txn.addEventListener("complete", () => {
             resolve();
-            Promise.flushQueue && Promise.flushQueue();
+            Promise._flush && Promise._flush();
         });
         txn.addEventListener("abort", () => {
             reject(new IDBRequestError(txn));
-            Promise.flushQueue && Promise.flushQueue();
+            Promise._flush && Promise._flush();
         });
     });
 }
@@ -79,14 +79,14 @@ export function iterateCursor(cursorRequest, processValue) {
     return new Promise((resolve, reject) => {
         cursorRequest.onerror = () => {
             reject(new IDBRequestError(cursorRequest));
-            Promise.flushQueue && Promise.flushQueue();
+            Promise._flush && Promise._flush();
         };
         // collect results
         cursorRequest.onsuccess = (event) => {
             const cursor = event.target.result;
             if (!cursor) {
                 resolve(false);
-                Promise.flushQueue && Promise.flushQueue();
+                Promise._flush && Promise._flush();
                 return; // end of results
             }
             const result = processValue(cursor.value, cursor.key);
@@ -95,7 +95,7 @@ export function iterateCursor(cursorRequest, processValue) {
 
             if (done) {
                 resolve(true);
-                Promise.flushQueue && Promise.flushQueue();
+                Promise._flush && Promise._flush();
             } else if(jumpTo) {
                 cursor.continue(jumpTo);
             } else {
