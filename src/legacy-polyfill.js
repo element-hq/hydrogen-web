@@ -27,15 +27,11 @@ import "text-encoding";
 import {checkNeedsSyncPromise} from "./matrix/storage/idb/utils.js";
 import Promise from "../lib/es6-promise/index.js";
 
-const flush = Promise._flush;
-Promise._flush = function() {
-    console.log("manually flushing promise queue");
-    flush();
+if (typeof window.Promise === "undefined") {
+    window.Promise = Promise;
+    // TODO: should be awaited before opening any session in the picker
+    checkNeedsSyncPromise();
 }
-    
-window.Promise = Promise;
-// TODO: should be awaited before opening any session in the picker
-checkNeedsSyncPromise();
 
 // TODO: contribute this to mdn-polyfills
 if (!Element.prototype.remove) {
