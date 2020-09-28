@@ -30,7 +30,7 @@ export class StorageFactory {
 
     delete(sessionId) {
         const databaseName = sessionName(sessionId);
-        const req = window.indexedDB.deleteDatabase(databaseName);
+        const req = indexedDB.deleteDatabase(databaseName);
         return reqAsPromise(req);
     }
 
