@@ -27,6 +27,7 @@ import "mdn-polyfills/Element.prototype.closest";
 // weighing a good extra 500kb :-(
 import "text-encoding";
 import Promise from "../lib/es6-promise/lib/es6-promise/promise.js";
+import {checkNeedsSyncPromise} from "./matrix/storage/idb/utils.js";
 
 const flush = Promise._flush;
 Promise._flush = function() {
@@ -35,6 +36,8 @@ Promise._flush = function() {
 }
     
 window.Promise = Promise;
+// TODO: should be awaited before opening any session in the picker
+checkNeedsSyncPromise();
 
 // TODO: contribute this to mdn-polyfills
 if (!Element.prototype.remove) {
@@ -42,3 +45,5 @@ if (!Element.prototype.remove) {
         this.parentNode.removeChild(this);
     };
 }
+
+
