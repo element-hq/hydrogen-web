@@ -17,6 +17,13 @@ limitations under the License.
 
 // polyfills needed for IE11
 // just enough to run olm, have promises and async/await
+
+// load this first just in case anything else depends on it
+import Promise from "../lib/es6-promise/index.js";
+// not calling checkNeedsSyncPromise from here as we don't do any idb in the worker,
+// mainly because IE doesn't handle multiple concurrent connections well
+self.Promise = Promise;
+
 import "regenerator-runtime/runtime";
 import "core-js/modules/es.math.imul";
 import "core-js/modules/es.math.clz32";
@@ -48,7 +55,3 @@ import "core-js/modules/es.typed-array.to-string";
 import "core-js/modules/es.typed-array.iterator";
 import "core-js/modules/es.object.to-string";
 
-import Promise from "../lib/es6-promise/index.js";
-// not calling checkNeedsSyncPromise from here as we don't do any idb in the worker,
-// mainly because IE doesn't handle multiple concurrent connections well
-self.Promise = Promise;
