@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+  	"target": "es2020",
+  	"lib": ["es2020", "dom"],
+  	"allowJs": true,
+  	"checkJs": true,
+  	"noEmit": true,
+  	"strict": true,
+  	"strictNullChecks": true,
+  	"strictFunctionTypes": true,
+  	"noImplicitAny": true,
+  	"noImplicitReturns": true,
+  	"noImplicitThis": true
+  },
+  "files": ["src/main.js"]
+}
