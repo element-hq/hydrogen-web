@@ -221,7 +221,11 @@ async function buildJsLegacy(inputFile, outputName, extraFile, polyfillFile) {
                 {
                     useBuiltIns: "entry",
                     corejs: "3",
-                    targets: "IE 11"
+                    targets: "IE 11",
+                    // we provide our own promise polyfill (es6-promise)
+                    // with support for synchronous flushing of
+                    // the queue for idb where needed 
+                    exclude: ["es.promise", "es.promise.all-settled", "es.promise.finally"]
                 }
             ]
         ]

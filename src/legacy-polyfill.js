@@ -15,8 +15,6 @@ limitations under the License.
 */
 
 // polyfills needed for IE11
-
-// TODO: don't include a polyfill for promises as we already provide one
 import "core-js/stable";
 import "regenerator-runtime/runtime";
 import "mdn-polyfills/Element.prototype.closest";
