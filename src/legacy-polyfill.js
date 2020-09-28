@@ -26,8 +26,8 @@ import "mdn-polyfills/Element.prototype.closest";
 // it will also include the file supporting *all* the encodings,
 // weighing a good extra 500kb :-(
 import "text-encoding";
-import Promise from "../lib/es6-promise/lib/es6-promise/promise.js";
 import {checkNeedsSyncPromise} from "./matrix/storage/idb/utils.js";
+import Promise from "../lib/es6-promise/index.js";
 
 const flush = Promise._flush;
 Promise._flush = function() {

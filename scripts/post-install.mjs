@@ -96,6 +96,15 @@ async function populateLib() {
         path.join(modulesDir, 'aes-js/index.js'),
         path.join(libDir, "aes-js/index.js")
     );
+    // es6-promise is already written as an es module,
+    // but it does need to be babelified, and current we don't babelify
+    // anything in node_modules in the build script, so make a bundle that
+    // is conveniently not placed in node_modules rather than symlinking.
+    await fs.mkdir(path.join(libDir, "es6-promise/"));
+    await commonjsToESM(
+        path.join(modulesDir, 'es6-promise/lib/es6-promise/promise.js'),
+        path.join(libDir, "es6-promise/index.js")
+    );
 }
 
 populateLib();

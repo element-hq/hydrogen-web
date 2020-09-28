@@ -48,3 +48,8 @@ import "core-js/modules/es.typed-array.to-locale-string";
 import "core-js/modules/es.typed-array.to-string";
 import "core-js/modules/es.typed-array.iterator";
 import "core-js/modules/es.object.to-string";
+
+import Promise from "../lib/es6-promise/index.js";
+// not calling checkNeedsSyncPromise from here as we don't do any idb in the worker,
+// mainly because IE doesn't handle multiple concurrent connections well
+self.Promise = Promise;
