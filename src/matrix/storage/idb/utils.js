@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +17,37 @@ limitations under the License.
 
 import { StorageError } from "../common.js";
 
-class WrappedDOMException extends StorageError {
+let needsSyncPromise = false;
+
+/* should be called on legacy platforms to see
+   if transactions close before draining the microtask queue (IE11 on Windows 7).
+   If this is the case, promises need to be resolved
+   synchronously from the idb request handler to prevent the transaction from closing prematurely.
+*/
+export async function checkNeedsSyncPromise() {
+    // important to have it turned off while doing the test,
+    // otherwise reqAsPromise would not fail
+    needsSyncPromise = false;
+    const NAME = "test-idb-needs-sync-promise";
+    const db = await openDatabase(NAME, db => {
+        db.createObjectStore("test", {keyPath: "key"});
+    }, 1);
+    const txn = db.transaction("test", "readonly");
+    try {
+        await reqAsPromise(txn.objectStore("test").get(1));
+        await reqAsPromise(txn.objectStore("test").get(2));
+    } catch (err) {
+        // err.name would be either TransactionInactiveError or InvalidStateError,
+        // but let's not exclude any other failure modes
+        needsSyncPromise = true;
+    }
+    // we could delete the store here, 
+    // but let's not create it on every page load on legacy platforms,
+    // and just keep it around
+    return needsSyncPromise;
+}
+
+class IDBRequestError extends StorageError {
     constructor(request) {
         const source = request?.source;
         const storeName = source?.name || "<unknown store>";
@@ -38,7 +69,7 @@ export function decodeUint32(str) {
 }
 
 export function openDatabase(name, createObjectStore, version) {
-    const req = window.indexedDB.open(name, version);
+    const req = indexedDB.open(name, version);
     req.onupgradeneeded = (ev) => {
         const db = ev.target.result;
         const txn = ev.target.transaction;
@@ -50,15 +81,27 @@ export function openDatabase(name, createObjectStore, version) {
 
 export function reqAsPromise(req) {
     return new Promise((resolve, reject) => {
-        req.addEventListener("success", event => resolve(event.target.result));
-        req.addEventListener("error", event => reject(new WrappedDOMException(event.target)));
+        req.addEventListener("success", event => {
+            resolve(event.target.result);
+            needsSyncPromise && Promise._flush && Promise._flush();
+        });
+        req.addEventListener("error", () => {
+            reject(new IDBRequestError(req));
+            needsSyncPromise && Promise._flush && Promise._flush();
+        });
     });
 }
 
 export function txnAsPromise(txn) {
     return new Promise((resolve, reject) => {
-        txn.addEventListener("complete", resolve);
-        txn.addEventListener("abort", event => reject(new WrappedDOMException(event.target)));
+        txn.addEventListener("complete", () => {
+            resolve();
+            needsSyncPromise && Promise._flush && Promise._flush();
+        });
+        txn.addEventListener("abort", () => {
+            reject(new IDBRequestError(txn));
+            needsSyncPromise && Promise._flush && Promise._flush();
+        });
     });
 }
 
@@ -66,21 +109,25 @@ export function iterateCursor(cursorRequest, processValue) {
     // TODO: does cursor already have a value here??
     return new Promise((resolve, reject) => {
         cursorRequest.onerror = () => {
-            reject(new StorageError("Query failed", cursorRequest.error));
+            reject(new IDBRequestError(cursorRequest));
+            needsSyncPromise && Promise._flush && Promise._flush();
         };
         // collect results
         cursorRequest.onsuccess = (event) => {
             const cursor = event.target.result;
             if (!cursor) {
                 resolve(false);
+                needsSyncPromise && Promise._flush && Promise._flush();
                 return; // end of results
             }
             const result = processValue(cursor.value, cursor.key);
+            // TODO: don't use object for result and assume it's jumpTo when not === true/false or undefined
             const done = result?.done;
             const jumpTo = result?.jumpTo;
 
             if (done) {
                 resolve(true);
+                needsSyncPromise && Promise._flush && Promise._flush();
             } else if(jumpTo) {
                 cursor.continue(jumpTo);
             } else {

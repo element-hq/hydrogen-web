@@ -24,6 +24,14 @@ import "mdn-polyfills/Element.prototype.closest";
 // it will also include the file supporting *all* the encodings,
 // weighing a good extra 500kb :-(
 import "text-encoding";
+import {checkNeedsSyncPromise} from "./matrix/storage/idb/utils.js";
+import Promise from "../lib/es6-promise/index.js";
+
+if (typeof window.Promise === "undefined") {
+    window.Promise = Promise;
+    // TODO: should be awaited before opening any session in the picker
+    checkNeedsSyncPromise();
+}
 
 // TODO: contribute this to mdn-polyfills
 if (!Element.prototype.remove) {
