@@ -124,12 +124,12 @@ export class Sync {
                     // don't run afterSyncCompleted
                     continue;
                 }
-                this._status.set(SyncStatus.Stopped);
                 if (err.name !== AbortError) {
                     console.warn("stopping sync because of error");
                     console.error(err);
                     this._error = err;
                 }
+                this._status.set(SyncStatus.Stopped);
             }
             if (this._status.get() !== SyncStatus.Stopped) {
                 // TODO: if we're not going to run this phase in parallel with the next
