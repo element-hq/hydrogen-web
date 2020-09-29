@@ -48,6 +48,7 @@ export class SendQueue {
                 const pendingEvent = this._pendingEvents.get(this._amountSent);
                 console.log("trying to send", pendingEvent.content.body);
                 if (pendingEvent.remoteId) {
+                    this._amountSent += 1;
                     continue;
                 }
                 if (pendingEvent.needsEncryption) {
