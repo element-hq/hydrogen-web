@@ -106,8 +106,9 @@ class QueryTargetWrapper {
 }
 
 export class Store extends QueryTarget {
-    constructor(idbStore) {
+    constructor(idbStore, transaction) {
         super(new QueryTargetWrapper(idbStore));
+        this._transaction = transaction;
     }
 
     get _idbStore() {
@@ -118,33 +119,15 @@ export class Store extends QueryTarget {
         return new QueryTarget(new QueryTargetWrapper(this._idbStore.index(indexName)));
     }
 
-    async put(value) {
-        try {
-            return await reqAsPromise(this._idbStore.put(value));
-        } catch(err) {
-            const originalErr = err.cause;
-            throw new StorageError(`put on ${err.databaseName}.${err.storeName} failed`, originalErr, value);
-        }
+    put(value) {
+        this._transaction._addWriteRequest(this._idbStore.put(value));
     }
 
-    async add(value) {
-        try {
-            // this will catch both the sync error already mapped 
-            // in the QueryTargetWrapper above, and also the async request errors, which are still DOMException's
-            return await reqAsPromise(this._idbStore.add(value));
-        } catch(err) {
-            const originalErr = err.cause;
-            throw new StorageError(`add on ${err.databaseName}.${err.storeName} failed`, originalErr, value);
-        }
+    add(value) {
+        this._transaction._addWriteRequest(this._idbStore.add(value));
     }
 
-    async delete(keyOrKeyRange) {
-        try {
-            return await reqAsPromise(this._idbStore.delete(keyOrKeyRange));
-        } catch(err) {
-            const originalErr = err.cause;
-            throw new StorageError(`delete on ${err.databaseName}.${err.storeName} failed`, originalErr, keyOrKeyRange);
-        }
-        
+    delete(keyOrKeyRange) {
+        this._transaction._addWriteRequest(this._idbStore.delete(keyOrKeyRange));
     }
 }

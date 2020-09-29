@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {IDBRequestError} from "./error.js";
 import {txnAsPromise} from "./utils.js";
 import {StorageError} from "../common.js";
 import {Store} from "./Store.js";
@@ -38,6 +39,14 @@ export class Transaction {
         this._txn = txn;
         this._allowedStoreNames = allowedStoreNames;
         this._stores = {};
+        this._writeRequests = null;
+    }
+
+    _addWriteRequest(request) {
+        if (!this._writeRequests) {
+            this._writeRequests = [];
+        }
+        this._writeRequests.push(request);
     }
 
     _idbStore(name) {
@@ -45,7 +54,7 @@ export class Transaction {
             // more specific error? this is a bug, so maybe not ...
             throw new StorageError(`Invalid store for transaction: ${name}, only ${this._allowedStoreNames.join(", ")} are allowed.`);
         }
-        return new Store(this._txn.objectStore(name));
+        return new Store(this._txn.objectStore(name), this);
     }
 
     _store(name, mapStore) {
@@ -116,8 +125,28 @@ export class Transaction {
         return this._store("accountData", idbStore => new AccountDataStore(idbStore));
     }
 
-    complete() {
-        return txnAsPromise(this._txn);
+    async complete() {
+        // check the write requests if we haven't failed yet
+        if (this._writeRequests) {
+            for (const request of this._writeRequests) {
+                if (request.error) {
+                    try {
+                        this.abort();
+                    } catch (err) {/* ignore abort error, although it would be useful to know if the other stuff got committed or not... */}
+                    return Promise.reject(new IDBRequestError(request, "Write request failed"));
+                }
+            }
+        }
+        const result = await txnAsPromise(this._txn);
+        // check the write requests if we haven't failed yet
+        if (this._writeRequests) {
+            for (const request of this._writeRequests) {
+                if (request.readyState !== "done") {
+                    return Promise.reject(new IDBRequestError(request, "Request is still pending after transaction finished"));
+                }
+            }
+        }
+        return result;
     }
 
     abort() {
