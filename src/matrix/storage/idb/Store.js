@@ -35,11 +35,11 @@ class QueryTargetWrapper {
     }
     
     openKeyCursor(...params) {
-        // not supported on Edge 15
-        if (!this._qt.openKeyCursor) {
-            return this.openCursor(...params);
-        }
         try {
+            // not supported on Edge 15
+            if (!this._qt.openKeyCursor) {
+                return this.openCursor(...params);
+            }
             return this._qt.openKeyCursor(...params);
         } catch(err) {
             throw new IDBRequestAttemptError("openKeyCursor", this._qt, err, params);
