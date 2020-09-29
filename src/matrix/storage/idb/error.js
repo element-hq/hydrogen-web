@@ -41,10 +41,10 @@ export class IDBError extends StorageError {
 }
 
 export class IDBRequestError extends IDBError {
-    constructor(request) {
+    constructor(request, message = "IDBRequest failed") {
         const source = request?.source;
         const cause = request.error;
-        super(`IDBRequest failed`, source, cause);
+        super(message, source, cause);
     }
 }
 
