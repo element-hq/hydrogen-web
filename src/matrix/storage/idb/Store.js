@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {QueryTarget} from "./QueryTarget.js";
-import {IDBRequestAttemptError} from "./utils.js";
+import {IDBRequestAttemptError} from "./error.js";
 
 class QueryTargetWrapper {
     constructor(qt) {
