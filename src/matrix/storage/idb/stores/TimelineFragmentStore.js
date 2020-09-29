@@ -62,11 +62,11 @@ export class TimelineFragmentStore {
     // like give them meaning depending on range. not for now probably ...
     add(fragment) {
         fragment.key = encodeKey(fragment.roomId, fragment.id);
-        return this._store.add(fragment);
+        this._store.add(fragment);
     }
 
     update(fragment) {
-        return this._store.put(fragment);
+        this._store.put(fragment);
     }
 
     get(roomId, fragmentId) {

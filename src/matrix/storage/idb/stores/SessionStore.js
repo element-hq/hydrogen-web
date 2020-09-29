@@ -27,11 +27,11 @@ export class SessionStore {
 	}
 
 	set(key, value) {
-		return this._sessionStore.put({key, value});
+		this._sessionStore.put({key, value});
 	}
 
     add(key, value) {
-        return this._sessionStore.add({key, value});
+        this._sessionStore.add({key, value});
     }
 
     remove(key) {

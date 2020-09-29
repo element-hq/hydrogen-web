@@ -58,11 +58,11 @@ export class PendingEventStore {
     
     add(pendingEvent) {
         pendingEvent.key = encodeKey(pendingEvent.roomId, pendingEvent.queueIndex);
-        return this._eventStore.add(pendingEvent);
+        this._eventStore.add(pendingEvent);
     }
 
     update(pendingEvent) {
-        return this._eventStore.put(pendingEvent);
+        this._eventStore.put(pendingEvent);
     }
 
     getAll() {
