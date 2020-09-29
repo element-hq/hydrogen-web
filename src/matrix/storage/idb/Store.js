@@ -15,8 +15,7 @@ limitations under the License.
 */
 
 import {QueryTarget} from "./QueryTarget.js";
-import { reqAsPromise } from "./utils.js";
-import { StorageError } from "../common.js";
+import {IDBRequestAttemptError} from "./utils.js";
 
 class QueryTargetWrapper {
     constructor(qt) {
@@ -43,7 +42,7 @@ class QueryTargetWrapper {
         try {
             return this._qt.openKeyCursor(...params);
         } catch(err) {
-            throw new StorageError("openKeyCursor failed", err);
+            throw new IDBRequestAttemptError("openKeyCursor", this._qt, err, params);
         }
     }
     
@@ -51,7 +50,7 @@ class QueryTargetWrapper {
         try {
             return this._qt.openCursor(...params);
         } catch(err) {
-            throw new StorageError("openCursor failed", err);
+            throw new IDBRequestAttemptError("openCursor", this._qt, err, params);
         }
     }
 
@@ -59,7 +58,7 @@ class QueryTargetWrapper {
         try {
             return this._qt.put(...params);
         } catch(err) {
-            throw new StorageError("put failed", err);
+            throw new IDBRequestAttemptError("put", this._qt, err, params);
         }
     }
 
@@ -67,7 +66,7 @@ class QueryTargetWrapper {
         try {
             return this._qt.add(...params);
         } catch(err) {
-            throw new StorageError("add failed", err);
+            throw new IDBRequestAttemptError("add", this._qt, err, params);
         }
     }
 
@@ -75,7 +74,7 @@ class QueryTargetWrapper {
         try {
             return this._qt.get(...params);
         } catch(err) {
-            throw new StorageError("get failed", err);
+            throw new IDBRequestAttemptError("get", this._qt, err, params);
         }
     }
     
@@ -83,7 +82,7 @@ class QueryTargetWrapper {
         try {
             return this._qt.getKey(...params);
         } catch(err) {
-            throw new StorageError("getKey failed", err);
+            throw new IDBRequestAttemptError("getKey", this._qt, err, params);
         }
     }
 
@@ -91,7 +90,7 @@ class QueryTargetWrapper {
         try {
             return this._qt.delete(...params);
         } catch(err) {
-            throw new StorageError("delete failed", err);
+            throw new IDBRequestAttemptError("delete", this._qt, err, params);
         }
     }
 
@@ -99,7 +98,7 @@ class QueryTargetWrapper {
         try {
             return this._qt.index(...params);
         } catch(err) {
-            throw new StorageError("index failed", err);
+            throw new IDBRequestAttemptError("index", this._qt, err, params);
         }
     }
 }
