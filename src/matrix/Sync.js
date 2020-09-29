@@ -196,7 +196,9 @@ export class Sync {
             // avoid corrupting state by only
             // storing the sync up till the point
             // the exception occurred
-            syncTxn.abort();
+            try {
+                syncTxn.abort();
+            } catch (abortErr) { /* ignore when we can't abort */ } 
             throw err;
         }
         try {
