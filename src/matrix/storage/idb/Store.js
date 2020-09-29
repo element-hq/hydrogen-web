@@ -129,6 +129,8 @@ export class Store extends QueryTarget {
 
     async add(value) {
         try {
+            // this will catch both the sync error already mapped 
+            // in the QueryTargetWrapper above, and also the async request errors, which are still DOMException's
             return await reqAsPromise(this._idbStore.add(value));
         } catch(err) {
             const originalErr = err.cause;
