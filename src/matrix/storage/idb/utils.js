@@ -151,17 +151,6 @@ export async function select(db, storeName, toCursor, isDone) {
     return await fetchResults(cursor, isDone);
 }
 
-export async function updateSingletonStore(db, storeName, value) {
-    const tx = db.transaction([storeName], "readwrite");
-    const store = tx.objectStore(storeName);
-    const cursor = await reqAsPromise(store.openCursor());
-    if (cursor) {
-        return reqAsPromise(cursor.update(storeName));
-    } else {
-        return reqAsPromise(store.add(value));
-    }
-}
-
 export async function findStoreValue(db, storeName, toCursor, matchesValue) {
     if (!matchesValue) {
         matchesValue = () => true;

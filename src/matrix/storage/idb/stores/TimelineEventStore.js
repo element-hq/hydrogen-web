@@ -253,11 +253,6 @@ export class TimelineEventStore {
     get(roomId, eventKey) {
         return this._timelineStore.get(encodeKey(roomId, eventKey.fragmentId, eventKey.eventIndex));
     }
-    // returns the entries as well!! (or not always needed? I guess not always needed, so extra method)
-    removeRange(roomId, range) {
-        // TODO: read the entries!
-        return this._timelineStore.delete(range.asIDBKeyRange(roomId));
-    }
 
     getByEventId(roomId, eventId) {
         return this._timelineStore.index("byEventId").get(encodeEventIdKey(roomId, eventId));
