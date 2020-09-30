@@ -233,6 +233,7 @@ export class Sync {
         await Promise.all(roomStates.map(async rs => {
             rs.preparation = await rs.room.prepareSync(rs.roomResponse, rs.membership, prepareTxn);
         }));
+        await prepareTxn.complete();
         await Promise.all(roomStates.map(rs => rs.room.afterPrepareSync(rs.preparation)));
     }
 
