@@ -116,7 +116,7 @@ export class Transaction {
         return this._store("accountData", idbStore => new AccountDataStore(idbStore));
     }
 
-    async complete() {
+    complete() {
         return txnAsPromise(this._txn);
     }
 
