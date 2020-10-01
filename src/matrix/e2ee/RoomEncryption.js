@@ -183,7 +183,7 @@ export class RoomEncryption {
                     console.warn("Got session key back from backup with different sender key, ignoring", {session, senderKey});
                     return;
                 }
-                const txn = await this._storage.readWriteTxn([this._storage.storeNames.inboundGroupSessions]);
+                const txn = this._storage.readWriteTxn([this._storage.storeNames.inboundGroupSessions]);
                 let roomKey;
                 try {
                     roomKey = await this._megolmDecryption.addRoomKeyFromBackup(
@@ -251,6 +251,7 @@ export class RoomEncryption {
         await this._deviceTracker.trackRoom(this._room);
         const megolmResult = await this._megolmEncryption.encrypt(this._room.id, type, content, this._encryptionParams);
         if (megolmResult.roomKeyMessage) {
+            // TODO: should we await this??
             this._shareNewRoomKey(megolmResult.roomKeyMessage, hsApi);
         }
         return {
@@ -273,7 +274,7 @@ export class RoomEncryption {
         const userIds = Array.from(devices.reduce((set, device) => set.add(device.userId), new Set()));
 
         // store operation for room key share, in case we don't finish here
-        const writeOpTxn = await this._storage.readWriteTxn([this._storage.storeNames.operations]);
+        const writeOpTxn = this._storage.readWriteTxn([this._storage.storeNames.operations]);
         let operationId;
         try {
             operationId = this._writeRoomKeyShareOperation(roomKeyMessage, userIds, writeOpTxn);
@@ -290,7 +291,7 @@ export class RoomEncryption {
         await this._sendRoomKey(roomKeyMessage, devices, hsApi);
 
         // remove the operation
-        const removeOpTxn = await this._storage.readWriteTxn([this._storage.storeNames.operations]);
+        const removeOpTxn = this._storage.readWriteTxn([this._storage.storeNames.operations]);
         try {
             removeOpTxn.operations.remove(operationId);
         } catch (err) {
@@ -329,7 +330,7 @@ export class RoomEncryption {
         this._isFlushingRoomKeyShares = true;
         try {
             if (!operations) {
-                const txn = await this._storage.readTxn([this._storage.storeNames.operations]);
+                const txn = this._storage.readTxn([this._storage.storeNames.operations]);
                 operations = await txn.operations.getAllByTypeAndScope("share_room_key", this._room.id);
             }
             for (const operation of operations) {
@@ -339,7 +340,7 @@ export class RoomEncryption {
                 }
                 const devices = await this._deviceTracker.devicesForRoomMembers(this._room.id, operation.userIds, hsApi);
                 await this._sendRoomKey(operation.roomKeyMessage, devices, hsApi);
-                const removeTxn = await this._storage.readWriteTxn([this._storage.storeNames.operations]);
+                const removeTxn = this._storage.readWriteTxn([this._storage.storeNames.operations]);
                 try {
                     removeTxn.operations.remove(operation.id);
                 } catch (err) {

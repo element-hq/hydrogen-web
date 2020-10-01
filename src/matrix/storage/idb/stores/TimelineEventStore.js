@@ -238,7 +238,7 @@ export class TimelineEventStore {
         entry.key = encodeKey(entry.roomId, entry.fragmentId, entry.eventIndex);
         entry.eventIdKey = encodeEventIdKey(entry.roomId, entry.event.event_id);
         // TODO: map error? or in idb/store?
-        return this._timelineStore.add(entry);
+        this._timelineStore.add(entry);
     }
 
     /** Updates the entry into the store with the given [roomId, eventKey] combination.
@@ -247,16 +247,11 @@ export class TimelineEventStore {
      *  @return {Promise<>} a promise resolving to undefined if the operation was successful, or a StorageError if not.
      */
     update(entry) {
-        return this._timelineStore.put(entry);
+        this._timelineStore.put(entry);
     }
 
     get(roomId, eventKey) {
         return this._timelineStore.get(encodeKey(roomId, eventKey.fragmentId, eventKey.eventIndex));
-    }
-    // returns the entries as well!! (or not always needed? I guess not always needed, so extra method)
-    removeRange(roomId, range) {
-        // TODO: read the entries!
-        return this._timelineStore.delete(range.asIDBKeyRange(roomId));
     }
 
     getByEventId(roomId, eventId) {

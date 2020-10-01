@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import { IDBRequestError } from "./error.js";
 import { StorageError } from "../common.js";
 
 let needsSyncPromise = false;
@@ -45,17 +46,6 @@ export async function checkNeedsSyncPromise() {
     // but let's not create it on every page load on legacy platforms,
     // and just keep it around
     return needsSyncPromise;
-}
-
-class IDBRequestError extends StorageError {
-    constructor(request) {
-        const source = request?.source;
-        const storeName = source?.name || "<unknown store>";
-        const databaseName = source?.transaction?.db?.name || "<unknown db>";
-        super(`Failed IDBRequest on ${databaseName}.${storeName}`, request.error);
-        this.storeName = storeName;
-        this.databaseName = databaseName;
-    }
 }
 
 // storage keys are defined to be unsigned 32bit numbers in WebPlatform.js, which is assumed by idb
@@ -159,17 +149,6 @@ export async function select(db, storeName, toCursor, isDone) {
     const store = tx.objectStore(storeName);
     const cursor = toCursor(store);
     return await fetchResults(cursor, isDone);
-}
-
-export async function updateSingletonStore(db, storeName, value) {
-    const tx = db.transaction([storeName], "readwrite");
-    const store = tx.objectStore(storeName);
-    const cursor = await reqAsPromise(store.openCursor());
-    if (cursor) {
-        return reqAsPromise(cursor.update(storeName));
-    } else {
-        return reqAsPromise(store.add(value));
-    }
 }
 
 export async function findStoreValue(db, storeName, toCursor, matchesValue) {

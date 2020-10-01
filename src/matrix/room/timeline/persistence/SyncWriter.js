@@ -104,6 +104,8 @@ export class SyncWriter {
             const memberChange = new MemberChange(this._roomId, event);
             const {member} = memberChange;
             if (member) {
+                // TODO: can we avoid writing redundant members here by checking
+                // if this is not a limited sync and the state is not in the timeline?
                 txn.roomMembers.set(member.serialize());
                 return memberChange;
             }

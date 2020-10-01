@@ -184,19 +184,23 @@ export class Sync {
         const roomStates = this._parseRoomsResponse(response.rooms, isInitialSync);
         await this._prepareRooms(roomStates);
         let sessionChanges;
-        const syncTxn = await this._openSyncTxn();
+        const syncTxn = this._openSyncTxn();
         try {
+            sessionChanges = await this._session.writeSync(response, syncFilterId, syncTxn);
             await Promise.all(roomStates.map(async rs => {
                 console.log(` * applying sync response to room ${rs.room.id} ...`);
                 rs.changes = await rs.room.writeSync(
                     rs.roomResponse, isInitialSync, rs.preparation, syncTxn);
             }));
-            sessionChanges = await this._session.writeSync(response, syncFilterId, syncTxn);
         } catch(err) {
             // avoid corrupting state by only
             // storing the sync up till the point
             // the exception occurred
-            syncTxn.abort();
+            try {
+                syncTxn.abort();
+            } catch (abortErr) {
+                console.error("Could not abort sync transaction, the sync response was probably only partially written and may have put storage in a inconsistent state.", abortErr);
+            } 
             throw err;
         }
         try {
@@ -221,24 +225,26 @@ export class Sync {
         };
     }
 
-    async _openPrepareSyncTxn() {
+    _openPrepareSyncTxn() {
         const storeNames = this._storage.storeNames;
-        return await this._storage.readTxn([
+        return this._storage.readTxn([
             storeNames.inboundGroupSessions,
         ]);
     }
 
     async _prepareRooms(roomStates) {
-        const prepareTxn = await this._openPrepareSyncTxn();
+        const prepareTxn = this._openPrepareSyncTxn();
         await Promise.all(roomStates.map(async rs => {
             rs.preparation = await rs.room.prepareSync(rs.roomResponse, rs.membership, prepareTxn);
         }));
+        // This is needed for safari to not throw TransactionInactiveErrors on the syncTxn. See docs/INDEXEDDB.md
+        await prepareTxn.complete();
         await Promise.all(roomStates.map(rs => rs.room.afterPrepareSync(rs.preparation)));
     }
 
-    async _openSyncTxn() {
+    _openSyncTxn() {
         const storeNames = this._storage.storeNames;
-        return await this._storage.readWriteTxn([
+        return this._storage.readWriteTxn([
             storeNames.session,
             storeNames.roomSummary,
             storeNames.roomState,
@@ -250,7 +256,7 @@ export class Sync {
             storeNames.groupSessionDecryptions,
             storeNames.deviceIdentities,
             // to discard outbound session when somebody leaves a room
-            // and to create room key messages when somebody leaves
+            // and to create room key messages when somebody joins
             storeNames.outboundGroupSessions,
             storeNames.operations,
             storeNames.accountData,

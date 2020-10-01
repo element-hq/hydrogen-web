@@ -234,11 +234,4 @@ export class RoomTimelineStore extends Store {
         const event = count ? this._timeline[startIndex] : undefined;
         return Promise.resolve(event);
     }
-
-    removeRange(roomId, range) {
-        this.assertWritable();
-        const {startIndex, count} = range.project(roomId);
-        const removedEntries = this._timeline.splice(startIndex, count);
-        return Promise.resolve(removedEntries);
-    }
 }

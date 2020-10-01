@@ -15,8 +15,15 @@ limitations under the License.
 */
 
 import {QueryTarget} from "./QueryTarget.js";
-import { reqAsPromise } from "./utils.js";
-import { StorageError } from "../common.js";
+import {IDBRequestAttemptError} from "./error.js";
+
+const LOG_REQUESTS = false;
+
+function logRequest(method, params, source) {
+    const storeName = source?.name;
+    const databaseName = source?.transaction?.db?.name;
+    console.info(`${databaseName}.${storeName}.${method}(${params.map(p => JSON.stringify(p)).join(", ")})`);
+}
 
 class QueryTargetWrapper {
     constructor(qt) {
@@ -36,62 +43,70 @@ class QueryTargetWrapper {
     }
     
     openKeyCursor(...params) {
-        // not supported on Edge 15
-        if (!this._qt.openKeyCursor) {
-            return this.openCursor(...params);
-        }
         try {
+            // not supported on Edge 15
+            if (!this._qt.openKeyCursor) {
+                LOG_REQUESTS && logRequest("openCursor", params, this._qt);
+                return this.openCursor(...params);
+            }
+            LOG_REQUESTS && logRequest("openKeyCursor", params, this._qt);
             return this._qt.openKeyCursor(...params);
         } catch(err) {
-            throw new StorageError("openKeyCursor failed", err);
+            throw new IDBRequestAttemptError("openKeyCursor", this._qt, err, params);
         }
     }
     
     openCursor(...params) {
         try {
+            LOG_REQUESTS && logRequest("openCursor", params, this._qt);
             return this._qt.openCursor(...params);
         } catch(err) {
-            throw new StorageError("openCursor failed", err);
+            throw new IDBRequestAttemptError("openCursor", this._qt, err, params);
         }
     }
 
     put(...params) {
         try {
+            LOG_REQUESTS && logRequest("put", params, this._qt);
             return this._qt.put(...params);
         } catch(err) {
-            throw new StorageError("put failed", err);
+            throw new IDBRequestAttemptError("put", this._qt, err, params);
         }
     }
 
     add(...params) {
         try {
+            LOG_REQUESTS && logRequest("add", params, this._qt);
             return this._qt.add(...params);
         } catch(err) {
-            throw new StorageError("add failed", err);
+            throw new IDBRequestAttemptError("add", this._qt, err, params);
         }
     }
 
     get(...params) {
         try {
+            LOG_REQUESTS && logRequest("get", params, this._qt);
             return this._qt.get(...params);
         } catch(err) {
-            throw new StorageError("get failed", err);
+            throw new IDBRequestAttemptError("get", this._qt, err, params);
         }
     }
     
     getKey(...params) {
         try {
+            LOG_REQUESTS && logRequest("getKey", params, this._qt);
             return this._qt.getKey(...params);
         } catch(err) {
-            throw new StorageError("getKey failed", err);
+            throw new IDBRequestAttemptError("getKey", this._qt, err, params);
         }
     }
 
     delete(...params) {
         try {
+            LOG_REQUESTS && logRequest("delete", params, this._qt);
             return this._qt.delete(...params);
         } catch(err) {
-            throw new StorageError("delete failed", err);
+            throw new IDBRequestAttemptError("delete", this._qt, err, params);
         }
     }
 
@@ -99,14 +114,16 @@ class QueryTargetWrapper {
         try {
             return this._qt.index(...params);
         } catch(err) {
-            throw new StorageError("index failed", err);
+            // TODO: map to different error? this is not a request
+            throw new IDBRequestAttemptError("index", this._qt, err, params);
         }
     }
 }
 
 export class Store extends QueryTarget {
-    constructor(idbStore) {
+    constructor(idbStore, transaction) {
         super(new QueryTargetWrapper(idbStore));
+        this._transaction = transaction;
     }
 
     get _idbStore() {
@@ -117,31 +134,27 @@ export class Store extends QueryTarget {
         return new QueryTarget(new QueryTargetWrapper(this._idbStore.index(indexName)));
     }
 
-    async put(value) {
-        try {
-            return await reqAsPromise(this._idbStore.put(value));
-        } catch(err) {
-            const originalErr = err.cause;
-            throw new StorageError(`put on ${err.databaseName}.${err.storeName} failed`, originalErr, value);
-        }
+    put(value) {
+        // If this request fails, the error will bubble up to the transaction and abort it,
+        // which is the behaviour we want. Therefore, it is ok to not create a promise for this
+        // request and await it.
+        // 
+        // Perhaps at some later point, we will want to handle an error (like ConstraintError) for
+        // individual write requests. In that case, we should add a method that returns a promise (e.g. putAndObserve)
+        // and call preventDefault on the event to prevent it from aborting the transaction
+        // 
+        // Note that this can still throw synchronously, like it does for TransactionInactiveError,
+        // see https://www.w3.org/TR/IndexedDB-2/#transaction-lifetime-concept
+        this._idbStore.put(value);
     }
 
-    async add(value) {
-        try {
-            return await reqAsPromise(this._idbStore.add(value));
-        } catch(err) {
-            const originalErr = err.cause;
-            throw new StorageError(`add on ${err.databaseName}.${err.storeName} failed`, originalErr, value);
-        }
+    add(value) {
+        // ok to not monitor result of request, see comment in `put`.
+        this._idbStore.add(value);
     }
 
-    async delete(keyOrKeyRange) {
-        try {
-            return await reqAsPromise(this._idbStore.delete(keyOrKeyRange));
-        } catch(err) {
-            const originalErr = err.cause;
-            throw new StorageError(`delete on ${err.databaseName}.${err.storeName} failed`, originalErr, keyOrKeyRange);
-        }
-        
+    delete(keyOrKeyRange) {
+        // ok to not monitor result of request, see comment in `put`.
+        this._idbStore.delete(keyOrKeyRange);
     }
 }
