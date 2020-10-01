@@ -45,11 +45,11 @@ export class SyncWriter {
         const liveFragment = await txn.timelineFragments.liveFragment(this._roomId);
         if (liveFragment) {
             const [lastEvent] = await txn.timelineEvents.lastEvents(this._roomId, liveFragment.id, 1);
-            // sorting and identifying (e.g. sort key and pk to insert) are a bit intertwined here
-            // we could split it up into a SortKey (only with compare) and
-            // a EventKey (no compare or fragment index) with nextkey methods and getters/setters for eventIndex/fragmentId
-            // we probably need to convert from one to the other though, so bother?
-            this._lastLiveKey = new EventKey(liveFragment.id, lastEvent.eventIndex);
+            // fall back to the default event index in case the fragment was somehow written but no events
+            // we should only create fragments when really writing timeline events now
+            // (see https://github.com/vector-im/hydrogen-web/issues/112) but can't hurt to be extra robust.
+            const eventIndex = lastEvent ? lastEvent.eventIndex : EventKey.defaultLiveKey.eventIndex;
+            this._lastLiveKey = new EventKey(liveFragment.id, eventIndex);
         }
         // if there is no live fragment, we don't create it here because load gets a readonly txn.
         // this is on purpose, load shouldn't modify the store
@@ -98,6 +98,34 @@ export class SyncWriter {
         return {oldFragment, newFragment};
     }
 
+    /**
+     * creates a new live fragment if the timeline is limited, or if no live fragment is created yet
+     * @param  {EventKey} currentKey current key so far, might be none if room hasn't synced yet
+     * @param  {Array<BaseEntrie>} entries    array to add fragment boundary entries when creating a new fragment
+     * @param  {Object} timeline   timeline part of the room sync response
+     * @param  {Transaction} txn        used to read and write from the fragment store
+     * @return {EventKey} the new event key to start writing events at
+     */
+    async _ensureLiveFragment(currentKey, entries, timeline, txn) {
+        if (!currentKey) {
+            // means we haven't synced this room yet (just joined or did initial sync)
+            
+            // as this is probably a limited sync, prev_batch should be there
+            // (but don't fail if it isn't, we won't be able to back-paginate though)
+            let liveFragment = await this._createLiveFragment(txn, timeline.prev_batch);
+            currentKey = new EventKey(liveFragment.id, EventKey.defaultLiveKey.eventIndex);
+            entries.push(FragmentBoundaryEntry.start(liveFragment, this._fragmentIdComparer));
+        } else if (timeline.limited) {
+            // replace live fragment for limited sync, *only* if we had a live fragment already
+            const oldFragmentId = currentKey.fragmentId;
+            currentKey = currentKey.nextFragmentKey();
+            const {oldFragment, newFragment} = await this._replaceLiveFragment(oldFragmentId, currentKey.fragmentId, timeline.prev_batch, txn);
+            entries.push(FragmentBoundaryEntry.end(oldFragment, this._fragmentIdComparer));
+            entries.push(FragmentBoundaryEntry.start(newFragment, this._fragmentIdComparer));
+        }
+        return currentKey;
+    }
+
     _writeMember(event, txn) {
         const userId = event.state_key;
         if (userId) {
@@ -134,7 +162,9 @@ export class SyncWriter {
     }
 
     async _writeTimeline(entries, timeline, currentKey, memberChanges, txn) {
-        if (Array.isArray(timeline.events)) {
+        if (Array.isArray(timeline.events) && timeline.events.length) {
+            // only create a fragment when we will really write an event
+            currentKey = await this._ensureLiveFragment(currentKey, entries, timeline, txn);
             const events = deduplicateEvents(timeline.events);
             for(const event of events) {
                 // store event in timeline
@@ -191,28 +221,11 @@ export class SyncWriter {
     async writeSync(roomResponse, txn) {
         const entries = [];
         const {timeline} = roomResponse;
-        let currentKey = this._lastLiveKey;
-        if (!currentKey) {
-            // means we haven't synced this room yet (just joined or did initial sync)
-            
-            // as this is probably a limited sync, prev_batch should be there
-            // (but don't fail if it isn't, we won't be able to back-paginate though)
-            let liveFragment = await this._createLiveFragment(txn, timeline.prev_batch);
-            currentKey = new EventKey(liveFragment.id, EventKey.defaultLiveKey.eventIndex);
-            entries.push(FragmentBoundaryEntry.start(liveFragment, this._fragmentIdComparer));
-        } else if (timeline.limited) {
-            // replace live fragment for limited sync, *only* if we had a live fragment already
-            const oldFragmentId = currentKey.fragmentId;
-            currentKey = currentKey.nextFragmentKey();
-            const {oldFragment, newFragment} = await this._replaceLiveFragment(oldFragmentId, currentKey.fragmentId, timeline.prev_batch, txn);
-            entries.push(FragmentBoundaryEntry.end(oldFragment, this._fragmentIdComparer));
-            entries.push(FragmentBoundaryEntry.start(newFragment, this._fragmentIdComparer));
-        }
         const memberChanges = new Map();
         // important this happens before _writeTimeline so
         // members are available in the transaction
         this._writeStateEvents(roomResponse, memberChanges, txn);
-        currentKey = await this._writeTimeline(entries, timeline, currentKey, memberChanges, txn);
+        const currentKey = await this._writeTimeline(entries, timeline, this._lastLiveKey, memberChanges, txn);
         return {entries, newLiveKey: currentKey, memberChanges};
     }
 
