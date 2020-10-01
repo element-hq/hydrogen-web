@@ -14,4 +14,4 @@ If you find this interesting, come and discuss on `#hydrogen:matrix.org`.
 
 # How to use
 
-Try it locally by running `yarn install` (only the first time) and `yarn start` in the terminal, and point your browser to `http://localhost:3000`.
+Hydrogen is deployed to [hydrogen.element.io](https://hydrogen.element.io). You can run it locally `yarn install` (only the first time) and `yarn start` in the terminal, and point your browser to `http://localhost:3000`.
