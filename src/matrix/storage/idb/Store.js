@@ -114,6 +114,7 @@ class QueryTargetWrapper {
         try {
             return this._qt.index(...params);
         } catch(err) {
+            // TODO: map to different error? this is not a request
             throw new IDBRequestAttemptError("index", this._qt, err, params);
         }
     }
