@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <script type="text/javascript">
+        function reqAsPromise(req) {
+            return new Promise(function (resolve, reject) {
+                req.onsuccess = function() {
+                    resolve(req.result);
+                };
+                req.onerror = function(e) {
+                    reject(new Error("IDB request failed: " + req.error));
+                };
+            });
+        }
+        function txnAsPromise(txn) {
+            return new Promise(function (resolve, reject) {
+                txn.oncomplete = function() {
+                    resolve(txn);
+                };
+                txn.onabort = function(e) {
+                    reject(new Error("Transaction got aborted: " + txn.error));
+                };
+            });
+        }
+
+        const BrowserMutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+
+        function useMutationObserver(flush) {
+          let iterations = 0;
+          const observer = new BrowserMutationObserver(flush);
+          const node = document.createTextNode('');
+          observer.observe(node, { characterData: true });
+
+          return () => {
+            node.data = (iterations = ++iterations % 2);
+          };
+        }
+
+        const wait = (function() {
+            let resolve = null;
+            const trigger = useMutationObserver(() => {
+                resolve();
+            });
+            return () => {
+                return new Promise(r => {
+                    resolve = r;
+                    trigger();
+                });
+            };
+        })();
+        
+        
+        var _resolve = Promise.resolve.bind(Promise);
+        var _then = Promise.prototype.then;
+
+        async function delay() {
+            return Promise.resolve();
+            // two consecutive macro tasks
+            //await new Promise(r => setImmediate(r));
+            // the next macro task will now be the complete event of the txn,
+            // so schedule another macro task to execute after that
+            //await new Promise(r => setImmediate(r));
+            //return;
+            // for (let i = 0; i < 1000; i+=1) {
+            //         console.log("await...");
+            //         await wait();
+            //     }
+            let p = _resolve(0);
+            for (let i=0;i<10;++i) {
+                p = _then.call(p, x => x + 1);
+            }
+            let result = await p;
+            console.log("Result: "+ result + " (should be 10)");
+        }
+
+        class Storage {
+            constructor(databaseName) {
+                this._databaseName = databaseName;
+                this._database = null;
+            }
+
+            open() {
+                const req = window.indexedDB.open(this._databaseName);
+                const self = this;
+                req.onupgradeneeded = function(ev) {
+                    const db = ev.target.result;
+                    const oldVersion = ev.oldVersion;
+                    self._createStores(db, oldVersion);
+                }; 
+                return reqAsPromise(req).then(function() {
+                    self._database = req.result;
+                });
+            }
+
+            openTxn(mode, storeName) {
+                const txn = this._database.transaction([storeName], mode);
+                txn.addEventListener("complete", () => {
+                    console.info(`transaction ${mode} for ${storeName} completed`);
+                });
+                txn.addEventListener("abort", e => {
+                    console.warn(`transaction ${mode} for ${storeName} aborted`, e.target.error);
+                });
+                return txn;
+            }
+
+            _createStores(db) {
+                db.createObjectStore("foos", {keyPath: "id"});
+            }
+        }
+
+        async function getAll(store, depth = 0) {
+            if (depth < 15) {
+                return await getAll(store, depth + 1);
+            } 
+            const request = store.openCursor();
+            const results = [];
+            return await new Promise(function(resolve, reject) {
+                request.onsuccess = function(event) {
+                    const cursor = event.target.result;
+                    if(cursor) {
+                        results.push(cursor.value);
+                        cursor.continue();
+                    } else {
+                        resolve(results);
+                        Promise.flushQueue && Promise.flushQueue();
+                    }
+                };
+                request.onerror = function(e) {
+                    reject(new Error("IDB request failed: " + e.target.error.message));
+                    Promise.flushQueue && Promise.flushQueue();
+                };
+            });
+        }
+
+        async function main() {
+            try {
+                let storage = new Storage("idb-promises");
+                await storage.open();
+                //await reqAsPromise(storage.openTxn("readwrite", "foos").objectStore("foos").clear());
+
+                for (let i = 0; i < 10; i += 1) {
+                    storage.openTxn("readonly", "foos").objectStore("foos").get(5);
+                    //console.log("from readtxn", await reqAsPromise(storage.openTxn("readonly", "foos").objectStore("foos").get(5)));
+                    const txn = storage.openTxn("readwrite", "foos");
+                    const store = txn.objectStore("foos");
+                    console.log("writing the foos");
+                    store.put({id: 5, name: "foo"});
+                    store.put({id: 6, name: "bar"});
+                    store.put({id: 7, name: "bazzz"});
+                    await delay();
+                    console.log("reading the foos");
+                    console.log("5", await reqAsPromise(store.get(5)));
+                    console.log("6", await reqAsPromise(store.get(6)));
+                    console.log("7", await reqAsPromise(store.get(7)));
+                    // await txnAsPromise(txn);
+                }
+            } catch(err) {
+                console.error(err);
+            };
+        }
+        main();
+    </script>
+</body>
+</html>
+ 
