@@ -253,7 +253,7 @@ export class Sync {
             storeNames.groupSessionDecryptions,
             storeNames.deviceIdentities,
             // to discard outbound session when somebody leaves a room
-            // and to create room key messages when somebody leaves
+            // and to create room key messages when somebody joins
             storeNames.outboundGroupSessions,
             storeNames.operations,
             storeNames.accountData,
