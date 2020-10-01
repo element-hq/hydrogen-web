@@ -341,17 +341,18 @@ export class Session {
             deviceMessageDecryptionPending: false
         };
         const syncToken = syncResponse.next_batch;
-        const deviceOneTimeKeysCount = syncResponse.device_one_time_keys_count;
-
-        if (this._e2eeAccount && deviceOneTimeKeysCount) {
-            changes.e2eeAccountChanges = this._e2eeAccount.writeSync(deviceOneTimeKeysCount, txn);
-        }
         if (syncToken !== this.syncToken) {
             const syncInfo = {token: syncToken, filterId: syncFilterId};
             // don't modify `this` because transaction might still fail
             txn.session.set("sync", syncInfo);
             changes.syncInfo = syncInfo;
         }
+
+        const deviceOneTimeKeysCount = syncResponse.device_one_time_keys_count;
+        if (this._e2eeAccount && deviceOneTimeKeysCount) {
+            changes.e2eeAccountChanges = this._e2eeAccount.writeSync(deviceOneTimeKeysCount, txn);
+        }
+        
         if (this._deviceTracker) {
             const deviceLists = syncResponse.device_lists;
             if (deviceLists) {

@@ -186,12 +186,12 @@ export class Sync {
         let sessionChanges;
         const syncTxn = this._openSyncTxn();
         try {
+            sessionChanges = await this._session.writeSync(response, syncFilterId, syncTxn);
             await Promise.all(roomStates.map(async rs => {
                 console.log(` * applying sync response to room ${rs.room.id} ...`);
                 rs.changes = await rs.room.writeSync(
                     rs.roomResponse, isInitialSync, rs.preparation, syncTxn);
             }));
-            sessionChanges = await this._session.writeSync(response, syncFilterId, syncTxn);
         } catch(err) {
             // avoid corrupting state by only
             // storing the sync up till the point
