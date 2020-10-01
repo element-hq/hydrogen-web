@@ -17,6 +17,14 @@ limitations under the License.
 import {QueryTarget} from "./QueryTarget.js";
 import {IDBRequestAttemptError} from "./error.js";
 
+const LOG_REQUESTS = false;
+
+function logRequest(method, params, source) {
+    const storeName = source?.name;
+    const databaseName = source?.transaction?.db?.name;
+    console.info(`${databaseName}.${storeName}.${method}(${params.map(p => JSON.stringify(p)).join(", ")})`);
+}
+
 class QueryTargetWrapper {
     constructor(qt) {
         this._qt = qt;
@@ -38,8 +46,10 @@ class QueryTargetWrapper {
         try {
             // not supported on Edge 15
             if (!this._qt.openKeyCursor) {
+                LOG_REQUESTS && logRequest("openCursor", params, this._qt);
                 return this.openCursor(...params);
             }
+            LOG_REQUESTS && logRequest("openKeyCursor", params, this._qt);
             return this._qt.openKeyCursor(...params);
         } catch(err) {
             throw new IDBRequestAttemptError("openKeyCursor", this._qt, err, params);
@@ -48,6 +58,7 @@ class QueryTargetWrapper {
     
     openCursor(...params) {
         try {
+            LOG_REQUESTS && logRequest("openCursor", params, this._qt);
             return this._qt.openCursor(...params);
         } catch(err) {
             throw new IDBRequestAttemptError("openCursor", this._qt, err, params);
@@ -56,6 +67,7 @@ class QueryTargetWrapper {
 
     put(...params) {
         try {
+            LOG_REQUESTS && logRequest("put", params, this._qt);
             return this._qt.put(...params);
         } catch(err) {
             throw new IDBRequestAttemptError("put", this._qt, err, params);
@@ -64,6 +76,7 @@ class QueryTargetWrapper {
 
     add(...params) {
         try {
+            LOG_REQUESTS && logRequest("add", params, this._qt);
             return this._qt.add(...params);
         } catch(err) {
             throw new IDBRequestAttemptError("add", this._qt, err, params);
@@ -72,6 +85,7 @@ class QueryTargetWrapper {
 
     get(...params) {
         try {
+            LOG_REQUESTS && logRequest("get", params, this._qt);
             return this._qt.get(...params);
         } catch(err) {
             throw new IDBRequestAttemptError("get", this._qt, err, params);
@@ -80,6 +94,7 @@ class QueryTargetWrapper {
     
     getKey(...params) {
         try {
+            LOG_REQUESTS && logRequest("getKey", params, this._qt);
             return this._qt.getKey(...params);
         } catch(err) {
             throw new IDBRequestAttemptError("getKey", this._qt, err, params);
@@ -88,6 +103,7 @@ class QueryTargetWrapper {
 
     delete(...params) {
         try {
+            LOG_REQUESTS && logRequest("delete", params, this._qt);
             return this._qt.delete(...params);
         } catch(err) {
             throw new IDBRequestAttemptError("delete", this._qt, err, params);
