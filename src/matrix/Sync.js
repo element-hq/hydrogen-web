@@ -235,6 +235,7 @@ export class Sync {
         await Promise.all(roomStates.map(async rs => {
             rs.preparation = await rs.room.prepareSync(rs.roomResponse, rs.membership, prepareTxn);
         }));
+        // This is needed for safari to not throw TransactionInactiveErrors on the syncTxn. See docs/INDEXEDDB.md
         await prepareTxn.complete();
         await Promise.all(roomStates.map(rs => rs.room.afterPrepareSync(rs.preparation)));
     }
