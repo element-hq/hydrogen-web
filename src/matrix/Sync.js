@@ -198,7 +198,9 @@ export class Sync {
             // the exception occurred
             try {
                 syncTxn.abort();
-            } catch (abortErr) { /* ignore when we can't abort */ } 
+            } catch (abortErr) {
+                console.error("Could not abort sync transaction, the sync response was probably only partially written and may have put storage in a inconsistent state.", abortErr);
+            } 
             throw err;
         }
         try {
