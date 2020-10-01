@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {IDBRequestError} from "./error.js";
 import {txnAsPromise} from "./utils.js";
 import {StorageError} from "../common.js";
 import {Store} from "./Store.js";
@@ -39,14 +38,6 @@ export class Transaction {
         this._txn = txn;
         this._allowedStoreNames = allowedStoreNames;
         this._stores = {};
-        this._writeRequests = null;
-    }
-
-    _addWriteRequest(request) {
-        if (!this._writeRequests) {
-            this._writeRequests = [];
-        }
-        this._writeRequests.push(request);
     }
 
     _idbStore(name) {
@@ -126,27 +117,7 @@ export class Transaction {
     }
 
     async complete() {
-        // check the write requests if we haven't failed yet
-        if (this._writeRequests) {
-            for (const request of this._writeRequests) {
-                if (request.error) {
-                    try {
-                        this.abort();
-                    } catch (err) {/* ignore abort error, although it would be useful to know if the other stuff got committed or not... */}
-                    return Promise.reject(new IDBRequestError(request, "Write request failed"));
-                }
-            }
-        }
-        const result = await txnAsPromise(this._txn);
-        // check the write requests if we haven't failed yet
-        if (this._writeRequests) {
-            for (const request of this._writeRequests) {
-                if (request.readyState !== "done") {
-                    return Promise.reject(new IDBRequestError(request, "Request is still pending after transaction finished"));
-                }
-            }
-        }
-        return result;
+        return txnAsPromise(this._txn);
     }
 
     abort() {

@@ -16,8 +16,6 @@ limitations under the License.
 
 import {QueryTarget} from "./QueryTarget.js";
 import {IDBRequestAttemptError} from "./error.js";
-import {reqAsPromise} from "./utils.js";
-import {StorageError} from "../common.js";
 
 class QueryTargetWrapper {
     constructor(qt) {
@@ -120,14 +118,26 @@ export class Store extends QueryTarget {
     }
 
     put(value) {
-        this._transaction._addWriteRequest(this._idbStore.put(value));
+        // If this request fails, the error will bubble up to the transaction and abort it,
+        // which is the behaviour we want. Therefore, it is ok to not create a promise for this
+        // request and await it.
+        // 
+        // Perhaps at some later point, we will want to handle an error (like ConstraintError) for
+        // individual write requests. In that case, we should add a method that returns a promise (e.g. putAndObserve)
+        // and call preventDefault on the event to prevent it from aborting the transaction
+        // 
+        // Note that this can still throw synchronously, like it does for TransactionInactiveError,
+        // see https://www.w3.org/TR/IndexedDB-2/#transaction-lifetime-concept
+        this._idbStore.put(value);
     }
 
     add(value) {
-        this._transaction._addWriteRequest(this._idbStore.add(value));
+        // ok to not monitor result of request, see comment in `put`.
+        this._idbStore.add(value);
     }
 
     delete(keyOrKeyRange) {
-        this._transaction._addWriteRequest(this._idbStore.delete(keyOrKeyRange));
+        // ok to not monitor result of request, see comment in `put`.
+        this._idbStore.delete(keyOrKeyRange);
     }
 }
