@@ -71,9 +71,9 @@ async function build() {
     // copy olm assets
     const olmAssets = await copyFolder(path.join(projectDir, "lib/olm/"), assets.directory);
     assets.addSubMap(olmAssets);
-    await buildJs("src/main.js", code => assets.create(`hydrogen.js`, code));
-    await buildJsLegacy("src/main.js", code => assets.create(`hydrogen-legacy.js`, code), 'src/legacy-extras.js');
-    await buildWorkerJsLegacy("src/worker.js", code => assets.create(`worker.js`, code));
+    await assets.write(`hydrogen.js`, await buildJs("src/main.js"));
+    await assets.write(`hydrogen-legacy.js`, await buildJsLegacy(["src/main.js", 'src/legacy-polyfill.js', 'src/legacy-extras.js']));
+    await assets.write(`worker.js`, await buildJsLegacy(["src/worker.js", 'src/worker-polyfill.js']));
     // creates the directories where the theme css bundles are placed in,
     // and writes to assets, so the build bundles can translate them, so do it first
     await copyThemeAssets(themes, assets);
@@ -157,7 +157,7 @@ async function buildHtml(doc, version, assets) {
     await fs.writeFile(path.join(targetDir, "index.html"), doc.html(), "utf8");
 }
 
-async function buildJs(inputFile, outputNameFn) {
+async function buildJs(inputFile) {
     // create js bundle
     const bundle = await rollup({
         input: inputFile,
@@ -169,10 +169,10 @@ async function buildJs(inputFile, outputNameFn) {
         name: `hydrogenBundle`
     });
     const code = output[0].code;
-    await fs.writeFile(outputNameFn(code), code, "utf8");
+    return code;
 }
 
-async function buildJsLegacy(inputFile, outputNameFn, extraFile, polyfillFile) {
+async function buildJsLegacy(inputFiles) {
     // compile down to whatever IE 11 needs
     const babelPlugin = babel.babel({
         babelHelpers: 'bundled',
@@ -192,13 +192,6 @@ async function buildJsLegacy(inputFile, outputNameFn, extraFile, polyfillFile) {
             ]
         ]
     });
-    if (!polyfillFile) {
-        polyfillFile = 'src/legacy-polyfill.js';
-    }
-    const inputFiles = [polyfillFile, inputFile];
-    if (extraFile) {
-        inputFiles.push(extraFile);
-    }
     // create js bundle
     const rollupConfig = {
         input: inputFiles,
@@ -210,12 +203,7 @@ async function buildJsLegacy(inputFile, outputNameFn, extraFile, polyfillFile) {
         name: `hydrogenBundle`
     });
     const code = output[0].code;
-    await fs.writeFile(outputNameFn(code), code, "utf8");
-}
-
-function buildWorkerJsLegacy(inputFile, outputNameFn) {
-    const polyfillFile = 'src/worker-polyfill.js';
-    return buildJsLegacy(inputFile, outputNameFn, null, polyfillFile);
+    return code;
 }
 
 async function buildOffline(version, assets) {
@@ -224,8 +212,7 @@ async function buildOffline(version, assets) {
     for (const icon of webManifest.icons) {
         let iconData = await fs.readFile(path.join(projectDir, icon.src));
         const iconTargetPath = path.basename(icon.src);
-        await fs.writeFile(assets.create(iconTargetPath, iconData), iconData);
-        icon.src = assets.resolve(iconTargetPath);
+        icon.src = await assets.write(iconTargetPath, iconData);
     }
     // write appcache manifest
     const appCacheLines = [
@@ -245,13 +232,12 @@ async function buildOffline(version, assets) {
     swSource = swSource.replace(`"%%OFFLINE_FILES%%"`, JSON.stringify(swOfflineFiles));
     // service worker should not have a hashed name as it is polled by the browser for updates
     await fs.writeFile(path.join(targetDir, "sw.js"), swSource, "utf8");
-    const manifestJson = JSON.stringify(webManifest);
-    await fs.writeFile(assets.create("manifest.json", manifestJson), manifestJson, "utf8");
+    await assets.write("manifest.json", JSON.stringify(webManifest));
 }
 
 async function buildCssBundles(buildFn, themes, assets) {
     const bundleCss = await buildFn(path.join(cssSrcDir, "main.css"));
-    await fs.writeFile(assets.create(`hydrogen.css`, bundleCss), bundleCss, "utf8");
+    await assets.write(`hydrogen.css`, bundleCss);
     for (const theme of themes) {
         const themeRelPath = `themes/${theme}/`;
         const themeRoot = path.join(cssSrcDir, themeRelPath);
@@ -266,7 +252,7 @@ async function buildCssBundles(buildFn, themes, assets) {
             }
         };
         const themeCss = await buildFn(path.join(themeRoot, `theme.css`), assetUrlMapper);
-        await fs.writeFile(assets.create(path.join(themeRelPath, `bundle.css`), themeCss), themeCss, "utf8");
+        await assets.write(path.join(themeRelPath, `bundle.css`), themeCss);
     }
 }
 
@@ -325,7 +311,7 @@ async function copyFolder(srcRoot, dstRoot, filter, assets = null) {
             await copyFolder(srcPath, dstPath, filter, assets);
         } else if ((dirEnt.isFile() || dirEnt.isSymbolicLink()) && (!filter || filter(srcPath))) {
             const content = await fs.readFile(srcPath);
-            await fs.writeFile(assets.create(dstPath, content), content);
+            await assets.write(dstPath, content);
         }
     }
     return assets;
@@ -355,7 +341,7 @@ class AssetMap {
         return relPath;
     }
 
-    create(resourcePath, content) {
+    _create(resourcePath, content) {
         const relPath = this._toRelPath(resourcePath);
         const hash = contentHash(Buffer.from(content));
         const dir = path.dirname(relPath);
@@ -363,7 +349,19 @@ class AssetMap {
         const basename = path.basename(relPath, extname);
         const dstRelPath = path.join(dir, `${basename}-${hash}${extname}`);
         this._assets.set(relPath, dstRelPath);
-        return path.join(this._targetDir, dstRelPath);
+        return dstRelPath;
+    }
+
+    async write(resourcePath, content) {
+        const relPath = this._create(resourcePath, content);
+        const fullPath = path.join(this.directory, relPath);
+        if (typeof content === "string") {
+            await fs.writeFile(fullPath, content, "utf8");
+        } else {
+            await fs.writeFile(fullPath, content);
+        }
+        return relPath;
+    }
     }
 
     get directory() {
