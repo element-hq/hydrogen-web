@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+        http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,21 +31,44 @@ self.addEventListener('install', function(e) {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keyList) => {
-      return Promise.all(keyList.map((key) => {
-        if (key !== cacheName) {
-          return caches.delete(key);
-        }
-      }));
-    })
-  );
+    event.waitUntil(
+        caches.keys().then((keyList) => {
+            return Promise.all(keyList.map((key) => {
+                if (key !== cacheName) {
+                    return caches.delete(key);
+                }
+            }));
+        })
+    );
 });
 
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.open(cacheName)
-        .then(cache => cache.match(event.request))
-        .then((response) => response || fetch(event.request))
-  );
+    console.log("new fetch event in sw", event);
+    event.respondWith(
+        caches.open(cacheName)
+            .then(cache => cache.match(event.request))
+            .then((response) => response || fetch(event.request))
+    );
+});
+
+// service-worker.js
+// Listen to the request
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'PING') {
+    // Select who we want to respond to
+    self.clients.matchAll({
+      includeUncontrolled: true,
+      type: 'window',
+    }).then((clients) => {
+      if (clients && clients.length) {
+        // Send a response - the clients
+        // array is ordered by last focused
+        clients[0].postMessage({
+          type: 'PONG',
+          files: OFFLINE_FILES,
+          version: VERSION,
+        });
+      }
+    });
+  }
 });
