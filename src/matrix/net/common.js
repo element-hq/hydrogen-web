@@ -26,3 +26,25 @@ export function encodeQueryParams(queryParams) {
         })
         .join("&");
 }
+
+export function addCacheBuster(urlStr, random = Math.random) {
+    // XHR doesn't have a good way to disable cache,
+    // so add a random query param
+    // see https://davidtranscend.com/blog/prevent-ie11-cache-ajax-requests/
+    if (urlStr.includes("?")) {
+        urlStr = urlStr + "&";
+    } else {
+        urlStr = urlStr + "?";
+    }
+    return urlStr + `_cacheBuster=${Math.ceil(random() * Number.MAX_SAFE_INTEGER)}`;
+}
+
+export function tests() {
+    return {
+        "add cache buster": assert => {
+            const random = () => 0.5;
+            assert.equal(addCacheBuster("http://foo", random), "http://foo?_cacheBuster=4503599627370496");
+            assert.equal(addCacheBuster("http://foo?bar=baz", random), "http://foo?bar=baz&_cacheBuster=4503599627370496");
+        }
+    }
+}
