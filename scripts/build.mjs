@@ -45,7 +45,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectDir = path.join(__dirname, "../");
 const cssSrcDir = path.join(projectDir, "src/ui/web/css/");
-const targetDir = path.join(projectDir, "target/");
 
 const program = new commander.Command();
 program
@@ -65,6 +64,7 @@ async function build() {
         themes.push(themeName);
     });
     // clear target dir
+    const targetDir = path.join(projectDir, "target/");
     await removeDirIfExists(targetDir);
     await createDirs(targetDir, themes);
     const assets = new AssetMap(targetDir);
@@ -111,7 +111,7 @@ async function createDirs(targetDir, themes) {
 
 async function copyThemeAssets(themes, assets) {
     for (const theme of themes) {
-        const themeDstFolder = path.join(targetDir, `themes/${theme}`);
+        const themeDstFolder = path.join(assets.directory, `themes/${theme}`);
         const themeSrcFolder = path.join(cssSrcDir, `themes/${theme}`);
         const themeAssets = await copyFolder(themeSrcFolder, themeDstFolder, file => {
             return !file.endsWith(".css");
