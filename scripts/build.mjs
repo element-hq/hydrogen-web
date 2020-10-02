@@ -82,8 +82,7 @@ async function build() {
         await buildOffline(version, assets);
     }
     await buildHtml(doc, version, assets);
-    // 3 unhashed assets: index.html, manifest.appcache and sw.js
-    console.log(`built hydrogen ${version} successfully with ${assets.all().length + 3} files`);
+    console.log(`built hydrogen ${version} successfully with ${assets.all().length} files`);
 }
 
 async function findThemes(doc, callback) {
@@ -151,10 +150,10 @@ async function buildHtml(doc, version, assets) {
     versionScript.text(vSource);
 
     if (offline) {
-        doc("html").attr("manifest", "manifest.appcache");
+        doc("html").attr("manifest", assets.resolve("manifest.appcache"));
         doc("head").append(`<link rel="manifest" href="${assets.resolve("manifest.json")}">`);
     }
-    await fs.writeFile(path.join(targetDir, "index.html"), doc.html(), "utf8");
+    await assets.writeUnhashed("index.html", doc.html());
 }
 
 async function buildJs(inputFile) {
@@ -225,13 +224,13 @@ async function buildOffline(version, assets) {
     appCacheLines.push(...assets.allWithout(["hydrogen.js"]));
     const swOfflineFiles = assets.allWithout(["hydrogen-legacy.js", "olm_legacy.js"]);
     const appCacheManifest = appCacheLines.join("\n") + "\n";
-    await fs.writeFile(path.join(targetDir, "manifest.appcache"), appCacheManifest, "utf8");
+    await assets.writeUnhashed("manifest.appcache", appCacheManifest);
     // write service worker
     let swSource = await fs.readFile(path.join(projectDir, "src/service-worker.template.js"), "utf8");
     swSource = swSource.replace(`"%%VERSION%%"`, `"${version}"`);
     swSource = swSource.replace(`"%%OFFLINE_FILES%%"`, JSON.stringify(swOfflineFiles));
     // service worker should not have a hashed name as it is polled by the browser for updates
-    await fs.writeFile(path.join(targetDir, "sw.js"), swSource, "utf8");
+    await assets.writeUnhashed("sw.js", swSource);
     await assets.write("manifest.json", JSON.stringify(webManifest));
 }
 
@@ -362,6 +361,17 @@ class AssetMap {
         }
         return relPath;
     }
+
+    async writeUnhashed(resourcePath, content) {
+        const relPath = this._toRelPath(resourcePath);
+        this._assets.set(relPath, relPath);
+        const fullPath = path.join(this.directory, relPath);
+        if (typeof content === "string") {
+            await fs.writeFile(fullPath, content, "utf8");
+        } else {
+            await fs.writeFile(fullPath, content);
+        }
+        return relPath;
     }
 
     get directory() {
