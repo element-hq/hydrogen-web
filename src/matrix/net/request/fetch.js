@@ -20,6 +20,7 @@ import {
     ConnectionError
 } from "../../error.js";
 import {abortOnTimeout} from "../timeout.js";
+import {addCacheBuster} from "../common.js";
 
 class RequestResult {
     constructor(promise, controller) {
@@ -57,11 +58,23 @@ export function createFetchRequest(createTimeout) {
                 signal: controller.signal
             });
         }
+        url = addCacheBuster(url);
         options = Object.assign(options, {
             mode: "cors",
             credentials: "omit",
             referrer: "no-referrer",
-            cache: "no-cache",
+            // ideally we'd turn off cache here, but Safari interprets
+            // `Access-Control-Allow-Headers` strictly (only when fetch is
+            // intercepted by a service worker strangely enough), in that
+            // it gives a CORS error if Cache-Control is not present
+            // in the list of allowed headers (which it isn't commonly, at least not on matrix.org).
+            // With no-store or no-cache here, it does set `Cache-Control`
+            // so we don't do that, and prevent caching with `addCacheBuster`.
+            // We also hope the server responds with `Cache-Control: no-store` so
+            // we don't fill the http cache with api responses.
+            // 
+            // cache: "no-store",
+            cache: "default",
         });
         if (options.headers) {
             const headers = new Headers();
