@@ -48,12 +48,10 @@ const cssSrcDir = path.join(projectDir, "src/ui/web/css/");
 
 const program = new commander.Command();
 program
-    .option("--no-offline", "make a build without a service worker or appcache manifest")
+    .option("--modern-only", "don't make a legacy build")
 program.parse(process.argv);
-const {noOffline} = program;
-const offline = !noOffline;
 
-async function build() {
+async function build({modernOnly}) {
     // get version number
     const version = JSON.parse(await fs.readFile(path.join(projectDir, "package.json"), "utf8")).version;
 
@@ -72,17 +70,22 @@ async function build() {
     const olmAssets = await copyFolder(path.join(projectDir, "lib/olm/"), assets.directory);
     assets.addSubMap(olmAssets);
     await assets.write(`hydrogen.js`, await buildJs("src/main.js"));
-    await assets.write(`hydrogen-legacy.js`, await buildJsLegacy(["src/main.js", 'src/legacy-polyfill.js', 'src/legacy-extras.js']));
-    await assets.write(`worker.js`, await buildJsLegacy(["src/worker.js", 'src/worker-polyfill.js']));
+    if (!modernOnly) {
+        await assets.write(`hydrogen-legacy.js`, await buildJsLegacy(["src/main.js", 'src/legacy-polyfill.js', 'src/legacy-extras.js']));
+        await assets.write(`worker.js`, await buildJsLegacy(["src/worker.js", 'src/worker-polyfill.js']));
+    }
     // creates the directories where the theme css bundles are placed in,
     // and writes to assets, so the build bundles can translate them, so do it first
     await copyThemeAssets(themes, assets);
     await buildCssBundles(buildCssLegacy, themes, assets);
-    if (offline) {
-        await buildOffline(version, assets);
-    }
-    await buildHtml(doc, version, assets);
-    console.log(`built hydrogen ${version} successfully with ${assets.all().length} files`);
+    await buildManifest(assets);
+    // all assets have been added, create a hash from all assets name to cache unhashed files like index.html by
+    const globalHashAssets = Array.from(assets).map(([, resolved]) => resolved);
+    globalHashAssets.sort();
+    const globalHash = contentHash(globalHashAssets.join(","));
+    await buildServiceWorker(globalHash, assets);
+    await buildHtml(doc, version, globalHash, modernOnly, assets);
+    console.log(`built hydrogen ${version} (${globalHash}) successfully with ${assets.size} files`);
 }
 
 async function findThemes(doc, callback) {
@@ -121,7 +124,7 @@ async function copyThemeAssets(themes, assets) {
     return assets;
 }
 
-async function buildHtml(doc, version, assets) {
+async function buildHtml(doc, version, globalHash, modernOnly, assets) {
     // transform html file
     // change path to main.css to css bundle
     doc("link[rel=stylesheet]:not([title])").attr("href", assets.resolve(`hydrogen.css`));
@@ -130,29 +133,32 @@ async function buildHtml(doc, version, assets) {
         theme.attr("href", assets.resolve(`themes/${themeName}/bundle.css`));
     });
     const pathsJSON = JSON.stringify({
-        worker: assets.resolve(`worker.js`),
+        worker: assets.has("worker.js") ? assets.resolve(`worker.js`) : null,
         olm: {
             wasm: assets.resolve("olm.wasm"),
             legacyBundle: assets.resolve("olm_legacy.js"),
             wasmBundle: assets.resolve("olm.js"),
         }
     });
-    doc("script#main").replaceWith(
-        `<script type="module">import {main} from "./${assets.resolve(`hydrogen.js`)}"; main(document.body, ${pathsJSON});</script>` +
-        `<script type="text/javascript" nomodule src="${assets.resolve(`hydrogen-legacy.js`)}"></script>` +
-        `<script type="text/javascript" nomodule>hydrogenBundle.main(document.body, ${pathsJSON}, hydrogenBundle.legacyExtras);</script>`);
-    removeOrEnableScript(doc("script#service-worker"), offline);
+    const mainScripts = [
+        `<script type="module">import {main} from "./${assets.resolve(`hydrogen.js`)}"; main(document.body, ${pathsJSON});</script>`
+    ];
+    if (!modernOnly) {
+        mainScripts.push(
+            `<script type="text/javascript" nomodule src="${assets.resolve(`hydrogen-legacy.js`)}"></script>`,
+            `<script type="text/javascript" nomodule>hydrogenBundle.main(document.body, ${pathsJSON}, hydrogenBundle.legacyExtras);</script>`
+        );
+    }
+    doc("script#main").replaceWith(mainScripts.join(""));
+    doc("script#service-worker").attr("type", "text/javascript");
 
     const versionScript = doc("script#version");
     versionScript.attr("type", "text/javascript");
     let vSource = versionScript.contents().text();
     vSource = vSource.replace(`"%%VERSION%%"`, `"${version}"`);
+    vSource = vSource.replace(`"%%GLOBAL_HASH%%"`, `"${globalHash}"`);
     versionScript.text(vSource);
-
-    if (offline) {
-        doc("html").attr("manifest", assets.resolve("manifest.appcache"));
-        doc("head").append(`<link rel="manifest" href="${assets.resolve("manifest.json")}">`);
-    }
+    doc("head").append(`<link rel="manifest" href="${assets.resolve("manifest.json")}">`);
     await assets.writeUnhashed("index.html", doc.html());
 }
 
@@ -205,7 +211,22 @@ async function buildJsLegacy(inputFiles) {
     return code;
 }
 
-async function buildOffline(version, assets) {
+const SERVICEWORKER_NONCACHED_ASSETS = [
+    "hydrogen-legacy.js",
+    "olm_legacy.js",
+    "sw.js",
+];
+
+function isPreCached(asset) {
+    return  asset.endsWith(".svg") ||
+            asset.endsWith(".png") ||
+            asset.endsWith(".css") ||
+            asset.endsWith(".wasm") ||
+            // most environments don't need the worker
+            asset.endsWith(".js") && asset !== "worker.js";
+}
+
+async function buildManifest(assets) {
     const webManifest = JSON.parse(await fs.readFile(path.join(projectDir, "assets/manifest.json"), "utf8"));
     // copy manifest icons
     for (const icon of webManifest.icons) {
@@ -213,25 +234,33 @@ async function buildOffline(version, assets) {
         const iconTargetPath = path.basename(icon.src);
         icon.src = await assets.write(iconTargetPath, iconData);
     }
-    // write appcache manifest
-    const appCacheLines = [
-        `CACHE MANIFEST`,
-        `# v${version}`,
-        `NETWORK`,
-        `"*"`,
-        `CACHE`,
-    ];
-    appCacheLines.push(...assets.allWithout(["hydrogen.js"]));
-    const swOfflineFiles = assets.allWithout(["hydrogen-legacy.js", "olm_legacy.js"]);
-    const appCacheManifest = appCacheLines.join("\n") + "\n";
-    await assets.writeUnhashed("manifest.appcache", appCacheManifest);
+    await assets.write("manifest.json", JSON.stringify(webManifest));
+}
+
+async function buildServiceWorker(globalHash, assets) {
+    const unhashedPreCachedAssets = ["index.html"];
+    const hashedPreCachedAssets = [];
+    const hashedCachedOnRequestAssets = [];
+
+    for (const [unresolved, resolved] of assets) {
+        if (SERVICEWORKER_NONCACHED_ASSETS.includes(unresolved)) {
+            continue;
+        } else if (unresolved === resolved) {
+            unhashedPreCachedAssets.push(resolved);
+        } else if (isPreCached(unresolved)) {
+            hashedPreCachedAssets.push(resolved);
+        } else {
+            hashedCachedOnRequestAssets.push(resolved);
+        }
+    }
     // write service worker
     let swSource = await fs.readFile(path.join(projectDir, "src/service-worker.template.js"), "utf8");
-    swSource = swSource.replace(`"%%VERSION%%"`, `"${version}"`);
-    swSource = swSource.replace(`"%%OFFLINE_FILES%%"`, JSON.stringify(swOfflineFiles));
+    swSource = swSource.replace(`"%%GLOBAL_HASH%%"`, `"${globalHash}"`);
+    swSource = swSource.replace(`"%%UNHASHED_PRECACHED_ASSETS%%"`, JSON.stringify(unhashedPreCachedAssets));
+    swSource = swSource.replace(`"%%HASHED_PRECACHED_ASSETS%%"`, JSON.stringify(hashedPreCachedAssets));
+    swSource = swSource.replace(`"%%HASHED_CACHED_ON_REQUEST_ASSETS%%"`, JSON.stringify(hashedCachedOnRequestAssets));
     // service worker should not have a hashed name as it is polled by the browser for updates
     await assets.writeUnhashed("sw.js", swSource);
-    await assets.write("manifest.json", JSON.stringify(webManifest));
 }
 
 async function buildCssBundles(buildFn, themes, assets) {
@@ -279,14 +308,6 @@ async function buildCssLegacy(entryPath, urlMapper = null) {
     const cssBundler = postcss(options);
     const result = await cssBundler.process(preCss, {from: entryPath});
     return result.css;
-}
-
-function removeOrEnableScript(scriptNode, enable) {
-    if (enable) {
-        scriptNode.attr("type", "text/javascript");
-    } else {
-        scriptNode.remove();
-    }
 }
 
 async function removeDirIfExists(targetDir) {
@@ -397,16 +418,25 @@ class AssetMap {
         }
     }
 
-    all() {
-        return Array.from(this._assets.values());
+    [Symbol.iterator]() {
+        return this._assets.entries();
     }
 
-    allWithout(excluded) {
-        excluded = excluded.map(p => this.resolve(p));
-        return this.all().filter(p => excluded.indexOf(p) === -1);
+    isUnhashed(relPath) {
+        const resolvedPath = this._assets.get(relPath);
+        if (!resolvedPath) {
+            throw new Error("Unknown asset: " + relPath);
+        }
+        return relPath === resolvedPath;
+    }
+
+    get size() {
+        return this._assets.size;
+    }
+
+    has(relPath) {
+        return this._assets.has(relPath);
     }
 }
 
-
-
-build().catch(err => console.error(err));
+build(program).catch(err => console.error(err));
