@@ -391,7 +391,6 @@ class AssetMap {
         if (!assetMap.directory.startsWith(this.directory)) {
             throw new Error(`map directory doesn't start with this directory: ${assetMap.directory} ${this.directory}`);
         }
-        console.log("adding submap from", assetMap.directory, this.directory);
         const relSubRoot = assetMap.directory.substr(this.directory.length + 1);
         for (const [key, value] of assetMap._assets.entries()) {
             this._assets.set(path.join(relSubRoot, key), path.join(relSubRoot, value));
