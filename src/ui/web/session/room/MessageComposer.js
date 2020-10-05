@@ -40,6 +40,7 @@ export class MessageComposer extends TemplateView {
     }
 
     _trySend() {
+        this._input.focus();
         if (this.value.sendMessage(this._input.value)) {
             this._input.value = "";
         }
