@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -58,11 +59,11 @@ async function purgeOldCaches() {
 }
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(purgeOldCaches());
+    event.waitUntil(purgeOldCaches());
 });
 
 self.addEventListener('fetch', (event) => {
-  event.respondWith(handleRequest(event.request));
+    event.respondWith(handleRequest(event.request));
 });
 
 async function handleRequest(request) {
