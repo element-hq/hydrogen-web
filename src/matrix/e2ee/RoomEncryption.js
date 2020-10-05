@@ -89,7 +89,7 @@ export class RoomEncryption {
     // but we want to be able to map it back to something in the timeline easily
     // when retrying decryption.
     async prepareDecryptAll(events, source, isTimelineOpen, txn) {
-        const errors = [];
+        const errors = new Map();
         const validEvents = [];
         for (const event of events) {
             if (event.redacted_because || event.unsigned?.redacted_because) {
