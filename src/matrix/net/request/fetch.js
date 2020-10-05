@@ -85,7 +85,15 @@ export function createFetchRequest(createTimeout) {
         }
         const promise = fetch(url, options).then(async response => {
             const {status} = response;
-            const body = await response.json();
+            let body;
+            try {
+                body = await response.json();
+            } catch (err) {
+                // some error pages return html instead of json, ignore error
+                if (!(err.name === "SyntaxError" && status >= 400)) {
+                    throw err;
+                }
+            }
             return {status, body};
         }, err => {
             if (err.name === "AbortError") {

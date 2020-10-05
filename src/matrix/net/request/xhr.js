@@ -66,7 +66,7 @@ export function xhrRequest(url, options) {
     const xhr = send(url, options);
     const promise = xhrAsPromise(xhr, options.method, url).then(xhr => {
         const {status} = xhr;
-        let body = xhr.responseText;
+        let body = null;
         if (xhr.getResponseHeader("Content-Type") === "application/json") {
             body = JSON.parse(body);
         }
