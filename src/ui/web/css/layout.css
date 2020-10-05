@@ -19,7 +19,6 @@ html {
     height: 100%;
 }
 
-
 @media screen and (min-width: 600px) {
     .PreSessionScreen {
         width: 600px;
@@ -32,7 +31,11 @@ html {
 .SessionView {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    /* this takes into account whether or not the url bar is hidden on mobile
+    (have tested Firefox Android and Safari on iOS),
+    see https://developers.google.com/web/updates/2016/12/url-bar-resizing */
+    position: fixed;
+    height: 100%;
 }
 
 .SessionView > .main {
