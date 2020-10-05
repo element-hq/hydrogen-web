@@ -18,7 +18,7 @@ export function hydrogenGithubLink(t) {
     if (window.HYDROGEN_VERSION) {
         return t.a({target: "_blank",
             href: `https://github.com/vector-im/hydrogen-web/releases/tag/v${window.HYDROGEN_VERSION}`},
-            `Hydrogen v${window.HYDROGEN_VERSION} on Github`);
+            `Hydrogen v${window.HYDROGEN_VERSION} (${window.HYDROGEN_GLOBAL_HASH}) on Github`);
     } else {
         return t.a({target: "_blank", href: "https://github.com/vector-im/hydrogen-web"},
             "Hydrogen on Github");

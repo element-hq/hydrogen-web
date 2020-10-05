@@ -35,6 +35,7 @@ const serve = serveStatic(
  
 // Create server
 const server = http.createServer(function onRequest (req, res) {
+    console.log(req.method, req.url);
 	serve(req, res, finalhandler(req, res))
 });
 

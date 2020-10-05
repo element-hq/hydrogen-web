@@ -41,35 +41,17 @@ import postcssUrl from "postcss-url";
 import cssvariables from "postcss-css-variables";
 import flexbugsFixes from "postcss-flexbugs-fixes";
 
-const PROJECT_ID = "hydrogen";
-const PROJECT_SHORT_NAME = "Hydrogen";
-const PROJECT_NAME = "Hydrogen Chat";
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectDir = path.join(__dirname, "../");
 const cssSrcDir = path.join(projectDir, "src/ui/web/css/");
-const targetDir = path.join(projectDir, "target/");
 
 const program = new commander.Command();
 program
-    .option("--no-offline", "make a build without a service worker or appcache manifest")
+    .option("--modern-only", "don't make a legacy build")
 program.parse(process.argv);
-const {debug, noOffline} = program;
-const offline = !noOffline;
 
-const olmFiles = {
-    wasm: "olm-4289088762.wasm",
-    legacyBundle: "olm_legacy-3232457086.js",
-    wasmBundle: "olm-1421970081.js",
-};
-
-// IDEA: how about instead of assetPaths we maintain a mapping between the source file and the target file
-// so throughout the build script we can refer to files by their source name
-
-async function build() {
-    // only used for CSS for now, using legacy for all targets for now
-    const legacy = true;
+async function build({modernOnly}) {
     // get version number
     const version = JSON.parse(await fs.readFile(path.join(projectDir, "package.json"), "utf8")).version;
 
@@ -80,48 +62,30 @@ async function build() {
         themes.push(themeName);
     });
     // clear target dir
+    const targetDir = path.join(projectDir, "target/");
     await removeDirIfExists(targetDir);
     await createDirs(targetDir, themes);
-    // copy assets
-    await copyFolder(path.join(projectDir, "lib/olm/"), targetDir);
-    // also creates the directories where the theme css bundles are placed in,
-    // so do it first
-    const themeAssets = await copyThemeAssets(themes, legacy);
-    const jsBundlePath = await buildJs("src/main.js", `${PROJECT_ID}.js`);
-    const jsLegacyBundlePath = await buildJsLegacy("src/main.js", `${PROJECT_ID}-legacy.js`, 'src/legacy-extras.js');
-    const jsWorkerPath = await buildWorkerJsLegacy("src/worker.js", `worker.js`);
-    const cssBundlePaths = await buildCssBundles(legacy ? buildCssLegacy : buildCss, themes, themeAssets);
-
-    let manifestPath;
-
-    const assetPaths = createAssetPaths(jsBundlePath, jsLegacyBundlePath, jsWorkerPath,
-        cssBundlePaths, themeAssets);
-
-    if (offline) {
-        manifestPath = await buildOffline(version, assetPaths);
+    const assets = new AssetMap(targetDir);
+    // copy olm assets
+    const olmAssets = await copyFolder(path.join(projectDir, "lib/olm/"), assets.directory);
+    assets.addSubMap(olmAssets);
+    await assets.write(`hydrogen.js`, await buildJs("src/main.js"));
+    if (!modernOnly) {
+        await assets.write(`hydrogen-legacy.js`, await buildJsLegacy(["src/main.js", 'src/legacy-polyfill.js', 'src/legacy-extras.js']));
+        await assets.write(`worker.js`, await buildJsLegacy(["src/worker.js", 'src/worker-polyfill.js']));
     }
-    await buildHtml(doc, version, assetPaths, manifestPath);
-
-    console.log(`built ${PROJECT_ID} ${version} successfully`);
-}
-
-function trim(path) {
-    if (!path.startsWith(targetDir)) {
-        throw new Error("invalid target path: " + targetDir);
-    }
-    return path.substr(targetDir.length);
-}
-
-function createAssetPaths(jsBundlePath, jsLegacyBundlePath, jsWorkerPath, cssBundlePaths, themeAssets) {
-    return {
-        jsBundle: () => trim(jsBundlePath),
-        jsLegacyBundle: () => trim(jsLegacyBundlePath),
-        jsWorker: () => trim(jsWorkerPath),
-        cssMainBundle: () => trim(cssBundlePaths.main),
-        cssThemeBundle: themeName => trim(cssBundlePaths.themes[themeName]),
-        cssThemeBundles: () => Object.values(cssBundlePaths.themes).map(a => trim(a)),
-        otherAssets: () => Object.values(themeAssets).map(a => trim(a)),
-    };
+    // creates the directories where the theme css bundles are placed in,
+    // and writes to assets, so the build bundles can translate them, so do it first
+    await copyThemeAssets(themes, assets);
+    await buildCssBundles(buildCssLegacy, themes, assets);
+    await buildManifest(assets);
+    // all assets have been added, create a hash from all assets name to cache unhashed files like index.html by
+    const globalHashAssets = Array.from(assets).map(([, resolved]) => resolved);
+    globalHashAssets.sort();
+    const globalHash = contentHash(globalHashAssets.join(","));
+    await buildServiceWorker(globalHash, assets);
+    await buildHtml(doc, version, globalHash, modernOnly, assets);
+    console.log(`built hydrogen ${version} (${globalHash}) successfully with ${assets.size} files`);
 }
 
 async function findThemes(doc, callback) {
@@ -148,52 +112,57 @@ async function createDirs(targetDir, themes) {
     }
 }
 
-async function copyThemeAssets(themes, legacy) {
-    const assets = {};
+async function copyThemeAssets(themes, assets) {
     for (const theme of themes) {
-        const themeDstFolder = path.join(targetDir, `themes/${theme}`);
+        const themeDstFolder = path.join(assets.directory, `themes/${theme}`);
         const themeSrcFolder = path.join(cssSrcDir, `themes/${theme}`);
         const themeAssets = await copyFolder(themeSrcFolder, themeDstFolder, file => {
-            const isUnneededFont = legacy ? file.endsWith(".woff2") : file.endsWith(".woff");
-            return !file.endsWith(".css") && !isUnneededFont;
+            return !file.endsWith(".css");
         });
-        Object.assign(assets, themeAssets);
+        assets.addSubMap(themeAssets);
     }
     return assets;
 }
 
-async function buildHtml(doc, version, assetPaths, manifestPath) {
+async function buildHtml(doc, version, globalHash, modernOnly, assets) {
     // transform html file
     // change path to main.css to css bundle
-    doc("link[rel=stylesheet]:not([title])").attr("href", assetPaths.cssMainBundle());
+    doc("link[rel=stylesheet]:not([title])").attr("href", assets.resolve(`hydrogen.css`));
     // change paths to all theme stylesheets
     findThemes(doc, (themeName, theme) => {
-        theme.attr("href", assetPaths.cssThemeBundle(themeName));
+        theme.attr("href", assets.resolve(`themes/${themeName}/bundle.css`));
     });
     const pathsJSON = JSON.stringify({
-        worker: assetPaths.jsWorker(),
-        olm: olmFiles
+        worker: assets.has("worker.js") ? assets.resolve(`worker.js`) : null,
+        olm: {
+            wasm: assets.resolve("olm.wasm"),
+            legacyBundle: assets.resolve("olm_legacy.js"),
+            wasmBundle: assets.resolve("olm.js"),
+        }
     });
-    doc("script#main").replaceWith(
-        `<script type="module">import {main} from "./${assetPaths.jsBundle()}"; main(document.body, ${pathsJSON});</script>` +
-        `<script type="text/javascript" nomodule src="${assetPaths.jsLegacyBundle()}"></script>` +
-        `<script type="text/javascript" nomodule>${PROJECT_ID}Bundle.main(document.body, ${pathsJSON}, ${PROJECT_ID}Bundle.legacyExtras);</script>`);
-    removeOrEnableScript(doc("script#service-worker"), offline);
+    const mainScripts = [
+        `<script type="module">import {main} from "./${assets.resolve(`hydrogen.js`)}"; main(document.body, ${pathsJSON});</script>`
+    ];
+    if (!modernOnly) {
+        mainScripts.push(
+            `<script type="text/javascript" nomodule src="${assets.resolve(`hydrogen-legacy.js`)}"></script>`,
+            `<script type="text/javascript" nomodule>hydrogenBundle.main(document.body, ${pathsJSON}, hydrogenBundle.legacyExtras);</script>`
+        );
+    }
+    doc("script#main").replaceWith(mainScripts.join(""));
+    doc("script#service-worker").attr("type", "text/javascript");
 
     const versionScript = doc("script#version");
     versionScript.attr("type", "text/javascript");
     let vSource = versionScript.contents().text();
     vSource = vSource.replace(`"%%VERSION%%"`, `"${version}"`);
+    vSource = vSource.replace(`"%%GLOBAL_HASH%%"`, `"${globalHash}"`);
     versionScript.text(vSource);
-
-    if (offline) {
-        doc("html").attr("manifest", "manifest.appcache");
-        doc("head").append(`<link rel="manifest" href="${manifestPath.substr(targetDir.length)}">`);
-    }
-    await fs.writeFile(path.join(targetDir, "index.html"), doc.html(), "utf8");
+    doc("head").append(`<link rel="manifest" href="${assets.resolve("manifest.json")}">`);
+    await assets.writeUnhashed("index.html", doc.html());
 }
 
-async function buildJs(inputFile, outputName) {
+async function buildJs(inputFile) {
     // create js bundle
     const bundle = await rollup({
         input: inputFile,
@@ -202,15 +171,13 @@ async function buildJs(inputFile, outputName) {
     const {output} = await bundle.generate({
         format: 'es',
         // TODO: can remove this?
-        name: `${PROJECT_ID}Bundle`
+        name: `hydrogenBundle`
     });
     const code = output[0].code;
-    const bundlePath = resource(outputName, code);
-    await fs.writeFile(bundlePath, code, "utf8");
-    return bundlePath;
+    return code;
 }
 
-async function buildJsLegacy(inputFile, outputName, extraFile, polyfillFile) {
+async function buildJsLegacy(inputFiles) {
     // compile down to whatever IE 11 needs
     const babelPlugin = babel.babel({
         babelHelpers: 'bundled',
@@ -230,13 +197,6 @@ async function buildJsLegacy(inputFile, outputName, extraFile, polyfillFile) {
             ]
         ]
     });
-    if (!polyfillFile) {
-        polyfillFile = 'src/legacy-polyfill.js';
-    }
-    const inputFiles = [polyfillFile, inputFile];
-    if (extraFile) {
-        inputFiles.push(extraFile);
-    }
     // create js bundle
     const rollupConfig = {
         input: inputFiles,
@@ -245,90 +205,95 @@ async function buildJsLegacy(inputFile, outputName, extraFile, polyfillFile) {
     const bundle = await rollup(rollupConfig);
     const {output} = await bundle.generate({
         format: 'iife',
-        name: `${PROJECT_ID}Bundle`
+        name: `hydrogenBundle`
     });
     const code = output[0].code;
-    const bundlePath = resource(outputName, code);
-    await fs.writeFile(bundlePath, code, "utf8");
-    return bundlePath;
+    return code;
 }
 
-function buildWorkerJsLegacy(inputFile, outputName) {
-    const polyfillFile = 'src/worker-polyfill.js';
-    return buildJsLegacy(inputFile, outputName, null, polyfillFile);
+const SERVICEWORKER_NONCACHED_ASSETS = [
+    "hydrogen-legacy.js",
+    "olm_legacy.js",
+    "sw.js",
+];
+
+function isPreCached(asset) {
+    return  asset.endsWith(".svg") ||
+            asset.endsWith(".png") ||
+            asset.endsWith(".css") ||
+            asset.endsWith(".wasm") ||
+            // most environments don't need the worker
+            asset.endsWith(".js") && asset !== "worker.js";
 }
 
-async function buildOffline(version, assetPaths) {
-    // write web manifest
+async function buildManifest(assets) {
     const webManifest = JSON.parse(await fs.readFile(path.join(projectDir, "assets/manifest.json"), "utf8"));
+    // copy manifest icons
     for (const icon of webManifest.icons) {
         let iconData = await fs.readFile(path.join(projectDir, icon.src));
-        let iconPath = resource(path.basename(icon.src), iconData);
-        await fs.writeFile(iconPath, iconData);
-        icon.src = trim(iconPath);
+        const iconTargetPath = path.basename(icon.src);
+        icon.src = await assets.write(iconTargetPath, iconData);
     }
-    // write offline availability
-    const offlineFiles = [
-        assetPaths.cssMainBundle(),
-        "index.html",
-    ].concat(assetPaths.cssThemeBundles())
-    .concat(webManifest.icons.map(i => i.src));
+    await assets.write("manifest.json", JSON.stringify(webManifest));
+}
 
-    // write appcache manifest
-    const appCacheLines = [
-        `CACHE MANIFEST`,
-        `# v${version}`,
-        `NETWORK`,
-        `"*"`,
-        `CACHE`,
-    ];
-    appCacheLines.push(assetPaths.jsLegacyBundle(), ...offlineFiles);
-    const swOfflineFiles = [assetPaths.jsBundle(), ...offlineFiles];
-    const appCacheManifest = appCacheLines.join("\n") + "\n";
-    await fs.writeFile(path.join(targetDir, "manifest.appcache"), appCacheManifest, "utf8");
+async function buildServiceWorker(globalHash, assets) {
+    const unhashedPreCachedAssets = ["index.html"];
+    const hashedPreCachedAssets = [];
+    const hashedCachedOnRequestAssets = [];
+
+    for (const [unresolved, resolved] of assets) {
+        if (SERVICEWORKER_NONCACHED_ASSETS.includes(unresolved)) {
+            continue;
+        } else if (unresolved === resolved) {
+            unhashedPreCachedAssets.push(resolved);
+        } else if (isPreCached(unresolved)) {
+            hashedPreCachedAssets.push(resolved);
+        } else {
+            hashedCachedOnRequestAssets.push(resolved);
+        }
+    }
     // write service worker
     let swSource = await fs.readFile(path.join(projectDir, "src/service-worker.template.js"), "utf8");
-    swSource = swSource.replace(`"%%VERSION%%"`, `"${version}"`);
-    swSource = swSource.replace(`"%%OFFLINE_FILES%%"`, JSON.stringify(swOfflineFiles));
-    swSource = swSource.replace(`"%%CACHE_FILES%%"`, JSON.stringify(assetPaths.otherAssets()));
-    await fs.writeFile(path.join(targetDir, "sw.js"), swSource, "utf8");
-    const manifestJson = JSON.stringify(webManifest);
-    const manifestPath = resource("manifest.json", manifestJson);
-    await fs.writeFile(manifestPath, manifestJson, "utf8");
-    return manifestPath;
+    swSource = swSource.replace(`"%%GLOBAL_HASH%%"`, `"${globalHash}"`);
+    swSource = swSource.replace(`"%%UNHASHED_PRECACHED_ASSETS%%"`, JSON.stringify(unhashedPreCachedAssets));
+    swSource = swSource.replace(`"%%HASHED_PRECACHED_ASSETS%%"`, JSON.stringify(hashedPreCachedAssets));
+    swSource = swSource.replace(`"%%HASHED_CACHED_ON_REQUEST_ASSETS%%"`, JSON.stringify(hashedCachedOnRequestAssets));
+    // service worker should not have a hashed name as it is polled by the browser for updates
+    await assets.writeUnhashed("sw.js", swSource);
 }
 
-async function buildCssBundles(buildFn, themes, themeAssets) {
+async function buildCssBundles(buildFn, themes, assets) {
     const bundleCss = await buildFn(path.join(cssSrcDir, "main.css"));
-    const mainDstPath = resource(`${PROJECT_ID}.css`, bundleCss);
-    await fs.writeFile(mainDstPath, bundleCss, "utf8");
-    const bundlePaths = {main: mainDstPath, themes: {}};
+    await assets.write(`hydrogen.css`, bundleCss);
     for (const theme of themes) {
-        const urlBase = path.join(targetDir, `themes/${theme}/`);
+        const themeRelPath = `themes/${theme}/`;
+        const themeRoot = path.join(cssSrcDir, themeRelPath);
         const assetUrlMapper = ({absolutePath}) => {
-            const hashedDstPath = themeAssets[absolutePath];
-            if (hashedDstPath && hashedDstPath.startsWith(urlBase)) {
-                return hashedDstPath.substr(urlBase.length);
+            if (!absolutePath.startsWith(themeRoot)) {
+                throw new Error("resource is out of theme directory: " + absolutePath);
+            }
+            const relPath = absolutePath.substr(themeRoot.length);
+            const hashedDstPath = assets.resolve(path.join(themeRelPath, relPath));
+            if (hashedDstPath) {
+                return hashedDstPath.substr(themeRelPath.length);
             }
         };
-        const themeCss = await buildFn(path.join(cssSrcDir, `themes/${theme}/theme.css`), assetUrlMapper);
-        const themeDstPath = resource(`themes/${theme}/bundle.css`, themeCss);
-        await fs.writeFile(themeDstPath, themeCss, "utf8");
-        bundlePaths.themes[theme] = themeDstPath;
+        const themeCss = await buildFn(path.join(themeRoot, `theme.css`), assetUrlMapper);
+        await assets.write(path.join(themeRelPath, `bundle.css`), themeCss);
     }
-    return bundlePaths;
 }
 
-async function buildCss(entryPath, urlMapper = null) {
-    const preCss = await fs.readFile(entryPath, "utf8");
-    const options = [postcssImport];
-    if (urlMapper) {
-        options.push(postcssUrl({url: urlMapper}));
-    }
-    const cssBundler = postcss(options);
-    const result = await cssBundler.process(preCss, {from: entryPath});
-    return result.css;
-}
+// async function buildCss(entryPath, urlMapper = null) {
+//     const preCss = await fs.readFile(entryPath, "utf8");
+//     const options = [postcssImport];
+//     if (urlMapper) {
+//         options.push(postcssUrl({url: urlMapper}));
+//     }
+//     const cssBundler = postcss(options);
+//     const result = await cssBundler.process(preCss, {from: entryPath});
+//     return result.css;
+// }
 
 async function buildCssLegacy(entryPath, urlMapper = null) {
     const preCss = await fs.readFile(entryPath, "utf8");
@@ -345,14 +310,6 @@ async function buildCssLegacy(entryPath, urlMapper = null) {
     return result.css;
 }
 
-function removeOrEnableScript(scriptNode, enable) {
-    if (enable) {
-        scriptNode.attr("type", "text/javascript");
-    } else {
-        scriptNode.remove();
-    }
-}
-
 async function removeDirIfExists(targetDir) {
     try {
         await fs.rmdir(targetDir, {recursive: true});
@@ -363,35 +320,21 @@ async function removeDirIfExists(targetDir) {
     }
 }
 
-async function copyFolder(srcRoot, dstRoot, filter) {
-    const assetPaths = {};
+async function copyFolder(srcRoot, dstRoot, filter, assets = null) {
+    assets = assets || new AssetMap(dstRoot);
     const dirEnts = await fs.readdir(srcRoot, {withFileTypes: true});
     for (const dirEnt of dirEnts) {
         const dstPath = path.join(dstRoot, dirEnt.name);
         const srcPath = path.join(srcRoot, dirEnt.name);
         if (dirEnt.isDirectory()) {
             await fs.mkdir(dstPath);
-            Object.assign(assetPaths, await copyFolder(srcPath, dstPath, filter));
+            await copyFolder(srcPath, dstPath, filter, assets);
         } else if ((dirEnt.isFile() || dirEnt.isSymbolicLink()) && (!filter || filter(srcPath))) {
             const content = await fs.readFile(srcPath);
-            const hashedDstPath = resource(dstPath, content);
-            await fs.writeFile(hashedDstPath, content);
-            assetPaths[srcPath] = hashedDstPath;
+            await assets.write(dstPath, content);
         }
     }
-    return assetPaths;
-}
-
-function resource(relPath, content) {
-    let fullPath = relPath;
-    if (!path.isAbsolute(relPath)) {
-        fullPath = path.join(targetDir, relPath);
-    }
-    const hash = contentHash(Buffer.from(content));
-    const dir = path.dirname(fullPath);
-    const extname = path.extname(fullPath);
-    const basename = path.basename(fullPath, extname);
-    return path.join(dir, `${basename}-${hash}${extname}`);
+    return assets;
 }
 
 function contentHash(str) {
@@ -400,5 +343,100 @@ function contentHash(str) {
     return hasher.digest();
 }
 
+class AssetMap {
+    constructor(targetDir) {
+        // remove last / if any, so substr in create works well
+        this._targetDir = path.resolve(targetDir);
+        this._assets = new Map();
+    }
 
-build().catch(err => console.error(err));
+    _toRelPath(resourcePath) {
+        let relPath = resourcePath;
+        if (path.isAbsolute(resourcePath)) {
+            if (!resourcePath.startsWith(this._targetDir)) {
+                throw new Error(`absolute path ${resourcePath} that is not within target dir ${this._targetDir}`);
+            }
+            relPath = resourcePath.substr(this._targetDir.length + 1); // + 1 for the /
+        }
+        return relPath;
+    }
+
+    _create(resourcePath, content) {
+        const relPath = this._toRelPath(resourcePath);
+        const hash = contentHash(Buffer.from(content));
+        const dir = path.dirname(relPath);
+        const extname = path.extname(relPath);
+        const basename = path.basename(relPath, extname);
+        const dstRelPath = path.join(dir, `${basename}-${hash}${extname}`);
+        this._assets.set(relPath, dstRelPath);
+        return dstRelPath;
+    }
+
+    async write(resourcePath, content) {
+        const relPath = this._create(resourcePath, content);
+        const fullPath = path.join(this.directory, relPath);
+        if (typeof content === "string") {
+            await fs.writeFile(fullPath, content, "utf8");
+        } else {
+            await fs.writeFile(fullPath, content);
+        }
+        return relPath;
+    }
+
+    async writeUnhashed(resourcePath, content) {
+        const relPath = this._toRelPath(resourcePath);
+        this._assets.set(relPath, relPath);
+        const fullPath = path.join(this.directory, relPath);
+        if (typeof content === "string") {
+            await fs.writeFile(fullPath, content, "utf8");
+        } else {
+            await fs.writeFile(fullPath, content);
+        }
+        return relPath;
+    }
+
+    get directory() {
+        return this._targetDir;
+    }
+
+    resolve(resourcePath) {
+        const relPath = this._toRelPath(resourcePath);
+        const result = this._assets.get(relPath);
+        if (!result) {
+            throw new Error(`unknown path: ${relPath}, only know ${Array.from(this._assets.keys()).join(", ")}`);
+        }
+        return result;
+    }
+
+    addSubMap(assetMap) {
+        if (!assetMap.directory.startsWith(this.directory)) {
+            throw new Error(`map directory doesn't start with this directory: ${assetMap.directory} ${this.directory}`);
+        }
+        const relSubRoot = assetMap.directory.substr(this.directory.length + 1);
+        for (const [key, value] of assetMap._assets.entries()) {
+            this._assets.set(path.join(relSubRoot, key), path.join(relSubRoot, value));
+        }
+    }
+
+    [Symbol.iterator]() {
+        return this._assets.entries();
+    }
+
+    isUnhashed(relPath) {
+        const resolvedPath = this._assets.get(relPath);
+        if (!resolvedPath) {
+            throw new Error("Unknown asset: " + relPath);
+        }
+        return relPath === resolvedPath;
+    }
+
+    get size() {
+        return this._assets.size;
+    }
+
+    has(relPath) {
+        return this._assets.has(relPath);
+    }
+}
+
+build(program).catch(err => console.error(err));
