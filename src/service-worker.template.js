@@ -21,6 +21,7 @@ const HASHED_PRECACHED_ASSETS = "%%HASHED_PRECACHED_ASSETS%%";
 const HASHED_CACHED_ON_REQUEST_ASSETS = "%%HASHED_CACHED_ON_REQUEST_ASSETS%%";
 const unhashedCacheName = `hydrogen-assets-${GLOBAL_HASH}`;
 const hashedCacheName = `hydrogen-assets`;
+const mediaThumbnailCacheName = `hydrogen-media-thumbnails`;
 
 self.addEventListener('install', function(e) {
     e.waitUntil((async () => {
@@ -39,7 +40,7 @@ async function purgeOldCaches() {
     // remove any caches we don't know about
     const keyList = await caches.keys();
     for (const key of keyList) {
-        if (key !== unhashedCacheName && key !== hashedCacheName) {
+        if (key !== unhashedCacheName && key !== hashedCacheName && key !== mediaThumbnailCacheName) {
             await caches.delete(key);
         }
     }
@@ -80,14 +81,21 @@ async function handleRequest(request) {
 }
 
 async function updateCache(request, response) {
+    const url = new URL(request.url);
     const baseURL = self.registration.scope;
-    if(!request.url.startsWith(baseURL)) {
-        return;
-    }
-    let assetName = request.url.substr(baseURL.length);
-    if (HASHED_CACHED_ON_REQUEST_ASSETS.includes(assetName)) {
-        const cache = await caches.open(hashedCacheName);
-        await cache.put(request, response.clone());
+    if (url.pathname.startsWith("/_matrix/media/r0/thumbnail/")) {
+        const width = parseInt(url.searchParams.get("width"), 10);
+        const height = parseInt(url.searchParams.get("height"), 10);
+        if (width <= 50 && height <= 50) {
+            const cache = await caches.open(mediaThumbnailCacheName);
+            cache.put(request, response.clone());
+        }
+    } else if (request.url.startsWith(baseURL)) {
+        let assetName = request.url.substr(baseURL.length);
+        if (HASHED_CACHED_ON_REQUEST_ASSETS.includes(assetName)) {
+            const cache = await caches.open(hashedCacheName);
+            await cache.put(request, response.clone());
+        }
     }
 }
 
@@ -99,6 +107,15 @@ async function readCache(request) {
     }
     const hashedCache = await caches.open(hashedCacheName);
     response = await hashedCache.match(request);
+    if (response) {
+        return response;
+    }
+    
+    const url = new URL(request.url);
+    if (url.pathname.startsWith("/_matrix/media/r0/thumbnail/")) {
+        const mediaThumbnailCache = await caches.open(mediaThumbnailCacheName);
+        response = await mediaThumbnailCache.match(request);
+    }
     return response;
 }
 
