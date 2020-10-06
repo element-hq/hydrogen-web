@@ -71,8 +71,8 @@ async function build({modernOnly}) {
     assets.addSubMap(olmAssets);
     await assets.write(`hydrogen.js`, await buildJs("src/main.js"));
     if (!modernOnly) {
-        await assets.write(`hydrogen-legacy.js`, await buildJsLegacy(["src/main.js", 'src/legacy-polyfill.js', 'src/legacy-extras.js']));
-        await assets.write(`worker.js`, await buildJsLegacy(["src/worker.js", 'src/worker-polyfill.js']));
+        await assets.write(`hydrogen-legacy.js`, await buildJsLegacy("src/main.js", ['src/legacy-polyfill.js', 'src/legacy-extras.js']));
+        await assets.write(`worker.js`, await buildJsLegacy("src/worker.js", ['src/worker-polyfill.js']));
     }
     // creates the directories where the theme css bundles are placed in,
     // and writes to assets, so the build bundles can translate them, so do it first
@@ -177,7 +177,7 @@ async function buildJs(inputFile) {
     return code;
 }
 
-async function buildJsLegacy(inputFiles) {
+async function buildJsLegacy(mainFile, extraFiles = []) {
     // compile down to whatever IE 11 needs
     const babelPlugin = babel.babel({
         babelHelpers: 'bundled',
@@ -199,7 +199,10 @@ async function buildJsLegacy(inputFiles) {
     });
     // create js bundle
     const rollupConfig = {
-        input: inputFiles,
+        // important the extraFiles come first,
+        // so polyfills are available in the global scope
+        // if needed for the mainfile
+        input: extraFiles.concat(mainFile),
         plugins: [multi(), commonjs(), nodeResolve(), babelPlugin]
     };
     const bundle = await rollup(rollupConfig);
