@@ -31,6 +31,7 @@ export class RoomTileViewModel extends ViewModel {
         this._isOpen = false;
         this._wasUnreadWhenOpening = false;
         this._hidden = false;
+        this._url = this.urlRouter.urlForSegment("room", this._room.id);
     }
 
     get hidden() {
@@ -59,6 +60,10 @@ export class RoomTileViewModel extends ViewModel {
             this.emitChange("isOpen");
             this._emitOpen(this._room, this);
         }
+    }
+
+    get url() {
+        return this._url;
     }
 
     compare(other) {
