@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,6 +30,18 @@ export class RoomTileViewModel extends ViewModel {
         this._emitOpen = emitOpen;
         this._isOpen = false;
         this._wasUnreadWhenOpening = false;
+        this._hidden = false;
+    }
+
+    get hidden() {
+        return this._hidden;
+    }
+
+    set hidden(value) {
+        if (value !== this._hidden) {
+            this._hidden = value;
+            this.emitChange("hidden");
+        }
     }
 
     // called by parent for now (later should integrate with router)
