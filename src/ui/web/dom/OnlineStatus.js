@@ -31,7 +31,7 @@ export class OnlineStatus extends BaseObservableValue {
         this.emit(true);
     }
 
-    get value() {
+    get() {
         return navigator.onLine;
     }
 
