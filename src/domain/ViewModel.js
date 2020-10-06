@@ -22,15 +22,16 @@ import {EventEmitter} from "../utils/EventEmitter.js";
 import {Disposables} from "../utils/Disposables.js";
 
 export class ViewModel extends EventEmitter {
-    constructor({clock, emitChange} = {}) {
+    constructor(options = {}) {
         super();
         this.disposables = null;
         this._isDisposed = false;
-        this._options = {clock, emitChange};
+        this._options = options;
     }
 
     childOptions(explicitOptions) {
-        return Object.assign({}, this._options, explicitOptions);
+        const {navigation, urlRouter, clock} = this._options;
+        return Object.assign({navigation, urlRouter, clock}, explicitOptions);
     }
 
     track(disposable) {
@@ -89,5 +90,13 @@ export class ViewModel extends EventEmitter {
 
     get clock() {
         return this._options.clock;
+    }
+
+    get urlRouter() {
+        return this._options.urlRouter;
+    }
+
+    get navigation() {
+        return this._options.navigation;
     }
 }
