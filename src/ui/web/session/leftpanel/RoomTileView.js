@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,16 +15,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../general/TemplateView.js";
-import {renderAvatar} from "../common.js";
+import {TemplateView} from "../../general/TemplateView.js";
+import {renderAvatar} from "../../common.js";
 
-export class RoomTile extends TemplateView {
+export class RoomTileView extends TemplateView {
     render(t, vm) {
-        return t.li({"className": {"active": vm => vm.isOpen}}, [
+        const classes = {
+            "active": vm => vm.isOpen,
+            "hidden": vm => vm.hidden
+        };
+        return t.li({"className": classes}, [
             renderAvatar(t, vm, 32),
             t.div({className: "description"}, [
                 t.div({className: {"name": true, unread: vm => vm.isUnread}}, vm => vm.name),
-                t.div({className: {"badge": true, highlighted: vm => vm.isHighlighted, hidden: vm => !vm.badgeCount}}, vm => vm.badgeCount),
+                t.div({
+                    className: {
+                        "badge": true,
+                        highlighted: vm => vm.isHighlighted,
+                        hidden: vm => !vm.badgeCount
+                    }
+                }, vm => vm.badgeCount),
             ])
         ]);
     }
