@@ -22,8 +22,11 @@ import {SessionContainer} from "./matrix/SessionContainer.js";
 import {StorageFactory} from "./matrix/storage/idb/StorageFactory.js";
 import {SessionInfoStorage} from "./matrix/sessioninfo/localstorage/SessionInfoStorage.js";
 import {BrawlViewModel} from "./domain/BrawlViewModel.js";
+import {Navigation} from "./domain/navigation/Navigation.js";
+import {URLRouter} from "./domain/navigation/URLRouter.js";
 import {BrawlView} from "./ui/web/BrawlView.js";
 import {Clock} from "./ui/web/dom/Clock.js";
+import {HashObservable} from "./ui/web/dom/HashObservable.js";
 import {OnlineStatus} from "./ui/web/dom/OnlineStatus.js";
 import {CryptoDriver} from "./ui/web/dom/CryptoDriver.js";
 import {WorkerPool} from "./utils/WorkerPool.js";
@@ -115,6 +118,21 @@ export async function main(container, paths, legacyExtras) {
             workerPromise = loadOlmWorker(paths);
         }
 
+        const navigation = new Navigation(function allowsChild(parent, child) {
+            const {type} = child;
+            switch (parent?.type) {
+                case undefined:
+                    // allowed root segments
+                    return type === "login"  || type === "session";
+                case "session":
+                    return type === "room" || type === "settings";
+                default:
+                    return false;
+            }
+        });
+        const urlRouter = new URLRouter(new HashObservable(), navigation);
+        urlRouter.start();
+
         const vm = new BrawlViewModel({
             createSessionContainer: () => {
                 return new SessionContainer({
@@ -132,6 +150,8 @@ export async function main(container, paths, legacyExtras) {
             sessionInfoStorage,
             storageFactory,
             clock,
+            urlRouter,
+            navigation
         });
         window.__brawlViewModel = vm;
         await vm.load();
