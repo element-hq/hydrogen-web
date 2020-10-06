@@ -23,8 +23,10 @@ import {SessionStatusView} from "./SessionStatusView.js";
 export class SessionView extends TemplateView {
     render(t, vm) {
         return t.div({
-            className: "SessionView",
-            "room-shown": vm => !!vm.currentRoom
+            className: {
+                "SessionView": true,
+                "room-shown": vm => !!vm.currentRoom
+            },
         }, [
             t.view(new SessionStatusView(vm.sessionStatusViewModel)),
             t.div({className: "main"}, [
