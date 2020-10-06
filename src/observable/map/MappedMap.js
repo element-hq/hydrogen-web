@@ -67,6 +67,7 @@ export class MappedMap extends BaseObservableMap {
     }
 
     onUnsubscribeLast() {
+        super.onUnsubscribeLast();
         this._subscription = this._subscription();
         this._mappedValues.clear();
     }

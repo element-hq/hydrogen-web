@@ -426,7 +426,7 @@ export function tests() {
     function createStorageMock(session, pendingEvents = []) {
         return {
             readTxn() {
-                return Promise.resolve({
+                return {
                     session: {
                         get(key) {
                             return Promise.resolve(session[key]);
@@ -442,7 +442,7 @@ export function tests() {
                             return Promise.resolve([]);
                         }
                     }
-                });
+                };
             },
             storeNames: {}
         };

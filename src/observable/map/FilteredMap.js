@@ -17,56 +17,149 @@ limitations under the License.
 import {BaseObservableMap} from "./BaseObservableMap.js";
 
 export class FilteredMap extends BaseObservableMap {
-    constructor(source, mapper, updater) {
+    constructor(source, filter) {
         super();
         this._source = source;
-        this._mapper = mapper;
-        this._updater = updater;
-        this._mappedValues = new Map();
+        this._filter = filter;
+        /** @type {Map<string, bool>} */
+        this._included = null;
+        this._subscription = null;
     }
 
-    onAdd(key, value) {
-        const mappedValue = this._mapper(value);
-        this._mappedValues.set(key, mappedValue);
-        this.emitAdd(key, mappedValue);
+    setFilter(filter) {
+        this._filter = filter;
+        this.update();
     }
 
-    onRemove(key, _value) {
-        const mappedValue = this._mappedValues.get(key);
-        if (this._mappedValues.delete(key)) {
-            this.emitRemove(key, mappedValue);
+    /**
+     * reapply the filter
+     */
+    update() {
+        // TODO: need to check if we have a subscriber already? If not, we really should not iterate the source?
+        if (this._filter) {
+            const hadFilterBefore = !!this._included;
+            this._included = this._included || new Map();
+            for (const [key, value] of this._source) {
+                const isIncluded = this._filter(value, key);
+                const wasIncluded = hadFilterBefore ? this._included.get(key) : true;
+                this._included.set(key, isIncluded);
+                this._emitForUpdate(wasIncluded, isIncluded, key, value);
+            }
+        } else { // no filter
+            // did we have a filter before?
+            if (this._included) {
+                // add any non-included items again
+                for (const [key, value] of this._source) {
+                    if (!this._included.get(key)) {
+                        this.emitAdd(key, value);
+                    }
+                }
+            }
+            this._included = null;
         }
     }
 
-    onChange(key, value, params) {
-        const mappedValue = this._mappedValues.get(key);
-        if (mappedValue !== undefined) {
-            const newParams = this._updater(value, params);
-            if (newParams !== undefined) {
-                this.emitChange(key, mappedValue, newParams);
+    onAdd(key, value) {
+        if (this._filter) {
+            const included = this._filter(value, key);
+            this._included.set(key, included);
+            if (!included) {
+                return;
             }
+        }
+        this.emitAdd(key, value);
+    }
+
+    onRemove(key, value) {
+        if (this._filter && !this._included.get(key)) {
+            return;
+        }
+        this.emitRemove(key, value);
+    }
+
+    onUpdate(key, value, params) {
+        if (this._filter) {
+            const wasIncluded = this._included.get(key);
+            const isIncluded = this._filter(value, key);
+            this._included.set(key, isIncluded);
+            this._emitForUpdate(wasIncluded, isIncluded, key, value, params);
+        }
+        this.emitUpdate(key, value, params);
+    }
+
+    _emitForUpdate(wasIncluded, isIncluded, key, value, params = null) {
+        if (wasIncluded && !isIncluded) {
+            this.emitRemove(key, value);
+        } else if (!wasIncluded && isIncluded) {
+            this.emitAdd(key, value);
+        } else if (wasIncluded && isIncluded) {
+            this.emitUpdate(key, value, params);
         }
     }
 
     onSubscribeFirst() {
-        for (let [key, value] of this._source) {
-            const mappedValue = this._mapper(value);
-            this._mappedValues.set(key, mappedValue);
-        }
+        this._subscription = this._source.subscribe(this);
+        this.update();
         super.onSubscribeFirst();
     }
 
     onUnsubscribeLast() {
         super.onUnsubscribeLast();
-        this._mappedValues.clear();
+        this._included = null;
+        this._subscription = this._subscription();
     }
 
     onReset() {
-        this._mappedValues.clear();
+        this.update();
         this.emitReset();
     }
 
     [Symbol.iterator]() {
-        return this._mappedValues.entries()[Symbol.iterator];
+        return new FilterIterator(this._source, this._included);
     }
 }
+
+class FilterIterator {
+    constructor(map, _included) {
+        this._included = _included;
+        this._sourceIterator = map.entries();
+    }
+
+    next() {
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+            const sourceResult = this._sourceIterator.next();
+            if (sourceResult.done) {
+                return sourceResult;
+            }
+            const key = sourceResult.value[1];
+            if (this._included.get(key)) {
+                return sourceResult;
+            }
+        }
+    }
+}
+
+// import {ObservableMap} from "./ObservableMap.js";
+// export function tests() {
+//     return {
+//         "filter preloaded list": assert => {
+//             const source = new ObservableMap();
+//             source.add("one", 1);
+//             source.add("two", 2);
+//             source.add("three", 3);
+//             const odds = Array.from(new FilteredMap(source, x => x % 2 !== 0));
+//             assert.equal(odds.length, 2);
+
+//         },
+//         "filter added values": assert => {
+
+//         },
+//         "filter removed values": assert => {
+
+//         },
+//         "filter changed values": assert => {
+
+//         },
+//     }
+// }

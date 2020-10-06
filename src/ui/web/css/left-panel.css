@@ -14,10 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 .LeftPanel {
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
+}
+
+.LeftPanel .filter {
+    display: flex;
+}
+
+.LeftPanel .filter input {
+    display: block;
+    flex: 1;
+    box-sizing: border-box;
 }
 
 .LeftPanel ul {
@@ -26,19 +35,25 @@ limitations under the License.
     margin: 0;
 }
 
-.LeftPanel li {
+.RoomList {
+    flex: 1 0 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.RoomList li {
     display: flex;
     align-items: center;
 }
 
-.LeftPanel div.description {
+.RoomList .description {
     margin: 0;
     flex: 1 1 0;
     min-width: 0;
     display: flex;
 }
 
-.LeftPanel .description > .name {
+.RoomList .description > .name {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
