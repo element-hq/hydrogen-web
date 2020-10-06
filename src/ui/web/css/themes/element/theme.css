@@ -143,6 +143,15 @@ button.styled {
     font-size: 1.5rem;
 }
 
+.LeftPanel .filter {
+    border-bottom: 1px solid rgba(245, 245, 245, 0.90);
+}
+
+.LeftPanel .filter input {
+    padding: 0.8em;
+    border: none;
+}
+
 .LeftPanel ul {
     padding: 0;
     margin: 0;
