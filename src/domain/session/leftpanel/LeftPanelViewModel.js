@@ -25,11 +25,11 @@ export class LeftPanelViewModel extends ViewModel {
         super(options);
         const {rooms, openRoom} = options;
         const roomTileVMs = rooms.mapValues((room, emitChange) => {
-            return new RoomTileViewModel({
+            return new RoomTileViewModel(this.childOptions({
                 room,
                 emitChange,
                 emitOpen: openRoom
-            });
+            }));
         });
         this._roomListFilterMap = new ApplyMap(roomTileVMs);
         this._roomList = this._roomListFilterMap.sortValues((a, b) => a.compare(b));
