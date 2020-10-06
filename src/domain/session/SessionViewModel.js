@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {RoomTileViewModel} from "./roomlist/RoomTileViewModel.js";
+import {LeftPanelViewModel} from "./leftpanel/LeftPanelViewModel.js";
 import {RoomViewModel} from "./room/RoomViewModel.js";
 import {SessionStatusViewModel} from "./SessionStatusViewModel.js";
 import {ViewModel} from "../ViewModel.js";
@@ -29,20 +30,20 @@ export class SessionViewModel extends ViewModel {
             reconnector: sessionContainer.reconnector,
             session: sessionContainer.session,
         })));
+        this._leftPanelViewModel = new LeftPanelViewModel(this.childOptions({
+            rooms: this._session.rooms,
+            openRoom: this._openRoom.bind(this)
+        }));
         this._currentRoomTileViewModel = null;
         this._currentRoomViewModel = null;
-        const roomTileVMs = this._session.rooms.mapValues((room, emitChange) => {
-            return new RoomTileViewModel({
-                room,
-                emitChange,
-                emitOpen: this._openRoom.bind(this)
-            });
-        });
-        this._roomList = roomTileVMs.sortValues((a, b) => a.compare(b));
     }
 
     start() {
         this._sessionStatusViewModel.start();
+    }
+
+    get leftPanelViewModel() {
+        return this._leftPanelViewModel;
     }
 
     get sessionStatusViewModel() {
