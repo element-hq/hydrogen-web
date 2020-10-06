@@ -23,6 +23,7 @@ export class FilteredMap extends BaseObservableMap {
         this._filter = filter;
         /** @type {Map<string, bool>} */
         this._included = null;
+        this._subscription = null;
     }
 
     setFilter(filter) {
@@ -30,14 +31,30 @@ export class FilteredMap extends BaseObservableMap {
         this.update();
     }
 
+    /**
+     * reapply the filter
+     */
     update() {
         // TODO: need to check if we have a subscriber already? If not, we really should not iterate the source?
         if (this._filter) {
+            const hadFilterBefore = !!this._included;
             this._included = this._included || new Map();
             for (const [key, value] of this._source) {
-                this._included.set(key, this._filter(value, key));
+                const isIncluded = this._filter(value, key);
+                const wasIncluded = hadFilterBefore ? this._included.get(key) : true;
+                this._included.set(key, isIncluded);
+                this._emitForUpdate(wasIncluded, isIncluded, key, value);
             }
-        } else {
+        } else { // no filter
+            // did we have a filter before?
+            if (this._included) {
+                // add any non-included items again
+                for (const [key, value] of this._source) {
+                    if (!this._included.get(key)) {
+                        this.emitAdd(key, value);
+                    }
+                }
+            }
             this._included = null;
         }
     }
@@ -60,24 +77,28 @@ export class FilteredMap extends BaseObservableMap {
         this.emitRemove(key, value);
     }
 
-    onChange(key, value, params) {
+    onUpdate(key, value, params) {
         if (this._filter) {
             const wasIncluded = this._included.get(key);
             const isIncluded = this._filter(value, key);
             this._included.set(key, isIncluded);
-
-            if (wasIncluded && !isIncluded) {
-                this.emitRemove(key, value);
-            } else if (!wasIncluded && isIncluded) {
-                this.emitAdd(key, value);
-            } else if (!wasIncluded && !isIncluded) {
-                return;
-            } // fall through to emitChange
+            this._emitForUpdate(wasIncluded, isIncluded, key, value, params);
         }
-        this.emitChange(key, value, params);
+        this.emitUpdate(key, value, params);
+    }
+
+    _emitForUpdate(wasIncluded, isIncluded, key, value, params = null) {
+        if (wasIncluded && !isIncluded) {
+            this.emitRemove(key, value);
+        } else if (!wasIncluded && isIncluded) {
+            this.emitAdd(key, value);
+        } else if (wasIncluded && isIncluded) {
+            this.emitUpdate(key, value, params);
+        }
     }
 
     onSubscribeFirst() {
+        this._subscription = this._source.subscribe(this);
         this.update();
         super.onSubscribeFirst();
     }
@@ -85,6 +106,7 @@ export class FilteredMap extends BaseObservableMap {
     onUnsubscribeLast() {
         super.onUnsubscribeLast();
         this._included = null;
+        this._subscription = this._subscription();
     }
 
     onReset() {
@@ -118,26 +140,26 @@ class FilterIterator {
     }
 }
 
-import {ObservableMap} from "./ObservableMap.js";
-export function tests() {
-    return {
-        "filter preloaded list": assert => {
-            const source = new ObservableMap();
-            source.add("one", 1);
-            source.add("two", 2);
-            source.add("three", 3);
-            const odds = Array.from(new FilteredMap(source, x => x % 2 !== 0));
-            assert.equal(odds.length, 2);
+// import {ObservableMap} from "./ObservableMap.js";
+// export function tests() {
+//     return {
+//         "filter preloaded list": assert => {
+//             const source = new ObservableMap();
+//             source.add("one", 1);
+//             source.add("two", 2);
+//             source.add("three", 3);
+//             const odds = Array.from(new FilteredMap(source, x => x % 2 !== 0));
+//             assert.equal(odds.length, 2);
 
-        },
-        "filter added values": assert => {
+//         },
+//         "filter added values": assert => {
 
-        },
-        "filter removed values": assert => {
+//         },
+//         "filter removed values": assert => {
 
-        },
-        "filter changed values": assert => {
+//         },
+//         "filter changed values": assert => {
 
-        },
-    }
-}
+//         },
+//     }
+// }
