@@ -20,7 +20,6 @@ limitations under the License.
 }
 
 .LeftPanel .filter {
-    flex: 0;
     display: flex;
 }
 
@@ -37,6 +36,7 @@ limitations under the License.
 }
 
 .RoomList {
+    flex: 1 0 0;
     overflow-y: auto;
     overscroll-behavior: contain;
 }
