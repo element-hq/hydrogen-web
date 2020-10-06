@@ -68,7 +68,7 @@ export function xhrRequest(url, options) {
         const {status} = xhr;
         let body = null;
         if (xhr.getResponseHeader("Content-Type") === "application/json") {
-            body = JSON.parse(body);
+            body = JSON.parse(xhr.responseText);
         }
         return {status, body};
     });
