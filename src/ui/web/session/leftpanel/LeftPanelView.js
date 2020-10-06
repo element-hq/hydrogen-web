@@ -27,6 +27,12 @@ export class LeftPanelView extends TemplateView {
             autocomplete: true,
             name: "room-filter",
             onInput: event => vm.setFilter(event.target.value),
+            onKeydown: event => {
+                if (event.key === "Escape" || event.key === "Esc") {
+                    filterInput.value = "";
+                    vm.clearFilter();
+                }
+            }
         });
         return t.div({className: "LeftPanel"}, [
             t.div({className: "filter"}, [
