@@ -14,70 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ListView} from "../general/ListView.js";
-import {RoomTile} from "./RoomTile.js";
+import {LeftPanelView} from "./leftpanel/LeftPanelView.js";
 import {RoomView} from "./room/RoomView.js";
-import {SwitchView} from "../general/SwitchView.js";
+import {TemplateView} from "../general/TemplateView.js";
 import {RoomPlaceholderView} from "./RoomPlaceholderView.js";
 import {SessionStatusView} from "./SessionStatusView.js";
-import {tag} from "../general/html.js";
 
-export class SessionView {
-    constructor(viewModel) {
-        this._viewModel = viewModel;
-        this._middleSwitcher = null;
-        this._roomList = null;
-        this._currentRoom = null;
-        this._root = null;
-        this._onViewModelChange = this._onViewModelChange.bind(this);
-    }
-
-    root() {
-        return this._root;
-    }
-
-    mount() {
-        this._viewModel.on("change", this._onViewModelChange);
-        this._sessionStatusBar = new SessionStatusView(this._viewModel.sessionStatusViewModel);
-        this._roomList = new ListView(
-            {
-                className: "RoomList",
-                list: this._viewModel.roomList,
-                onItemClick: (roomTile, event) => roomTile.clicked(event)
-            },
-            (room) => new RoomTile(room)
-        );
-        this._middleSwitcher = new SwitchView(new RoomPlaceholderView());
-
-        this._root = tag.div({className: "SessionView"}, [
-            this._sessionStatusBar.mount(),
-            tag.div({className: "main"}, [
-                tag.div({className: "LeftPanel"}, this._roomList.mount()),
-                this._middleSwitcher.mount()
+export class SessionView extends TemplateView {
+    render(t, vm) {
+        return t.div({
+            className: "SessionView",
+            "room-shown": vm => !!vm.currentRoom
+        }, [
+            t.view(new SessionStatusView(vm.sessionStatusViewModel)),
+            t.div({className: "main"}, [
+                t.view(new LeftPanelView(vm.leftPanelViewModel)),
+                t.mapView(vm => vm.currentRoom, currentRoom => {
+                    if (currentRoom) {
+                        return new RoomView(currentRoom);
+                    } else {
+                        return new RoomPlaceholderView();
+                    }
+                })
             ])
         ]);
-        
-        return this._root;
     }
-
-    unmount() {
-        this._roomList.unmount();
-        this._middleSwitcher.unmount();
-        this._viewModel.off("change", this._onViewModelChange);
-    }
-
-    _onViewModelChange(prop) {
-        if (prop === "currentRoom") {
-            if (this._viewModel.currentRoom) {
-                this._root.classList.add("room-shown");
-                this._middleSwitcher.switch(new RoomView(this._viewModel.currentRoom));
-            } else {
-                this._root.classList.remove("room-shown");
-                this._middleSwitcher.switch(new RoomPlaceholderView());
-            }
-        }
-    }
-
-    // changing viewModel not supported for now
-    update() {}
 }
