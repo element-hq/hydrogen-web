@@ -34,6 +34,19 @@ export class BrawlViewModel extends ViewModel {
 
         this._sessionContainer = null;
         this._sessionCallback = this._sessionCallback.bind(this);
+
+        this.track(this.navigation.observe("login").subscribe(value => {
+            if (value) {
+                this._showLogin();
+            }
+        }));
+        this.track(this.navigation.observe("session").subscribe(value => {
+            if (value === true) {
+                this._showPicker();
+            } else if (value) {
+                alert("showing session " + value);
+            }
+        }));
     }
 
     async load() {

@@ -25,10 +25,15 @@ export class URLRouter {
 
     start() {
         this._subscription = this._pathObservable.subscribe(url => {
-            const segments = this._segmentsFromUrl(url);
-            const path = this._navigation.pathFrom(segments);
-            this._navigation.applyPath(path);
+            this._applyUrl(url);
         });
+        this._applyUrl(this._pathObservable.get());
+    }
+
+    _applyUrl(url) {    
+        const segments = this._segmentsFromUrl(url);
+        const path = this._navigation.pathFrom(segments);
+        this._navigation.applyPath(path);
     }
 
     stop() {
@@ -36,7 +41,7 @@ export class URLRouter {
     }
 
     _segmentsFromUrl(path) {
-        const parts = path.split("/");
+        const parts = path.split("/").filter(p => !!p);
         let index = 0;
         const segments = [];
         while (index < parts.length) {
