@@ -20,24 +20,27 @@ import {TemplateView} from "../general/TemplateView.js";
 
 export class RoomGridView extends TemplateView {
     render(t, vm) {
-        const roomViews = [];
-        const len = vm.width * vm.height;
-        for (let i = 0; i < len; i+=1) {
-            roomViews[i] = t.div({
-                onClick: () => vm.setFocusedIndex(i),
-                onFocusin: () => vm.setFocusedIndex(i),
-                className: {focused: vm => vm.focusedIndex === i},
-            },t.mapView(vm => vm.roomViewModelAt(i), roomVM => {
-                if (roomVM) {
-                    return new RoomView(roomVM);
-                } else {
-                    return new RoomPlaceholderView();
-                }
-            }))
+        const children = [];
+        for (let y = 0; y < vm.height; y+=1) {
+            for (let x = 0; x < vm.width; x+=1) {
+                children.push(t.div({
+                    onClick: () => vm.setFocusAt(x, y),
+                    onFocusin: () => vm.setFocusAt(x, y),
+                    className: "container",
+                    style: `--column: ${x + 1}; --row: ${y + 1}`
+                },t.mapView(vm => vm.roomViewModelAt(x, y), roomVM => {
+                    if (roomVM) {
+                        return new RoomView(roomVM);
+                    } else {
+                        return new RoomPlaceholderView();
+                    }
+                })));
+            }
         }
+        children.push(t.div({className: "focus-ring", style: vm => `--column: ${vm.focusX + 1}; --row: ${vm.focusY + 1}`}));
         return t.div({
             className: "RoomGridView",
             style: `--columns: ${vm.width}; --rows: ${vm.height}`
-        }, roomViews);
+        }, children);
     }
 }

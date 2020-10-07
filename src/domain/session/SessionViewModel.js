@@ -109,14 +109,8 @@ export class SessionViewModel extends ViewModel {
     }
 
     _openRoom(room, roomTileVM) {
-        // for now, we don't support having the same room opened more than once,
-        // so bail out if we already have the room open
-        if (this._gridViewModel) {
-            const roomIndex = this._gridViewModel.roomIndex(room.id);
-            if (roomIndex >= 0) {
-                this._gridViewModel.setFocusedIndex(roomIndex);
-                return;
-            }
+        if (this._gridViewModel?.tryFocusRoom(room.id)) {
+            return;
         } else if (this._currentRoomViewModel?._room.id === room.id) {
             return;
         }

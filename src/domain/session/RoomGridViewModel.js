@@ -25,15 +25,39 @@ export class RoomGridViewModel extends ViewModel {
         this._viewModels = [];
     }
 
-    roomViewModelAt(idx) {
-        return this._viewModels[idx]?.vm;
+    _posToIdx(x, y) {
+        return (y * this.width) + x;
     }
 
-    get focusedIndex() {
-        return this._selectedIndex;
+    _idxToX(idx) {
+        return idx % this.width;
     }
 
-    setFocusedIndex(idx) {
+    _idxToY(idx) {
+        return Math.floor(idx / this.width);
+    }
+
+    roomViewModelAt(x, y) {
+        return this._viewModels[this._posToIdx(x, y)]?.vm;
+    }
+
+    get focusX() {
+        return this._idxToX(this._selectedIndex);
+    }
+
+    get focusY() {
+        return this._idxToY(this._selectedIndex);
+    }
+
+    isFocusAt(x, y) {
+        return this._posToIdx(x, y) === this._selectedIndex;
+    }
+
+    setFocusAt(x, y) {
+        this._setFocusedIndex(this._posToIdx(x, y));
+    }
+
+    _setFocusedIndex(idx) {
         if (idx === this._selectedIndex) {
             return;
         }
@@ -72,8 +96,13 @@ export class RoomGridViewModel extends ViewModel {
     /**
      * @package
      */
-    roomIndex(roomId) {
-        return this._viewModels.findIndex(vms => vms?.vm._room.id === roomId);
+    tryFocusRoom(roomId) {
+        const index = this._viewModels.findIndex(vms => vms?.vm._room.id === roomId);
+        if (index >= 0) {
+            this._setFocusedIndex(index);
+            return true;
+        }
+        return false;
     }
     
     /**
