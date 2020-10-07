@@ -27,6 +27,7 @@ limitations under the License.
     display: block;
     flex: 1;
     box-sizing: border-box;
+    min-width: 0;
 }
 
 .LeftPanel ul {
