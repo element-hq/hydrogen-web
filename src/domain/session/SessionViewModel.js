@@ -100,7 +100,7 @@ export class SessionViewModel extends ViewModel {
     }
 
     _closeCurrentRoom() {
-        // no closing in grid for now
+        // no closing in grid for now as it is disabled on narrow viewports
         if (!this._gridViewModel) {
             this._currentRoomTileViewModel?.close();
             this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
