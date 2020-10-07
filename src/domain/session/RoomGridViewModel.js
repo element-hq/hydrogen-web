@@ -34,6 +34,9 @@ export class RoomGridViewModel extends ViewModel {
     }
 
     setFocusedIndex(idx) {
+        if (idx === this._selectedIndex) {
+            return;
+        }
         const oldItem = this._viewModels[this._selectedIndex];
         oldItem?.tileVM?.close();
         this._selectedIndex = idx;
@@ -69,8 +72,8 @@ export class RoomGridViewModel extends ViewModel {
     /**
      * @package
      */
-    hasRoomId(roomId) {
-        return this._viewModels.some(vms => vms?.vm._room.id === roomId);
+    roomIndex(roomId) {
+        return this._viewModels.findIndex(vms => vms?.vm._room.id === roomId);
     }
     
     /**
