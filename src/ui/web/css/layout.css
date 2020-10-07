@@ -101,6 +101,7 @@ html {
 .RoomGridView > div {
     display: flex;
     min-width: 0;
+    min-height: 0;
     grid-column: var(--column);
     grid-row: var(--row);
 }
