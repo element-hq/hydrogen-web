@@ -23,7 +23,8 @@ import {ApplyMap} from "../../../observable/map/ApplyMap.js";
 export class LeftPanelViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {rooms, openRoom} = options;
+        const {rooms, openRoom, gridEnabled} = options;
+        this._gridEnabled = gridEnabled;
         const roomTileVMs = rooms.mapValues((room, emitChange) => {
             return new RoomTileViewModel({
                 room,
@@ -33,6 +34,15 @@ export class LeftPanelViewModel extends ViewModel {
         });
         this._roomListFilterMap = new ApplyMap(roomTileVMs);
         this._roomList = this._roomListFilterMap.sortValues((a, b) => a.compare(b));
+    }
+
+    get gridEnabled() {
+        return this._gridEnabled.get();
+    }
+
+    toggleGrid() {
+        this._gridEnabled.set(!this._gridEnabled.get());
+        this.emitChange("gridEnabled");
     }
 
     get roomList() {

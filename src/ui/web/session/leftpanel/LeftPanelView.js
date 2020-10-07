@@ -18,30 +18,67 @@ import {ListView} from "../../general/ListView.js";
 import {TemplateView} from "../../general/TemplateView.js";
 import {RoomTileView} from "./RoomTileView.js";
 
-export class LeftPanelView extends TemplateView {
-    render(t, vm) {
+class FilterField extends TemplateView {
+    render(t, options) {
+        const clear = () => {
+            filterInput.value = "";
+            filterInput.blur();
+            clearButton.blur();
+            options.clear();
+        };
         const filterInput = t.input({
             type: "text",
-            placeholder: vm.i18n`Filter rooms…`,
-            "aria-label": vm.i18n`Filter rooms by name`,
-            autocomplete: true,
-            name: "room-filter",
-            onInput: event => vm.setFilter(event.target.value),
+            placeholder: options?.label,
+            "aria-label": options?.label,
+            autocomplete: options?.autocomplete,
+            name: options?.name,
+            onInput: event => options.set(event.target.value),
             onKeydown: event => {
                 if (event.key === "Escape" || event.key === "Esc") {
-                    filterInput.value = "";
-                    vm.clearFilter();
+                    clear();
                 }
-            }
+            },
+            onFocus: () => filterInput.select()
         });
+        const clearButton = t.button({
+            onClick: clear,
+            title: options.i18n`Clear`,
+            "aria-label": options.i18n`Clear`
+        });
+        return t.div({className: "FilterField"}, [filterInput, clearButton]);
+    }
+}
+
+export class LeftPanelView extends TemplateView {
+    render(t, vm) {
+        const gridButtonLabel = vm => {
+            return vm.gridEnabled ?
+                vm.i18n`Show single room` :
+                vm.i18n`Enable grid layout`;
+        };
+        const utilitiesRow = t.div({className: "utilities"}, [
+            t.view(new FilterField({
+                i18n: vm.i18n,
+                label: vm.i18n`Filter rooms…`,
+                name: "room-filter",
+                autocomplete: true,
+                set: query => vm.setFilter(query),
+                clear: () => vm.clearFilter()
+            })),
+            t.button({
+                onClick: () => vm.toggleGrid(),
+                className: {
+                    utility: true,
+                    grid: true,
+                    on: vm => vm.gridEnabled
+                },
+                title: gridButtonLabel,
+                "aria-label": gridButtonLabel
+            })
+        ]);
+
         return t.div({className: "LeftPanel"}, [
-            t.div({className: "filter"}, [
-                filterInput,
-                t.button({onClick: () => {
-                    filterInput.value = "";
-                    vm.clearFilter();
-                }}, vm.i18n`Clear`)
-            ]),
+            utilitiesRow,
             t.view(new ListView(
                 {
                     className: "RoomList",

@@ -19,23 +19,27 @@ import {RoomView} from "./room/RoomView.js";
 import {TemplateView} from "../general/TemplateView.js";
 import {RoomPlaceholderView} from "./RoomPlaceholderView.js";
 import {SessionStatusView} from "./SessionStatusView.js";
+import {RoomGridView} from "./RoomGridView.js";
 
 export class SessionView extends TemplateView {
     render(t, vm) {
         return t.div({
             className: {
                 "SessionView": true,
-                "room-shown": vm => !!vm.currentRoom
+                "room-shown": vm => vm.selectionId !== "placeholder"
             },
         }, [
             t.view(new SessionStatusView(vm.sessionStatusViewModel)),
             t.div({className: "main"}, [
                 t.view(new LeftPanelView(vm.leftPanelViewModel)),
-                t.mapView(vm => vm.currentRoom, currentRoom => {
-                    if (currentRoom) {
-                        return new RoomView(currentRoom);
-                    } else {
-                        return new RoomPlaceholderView();
+                t.mapView(vm => vm.selectionId, selectionId => {
+                    switch (selectionId) {
+                        case "roomgrid":
+                            return new RoomGridView(vm.roomGridViewModel);
+                        case "placeholder":
+                            return new RoomPlaceholderView();
+                        default: //room id
+                            return new RoomView(vm.currentRoom);
                     }
                 })
             ])

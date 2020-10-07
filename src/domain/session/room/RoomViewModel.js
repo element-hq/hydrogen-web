@@ -51,15 +51,27 @@ export class RoomViewModel extends ViewModel {
             this._timelineError = err;
             this.emitChange("error");
         }
+        this._clearUnreadAfterDelay();
+    }
+
+    async _clearUnreadAfterDelay() {
+        if (this._clearUnreadTimout) {
+            return;
+        }
         this._clearUnreadTimout = this.clock.createTimeout(2000);
         try {
             await this._clearUnreadTimout.elapsed();
             await this._room.clearUnread();
+            this._clearUnreadTimout = null;
         } catch (err) {
             if (err.name !== "AbortError") {
                 throw err;
             }    
         }
+    }
+
+    focus() {
+        this._clearUnreadAfterDelay();
     }
 
     dispose() {
@@ -84,6 +96,10 @@ export class RoomViewModel extends ViewModel {
 
     get name() {
         return this._room.name || this.i18n`Empty Room`;
+    }
+
+    get id() {
+        return this._room.id;
     }
 
     get timelineViewModel() {

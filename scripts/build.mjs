@@ -302,7 +302,6 @@ async function buildCssLegacy(entryPath, urlMapper = null) {
     const preCss = await fs.readFile(entryPath, "utf8");
     const options = [
         postcssImport,
-        cssvariables(),
         flexbugsFixes()
     ];
     if (urlMapper) {
