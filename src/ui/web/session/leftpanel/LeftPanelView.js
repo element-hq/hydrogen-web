@@ -41,7 +41,10 @@ export class LeftPanelView extends TemplateView {
                     filterInput.value = "";
                     vm.clearFilter();
                 }}, vm.i18n`Clear`),
-                t.button({onClick: () => vm.toggleGrid()}, vm => vm.gridEnabled ? "Single" : "Grid")
+                t.button({
+                    onClick: () => vm.toggleGrid(),
+                    className: "grid"
+                }, vm => vm.gridEnabled ? "Single" : "Grid")
             ]),
             t.view(new ListView(
                 {

@@ -211,6 +211,7 @@ a {
     background-color: #3D88FA;
     color: white;
     border-radius: 10px;
+    z-index: 2;
 }
 
 .room-shown .SessionStatusView {
@@ -256,6 +257,22 @@ a {
 
 .SessionPickerView button.destructive {
     color: #FF4B55;
+}
+
+
+/*.RoomGridView > :not(.focused) .MessageComposer {
+    display: none;
+} 
+*/
+
+.RoomGridView > div.container {
+    border-right: 1px solid rgba(245, 245, 245, 0.90);
+    border-bottom: 1px solid rgba(245, 245, 245, 0.90);
+}
+
+.RoomGridView > div.focus-ring {
+    border: 2px solid rgba(134, 193, 165, 1);
+    border-radius: 2px;
 }
 
 .RoomHeader {

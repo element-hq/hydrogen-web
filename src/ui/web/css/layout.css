@@ -48,8 +48,11 @@ html {
 
 /* mobile layout */
 @media screen and (max-width: 800px) {
+    /* show back button */
     .RoomHeader button.back { display: block; }
-    div.RoomView, div.RoomPlaceholderView { display: none; }
+    /* hide grid button */
+    .LeftPanel button.grid { display: none; }
+    div.RoomView, div.RoomPlaceholderView, div.RoomGridView { display: none; }
     div.LeftPanel {flex-grow: 1;}
     div.room-shown div.RoomView { display: flex; }
     div.room-shown div.LeftPanel { display: none; }
@@ -61,7 +64,7 @@ html {
     min-width: 0;
 }
 
-.RoomPlaceholderView, .RoomView {
+.RoomPlaceholderView, .RoomView, .RoomGridView {
     flex: 1 0 0;
     min-width: 0;
 }
@@ -87,4 +90,22 @@ html {
 
 .RoomHeader {
     display: flex;
+}
+
+.RoomGridView {
+    display: grid;
+    grid-template-columns: repeat(var(--columns), 1fr);
+    grid-template-rows: repeat(var(--rows), 1fr);
+}
+
+.RoomGridView > div {
+    display: flex;
+    min-width: 0;
+    grid-column: var(--column);
+    grid-row: var(--row);
+}
+
+.RoomGridView > div.focus-ring {
+    z-index: 1;
+    pointer-events: none;
 }
