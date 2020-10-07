@@ -32,14 +32,14 @@ export class SessionView extends TemplateView {
             t.view(new SessionStatusView(vm.sessionStatusViewModel)),
             t.div({className: "main"}, [
                 t.view(new LeftPanelView(vm.leftPanelViewModel)),
-                t.mapView(vm => vm.middlePanelViewType, middlePanelViewType => {
-                    switch (middlePanelViewType) {
-                        case "room":
-                            return new RoomView(vm.currentRoom);
+                t.mapView(vm => vm.selectionId, selectionId => {
+                    switch (selectionId) {
                         case "roomgrid":
                             return new RoomGridView(vm.roomGridViewModel);
                         case "placeholder":
                             return new RoomPlaceholderView();
+                        default: //room id
+                            return new RoomView(vm.currentRoom);
                     }
                 })
             ])

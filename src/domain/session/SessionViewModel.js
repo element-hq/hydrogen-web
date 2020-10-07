@@ -48,9 +48,9 @@ export class SessionViewModel extends ViewModel {
         this._sessionStatusViewModel.start();
     }
 
-    get middlePanelViewType() {
+    get selectionId() {
         if (this._currentRoomViewModel) {
-            return "room";
+            return this._currentRoomViewModel._room.id;
         } else if (this._gridViewModel) {
             return "roomgrid";
         }
