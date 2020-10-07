@@ -117,6 +117,24 @@ button.styled {
     font-weight: 500;
 }
 
+button.utility {
+    width: 32px;
+    height: 32px;
+    background-position: center;
+    background-color: #e1e3e6;
+    background-repeat: no-repeat;
+    border: none;
+    border-radius: 100%;
+}
+
+button.utility.grid {
+    background-image: url('icons/enable-grid.svg');
+}
+
+button.utility.grid.on {
+    background-image: url('icons/disable-grid.svg');
+}
+
 .FilterField {
     background-color: #e1e3e6;
     border-radius: 16px;
@@ -185,6 +203,15 @@ button.styled {
 .LeftPanel {
     background: rgba(245, 245, 245, 0.90);
     font-size: 1.5rem;
+    padding: 12px 0 0 8px;
+}
+
+.LeftPanel .utilities {
+    margin-right: 8px;
+}
+
+.LeftPanel .utilities :not(:first-child) {
+    margin-left: 8px;
 }
 
 .LeftPanel .filter {
@@ -202,8 +229,8 @@ button.styled {
 }
 
 .LeftPanel li {
-    margin: 3px 10px;
-    padding: 5px;
+    margin: 12px 0;
+    padding-right: 5px;
     /* vertical align */
     align-items: center;
 }
@@ -265,6 +292,8 @@ a {
 .RoomPlaceholderView {
     align-items: center;
     justify-content: center;
+    text-align: center;
+    padding: 20px;
 }
 
 .SessionPickerView li {
@@ -303,12 +332,6 @@ a {
     color: #FF4B55;
 }
 
-
-/*.RoomGridView > :not(.focused) .MessageComposer {
-    display: none;
-} 
-*/
-
 .RoomGridView > div.container {
     border-right: 1px solid rgba(245, 245, 245, 0.90);
     border-bottom: 1px solid rgba(245, 245, 245, 0.90);
@@ -316,7 +339,7 @@ a {
 
 .RoomGridView > div.focus-ring {
     border: 2px solid rgba(134, 193, 165, 1);
-    border-radius: 2px;
+    border-radius: 12px;
 }
 
 .RoomHeader {
