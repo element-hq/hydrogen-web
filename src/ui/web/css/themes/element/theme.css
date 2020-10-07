@@ -117,6 +117,50 @@ button.styled {
     font-weight: 500;
 }
 
+.FilterField {
+    background-color: #e1e3e6;
+    border-radius: 16px;
+    height: 32px;
+    align-items: center;
+    padding: 0 8px;
+    box-sizing: border-box;
+}
+
+.FilterField :not(:first-child) {
+    margin-left: 8px;
+}
+
+.FilterField:focus-within {
+    border: 1px #e1e3e6 solid;
+    background-color: white;
+}
+
+/*.FilterField:not(:focus-within) button {
+    display: none;
+}*/
+
+.FilterField input {
+    font-family: "Inter";
+    font-size: 1.3rem;
+    font-weight: 500;
+    line-height: 1.573rem;
+    outline: none;
+    border: none;
+    background-color: transparent;
+    height: 100%;
+}
+
+.FilterField button {
+    width: 16px;
+    height: 16px;
+    background-position: center;
+    background-color: #e1e3e6;
+    background-repeat: no-repeat;
+    background-image: url('icons/clear.svg');
+    border: none;
+    border-radius: 100%;
+}
+
 .PreSessionScreen {
     padding: 30px;
 }
