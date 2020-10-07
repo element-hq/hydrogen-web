@@ -98,6 +98,10 @@ export class RoomViewModel extends ViewModel {
         return this._room.name || this.i18n`Empty Room`;
     }
 
+    get id() {
+        return this._room.id;
+    }
+
     get timelineViewModel() {
         return this._timelineVM;
     }

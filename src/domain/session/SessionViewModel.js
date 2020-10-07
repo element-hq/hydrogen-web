@@ -50,7 +50,7 @@ export class SessionViewModel extends ViewModel {
 
     get selectionId() {
         if (this._currentRoomViewModel) {
-            return this._currentRoomViewModel._room.id;
+            return this._currentRoomViewModel.id;
         } else if (this._gridViewModel) {
             return "roomgrid";
         }
@@ -111,7 +111,7 @@ export class SessionViewModel extends ViewModel {
     _openRoom(room, roomTileVM) {
         if (this._gridViewModel?.tryFocusRoom(room.id)) {
             return;
-        } else if (this._currentRoomViewModel?._room.id === room.id) {
+        } else if (this._currentRoomViewModel?.id === room.id) {
             return;
         }
         const roomVM = new RoomViewModel(this.childOptions({
