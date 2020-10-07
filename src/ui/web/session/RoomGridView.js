@@ -26,7 +26,10 @@ export class RoomGridView extends TemplateView {
                 children.push(t.div({
                     onClick: () => vm.setFocusAt(x, y),
                     onFocusin: () => vm.setFocusAt(x, y),
-                    className: "container",
+                    className: {
+                        "container": true,
+                        "focused": vm => vm.isFocusAt(x, y)
+                    },
                     style: `--column: ${x + 1}; --row: ${y + 1}`
                 },t.mapView(vm => vm.roomViewModelAt(x, y), roomVM => {
                     if (roomVM) {
