@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {SessionViewModel} from "./session/SessionViewModel.js";
+import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
 import {LoginViewModel} from "./LoginViewModel.js";
 import {SessionPickerViewModel} from "./SessionPickerViewModel.js";
 import {ViewModel} from "./ViewModel.js";
@@ -35,25 +36,41 @@ export class BrawlViewModel extends ViewModel {
         this._sessionContainer = null;
         this._sessionCallback = this._sessionCallback.bind(this);
 
-        this.track(this.navigation.observe("login").subscribe(value => {
-            if (value) {
-                this._showLogin();
-            }
-        }));
-        this.track(this.navigation.observe("session").subscribe(value => {
-            if (value === true) {
-                this._showPicker();
-            } else if (value) {
-                alert("showing session " + value);
-            }
-        }));
     }
 
     async load() {
-        if (await this._sessionInfoStorage.hasAnySession()) {
-            this._showPicker();
-        } else {
+        this.track(this.navigation.observe("login").subscribe(shown => {
+            if (shown) {
+                this._showLogin();
+            }
+        }));
+        this.track(this.navigation.observe("session").subscribe(sessionId => {
+            if (sessionId === true) {
+                this._showPicker();
+            } else if (sessionId) {
+                this._showSessionLoader(sessionId);
+            }
+        }));
+
+        const isLogin = this.navigation.observe("login").get();
+        const sessionId = this.navigation.observe("session").get();
+        if (isLogin) {
             this._showLogin();
+        } else if (sessionId === true) {
+            this._showPicker();
+        } else if (sessionId) {
+            this._showSessionLoader(sessionId);
+        } else {
+            const sessionInfos = await this._sessionInfoStorage.getAll();
+            let url;
+            if (sessionInfos.length === 0) {
+                url = this.urlRouter.urlForSegment("login");
+            } else if (sessionInfos.length === 1) {
+                url = this.urlRouter.urlForSegment("session", sessionInfos[0].id);
+            } else {
+                url = this.urlRouter.urlForSegment("session");
+            }
+            this.urlRouter.replaceUrl(url);
         }
     }
 
@@ -97,8 +114,21 @@ export class BrawlViewModel extends ViewModel {
                 createSessionContainer: this._createSessionContainer,
                 sessionCallback: this._sessionCallback,
             });
-        })
+        });
+    }
 
+    _showSessionLoader(sessionId) {
+        this._setSection(() => {
+            this._sessionLoadViewModel = new SessionLoadViewModel({
+                createAndStartSessionContainer: () => {
+                    const sessionContainer = this._createSessionContainer();
+                    sessionContainer.startWithExistingSession(sessionId);
+                    return sessionContainer;
+                },
+                sessionCallback: sessionContainer => this._sessionCallback(sessionContainer)
+            });
+            this._sessionLoadViewModel.start();
+        });
     }
 
     get activeSection() {
@@ -108,8 +138,12 @@ export class BrawlViewModel extends ViewModel {
             return "session";
         } else if (this._loginViewModel) {
             return "login";
-        } else {
+        } else if (this._sessionPickerViewModel) {
             return "picker";
+        } else if (this._sessionLoadViewModel) {
+            return "loading";
+        } else {
+            return "redirecting";
         }
     }
 
@@ -119,6 +153,7 @@ export class BrawlViewModel extends ViewModel {
         this._sessionViewModel = null;
         this._loginViewModel = null;
         this._sessionPickerViewModel = null;
+        this._sessionLoadViewModel = null;
 
         if (this._sessionContainer) {
             this._sessionContainer.stop();
@@ -133,4 +168,5 @@ export class BrawlViewModel extends ViewModel {
     get sessionViewModel() { return this._sessionViewModel; }
     get loginViewModel() { return this._loginViewModel; }
     get sessionPickerViewModel() { return this._sessionPickerViewModel; }
+    get sessionLoadViewModel() { return this._sessionLoadViewModel; }
 }
