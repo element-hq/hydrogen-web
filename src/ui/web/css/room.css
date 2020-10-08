@@ -24,13 +24,8 @@ limitations under the License.
     align-items: center;
 }
 
-.RoomHeader > *:last-child {
-    margin-right: 0;
-}
-
-.RoomHeader > * {
-    margin-right: 10px;
-    flex: 0 0 auto;
+.RoomHeader h2 {
+    flex: 1;
 }
 
 .RoomHeader button {
