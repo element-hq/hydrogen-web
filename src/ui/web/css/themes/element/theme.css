@@ -364,8 +364,11 @@ a {
     font-weight: 600;
 }
 
-.RoomHeader > :not(:first-child) {
-    margin-left: 8px;
+.RoomHeader > :not(:last-child) {
+    /* use margin-right because the first item,
+    button.back might be hidden and then we don't
+    want a margin-left on the second item*/
+    margin-right: 8px;
 }
 
 button.back {
