@@ -230,7 +230,9 @@ button.utility.grid.on {
 
 .LeftPanel .RoomList {
     padding: 0;
-    margin-right: -8px; /* make scrollbar hit right edge of parent */
+    /* make scrollbar hit right edge of parent */
+    padding-right: 8px;
+    margin-right: -8px;
 }
 
 .RoomList li {
