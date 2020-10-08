@@ -507,3 +507,7 @@ ul.Timeline > li.messageStatus .message-container > p {
     text-align: center;
     border-radius: 10px;
 }
+
+.GapView > :not(:first-child) {
+    margin-left: 12px;
+}

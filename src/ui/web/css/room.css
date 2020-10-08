@@ -77,6 +77,6 @@ limitations under the License.
     justify-content: center;
 }
 
-.TimelineLoadingView div {
-    margin-right: 10px;
+.TimelineLoadingView > :not(:first-child) {
+    margin-left: 12px;
 }
