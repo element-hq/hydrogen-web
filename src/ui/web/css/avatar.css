@@ -21,9 +21,6 @@ limitations under the License.
     height: var(--avatar-size);
     overflow: hidden;
     flex-shrink: 0;
-    -moz-user-select: none;
-    -webkit-user-select: none;
-    -ms-user-select: none;
     user-select: none;
     line-height: var(--avatar-size);
     font-size: calc(var(--avatar-size) * 0.6);
