@@ -16,8 +16,10 @@ limitations under the License.
 
 import {SessionView} from "./session/SessionView.js";
 import {LoginView} from "./login/LoginView.js";
+import {SessionLoadView} from "./login/SessionLoadView.js";
 import {SessionPickerView} from "./login/SessionPickerView.js";
 import {TemplateView} from "./general/TemplateView.js";
+import {StaticView} from "./general/StaticView.js";
 import {SwitchView} from "./general/SwitchView.js";
 
 export class BrawlView {
@@ -38,6 +40,10 @@ export class BrawlView {
                 return new LoginView(this._vm.loginViewModel);
             case "picker":
                 return new SessionPickerView(this._vm.sessionPickerViewModel);
+            case "redirecting":
+                return new StaticView(t => t.p("Redirecting..."));
+            case "loading":
+                return new SessionLoadView(this._vm.sessionLoadViewModel);
             default:
                 throw new Error(`Unknown section: ${this._vm.activeSection}`);
         }
