@@ -73,7 +73,7 @@ export class RoomGridViewModel extends ViewModel {
      * @package
      */
     tryFocusRoom(roomId) {
-        const index = this._viewModels.findIndex(vms => vms?.vm._room.id === roomId);
+        const index = this._viewModels.findIndex(vms => vms?.vm.id === roomId);
         if (index >= 0) {
             this.setFocusIndex(index);
             return true;
