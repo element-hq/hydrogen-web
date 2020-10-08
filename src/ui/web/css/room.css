@@ -71,6 +71,7 @@ limitations under the License.
 .MessageComposer > input {
     display: block;
     flex: 1;
+    min-width: 0;
     box-sizing: border-box;
 }
 

@@ -25,6 +25,7 @@ limitations under the License.
 
 .LeftPanel .utilities .FilterField {
     flex: 1;
+    min-width: 0;
 }
 
 .LeftPanel ul {
