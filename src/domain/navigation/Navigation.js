@@ -58,9 +58,9 @@ export class Navigation {
 }
 
 export class Segment {
-    constructor(type, value = true) {
+    constructor(type, value) {
         this.type = type;
-        this.value = value;
+        this.value = value === undefined ? true : value;
     }
 }
 
