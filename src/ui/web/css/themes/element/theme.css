@@ -136,21 +136,25 @@ button.utility.grid.on {
 }
 
 .FilterField {
+    background-image: url('icons/search.svg');
+    background-repeat: no-repeat;
+    background-position: 8px center;
     background-color: #e1e3e6;
+    /* to prevent jumps when adding a border on focus */
+    border: 1px solid transparent;
     border-radius: 16px;
     height: 32px;
     align-items: center;
-    padding: 0 8px;
+    padding-left: 30px; /* 8 + 14 (icon) + 8*/
     box-sizing: border-box;
-}
-
-.FilterField :not(:first-child) {
-    margin-left: 8px;
 }
 
 .FilterField:focus-within {
     border: 1px #e1e3e6 solid;
     background-color: white;
+}
+.FilterField:focus-within button {
+    border-color: white;
 }
 
 /*.FilterField:not(:focus-within) button {
@@ -169,14 +173,15 @@ button.utility.grid.on {
 }
 
 .FilterField button {
-    width: 16px;
-    height: 16px;
+    width: 30px; /* 32 - 1 (top) - 1 (bottom) */
+    height: 30px; /* 32 - 1 (top) - 1 (bottom) */
     background-position: center;
     background-color: #e1e3e6;
     background-repeat: no-repeat;
     background-image: url('icons/clear.svg');
-    border: none;
+    border: 7px solid transparent; /* 8 - 1 */
     border-radius: 100%;
+    box-sizing: border-box;
 }
 
 .PreSessionScreen {
@@ -210,7 +215,7 @@ button.utility.grid.on {
     margin-right: 8px;
 }
 
-.LeftPanel .utilities :not(:first-child) {
+.LeftPanel .utilities > :not(:first-child) {
     margin-left: 8px;
 }
 
