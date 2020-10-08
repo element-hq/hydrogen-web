@@ -15,11 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-.RoomPlaceholderView {
-    display: flex;
-    flex-direction: row;
-}
-
 .RoomHeader {
     align-items: center;
 }

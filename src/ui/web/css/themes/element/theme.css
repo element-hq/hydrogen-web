@@ -298,7 +298,7 @@ a {
     top: 72px;
 }
 
-.RoomPlaceholderView {
+.room-placeholder {
     align-items: center;
     justify-content: center;
     text-align: center;
@@ -345,6 +345,19 @@ a {
     border-right: 1px solid rgba(245, 245, 245, 0.90);
     border-bottom: 1px solid rgba(245, 245, 245, 0.90);
 }
+
+.RoomGridView > .focused > .room-placeholder .unfocused {
+    display: none;
+}
+
+.RoomGridView > :not(.focused) > .room-placeholder .focused {
+    display: none;
+}
+
+.room-placeholder .unfocused {
+    color: #8D99A5;
+}
+
 
 .RoomGridView > div.focus-ring {
     border: 2px solid rgba(134, 193, 165, 1);

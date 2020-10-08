@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 import {RoomView} from "./room/RoomView.js";
-import {RoomPlaceholderView} from "./RoomPlaceholderView.js";
 import {TemplateView} from "../general/TemplateView.js";
+import {StaticView} from "../general/StaticView.js";
 
 export class RoomGridView extends TemplateView {
     render(t, vm) {
@@ -34,7 +34,10 @@ export class RoomGridView extends TemplateView {
                 if (roomVM) {
                     return new RoomView(roomVM);
                 } else {
-                    return new RoomPlaceholderView();
+                    return new StaticView(t => t.div({className: "room-placeholder"}, [
+                        t.h2({className: "focused"}, vm.i18n`Select a room on the left`),
+                        t.h2({className: "unfocused"}, vm.i18n`Click to select this tile`),
+                    ]));
                 }
             })));
         }
