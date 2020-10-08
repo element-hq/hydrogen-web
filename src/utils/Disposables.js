@@ -35,6 +35,13 @@ export class Disposables {
         return disposable;
     }
 
+    untrack(disposable) {
+        const idx = this._disposables.indexOf(disposable);
+        if (idx >= 0) {
+            this._disposables.splice(idx, 1);
+        }
+    }
+
     dispose() {
         if (this._disposables) {
             for (const d of this._disposables) {

@@ -39,6 +39,7 @@ import removeJsComments from 'rollup-plugin-cleanup';
 import postcssUrl from "postcss-url";
 
 import cssvariables from "postcss-css-variables";
+import autoprefixer from "autoprefixer";
 import flexbugsFixes from "postcss-flexbugs-fixes";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -303,6 +304,7 @@ async function buildCssLegacy(entryPath, urlMapper = null) {
     const options = [
         postcssImport,
         cssvariables(),
+        autoprefixer({overrideBrowserslist: ["IE 11"], grid: "no-autoplace"}),
         flexbugsFixes()
     ];
     if (urlMapper) {

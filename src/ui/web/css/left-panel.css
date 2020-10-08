@@ -19,14 +19,13 @@ limitations under the License.
     flex-direction: column;
 }
 
-.LeftPanel .filter {
+.LeftPanel .utilities {
     display: flex;
 }
 
-.LeftPanel .filter input {
-    display: block;
+.LeftPanel .utilities .FilterField {
     flex: 1;
-    box-sizing: border-box;
+    min-width: 0;
 }
 
 .LeftPanel ul {

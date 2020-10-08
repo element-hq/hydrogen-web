@@ -117,6 +117,73 @@ button.styled {
     font-weight: 500;
 }
 
+button.utility {
+    width: 32px;
+    height: 32px;
+    background-position: center;
+    background-color: #e1e3e6;
+    background-repeat: no-repeat;
+    border: none;
+    border-radius: 100%;
+}
+
+button.utility.grid {
+    background-image: url('icons/enable-grid.svg');
+}
+
+button.utility.grid.on {
+    background-image: url('icons/disable-grid.svg');
+}
+
+.FilterField {
+    background-image: url('icons/search.svg');
+    background-repeat: no-repeat;
+    background-position: 8px center;
+    background-color: #e1e3e6;
+    /* to prevent jumps when adding a border on focus */
+    border: 1px solid transparent;
+    border-radius: 16px;
+    height: 32px;
+    align-items: center;
+    padding-left: 30px; /* 8 + 14 (icon) + 8*/
+    box-sizing: border-box;
+}
+
+.FilterField:focus-within {
+    border: 1px #e1e3e6 solid;
+    background-color: white;
+}
+.FilterField:focus-within button {
+    border-color: white;
+}
+
+/*.FilterField:not(:focus-within) button {
+    display: none;
+}*/
+
+.FilterField input {
+    font-family: "Inter";
+    font-size: 1.3rem;
+    font-weight: 500;
+    line-height: 1.573rem;
+    outline: none;
+    border: none;
+    background-color: transparent;
+    height: 100%;
+}
+
+.FilterField button {
+    width: 30px; /* 32 - 1 (top) - 1 (bottom) */
+    height: 30px; /* 32 - 1 (top) - 1 (bottom) */
+    background-position: center;
+    background-color: #e1e3e6;
+    background-repeat: no-repeat;
+    background-image: url('icons/clear.svg');
+    border: 7px solid transparent; /* 8 - 1 */
+    border-radius: 100%;
+    box-sizing: border-box;
+}
+
 .PreSessionScreen {
     padding: 30px;
 }
@@ -141,6 +208,15 @@ button.styled {
 .LeftPanel {
     background: rgba(245, 245, 245, 0.90);
     font-size: 1.5rem;
+    padding: 12px 8px 0 8px;
+}
+
+.LeftPanel > :not(:first-child) {
+    margin-top: 12px;
+}
+
+.LeftPanel .utilities > :not(:first-child) {
+    margin-left: 8px;
 }
 
 .LeftPanel .filter {
@@ -152,36 +228,40 @@ button.styled {
     border: none;
 }
 
-.LeftPanel ul {
+.LeftPanel .RoomList {
     padding: 0;
-    margin: 0;
+    margin-right: -8px; /* make scrollbar hit right edge of parent */
 }
 
-.LeftPanel li {
-    margin: 3px 10px;
-    padding: 5px;
+.RoomList li {
+    margin: 0;
+    padding-right: 8px;
     /* vertical align */
     align-items: center;
 }
 
-.LeftPanel li.active {
+.RoomList li:not(:first-child) {
+    margin-top: 12px;
+}
+
+.RoomList li.active {
     background: rgba(141, 151, 165, 0.1);
     border-radius: 5px;
 }
 
-.LeftPanel li > * {
-    margin-right: 10px;
+.RoomList li > * {
+    margin-right: 8px;
 }
 
-.LeftPanel .description {
+.RoomList .description {
     align-items: baseline;
 }
 
-.LeftPanel .name.unread {
+.RoomList .name.unread {
     font-weight: 600;
 }
 
-.LeftPanel .badge {
+.RoomList .badge {
     min-width: 1.6rem;
     height: 1.6rem;
     border-radius: 1.6rem;
@@ -195,7 +275,7 @@ button.styled {
     text-align: center;
 }
 
-.LeftPanel .badge.highlighted {
+.RoomList .badge.highlighted {
     background-color: #ff4b55;
 }
 
@@ -211,15 +291,18 @@ a {
     background-color: #3D88FA;
     color: white;
     border-radius: 10px;
+    z-index: 2;
 }
 
 .room-shown .SessionStatusView {
     top: 72px;
 }
 
-.RoomPlaceholderView {
+.room-placeholder {
     align-items: center;
     justify-content: center;
+    text-align: center;
+    padding: 20px;
 }
 
 .SessionPickerView li {
@@ -258,9 +341,35 @@ a {
     color: #FF4B55;
 }
 
+.RoomGridView > div.container {
+    border-right: 1px solid rgba(245, 245, 245, 0.90);
+    border-bottom: 1px solid rgba(245, 245, 245, 0.90);
+}
+
+.RoomGridView > .focused > .room-placeholder .unfocused {
+    display: none;
+}
+
+.RoomGridView > :not(.focused) > .room-placeholder .focused {
+    display: none;
+}
+
+.room-placeholder .unfocused {
+    color: #8D99A5;
+}
+
+
+.RoomGridView > div.focus-ring {
+    border: 2px solid rgba(134, 193, 165, 1);
+    border-radius: 12px;
+}
+
 .RoomHeader {
-    background: rgba(245, 245, 245, 0.90);
-    padding: 10px;
+    box-sizing: border-box;
+    height: 58px; /* 12 + 36 + 12 to align with filter field + margin */
+    background: white;
+    padding: 0 16px;
+    border-bottom: 1px solid rgba(245, 245, 245, 0.90);
 }
 
 .RoomHeader h2 {
@@ -268,23 +377,16 @@ a {
     font-weight: 600;
 }
 
-.RoomHeader button {
-    width: 40px;
-    height: 40px;
-    font-size: 1.5em;
-    padding: 0;
-    background: white;
-    border: none;
-    font-weight: bolder;
-    line-height: 40px;
+.RoomHeader > :not(:last-child) {
+    /* use margin-right because the first item,
+    button.back might be hidden and then we don't
+    want a margin-left on the second item*/
+    margin-right: 8px;
 }
 
-.back::before {
-    content: "☰";
-}
-
-.more::before {
-    content: "⋮";
+button.back {
+    background-image: url('icons/chevron-left.svg');
+    background-position-x: 10px;
 }
 
 .RoomHeader .topic {
@@ -297,15 +399,24 @@ a {
 
 .MessageComposer {
     border-top: 1px solid rgba(245, 245, 245, 0.90);
+    padding: 8px 16px;
+}
+
+.MessageComposer > :not(:first-child) {
+    margin-left: 12px;
 }
 
 .MessageComposer > input {
-    padding: 0.8em;
+    padding: 0 16px;
     border: none;
+    border-radius: 24px;
+    background: #F6F6F6;
+    height: 48px;
+    font-size: 14px;
+    font-family: "Inter", sans-serif;
 }
 
 .MessageComposer > button.send {
-    margin: 8px;
     width: 32px;
     height: 32px;
     display: block;
@@ -407,4 +518,8 @@ ul.Timeline > li.messageStatus .message-container > p {
     background-color: rgba(245, 245, 245, 0.90);
     text-align: center;
     border-radius: 10px;
+}
+
+.GapView > :not(:first-child) {
+    margin-left: 12px;
 }

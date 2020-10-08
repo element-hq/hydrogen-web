@@ -15,22 +15,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-.RoomPlaceholderView {
-    display: flex;
-    flex-direction: row;
-}
-
 .RoomHeader {
     align-items: center;
 }
 
-.RoomHeader > *:last-child {
-    margin-right: 0;
-}
-
-.RoomHeader > * {
-    margin-right: 10px;
-    flex: 0 0 auto;
+.RoomHeader h2 {
+    flex: 1;
 }
 
 .RoomHeader button {
@@ -66,11 +56,13 @@ limitations under the License.
 
 .MessageComposer {
     display: flex;
+    align-items: center;
 }
 
 .MessageComposer > input {
     display: block;
     flex: 1;
+    min-width: 0;
     box-sizing: border-box;
 }
 
@@ -80,6 +72,6 @@ limitations under the License.
     justify-content: center;
 }
 
-.TimelineLoadingView div {
-    margin-right: 10px;
+.TimelineLoadingView > :not(:first-child) {
+    margin-left: 12px;
 }
