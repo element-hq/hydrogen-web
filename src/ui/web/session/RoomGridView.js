@@ -21,29 +21,24 @@ import {TemplateView} from "../general/TemplateView.js";
 export class RoomGridView extends TemplateView {
     render(t, vm) {
         const children = [];
-        for (let y = 0; y < vm.height; y+=1) {
-            for (let x = 0; x < vm.width; x+=1) {
-                children.push(t.div({
-                    onClick: () => vm.setFocusAt(x, y),
-                    onFocusin: () => vm.setFocusAt(x, y),
-                    className: {
-                        "container": true,
-                        "focused": vm => vm.isFocusAt(x, y)
-                    },
-                    style: `--column: ${x + 1}; --row: ${y + 1}`
-                },t.mapView(vm => vm.roomViewModelAt(x, y), roomVM => {
-                    if (roomVM) {
-                        return new RoomView(roomVM);
-                    } else {
-                        return new RoomPlaceholderView();
-                    }
-                })));
-            }
+        for (let i = 0; i < (vm.height * vm.width); i+=1) {
+            children.push(t.div({
+                onClick: () => vm.setFocusIndex(i),
+                onFocusin: () => vm.setFocusIndex(i),
+                className: {
+                    "container": true,
+                    [`tile${i}`]: true,
+                    "focused": vm => vm.focusIndex === i
+                },
+            },t.mapView(vm => vm.roomViewModelAt(i), roomVM => {
+                if (roomVM) {
+                    return new RoomView(roomVM);
+                } else {
+                    return new RoomPlaceholderView();
+                }
+            })));
         }
-        children.push(t.div({className: "focus-ring", style: vm => `--column: ${vm.focusX + 1}; --row: ${vm.focusY + 1}`}));
-        return t.div({
-            className: "RoomGridView",
-            style: `--columns: ${vm.width}; --rows: ${vm.height}`
-        }, children);
+        children.push(t.div({className: vm => `focus-ring tile${vm.focusIndex}`}));
+        return t.div({className: "RoomGridView layout3x2"}, children);
     }
 }

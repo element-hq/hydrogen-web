@@ -25,39 +25,15 @@ export class RoomGridViewModel extends ViewModel {
         this._viewModels = [];
     }
 
-    _posToIdx(x, y) {
-        return (y * this.width) + x;
+    roomViewModelAt(i) {
+        return this._viewModels[i]?.vm;
     }
 
-    _idxToX(idx) {
-        return idx % this.width;
+    get focusIndex() {
+        return this._selectedIndex;
     }
 
-    _idxToY(idx) {
-        return Math.floor(idx / this.width);
-    }
-
-    roomViewModelAt(x, y) {
-        return this._viewModels[this._posToIdx(x, y)]?.vm;
-    }
-
-    get focusX() {
-        return this._idxToX(this._selectedIndex);
-    }
-
-    get focusY() {
-        return this._idxToY(this._selectedIndex);
-    }
-
-    isFocusAt(x, y) {
-        return this._posToIdx(x, y) === this._selectedIndex;
-    }
-
-    setFocusAt(x, y) {
-        this._setFocusedIndex(this._posToIdx(x, y));
-    }
-
-    _setFocusedIndex(idx) {
+    setFocusIndex(idx) {
         if (idx === this._selectedIndex) {
             return;
         }
@@ -99,7 +75,7 @@ export class RoomGridViewModel extends ViewModel {
     tryFocusRoom(roomId) {
         const index = this._viewModels.findIndex(vms => vms?.vm._room.id === roomId);
         if (index >= 0) {
-            this._setFocusedIndex(index);
+            this.setFocusIndex(index);
             return true;
         }
         return false;

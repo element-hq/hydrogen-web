@@ -94,16 +94,26 @@ html {
 
 .RoomGridView {
     display: grid;
-    grid-template-columns: repeat(var(--columns), 1fr);
-    grid-template-rows: repeat(var(--rows), 1fr);
 }
+
+.RoomGridView.layout3x2 {
+    grid-template:
+        "t0  t1  t2" 1fr
+        "t3  t4  t5" 1fr /
+         1fr 1fr 1fr;
+}
+
+.RoomGridView > .tile0 {grid-area: t0;}
+.RoomGridView > .tile1 {grid-area: t1;}
+.RoomGridView > .tile2 {grid-area: t2;}
+.RoomGridView > .tile3 {grid-area: t3;}
+.RoomGridView > .tile4 {grid-area: t4;}
+.RoomGridView > .tile5 {grid-area: t5;}
 
 .RoomGridView > div {
     display: flex;
     min-width: 0;
     min-height: 0;
-    grid-column: var(--column);
-    grid-row: var(--row);
 }
 
 .RoomGridView > div.focus-ring {
