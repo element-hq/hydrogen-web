@@ -17,7 +17,7 @@ limitations under the License.
 import {LeftPanelView} from "./leftpanel/LeftPanelView.js";
 import {RoomView} from "./room/RoomView.js";
 import {TemplateView} from "../general/TemplateView.js";
-import {RoomPlaceholderView} from "./RoomPlaceholderView.js";
+import {StaticView} from "../general/StaticView.js";
 import {SessionStatusView} from "./SessionStatusView.js";
 import {RoomGridView} from "./RoomGridView.js";
 
@@ -37,7 +37,7 @@ export class SessionView extends TemplateView {
                         case "roomgrid":
                             return new RoomGridView(vm.roomGridViewModel);
                         case "placeholder":
-                            return new RoomPlaceholderView();
+                            return new StaticView(t => t.div({className: "room-placeholder"}, t.h2(vm.i18n`Choose a room on the left side.`)));
                         default: //room id
                             return new RoomView(vm.currentRoom);
                     }

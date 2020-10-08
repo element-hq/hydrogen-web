@@ -34,7 +34,10 @@ limitations under the License.
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 10px;
+}
+
+.SessionPickerView .session-info > :not(:first-child) {
+    margin-left: 8px;
 }
 
 .SessionPickerView li .user-id {
@@ -53,9 +56,13 @@ limitations under the License.
     display: flex;
 }
 
+.SessionLoadView > :not(:first-child) {
+    margin-left: 12px;
+}
+
 .SessionLoadView p {
     flex: 1;
-    margin: 0 0 0 10px;
+    margin: 0;
 }
 
 .SessionLoadView .spinner {

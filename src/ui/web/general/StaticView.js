@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,13 +17,12 @@ limitations under the License.
 
 import {tag} from "../general/html.js";
 
-export class RoomPlaceholderView {
-    constructor() {
-        this._root = null;
+export class StaticView {
+    constructor(render) {
+        this._root = render(tag);
     }
 
     mount() {
-        this._root = tag.div({className: "RoomPlaceholderView"}, tag.h2("Choose a room on the left side."));
         return this._root;
     }
 

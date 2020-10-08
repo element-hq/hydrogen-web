@@ -6,3 +6,4 @@ sessionexports
 bundle.js
 target
 lib
+*.tar.gz
