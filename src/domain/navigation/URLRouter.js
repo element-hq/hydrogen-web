@@ -17,17 +17,17 @@ limitations under the License.
 import {Segment} from "./Navigation.js";
 
 export class URLRouter {
-    constructor(pathObservable, navigation) {
+    constructor(history, navigation) {
         this._subscription = null;
-        this._pathObservable = pathObservable;
+        this._history = history;
         this._navigation = navigation;
     }
 
     start() {
-        this._subscription = this._pathObservable.subscribe(url => {
+        this._subscription = this._history.subscribe(url => {
             this._applyUrl(url);
         });
-        this._applyUrl(this._pathObservable.get());
+        this._applyUrl(this._history.get());
     }
 
     _applyUrl(url) {    
@@ -40,7 +40,8 @@ export class URLRouter {
         this._subscription = this._subscription();
     }
 
-    _segmentsFromUrl(path) {
+    _segmentsFromUrl(url) {
+        const path = this._history.urlAsPath(url);
         const parts = path.split("/").filter(p => !!p);
         let index = 0;
         const segments = [];
@@ -58,6 +59,10 @@ export class URLRouter {
         return segments;
     }
 
+    replaceUrl(url) {
+        this._history.replaceUrl(url);
+    }
+
     urlForSegment(type, value) {
         const path = this._navigation.path.with(new Segment(type, value));
         if (path) {
@@ -66,14 +71,14 @@ export class URLRouter {
     }
 
     urlForPath(path) {
-        let url = "#";
+        let urlPath = "";
         for (const {type, value} of path.segments) {
             if (typeof value === "boolean") {
-                url += `/${type}`;
+                urlPath += `/${type}`;
             } else {
-                url += `/${type}/${value}`;
+                urlPath += `/${type}/${value}`;
             }
         }
-        return url;
+        return this._history.pathAsUrl(urlPath);
     }
 }

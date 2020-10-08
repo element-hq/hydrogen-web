@@ -16,35 +16,40 @@ limitations under the License.
 
 import {BaseObservableValue} from "../../../observable/ObservableValue.js";
 
-export class HashObservable extends BaseObservableValue {
+export class History extends BaseObservableValue {
     constructor() {
         super();
         this._boundOnHashChange = null;
-        this._expectSetEcho = false;
     }
 
     _onHashChange() {
-        if (this._expectSetEcho) {
-            this._expectSetEcho = false;
-            return;
-        }
         this.emit(this.get());
     }
 
     get() {
-        const hash = document.location.hash;
-        if (hash.length) {
-            // trim '#'
-            return hash.substr(1);
-        }
-        return hash;
+        return document.location.hash;
     }
 
-    set(hash) {
-        if (this._boundOnHashChange) {
-            this._expectSetEcho = true;
+    replaceUrl(url) {
+        window.history.replaceState(null, null, url);
+        // replaceState does not cause hashchange
+        this.emit(url);
+    }
+
+    pushUrl(url) {
+        document.location.hash = this.urlAsPath(url);
+    }
+
+    urlAsPath(url) {
+        if (url.startsWith("#")) {
+            return url.substr(1);
+        } else {
+            return url;
         }
-        document.location.hash = hash;
+    }
+
+    pathAsUrl(path) {
+        return `#${path}`;
     }
 
     onSubscribeFirst() {

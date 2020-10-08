@@ -26,7 +26,7 @@ import {Navigation} from "./domain/navigation/Navigation.js";
 import {URLRouter} from "./domain/navigation/URLRouter.js";
 import {BrawlView} from "./ui/web/BrawlView.js";
 import {Clock} from "./ui/web/dom/Clock.js";
-import {HashObservable} from "./ui/web/dom/HashObservable.js";
+import {History} from "./ui/web/dom/History.js";
 import {OnlineStatus} from "./ui/web/dom/OnlineStatus.js";
 import {CryptoDriver} from "./ui/web/dom/CryptoDriver.js";
 import {WorkerPool} from "./utils/WorkerPool.js";
@@ -130,7 +130,7 @@ export async function main(container, paths, legacyExtras) {
                     return false;
             }
         });
-        const urlRouter = new URLRouter(new HashObservable(), navigation);
+        const urlRouter = new URLRouter(new History(), navigation);
         urlRouter.start();
 
         const vm = new BrawlViewModel({
