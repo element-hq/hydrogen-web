@@ -208,11 +208,11 @@ button.utility.grid.on {
 .LeftPanel {
     background: rgba(245, 245, 245, 0.90);
     font-size: 1.5rem;
-    padding: 12px 0 0 8px;
+    padding: 12px 8px 0 8px;
 }
 
-.LeftPanel .utilities {
-    margin-right: 8px;
+.LeftPanel > :not(:first-child) {
+    margin-top: 12px;
 }
 
 .LeftPanel .utilities > :not(:first-child) {
@@ -228,36 +228,40 @@ button.utility.grid.on {
     border: none;
 }
 
-.LeftPanel ul {
+.LeftPanel .RoomList {
     padding: 0;
-    margin: 0;
+    margin-right: -8px; /* make scrollbar hit right edge of parent */
 }
 
-.LeftPanel li {
-    margin: 12px 0;
-    padding-right: 5px;
+.RoomList li {
+    margin: 0;
+    padding-right: 8px;
     /* vertical align */
     align-items: center;
 }
 
-.LeftPanel li.active {
+.RoomList li:not(:first-child) {
+    margin-top: 12px;
+}
+
+.RoomList li.active {
     background: rgba(141, 151, 165, 0.1);
     border-radius: 5px;
 }
 
-.LeftPanel li > * {
-    margin-right: 10px;
+.RoomList li > * {
+    margin-right: 8px;
 }
 
-.LeftPanel .description {
+.RoomList .description {
     align-items: baseline;
 }
 
-.LeftPanel .name.unread {
+.RoomList .name.unread {
     font-weight: 600;
 }
 
-.LeftPanel .badge {
+.RoomList .badge {
     min-width: 1.6rem;
     height: 1.6rem;
     border-radius: 1.6rem;
@@ -271,7 +275,7 @@ button.utility.grid.on {
     text-align: center;
 }
 
-.LeftPanel .badge.highlighted {
+.RoomList .badge.highlighted {
     background-color: #ff4b55;
 }
 
