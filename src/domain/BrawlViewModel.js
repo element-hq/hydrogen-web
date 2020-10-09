@@ -39,6 +39,7 @@ export class BrawlViewModel extends ViewModel {
     }
 
     async load() {
+        // TODO: deduplicate code here
         this.track(this.navigation.observe("login").subscribe(shown => {
             if (shown) {
                 this._showLogin();
@@ -125,7 +126,7 @@ export class BrawlViewModel extends ViewModel {
                     sessionContainer.startWithExistingSession(sessionId);
                     return sessionContainer;
                 },
-                sessionCallback: sessionContainer => this._sessionCallback(sessionContainer)
+                sessionCallback: this._sessionCallback
             });
             this._sessionLoadViewModel.start();
         });

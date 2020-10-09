@@ -23,7 +23,7 @@ export class URLRouter {
         this._navigation = navigation;
     }
 
-    start() {
+    attach() {
         this._subscription = this._history.subscribe(url => {
             this._applyUrl(url);
         });
@@ -60,6 +60,7 @@ export class URLRouter {
     }
 
     replaceUrl(url) {
+        // TODO: we don't want this to always to trigger an update
         this._history.replaceUrl(url);
     }
 

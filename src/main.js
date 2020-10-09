@@ -22,7 +22,7 @@ import {SessionContainer} from "./matrix/SessionContainer.js";
 import {StorageFactory} from "./matrix/storage/idb/StorageFactory.js";
 import {SessionInfoStorage} from "./matrix/sessioninfo/localstorage/SessionInfoStorage.js";
 import {BrawlViewModel} from "./domain/BrawlViewModel.js";
-import {Navigation} from "./domain/navigation/Navigation.js";
+import {createNavigation} from "./domain/navigation/index.js";
 import {URLRouter} from "./domain/navigation/URLRouter.js";
 import {BrawlView} from "./ui/web/BrawlView.js";
 import {Clock} from "./ui/web/dom/Clock.js";
@@ -118,20 +118,9 @@ export async function main(container, paths, legacyExtras) {
             workerPromise = loadOlmWorker(paths);
         }
 
-        const navigation = new Navigation(function allowsChild(parent, child) {
-            const {type} = child;
-            switch (parent?.type) {
-                case undefined:
-                    // allowed root segments
-                    return type === "login"  || type === "session";
-                case "session":
-                    return type === "room" || type === "settings";
-                default:
-                    return false;
-            }
-        });
+        const navigation = createNavigation();
         const urlRouter = new URLRouter(new History(), navigation);
-        urlRouter.start();
+        urlRouter.attach();
 
         const vm = new BrawlViewModel({
             createSessionContainer: () => {
