@@ -45,7 +45,7 @@
             const view = new LoginView(vm({
                 defaultHomeServer: "https://hs.tld",
                 login: () => alert("Logging in!"),
-                goBack: () => alert("Going back"),
+                cancelUrl: "#/session"
             }));
             document.getElementById("login").appendChild(view.mount());
         </script>
@@ -59,6 +59,7 @@
                     loadLabel: "Doing something important...",
                     loading: true,
                 }),
+                cancelUrl: "#/session",
                 defaultHomeServer: "https://hs.tld",
             }));
             document.getElementById("login-loading").appendChild(view.mount());
