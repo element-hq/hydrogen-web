@@ -20,10 +20,11 @@ import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
 export class LoginViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {sessionCallback, defaultHomeServer, createSessionContainer} = options;
+        const {ready, defaultHomeServer, createSessionContainer} = options;
         this._createSessionContainer = createSessionContainer;
-        this._sessionCallback = sessionCallback;
+        this._ready = ready;
         this._defaultHomeServer = defaultHomeServer;
+        this._sessionContainer = null;
         this._loadViewModel = null;
         this._loadViewModelSubscription = null;
     }
@@ -45,25 +46,19 @@ export class LoginViewModel extends ViewModel {
         if (this._loadViewModel) {
             this._loadViewModel.cancel();
         }
-        this._loadViewModel = new SessionLoadViewModel({
+        this._loadViewModel = this.track(new SessionLoadViewModel({
             createAndStartSessionContainer: () => {
-                const sessionContainer = this._createSessionContainer();
-                sessionContainer.startWithLogin(homeserver, username, password);
-                return sessionContainer;
+                this._sessionContainer = this._createSessionContainer();
+                this._sessionContainer.startWithLogin(homeserver, username, password);
+                return this._sessionContainer;
             },
-            sessionCallback: sessionContainer => {
-                if (sessionContainer) {
-                    // make parent view model move away
-                    this._sessionCallback(sessionContainer);
-                } else {
-                    // show list of session again
-                    this._loadViewModel = null;
-                    this.emitChange("loadViewModel");
-                }
+            ready: sessionContainer => {
+                // make sure we don't delete the session in dispose when navigating away
+                this._sessionContainer = null;
+                this._ready(sessionContainer);
             },
-            deleteSessionOnCancel: true,
             homeserver,
-        });
+        }));
         this._loadViewModel.start();
         this.emitChange("loadViewModel");
         this._loadViewModelSubscription = this.track(this._loadViewModel.disposableOn("change", () => {
@@ -74,9 +69,16 @@ export class LoginViewModel extends ViewModel {
         }));
     }
 
-    cancel() {
-        if (!this.isBusy) {
-            this._sessionCallback();
+    get cancelUrl() {
+        return this.urlRouter.urlForSegment("session");
+    }
+
+    dispose() {
+        super.dispose();
+        if (this._sessionContainer) {
+            // if we move away before we're done with initial sync
+            // delete the session
+            this._sessionContainer.deleteSession();
         }
     }
 }

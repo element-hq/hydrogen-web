@@ -21,9 +21,9 @@ import {ViewModel} from "./ViewModel.js";
 export class SessionLoadViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {createAndStartSessionContainer, sessionCallback, homeserver, deleteSessionOnCancel} = options;
+        const {createAndStartSessionContainer, ready, homeserver, deleteSessionOnCancel} = options;
         this._createAndStartSessionContainer = createAndStartSessionContainer;
-        this._sessionCallback = sessionCallback;
+        this._ready = ready;
         this._homeserver = homeserver;
         this._deleteSessionOnCancel = deleteSessionOnCancel;
         this._loading = false;
@@ -60,11 +60,17 @@ export class SessionLoadViewModel extends ViewModel {
 
             // did it finish or get stuck at LoginFailed or Error?
             const loadStatus = this._sessionContainer.loadStatus.get();
+            const loadError = this._sessionContainer.loadError;
             if (loadStatus === LoadStatus.FirstSync || loadStatus === LoadStatus.Ready) {
-                this._sessionCallback(this._sessionContainer);
+                const sessionContainer = this._sessionContainer;
+                // session container is ready,
+                // don't dispose it anymore when 
+                // we get disposed
+                this._sessionContainer = null;
+                this._ready(sessionContainer);
             }
-            if (this._sessionContainer.loadError) {
-                console.error("session load error", this._sessionContainer.loadError);
+            if (loadError) {
+                console.error("session load error", loadError);
             }
         } catch (err) {
             this._error = err;
@@ -77,24 +83,15 @@ export class SessionLoadViewModel extends ViewModel {
     }
 
 
-    async cancel() {
-        try {
-            if (this._sessionContainer) {
-                this._sessionContainer.dispose();
-                if (this._deleteSessionOnCancel) {
-                    await this._sessionContainer.deleteSession();
-                }
-                this._sessionContainer = null;
-            }
-            if (this._waitHandle) {
-                // rejects with AbortError
-                this._waitHandle.dispose();
-                this._waitHandle = null;
-            }
-            this._sessionCallback();
-        } catch (err) {
-            this._error = err;
-            this.emitChange();
+    dispose() {
+        if (this._sessionContainer) {
+            this._sessionContainer.dispose();
+            this._sessionContainer = null;
+        }
+        if (this._waitHandle) {
+            // rejects with AbortError
+            this._waitHandle.dispose();
+            this._waitHandle = null;
         }
     }
 
