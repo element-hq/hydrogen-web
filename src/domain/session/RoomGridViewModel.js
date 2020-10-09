@@ -26,7 +26,7 @@ export class RoomGridViewModel extends ViewModel {
     }
 
     roomViewModelAt(i) {
-        return this._viewModels[i]?.vm;
+        return this._viewModels[i];
     }
 
     get focusIndex() {
@@ -37,14 +37,9 @@ export class RoomGridViewModel extends ViewModel {
         if (idx === this._selectedIndex) {
             return;
         }
-        const oldItem = this._viewModels[this._selectedIndex];
-        oldItem?.tileVM?.close();
         this._selectedIndex = idx;
-        const newItem = this._viewModels[this._selectedIndex];
-        if (newItem) {
-            newItem.vm.focus();
-            newItem.tileVM.open();
-        }
+        const vm = this._viewModels[this._selectedIndex];
+        vm?.focus();
         this.emitChange("focusedIndex");
     }
     get width() {
@@ -58,14 +53,12 @@ export class RoomGridViewModel extends ViewModel {
     /**
      * Sets a pair of room and room tile view models at the current index
      * @param {RoomViewModel} vm
-     * @param {RoomTileViewModel} tileVM
      * @package
      */
-    setRoomViewModel(vm, tileVM) {
+    setRoomViewModel(vm) {
         const old = this._viewModels[this._selectedIndex];
-        this.disposeTracked(old?.vm);
-        old?.tileVM?.close();
-        this._viewModels[this._selectedIndex] = {vm: this.track(vm), tileVM};
+        this.disposeTracked(old);
+        this._viewModels[this._selectedIndex] = this.track(vm);
         this.emitChange(`${this._selectedIndex}`);
     }
 
@@ -73,7 +66,7 @@ export class RoomGridViewModel extends ViewModel {
      * @package
      */
     tryFocusRoom(roomId) {
-        const index = this._viewModels.findIndex(vms => vms?.vm.id === roomId);
+        const index = this._viewModels.findIndex(vm => vm.id === roomId);
         if (index >= 0) {
             this.setFocusIndex(index);
             return true;
@@ -82,15 +75,15 @@ export class RoomGridViewModel extends ViewModel {
     }
     
     /**
-     * Returns the first set of room and room tile vm,
-     * and untracking them so they are not owned by this view model anymore.
+     * Returns the first set of room vm,
+     * and untracking it so it is not owned by this view model anymore.
      * @package
      */
     getAndUntrackFirst() {
-        for (const item of this._viewModels) {
-            if (item) {
-                this.untrack(item.vm);
-                return item;
+        for (const vm of this._viewModels) {
+            if (vm) {
+                this.untrack(vm);
+                return vm;
             }
         }
     }

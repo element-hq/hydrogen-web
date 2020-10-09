@@ -45,7 +45,6 @@ export class RoomTileViewModel extends ViewModel {
         }
     }
 
-    // called by parent for now (later should integrate with router)
     close() {
         if (this._isOpen) {
             this._isOpen = false;

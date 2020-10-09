@@ -17,10 +17,11 @@ limitations under the License.
 import {Segment} from "./Navigation.js";
 
 export class URLRouter {
-    constructor(history, navigation) {
+    constructor({history, navigation, redirect}) {
         this._subscription = null;
         this._history = history;
         this._navigation = navigation;
+        this._redirect = redirect;
     }
 
     attach() {
@@ -32,7 +33,7 @@ export class URLRouter {
 
     applyUrl(url) {    
         const segments = this._segmentsFromUrl(url);
-        const path = this._navigation.pathFrom(segments);
+        const path = this._redirect(segments, this._navigation);
         this._navigation.applyPath(path);
     }
 

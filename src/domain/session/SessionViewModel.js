@@ -33,22 +33,33 @@ export class SessionViewModel extends ViewModel {
         })));
         this._leftPanelViewModel = new LeftPanelViewModel(this.childOptions({
             rooms: this._sessionContainer.session.rooms,
-            openRoom: this._openRoom.bind(this),
+            // this will go over navigation as well
             gridEnabled: {
                 get: () => !!this._gridViewModel,
                 set: value => this._enabledGrid(value)
             }
         }));
-        this._currentRoomTileViewModel = null;
         this._currentRoomViewModel = null;
         this._gridViewModel = null;
+        // this gives us the active room, also in the grid?
+        this.track(this.navigator.observe("room").subscribe(roomId => {
+
+        }));
+        // this gives us a set of room ids in the grid
+        this.track(this.navigator.observe("rooms").subscribe(value => {
+            if (value) {
+                const roomIds = typeof value === "string" ? value.split(",") : [];
+                // also update grid
+                this._enabledGrid(roomIds);
+            }
+        }));
     }
 
     start() {
         this._sessionStatusViewModel.start();
     }
 
-    get selectionId() {
+    get activeSection() {
         if (this._currentRoomViewModel) {
             return this._currentRoomViewModel.id;
         } else if (this._gridViewModel) {
@@ -73,62 +84,56 @@ export class SessionViewModel extends ViewModel {
         return this._roomList;
     }
 
-    get currentRoom() {
+    get currentRoomViewModel() {
         return this._currentRoomViewModel;
     }
 
+    // TODO: this should also happen based on URLs
     _enabledGrid(enabled) {
         if (enabled) {
             this._gridViewModel = this.track(new RoomGridViewModel(this.childOptions({width: 3, height: 2})));
             // transfer current room
             if (this._currentRoomViewModel) {
                 this.untrack(this._currentRoomViewModel);
-                this._gridViewModel.setRoomViewModel(this._currentRoomViewModel, this._currentRoomTileViewModel);
+                this._gridViewModel.setRoomViewModel(this._currentRoomViewModel);
                 this._currentRoomViewModel = null;
-                this._currentRoomTileViewModel = null;
             }
         } else {
-            const VMs = this._gridViewModel.getAndUntrackFirst();
-            if (VMs) {
-                this._currentRoomViewModel = this.track(VMs.vm);
-                this._currentRoomTileViewModel = VMs.tileVM;
-                this._currentRoomTileViewModel.open();
+            const vm = this._gridViewModel.getAndUntrackFirst();
+            if (vm) {
+                this._currentRoomViewModel = this.track(vm);
             }
             this._gridViewModel = this.disposeTracked(this._gridViewModel);
         }
         this.emitChange("middlePanelViewType");
     }
 
-    _closeCurrentRoom() {
-        // no closing in grid for now as it is disabled on narrow viewports
-        if (!this._gridViewModel) {
-            this._currentRoomTileViewModel?.close();
-            this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
-            return true;
-        }
-    }
-
-    _openRoom(room, roomTileVM) {
-        if (this._gridViewModel?.tryFocusRoom(room.id)) {
+    _openRoom(roomId) {
+        // already open?
+        if (this._gridViewModel?.tryFocusRoom(roomId)) {
             return;
-        } else if (this._currentRoomViewModel?.id === room.id) {
+        } else if (this._currentRoomViewModel?.id === roomId) {
+            return;
+        }
+        const room = this._session.rooms.get(roomId);
+        // not found? close current room and show placeholder
+        if (!room) {
+            if (this._gridViewModel) {
+                this._gridViewModel.setRoomViewModel(null);
+            } else {
+                this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
+            }
             return;
         }
         const roomVM = new RoomViewModel(this.childOptions({
             room,
             ownUserId: this._sessionContainer.session.user.id,
-            closeCallback: () => {
-                if (this._closeCurrentRoom()) {
-                    this.emitChange("currentRoom");
-                }
-            },
         }));
         roomVM.load();
         if (this._gridViewModel) {
-            this._gridViewModel.setRoomViewModel(roomVM, roomTileVM);
+            this._gridViewModel.setRoomViewModel(roomVM);
         } else {
-            this._closeCurrentRoom();
-            this._currentRoomTileViewModel = roomTileVM;
+            this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
             this._currentRoomViewModel = this.track(roomVM);
             this.emitChange("currentRoom");
         }
