@@ -25,14 +25,14 @@ export class SessionViewModel extends ViewModel {
     constructor(options) {
         super(options);
         const {sessionContainer} = options;
-        this._session = sessionContainer.session;
+        this._sessionContainer = this.track(sessionContainer);
         this._sessionStatusViewModel = this.track(new SessionStatusViewModel(this.childOptions({
             sync: sessionContainer.sync,
             reconnector: sessionContainer.reconnector,
             session: sessionContainer.session,
         })));
         this._leftPanelViewModel = new LeftPanelViewModel(this.childOptions({
-            rooms: this._session.rooms,
+            rooms: this._sessionContainer.session.rooms,
             openRoom: this._openRoom.bind(this),
             gridEnabled: {
                 get: () => !!this._gridViewModel,
@@ -116,7 +116,7 @@ export class SessionViewModel extends ViewModel {
         }
         const roomVM = new RoomViewModel(this.childOptions({
             room,
-            ownUserId: this._session.user.id,
+            ownUserId: this._sessionContainer.session.user.id,
             closeCallback: () => {
                 if (this._closeCurrentRoom()) {
                     this.emitChange("currentRoom");
