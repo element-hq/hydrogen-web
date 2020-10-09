@@ -25,12 +25,12 @@ export class URLRouter {
 
     attach() {
         this._subscription = this._history.subscribe(url => {
-            this._applyUrl(url);
+            this.applyUrl(url);
         });
-        this._applyUrl(this._history.get());
+        this.applyUrl(this._history.get());
     }
 
-    _applyUrl(url) {    
+    applyUrl(url) {    
         const segments = this._segmentsFromUrl(url);
         const path = this._navigation.pathFrom(segments);
         this._navigation.applyPath(path);
@@ -59,9 +59,8 @@ export class URLRouter {
         return segments;
     }
 
-    replaceUrl(url) {
-        // TODO: we don't want this to always to trigger an update
-        this._history.replaceUrl(url);
+    get history() {
+        return this._history;
     }
 
     urlForSegment(type, value) {
