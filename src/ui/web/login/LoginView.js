@@ -51,9 +51,9 @@ export class LoginView extends TemplateView {
                 t.div({className: "form-row"}, [t.label({for: "homeserver"}, vm.i18n`Homeserver`), homeserver]),
                 t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadStatusView(loadViewModel) : null),
                 t.div({className: "button-row"}, [
-                    t.button({
-                        className: "styled secondary",
-                        onClick: () => vm.cancel(), disabled
+                    t.a({
+                        className: "button styled secondary",
+                        href: vm.cancelUrl
                     }, [vm.i18n`Go Back`]),
                     t.button({
                         className: "styled primary",
