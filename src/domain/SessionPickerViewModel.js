@@ -15,15 +15,14 @@ limitations under the License.
 */
 
 import {SortedArray} from "../observable/index.js";
-import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
 import {ViewModel} from "./ViewModel.js";
 import {avatarInitials, getIdentifierColorNumber} from "./avatar.js";
 
 class SessionItemViewModel extends ViewModel {
-    constructor(sessionInfo, pickerVM) {
-        super({});
+    constructor(options, pickerVM) {
+        super(options);
         this._pickerVM = pickerVM;
-        this._sessionInfo = sessionInfo;
+        this._sessionInfo = options.sessionInfo;
         this._isDeleting = false;
         this._isClearing = false;
         this._error = null;
@@ -74,6 +73,10 @@ class SessionItemViewModel extends ViewModel {
 
     get id() {
         return this._sessionInfo.id;
+    }
+
+    get openUrl() {
+        return this.urlRouter.urlForSegment("session", this.id);
     }
 
     get label() {
@@ -127,11 +130,10 @@ class SessionItemViewModel extends ViewModel {
 export class SessionPickerViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {storageFactory, sessionInfoStorage, sessionCallback, createSessionContainer} = options;
+        const {storageFactory, sessionInfoStorage, sessionInfoCallback} = options;
         this._storageFactory = storageFactory;
         this._sessionInfoStorage = sessionInfoStorage;
-        this._sessionCallback = sessionCallback;
-        this._createSessionContainer = createSessionContainer;
+        this._sessionInfoCallback = sessionInfoCallback;
         this._sessions = new SortedArray((s1, s2) => s1.id.localeCompare(s2.id));
         this._loadViewModel = null;
         this._error = null;
@@ -140,40 +142,14 @@ export class SessionPickerViewModel extends ViewModel {
     // this loads all the sessions
     async load() {
         const sessions = await this._sessionInfoStorage.getAll();
-        this._sessions.setManyUnsorted(sessions.map(s => new SessionItemViewModel(s, this)));
+        this._sessions.setManyUnsorted(sessions.map(s => {
+            return new SessionItemViewModel(this.childOptions({sessionInfo: s}), this);
+        }));
     }
 
     // for the loading of 1 picked session
     get loadViewModel() {
         return this._loadViewModel;
-    }
-
-    async pick(id) {
-        if (this._loadViewModel) {
-            return;
-        }
-        const sessionVM = this._sessions.array.find(s => s.id === id);
-        if (sessionVM) {
-            this._loadViewModel = new SessionLoadViewModel({
-                createAndStartSessionContainer: () => {
-                    const sessionContainer = this._createSessionContainer();
-                    sessionContainer.startWithExistingSession(sessionVM.id);
-                    return sessionContainer;
-                },
-                sessionCallback: sessionContainer => {
-                    if (sessionContainer) {
-                        // make parent view model move away
-                        this._sessionCallback(sessionContainer);
-                    } else {
-                        // show list of session again
-                        this._loadViewModel = null;
-                        this.emitChange("loadViewModel");
-                    }
-                }
-            });
-            this._loadViewModel.start();
-            this.emitChange("loadViewModel");
-        }
     }
 
     async _exportData(id) {
@@ -213,9 +189,7 @@ export class SessionPickerViewModel extends ViewModel {
         return this._sessions;
     }
 
-    cancel() {
-        if (!this._loadViewModel) {
-            this._sessionCallback();
-        }
+    get cancelUrl() {
+        return this.urlRouter.urlForSegment("login");
     }
 }

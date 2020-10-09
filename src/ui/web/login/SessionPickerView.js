@@ -79,7 +79,7 @@ class SessionPickerItemView extends TemplateView {
         }));
         const errorMessage = t.if(vm => vm.error, t.createTemplate(t => t.p({className: "error"}, vm => vm.error)));
         return t.li([
-            t.div({className: "session-info"}, [
+            t.a({className: "session-info", href: vm.openUrl}, [
                 t.div({className: `avatar usercolor${vm.avatarColorNumber}`}, vm => vm.avatarInitials),
                 t.div({className: "user-id"}, vm => vm.label),
             ]),
@@ -98,11 +98,6 @@ export class SessionPickerView extends TemplateView {
     render(t, vm) {
         const sessionList = new ListView({
             list: vm.sessions,
-            onItemClick: (item, event) => {
-                if (event.target.closest(".session-info")) {
-                    vm.pick(item.value.id);
-                }
-            },
             parentProvidesUpdates: false,
         }, sessionInfo => {
             return new SessionPickerItemView(sessionInfo);
@@ -118,9 +113,9 @@ export class SessionPickerView extends TemplateView {
                         className: "styled secondary",
                         onClick: async () => vm.import(await selectFileAsText("application/json"))
                     }, vm.i18n`Import a session`),
-                    t.button({
-                        className: "styled primary",
-                        onClick: () => vm.cancel()
+                    t.a({
+                        className: "button styled primary",
+                        href: vm.cancelUrl
                     }, vm.i18n`Sign In`)
                 ]),
                 t.if(vm => vm.loadViewModel, vm => new SessionLoadStatusView(vm.loadViewModel)),
