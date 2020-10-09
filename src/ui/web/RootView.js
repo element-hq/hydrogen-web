@@ -20,58 +20,28 @@ import {SessionLoadView} from "./login/SessionLoadView.js";
 import {SessionPickerView} from "./login/SessionPickerView.js";
 import {TemplateView} from "./general/TemplateView.js";
 import {StaticView} from "./general/StaticView.js";
-import {SwitchView} from "./general/SwitchView.js";
 
-export class RootView {
-    constructor(vm) {
-        this._vm = vm;
-        this._switcher = null;
-        this._root = null;
-        this._onViewModelChange = this._onViewModelChange.bind(this);
+export class RootView extends TemplateView {
+    render(t, vm) {
+        return t.mapView(vm => vm.activeSection, activeSection => {
+            switch (activeSection) {
+                case "error":
+                    return new StatusView({header: "Something went wrong", message: vm.errorText});
+                case "session":
+                    return new SessionView(vm.sessionViewModel);
+                case "login":
+                    return new LoginView(vm.loginViewModel);
+                case "picker":
+                    return new SessionPickerView(vm.sessionPickerViewModel);
+                case "redirecting":
+                    return new StaticView(t => t.p("Redirecting..."));
+                case "loading":
+                    return new SessionLoadView(vm.sessionLoadViewModel);
+                default:
+                    throw new Error(`Unknown section: ${vm.activeSection}`);
+            }
+        });
     }
-
-    _getView() {
-        switch (this._vm.activeSection) {
-            case "error":
-                return new StatusView({header: "Something went wrong", message: this._vm.errorText});
-            case "session":
-                return new SessionView(this._vm.sessionViewModel);
-            case "login":
-                return new LoginView(this._vm.loginViewModel);
-            case "picker":
-                return new SessionPickerView(this._vm.sessionPickerViewModel);
-            case "redirecting":
-                return new StaticView(t => t.p("Redirecting..."));
-            case "loading":
-                return new SessionLoadView(this._vm.sessionLoadViewModel);
-            default:
-                throw new Error(`Unknown section: ${this._vm.activeSection}`);
-        }
-    }
-
-    _onViewModelChange(prop) {
-        if (prop === "activeSection") {
-            this._switcher.switch(this._getView());
-        }
-    }
-
-    mount() {
-        this._switcher = new SwitchView(this._getView());
-        this._root = this._switcher.mount();
-        this._vm.on("change", this._onViewModelChange);
-        return this._root;
-    }
-
-    unmount() {
-        this._vm.off("change", this._onViewModelChange);
-        this._switcher.unmount();
-    }
-
-    root() {
-        return this._root;
-    }
-
-    update() {}
 }
 
 class StatusView extends TemplateView {
