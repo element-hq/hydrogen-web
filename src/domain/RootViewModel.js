@@ -20,7 +20,7 @@ import {LoginViewModel} from "./LoginViewModel.js";
 import {SessionPickerViewModel} from "./SessionPickerViewModel.js";
 import {ViewModel} from "./ViewModel.js";
 
-export class BrawlViewModel extends ViewModel {
+export class RootViewModel extends ViewModel {
     constructor(options) {
         super(options);
         const {createSessionContainer, sessionInfoStorage, storageFactory} = options;

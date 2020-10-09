@@ -21,10 +21,10 @@ import {xhrRequest} from "./matrix/net/request/xhr.js";
 import {SessionContainer} from "./matrix/SessionContainer.js";
 import {StorageFactory} from "./matrix/storage/idb/StorageFactory.js";
 import {SessionInfoStorage} from "./matrix/sessioninfo/localstorage/SessionInfoStorage.js";
-import {BrawlViewModel} from "./domain/BrawlViewModel.js";
+import {RootViewModel} from "./domain/RootViewModel.js";
 import {createNavigation} from "./domain/navigation/index.js";
 import {URLRouter} from "./domain/navigation/URLRouter.js";
-import {BrawlView} from "./ui/web/BrawlView.js";
+import {RootView} from "./ui/web/RootView.js";
 import {Clock} from "./ui/web/dom/Clock.js";
 import {History} from "./ui/web/dom/History.js";
 import {OnlineStatus} from "./ui/web/dom/OnlineStatus.js";
@@ -122,7 +122,7 @@ export async function main(container, paths, legacyExtras) {
         const urlRouter = new URLRouter(new History(), navigation);
         urlRouter.attach();
 
-        const vm = new BrawlViewModel({
+        const vm = new RootViewModel({
             createSessionContainer: () => {
                 return new SessionContainer({
                     random: Math.random,
@@ -145,7 +145,7 @@ export async function main(container, paths, legacyExtras) {
         window.__brawlViewModel = vm;
         await vm.load();
         // TODO: replace with platform.createAndMountRootView(vm, container);
-        const view = new BrawlView(vm);
+        const view = new RootView(vm);
         container.appendChild(view.mount());
     } catch(err) {
         console.error(`${err.message}:\n${err.stack}`);

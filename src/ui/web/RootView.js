@@ -22,7 +22,7 @@ import {TemplateView} from "./general/TemplateView.js";
 import {StaticView} from "./general/StaticView.js";
 import {SwitchView} from "./general/SwitchView.js";
 
-export class BrawlView {
+export class RootView {
     constructor(vm) {
         this._vm = vm;
         this._switcher = null;
