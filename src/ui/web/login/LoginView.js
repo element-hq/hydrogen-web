@@ -16,7 +16,7 @@ limitations under the License.
 
 import {TemplateView} from "../general/TemplateView.js";
 import {hydrogenGithubLink} from "./common.js";
-import {SessionLoadView} from "./SessionLoadView.js";
+import {SessionLoadStatusView} from "./SessionLoadStatusView.js";
 
 export class LoginView extends TemplateView {
     render(t, vm) {
@@ -49,7 +49,7 @@ export class LoginView extends TemplateView {
                 t.div({className: "form-row"}, [t.label({for: "username"}, vm.i18n`Username`), username]),
                 t.div({className: "form-row"}, [t.label({for: "password"}, vm.i18n`Password`), password]),
                 t.div({className: "form-row"}, [t.label({for: "homeserver"}, vm.i18n`Homeserver`), homeserver]),
-                t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadView(loadViewModel) : null),
+                t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadStatusView(loadViewModel) : null),
                 t.div({className: "button-row"}, [
                     t.button({
                         className: "styled secondary",
