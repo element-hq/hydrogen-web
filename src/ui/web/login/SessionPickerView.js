@@ -50,6 +50,12 @@ class SessionPickerItemView extends TemplateView {
         }
     }
 
+    _onClearClick() {
+        if (confirm("Are you sure?")) {
+            this.value.clear();
+        }
+    }
+
     render(t, vm) {
         const deleteButton = t.button({
             className: "destructive",
@@ -58,7 +64,7 @@ class SessionPickerItemView extends TemplateView {
         }, "Sign Out");
         const clearButton = t.button({
             disabled: vm => vm.isClearing,
-            onClick: () => vm.clear(),
+            onClick: this._onClearClick.bind(this),
         }, "Clear");
         const exportButton = t.button({
             disabled: vm => vm.isClearing,
