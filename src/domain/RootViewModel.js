@@ -29,77 +29,60 @@ export class RootViewModel extends ViewModel {
         this._storageFactory = storageFactory;
 
         this._error = null;
-        this._sessionViewModel = null;
-        this._loginViewModel = null;
         this._sessionPickerViewModel = null;
-
-        this._sessionContainer = null;
-        this._sessionCallback = this._sessionCallback.bind(this);
-
+        this._sessionLoadViewModel = null;
+        this._loginViewModel = null;
+        this._sessionViewModel = null;
     }
 
     async load() {
-        // TODO: deduplicate code here
-        this.track(this.navigation.observe("login").subscribe(shown => {
-            if (shown) {
-                this._showLogin();
+        this.track(this.navigation.observe("login").subscribe(() => this._applyNavigation()));
+        this.track(this.navigation.observe("session").subscribe(() => this._applyNavigation()));
+        if (!this._applyNavigation()) {
+            try {
+                // redirect depending on what sessions are already present
+                const sessionInfos = await this._sessionInfoStorage.getAll();
+                const url = this._urlForSessionInfos(sessionInfos);
+                this.urlRouter.history.replaceUrl(url);
+                this.urlRouter.applyUrl(url);
+            } catch (err) {
+                this._setSection(() => this._error = err);
             }
-        }));
-        this.track(this.navigation.observe("session").subscribe(sessionId => {
-            if (sessionId === true) {
-                this._showPicker();
-            } else if (sessionId) {
-                this._showSessionLoader(sessionId);
-            }
-        }));
+        }
+    }
 
+    _applyNavigation() {
         const isLogin = this.navigation.observe("login").get();
         const sessionId = this.navigation.observe("session").get();
         if (isLogin) {
             this._showLogin();
+            return true;
         } else if (sessionId === true) {
             this._showPicker();
+            return true;
         } else if (sessionId) {
             this._showSessionLoader(sessionId);
-        } else {
-            const sessionInfos = await this._sessionInfoStorage.getAll();
-            let url;
-            if (sessionInfos.length === 0) {
-                url = this.urlRouter.urlForSegment("login");
-            } else if (sessionInfos.length === 1) {
-                url = this.urlRouter.urlForSegment("session", sessionInfos[0].id);
-            } else {
-                url = this.urlRouter.urlForSegment("session");
-            }
-            this.urlRouter.replaceUrl(url);
+            return true;
         }
+        return false;
     }
 
-    _sessionCallback(sessionContainer) {
-        if (sessionContainer) {
-            this._setSection(() => {
-                this._sessionContainer = sessionContainer;
-                this._sessionViewModel = new SessionViewModel(this.childOptions({sessionContainer}));
-                this._sessionViewModel.start();
-            });
+    _urlForSessionInfos(sessionInfos) {
+        if (sessionInfos.length === 0) {
+            return this.urlRouter.urlForSegment("login");
+        } else if (sessionInfos.length === 1) {
+            return this.urlRouter.urlForSegment("session", sessionInfos[0].id);
         } else {
-            // switch between picker and login
-            if (this.activeSection === "login") {
-                this._showPicker();
-            } else {
-                this._showLogin();
-            }
+            return this.urlRouter.urlForSegment("session");
         }
     }
 
     async _showPicker() {
         this._setSection(() => {
-            this._sessionPickerViewModel = new SessionPickerViewModel({
+            this._sessionPickerViewModel = new SessionPickerViewModel(this.childOptions({
                 sessionInfoStorage: this._sessionInfoStorage,
                 storageFactory: this._storageFactory,
-                createSessionContainer: this._createSessionContainer,
-                sessionCallback: this._sessionCallback,
-            });
+            }));
         });
         try {
             await this._sessionPickerViewModel.load();
@@ -110,11 +93,22 @@ export class RootViewModel extends ViewModel {
 
     _showLogin() {
         this._setSection(() => {
-            this._loginViewModel = new LoginViewModel({
+            this._loginViewModel = new LoginViewModel(this.childOptions({
                 defaultHomeServer: "https://matrix.org",
                 createSessionContainer: this._createSessionContainer,
-                sessionCallback: this._sessionCallback,
-            });
+                ready: sessionContainer => {
+                    const url = this.urlRouter.urlForSegment("session", sessionContainer.sessionId);
+                    this.urlRouter.replaceUrl(url);
+                    this._showSession(sessionContainer);
+                },
+            }));
+        });
+    }
+
+    _showSession(sessionContainer) {
+        this._setSection(() => {
+            this._sessionViewModel = new SessionViewModel(this.childOptions({sessionContainer}));
+            this._sessionViewModel.start();
         });
     }
 
@@ -126,7 +120,7 @@ export class RootViewModel extends ViewModel {
                     sessionContainer.startWithExistingSession(sessionId);
                     return sessionContainer;
                 },
-                sessionCallback: this._sessionCallback
+                ready: sessionContainer => this._showSession(sessionContainer)
             });
             this._sessionLoadViewModel.start();
         });
@@ -151,17 +145,16 @@ export class RootViewModel extends ViewModel {
     _setSection(setter) {
         // clear all members the activeSection depends on
         this._error = null;
-        this._sessionViewModel = null;
-        this._loginViewModel = null;
-        this._sessionPickerViewModel = null;
-        this._sessionLoadViewModel = null;
-
-        if (this._sessionContainer) {
-            this._sessionContainer.stop();
-            this._sessionContainer = null;
-        }
+        this._sessionPickerViewModel = this.disposeTracked(this._sessionPickerViewModel);
+        this._sessionLoadViewModel = this.disposeTracked(this._sessionLoadViewModel);
+        this._loginViewModel = this.disposeTracked(this._loginViewModel);
+        this._sessionViewModel = this.disposeTracked(this._sessionViewModel);
         // now set it again
         setter();
+        this._sessionPickerViewModel && this.track(this._sessionPickerViewModel);
+        this._sessionLoadViewModel && this.track(this._sessionLoadViewModel);
+        this._loginViewModel && this.track(this._loginViewModel);
+        this._sessionViewModel && this.track(this._sessionViewModel);
         this.emitChange("activeSection");
     }
 
