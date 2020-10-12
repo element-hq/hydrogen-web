@@ -18,49 +18,30 @@ import {Navigation, Segment} from "./Navigation.js";
 import {URLRouter} from "./URLRouter.js";
 
 export function createNavigation() {
-    return new Navigation(function allowsChild(parent, child) {
-        const {type} = child;
-        switch (parent?.type) {
-            case undefined:
-                // allowed root segments
-                return type === "login"  || type === "session";
-            case "session":
-                return type === "room" || type === "rooms" || type === "settings";
-            case "rooms":
-                // downside of the approach: both of these will control which tile is selected
-                return type === "room" || type === "empty-grid-tile";
-            default:
-                return false;
-        }
-    });
+    return new Navigation(allowsChild);
 }
 
 export function createRouter({history, navigation}) {
-    return new URLRouter({history, navigation, redirect});
+    return new URLRouter({history, navigation, stringifyPath, parseUrlPath});
 }
 
-function redirect(urlParts, navigation) {
-    const {path} = navigation;
-    const segments = urlParts.reduce((output, s) => {
-        // redirect open-room action to grid/non-grid url
-        if (s.type === "open-room") {
-            const rooms = path.get("rooms");
-            if (rooms) {
-                output = output.concat(roomsSegmentWithRoom(rooms, s.value, path));
-            }
-            return rooms.concat(new Segment("room", s.value));
-        }
-        return output.concat(s);
-    }, []);
-    return navigation.pathFrom(segments);
+function allowsChild(parent, child) {
+    const {type} = child;
+    switch (parent?.type) {
+        case undefined:
+            // allowed root segments
+            return type === "login"  || type === "session";
+        case "session":
+            return type === "room" || type === "rooms" || type === "settings";
+        case "rooms":
+            // downside of the approach: both of these will control which tile is selected
+            return type === "room" || type === "empty-grid-tile";
+        default:
+            return false;
+    }
 }
 
 function roomsSegmentWithRoom(rooms, roomId, path) {
-    // find the index of either the current room,
-    // or the current selected empty tile,
-    // to put the new room in
-    
-    // TODO: is rooms.value a string or an array?
     const room = path.get("room");
     let index = 0;
     if (room) {
@@ -71,20 +52,157 @@ function roomsSegmentWithRoom(rooms, roomId, path) {
             index = emptyGridTile.value;
         }
     } 
-    const newRooms = rooms.slice();
+    const newRooms = rooms.value.slice();
     newRooms[index] = roomId;
     return new Segment("rooms", newRooms);
 }
 
-function parseUrlValue(type, iterator) {
-    if (type === "rooms") {
-        const roomIds = iterator.next().value.split(",");
-        const selectedIndex = parseInt(iterator.next().value, 10);
-        const roomId = roomIds[selectedIndex];
-        if (roomId) {
-            return [new Segment(type, roomIds), new Segment("room", roomId)];
+export function parseUrlPath(urlPath, currentNavPath) {
+    // substr(1) to take of initial /
+    const parts = urlPath.substr(1).split("/");
+    const iterator = parts[Symbol.iterator]();
+    const segments = [];
+    let next; 
+    while (!(next = iterator.next()).done) {
+        const type = next.value;
+        if (type === "rooms") {
+            const roomsValue = iterator.next().value;
+            if (!roomsValue) { break; }
+            const roomIds = roomsValue.split(",");
+            segments.push(new Segment(type, roomIds));
+            const selectedIndex = parseInt(iterator.next().value || "0", 10);
+            const roomId = roomIds[selectedIndex];
+            if (roomId) {
+                segments.push(new Segment("room", roomId));
+            } else {
+                segments.push(new Segment("empty-grid-tile", selectedIndex));
+            }
+        } else if (type === "open-room") {
+            const roomId = iterator.next().value;
+            if (!roomId) { break; }
+            const rooms = currentNavPath.get("rooms");
+            if (rooms) {
+                segments.push(roomsSegmentWithRoom(rooms, roomId, currentNavPath));
+            }
+            segments.push(new Segment("room", roomId));
         } else {
-            return [new Segment(type, roomIds), new Segment("empty-grid-tile", selectedIndex)];
+            // might be undefined, which will be turned into true by Segment 
+            const value = iterator.next().value;
+            segments.push(new Segment(type, value));
+        }
+    }
+    return segments;
+}
+
+export function stringifyPath(path) {
+    let urlPath = "";
+    let prevSegment;
+    for (const segment of path.segments) {
+        switch (segment.type) {
+            case "rooms":
+                urlPath += `/rooms/${segment.value.join(",")}`;
+                break;
+            case "empty-grid-tile":
+                urlPath += `/${segment.value}`;
+                break;
+            case "room":
+                if (prevSegment?.type === "rooms") {
+                    const index = prevSegment.value.indexOf(segment.value);
+                    urlPath += `/${index}`;
+                } else {
+                    urlPath += `/${segment.type}/${segment.value}`;
+                }
+                break;
+            default:
+                urlPath += `/${segment.type}`;
+                if (segment.value && segment.value !== true) {
+                    urlPath += `/${segment.value}`;
+                }
+        }
+        prevSegment = segment;
+    }
+    return urlPath;
+}
+
+export function tests() {
+    return {
+        "stringify grid url with focused empty tile": assert => {
+            const nav = new Navigation(allowsChild);
+            const path = nav.pathFrom([
+                new Segment("session", 1),
+                new Segment("rooms", ["a", "b", "c"]),
+                new Segment("empty-grid-tile", 3)
+            ]);
+            const urlPath = stringifyPath(path);
+            assert.equal(urlPath, "/session/1/rooms/a,b,c/3");
+        },
+        "stringify grid url with focused room": assert => {
+            const nav = new Navigation(allowsChild);
+            const path = nav.pathFrom([
+                new Segment("session", 1),
+                new Segment("rooms", ["a", "b", "c"]),
+                new Segment("room", "b")
+            ]);
+            const urlPath = stringifyPath(path);
+            assert.equal(urlPath, "/session/1/rooms/a,b,c/1");
+        },
+        "parse grid url path with focused empty tile": assert => {
+            const segments = parseUrlPath("/session/1/rooms/a,b,c/3");
+            assert.equal(segments.length, 3);
+            assert.equal(segments[0].type, "session");
+            assert.equal(segments[0].value, "1");
+            assert.equal(segments[1].type, "rooms");
+            assert.deepEqual(segments[1].value, ["a", "b", "c"]);
+            assert.equal(segments[2].type, "empty-grid-tile");
+            assert.equal(segments[2].value, 3);
+        },
+        "parse grid url path with focused room": assert => {
+            const segments = parseUrlPath("/session/1/rooms/a,b,c/1");
+            assert.equal(segments.length, 3);
+            assert.equal(segments[0].type, "session");
+            assert.equal(segments[0].value, "1");
+            assert.equal(segments[1].type, "rooms");
+            assert.deepEqual(segments[1].value, ["a", "b", "c"]);
+            assert.equal(segments[2].type, "room");
+            assert.equal(segments[2].value, "b");
+        },
+        "parse open-room action replacing the current focused room": assert => {
+            const nav = new Navigation(allowsChild);
+            const path = nav.pathFrom([
+                new Segment("session", 1),
+                new Segment("rooms", ["a", "b", "c"]),
+                new Segment("room", "b")
+            ]);
+            const segments = parseUrlPath("/session/1/open-room/d", path);
+            assert.equal(segments.length, 3);
+            assert.equal(segments[0].type, "session");
+            assert.equal(segments[0].value, "1");
+            assert.equal(segments[1].type, "rooms");
+            assert.deepEqual(segments[1].value, ["a", "d", "c"]);
+            assert.equal(segments[2].type, "room");
+            assert.equal(segments[2].value, "d");
+        },
+        "parse open-room action setting a room in an empty tile": assert => {
+            const nav = new Navigation(allowsChild);
+            const path = nav.pathFrom([
+                new Segment("session", 1),
+                new Segment("rooms", ["a", "b", "c"]),
+                new Segment("empty-grid-tile", 4)
+            ]);
+            const segments = parseUrlPath("/session/1/open-room/d", path);
+            assert.equal(segments.length, 3);
+            assert.equal(segments[0].type, "session");
+            assert.equal(segments[0].value, "1");
+            assert.equal(segments[1].type, "rooms");
+            assert.deepEqual(segments[1].value, ["a", "b", "c", , "d"]); //eslint-disable-line no-sparse-arrays
+            assert.equal(segments[2].type, "room");
+            assert.equal(segments[2].value, "d");
+        },
+        "parse session url path without id": assert => {
+            const segments = parseUrlPath("/session");
+            assert.equal(segments.length, 1);
+            assert.equal(segments[0].type, "session");
+            assert.strictEqual(segments[0].value, true);
         }
     }
 }

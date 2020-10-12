@@ -17,69 +17,78 @@ limitations under the License.
 import {Segment} from "./Navigation.js";
 
 export class URLRouter {
-    constructor({history, navigation, redirect}) {
+    constructor({history, navigation, parseUrlPath, stringifyPath}) {
         this._subscription = null;
         this._history = history;
         this._navigation = navigation;
-        this._redirect = redirect;
+        this._parseUrlPath = parseUrlPath;
+        this._stringifyPath = stringifyPath;
     }
 
     attach() {
         this._subscription = this._history.subscribe(url => {
-            this.applyUrl(url);
+            const redirectedUrl = this.applyUrl(url);
+            if (redirectedUrl !== url) {
+                this._history.replaceUrl(redirectedUrl);
+            }
         });
         this.applyUrl(this._history.get());
     }
 
-    applyUrl(url) {    
-        const segments = this._segmentsFromUrl(url);
-        const path = this._redirect(segments, this._navigation);
-        this._navigation.applyPath(path);
-    }
-
-    stop() {
+    dispose() {
         this._subscription = this._subscription();
     }
 
-    _segmentsFromUrl(url) {
-        const path = this._history.urlAsPath(url);
-        const parts = path.split("/").filter(p => !!p);
-        let index = 0;
-        const segments = [];
-        while (index < parts.length) {
-            const type = parts[index];
-            if ((index + 1) < parts.length) {
-                index += 1;
-                const value = parts[index];
-                segments.push(new Segment(type, value));
-            } else {
-                segments.push(new Segment(type));
-            }
-            index += 1;
-        }
-        return segments;
+    applyUrl(url) {    
+        const urlPath = this._history.urlAsPath(url)
+        const navPath = this._navigation.pathFrom(this._parseUrlPath(urlPath));
+        this._navigation.applyPath(navPath);
+        return this._history.pathAsUrl(this._stringifyPath(navPath));
     }
 
     get history() {
         return this._history;
     }
 
-    urlForSegment(type, value) {
-        const path = this._navigation.path.with(new Segment(type, value));
-        if (path) {
-            return this.urlForPath(path);
+    urlForSegments(segments) {
+        let path = this._navigation.path;
+        for (const segment of segments) {
+            path = path.with(segment);
+            if (!path) {
+                return;
+            }
         }
+        return this.urlForPath(path);
+    }
+
+    urlForSegment(type, value) {
+        return this.urlForSegments([this._navigation.segment(type, value)]);
     }
 
     urlForPath(path) {
-        let urlPath = "";
-        for (const {type, value} of path.segments) {
-            if (typeof value === "boolean") {
-                urlPath += `/${type}`;
-            } else {
-                urlPath += `/${type}/${value}`;
-            }
-        }
+        return this.history.pathAsUrl(this._stringifyPath(path));
+    }
+
+    openRoomActionUrl(roomId) {
+        // not a segment to navigation knowns about, so append it manually
+        const urlPath = `${this._stringifyPath(this._navigation.path.until("session"))}/open-room/${roomId}`;
         return this._history.pathAsUrl(urlPath);
+    }
+
+    disableGridUrl() {
+
+    }
+
+    enableGridUrl() {
+        let path = this._navigation.path.until("session");
+        const room = this._navigation.get("room");
+        if (room) {
+            path = path.with(this._navigation.segment("rooms", [room.value]));
+            path = path.with(room);
+        } else {
+            path = path.with(this._navigation.segment("rooms", []));
+            path = path.with(this._navigation.segment("empty-grid-tile", 0));
+        }
+        return this.urlForPath(path);
     }
 }

@@ -19,10 +19,46 @@ import {ViewModel} from "../ViewModel.js";
 export class RoomGridViewModel extends ViewModel {
     constructor(options) {
         super(options);
+
         this._width = options.width;
         this._height = options.height;
+        this._createRoomViewModel = options.createRoomViewModel;
+
         this._selectedIndex = 0;
-        this._viewModels = [];
+        this._viewModels = (options.roomIds || []).map(roomId => {
+            if (roomId) {
+                const vm = this._createRoomViewModel(roomId);
+                if (vm) {
+                    return this.track(vm);
+                }
+            }
+        });
+        this._setupNavigation();
+    }
+
+    _setupNavigation() {
+        const focusTileIndex = this.navigation.observe("empty-grid-tile");
+        this.track(focusTileIndex.subscribe(index => {
+            if (typeof index === "number") {
+                this._setFocusIndex(index);
+            }
+        }));
+        if (typeof focusTileIndex.get() === "number") {
+            this._selectedIndex = focusTileIndex.get();
+        }
+
+        const focusedRoom = this.navigation.get("room");
+        this.track(focusedRoom.subscribe(roomId => {
+            if (roomId) {
+                this._openRoom(roomId);
+            }
+        }));
+        if (focusedRoom.get()) {
+            const index = this._viewModels.findIndex(vm => vm && vm.id === focusedRoom.get());
+            if (index >= 0) {
+                this._selectedIndex = index;
+            }
+        }
     }
 
     roomViewModelAt(i) {
@@ -33,15 +69,6 @@ export class RoomGridViewModel extends ViewModel {
         return this._selectedIndex;
     }
 
-    setFocusIndex(idx) {
-        if (idx === this._selectedIndex) {
-            return;
-        }
-        this._selectedIndex = idx;
-        const vm = this._viewModels[this._selectedIndex];
-        vm?.focus();
-        this.emitChange("focusedIndex");
-    }
     get width() {
         return this._width;
     }
@@ -50,41 +77,91 @@ export class RoomGridViewModel extends ViewModel {
         return this._height;
     }
 
-    /**
-     * Sets a pair of room and room tile view models at the current index
-     * @param {RoomViewModel} vm
-     * @package
-     */
-    setRoomViewModel(vm) {
-        const old = this._viewModels[this._selectedIndex];
-        this.disposeTracked(old);
-        this._viewModels[this._selectedIndex] = this.track(vm);
-        this.emitChange(`${this._selectedIndex}`);
+    focusTile(index) {
+        if (index === this._selectedIndex) {
+            return;
+        }
+        let path = this.navigation.path;
+        const vm = this._viewModels[index];
+        if (vm) {
+            path = path.with(this.navigation.segment("room", vm.id));
+        } else {
+            path = path.with(this.navigation.segment("empty-grid-tile", index));
+        }
+        let url = this.urlRouter.urlForPath(path);
+        url = this.urlRouter.applyUrl(url);
+        this.urlRouter.history.pushUrl(url);
     }
 
-    /**
-     * @package
-     */
-    tryFocusRoom(roomId) {
+    /** called from SessionViewModel */
+    setRoomIds(roomIds) {
+        let changed = false;
+        const len = this._height * this._width;
+        for (let i = 0; i < len; i += 1) {
+            const newId = roomIds[i];
+            const vm = this._viewModels[i];
+            if (newId && !vm) {
+                this._viewModels[i] = this.track(this._createRoomViewModel(newId));
+                changed = true;
+            } else if (newId !== vm?.id) {
+                this._viewModels[i] = this.disposeTracked(this._viewModels[i]);
+                if (newId) {
+                    this._viewModels[i] = this.track(this._createRoomViewModel(newId));
+                }
+                changed = true;
+            }
+        }
+        if (changed) {
+            this.emitChange();
+        }
+    }
+
+    /** called from SessionViewModel */
+    transferRoomViewModel(index, roomVM) {
+        const oldVM = this._viewModels[index];
+        this.disposeTracked(oldVM);
+        this._viewModels[index] = this.track(roomVM);
+    }
+    
+    /** called from SessionViewModel */
+    releaseRoomViewModel(roomId) {
+        const index = this._viewModels.findIndex(vm => vm.id === roomId);
+        if (index !== -1) {
+            const vm = this._viewModels[index];
+            this.untrack(vm);
+            this._viewModels[index] = null;
+            return vm;
+        }
+    }
+
+    _setFocusIndex(idx) {
+        if (idx === this._selectedIndex || idx >= (this._width * this._height)) {
+            return;
+        }
+        this._selectedIndex = idx;
+        const vm = this._viewModels[this._selectedIndex];
+        vm?.focus();
+        this.emitChange("focusedIndex");
+    }
+
+    _setFocusRoom(roomId) {
         const index = this._viewModels.findIndex(vm => vm.id === roomId);
         if (index >= 0) {
-            this.setFocusIndex(index);
+            this._setFocusIndex(index);
             return true;
         }
         return false;
     }
-    
-    /**
-     * Returns the first set of room vm,
-     * and untracking it so it is not owned by this view model anymore.
-     * @package
-     */
-    getAndUntrackFirst() {
-        for (const vm of this._viewModels) {
+
+    _openRoom(roomId) {
+        if (!this._setFocusRoom(roomId)) {
+            // replace vm at focused index
+            const vm = this._viewModels[this._selectedIndex];
             if (vm) {
-                this.untrack(vm);
-                return vm;
+                this.disposeTracked(vm);
             }
+            this._viewModels[this._selectedIndex] = this.track(this._createRoomViewModel(roomId));
+            this.emitChange();
         }
     }
 }

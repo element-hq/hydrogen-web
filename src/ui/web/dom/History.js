@@ -35,26 +35,27 @@ export class History extends BaseObservableValue {
         return document.location.hash;
     }
 
+    /** does not emit */
     replaceUrl(url) {
         window.history.replaceState(null, null, url);
-        // replaceState does not cause hashchange
-        this.emit(url);
     }
 
+    /** does not emit */
     pushUrl(url) {
-        const hash = this.urlAsPath(url);
-        // important to check before we expect an echo
-        // as setting the hash to it's current value doesn't
-        // trigger onhashchange
-        if (hash === document.location.hash) {
-            return;
-        }
-        // this operation is silent, 
-        // so avoid emitting on echo hashchange event
-        if (this._boundOnHashChange) {
-            this._expectSetEcho = true;
-        }
-        document.location.hash = hash;
+        window.history.pushState(null, null, url);
+        // const hash = this.urlAsPath(url);
+        // // important to check before we expect an echo
+        // // as setting the hash to it's current value doesn't
+        // // trigger onhashchange
+        // if (hash === document.location.hash) {
+        //     return;
+        // }
+        // // this operation is silent, 
+        // // so avoid emitting on echo hashchange event
+        // if (this._boundOnHashChange) {
+        //     this._expectSetEcho = true;
+        // }
+        // document.location.hash = hash;
     }
 
     urlAsPath(url) {

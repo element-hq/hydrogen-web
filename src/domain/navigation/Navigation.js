@@ -28,10 +28,26 @@ export class Navigation {
     }
 
     applyPath(path) {
+        const oldPath = this._path;
         this._path = path;
-        for (const [type, observable] of this._observables) {
-            // if the value did not change, this won't emit
-            observable.set(this._path.get(type)?.value);
+        // clear values not in the new path in reverse order of path
+        for (let i = oldPath.segments.length - 1; i >= 0; i -= 1) {
+            const segment = oldPath[i];
+            if (!this._path.get(segment.type)) {
+                const observable = this._observables.get(segment.type);
+                if (observable) {
+                    observable.set(segment.type, undefined);
+                }
+            }
+        }
+        // change values in order of path
+        for (const segment of this._path.segments) {
+            const observable = this._observables.get(segment.type);
+            if (observable) {
+                if (!segmentValueEqual(segment?.value, observable.get())) {
+                    observable.set(segment.type, segment.value);
+                }
+            }
         }
     }
 
@@ -55,6 +71,27 @@ export class Navigation {
         }
         return new Path(segments, this._allowsChild);
     }
+
+    segment(type, value) {
+        return new Segment(type, value);
+    }
+}
+
+function segmentValueEqual(a, b) {
+    if (a === b) {
+        return true;
+    }
+    // allow (sparse) arrays
+    if (Array.isArray(a) && Array.isArray(b)) {
+        const len = Math.max(a.length, b.length);
+        for (let i = 0; i < len; i += 1) {
+            if (a[i] !== b[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
 }
 
 export class Segment {
@@ -87,6 +124,14 @@ class Path {
         } while(index >= -1);
         // allow -1 as well so we check if the segment is allowed as root
         return null;
+    }
+
+    until(type) {
+        const index = this._segments.findIndex(s => s.type === type);
+        if (index !== -1) {
+            return new Path(this._segments.slice(0, index + 1), this._allowsChild)
+        }
+        return new Path([], this._allowsChild);
     }
 
     get(type) {

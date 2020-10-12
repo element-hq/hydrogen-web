@@ -31,7 +31,7 @@ export class RoomTileViewModel extends ViewModel {
         this._isOpen = false;
         this._wasUnreadWhenOpening = false;
         this._hidden = false;
-        this._url = this.urlRouter.urlForSegment("room", this._room.id);
+        this._url = this.urlRouter.openRoomActionUrl(this._room.id);
     }
 
     get hidden() {

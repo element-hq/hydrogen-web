@@ -98,7 +98,7 @@ export class RootViewModel extends ViewModel {
                 createSessionContainer: this._createSessionContainer,
                 ready: sessionContainer => {
                     const url = this.urlRouter.urlForSegment("session", sessionContainer.sessionId);
-                    this.urlRouter.replaceUrl(url);
+                    this.urlRouter.history.replaceUrl(url);
                     this._showSession(sessionContainer);
                 },
             }));

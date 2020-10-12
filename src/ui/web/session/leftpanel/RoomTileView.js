@@ -25,22 +25,19 @@ export class RoomTileView extends TemplateView {
             "hidden": vm => vm.hidden
         };
         return t.li({"className": classes}, [
-            renderAvatar(t, vm, 32),
-            t.div({className: "description"}, [
-                t.div({className: {"name": true, unread: vm => vm.isUnread}}, vm => vm.name),
-                t.div({
-                    className: {
-                        "badge": true,
-                        highlighted: vm => vm.isHighlighted,
-                        hidden: vm => !vm.badgeCount
-                    }
-                }, vm => vm.badgeCount),
+            t.a({href: vm.url}, [
+                renderAvatar(t, vm, 32),
+                t.div({className: "description"}, [
+                    t.div({className: {"name": true, unread: vm => vm.isUnread}}, vm => vm.name),
+                    t.div({
+                        className: {
+                            "badge": true,
+                            highlighted: vm => vm.isHighlighted,
+                            hidden: vm => !vm.badgeCount
+                        }
+                    }, vm => vm.badgeCount),
+                ])
             ])
         ]);
-    }
-
-    // called from ListView
-    clicked() {
-        this.value.open();
     }
 }

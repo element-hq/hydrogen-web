@@ -34,15 +34,44 @@ export class LeftPanelViewModel extends ViewModel {
         });
         this._roomListFilterMap = new ApplyMap(roomTileVMs);
         this._roomList = this._roomListFilterMap.sortValues((a, b) => a.compare(b));
+        this._currentTileVM = null;
+        this._setupNavigation();
     }
 
-    get gridEnabled() {
-        return this._gridEnabled.get();
+    _setupNavigation() {
+        const roomObservable = this.navigation.observe("room");
+        this.track(roomObservable.subscribe(roomId => this._open(roomId)));
+        this._open(roomObservable.get());
+
+        const gridObservable = this.navigation.observe("rooms");
+        this.gridEnabled = !!gridObservable.get();
+        this.track(gridObservable.subscribe(roomIds => {
+            const changed = this.gridEnabled ^ !!roomIds;
+            this.gridEnabled = !!roomIds;
+            if (changed) {
+                this.emitChange("gridEnabled");
+            }
+        }));
+    }
+
+    _open(roomId) {
+        this._currentTileVM?.close();
+        this._currentTileVM = null;
+        if (roomId) {
+            this._currentTileVM = this._roomListFilterMap.get(roomId);
+            this._currentTileVM?.open();
+        }
     }
 
     toggleGrid() {
-        this._gridEnabled.set(!this._gridEnabled.get());
-        this.emitChange("gridEnabled");
+        let url;
+        if (this._gridEnabled) {
+            url = this.urlRouter.disableGridUrl();
+        } else {
+            url = this.urlRouter.enableGridUrl();
+        }
+        url = this.urlRouter.applyUrl(url);
+        this.urlRouter.history.pushUrl(url);
     }
 
     get roomList() {
