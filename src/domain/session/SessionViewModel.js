@@ -94,49 +94,6 @@ export class SessionViewModel extends ViewModel {
         return this._currentRoomViewModel;
     }
 
-    // _transitionToGrid() {
-    //     if (this._gridViewModel) {
-    //         return;
-    //     }
-    //     this._gridViewModel = this.track(new RoomGridViewModel(this.childOptions({width: 3, height: 2})));
-    //     let path;
-    //     if (this._currentRoomViewModel) {
-    //         this.untrack(this._currentRoomViewModel);
-    //         this._gridViewModel.transferRoomViewModel(0, this._currentRoomViewModel);
-    //         const roomId = this._currentRoomViewModel.id;
-    //         this._currentRoomViewModel = null;
-    //         path = this.navigation.path
-    //             .with(this.navigation.segment("rooms", [roomId]))
-    //             .with(this.navigation.segment("room", roomId));
-    //     } else {
-    //         path = this.navigation.path
-    //             .with(this.navigation.segment("rooms", []))
-    //             .with(this.navigation.segment("empty-grid-tile", 0));
-    //     }
-    //     const url = this.urlRouter.urlForPath(path);
-    //     this.urlRouter.history.pushUrl(url);
-    //     this.emitChange("middlePanelViewType");
-    //     this.navigation.applyPath(path);
-    // }
-
-    // _transitionFromGrid() {
-    //     if (!this._gridViewModel) {
-    //         return;
-    //     }
-    //     const vm = this._gridViewModel.releaseFirstRoomViewModel();
-    //     let path = this.navigation.path.until("session");
-    //     if (vm) {
-    //         path = path.with(this.navigation.segment("room", vm.id));
-    //         this._currentRoomViewModel = this.track(vm);
-    //     }
-    //     this._gridViewModel = this.disposeTracked(this._gridViewModel);
-        
-    //     const url = this.urlRouter.urlForPath(path);
-    //     this.urlRouter.history.pushUrl(url);
-    //     this.emitChange("middlePanelViewType");
-    //     this.navigation.applyPath(path);
-    // }
-
     _updateGrid(roomIds) {
         const changed = !(this._gridViewModel && roomIds);
         const currentRoomId = this.navigation.path.get("room");
