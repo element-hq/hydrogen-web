@@ -32,11 +32,11 @@ export class Navigation {
         this._path = path;
         // clear values not in the new path in reverse order of path
         for (let i = oldPath.segments.length - 1; i >= 0; i -= 1) {
-            const segment = oldPath[i];
+            const segment = oldPath.segments[i];
             if (!this._path.get(segment.type)) {
                 const observable = this._observables.get(segment.type);
                 if (observable) {
-                    observable.set(segment.type, undefined);
+                    observable.set(undefined);
                 }
             }
         }
@@ -45,7 +45,7 @@ export class Navigation {
             const observable = this._observables.get(segment.type);
             if (observable) {
                 if (!segmentValueEqual(segment?.value, observable.get())) {
-                    observable.set(segment.type, segment.value);
+                    observable.set(segment.value);
                 }
             }
         }

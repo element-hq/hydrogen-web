@@ -25,9 +25,8 @@ function isSortedAsUnread(vm) {
 export class RoomTileViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {room, emitOpen} = options;
+        const {room} = options;
         this._room = room;
-        this._emitOpen = emitOpen;
         this._isOpen = false;
         this._wasUnreadWhenOpening = false;
         this._hidden = false;
@@ -57,7 +56,6 @@ export class RoomTileViewModel extends ViewModel {
             this._isOpen = true;
             this._wasUnreadWhenOpening = this._room.isUnread;
             this.emitChange("isOpen");
-            this._emitOpen(this._room, this);
         }
     }
 

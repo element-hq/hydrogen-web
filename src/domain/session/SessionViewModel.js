@@ -99,15 +99,20 @@ export class SessionViewModel extends ViewModel {
         const currentRoomId = this.navigation.path.get("room");
         if (roomIds) {
             if (!this._gridViewModel) {
+                const vm = this._currentRoomViewModel;
+                const index = roomIds.indexOf(vm.id);
+                const shouldTransfer = vm && index !== -1;
+                if (shouldTransfer) {
+                    roomIds = roomIds.slice();
+                    roomIds[index] = undefined;
+                }
                 this._gridViewModel = this.track(new RoomGridViewModel(this.childOptions({
                     width: 3,
                     height: 2,
                     createRoomViewModel: roomId => this._createRoomViewModel(roomId),
                     roomIds: roomIds
                 })));
-                const vm = this._currentRoomViewModel;
-                const index = roomIds.indexOf(vm.id);
-                if (vm && index !== -1) {
+                if (shouldTransfer) {
                     this.untrack(vm);
                     this._gridViewModel.transferRoomViewModel(index, vm);
                     this._currentRoomViewModel = null;
@@ -128,7 +133,7 @@ export class SessionViewModel extends ViewModel {
     }
 
     _createRoomViewModel(roomId) {
-        const room = this._session.rooms.get(roomId);
+        const room = this._sessionContainer.session.rooms.get(roomId);
         if (!room) {
             return null;
         }
@@ -149,11 +154,6 @@ export class SessionViewModel extends ViewModel {
         const roomVM = this._createRoomViewModel(roomId);
         if (roomVM) {
             this._currentRoomViewModel = this.track(roomVM);
-        }
-        if (this._gridViewModel) {
-            this._gridViewModel.setRoomViewModel(roomVM);
-        } else {
-            this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
             this.emitChange("currentRoom");
         }
     }

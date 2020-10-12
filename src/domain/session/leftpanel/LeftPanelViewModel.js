@@ -23,16 +23,14 @@ import {ApplyMap} from "../../../observable/map/ApplyMap.js";
 export class LeftPanelViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {rooms, openRoom, gridEnabled} = options;
-        this._gridEnabled = gridEnabled;
-        const roomTileVMs = rooms.mapValues((room, emitChange) => {
+        const {rooms} = options;
+        this._roomTileViewModels = rooms.mapValues((room, emitChange) => {
             return new RoomTileViewModel(this.childOptions({
                 room,
-                emitChange,
-                emitOpen: openRoom
+                emitChange
             }));
         });
-        this._roomListFilterMap = new ApplyMap(roomTileVMs);
+        this._roomListFilterMap = new ApplyMap(this._roomTileViewModels);
         this._roomList = this._roomListFilterMap.sortValues((a, b) => a.compare(b));
         this._currentTileVM = null;
         this._setupNavigation();
@@ -58,14 +56,14 @@ export class LeftPanelViewModel extends ViewModel {
         this._currentTileVM?.close();
         this._currentTileVM = null;
         if (roomId) {
-            this._currentTileVM = this._roomListFilterMap.get(roomId);
+            this._currentTileVM = this._roomTileViewModels.get(roomId);
             this._currentTileVM?.open();
         }
     }
 
     toggleGrid() {
         let url;
-        if (this._gridEnabled) {
+        if (this.gridEnabled) {
             url = this.urlRouter.disableGridUrl();
         } else {
             url = this.urlRouter.enableGridUrl();

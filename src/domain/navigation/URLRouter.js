@@ -41,7 +41,7 @@ export class URLRouter {
 
     applyUrl(url) {    
         const urlPath = this._history.urlAsPath(url)
-        const navPath = this._navigation.pathFrom(this._parseUrlPath(urlPath));
+        const navPath = this._navigation.pathFrom(this._parseUrlPath(urlPath, this._navigation.path));
         this._navigation.applyPath(navPath);
         return this._history.pathAsUrl(this._stringifyPath(navPath));
     }
@@ -76,12 +76,17 @@ export class URLRouter {
     }
 
     disableGridUrl() {
-
+        let path = this._navigation.path.until("session");
+        const room = this._navigation.path.get("room");
+        if (room) {
+            path = path.with(room);
+        }
+        return this.urlForPath(path);
     }
 
     enableGridUrl() {
         let path = this._navigation.path.until("session");
-        const room = this._navigation.get("room");
+        const room = this._navigation.path.get("room");
         if (room) {
             path = path.with(this._navigation.segment("rooms", [room.value]));
             path = path.with(room);

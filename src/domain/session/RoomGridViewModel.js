@@ -47,7 +47,7 @@ export class RoomGridViewModel extends ViewModel {
             this._selectedIndex = focusTileIndex.get();
         }
 
-        const focusedRoom = this.navigation.get("room");
+        const focusedRoom = this.navigation.observe("room");
         this.track(focusedRoom.subscribe(roomId => {
             if (roomId) {
                 this._openRoom(roomId);

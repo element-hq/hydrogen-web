@@ -22,8 +22,7 @@ import {SessionContainer} from "./matrix/SessionContainer.js";
 import {StorageFactory} from "./matrix/storage/idb/StorageFactory.js";
 import {SessionInfoStorage} from "./matrix/sessioninfo/localstorage/SessionInfoStorage.js";
 import {RootViewModel} from "./domain/RootViewModel.js";
-import {createNavigation} from "./domain/navigation/index.js";
-import {URLRouter} from "./domain/navigation/URLRouter.js";
+import {createNavigation, createRouter} from "./domain/navigation/index.js";
 import {RootView} from "./ui/web/RootView.js";
 import {Clock} from "./ui/web/dom/Clock.js";
 import {History} from "./ui/web/dom/History.js";
@@ -119,8 +118,9 @@ export async function main(container, paths, legacyExtras) {
         }
 
         const navigation = createNavigation();
-        const urlRouter = new URLRouter(new History(), navigation);
+        const urlRouter = createRouter({navigation, history: new History()});
         urlRouter.attach();
+        console.log("starting with navigation path", navigation.path);
 
         const vm = new RootViewModel({
             createSessionContainer: () => {
