@@ -42,19 +42,21 @@ function allowsChild(parent, child) {
 }
 
 function roomsSegmentWithRoom(rooms, roomId, path) {
-    const room = path.get("room");
-    let index = 0;
-    if (room) {
-        index = rooms.value.indexOf(room.value);
-    } else {
+    if(!rooms.value.includes(roomId)) {
         const emptyGridTile = path.get("empty-grid-tile");
+        const oldRoom = path.get("room");
+        let index = 0;
         if (emptyGridTile) {
             index = emptyGridTile.value;
+        } else if (oldRoom) {
+            index = rooms.value.indexOf(oldRoom.value);
         }
-    } 
-    const newRooms = rooms.value.slice();
-    newRooms[index] = roomId;
-    return new Segment("rooms", newRooms);
+        const roomIds = rooms.value.slice();
+        roomIds[index] = roomId;
+        return new Segment("rooms", roomIds);
+    } else {
+        return rooms;
+    }
 }
 
 export function parseUrlPath(urlPath, currentNavPath) {
