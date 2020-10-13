@@ -130,10 +130,9 @@ class SessionItemViewModel extends ViewModel {
 export class SessionPickerViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {storageFactory, sessionInfoStorage, sessionInfoCallback} = options;
+        const {storageFactory, sessionInfoStorage} = options;
         this._storageFactory = storageFactory;
         this._sessionInfoStorage = sessionInfoStorage;
-        this._sessionInfoCallback = sessionInfoCallback;
         this._sessions = new SortedArray((s1, s2) => s1.id.localeCompare(s2.id));
         this._loadViewModel = null;
         this._error = null;
