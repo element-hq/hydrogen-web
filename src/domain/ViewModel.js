@@ -45,6 +45,7 @@ export class ViewModel extends EventEmitter {
         if (this.disposables) {
             return this.disposables.untrack(disposable);
         }
+        return null;
     }
 
     dispose() {

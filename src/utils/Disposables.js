@@ -47,6 +47,7 @@ export class Disposables {
         if (idx >= 0) {
             this._disposables.splice(idx, 1);
         }
+        return null;
     }
 
     dispose() {
