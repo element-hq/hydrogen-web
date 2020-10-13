@@ -115,7 +115,11 @@ export class SessionViewModel extends ViewModel {
         } else if (this._gridViewModel && !roomIds) {
             if (currentRoomId) {
                 const vm = this._gridViewModel.releaseRoomViewModel(currentRoomId.value);
-                this._currentRoomViewModel = this.track(vm);
+                if (vm) {
+                    this._currentRoomViewModel = this.track(vm);
+                } else {
+                    this._currentRoomViewModel = this.track(this._createRoomViewModel(currentRoomId.value));
+                }
             }
             this._gridViewModel = this.disposeTracked(this._gridViewModel);
         }
