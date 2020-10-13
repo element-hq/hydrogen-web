@@ -99,23 +99,15 @@ export class SessionViewModel extends ViewModel {
         const currentRoomId = this.navigation.path.get("room");
         if (roomIds) {
             if (!this._gridViewModel) {
-                const vm = this._currentRoomViewModel;
-                const index = roomIds.indexOf(vm.id);
-                const shouldTransfer = vm && index !== -1;
-                if (shouldTransfer) {
-                    roomIds = roomIds.slice();
-                    roomIds[index] = undefined;
-                }
                 this._gridViewModel = this.track(new RoomGridViewModel(this.childOptions({
                     width: 3,
                     height: 2,
                     createRoomViewModel: roomId => this._createRoomViewModel(roomId),
-                    roomIds: roomIds
                 })));
-                if (shouldTransfer) {
-                    this.untrack(vm);
-                    this._gridViewModel.transferRoomViewModel(index, vm);
-                    this._currentRoomViewModel = null;
+                if (this._gridViewModel.initializeRoomIdsAndTransferVM(roomIds, this._currentRoomViewModel)) {
+                    this._currentRoomViewModel = this.untrack(this._currentRoomViewModel);
+                } else if (this._currentRoomViewModel) {
+                    this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
                 }
             } else {
                 this._gridViewModel.setRoomIds(roomIds);
