@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+</head>
+<body>
+    <ul id="changes"></ul>
+    <script type="text/javascript">
+        const ul = document.getElementById("changes");
+        window.onhashchange = function() {
+            const hash = document.location.hash.substr(1);
+            const li = document.createElement("li");
+            li.appendChild(document.createTextNode(hash));
+            ul.appendChild(li);
+            window.history.replaceState(null, null, "#" + hash + hash);
+        }
+    </script>
+    <p>
+        <a href="#foo">foo</a>
+        <a href="#bar">bar</a>
+        <a href="#baz">baz</a>
+    </p>
+</body>
+</html>
