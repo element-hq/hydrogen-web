@@ -161,7 +161,7 @@ export class SessionViewModel extends ViewModel {
         const roomVM = this._createRoomViewModel(roomId);
         if (roomVM) {
             this._currentRoomViewModel = this.track(roomVM);
-            this.emitChange("currentRoom");
         }
+        this.emitChange("currentRoom");
     }
 }
