@@ -122,7 +122,10 @@ export class SessionViewModel extends ViewModel {
                 if (vm) {
                     this._currentRoomViewModel = this.track(vm);
                 } else {
-                    this._currentRoomViewModel = this.track(this._createRoomViewModel(currentRoomId.value));
+                    const newVM = this._createRoomViewModel(currentRoomId.value);
+                    if (newVM) {
+                        this._currentRoomViewModel = this.track(newVM);
+                    }
                 }
             }
             this._gridViewModel = this.disposeTracked(this._gridViewModel);

@@ -132,7 +132,10 @@ export class RoomGridViewModel extends ViewModel {
                     this._viewModels[i] = this.disposeTracked(vm);
                 }
                 if (newId) {
-                    this._viewModels[i] = this.track(this._createRoomViewModel(newId));
+                    const newVM = this._createRoomViewModel(newId);
+                    if (newVM) {
+                        this._viewModels[i] = this.track(newVM);
+                    }
                 }
                 changed = true;
             }
