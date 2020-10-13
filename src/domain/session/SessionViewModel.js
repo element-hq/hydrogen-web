@@ -131,7 +131,7 @@ export class SessionViewModel extends ViewModel {
             this._gridViewModel = this.disposeTracked(this._gridViewModel);
         }
         if (changed) {
-            this.emitChange("middlePanelViewType");
+            this.emitChange("activeSection");
         }
     }
 
