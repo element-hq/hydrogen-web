@@ -142,6 +142,13 @@ export class SessionViewModel extends ViewModel {
     }
 
     _openRoom(roomId) {
+        if (!roomId) {
+            if (this._currentRoomViewModel) {
+                this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
+                this.emitChange("currentRoom");
+            }
+            return;
+        }
         // already open?
         if (this._currentRoomViewModel?.id === roomId) {
             return;
