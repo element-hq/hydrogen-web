@@ -69,7 +69,7 @@ export function parseUrlPath(urlPath, currentNavPath) {
         const type = next.value;
         if (type === "rooms") {
             const roomsValue = iterator.next().value;
-            if (!roomsValue) { break; }
+            if (roomsValue === undefined) { break; }
             const roomIds = roomsValue.split(",");
             segments.push(new Segment(type, roomIds));
             const selectedIndex = parseInt(iterator.next().value || "0", 10);
@@ -167,6 +167,26 @@ export function tests() {
             assert.deepEqual(segments[1].value, ["a", "b", "c"]);
             assert.equal(segments[2].type, "room");
             assert.equal(segments[2].value, "b");
+        },
+        "parse empty grid url": assert => {
+            const segments = parseUrlPath("/session/1/rooms/");
+            assert.equal(segments.length, 3);
+            assert.equal(segments[0].type, "session");
+            assert.equal(segments[0].value, "1");
+            assert.equal(segments[1].type, "rooms");
+            assert.deepEqual(segments[1].value, [""]);
+            assert.equal(segments[2].type, "empty-grid-tile");
+            assert.equal(segments[2].value, 0);
+        },
+        "parse empty grid url with focus": assert => {
+            const segments = parseUrlPath("/session/1/rooms//1");
+            assert.equal(segments.length, 3);
+            assert.equal(segments[0].type, "session");
+            assert.equal(segments[0].value, "1");
+            assert.equal(segments[1].type, "rooms");
+            assert.deepEqual(segments[1].value, [""]);
+            assert.equal(segments[2].type, "empty-grid-tile");
+            assert.equal(segments[2].value, 1);
         },
         "parse open-room action replacing the current focused room": assert => {
             const nav = new Navigation(allowsChild);
