@@ -61,6 +61,10 @@ export class SessionViewModel extends ViewModel {
         }
     }
 
+    get id() {
+        return this._sessionContainer.sessionId;
+    }
+
     start() {
         this._sessionStatusViewModel.start();
     }

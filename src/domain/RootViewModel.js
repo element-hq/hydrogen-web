@@ -38,7 +38,25 @@ export class RootViewModel extends ViewModel {
     async load() {
         this.track(this.navigation.observe("login").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("session").subscribe(() => this._applyNavigation()));
-        if (!this._applyNavigation()) {
+        this._applyNavigation();
+    }
+
+    async _applyNavigation() {
+        const isLogin = this.navigation.observe("login").get();
+        const sessionId = this.navigation.observe("session").get();
+        if (isLogin) {
+            if (this.activeSection !== "login") {
+                this._showLogin();
+            }
+        } else if (sessionId === true) {
+            if (this.activeSection !== "picker") {
+                this._showPicker();
+            }
+        } else if (sessionId) {
+            if (!this._sessionViewModel || this._sessionViewModel.id !== sessionId) {
+                this._showSessionLoader(sessionId);
+            }
+        } else {
             try {
                 // redirect depending on what sessions are already present
                 const sessionInfos = await this._sessionInfoStorage.getAll();
@@ -49,22 +67,6 @@ export class RootViewModel extends ViewModel {
                 this._setSection(() => this._error = err);
             }
         }
-    }
-
-    _applyNavigation() {
-        const isLogin = this.navigation.observe("login").get();
-        const sessionId = this.navigation.observe("session").get();
-        if (isLogin) {
-            this._showLogin();
-            return true;
-        } else if (sessionId === true) {
-            this._showPicker();
-            return true;
-        } else if (sessionId) {
-            this._showSessionLoader(sessionId);
-            return true;
-        }
-        return false;
     }
 
     _urlForSessionInfos(sessionInfos) {
