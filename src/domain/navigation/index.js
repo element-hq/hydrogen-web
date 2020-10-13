@@ -204,6 +204,22 @@ export function tests() {
             assert.equal(segments[2].type, "room");
             assert.equal(segments[2].value, "d");
         },
+        "parse open-room action changing focus to an existing room": assert => {
+            const nav = new Navigation(allowsChild);
+            const path = nav.pathFrom([
+                new Segment("session", 1),
+                new Segment("rooms", ["a", "b", "c"]),
+                new Segment("room", "b")
+            ]);
+            const segments = parseUrlPath("/session/1/open-room/a", path);
+            assert.equal(segments.length, 3);
+            assert.equal(segments[0].type, "session");
+            assert.equal(segments[0].value, "1");
+            assert.equal(segments[1].type, "rooms");
+            assert.deepEqual(segments[1].value, ["a", "b", "c"]);
+            assert.equal(segments[2].type, "room");
+            assert.equal(segments[2].value, "a");
+        },
         "parse open-room action setting a room in an empty tile": assert => {
             const nav = new Navigation(allowsChild);
             const path = nav.pathFrom([
