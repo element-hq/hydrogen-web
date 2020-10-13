@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ObservableValue} from "../../observable/ObservableValue.js";
+import {BaseObservableValue} from "../../observable/ObservableValue.js";
 
 export class Navigation {
     constructor(allowsChild) {
@@ -28,6 +28,8 @@ export class Navigation {
     }
 
     applyPath(path) {
+        // Path is not exported, so you can only create a Path through Navigation,
+        // so we assume it respects the allowsChild rules
         const oldPath = this._path;
         this._path = path;
         // clear values not in the new path in reverse order of path
@@ -35,26 +37,20 @@ export class Navigation {
             const segment = oldPath.segments[i];
             if (!this._path.get(segment.type)) {
                 const observable = this._observables.get(segment.type);
-                if (observable) {
-                    observable.set(undefined);
-                }
+                observable?.emitIfChanged();
             }
         }
         // change values in order of path
         for (const segment of this._path.segments) {
             const observable = this._observables.get(segment.type);
-            if (observable) {
-                if (!segmentValueEqual(segment?.value, observable.get())) {
-                    observable.set(segment.value);
-                }
-            }
+            observable?.emitIfChanged();
         }
     }
 
     observe(type) {
         let observable = this._observables.get(type);
         if (!observable) {
-            observable = new ObservableValue(this._path.get(type)?.value);
+            observable = new SegmentObservable(this, type);
             this._observables.set(type, observable);
         }
         return observable;
@@ -141,4 +137,85 @@ class Path {
     get segments() {
         return this._segments;
     }
+}
+
+/**
+ * custom observable so it always returns what is in navigation.path, even if we haven't emitted the change yet.
+ * This ensures that observers of a segment can also read the most recent value of other segments.
+ */
+class SegmentObservable extends BaseObservableValue {
+    constructor(navigation, type) {
+        super();
+        this._navigation = navigation;
+        this._type = type;
+        this._lastSetValue = navigation.path.get(type)?.value;
+    }
+
+    get() {
+        const path = this._navigation.path;
+        const segment = path.get(this._type);
+        const value = segment?.value;
+        return value;
+    }
+
+    emitIfChanged() {
+        const newValue = this.get();
+        if (!segmentValueEqual(newValue, this._lastSetValue)) {
+            this._lastSetValue = newValue;
+            this.emit(newValue);
+        }
+    }
+}
+
+export function tests() {
+
+    function createMockNavigation() {
+        return new Navigation((parent, {type}) => {
+            switch (parent?.type) {
+                case undefined:
+                    return type === "1" || "2";
+                case "1":
+                    return type === "1.1";
+                case "1.1":
+                    return type === "1.1.1";
+                case "2":
+                    return type === "2.1" || "2.2";
+                default:
+                    return false;
+            }
+        });
+    }
+
+    function observeTypes(nav, types) {
+        const changes = [];
+        for (const type of types) {
+            nav.observe(type).subscribe(value => {
+                changes.push({type, value});
+            });
+        }
+        return changes;
+    }
+
+    return {
+        "applying a path emits an event on the observable": assert => {
+            const nav = createMockNavigation();
+            const path = nav.pathFrom([
+                new Segment("2", 7),
+                new Segment("2.2", 8),
+            ]);
+            assert.equal(path.segments.length, 2);
+            let changes = observeTypes(nav, ["2", "2.2"]);
+            nav.applyPath(path);
+            assert.equal(changes.length, 2);
+            assert.equal(changes[0].type, "2");
+            assert.equal(changes[0].value, 7);
+            assert.equal(changes[1].type, "2.2");
+            assert.equal(changes[1].value, 8);
+        },
+        "path.get": assert => {
+            const path = new Path([new Segment("foo", 5), new Segment("bar", 6)], () => true);
+            assert.equal(path.get("foo").value, 5);
+            assert.equal(path.get("bar").value, 6);
+        }
+    };
 }
