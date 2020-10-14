@@ -110,11 +110,11 @@ export class SessionPickerView extends TemplateView {
                 t.view(sessionList),
                 t.div({className: "button-row"}, [
                     t.button({
-                        className: "styled secondary",
+                        className: "button-action secondary",
                         onClick: async () => vm.import(await selectFileAsText("application/json"))
                     }, vm.i18n`Import a session`),
                     t.a({
-                        className: "button styled primary",
+                        className: "button-action primary",
                         href: vm.cancelUrl
                     }, vm.i18n`Sign In`)
                 ]),

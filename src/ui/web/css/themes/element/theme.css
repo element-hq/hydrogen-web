@@ -71,7 +71,7 @@ limitations under the License.
     margin-right: 0px;
 }
 
-.button-row button {
+.button-row .button-action {
     margin: 10px 0;
     flex: 1 0 auto;
 }
@@ -92,32 +92,39 @@ limitations under the License.
     display: block;
 }
 
-button.styled.secondary {
+a.button-action {
+    text-decoration: none;
+    text-align: center;
+    display: block;
+}
+
+.button-action.secondary {
     color: #03B381;
 }
 
-button.styled.primary {
+.button-action.primary {
     background-color: #03B381;
     border-radius: 8px;
     color: white;
 }
 
-button.styled.primary.destructive {
+.button-action.primary.destructive {
     background-color: #FF4B55;
 }
 
-button.styled.secondary.destructive {
+.button-action.secondary.destructive {
     color: #FF4B55;
 }
 
-button.styled {
+.button-action {
     border: none;
     padding: 10px;
     background: none;
     font-weight: 500;
 }
 
-button.utility {
+.button-utility {
+    cursor: pointer;
     width: 32px;
     height: 32px;
     background-position: center;

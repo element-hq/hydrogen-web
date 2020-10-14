@@ -52,11 +52,11 @@ export class LoginView extends TemplateView {
                 t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadStatusView(loadViewModel) : null),
                 t.div({className: "button-row"}, [
                     t.a({
-                        className: "button styled secondary",
+                        className: "button-action secondary",
                         href: vm.cancelUrl
                     }, [vm.i18n`Go Back`]),
                     t.button({
-                        className: "styled primary",
+                        className: "button-action primary",
                         onClick: () => vm.login(username.value, password.value, homeserver.value),
                         disabled
                     }, vm.i18n`Log In`),
