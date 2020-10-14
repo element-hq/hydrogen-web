@@ -26,7 +26,7 @@ export class SessionView extends TemplateView {
         return t.div({
             className: {
                 "SessionView": true,
-                "room-shown": vm => vm.selectionId !== "placeholder"
+                "room-shown": vm => vm.activeSection !== "placeholder"
             },
         }, [
             t.view(new SessionStatusView(vm.sessionStatusViewModel)),
