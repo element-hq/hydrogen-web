@@ -31,7 +31,9 @@ function findFirstSessionId(sessionIds) {
 const OTK_ALGORITHM = "signed_curve25519";
 // only encrypt this amount of olm messages at once otherwise we run out of wasm memory
 // with all the sessions loaded at the same time
-const MAX_BATCH_SIZE = 50;
+// See https://github.com/vector-im/hydrogen-web/issues/150 as well, which indicates the limit is 44,
+// but let's take a conservative limit as the megolm session cache also takes space
+const MAX_BATCH_SIZE = 20;
 
 export class Encryption {
     constructor({account, olm, olmUtil, ownUserId, storage, now, pickleKey, senderKeyLock}) {
