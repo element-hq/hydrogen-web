@@ -25,10 +25,20 @@ export class LeftPanelViewModel extends ViewModel {
         super(options);
         const {rooms} = options;
         this._roomTileViewModels = rooms.mapValues((room, emitChange) => {
-            return new RoomTileViewModel(this.childOptions({
+            const isOpen = this.navigation.path.get("room")?.value === room.id;
+            const vm = new RoomTileViewModel(this.childOptions({
+                isOpen,
                 room,
                 emitChange
             }));
+            // need to also update the current vm here as
+            // we can't call `_open` from the ctor as the map
+            // is only populated when the view subscribes.
+            if (isOpen) {
+                this._currentTileVM?.close();
+                this._currentTileVM = vm;
+            }
+            return vm;
         });
         this._roomListFilterMap = new ApplyMap(this._roomTileViewModels);
         this._roomList = this._roomListFilterMap.sortValues((a, b) => a.compare(b));
@@ -39,7 +49,6 @@ export class LeftPanelViewModel extends ViewModel {
     _setupNavigation() {
         const roomObservable = this.navigation.observe("room");
         this.track(roomObservable.subscribe(roomId => this._open(roomId)));
-        this._open(roomObservable.get());
 
         const gridObservable = this.navigation.observe("rooms");
         this.gridEnabled = !!gridObservable.get();
