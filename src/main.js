@@ -120,7 +120,6 @@ export async function main(container, paths, legacyExtras) {
         const navigation = createNavigation();
         const urlRouter = createRouter({navigation, history: new History()});
         urlRouter.attach();
-        console.log("starting with navigation path", navigation.path);
 
         const vm = new RootViewModel({
             createSessionContainer: () => {
