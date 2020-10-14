@@ -235,15 +235,23 @@ button.utility.grid.on {
     margin-right: -8px;
 }
 
-.RoomList li {
+.RoomList > li {
     margin: 0;
-    padding-right: 8px;
+    padding: 4px 8px 4px 0;
+    /* vertical align */
+    align-items: center;
+}
+
+.RoomList > li > a {
+    text-decoration: none;
     /* vertical align */
     align-items: center;
 }
 
 .RoomList li:not(:first-child) {
-    margin-top: 12px;
+    /* space between items is 12px but we take 4px padding
+    on each side for the background of the active state*/
+    margin-top: 4px;
 }
 
 .RoomList li.active {
@@ -251,7 +259,7 @@ button.utility.grid.on {
     border-radius: 5px;
 }
 
-.RoomList li > * {
+.RoomList li > a > * {
     margin-right: 8px;
 }
 

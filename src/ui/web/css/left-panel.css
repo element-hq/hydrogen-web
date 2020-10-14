@@ -40,7 +40,7 @@ limitations under the License.
     overscroll-behavior: contain;
 }
 
-.RoomList li {
+.RoomList > li > a {
     display: flex;
     align-items: center;
 }
