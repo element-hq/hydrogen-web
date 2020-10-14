@@ -26,7 +26,12 @@ export class RootView extends TemplateView {
         return t.mapView(vm => vm.activeSection, activeSection => {
             switch (activeSection) {
                 case "error":
-                    return new StatusView({header: "Something went wrong", message: vm.errorText});
+                    return new StaticView(t => {
+                        return t.div({className: "StatusView"}, [
+                            t.h1("Something went wrong"),
+                            t.p(vm.errorText),
+                        ])
+                    });
                 case "session":
                     return new SessionView(vm.sessionViewModel);
                 case "login":
@@ -41,14 +46,5 @@ export class RootView extends TemplateView {
                     throw new Error(`Unknown section: ${vm.activeSection}`);
             }
         });
-    }
-}
-
-class StatusView extends TemplateView {
-    render(t, vm) {
-        return t.div({className: "StatusView"}, [
-            t.h1(vm.header),
-            t.p(vm.message),
-        ]);
     }
 }
