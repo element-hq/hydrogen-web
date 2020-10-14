@@ -377,6 +377,8 @@ export class RoomEncryption {
 
     dispose() {
         this._disposed = true;
+        this._megolmBackfillCache.dispose();
+        this._megolmSyncCache.dispose();
     }
 }
 
