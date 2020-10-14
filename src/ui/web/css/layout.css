@@ -54,7 +54,7 @@ html {
 /* mobile layout */
 @media screen and (max-width: 800px) {
     /* show back button */
-    .RoomHeader button.back { display: block; }
+    .RoomHeader .close-room { display: block !important; }
     /* hide grid button */
     .LeftPanel button.grid { display: none; }
     div.RoomView, div.room-placeholder, div.RoomGridView { display: none; }

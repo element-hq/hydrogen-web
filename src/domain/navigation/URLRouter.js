@@ -65,6 +65,10 @@ export class URLRouter {
         return this.urlForSegments([this._navigation.segment(type, value)]);
     }
 
+    urlUntilSegment(type) {
+        return this.urlForPath(this._navigation.path.until(type));
+    }
+
     urlForPath(path) {
         return this.history.pathAsUrl(this._stringifyPath(path));
     }

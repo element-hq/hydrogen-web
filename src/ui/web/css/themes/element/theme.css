@@ -397,12 +397,12 @@ a {
 
 .RoomHeader > :not(:last-child) {
     /* use margin-right because the first item,
-    button.back might be hidden and then we don't
+    .close-room might be hidden and then we don't
     want a margin-left on the second item*/
     margin-right: 8px;
 }
 
-button.back {
+.close-room, .close-session {
     background-image: url('icons/chevron-left.svg');
     background-position-x: 10px;
 }

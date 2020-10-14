@@ -27,7 +27,7 @@ limitations under the License.
     display: block;
 }
 
-.RoomHeader .back {
+.RoomHeader .close-room {
     display: none;
 }
 

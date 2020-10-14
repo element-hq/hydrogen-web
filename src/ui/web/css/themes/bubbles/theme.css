@@ -97,7 +97,7 @@ a {
     line-height: 40px;
 }
 
-.back::before {
+.close-room::before {
     content: "☰";
 }
 

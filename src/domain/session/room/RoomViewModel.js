@@ -22,7 +22,7 @@ import {ViewModel} from "../../ViewModel.js";
 export class RoomViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {room, ownUserId, closeCallback} = options;
+        const {room, ownUserId} = options;
         this._room = room;
         this._ownUserId = ownUserId;
         this._timeline = null;
@@ -30,9 +30,13 @@ export class RoomViewModel extends ViewModel {
         this._onRoomChange = this._onRoomChange.bind(this);
         this._timelineError = null;
         this._sendError = null;
-        this._closeCallback = closeCallback;
         this._composerVM = new ComposerViewModel(this);
         this._clearUnreadTimout = null;
+        this._closeUrl = this.urlRouter.urlUntilSegment("session");
+    }
+
+    get closeUrl() {
+        return this._closeUrl;
     }
 
     async load() {

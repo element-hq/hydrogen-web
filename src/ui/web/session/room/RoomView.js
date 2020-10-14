@@ -26,7 +26,7 @@ export class RoomView extends TemplateView {
         return t.div({className: "RoomView"}, [
             t.div({className: "TimelinePanel"}, [
                 t.div({className: "RoomHeader"}, [
-                    t.button({className: "utility back", onClick: () => vm.close()}),
+                    t.a({className: "button-utility close-room", href: vm.closeUrl, title: vm.i18n`Close room`}),
                     renderAvatar(t, vm, 32),
                     t.div({className: "room-description"}, [
                         t.h2(vm => vm.name),
