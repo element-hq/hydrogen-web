@@ -31,9 +31,9 @@ export class SessionViewModel extends ViewModel {
             reconnector: sessionContainer.reconnector,
             session: sessionContainer.session,
         })));
-        this._leftPanelViewModel = new LeftPanelViewModel(this.childOptions({
+        this._leftPanelViewModel = this.track(new LeftPanelViewModel(this.childOptions({
             rooms: this._sessionContainer.session.rooms
-        }));
+        })));
         this._currentRoomViewModel = null;
         this._gridViewModel = null;
         this._setupNavigation();
