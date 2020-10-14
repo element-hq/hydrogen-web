@@ -14,13 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-const CACHE_MAX_SIZE = 10;
+const DEFAULT_CACHE_SIZE = 10;
 
 /**
  * Cache of unpickled inbound megolm session.
  */
 export class SessionCache {
-    constructor() {
+    constructor(size) {
+        this._size = typeof size === "number" ? size : DEFAULT_CACHE_SIZE;
         this._sessions = [];
     }
 
@@ -51,12 +52,12 @@ export class SessionCache {
         sessionInfo.retain();
         // add new at top
         this._sessions.unshift(sessionInfo);
-        if (this._sessions.length > CACHE_MAX_SIZE) {
+        if (this._sessions.length > this._size) {
             // free sessions we're about to remove
-            for (let i = CACHE_MAX_SIZE; i < this._sessions.length; i += 1) {
+            for (let i = this._size; i < this._sessions.length; i += 1) {
                 this._sessions[i].release();
             }
-            this._sessions = this._sessions.slice(0, CACHE_MAX_SIZE);
+            this._sessions = this._sessions.slice(0, this._size);
         }
     }
 

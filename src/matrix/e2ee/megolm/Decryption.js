@@ -41,8 +41,8 @@ export class Decryption {
         this._olmWorker = olmWorker;
     }
 
-    createSessionCache(fallback) {
-        return new SessionCache(fallback);
+    createSessionCache(size) {
+        return new SessionCache(size);
     }
 
     /**

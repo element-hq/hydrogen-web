@@ -41,7 +41,7 @@ export class RoomEncryption {
         this._encryptionParams = encryptionParams;
 
         this._megolmBackfillCache = this._megolmDecryption.createSessionCache();
-        this._megolmSyncCache = this._megolmDecryption.createSessionCache();
+        this._megolmSyncCache = this._megolmDecryption.createSessionCache(1);
         // session => event ids of messages we tried to decrypt and the session was missing
         this._missingSessions = new SessionToEventIdsMap();
         // sessions that may or may not be missing, but that while
