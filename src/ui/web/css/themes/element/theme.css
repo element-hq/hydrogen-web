@@ -71,7 +71,7 @@ limitations under the License.
     margin-right: 0px;
 }
 
-.button-row button {
+.button-row .button-action {
     margin: 10px 0;
     flex: 1 0 auto;
 }
@@ -92,32 +92,39 @@ limitations under the License.
     display: block;
 }
 
-button.styled.secondary {
+a.button-action {
+    text-decoration: none;
+    text-align: center;
+    display: block;
+}
+
+.button-action.secondary {
     color: #03B381;
 }
 
-button.styled.primary {
+.button-action.primary {
     background-color: #03B381;
     border-radius: 8px;
     color: white;
 }
 
-button.styled.primary.destructive {
+.button-action.primary.destructive {
     background-color: #FF4B55;
 }
 
-button.styled.secondary.destructive {
+.button-action.secondary.destructive {
     color: #FF4B55;
 }
 
-button.styled {
+.button-action {
     border: none;
     padding: 10px;
     background: none;
     font-weight: 500;
 }
 
-button.utility {
+.button-utility {
+    cursor: pointer;
     width: 32px;
     height: 32px;
     background-position: center;
@@ -127,11 +134,11 @@ button.utility {
     border-radius: 100%;
 }
 
-button.utility.grid {
+.button-utility.grid {
     background-image: url('icons/enable-grid.svg');
 }
 
-button.utility.grid.on {
+.button-utility.grid.on {
     background-image: url('icons/disable-grid.svg');
 }
 
@@ -235,15 +242,23 @@ button.utility.grid.on {
     margin-right: -8px;
 }
 
-.RoomList li {
+.RoomList > li {
     margin: 0;
-    padding-right: 8px;
+    padding: 4px 8px 4px 0;
+    /* vertical align */
+    align-items: center;
+}
+
+.RoomList > li > a {
+    text-decoration: none;
     /* vertical align */
     align-items: center;
 }
 
 .RoomList li:not(:first-child) {
-    margin-top: 12px;
+    /* space between items is 12px but we take 4px padding
+    on each side for the background of the active state*/
+    margin-top: 4px;
 }
 
 .RoomList li.active {
@@ -251,7 +266,7 @@ button.utility.grid.on {
     border-radius: 5px;
 }
 
-.RoomList li > * {
+.RoomList li > a > * {
     margin-right: 8px;
 }
 
@@ -312,6 +327,7 @@ a {
 }
 
 .SessionPickerView .session-info {
+    text-decoration: none;
     padding: 12px;
     border: 1px solid rgba(141, 151, 165, 0.15);
     border-radius: 8px;

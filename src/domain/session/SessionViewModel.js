@@ -25,30 +25,51 @@ export class SessionViewModel extends ViewModel {
     constructor(options) {
         super(options);
         const {sessionContainer} = options;
-        this._session = sessionContainer.session;
+        this._sessionContainer = this.track(sessionContainer);
         this._sessionStatusViewModel = this.track(new SessionStatusViewModel(this.childOptions({
             sync: sessionContainer.sync,
             reconnector: sessionContainer.reconnector,
             session: sessionContainer.session,
         })));
-        this._leftPanelViewModel = new LeftPanelViewModel(this.childOptions({
-            rooms: this._session.rooms,
-            openRoom: this._openRoom.bind(this),
-            gridEnabled: {
-                get: () => !!this._gridViewModel,
-                set: value => this._enabledGrid(value)
-            }
-        }));
-        this._currentRoomTileViewModel = null;
+        this._leftPanelViewModel = this.track(new LeftPanelViewModel(this.childOptions({
+            rooms: this._sessionContainer.session.rooms
+        })));
         this._currentRoomViewModel = null;
         this._gridViewModel = null;
+        this._setupNavigation();
+    }
+
+    _setupNavigation() {
+        const gridRooms = this.navigation.observe("rooms");
+        // this gives us a set of room ids in the grid
+        this.track(gridRooms.subscribe(roomIds => {
+            this._updateGrid(roomIds);
+        }));
+        if (gridRooms.get()) {
+            this._updateGrid(gridRooms.get());
+        }
+
+        const currentRoomId = this.navigation.observe("room");
+        // this gives us the active room
+        this.track(currentRoomId.subscribe(roomId => {
+            if (!this._gridViewModel) {
+                this._openRoom(roomId);
+            }
+        }));
+        if (currentRoomId.get() && !this._gridViewModel) {
+            this._openRoom(currentRoomId.get());
+        }
+    }
+
+    get id() {
+        return this._sessionContainer.sessionId;
     }
 
     start() {
         this._sessionStatusViewModel.start();
     }
 
-    get selectionId() {
+    get activeSection() {
         if (this._currentRoomViewModel) {
             return this._currentRoomViewModel.id;
         } else if (this._gridViewModel) {
@@ -73,64 +94,77 @@ export class SessionViewModel extends ViewModel {
         return this._roomList;
     }
 
-    get currentRoom() {
+    get currentRoomViewModel() {
         return this._currentRoomViewModel;
     }
 
-    _enabledGrid(enabled) {
-        if (enabled) {
-            this._gridViewModel = this.track(new RoomGridViewModel(this.childOptions({width: 3, height: 2})));
-            // transfer current room
-            if (this._currentRoomViewModel) {
-                this.untrack(this._currentRoomViewModel);
-                this._gridViewModel.setRoomViewModel(this._currentRoomViewModel, this._currentRoomTileViewModel);
-                this._currentRoomViewModel = null;
-                this._currentRoomTileViewModel = null;
+    _updateGrid(roomIds) {
+        const changed = !(this._gridViewModel && roomIds);
+        const currentRoomId = this.navigation.path.get("room");
+        if (roomIds) {
+            if (!this._gridViewModel) {
+                this._gridViewModel = this.track(new RoomGridViewModel(this.childOptions({
+                    width: 3,
+                    height: 2,
+                    createRoomViewModel: roomId => this._createRoomViewModel(roomId),
+                })));
+                if (this._gridViewModel.initializeRoomIdsAndTransferVM(roomIds, this._currentRoomViewModel)) {
+                    this._currentRoomViewModel = this.untrack(this._currentRoomViewModel);
+                } else if (this._currentRoomViewModel) {
+                    this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
+                }
+            } else {
+                this._gridViewModel.setRoomIds(roomIds);
             }
-        } else {
-            const VMs = this._gridViewModel.getAndUntrackFirst();
-            if (VMs) {
-                this._currentRoomViewModel = this.track(VMs.vm);
-                this._currentRoomTileViewModel = VMs.tileVM;
-                this._currentRoomTileViewModel.open();
+        } else if (this._gridViewModel && !roomIds) {
+            if (currentRoomId) {
+                const vm = this._gridViewModel.releaseRoomViewModel(currentRoomId.value);
+                if (vm) {
+                    this._currentRoomViewModel = this.track(vm);
+                } else {
+                    const newVM = this._createRoomViewModel(currentRoomId.value);
+                    if (newVM) {
+                        this._currentRoomViewModel = this.track(newVM);
+                    }
+                }
             }
             this._gridViewModel = this.disposeTracked(this._gridViewModel);
         }
-        this.emitChange("middlePanelViewType");
-    }
-
-    _closeCurrentRoom() {
-        // no closing in grid for now as it is disabled on narrow viewports
-        if (!this._gridViewModel) {
-            this._currentRoomTileViewModel?.close();
-            this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
-            return true;
+        if (changed) {
+            this.emitChange("activeSection");
         }
     }
 
-    _openRoom(room, roomTileVM) {
-        if (this._gridViewModel?.tryFocusRoom(room.id)) {
-            return;
-        } else if (this._currentRoomViewModel?.id === room.id) {
-            return;
+    _createRoomViewModel(roomId) {
+        const room = this._sessionContainer.session.rooms.get(roomId);
+        if (!room) {
+            return null;
         }
         const roomVM = new RoomViewModel(this.childOptions({
             room,
-            ownUserId: this._session.user.id,
-            closeCallback: () => {
-                if (this._closeCurrentRoom()) {
-                    this.emitChange("currentRoom");
-                }
-            },
+            ownUserId: this._sessionContainer.session.user.id,
         }));
         roomVM.load();
-        if (this._gridViewModel) {
-            this._gridViewModel.setRoomViewModel(roomVM, roomTileVM);
-        } else {
-            this._closeCurrentRoom();
-            this._currentRoomTileViewModel = roomTileVM;
-            this._currentRoomViewModel = this.track(roomVM);
-            this.emitChange("currentRoom");
+        return roomVM;
+    }
+
+    _openRoom(roomId) {
+        if (!roomId) {
+            if (this._currentRoomViewModel) {
+                this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
+                this.emitChange("currentRoom");
+            }
+            return;
         }
+        // already open?
+        if (this._currentRoomViewModel?.id === roomId) {
+            return;
+        }
+        this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
+        const roomVM = this._createRoomViewModel(roomId);
+        if (roomVM) {
+            this._currentRoomViewModel = this.track(roomVM);
+        }
+        this.emitChange("currentRoom");
     }
 }

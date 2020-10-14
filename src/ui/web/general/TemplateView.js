@@ -37,6 +37,7 @@ function objHasFns(obj) {
         - className binding returning object with className => enabled map
         - add subviews inside the template
 */
+// TODO: should we rename this to BoundView or something? As opposed to StaticView ...
 export class TemplateView {
     constructor(value, render = undefined) {
         this._value = value;

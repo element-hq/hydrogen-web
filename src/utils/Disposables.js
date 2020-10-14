@@ -22,6 +22,10 @@ function disposeValue(value) {
     }
 }
 
+function isDisposable(value) {
+    return value && (typeof value === "function" || typeof value.dispose === "function");
+}
+
 export class Disposables {
     constructor() {
         this._disposables = [];
@@ -30,6 +34,9 @@ export class Disposables {
     track(disposable) {
         if (this.isDisposed) {
             throw new Error("Already disposed, check isDisposed after await if needed");
+        }
+        if (!isDisposable(disposable)) {
+            throw new Error("Not a disposable");
         }
         this._disposables.push(disposable);
         return disposable;
@@ -40,6 +47,7 @@ export class Disposables {
         if (idx >= 0) {
             this._disposables.splice(idx, 1);
         }
+        return null;
     }
 
     dispose() {

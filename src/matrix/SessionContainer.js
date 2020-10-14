@@ -70,6 +70,10 @@ export class SessionContainer {
         return (Math.floor(this._random() * Number.MAX_SAFE_INTEGER)).toString();
     }
 
+    get sessionId() {
+        return this._sessionId;
+    }
+
     async startWithExistingSession(sessionId) {
         if (this._status.get() !== LoadStatus.NotLoading) {
             return;

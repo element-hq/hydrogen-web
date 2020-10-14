@@ -30,11 +30,6 @@ export class SessionInfoStorage {
         return Promise.resolve([]);
     }
 
-    async hasAnySession() {
-        const all = await this.getAll();
-        return all && all.length > 0;
-    }
-
     async updateLastUsed(id, timestamp) {
         const sessions = await this.getAll();
         if (sessions) {

@@ -25,6 +25,17 @@ export class BaseObservableValue extends BaseObservable {
         }
     }
 
+    get() {
+        throw new Error("unimplemented");
+    }
+
+    waitFor(predicate) {
+        if (predicate(this.get())) {
+            return new ResolvedWaitForHandle(Promise.resolve(this.get()));
+        } else {
+            return new WaitForHandle(this, predicate);
+        }
+    }
 }
 
 class WaitForHandle {
@@ -79,14 +90,6 @@ export class ObservableValue extends BaseObservableValue {
         if (value !== this._value) {
             this._value = value;
             this.emit(this._value);
-        }
-    }
-
-    waitFor(predicate) {
-        if (predicate(this.get())) {
-            return new ResolvedWaitForHandle(Promise.resolve(this.get()));
-        } else {
-            return new WaitForHandle(this, predicate);
         }
     }
 }

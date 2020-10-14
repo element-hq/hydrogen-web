@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Matrix.org Foundation C.I.C.
+Copyright 2020 Bruno Windels <bruno@windels.cloud>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,16 +15,16 @@ limitations under the License.
 */
 
 import {TemplateView} from "../general/TemplateView.js";
-import {SessionLoadStatusView} from "./SessionLoadStatusView.js";
+import {spinner} from "../common.js";
 
-export class SessionLoadView extends TemplateView {
-    render(t, vm) {
-        return t.div({className: "PreSessionScreen"}, [
-            t.div({className: "logo"}),
-            t.div({className: "SessionLoadView"}, [
-                t.h1(vm.i18n`Loading…`),
-                t.view(new SessionLoadStatusView(vm))
-            ])
+/** a view used both in the login view and the loading screen
+to show the current state of loading the session.
+Just a spinner and a label, meant to be used as a paragraph */
+export class SessionLoadStatusView extends TemplateView {
+    render(t) {
+        return t.div({className: "SessionLoadStatusView"}, [
+            spinner(t, {hiddenWithLayout: vm => !vm.loading}),
+            t.p(vm => vm.loadLabel)
         ]);
     }
 }

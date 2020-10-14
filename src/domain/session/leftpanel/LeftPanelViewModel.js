@@ -23,26 +23,62 @@ import {ApplyMap} from "../../../observable/map/ApplyMap.js";
 export class LeftPanelViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {rooms, openRoom, gridEnabled} = options;
-        this._gridEnabled = gridEnabled;
-        const roomTileVMs = rooms.mapValues((room, emitChange) => {
-            return new RoomTileViewModel({
+        const {rooms} = options;
+        this._roomTileViewModels = rooms.mapValues((room, emitChange) => {
+            const isOpen = this.navigation.path.get("room")?.value === room.id;
+            const vm = new RoomTileViewModel(this.childOptions({
+                isOpen,
                 room,
-                emitChange,
-                emitOpen: openRoom
-            });
+                emitChange
+            }));
+            // need to also update the current vm here as
+            // we can't call `_open` from the ctor as the map
+            // is only populated when the view subscribes.
+            if (isOpen) {
+                this._currentTileVM?.close();
+                this._currentTileVM = vm;
+            }
+            return vm;
         });
-        this._roomListFilterMap = new ApplyMap(roomTileVMs);
+        this._roomListFilterMap = new ApplyMap(this._roomTileViewModels);
         this._roomList = this._roomListFilterMap.sortValues((a, b) => a.compare(b));
+        this._currentTileVM = null;
+        this._setupNavigation();
     }
 
-    get gridEnabled() {
-        return this._gridEnabled.get();
+    _setupNavigation() {
+        const roomObservable = this.navigation.observe("room");
+        this.track(roomObservable.subscribe(roomId => this._open(roomId)));
+
+        const gridObservable = this.navigation.observe("rooms");
+        this.gridEnabled = !!gridObservable.get();
+        this.track(gridObservable.subscribe(roomIds => {
+            const changed = this.gridEnabled ^ !!roomIds;
+            this.gridEnabled = !!roomIds;
+            if (changed) {
+                this.emitChange("gridEnabled");
+            }
+        }));
+    }
+
+    _open(roomId) {
+        this._currentTileVM?.close();
+        this._currentTileVM = null;
+        if (roomId) {
+            this._currentTileVM = this._roomTileViewModels.get(roomId);
+            this._currentTileVM?.open();
+        }
     }
 
     toggleGrid() {
-        this._gridEnabled.set(!this._gridEnabled.get());
-        this.emitChange("gridEnabled");
+        let url;
+        if (this.gridEnabled) {
+            url = this.urlRouter.disableGridUrl();
+        } else {
+            url = this.urlRouter.enableGridUrl();
+        }
+        url = this.urlRouter.applyUrl(url);
+        this.urlRouter.history.pushUrl(url);
     }
 
     get roomList() {

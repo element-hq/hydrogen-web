@@ -68,7 +68,7 @@ export class LeftPanelView extends TemplateView {
             t.button({
                 onClick: () => vm.toggleGrid(),
                 className: {
-                    utility: true,
+                    "button-utility": true,
                     grid: true,
                     on: vm => vm.gridEnabled
                 },
@@ -83,7 +83,6 @@ export class LeftPanelView extends TemplateView {
                 {
                     className: "RoomList",
                     list: vm.roomList,
-                    onItemClick: (roomTile, event) => roomTile.clicked(event)
                 },
                 roomTileVM => new RoomTileView(roomTileVM)
             ))

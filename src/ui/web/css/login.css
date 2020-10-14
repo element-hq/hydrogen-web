@@ -52,19 +52,19 @@ limitations under the License.
     padding: 0.4em;
 }
 
-.SessionLoadView {
+.SessionLoadStatusView {
     display: flex;
 }
 
-.SessionLoadView > :not(:first-child) {
+.SessionLoadStatusView > :not(:first-child) {
     margin-left: 12px;
 }
 
-.SessionLoadView p {
+.SessionLoadStatusView p {
     flex: 1;
     margin: 0;
 }
 
-.SessionLoadView .spinner {
+.SessionLoadStatusView .spinner {
     --size: 20px;
 }

@@ -25,12 +25,15 @@ function isSortedAsUnread(vm) {
 export class RoomTileViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {room, emitOpen} = options;
+        const {room} = options;
         this._room = room;
-        this._emitOpen = emitOpen;
         this._isOpen = false;
         this._wasUnreadWhenOpening = false;
         this._hidden = false;
+        this._url = this.urlRouter.openRoomActionUrl(this._room.id);
+        if (options.isOpen) {
+            this.open();
+        }
     }
 
     get hidden() {
@@ -44,7 +47,6 @@ export class RoomTileViewModel extends ViewModel {
         }
     }
 
-    // called by parent for now (later should integrate with router)
     close() {
         if (this._isOpen) {
             this._isOpen = false;
@@ -57,8 +59,11 @@ export class RoomTileViewModel extends ViewModel {
             this._isOpen = true;
             this._wasUnreadWhenOpening = this._room.isUnread;
             this.emitChange("isOpen");
-            this._emitOpen(this._room, this);
         }
+    }
+
+    get url() {
+        return this._url;
     }
 
     compare(other) {

@@ -45,7 +45,7 @@
             const view = new LoginView(vm({
                 defaultHomeServer: "https://hs.tld",
                 login: () => alert("Logging in!"),
-                goBack: () => alert("Going back"),
+                cancelUrl: "#/session"
             }));
             document.getElementById("login").appendChild(view.mount());
         </script>
@@ -59,10 +59,20 @@
                     loadLabel: "Doing something important...",
                     loading: true,
                 }),
+                cancelUrl: "#/session",
                 defaultHomeServer: "https://hs.tld",
             }));
             document.getElementById("login-loading").appendChild(view.mount());
 		</script>
-
+        <h2 name="session-loading">Session Loading</h2>
+        <div id="session-loading" class="hydrogen"></div>
+        <script id="main" type="module">
+            import {SessionLoadView} from "./login/SessionLoadView.js";
+            const view = new SessionLoadView(vm({
+                loading: true,
+                loadLabel: "Getting on with loading your session..."
+            }));
+            document.getElementById("session-loading").appendChild(view.mount());
+        </script>
 	</body>
 </html>

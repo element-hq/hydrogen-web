@@ -17,7 +17,7 @@ limitations under the License.
 import {ListView} from "../general/ListView.js";
 import {TemplateView} from "../general/TemplateView.js";
 import {hydrogenGithubLink} from "./common.js";
-import {SessionLoadView} from "./SessionLoadView.js";
+import {SessionLoadStatusView} from "./SessionLoadStatusView.js";
 
 function selectFileAsText(mimeType) {
     const input = document.createElement("input");
@@ -50,6 +50,12 @@ class SessionPickerItemView extends TemplateView {
         }
     }
 
+    _onClearClick() {
+        if (confirm("Are you sure?")) {
+            this.value.clear();
+        }
+    }
+
     render(t, vm) {
         const deleteButton = t.button({
             className: "destructive",
@@ -58,7 +64,7 @@ class SessionPickerItemView extends TemplateView {
         }, "Sign Out");
         const clearButton = t.button({
             disabled: vm => vm.isClearing,
-            onClick: () => vm.clear(),
+            onClick: this._onClearClick.bind(this),
         }, "Clear");
         const exportButton = t.button({
             disabled: vm => vm.isClearing,
@@ -73,7 +79,7 @@ class SessionPickerItemView extends TemplateView {
         }));
         const errorMessage = t.if(vm => vm.error, t.createTemplate(t => t.p({className: "error"}, vm => vm.error)));
         return t.li([
-            t.div({className: "session-info"}, [
+            t.a({className: "session-info", href: vm.openUrl}, [
                 t.div({className: `avatar usercolor${vm.avatarColorNumber}`}, vm => vm.avatarInitials),
                 t.div({className: "user-id"}, vm => vm.label),
             ]),
@@ -92,11 +98,6 @@ export class SessionPickerView extends TemplateView {
     render(t, vm) {
         const sessionList = new ListView({
             list: vm.sessions,
-            onItemClick: (item, event) => {
-                if (event.target.closest(".session-info")) {
-                    vm.pick(item.value.id);
-                }
-            },
             parentProvidesUpdates: false,
         }, sessionInfo => {
             return new SessionPickerItemView(sessionInfo);
@@ -109,15 +110,15 @@ export class SessionPickerView extends TemplateView {
                 t.view(sessionList),
                 t.div({className: "button-row"}, [
                     t.button({
-                        className: "styled secondary",
+                        className: "button-action secondary",
                         onClick: async () => vm.import(await selectFileAsText("application/json"))
                     }, vm.i18n`Import a session`),
-                    t.button({
-                        className: "styled primary",
-                        onClick: () => vm.cancel()
+                    t.a({
+                        className: "button-action primary",
+                        href: vm.cancelUrl
                     }, vm.i18n`Sign In`)
                 ]),
-                t.if(vm => vm.loadViewModel, vm => new SessionLoadView(vm.loadViewModel)),
+                t.if(vm => vm.loadViewModel, vm => new SessionLoadStatusView(vm.loadViewModel)),
                 t.p(hydrogenGithubLink(t))
             ])
         ]);

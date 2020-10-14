@@ -84,4 +84,8 @@ export class MappedMap extends BaseObservableMap {
     get size() {
         return this._mappedValues.size;
     }
+
+    get(key) {
+        return this._mappedValues.get(key);
+    }
 }

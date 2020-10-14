@@ -75,6 +75,9 @@ export class Timeline {
     
     // tries to prepend `amount` entries to the `entries` list.
     async loadAtTop(amount) {
+        if (this._disposables.isDisposed) {
+            return;
+        }
         const firstEventEntry = this._remoteEntries.array.find(e => !!e.eventType);
         if (!firstEventEntry) {
             return;

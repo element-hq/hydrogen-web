@@ -23,8 +23,8 @@ export class RoomGridView extends TemplateView {
         const children = [];
         for (let i = 0; i < (vm.height * vm.width); i+=1) {
             children.push(t.div({
-                onClick: () => vm.setFocusIndex(i),
-                onFocusin: () => vm.setFocusIndex(i),
+                onClick: () => vm.focusTile(i),
+                onFocusin: () => vm.focusTile(i),
                 className: {
                     "container": true,
                     [`tile${i}`]: true,
