@@ -134,11 +134,11 @@ a.button-action {
     border-radius: 100%;
 }
 
-button.utility.grid {
+.button-utility.grid {
     background-image: url('icons/enable-grid.svg');
 }
 
-button.utility.grid.on {
+.button-utility.grid.on {
     background-image: url('icons/disable-grid.svg');
 }
 

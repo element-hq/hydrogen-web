@@ -68,7 +68,7 @@ export class LeftPanelView extends TemplateView {
             t.button({
                 onClick: () => vm.toggleGrid(),
                 className: {
-                    utility: true,
+                    "button-utility": true,
                     grid: true,
                     on: vm => vm.gridEnabled
                 },
