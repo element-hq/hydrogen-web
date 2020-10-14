@@ -57,6 +57,7 @@ export class LeftPanelView extends TemplateView {
                 vm.i18n`Enable grid layout`;
         };
         const utilitiesRow = t.div({className: "utilities"}, [
+            t.a({className: "button-utility close-session", href: vm.closeUrl}),
             t.view(new FilterField({
                 i18n: vm.i18n,
                 label: vm.i18n`Filter rooms…`,

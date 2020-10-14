@@ -44,6 +44,11 @@ export class LeftPanelViewModel extends ViewModel {
         this._roomList = this._roomListFilterMap.sortValues((a, b) => a.compare(b));
         this._currentTileVM = null;
         this._setupNavigation();
+        this._closeUrl = this.urlRouter.urlForSegment("session");
+    }
+
+    get closeUrl() {
+        return this._closeUrl;
     }
 
     _setupNavigation() {
