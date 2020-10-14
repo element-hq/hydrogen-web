@@ -327,6 +327,7 @@ a {
 }
 
 .SessionPickerView .session-info {
+    text-decoration: none;
     padding: 12px;
     border: 1px solid rgba(141, 151, 165, 0.15);
     border-radius: 8px;
