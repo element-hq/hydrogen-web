@@ -118,7 +118,8 @@ export async function main(container, paths, legacyExtras) {
         }
 
         const navigation = createNavigation();
-        const urlRouter = createRouter({navigation, history: new History()});
+        const history = new History();
+        const urlRouter = createRouter({navigation, history});
         urlRouter.attach();
 
         const vm = new RootViewModel({
@@ -142,18 +143,11 @@ export async function main(container, paths, legacyExtras) {
             navigation
         });
         window.__brawlViewModel = vm;
-        const lastUrlHash = window.localStorage?.getItem("hydrogen_last_url_hash");
-        await vm.load(lastUrlHash);
+        await vm.load(history.getLastUrl());
         // TODO: replace with platform.createAndMountRootView(vm, container);
         const view = new RootView(vm);
         container.appendChild(view.mount());
-        window.addEventListener("beforeunload", storeUrlHashOnClose);
     } catch(err) {
         console.error(`${err.message}:\n${err.stack}`);
     }
-}
-
-function storeUrlHashOnClose() {
-    window.localStorage?.setItem("hydrogen_last_url_hash", document.location.hash);
-    window.removeEventListener("beforeunload", storeUrlHashOnClose);
 }

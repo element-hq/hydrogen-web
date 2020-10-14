@@ -29,6 +29,7 @@ export class History extends BaseObservableValue {
             return;
         }
         this.emit(this.get());
+        this._storeHash(this.get());
     }
 
     get() {
@@ -38,11 +39,13 @@ export class History extends BaseObservableValue {
     /** does not emit */
     replaceUrl(url) {
         window.history.replaceState(null, null, url);
+        this._storeHash(url);
     }
 
     /** does not emit */
     pushUrl(url) {
         window.history.pushState(null, null, url);
+        this._storeHash(url);
         // const hash = this.urlAsPath(url);
         // // important to check before we expect an echo
         // // as setting the hash to it's current value doesn't
@@ -78,5 +81,13 @@ export class History extends BaseObservableValue {
     onUnsubscribeLast() {
         window.removeEventListener('hashchange', this._boundOnHashChange);
         this._boundOnHashChange = null;
+    }
+
+    _storeHash(hash) {
+        window.localStorage?.setItem("hydrogen_last_url_hash", hash);
+    }
+
+    getLastUrl() {
+        return window.localStorage?.getItem("hydrogen_last_url_hash");
     }
 }
