@@ -56,7 +56,7 @@ html {
     /* show back button */
     .RoomHeader .close-room { display: block !important; }
     /* hide grid button */
-    .LeftPanel button.grid { display: none; }
+    .LeftPanel .grid { display: none !important; }
     div.RoomView, div.room-placeholder, div.RoomGridView { display: none; }
     div.LeftPanel {flex-grow: 1;}
     div.room-shown div.RoomView { display: flex; }
