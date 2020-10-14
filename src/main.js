@@ -142,11 +142,18 @@ export async function main(container, paths, legacyExtras) {
             navigation
         });
         window.__brawlViewModel = vm;
-        await vm.load();
+        const lastUrlHash = window.localStorage?.getItem("hydrogen_last_url_hash");
+        await vm.load(lastUrlHash);
         // TODO: replace with platform.createAndMountRootView(vm, container);
         const view = new RootView(vm);
         container.appendChild(view.mount());
+        window.addEventListener("beforeunload", storeUrlHashOnClose);
     } catch(err) {
         console.error(`${err.message}:\n${err.stack}`);
     }
+}
+
+function storeUrlHashOnClose() {
+    window.localStorage?.setItem("hydrogen_last_url_hash", document.location.hash);
+    window.removeEventListener("beforeunload", storeUrlHashOnClose);
 }

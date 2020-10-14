@@ -35,13 +35,13 @@ export class RootViewModel extends ViewModel {
         this._sessionViewModel = null;
     }
 
-    async load() {
+    async load(lastUrlHash) {
         this.track(this.navigation.observe("login").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("session").subscribe(() => this._applyNavigation()));
-        this._applyNavigation();
+        this._applyNavigation(lastUrlHash);
     }
 
-    async _applyNavigation() {
+    async _applyNavigation(restoreHashIfAtDefault) {
         const isLogin = this.navigation.observe("login").get();
         const sessionId = this.navigation.observe("session").get();
         if (isLogin) {
@@ -58,9 +58,12 @@ export class RootViewModel extends ViewModel {
             }
         } else {
             try {
-                // redirect depending on what sessions are already present
-                const sessionInfos = await this._sessionInfoStorage.getAll();
-                const url = this._urlForSessionInfos(sessionInfos);
+                let url = restoreHashIfAtDefault;
+                if (!url) {
+                    // redirect depending on what sessions are already present
+                    const sessionInfos = await this._sessionInfoStorage.getAll();
+                    url = this._urlForSessionInfos(sessionInfos);
+                }
                 this.urlRouter.history.replaceUrl(url);
                 this.urlRouter.applyUrl(url);
             } catch (err) {
