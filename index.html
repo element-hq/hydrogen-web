@@ -29,10 +29,24 @@
                 }
             });
 		</script>
-        <script id="service-worker" type="disabled">
+        <script id="service-worker" type="module">
             if('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('sw.js')
-                    .then(function() { console.log("Service Worker registered"); });
+                    .then(function(registration) {
+                    console.log("Service Worker registered");
+                    registration.onupdatefound = function() {
+                        const newWorker = registration.installing;
+                        alert("update found!");
+                        newWorker.onstatechange = function() {
+                            if (newWorker.state === "installed") {
+                                alert("new worker is now on state " + newWorker.state);
+                                // if (confirm("update installed! shall I skip waiting?")) {
+                                //     newWorker.skipWaiting();
+                                // }
+                            }
+                        }
+                    };
+                });
             }
         </script>
 	</body>
