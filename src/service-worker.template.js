@@ -118,4 +118,3 @@ async function readCache(request) {
     }
     return response;
 }
-
