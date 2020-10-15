@@ -37,11 +37,11 @@
                 const promise = new Promise(r => resolve = r);
                 const onMessage = function(event) {
                     if (event.data.replyTo === body.id) {
-                        worker.removeEventListener("message", onMessage);
+                        navigator.serviceWorker.removeEventListener("message", onMessage);
                         resolve(event.data.content);
                     }
                 }
-                worker.addEventListener("message", onMessage);
+                navigator.serviceWorker.addEventListener("message", onMessage);
                 worker.postMessage(body);
                 return promise;
             }
