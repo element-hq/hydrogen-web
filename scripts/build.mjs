@@ -129,6 +129,8 @@ async function buildHtml(doc, version, globalHash, modernOnly, assets) {
     // transform html file
     // change path to main.css to css bundle
     doc("link[rel=stylesheet]:not([title])").attr("href", assets.resolve(`hydrogen.css`));
+    // adjust file name of icon on iOS
+    doc("link[rel=apple-touch-icon]").attr("href", assets.resolve(`icon-maskable.png`));
     // change paths to all theme stylesheets
     findThemes(doc, (themeName, theme) => {
         theme.attr("href", assets.resolve(`themes/${themeName}/bundle.css`));
