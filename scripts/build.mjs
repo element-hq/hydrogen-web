@@ -80,11 +80,14 @@ async function build({modernOnly}) {
     await copyThemeAssets(themes, assets);
     await buildCssBundles(buildCssLegacy, themes, assets);
     await buildManifest(assets);
-    // all assets have been added, create a hash from all assets name to cache unhashed files like index.html by
-    const globalHashAssets = Array.from(assets).map(([, resolved]) => resolved);
-    globalHashAssets.sort();
-    const globalHash = contentHash(globalHashAssets.join(","));
-    await buildServiceWorker(globalHash, assets);
+    // all assets have been added, create a hash from all assets name to cache unhashed files like index.html
+    assets.addToHashForAll("index.html", devHtml);
+    let swSource = await fs.readFile(path.join(projectDir, "src/service-worker.template.js"), "utf8");
+    assets.addToHashForAll("sw.js", swSource);
+    
+    const globalHash = assets.hashForAll();
+
+    await buildServiceWorker(swSource, globalHash, assets);
     await buildHtml(doc, version, globalHash, modernOnly, assets);
     console.log(`built hydrogen ${version} (${globalHash}) successfully with ${assets.size} files`);
 }
@@ -243,7 +246,7 @@ async function buildManifest(assets) {
     await assets.write("manifest.json", JSON.stringify(webManifest));
 }
 
-async function buildServiceWorker(globalHash, assets) {
+async function buildServiceWorker(swSource, globalHash, assets) {
     const unhashedPreCachedAssets = ["index.html"];
     const hashedPreCachedAssets = [];
     const hashedCachedOnRequestAssets = [];
@@ -260,7 +263,6 @@ async function buildServiceWorker(globalHash, assets) {
         }
     }
     // write service worker
-    let swSource = await fs.readFile(path.join(projectDir, "src/service-worker.template.js"), "utf8");
     swSource = swSource.replace(`"%%GLOBAL_HASH%%"`, `"${globalHash}"`);
     swSource = swSource.replace(`"%%UNHASHED_PRECACHED_ASSETS%%"`, JSON.stringify(unhashedPreCachedAssets));
     swSource = swSource.replace(`"%%HASHED_PRECACHED_ASSETS%%"`, JSON.stringify(hashedPreCachedAssets));
@@ -355,6 +357,8 @@ class AssetMap {
         // remove last / if any, so substr in create works well
         this._targetDir = path.resolve(targetDir);
         this._assets = new Map();
+        // hashes for unhashed resources so changes in these resources also contribute to the hashForAll
+        this._unhashedHashes = [];
     }
 
     _toRelPath(resourcePath) {
@@ -443,6 +447,17 @@ class AssetMap {
 
     has(relPath) {
         return this._assets.has(relPath);
+    }
+
+    hashForAll() {
+        const globalHashAssets = Array.from(this).map(([, resolved]) => resolved);
+        globalHashAssets.push(...this._unhashedHashes);
+        globalHashAssets.sort();
+        return contentHash(globalHashAssets.join(","));
+    }
+
+    addToHashForAll(resourcePath, content) {
+        this._unhashedHashes.push(`${resourcePath}-${contentHash(Buffer.from(content))}`);
     }
 }
 
