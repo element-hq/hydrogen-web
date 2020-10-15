@@ -220,10 +220,10 @@ async function buildJsLegacy(mainFile, extraFiles = []) {
     return code;
 }
 
-const SERVICEWORKER_NONCACHED_ASSETS = [
+const NON_PRECACHED_JS = [
     "hydrogen-legacy.js",
     "olm_legacy.js",
-    "sw.js",
+    "worker.js"
 ];
 
 function isPreCached(asset) {
@@ -232,7 +232,7 @@ function isPreCached(asset) {
             asset.endsWith(".css") ||
             asset.endsWith(".wasm") ||
             // most environments don't need the worker
-            asset.endsWith(".js") && asset !== "worker.js";
+            asset.endsWith(".js") && !NON_PRECACHED_JS.includes(asset);
 }
 
 async function buildManifest(assets) {
@@ -252,9 +252,7 @@ async function buildServiceWorker(swSource, globalHash, assets) {
     const hashedCachedOnRequestAssets = [];
 
     for (const [unresolved, resolved] of assets) {
-        if (SERVICEWORKER_NONCACHED_ASSETS.includes(unresolved)) {
-            continue;
-        } else if (unresolved === resolved) {
+        if (unresolved === resolved) {
             unhashedPreCachedAssets.push(resolved);
         } else if (isPreCached(unresolved)) {
             hashedPreCachedAssets.push(resolved);
