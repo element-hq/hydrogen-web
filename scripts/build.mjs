@@ -87,7 +87,7 @@ async function build({modernOnly}) {
     
     const globalHash = assets.hashForAll();
 
-    await buildServiceWorker(swSource, globalHash, assets);
+    await buildServiceWorker(swSource, version, globalHash, assets);
     await buildHtml(doc, version, globalHash, modernOnly, assets);
     console.log(`built hydrogen ${version} (${globalHash}) successfully with ${assets.size} files`);
 }
@@ -246,7 +246,7 @@ async function buildManifest(assets) {
     await assets.write("manifest.json", JSON.stringify(webManifest));
 }
 
-async function buildServiceWorker(swSource, globalHash, assets) {
+async function buildServiceWorker(swSource, version, globalHash, assets) {
     const unhashedPreCachedAssets = ["index.html"];
     const hashedPreCachedAssets = [];
     const hashedCachedOnRequestAssets = [];
@@ -261,6 +261,7 @@ async function buildServiceWorker(swSource, globalHash, assets) {
         }
     }
     // write service worker
+    swSource = swSource.replace(`"%%VERSION%%"`, `"${version}"`);
     swSource = swSource.replace(`"%%GLOBAL_HASH%%"`, `"${globalHash}"`);
     swSource = swSource.replace(`"%%UNHASHED_PRECACHED_ASSETS%%"`, JSON.stringify(unhashedPreCachedAssets));
     swSource = swSource.replace(`"%%HASHED_PRECACHED_ASSETS%%"`, JSON.stringify(hashedPreCachedAssets));

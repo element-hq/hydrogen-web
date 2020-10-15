@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+const VERSION = "%%VERSION%%";
 const GLOBAL_HASH = "%%GLOBAL_HASH%%";
 const UNHASHED_PRECACHED_ASSETS = "%%UNHASHED_PRECACHED_ASSETS%%";
 const HASHED_PRECACHED_ASSETS = "%%HASHED_PRECACHED_ASSETS%%";
@@ -65,6 +66,18 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
     event.respondWith(handleRequest(event.request));
+});
+
+self.addEventListener('message', (event) => {
+    const reply = content => event.source.postMessage({replyTo: event.data?.id, content});
+    switch (event.data?.type) {
+        case "version":
+            reply({version: VERSION, buildHash: GLOBAL_HASH});
+            break;
+        case "skipWaiting":
+            self.skipWaiting();
+            break;
+    }
 });
 
 async function handleRequest(request) {
