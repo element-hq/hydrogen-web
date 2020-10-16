@@ -141,10 +141,6 @@ export class ServiceWorkerHandler {
     }
 
     async preventConcurrentSessionAccess(sessionId) {
-        // don't block if we didn't manage to install service worker
-        if (!this._registration) {
-            return Promise.resolve();
-        }
         return this._sendAndWaitForReply("closeSession", {sessionId});
     }
 }
