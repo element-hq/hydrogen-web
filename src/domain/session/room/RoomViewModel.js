@@ -32,7 +32,7 @@ export class RoomViewModel extends ViewModel {
         this._sendError = null;
         this._composerVM = new ComposerViewModel(this);
         this._clearUnreadTimout = null;
-        this._closeUrl = this.urlRouter.urlUntilSegment("session");
+        this._closeUrl = this.urlCreator.urlUntilSegment("session");
     }
 
     get closeUrl() {

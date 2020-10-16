@@ -25,6 +25,7 @@ import {RootViewModel} from "./domain/RootViewModel.js";
 import {createNavigation, createRouter} from "./domain/navigation/index.js";
 import {RootView} from "./ui/web/RootView.js";
 import {Clock} from "./ui/web/dom/Clock.js";
+import {ServiceWorkerHandler} from "./ui/web/dom/ServiceWorkerHandler.js";
 import {History} from "./ui/web/dom/History.js";
 import {OnlineStatus} from "./ui/web/dom/OnlineStatus.js";
 import {CryptoDriver} from "./ui/web/dom/CryptoDriver.js";
@@ -106,8 +107,14 @@ export async function main(container, paths, legacyExtras) {
         } else {
             request = xhrRequest;
         }
+        const navigation = createNavigation();
         const sessionInfoStorage = new SessionInfoStorage("hydrogen_sessions_v1");
-        const storageFactory = new StorageFactory();
+        let serviceWorkerHandler;
+        if (paths.serviceWorker && "serviceWorker" in navigator) {
+            serviceWorkerHandler = new ServiceWorkerHandler({navigation});
+            serviceWorkerHandler.registerAndStart(paths.serviceWorker);
+        }
+        const storageFactory = new StorageFactory(serviceWorkerHandler);
 
         const olmPromise = loadOlm(paths.olm);
         // if wasm is not supported, we'll want
@@ -116,10 +123,7 @@ export async function main(container, paths, legacyExtras) {
         if (!window.WebAssembly) {
             workerPromise = loadOlmWorker(paths);
         }
-
-        const navigation = createNavigation();
-        const history = new History();
-        const urlRouter = createRouter({navigation, history});
+        const urlRouter = createRouter({navigation, history: new History()});
         urlRouter.attach();
 
         const vm = new RootViewModel({
@@ -139,11 +143,14 @@ export async function main(container, paths, legacyExtras) {
             sessionInfoStorage,
             storageFactory,
             clock,
-            urlRouter,
-            navigation
+            // the only public interface of the router is to create urls,
+            // so we call it that in the view models
+            urlCreator: urlRouter,
+            navigation,
+            updateService: serviceWorkerHandler
         });
         window.__brawlViewModel = vm;
-        await vm.load(history.getLastUrl());
+        await vm.load();
         // TODO: replace with platform.createAndMountRootView(vm, container);
         const view = new RootView(vm);
         container.appendChild(view.mount());

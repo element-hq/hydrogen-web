@@ -44,7 +44,7 @@ export class LeftPanelViewModel extends ViewModel {
         this._roomList = this._roomListFilterMap.sortValues((a, b) => a.compare(b));
         this._currentTileVM = null;
         this._setupNavigation();
-        this._closeUrl = this.urlRouter.urlForSegment("session");
+        this._closeUrl = this.urlCreator.urlForSegment("session");
     }
 
     get closeUrl() {
@@ -76,14 +76,25 @@ export class LeftPanelViewModel extends ViewModel {
     }
 
     toggleGrid() {
-        let url;
         if (this.gridEnabled) {
-            url = this.urlRouter.disableGridUrl();
+            let path = this.navigation.path.until("session");
+            const room = this.navigation.path.get("room");
+            if (room) {
+                path = path.with(room);
+            }
+            this.navigation.applyPath(path);
         } else {
-            url = this.urlRouter.enableGridUrl();
+            let path = this.navigation.path.until("session");
+            const room = this.navigation.path.get("room");
+            if (room) {
+                path = path.with(this.navigation.segment("rooms", [room.value]));
+                path = path.with(room);
+            } else {
+                path = path.with(this.navigation.segment("rooms", []));
+                path = path.with(this.navigation.segment("empty-grid-tile", 0));
+            }
+            this.navigation.applyPath(path);
         }
-        url = this.urlRouter.applyUrl(url);
-        this.urlRouter.history.pushUrl(url);
     }
 
     get roomList() {

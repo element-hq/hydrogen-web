@@ -20,14 +20,9 @@ export class History extends BaseObservableValue {
     constructor() {
         super();
         this._boundOnHashChange = null;
-        this._expectSetEcho = false;
     }
 
     _onHashChange() {
-        if (this._expectSetEcho) {
-            this._expectSetEcho = false;
-            return;
-        }
         this.emit(this.get());
         this._storeHash(this.get());
     }
@@ -37,28 +32,19 @@ export class History extends BaseObservableValue {
     }
 
     /** does not emit */
-    replaceUrl(url) {
+    replaceUrlSilently(url) {
         window.history.replaceState(null, null, url);
         this._storeHash(url);
     }
 
     /** does not emit */
-    pushUrl(url) {
+    pushUrlSilently(url) {
         window.history.pushState(null, null, url);
         this._storeHash(url);
-        // const hash = this.urlAsPath(url);
-        // // important to check before we expect an echo
-        // // as setting the hash to it's current value doesn't
-        // // trigger onhashchange
-        // if (hash === document.location.hash) {
-        //     return;
-        // }
-        // // this operation is silent, 
-        // // so avoid emitting on echo hashchange event
-        // if (this._boundOnHashChange) {
-        //     this._expectSetEcho = true;
-        // }
-        // document.location.hash = hash;
+    }
+
+    pushUrl(url) {
+        document.location.hash = url;
     }
 
     urlAsPath(url) {

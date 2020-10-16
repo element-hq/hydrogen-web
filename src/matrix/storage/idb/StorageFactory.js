@@ -23,7 +23,12 @@ const sessionName = sessionId => `hydrogen_session_${sessionId}`;
 const openDatabaseWithSessionId = sessionId => openDatabase(sessionName(sessionId), createStores, schema.length);
 
 export class StorageFactory {
+    constructor(serviceWorkerHandler) {
+        this._serviceWorkerHandler = serviceWorkerHandler;
+    }
+
     async create(sessionId) {
+        await this._serviceWorkerHandler?.preventConcurrentSessionAccess(sessionId);
         const db = await openDatabaseWithSessionId(sessionId);
         return new Storage(db);
     }

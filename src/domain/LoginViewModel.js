@@ -70,7 +70,7 @@ export class LoginViewModel extends ViewModel {
     }
 
     get cancelUrl() {
-        return this.urlRouter.urlForSegment("session");
+        return this.urlCreator.urlForSegment("session");
     }
 
     dispose() {

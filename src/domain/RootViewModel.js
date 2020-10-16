@@ -27,21 +27,21 @@ export class RootViewModel extends ViewModel {
         this._createSessionContainer = createSessionContainer;
         this._sessionInfoStorage = sessionInfoStorage;
         this._storageFactory = storageFactory;
-
         this._error = null;
         this._sessionPickerViewModel = null;
         this._sessionLoadViewModel = null;
         this._loginViewModel = null;
         this._sessionViewModel = null;
+        this._pendingSessionContainer = null;
     }
 
-    async load(lastUrlHash) {
+    async load() {
         this.track(this.navigation.observe("login").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("session").subscribe(() => this._applyNavigation()));
-        this._applyNavigation(lastUrlHash);
+        this._applyNavigation(this.urlCreator.getLastUrl());
     }
 
-    async _applyNavigation(restoreHashIfAtDefault) {
+    async _applyNavigation(restoreUrlIfAtDefault) {
         const isLogin = this.navigation.observe("login").get();
         const sessionId = this.navigation.observe("session").get();
         if (isLogin) {
@@ -54,31 +54,37 @@ export class RootViewModel extends ViewModel {
             }
         } else if (sessionId) {
             if (!this._sessionViewModel || this._sessionViewModel.id !== sessionId) {
-                this._showSessionLoader(sessionId);
+                // see _showLogin for where _pendingSessionContainer comes from
+                if (this._pendingSessionContainer && this._pendingSessionContainer.sessionId === sessionId) {
+                    const sessionContainer = this._pendingSessionContainer;
+                    this._pendingSessionContainer = null;
+                    this._showSession(sessionContainer);
+                } else {
+                    // this should never happen, but we want to be sure not to leak it
+                    if (this._pendingSessionContainer) {
+                        this._pendingSessionContainer.dispose();
+                        this._pendingSessionContainer = null;
+                    }
+                    this._showSessionLoader(sessionId);
+                }
             }
         } else {
             try {
-                let url = restoreHashIfAtDefault;
-                if (!url) {
-                    // redirect depending on what sessions are already present
+                if (restoreUrlIfAtDefault) {
+                    this.urlCreator.pushUrl(restoreUrlIfAtDefault);
+                } else {
                     const sessionInfos = await this._sessionInfoStorage.getAll();
-                    url = this._urlForSessionInfos(sessionInfos);
+                    if (sessionInfos.length === 0) {
+                        this.navigation.push("login");
+                    } else if (sessionInfos.length === 1) {
+                        this.navigation.push("session", sessionInfos[0].id);
+                    } else {
+                        this.navigation.push("session");
+                    }
                 }
-                this.urlRouter.history.replaceUrl(url);
-                this.urlRouter.applyUrl(url);
             } catch (err) {
                 this._setSection(() => this._error = err);
             }
-        }
-    }
-
-    _urlForSessionInfos(sessionInfos) {
-        if (sessionInfos.length === 0) {
-            return this.urlRouter.urlForSegment("login");
-        } else if (sessionInfos.length === 1) {
-            return this.urlRouter.urlForSegment("session", sessionInfos[0].id);
-        } else {
-            return this.urlRouter.urlForSegment("session");
         }
     }
 
@@ -102,10 +108,16 @@ export class RootViewModel extends ViewModel {
                 defaultHomeServer: "https://matrix.org",
                 createSessionContainer: this._createSessionContainer,
                 ready: sessionContainer => {
-                    const url = this.urlRouter.urlForSegment("session", sessionContainer.sessionId);
-                    this.urlRouter.applyUrl(url);
-                    this.urlRouter.history.replaceUrl(url);
-                    this._showSession(sessionContainer);
+                    // we don't want to load the session container again,
+                    // but we also want the change of screen to go through the navigation
+                    // so we store the session container in a temporary variable that will be
+                    // consumed by _applyNavigation, triggered by the navigation change
+                    // 
+                    // Also, we should not call _setSection before the navigation is in the correct state,
+                    // as url creation (e.g. in RoomTileViewModel)
+                    // won't be using the correct navigation base path.
+                    this._pendingSessionContainer = sessionContainer;
+                    this.navigation.push("session", sessionContainer.sessionId);
                 },
             }));
         });

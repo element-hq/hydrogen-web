@@ -80,11 +80,14 @@ async function build({modernOnly}) {
     await copyThemeAssets(themes, assets);
     await buildCssBundles(buildCssLegacy, themes, assets);
     await buildManifest(assets);
-    // all assets have been added, create a hash from all assets name to cache unhashed files like index.html by
-    const globalHashAssets = Array.from(assets).map(([, resolved]) => resolved);
-    globalHashAssets.sort();
-    const globalHash = contentHash(globalHashAssets.join(","));
-    await buildServiceWorker(globalHash, assets);
+    // all assets have been added, create a hash from all assets name to cache unhashed files like index.html
+    assets.addToHashForAll("index.html", devHtml);
+    let swSource = await fs.readFile(path.join(projectDir, "src/service-worker.template.js"), "utf8");
+    assets.addToHashForAll("sw.js", swSource);
+    
+    const globalHash = assets.hashForAll();
+
+    await buildServiceWorker(swSource, version, globalHash, assets);
     await buildHtml(doc, version, globalHash, modernOnly, assets);
     console.log(`built hydrogen ${version} (${globalHash}) successfully with ${assets.size} files`);
 }
@@ -137,6 +140,7 @@ async function buildHtml(doc, version, globalHash, modernOnly, assets) {
     });
     const pathsJSON = JSON.stringify({
         worker: assets.has("worker.js") ? assets.resolve(`worker.js`) : null,
+        serviceWorker: "sw.js",
         olm: {
             wasm: assets.resolve("olm.wasm"),
             legacyBundle: assets.resolve("olm_legacy.js"),
@@ -153,7 +157,6 @@ async function buildHtml(doc, version, globalHash, modernOnly, assets) {
         );
     }
     doc("script#main").replaceWith(mainScripts.join(""));
-    doc("script#service-worker").attr("type", "text/javascript");
 
     const versionScript = doc("script#version");
     versionScript.attr("type", "text/javascript");
@@ -217,10 +220,10 @@ async function buildJsLegacy(mainFile, extraFiles = []) {
     return code;
 }
 
-const SERVICEWORKER_NONCACHED_ASSETS = [
+const NON_PRECACHED_JS = [
     "hydrogen-legacy.js",
     "olm_legacy.js",
-    "sw.js",
+    "worker.js"
 ];
 
 function isPreCached(asset) {
@@ -229,7 +232,7 @@ function isPreCached(asset) {
             asset.endsWith(".css") ||
             asset.endsWith(".wasm") ||
             // most environments don't need the worker
-            asset.endsWith(".js") && asset !== "worker.js";
+            asset.endsWith(".js") && !NON_PRECACHED_JS.includes(asset);
 }
 
 async function buildManifest(assets) {
@@ -243,15 +246,13 @@ async function buildManifest(assets) {
     await assets.write("manifest.json", JSON.stringify(webManifest));
 }
 
-async function buildServiceWorker(globalHash, assets) {
+async function buildServiceWorker(swSource, version, globalHash, assets) {
     const unhashedPreCachedAssets = ["index.html"];
     const hashedPreCachedAssets = [];
     const hashedCachedOnRequestAssets = [];
 
     for (const [unresolved, resolved] of assets) {
-        if (SERVICEWORKER_NONCACHED_ASSETS.includes(unresolved)) {
-            continue;
-        } else if (unresolved === resolved) {
+        if (unresolved === resolved) {
             unhashedPreCachedAssets.push(resolved);
         } else if (isPreCached(unresolved)) {
             hashedPreCachedAssets.push(resolved);
@@ -260,7 +261,7 @@ async function buildServiceWorker(globalHash, assets) {
         }
     }
     // write service worker
-    let swSource = await fs.readFile(path.join(projectDir, "src/service-worker.template.js"), "utf8");
+    swSource = swSource.replace(`"%%VERSION%%"`, `"${version}"`);
     swSource = swSource.replace(`"%%GLOBAL_HASH%%"`, `"${globalHash}"`);
     swSource = swSource.replace(`"%%UNHASHED_PRECACHED_ASSETS%%"`, JSON.stringify(unhashedPreCachedAssets));
     swSource = swSource.replace(`"%%HASHED_PRECACHED_ASSETS%%"`, JSON.stringify(hashedPreCachedAssets));
@@ -355,6 +356,8 @@ class AssetMap {
         // remove last / if any, so substr in create works well
         this._targetDir = path.resolve(targetDir);
         this._assets = new Map();
+        // hashes for unhashed resources so changes in these resources also contribute to the hashForAll
+        this._unhashedHashes = [];
     }
 
     _toRelPath(resourcePath) {
@@ -443,6 +446,17 @@ class AssetMap {
 
     has(relPath) {
         return this._assets.has(relPath);
+    }
+
+    hashForAll() {
+        const globalHashAssets = Array.from(this).map(([, resolved]) => resolved);
+        globalHashAssets.push(...this._unhashedHashes);
+        globalHashAssets.sort();
+        return contentHash(globalHashAssets.join(","));
+    }
+
+    addToHashForAll(resourcePath, content) {
+        this._unhashedHashes.push(`${resourcePath}-${contentHash(Buffer.from(content))}`);
     }
 }
 

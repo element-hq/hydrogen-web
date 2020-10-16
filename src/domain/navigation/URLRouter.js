@@ -14,40 +14,50 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {Segment} from "./Navigation.js";
-
 export class URLRouter {
     constructor({history, navigation, parseUrlPath, stringifyPath}) {
-        this._subscription = null;
         this._history = history;
         this._navigation = navigation;
         this._parseUrlPath = parseUrlPath;
         this._stringifyPath = stringifyPath;
+        this._subscription = null;
+        this._pathSubscription = null;
     }
 
     attach() {
         this._subscription = this._history.subscribe(url => {
-            const redirectedUrl = this.applyUrl(url);
+            const redirectedUrl = this._applyUrl(url);
             if (redirectedUrl !== url) {
-                this._history.replaceUrl(redirectedUrl);
+                this._history.replaceUrlSilently(redirectedUrl);
             }
         });
-        this.applyUrl(this._history.get());
+        this._applyUrl(this._history.get());
+        this._pathSubscription = this._navigation.pathObservable.subscribe(path => {
+            const url = this.urlForPath(path);
+            if (url !== this._history.get()) {
+                this._history.pushUrlSilently(url);
+            }
+        });
     }
 
     dispose() {
         this._subscription = this._subscription();
+        this._pathSubscription = this._pathSubscription();
     }
 
-    applyUrl(url) {    
+    _applyUrl(url) {    
         const urlPath = this._history.urlAsPath(url)
         const navPath = this._navigation.pathFrom(this._parseUrlPath(urlPath, this._navigation.path));
         this._navigation.applyPath(navPath);
         return this._history.pathAsUrl(this._stringifyPath(navPath));
     }
 
-    get history() {
-        return this._history;
+    pushUrl(url) {
+        this._history.pushUrl(url);
+    }
+
+    getLastUrl() {
+        return this._history.getLastUrl();
     }
 
     urlForSegments(segments) {
@@ -70,34 +80,12 @@ export class URLRouter {
     }
 
     urlForPath(path) {
-        return this.history.pathAsUrl(this._stringifyPath(path));
+        return this._history.pathAsUrl(this._stringifyPath(path));
     }
 
     openRoomActionUrl(roomId) {
         // not a segment to navigation knowns about, so append it manually
         const urlPath = `${this._stringifyPath(this._navigation.path.until("session"))}/open-room/${roomId}`;
         return this._history.pathAsUrl(urlPath);
-    }
-
-    disableGridUrl() {
-        let path = this._navigation.path.until("session");
-        const room = this._navigation.path.get("room");
-        if (room) {
-            path = path.with(room);
-        }
-        return this.urlForPath(path);
-    }
-
-    enableGridUrl() {
-        let path = this._navigation.path.until("session");
-        const room = this._navigation.path.get("room");
-        if (room) {
-            path = path.with(this._navigation.segment("rooms", [room.value]));
-            path = path.with(room);
-        } else {
-            path = path.with(this._navigation.segment("rooms", []));
-            path = path.with(this._navigation.segment("empty-grid-tile", 0));
-        }
-        return this.urlForPath(path);
     }
 }
