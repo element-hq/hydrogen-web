@@ -155,6 +155,6 @@ export async function main(container, paths, legacyExtras) {
         const view = new RootView(vm);
         container.appendChild(view.mount());
     } catch(err) {
-        console.error(`${err.message}:\n${err.stack}dfdfdfdf`);
+        console.error(`${err.message}:\n${err.stack}`);
     }
 }
