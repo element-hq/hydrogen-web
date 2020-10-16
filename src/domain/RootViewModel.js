@@ -63,7 +63,7 @@ export class RootViewModel extends ViewModel {
                     // this should never happen, but we want to be sure not to leak it
                     if (this._pendingSessionContainer) {
                         this._pendingSessionContainer.dispose();
-                        this._pendingSessionContainer = null
+                        this._pendingSessionContainer = null;
                     }
                     this._showSessionLoader(sessionId);
                 }
