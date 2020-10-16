@@ -27,12 +27,12 @@ export class RootViewModel extends ViewModel {
         this._createSessionContainer = createSessionContainer;
         this._sessionInfoStorage = sessionInfoStorage;
         this._storageFactory = storageFactory;
-
         this._error = null;
         this._sessionPickerViewModel = null;
         this._sessionLoadViewModel = null;
         this._loginViewModel = null;
         this._sessionViewModel = null;
+        this._pendingSessionContainer = null;
     }
 
     async load() {
@@ -54,7 +54,18 @@ export class RootViewModel extends ViewModel {
             }
         } else if (sessionId) {
             if (!this._sessionViewModel || this._sessionViewModel.id !== sessionId) {
-                this._showSessionLoader(sessionId);
+                // see _showLogin for where _pendingSessionContainer comes from
+                if (this._pendingSessionContainer && this._pendingSessionContainer.sessionId === sessionId) {
+                    const sessionContainer = this._pendingSessionContainer;
+                    this._pendingSessionContainer = null;
+                    this._showSession(sessionContainer);
+                } else {
+                    // this should never happen, but we want to be sure not to leak it
+                    if (this._pendingSessionContainer) {
+                        this._pendingSessionContainer.dispose();
+                    }
+                    this._showSessionLoader(sessionId);
+                }
             }
         } else {
             try {
@@ -96,7 +107,15 @@ export class RootViewModel extends ViewModel {
                 defaultHomeServer: "https://matrix.org",
                 createSessionContainer: this._createSessionContainer,
                 ready: sessionContainer => {
-                    this._showSession(sessionContainer);
+                    // we don't want to load the session container again,
+                    // but we also want the change of screen to go through the navigation
+                    // so we store the session container in a temporary variable that will be
+                    // consumed by _applyNavigation, triggered by the navigation change
+                    // 
+                    // Also, we should not call _setSection before the navigation is in the correct state,
+                    // as url creation (e.g. in RoomTileViewModel)
+                    // won't be using the correct navigation base path.
+                    this._pendingSessionContainer = sessionContainer;
                     this.navigation.push("session", sessionContainer.sessionId);
                 },
             }));
