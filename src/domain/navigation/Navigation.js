@@ -14,17 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableValue} from "../../observable/ObservableValue.js";
+import {BaseObservableValue, ObservableValue} from "../../observable/ObservableValue.js";
 
 export class Navigation {
     constructor(allowsChild) {
         this._allowsChild = allowsChild;
         this._path = new Path([], allowsChild);
         this._observables = new Map();
+        this._pathObservable = new ObservableValue(this._path);
+    }
+
+    get pathObservable() {
+        return this._pathObservable;
     }
 
     get path() {
         return this._path;
+    }
+
+    push(type, value = undefined) {
+        return this.applyPath(this.path.with(new Segment(type, value)));
     }
 
     applyPath(path) {
@@ -45,6 +54,10 @@ export class Navigation {
             const observable = this._observables.get(segment.type);
             observable?.emitIfChanged();
         }
+        // to observe the whole path having changed
+        // Since paths are immutable,
+        // we can just use set here which will compare the references
+        this._pathObservable.set(this._path);
     }
 
     observe(type) {

@@ -83,16 +83,12 @@ export class RoomGridViewModel extends ViewModel {
         if (index === this._selectedIndex) {
             return;
         }
-        let path = this.navigation.path;
         const vm = this._viewModels[index];
         if (vm) {
-            path = path.with(this.navigation.segment("room", vm.id));
+            this.navigation.push("room", vm.id);
         } else {
-            path = path.with(this.navigation.segment("empty-grid-tile", index));
+            this.navigation.push("empty-grid-tile", index);
         }
-        let url = this.urlRouter.urlForPath(path);
-        url = this.urlRouter.applyUrl(url);
-        this.urlRouter.history.pushUrl(url);
     }
 
     /** called from SessionViewModel */

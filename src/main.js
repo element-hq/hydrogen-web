@@ -118,8 +118,7 @@ export async function main(container, paths, legacyExtras) {
         }
 
         const navigation = createNavigation();
-        const history = new History();
-        const urlRouter = createRouter({navigation, history});
+        const urlRouter = createRouter({navigation, history: new History()});
         urlRouter.attach();
 
         const vm = new RootViewModel({
@@ -143,7 +142,7 @@ export async function main(container, paths, legacyExtras) {
             navigation
         });
         window.__brawlViewModel = vm;
-        await vm.load(history.getLastUrl());
+        await vm.load();
         // TODO: replace with platform.createAndMountRootView(vm, container);
         const view = new RootView(vm);
         container.appendChild(view.mount());
