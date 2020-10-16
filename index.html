@@ -29,46 +29,5 @@
                 }
             });
 		</script>
-        <script id="service-worker" type="module">
-
-            function workerMessage(worker, type) {
-                const body = {type, id: Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)};
-                let resolve;
-                const promise = new Promise(r => resolve = r);
-                const onMessage = function(event) {
-                    if (event.data.replyTo === body.id) {
-                        navigator.serviceWorker.removeEventListener("message", onMessage);
-                        resolve(event.data.content);
-                    }
-                }
-                navigator.serviceWorker.addEventListener("message", onMessage);
-                worker.postMessage(body);
-                return promise;
-            }
-
-            if('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('sw.js').then(function(registration) {
-                    console.log("Service Worker registered");
-                    async function tryActivateUpdate() {
-                        if (registration.waiting && registration.active) {
-                            const version = await workerMessage(registration.waiting, "version");
-                            if (confirm(`Version ${version.version} (${version.buildHash}) is ready to install. Apply now?`)) {
-                                registration.waiting.postMessage({type: "skipWaiting"}); // will trigger controllerchange event
-                            }
-                        }
-                    }
-                    tryActivateUpdate();
-                    registration.onupdatefound = function() {
-                        const newWorker = registration.installing;
-                        newWorker.onstatechange = function() {
-                            tryActivateUpdate();
-                        }
-                    };
-                });
-                navigator.serviceWorker.addEventListener("controllerchange", function() {
-                    document.location.reload();
-                });
-            }
-        </script>
 	</body>
 </html>

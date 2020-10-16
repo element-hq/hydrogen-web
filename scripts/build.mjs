@@ -140,6 +140,7 @@ async function buildHtml(doc, version, globalHash, modernOnly, assets) {
     });
     const pathsJSON = JSON.stringify({
         worker: assets.has("worker.js") ? assets.resolve(`worker.js`) : null,
+        serviceWorker: "sw.js",
         olm: {
             wasm: assets.resolve("olm.wasm"),
             legacyBundle: assets.resolve("olm_legacy.js"),
@@ -156,7 +157,6 @@ async function buildHtml(doc, version, globalHash, modernOnly, assets) {
         );
     }
     doc("script#main").replaceWith(mainScripts.join(""));
-    doc("script#service-worker").attr("type", "text/javascript");
 
     const versionScript = doc("script#version");
     versionScript.attr("type", "text/javascript");
