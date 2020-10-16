@@ -25,6 +25,7 @@ export class ServiceWorkerHandler {
         this._registration = null;
         this._navigation = navigation;
         this._registrationPromise = null;
+        this._currentController = null;
     }
 
     registerAndStart(path) {
@@ -32,6 +33,8 @@ export class ServiceWorkerHandler {
             navigator.serviceWorker.addEventListener("message", this);
             navigator.serviceWorker.addEventListener("controllerchange", this);
             this._registration = await navigator.serviceWorker.register(path);
+            await navigator.serviceWorker.ready;
+            this._currentController = navigator.serviceWorker.controller;
             this._registrationPromise = null;
             console.log("Service Worker registered");
             this._registration.addEventListener("updatefound", this);
@@ -76,7 +79,9 @@ export class ServiceWorkerHandler {
     }
 
     async _tryActivateUpdate() {
-        if (this._registration.waiting && this._registration.active) {
+        // we don't do confirm when the tab is hidden because it will block the event loop and prevent
+        // events from the service worker to be processed (like controllerchange when the visible tab applies the update). 
+        if (!document.hidden && this._registration.waiting && this._registration.active) {
             this._registration.waiting.removeEventListener("statechange", this);
             const version = await this._sendAndWaitForReply("version", null, this._registration.waiting);
             if (confirm(`Version ${version.version} (${version.buildHash}) is ready to install. Apply now?`)) {
@@ -98,11 +103,18 @@ export class ServiceWorkerHandler {
                 this._tryActivateUpdate();
                 break;
             case "controllerchange":
-                // active service worker changed,
-                // refresh, so we can get all assets 
-                // (and not some if we would not refresh)
-                // up to date from it
-                document.location.reload();
+                if (!this._currentController) {
+                    // Clients.claim() in the SW can trigger a controllerchange event
+                    // if we had no SW before. This is fine,
+                    // and now our requests will be served from the SW.
+                    this._currentController = navigator.serviceWorker.controller;
+                } else {
+                    // active service worker changed,
+                    // refresh, so we can get all assets 
+                    // (and not some if we would not refresh)
+                    // up to date from it
+                    document.location.reload();
+                }
                 break;
         }
     }

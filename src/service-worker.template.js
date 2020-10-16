@@ -61,7 +61,12 @@ async function purgeOldCaches() {
 }
 
 self.addEventListener('activate', (event) => {
-    event.waitUntil(purgeOldCaches());
+    event.waitUntil(Promise.all([
+        purgeOldCaches(),
+        // on a first page load/sw install,
+        // start using the service worker on all pages straight away
+        self.clients.claim()
+    ]));
 });
 
 self.addEventListener('fetch', (event) => {
