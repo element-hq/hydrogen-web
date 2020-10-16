@@ -76,7 +76,7 @@ class SessionItemViewModel extends ViewModel {
     }
 
     get openUrl() {
-        return this.urlRouter.urlForSegment("session", this.id);
+        return this.urlCreator.urlForSegment("session", this.id);
     }
 
     get label() {
@@ -189,6 +189,6 @@ export class SessionPickerViewModel extends ViewModel {
     }
 
     get cancelUrl() {
-        return this.urlRouter.urlForSegment("login");
+        return this.urlCreator.urlForSegment("login");
     }
 }

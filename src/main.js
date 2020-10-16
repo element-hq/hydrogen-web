@@ -143,7 +143,9 @@ export async function main(container, paths, legacyExtras) {
             sessionInfoStorage,
             storageFactory,
             clock,
-            urlRouter,
+            // the only public interface of the router is to create urls,
+            // so we call it that in the view models
+            urlCreator: urlRouter,
             navigation,
             updateService: serviceWorkerHandler
         });

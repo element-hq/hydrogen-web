@@ -30,8 +30,8 @@ export class ViewModel extends EventEmitter {
     }
 
     childOptions(explicitOptions) {
-        const {navigation, urlRouter, clock} = this._options;
-        return Object.assign({navigation, urlRouter, clock}, explicitOptions);
+        const {navigation, urlCreator, clock} = this._options;
+        return Object.assign({navigation, urlCreator, clock}, explicitOptions);
     }
 
     track(disposable) {
@@ -99,8 +99,12 @@ export class ViewModel extends EventEmitter {
         return this._options.clock;
     }
 
-    get urlRouter() {
-        return this._options.urlRouter;
+    /**
+     * The url router, only meant to be used to create urls with from view models.
+     * @return {URLRouter}
+     */
+    get urlCreator() {
+        return this._options.urlCreator;
     }
 
     get navigation() {
