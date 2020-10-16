@@ -152,6 +152,14 @@ export class ServiceWorkerHandler {
         this._registration.update();
     }
 
+    get version() {
+        return window.HYDROGEN_VERSION;
+    }
+
+    get buildHash() {
+        return window.HYDROGEN_GLOBAL_HASH;
+    }
+
     async preventConcurrentSessionAccess(sessionId) {
         return this._sendAndWaitForReply("closeSession", {sessionId});
     }

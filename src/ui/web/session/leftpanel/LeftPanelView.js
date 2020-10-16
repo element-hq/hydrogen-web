@@ -57,7 +57,7 @@ export class LeftPanelView extends TemplateView {
                 vm.i18n`Enable grid layout`;
         };
         const utilitiesRow = t.div({className: "utilities"}, [
-            t.a({className: "button-utility close-session", href: vm.closeUrl}),
+            t.a({className: "button-utility close-session", href: vm.closeUrl, "aria-label": vm.i18n`Back to account list`, title: vm.i18n`Back to account list`}),
             t.view(new FilterField({
                 i18n: vm.i18n,
                 label: vm.i18n`Filter rooms…`,
@@ -75,7 +75,8 @@ export class LeftPanelView extends TemplateView {
                 },
                 title: gridButtonLabel,
                 "aria-label": gridButtonLabel
-            })
+            }),
+            t.a({className: "button-utility settings", href: vm.settingsUrl, "aria-label": vm.i18n`Settings`, title: vm.i18n`Settings`}),
         ]);
 
         return t.div({className: "LeftPanel"}, [

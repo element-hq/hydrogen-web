@@ -77,6 +77,18 @@ export class Session {
         this.needsSessionBackup = new ObservableValue(false);
     }
 
+    get fingerprintKey() {
+        return this._e2eeAccount?.identityKeys.ed25519;
+    }
+
+    get deviceId() {
+        return this._sessionInfo.deviceId;
+    }
+
+    get userId() {
+        return this._sessionInfo.userId;
+    }
+
     // called once this._e2eeAccount is assigned
     _setupEncryption() {
         console.log("loaded e2ee account with keys", this._e2eeAccount.identityKeys);

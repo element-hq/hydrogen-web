@@ -132,10 +132,15 @@ a.button-action {
     background-repeat: no-repeat;
     border: none;
     border-radius: 100%;
+    display: block;
 }
 
 .button-utility.grid {
     background-image: url('icons/enable-grid.svg');
+}
+
+.button-utility.settings {
+    background-image: url('icons/settings.svg');
 }
 
 .button-utility.grid.on {
@@ -540,4 +545,26 @@ ul.Timeline > li.messageStatus .message-container > p {
 
 .GapView > :not(:first-child) {
     margin-left: 12px;
+}
+
+.Settings {
+    flex: 1;
+}
+
+.Settings .row .label {
+    font-weight: 600;
+}
+
+.Settings .row.key .content {
+    font-family: monospace;
+}
+
+.Settings .row {
+    margin: 12px;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.Settings .row .label {
+    flex: 0 0 200px;
 }

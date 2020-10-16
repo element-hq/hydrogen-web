@@ -34,6 +34,11 @@ export class ViewModel extends EventEmitter {
         return Object.assign({navigation, urlCreator, clock}, explicitOptions);
     }
 
+    // makes it easier to pass through dependencies of a sub-view model
+    getOption(name) {
+        return this._options[name];
+    }
+
     track(disposable) {
         if (!this.disposables) {
             this.disposables = new Disposables();

@@ -38,10 +38,44 @@ export class SessionView extends TemplateView {
                             return new RoomGridView(vm.roomGridViewModel);
                         case "placeholder":
                             return new StaticView(t => t.div({className: "room-placeholder"}, t.h2(vm.i18n`Choose a room on the left side.`)));
+                        case "settings":
+                            return new SettingsView(vm.settingsViewModel);
                         default: //room id
                             return new RoomView(vm.currentRoomViewModel);
                     }
                 })
+            ])
+        ]);
+    }
+}
+
+class SettingsView extends TemplateView {
+    render(t, vm) {
+        let version = vm.version;
+        if (vm.showUpdateButton) {
+            version = t.span([
+                vm.version,
+                t.button({onClick: () => vm.checkForUpdate()}, vm.i18n`Check for updates`)
+            ]);
+        }
+
+        const row = (label, content, extraClass = "") => {
+            return t.div({className: `row ${extraClass}`}, [
+                t.div({className: "label"}, label),
+                t.div({className: "content"}, content),
+            ]);
+        };
+
+        return t.div({className: "Settings"}, [
+            t.div({className: "header"}, [
+                t.a({className: "button-utility close-room", href: vm.closeUrl, title: vm.i18n`Close room`}),
+                t.h2("Settings")
+            ]),
+            t.div([
+                row(vm.i18n`User ID`, vm.userId),
+                row(vm.i18n`Session ID`, vm.deviceId),
+                row(vm.i18n`Session key`, vm.fingerprintKey, "key"),
+                row(vm.i18n`Version`, version),
             ])
         ]);
     }

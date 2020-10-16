@@ -125,7 +125,10 @@ export class RootViewModel extends ViewModel {
 
     _showSession(sessionContainer) {
         this._setSection(() => {
-            this._sessionViewModel = new SessionViewModel(this.childOptions({sessionContainer}));
+            this._sessionViewModel = new SessionViewModel(this.childOptions({
+                sessionContainer,
+                updateService: this.getOption("updateService")
+            }));
             this._sessionViewModel.start();
         });
     }
