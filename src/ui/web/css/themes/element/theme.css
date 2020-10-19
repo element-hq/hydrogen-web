@@ -547,22 +547,37 @@ ul.Timeline > li.messageStatus .message-container > p {
     margin-left: 12px;
 }
 
-.Settings {
-    flex: 1;
+.SettingsBody {
+    padding: 12px 16px;
 }
 
 .Settings .row .label {
     font-weight: 600;
 }
 
-.Settings .row.key .content {
+.Settings .row .label, .Settings .row .content {
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+
+.Settings .row .content {
+    margin-left: 4px;
+}
+
+.Settings .row.code .content {
     font-family: monospace;
 }
 
+.Settings .row .content button {
+  display: inline-block;
+  margin: 0 8px;
+}
+
 .Settings .row {
-    margin: 12px;
+    margin: 4px 0px;
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
 }
 
 .Settings .row .label {

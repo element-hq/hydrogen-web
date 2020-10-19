@@ -71,10 +71,10 @@ class SettingsView extends TemplateView {
                 t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Close settings`}),
                 t.h2("Settings")
             ]),
-            t.div([
+            t.div({className: "SettingsBody"}, [
                 row(vm.i18n`User ID`, vm.userId),
-                row(vm.i18n`Session ID`, vm.deviceId),
-                row(vm.i18n`Session key`, vm.fingerprintKey, "key"),
+                row(vm.i18n`Session ID`, vm.deviceId, "code"),
+                row(vm.i18n`Session key`, vm.fingerprintKey, "code"),
                 row(vm.i18n`Version`, version),
             ])
         ]);
