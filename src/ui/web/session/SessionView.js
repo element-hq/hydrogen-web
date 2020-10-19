@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,13 +21,14 @@ import {TemplateView} from "../general/TemplateView.js";
 import {StaticView} from "../general/StaticView.js";
 import {SessionStatusView} from "./SessionStatusView.js";
 import {RoomGridView} from "./RoomGridView.js";
+import {SettingsView} from "./SettingsView.js";
 
 export class SessionView extends TemplateView {
     render(t, vm) {
         return t.div({
             className: {
                 "SessionView": true,
-                "room-shown": vm => vm.activeSection !== "placeholder"
+                "middle-shown": vm => vm.activeSection !== "placeholder"
             },
         }, [
             t.view(new SessionStatusView(vm.sessionStatusViewModel)),
@@ -38,6 +40,8 @@ export class SessionView extends TemplateView {
                             return new RoomGridView(vm.roomGridViewModel);
                         case "placeholder":
                             return new StaticView(t => t.div({className: "room-placeholder"}, t.h2(vm.i18n`Choose a room on the left side.`)));
+                        case "settings":
+                            return new SettingsView(vm.settingsViewModel);
                         default: //room id
                             return new RoomView(vm.currentRoomViewModel);
                     }

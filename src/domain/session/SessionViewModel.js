@@ -19,6 +19,7 @@ import {LeftPanelViewModel} from "./leftpanel/LeftPanelViewModel.js";
 import {RoomViewModel} from "./room/RoomViewModel.js";
 import {SessionStatusViewModel} from "./SessionStatusViewModel.js";
 import {RoomGridViewModel} from "./RoomGridViewModel.js";
+import {SettingsViewModel} from "./SettingsViewModel.js";
 import {ViewModel} from "../ViewModel.js";
 
 export class SessionViewModel extends ViewModel {
@@ -34,6 +35,7 @@ export class SessionViewModel extends ViewModel {
         this._leftPanelViewModel = this.track(new LeftPanelViewModel(this.childOptions({
             rooms: this._sessionContainer.session.rooms
         })));
+        this._settingsViewModel = null;
         this._currentRoomViewModel = null;
         this._gridViewModel = null;
         this._setupNavigation();
@@ -53,12 +55,18 @@ export class SessionViewModel extends ViewModel {
         // this gives us the active room
         this.track(currentRoomId.subscribe(roomId => {
             if (!this._gridViewModel) {
-                this._openRoom(roomId);
+                this._updateRoom(roomId);
             }
         }));
-        if (currentRoomId.get() && !this._gridViewModel) {
-            this._openRoom(currentRoomId.get());
+        if (!this._gridViewModel) {
+            this._updateRoom(currentRoomId.get());
         }
+
+        const settings = this.navigation.observe("settings");
+        this.track(settings.subscribe(settingsOpen => {
+            this._updateSettings(settingsOpen);
+        }));
+        this._updateSettings(settings.get());
     }
 
     get id() {
@@ -74,6 +82,8 @@ export class SessionViewModel extends ViewModel {
             return this._currentRoomViewModel.id;
         } else if (this._gridViewModel) {
             return "roomgrid";
+        } else if (this._settingsViewModel) {
+            return "settings";
         }
         return "placeholder";
     }
@@ -88,6 +98,10 @@ export class SessionViewModel extends ViewModel {
 
     get sessionStatusViewModel() {
         return this._sessionStatusViewModel;
+    }
+
+    get settingsViewModel() {
+        return this._settingsViewModel;
     }
 
     get roomList() {
@@ -148,7 +162,7 @@ export class SessionViewModel extends ViewModel {
         return roomVM;
     }
 
-    _openRoom(roomId) {
+    _updateRoom(roomId) {
         if (!roomId) {
             if (this._currentRoomViewModel) {
                 this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
@@ -166,5 +180,18 @@ export class SessionViewModel extends ViewModel {
             this._currentRoomViewModel = this.track(roomVM);
         }
         this.emitChange("currentRoom");
+    }
+
+    _updateSettings(settingsOpen) {
+        if (this._settingsViewModel) {
+            this._settingsViewModel = this.disposeTracked(this._settingsViewModel);
+        }
+        if (settingsOpen) {
+            this._settingsViewModel = this.track(new SettingsViewModel(this.childOptions({
+                updateService: this.getOption("updateService"),
+                session: this._sessionContainer.session
+            })));
+        }
+        this.emitChange("activeSection");
     }
 }

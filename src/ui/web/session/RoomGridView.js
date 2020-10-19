@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,6 +42,6 @@ export class RoomGridView extends TemplateView {
             })));
         }
         children.push(t.div({className: vm => `focus-ring tile${vm.focusIndex}`}));
-        return t.div({className: "RoomGridView layout3x2"}, children);
+        return t.div({className: "RoomGridView middle layout3x2"}, children);
     }
 }

@@ -132,10 +132,15 @@ a.button-action {
     background-repeat: no-repeat;
     border: none;
     border-radius: 100%;
+    display: block;
 }
 
 .button-utility.grid {
     background-image: url('icons/enable-grid.svg');
+}
+
+.button-utility.settings {
+    background-image: url('icons/settings.svg');
 }
 
 .button-utility.grid.on {
@@ -311,7 +316,7 @@ a {
     z-index: 2;
 }
 
-.room-shown .SessionStatusView {
+.middle-shown .SessionStatusView {
     top: 72px;
 }
 
@@ -382,7 +387,7 @@ a {
     border-radius: 12px;
 }
 
-.RoomHeader {
+.middle-header {
     box-sizing: border-box;
     height: 58px; /* 12 + 36 + 12 to align with filter field + margin */
     background: white;
@@ -390,19 +395,19 @@ a {
     border-bottom: 1px solid rgba(245, 245, 245, 0.90);
 }
 
-.RoomHeader h2 {
+.middle-header h2 {
     font-size: 1.8rem;
     font-weight: 600;
 }
 
-.RoomHeader > :not(:last-child) {
+.middle-header > :not(:last-child) {
     /* use margin-right because the first item,
-    .close-room might be hidden and then we don't
+    .close-middle might be hidden and then we don't
     want a margin-left on the second item*/
     margin-right: 8px;
 }
 
-.close-room, .close-session {
+.close-middle, .close-session {
     background-image: url('icons/chevron-left.svg');
     background-position-x: 10px;
 }
@@ -540,4 +545,41 @@ ul.Timeline > li.messageStatus .message-container > p {
 
 .GapView > :not(:first-child) {
     margin-left: 12px;
+}
+
+.SettingsBody {
+    padding: 12px 16px;
+}
+
+.Settings .row .label {
+    font-weight: 600;
+}
+
+.Settings .row .label, .Settings .row .content {
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+
+.Settings .row .content {
+    margin-left: 4px;
+}
+
+.Settings .row.code .content {
+    font-family: monospace;
+}
+
+.Settings .row .content button {
+  display: inline-block;
+  margin: 0 8px;
+}
+
+.Settings .row {
+    margin: 4px 0px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.Settings .row .label {
+    flex: 0 0 200px;
 }

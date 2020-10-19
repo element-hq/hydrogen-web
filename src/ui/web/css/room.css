@@ -15,23 +15,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-.RoomHeader {
+.middle-header {
     align-items: center;
 }
 
-.RoomHeader h2 {
+.middle-header h2 {
     flex: 1;
 }
 
-.RoomHeader button {
+.middle-header button {
     display: block;
 }
 
-.RoomHeader .close-room {
-    display: none;
-}
-
-.RoomHeader .room-description {
+.middle-header .room-description {
     flex: 1;
     min-width: 0;
 }
@@ -47,7 +43,7 @@ limitations under the License.
     min-width: 0;
 }
 
-.RoomHeader h2 {
+.middle-header h2 {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;

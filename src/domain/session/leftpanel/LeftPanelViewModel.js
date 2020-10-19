@@ -45,10 +45,15 @@ export class LeftPanelViewModel extends ViewModel {
         this._currentTileVM = null;
         this._setupNavigation();
         this._closeUrl = this.urlCreator.urlForSegment("session");
+        this._settingsUrl = this.urlCreator.urlForSegment("settings");
     }
 
     get closeUrl() {
         return this._closeUrl;
+    }
+
+    get settingsUrl() {
+        return this._settingsUrl;
     }
 
     _setupNavigation() {
