@@ -149,7 +149,7 @@ export async function main(container, paths, legacyExtras) {
             navigation,
             updateService: serviceWorkerHandler
         });
-        window.__brawlViewModel = vm;
+        window.__hydrogenViewModel = vm;
         await vm.load();
         // TODO: replace with platform.createAndMountRootView(vm, container);
         const view = new RootView(vm);
