@@ -39,11 +39,15 @@ export class TimelineViewModel extends ViewModel {
     constructor(options) {
         super(options);
         const {room, timeline, ownUserId} = options;
-        this._timeline = timeline;
+        this._timeline = this.track(timeline);
         // once we support sending messages we could do
         // timeline.entries.concat(timeline.pendingEvents)
         // for an ObservableList that also contains local echos
         this._tiles = new TilesCollection(timeline.entries, tilesCreator({room, ownUserId, clock: this.clock}));
+    }
+
+    async load() {
+        await this._timeline.load();
     }
 
     /**

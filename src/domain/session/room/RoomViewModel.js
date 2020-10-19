@@ -25,7 +25,6 @@ export class RoomViewModel extends ViewModel {
         const {room, ownUserId} = options;
         this._room = room;
         this._ownUserId = ownUserId;
-        this._timeline = null;
         this._timelineVM = null;
         this._onRoomChange = this._onRoomChange.bind(this);
         this._timelineError = null;
@@ -42,13 +41,12 @@ export class RoomViewModel extends ViewModel {
     async load() {
         this._room.on("change", this._onRoomChange);
         try {
-            this._timeline = this.track(this._room.openTimeline());
-            await this._timeline.load();
-            this._timelineVM = new TimelineViewModel(this.childOptions({
+            this._timelineVM = this.track(new TimelineViewModel(this.childOptions({
                 room: this._room,
-                timeline: this._timeline,
+                timeline: this._room.openTimeline(),
                 ownUserId: this._ownUserId,
-            }));
+            })));
+            await this._timelineVM.load();
             this.emitChange("timelineViewModel");
         } catch (err) {
             console.error(`room.openTimeline(): ${err.message}:\n${err.stack}`);
