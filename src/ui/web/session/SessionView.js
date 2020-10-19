@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +21,7 @@ import {TemplateView} from "../general/TemplateView.js";
 import {StaticView} from "../general/StaticView.js";
 import {SessionStatusView} from "./SessionStatusView.js";
 import {RoomGridView} from "./RoomGridView.js";
+import {SettingsView} from "./SettingsView.js";
 
 export class SessionView extends TemplateView {
     render(t, vm) {
@@ -44,38 +46,6 @@ export class SessionView extends TemplateView {
                             return new RoomView(vm.currentRoomViewModel);
                     }
                 })
-            ])
-        ]);
-    }
-}
-
-class SettingsView extends TemplateView {
-    render(t, vm) {
-        let version = vm.version;
-        if (vm.showUpdateButton) {
-            version = t.span([
-                vm.version,
-                t.button({onClick: () => vm.checkForUpdate()}, vm.i18n`Check for updates`)
-            ]);
-        }
-
-        const row = (label, content, extraClass = "") => {
-            return t.div({className: `row ${extraClass}`}, [
-                t.div({className: "label"}, label),
-                t.div({className: "content"}, content),
-            ]);
-        };
-
-        return t.main({className: "Settings middle"}, [
-            t.div({className: "middle-header"}, [
-                t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Close settings`}),
-                t.h2("Settings")
-            ]),
-            t.div({className: "SettingsBody"}, [
-                row(vm.i18n`User ID`, vm.userId),
-                row(vm.i18n`Session ID`, vm.deviceId, "code"),
-                row(vm.i18n`Session key`, vm.fingerprintKey, "code"),
-                row(vm.i18n`Version`, version),
             ])
         ]);
     }
