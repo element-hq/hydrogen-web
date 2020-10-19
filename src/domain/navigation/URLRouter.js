@@ -22,22 +22,13 @@ export class URLRouter {
         this._stringifyPath = stringifyPath;
         this._subscription = null;
         this._pathSubscription = null;
+        this._isApplyingUrl = false;
     }
 
     attach() {
-        this._subscription = this._history.subscribe(url => {
-            const redirectedUrl = this._applyUrl(url);
-            if (redirectedUrl !== url) {
-                this._history.replaceUrlSilently(redirectedUrl);
-            }
-        });
+        this._subscription = this._history.subscribe(url => this._applyUrl(url));
         this._applyUrl(this._history.get());
-        this._pathSubscription = this._navigation.pathObservable.subscribe(path => {
-            const url = this.urlForPath(path);
-            if (url !== this._history.get()) {
-                this._history.pushUrlSilently(url);
-            }
-        });
+        this._pathSubscription = this._navigation.pathObservable.subscribe(path => this._applyNavigationPath(path));
     }
 
     dispose() {
@@ -45,11 +36,27 @@ export class URLRouter {
         this._pathSubscription = this._pathSubscription();
     }
 
+    _applyNavigationPath(path) {
+        const url = this.urlForPath(path);
+        if (url !== this._history.get()) {
+            if (this._isApplyingUrl) {
+                // redirect
+                this._history.replaceUrlSilently(url);
+            } else {
+                this._history.pushUrlSilently(url);
+            }
+        }
+    }
+
     _applyUrl(url) {    
         const urlPath = this._history.urlAsPath(url)
         const navPath = this._navigation.pathFrom(this._parseUrlPath(urlPath, this._navigation.path));
+        // this will cause _applyNavigationPath to be called,
+        // so set a flag whether this request came from ourselves
+        // (in which case it is a redirect if the url does not match the current one)
+        this._isApplyingUrl = true;
         this._navigation.applyPath(navPath);
-        return this._history.pathAsUrl(this._stringifyPath(navPath));
+        this._isApplyingUrl = false;
     }
 
     pushUrl(url) {

@@ -17,14 +17,11 @@ limitations under the License.
 import {BaseObservableValue} from "../../../observable/ObservableValue.js";
 
 export class History extends BaseObservableValue {
-    constructor() {
-        super();
-        this._boundOnHashChange = null;
-    }
-
-    _onHashChange() {
-        this.emit(this.get());
-        this._storeHash(this.get());
+    handleEvent(event) {
+        if (event.type === "hashchange") {
+            this.emit(this.get());
+            this._storeHash(this.get());
+        }
     }
 
     get() {
@@ -60,13 +57,11 @@ export class History extends BaseObservableValue {
     }
 
     onSubscribeFirst() {
-        this._boundOnHashChange = this._onHashChange.bind(this);
-        window.addEventListener('hashchange', this._boundOnHashChange);
+        window.addEventListener('hashchange', this);
     }
 
     onUnsubscribeLast() {
-        window.removeEventListener('hashchange', this._boundOnHashChange);
-        this._boundOnHashChange = null;
+        window.removeEventListener('hashchange', this);
     }
 
     _storeHash(hash) {
