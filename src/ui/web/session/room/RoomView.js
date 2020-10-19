@@ -23,10 +23,10 @@ import {renderAvatar} from "../../common.js";
 
 export class RoomView extends TemplateView {
     render(t, vm) {
-        return t.div({className: "RoomView"}, [
+        return t.main({className: "RoomView middle"}, [
             t.div({className: "TimelinePanel"}, [
-                t.div({className: "RoomHeader"}, [
-                    t.a({className: "button-utility close-room", href: vm.closeUrl, title: vm.i18n`Close room`}),
+                t.div({className: "RoomHeader middle-header"}, [
+                    t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Close room`}),
                     renderAvatar(t, vm, 32),
                     t.div({className: "room-description"}, [
                         t.h2(vm => vm.name),

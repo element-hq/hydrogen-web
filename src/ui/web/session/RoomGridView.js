@@ -42,6 +42,6 @@ export class RoomGridView extends TemplateView {
             })));
         }
         children.push(t.div({className: vm => `focus-ring tile${vm.focusIndex}`}));
-        return t.div({className: "RoomGridView layout3x2"}, children);
+        return t.div({className: "RoomGridView middle layout3x2"}, children);
     }
 }

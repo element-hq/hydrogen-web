@@ -26,7 +26,7 @@ export class SessionView extends TemplateView {
         return t.div({
             className: {
                 "SessionView": true,
-                "room-shown": vm => vm.activeSection !== "placeholder"
+                "middle-shown": vm => vm.activeSection !== "placeholder"
             },
         }, [
             t.view(new SessionStatusView(vm.sessionStatusViewModel)),
@@ -66,9 +66,9 @@ class SettingsView extends TemplateView {
             ]);
         };
 
-        return t.div({className: "Settings"}, [
-            t.div({className: "header"}, [
-                t.a({className: "button-utility close-room", href: vm.closeUrl, title: vm.i18n`Close room`}),
+        return t.main({className: "Settings middle"}, [
+            t.div({className: "middle-header"}, [
+                t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Close settings`}),
                 t.h2("Settings")
             ]),
             t.div([

@@ -51,17 +51,18 @@ html {
     width: 100vw;
 }
 
+/* hide back button in middle section by default */
+.middle .close-middle { display: none; }
 /* mobile layout */
 @media screen and (max-width: 800px) {
     /* show back button */
-    .RoomHeader .close-room { display: block !important; }
+    .middle .close-middle { display: block !important; }
     /* hide grid button */
     .LeftPanel .grid { display: none !important; }
-    div.RoomView, div.room-placeholder, div.RoomGridView { display: none; }
+    div.middle, div.room-placeholder { display: none; }
     div.LeftPanel {flex-grow: 1;}
-    div.room-shown div.RoomGridView { display: flex; }
-    div.room-shown div.RoomView { display: flex; }
-    div.room-shown div.LeftPanel { display: none; }
+    div.middle-shown div.middle { display: flex; }
+    div.middle-shown div.LeftPanel { display: none; }
     div.right-shown div.TimelinePanel { display: none; }
 }
 
@@ -70,7 +71,7 @@ html {
     min-width: 0;
 }
 
-.room-placeholder, .RoomView, .RoomGridView {
+.room-placeholder, .middle {
     flex: 1 0 0;
     min-width: 0;
 }
@@ -94,7 +95,7 @@ html {
     flex: 1 0 0;
 }
 
-.RoomHeader {
+.middle-header {
     display: flex;
 }
 
