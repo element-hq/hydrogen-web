@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../general/TemplateView.js";
+import {TemplateView} from "../../general/TemplateView.js";
+import {SessionBackupSettingsView} from "./SessionBackupSettingsView.js"
 
 export class SettingsView extends TemplateView {
     render(t, vm) {
@@ -39,9 +40,13 @@ export class SettingsView extends TemplateView {
                 t.h2("Settings")
             ]),
             t.div({className: "SettingsBody"}, [
+                t.h3("Session"),
                 row(vm.i18n`User ID`, vm.userId),
                 row(vm.i18n`Session ID`, vm.deviceId, "code"),
                 row(vm.i18n`Session key`, vm.fingerprintKey, "code"),
+                t.h3("Session Backup"),
+                t.view(new SessionBackupSettingsView(vm.sessionBackupViewModel)),
+                t.h3("Application"),
                 row(vm.i18n`Version`, version),
             ])
         ]);

@@ -21,8 +21,10 @@ export class SettingsViewModel extends ViewModel {
     constructor(options) {
         super(options);
         this._updateService = options.updateService;
-        this._session = options.session;
-        this._closeUrl = this.urlCreator.urlUntilSegment("session");   
+        const session = options.session;
+        this._session = session;
+        this._sessionBackupViewModel = this.track(new SessionBackupViewModel(this.childOptions({session})));
+        this._closeUrl = this.urlCreator.urlUntilSegment("session");
     }
 
     get closeUrl() {
@@ -52,7 +54,7 @@ export class SettingsViewModel extends ViewModel {
         if (this._updateService) {
             return `${this._updateService.version} (${this._updateService.buildHash})`;
         }
-        return "development version";
+        return this.i18n`development version`;
     }
 
     checkForUpdate() {
@@ -61,5 +63,84 @@ export class SettingsViewModel extends ViewModel {
 
     get showUpdateButton() {
         return !!this._updateService;
+    }
+
+    get sessionBackupViewModel() {
+        return this._sessionBackupViewModel;
+    }
+}
+
+
+class SessionBackupViewModel extends ViewModel {
+    constructor(options) {
+        super(options);
+        this._session = options.session;
+        this._showKeySetup = true;
+        this._error = null;
+        this._isBusy = false;
+    }
+    
+    get isBusy() {
+        return this._isBusy;
+    }
+
+    get backupVersion() {
+        return this._session.sessionBackup?.version;
+    }
+
+    get status() {
+        if (this._session.sessionBackup) {
+            return "enabled";
+        } else {
+            return this._showKeySetup ? "setupKey" : "setupPhrase";
+        }
+    }
+
+    get error() {
+        return this._error?.message;
+    }
+
+    showPhraseSetup() {
+        this._showKeySetup = false;
+        this.emitChange("showKeySetup");
+    }
+
+    showKeySetup() {
+        this._showKeySetup = true;
+        this.emitChange("showKeySetup");
+    }
+
+    async enterSecurityPhrase(passphrase) {
+        if (passphrase) {
+            try {
+                this._isBusy = true;
+                this.emitChange("isBusy");
+                await this._session.enableSecretStorage("phrase", passphrase);
+            } catch (err) {
+                console.error(err);
+                this._error = err;
+                this.emitChange("error");
+            } finally {
+                this._isBusy = false;
+                this.emitChange("isBusy");
+            }
+        }
+    }
+
+    async enterSecurityKey(securityKey) {
+        if (securityKey) {
+            try {
+                this._isBusy = true;
+                this.emitChange("isBusy");
+                await this._session.enableSecretStorage("key", securityKey);
+            } catch (err) {
+                console.error(err);
+                this._error = err;
+                this.emitChange("error");
+            } finally {
+                this._isBusy = false;
+                this.emitChange("isBusy");
+            }
+        }
     }
 }

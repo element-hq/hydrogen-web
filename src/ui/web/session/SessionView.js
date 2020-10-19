@@ -21,7 +21,7 @@ import {TemplateView} from "../general/TemplateView.js";
 import {StaticView} from "../general/StaticView.js";
 import {SessionStatusView} from "./SessionStatusView.js";
 import {RoomGridView} from "./RoomGridView.js";
-import {SettingsView} from "./SettingsView.js";
+import {SettingsView} from "./settings/SettingsView.js";
 
 export class SessionView extends TemplateView {
     render(t, vm) {
