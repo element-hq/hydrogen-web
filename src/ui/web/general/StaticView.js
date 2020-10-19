@@ -18,8 +18,12 @@ limitations under the License.
 import {tag} from "../general/html.js";
 
 export class StaticView {
-    constructor(render) {
-        this._root = render(tag);
+    constructor(value, render = undefined) {
+        if (typeof value === "function" && !render) {
+            render = value;
+            value = null;
+        }
+        this._root = render ? render(tag, value) : this.render(tag, value);
     }
 
     mount() {
