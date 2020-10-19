@@ -15,12 +15,33 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../../general/TemplateView.js";
+import {StaticView} from "../../../general/StaticView.js";
 import {renderMessage} from "./common.js";
 
 export class TextMessageView extends TemplateView {
     render(t, vm) {
+        const bodyView = t.mapView(vm => vm.text, text => new BodyView(text));
         return renderMessage(t, vm,
-            [t.p([vm => vm.text, t.time({className: {hidden: !vm.date}}, vm.date + " " + vm.time)])]
+            [t.p([bodyView, t.time({className: {hidden: !vm.date}}, vm.date + " " + vm.time)])]
         );
+    }
+}
+
+class BodyView extends StaticView {
+    render(t, value) {
+        const lines = value.split("\n");
+        if (lines.length === 1) {
+            return lines[0];
+        }
+        const elements = [];
+        for (const line of lines) {
+            if (elements.length) {
+                elements.push(t.br());
+            }
+            if (line.length) {
+                elements.push(t.span(line));
+            }
+        }
+        return t.span(elements);
     }
 }
