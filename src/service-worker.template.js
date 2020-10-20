@@ -22,7 +22,7 @@ const HASHED_PRECACHED_ASSETS = "%%HASHED_PRECACHED_ASSETS%%";
 const HASHED_CACHED_ON_REQUEST_ASSETS = "%%HASHED_CACHED_ON_REQUEST_ASSETS%%";
 const unhashedCacheName = `hydrogen-assets-${GLOBAL_HASH}`;
 const hashedCacheName = `hydrogen-assets`;
-const mediaThumbnailCacheName = `hydrogen-media-thumbnails`;
+const mediaThumbnailCacheName = `hydrogen-media-thumbnails-v2`;
 
 self.addEventListener('install', function(e) {
     e.waitUntil((async () => {
@@ -73,6 +73,17 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(handleRequest(event.request));
 });
 
+function isCacheableThumbnail(url) {
+    if (url.pathname.startsWith("/_matrix/media/r0/thumbnail/")) {
+        const width = parseInt(url.searchParams.get("width"), 10);
+        const height = parseInt(url.searchParams.get("height"), 10);
+        if (width <= 50 && height <= 50) {
+            return true;
+        }
+    }
+    return false;
+}
+
 async function handleRequest(request) {
     const baseURL = self.registration.scope;
     if (request.url === baseURL) {
@@ -80,7 +91,13 @@ async function handleRequest(request) {
     }
     let response = await readCache(request);
     if (!response) {
-        response = await fetch(request);
+        // use cors so the resource in the cache isn't opaque and uses up to 7mb
+        // https://developers.google.com/web/tools/chrome-devtools/progressive-web-apps?utm_source=devtools#opaque-responses
+        if (isCacheableThumbnail(new URL(request.url))) {
+            response = await fetch(request, {mode: "cors", credentials: "omit"});
+        } else {
+            response = await fetch(request);
+        }
         await updateCache(request, response);
     }
     return response;
@@ -89,13 +106,9 @@ async function handleRequest(request) {
 async function updateCache(request, response) {
     const url = new URL(request.url);
     const baseURL = self.registration.scope;
-    if (url.pathname.startsWith("/_matrix/media/r0/thumbnail/")) {
-        const width = parseInt(url.searchParams.get("width"), 10);
-        const height = parseInt(url.searchParams.get("height"), 10);
-        if (width <= 50 && height <= 50) {
-            const cache = await caches.open(mediaThumbnailCacheName);
-            cache.put(request, response.clone());
-        }
+    if (isCacheableThumbnail(url)) {
+        const cache = await caches.open(mediaThumbnailCacheName);
+        cache.put(request, response.clone());
     } else if (request.url.startsWith(baseURL)) {
         let assetName = request.url.substr(baseURL.length);
         if (HASHED_CACHED_ON_REQUEST_ASSETS.includes(assetName)) {
@@ -118,7 +131,7 @@ async function readCache(request) {
     }
     
     const url = new URL(request.url);
-    if (url.pathname.startsWith("/_matrix/media/r0/thumbnail/")) {
+    if (isCacheableThumbnail(url)) {
         const mediaThumbnailCache = await caches.open(mediaThumbnailCacheName);
         response = await mediaThumbnailCache.match(request);
     }
