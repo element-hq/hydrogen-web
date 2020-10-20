@@ -627,3 +627,44 @@ button.link {
     color: #03B381;
     font-weight: 600;
 }
+
+.TimelinePanel .Timeline,
+.LeftPanel .RoomList {
+    scrollbar-width: thin;
+}
+
+@media (prefers-color-scheme: dark) {
+    .hydrogen {
+        background-color: #000;
+        color: #fff;
+    }
+    .AnnouncementView > div,
+    .middle-header,
+    .LeftPanel,
+    .RoomHeader {
+        background-color: #15191e;
+        color: #fff;
+    }
+    .middle-header,
+    .MessageComposer {
+        border-color: #15191e;
+    }
+    .MessageComposer > input,
+    .FilterField,
+    .FilterField input,
+    .FilterField button,
+    .FilterField:focus-within,
+    .button-utility,
+    .MessageComposer > button.send:disabled {
+        background-color: #3f3f3f;
+        color: #fff;
+    }
+    .FilterField:focus-within,
+    .FilterField:focus-within button {
+        border-color: transparent;
+    }
+    .TimelinePanel .Timeline,
+    .LeftPanel .RoomList {
+        scrollbar-color: #666 #333;
+    }
+}
