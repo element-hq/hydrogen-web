@@ -35,6 +35,13 @@ export class SettingsViewModel extends ViewModel {
         this._session = session;
         this._sessionBackupViewModel = this.track(new SessionBackupViewModel(this.childOptions({session})));
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
+        this._estimateStorageUsage = options.estimateStorageUsage;
+        this._estimate = null;
+    }
+
+    async load() {
+        this._estimate = await this._estimateStorageUsage();
+        this.emitChange("");
     }
 
     get closeUrl() {
@@ -71,4 +78,21 @@ export class SettingsViewModel extends ViewModel {
     get sessionBackupViewModel() {
         return this._sessionBackupViewModel;
     }
+
+    get storageQuota() {
+        return this._formatBytes(this._estimate?.quota);
+    }
+
+    get storageUsage() {
+        return this._formatBytes(this._estimate?.usage);
+    }
+
+    _formatBytes(n) {
+        if (typeof n === "number") {
+            return Math.round(n / (1024 * 1024)).toFixed(1) + " MB";
+        } else {
+            return this.i18n`unknown`;
+        }
+    }
 }
+

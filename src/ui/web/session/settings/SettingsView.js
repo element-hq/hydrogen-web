@@ -48,6 +48,7 @@ export class SettingsView extends TemplateView {
                 t.view(new SessionBackupSettingsView(vm.sessionBackupViewModel)),
                 t.h3("Application"),
                 row(vm.i18n`Version`, version),
+                row(vm.i18n`Storage usage`, vm => `${vm.storageUsage} / ${vm.storageQuota}`),
             ])
         ]);
     }

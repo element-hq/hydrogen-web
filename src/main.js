@@ -29,6 +29,7 @@ import {ServiceWorkerHandler} from "./ui/web/dom/ServiceWorkerHandler.js";
 import {History} from "./ui/web/dom/History.js";
 import {OnlineStatus} from "./ui/web/dom/OnlineStatus.js";
 import {CryptoDriver} from "./ui/web/dom/CryptoDriver.js";
+import {estimateStorageUsage} from "./ui/web/dom/StorageEstimate.js";
 import {WorkerPool} from "./utils/WorkerPool.js";
 import {OlmWorker} from "./matrix/e2ee/OlmWorker.js";
 
@@ -147,7 +148,8 @@ export async function main(container, paths, legacyExtras) {
             // so we call it that in the view models
             urlCreator: urlRouter,
             navigation,
-            updateService: serviceWorkerHandler
+            updateService: serviceWorkerHandler,
+            estimateStorageUsage
         });
         window.__hydrogenViewModel = vm;
         await vm.load();
