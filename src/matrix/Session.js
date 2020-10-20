@@ -207,6 +207,10 @@ export class Session {
         this.needsSessionBackup.set(false);
     }
 
+    get sessionBackup() {
+        return this._sessionBackup;
+    }
+
     // called after load
     async beforeFirstSync(isNewLogin) {
         if (this._olm) {

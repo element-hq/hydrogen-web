@@ -24,10 +24,3 @@ limitations under the License.
     word-break: break-all;
     word-break: break-word;
 }
-
-.SessionStatusView button {
-    border: none;
-    background: none;
-    color: currentcolor;
-    text-decoration: underline;
-}

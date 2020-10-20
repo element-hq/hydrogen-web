@@ -53,9 +53,9 @@ export async function keyFromCredential(type, credential, storage, cryptoDriver,
         throw new Error("Could not find a default secret storage key in account data");
     }
     let key;
-    if (type === "passphrase") {
+    if (type === "phrase") {
         key = await keyFromPassphrase(keyDescription, credential, cryptoDriver);
-    } else if (type === "recoverykey") {
+    } else if (type === "key") {
         key = keyFromRecoveryKey(olm, keyDescription, credential);
     } else {
         throw new Error(`Invalid type: ${type}`);

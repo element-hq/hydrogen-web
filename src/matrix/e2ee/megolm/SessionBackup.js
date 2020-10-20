@@ -33,6 +33,10 @@ export class SessionBackup {
         return JSON.parse(sessionInfo);
     }
 
+    get version() {
+        return this._backupInfo.version;
+    }
+
     dispose() {
         this._decryption.free();
     }
