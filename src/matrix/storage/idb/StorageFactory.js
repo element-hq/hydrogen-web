@@ -22,6 +22,21 @@ import { schema } from "./schema.js";
 const sessionName = sessionId => `hydrogen_session_${sessionId}`;
 const openDatabaseWithSessionId = sessionId => openDatabase(sessionName(sessionId), createStores, schema.length);
 
+async function requestPersistedStorage() {
+    if (navigator?.storage?.persist) {
+        return await navigator.storage.persist();
+    } else if (document.requestStorageAccess) {
+        try {
+            await document.requestStorageAccess();
+            return true;
+        } catch (err) {
+            return false;
+        }
+    } else {
+        return false;
+    }
+}
+
 export class StorageFactory {
     constructor(serviceWorkerHandler) {
         this._serviceWorkerHandler = serviceWorkerHandler;
@@ -29,6 +44,12 @@ export class StorageFactory {
 
     async create(sessionId) {
         await this._serviceWorkerHandler?.preventConcurrentSessionAccess(sessionId);
+        requestPersistedStorage().then(persisted => {
+            // Firefox lies here though, and returns true even if the user denied the request
+            if (!persisted) {
+                console.warn("no persisted storage, database can be evicted by browser");
+            }
+        });
         const db = await openDatabaseWithSessionId(sessionId);
         return new Storage(db);
     }
