@@ -19,7 +19,7 @@ import {LeftPanelViewModel} from "./leftpanel/LeftPanelViewModel.js";
 import {RoomViewModel} from "./room/RoomViewModel.js";
 import {SessionStatusViewModel} from "./SessionStatusViewModel.js";
 import {RoomGridViewModel} from "./RoomGridViewModel.js";
-import {SettingsViewModel} from "./SettingsViewModel.js";
+import {SettingsViewModel} from "./settings/SettingsViewModel.js";
 import {ViewModel} from "../ViewModel.js";
 
 export class SessionViewModel extends ViewModel {
