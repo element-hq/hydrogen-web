@@ -635,15 +635,19 @@ button.link {
 
 @media (prefers-color-scheme: dark) {
     .hydrogen {
-        background-color: #000;
+        background-color: #15191e;
         color: #fff;
     }
-    .AnnouncementView > div,
+    .AnnouncementView > div {
+        background-color: #20262b;
+    }
     .middle-header,
-    .LeftPanel,
     .RoomHeader {
         background-color: #15191e;
         color: #fff;
+    }
+    .LeftPanel {
+        background-color: #20262b;
     }
     .middle-header,
     .MessageComposer {
@@ -656,7 +660,7 @@ button.link {
     .FilterField:focus-within,
     .button-utility,
     .MessageComposer > button.send:disabled {
-        background-color: #3f3f3f;
+        background-color: #363c43;
         color: #fff;
     }
     .FilterField:focus-within,
@@ -666,5 +670,13 @@ button.link {
     .TimelinePanel .Timeline,
     .LeftPanel .RoomList {
         scrollbar-color: #666 #333;
+    }
+    .form-row input {
+        background-color: #20262b;
+        color: #fff;
+    }
+    .RoomGridView > div.container {
+      	border-right: 1px solid #20262b;
+       	border-bottom: 1px solid #20262b;
     }
 }
