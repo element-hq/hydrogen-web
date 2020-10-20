@@ -47,12 +47,12 @@ export class SessionBackupViewModel extends ViewModel {
 
     showPhraseSetup() {
         this._showKeySetup = false;
-        this.emitChange("showKeySetup");
+        this.emitChange("status");
     }
 
     showKeySetup() {
         this._showKeySetup = true;
-        this.emitChange("showKeySetup");
+        this.emitChange("status");
     }
 
     async enterSecurityPhrase(passphrase) {
@@ -67,7 +67,7 @@ export class SessionBackupViewModel extends ViewModel {
                 this.emitChange("error");
             } finally {
                 this._isBusy = false;
-                this.emitChange("isBusy");
+                this.emitChange("");
             }
         }
     }
@@ -84,7 +84,7 @@ export class SessionBackupViewModel extends ViewModel {
                 this.emitChange("error");
             } finally {
                 this._isBusy = false;
-                this.emitChange("isBusy");
+                this.emitChange("");
             }
         }
     }
