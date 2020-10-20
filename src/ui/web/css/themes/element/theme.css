@@ -306,13 +306,34 @@ a {
 }
 
 .SessionStatusView {
-    padding: 8px 4px;
+    padding: 4px;
+    min-height: 22px;
     background-color: #03B381;
     color: white;
+    align-items: center;
 }
 
-.middle-shown .SessionStatusView {
-    top: 72px;
+
+.SessionStatusView button.link {
+    color: currentcolor;
+}
+
+.SessionStatusView > .end {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+    align-self: stretch;
+    align-items: stretch;
+}
+
+.SessionStatusView .dismiss {
+    border: none;
+    background: none;
+    background-image: url('icons/dismiss.svg');
+    background-position: center;
+    background-repeat: no-repeat;
+    width: 32px;
+    cursor: pointer;
 }
 
 .room-placeholder {
@@ -598,8 +619,11 @@ button.link {
     text-decoration: underline;
     background: none;
     cursor: pointer;
-    color: #03B381;
-    font-weight: 600;
     margin: -12px;
     padding: 12px;
+}
+
+.Settings a, .Settings .link {
+    color: #03B381;
+    font-weight: 600;
 }

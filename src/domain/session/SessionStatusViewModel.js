@@ -36,6 +36,8 @@ export class SessionStatusViewModel extends ViewModel {
         this._reconnector = reconnector;
         this._status = this._calculateState(reconnector.connectionStatus.get(), sync.status.get());
         this._session = session;
+        this._setupSessionBackupUrl = this.urlCreator.urlForSegment("settings");
+        this._dismissSecretStorage = false;
     }
 
     start() {
@@ -47,8 +49,12 @@ export class SessionStatusViewModel extends ViewModel {
         }));
     }
 
+    get setupSessionBackupUrl () {
+        return this._setupSessionBackupUrl;
+    }
+
     get isShown() {
-        return this._session.needsSessionBackup.get() || this._status !== SessionStatus.Syncing;
+        return (this._session.needsSessionBackup.get() && !this._dismissSecretStorage) || this._status !== SessionStatus.Syncing;
     }
 
     get statusLabel() {
@@ -65,7 +71,7 @@ export class SessionStatusViewModel extends ViewModel {
                 return this.i18n`Sync failed because of ${this._sync.error}`;
         }
         if (this._session.needsSessionBackup.get()) {
-            return this.i18n`Set up secret storage to decrypt older messages.`;
+            return this.i18n`Set up session backup to decrypt older messages.`;
         }
         return "";
     }
@@ -130,7 +136,18 @@ export class SessionStatusViewModel extends ViewModel {
 
     get isSecretStorageShown() {
         // TODO: we need a model here where we can have multiple messages queued up and their buttons don't bleed into each other.
-        return this._status === SessionStatus.Syncing && this._session.needsSessionBackup.get();
+        return this._status === SessionStatus.Syncing && this._session.needsSessionBackup.get() && !this._dismissSecretStorage;
+    }
+
+    get canDismiss() {
+        return this.isSecretStorageShown;
+    }
+
+    dismiss() {
+        if (this.isSecretStorageShown) {
+            this._dismissSecretStorage = true;
+            this.emitChange();
+        }
     }
 
     connectNow() {
