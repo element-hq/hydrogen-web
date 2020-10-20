@@ -550,6 +550,10 @@ ul.Timeline > li.messageStatus .message-container > p {
     margin: 16px 0 8px 0;
 }
 
+.Settings p {
+  max-width: 700px;
+}
+
 .Settings .row .label {
     font-weight: 600;
 }
