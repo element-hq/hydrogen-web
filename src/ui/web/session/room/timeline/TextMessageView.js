@@ -29,7 +29,7 @@ export class TextMessageView extends TemplateView {
 
 class BodyView extends StaticView {
     render(t, value) {
-        const lines = value.split("\n");
+        const lines = (value || "").split("\n");
         if (lines.length === 1) {
             return lines[0];
         }
