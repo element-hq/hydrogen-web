@@ -31,10 +31,3 @@ export class SessionStatusView extends TemplateView {
         ]);
     }
 }
-
-export class SetupSecretStorageView extends TemplateView {
-    render(t, vm) {
-        return t.p([t.a({href: vm.setupSecretStorageUrl}, vm.i18n`Set up secret storage`), vm.i18n` to decrypt older messages.`])
-    }
-}
-
