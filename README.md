@@ -16,15 +16,23 @@ If you find this interesting, come and discuss on `#hydrogen:matrix.org`.
 
 Hydrogen is deployed to [hydrogen.element.io](https://hydrogen.element.io). You can run it locally with `yarn install` (only the first time) and `yarn start` in the terminal, and point your browser to `http://localhost:3000`.
 
-You can also use Docker to create a dev environment and run the `yarn` commands within. Start it up like this:
+You can also use Docker to create a local dev environment.
+
+In this repository, create a Docker image:
+
+    docker build -t hydrogen .
+
+Then start up a container from that image:
 
     docker run \
         --name hydrogen-dev \
         --publish 3000:3000 \
-        --volume "$PWD":/usr/src/app \
-        --workdir /usr/src/app \
-        --entrypoint /bin/bash \
+        --volume "$PWD":/code \
         --interactive \
         --tty \
         --rm \
-        node:latest
+        hydrogen
+
+Then point your browser to `http://localhost:3000`. You can see the server logs in the terminal where you started the container.
+
+To stop the container, simply hit `ctrl+c`.
