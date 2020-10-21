@@ -16,6 +16,7 @@ limitations under the License.
 
 import {TemplateView} from "../../../general/TemplateView.js";
 import {StaticView} from "../../../general/StaticView.js";
+import {text} from "../../../general/html.js";
 import {renderMessage} from "./common.js";
 
 export class TextMessageView extends TemplateView {
@@ -31,7 +32,7 @@ class BodyView extends StaticView {
     render(t, value) {
         const lines = (value || "").split("\n");
         if (lines.length === 1) {
-            return lines[0];
+            return text(lines[0]);
         }
         const elements = [];
         for (const line of lines) {
