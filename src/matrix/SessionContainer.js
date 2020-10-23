@@ -179,8 +179,10 @@ export class SessionContainer {
             mediaRepository: new MediaRepository(sessionInfo.homeServer)
         });
         await this._session.load();
-        this._status.set(LoadStatus.SessionSetup);
-        await this._session.beforeFirstSync(isNewLogin);
+        if (isNewLogin) {
+            this._status.set(LoadStatus.SessionSetup);
+            await this._session.createIdentity();
+        }
         
         this._sync = new Sync({hsApi: this._requestScheduler.hsApi, storage: this._storage, session: this._session});
         // notify sync and session when back online

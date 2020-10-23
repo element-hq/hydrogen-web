@@ -23,6 +23,9 @@ export class SessionBackupViewModel extends ViewModel {
         this._showKeySetup = true;
         this._error = null;
         this._isBusy = false;
+        this.track(this._session.hasSecretStorageKey.subscribe(() => {
+            this.emitChange("status");
+        }));
     }
     
     get isBusy() {
@@ -37,7 +40,11 @@ export class SessionBackupViewModel extends ViewModel {
         if (this._session.sessionBackup) {
             return "enabled";
         } else {
-            return this._showKeySetup ? "setupKey" : "setupPhrase";
+            if (this._session.hasSecretStorageKey.get() === false) {
+                return this._showKeySetup ? "setupKey" : "setupPhrase";
+            } else {
+                return "pending";
+            }
         }
     }
 

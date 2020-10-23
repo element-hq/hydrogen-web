@@ -62,6 +62,8 @@ export class Session {
         this._getSyncToken = () => this.syncToken;
         this._olmWorker = olmWorker;
         this._cryptoDriver = cryptoDriver;
+        this._sessionBackup = null;
+        this._hasSecretStorageKey = new ObservableValue(null);
 
         if (olm) {
             this._olmUtil = new olm.Utility();
@@ -81,6 +83,10 @@ export class Session {
         return this._e2eeAccount?.identityKeys.ed25519;
     }
 
+    get hasSecretStorageKey() {
+        return this._hasSecretStorageKey;
+    }
+
     get deviceId() {
         return this._sessionInfo.deviceId;
     }
@@ -92,6 +98,8 @@ export class Session {
     // called once this._e2eeAccount is assigned
     _setupEncryption() {
         console.log("loaded e2ee account with keys", this._e2eeAccount.identityKeys);
+        // TODO: this should all go in a wrapper in e2ee/ that is bootstrapped by passing in the account
+        // and can create RoomEncryption objects and handle encrypted to_device messages and device list changes.
         const senderKeyLock = new LockMap();
         const olmDecryption = new OlmDecryption({
             account: this._e2eeAccount,
@@ -174,6 +182,9 @@ export class Session {
         if (!this._olm) {
             throw new Error("olm required");
         }
+        if (this._sessionBackup) {
+            return false;
+        }
         const key = await ssssKeyFromCredential(type, credential, this._storage, this._cryptoDriver, this._olm);
         // and create session backup, which needs to read from accountData
         const readTxn = this._storage.readTxn([
@@ -192,6 +203,7 @@ export class Session {
             throw err;
         }
         await writeTxn.complete();
+        this._hasSecretStorageKey.set(true);
     }
 
     async _createSessionBackup(ssssKey, txn) {
@@ -211,12 +223,9 @@ export class Session {
         return this._sessionBackup;
     }
 
-    // called after load
-    async beforeFirstSync(isNewLogin) {
+    /** @internal */
+    async createIdentity() {
         if (this._olm) {
-            if (isNewLogin && this._e2eeAccount) {
-                throw new Error("there should not be an e2ee account already on a fresh login");
-            }
             if (!this._e2eeAccount) {
                 this._e2eeAccount = await E2EEAccount.create({
                     hsApi: this._hsApi,
@@ -231,21 +240,10 @@ export class Session {
             }
             await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
             await this._e2eeAccount.uploadKeys(this._storage);
-            await this._deviceMessageHandler.decryptPending(this.rooms);
-
-            const txn = this._storage.readTxn([
-                this._storage.storeNames.session,
-                this._storage.storeNames.accountData,
-            ]);
-            // try set up session backup if we stored the ssss key
-            const ssssKey = await ssssReadKey(txn);
-            if (ssssKey) {
-                // txn will end here as this does a network request
-                await this._createSessionBackup(ssssKey, txn);
-            }
         }
     }
 
+    /** @internal */
     async load() {
         const txn = this._storage.readTxn([
             this._storage.storeNames.session,
@@ -289,6 +287,12 @@ export class Session {
         }
     }
 
+    /**
+     * @internal called when coming back online
+     * @param  {Object} lastVersionResponse a response from /versions, which is polled while offline,
+     *                                      and useful to store so we can later tell what capabilities
+     *                                      our homeserver has.
+     */
     async start(lastVersionResponse) {
         if (lastVersionResponse) {
             // store /versions response
@@ -299,7 +303,21 @@ export class Session {
             // TODO: what can we do if this throws?
             await txn.complete();
         }
-
+        // enable session backup, this requests the latest backup version
+        if (!this._sessionBackup) {
+            const txn = this._storage.readTxn([
+                this._storage.storeNames.session,
+                this._storage.storeNames.accountData,
+            ]);
+            // try set up session backup if we stored the ssss key
+            const ssssKey = await ssssReadKey(txn);
+            if (ssssKey) {
+                // txn will end here as this does a network request
+                await this._createSessionBackup(ssssKey, txn);
+            }
+            this._hasSecretStorageKey.set(!!ssssKey);
+        }
+        // restore unfinished operations, like sending out room keys
         const opsTxn = this._storage.readWriteTxn([
             this._storage.storeNames.operations
         ]);
@@ -333,6 +351,7 @@ export class Session {
         return this._rooms;
     }
 
+    /** @internal */
     createRoom(roomId, pendingEvents) {
         const room = new Room({
             roomId,
@@ -350,6 +369,7 @@ export class Session {
         return room;
     }
 
+    /** @internal */
     async writeSync(syncResponse, syncFilterId, txn) {
         const changes = {
             syncInfo: null,
@@ -394,6 +414,7 @@ export class Session {
         return changes;
     }
 
+    /** @internal */
     afterSync({syncInfo, e2eeAccountChanges}) {
         if (syncInfo) {
             // sync transaction succeeded, modify object state now
@@ -404,6 +425,7 @@ export class Session {
         }
     }
 
+    /** @internal */
     async afterSyncCompleted(changes, isCatchupSync) {
         const promises = [];
         if (changes.deviceMessageDecryptionPending) {
@@ -425,10 +447,12 @@ export class Session {
         }
     }
 
+    /** @internal */
     get syncToken() {
         return this._syncInfo?.token;
     }
 
+    /** @internal */
     get syncFilterId() {
         return this._syncInfo?.filterId;
     }

@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../general/TemplateView.js";
+import {StaticView} from "../../general/StaticView.js";
 
 export class SessionBackupSettingsView extends TemplateView {
     render(t, vm) {
@@ -23,6 +24,7 @@ export class SessionBackupSettingsView extends TemplateView {
                 case "enabled": return new TemplateView(vm, renderEnabled)
                 case "setupKey": return new TemplateView(vm, renderEnableFromKey)
                 case "setupPhrase": return new TemplateView(vm, renderEnableFromPhrase)
+                case "pending": return new StaticView(vm, t => t.p(vm.i18n`Waiting to go online…`))
             }
         });
     }
