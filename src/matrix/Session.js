@@ -62,6 +62,7 @@ export class Session {
         this._getSyncToken = () => this.syncToken;
         this._olmWorker = olmWorker;
         this._cryptoDriver = cryptoDriver;
+        this._sessionBackup = null;
 
         if (olm) {
             this._olmUtil = new olm.Utility();
@@ -211,12 +212,9 @@ export class Session {
         return this._sessionBackup;
     }
 
-    // called after load
-    async beforeFirstSync(isNewLogin) {
+    /** @internal */
+    async createIdentity() {
         if (this._olm) {
-            if (isNewLogin && this._e2eeAccount) {
-                throw new Error("there should not be an e2ee account already on a fresh login");
-            }
             if (!this._e2eeAccount) {
                 this._e2eeAccount = await E2EEAccount.create({
                     hsApi: this._hsApi,
@@ -231,18 +229,6 @@ export class Session {
             }
             await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
             await this._e2eeAccount.uploadKeys(this._storage);
-            await this._deviceMessageHandler.decryptPending(this.rooms);
-
-            const txn = this._storage.readTxn([
-                this._storage.storeNames.session,
-                this._storage.storeNames.accountData,
-            ]);
-            // try set up session backup if we stored the ssss key
-            const ssssKey = await ssssReadKey(txn);
-            if (ssssKey) {
-                // txn will end here as this does a network request
-                await this._createSessionBackup(ssssKey, txn);
-            }
         }
     }
 
@@ -299,7 +285,20 @@ export class Session {
             // TODO: what can we do if this throws?
             await txn.complete();
         }
-
+        // enable session backup, this requests the latest backup version
+        if (!this._sessionBackup) {
+            const txn = this._storage.readTxn([
+                this._storage.storeNames.session,
+                this._storage.storeNames.accountData,
+            ]);
+            // try set up session backup if we stored the ssss key
+            const ssssKey = await ssssReadKey(txn);
+            if (ssssKey) {
+                // txn will end here as this does a network request
+                await this._createSessionBackup(ssssKey, txn);
+            }
+        }
+        // restore unfinished operations, like sending out room keys
         const opsTxn = this._storage.readWriteTxn([
             this._storage.storeNames.operations
         ]);
