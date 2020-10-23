@@ -84,16 +84,17 @@ function isCacheableThumbnail(url) {
     return false;
 }
 
+const baseURL = new URL(self.registration.scope);
 async function handleRequest(request) {
-    const baseURL = self.registration.scope;
-    if (request.url === baseURL) {
-        request = new Request(new URL("index.html", baseURL));
+    const url = new URL(request.url);
+    if (url.origin === baseURL.origin && url.pathname === baseURL.pathname) {
+        request = new Request(new URL("index.html", baseURL.href));
     }
     let response = await readCache(request);
     if (!response) {
         // use cors so the resource in the cache isn't opaque and uses up to 7mb
         // https://developers.google.com/web/tools/chrome-devtools/progressive-web-apps?utm_source=devtools#opaque-responses
-        if (isCacheableThumbnail(new URL(request.url))) {
+        if (isCacheableThumbnail(url)) {
             response = await fetch(request, {mode: "cors", credentials: "omit"});
         } else {
             response = await fetch(request);
