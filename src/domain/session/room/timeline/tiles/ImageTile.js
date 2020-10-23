@@ -20,20 +20,47 @@ const MAX_HEIGHT = 300;
 const MAX_WIDTH = 400;
 
 export class ImageTile extends MessageTile {
+
+    constructor(options) {
+        super(options);
+        this._decryptedUrl = null;
+        this.load();
+    }
+
+    async load() {
+        const thumbnailFile = this._getContent().file;
+        if (thumbnailFile) {
+            const buffer = await this._mediaRepository.downloadEncryptedFile(thumbnailFile);
+            // TODO: fix XSS bug here by not checking mimetype
+            const blob = new Blob([buffer], {type: thumbnailFile.mimetype});
+            if (this.isDisposed) {
+                return;
+            }
+            this._decryptedUrl = URL.createObjectURL(blob);
+            this.emitChange("thumbnailUrl");
+        }
+    }
+
     get thumbnailUrl() {
+        if (this._decryptedUrl) {
+            return this._decryptedUrl;
+        }
         const mxcUrl = this._getContent()?.url;
         if (typeof mxcUrl === "string") {
             return this._mediaRepository.mxcUrlThumbnail(mxcUrl, this.thumbnailWidth, this.thumbnailHeight, "scale");
         }
-        return null;
+        return "";
     }
 
     get url() {
+        if (this._decryptedUrl) {
+            return this._decryptedUrl;
+        }
         const mxcUrl = this._getContent()?.url;
         if (typeof mxcUrl === "string") {
             return this._mediaRepository.mxcUrl(mxcUrl);
         }
-        return null;
+        return "";
     }
 
     _scaleFactor() {
@@ -61,5 +88,13 @@ export class ImageTile extends MessageTile {
 
     get shape() {
         return "image";
+    }
+
+    dispose() {
+        if (this._decryptedUrl) {
+            URL.revokeObjectURL(this._decryptedUrl);
+            this._decryptedUrl = null;
+        }
+        super.dispose();
     }
 }

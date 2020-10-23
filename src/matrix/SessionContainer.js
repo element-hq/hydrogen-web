@@ -168,6 +168,11 @@ export class SessionContainer {
         }
         this._requestScheduler = new RequestScheduler({hsApi, clock: this._clock});
         this._requestScheduler.start();
+        const mediaRepository = new MediaRepository({
+            homeServer: sessionInfo.homeServer,
+            cryptoDriver: this._cryptoDriver,
+            request: this._request,
+        });
         this._session = new Session({
             storage: this._storage,
             sessionInfo: filteredSessionInfo,
@@ -176,7 +181,7 @@ export class SessionContainer {
             clock: this._clock,
             olmWorker,
             cryptoDriver: this._cryptoDriver,
-            mediaRepository: new MediaRepository(sessionInfo.homeServer)
+            mediaRepository
         });
         await this._session.load();
         if (isNewLogin) {

@@ -64,8 +64,11 @@ export class SecretStorage {
             throw new Error("Bad MAC");
         }
 
-        const plaintextBytes = await this._cryptoDriver.aes.decrypt(
-            aesKey, base64.decode(encryptedData.iv), ciphertextBytes);
+        const plaintextBytes = await this._cryptoDriver.aes.decryptCTR({
+            key: aesKey,
+            iv: base64.decode(encryptedData.iv),
+            data: ciphertextBytes
+        });
 
         return textDecoder.decode(plaintextBytes);
     }

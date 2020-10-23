@@ -95,6 +95,9 @@ export class TilesCollection extends BaseObservableList {
 
     onUnsubscribeLast() {
         this._entrySubscription = this._entrySubscription();
+        for(let i = 0; i < this._tiles.length; i+= 1) {
+            this._tiles[i].dispose();
+        }
         this._tiles = null;
     }
 
