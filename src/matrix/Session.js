@@ -63,6 +63,7 @@ export class Session {
         this._olmWorker = olmWorker;
         this._cryptoDriver = cryptoDriver;
         this._sessionBackup = null;
+        this._hasSecretStorageKey = new ObservableValue(null);
 
         if (olm) {
             this._olmUtil = new olm.Utility();
@@ -80,6 +81,10 @@ export class Session {
 
     get fingerprintKey() {
         return this._e2eeAccount?.identityKeys.ed25519;
+    }
+
+    get hasSecretStorageKey() {
+        return this._hasSecretStorageKey;
     }
 
     get deviceId() {
@@ -175,6 +180,9 @@ export class Session {
         if (!this._olm) {
             throw new Error("olm required");
         }
+        if (this._sessionBackup) {
+            return false;
+        }
         const key = await ssssKeyFromCredential(type, credential, this._storage, this._cryptoDriver, this._olm);
         // and create session backup, which needs to read from accountData
         const readTxn = this._storage.readTxn([
@@ -193,6 +201,7 @@ export class Session {
             throw err;
         }
         await writeTxn.complete();
+        this._hasSecretStorageKey.set(true);
     }
 
     async _createSessionBackup(ssssKey, txn) {
@@ -297,6 +306,7 @@ export class Session {
                 // txn will end here as this does a network request
                 await this._createSessionBackup(ssssKey, txn);
             }
+            this._hasSecretStorageKey.set(!!ssssKey);
         }
         // restore unfinished operations, like sending out room keys
         const opsTxn = this._storage.readWriteTxn([
