@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {Platform} from "../../../Platform.js";
+import {KeyLimits} from "../../storage/common.js";
 
 // key for events in the timelineEvents store
 export class EventKey {
@@ -25,7 +25,7 @@ export class EventKey {
 
     nextFragmentKey() {
         // could take MIN_EVENT_INDEX here if it can't be paged back
-        return new EventKey(this.fragmentId + 1, Platform.middleStorageKey);
+        return new EventKey(this.fragmentId + 1, KeyLimits.middleStorageKey);
     }
 
     nextKeyForDirection(direction) {
@@ -45,19 +45,19 @@ export class EventKey {
     }
 
     static get maxKey() {
-        return new EventKey(Platform.maxStorageKey, Platform.maxStorageKey);
+        return new EventKey(KeyLimits.maxStorageKey, KeyLimits.maxStorageKey);
     }
 
     static get minKey() {
-        return new EventKey(Platform.minStorageKey, Platform.minStorageKey);
+        return new EventKey(KeyLimits.minStorageKey, KeyLimits.minStorageKey);
     }
 
     static get defaultLiveKey() {
-        return EventKey.defaultFragmentKey(Platform.minStorageKey);
+        return EventKey.defaultFragmentKey(KeyLimits.minStorageKey);
     }
 
     static defaultFragmentKey(fragmentId) {
-        return new EventKey(fragmentId, Platform.middleStorageKey);
+        return new EventKey(fragmentId, KeyLimits.middleStorageKey);
     }
 
     toString() {
