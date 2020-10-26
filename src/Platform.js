@@ -14,4 +14,4 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export {WebPlatform as Platform} from "./ui/web/WebPlatform.js";
+export {WebPlatform as Platform} from "./platform/web/WebPlatform.js";
