@@ -175,7 +175,7 @@ async function buildJs(mainFile, extraFiles = []) {
     // create js bundle
     const bundle = await rollup({
         input: extraFiles.concat(mainFile),
-        plugins: [removeJsComments({comments: "none"})]
+        plugins: [multi(), removeJsComments({comments: "none"})]
     });
     const {output} = await bundle.generate({
         format: 'es',
