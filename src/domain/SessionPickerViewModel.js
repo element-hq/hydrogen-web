@@ -130,9 +130,6 @@ class SessionItemViewModel extends ViewModel {
 export class SessionPickerViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {storageFactory, sessionInfoStorage} = options;
-        this._storageFactory = storageFactory;
-        this._sessionInfoStorage = sessionInfoStorage;
         this._sessions = new SortedArray((s1, s2) => s1.id.localeCompare(s2.id));
         this._loadViewModel = null;
         this._error = null;
@@ -140,7 +137,7 @@ export class SessionPickerViewModel extends ViewModel {
 
     // this loads all the sessions
     async load() {
-        const sessions = await this._sessionInfoStorage.getAll();
+        const sessions = await this.platform.sessionInfoStorage.getAll();
         this._sessions.setManyUnsorted(sessions.map(s => {
             return new SessionItemViewModel(this.childOptions({sessionInfo: s}), this);
         }));
@@ -152,8 +149,8 @@ export class SessionPickerViewModel extends ViewModel {
     }
 
     async _exportData(id) {
-        const sessionInfo = await this._sessionInfoStorage.get(id);
-        const stores = await this._storageFactory.export(id);
+        const sessionInfo = await this.platform.sessionInfoStorage.get(id);
+        const stores = await this.platform.storageFactory.export(id);
         const data = {sessionInfo, stores};
         return data;
     }
@@ -164,8 +161,8 @@ export class SessionPickerViewModel extends ViewModel {
             const {sessionInfo} = data;
             sessionInfo.comment = `Imported on ${new Date().toLocaleString()} from id ${sessionInfo.id}.`;
             sessionInfo.id = this._createSessionContainer().createNewSessionId();
-            await this._storageFactory.import(sessionInfo.id, data.stores);
-            await this._sessionInfoStorage.add(sessionInfo);
+            await this.platform.storageFactory.import(sessionInfo.id, data.stores);
+            await this.platform.sessionInfoStorage.add(sessionInfo);
             this._sessions.set(new SessionItemViewModel(sessionInfo, this));
         } catch (err) {
             alert(err.message);
@@ -175,13 +172,13 @@ export class SessionPickerViewModel extends ViewModel {
 
     async delete(id) {
         const idx = this._sessions.array.findIndex(s => s.id === id);
-        await this._sessionInfoStorage.delete(id);
-        await this._storageFactory.delete(id);
+        await this.platform.sessionInfoStorage.delete(id);
+        await this.platform.storageFactory.delete(id);
         this._sessions.remove(idx);
     }
 
     async clear(id) {
-        await this._storageFactory.delete(id);
+        await this.platform.storageFactory.delete(id);
     }
 
     get sessions() {

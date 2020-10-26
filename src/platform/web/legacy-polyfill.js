@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 // polyfills needed for IE11
-import Promise from "../lib/es6-promise/index.js";
-import {checkNeedsSyncPromise} from "./matrix/storage/idb/utils.js";
+import Promise from "../../../lib/es6-promise/index.js";
+import {checkNeedsSyncPromise} from "../../matrix/storage/idb/utils.js";
 
 if (typeof window.Promise === "undefined") {
     window.Promise = Promise;

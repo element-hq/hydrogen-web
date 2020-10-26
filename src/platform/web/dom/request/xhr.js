@@ -17,8 +17,8 @@ limitations under the License.
 import {
     AbortError,
     ConnectionError
-} from "../../error.js";
-import {addCacheBuster} from "../common.js";
+} from "../../../../matrix/error.js";
+import {addCacheBuster} from "./common.js";
 
 class RequestResult {
     constructor(promise, xhr) {

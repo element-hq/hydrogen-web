@@ -21,7 +21,6 @@ export class MessageTile extends SimpleTile {
     constructor(options) {
         super(options);
         this._mediaRepository = options.mediaRepository;
-        this._clock = options.clock;
         this._isOwn = this._entry.sender === options.ownUserId;
         this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : null;
         this._isContinuation = false;
@@ -88,8 +87,8 @@ export class MessageTile extends SimpleTile {
         let isContinuation = false;
         if (prev && prev instanceof MessageTile && prev.sender === this.sender) {
             // timestamp is null for pending events
-            const myTimestamp = this._entry.timestamp || this._clock.now();
-            const otherTimestamp = prev._entry.timestamp || this._clock.now();
+            const myTimestamp = this._entry.timestamp || this.clock.now();
+            const otherTimestamp = prev._entry.timestamp || this.clock.now();
             // other message was sent less than 5min ago
             isContinuation = (myTimestamp - otherTimestamp) < (5 * 60 * 1000);
         }

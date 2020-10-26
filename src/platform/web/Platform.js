@@ -1,0 +1,130 @@
+/*
+Copyright 2020 The Matrix.org Foundation C.I.C.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+import {createFetchRequest} from "./dom/request/fetch.js";
+import {xhrRequest} from "./dom/request/xhr.js";
+import {StorageFactory} from "../../matrix/storage/idb/StorageFactory.js";
+import {SessionInfoStorage} from "../../matrix/sessioninfo/localstorage/SessionInfoStorage.js";
+import {OlmWorker} from "../../matrix/e2ee/OlmWorker.js";
+import {RootView} from "./ui/RootView.js";
+import {Clock} from "./dom/Clock.js";
+import {ServiceWorkerHandler} from "./dom/ServiceWorkerHandler.js";
+import {History} from "./dom/History.js";
+import {OnlineStatus} from "./dom/OnlineStatus.js";
+import {Crypto} from "./dom/Crypto.js";
+import {estimateStorageUsage} from "./dom/StorageEstimate.js";
+import {WorkerPool} from "./dom/WorkerPool.js";
+
+function addScript(src) {
+    return new Promise(function (resolve, reject) {
+        var s = document.createElement("script");
+        s.setAttribute("src", src );
+        s.onload=resolve;
+        s.onerror=reject;
+        document.body.appendChild(s);
+    });
+}
+
+async function loadOlm(olmPaths) {
+    // make crypto.getRandomValues available without
+    // a prefix on IE11, needed by olm to work
+    if (window.msCrypto && !window.crypto) {
+        window.crypto = window.msCrypto;
+    }
+    if (olmPaths) {
+        if (window.WebAssembly) {
+            await addScript(olmPaths.wasmBundle);
+            await window.Olm.init({locateFile: () => olmPaths.wasm});
+        } else {
+            await addScript(olmPaths.legacyBundle);
+            await window.Olm.init();
+        }
+        return window.Olm;
+    }
+    return null;
+}
+
+// make path relative to basePath,
+// assuming it and basePath are relative to document
+function relPath(path, basePath) {
+    const idx = basePath.lastIndexOf("/");
+    const dir = idx === -1 ? "" : basePath.slice(0, idx);
+    const dirCount = dir.length ? dir.split("/").length : 0;
+    return "../".repeat(dirCount) + path;
+}
+
+async function loadOlmWorker(paths) {
+    const workerPool = new WorkerPool(paths.worker, 4);
+    await workerPool.init();
+    const path = relPath(paths.olm.legacyBundle, paths.worker);
+    await workerPool.sendAll({type: "load_olm", path});
+    const olmWorker = new OlmWorker(workerPool);
+    return olmWorker;
+}
+
+
+export class Platform {
+    constructor(container, paths, cryptoExtras = null) {
+        this._paths = paths;
+        this._container = container;
+        this.clock = new Clock();
+        this.history = new History();
+        this.onlineStatus = new OnlineStatus();
+        this._serviceWorkerHandler = null;
+        if (paths.serviceWorker && "serviceWorker" in navigator) {
+            this._serviceWorkerHandler = new ServiceWorkerHandler();
+            this._serviceWorkerHandler.registerAndStart(paths.serviceWorker);
+        }
+        this.crypto = new Crypto(cryptoExtras);
+        this.storageFactory = new StorageFactory(this._serviceWorkerHandler);
+        this.sessionInfoStorage = new SessionInfoStorage("hydrogen_sessions_v1");
+        this.estimateStorageUsage = estimateStorageUsage;
+        this.random = Math.random;
+        if (typeof fetch === "function") {
+            this.request = createFetchRequest(this.clock.createTimeout);
+        } else {
+            this.request = xhrRequest;
+        }
+    }
+
+    get updateService() {
+        return this._serviceWorkerHandler;
+    }
+
+    loadOlm() {
+        return loadOlm(this._paths.olm);
+    }
+
+    async loadOlmWorker() {
+        if (!window.WebAssembly) {
+            return await loadOlmWorker(this._paths);
+        }
+    }
+
+    createAndMountRootView(vm) {
+        const isIE11 = !!window.MSInputMethodContext && !!document.documentMode;
+        if (isIE11) {
+            this._container.className += " legacy";
+        }
+        window.__hydrogenViewModel = vm;
+        const view = new RootView(vm);
+        this._container.appendChild(view.mount());
+    }
+
+    setNavigation(navigation) {
+        this._serviceWorkerHandler?.setNavigation(navigation);
+    }
+}

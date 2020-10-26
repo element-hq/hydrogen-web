@@ -19,13 +19,17 @@ limitations under the License.
 // - UpdateService (see checkForUpdate method, and should also emit events rather than showing confirm dialog here)
 // - ConcurrentAccessBlocker (see preventConcurrentSessionAccess method)
 export class ServiceWorkerHandler {
-    constructor({navigation}) {
+    constructor() {
         this._waitingForReply = new Map();
         this._messageIdCounter = 0;
+        this._navigation = null;
         this._registration = null;
-        this._navigation = navigation;
         this._registrationPromise = null;
         this._currentController = null;
+    }
+
+    setNavigation(navigation) {
+        this._navigation = navigation;
     }
 
     registerAndStart(path) {
@@ -61,7 +65,7 @@ export class ServiceWorkerHandler {
     }
 
     _closeSessionIfNeeded(sessionId) {
-        const currentSession = this._navigation.path.get("session");
+        const currentSession = this._navigation?.path.get("session");
         if (sessionId && currentSession?.value === sessionId) {
             return new Promise(resolve => {
                 const unsubscribe = this._navigation.pathObservable.subscribe(path => {

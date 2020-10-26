@@ -23,10 +23,7 @@ import {ViewModel} from "./ViewModel.js";
 export class RootViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {createSessionContainer, sessionInfoStorage, storageFactory} = options;
-        this._createSessionContainer = createSessionContainer;
-        this._sessionInfoStorage = sessionInfoStorage;
-        this._storageFactory = storageFactory;
+        this._createSessionContainer = options.createSessionContainer;
         this._error = null;
         this._sessionPickerViewModel = null;
         this._sessionLoadViewModel = null;
@@ -90,10 +87,7 @@ export class RootViewModel extends ViewModel {
 
     async _showPicker() {
         this._setSection(() => {
-            this._sessionPickerViewModel = new SessionPickerViewModel(this.childOptions({
-                sessionInfoStorage: this._sessionInfoStorage,
-                storageFactory: this._storageFactory,
-            }));
+            this._sessionPickerViewModel = new SessionPickerViewModel(this.childOptions());
         });
         try {
             await this._sessionPickerViewModel.load();
@@ -125,11 +119,7 @@ export class RootViewModel extends ViewModel {
 
     _showSession(sessionContainer) {
         this._setSection(() => {
-            this._sessionViewModel = new SessionViewModel(this.childOptions({
-                sessionContainer,
-                updateService: this.getOption("updateService"),
-                estimateStorageUsage: this.getOption("estimateStorageUsage"),
-            }));
+            this._sessionViewModel = new SessionViewModel(this.childOptions({sessionContainer}));
             this._sessionViewModel.start();
         });
     }

@@ -44,13 +44,8 @@ export const LoginFailure = createEnum(
 );
 
 export class SessionContainer {
-    constructor({clock, random, onlineStatus, request, storageFactory, sessionInfoStorage, olmPromise, workerPromise, cryptoDriver}) {
-        this._random = random;
-        this._clock = clock;
-        this._onlineStatus = onlineStatus;
-        this._request = request;
-        this._storageFactory = storageFactory;
-        this._sessionInfoStorage = sessionInfoStorage;
+    constructor({platform, olmPromise, workerPromise}) {
+        this._platform = platform;
         this._sessionStartedByReconnector = false;
         this._status = new ObservableValue(LoadStatus.NotLoading);
         this._error = null;
@@ -63,11 +58,10 @@ export class SessionContainer {
         this._requestScheduler = null;
         this._olmPromise = olmPromise;
         this._workerPromise = workerPromise;
-        this._cryptoDriver = cryptoDriver;
     }
 
     createNewSessionId() {
-        return (Math.floor(this._random() * Number.MAX_SAFE_INTEGER)).toString();
+        return (Math.floor(this._platform.random() * Number.MAX_SAFE_INTEGER)).toString();
     }
 
     get sessionId() {
@@ -80,7 +74,7 @@ export class SessionContainer {
         }
         this._status.set(LoadStatus.Loading);
         try {
-            const sessionInfo = await this._sessionInfoStorage.get(sessionId);
+            const sessionInfo = await this._platform.sessionInfoStorage.get(sessionId);
             if (!sessionInfo) {
                 throw new Error("Invalid session id: " + sessionId);
             }
@@ -96,9 +90,11 @@ export class SessionContainer {
             return;
         }
         this._status.set(LoadStatus.Login);
+        const clock = this._platform.clock;
         let sessionInfo;
         try {
-            const hsApi = new HomeServerApi({homeServer, request: this._request, createTimeout: this._clock.createTimeout});
+            const request = this._platform.request;
+            const hsApi = new HomeServerApi({homeServer, request, createTimeout: clock.createTimeout});
             const loginData = await hsApi.passwordLogin(username, password, "Hydrogen").response();
             const sessionId = this.createNewSessionId();
             sessionInfo = {
@@ -107,7 +103,7 @@ export class SessionContainer {
                 userId: loginData.user_id,
                 homeServer: homeServer,
                 accessToken: loginData.access_token,
-                lastUsed: this._clock.now()
+                lastUsed: clock.now()
             };
             await this._sessionInfoStorage.add(sessionInfo);            
         } catch (err) {
@@ -139,22 +135,23 @@ export class SessionContainer {
     }
 
     async _loadSessionInfo(sessionInfo, isNewLogin) {
+        const clock = this._platform.clock;
         this._sessionStartedByReconnector = false;
         this._status.set(LoadStatus.Loading);
         this._reconnector = new Reconnector({
-            onlineStatus: this._onlineStatus,
-            retryDelay: new ExponentialRetryDelay(this._clock.createTimeout),
-            createMeasure: this._clock.createMeasure
+            onlineStatus: this._platform.onlineStatus,
+            retryDelay: new ExponentialRetryDelay(clock.createTimeout),
+            createMeasure: clock.createMeasure
         });
         const hsApi = new HomeServerApi({
             homeServer: sessionInfo.homeServer,
             accessToken: sessionInfo.accessToken,
-            request: this._request,
+            request: this._platform.request,
             reconnector: this._reconnector,
-            createTimeout: this._clock.createTimeout
+            createTimeout: clock.createTimeout
         });
         this._sessionId = sessionInfo.id;
-        this._storage = await this._storageFactory.create(sessionInfo.id);
+        this._storage = await this._platform.storageFactory.create(sessionInfo.id);
         // no need to pass access token to session
         const filteredSessionInfo = {
             deviceId: sessionInfo.deviceId,
@@ -166,16 +163,15 @@ export class SessionContainer {
         if (this._workerPromise) {
             olmWorker = await this._workerPromise;
         }
-        this._requestScheduler = new RequestScheduler({hsApi, clock: this._clock});
+        this._requestScheduler = new RequestScheduler({hsApi, clock});
         this._requestScheduler.start();
         this._session = new Session({
             storage: this._storage,
             sessionInfo: filteredSessionInfo,
             hsApi: this._requestScheduler.hsApi,
             olm,
-            clock: this._clock,
             olmWorker,
-            cryptoDriver: this._cryptoDriver,
+            platform: this._platform,
             mediaRepository: new MediaRepository(sessionInfo.homeServer)
         });
         await this._session.load();
@@ -293,8 +289,8 @@ export class SessionContainer {
             // if one fails, don't block the other from trying
             // also, run in parallel
             await Promise.all([
-                this._storageFactory.delete(this._sessionId),
-                this._sessionInfoStorage.delete(this._sessionId),
+                this._platform.storageFactory.delete(this._sessionId),
+                this._platform.sessionInfoStorage.delete(this._sessionId),
             ]);
             this._sessionId = null;
         }
