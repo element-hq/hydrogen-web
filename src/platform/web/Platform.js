@@ -27,6 +27,7 @@ import {OnlineStatus} from "./dom/OnlineStatus.js";
 import {Crypto} from "./dom/Crypto.js";
 import {estimateStorageUsage} from "./dom/StorageEstimate.js";
 import {WorkerPool} from "./dom/WorkerPool.js";
+import {BufferURL} from "./dom/BufferURL.js";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -126,5 +127,9 @@ export class Platform {
 
     setNavigation(navigation) {
         this._serviceWorkerHandler?.setNavigation(navigation);
+    }
+
+    createBufferURL(buffer, mimetype) {
+        return new BufferURL(buffer, mimetype);
     }
 }

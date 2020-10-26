@@ -20,7 +20,6 @@ const MAX_HEIGHT = 300;
 const MAX_WIDTH = 400;
 
 export class ImageTile extends MessageTile {
-
     constructor(options) {
         super(options);
         this._decryptedThumbail = null;
@@ -34,8 +33,7 @@ export class ImageTile extends MessageTile {
             return;
         }
         // TODO: fix XSS bug here by not checking mimetype
-        // const blob = new Blob([buffer], {type: file.mimetype});
-        return this.track(this._platform.createBufferURI(buffer, file.mimetype));
+        return this.track(this.platform.createBufferURL(buffer, file.mimetype));
     }
 
     async load() {
@@ -52,9 +50,9 @@ export class ImageTile extends MessageTile {
 
     get thumbnailUrl() {
         if (this._decryptedThumbail) {
-            return this._decryptedThumbail.uri;
+            return this._decryptedThumbail.url;
         } else if (this._decryptedImage) {
-            return this._decryptedImage.uri;
+            return this._decryptedImage.url;
         }
         const mxcUrl = this._getContent()?.url;
         if (typeof mxcUrl === "string") {
@@ -70,7 +68,7 @@ export class ImageTile extends MessageTile {
                 this._decryptedImage = await this._loadEncryptedFile(file);
             }
         }
-        return this._decryptedImage?.uri || "";
+        return this._decryptedImage?.url || "";
     }
 
     _scaleFactor() {
