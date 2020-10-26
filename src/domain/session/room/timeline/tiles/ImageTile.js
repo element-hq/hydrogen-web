@@ -23,38 +23,38 @@ export class ImageTile extends MessageTile {
 
     constructor(options) {
         super(options);
-        this._decryptedThumbailUrl = null;
-        this._decryptedUrl = null;
+        this._decryptedThumbail = null;
+        this._decryptedImage = null;
         this.load();
     }
 
     async _loadEncryptedFile(file) {
         const buffer = await this._mediaRepository.downloadEncryptedFile(file);
-        // TODO: fix XSS bug here by not checking mimetype
-        const blob = new Blob([buffer], {type: file.mimetype});
         if (this.isDisposed) {
             return;
         }
-        return URL.createObjectURL(blob);
+        // TODO: fix XSS bug here by not checking mimetype
+        // const blob = new Blob([buffer], {type: file.mimetype});
+        return this.track(this._platform.createBufferURI(buffer, file.mimetype));
     }
 
     async load() {
         const thumbnailFile = this._getContent().info?.thumbnail_file;
         const file = this._getContent().file;
         if (thumbnailFile) {
-            this._decryptedThumbailUrl = await this._loadEncryptedFile(thumbnailFile);
+            this._decryptedThumbail = await this._loadEncryptedFile(thumbnailFile);
             this.emitChange("thumbnailUrl");
         } else if (file) {
-            this._decryptedUrl = await this._loadEncryptedFile(file);
+            this._decryptedImage = await this._loadEncryptedFile(file);
             this.emitChange("thumbnailUrl");
         }
     }
 
     get thumbnailUrl() {
-        if (this._decryptedThumbailUrl) {
-            return this._decryptedThumbailUrl;
-        } else if (this._decryptedUrl) {
-            return this._decryptedUrl;
+        if (this._decryptedThumbail) {
+            return this._decryptedThumbail.uri;
+        } else if (this._decryptedImage) {
+            return this._decryptedImage.uri;
         }
         const mxcUrl = this._getContent()?.url;
         if (typeof mxcUrl === "string") {
@@ -64,13 +64,13 @@ export class ImageTile extends MessageTile {
     }
 
     async loadImageUrl() {
-        if (!this._decryptedUrl) {
+        if (!this._decryptedImage) {
             const file = this._getContent().file;
             if (file) {
-                this._decryptedUrl = await this._loadEncryptedFile(file);
+                this._decryptedImage = await this._loadEncryptedFile(file);
             }
         }
-        return this._decryptedUrl || "";
+        return this._decryptedImage || "";
     }
 
     _scaleFactor() {
@@ -98,17 +98,5 @@ export class ImageTile extends MessageTile {
 
     get shape() {
         return "image";
-    }
-
-    dispose() {
-        if (this._decryptedThumbailUrl) {
-            URL.revokeObjectURL(this._decryptedThumbailUrl);
-            this._decryptedThumbailUrl = null;
-        }
-        if (this._decryptedUrl) {
-            URL.revokeObjectURL(this._decryptedUrl);
-            this._decryptedUrl = null;
-        }
-        super.dispose();
     }
 }
