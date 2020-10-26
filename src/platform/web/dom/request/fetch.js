@@ -18,9 +18,9 @@ limitations under the License.
 import {
     AbortError,
     ConnectionError
-} from "../../error.js";
-import {abortOnTimeout} from "../timeout.js";
-import {addCacheBuster} from "../common.js";
+} from "../../../../matrix/error.js";
+import {abortOnTimeout} from "./timeout.js";
+import {addCacheBuster} from "./common.js";
 
 class RequestResult {
     constructor(promise, controller) {

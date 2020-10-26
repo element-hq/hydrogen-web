@@ -17,9 +17,9 @@ limitations under the License.
 import base64 from "../../../lib/base64-arraybuffer/index.js";
 
 export class SecretStorage {
-    constructor({key, cryptoDriver}) {
+    constructor({key, crypto}) {
         this._key = key;
-        this._cryptoDriver = cryptoDriver;
+        this._crypto = crypto;
     }
 
     async readSecret(name, txn) {
@@ -44,7 +44,7 @@ export class SecretStorage {
         const textEncoder = new TextEncoder();
         const textDecoder = new TextDecoder();
         // now derive the aes and mac key from the 4s key
-        const hkdfKey = await this._cryptoDriver.derive.hkdf(
+        const hkdfKey = await this._crypto.derive.hkdf(
             this._key.binaryKey,
             new Uint8Array(8).buffer,   //zero salt
             textEncoder.encode(type), // info
@@ -56,7 +56,7 @@ export class SecretStorage {
 
         const ciphertextBytes = base64.decode(encryptedData.ciphertext);
 
-        const isVerified = await this._cryptoDriver.hmac.verify(
+        const isVerified = await this._crypto.hmac.verify(
             hmacKey, base64.decode(encryptedData.mac),
             ciphertextBytes, "SHA-256");
 
@@ -64,7 +64,7 @@ export class SecretStorage {
             throw new Error("Bad MAC");
         }
 
-        const plaintextBytes = await this._cryptoDriver.aes.decryptCTR({
+        const plaintextBytes = await this._crypto.aes.decryptCTR({
             key: aesKey,
             iv: base64.decode(encryptedData.iv),
             data: ciphertextBytes

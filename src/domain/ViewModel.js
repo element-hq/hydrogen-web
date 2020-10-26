@@ -30,8 +30,8 @@ export class ViewModel extends EventEmitter {
     }
 
     childOptions(explicitOptions) {
-        const {navigation, urlCreator, clock} = this._options;
-        return Object.assign({navigation, urlCreator, clock}, explicitOptions);
+        const {navigation, urlCreator, platform} = this._options;
+        return Object.assign({navigation, urlCreator, platform}, explicitOptions);
     }
 
     // makes it easier to pass through dependencies of a sub-view model
@@ -100,8 +100,12 @@ export class ViewModel extends EventEmitter {
         }
     }
 
+    get platform() {
+        return this._options.platform;
+    }
+
     get clock() {
-        return this._options.clock;
+        return this._options.platform.clock;
     }
 
     /**

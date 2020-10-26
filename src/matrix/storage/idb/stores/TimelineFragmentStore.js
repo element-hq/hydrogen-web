@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import { StorageError } from "../../common.js";
-import {Platform} from "../../../../Platform.js";
+import {KeyLimits} from "../../common.js";
 import { encodeUint32 } from "../utils.js";
 
 function encodeKey(roomId, fragmentId) {
@@ -30,8 +30,8 @@ export class TimelineFragmentStore {
     _allRange(roomId) {
         try {
             return IDBKeyRange.bound(
-                encodeKey(roomId, Platform.minStorageKey),
-                encodeKey(roomId, Platform.maxStorageKey)
+                encodeKey(roomId, KeyLimits.minStorageKey),
+                encodeKey(roomId, KeyLimits.maxStorageKey)
             );
         } catch (err) {
             throw new StorageError(`error from IDBKeyRange with roomId ${roomId}`, err);

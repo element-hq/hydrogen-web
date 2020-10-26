@@ -188,9 +188,7 @@ export class SessionViewModel extends ViewModel {
         }
         if (settingsOpen) {
             this._settingsViewModel = this.track(new SettingsViewModel(this.childOptions({
-                updateService: this.getOption("updateService"),
                 session: this._sessionContainer.session,
-                estimateStorageUsage: this.getOption("estimateStorageUsage")
             })));
             this._settingsViewModel.load();
         }

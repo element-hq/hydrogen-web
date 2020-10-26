@@ -43,7 +43,7 @@ export class TimelineViewModel extends ViewModel {
         // once we support sending messages we could do
         // timeline.entries.concat(timeline.pendingEvents)
         // for an ObservableList that also contains local echos
-        this._tiles = new TilesCollection(timeline.entries, tilesCreator({room, ownUserId, clock: this.clock}));
+        this._tiles = new TilesCollection(timeline.entries, tilesCreator({room, ownUserId, platform: this.platform}));
     }
 
     async load() {

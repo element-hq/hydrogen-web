@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import { encodeUint32, decodeUint32 } from "../utils.js";
-import {Platform} from "../../../../Platform.js";
+import {KeyLimits} from "../../common.js";
 
 function encodeKey(roomId, queueIndex) {
     return `${roomId}|${encodeUint32(queueIndex)}`;
@@ -34,8 +34,8 @@ export class PendingEventStore {
 
     async getMaxQueueIndex(roomId) {
         const range = IDBKeyRange.bound(
-            encodeKey(roomId, Platform.minStorageKey),
-            encodeKey(roomId, Platform.maxStorageKey),
+            encodeKey(roomId, KeyLimits.minStorageKey),
+            encodeKey(roomId, KeyLimits.maxStorageKey),
             false,
             false,
         );

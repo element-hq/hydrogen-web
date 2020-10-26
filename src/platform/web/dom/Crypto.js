@@ -26,7 +26,7 @@ function subtleCryptoResult(promiseOrOp, method) {
     }
 }
 
-class CryptoHMACDriver {
+class HMACCrypto {
     constructor(subtleCrypto) {
         this._subtleCrypto = subtleCrypto;
     }
@@ -80,10 +80,10 @@ class CryptoHMACDriver {
     }
 }
 
-class CryptoDeriveDriver {
-    constructor(subtleCrypto, cryptoDriver, cryptoExtras) {
+class DeriveCrypto {
+    constructor(subtleCrypto, crypto, cryptoExtras) {
         this._subtleCrypto = subtleCrypto;
-        this._cryptoDriver = cryptoDriver;
+        this._crypto = crypto;
         this._cryptoExtras = cryptoExtras;
     }
     /**
@@ -130,7 +130,7 @@ class CryptoDeriveDriver {
      */
     async hkdf(key, salt, info, hash, length) {
         if (!this._subtleCrypto.deriveBits) {
-            return this._cryptoExtras.hkdf(this._cryptoDriver, key, salt, info, hash, length);
+            return this._cryptoExtras.hkdf(this._crypto, key, salt, info, hash, length);
         }
         const hkdfkey = await subtleCryptoResult(this._subtleCrypto.importKey(
             'raw',
@@ -152,7 +152,7 @@ class CryptoDeriveDriver {
     }
 }
 
-class CryptoAESDriver {
+class AESCrypto {
     constructor(subtleCrypto) {
         this._subtleCrypto = subtleCrypto;
     }
@@ -200,7 +200,7 @@ class CryptoAESDriver {
 }
 
 
-class CryptoLegacyAESDriver {
+class AESLegacyCrypto {
     constructor(aesjs) {
         this._aesjs = aesjs;
     }
@@ -237,20 +237,20 @@ function hashName(name) {
     return name;
 }
 
-export class CryptoDriver {
+export class Crypto {
     constructor(cryptoExtras) {
         const crypto = window.crypto || window.msCrypto;
         const subtleCrypto = crypto.subtle || crypto.webkitSubtle;
         this._subtleCrypto = subtleCrypto;
         // not exactly guaranteeing AES-CTR support
         // but in practice IE11 doesn't have this
-        if (!subtleCrypto.deriveBits && cryptoExtras.aesjs) {
-            this.aes = new CryptoLegacyAESDriver(cryptoExtras.aesjs);
+        if (!subtleCrypto.deriveBits && cryptoExtras?.aesjs) {
+            this.aes = new AESLegacyCrypto(cryptoExtras.aesjs);
         } else {
-            this.aes = new CryptoAESDriver(subtleCrypto);
+            this.aes = new AESCrypto(subtleCrypto);
         }
-        this.hmac = new CryptoHMACDriver(subtleCrypto);
-        this.derive = new CryptoDeriveDriver(subtleCrypto, this, cryptoExtras);
+        this.hmac = new HMACCrypto(subtleCrypto);
+        this.derive = new DeriveCrypto(subtleCrypto, this, cryptoExtras);
     }
 
     /**

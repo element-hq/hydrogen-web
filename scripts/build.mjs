@@ -45,12 +45,12 @@ import flexbugsFixes from "postcss-flexbugs-fixes";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectDir = path.join(__dirname, "../");
-const cssSrcDir = path.join(projectDir, "src/ui/web/css/");
+const cssSrcDir = path.join(projectDir, "src/platform/web/ui/css/");
 
-const program = new commander.Command();
-program
+const parameters = new commander.Command();
+parameters
     .option("--modern-only", "don't make a legacy build")
-program.parse(process.argv);
+parameters.parse(process.argv);
 
 async function build({modernOnly}) {
     // get version number
@@ -70,10 +70,13 @@ async function build({modernOnly}) {
     // copy olm assets
     const olmAssets = await copyFolder(path.join(projectDir, "lib/olm/"), assets.directory);
     assets.addSubMap(olmAssets);
-    await assets.write(`hydrogen.js`, await buildJs("src/main.js"));
+    await assets.write(`hydrogen.js`, await buildJs("src/main.js", ["src/platform/web/Platform.js"]));
     if (!modernOnly) {
-        await assets.write(`hydrogen-legacy.js`, await buildJsLegacy("src/main.js", ['src/legacy-polyfill.js', 'src/legacy-extras.js']));
-        await assets.write(`worker.js`, await buildJsLegacy("src/worker.js", ['src/worker-polyfill.js']));
+        await assets.write(`hydrogen-legacy.js`, await buildJsLegacy("src/main.js", [
+            'src/platform/web/legacy-polyfill.js',
+            'src/platform/web/LegacyPlatform.js'
+        ]));
+        await assets.write(`worker.js`, await buildJsLegacy("src/platform/web/worker/main.js", ['src/platform/web/worker/polyfill.js']));
     }
     // creates the directories where the theme css bundles are placed in,
     // and writes to assets, so the build bundles can translate them, so do it first
@@ -82,7 +85,7 @@ async function build({modernOnly}) {
     await buildManifest(assets);
     // all assets have been added, create a hash from all assets name to cache unhashed files like index.html
     assets.addToHashForAll("index.html", devHtml);
-    let swSource = await fs.readFile(path.join(projectDir, "src/service-worker.template.js"), "utf8");
+    let swSource = await fs.readFile(path.join(projectDir, "src/platform/web/service-worker.template.js"), "utf8");
     assets.addToHashForAll("sw.js", swSource);
     
     const globalHash = assets.hashForAll();
@@ -148,12 +151,12 @@ async function buildHtml(doc, version, globalHash, modernOnly, assets) {
         }
     });
     const mainScripts = [
-        `<script type="module">import {main} from "./${assets.resolve(`hydrogen.js`)}"; main(document.body, ${pathsJSON});</script>`
+        `<script type="module">import {main, Platform} from "./${assets.resolve(`hydrogen.js`)}"; main(new Platform(document.body, ${pathsJSON}));</script>`
     ];
     if (!modernOnly) {
         mainScripts.push(
             `<script type="text/javascript" nomodule src="${assets.resolve(`hydrogen-legacy.js`)}"></script>`,
-            `<script type="text/javascript" nomodule>hydrogenBundle.main(document.body, ${pathsJSON}, hydrogenBundle.legacyExtras);</script>`
+            `<script type="text/javascript" nomodule>hydrogen.main(new hydrogen.Platform(document.body, ${pathsJSON}));</script>`
         );
     }
     doc("script#main").replaceWith(mainScripts.join(""));
@@ -168,16 +171,16 @@ async function buildHtml(doc, version, globalHash, modernOnly, assets) {
     await assets.writeUnhashed("index.html", doc.html());
 }
 
-async function buildJs(inputFile) {
+async function buildJs(mainFile, extraFiles = []) {
     // create js bundle
     const bundle = await rollup({
-        input: inputFile,
-        plugins: [removeJsComments({comments: "none"})]
+        input: extraFiles.concat(mainFile),
+        plugins: [multi(), removeJsComments({comments: "none"})]
     });
     const {output} = await bundle.generate({
         format: 'es',
         // TODO: can remove this?
-        name: `hydrogenBundle`
+        name: `hydrogen`
     });
     const code = output[0].code;
     return code;
@@ -214,7 +217,7 @@ async function buildJsLegacy(mainFile, extraFiles = []) {
     const bundle = await rollup(rollupConfig);
     const {output} = await bundle.generate({
         format: 'iife',
-        name: `hydrogenBundle`
+        name: `hydrogen`
     });
     const code = output[0].code;
     return code;
@@ -460,4 +463,4 @@ class AssetMap {
     }
 }
 
-build(program).catch(err => console.error(err));
+build(parameters).catch(err => console.error(err));

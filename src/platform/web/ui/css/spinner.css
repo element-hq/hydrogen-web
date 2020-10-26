@@ -32,7 +32,7 @@ limitations under the License.
     }
 }
 
-.not-ie11 .spinner circle {
+.hydrogen:not(.legacy) .spinner circle {
     transform-origin: 50% 50%;
     animation-name: spinner;
     animation-duration: 2s;
@@ -45,35 +45,35 @@ limitations under the License.
     stroke-linecap: butt;
 }
 
-.ie11 .spinner {
+.hydrogen.legacy .spinner {
   display: inline-block;
   position: relative;
 }
 
-.ie11 .spinner div {
+.hydrogen.legacy .spinner div {
   box-sizing: border-box;
   display: block;
   position: absolute;
   padding: 2px;
   border: 2px solid currentcolor;
   border-radius: 50%;
-  animation: ie-spinner 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  animation: legacy-spinner 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
   border-color: currentcolor transparent transparent transparent;
   width: var(--size);
   height: var(--size);
 }
 
-.ie11 .spinner div:nth-child(1) {
+.hydrogen.legacy .spinner div:nth-child(1) {
   animation-delay: -0.45s;
 }
-.ie11 .spinner div:nth-child(2) {
+.hydrogen.legacy .spinner div:nth-child(2) {
   animation-delay: -0.3s;
 }
-.ie11 .spinner div:nth-child(3) {
+.hydrogen.legacy .spinner div:nth-child(3) {
   animation-delay: -0.15s;
 }
 
-@keyframes ie-spinner {
+@keyframes legacy-spinner {
   0% {
     transform: rotate(0deg);
   }

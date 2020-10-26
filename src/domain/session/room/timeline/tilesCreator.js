@@ -23,9 +23,9 @@ import {RoomMemberTile} from "./tiles/RoomMemberTile.js";
 import {EncryptedEventTile} from "./tiles/EncryptedEventTile.js";
 import {EncryptionEnabledTile} from "./tiles/EncryptionEnabledTile.js";
 
-export function tilesCreator({room, ownUserId, clock}) {
+export function tilesCreator({room, ownUserId, platform}) {
     return function tilesCreator(entry, emitUpdate) {
-        const options = {entry, emitUpdate, ownUserId, clock,
+        const options = {entry, emitUpdate, ownUserId, platform,
             mediaRepository: room.mediaRepository};
         if (entry.isGap) {
             return new GapTile(options, room);

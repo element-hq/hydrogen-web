@@ -14,8 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+const container = document.querySelector(".hydrogen");
+
 export function spinner(t, extraClasses = undefined) {
-    if (document.body.classList.contains("ie11")) {
+    if (container.classList.contains("legacy")) {
         return t.div({className: "spinner"}, [
             t.div(),
             t.div(),
