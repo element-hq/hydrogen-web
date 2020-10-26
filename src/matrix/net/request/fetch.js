@@ -51,7 +51,7 @@ class RequestResult {
 }
 
 export function createFetchRequest(createTimeout) {
-    return function fetchRequest(url, {method, headers, body, timeout, format}) {
+    return function fetchRequest(url, {method, headers, body, timeout, format, cache = false}) {
         const controller = typeof AbortController === "function" ? new AbortController() : null;
         let options = {method, body};
         if (controller) {
@@ -59,7 +59,9 @@ export function createFetchRequest(createTimeout) {
                 signal: controller.signal
             });
         }
-        url = addCacheBuster(url);
+        if (!cache) {
+            url = addCacheBuster(url);
+        }
         options = Object.assign(options, {
             mode: "cors",
             credentials: "omit",

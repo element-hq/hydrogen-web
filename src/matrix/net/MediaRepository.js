@@ -55,7 +55,7 @@ export class MediaRepository {
 
     async downloadEncryptedFile(fileEntry) {
         const url = this.mxcUrl(fileEntry.url);
-        const {body: encryptedBuffer} = await this._request(url, {format: "buffer"}).response();
+        const {body: encryptedBuffer} = await this._request(url, {format: "buffer", cache: true}).response();
         const decryptedBuffer = await decryptAttachment(this._cryptoDriver, encryptedBuffer, fileEntry);
         return decryptedBuffer;
     }
