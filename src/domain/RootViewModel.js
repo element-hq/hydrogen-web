@@ -70,7 +70,7 @@ export class RootViewModel extends ViewModel {
                 if (restoreUrlIfAtDefault) {
                     this.urlCreator.pushUrl(restoreUrlIfAtDefault);
                 } else {
-                    const sessionInfos = await this._sessionInfoStorage.getAll();
+                    const sessionInfos = await this.platform.sessionInfoStorage.getAll();
                     if (sessionInfos.length === 0) {
                         this.navigation.push("login");
                     } else if (sessionInfos.length === 1) {

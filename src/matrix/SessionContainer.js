@@ -105,7 +105,7 @@ export class SessionContainer {
                 accessToken: loginData.access_token,
                 lastUsed: clock.now()
             };
-            await this._sessionInfoStorage.add(sessionInfo);            
+            await this._platform.sessionInfoStorage.add(sessionInfo);            
         } catch (err) {
             this._error = err;
             if (err instanceof HomeServerError) {
