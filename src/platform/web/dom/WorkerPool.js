@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {AbortError} from "./error.js";
+import {AbortError} from "../../../utils/error.js";
 
 class WorkerState {
     constructor(worker) {

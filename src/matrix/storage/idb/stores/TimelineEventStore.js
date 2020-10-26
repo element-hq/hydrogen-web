@@ -17,7 +17,7 @@ limitations under the License.
 import {EventKey} from "../../../room/timeline/EventKey.js";
 import { StorageError } from "../../common.js";
 import { encodeUint32 } from "../utils.js";
-import {Platform} from "../../../../Platform.js";
+import {KeyLimits} from "../../common.js";
 
 function encodeKey(roomId, fragmentId, eventIndex) {
     return `${roomId}|${encodeUint32(fragmentId)}|${encodeUint32(eventIndex)}`;
@@ -52,7 +52,7 @@ class Range {
             if (this._lower && !this._upper) {
                 return IDBKeyRange.bound(
                     encodeKey(roomId, this._lower.fragmentId, this._lower.eventIndex),
-                    encodeKey(roomId, this._lower.fragmentId, Platform.maxStorageKey),
+                    encodeKey(roomId, this._lower.fragmentId, KeyLimits.maxStorageKey),
                     this._lowerOpen,
                     false
                 );
@@ -61,7 +61,7 @@ class Range {
             // also bound as we don't want to move into another roomId
             if (!this._lower && this._upper) {
                 return IDBKeyRange.bound(
-                    encodeKey(roomId, this._upper.fragmentId, Platform.minStorageKey),
+                    encodeKey(roomId, this._upper.fragmentId, KeyLimits.minStorageKey),
                     encodeKey(roomId, this._upper.fragmentId, this._upper.eventIndex),
                     false,
                     this._upperOpen

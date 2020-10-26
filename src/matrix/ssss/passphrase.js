@@ -22,10 +22,10 @@ const DEFAULT_BITSIZE = 256;
 /**
  * @param  {KeyDescription} keyDescription
  * @param  {string} passphrase
- * @param  {CryptoDriver} cryptoDriver
+ * @param  {Crypto} crypto
  * @return {Key}
  */
-export async function keyFromPassphrase(keyDescription, passphrase, cryptoDriver) {
+export async function keyFromPassphrase(keyDescription, passphrase, crypto) {
     const {passphraseParams} = keyDescription;
     if (!passphraseParams) {
         throw new Error("not a passphrase key");
@@ -35,7 +35,7 @@ export async function keyFromPassphrase(keyDescription, passphrase, cryptoDriver
     }
     // TODO: we should we move this to platform specific code
     const textEncoder = new TextEncoder();
-    const keyBits = await cryptoDriver.derive.pbkdf2(
+    const keyBits = await crypto.derive.pbkdf2(
         textEncoder.encode(passphrase),
         passphraseParams.iterations || DEFAULT_ITERATIONS,
         // salt is just a random string, not encoded in any way

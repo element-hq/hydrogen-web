@@ -35,12 +35,11 @@ export class SettingsViewModel extends ViewModel {
         this._session = session;
         this._sessionBackupViewModel = this.track(new SessionBackupViewModel(this.childOptions({session})));
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
-        this._estimateStorageUsage = options.estimateStorageUsage;
         this._estimate = null;
     }
 
     async load() {
-        this._estimate = await this._estimateStorageUsage();
+        this._estimate = await this.platform.estimateStorageUsage();
         this.emitChange("");
     }
 
@@ -61,18 +60,19 @@ export class SettingsViewModel extends ViewModel {
     }
 
     get version() {
-        if (this._updateService) {
-            return `${this._updateService.version} (${this._updateService.buildHash})`;
+        const {updateService} = this.platform; 
+        if (updateService) {
+            return `${updateService.version} (${updateService.buildHash})`;
         }
         return this.i18n`development version`;
     }
 
     checkForUpdate() {
-        this._updateService?.checkForUpdate();
+        this.platform.updateService?.checkForUpdate();
     }
 
     get showUpdateButton() {
-        return !!this._updateService;
+        return !!this.platform.updateService;
     }
 
     get sessionBackupViewModel() {

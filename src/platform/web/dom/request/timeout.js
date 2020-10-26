@@ -18,7 +18,7 @@ limitations under the License.
 import {
     AbortError,
     ConnectionError
-} from "../error.js";
+} from "../../../../matrix/error.js";
 
 
 export function abortOnTimeout(createTimeout, timeoutAmount, requestResult, responsePromise) {

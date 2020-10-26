@@ -41,8 +41,8 @@ const PICKLE_KEY = "DEFAULT_KEY";
 
 export class Session {
     // sessionInfo contains deviceId, userId and homeServer
-    constructor({clock, storage, hsApi, sessionInfo, olm, olmWorker, cryptoDriver, mediaRepository}) {
-        this._clock = clock;
+    constructor({storage, hsApi, sessionInfo, olm, olmWorker, platform, mediaRepository}) {
+        this._platform = platform;
         this._storage = storage;
         this._hsApi = hsApi;
         this._mediaRepository = mediaRepository;
@@ -61,7 +61,6 @@ export class Session {
         this._megolmDecryption = null;
         this._getSyncToken = () => this.syncToken;
         this._olmWorker = olmWorker;
-        this._cryptoDriver = cryptoDriver;
         this._sessionBackup = null;
         this._hasSecretStorageKey = new ObservableValue(null);
 
@@ -106,7 +105,7 @@ export class Session {
             pickleKey: PICKLE_KEY,
             olm: this._olm,
             storage: this._storage,
-            now: this._clock.now,
+            now: this._platform.clock.now,
             ownUserId: this._user.id,
             senderKeyLock
         });
@@ -115,7 +114,7 @@ export class Session {
             pickleKey: PICKLE_KEY,
             olm: this._olm,
             storage: this._storage,
-            now: this._clock.now,
+            now: this._platform.clock.now,
             ownUserId: this._user.id,
             olmUtil: this._olmUtil,
             senderKeyLock
@@ -125,7 +124,7 @@ export class Session {
             pickleKey: PICKLE_KEY,
             olm: this._olm,
             storage: this._storage,
-            now: this._clock.now,
+            now: this._platform.clock.now,
             ownDeviceId: this._sessionInfo.deviceId,
         });
         this._megolmDecryption = new MegOlmDecryption({
@@ -166,7 +165,7 @@ export class Session {
                     this.needsSessionBackup.set(true)
                 }
             },
-            clock: this._clock
+            clock: this._platform.clock
         });
     }
 
@@ -185,7 +184,7 @@ export class Session {
         if (this._sessionBackup) {
             return false;
         }
-        const key = await ssssKeyFromCredential(type, credential, this._storage, this._cryptoDriver, this._olm);
+        const key = await ssssKeyFromCredential(type, credential, this._storage, this._platform.crypto, this._olm);
         // and create session backup, which needs to read from accountData
         const readTxn = this._storage.readTxn([
             this._storage.storeNames.accountData,
@@ -207,7 +206,7 @@ export class Session {
     }
 
     async _createSessionBackup(ssssKey, txn) {
-        const secretStorage = new SecretStorage({key: ssssKey, cryptoDriver: this._cryptoDriver});
+        const secretStorage = new SecretStorage({key: ssssKey, crypto: this._platform.crypto});
         this._sessionBackup = await SessionBackup.fromSecretStorage({olm: this._olm, secretStorage, hsApi: this._hsApi, txn});
         if (this._sessionBackup) {
             for (const room of this._rooms.values()) {
@@ -363,7 +362,7 @@ export class Session {
             pendingEvents,
             user: this._user,
             createRoomEncryption: this._createRoomEncryption,
-            clock: this._clock
+            clock: this._platform.clock
         });
         this._rooms.add(roomId, room);
         return room;

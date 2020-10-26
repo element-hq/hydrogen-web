@@ -48,7 +48,7 @@ export async function checkNeedsSyncPromise() {
     return needsSyncPromise;
 }
 
-// storage keys are defined to be unsigned 32bit numbers in WebPlatform.js, which is assumed by idb
+// storage keys are defined to be unsigned 32bit numbers in KeyLimits, which is assumed by idb
 export function encodeUint32(n) {
     const hex = n.toString(16);
     return "0".repeat(8 - hex.length) + hex;

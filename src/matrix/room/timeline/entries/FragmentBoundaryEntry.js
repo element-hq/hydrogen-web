@@ -17,7 +17,7 @@ limitations under the License.
 import {BaseEntry} from "./BaseEntry.js";
 import {Direction} from "../Direction.js";
 import {isValidFragmentId} from "../common.js";
-import {Platform} from "../../../../Platform.js";
+import {KeyLimits} from "../../../storage/common.js";
 
 export class FragmentBoundaryEntry extends BaseEntry {
     constructor(fragment, isFragmentStart, fragmentIdComparer) {
@@ -53,9 +53,9 @@ export class FragmentBoundaryEntry extends BaseEntry {
 
     get entryIndex() {
         if (this.started) {
-            return Platform.minStorageKey;
+            return KeyLimits.minStorageKey;
         } else {
-            return Platform.maxStorageKey;
+            return KeyLimits.maxStorageKey;
         }
     }
 
