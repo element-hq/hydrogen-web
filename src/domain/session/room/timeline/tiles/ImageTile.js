@@ -70,7 +70,7 @@ export class ImageTile extends MessageTile {
                 this._decryptedImage = await this._loadEncryptedFile(file);
             }
         }
-        return this._decryptedImage || "";
+        return this._decryptedImage?.uri || "";
     }
 
     _scaleFactor() {
