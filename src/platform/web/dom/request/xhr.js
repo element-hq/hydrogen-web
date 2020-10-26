@@ -35,19 +35,22 @@ class RequestResult {
     }
 }
 
-function send(url, options) {
+function send(url, {method, headers, timeout, body, format}) {
     const xhr = new XMLHttpRequest();
-    xhr.open(options.method, url);
-    if (options.headers) {
-        for(const [name, value] of options.headers.entries()) {
+    if (format === "buffer") {
+        xhr.responseType = "arraybuffer";
+    }
+    xhr.open(method, url);
+    if (headers) {
+        for(const [name, value] of headers.entries()) {
             xhr.setRequestHeader(name, value);
         }
     }
-    if (options.timeout) {
-        xhr.timeout = options.timeout;
+    if (timeout) {
+        xhr.timeout = timeout;
     }
 
-    xhr.send(options.body || null);
+    xhr.send(body || null);
 
     return xhr;
 }
@@ -62,12 +65,17 @@ function xhrAsPromise(xhr, method, url) {
 }
 
 export function xhrRequest(url, options) {
-    url = addCacheBuster(url);
+    const {cache, format} = options;
+    if (!cache) {
+        url = addCacheBuster(url);
+    }
     const xhr = send(url, options);
     const promise = xhrAsPromise(xhr, options.method, url).then(xhr => {
         const {status} = xhr;
         let body = null;
-        if (xhr.getResponseHeader("Content-Type") === "application/json") {
+        if (format === "buffer") {
+            body = xhr.response;
+        } else if (xhr.getResponseHeader("Content-Type") === "application/json") {
             body = JSON.parse(xhr.responseText);
         }
         return {status, body};
