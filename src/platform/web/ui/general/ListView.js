@@ -147,15 +147,13 @@ export class ListView {
     recreateItem(index, value) {
         if (this._childInstances) {
             const child = this._childCreator(value);
-            let oldChild;
-            if (child) {
-                oldChild = this._childInstances.splice(index, 1, child)[0];
-                this._root.replaceChild(child.mount(this._mountArgs), oldChild.root());
+            if (!child) {
+                this.onRemove(index, value);
             } else {
-                oldChild = this._childInstances.splice(index, 1)[0];
-                oldChild.root().remove();
+                const [oldChild] = this._childInstances.splice(index, 1, child);
+                this._root.replaceChild(child.mount(this._mountArgs), oldChild.root());
+                oldChild.unmount();
             }
-            oldChild.unmount();
         }
     }
 
