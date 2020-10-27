@@ -158,8 +158,8 @@ class AESCrypto {
     }
     /**
      * [decrypt description]
-     * @param  {string} keyFormat        "raw" or "jwk"
-     * @param  {BufferSource | Object} key        [description]
+     * @param  {BufferSource} key        [description]
+     * @param  {Object} jwkKey        [description]
      * @param  {BufferSource} iv         [description]
      * @param  {BufferSource} data [description]
      * @param  {Number}       counterLength the size of the counter, in bits
@@ -200,6 +200,8 @@ class AESCrypto {
 }
 
 
+import base64 from "../../../../lib/base64-arraybuffer/index.js";
+
 class AESLegacyCrypto {
     constructor(aesjs) {
         this._aesjs = aesjs;
@@ -213,18 +215,25 @@ class AESLegacyCrypto {
      * @return {BufferSource}            [description]
      */
     async decryptCTR({key, jwkKey, iv, data, counterLength = 64}) {
-        // TODO: support counterLength and jwkKey
         const aesjs = this._aesjs;
-        // This won't work as aesjs throws with iv.length !== 16
-        // const nonceLength = 8;
-        // const expectedIVLength = (counterLength / 8) + nonceLength;
-        // if (iv.length < expectedIVLength) {
-        //     const newIV = new Uint8Array(expectedIVLength);
-        //     for(let i = 0; i < iv.length; ++i) {
-        //         newIV[i] = iv[i];
-        //     }
-        //     iv = newIV;
-        // }
+        if (counterLength !== 64) {
+            throw new Error(`Unsupported counter length: ${counterLength}`);
+        }
+        if (jwkKey) {
+            if (jwkKey.alg !== "A256CTR") {
+                throw new Error(`Unknown algorithm: ${jwkKey.alg}`);
+            }
+            if (!jwkKey.key_ops.includes("decrypt")) {
+                throw new Error(`decrypt missing from key_ops`);
+            }
+            if (jwkKey.kty !== "oct") {
+                throw new Error(`Invalid key type, "oct" expected: ${jwkKey.kty}`);
+            }
+            // need   //var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+            const base64Key = jwkKey.k.replace(/-/g, "+").replace(/_/g, "/");
+            key = base64.decode(base64Key);
+        }
+
         var aesCtr = new aesjs.ModeOfOperation.ctr(new Uint8Array(key), new aesjs.Counter(new Uint8Array(iv)));
         return aesCtr.decrypt(new Uint8Array(data));
     }
