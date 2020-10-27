@@ -50,7 +50,7 @@ export class UpdateAction {
         return new UpdateAction(false, false, false, null);
     }
 
-    static Replace() {
-        return new UpdateAction(false, false, true, null);
+    static Replace(params) {
+        return new UpdateAction(false, false, true, params);
     }
 }

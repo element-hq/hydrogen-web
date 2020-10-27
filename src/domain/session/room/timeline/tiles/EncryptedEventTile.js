@@ -22,7 +22,8 @@ export class EncryptedEventTile extends MessageTile {
         const parentResult = super.updateEntry(entry, params);
         // event got decrypted, recreate the tile and replace this one with it
         if (entry.eventType !== "m.room.encrypted") {
-            return UpdateAction.Replace();
+            // the "shape" parameter trigger tile recreation in TimelineList
+            return UpdateAction.Replace("shape");
         } else {
             return parentResult;
         }
