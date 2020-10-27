@@ -37,10 +37,11 @@ class RequestResult {
 
 function send(url, {method, headers, timeout, body, format}) {
     const xhr = new XMLHttpRequest();
+    xhr.open(method, url);
     if (format === "buffer") {
+        // important to call this after calling open
         xhr.responseType = "arraybuffer";
     }
-    xhr.open(method, url);
     if (headers) {
         for(const [name, value] of headers.entries()) {
             xhr.setRequestHeader(name, value);
