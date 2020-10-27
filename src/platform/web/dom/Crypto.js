@@ -215,7 +215,6 @@ class AESLegacyCrypto {
      * @return {BufferSource}            [description]
      */
     async decryptCTR({key, jwkKey, iv, data, counterLength = 64}) {
-        const aesjs = this._aesjs;
         if (counterLength !== 64) {
             throw new Error(`Unsupported counter length: ${counterLength}`);
         }
@@ -229,11 +228,12 @@ class AESLegacyCrypto {
             if (jwkKey.kty !== "oct") {
                 throw new Error(`Invalid key type, "oct" expected: ${jwkKey.kty}`);
             }
-            // need   //var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-            const base64Key = jwkKey.k.replace(/-/g, "+").replace(/_/g, "/");
+            // convert base64-url to normal base64
+            const base64UrlKey = jwkKey.k;
+            const base64Key = base64UrlKey.replace(/-/g, "+").replace(/_/g, "/");
             key = base64.decode(base64Key);
         }
-
+        const aesjs = this._aesjs;
         var aesCtr = new aesjs.ModeOfOperation.ctr(new Uint8Array(key), new aesjs.Counter(new Uint8Array(iv)));
         return aesCtr.decrypt(new Uint8Array(data));
     }
