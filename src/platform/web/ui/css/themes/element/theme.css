@@ -505,6 +505,11 @@ ul.Timeline > li.messageStatus .message-container > p {
     --avatar-size: 25px;
 }
 
+.message-container img.picture {
+    margin-top: 4px;
+    border-radius: 4px;
+}
+
 .TextMessageView.continuation .message-container {
     margin-top: 0;
     margin-bottom: 0;
