@@ -32,7 +32,6 @@ export class ImageTile extends MessageTile {
         if (this.isDisposed) {
             return;
         }
-        // TODO: fix XSS bug here by not checking mimetype
         return this.track(this.platform.createBufferURL(buffer, file.mimetype));
     }
 
