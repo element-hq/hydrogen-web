@@ -24,6 +24,7 @@ export class ImageTile extends MessageTile {
         super(options);
         this._decryptedThumbail = null;
         this._decryptedImage = null;
+        this._error = null;
         this.load();
     }
 
@@ -36,14 +37,18 @@ export class ImageTile extends MessageTile {
     }
 
     async load() {
-        const thumbnailFile = this._getContent().info?.thumbnail_file;
-        const file = this._getContent().file;
-        if (thumbnailFile) {
-            this._decryptedThumbail = await this._loadEncryptedFile(thumbnailFile);
-            this.emitChange("thumbnailUrl");
-        } else if (file) {
-            this._decryptedImage = await this._loadEncryptedFile(file);
-            this.emitChange("thumbnailUrl");
+        try {
+            const thumbnailFile = this._getContent().info?.thumbnail_file;
+            const file = this._getContent().file;
+            if (thumbnailFile) {
+                this._decryptedThumbail = await this._loadEncryptedFile(thumbnailFile);
+                this.emitChange("thumbnailUrl");
+            } else if (file) {
+                this._decryptedImage = await this._loadEncryptedFile(file);
+                this.emitChange("thumbnailUrl");
+            }
+        } catch (err) {
+            this._error = err;
         }
     }
 
