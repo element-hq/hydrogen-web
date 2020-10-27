@@ -20,6 +20,17 @@ import {TextMessageView} from "./timeline/TextMessageView.js";
 import {ImageView} from "./timeline/ImageView.js";
 import {AnnouncementView} from "./timeline/AnnouncementView.js";
 
+function viewClassForEntry(entry) {
+    switch (entry.shape) {
+        case "gap": return GapView;
+        case "announcement": return AnnouncementView;
+        case "message":
+        case "message-status":
+            return TextMessageView;
+        case "image": return ImageView;
+    }
+}
+
 export class TimelineList extends ListView {
     constructor(viewModel) {
         const options = {
@@ -27,13 +38,9 @@ export class TimelineList extends ListView {
             list: viewModel.tiles,
         }
         super(options, entry => {
-            switch (entry.shape) {
-                case "gap": return new GapView(entry);
-                case "announcement": return new AnnouncementView(entry);
-                case "message":
-                case "message-status":
-                    return new TextMessageView(entry);
-                case "image": return new ImageView(entry);
+            const View = viewClassForEntry(entry);
+            if (View) {
+                return new View(entry);
             }
         });
         this._atBottom = false;
@@ -126,5 +133,22 @@ export class TimelineList extends ListView {
         if (this._atBottom) {
             root.scrollTop = root.scrollHeight;
         }
+    }
+
+    onUpdate(index, value, param) {
+        if (param === "shape") {
+            if (this._childInstances) {
+                const ExpectedClass = viewClassForEntry(value);
+                const child = this._childInstances[index];
+                if (!ExpectedClass || !(child instanceof ExpectedClass)) {
+                    // shape was updated, so we need to recreate the tile view,
+                    // the shape parameter is set in EncryptedEventTile.updateEntry
+                    // (and perhaps elsewhere by the time you read this)
+                    super.recreateItem(index, value);
+                    return;
+                }
+            }
+        }
+        super.onUpdate(index, value, param);
     }
 }
