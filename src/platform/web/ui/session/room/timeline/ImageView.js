@@ -31,6 +31,7 @@ export class ImageView extends TemplateView {
             title: vm => vm.label,
         });
         const linkContainer = t.a({
+            href: vm.lightboxUrl,
             style: `padding-top: ${heightRatioPercent}%; width: ${vm.thumbnailWidth}px;`
         }, [
             image,
