@@ -19,6 +19,11 @@ html {
     height: 100%;
 }
 
+/* unknown element in IE11 that defaults to inline */
+main {
+    display: block;
+}
+
 @media screen and (min-width: 600px) {
     .PreSessionScreen {
         width: 600px;
@@ -34,46 +39,60 @@ html {
 }
 
 .SessionView {
-    display: flex;
-    flex-direction: column;
     /* this takes into account whether or not the url bar is hidden on mobile
     (have tested Firefox Android and Safari on iOS),
     see https://developers.google.com/web/updates/2016/12/url-bar-resizing */
     position: fixed;
     height: 100%;
-}
-
-.SessionView > .main {
-    flex: 1;
-    display: flex;
+    width: 100%;
+    display: grid;
+    grid-template:
+        "status status" auto
+        "left   middle" 1fr /
+        300px   1fr;
     min-height: 0;
     min-width: 0;
-    width: 100vw;
 }
 
 /* hide back button in middle section by default */
 .middle .close-middle { display: none; }
 /* mobile layout */
 @media screen and (max-width: 800px) {
+    .SessionView:not(.middle-shown) {
+        grid-template:
+            "status" auto
+            "left" 1fr /
+            1fr;
+    }
+
+    .SessionView.middle-shown {
+        grid-template:
+            "status" auto
+            "middle" 1fr /
+            1fr;
+    }
+
+    .SessionView:not(.middle-shown) .room-placeholder { display: none; }
+    .SessionView.middle-shown .LeftPanel { display: none; }
+
     /* show back button */
     .middle .close-middle { display: block !important; }
     /* hide grid button */
     .LeftPanel .grid { display: none !important; }
-    div.middle, div.room-placeholder { display: none; }
-    div.LeftPanel {flex-grow: 1;}
-    div.middle-shown div.middle { display: flex; }
-    div.middle-shown div.LeftPanel { display: none; }
-    div.right-shown div.TimelinePanel { display: none; }
 }
 
 .LeftPanel {
-    flex: 0 0 300px;
+    grid-area: left;
     min-width: 0;
 }
 
 .room-placeholder, .middle {
-    flex: 1 0 0;
     min-width: 0;
+    grid-area: middle;
+    /* when room view is inside of a grid,
+    grid-area middle won't be found,
+    so set width manually */
+    width: 100%;
 }
 
 .RoomView {
@@ -81,6 +100,20 @@ html {
     display: flex;
 }
 
+.SessionStatusView {
+    grid-area: status;
+}
+
+.lightbox {
+    /* cover left and middle panel, not status view
+    use numeric positions because named grid areas
+    are not present in mobile layout */
+    grid-area: 2 / 1 / 3 / 3;
+    background-color: rgba(0,0,0,0.5);
+    /* this should not be necessary, but chrome seems to have a bug when there are scrollbars in other grid items,
+    it seems to put the scroll areas on top of the other grid items unless they have a z-index */
+    z-index: 1;
+}
 
 .TimelinePanel {
     flex: 3;
