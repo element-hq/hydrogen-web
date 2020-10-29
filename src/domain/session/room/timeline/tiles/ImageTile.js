@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -49,6 +50,7 @@ export class ImageTile extends MessageTile {
             }
         } catch (err) {
             this._error = err;
+            this.emitChange("label");
         }
     }
 
@@ -95,6 +97,9 @@ export class ImageTile extends MessageTile {
     }
 
     get label() {
+        if (this._error) {
+            return `Could not decrypt image: ${this._error.message}`;
+        }
         return this._getContent().body;
     }
 
