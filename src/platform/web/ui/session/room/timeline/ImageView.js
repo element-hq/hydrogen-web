@@ -27,27 +27,15 @@ export class ImageView extends TemplateView {
             width: vm.thumbnailWidth,
             height: vm.thumbnailHeight,
             loading: "lazy",
-            alt: vm.label,
+            alt: vm => vm.label,
+            title: vm => vm.label,
         });
         const linkContainer = t.a({
-            href: "#",
-            onClick: evt => this.openImage(evt),
-            target: "_blank",
             style: `padding-top: ${heightRatioPercent}%; width: ${vm.thumbnailWidth}px;`
         }, image);
 
         return renderMessage(t, vm,
             [t.div(linkContainer), t.p(t.time(vm.date + " " + vm.time))]
         );
-    }
-
-    async openImage(evt) {
-        const link = evt.currentTarget;
-        if (link.getAttribute("href") === "#") {
-            evt.preventDefault();
-            const url = await this.value.loadImageUrl();
-            link.setAttribute("href", url);
-            link.click();
-        }
     }
 }
