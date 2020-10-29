@@ -32,7 +32,10 @@ export class ImageView extends TemplateView {
         });
         const linkContainer = t.a({
             style: `padding-top: ${heightRatioPercent}%; width: ${vm.thumbnailWidth}px;`
-        }, image);
+        }, [
+            image,
+            t.if(vm => vm.error, t.createTemplate((t, vm) => t.p({className: "error"}, vm.error)))
+        ]);
 
         return renderMessage(t, vm,
             [t.div(linkContainer), t.p(t.time(vm.date + " " + vm.time))]

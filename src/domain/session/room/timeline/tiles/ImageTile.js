@@ -50,7 +50,7 @@ export class ImageTile extends MessageTile {
             }
         } catch (err) {
             this._error = err;
-            this.emitChange("label");
+            this.emitChange("error");
         }
     }
 
@@ -97,10 +97,14 @@ export class ImageTile extends MessageTile {
     }
 
     get label() {
+        return this._getContent().body;
+    }
+
+    get error() {
         if (this._error) {
             return `Could not decrypt image: ${this._error.message}`;
         }
-        return this._getContent().body;
+        return null;
     }
 
     get shape() {

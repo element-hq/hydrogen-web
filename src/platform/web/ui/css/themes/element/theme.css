@@ -613,7 +613,7 @@ ul.Timeline > li.messageStatus .message-container > p {
     flex: 0 0 200px;
 }
 
-.Settings .error {
+.error {
     color: red;
     font-weight: 600;
 }
