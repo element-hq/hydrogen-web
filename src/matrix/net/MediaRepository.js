@@ -15,17 +15,20 @@ limitations under the License.
 */
 
 import {encodeQueryParams} from "./common.js";
+import {decryptAttachment} from "../e2ee/attachment.js";
 
 export class MediaRepository {
-    constructor(homeserver) {
-        this._homeserver = homeserver;
+    constructor({homeServer, crypto, request}) {
+        this._homeServer = homeServer;
+        this._crypto = crypto;
+        this._request = request;
     }
 
     mxcUrlThumbnail(url, width, height, method) {
         const parts = this._parseMxcUrl(url);
         if (parts) {
             const [serverName, mediaId] = parts;
-            const httpUrl = `${this._homeserver}/_matrix/media/r0/thumbnail/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`;
+            const httpUrl = `${this._homeServer}/_matrix/media/r0/thumbnail/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`;
             return httpUrl + "?" + encodeQueryParams({width, height, method});
         }
         return null;
@@ -35,7 +38,7 @@ export class MediaRepository {
         const parts = this._parseMxcUrl(url);
         if (parts) {
             const [serverName, mediaId] = parts;
-            return `${this._homeserver}/_matrix/media/r0/download/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`;
+            return `${this._homeServer}/_matrix/media/r0/download/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`;
         } else {
             return null;
         }
@@ -48,5 +51,12 @@ export class MediaRepository {
         } else {
             return null;
         }
+    }
+
+    async downloadEncryptedFile(fileEntry) {
+        const url = this.mxcUrl(fileEntry.url);
+        const {body: encryptedBuffer} = await this._request(url, {method: "GET", format: "buffer", cache: true}).response();
+        const decryptedBuffer = await decryptAttachment(this._crypto, encryptedBuffer, fileEntry);
+        return decryptedBuffer;
     }
 }

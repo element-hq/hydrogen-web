@@ -95,6 +95,9 @@ export class TilesCollection extends BaseObservableList {
 
     onUnsubscribeLast() {
         this._entrySubscription = this._entrySubscription();
+        for(let i = 0; i < this._tiles.length; i+= 1) {
+            this._tiles[i].dispose();
+        }
         this._tiles = null;
     }
 
@@ -147,7 +150,8 @@ export class TilesCollection extends BaseObservableList {
             if (action.shouldReplace) {
                 const newTile = this._tileCreator(entry);
                 if (newTile) {
-                    this._replaceTile(tileIdx, tile, newTile);
+                    this._replaceTile(tileIdx, tile, newTile, action.updateParams);
+                    newTile.setUpdateEmit(this._emitSpontanousUpdate);
                 } else {
                     this._removeTile(tileIdx, tile);
                 }
@@ -172,7 +176,7 @@ export class TilesCollection extends BaseObservableList {
         //   merge with neighbours? ... hard to imagine use case for this  ...
     }
 
-    _replaceTile(tileIdx, existingTile, newTile) {
+    _replaceTile(tileIdx, existingTile, newTile, updateParams) {
         existingTile.dispose();
         const prevTile = this._getTileAtIdx(tileIdx - 1);
         const nextTile = this._getTileAtIdx(tileIdx + 1);
@@ -181,7 +185,7 @@ export class TilesCollection extends BaseObservableList {
         newTile.updatePreviousSibling(prevTile);
         newTile.updateNextSibling(nextTile);
         nextTile?.updatePreviousSibling(newTile);
-        this.emitUpdate(tileIdx, newTile, null);
+        this.emitUpdate(tileIdx, newTile, updateParams);
     }
 
     _removeTile(tileIdx, tile) {

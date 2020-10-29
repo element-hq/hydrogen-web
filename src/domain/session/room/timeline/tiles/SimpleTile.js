@@ -18,9 +18,9 @@ import {UpdateAction} from "../UpdateAction.js";
 import {ViewModel} from "../../../../ViewModel.js";
 
 export class SimpleTile extends ViewModel {
-    constructor({entry}) {
-        super();
-        this._entry = entry;
+    constructor(options) {
+        super(options);
+        this._entry = options.entry;
     }
     // view model props for all subclasses
     // hmmm, could also do instanceof ... ?

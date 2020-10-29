@@ -159,21 +159,25 @@ class AESCrypto {
     /**
      * [decrypt description]
      * @param  {BufferSource} key        [description]
+     * @param  {Object} jwkKey        [description]
      * @param  {BufferSource} iv         [description]
-     * @param  {BufferSource} ciphertext [description]
+     * @param  {BufferSource} data [description]
+     * @param  {Number}       counterLength the size of the counter, in bits
      * @return {BufferSource}            [description]
      */
-    async decrypt(key, iv, ciphertext) {
+    async decryptCTR({key, jwkKey, iv, data, counterLength = 64}) {
         const opts = {
             name: "AES-CTR",
             counter: iv,
-            length: 64,
+            length: counterLength,
         };
         let aesKey;
         try {
+            const selectedKey = key || jwkKey;
+            const format = jwkKey ? "jwk" : "raw";
             aesKey = await subtleCryptoResult(this._subtleCrypto.importKey(
-                'raw',
-                key,
+                format,
+                selectedKey,
                 opts,
                 false,
                 ['decrypt'],
@@ -186,7 +190,7 @@ class AESCrypto {
                 // see https://developer.mozilla.org/en-US/docs/Web/API/AesCtrParams
                 opts,
                 aesKey,
-                ciphertext,
+                data,
             ), "decrypt");
             return new Uint8Array(plaintext);
         } catch (err) {
@@ -195,6 +199,8 @@ class AESCrypto {
     }
 }
 
+
+import base64 from "../../../../lib/base64-arraybuffer/index.js";
 
 class AESLegacyCrypto {
     constructor(aesjs) {
@@ -205,12 +211,31 @@ class AESLegacyCrypto {
      * @param  {BufferSource} key        [description]
      * @param  {BufferSource} iv         [description]
      * @param  {BufferSource} ciphertext [description]
+     * @param  {Number}       counterLength the size of the counter, in bits
      * @return {BufferSource}            [description]
      */
-    async decrypt(key, iv, ciphertext) {
+    async decryptCTR({key, jwkKey, iv, data, counterLength = 64}) {
+        if (counterLength !== 64) {
+            throw new Error(`Unsupported counter length: ${counterLength}`);
+        }
+        if (jwkKey) {
+            if (jwkKey.alg !== "A256CTR") {
+                throw new Error(`Unknown algorithm: ${jwkKey.alg}`);
+            }
+            if (!jwkKey.key_ops.includes("decrypt")) {
+                throw new Error(`decrypt missing from key_ops`);
+            }
+            if (jwkKey.kty !== "oct") {
+                throw new Error(`Invalid key type, "oct" expected: ${jwkKey.kty}`);
+            }
+            // convert base64-url to normal base64
+            const base64UrlKey = jwkKey.k;
+            const base64Key = base64UrlKey.replace(/-/g, "+").replace(/_/g, "/");
+            key = base64.decode(base64Key);
+        }
         const aesjs = this._aesjs;
         var aesCtr = new aesjs.ModeOfOperation.ctr(new Uint8Array(key), new aesjs.Counter(new Uint8Array(iv)));
-        return aesCtr.decrypt(new Uint8Array(ciphertext));
+        return aesCtr.decrypt(new Uint8Array(data));
     }
 }
 

@@ -75,7 +75,8 @@ export class HomeServerApi {
             method,
             headers,
             body: bodyString,
-            timeout: options?.timeout
+            timeout: options?.timeout,
+            format: "json"
         });
 
         const wrapper = new RequestWrapper(method, url, requestResult);

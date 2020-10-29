@@ -51,14 +51,17 @@ class RequestResult {
 }
 
 export function createFetchRequest(createTimeout) {
-    return function fetchRequest(url, options) {
+    return function fetchRequest(url, {method, headers, body, timeout, format, cache = false}) {
         const controller = typeof AbortController === "function" ? new AbortController() : null;
+        let options = {method, body};
         if (controller) {
             options = Object.assign(options, {
                 signal: controller.signal
             });
         }
-        url = addCacheBuster(url);
+        if (!cache) {
+            url = addCacheBuster(url);
+        }
         options = Object.assign(options, {
             mode: "cors",
             credentials: "omit",
@@ -76,18 +79,22 @@ export function createFetchRequest(createTimeout) {
             // cache: "no-store",
             cache: "default",
         });
-        if (options.headers) {
-            const headers = new Headers();
-            for(const [name, value] of options.headers.entries()) {
-                headers.append(name, value);
+        if (headers) {
+            const fetchHeaders = new Headers();
+            for(const [name, value] of headers.entries()) {
+                fetchHeaders.append(name, value);
             }
-            options.headers = headers;
+            options.headers = fetchHeaders;
         }
         const promise = fetch(url, options).then(async response => {
             const {status} = response;
             let body;
             try {
-                body = await response.json();
+                if (format === "json") {
+                    body = await response.json();
+                } else if (format === "buffer") {
+                    body = await response.arrayBuffer();
+                }
             } catch (err) {
                 // some error pages return html instead of json, ignore error
                 if (!(err.name === "SyntaxError" && status >= 400)) {
@@ -105,14 +112,14 @@ export function createFetchRequest(createTimeout) {
                 // 
                 // One could check navigator.onLine to rule out the first
                 // but the 2 latter ones are indistinguishable from javascript.
-                throw new ConnectionError(`${options.method} ${url}: ${err.message}`);
+                throw new ConnectionError(`${method} ${url}: ${err.message}`);
             }
             throw err;
         });
         const result = new RequestResult(promise, controller);
 
-        if (options.timeout) {
-            result.promise = abortOnTimeout(createTimeout, options.timeout, result, result.promise);
+        if (timeout) {
+            result.promise = abortOnTimeout(createTimeout, timeout, result, result.promise);
         }
 
         return result;

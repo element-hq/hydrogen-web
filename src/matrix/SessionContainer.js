@@ -165,14 +165,19 @@ export class SessionContainer {
         }
         this._requestScheduler = new RequestScheduler({hsApi, clock});
         this._requestScheduler.start();
+        const mediaRepository = new MediaRepository({
+            homeServer: sessionInfo.homeServer,
+            crypto: this._platform.crypto,
+            request: this._platform.request,
+        });
         this._session = new Session({
             storage: this._storage,
             sessionInfo: filteredSessionInfo,
             hsApi: this._requestScheduler.hsApi,
             olm,
             olmWorker,
+            mediaRepository,
             platform: this._platform,
-            mediaRepository: new MediaRepository(sessionInfo.homeServer)
         });
         await this._session.load();
         if (isNewLogin) {

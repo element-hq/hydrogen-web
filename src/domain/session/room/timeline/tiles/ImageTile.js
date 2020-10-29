@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,20 +21,60 @@ const MAX_HEIGHT = 300;
 const MAX_WIDTH = 400;
 
 export class ImageTile extends MessageTile {
+    constructor(options) {
+        super(options);
+        this._decryptedThumbail = null;
+        this._decryptedImage = null;
+        this._error = null;
+        this.load();
+    }
+
+    async _loadEncryptedFile(file) {
+        const buffer = await this._mediaRepository.downloadEncryptedFile(file);
+        if (this.isDisposed) {
+            return;
+        }
+        return this.track(this.platform.createBufferURL(buffer, file.mimetype));
+    }
+
+    async load() {
+        try {
+            const thumbnailFile = this._getContent().info?.thumbnail_file;
+            const file = this._getContent().file;
+            if (thumbnailFile) {
+                this._decryptedThumbail = await this._loadEncryptedFile(thumbnailFile);
+                this.emitChange("thumbnailUrl");
+            } else if (file) {
+                this._decryptedImage = await this._loadEncryptedFile(file);
+                this.emitChange("thumbnailUrl");
+            }
+        } catch (err) {
+            this._error = err;
+            this.emitChange("error");
+        }
+    }
+
     get thumbnailUrl() {
+        if (this._decryptedThumbail) {
+            return this._decryptedThumbail.url;
+        } else if (this._decryptedImage) {
+            return this._decryptedImage.url;
+        }
         const mxcUrl = this._getContent()?.url;
         if (typeof mxcUrl === "string") {
             return this._mediaRepository.mxcUrlThumbnail(mxcUrl, this.thumbnailWidth, this.thumbnailHeight, "scale");
         }
-        return null;
+        return "";
     }
 
-    get url() {
-        const mxcUrl = this._getContent()?.url;
-        if (typeof mxcUrl === "string") {
-            return this._mediaRepository.mxcUrl(mxcUrl);
+    async loadImageUrl() {
+        if (!this._decryptedImage) {
+            const file = this._getContent().file;
+            if (file) {
+                this._decryptedImage = await this._loadEncryptedFile(file);
+            }
         }
-        return null;
+        return this._decryptedImage?.url || "";
     }
 
     _scaleFactor() {
@@ -57,6 +98,13 @@ export class ImageTile extends MessageTile {
 
     get label() {
         return this._getContent().body;
+    }
+
+    get error() {
+        if (this._error) {
+            return `Could not decrypt image: ${this._error.message}`;
+        }
+        return null;
     }
 
     get shape() {

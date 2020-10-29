@@ -144,6 +144,19 @@ export class ListView {
         }
     }
 
+    recreateItem(index, value) {
+        if (this._childInstances) {
+            const child = this._childCreator(value);
+            if (!child) {
+                this.onRemove(index, value);
+            } else {
+                const [oldChild] = this._childInstances.splice(index, 1, child);
+                this._root.replaceChild(child.mount(this._mountArgs), oldChild.root());
+                oldChild.unmount();
+            }
+        }
+    }
+
     onBeforeListChanged() {}
     onListChanged() {}
 }

@@ -23,17 +23,19 @@ export class ImageView extends TemplateView {
         const heightRatioPercent = (vm.thumbnailHeight / vm.thumbnailWidth) * 100;
         const image = t.img({
             className: "picture",
-            src: vm.thumbnailUrl,
+            src: vm => vm.thumbnailUrl,
             width: vm.thumbnailWidth,
             height: vm.thumbnailHeight,
             loading: "lazy",
-            alt: vm.label,
+            alt: vm => vm.label,
+            title: vm => vm.label,
         });
         const linkContainer = t.a({
-            href: vm.url,
-            target: "_blank",
             style: `padding-top: ${heightRatioPercent}%; width: ${vm.thumbnailWidth}px;`
-        }, image);
+        }, [
+            image,
+            t.if(vm => vm.error, t.createTemplate((t, vm) => t.p({className: "error"}, vm.error)))
+        ]);
 
         return renderMessage(t, vm,
             [t.div(linkContainer), t.p(t.time(vm.date + " " + vm.time))]

@@ -22,7 +22,8 @@ export class EncryptedEventTile extends MessageTile {
         const parentResult = super.updateEntry(entry, params);
         // event got decrypted, recreate the tile and replace this one with it
         if (entry.eventType !== "m.room.encrypted") {
-            return UpdateAction.Replace();
+            // the "shape" parameter trigger tile recreation in TimelineList
+            return UpdateAction.Replace("shape");
         } else {
             return parentResult;
         }
@@ -38,7 +39,7 @@ export class EncryptedEventTile extends MessageTile {
         if (code === "MEGOLM_NO_SESSION") {
             return this.i18n`The sender hasn't sent us the key for this message yet.`;
         } else {
-            return decryptionError?.message || this.i18n`"Could not decrypt message because of unknown reason."`;
+            return decryptionError?.message || this.i18n`Could not decrypt message because of unknown reason.`;
         }
     }
 }
