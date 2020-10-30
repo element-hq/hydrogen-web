@@ -42,11 +42,14 @@ export class LightboxView extends TemplateView {
         const details = t.div({
             className: "details"
         }, [t.strong(vm => vm.name), t.br(), "uploaded by ", t.strong(vm => vm.sender), vm => ` at ${vm.time} on ${vm.date}.`]);
-        return t.div({
+        const dialog = t.div({
+            role: "dialog",
             className: "lightbox",
             onClick: evt => this.clickToClose(evt),
             onKeydown: evt => this.closeOnEscKey(evt)
         }, [image, loading, details, close]);
+        trapFocus(t, dialog);
+        return dialog;
     }
 
     clickToClose(evt) {
@@ -61,3 +64,33 @@ export class LightboxView extends TemplateView {
         }
     }
 }
+
+function trapFocus(t, element) {
+    const elements = focusables(element);
+    const first = elements[0];
+    const last = elements[elements.length - 1];
+
+    t.addEventListener(element, "keydown", evt => {
+        if (evt.key === "Tab") {
+            if (evt.shiftKey) {
+                if (document.activeElement === first) {
+                    last.focus();
+                    evt.preventDefault();
+                }
+            } else {
+                if (document.activeElement === last) {
+                    first.focus();
+                    evt.preventDefault();
+                }
+            }
+        }
+    }, true);
+    Promise.resolve().then(() => {
+        first.focus();
+    });
+}
+
+function focusables(element) {
+    return element.querySelectorAll('a[href], button, textarea, input, select');
+}
+
