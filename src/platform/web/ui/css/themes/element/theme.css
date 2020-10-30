@@ -632,3 +632,63 @@ button.link {
     color: #03B381;
     font-weight: 600;
 }
+
+.lightbox {
+    background-color: rgba(0,0,0,0.75);
+    display: grid;
+    grid-template:
+        "content close"   auto
+        "content details" 1fr /
+        1fr      auto;
+    color: white;
+}
+
+@media (max-aspect-ratio: 1/1) {
+    .lightbox {
+        grid-template:
+            "close"   auto
+            "content" 1fr
+            "details" auto /
+            1fr;
+    }
+
+    .lightbox .details {
+        width: 100% !important;
+    }
+}
+
+.lightbox .picture {
+    grid-area: content;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    width: 100%;
+    height: 100%;
+    margin: auto;
+}
+
+.lightbox .loading {
+    grid-area: content;
+    margin: auto;
+}
+
+.lightbox .close {
+    grid-area: close;
+    margin-left: auto;
+    background-image: url('icons/dismiss.svg');
+    background-position: center;
+    background-size: 16px;
+    background-repeat: no-repeat;
+    width: 16px;
+    height: 16px;
+    padding: 12px;
+}
+
+.lightbox .details {
+    grid-area: details;
+    padding: 12px;
+    font-size: 1.5rem;
+    width: 200px;
+}
+
+

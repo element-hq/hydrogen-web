@@ -109,7 +109,6 @@ main {
     use numeric positions because named grid areas
     are not present in mobile layout */
     grid-area: 2 / 1 / 3 / 3;
-    background-color: rgba(0,0,0,0.5);
     /* this should not be necessary, but chrome seems to have a bug when there are scrollbars in other grid items,
     it seems to put the scroll areas on top of the other grid items unless they have a z-index */
     z-index: 1;

@@ -15,9 +15,39 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../general/TemplateView.js";
+import {spinner} from "../../common.js";
 
 export class LightboxView extends TemplateView {
     render(t, vm) {
-        return t.div({className: "lightbox"}, [vm.eventId, t.br(), t.a({href: vm.closeUrl}, "close")]);
+        const close = t.a({href: vm.closeUrl, title: vm.i18n`Close`, className: "close"});
+        const image = t.div({
+            role: "img",
+            "aria-label": vm => vm.name,
+            title: vm => vm.name,
+            className: {
+                picture: true,
+                hidden: vm => !vm.imageUrl,
+            },
+            style: vm => `background-image: url('${vm.imageUrl}'); max-width: ${vm.imageWidth}px; max-height: ${vm.imageHeight}px;`
+        });
+        const loading = t.div({
+            className: {
+                loading: true,
+                hidden: vm => !!vm.imageUrl
+            }
+        }, [
+            spinner(t),
+            t.div(vm.i18n`Loading image…`)
+        ]);
+        const details = t.div({
+            className: "details"
+        }, [t.strong(vm => vm.name), t.br(), "uploaded by ", t.strong(vm => vm.sender), vm => ` at ${vm.time} on ${vm.date}.`]);
+        return t.div({className: "lightbox", onClick: evt => this.close(evt)}, [image, loading, details, close]);
+    }
+
+    close(evt) {
+        if (evt.target === this.root()) {
+            this.value.close();
+        }
     }
 }

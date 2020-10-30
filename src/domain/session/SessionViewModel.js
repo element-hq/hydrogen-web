@@ -207,7 +207,9 @@ export class SessionViewModel extends ViewModel {
             this._lightboxViewModel = this.disposeTracked(this._lightboxViewModel);
         }
         if (eventId) {
-            this._lightboxViewModel = this.track(new LightboxViewModel(this.childOptions({eventId})));
+            const roomId = this.navigation.path.get("room").value;
+            const room = this._sessionContainer.session.rooms.get(roomId);
+            this._lightboxViewModel = this.track(new LightboxViewModel(this.childOptions({eventId, room})));
         }
         this.emitChange("lightboxViewModel");
     }
