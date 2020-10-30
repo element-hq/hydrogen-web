@@ -59,7 +59,7 @@ export class LightboxView extends TemplateView {
     }
 
     closeOnEscKey(evt) {
-        if (evt.key === "Escape") {
+        if (evt.key === "Escape" || evt.key === "Esc") {
             this.value.close();
         }
     }
