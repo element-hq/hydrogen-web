@@ -41,7 +41,7 @@ export function abortOnTimeout(createTimeout, timeoutAmount, requestResult, resp
         err => {
             timeout.abort();
             // map error to TimeoutError
-            if (err instanceof AbortError && timedOut) {
+            if (err.name === "AbortError" && timedOut) {
                 throw new ConnectionError(`Request timed out after ${timeoutAmount}ms`, true);
             } else {
                 throw err;
