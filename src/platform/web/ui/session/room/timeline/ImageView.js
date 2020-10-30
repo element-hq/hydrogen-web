@@ -19,27 +19,20 @@ import {renderMessage} from "./common.js";
 
 export class ImageView extends TemplateView {
     render(t, vm) {
-        // replace with css aspect-ratio once supported
-        const heightRatioPercent = (vm.thumbnailHeight / vm.thumbnailWidth) * 100;
-        const image = t.img({
-            className: "picture",
-            src: vm => vm.thumbnailUrl,
-            width: vm.thumbnailWidth,
-            height: vm.thumbnailHeight,
-            loading: "lazy",
-            alt: vm => vm.label,
-            title: vm => vm.label,
-        });
-        const linkContainer = t.a({
-            href: vm.lightboxUrl,
-            style: `padding-top: ${heightRatioPercent}%; width: ${vm.thumbnailWidth}px;`
-        }, [
-            image,
-            t.if(vm => vm.error, t.createTemplate((t, vm) => t.p({className: "error"}, vm.error)))
-        ]);
-
         return renderMessage(t, vm,
-            [t.div(linkContainer), t.p(t.time(vm.date + " " + vm.time))]
+            t.div([
+                t.a({href: vm.lightboxUrl, className: "picture"}, [
+                    t.img({
+                        src: vm => vm.thumbnailUrl,
+                        loading: "lazy",
+                        alt: vm => vm.label,
+                        title: vm => vm.label,
+                        style: vm => `max-width: ${vm.thumbnailWidth}px; max-height: ${vm.thumbnailHeight}px;`
+                    }),
+                    t.time(vm.date + " " + vm.time)
+                ]),
+                t.if(vm => vm.error, t.createTemplate((t, vm) => t.p({className: "error"}, vm.error)))
+            ])
         );
     }
 }
