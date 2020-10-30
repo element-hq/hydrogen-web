@@ -29,8 +29,8 @@ import {Heroes} from "./members/Heroes.js";
 import {EventEntry} from "./timeline/entries/EventEntry.js";
 import {EventKey} from "./timeline/EventKey.js";
 import {Direction} from "./timeline/Direction.js";
+import {ObservedEventMap} from "./ObservedEventMap.js";
 import {DecryptionSource} from "../e2ee/common.js";
-
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 
 export class Room extends EventEmitter {
@@ -53,6 +53,7 @@ export class Room extends EventEmitter {
         this._roomEncryption = null;
         this._getSyncToken = getSyncToken;
         this._clock = clock;
+        this._observedEvents = null;
     }
 
     _readRetryDecryptCandidateEntries(sinceEventKey, txn) {
@@ -165,6 +166,9 @@ export class Room extends EventEmitter {
             }
             await writeTxn.complete();
             decryption.applyToEntries(entries);
+            if (this._observedEvents) {
+                this._observedEvents.updateEvents(entries);
+            }
         });
         return request;
     }
@@ -284,6 +288,9 @@ export class Room extends EventEmitter {
         }
         if (this._timeline) {
             this._timeline.appendLiveEntries(newTimelineEntries);
+        }
+        if (this._observedEvents) {
+            this._observedEvents.updateEvents(newTimelineEntries);
         }
         if (removedPendingEvents) {
             this._sendQueue.emitRemovals(removedPendingEvents);
@@ -578,6 +585,45 @@ export class Room extends EventEmitter {
     /** @package */
     applyIsTrackingMembersChanges(changes) {
         this._summary.applyChanges(changes);
+    }
+
+    observeEvent(eventId) {
+        if (!this._observedEvents) {
+            this._observedEvents = new ObservedEventMap(() => {
+                this._observedEvents = null;
+            });
+        }
+        let entry = null;
+        if (this._timeline) {
+            entry = this._timeline.getByEventId(eventId);
+        }
+        const observable = this._observedEvents.observe(eventId, entry);
+        if (!entry) {
+            // update in the background
+            this._readEventById(eventId).then(entry => {
+                observable.update(entry);
+            }).catch(err => {
+                console.warn(`could not load event ${eventId} from storage`, err);
+            });
+        }
+        return observable;
+    }
+
+    async _readEventById(eventId) {
+        let stores = [this._storage.storeNames.timelineEvents];
+        if (this.isEncrypted) {
+            stores.push(this._storage.storeNames.inboundGroupSessions);
+        }
+        const txn = this._storage.readTxn(stores);
+        const storageEntry = await txn.timelineEvents.getByEventId(this._roomId, eventId);
+        if (storageEntry) {
+            const entry = new EventEntry(storageEntry, this._fragmentIdComparer);
+            if (entry.eventType === EVENT_ENCRYPTED_TYPE) {
+                const request = this._decryptEntries(DecryptionSource.Timeline, [entry], txn);
+                await request.complete();
+            }
+            return entry;
+        }
     }
 
     dispose() {
