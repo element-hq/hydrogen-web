@@ -494,6 +494,8 @@ ul.Timeline > li.messageStatus .message-container > p {
 .message-container {
     padding: 1px 10px 0px 10px;
     margin: 5px 10px 0 10px;
+    /* so the .picture can grow horizontally and its spacer can grow vertically */
+    width: 100%;
 }
 
 .message-container .profile {
@@ -503,6 +505,10 @@ ul.Timeline > li.messageStatus .message-container > p {
 
 .message-container .avatar {
     --avatar-size: 25px;
+}
+
+.TextMessageView {
+    width: 100%;
 }
 
 .TextMessageView.continuation .message-container {
@@ -534,22 +540,28 @@ ul.Timeline > li.messageStatus .message-container > p {
 }
 
 
-.message-container a.picture {
+.message-container .picture {
     display: grid;
     text-decoration: none;
     overflow: hidden;
     margin-top: 4px;
     border-radius: 4px;
+    width: 100%;
 }
 
-.message-container a.picture > img {
-    grid-row: 1 / 2;
-    grid-column: 1 / 2;
+/* .spacer grows with an inline padding-top to the size of the image,
+so the timeline doesn't jump when the image loads */
+.message-container .picture > * {
+    grid-row: 1;
+    grid-column: 1;
 }
 
-.message-container a.picture > time {
-    grid-row: 1 / 2;
-    grid-column: 1 / 2;
+.message-container .picture > img {
+    width: 100%;
+    height: auto;
+}
+
+.message-container .picture > time {
     align-self: end;
     justify-self: end;
     color: #2e2f32;
@@ -558,6 +570,9 @@ ul.Timeline > li.messageStatus .message-container > p {
     margin: 4px;
     background-color: rgba(255, 255, 255, 0.75);
     border-radius: 4px;
+}
+.message-container .picture > .spacer {
+    width: 100%;
 }
 
 .TextMessageView.pending .message-container {

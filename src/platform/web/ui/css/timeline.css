@@ -37,14 +37,12 @@ limitations under the License.
     margin: 5px 0;
 }
 
-.message-container a.picture {
+.message-container .picture {
     display: block;
 }
 
-.message-container a.picture > img {
+.message-container .picture > img {
     display: block;
-    width: 100%;
-    height: auto;
 }
 
 .TextMessageView {
