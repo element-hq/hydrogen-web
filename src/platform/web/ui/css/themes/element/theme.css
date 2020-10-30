@@ -505,11 +505,6 @@ ul.Timeline > li.messageStatus .message-container > p {
     --avatar-size: 25px;
 }
 
-.message-container img.picture {
-    margin-top: 4px;
-    border-radius: 4px;
-}
-
 .TextMessageView.continuation .message-container {
     margin-top: 0;
     margin-bottom: 0;
@@ -536,6 +531,33 @@ ul.Timeline > li.messageStatus .message-container > p {
     font-size: 0.8em;
     line-height: normal;
     color: #aaa;
+}
+
+
+.message-container a.picture {
+    display: grid;
+    text-decoration: none;
+    overflow: hidden;
+    margin-top: 4px;
+    border-radius: 4px;
+}
+
+.message-container a.picture > img {
+    grid-row: 1 / 2;
+    grid-column: 1 / 2;
+}
+
+.message-container a.picture > time {
+    grid-row: 1 / 2;
+    grid-column: 1 / 2;
+    align-self: end;
+    justify-self: end;
+    color: #2e2f32;
+    display: block;
+    padding: 2px;
+    margin: 4px;
+    background-color: rgba(255, 255, 255, 0.75);
+    border-radius: 4px;
 }
 
 .TextMessageView.pending .message-container {
