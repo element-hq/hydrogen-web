@@ -678,6 +678,7 @@ button.link {
         "content details" 1fr /
         1fr      auto;
     color: white;
+    padding: 4px;
 }
 
 @media (max-aspect-ratio: 1/1) {
