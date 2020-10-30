@@ -200,7 +200,7 @@ export class Sync {
                 syncTxn.abort();
             } catch (abortErr) {
                 console.error("Could not abort sync transaction, the sync response was probably only partially written and may have put storage in a inconsistent state.", abortErr);
-            } 
+            }
             throw err;
         }
         try {
