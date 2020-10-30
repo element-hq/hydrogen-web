@@ -18,10 +18,9 @@ import {encodeQueryParams} from "./common.js";
 import {decryptAttachment} from "../e2ee/attachment.js";
 
 export class MediaRepository {
-    constructor({homeServer, crypto, request}) {
+    constructor({homeServer, platform}) {
         this._homeServer = homeServer;
-        this._crypto = crypto;
-        this._request = request;
+        this._platform = platform;
     }
 
     mxcUrlThumbnail(url, width, height, method) {
@@ -55,8 +54,8 @@ export class MediaRepository {
 
     async downloadEncryptedFile(fileEntry) {
         const url = this.mxcUrl(fileEntry.url);
-        const {body: encryptedBuffer} = await this._request(url, {method: "GET", format: "buffer", cache: true}).response();
-        const decryptedBuffer = await decryptAttachment(this._crypto, encryptedBuffer, fileEntry);
-        return decryptedBuffer;
+        const {body: encryptedBuffer} = await this._platform.request(url, {method: "GET", format: "buffer", cache: true}).response();
+        const decryptedBuffer = await decryptAttachment(this._platform.crypto, encryptedBuffer, fileEntry);
+        return this._platform.createBufferHandle(decryptedBuffer, fileEntry.mimetype);
     }
 }

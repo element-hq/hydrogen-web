@@ -69,18 +69,27 @@ const ALLOWED_BLOB_MIMETYPES = {
     'audio/x-flac': true,
 };
 
-export class BufferURL {
+export class BufferHandle {
     constructor(buffer, mimetype) {
         mimetype = mimetype ? mimetype.split(";")[0].trim() : '';
         if (!ALLOWED_BLOB_MIMETYPES[mimetype]) {
             mimetype = 'application/octet-stream';
         }
-        const blob = new Blob([buffer], {type: mimetype});
-        this.url = URL.createObjectURL(blob);
+        this.blob = new Blob([buffer], {type: mimetype});
+        this._url = null;
+    }
+
+    get url() {
+        if (!this._url) {
+             this._url = URL.createObjectURL(this.blob);
+        }
+        return this._url;
     }
 
     dispose() {
-        URL.revokeObjectURL(this.url);
-        this.url = null;
+        if (this._url) {
+            URL.revokeObjectURL(this._url);
+            this._url = null;
+        }
     }
 }

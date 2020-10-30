@@ -35,11 +35,12 @@ export class ImageTile extends MessageTile {
     }
 
     async _loadEncryptedFile(file) {
-        const buffer = await this._mediaRepository.downloadEncryptedFile(file);
+        const bufferHandle = await this._mediaRepository.downloadEncryptedFile(file);
         if (this.isDisposed) {
+            bufferHandle.dispose();
             return;
         }
-        return this.track(this.platform.createBufferURL(buffer, file.mimetype));
+        return this.track(bufferHandle);
     }
 
     async load() {

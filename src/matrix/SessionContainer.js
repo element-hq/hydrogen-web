@@ -167,8 +167,7 @@ export class SessionContainer {
         this._requestScheduler.start();
         const mediaRepository = new MediaRepository({
             homeServer: sessionInfo.homeServer,
-            crypto: this._platform.crypto,
-            request: this._platform.request,
+            platform: this._platform,
         });
         this._session = new Session({
             storage: this._storage,
