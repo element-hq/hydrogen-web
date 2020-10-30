@@ -42,11 +42,21 @@ export class LightboxView extends TemplateView {
         const details = t.div({
             className: "details"
         }, [t.strong(vm => vm.name), t.br(), "uploaded by ", t.strong(vm => vm.sender), vm => ` at ${vm.time} on ${vm.date}.`]);
-        return t.div({className: "lightbox", onClick: evt => this.close(evt)}, [image, loading, details, close]);
+        return t.div({
+            className: "lightbox",
+            onClick: evt => this.clickToClose(evt),
+            onKeydown: evt => this.closeOnEscKey(evt)
+        }, [image, loading, details, close]);
     }
 
-    close(evt) {
+    clickToClose(evt) {
         if (evt.target === this.root()) {
+            this.value.close();
+        }
+    }
+
+    closeOnEscKey(evt) {
+        if (evt.key === "Escape") {
             this.value.close();
         }
     }
