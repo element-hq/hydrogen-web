@@ -48,6 +48,10 @@ export class BaseObservable {
         return null;
     }
 
+    get hasSubscriptions() {
+        return this._handlers.size !== 0;
+    }
+
     // Add iterator over handlers here
 }
 

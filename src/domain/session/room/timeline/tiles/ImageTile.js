@@ -27,14 +27,20 @@ export class ImageTile extends MessageTile {
         this._decryptedImage = null;
         this._error = null;
         this.load();
+        this._lightboxUrl = this.urlCreator.urlForSegments([
+            // ensure the right room is active if in grid view
+            this.navigation.segment("room", this._room.id),
+            this.navigation.segment("lightbox", this._entry.id)
+        ]);
     }
 
     async _loadEncryptedFile(file) {
-        const buffer = await this._mediaRepository.downloadEncryptedFile(file);
+        const bufferHandle = await this._mediaRepository.downloadEncryptedFile(file);
         if (this.isDisposed) {
+            bufferHandle.dispose();
             return;
         }
-        return this.track(this.platform.createBufferURL(buffer, file.mimetype));
+        return this.track(bufferHandle);
     }
 
     async load() {
@@ -52,6 +58,10 @@ export class ImageTile extends MessageTile {
             this._error = err;
             this.emitChange("error");
         }
+    }
+
+    get lightboxUrl() {
+        return this._lightboxUrl;
     }
 
     get thumbnailUrl() {

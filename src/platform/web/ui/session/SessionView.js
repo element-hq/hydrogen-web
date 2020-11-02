@@ -17,6 +17,7 @@ limitations under the License.
 
 import {LeftPanelView} from "./leftpanel/LeftPanelView.js";
 import {RoomView} from "./room/RoomView.js";
+import {LightboxView} from "./room/LightboxView.js";
 import {TemplateView} from "../general/TemplateView.js";
 import {StaticView} from "../general/StaticView.js";
 import {SessionStatusView} from "./SessionStatusView.js";
@@ -32,21 +33,20 @@ export class SessionView extends TemplateView {
             },
         }, [
             t.view(new SessionStatusView(vm.sessionStatusViewModel)),
-            t.div({className: "main"}, [
-                t.view(new LeftPanelView(vm.leftPanelViewModel)),
-                t.mapView(vm => vm.activeSection, activeSection => {
-                    switch (activeSection) {
-                        case "roomgrid":
-                            return new RoomGridView(vm.roomGridViewModel);
-                        case "placeholder":
-                            return new StaticView(t => t.div({className: "room-placeholder"}, t.h2(vm.i18n`Choose a room on the left side.`)));
-                        case "settings":
-                            return new SettingsView(vm.settingsViewModel);
-                        default: //room id
-                            return new RoomView(vm.currentRoomViewModel);
-                    }
-                })
-            ])
+            t.view(new LeftPanelView(vm.leftPanelViewModel)),
+            t.mapView(vm => vm.activeSection, activeSection => {
+                switch (activeSection) {
+                    case "roomgrid":
+                        return new RoomGridView(vm.roomGridViewModel);
+                    case "placeholder":
+                        return new StaticView(t => t.div({className: "room-placeholder"}, t.h2(vm.i18n`Choose a room on the left side.`)));
+                    case "settings":
+                        return new SettingsView(vm.settingsViewModel);
+                    default: //room id
+                        return new RoomView(vm.currentRoomViewModel);
+                }
+            }),
+            t.mapView(vm => vm.lightboxViewModel, lightboxViewModel => lightboxViewModel ? new LightboxView(lightboxViewModel) : null)
         ]);
     }
 }

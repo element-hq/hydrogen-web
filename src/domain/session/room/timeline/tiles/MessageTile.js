@@ -20,10 +20,17 @@ import {getIdentifierColorNumber, avatarInitials} from "../../../../avatar.js";
 export class MessageTile extends SimpleTile {
     constructor(options) {
         super(options);
-        this._mediaRepository = options.mediaRepository;
         this._isOwn = this._entry.sender === options.ownUserId;
         this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : null;
         this._isContinuation = false;
+    }
+
+    get _room() {
+        return this.getOption("room");
+    }
+
+    get _mediaRepository() {
+        return this._room.mediaRepository;
     }
 
     get shape() {

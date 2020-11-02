@@ -95,6 +95,15 @@ export class Timeline {
         }
     }
 
+    getByEventId(eventId) {
+        for (let i = 0; i < this._remoteEntries.length; i += 1) {
+            const entry = this._remoteEntries.get(i);
+            if (entry.id === eventId) {
+                return entry;
+            }
+        }
+    }
+
     /** @public */
     get entries() {
         return this._allEntries;

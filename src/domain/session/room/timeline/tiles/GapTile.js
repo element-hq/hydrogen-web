@@ -18,11 +18,14 @@ import {SimpleTile} from "./SimpleTile.js";
 import {UpdateAction} from "../UpdateAction.js";
 
 export class GapTile extends SimpleTile {
-    constructor(options, timeline) {
+    constructor(options) {
         super(options);
-        this._timeline = timeline;
         this._loading = false;
         this._error = null;
+    }
+
+    get _room() {
+        return this.getOption("room");
     }
 
     async fill() {
@@ -31,9 +34,9 @@ export class GapTile extends SimpleTile {
             this._loading = true;
             this.emitChange("isLoading");
             try {
-                await this._timeline.fillGap(this._entry, 10);
+                await this._room.fillGap(this._entry, 10);
             } catch (err) {
-                console.error(`timeline.fillGap(): ${err.message}:\n${err.stack}`);
+                console.error(`room.fillGap(): ${err.message}:\n${err.stack}`);
                 this._error = err;
                 this.emitChange("error");
                 // rethrow so caller of this method

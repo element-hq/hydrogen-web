@@ -17,6 +17,7 @@ limitations under the License.
 
 import {LeftPanelViewModel} from "./leftpanel/LeftPanelViewModel.js";
 import {RoomViewModel} from "./room/RoomViewModel.js";
+import {LightboxViewModel} from "./room/LightboxViewModel.js";
 import {SessionStatusViewModel} from "./SessionStatusViewModel.js";
 import {RoomGridViewModel} from "./RoomGridViewModel.js";
 import {SettingsViewModel} from "./settings/SettingsViewModel.js";
@@ -67,6 +68,12 @@ export class SessionViewModel extends ViewModel {
             this._updateSettings(settingsOpen);
         }));
         this._updateSettings(settings.get());
+
+        const lightbox = this.navigation.observe("lightbox");
+        this.track(lightbox.subscribe(eventId => {
+            this._updateLightbox(eventId);
+        }));
+        this._updateLightbox(lightbox.get());
     }
 
     get id() {
@@ -193,5 +200,21 @@ export class SessionViewModel extends ViewModel {
             this._settingsViewModel.load();
         }
         this.emitChange("activeSection");
+    }
+
+    _updateLightbox(eventId) {
+        if (this._lightboxViewModel) {
+            this._lightboxViewModel = this.disposeTracked(this._lightboxViewModel);
+        }
+        if (eventId) {
+            const roomId = this.navigation.path.get("room").value;
+            const room = this._sessionContainer.session.rooms.get(roomId);
+            this._lightboxViewModel = this.track(new LightboxViewModel(this.childOptions({eventId, room})));
+        }
+        this.emitChange("lightboxViewModel");
+    }
+
+    get lightboxViewModel() {
+        return this._lightboxViewModel;
     }
 }

@@ -35,7 +35,7 @@ export class LoginView extends TemplateView {
         });
         const homeserver = t.input({
             id: "homeserver",
-            type: "text",
+            type: "url",
             placeholder: vm.i18n`Your matrix homeserver`,
             value: vm.defaultHomeServer, 
             disabled

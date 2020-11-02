@@ -74,16 +74,16 @@ export class TemplateView {
 
     _attach() {
         if (this._eventListeners) {
-            for (let {node, name, fn} of this._eventListeners) {
-                node.addEventListener(name, fn);
+            for (let {node, name, fn, useCapture} of this._eventListeners) {
+                node.addEventListener(name, fn, useCapture);
             }
         }
     }
 
     _detach() {
         if (this._eventListeners) {
-            for (let {node, name, fn} of this._eventListeners) {
-                node.removeEventListener(name, fn);
+            for (let {node, name, fn, useCapture} of this._eventListeners) {
+                node.removeEventListener(name, fn, useCapture);
             }
         }
     }
@@ -132,11 +132,11 @@ export class TemplateView {
         }
     }
 
-    _addEventListener(node, name, fn) {
+    _addEventListener(node, name, fn, useCapture = false) {
         if (!this._eventListeners) {
             this._eventListeners = [];
         }
-        this._eventListeners.push({node, name, fn});
+        this._eventListeners.push({node, name, fn, useCapture});
     }
 
     _addBinding(bindingFn) {
@@ -162,6 +162,10 @@ class TemplateBuilder {
 
     get _value() {
         return this._templateView._value;
+    }
+
+    addEventListener(node, name, fn, useCapture = false) {
+        this._templateView._addEventListener(node, name, fn, useCapture);
     }
 
     _addAttributeBinding(node, name, fn) {

@@ -494,6 +494,8 @@ ul.Timeline > li.messageStatus .message-container > p {
 .message-container {
     padding: 1px 10px 0px 10px;
     margin: 5px 10px 0 10px;
+    /* so the .picture can grow horizontally and its spacer can grow vertically */
+    width: 100%;
 }
 
 .message-container .profile {
@@ -505,9 +507,8 @@ ul.Timeline > li.messageStatus .message-container > p {
     --avatar-size: 25px;
 }
 
-.message-container img.picture {
-    margin-top: 4px;
-    border-radius: 4px;
+.TextMessageView {
+    width: 100%;
 }
 
 .TextMessageView.continuation .message-container {
@@ -536,6 +537,46 @@ ul.Timeline > li.messageStatus .message-container > p {
     font-size: 0.8em;
     line-height: normal;
     color: #aaa;
+}
+
+
+.message-container .picture {
+    display: grid;
+    text-decoration: none;
+    margin-top: 4px;
+    width: 100%;
+}
+
+/* .spacer grows with an inline padding-top to the size of the image,
+so the timeline doesn't jump when the image loads */
+.message-container .picture > * {
+    grid-row: 1;
+    grid-column: 1;
+}
+
+.message-container .picture > img {
+    width: 100%;
+    height: auto;
+    /* for IE11 to still scale even though the spacer is too tall */
+    align-self: start;
+    border-radius: 4px;
+}
+
+.message-container .picture > time {
+    align-self: end;
+    justify-self: end;
+    color: #2e2f32;
+    display: block;
+    padding: 2px;
+    margin: 4px;
+    background-color: rgba(255, 255, 255, 0.75);
+    border-radius: 4px;
+}
+.message-container .picture > .spacer {
+    /* TODO: can we implement this with a pseudo element? or perhaps they are not grid items? */
+    width: 100%;
+    /* don't stretch height as it is a spacer, just in case it doesn't match with image height */
+    align-self: start;
 }
 
 .TextMessageView.pending .message-container {
@@ -632,3 +673,72 @@ button.link {
     color: #03B381;
     font-weight: 600;
 }
+
+.lightbox {
+    background-color: rgba(0,0,0,0.75);
+    display: grid;
+    grid-template:
+        "content close"   auto
+        "content details" 1fr /
+        1fr      auto;
+    color: white;
+    padding: 4px;
+}
+
+@media (max-aspect-ratio: 1/1) {
+    .lightbox {
+        grid-template:
+            "close"   auto
+            "content" 1fr
+            "details" auto /
+            1fr;
+    }
+
+    .lightbox .details {
+        width: 100% !important;
+    }
+}
+
+.lightbox .picture {
+    grid-area: content;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    width: 100%;
+    height: 100%;
+    align-self: center;
+    justify-self: center;
+}
+
+.lightbox .loading {
+    grid-area: content;
+    align-self: center;
+    justify-self: center;
+    display: flex;
+}
+
+.lightbox .loading > :not(:first-child) {
+    margin-left: 8px;
+}
+
+.lightbox .close {
+    display: block;
+    grid-area: close;
+    justify-self: end;
+    background-image: url('icons/dismiss.svg');
+    background-position: center;
+    background-size: 16px;
+    background-repeat: no-repeat;
+    width: 16px;
+    height: 16px;
+    padding: 12px;
+}
+
+.lightbox .details {
+    grid-area: details;
+    padding: 12px;
+    font-size: 1.5rem;
+    width: 200px;
+}
+
+
