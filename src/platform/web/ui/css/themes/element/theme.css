@@ -561,6 +561,13 @@ so the timeline doesn't jump when the image loads */
     align-self: start;
     border-radius: 4px;
 }
+/* stretch the image (to the spacer) on platforms
+where we can trust the spacer to always have the correct height,
+otherwise the image starts with  height 0 and with loading=lazy
+only loads when the top comes into view*/
+.hydrogen:not(.legacy) .message-container .picture > img {
+    align-self: stretch;
+}
 
 .message-container .picture > time {
     align-self: end;
