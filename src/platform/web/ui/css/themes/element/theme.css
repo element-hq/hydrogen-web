@@ -575,6 +575,7 @@ so the timeline doesn't jump when the image loads */
 .message-container .picture > .spacer {
     /* TODO: can we implement this with a pseudo element? or perhaps they are not grid items? */
     width: 100%;
+    /* don't stretch height as it is a spacer, just in case it doesn't match with image height */
     align-self: start;
 }
 
