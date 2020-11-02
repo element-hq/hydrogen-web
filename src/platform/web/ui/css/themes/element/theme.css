@@ -716,6 +716,10 @@ button.link {
     display: flex;
 }
 
+.lightbox .loading > :not(:first-child) {
+    margin-left: 8px;
+}
+
 .lightbox .close {
     display: block;
     grid-area: close;
