@@ -20,9 +20,20 @@ import {renderMessage} from "./common.js";
 export class ImageView extends TemplateView {
     render(t, vm) {
         const heightRatioPercent = (vm.thumbnailHeight / vm.thumbnailWidth) * 100; 
+        let spacerStyle = `padding-top: ${heightRatioPercent}%;`;
+        if (vm.platform.isIE11) {
+            // preserving aspect-ratio in a grid with padding percentages
+            // does not work in IE11, so we assume people won't use it
+            // with viewports narrower than 400px where thumbnails will get
+            // scaled. If they do, the thumbnail will still scale, but
+            // there will be whitespace underneath the picture
+            // An alternative would be to use position: absolute but that
+            // can slow down rendering, and was bleeding through the lightbox.
+            spacerStyle = `height: ${vm.thumbnailHeight}px`;
+        }
         return renderMessage(t, vm, [
             t.a({href: vm.lightboxUrl, className: "picture", style: `max-width: ${vm.thumbnailWidth}px`}, [
-                t.div({className: "spacer", style: `padding-top: ${heightRatioPercent}%;`}),
+                t.div({className: "spacer", style: spacerStyle}),
                 t.img({
                     loading: "lazy",
                     src: vm => vm.thumbnailUrl,

@@ -543,9 +543,7 @@ ul.Timeline > li.messageStatus .message-container > p {
 .message-container .picture {
     display: grid;
     text-decoration: none;
-    overflow: hidden;
     margin-top: 4px;
-    border-radius: 4px;
     width: 100%;
 }
 
@@ -559,6 +557,9 @@ so the timeline doesn't jump when the image loads */
 .message-container .picture > img {
     width: 100%;
     height: auto;
+    /* for IE11 to still scale even though the spacer is too tall */
+    align-self: start;
+    border-radius: 4px;
 }
 
 .message-container .picture > time {
@@ -572,7 +573,9 @@ so the timeline doesn't jump when the image loads */
     border-radius: 4px;
 }
 .message-container .picture > .spacer {
+    /* TODO: can we implement this with a pseudo element? or perhaps they are not grid items? */
     width: 100%;
+    align-self: start;
 }
 
 .TextMessageView.pending .message-container {
