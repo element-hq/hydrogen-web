@@ -84,6 +84,7 @@ main {
 .LeftPanel {
     grid-area: left;
     min-width: 0;
+    min-height: 0;
 }
 
 .room-placeholder, .middle {
@@ -97,6 +98,7 @@ main {
 
 .RoomView {
     min-width: 0;
+    min-height: 0;
     display: flex;
 }
 
