@@ -99,6 +99,8 @@ export class Platform {
         } else {
             this.request = xhrRequest;
         }
+        const isIE11 = !!window.MSInputMethodContext && !!document.documentMode;
+        this.isIE11 = isIE11;    
     }
 
     get updateService() {
@@ -116,8 +118,7 @@ export class Platform {
     }
 
     createAndMountRootView(vm) {
-        const isIE11 = !!window.MSInputMethodContext && !!document.documentMode;
-        if (isIE11) {
+        if (this.isIE11) {
             this._container.className += " legacy";
         }
         window.__hydrogenViewModel = vm;
