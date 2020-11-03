@@ -94,6 +94,8 @@ main {
     grid-area middle won't be found,
     so set width manually */
     width: 100%;
+    /* otherwise we don't get scrollbars and the content grows as large as it can */
+    min-height: 0;
 }
 
 .RoomView {
