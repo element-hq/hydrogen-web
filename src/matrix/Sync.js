@@ -124,10 +124,10 @@ export class Sync {
                     // don't run afterSyncCompleted
                     continue;
                 }
+                this._error = err;
                 if (err.name !== "AbortError") {
                     console.warn("stopping sync because of error");
                     console.error(err);
-                    this._error = err;
                 }
                 this._status.set(SyncStatus.Stopped);
             }
