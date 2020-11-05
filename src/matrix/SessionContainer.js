@@ -226,9 +226,7 @@ export class SessionContainer {
         try {
             await this._waitForFirstSyncHandle.promise;
             if (this._sync.status.get() === SyncStatus.Stopped) {
-                if (this._sync.error) {
-                    throw this._sync.error;
-                }
+                throw this._sync.error;
             }
         } catch (err) {
             // if dispose is called from stop, bail out
