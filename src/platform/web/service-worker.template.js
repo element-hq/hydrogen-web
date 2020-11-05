@@ -105,6 +105,10 @@ async function handleRequest(request) {
 }
 
 async function updateCache(request, response) {
+    // don't write error responses to the cache
+    if (response.status >= 400) {
+        return;
+    }
     const url = new URL(request.url);
     const baseURL = self.registration.scope;
     if (isCacheableThumbnail(url)) {
@@ -135,6 +139,11 @@ async function readCache(request) {
     if (isCacheableThumbnail(url)) {
         const mediaThumbnailCache = await caches.open(mediaThumbnailCacheName);
         response = await mediaThumbnailCache.match(request);
+        // added in 0.1.26, remove previously cached error responses, remove this in some time
+        if (response.status >= 400) {
+            await mediaThumbnailCache.delete(request);
+            response = null;
+        }
     }
     return response;
 }
