@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {HomeServerError} from "../error.js";
+import {HomeServerError, ConnectionError} from "../error.js";
 import {encodeQueryParams} from "./common.js";
 
 class RequestWrapper {
@@ -26,9 +26,10 @@ class RequestWrapper {
             if (response.status >= 200 && response.status < 300) {
                 return response.body;
             } else {
-                switch (response.status) {
-                    default:
-                        throw new HomeServerError(method, url, response.body, response.status);
+                if (response.status >= 400 && !response.body?.errcode) {
+                    throw new ConnectionError(`HTTP error status ${response.status} without errcode in body, assume this is a load balancer complaining the server is offline.`);
+                } else {
+                    throw new HomeServerError(method, url, response.body, response.status);
                 }
             }
         });
