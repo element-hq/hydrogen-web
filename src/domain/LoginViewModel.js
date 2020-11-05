@@ -44,7 +44,7 @@ export class LoginViewModel extends ViewModel {
     async login(username, password, homeserver) {
         this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
         if (this._loadViewModel) {
-            this._loadViewModel.cancel();
+            this._loadViewModel = this.disposeTracked(this._loadViewModel);
         }
         this._loadViewModel = this.track(new SessionLoadViewModel({
             createAndStartSessionContainer: () => {
