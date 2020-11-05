@@ -32,11 +32,22 @@ class RequestWrapper {
                     throw new HomeServerError(method, url, response.body, response.status);
                 }
             }
+        }, err => {
+            // if this._requestResult is still set, the abort error came not from calling abort here
+            if (err.name === "AbortError" && this._requestResult) {
+                throw new Error(`Request ${method} ${url} was unexpectedly aborted, see #187.`);
+            } else {
+                throw err;
+            }
         });
     }
 
     abort() {
-        return this._requestResult.abort();
+        if (this._requestResult) {
+            this._requestResult.abort();
+            // to mark that it was on purpose in above rejection handler
+            this._requestResult = null;
+        }
     }
 
     response() {
