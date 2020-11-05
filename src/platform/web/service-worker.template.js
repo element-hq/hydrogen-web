@@ -140,7 +140,7 @@ async function readCache(request) {
         const mediaThumbnailCache = await caches.open(mediaThumbnailCacheName);
         response = await mediaThumbnailCache.match(request);
         // added in 0.1.26, remove previously cached error responses, remove this in some time
-        if (response.status >= 400) {
+        if (response?.status >= 400) {
             await mediaThumbnailCache.delete(request);
             response = null;
         }
