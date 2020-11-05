@@ -41,4 +41,12 @@ export class BaseObservableMap extends BaseObservable {
             h.onRemove(key, value);
         }
     }
+
+    [Symbol.iterator]() {
+        throw new Error("unimplemented");
+    }
+
+    get size() {
+        throw new Error("unimplemented");
+    }
 }

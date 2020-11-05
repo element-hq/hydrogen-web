@@ -71,10 +71,11 @@ export class FilteredMap extends BaseObservableMap {
     }
 
     onRemove(key, value) {
-        if (this._filter && !this._included.get(key)) {
-            return;
+        const wasIncluded = !this._filter || this._included.get(key);
+        this._included.delete(key);
+        if (wasIncluded) {
+            this.emitRemove(key, value);
         }
-        this.emitRemove(key, value);
     }
 
     onUpdate(key, value, params) {
@@ -116,6 +117,16 @@ export class FilteredMap extends BaseObservableMap {
 
     [Symbol.iterator]() {
         return new FilterIterator(this._source, this._included);
+    }
+
+    get size() {
+        let count = 0;
+        this._included.forEach(included => {
+            if (included) {
+                count += 1;
+            }
+        });
+        return count;
     }
 }
 

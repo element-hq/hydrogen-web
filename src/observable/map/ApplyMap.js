@@ -78,4 +78,8 @@ export class ApplyMap extends BaseObservableMap {
     [Symbol.iterator]() {
         return this._source[Symbol.iterator]();
     }
+
+    get size() {
+        return this._source.size;
+    }
 }
