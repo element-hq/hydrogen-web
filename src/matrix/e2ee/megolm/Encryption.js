@@ -43,15 +43,27 @@ export class Encryption {
         }
     }
 
-    async ensureOutboundSession(roomId, encryptionParams, txn) {
+    async ensureOutboundSession(roomId, encryptionParams) {
         let session = new this._olm.OutboundGroupSession();
         try {
-            let sessionEntry = await txn.outboundGroupSessions.get(roomId);
-            const roomKeyMessage = this._readOrCreateSession(session, sessionEntry, roomId, encryptionParams, txn);
-            if (roomKeyMessage) {
-                this._writeSession(sessionEntry, session, roomId, txn);
-                return roomKeyMessage;
+            const txn = this._storage.readWriteTxn([
+                this._storage.storeNames.inboundGroupSessions,
+                this._storage.storeNames.outboundGroupSessions,
+            ]);
+            let roomKeyMessage;
+            try {
+                let sessionEntry = await txn.outboundGroupSessions.get(roomId);
+                roomKeyMessage = this._readOrCreateSession(session, sessionEntry, roomId, encryptionParams, txn);
+                if (roomKeyMessage) {
+                    this._writeSession(sessionEntry, session, roomId, txn);
+                    return roomKeyMessage;
+                }
+            } catch (err) {
+                txn.abort();
+                throw err;
             }
+            await txn.complete();
+            return roomKeyMessage;
         } finally {
             session.free();
         }
