@@ -17,164 +17,186 @@ limitations under the License.
 import {MEGOLM_ALGORITHM} from "../common.js";
 
 export class Encryption {
-    constructor({pickleKey, olm, account, storage, now, ownDeviceId}) {
+    constructor({pickleKey, olm, account, now, ownDeviceId}) {
         this._pickleKey = pickleKey;
         this._olm = olm;
         this._account = account;
-        this._storage = storage;
         this._now = now;
         this._ownDeviceId = ownDeviceId;
     }
 
-    discardOutboundSession(roomId, txn) {
-        txn.outboundGroupSessions.remove(roomId);
-    }
-
-    async createRoomKeyMessage(roomId, txn) {
-        let sessionEntry = await txn.outboundGroupSessions.get(roomId);
+    async openRoomEncryption(roomId, encryptionParams, txn) {
+        const sessionEntry = await txn.outboundGroupSessions.get(roomId);
+        let session = null;
         if (sessionEntry) {
-            const session = new this._olm.OutboundGroupSession();
-            try {
-                session.unpickle(this._pickleKey, sessionEntry.session);
-                return this._createRoomKeyMessage(session, roomId);
-            } finally {
-                session.free();
-            }
-        }
-    }
-
-    async ensureOutboundSession(roomId, encryptionParams, txn) {
-        let session = new this._olm.OutboundGroupSession();
-        try {
-            let sessionEntry = await txn.outboundGroupSessions.get(roomId);
-            const roomKeyMessage = this._readOrCreateSession(session, sessionEntry, roomId, encryptionParams, txn);
-            if (roomKeyMessage) {
-                this._writeSession(sessionEntry, session, roomId, txn);
-                return roomKeyMessage;
-            }
-        } finally {
-            session.free();
-        }
-    }
-
-    _readOrCreateSession(session, sessionEntry, roomId, encryptionParams, txn) {
-        if (sessionEntry) {
+            session = new this._olm.OutboundGroupSession();
             session.unpickle(this._pickleKey, sessionEntry.session);
         }
-        if (!sessionEntry || this._needsToRotate(session, sessionEntry.createdAt, encryptionParams)) {
-            // in the case of rotating, recreate a session as we already unpickled into it
-            if (sessionEntry) {
-                session.free();
-                session = new this._olm.OutboundGroupSession();
-            }
-            session.create();
-            const roomKeyMessage = this._createRoomKeyMessage(session, roomId);
-            this._storeAsInboundSession(session, roomId, txn);
-            return roomKeyMessage;
-        }
+        return new RoomEncryption({
+            pickleKey: this._pickleKey,
+            olm: this._olm,
+            account: this._account,
+            now: this._now,
+            ownDeviceId: this._ownDeviceId,
+            sessionEntry,
+            session,
+            roomId,
+            encryptionParams
+        });
+    }
+}
+
+export class RoomEncryption {
+    constructor({pickleKey, olm, account, now, roomId, encryptionParams, sessionEntry, session, ownDeviceId}) {
+        this._pickleKey = pickleKey;
+        this._olm = olm;
+        this._account = account;
+        this._now = now;
+        this._roomId = roomId;
+        this._encryptionParams = encryptionParams;
+        this._ownDeviceId = ownDeviceId;
+        this._sessionEntry = sessionEntry;
+        this._session = session;
     }
 
-    _writeSession(sessionEntry, session, roomId, txn) {
-        txn.outboundGroupSessions.set({
-            roomId,
-            session: session.pickle(this._pickleKey),
-            createdAt: sessionEntry?.createdAt || this._now(),
-        });
+    /**
+     * Discards the outbound session, if any.
+     * @param  {Transaction} txn         a storage transaction with readwrite access to outboundGroupSessions and inboundGroupSessions stores
+     */
+    discardOutboundSession(txn) {
+        txn.outboundGroupSessions.remove(this._roomId);
+        if (this._session) {
+            this._session.free();
+        }
+        this._session = null;
+        this._sessionEntry = null;
+    }
+
+    /**
+     * Creates an outbound session if non exists already
+     * @param  {Transaction} txn         a storage transaction with readwrite access to outboundGroupSessions and inboundGroupSessions stores
+     * @return {boolean} true if a session has been created. Call `createRoomKeyMessage` to share the new session.
+     */
+    ensureOutboundSession(txn) {
+        if (this._readOrCreateSession(txn)) {
+            this._writeSession(txn);
+            return true;
+        }
+        return false;
     }
 
     /**
      * Encrypts a message with megolm
-     * @param  {string} roomId           
      * @param  {string} type             event type to encrypt
      * @param  {string} content          content to encrypt
-     * @param  {object} encryptionParams the content of the m.room.encryption event
+     * @param  {Transaction} txn         a storage transaction with readwrite access to outboundGroupSessions and inboundGroupSessions stores
      * @return {Promise<EncryptionResult>}
      */
-    async encrypt(roomId, type, content, encryptionParams) {
-        let session = new this._olm.OutboundGroupSession();
-        try {
-            const txn = this._storage.readWriteTxn([
-                this._storage.storeNames.inboundGroupSessions,
-                this._storage.storeNames.outboundGroupSessions,
-            ]);
-            let roomKeyMessage;
-            let encryptedContent;
-            try {
-                let sessionEntry = await txn.outboundGroupSessions.get(roomId);
-                roomKeyMessage = this._readOrCreateSession(session, sessionEntry, roomId, encryptionParams, txn);
-                encryptedContent = this._encryptContent(roomId, session, type, content);
-                this._writeSession(sessionEntry, session, roomId, txn);
-
-            } catch (err) {
-                txn.abort();
-                throw err;
-            }
-            await txn.complete();
-            return new EncryptionResult(encryptedContent, roomKeyMessage);
-        } finally {
-            if (session) {
-                session.free();
-            }
+    encrypt(type, content, txn) {
+        let roomKeyMessage;
+        if (this._readOrCreateSession(txn)) {
+            // important to create the room key message before encrypting
+            // so the message index isn't advanced yet
+            roomKeyMessage = this.createRoomKeyMessage();
         }
+        const encryptedContent = this._encryptContent(type, content);
+        this._writeSession(txn);
+        return new EncryptionResult(encryptedContent, roomKeyMessage);
     }
 
-    _needsToRotate(session, createdAt, encryptionParams) {
+    needsNewSession() {
+        if (!this._session) {
+            return true;
+        }
         let rotationPeriodMs = 604800000; // default
-        if (Number.isSafeInteger(encryptionParams?.rotation_period_ms)) {
-            rotationPeriodMs = encryptionParams?.rotation_period_ms;
+        if (Number.isSafeInteger(this._encryptionParams?.rotation_period_ms)) {
+            rotationPeriodMs = this._encryptionParams?.rotation_period_ms;
         }
         let rotationPeriodMsgs = 100; // default
-        if (Number.isSafeInteger(encryptionParams?.rotation_period_msgs)) {
-            rotationPeriodMsgs = encryptionParams?.rotation_period_msgs;
+        if (Number.isSafeInteger(this._encryptionParams?.rotation_period_msgs)) {
+            rotationPeriodMsgs = this._encryptionParams?.rotation_period_msgs;
         }
-
-        if (this._now() > (createdAt + rotationPeriodMs)) {
+        // assume this is a new session if sessionEntry hasn't been created/written yet
+        if (this._sessionEntry && this._now() > (this._sessionEntry.createdAt + rotationPeriodMs)) {
             return true;
         }
-        if (session.message_index() >= rotationPeriodMsgs) {
+        if (this._session.message_index() >= rotationPeriodMsgs) {
             return true;
-        }  
+        }
+        return false;
     }
 
-    _encryptContent(roomId, session, type, content) {
+    createRoomKeyMessage() {
+        if (!this._session) {
+            return;
+        }
+        return {
+            room_id: this._roomId,
+            session_id: this._session.session_id(),
+            session_key: this._session.session_key(),
+            algorithm: MEGOLM_ALGORITHM,
+            // chain_index is ignored by element-web if not all clients
+            // but let's send it anyway, as element-web does so
+            chain_index: this._session.message_index()
+        }
+    }
+
+    dispose() {
+        if (this._session) {
+            this._session.free();
+        }
+    }
+
+    _encryptContent(type, content) {
         const plaintext = JSON.stringify({
-            room_id: roomId,
+            room_id: this._roomId,
             type,
             content
         });
-        const ciphertext = session.encrypt(plaintext);
+        const ciphertext = this._session.encrypt(plaintext);
 
         const encryptedContent = {
             algorithm: MEGOLM_ALGORITHM,
             sender_key: this._account.identityKeys.curve25519,
             ciphertext,
-            session_id: session.session_id(),
+            session_id: this._session.session_id(),
             device_id: this._ownDeviceId
         };
 
         return encryptedContent;
     }
 
-    _createRoomKeyMessage(session, roomId) {
-        return {
-            room_id: roomId,
-            session_id: session.session_id(),
-            session_key: session.session_key(),
-            algorithm: MEGOLM_ALGORITHM,
-            // chain_index is ignored by element-web if not all clients
-            // but let's send it anyway, as element-web does so
-            chain_index: session.message_index()
+
+    _readOrCreateSession(txn) {
+        if (this.needsNewSession()) {
+            if (this._session) {
+                this._session.free();
+                this._session = new this._olm.OutboundGroupSession();
+            }
+            this._session.create();
+            this._storeAsInboundSession(txn);
+            return true;
         }
+        return false;
     }
 
-    _storeAsInboundSession(outboundSession, roomId, txn) {
+    _writeSession(txn) {
+        this._sessionEntry = {
+            roomId: this._roomId,
+            session: this._session.pickle(this._pickleKey),
+            createdAt: this._sessionEntry?.createdAt || this._now(),
+        };
+        txn.outboundGroupSessions.set(this._sessionEntry);
+    }
+
+    _storeAsInboundSession(txn) {
         const {identityKeys} = this._account;
         const claimedKeys = {ed25519: identityKeys.ed25519};
         const session = new this._olm.InboundGroupSession();
         try {
-            session.create(outboundSession.session_key());
+            session.create(this._session.session_key());
             const sessionEntry = {
-                roomId,
+                roomId: this._roomId,
                 senderKey: identityKeys.curve25519,
                 sessionId: session.session_id(),
                 session: session.pickle(this._pickleKey),
@@ -187,7 +209,6 @@ export class Encryption {
         }
     }
 }
-
 /**
  * @property {object?} roomKeyMessage  if encrypting this message
  *                                     created a new outbound session,

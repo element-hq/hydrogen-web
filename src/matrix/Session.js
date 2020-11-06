@@ -123,7 +123,6 @@ export class Session {
             account: this._e2eeAccount,
             pickleKey: PICKLE_KEY,
             olm: this._olm,
-            storage: this._storage,
             now: this._platform.clock.now,
             ownDeviceId: this._sessionInfo.deviceId,
         });
