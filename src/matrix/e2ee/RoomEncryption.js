@@ -247,9 +247,10 @@ export class RoomEncryption {
     }
 
     /** shares the encryption key for the next message if needed */
-    async ensureNextMessageKeyIsShared(hsApi) {
+    async ensureMessageKeyIsShared(hsApi) {
         const roomKeyMessage = await this._megolmEncryption.ensureOutboundSession(this._room.id, this._encryptionParams);
         if (roomKeyMessage) {
+            await this._deviceTracker.trackRoom(this._room);
             await this._shareNewRoomKey(roomKeyMessage, hsApi);
         }
     }
