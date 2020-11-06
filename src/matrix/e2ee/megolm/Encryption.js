@@ -56,7 +56,6 @@ export class Encryption {
                 roomKeyMessage = this._readOrCreateSession(session, sessionEntry, roomId, encryptionParams, txn);
                 if (roomKeyMessage) {
                     this._writeSession(sessionEntry, session, roomId, txn);
-                    return roomKeyMessage;
                 }
             } catch (err) {
                 txn.abort();
