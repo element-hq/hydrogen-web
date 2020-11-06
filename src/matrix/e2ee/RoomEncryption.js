@@ -249,7 +249,6 @@ export class RoomEncryption {
     /** shares the encryption key for the next message if needed */
     async ensureNextMessageEncryptionKeyIsShared(hsApi) {
         const txn = this._storage.readWriteTxn([
-            this._storage.storeNames.operations,
             this._storage.storeNames.outboundGroupSessions,
             this._storage.storeNames.inboundGroupSessions,
         ]);
@@ -260,18 +259,51 @@ export class RoomEncryption {
             txn.abort();
             throw err;
         }
+        await txn.complete();
         // will complete the txn
         if (roomKeyMessage) {
-            await this._shareNewRoomKey(roomKeyMessage, hsApi, txn);
+            // TODO: track room first
+            await this._deviceTracker.trackRoom(this._room);
+            await this._shareNewRoomKey(roomKeyMessage, hsApi);
         }
     }
 
     async encrypt(type, content, hsApi) {
-        await this._deviceTracker.trackRoom(this._room);
-        const megolmResult = await this._megolmEncryption.encrypt(this._room.id, type, content, this._encryptionParams);
+        let devices;
+        // First, in one transaction, determine whether we need to create a new session
+        const availableSessionId = await this._megolmEncryption.getAvailableSessionId(this._storage, this._room.id, this._encryptionParams);
+        if (!availableSessionId) {
+            // If so, track room and fetch devices (with will do network requests, interrupting any transactions)
+            await this._deviceTracker.trackRoom(this._room);
+            devices = await this._deviceTracker.devicesForTrackedRoom(this._room.id, hsApi);
+        }
+        // Now, start another transaction to write the new session and the share operation together, so nothing can get lost.
+        // We pass the session id we fetched earlier to make sure the same session is used if one existed already, otherwise an error is thrown
+        const txn = this._storage.readWriteTxn([
+            this._storage.storeNames.operations,
+            this._storage.storeNames.outboundGroupSessions,
+            this._storage.storeNames.inboundGroupSessions,
+        ]);
+
+        // AARGH, we run the risk now that while we fetched the devices:
+        //  - somebody joined the room and we won't ever send them the key
+        //  - somebody left the room and we removed availableSessionId, throwing an error (not too bad, we can retry)
+        //  
+        // DO WE HAVE THE SAME PROBLEM IF WE KEEP THE OUTBOUND SESSION IN MEMORY??
+        const megolmResult = await this._megolmEncryption.encrypt(
+            this._room.id,
+            this._encryptionParams,
+            type,
+            content,
+            availableSessionId,
+            txn
+        );
         if (megolmResult.roomKeyMessage) {
+            if (!devices) {
+                // a new session was not created, throw
+            }
             // TODO: should we await this??
-            this._shareNewRoomKey(megolmResult.roomKeyMessage, hsApi);
+            this._shareNewRoomKey(megolmResult.roomKeyMessage, devices, hsApi, txn);
         }
         return {
             type: ENCRYPTED_TYPE,
@@ -288,12 +320,9 @@ export class RoomEncryption {
         return false;
     }
 
-    async _shareNewRoomKey(roomKeyMessage, hsApi, txn = null) {
-        const devices = await this._deviceTracker.devicesForTrackedRoom(this._room.id, hsApi);
+    async _shareNewRoomKey(roomKeyMessage, devices, hsApi, writeOpTxn) {
         const userIds = Array.from(devices.reduce((set, device) => set.add(device.userId), new Set()));
-
         // store operation for room key share, in case we don't finish here
-        const writeOpTxn = txn || this._storage.readWriteTxn([this._storage.storeNames.operations]);
         let operationId;
         try {
             operationId = this._writeRoomKeyShareOperation(roomKeyMessage, userIds, writeOpTxn);

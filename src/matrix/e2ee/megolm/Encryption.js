@@ -43,6 +43,24 @@ export class Encryption {
         }
     }
 
+    async getAvailableOutboundSessionId(storage, roomId, encryptionParams) {
+        const txn = storage.readWriteTxn([
+            this._storage.storeNames.outboundGroupSessions,
+        ]);
+        const sessionEntry = await txn.outboundGroupSessions.get(roomId);
+        if (sessionEntry) {
+            const session = new this._olm.OutboundGroupSession();
+            try {
+                session.unpickle(this._pickleKey, sessionEntry.session);
+                if (!this._needsToRotate(session, sessionEntry.createdAt, encryptionParams)) {
+                    return session.session_id();
+                }
+            } finally {
+                session.free();
+            }
+        }
+    }
+
     async ensureOutboundSession(roomId, encryptionParams, txn) {
         let session = new this._olm.OutboundGroupSession();
         try {
@@ -90,7 +108,7 @@ export class Encryption {
      * @param  {object} encryptionParams the content of the m.room.encryption event
      * @return {Promise<EncryptionResult>}
      */
-    async encrypt(roomId, type, content, encryptionParams) {
+    async encrypt(roomId, encryptionParams, type, content, txn) {
         let session = new this._olm.OutboundGroupSession();
         try {
             const txn = this._storage.readWriteTxn([
