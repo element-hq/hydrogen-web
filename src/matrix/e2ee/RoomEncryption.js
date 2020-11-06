@@ -244,7 +244,26 @@ export class RoomEncryption {
         }
         
         return matches;
-        
+    }
+
+    /** shares the encryption key for the next message if needed */
+    async ensureNextMessageEncryptionKeyIsShared(hsApi) {
+        const txn = this._storage.readWriteTxn([
+            this._storage.storeNames.operations,
+            this._storage.storeNames.outboundGroupSessions,
+            this._storage.storeNames.inboundGroupSessions,
+        ]);
+        let roomKeyMessage;
+        try {
+            roomKeyMessage = await this._megolmEncryption.ensureOutboundSession(this._room.id, this._encryptionParams, txn);
+        } catch (err) {
+            txn.abort();
+            throw err;
+        }
+        // will complete the txn
+        if (roomKeyMessage) {
+            await this._shareNewRoomKey(roomKeyMessage, hsApi, txn);
+        }
     }
 
     async encrypt(type, content, hsApi) {
@@ -269,12 +288,12 @@ export class RoomEncryption {
         return false;
     }
 
-    async _shareNewRoomKey(roomKeyMessage, hsApi) {
+    async _shareNewRoomKey(roomKeyMessage, hsApi, txn = null) {
         const devices = await this._deviceTracker.devicesForTrackedRoom(this._room.id, hsApi);
         const userIds = Array.from(devices.reduce((set, device) => set.add(device.userId), new Set()));
 
         // store operation for room key share, in case we don't finish here
-        const writeOpTxn = this._storage.readWriteTxn([this._storage.storeNames.operations]);
+        const writeOpTxn = txn || this._storage.readWriteTxn([this._storage.storeNames.operations]);
         let operationId;
         try {
             operationId = this._writeRoomKeyShareOperation(roomKeyMessage, userIds, writeOpTxn);
