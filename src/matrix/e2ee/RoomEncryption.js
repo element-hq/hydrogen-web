@@ -266,7 +266,6 @@ export class RoomEncryption {
     async encrypt(type, content, hsApi) {
         const megolmResult = await this._megolmEncryption.encrypt(this._room.id, type, content, this._encryptionParams);
         if (megolmResult.roomKeyMessage) {
-            // TODO: should we await this??
             this._shareNewRoomKey(megolmResult.roomKeyMessage, hsApi);
         }
         return {
