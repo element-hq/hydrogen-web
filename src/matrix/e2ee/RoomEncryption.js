@@ -259,13 +259,11 @@ export class RoomEncryption {
         this._lastKeyPreShareTime = this._clock.createMeasure();
         const roomKeyMessage = await this._megolmEncryption.ensureOutboundSession(this._room.id, this._encryptionParams);
         if (roomKeyMessage) {
-            await this._deviceTracker.trackRoom(this._room);
             await this._shareNewRoomKey(roomKeyMessage, hsApi);
         }
     }
 
     async encrypt(type, content, hsApi) {
-        await this._deviceTracker.trackRoom(this._room);
         const megolmResult = await this._megolmEncryption.encrypt(this._room.id, type, content, this._encryptionParams);
         if (megolmResult.roomKeyMessage) {
             // TODO: should we await this??
@@ -287,6 +285,7 @@ export class RoomEncryption {
     }
 
     async _shareNewRoomKey(roomKeyMessage, hsApi) {
+        await this._deviceTracker.trackRoom(this._room);
         const devices = await this._deviceTracker.devicesForTrackedRoom(this._room.id, hsApi);
         const userIds = Array.from(devices.reduce((set, device) => set.add(device.userId), new Set()));
 
