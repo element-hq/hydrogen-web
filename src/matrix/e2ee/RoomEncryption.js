@@ -20,6 +20,10 @@ import {mergeMap} from "../../utils/mergeMap.js";
 import {makeTxnId} from "../common.js";
 
 const ENCRYPTED_TYPE = "m.room.encrypted";
+// how often ensureMessageKeyIsShared can check if it needs to
+// create a new outbound session
+// note that encrypt could still create a new session
+const MIN_PRESHARE_INTERVAL = 60 * 1000; // 1min
 
 function encodeMissingSessionKey(senderKey, sessionId) {
     return `${senderKey}|${sessionId}`;
@@ -55,6 +59,7 @@ export class RoomEncryption {
         this._clock = clock;
         this._disposed = false;
         this._isFlushingRoomKeyShares = false;
+        this._lastKeyPreShareTime = null;
     }
 
     async enableSessionBackup(sessionBackup) {
@@ -248,6 +253,10 @@ export class RoomEncryption {
 
     /** shares the encryption key for the next message if needed */
     async ensureMessageKeyIsShared(hsApi) {
+        if (this._lastKeyPreShareTime && this._lastKeyPreShareTime.measure() < MIN_PRESHARE_INTERVAL) {
+            return;
+        }
+        this._lastKeyPreShareTime = this._clock.createMeasure();
         const roomKeyMessage = await this._megolmEncryption.ensureOutboundSession(this._room.id, this._encryptionParams);
         if (roomKeyMessage) {
             await this._deviceTracker.trackRoom(this._room);
