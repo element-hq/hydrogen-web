@@ -1,0 +1,23 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <script type="text/javascript">
+        const bytes = [104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100];
+        const buffer = new Uint8Array(bytes.length);
+        for (let i = 0; i < buffer.length; i += 1) {
+            buffer[i] = bytes[i];
+        }
+        const blob = new Blob([buffer], {type: "text/plain"});
+        const reader = new FileReader();
+        reader.addEventListener("load", function(evt) {
+            const result = evt.target.result;
+            console.log("result", result);
+        }); 
+        reader.addEventListener("error", function(evt) {reject(evt.target.error);}); 
+        reader.readAsText(blob, "utf-8");
+    </script>
+</body>
+</html>

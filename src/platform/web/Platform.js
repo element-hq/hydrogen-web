@@ -27,7 +27,7 @@ import {OnlineStatus} from "./dom/OnlineStatus.js";
 import {Crypto} from "./dom/Crypto.js";
 import {estimateStorageUsage} from "./dom/StorageEstimate.js";
 import {WorkerPool} from "./dom/WorkerPool.js";
-import {BufferHandle} from "./dom/BufferHandle.js";
+import {BlobHandle} from "./dom/BlobHandle.js";
 import {downloadInIframe} from "./dom/download.js";
 
 function addScript(src) {
@@ -131,15 +131,37 @@ export class Platform {
         this._serviceWorkerHandler?.setNavigation(navigation);
     }
 
-    createBufferHandle(buffer, mimetype) {
-        return new BufferHandle(buffer, mimetype);
+    createBlob(buffer, mimetype) {
+        return BlobHandle.fromBuffer(buffer, mimetype);
     }
 
-    offerSaveBufferHandle(bufferHandle, filename) {
+    saveFileAs(blobHandle, filename) {
         if (navigator.msSaveBlob) {
-            navigator.msSaveBlob(bufferHandle.blob, filename);
+            navigator.msSaveBlob(blobHandle.blob, filename);
         } else {
-            downloadInIframe(this._container, this._paths.downloadSandbox, bufferHandle.blob, filename);
+            downloadInIframe(this._container, this._paths.downloadSandbox, blobHandle.blob, filename);
         }
+    }
+
+    openFile(mimeType = null) {
+        const input = document.createElement("input");
+        input.setAttribute("type", "file");
+        if (mimeType) {
+            input.setAttribute("accept", mimeType);
+        }
+        const promise = new Promise((resolve, reject) => {
+            const checkFile = () => {
+                input.removeEventListener("change", checkFile, true);
+                const file = input.files[0];
+                if (file) {
+                    resolve({name: file.name, blob: BlobHandle.fromFile(file)});
+                } else {
+                    reject(new Error("No file selected"));
+                }
+            }
+            input.addEventListener("change", checkFile, true);
+        });
+        input.click();
+        return promise;
     }
 }

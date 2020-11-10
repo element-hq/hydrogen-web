@@ -153,8 +153,9 @@ class DeriveCrypto {
 }
 
 class AESCrypto {
-    constructor(subtleCrypto) {
+    constructor(subtleCrypto, crypto) {
         this._subtleCrypto = subtleCrypto;
+        this._crypto = crypto;
     }
     /**
      * [decrypt description]
@@ -228,6 +229,27 @@ class AESCrypto {
             throw new Error(`Could not decrypt with AES-CTR: ${err.message}`);
         }
     }
+
+    /**
+     * Generate a CTR key
+     * @param  {String} format "raw" or "jwk"
+     * @param  {Number} length 128 or 256
+     * @return {Promise<Object>}        an object for jwk, or a BufferSource for raw
+     */
+    async generateKey(format, length = 256) {
+        const cryptoKey = await subtleCryptoResult(this._subtleCrypto.generateKey(
+            {"name": "AES-CTR", length}, true, ["encrypt", "decrypt"]));
+        return subtleCryptoResult(this._subtleCrypto.exportKey("jwk", cryptoKey));
+    }
+
+    async generateIV() {
+        const randomBytes = this._crypto.getRandomValues(new Uint8Array(8));
+        const ivArray = new Uint8Array(16);
+        for (let i = 0; i < randomBytes.length; i += 1) {
+            ivArray[i] = randomBytes[i];
+        }
+        return ivArray;
+    }
 }
 
 
@@ -291,9 +313,9 @@ export class Crypto {
         // not exactly guaranteeing AES-CTR support
         // but in practice IE11 doesn't have this
         if (!subtleCrypto.deriveBits && cryptoExtras?.aesjs) {
-            this.aes = new AESLegacyCrypto(cryptoExtras.aesjs);
+            this.aes = new AESLegacyCrypto(cryptoExtras.aesjs, crypto);
         } else {
-            this.aes = new AESCrypto(subtleCrypto);
+            this.aes = new AESCrypto(subtleCrypto, crypto);
         }
         this.hmac = new HMACCrypto(subtleCrypto);
         this.derive = new DeriveCrypto(subtleCrypto, this, cryptoExtras);

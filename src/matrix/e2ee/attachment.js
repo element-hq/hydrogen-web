@@ -56,3 +56,21 @@ export async function decryptAttachment(crypto, ciphertextBuffer, info) {
     });
     return decryptedBuffer;
 }
+
+export async function encryptAttachment(crypto, data) {
+    const iv = await crypto.aes.generateIV();
+    const key = await crypto.aes.generateKey("jwk", 256);
+    const ciphertext = await crypto.aes.encryptCTR({key, iv, data});
+    const digest = await crypto.digest("SHA-256", ciphertext);
+    return {
+        data: ciphertext,
+        info: {
+            v: "v2",
+            key,
+            iv: base64.encode(iv),
+            hashes: {
+                sha256: base64.encode(digest)
+            }
+        }
+    };
+}

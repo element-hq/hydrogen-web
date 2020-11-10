@@ -33,14 +33,14 @@ export class FileTile extends MessageTile {
         const filename = content.body;
         this._downloading = true;
         this.emitChange("label");
-        let bufferHandle;
+        let blob;
         try {
-            bufferHandle = await this._mediaRepository.downloadAttachment(content);
-            this.platform.offerSaveBufferHandle(bufferHandle, filename);
+            blob = await this._mediaRepository.downloadAttachment(content);
+            this.platform.saveFileAs(blob, filename);
         } catch (err) {
             this._error = err;
         } finally {
-            bufferHandle?.dispose();
+            blob?.dispose();
             this._downloading = false;
         }
         this.emitChange("label");

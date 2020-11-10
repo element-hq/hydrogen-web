@@ -164,6 +164,36 @@ export class RoomViewModel extends ViewModel {
         return false;
     }
 
+    async _sendFile() {
+        const file = this.platform.openFile();
+        let blob = file.blob;
+        let encryptedFile;
+        if (this._room.isEncrypted) {
+            const {data, info} = await this._room.encryptAttachment(blob);
+            blob = data;
+            encryptedFile = Object.assign(info, {
+                mimetype: file.blob.mimeType,
+                url: null
+            });
+        }
+        const mxcUrl = await this._room.mediaRepository.upload(blob, file.name);
+        const content = {
+            body: file.name,
+            msgtype: "m.file",
+            info: {
+                size: blob.size,
+                mimetype: file.blob.mimeType,
+            },
+        };
+        if (encryptedFile) {
+            encryptedFile.url = mxcUrl;
+            content.file = encryptedFile;
+        } else {
+            content.url = mxcUrl;
+        }
+        await this._room.sendEvent("m.room.message", content);
+    }
+
     get composerViewModel() {
         return this._composerVM;
     }
