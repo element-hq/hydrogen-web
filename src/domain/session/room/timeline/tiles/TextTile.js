@@ -21,7 +21,7 @@ export class TextTile extends MessageTile {
         const content = this._getContent();
         const body = content && content.body;
         if (content.msgtype === "m.emote") {
-            return `* ${this._entry.sender} ${body}`;
+            return `* ${this.displayName} ${body}`;
         } else {
             return body;
         }

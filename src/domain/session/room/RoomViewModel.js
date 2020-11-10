@@ -146,7 +146,12 @@ export class RoomViewModel extends ViewModel {
     async _sendMessage(message) {
         if (message) {
             try {
-                await this._room.sendEvent("m.room.message", {msgtype: "m.text", body: message});
+                let msgtype = "m.text";
+                if (message.startsWith("/me")) {
+                    message = message.substr(3).trim();
+                    msgtype = "m.emote";
+                }
+                await this._room.sendEvent("m.room.message", {msgtype, body: message});
             } catch (err) {
                 console.error(`room.sendMessage(): ${err.message}:\n${err.stack}`);
                 this._sendError = err;
