@@ -142,13 +142,14 @@ class MessageHandler {
         });
     }
 
-    _olmCreateOutbound(accountPickle, theirIdentityKey, theirOneTimeKey) {
+    _olmCreateOutbound(randomValues, accountPickle, theirIdentityKey, theirOneTimeKey) {
         return this._toMessage(() => {
+            this._feedRandomValues(randomValues);
             const account = new this._olm.Account();
             const newSession = new this._olm.Session();
             try {
                 account.unpickle("", accountPickle);
-                newSession.create_outbound(account, newSession, theirIdentityKey, theirOneTimeKey);
+                newSession.create_outbound(account, theirIdentityKey, theirOneTimeKey);
                 return newSession.pickle("");
             } finally {
                 account.free();
@@ -168,7 +169,7 @@ class MessageHandler {
         } else if (type === "olm_create_account_otks") {
             this._sendReply(message, this._olmCreateAccountAndOTKs(message.randomValues, message.otkAmount));
         } else if (type === "olm_create_outbound") {
-            this._sendReply(message, this._olmCreateOutbound(message.accountPickle, message.theirIdentityKey, message.theirOneTimeKey));
+            this._sendReply(message, this._olmCreateOutbound(message.randomValues, message.accountPickle, message.theirIdentityKey, message.theirOneTimeKey));
         }
     }
 }
