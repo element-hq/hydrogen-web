@@ -28,6 +28,7 @@ import {Crypto} from "./dom/Crypto.js";
 import {estimateStorageUsage} from "./dom/StorageEstimate.js";
 import {WorkerPool} from "./dom/WorkerPool.js";
 import {BufferHandle} from "./dom/BufferHandle.js";
+import {downloadInIframe} from "./dom/download.js";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -132,5 +133,13 @@ export class Platform {
 
     createBufferHandle(buffer, mimetype) {
         return new BufferHandle(buffer, mimetype);
+    }
+
+    offerSaveBufferHandle(bufferHandle, filename) {
+        if (navigator.msSaveBlob) {
+            navigator.msSaveBlob(bufferHandle.blob, filename);
+        } else {
+            downloadInIframe(this._container, this._paths.downloadSandbox, bufferHandle.blob, filename);
+        }
     }
 }

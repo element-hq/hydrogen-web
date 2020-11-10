@@ -78,6 +78,10 @@ async function build({modernOnly}) {
         ]));
         await assets.write(`worker.js`, await buildJsLegacy("src/platform/web/worker/main.js", ['src/platform/web/worker/polyfill.js']));
     }
+    // copy over non-theme assets
+    const downloadSandbox = "download-sandbox.html";
+    let downloadSandboxHtml = await fs.readFile(path.join(projectDir, `assets/${downloadSandbox}`));
+    await assets.write(downloadSandbox, downloadSandboxHtml);
     // creates the directories where the theme css bundles are placed in,
     // and writes to assets, so the build bundles can translate them, so do it first
     await copyThemeAssets(themes, assets);
@@ -143,6 +147,7 @@ async function buildHtml(doc, version, globalHash, modernOnly, assets) {
     });
     const pathsJSON = JSON.stringify({
         worker: assets.has("worker.js") ? assets.resolve(`worker.js`) : null,
+        downloadSandbox: assets.resolve("download-sandbox.html"),
         serviceWorker: "sw.js",
         olm: {
             wasm: assets.resolve("olm.wasm"),
@@ -234,6 +239,7 @@ function isPreCached(asset) {
             asset.endsWith(".png") ||
             asset.endsWith(".css") ||
             asset.endsWith(".wasm") ||
+            asset.endsWith(".html") ||
             // most environments don't need the worker
             asset.endsWith(".js") && !NON_PRECACHED_JS.includes(asset);
 }
