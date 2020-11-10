@@ -39,7 +39,13 @@ export class OlmWorker {
 
     async createOutboundOlmSession(account, newSession, theirIdentityKey, theirOneTimeKey) {
         const accountPickle = account.pickle("");
-        const sessionPickle = await this._workerPool.send({type: "olm_create_outbound", accountPickle, theirIdentityKey, theirOneTimeKey}).response();
+        let randomValues;
+        if (window.msCrypto) {
+            randomValues = [
+                window.msCrypto.getRandomValues(new Uint8Array(64)),
+            ];
+        }
+        const sessionPickle = await this._workerPool.send({type: "olm_create_outbound", accountPickle, theirIdentityKey, theirOneTimeKey, randomValues}).response();
         newSession.unpickle("", sessionPickle);
     }
 
