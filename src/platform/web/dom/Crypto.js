@@ -197,6 +197,37 @@ class AESCrypto {
             throw new Error(`Could not decrypt with AES-CTR: ${err.message}`);
         }
     }
+
+    async encryptCTR({key, iv, data}) {
+        const opts = {
+            name: "AES-CTR",
+            counter: iv,
+            length: 64,
+        };
+        let aesKey;
+        try {
+            aesKey = await subtleCryptoResult(this._subtleCrypto.importKey(
+                "raw",
+                key,
+                opts,
+                false,
+                ['encrypt'],
+            ), "importKey");
+        } catch (err) {
+            throw new Error(`Could not import key for AES-CTR decryption: ${err.message}`);
+        }
+        try {
+            const ciphertext = await subtleCryptoResult(this._subtleCrypto.encrypt(
+                // see https://developer.mozilla.org/en-US/docs/Web/API/AesCtrParams
+                opts,
+                aesKey,
+                data,
+            ), "encrypt");
+            return new Uint8Array(ciphertext);
+        } catch (err) {
+            throw new Error(`Could not decrypt with AES-CTR: ${err.message}`);
+        }
+    }
 }
 
 
@@ -236,6 +267,12 @@ class AESLegacyCrypto {
         const aesjs = this._aesjs;
         var aesCtr = new aesjs.ModeOfOperation.ctr(new Uint8Array(key), new aesjs.Counter(new Uint8Array(iv)));
         return aesCtr.decrypt(new Uint8Array(data));
+    }
+
+    async encryptCTR({key, iv, data}) {
+        const aesjs = this._aesjs;
+        var aesCtr = new aesjs.ModeOfOperation.ctr(new Uint8Array(key), new aesjs.Counter(new Uint8Array(iv)));
+        return aesCtr.encrypt(new Uint8Array(data));
     }
 }
 
