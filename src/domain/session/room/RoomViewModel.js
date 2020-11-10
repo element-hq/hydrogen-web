@@ -169,7 +169,6 @@ class ComposerViewModel extends ViewModel {
         super();
         this._roomVM = roomVM;
         this._isEmpty = true;
-        this._ensureKeyPromise = null;
     }
 
     get isEncrypted() {
@@ -192,10 +191,8 @@ class ComposerViewModel extends ViewModel {
     async setInput(text) {
         const wasEmpty = this._isEmpty;
         this._isEmpty = text.length === 0;
-        if (wasEmpty && !this._isEmpty && !this._ensureKeyPromise) {
-            this._ensureKeyPromise = this._roomVM._room.ensureMessageKeyIsShared().then(() => {
-                this._ensureKeyPromise = null;
-            });
+        if (wasEmpty && !this._isEmpty) {
+            this._roomVM._room.ensureMessageKeyIsShared();
         }
         if (wasEmpty !== this._isEmpty) {
             this.emitChange("canSend");
