@@ -116,14 +116,13 @@ class MessageHandler {
 
     _megolmDecrypt(sessionKey, ciphertext) {
         return this._toMessage(() => {
-            let session;
+            const session = new this._olm.InboundGroupSession();
             try {
-                session = new this._olm.InboundGroupSession();
                 session.import_session(sessionKey);
                 // returns object with plaintext and message_index
                 return session.decrypt(ciphertext);
             } finally {
-                session?.free();
+                session.free();
             }
         });
     }
@@ -132,10 +131,17 @@ class MessageHandler {
         return this._toMessage(() => {
             this._feedRandomValues(randomValues);
             const account = new this._olm.Account();
-            account.create();
-            account.generate_one_time_keys(otkAmount);
-            this._checkRandomValuesUsed();
-            return account.pickle("");
+            try {
+                account.create();
+                account.generate_one_time_keys(otkAmount);
+                this._checkRandomValuesUsed();
+                return account.pickle("");
+            } finally {
+                account.free();
+            }
+        });
+    }
+
     _olmCreateOutbound(accountPickle, theirIdentityKey, theirOneTimeKey) {
         return this._toMessage(() => {
             const account = new this._olm.Account();
