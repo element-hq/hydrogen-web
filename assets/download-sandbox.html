@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+    </head>
+    <body>
+        <a id="link" href="#">Download!</a>
+        <script type="text/javascript">
+            var link = document.getElementById("link");
+            function download(blob, filename) {
+                var url = URL.createObjectURL(blob);
+                link.href = url;
+                link.download = filename;
+                link.click();
+                URL.revokeObjectURL(url);
+            }
+            window.addEventListener("message", function(event) {
+                if (event.data.type === "download") {
+                    download(event.data.blob, event.data.filename);
+                }
+            });
+        </script>
+    </body>
+</html>

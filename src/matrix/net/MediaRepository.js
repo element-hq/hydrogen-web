@@ -52,10 +52,25 @@ export class MediaRepository {
         }
     }
 
-    async downloadEncryptedFile(fileEntry) {
+    async downloadEncryptedFile(fileEntry, cache = false) {
         const url = this.mxcUrl(fileEntry.url);
-        const {body: encryptedBuffer} = await this._platform.request(url, {method: "GET", format: "buffer", cache: true}).response();
+        const {body: encryptedBuffer} = await this._platform.request(url, {method: "GET", format: "buffer", cache}).response();
         const decryptedBuffer = await decryptAttachment(this._platform.crypto, encryptedBuffer, fileEntry);
         return this._platform.createBufferHandle(decryptedBuffer, fileEntry.mimetype);
     }
+
+    async downloadPlaintextFile(mxcUrl, mimetype, cache = false) {
+        const url = this.mxcUrl(mxcUrl);
+        const {body: buffer} = await this._platform.request(url, {method: "GET", format: "buffer", cache}).response();
+        return this._platform.createBufferHandle(buffer, mimetype);
+    }
+
+    async downloadAttachment(content, cache = false) {
+        if (content.file) {
+            return this.downloadEncryptedFile(content.file, cache);
+        } else {
+            return this.downloadPlaintextFile(content.url, content.info?.mimetype, cache);
+        }
+    }
+
 }

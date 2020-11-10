@@ -23,6 +23,7 @@
             import {Platform} from "./src/platform/web/Platform.js";
             main(new Platform(document.body, {
                 worker: "src/worker.js",
+                downloadSandbox: "assets/download-sandbox.html", 
                 olm: {
                     wasm: "lib/olm/olm.wasm",
                     legacyBundle: "lib/olm/olm_legacy.js",

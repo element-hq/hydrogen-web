@@ -18,6 +18,7 @@ import {ListView} from "../../general/ListView.js";
 import {GapView} from "./timeline/GapView.js";
 import {TextMessageView} from "./timeline/TextMessageView.js";
 import {ImageView} from "./timeline/ImageView.js";
+import {FileView} from "./timeline/FileView.js";
 import {AnnouncementView} from "./timeline/AnnouncementView.js";
 
 function viewClassForEntry(entry) {
@@ -28,6 +29,7 @@ function viewClassForEntry(entry) {
         case "message-status":
             return TextMessageView;
         case "image": return ImageView;
+        case "file": return FileView;
     }
 }
 
