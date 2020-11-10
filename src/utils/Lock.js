@@ -20,7 +20,7 @@ export class Lock {
         this._resolve = null;
     }
 
-    take() {
+    tryTake() {
         if (!this._promise) {
             this._promise = new Promise(resolve => {
                 this._resolve = resolve;
@@ -28,6 +28,12 @@ export class Lock {
             return true;
         }
         return false;
+    }
+
+    async take() {
+        while(!this.tryTake()) {
+            await this.released();
+        }
     }
 
     get isTaken() {
@@ -52,25 +58,25 @@ export function tests() {
     return {
         "taking a lock twice returns false": assert => {
             const lock = new Lock();
-            assert.equal(lock.take(), true);
+            assert.equal(lock.tryTake(), true);
             assert.equal(lock.isTaken, true);
-            assert.equal(lock.take(), false);
+            assert.equal(lock.tryTake(), false);
         },
         "can take a released lock again": assert => {
             const lock = new Lock();
-            lock.take();
+            lock.tryTake();
             lock.release();
             assert.equal(lock.isTaken, false);
-            assert.equal(lock.take(), true);
+            assert.equal(lock.tryTake(), true);
         },
         "2 waiting for lock, only first one gets it": async assert => {
             const lock = new Lock();
-            lock.take();
+            lock.tryTake();
 
             let first;
-            lock.released().then(() => first = lock.take());
+            lock.released().then(() => first = lock.tryTake());
             let second;
-            lock.released().then(() => second = lock.take());
+            lock.released().then(() => second = lock.tryTake());
             const promise = lock.released();
             lock.release();
             await promise;
