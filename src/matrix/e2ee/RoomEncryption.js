@@ -253,7 +253,7 @@ export class RoomEncryption {
 
     /** shares the encryption key for the next message if needed */
     async ensureMessageKeyIsShared(hsApi) {
-        if (this._lastKeyPreShareTime && this._lastKeyPreShareTime.measure() < MIN_PRESHARE_INTERVAL) {
+        if (this._lastKeyPreShareTime?.measure() < MIN_PRESHARE_INTERVAL) {
             return;
         }
         this._lastKeyPreShareTime = this._clock.createMeasure();
