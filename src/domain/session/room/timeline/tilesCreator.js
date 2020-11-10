@@ -17,6 +17,7 @@ limitations under the License.
 import {GapTile} from "./tiles/GapTile.js";
 import {TextTile} from "./tiles/TextTile.js";
 import {ImageTile} from "./tiles/ImageTile.js";
+import {FileTile} from "./tiles/FileTile.js";
 import {LocationTile} from "./tiles/LocationTile.js";
 import {RoomNameTile} from "./tiles/RoomNameTile.js";
 import {RoomMemberTile} from "./tiles/RoomMemberTile.js";
@@ -40,6 +41,8 @@ export function tilesCreator(baseOptions) {
                             return new TextTile(options);
                         case "m.image":
                             return new ImageTile(options);
+                        case "m.file":
+                            return new FileTile(options);
                         case "m.location":
                             return new LocationTile(options);
                         default:
