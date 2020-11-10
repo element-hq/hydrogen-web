@@ -149,7 +149,7 @@ class MessageHandler {
             const newSession = new this._olm.Session();
             try {
                 account.unpickle("", accountPickle);
-                newSession.create_outbound(account, newSession, theirIdentityKey, theirOneTimeKey);
+                newSession.create_outbound(account, theirIdentityKey, theirOneTimeKey);
                 return newSession.pickle("");
             } finally {
                 account.free();
