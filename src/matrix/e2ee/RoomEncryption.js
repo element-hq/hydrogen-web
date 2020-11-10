@@ -20,6 +20,10 @@ import {mergeMap} from "../../utils/mergeMap.js";
 import {makeTxnId} from "../common.js";
 
 const ENCRYPTED_TYPE = "m.room.encrypted";
+// how often ensureMessageKeyIsShared can check if it needs to
+// create a new outbound session
+// note that encrypt could still create a new session
+const MIN_PRESHARE_INTERVAL = 60 * 1000; // 1min
 
 function encodeMissingSessionKey(senderKey, sessionId) {
     return `${senderKey}|${sessionId}`;
@@ -55,6 +59,7 @@ export class RoomEncryption {
         this._clock = clock;
         this._disposed = false;
         this._isFlushingRoomKeyShares = false;
+        this._lastKeyPreShareTime = null;
     }
 
     async enableSessionBackup(sessionBackup) {
@@ -244,14 +249,23 @@ export class RoomEncryption {
         }
         
         return matches;
-        
+    }
+
+    /** shares the encryption key for the next message if needed */
+    async ensureMessageKeyIsShared(hsApi) {
+        if (this._lastKeyPreShareTime?.measure() < MIN_PRESHARE_INTERVAL) {
+            return;
+        }
+        this._lastKeyPreShareTime = this._clock.createMeasure();
+        const roomKeyMessage = await this._megolmEncryption.ensureOutboundSession(this._room.id, this._encryptionParams);
+        if (roomKeyMessage) {
+            await this._shareNewRoomKey(roomKeyMessage, hsApi);
+        }
     }
 
     async encrypt(type, content, hsApi) {
-        await this._deviceTracker.trackRoom(this._room);
         const megolmResult = await this._megolmEncryption.encrypt(this._room.id, type, content, this._encryptionParams);
         if (megolmResult.roomKeyMessage) {
-            // TODO: should we await this??
             this._shareNewRoomKey(megolmResult.roomKeyMessage, hsApi);
         }
         return {
@@ -270,6 +284,7 @@ export class RoomEncryption {
     }
 
     async _shareNewRoomKey(roomKeyMessage, hsApi) {
+        await this._deviceTracker.trackRoom(this._room);
         const devices = await this._deviceTracker.devicesForTrackedRoom(this._room.id, hsApi);
         const userIds = Array.from(devices.reduce((set, device) => set.add(device.userId), new Set()));
 

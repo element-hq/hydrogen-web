@@ -354,6 +354,10 @@ export class Room extends EventEmitter {
         return this._sendQueue.enqueueEvent(eventType, content);
     }
 
+    async ensureMessageKeyIsShared() {
+        return this._roomEncryption?.ensureMessageKeyIsShared(this._hsApi);
+    }
+
     /** @public */
     async loadMemberList() {
         if (this._memberList) {

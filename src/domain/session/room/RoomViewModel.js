@@ -188,8 +188,14 @@ class ComposerViewModel extends ViewModel {
         return !this._isEmpty;
     }
 
-    setInput(text) {
+    async setInput(text) {
+        const wasEmpty = this._isEmpty;
         this._isEmpty = text.length === 0;
-        this.emitChange("canSend");
+        if (wasEmpty && !this._isEmpty) {
+            this._roomVM._room.ensureMessageKeyIsShared();
+        }
+        if (wasEmpty !== this._isEmpty) {
+            this.emitChange("canSend");
+        }
     }
 }

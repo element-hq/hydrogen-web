@@ -116,14 +116,13 @@ class MessageHandler {
 
     _megolmDecrypt(sessionKey, ciphertext) {
         return this._toMessage(() => {
-            let session;
+            const session = new this._olm.InboundGroupSession();
             try {
-                session = new this._olm.InboundGroupSession();
                 session.import_session(sessionKey);
                 // returns object with plaintext and message_index
                 return session.decrypt(ciphertext);
             } finally {
-                session?.free();
+                session.free();
             }
         });
     }
@@ -132,10 +131,29 @@ class MessageHandler {
         return this._toMessage(() => {
             this._feedRandomValues(randomValues);
             const account = new this._olm.Account();
-            account.create();
-            account.generate_one_time_keys(otkAmount);
-            this._checkRandomValuesUsed();
-            return account.pickle("");
+            try {
+                account.create();
+                account.generate_one_time_keys(otkAmount);
+                this._checkRandomValuesUsed();
+                return account.pickle("");
+            } finally {
+                account.free();
+            }
+        });
+    }
+
+    _olmCreateOutbound(accountPickle, theirIdentityKey, theirOneTimeKey) {
+        return this._toMessage(() => {
+            const account = new this._olm.Account();
+            const newSession = new this._olm.Session();
+            try {
+                account.unpickle("", accountPickle);
+                newSession.create_outbound(account, newSession, theirIdentityKey, theirOneTimeKey);
+                return newSession.pickle("");
+            } finally {
+                account.free();
+                newSession.free();
+            }
         });
     }
 
@@ -149,6 +167,8 @@ class MessageHandler {
             this._sendReply(message, this._megolmDecrypt(message.sessionKey, message.ciphertext));
         } else if (type === "olm_create_account_otks") {
             this._sendReply(message, this._olmCreateAccountAndOTKs(message.randomValues, message.otkAmount));
+        } else if (type === "olm_create_outbound") {
+            this._sendReply(message, this._olmCreateOutbound(message.accountPickle, message.theirIdentityKey, message.theirOneTimeKey));
         }
     }
 }

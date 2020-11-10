@@ -37,6 +37,12 @@ export class OlmWorker {
         account.unpickle("", pickle);
     }
 
+    async createOutboundSession(account, newSession, theirIdentityKey, theirOneTimeKey) {
+        const accountPickle = account.pickle("");
+        const sessionPickle = await this._workerPool.send({type: "olm_create_outbound", accountPickle, theirIdentityKey, theirOneTimeKey}).response();
+        newSession.unpickle("", sessionPickle);
+    }
+
     dispose() {
         this._workerPool.dispose();
     }

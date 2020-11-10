@@ -149,10 +149,14 @@ export class Account {
         }
     }
 
-    createOutboundOlmSession(theirIdentityKey, theirOneTimeKey) {
+    async createOutboundOlmSession(theirIdentityKey, theirOneTimeKey) {
         const newSession = new this._olm.Session();
         try {
-            newSession.create_outbound(this._account, theirIdentityKey, theirOneTimeKey);
+            if (this._olmWorker) {
+                await this._olmWorker.createOutboundOlmSession(this._account, newSession, theirIdentityKey, theirOneTimeKey);
+            } else {
+                newSession.create_outbound(this._account, theirIdentityKey, theirOneTimeKey);
+            }
             return newSession;
         } catch (err) {
             newSession.free();

@@ -43,6 +43,56 @@ export class Encryption {
         }
     }
 
+    async ensureOutboundSession(roomId, encryptionParams) {
+        let session = new this._olm.OutboundGroupSession();
+        try {
+            const txn = this._storage.readWriteTxn([
+                this._storage.storeNames.inboundGroupSessions,
+                this._storage.storeNames.outboundGroupSessions,
+            ]);
+            let roomKeyMessage;
+            try {
+                let sessionEntry = await txn.outboundGroupSessions.get(roomId);
+                roomKeyMessage = this._readOrCreateSession(session, sessionEntry, roomId, encryptionParams, txn);
+                if (roomKeyMessage) {
+                    this._writeSession(sessionEntry, session, roomId, txn);
+                }
+            } catch (err) {
+                txn.abort();
+                throw err;
+            }
+            await txn.complete();
+            return roomKeyMessage;
+        } finally {
+            session.free();
+        }
+    }
+
+    _readOrCreateSession(session, sessionEntry, roomId, encryptionParams, txn) {
+        if (sessionEntry) {
+            session.unpickle(this._pickleKey, sessionEntry.session);
+        }
+        if (!sessionEntry || this._needsToRotate(session, sessionEntry.createdAt, encryptionParams)) {
+            // in the case of rotating, recreate a session as we already unpickled into it
+            if (sessionEntry) {
+                session.free();
+                session = new this._olm.OutboundGroupSession();
+            }
+            session.create();
+            const roomKeyMessage = this._createRoomKeyMessage(session, roomId);
+            this._storeAsInboundSession(session, roomId, txn);
+            return roomKeyMessage;
+        }
+    }
+
+    _writeSession(sessionEntry, session, roomId, txn) {
+        txn.outboundGroupSessions.set({
+            roomId,
+            session: session.pickle(this._pickleKey),
+            createdAt: sessionEntry?.createdAt || this._now(),
+        });
+    }
+
     /**
      * Encrypts a message with megolm
      * @param  {string} roomId           
@@ -61,28 +111,10 @@ export class Encryption {
             let roomKeyMessage;
             let encryptedContent;
             try {
-                // TODO: we could consider keeping the session in memory for the current room
                 let sessionEntry = await txn.outboundGroupSessions.get(roomId);
-                if (sessionEntry) {
-                    session.unpickle(this._pickleKey, sessionEntry.session);
-                }
-                if (!sessionEntry || this._needsToRotate(session, sessionEntry.createdAt, encryptionParams)) {
-                    // in the case of rotating, recreate a session as we already unpickled into it
-                    if (sessionEntry) {
-                        session.free();
-                        session = new this._olm.OutboundGroupSession();
-                    }
-                    session.create();
-                    roomKeyMessage = this._createRoomKeyMessage(session, roomId);
-                    this._storeAsInboundSession(session, roomId, txn);
-                    // TODO: we could tell the Decryption here that we have a new session so it can add it to its cache
-                }
+                roomKeyMessage = this._readOrCreateSession(session, sessionEntry, roomId, encryptionParams, txn);
                 encryptedContent = this._encryptContent(roomId, session, type, content);
-                txn.outboundGroupSessions.set({
-                    roomId,
-                    session: session.pickle(this._pickleKey),
-                    createdAt: sessionEntry?.createdAt || this._now(),
-                });
+                this._writeSession(sessionEntry, session, roomId, txn);
 
             } catch (err) {
                 txn.abort();

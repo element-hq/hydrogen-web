@@ -24,12 +24,10 @@ export class LockMap {
     async takeLock(key) {
         let lock = this._map.get(key);
         if (lock) {
-            while (!lock.take()) {
-                await lock.released();
-            }
+            await lock.take();
         } else {
             lock = new Lock();
-            lock.take();
+            lock.tryTake();
             this._map.set(key, lock);
         }
         // don't leave old locks lying around
