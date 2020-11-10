@@ -44,3 +44,8 @@ body.hydrogen {
 .hidden {
     display: none !important;
 }
+
+/* hide clear buttons in IE */
+input::-ms-clear {
+    display: none;
+}
