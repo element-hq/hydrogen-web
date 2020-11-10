@@ -101,7 +101,7 @@ export class Platform {
             this.request = xhrRequest;
         }
         const isIE11 = !!window.MSInputMethodContext && !!document.documentMode;
-        this.isIE11 = isIE11;    
+        this.isIE11 = isIE11;
     }
 
     get updateService() {
