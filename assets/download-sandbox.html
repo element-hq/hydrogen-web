@@ -12,6 +12,7 @@
                 link.href = url;
                 link.download = filename;
                 link.click();
+                URL.revokeObjectURL(url);
             }
             window.addEventListener("message", function(event) {
                 if (event.data.type === "download") {
