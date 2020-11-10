@@ -55,7 +55,7 @@ export class Encryption {
                 let sessionEntry = await txn.outboundGroupSessions.get(roomId);
                 roomKeyMessage = this._readOrCreateSession(session, sessionEntry, roomId, encryptionParams, txn);
                 if (roomKeyMessage) {
-                    this._writeSession(sessionEntry, session, roomId, txn);
+                    this._writeSession(this._now(), session, roomId, txn);
                 }
             } catch (err) {
                 txn.abort();
@@ -85,11 +85,11 @@ export class Encryption {
         }
     }
 
-    _writeSession(sessionEntry, session, roomId, txn) {
+    _writeSession(createdAt, session, roomId, txn) {
         txn.outboundGroupSessions.set({
             roomId,
             session: session.pickle(this._pickleKey),
-            createdAt: sessionEntry?.createdAt || this._now(),
+            createdAt,
         });
     }
 
@@ -114,7 +114,9 @@ export class Encryption {
                 let sessionEntry = await txn.outboundGroupSessions.get(roomId);
                 roomKeyMessage = this._readOrCreateSession(session, sessionEntry, roomId, encryptionParams, txn);
                 encryptedContent = this._encryptContent(roomId, session, type, content);
-                this._writeSession(sessionEntry, session, roomId, txn);
+                // update timestamp when a new session is created
+                const createdAt = roomKeyMessage ? this._now() : sessionEntry.createdAt;
+                this._writeSession(createdAt, session, roomId, txn);
 
             } catch (err) {
                 txn.abort();
