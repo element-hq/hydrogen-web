@@ -146,6 +146,7 @@ export class Platform {
     openFile(mimeType = null) {
         const input = document.createElement("input");
         input.setAttribute("type", "file");
+        input.className = "hidden";
         if (mimeType) {
             input.setAttribute("accept", mimeType);
         }
@@ -153,6 +154,7 @@ export class Platform {
             const checkFile = () => {
                 input.removeEventListener("change", checkFile, true);
                 const file = input.files[0];
+                this._container.removeChild(input);
                 if (file) {
                     resolve({name: file.name, blob: BlobHandle.fromFile(file)});
                 } else {
@@ -161,6 +163,8 @@ export class Platform {
             }
             input.addEventListener("change", checkFile, true);
         });
+        // IE11 needs the input to be attached to the document
+        this._container.appendChild(input);
         input.click();
         return promise;
     }
