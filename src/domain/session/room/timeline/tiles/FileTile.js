@@ -23,10 +23,18 @@ export class FileTile extends MessageTile {
         super(options);
         this._error = null;
         this._downloading = false;
+        if (this._isUploading) {
+            // should really do this with an ObservableValue and waitFor to prevent leaks when the promise never resolves
+            this._entry.attachment.uploaded().then(() => {
+                if (!this.isDisposed) {
+                    this.emitChange("label");
+                }
+            });
+        }
     }
 
     async download() {
-        if (this._downloading) {
+        if (this._downloading || this._isUploading) {
             return;
         }
         const content = this._getContent();
@@ -46,14 +54,31 @@ export class FileTile extends MessageTile {
         this.emitChange("label");
     }
 
+    get size() {
+        if (this._isUploading) {
+            return this._entry.attachment.localPreview.size;
+        } else {
+            return this._getContent().info?.size;
+        }
+    }
+
+    get _isUploading() {
+        return this._entry.attachment && !this._entry.attachment.isUploaded;
+    }
+
     get label() {
         if (this._error) {
             return `Could not decrypt file: ${this._error.message}`;
         }
+        if (this._entry.attachment?.error) {
+            return `Failed to upload: ${this._entry.attachment.error.message}`;
+        }
         const content = this._getContent();
         const filename = content.body;
-        const size = formatSize(content.info?.size);
-        if (this._downloading) {
+        const size = formatSize(this.size);
+        if (this._isUploading) {
+            return this.i18n`Uploading ${filename} (${size})…`;
+        } else if (this._downloading) {
             return this.i18n`Downloading ${filename} (${size})…`;
         } else {
             return this.i18n`Download ${filename} (${size})`;
