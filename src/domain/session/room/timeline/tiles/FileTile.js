@@ -25,7 +25,7 @@ export class FileTile extends MessageTile {
         this._downloading = false;
         if (this._isUploading) {
             // should really do this with an ObservableValue and waitFor to prevent leaks when the promise never resolves
-            this._entry.attachment.uploaded().then(() => {
+            this._entry.attachment.uploaded().finally(() => {
                 if (!this.isDisposed) {
                     this.emitChange("label");
                 }

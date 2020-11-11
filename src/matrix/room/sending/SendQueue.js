@@ -53,7 +53,13 @@ export class SendQueue {
                 }
                 if (pendingEvent.attachment) {
                     const {attachment} = pendingEvent;
-                    await attachment.uploaded();
+                    try {
+                        await attachment.uploaded();
+                    } catch (err) {
+                        console.log("upload failed, skip sending message", pendingEvent);
+                        this._amountSent += 1;
+                        continue;
+                    }
                     attachment.applyToContent(pendingEvent.content);
                 }
                 if (pendingEvent.needsEncryption) {
