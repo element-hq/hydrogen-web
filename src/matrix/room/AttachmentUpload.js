@@ -29,6 +29,7 @@ export class AttachmentUpload {
         this._uploadPromise = null;
         this._uploadRequest = null;
         this._aborted = false;
+        this._error = null;
     }
 
     upload() {
@@ -39,19 +40,28 @@ export class AttachmentUpload {
     }
 
     async _upload() {
-        let transferredBlob = this._unencryptedBlob;
-        if (this.isEncrypted) {
-            const {info, blob} = await encryptAttachment(this._platform, this._unencryptedBlob);
-            transferredBlob = blob;
-            this._encryptionInfo = info;
+        try {
+            let transferredBlob = this._unencryptedBlob;
+            if (this._isEncrypted) {
+                const {info, blob} = await encryptAttachment(this._platform, this._unencryptedBlob);
+                transferredBlob = blob;
+                this._encryptionInfo = info;
+            }
+            if (this._aborted) {
+                return;
+            }
+            this._uploadRequest = this._hsApi.uploadAttachment(transferredBlob, this._filename);
+            const {content_uri} = await this._uploadRequest.response();
+            this._mxcUrl = content_uri;
+            this._transferredBlob = transferredBlob;
+        } catch (err) {
+            this._error = err;
+            throw err;
         }
-        if (this._aborted) {
-            return;
-        }
-        this._uploadRequest = this._hsApi.uploadAttachment(transferredBlob, this._filename);
-        const {content_uri} = await this._uploadRequest.response();
-        this._mxcUrl = content_uri;
-        this._transferredBlob = transferredBlob;
+    }
+
+    get isUploaded() {
+        return !!this._transferredBlob;
     }
 
     /** @public */
@@ -63,6 +73,10 @@ export class AttachmentUpload {
     /** @public */
     get localPreview() {
         return this._unencryptedBlob;
+    }
+
+    get error() {
+        return this._error;
     }
 
     /** @package */
