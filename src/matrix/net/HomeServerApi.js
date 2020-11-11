@@ -220,6 +220,10 @@ export class HomeServerApi {
     roomKeyForRoomAndSession(version, roomId, sessionId, options = null) {
         return this._get(`/room_keys/keys/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`, {version}, null, options);
     }
+
+    uploadAttachment(blob, filename, options = null) {
+        return this._post("/upload", {filename}, blob, options);
+    }
 }
 
 export function tests() {

@@ -72,11 +72,4 @@ export class MediaRepository {
             return this.downloadPlaintextFile(content.url, content.info?.mimetype, cache);
         }
     }
-
-    async upload(bufferHandle, filename) {
-        const url = `${this._homeServer}/_matrix/media/r0/upload?filename=${encodeURIComponent(filename)}`;
-        // TODO: body doesn't take a bufferHandle currently
-        const {content_uri} = await this._platform.request(url, {method: "POST", body: bufferHandle}).response();
-        return content_uri;
-    }
 }
