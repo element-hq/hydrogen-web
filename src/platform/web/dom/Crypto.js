@@ -217,7 +217,7 @@ class AESCrypto {
                 ['encrypt'],
             ), "importKey");
         } catch (err) {
-            throw new Error(`Could not import key for AES-CTR decryption: ${err.message}`);
+            throw new Error(`Could not import key for AES-CTR encryption: ${err.message}`);
         }
         try {
             const ciphertext = await subtleCryptoResult(this._subtleCrypto.encrypt(
@@ -228,7 +228,7 @@ class AESCrypto {
             ), "encrypt");
             return new Uint8Array(ciphertext);
         } catch (err) {
-            throw new Error(`Could not decrypt with AES-CTR: ${err.message}`);
+            throw new Error(`Could not encrypt with AES-CTR: ${err.message}`);
         }
     }
 
