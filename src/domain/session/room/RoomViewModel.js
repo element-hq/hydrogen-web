@@ -167,11 +167,11 @@ export class RoomViewModel extends ViewModel {
     async _sendFile() {
         let file;
         try {
-            file = this.platform.openFile();
+            file = await this.platform.openFile();
         } catch (err) {
             return;
         }
-        const attachment = this._room.uploadAttachment(file.name, file.blob);
+        const attachment = this._room.uploadAttachment(file.blob, file.name);
         const content = {
             body: file.name,
             msgtype: "m.file",
