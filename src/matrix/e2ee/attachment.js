@@ -69,10 +69,20 @@ export async function encryptAttachment(platform, blob) {
         info: {
             v: "v2",
             key,
-            iv: base64.encode(iv),
+            iv: encodeUnpaddedBase64(iv),
             hashes: {
-                sha256: base64.encode(digest)
+                sha256: encodeUnpaddedBase64(digest)
             }
         }
     };
+}
+
+function encodeUnpaddedBase64(buffer) {
+    const str = base64.encode(buffer);
+    const paddingIdx = str.indexOf("=");
+    if (paddingIdx !== -1) {
+        return str.substr(0, paddingIdx);
+    } else {
+        return str;
+    }
 }
