@@ -222,7 +222,7 @@ export class HomeServerApi {
     }
 
     uploadAttachment(blob, filename, options = null) {
-        return this._post("/upload", {filename}, blob, options);
+        return this._authedRequest("POST", `${this._homeserver}/_matrix/media/r0/upload`, {filename}, blob, options);
     }
 }
 
