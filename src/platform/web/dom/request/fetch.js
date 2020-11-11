@@ -53,6 +53,10 @@ class RequestResult {
 export function createFetchRequest(createTimeout) {
     return function fetchRequest(url, {method, headers, body, timeout, format, cache = false}) {
         const controller = typeof AbortController === "function" ? new AbortController() : null;
+        // if a BlobHandle, take native blob
+        if (body?.nativeBlob) {
+            body = body.nativeBlob;
+        }
         let options = {method, body};
         if (controller) {
             options = Object.assign(options, {

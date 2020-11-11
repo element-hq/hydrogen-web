@@ -15,8 +15,9 @@ limitations under the License.
 */
 
 export class PendingEvent {
-    constructor(data) {
+    constructor(data, attachment) {
         this._data = data;
+        this.attachment = attachment;
     }
 
     get roomId() { return this._data.roomId; }

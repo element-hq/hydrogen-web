@@ -56,3 +56,33 @@ export async function decryptAttachment(crypto, ciphertextBuffer, info) {
     });
     return decryptedBuffer;
 }
+
+export async function encryptAttachment(platform, blob) {
+    const {crypto} = platform;
+    const iv = await crypto.aes.generateIV();
+    const key = await crypto.aes.generateKey("jwk", 256);
+    const buffer = await blob.readAsBuffer();
+    const ciphertext = await crypto.aes.encryptCTR({jwkKey: key, iv, data: buffer});
+    const digest = await crypto.digest("SHA-256", ciphertext);
+    return {
+        blob: platform.createBlob(ciphertext, blob.mimeType),
+        info: {
+            v: "v2",
+            key,
+            iv: encodeUnpaddedBase64(iv),
+            hashes: {
+                sha256: encodeUnpaddedBase64(digest)
+            }
+        }
+    };
+}
+
+function encodeUnpaddedBase64(buffer) {
+    const str = base64.encode(buffer);
+    const paddingIdx = str.indexOf("=");
+    if (paddingIdx !== -1) {
+        return str.substr(0, paddingIdx);
+    } else {
+        return str;
+    }
+}

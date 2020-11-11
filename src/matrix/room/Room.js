@@ -30,11 +30,13 @@ import {EventEntry} from "./timeline/entries/EventEntry.js";
 import {EventKey} from "./timeline/EventKey.js";
 import {Direction} from "./timeline/Direction.js";
 import {ObservedEventMap} from "./ObservedEventMap.js";
+import {AttachmentUpload} from "./AttachmentUpload.js";
 import {DecryptionSource} from "../e2ee/common.js";
+
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 
 export class Room extends EventEmitter {
-    constructor({roomId, storage, hsApi, mediaRepository, emitCollectionChange, pendingEvents, user, createRoomEncryption, getSyncToken, clock}) {
+    constructor({roomId, storage, hsApi, mediaRepository, emitCollectionChange, pendingEvents, user, createRoomEncryption, getSyncToken, platform}) {
         super();
         this._roomId = roomId;
         this._storage = storage;
@@ -52,7 +54,7 @@ export class Room extends EventEmitter {
         this._createRoomEncryption = createRoomEncryption;
         this._roomEncryption = null;
         this._getSyncToken = getSyncToken;
-        this._clock = clock;
+        this._platform = platform;
         this._observedEvents = null;
     }
 
@@ -350,10 +352,11 @@ export class Room extends EventEmitter {
     }
 
     /** @public */
-    sendEvent(eventType, content) {
-        return this._sendQueue.enqueueEvent(eventType, content);
+    sendEvent(eventType, content, attachment) {
+        return this._sendQueue.enqueueEvent(eventType, content, attachment);
     }
 
+    /** @public */
     async ensureMessageKeyIsShared() {
         return this._roomEncryption?.ensureMessageKeyIsShared(this._hsApi);
     }
@@ -569,7 +572,7 @@ export class Room extends EventEmitter {
                 }
             },
             user: this._user,
-            clock: this._clock
+            clock: this._platform.clock
         });
         if (this._roomEncryption) {
             this._timeline.enableEncryption(this._decryptEntries.bind(this, DecryptionSource.Timeline));
@@ -628,6 +631,13 @@ export class Room extends EventEmitter {
             }
             return entry;
         }
+    }
+
+    uploadAttachment(blob, filename) {
+        const attachment = new AttachmentUpload({blob, filename,
+            hsApi: this._hsApi, platform: this._platform, isEncrypted: this.isEncrypted});
+        attachment.upload();
+        return attachment;
     }
 
     dispose() {

@@ -164,6 +164,21 @@ export class RoomViewModel extends ViewModel {
         return false;
     }
 
+    async _sendFile() {
+        let file;
+        try {
+            file = await this.platform.openFile();
+        } catch (err) {
+            return;
+        }
+        const attachment = this._room.uploadAttachment(file.blob, file.name);
+        const content = {
+            body: file.name,
+            msgtype: "m.file",
+        };
+        await this._room.sendEvent("m.room.message", content, attachment);
+    }
+
     get composerViewModel() {
         return this._composerVM;
     }
@@ -187,6 +202,10 @@ class ComposerViewModel extends ViewModel {
             this.emitChange("canSend");
         }
         return success;
+    }
+
+    sendAttachment() {
+        this._roomVM._sendFile();
     }
 
     get canSend() {

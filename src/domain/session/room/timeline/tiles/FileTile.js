@@ -23,37 +23,62 @@ export class FileTile extends MessageTile {
         super(options);
         this._error = null;
         this._downloading = false;
+        if (this._isUploading) {
+            // should really do this with an ObservableValue and waitFor to prevent leaks when the promise never resolves
+            this._entry.attachment.uploaded().finally(() => {
+                if (!this.isDisposed) {
+                    this.emitChange("label");
+                }
+            });
+        }
     }
 
     async download() {
-        if (this._downloading) {
+        if (this._downloading || this._isUploading) {
             return;
         }
         const content = this._getContent();
         const filename = content.body;
         this._downloading = true;
         this.emitChange("label");
-        let bufferHandle;
+        let blob;
         try {
-            bufferHandle = await this._mediaRepository.downloadAttachment(content);
-            this.platform.offerSaveBufferHandle(bufferHandle, filename);
+            blob = await this._mediaRepository.downloadAttachment(content);
+            this.platform.saveFileAs(blob, filename);
         } catch (err) {
             this._error = err;
         } finally {
-            bufferHandle?.dispose();
+            blob?.dispose();
             this._downloading = false;
         }
         this.emitChange("label");
+    }
+
+    get size() {
+        if (this._isUploading) {
+            return this._entry.attachment.localPreview.size;
+        } else {
+            return this._getContent().info?.size;
+        }
+    }
+
+    get _isUploading() {
+        return this._entry.attachment && !this._entry.attachment.isUploaded;
     }
 
     get label() {
         if (this._error) {
             return `Could not decrypt file: ${this._error.message}`;
         }
+        if (this._entry.attachment?.error) {
+            return `Failed to upload: ${this._entry.attachment.error.message}`;
+        }
         const content = this._getContent();
         const filename = content.body;
-        const size = formatSize(content.info?.size);
-        if (this._downloading) {
+        const size = formatSize(this.size);
+        if (this._isUploading) {
+            return this.i18n`Uploading ${filename} (${size})…`;
+        } else if (this._downloading) {
             return this.i18n`Downloading ${filename} (${size})…`;
         } else {
             return this.i18n`Download ${filename} (${size})`;

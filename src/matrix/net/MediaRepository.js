@@ -56,13 +56,13 @@ export class MediaRepository {
         const url = this.mxcUrl(fileEntry.url);
         const {body: encryptedBuffer} = await this._platform.request(url, {method: "GET", format: "buffer", cache}).response();
         const decryptedBuffer = await decryptAttachment(this._platform.crypto, encryptedBuffer, fileEntry);
-        return this._platform.createBufferHandle(decryptedBuffer, fileEntry.mimetype);
+        return this._platform.createBlob(decryptedBuffer, fileEntry.mimetype);
     }
 
     async downloadPlaintextFile(mxcUrl, mimetype, cache = false) {
         const url = this.mxcUrl(mxcUrl);
         const {body: buffer} = await this._platform.request(url, {method: "GET", format: "buffer", cache}).response();
-        return this._platform.createBufferHandle(buffer, mimetype);
+        return this._platform.createBlob(buffer, mimetype);
     }
 
     async downloadAttachment(content, cache = false) {
@@ -72,5 +72,4 @@ export class MediaRepository {
             return this.downloadPlaintextFile(content.url, content.info?.mimetype, cache);
         }
     }
-
 }

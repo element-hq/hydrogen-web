@@ -153,8 +153,9 @@ class DeriveCrypto {
 }
 
 class AESCrypto {
-    constructor(subtleCrypto) {
+    constructor(subtleCrypto, crypto) {
         this._subtleCrypto = subtleCrypto;
+        this._crypto = crypto;
     }
     /**
      * [decrypt description]
@@ -197,14 +198,116 @@ class AESCrypto {
             throw new Error(`Could not decrypt with AES-CTR: ${err.message}`);
         }
     }
+
+    async encryptCTR({key, jwkKey, iv, data}) {
+        const opts = {
+            name: "AES-CTR",
+            counter: iv,
+            length: 64,
+        };
+        let aesKey;
+        const selectedKey = key || jwkKey;
+        const format = jwkKey ? "jwk" : "raw";
+        try {
+            aesKey = await subtleCryptoResult(this._subtleCrypto.importKey(
+                format,
+                selectedKey,
+                opts,
+                false,
+                ['encrypt'],
+            ), "importKey");
+        } catch (err) {
+            throw new Error(`Could not import key for AES-CTR encryption: ${err.message}`);
+        }
+        try {
+            const ciphertext = await subtleCryptoResult(this._subtleCrypto.encrypt(
+                // see https://developer.mozilla.org/en-US/docs/Web/API/AesCtrParams
+                opts,
+                aesKey,
+                data,
+            ), "encrypt");
+            return new Uint8Array(ciphertext);
+        } catch (err) {
+            throw new Error(`Could not encrypt with AES-CTR: ${err.message}`);
+        }
+    }
+
+    /**
+     * Generate a CTR key
+     * @param  {String} format "raw" or "jwk"
+     * @param  {Number} length 128 or 256
+     * @return {Promise<Object>}        an object for jwk, or a BufferSource for raw
+     */
+    async generateKey(format, length = 256) {
+        const cryptoKey = await subtleCryptoResult(this._subtleCrypto.generateKey(
+            {"name": "AES-CTR", length}, true, ["encrypt", "decrypt"]));
+        return subtleCryptoResult(this._subtleCrypto.exportKey(format, cryptoKey));
+    }
+
+    async generateIV() {
+        return generateIV(this._crypto);
+    }
 }
 
+function generateIV(crypto) {
+    const randomBytes = crypto.getRandomValues(new Uint8Array(8));
+    const ivArray = new Uint8Array(16);
+    for (let i = 0; i < randomBytes.length; i += 1) {
+        ivArray[i] = randomBytes[i];
+    }
+    return ivArray;
+}
+
+function jwkKeyToRaw(jwkKey) {
+    if (jwkKey.alg !== "A256CTR") {
+        throw new Error(`Unknown algorithm: ${jwkKey.alg}`);
+    }
+    if (!jwkKey.key_ops.includes("decrypt")) {
+        throw new Error(`decrypt missing from key_ops`);
+    }
+    if (jwkKey.kty !== "oct") {
+        throw new Error(`Invalid key type, "oct" expected: ${jwkKey.kty}`);
+    }
+    // convert base64-url to normal base64
+    const base64UrlKey = jwkKey.k;
+    const base64Key = base64UrlKey.replace(/-/g, "+").replace(/_/g, "/");
+    return base64.decode(base64Key);
+}
+
+function encodeUnpaddedBase64(buffer) {
+    const str = base64.encode(buffer);
+    const paddingIdx = str.indexOf("=");
+    if (paddingIdx !== -1) {
+        return str.substr(0, paddingIdx);
+    } else {
+        return str;
+    }
+}
+
+function encodeUrlBase64(buffer) {
+    const unpadded = encodeUnpaddedBase64(buffer);
+    return unpadded.replace(/\+/g, "-").replace(/\//g, "_");
+}
+
+function rawKeyToJwk(key) {
+    return {
+        "alg": "A256CTR",
+        "ext": true,
+        "k": encodeUrlBase64(key),
+        "key_ops": [
+            "encrypt",
+            "decrypt"
+        ],
+        "kty": "oct"
+    };
+}
 
 import base64 from "../../../../lib/base64-arraybuffer/index.js";
 
 class AESLegacyCrypto {
-    constructor(aesjs) {
+    constructor(aesjs, crypto) {
         this._aesjs = aesjs;
+        this._crypto = crypto;
     }
     /**
      * [decrypt description]
@@ -219,23 +322,38 @@ class AESLegacyCrypto {
             throw new Error(`Unsupported counter length: ${counterLength}`);
         }
         if (jwkKey) {
-            if (jwkKey.alg !== "A256CTR") {
-                throw new Error(`Unknown algorithm: ${jwkKey.alg}`);
-            }
-            if (!jwkKey.key_ops.includes("decrypt")) {
-                throw new Error(`decrypt missing from key_ops`);
-            }
-            if (jwkKey.kty !== "oct") {
-                throw new Error(`Invalid key type, "oct" expected: ${jwkKey.kty}`);
-            }
-            // convert base64-url to normal base64
-            const base64UrlKey = jwkKey.k;
-            const base64Key = base64UrlKey.replace(/-/g, "+").replace(/_/g, "/");
-            key = base64.decode(base64Key);
+            key = jwkKeyToRaw(jwkKey);
         }
         const aesjs = this._aesjs;
         var aesCtr = new aesjs.ModeOfOperation.ctr(new Uint8Array(key), new aesjs.Counter(new Uint8Array(iv)));
         return aesCtr.decrypt(new Uint8Array(data));
+    }
+
+    async encryptCTR({key, jwkKey, iv, data}) {
+        if (jwkKey) {
+            key = jwkKeyToRaw(jwkKey);
+        }
+        const aesjs = this._aesjs;
+        var aesCtr = new aesjs.ModeOfOperation.ctr(new Uint8Array(key), new aesjs.Counter(new Uint8Array(iv)));
+        return aesCtr.encrypt(new Uint8Array(data));
+    }
+
+    /**
+     * Generate a CTR key
+     * @param  {String} format "raw" or "jwk"
+     * @param  {Number} length 128 or 256
+     * @return {Promise<Object>}        an object for jwk, or a BufferSource for raw
+     */
+    async generateKey(format, length = 256) {
+        let key = crypto.getRandomValues(new Uint8Array(length / 8));
+        if (format === "jwk") {
+            key = rawKeyToJwk(key);
+        }
+        return key;
+    }
+
+    async generateIV() {
+        return generateIV(this._crypto);
     }
 }
 
@@ -254,9 +372,9 @@ export class Crypto {
         // not exactly guaranteeing AES-CTR support
         // but in practice IE11 doesn't have this
         if (!subtleCrypto.deriveBits && cryptoExtras?.aesjs) {
-            this.aes = new AESLegacyCrypto(cryptoExtras.aesjs);
+            this.aes = new AESLegacyCrypto(cryptoExtras.aesjs, crypto);
         } else {
-            this.aes = new AESCrypto(subtleCrypto);
+            this.aes = new AESCrypto(subtleCrypto, crypto);
         }
         this.hmac = new HMACCrypto(subtleCrypto);
         this.derive = new DeriveCrypto(subtleCrypto, this, cryptoExtras);

@@ -69,21 +69,71 @@ const ALLOWED_BLOB_MIMETYPES = {
     'audio/x-flac': true,
 };
 
-export class BufferHandle {
-    constructor(buffer, mimetype) {
+export class BlobHandle {
+    constructor(blob, buffer = null) {
+        this._blob = blob;
+        this._buffer = buffer;
+        this._url = null;
+    }
+
+    static fromBuffer(buffer, mimetype) {
         mimetype = mimetype ? mimetype.split(";")[0].trim() : '';
         if (!ALLOWED_BLOB_MIMETYPES[mimetype]) {
             mimetype = 'application/octet-stream';
         }
-        this.blob = new Blob([buffer], {type: mimetype});
-        this._url = null;
+        return new BlobHandle(new Blob([buffer], {type: mimetype}), buffer);
+    }
+
+    static fromFile(file) {
+        // ok to not filter mimetypes as these are local files
+        return new BlobHandle(file);
+    }
+
+    get nativeBlob() {
+        return this._blob;
+    }
+
+    async readAsBuffer() {
+        if (this._buffer) {
+            return this._buffer;
+        } else {
+            const reader = new FileReader();
+            const promise = new Promise((resolve, reject) => {
+                reader.addEventListener("load", evt => resolve(evt.target.result)); 
+                reader.addEventListener("error", evt => reject(evt.target.error)); 
+            });
+            reader.readAsArrayBuffer(this._blob);
+            return promise;
+        }
+    }
+
+    async readAsText() {
+        if (this._buffer) {
+            return this._buffer;
+        } else {
+            const reader = new FileReader();
+            const promise = new Promise((resolve, reject) => {
+                reader.addEventListener("load", evt => resolve(evt.target.result)); 
+                reader.addEventListener("error", evt => reject(evt.target.error)); 
+            });
+            reader.readAsText(this._blob, "utf-8");
+            return promise;
+        }
     }
 
     get url() {
         if (!this._url) {
-             this._url = URL.createObjectURL(this.blob);
+             this._url = URL.createObjectURL(this._blob);
         }
         return this._url;
+    }
+
+    get size() {
+        return this._blob.size;
+    }
+
+    get mimeType() {
+        return this._blob.type;
     }
 
     dispose() {

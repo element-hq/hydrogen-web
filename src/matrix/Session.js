@@ -362,7 +362,7 @@ export class Session {
             pendingEvents,
             user: this._user,
             createRoomEncryption: this._createRoomEncryption,
-            clock: this._platform.clock
+            platform: this._platform
         });
         this._rooms.add(roomId, room);
         return room;
