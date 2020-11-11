@@ -51,6 +51,11 @@ export class SendQueue {
                     this._amountSent += 1;
                     continue;
                 }
+                if (pendingEvent.attachment) {
+                    const {attachment} = pendingEvent;
+                    await attachment.uploaded();
+                    attachment.applyToContent(pendingEvent.content);
+                }
                 if (pendingEvent.needsEncryption) {
                     const {type, content} = await this._roomEncryption.encrypt(
                         pendingEvent.eventType, pendingEvent.content, this._hsApi);
@@ -116,8 +121,8 @@ export class SendQueue {
         }
     }
 
-    async enqueueEvent(eventType, content) {
-        const pendingEvent = await this._createAndStoreEvent(eventType, content);
+    async enqueueEvent(eventType, content, attachment) {
+        const pendingEvent = await this._createAndStoreEvent(eventType, content, attachment);
         this._pendingEvents.set(pendingEvent);
         console.log("added to _pendingEvents set", this._pendingEvents.length);
         if (!this._isSending && !this._offline) {
@@ -150,7 +155,7 @@ export class SendQueue {
         await txn.complete();
     }
 
-    async _createAndStoreEvent(eventType, content) {
+    async _createAndStoreEvent(eventType, content, attachment) {
         console.log("_createAndStoreEvent");
         const txn = this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
         let pendingEvent;
@@ -167,7 +172,7 @@ export class SendQueue {
                 content,
                 txnId: makeTxnId(),
                 needsEncryption: !!this._roomEncryption
-            });
+            }, attachment);
             console.log("_createAndStoreEvent: adding to pendingEventsStore");
             pendingEventsStore.add(pendingEvent.data);
         } catch (err) {
