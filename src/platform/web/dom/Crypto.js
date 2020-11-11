@@ -199,17 +199,19 @@ class AESCrypto {
         }
     }
 
-    async encryptCTR({key, iv, data}) {
+    async encryptCTR({key, jwkKey, iv, data}) {
         const opts = {
             name: "AES-CTR",
             counter: iv,
             length: 64,
         };
         let aesKey;
+        const selectedKey = key || jwkKey;
+        const format = jwkKey ? "jwk" : "raw";
         try {
             aesKey = await subtleCryptoResult(this._subtleCrypto.importKey(
-                "raw",
-                key,
+                format,
+                selectedKey,
                 opts,
                 false,
                 ['encrypt'],

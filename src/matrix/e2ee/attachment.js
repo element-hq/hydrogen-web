@@ -62,7 +62,7 @@ export async function encryptAttachment(platform, blob) {
     const iv = await crypto.aes.generateIV();
     const key = await crypto.aes.generateKey("jwk", 256);
     const buffer = await blob.readAsBuffer();
-    const ciphertext = await crypto.aes.encryptCTR({key, iv, data: buffer});
+    const ciphertext = await crypto.aes.encryptCTR({jwkKey: key, iv, data: buffer});
     const digest = await crypto.digest("SHA-256", ciphertext);
     return {
         blob: platform.createBlob(ciphertext, blob.mimeType),
