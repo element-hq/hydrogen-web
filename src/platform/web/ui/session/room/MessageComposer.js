@@ -31,10 +31,10 @@ export class MessageComposer extends TemplateView {
         return t.div({className: "MessageComposer"}, [
             this._input,
             t.button({
-                className: "attach",
-                title: vm.i18n`Attach`,
+                className: "sendFile",
+                title: vm.i18n`Send file`,
                 onClick: () => vm.sendAttachment(),
-            }, vm.i18n`Attach`),
+            }, vm.i18n`Send file`),
             t.button({
                 className: "send",
                 title: vm.i18n`Send`,

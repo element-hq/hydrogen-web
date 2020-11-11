@@ -470,6 +470,20 @@ a {
     background-position: center;
 }
 
+.MessageComposer > button.sendFile {
+    width: 32px;
+    height: 32px;
+    display: block;
+    border: none;
+    text-indent: 200%;
+    white-space: nowrap;
+    overflow: hidden;
+    background-color: transparent;
+    background-image: url('icons/paperclip.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
 .MessageComposer > button.send:disabled {
     background-color: #E3E8F0;
 }
