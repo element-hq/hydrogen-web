@@ -71,7 +71,7 @@ const ALLOWED_BLOB_MIMETYPES = {
 
 export class BlobHandle {
     constructor(blob, buffer = null) {
-        this.blob = blob;
+        this._blob = blob;
         this._buffer = buffer;
         this._url = null;
     }
@@ -89,6 +89,10 @@ export class BlobHandle {
         return new BlobHandle(file);
     }
 
+    get nativeBlob() {
+        return this._blob;
+    }
+
     async readAsBuffer() {
         if (this._buffer) {
             return this._buffer;
@@ -98,7 +102,7 @@ export class BlobHandle {
                 reader.addEventListener("load", evt => resolve(evt.target.result)); 
                 reader.addEventListener("error", evt => reject(evt.target.error)); 
             });
-            reader.readAsArrayBuffer(this.blob);
+            reader.readAsArrayBuffer(this._blob);
             return promise;
         }
     }
@@ -112,24 +116,24 @@ export class BlobHandle {
                 reader.addEventListener("load", evt => resolve(evt.target.result)); 
                 reader.addEventListener("error", evt => reject(evt.target.error)); 
             });
-            reader.readAsText(this.blob, "utf-8");
+            reader.readAsText(this._blob, "utf-8");
             return promise;
         }
     }
 
     get url() {
         if (!this._url) {
-             this._url = URL.createObjectURL(this.blob);
+             this._url = URL.createObjectURL(this._blob);
         }
         return this._url;
     }
 
     get size() {
-        return this.blob.size;
+        return this._blob.size;
     }
 
     get mimeType() {
-        return this.blob.type;
+        return this._blob.type;
     }
 
     dispose() {

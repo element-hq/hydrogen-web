@@ -137,9 +137,9 @@ export class Platform {
 
     saveFileAs(blobHandle, filename) {
         if (navigator.msSaveBlob) {
-            navigator.msSaveBlob(blobHandle.blob, filename);
+            navigator.msSaveBlob(blobHandle.nativeBlob, filename);
         } else {
-            downloadInIframe(this._container, this._paths.downloadSandbox, blobHandle.blob, filename);
+            downloadInIframe(this._container, this._paths.downloadSandbox, blobHandle.nativeBlob, filename);
         }
     }
 
