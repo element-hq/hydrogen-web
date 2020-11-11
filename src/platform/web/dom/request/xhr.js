@@ -52,6 +52,10 @@ function send(url, {method, headers, timeout, body, format}) {
         xhr.timeout = timeout;
     }
 
+    // if a BlobHandle, take native blob
+    if (body?.nativeBlob) {
+        body = body.nativeBlob;
+    }
     xhr.send(body || null);
 
     return xhr;

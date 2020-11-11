@@ -55,6 +55,26 @@ class RequestWrapper {
     }
 }
 
+function encodeBody(body) {
+    if (body.nativeBlob && body.mimeType) {
+        const blob = body;
+        return {
+            mimeType: blob.mimeType,
+            body: blob, // will be unwrapped in request fn
+            length: blob.size
+        };
+    } else if (typeof body === "object") {
+        const json = JSON.stringify(body);
+        return {
+            mimeType: "application/json",
+            body: json,
+            length: body.length
+        };
+    } else {
+        throw new Error("Unknown body type: " + body);
+    }
+}
+
 export class HomeServerApi {
     constructor({homeServer, accessToken, request, createTimeout, reconnector}) {
         // store these both in a closure somehow so it's harder to get at in case of XSS?
@@ -73,22 +93,24 @@ export class HomeServerApi {
     _baseRequest(method, url, queryParams, body, options, accessToken) {
         const queryString = encodeQueryParams(queryParams);
         url = `${url}?${queryString}`;
-        let bodyString;
+        let encodedBody;
         const headers = new Map();
         if (accessToken) {
             headers.set("Authorization", `Bearer ${accessToken}`);
         }
         headers.set("Accept", "application/json");
         if (body) {
-            headers.set("Content-Type", "application/json");
-            bodyString = JSON.stringify(body);
+            const encoded = encodeBody(body);
+            headers.set("Content-Type", encoded.mimeType);
+            headers.set("Content-Length", encoded.length);
+            encodedBody = encoded.body;
         }
         const requestResult = this._requestFn(url, {
             method,
             headers,
-            body: bodyString,
+            body: encodedBody,
             timeout: options?.timeout,
-            format: "json"
+            format: "json"  // response format
         });
 
         const wrapper = new RequestWrapper(method, url, requestResult);
