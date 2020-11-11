@@ -31,6 +31,11 @@ export class MessageComposer extends TemplateView {
         return t.div({className: "MessageComposer"}, [
             this._input,
             t.button({
+                className: "attach",
+                title: vm.i18n`Attach`,
+                onClick: () => vm.sendAttachment(),
+            }, vm.i18n`Attach`),
+            t.button({
                 className: "send",
                 title: vm.i18n`Send`,
                 disabled: vm => !vm.canSend,

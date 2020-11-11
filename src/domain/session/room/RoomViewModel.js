@@ -204,6 +204,10 @@ class ComposerViewModel extends ViewModel {
         return success;
     }
 
+    sendAttachment() {
+        this._roomVM._sendFile();
+    }
+
     get canSend() {
         return !this._isEmpty;
     }
