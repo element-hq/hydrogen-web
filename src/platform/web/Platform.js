@@ -177,4 +177,8 @@ export class Platform {
     hasReadPixelPermission() {
         return hasReadPixelPermission();
     }
+
+    get devicePixelRatio() {
+        return window.devicePixelRatio || 1;
+    }
 }

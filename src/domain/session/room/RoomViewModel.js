@@ -134,7 +134,8 @@ export class RoomViewModel extends ViewModel {
 
     get avatarUrl() {
         if (this._room.avatarUrl) {
-            return this._room.mediaRepository.mxcUrlThumbnail(this._room.avatarUrl, 32, 32, "crop");
+            const size = 32 * this.platform.devicePixelRatio;
+            return this._room.mediaRepository.mxcUrlThumbnail(this._room.avatarUrl, size, size, "crop");
         }
         return null;
     }
