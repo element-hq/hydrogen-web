@@ -28,6 +28,7 @@ import {Crypto} from "./dom/Crypto.js";
 import {estimateStorageUsage} from "./dom/StorageEstimate.js";
 import {WorkerPool} from "./dom/WorkerPool.js";
 import {BlobHandle} from "./dom/BlobHandle.js";
+import {hasReadPixelPermission, ImageHandle} from "./dom/ImageHandle.js";
 import {downloadInIframe} from "./dom/download.js";
 
 function addScript(src) {
@@ -156,7 +157,7 @@ export class Platform {
                 const file = input.files[0];
                 this._container.removeChild(input);
                 if (file) {
-                    resolve({name: file.name, blob: BlobHandle.fromFile(file)});
+                    resolve({name: file.name, blob: BlobHandle.fromBlob(file)});
                 } else {
                     reject(new Error("No file selected"));
                 }
@@ -167,5 +168,13 @@ export class Platform {
         this._container.appendChild(input);
         input.click();
         return promise;
+    }
+
+    async loadImage(blob) {
+        return ImageHandle.fromBlob(blob);
+    }
+
+    hasReadPixelPermission() {
+        return hasReadPixelPermission();
     }
 }
