@@ -24,12 +24,9 @@ export class FileTile extends MessageTile {
         this._error = null;
         this._downloading = false;
         if (this._isUploading) {
-            // should really do this with an ObservableValue and waitFor to prevent leaks when the promise never resolves
-            this._entry.attachment.uploaded().finally(() => {
-                if (!this.isDisposed) {
-                    this.emitChange("label");
-                }
-            });
+            this.track(this._entry.attachments.url.status.subscribe(() => {
+                this.emitChange("label");
+            }));
         }
     }
 
@@ -56,28 +53,28 @@ export class FileTile extends MessageTile {
 
     get size() {
         if (this._isUploading) {
-            return this._entry.attachment.localPreview.size;
+            return this._entry.attachments.url.localPreview.size;
         } else {
             return this._getContent().info?.size;
         }
     }
 
     get _isUploading() {
-        return this._entry.attachment && !this._entry.attachment.isUploaded;
+        return this._entry.attachments?.url && !this._entry.attachments.url.isUploaded;
     }
 
     get label() {
         if (this._error) {
             return `Could not decrypt file: ${this._error.message}`;
         }
-        if (this._entry.attachment?.error) {
-            return `Failed to upload: ${this._entry.attachment.error.message}`;
+        if (this._entry.attachments?.url?.error) {
+            return `Failed to upload: ${this._entry.attachments.url.error.message}`;
         }
         const content = this._getContent();
         const filename = content.body;
         const size = formatSize(this.size);
         if (this._isUploading) {
-            return this.i18n`Uploading ${filename} (${size})…`;
+            return this.i18n`Uploading (${this._entry.attachments.url.status.get()}) ${filename} (${size})…`;
         } else if (this._downloading) {
             return this.i18n`Downloading ${filename} (${size})…`;
         } else {

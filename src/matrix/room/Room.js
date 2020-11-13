@@ -352,8 +352,8 @@ export class Room extends EventEmitter {
     }
 
     /** @public */
-    sendEvent(eventType, content, attachment) {
-        return this._sendQueue.enqueueEvent(eventType, content, attachment);
+    sendEvent(eventType, content, attachments) {
+        return this._sendQueue.enqueueEvent(eventType, content, attachments);
     }
 
     /** @public */
@@ -633,10 +633,9 @@ export class Room extends EventEmitter {
         }
     }
 
-    uploadAttachment(blob, filename) {
+    createAttachment(blob, filename) {
         const attachment = new AttachmentUpload({blob, filename,
             hsApi: this._hsApi, platform: this._platform, isEncrypted: this.isEncrypted});
-        attachment.upload();
         return attachment;
     }
 

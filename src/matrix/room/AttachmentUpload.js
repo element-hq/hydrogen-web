@@ -15,6 +15,11 @@ limitations under the License.
 */
 
 import {encryptAttachment} from "../e2ee/attachment.js";
+import {createEnum} from "../../utils/enum.js";
+import {ObservableValue} from "../../observable/ObservableValue.js";
+import {AbortError} from "../../utils/error.js";
+
+export const UploadStatus = createEnum("Waiting", "Encrypting", "Uploading", "Uploaded", "Error");
 
 export class AttachmentUpload {
     constructor({filename, blob, hsApi, platform, isEncrypted}) {
@@ -26,42 +31,49 @@ export class AttachmentUpload {
         this._mxcUrl = null;
         this._transferredBlob = null;
         this._encryptionInfo = null;
-        this._uploadPromise = null;
         this._uploadRequest = null;
         this._aborted = false;
         this._error = null;
+        this._status = new ObservableValue(UploadStatus.Waiting);
     }
 
-    upload() {
-        if (!this._uploadPromise) {
-            this._uploadPromise = this._upload();
+    get status() {
+        return this._status;
+    }
+
+    async upload() {
+        if (this._status.get() === UploadStatus.Waiting) {
+            this._upload();
         }
-        return this._uploadPromise;
+        await this._status.waitFor(s => s === UploadStatus.Error || s === UploadStatus.Uploaded).promise;
+        if (this._status.get() === UploadStatus.Error) {
+            throw this._error;
+        }
     }
 
+    /** @package */
     async _upload() {
         try {
             let transferredBlob = this._unencryptedBlob;
             if (this._isEncrypted) {
+                this._status.set(UploadStatus.Encrypting);
                 const {info, blob} = await encryptAttachment(this._platform, this._unencryptedBlob);
                 transferredBlob = blob;
                 this._encryptionInfo = info;
             }
             if (this._aborted) {
-                return;
+                throw new AbortError("upload aborted during encryption");
             }
+            this._status.set(UploadStatus.Uploading);
             this._uploadRequest = this._hsApi.uploadAttachment(transferredBlob, this._filename);
             const {content_uri} = await this._uploadRequest.response();
             this._mxcUrl = content_uri;
             this._transferredBlob = transferredBlob;
+            this._status.set(UploadStatus.Uploaded);
         } catch (err) {
             this._error = err;
-            throw err;
+            this._status.set(UploadStatus.Error);
         }
-    }
-
-    get isUploaded() {
-        return !!this._transferredBlob;
     }
 
     /** @public */
@@ -80,29 +92,34 @@ export class AttachmentUpload {
     }
 
     /** @package */
-    uploaded() {
-        if (!this._uploadPromise) {
-            throw new Error("upload has not started yet");
-        }
-        return this._uploadPromise;
-    }
-
-    /** @package */
-    applyToContent(content) {
+    applyToContent(urlPath, content) {
         if (!this._mxcUrl) {
             throw new Error("upload has not finished");
         }
-        content.info = {
-            size: this._transferredBlob.size,
-            mimetype: this._unencryptedBlob.mimeType,
-        };
+        let prefix = urlPath.substr(0, urlPath.lastIndexOf("url"));
+        setPath(`${prefix}info.size`, content, this._transferredBlob.size);
+        setPath(`${prefix}info.mimetype`, content, this._unencryptedBlob.mimeType);
         if (this._isEncrypted) {
-            content.file = Object.assign(this._encryptionInfo, {
+            setPath(`${prefix}file`, content, Object.assign(this._encryptionInfo, {
                 mimetype: this._unencryptedBlob.mimeType,
                 url: this._mxcUrl
-            });
+            }));
         } else {
-            content.url = this._mxcUrl;
+            setPath(`${prefix}url`, content, this._mxcUrl);
         }
     }
+}
+
+function setPath(path, content, value) {
+    const parts = path.split(".");
+    let obj = content;
+    for (let i = 0; i < (parts.length - 1); i += 1) {
+        const key = parts[i];
+        if (!obj[key]) {
+            obj[key] = {};
+        }
+        obj = obj[key];
+    }
+    const propKey = parts[parts.length - 1];
+    obj[propKey] = value;
 }

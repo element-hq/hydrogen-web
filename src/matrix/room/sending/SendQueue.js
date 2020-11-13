@@ -51,16 +51,15 @@ export class SendQueue {
                     this._amountSent += 1;
                     continue;
                 }
-                if (pendingEvent.attachment) {
-                    const {attachment} = pendingEvent;
+                if (pendingEvent.attachments) {
                     try {
-                        await attachment.uploaded();
+                        await this._uploadAttachments(pendingEvent);
                     } catch (err) {
-                        console.log("upload failed, skip sending message", pendingEvent);
+                        console.log("upload failed, skip sending message", err, pendingEvent);
                         this._amountSent += 1;
                         continue;
                     }
-                    attachment.applyToContent(pendingEvent.content);
+                    console.log("attachments upload, content is now", pendingEvent.content);
                 }
                 if (pendingEvent.needsEncryption) {
                     const {type, content} = await this._roomEncryption.encrypt(
@@ -127,8 +126,8 @@ export class SendQueue {
         }
     }
 
-    async enqueueEvent(eventType, content, attachment) {
-        const pendingEvent = await this._createAndStoreEvent(eventType, content, attachment);
+    async enqueueEvent(eventType, content, attachments) {
+        const pendingEvent = await this._createAndStoreEvent(eventType, content, attachments);
         this._pendingEvents.set(pendingEvent);
         console.log("added to _pendingEvents set", this._pendingEvents.length);
         if (!this._isSending && !this._offline) {
@@ -161,7 +160,7 @@ export class SendQueue {
         await txn.complete();
     }
 
-    async _createAndStoreEvent(eventType, content, attachment) {
+    async _createAndStoreEvent(eventType, content, attachments) {
         console.log("_createAndStoreEvent");
         const txn = this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
         let pendingEvent;
@@ -178,7 +177,7 @@ export class SendQueue {
                 content,
                 txnId: makeTxnId(),
                 needsEncryption: !!this._roomEncryption
-            }, attachment);
+            }, attachments);
             console.log("_createAndStoreEvent: adding to pendingEventsStore");
             pendingEventsStore.add(pendingEvent.data);
         } catch (err) {
@@ -187,5 +186,13 @@ export class SendQueue {
         }
         await txn.complete();
         return pendingEvent;
+    }
+
+    async _uploadAttachments(pendingEvent) {
+        const {attachments} = pendingEvent;
+        for (const [urlPath, attachment] of Object.entries(attachments)) {
+            await attachment.upload();
+            attachment.applyToContent(urlPath, pendingEvent.content);
+        }
     }
 }
