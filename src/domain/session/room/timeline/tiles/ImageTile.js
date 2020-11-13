@@ -32,6 +32,11 @@ export class ImageTile extends MessageTile {
             this.navigation.segment("room", this._room.id),
             this.navigation.segment("lightbox", this._entry.id)
         ]);
+        if (this._entry.attachments) {
+            this.track(this._entry.attachments.url.status.subscribe(() => {
+                this.emitChange("uploadStatus");
+            }));
+        }
     }
 
     async _loadEncryptedFile(file) {
@@ -64,11 +69,25 @@ export class ImageTile extends MessageTile {
         return this._lightboxUrl;
     }
 
+    get isUploading() {
+        return !!this._entry.attachments;
+    }
+
+    get uploadStatus() {
+        if (this._entry.attachments) {
+            return this._entry.attachments.url.status.get();
+        }
+        return "";
+    }
+
     get thumbnailUrl() {
         if (this._decryptedThumbail) {
             return this._decryptedThumbail.url;
         } else if (this._decryptedImage) {
             return this._decryptedImage.url;
+        }
+        if (this._entry.attachments) {
+            return this._entry.attachments.url.localPreview.url;
         }
         const mxcUrl = this._getContent()?.url;
         if (typeof mxcUrl === "string") {
