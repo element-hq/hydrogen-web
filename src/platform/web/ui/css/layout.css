@@ -96,6 +96,8 @@ main {
     width: 100%;
     /* otherwise we don't get scrollbars and the content grows as large as it can */
     min-height: 0;
+    /* make popups relative to this element so changing the left panel width doesn't affect their position */
+    position: relative;
 }
 
 .RoomView {
@@ -162,4 +164,9 @@ main {
 .RoomGridView > div.focus-ring {
     z-index: 1;
     pointer-events: none;
+}
+
+.menu {
+    position: absolute;
+    z-index: 2;
 }
