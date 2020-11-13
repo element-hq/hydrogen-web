@@ -172,12 +172,14 @@ export class RoomViewModel extends ViewModel {
         } catch (err) {
             return;
         }
-        const attachment = this._room.uploadAttachment(file.blob, file.name);
         const content = {
             body: file.name,
-            msgtype: "m.file",
+            msgtype: "m.file"
         };
-        await this._room.sendEvent("m.room.message", content, attachment);
+        await this._room.sendEvent("m.room.message", content, {
+            "url": this._room.createAttachment(file.blob, file.name)
+        });
+        // TODO: dispose file.blob (in the attachment, after upload)
     }
 
     get composerViewModel() {
