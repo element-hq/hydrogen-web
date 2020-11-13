@@ -45,7 +45,9 @@ export class AttachmentUpload {
         if (this._status.get() === UploadStatus.Waiting) {
             this._upload();
         }
-        await this._status.waitFor(s => s === UploadStatus.Error || s === UploadStatus.Uploaded).promise;
+        await this._status.waitFor(s => {
+            return s === UploadStatus.Error || s === UploadStatus.Uploaded;
+        }).promise;
         if (this._status.get() === UploadStatus.Error) {
             throw this._error;
         }
