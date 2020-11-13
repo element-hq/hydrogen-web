@@ -316,6 +316,7 @@ a {
 
 .SessionStatusView button.link {
     color: currentcolor;
+    text-align: left;
 }
 
 .SessionStatusView > .end {
