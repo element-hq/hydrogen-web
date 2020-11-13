@@ -98,10 +98,10 @@ export class AttachmentUpload {
         }
         let prefix = urlPath.substr(0, urlPath.lastIndexOf("url"));
         setPath(`${prefix}info.size`, content, this._transferredBlob.size);
-        setPath(`${prefix}info.mimetype`, content, this._unencryptedBlob.mimeType);
+        setPath(`${prefix}info.mimetype`, content, this._transferredBlob.mimeType);
         if (this._isEncrypted) {
             setPath(`${prefix}file`, content, Object.assign(this._encryptionInfo, {
-                mimetype: this._unencryptedBlob.mimeType,
+                mimetype: this._transferredBlob.mimeType,
                 url: this._mxcUrl
             }));
         } else {
