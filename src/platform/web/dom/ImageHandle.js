@@ -30,6 +30,10 @@ export class ImageHandle {
         this._imgElement = imgElement;
     }
 
+    get maxDimension() {
+        return Math.max(this.width, this.height);
+    }
+
     async _getImgElement() {
         if (!this._imgElement) {
             this._imgElement = await loadImgFromBlob(this.blob);

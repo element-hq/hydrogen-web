@@ -15,6 +15,8 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../general/TemplateView.js";
+import {Popup} from "../../general/Popup.js";
+import {Menu} from "../../general/Menu.js";
 
 export class MessageComposer extends TemplateView {
     constructor(viewModel) {
@@ -32,8 +34,8 @@ export class MessageComposer extends TemplateView {
             this._input,
             t.button({
                 className: "sendFile",
-                title: vm.i18n`Send file`,
-                onClick: () => vm.sendAttachment(),
+                title: vm.i18n`Pick attachment`,
+                onClick: evt => this._showAttachmentMenu(evt),
             }, vm.i18n`Send file`),
             t.button({
                 className: "send",
@@ -55,5 +57,26 @@ export class MessageComposer extends TemplateView {
         if (event.key === "Enter") {
             this._trySend();
         }
+    }
+
+    _showAttachmentMenu(evt) {
+        const vm = this.value;
+        const popup = new Popup(new Menu([
+            Menu.option(vm.i18n`Send picture`, () => vm.sendPicture()).setIcon("picture"),
+            Menu.option(vm.i18n`Send file`, () => vm.sendFile()).setIcon("file"),
+        ]));
+        popup.trackInTemplateView(this);
+        popup.showRelativeTo(evt.target, {
+            horizontal: {
+                relativeTo: "end",
+                align: "start",
+                after: 0
+            },
+            vertical: {
+                relativeTo: "end",
+                align: "start",
+                before: 8,
+            }
+        });
     }
 }
