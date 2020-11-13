@@ -49,7 +49,3 @@ body.hydrogen {
 input::-ms-clear {
     display: none;
 }
-
-.hydrogen > iframe.downloadSandbox {
-    display: none;
-}
