@@ -170,3 +170,13 @@ main {
     position: absolute;
     z-index: 2;
 }
+
+.Settings {
+    display: flex;
+    flex-direction: column;
+}
+
+.SettingsBody {
+    min-height: 0;
+    overflow-y: auto;
+}
