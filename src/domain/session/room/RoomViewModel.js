@@ -147,8 +147,8 @@ export class RoomViewModel extends ViewModel {
         if (message) {
             try {
                 let msgtype = "m.text";
-                if (message.startsWith("/me")) {
-                    message = message.substr(3).trim();
+                if (message.startsWith("/me ")) {
+                    message = message.substr(4).trim();
                     msgtype = "m.emote";
                 }
                 await this._room.sendEvent("m.room.message", {msgtype, body: message});
