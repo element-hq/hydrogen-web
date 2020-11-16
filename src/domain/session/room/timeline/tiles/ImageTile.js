@@ -36,6 +36,9 @@ export class ImageTile extends MessageTile {
             this.track(this._entry.attachments.url.status.subscribe(() => {
                 this.emitChange("uploadStatus");
             }));
+            this.track(this._entry.attachments.url.uploadProgress.subscribe(() => {
+                this.emitChange("uploadStatus");
+            }));
         }
     }
 
@@ -75,7 +78,8 @@ export class ImageTile extends MessageTile {
 
     get uploadStatus() {
         if (this._entry.attachments) {
-            return this._entry.attachments.url.status.get();
+            const attachment = this._entry.attachments.url;
+            return `${attachment.status.get()} (${Math.round(attachment.uploadProgress.get() * 100)}%)`;
         }
         return "";
     }
