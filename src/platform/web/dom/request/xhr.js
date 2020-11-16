@@ -45,7 +45,11 @@ function createXhr(url, {method, headers, timeout, format, uploadProgress}) {
     }
     if (headers) {
         for(const [name, value] of headers.entries()) {
-            xhr.setRequestHeader(name, value);
+            try {
+                xhr.setRequestHeader(name, value);
+            } catch (err) {
+                console.info(`Could not set ${name} header: ${err.message}`);
+            }
         }
     }
     if (timeout) {
