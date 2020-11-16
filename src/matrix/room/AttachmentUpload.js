@@ -35,10 +35,15 @@ export class AttachmentUpload {
         this._aborted = false;
         this._error = null;
         this._status = new ObservableValue(UploadStatus.Waiting);
+        this._progress = new ObservableValue(0);
     }
 
     get status() {
         return this._status;
+    }
+
+    get uploadProgress() {
+        return this._progress;
     }
 
     async upload() {
@@ -66,9 +71,13 @@ export class AttachmentUpload {
             if (this._aborted) {
                 throw new AbortError("upload aborted during encryption");
             }
+            this._progress.set(0);
             this._status.set(UploadStatus.Uploading);
-            this._uploadRequest = this._hsApi.uploadAttachment(transferredBlob, this._filename);
+            this._uploadRequest = this._hsApi.uploadAttachment(transferredBlob, this._filename, {
+                uploadProgress: sentBytes => this._progress.set(sentBytes / transferredBlob.size)
+            });
             const {content_uri} = await this._uploadRequest.response();
+            this._progress.set(1);
             this._mxcUrl = content_uri;
             this._transferredBlob = transferredBlob;
             this._status.set(UploadStatus.Uploaded);

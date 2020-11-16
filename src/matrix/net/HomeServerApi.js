@@ -110,6 +110,7 @@ export class HomeServerApi {
             headers,
             body: encodedBody,
             timeout: options?.timeout,
+            uploadProgress: options?.uploadProgress,
             format: "json"  // response format
         });
 
