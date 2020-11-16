@@ -163,3 +163,13 @@ main {
     z-index: 1;
     pointer-events: none;
 }
+
+.Settings {
+    display: flex;
+    flex-direction: column;
+}
+
+.SettingsBody {
+    min-height: 0;
+    overflow-y: auto;
+}
