@@ -26,7 +26,9 @@ export class ImageTile extends MessageTile {
         this._decryptedThumbail = null;
         this._decryptedImage = null;
         this._error = null;
-        this.load();
+        if (!this.isPending) {
+            this.tryLoadEncryptedThumbnail();
+        }
         this._lightboxUrl = this.urlCreator.urlForSegments([
             // ensure the right room is active if in grid view
             this.navigation.segment("room", this._room.id),
@@ -43,7 +45,7 @@ export class ImageTile extends MessageTile {
         return this.track(blob);
     }
 
-    async load() {
+    async tryLoadEncryptedThumbnail() {
         try {
             const thumbnailFile = this._getContent().info?.thumbnail_file;
             const file = this._getContent().file;
@@ -61,33 +63,33 @@ export class ImageTile extends MessageTile {
     }
 
     get lightboxUrl() {
-        if (!this.isUploading) {
+        if (!this.isPending) {
             return this._lightboxUrl;
         }
         return "";
     }
 
     get isUploading() {
-        return this._entry.isPending;
+        return this.isPending && this._entry.pendingEvent.status === SendStatus.UploadingAttachments;
     }
 
-    get uploadStatus() {
+    get uploadPercentage() {
+        const {pendingEvent} = this._entry;
+        return pendingEvent && Math.round((pendingEvent.attachmentsSentBytes / pendingEvent.attachmentsTotalBytes) * 100);
+    }
+
+    get sendStatus() {
         const {pendingEvent} = this._entry;
         switch (pendingEvent?.status) {
             case SendStatus.Waiting:
-                return this.i18n`Waiting`;
+                return this.i18n`Waiting…`;
             case SendStatus.EncryptingAttachments:
-                return this.i18n`Encrypting image`;
-            case SendStatus.UploadingAttachments: {
-                const percent = Math.round((pendingEvent.attachmentsSentBytes / pendingEvent.attachmentsTotalBytes) * 100);
-                return this.i18n`Uploading image (${percent}%)`;
-            }
             case SendStatus.Encrypting:
-                return this.i18n`Encrypting message`;
+                return this.i18n`Encrypting…`;
+            case SendStatus.UploadingAttachments:
+                return this.i18n`Uploading…`;
             case SendStatus.Sending:
-                return this.i18n`Sending message`;
-            case SendStatus.Sent:
-                return this.i18n`Message sent`;
+                return this.i18n`Sending…`;
             case SendStatus.Error:
                 return this.i18n`Error: ${pendingEvent.error.message}`;
             default:
@@ -110,16 +112,6 @@ export class ImageTile extends MessageTile {
             return this._mediaRepository.mxcUrlThumbnail(mxcUrl, this.thumbnailWidth, this.thumbnailHeight, "scale");
         }
         return "";
-    }
-
-    async loadImageUrl() {
-        if (!this._decryptedImage) {
-            const file = this._getContent().file;
-            if (file) {
-                this._decryptedImage = await this._loadEncryptedFile(file);
-            }
-        }
-        return this._decryptedImage?.url || "";
     }
 
     _scaleFactor() {
