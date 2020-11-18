@@ -85,11 +85,11 @@ export class PendingEvent {
     get error() { return this._error; }
 
     get attachmentsTotalBytes() {
-        return Object.values(this._attachments).reduce((t, a) => t + a.size, 0);
+        return this._attachments && Object.values(this._attachments).reduce((t, a) => t + a.size, 0);
     }
 
     get attachmentsSentBytes() {
-        return Object.values(this._attachments).reduce((t, a) => t + a.sentBytes, 0);
+        return this._attachments && Object.values(this._attachments).reduce((t, a) => t + a.sentBytes, 0);
     }
 
     async uploadAttachments(hsApi) {
