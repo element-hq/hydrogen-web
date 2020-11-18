@@ -121,6 +121,7 @@ export class SendQueue {
             await txn.complete();
             this._pendingEvents.remove(idx);
         }
+        pendingEvent.dispose();
     }
 
     emitRemovals(pendingEvents) {
@@ -129,6 +130,7 @@ export class SendQueue {
             if (idx !== -1) {
                 this._pendingEvents.remove(idx);
             }
+            pendingEvent.dispose();
         }
     }
 
@@ -200,5 +202,11 @@ export class SendQueue {
         }
         await txn.complete();
         return pendingEvent;
+    }
+
+    dispose() {
+        for (const pe in this._pendingEvents.array) {
+            pe.dispose();
+        }
     }
 }

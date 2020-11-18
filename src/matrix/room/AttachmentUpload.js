@@ -89,6 +89,11 @@ export class AttachmentUpload {
             setPath(`${prefix}url`, content, this._mxcUrl);
         }
     }
+
+    dispose() {
+        this._unencryptedBlob.dispose();
+        this._transferredBlob.dispose();
+    }
 }
 
 function setPath(path, content, value) {

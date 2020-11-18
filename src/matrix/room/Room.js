@@ -640,6 +640,7 @@ export class Room extends EventEmitter {
     dispose() {
         this._roomEncryption?.dispose();
         this._timeline?.dispose();
+        this._sendQueue.dispose();
     }
 }
 

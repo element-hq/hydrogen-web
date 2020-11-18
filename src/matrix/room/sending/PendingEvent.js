@@ -152,4 +152,12 @@ export class PendingEvent {
         this._status = SendStatus.Sent;
         this._emitUpdate("status");
     }
+
+    dispose() {
+        if (this._attachments) {
+            for (const attachment of Object.values(this._attachments)) {
+                attachment.dispose();
+            }
+        }
+    }
 }
