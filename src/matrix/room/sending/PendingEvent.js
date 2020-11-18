@@ -108,7 +108,10 @@ export class PendingEvent {
         }
         this._status = SendStatus.UploadingAttachments;
         this._emitUpdate("status");
-        for (const [urlPath, attachment] of Object.entries(this._attachments)) {
+        const entries = Object.entries(this._attachments);
+        // upload smallest attachments first
+        entries.sort(([, a1], [, a2]) => a1.size - a2.size);
+        for (const [urlPath, attachment] of entries) {
             await attachment.upload(hsApi, () => {
                 this._emitUpdate("attachmentsSentBytes");
             });
