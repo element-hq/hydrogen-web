@@ -22,6 +22,7 @@ export class MessageComposer extends TemplateView {
     constructor(viewModel) {
         super(viewModel);
         this._input = null;
+        this._attachmentPopup = null;
     }
 
     render(t, vm) {
@@ -35,7 +36,7 @@ export class MessageComposer extends TemplateView {
             t.button({
                 className: "sendFile",
                 title: vm.i18n`Pick attachment`,
-                onClick: evt => this._showAttachmentMenu(evt),
+                onClick: evt => this._toggleAttachmentMenu(evt),
             }, vm.i18n`Send file`),
             t.button({
                 className: "send",
@@ -59,24 +60,28 @@ export class MessageComposer extends TemplateView {
         }
     }
 
-    _showAttachmentMenu(evt) {
-        const vm = this.value;
-        const popup = new Popup(new Menu([
-            Menu.option(vm.i18n`Send picture`, () => vm.sendPicture()).setIcon("picture"),
-            Menu.option(vm.i18n`Send file`, () => vm.sendFile()).setIcon("file"),
-        ]));
-        popup.trackInTemplateView(this);
-        popup.showRelativeTo(evt.target, {
-            horizontal: {
-                relativeTo: "end",
-                align: "start",
-                after: 0
-            },
-            vertical: {
-                relativeTo: "end",
-                align: "start",
-                before: 8,
-            }
-        });
+    _toggleAttachmentMenu(evt) {
+        if (this._attachmentPopup && this._attachmentPopup.isOpen) {
+            this._attachmentPopup.close();
+        } else {
+            const vm = this.value;
+            this._attachmentPopup = new Popup(new Menu([
+                Menu.option(vm.i18n`Send picture`, () => vm.sendPicture()).setIcon("picture"),
+                Menu.option(vm.i18n`Send file`, () => vm.sendFile()).setIcon("file"),
+            ]));
+            this._attachmentPopup.trackInTemplateView(this);
+            this._attachmentPopup.showRelativeTo(evt.target, {
+                horizontal: {
+                    relativeTo: "end",
+                    align: "start",
+                    after: 0
+                },
+                vertical: {
+                    relativeTo: "end",
+                    align: "start",
+                    before: 8,
+                }
+            });
+        }
     }
 }

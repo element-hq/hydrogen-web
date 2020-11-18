@@ -60,14 +60,21 @@ export class Popup {
         }, 10);
     }
 
+    get isOpen() {
+        return !!this._view;
+    }
+
     close() {
-        this._view.unmount();
-        this._trackingTemplateView.removeSubView(this);
-        if (this._scroller) {
-            document.body.removeEventListener("scroll", this, true);
+        if (this._view) {
+            this._view.unmount();
+            this._trackingTemplateView.removeSubView(this);
+            if (this._scroller) {
+                document.body.removeEventListener("scroll", this, true);
+            }
+            document.body.removeEventListener("click", this, false);
+            this._popup.remove();
+            this._view = null;
         }
-        document.body.removeEventListener("click", this, false);
-        this._popup.remove();
     }
 
     get _popup() {
