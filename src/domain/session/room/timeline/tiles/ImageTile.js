@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 import {MessageTile} from "./MessageTile.js";
-
+import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent.js";
 const MAX_HEIGHT = 300;
 const MAX_WIDTH = 400;
 
@@ -32,14 +32,6 @@ export class ImageTile extends MessageTile {
             this.navigation.segment("room", this._room.id),
             this.navigation.segment("lightbox", this._entry.id)
         ]);
-        if (this._entry.attachments) {
-            this.track(this._entry.attachments.url.status.subscribe(() => {
-                this.emitChange("uploadStatus");
-            }));
-            this.track(this._entry.attachments.url.uploadProgress.subscribe(() => {
-                this.emitChange("uploadStatus");
-            }));
-        }
     }
 
     async _loadEncryptedFile(file) {
@@ -69,19 +61,38 @@ export class ImageTile extends MessageTile {
     }
 
     get lightboxUrl() {
-        return this._lightboxUrl;
+        if (!this.isUploading) {
+            return this._lightboxUrl;
+        }
+        return "";
     }
 
     get isUploading() {
-        return !!this._entry.attachments;
+        return this._entry.isPending;
     }
 
     get uploadStatus() {
-        if (this._entry.attachments) {
-            const attachment = this._entry.attachments.url;
-            return `${attachment.status.get()} (${Math.round(attachment.uploadProgress.get() * 100)}%)`;
+        const {pendingEvent} = this._entry;
+        switch (pendingEvent?.status) {
+            case SendStatus.Waiting:
+                return this.i18n`Waiting`;
+            case SendStatus.EncryptingAttachments:
+                return this.i18n`Encrypting image`;
+            case SendStatus.UploadingAttachments: {
+                const percent = Math.round((pendingEvent.attachmentsSentBytes / pendingEvent.attachmentsTotalBytes) * 100);
+                return this.i18n`Uploading image (${percent}%)`;
+            }
+            case SendStatus.Encrypting:
+                return this.i18n`Encrypting message`;
+            case SendStatus.Sending:
+                return this.i18n`Sending message`;
+            case SendStatus.Sent:
+                return this.i18n`Message sent`;
+            case SendStatus.Error:
+                return this.i18n`Error: ${pendingEvent.error.message}`;
+            default:
+                return "";
         }
-        return "";
     }
 
     get thumbnailUrl() {
@@ -90,8 +101,9 @@ export class ImageTile extends MessageTile {
         } else if (this._decryptedImage) {
             return this._decryptedImage.url;
         }
-        if (this._entry.attachments) {
-            return this._entry.attachments.url.localPreview.url;
+        if (this._entry.isPending) {
+            const attachment = this._entry.pendingEvent.getAttachment("url");
+            return attachment && attachment.localPreview.url;
         }
         const mxcUrl = this._getContent()?.url;
         if (typeof mxcUrl === "string") {
