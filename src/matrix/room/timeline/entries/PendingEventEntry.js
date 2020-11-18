@@ -64,8 +64,8 @@ export class PendingEventEntry extends BaseEntry {
         return this._pendingEvent.txnId;
     }
 
-    get attachments() {
-        return this._pendingEvent.attachments;
+    get pendingEvent() {
+        return this._pendingEvent;
     }
 
     notifyUpdate() {

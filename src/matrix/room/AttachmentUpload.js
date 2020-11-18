@@ -15,81 +15,33 @@ limitations under the License.
 */
 
 import {encryptAttachment} from "../e2ee/attachment.js";
-import {createEnum} from "../../utils/enum.js";
-import {ObservableValue} from "../../observable/ObservableValue.js";
-import {AbortError} from "../../utils/error.js";
-
-export const UploadStatus = createEnum("Waiting", "Encrypting", "Uploading", "Uploaded", "Error");
 
 export class AttachmentUpload {
-    constructor({filename, blob, hsApi, platform, isEncrypted}) {
+    constructor({filename, blob, platform}) {
         this._filename = filename;
+        // need to keep around for local preview while uploading
         this._unencryptedBlob = blob;
-        this._isEncrypted = isEncrypted;
+        this._transferredBlob = this._unencryptedBlob;
         this._platform = platform;
-        this._hsApi = hsApi;
         this._mxcUrl = null;
-        this._transferredBlob = null;
         this._encryptionInfo = null;
         this._uploadRequest = null;
         this._aborted = false;
         this._error = null;
-        this._status = new ObservableValue(UploadStatus.Waiting);
-        this._progress = new ObservableValue(0);
+        this._sentBytes = 0;
     }
 
-    get status() {
-        return this._status;
+    /** important to call after encrypt() if encryption is needed */
+    get size() {
+        return this._transferredBlob.size;
     }
 
-    get uploadProgress() {
-        return this._progress;
-    }
-
-    async upload() {
-        if (this._status.get() === UploadStatus.Waiting) {
-            this._upload();
-        }
-        await this._status.waitFor(s => {
-            return s === UploadStatus.Error || s === UploadStatus.Uploaded;
-        }).promise;
-        if (this._status.get() === UploadStatus.Error) {
-            throw this._error;
-        }
-    }
-
-    /** @package */
-    async _upload() {
-        try {
-            let transferredBlob = this._unencryptedBlob;
-            if (this._isEncrypted) {
-                this._status.set(UploadStatus.Encrypting);
-                const {info, blob} = await encryptAttachment(this._platform, this._unencryptedBlob);
-                transferredBlob = blob;
-                this._encryptionInfo = info;
-            }
-            if (this._aborted) {
-                throw new AbortError("upload aborted during encryption");
-            }
-            this._progress.set(0);
-            this._status.set(UploadStatus.Uploading);
-            this._uploadRequest = this._hsApi.uploadAttachment(transferredBlob, this._filename, {
-                uploadProgress: sentBytes => this._progress.set(sentBytes / transferredBlob.size)
-            });
-            const {content_uri} = await this._uploadRequest.response();
-            this._progress.set(1);
-            this._mxcUrl = content_uri;
-            this._transferredBlob = transferredBlob;
-            this._status.set(UploadStatus.Uploaded);
-        } catch (err) {
-            this._error = err;
-            this._status.set(UploadStatus.Error);
-        }
+    get sentBytes() {
+        return this._sentBytes;
     }
 
     /** @public */
     abort() {
-        this._aborted = true;
         this._uploadRequest?.abort();
     }
 
@@ -98,8 +50,26 @@ export class AttachmentUpload {
         return this._unencryptedBlob;
     }
 
-    get error() {
-        return this._error;
+    /** @package */
+    async encrypt() {
+        if (this._encryptionInfo) {
+            throw new Error("already encrypted");
+        }
+        const {info, blob} = await encryptAttachment(this._platform, this._transferredBlob);
+        this._transferredBlob = blob;
+        this._encryptionInfo = info;
+    }
+
+    /** @package */
+    async upload(hsApi, progressCallback) {
+        this._uploadRequest = hsApi.uploadAttachment(this._transferredBlob, this._filename, {
+            uploadProgress: sentBytes => {
+                this._sentBytes = sentBytes;
+                progressCallback();
+            }
+        });
+        const {content_uri} = await this._uploadRequest.response();
+        this._mxcUrl = content_uri;
     }
 
     /** @package */
@@ -110,7 +80,7 @@ export class AttachmentUpload {
         let prefix = urlPath.substr(0, urlPath.lastIndexOf("url"));
         setPath(`${prefix}info.size`, content, this._transferredBlob.size);
         setPath(`${prefix}info.mimetype`, content, this._unencryptedBlob.mimeType);
-        if (this._isEncrypted) {
+        if (this._encryptionInfo) {
             setPath(`${prefix}file`, content, Object.assign(this._encryptionInfo, {
                 mimetype: this._unencryptedBlob.mimeType,
                 url: this._mxcUrl

@@ -634,9 +634,7 @@ export class Room extends EventEmitter {
     }
 
     createAttachment(blob, filename) {
-        const attachment = new AttachmentUpload({blob, filename,
-            hsApi: this._hsApi, platform: this._platform, isEncrypted: this.isEncrypted});
-        return attachment;
+        return new AttachmentUpload({blob, filename, platform: this._platform});
     }
 
     dispose() {
