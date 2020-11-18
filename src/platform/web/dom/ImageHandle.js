@@ -53,10 +53,16 @@ export class ImageHandle {
         const ctx = canvas.getContext("2d");
         const img = await this._getImgElement();
         ctx.drawImage(img, 0, 0, scaledWidth, scaledHeight);
-        const mimeType = this.blob.mimeType === "image/jpeg" ? "image/jpeg" : "image/png";
-        const nativeBlob = await new Promise(resolve => {
-            canvas.toBlob(resolve, mimeType);
-        });
+        let mimeType = this.blob.mimeType === "image/jpeg" ? "image/jpeg" : "image/png";
+        let nativeBlob;
+        if (canvas.toBlob) {
+            nativeBlob = await new Promise(resolve => canvas.toBlob(resolve, mimeType));
+        } else if (canvas.msToBlob) {
+            mimeType = "image/png";
+            nativeBlob = canvas.msToBlob();
+        } else {
+            throw new Error("canvas can't be turned into blob");
+        }
         const blob = BlobHandle.fromBlob(nativeBlob);
         return new ImageHandle(blob, scaledWidth, scaledHeight, null);
     }
