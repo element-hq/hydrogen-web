@@ -46,6 +46,11 @@ export class SimpleTile extends ViewModel {
     get isPending() {
         return this._entry.isPending;
     }
+
+    abortSending() {
+        this._entry.pendingEvent?.abort();
+    }
+
     // TilesCollection contract below
     setUpdateEmit(emitUpdate) {
         this.updateOptions({emitChange: paramName => {

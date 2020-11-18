@@ -16,7 +16,6 @@ limitations under the License.
 
 import {TemplateView} from "../../../general/TemplateView.js";
 import {renderMessage} from "./common.js";
-import {spinner} from "../../../common.js";
 
 export class ImageView extends TemplateView {
     render(t, vm) {
@@ -32,26 +31,36 @@ export class ImageView extends TemplateView {
             // can slow down rendering, and was bleeding through the lightbox.
             spacerStyle = `height: ${vm.thumbnailHeight}px`;
         }
+        const img = t.img({
+            loading: "lazy",
+            src: vm => vm.thumbnailUrl,
+            alt: vm => vm.label,
+            title: vm => vm.label,
+            style: `max-width: ${vm.thumbnailWidth}px; max-height: ${vm.thumbnailHeight}px;`
+        });
         const children = [
+            vm.isPending ? img : t.a({href: vm.lightboxUrl}, img),
             t.div({className: "spacer", style: spacerStyle}),
-            t.img({
-                loading: "lazy",
-                src: vm => vm.thumbnailUrl,
-                alt: vm => vm.label,
-                title: vm => vm.label,
-                style: `max-width: ${vm.thumbnailWidth}px; max-height: ${vm.thumbnailHeight}px;`
-            }),
             t.time(vm.date + " " + vm.time),
         ];
-        if (vm.isUploading) {
-            const uploadStatus = t.div({className: "uploadStatus"}, [
-                spinner(t),
-                vm => vm.uploadStatus
-            ]);
-            children.push(uploadStatus);
+        if (vm.isPending) {
+            const cancel = t.button({onClick: () => vm.abortSending(), className: "link"}, vm.i18n`Cancel`);
+            const sendStatus = t.div({
+                className: {
+                    sendStatus: true,
+                    hidden: vm => !vm.sendStatus
+                },
+            }, [vm => vm.sendStatus, " ", cancel]);
+            const progress = t.progress({
+                min: 0,
+                max: 100,
+                value: vm => vm.uploadPercentage,
+                className: {hidden: vm => !vm.isUploading}
+            });
+            children.push(sendStatus, progress);
         }
         return renderMessage(t, vm, [
-            t.a({href: vm.lightboxUrl, className: "picture", style: `max-width: ${vm.thumbnailWidth}px`}, children),
+            t.div({className: "picture", style: `max-width: ${vm.thumbnailWidth}px`}, children),
             t.if(vm => vm.error, t.createTemplate((t, vm) => t.p({className: "error"}, vm.error)))
         ]);
     }

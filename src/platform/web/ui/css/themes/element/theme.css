@@ -557,9 +557,15 @@ ul.Timeline > li.messageStatus .message-container > p {
 
 .message-container .picture {
     display: grid;
-    text-decoration: none;
     margin-top: 4px;
     width: 100%;
+}
+
+
+.message-container .picture > a {
+    text-decoration: none;
+    width: 100%;
+    display: block;
 }
 
 /* .spacer grows with an inline padding-top to the size of the image,
@@ -569,24 +575,41 @@ so the timeline doesn't jump when the image loads */
     grid-column: 1;
 }
 
-.message-container .picture > img {
+.message-container .picture img {
     width: 100%;
     height: auto;
     /* for IE11 to still scale even though the spacer is too tall */
     align-self: start;
     border-radius: 4px;
+    display: block;
 }
 /* stretch the image (to the spacer) on platforms
 where we can trust the spacer to always have the correct height,
 otherwise the image starts with  height 0 and with loading=lazy
 only loads when the top comes into view*/
-.hydrogen:not(.legacy) .message-container .picture > img {
+.hydrogen:not(.legacy) .message-container .picture img {
     align-self: stretch;
+}
+
+.message-container .picture > .sendStatus {
+    align-self: end;
+    justify-self: start;
+    font-size: 0.8em;
+}
+
+.message-container .picture > progress {
+    align-self: center;
+    justify-self: center;
+    width: 75%;
 }
 
 .message-container .picture > time {
     align-self: end;
     justify-self: end;
+}
+
+.message-container .picture > time,
+.message-container .picture > .sendStatus {
     color: #2e2f32;
     display: block;
     padding: 2px;
