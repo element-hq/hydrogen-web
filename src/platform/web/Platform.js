@@ -159,7 +159,7 @@ export class Platform {
                 if (file) {
                     resolve({name: file.name, blob: BlobHandle.fromBlob(file)});
                 } else {
-                    reject(new Error("No file selected"));
+                    resolve();
                 }
             }
             input.addEventListener("change", checkFile, true);

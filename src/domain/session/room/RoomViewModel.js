@@ -165,13 +165,19 @@ export class RoomViewModel extends ViewModel {
         return false;
     }
 
-    async _sendFile() {
-        let file;
+    async _pickAndSendFile() {
         try {
-            file = await this.platform.openFile();
+            const file = await this.platform.openFile();
+            if (!file) {
+                return;
+            }
+            return this._sendFile(file);
         } catch (err) {
-            return;
+            console.error(err);
         }
+    }
+
+    async _sendFile(file) {
         const content = {
             body: file.name,
             msgtype: "m.file"
@@ -179,36 +185,40 @@ export class RoomViewModel extends ViewModel {
         await this._room.sendEvent("m.room.message", content, {
             "url": this._room.createAttachment(file.blob, file.name)
         });
-        // TODO: dispose file.blob (in the attachment, after upload)
     }
 
-    async _sendPicture() {
-        if (!this.platform.hasReadPixelPermission()) {
-            alert("Please allow canvas image data access, so we can scale your images down.");
-            return;
-        }
-        let file;
+    async _pickAndSendPicture() {
         try {
-            file = await this.platform.openFile("image/*");
+            if (!this.platform.hasReadPixelPermission()) {
+                alert("Please allow canvas image data access, so we can scale your images down.");
+                return;
+            }
+            const file = await this.platform.openFile("image/*");
+            if (!file) {
+                return;
+            }
+            if (!file.blob.mimeType.startsWith("image/")) {
+                return this._sendFile(file);
+            }
+            const image = await this.platform.loadImage(file.blob);
+            const content = {
+                body: file.name,
+                msgtype: "m.image",
+                info: imageToInfo(image)
+            };
+            const attachments = {
+                "url": this._room.createAttachment(image.blob, file.name),
+            };
+            if (image.maxDimension > 600) {
+                const thumbnail = await image.scale(400);
+                content.info.thumbnail_info = imageToInfo(thumbnail);
+                attachments["info.thumbnail_url"] = 
+                    this._room.createAttachment(thumbnail.blob, file.name);
+            }
+            await this._room.sendEvent("m.room.message", content, attachments);
         } catch (err) {
-            return;
+            console.error(err);
         }
-        const image = await this.platform.loadImage(file.blob);
-        const content = {
-            body: file.name,
-            msgtype: "m.image",
-            info: imageToInfo(image)
-        };
-        const attachments = {
-            "url": this._room.createAttachment(file.blob, file.name),
-        };
-        if (image.maxDimension > 600) {
-            const thumbnail = await image.scale(400);
-            content.info.thumbnail_info = imageToInfo(thumbnail);
-            attachments["info.thumbnail_url"] = 
-                this._room.createAttachment(thumbnail.blob, file.name);
-        }
-        await this._room.sendEvent("m.room.message", content, attachments);
     }
     
 
@@ -238,11 +248,11 @@ class ComposerViewModel extends ViewModel {
     }
 
     sendPicture() {
-        this._roomVM._sendPicture();
+        this._roomVM._pickAndSendPicture();
     }
 
     sendFile() {
-        this._roomVM._sendFile();
+        this._roomVM._pickAndSendFile();
     }
 
     get canSend() {
