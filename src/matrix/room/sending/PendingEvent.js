@@ -64,6 +64,10 @@ export class PendingEvent {
         return this._data.needsUpload && !this.aborted;
     }
 
+    get isMissingAttachments() {
+        return this.needsUpload && !this._attachments;
+    }
+
     setEncrypting() {
         this._status = SendStatus.Encrypting;
         this._emitUpdate("status");
@@ -95,6 +99,9 @@ export class PendingEvent {
     async uploadAttachments(hsApi) {
         if (!this.needsUpload) {
             return;
+        }
+        if (!this._attachments) {
+            throw new Error("attachments missing");
         }
         if (this.needsEncryption) {
             this._status = SendStatus.EncryptingAttachments;
