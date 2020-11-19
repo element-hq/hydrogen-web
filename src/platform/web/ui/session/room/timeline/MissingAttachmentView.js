@@ -19,7 +19,7 @@ import {renderMessage} from "./common.js";
 
 export class MissingAttachmentView extends TemplateView {
     render(t, vm) {
-        const cancel = t.button({className: "link", onClick: () => vm.abortSending()}, vm.i18n`Cancel`);
-        return renderMessage(t, vm, t.p([vm.label, " ", cancel]));
+        const remove = t.button({className: "link", onClick: () => vm.abortSending()}, vm.i18n`Remove`);
+        return renderMessage(t, vm, t.p([vm.label, " ", remove]));
     }
 }
