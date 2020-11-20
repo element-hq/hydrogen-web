@@ -59,13 +59,15 @@ export class SettingsView extends TemplateView {
         const step = 32;
         const min = Math.ceil(vm.minSentImageSizeLimit / step) * step;
         const max = (Math.floor(vm.maxSentImageSizeLimit / step) + 1) * step;
+        const updateSetting = evt => vm.setSentImageSizeLimit(parseInt(evt.target.value, 10));
         return [t.input({
             type: "range",
             step,
             min,
             max,
             value: vm => vm.sentImageSizeLimit || max,
-            onInput: evt => vm.setSentImageSizeLimit(parseInt(evt.target.value, 10)),
+            onInput: updateSetting,
+            onChange: updateSetting,
         }), " ", t.output(vm => {
             return vm.sentImageSizeLimit ? 
                 vm.i18n`resize to ${vm.sentImageSizeLimit}px` :
