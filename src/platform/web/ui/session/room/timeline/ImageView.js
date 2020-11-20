@@ -39,8 +39,8 @@ export class ImageView extends TemplateView {
             style: `max-width: ${vm.thumbnailWidth}px; max-height: ${vm.thumbnailHeight}px;`
         });
         const children = [
-            vm.isPending ? img : t.a({href: vm.lightboxUrl}, img),
             t.div({className: "spacer", style: spacerStyle}),
+            vm.isPending ? img : t.a({href: vm.lightboxUrl}, img),
             t.time(vm.date + " " + vm.time),
         ];
         if (vm.isPending) {
