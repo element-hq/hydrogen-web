@@ -67,6 +67,7 @@ export class FileTile extends MessageTile {
                     return this.i18n`Uploading ${filename}: ${percent}%`;
                 }
                 case SendStatus.Sending:
+                case SendStatus.Sent:
                     return this.i18n`Sending ${filename}…`;
                 case SendStatus.Error:
                     return this.i18n`Error: could not send ${filename}: ${pendingEvent.error.message}`;
