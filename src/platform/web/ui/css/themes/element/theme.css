@@ -677,6 +677,7 @@ only loads when the top comes into view*/
 
 .Settings .row .content {
     margin-left: 4px;
+    flex: 1;
 }
 
 .Settings .row.code .content {
@@ -686,6 +687,12 @@ only loads when the top comes into view*/
 .Settings .row .content button {
   display: inline-block;
   margin: 0 8px;
+}
+
+.Settings .row .content input[type=range] {
+  width: 100%;
+  max-width: 300px;
+  min-width: 160px;
 }
 
 .Settings .row {

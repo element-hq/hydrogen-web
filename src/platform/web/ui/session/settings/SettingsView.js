@@ -46,10 +46,30 @@ export class SettingsView extends TemplateView {
                 row(vm.i18n`Session key`, vm.fingerprintKey, "code"),
                 t.h3("Session Backup"),
                 t.view(new SessionBackupSettingsView(vm.sessionBackupViewModel)),
+                t.h3("Preferences"),
+                row(vm.i18n`Compress images when sending`, this._imageCompressionRange(t, vm)),
                 t.h3("Application"),
                 row(vm.i18n`Version`, version),
                 row(vm.i18n`Storage usage`, vm => `${vm.storageUsage} / ${vm.storageQuota}`),
             ])
         ]);
+    }
+
+    _imageCompressionRange(t, vm) {
+        const step = 32;
+        const min = Math.ceil(vm.minSentImageSizeLimit / step) * step;
+        const max = (Math.floor(vm.maxSentImageSizeLimit / step) + 1) * step;
+        return [t.input({
+            type: "range",
+            step,
+            min,
+            max,
+            value: vm => vm.sentImageSizeLimit || max,
+            onInput: evt => vm.setSentImageSizeLimit(parseInt(evt.target.value, 10)),
+        }), " ", t.output(vm => {
+            return vm.sentImageSizeLimit ? 
+                vm.i18n`resize to ${vm.sentImageSizeLimit}px` :
+                vm.i18n`no compression`;
+        })];
     }
 }

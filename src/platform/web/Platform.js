@@ -18,6 +18,7 @@ import {createFetchRequest} from "./dom/request/fetch.js";
 import {xhrRequest} from "./dom/request/xhr.js";
 import {StorageFactory} from "../../matrix/storage/idb/StorageFactory.js";
 import {SessionInfoStorage} from "../../matrix/sessioninfo/localstorage/SessionInfoStorage.js";
+import {SettingsStorage} from "./dom/SettingsStorage.js";
 import {OlmWorker} from "../../matrix/e2ee/OlmWorker.js";
 import {RootView} from "./ui/RootView.js";
 import {Clock} from "./dom/Clock.js";
@@ -78,7 +79,6 @@ async function loadOlmWorker(paths) {
     return olmWorker;
 }
 
-
 export class Platform {
     constructor(container, paths, cryptoExtras = null) {
         this._paths = paths;
@@ -94,6 +94,7 @@ export class Platform {
         this.crypto = new Crypto(cryptoExtras);
         this.storageFactory = new StorageFactory(this._serviceWorkerHandler);
         this.sessionInfoStorage = new SessionInfoStorage("hydrogen_sessions_v1");
+        this.settingsStorage = new SettingsStorage("hydrogen_setting_v1_");
         this.estimateStorageUsage = estimateStorageUsage;
         this.random = Math.random;
         if (typeof fetch === "function") {

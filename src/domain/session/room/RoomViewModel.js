@@ -200,7 +200,11 @@ export class RoomViewModel extends ViewModel {
             if (!file.blob.mimeType.startsWith("image/")) {
                 return this._sendFile(file);
             }
-            const image = await this.platform.loadImage(file.blob);
+            let image = await this.platform.loadImage(file.blob);
+            const limit = await this.platform.settingsStorage.getInt("sentImageSizeLimit");
+            if (limit && image.maxDimension > limit) {
+                image = await image.scale(limit);
+            }
             const content = {
                 body: file.name,
                 msgtype: "m.image",
