@@ -19,11 +19,17 @@ import {renderMessage} from "./common.js";
 
 export class FileView extends TemplateView {
     render(t, vm) {
-        return renderMessage(t, vm, [
-            t.p([
+        if (vm.isPending) {
+            return renderMessage(t, vm, t.p([
+                vm => vm.label,
+                " ",
+                t.button({className: "link", onClick: () => vm.abortSending()}, vm.i18n`Cancel`),
+            ]));
+        } else {
+            return renderMessage(t, vm, t.p([
                 t.button({className: "link", onClick: () => vm.download()}, vm => vm.label),
-                t.time({className: {hidden: !vm.date}}, vm.date + " " + vm.time)
-            ])
-        ]);
+                t.time(vm.date + " " + vm.time)
+            ]));
+        }
     }
 }

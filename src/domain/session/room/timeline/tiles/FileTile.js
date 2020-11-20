@@ -17,21 +17,17 @@ limitations under the License.
 
 import {MessageTile} from "./MessageTile.js";
 import {formatSize} from "../../../../../utils/formatSize.js";
+import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent.js";
 
 export class FileTile extends MessageTile {
     constructor(options) {
         super(options);
-        this._error = null;
+        this._downloadError = null;
         this._downloading = false;
-        if (this._isUploading) {
-            this.track(this._entry.attachments.url.status.subscribe(() => {
-                this.emitChange("label");
-            }));
-        }
     }
 
     async download() {
-        if (this._downloading || this._isUploading) {
+        if (this._downloading || this.isPending) {
             return;
         }
         const content = this._getContent();
@@ -43,7 +39,7 @@ export class FileTile extends MessageTile {
             blob = await this._mediaRepository.downloadAttachment(content);
             this.platform.saveFileAs(blob, filename);
         } catch (err) {
-            this._error = err;
+            this._downloadError = err;
         } finally {
             blob?.dispose();
             this._downloading = false;
@@ -51,39 +47,40 @@ export class FileTile extends MessageTile {
         this.emitChange("label");
     }
 
-    get size() {
-        if (this._isUploading) {
-            return this._entry.attachments.url.localPreview.size;
-        } else {
-            return this._getContent().info?.size;
-        }
-    }
-
-    get _isUploading() {
-        return this._entry.attachments?.url && !this._entry.attachments.url.isUploaded;
-    }
-
     get label() {
-        if (this._error) {
-            return `Could not decrypt file: ${this._error.message}`;
-        }
-        if (this._entry.attachments?.url?.error) {
-            return `Failed to upload: ${this._entry.attachments.url.error.message}`;
+        if (this._downloadError) {
+            return `Could not download file: ${this._downloadError.message}`;
         }
         const content = this._getContent();
         const filename = content.body;
-        const size = formatSize(this.size);
-        if (this._isUploading) {
-            return this.i18n`Uploading (${this._entry.attachments.url.status.get()}) ${filename} (${size})…`;
-        } else if (this._downloading) {
-            return this.i18n`Downloading ${filename} (${size})…`;
-        } else {
-            return this.i18n`Download ${filename} (${size})`;
-        }
-    }
 
-    get error() {
-        return null;
+        if (this._entry.isPending) {
+            const {pendingEvent} = this._entry;
+            switch (pendingEvent?.status) {
+                case SendStatus.Waiting:
+                    return this.i18n`Waiting to send ${filename}…`;
+                case SendStatus.EncryptingAttachments:
+                case SendStatus.Encrypting:
+                    return this.i18n`Encrypting ${filename}…`;
+                case SendStatus.UploadingAttachments:{
+                    const percent = Math.round((pendingEvent.attachmentsSentBytes / pendingEvent.attachmentsTotalBytes) * 100);
+                    return this.i18n`Uploading ${filename}: ${percent}%`;
+                }
+                case SendStatus.Sending:
+                    return this.i18n`Sending ${filename}…`;
+                case SendStatus.Error:
+                    return this.i18n`Error: could not send ${filename}: ${pendingEvent.error.message}`;
+                default:
+                    return `Unknown send status for ${filename}`;
+            }
+        } else {
+            const size = formatSize(this._getContent().info?.size);
+            if (this._downloading) {
+                return this.i18n`Downloading ${filename} (${size})…`;
+            } else {
+                return this.i18n`Download ${filename} (${size})`;
+            }   
+        }
     }
 
     get shape() {
