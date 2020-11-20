@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,19 +17,9 @@ limitations under the License.
 import {TemplateView} from "../../../general/TemplateView.js";
 import {renderMessage} from "./common.js";
 
-export class FileView extends TemplateView {
+export class MissingAttachmentView extends TemplateView {
     render(t, vm) {
-        if (vm.isPending) {
-            return renderMessage(t, vm, t.p([
-                vm => vm.label,
-                " ",
-                t.button({className: "link", onClick: () => vm.abortSending()}, vm.i18n`Cancel`),
-            ]));
-        } else {
-            return renderMessage(t, vm, t.p([
-                t.button({className: "link", onClick: () => vm.download()}, vm => vm.label),
-                t.time(vm.date + " " + vm.time)
-            ]));
-        }
+        const remove = t.button({className: "link", onClick: () => vm.abortSending()}, vm.i18n`Remove`);
+        return renderMessage(t, vm, t.p([vm.label, " ", remove]));
     }
 }

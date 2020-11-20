@@ -44,9 +44,6 @@ export class TemplateView {
         this._render = render;
         this._eventListeners = null;
         this._bindings = null;
-        // this should become _subViews and also include templates.
-        // How do we know which ones we should update though?
-        // Wrapper class?
         this._subViews = null;
         this._root = null;
         this._boundUpdateFromValue = null;
@@ -57,7 +54,7 @@ export class TemplateView {
     }
 
     _subscribe() {
-        if (typeof this._value.on === "function") {
+        if (typeof this._value?.on === "function") {
             this._boundUpdateFromValue = this._updateFromValue.bind(this);
             this._value.on("change", this._boundUpdateFromValue);
         }
@@ -146,11 +143,18 @@ export class TemplateView {
         this._bindings.push(bindingFn);
     }
 
-    _addSubView(view) {
+    addSubView(view) {
         if (!this._subViews) {
             this._subViews = [];
         }
         this._subViews.push(view);
+    }
+
+    removeSubView(view) {
+        const idx = this._subViews.indexOf(view);
+        if (idx !== -1) {
+            this._subViews.splice(idx, 1);
+        }
     }
 }
 
@@ -288,7 +292,7 @@ class TemplateBuilder {
         } catch (err) {
             return errorToDOM(err);
         }
-        this._templateView._addSubView(view);
+        this._templateView.addSubView(view);
         return root;
     }
 

@@ -134,7 +134,8 @@ export class RoomViewModel extends ViewModel {
 
     get avatarUrl() {
         if (this._room.avatarUrl) {
-            return this._room.mediaRepository.mxcUrlThumbnail(this._room.avatarUrl, 32, 32, "crop");
+            const size = 32 * this.platform.devicePixelRatio;
+            return this._room.mediaRepository.mxcUrlThumbnail(this._room.avatarUrl, size, size, "crop");
         }
         return null;
     }
@@ -164,20 +165,66 @@ export class RoomViewModel extends ViewModel {
         return false;
     }
 
-    async _sendFile() {
-        let file;
+    async _pickAndSendFile() {
         try {
-            file = await this.platform.openFile();
+            const file = await this.platform.openFile();
+            if (!file) {
+                return;
+            }
+            return this._sendFile(file);
         } catch (err) {
-            return;
+            console.error(err);
         }
-        const attachment = this._room.uploadAttachment(file.blob, file.name);
+    }
+
+    async _sendFile(file) {
         const content = {
             body: file.name,
-            msgtype: "m.file",
+            msgtype: "m.file"
         };
-        await this._room.sendEvent("m.room.message", content, attachment);
+        await this._room.sendEvent("m.room.message", content, {
+            "url": this._room.createAttachment(file.blob, file.name)
+        });
     }
+
+    async _pickAndSendPicture() {
+        try {
+            if (!this.platform.hasReadPixelPermission()) {
+                alert("Please allow canvas image data access, so we can scale your images down.");
+                return;
+            }
+            const file = await this.platform.openFile("image/*");
+            if (!file) {
+                return;
+            }
+            if (!file.blob.mimeType.startsWith("image/")) {
+                return this._sendFile(file);
+            }
+            let image = await this.platform.loadImage(file.blob);
+            const limit = await this.platform.settingsStorage.getInt("sentImageSizeLimit");
+            if (limit && image.maxDimension > limit) {
+                image = await image.scale(limit);
+            }
+            const content = {
+                body: file.name,
+                msgtype: "m.image",
+                info: imageToInfo(image)
+            };
+            const attachments = {
+                "url": this._room.createAttachment(image.blob, file.name),
+            };
+            if (image.maxDimension > 600) {
+                const thumbnail = await image.scale(400);
+                content.info.thumbnail_info = imageToInfo(thumbnail);
+                attachments["info.thumbnail_url"] = 
+                    this._room.createAttachment(thumbnail.blob, file.name);
+            }
+            await this._room.sendEvent("m.room.message", content, attachments);
+        } catch (err) {
+            console.error(err);
+        }
+    }
+    
 
     get composerViewModel() {
         return this._composerVM;
@@ -204,8 +251,12 @@ class ComposerViewModel extends ViewModel {
         return success;
     }
 
-    sendAttachment() {
-        this._roomVM._sendFile();
+    sendPicture() {
+        this._roomVM._pickAndSendPicture();
+    }
+
+    sendFile() {
+        this._roomVM._pickAndSendFile();
     }
 
     get canSend() {
@@ -222,4 +273,13 @@ class ComposerViewModel extends ViewModel {
             this.emitChange("canSend");
         }
     }
+}
+
+function imageToInfo(image) {
+    return {
+        w: image.width,
+        h: image.height,
+        mimetype: image.blob.mimeType,
+        size: image.blob.size
+    };
 }

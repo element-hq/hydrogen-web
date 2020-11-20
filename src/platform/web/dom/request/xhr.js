@@ -35,7 +35,7 @@ class RequestResult {
     }
 }
 
-function send(url, {method, headers, timeout, body, format}) {
+function createXhr(url, {method, headers, timeout, format, uploadProgress}) {
     const xhr = new XMLHttpRequest();
     xhr.open(method, url);
     
@@ -45,18 +45,20 @@ function send(url, {method, headers, timeout, body, format}) {
     }
     if (headers) {
         for(const [name, value] of headers.entries()) {
-            xhr.setRequestHeader(name, value);
+            try {
+                xhr.setRequestHeader(name, value);
+            } catch (err) {
+                console.info(`Could not set ${name} header: ${err.message}`);
+            }
         }
     }
     if (timeout) {
         xhr.timeout = timeout;
     }
 
-    // if a BlobHandle, take native blob
-    if (body?.nativeBlob) {
-        body = body.nativeBlob;
+    if (uploadProgress) {
+        xhr.upload.addEventListener("progress", evt => uploadProgress(evt.loaded));
     }
-    xhr.send(body || null);
 
     return xhr;
 }
@@ -71,12 +73,12 @@ function xhrAsPromise(xhr, method, url) {
 }
 
 export function xhrRequest(url, options) {
-    const {cache, format} = options;
+    let {cache, format, body, method} = options;
     if (!cache) {
         url = addCacheBuster(url);
     }
-    const xhr = send(url, options);
-    const promise = xhrAsPromise(xhr, options.method, url).then(xhr => {
+    const xhr = createXhr(url, options);
+    const promise = xhrAsPromise(xhr, method, url).then(xhr => {
         const {status} = xhr;
         let body = null;
         if (format === "buffer") {
@@ -86,5 +88,12 @@ export function xhrRequest(url, options) {
         }
         return {status, body};
     });
+
+    // if a BlobHandle, take native blob
+    if (body?.nativeBlob) {
+        body = body.nativeBlob;
+    }
+    xhr.send(body || null);
+
     return new RequestResult(promise, xhr);
 }

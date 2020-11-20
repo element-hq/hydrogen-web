@@ -23,12 +23,15 @@ import {RoomNameTile} from "./tiles/RoomNameTile.js";
 import {RoomMemberTile} from "./tiles/RoomMemberTile.js";
 import {EncryptedEventTile} from "./tiles/EncryptedEventTile.js";
 import {EncryptionEnabledTile} from "./tiles/EncryptionEnabledTile.js";
+import {MissingAttachmentTile} from "./tiles/MissingAttachmentTile.js";
 
 export function tilesCreator(baseOptions) {
     return function tilesCreator(entry, emitUpdate) {
         const options = Object.assign({entry, emitUpdate}, baseOptions);
         if (entry.isGap) {
             return new GapTile(options);
+        } else if (entry.isPending && entry.pendingEvent.isMissingAttachments) {
+            return new MissingAttachmentTile(options);
         } else if (entry.eventType) {
             switch (entry.eventType) {
                 case "m.room.message": {

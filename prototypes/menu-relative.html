@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<style type="text/css">
+		body {
+			margin: 0;
+			padding: 0;
+			height: 100%;
+            overflow: hidden;
+		}
+		.container {
+			display: grid;
+			grid-template: "left middle" 1fr /
+							200px 1fr;
+			height: 100vh;
+		}
+
+		.container .left {
+			display: grid;
+			grid-template:
+				"welcome" auto
+				"rooms" 1fr /
+				 1fr;
+			min-height: 0;
+		}
+
+		.container .middle {
+			display: grid;
+			grid-template:
+				"header" auto
+				"timeline" 1fr
+				"composer" auto /
+				 1fr;
+			min-height: 0;
+            position: relative;
+		}
+
+		.left { grid-area: left;}
+		.left p {
+			grid-area welcome;
+			display: flex;
+		}
+		.left ul {
+			grid-area: rooms;
+			min-height: 0;
+			overflow-y: auto;
+		}
+
+		.middle { grid-area: middle;}
+		.middle .header { grid-area: header;}
+		.middle .timeline {
+			grid-area: timeline;
+			min-height: 0;
+			overflow-y: auto;
+		}
+		.middle .composer {
+			grid-area: composer;
+		}
+
+		.header {
+			display: flex;
+		}
+
+		.header h2 {
+			flex: 1;
+		}
+
+        .composer {
+            display: flex;
+        }
+
+        .composer input {
+            display: block;
+            flex: 1;
+        }
+
+		.menu {
+			position: absolute;
+			border-radius: 8px;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+            padding: 16px;
+            background-color: white;
+			z-index: 1;
+            list-style: none;
+            margin: 0;
+		}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<div class="left">
+			<p>Welcome!<button>⋮</button></p>
+			<ul>
+				<li>Room xyz <button>⋮</button></li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz <button>⋮</button></li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz</li>
+				<li>Room xyz <button>⋮</button></li>
+			</ul>
+		</div>
+		<div class="middle">
+			<div class="header">
+				<h2>Room xyz</h2>
+				<button>⋮</button>
+			</div>
+			<ul class="timeline">
+                <li>Message abc</li>
+				<li>Message abc <button>⋮</button></li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc <button>⋮</button></li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc</li>
+				<li>Message abc <button>⋮</button></li>
+			</ul>
+			<div class="composer">
+				<input type="text" name="">
+				<button>⋮</button>
+			</div>
+		</div>
+	</div>
+	<script type="text/javascript">
+        let menu;
+
+        function createMenu(options) {
+            const menu = document.createElement("ul");
+            menu.className = "menu";
+            for (const o of options) {
+                const li = document.createElement("li");
+                li.innerText = o;
+                menu.appendChild(li);
+            }
+            return menu;
+        }
+
+
+        function showMenu(evt) {
+            if (menu) {
+                menu = menu.close();
+            } else if (evt.target.tagName.toLowerCase() === "button") {
+                menu = showPopup(evt.target, createMenu(["Send file", "Save contact", "Send picture", "Foo the bar"]), {
+                    horizontal: {
+                        relativeTo: "end",
+                        align: "start",
+                        after: 0,
+                    },
+                    vertical: {
+                        relativeTo: "end",
+                        align: "end",
+                        after: 10,
+                    }
+                });
+            }
+        }
+
+        function showMenuInScroller(evt) {
+            if (!menu && evt.target.tagName.toLowerCase() === "button") {
+                evt.stopPropagation();
+                menu = showPopup(evt.target, createMenu(["Show reactions", "Share"]), {
+                    horizontal: {
+                        relativeTo: "start",
+                        align: "end",
+                        after: 10,
+                    },
+                    vertical: {
+                        relativeTo: "start",
+                        align: "center",
+                    }
+                });
+            }
+        }
+
+		document.body.addEventListener("click", showMenu, false);
+        document.querySelector(".middle ul").addEventListener("click", showMenuInScroller, false);
+        document.querySelector(".left ul").addEventListener("click", showMenuInScroller, false);
+
+		function showPopup(target, popup, arrangement) {
+            targetAxes = elementToAxes(target);
+            if (!arrangement) {
+                arrangement = getAutoArrangement(targetAxes);
+            }
+			
+			target.offsetParent.appendChild(popup);
+
+            const popupAxes = elementToAxes(popup);
+            const scrollerAxes = elementToAxes(findScrollParent(target));
+            const offsetParentAxes = elementToAxes(target.offsetParent);
+
+            function reposition() {
+                if (scrollerAxes && !isVisibleInScrollParent(targetAxes.vertical, scrollerAxes.vertical)) {
+                    popupObj.close();
+                }
+                applyArrangement(
+                    popupAxes.vertical,
+                    targetAxes.vertical,
+                    offsetParentAxes.vertical,
+                    scrollerAxes?.vertical,
+                    arrangement.vertical
+                );
+                applyArrangement(
+                    popupAxes.horizontal,
+                    targetAxes.horizontal,
+                    offsetParentAxes.horizontal,
+                    scrollerAxes?.horizontal,
+                    arrangement.horizontal
+                );
+            }
+            reposition();
+            
+            document.body.addEventListener("scroll", reposition, true);
+
+            const popupObj = {
+                close() {
+                    document.body.removeEventListener("scroll", reposition, true);
+                    popup.remove();
+                }
+            };
+
+            return popupObj;
+		}
+
+        function elementToAxes(element) {
+            if (element) {
+                return {
+                    horizontal: new HorizontalAxis(element),
+                    vertical: new VerticalAxis(element),
+                    element
+                };
+            }
+        }
+
+        function findScrollParent(el) {
+            let parent = el;
+            do {
+                parent = parent.parentElement;
+                if (parent.scrollHeight > parent.clientHeight) {
+                    return parent;
+                }
+            } while (parent !== el.offsetParent);
+        }
+
+        function isVisibleInScrollParent(targetAxis, scrollerAxis) {
+            // clipped at start?
+            if ((targetAxis.offsetStart + targetAxis.clientSize) < (
+                scrollerAxis.offsetStart + 
+                scrollerAxis.scrollOffset
+            )) {
+                return false;
+            }
+            // clipped at end?
+            if (targetAxis.offsetStart > (
+                scrollerAxis.offsetStart + 
+                scrollerAxis.clientSize + 
+                scrollerAxis.scrollOffset
+            )) {
+                return false;
+            }
+            return true;
+        }
+
+        function applyArrangement(elAxis, targetAxis, offsetParentAxis, scrollerAxis, {relativeTo, align, before, after}) {
+            if (relativeTo === "end") {
+                let end = offsetParentAxis.clientSize - targetAxis.offsetStart;
+                if (align === "end") {
+                    end -= elAxis.offsetSize;
+                } else if (align === "center") {
+                    end -= ((elAxis.offsetSize / 2) - (targetAxis.offsetSize / 2));
+                }
+                if (typeof before === "number") {
+                    end += before;
+                } else if (typeof after === "number") {
+                    end -= (targetAxis.offsetSize + after);
+                }
+                elAxis.end = end;
+            } else if (relativeTo === "start") {
+                let scrollOffset = scrollerAxis?.scrollOffset || 0;
+                let start = targetAxis.offsetStart - scrollOffset;
+                if (align === "start") {
+                    start -= elAxis.offsetSize;
+                } else if (align === "center") {
+                    start -= ((elAxis.offsetSize / 2) - (targetAxis.offsetSize / 2));
+                }
+                if (typeof before === "number") {
+                    start -= before;
+                } else if (typeof after === "number") {
+                    start += (targetAxis.offsetSize + after);
+                }
+                elAxis.start = start;
+            } else {
+                throw new Error("unknown relativeTo: " + relativeTo);
+            }
+        }
+
+        class HorizontalAxis {
+            constructor(el) {
+                this.element = el;
+            }
+            get scrollOffset() {return this.element.scrollLeft;}
+            get clientSize() {return this.element.clientWidth;}
+            get offsetSize() {return this.element.offsetWidth;}
+            get offsetStart() {return this.element.offsetLeft;}
+            set start(value) {this.element.style.left = `${value}px`;} 
+            set end(value) {this.element.style.right = `${value}px`;}
+        }
+        class VerticalAxis {
+            constructor(el) {
+                this.element = el;
+            }
+            get scrollOffset() {return this.element.scrollTop;}
+            get clientSize() {return this.element.clientHeight;}
+            get offsetSize() {return this.element.offsetHeight;}
+            get offsetStart() {return this.element.offsetTop;}
+            set start(value) {this.element.style.top = `${value}px`;} 
+            set end(value) {this.element.style.bottom = `${value}px`;}
+        }
+	</script>
+</body>
+</html>

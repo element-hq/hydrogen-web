@@ -14,10 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import aesjs from "../../../lib/aes-js/index.js";
-import {hkdf} from "../../utils/crypto/hkdf.js";
-import {Platform as ModernPlatform} from "./Platform.js";
+export class SettingsStorage {
+    constructor(prefix) {
+        this._prefix = prefix;
+    }
 
-export function Platform(container, paths) {
-    return new ModernPlatform(container, paths, {aesjs, hkdf});
+    async setInt(key, value) {
+        window.localStorage.setItem(`${this._prefix}${key}`, value);
+    }
+
+    async getInt(key) {
+        const value = window.localStorage.getItem(`${this._prefix}${key}`);
+        if (typeof value === "string") {
+            return parseInt(value, 10);
+        }
+        return;
+    }
+
+    async remove(key) {
+        window.localStorage.removeItem(`${this._prefix}${key}`);
+    }
 }

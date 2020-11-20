@@ -84,9 +84,9 @@ export class BlobHandle {
         return new BlobHandle(new Blob([buffer], {type: mimetype}), buffer);
     }
 
-    static fromFile(file) {
+    static fromBlob(blob) {
         // ok to not filter mimetypes as these are local files
-        return new BlobHandle(file);
+        return new BlobHandle(blob);
     }
 
     get nativeBlob() {

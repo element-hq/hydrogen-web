@@ -96,6 +96,8 @@ main {
     width: 100%;
     /* otherwise we don't get scrollbars and the content grows as large as it can */
     min-height: 0;
+    /* make popups relative to this element so changing the left panel width doesn't affect their position */
+    position: relative;
 }
 
 .RoomView {
@@ -109,12 +111,11 @@ main {
 }
 
 .lightbox {
-    /* cover left and middle panel, not status view
-    use numeric positions because named grid areas
-    are not present in mobile layout */
-    grid-area: 2 / 1 / 3 / 3;
-    /* this should not be necessary, but chrome seems to have a bug when there are scrollbars in other grid items,
-    it seems to put the scroll areas on top of the other grid items unless they have a z-index */
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
     z-index: 1;
 }
 
@@ -162,6 +163,11 @@ main {
 .RoomGridView > div.focus-ring {
     z-index: 1;
     pointer-events: none;
+}
+
+.menu {
+    position: absolute;
+    z-index: 2;
 }
 
 .Settings {

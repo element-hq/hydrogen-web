@@ -17,56 +17,31 @@ limitations under the License.
 import {encryptAttachment} from "../e2ee/attachment.js";
 
 export class AttachmentUpload {
-    constructor({filename, blob, hsApi, platform, isEncrypted}) {
+    constructor({filename, blob, platform}) {
         this._filename = filename;
+        // need to keep around for local preview while uploading
         this._unencryptedBlob = blob;
-        this._isEncrypted = isEncrypted;
+        this._transferredBlob = this._unencryptedBlob;
         this._platform = platform;
-        this._hsApi = hsApi;
         this._mxcUrl = null;
-        this._transferredBlob = null;
         this._encryptionInfo = null;
-        this._uploadPromise = null;
         this._uploadRequest = null;
         this._aborted = false;
         this._error = null;
+        this._sentBytes = 0;
     }
 
-    upload() {
-        if (!this._uploadPromise) {
-            this._uploadPromise = this._upload();
-        }
-        return this._uploadPromise;
+    /** important to call after encrypt() if encryption is needed */
+    get size() {
+        return this._transferredBlob.size;
     }
 
-    async _upload() {
-        try {
-            let transferredBlob = this._unencryptedBlob;
-            if (this._isEncrypted) {
-                const {info, blob} = await encryptAttachment(this._platform, this._unencryptedBlob);
-                transferredBlob = blob;
-                this._encryptionInfo = info;
-            }
-            if (this._aborted) {
-                return;
-            }
-            this._uploadRequest = this._hsApi.uploadAttachment(transferredBlob, this._filename);
-            const {content_uri} = await this._uploadRequest.response();
-            this._mxcUrl = content_uri;
-            this._transferredBlob = transferredBlob;
-        } catch (err) {
-            this._error = err;
-            throw err;
-        }
-    }
-
-    get isUploaded() {
-        return !!this._transferredBlob;
+    get sentBytes() {
+        return this._sentBytes;
     }
 
     /** @public */
     abort() {
-        this._aborted = true;
         this._uploadRequest?.abort();
     }
 
@@ -75,34 +50,62 @@ export class AttachmentUpload {
         return this._unencryptedBlob;
     }
 
-    get error() {
-        return this._error;
-    }
-
     /** @package */
-    uploaded() {
-        if (!this._uploadPromise) {
-            throw new Error("upload has not started yet");
+    async encrypt() {
+        if (this._encryptionInfo) {
+            throw new Error("already encrypted");
         }
-        return this._uploadPromise;
+        const {info, blob} = await encryptAttachment(this._platform, this._transferredBlob);
+        this._transferredBlob = blob;
+        this._encryptionInfo = info;
     }
 
     /** @package */
-    applyToContent(content) {
+    async upload(hsApi, progressCallback) {
+        this._uploadRequest = hsApi.uploadAttachment(this._transferredBlob, this._filename, {
+            uploadProgress: sentBytes => {
+                this._sentBytes = sentBytes;
+                progressCallback();
+            }
+        });
+        const {content_uri} = await this._uploadRequest.response();
+        this._mxcUrl = content_uri;
+    }
+
+    /** @package */
+    applyToContent(urlPath, content) {
         if (!this._mxcUrl) {
             throw new Error("upload has not finished");
         }
-        content.info = {
-            size: this._transferredBlob.size,
-            mimetype: this._unencryptedBlob.mimeType,
-        };
-        if (this._isEncrypted) {
-            content.file = Object.assign(this._encryptionInfo, {
+        let prefix = urlPath.substr(0, urlPath.lastIndexOf("url"));
+        setPath(`${prefix}info.size`, content, this._transferredBlob.size);
+        setPath(`${prefix}info.mimetype`, content, this._unencryptedBlob.mimeType);
+        if (this._encryptionInfo) {
+            setPath(`${prefix}file`, content, Object.assign(this._encryptionInfo, {
                 mimetype: this._unencryptedBlob.mimeType,
                 url: this._mxcUrl
-            });
+            }));
         } else {
-            content.url = this._mxcUrl;
+            setPath(`${prefix}url`, content, this._mxcUrl);
         }
     }
+
+    dispose() {
+        this._unencryptedBlob.dispose();
+        this._transferredBlob.dispose();
+    }
+}
+
+function setPath(path, content, value) {
+    const parts = path.split(".");
+    let obj = content;
+    for (let i = 0; i < (parts.length - 1); i += 1) {
+        const key = parts[i];
+        if (!obj[key]) {
+            obj[key] = {};
+        }
+        obj = obj[key];
+    }
+    const propKey = parts[parts.length - 1];
+    obj[propKey] = value;
 }

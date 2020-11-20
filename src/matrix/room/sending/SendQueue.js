@@ -29,11 +29,20 @@ export class SendQueue {
         if (pendingEvents.length) {
             console.info(`SendQueue for room ${roomId} has ${pendingEvents.length} pending events`, pendingEvents);
         }
-        this._pendingEvents.setManyUnsorted(pendingEvents.map(data => new PendingEvent(data)));
+        this._pendingEvents.setManyUnsorted(pendingEvents.map(data => this._createPendingEvent(data)));
         this._isSending = false;
         this._offline = false;
-        this._amountSent = 0;
         this._roomEncryption = null;
+    }
+
+    _createPendingEvent(data, attachments = null) {
+        const pendingEvent = new PendingEvent({
+            data,
+            remove: () => this._removeEvent(pendingEvent),
+            emitUpdate: () => this._pendingEvents.set(pendingEvent),
+            attachments
+        });
+        return pendingEvent;
     }
 
     enableEncryption(roomEncryption) {
@@ -43,51 +52,41 @@ export class SendQueue {
     async _sendLoop() {
         this._isSending = true;
         try {
-            console.log("start sending", this._amountSent, "<", this._pendingEvents.length);
-            while (this._amountSent < this._pendingEvents.length) {
-                const pendingEvent = this._pendingEvents.get(this._amountSent);
-                console.log("trying to send", pendingEvent.content.body);
-                if (pendingEvent.remoteId) {
-                    this._amountSent += 1;
-                    continue;
-                }
-                if (pendingEvent.attachment) {
-                    const {attachment} = pendingEvent;
-                    try {
-                        await attachment.uploaded();
-                    } catch (err) {
-                        console.log("upload failed, skip sending message", pendingEvent);
-                        this._amountSent += 1;
-                        continue;
+            for (let i = 0; i < this._pendingEvents.length; i += 1) {
+                const pendingEvent = this._pendingEvents.get(i);
+                try {
+                    await this._sendEvent(pendingEvent);
+                } catch(err) {
+                    if (err instanceof ConnectionError) {
+                        this._offline = true;
+                        break;
+                    } else {
+                        pendingEvent.setError(err);
                     }
-                    attachment.applyToContent(pendingEvent.content);
-                }
-                if (pendingEvent.needsEncryption) {
-                    const {type, content} = await this._roomEncryption.encrypt(
-                        pendingEvent.eventType, pendingEvent.content, this._hsApi);
-                    pendingEvent.setEncrypted(type, content);
-                    await this._tryUpdateEvent(pendingEvent);
-                }
-                console.log("really sending now");
-                const response = await this._hsApi.send(
-                        pendingEvent.roomId,
-                        pendingEvent.eventType,
-                        pendingEvent.txnId,
-                        pendingEvent.content
-                    ).response();
-                pendingEvent.remoteId = response.event_id;
-                // 
-                console.log("writing remoteId now");
-                await this._tryUpdateEvent(pendingEvent);
-                console.log("keep sending?", this._amountSent, "<", this._pendingEvents.length);
-                this._amountSent += 1;
-            }
-        } catch(err) {
-            if (err instanceof ConnectionError) {
-                this._offline = true;
+                } 
             }
         } finally {
             this._isSending = false;
+        }
+    }
+
+    async _sendEvent(pendingEvent) {
+        if (pendingEvent.needsUpload) {
+            await pendingEvent.uploadAttachments(this._hsApi);
+            console.log("attachments upload, content is now", pendingEvent.content);
+            await this._tryUpdateEvent(pendingEvent);
+        }
+        if (pendingEvent.needsEncryption) {
+            pendingEvent.setEncrypting();
+            const {type, content} = await this._roomEncryption.encrypt(
+                pendingEvent.eventType, pendingEvent.content, this._hsApi);
+            pendingEvent.setEncrypted(type, content);
+            await this._tryUpdateEvent(pendingEvent);
+        }
+        if (pendingEvent.needsSending) {
+            await pendingEvent.send(this._hsApi);
+            console.log("writing remoteId");
+            await this._tryUpdateEvent(pendingEvent);
         }
     }
 
@@ -110,13 +109,28 @@ export class SendQueue {
         return removed;
     }
 
+    async _removeEvent(pendingEvent) {
+        const idx = this._pendingEvents.array.indexOf(pendingEvent);
+        if (idx !== -1) {
+            const txn = this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
+            try {
+                txn.pendingEvents.remove(pendingEvent.roomId, pendingEvent.queueIndex);
+            } catch (err) {
+                txn.abort();
+            }
+            await txn.complete();
+            this._pendingEvents.remove(idx);
+        }
+        pendingEvent.dispose();
+    }
+
     emitRemovals(pendingEvents) {
         for (const pendingEvent of pendingEvents) {
             const idx = this._pendingEvents.array.indexOf(pendingEvent);
             if (idx !== -1) {
-                this._amountSent -= 1;
                 this._pendingEvents.remove(idx);
             }
+            pendingEvent.dispose();
         }
     }
 
@@ -127,8 +141,8 @@ export class SendQueue {
         }
     }
 
-    async enqueueEvent(eventType, content, attachment) {
-        const pendingEvent = await this._createAndStoreEvent(eventType, content, attachment);
+    async enqueueEvent(eventType, content, attachments) {
+        const pendingEvent = await this._createAndStoreEvent(eventType, content, attachments);
         this._pendingEvents.set(pendingEvent);
         console.log("added to _pendingEvents set", this._pendingEvents.length);
         if (!this._isSending && !this._offline) {
@@ -161,7 +175,7 @@ export class SendQueue {
         await txn.complete();
     }
 
-    async _createAndStoreEvent(eventType, content, attachment) {
+    async _createAndStoreEvent(eventType, content, attachments) {
         console.log("_createAndStoreEvent");
         const txn = this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
         let pendingEvent;
@@ -171,14 +185,15 @@ export class SendQueue {
             const maxQueueIndex = await pendingEventsStore.getMaxQueueIndex(this._roomId) || 0;
             console.log("_createAndStoreEvent got maxQueueIndex", maxQueueIndex);
             const queueIndex = maxQueueIndex + 1;
-            pendingEvent = new PendingEvent({
+            pendingEvent = this._createPendingEvent({
                 roomId: this._roomId,
                 queueIndex,
                 eventType,
                 content,
                 txnId: makeTxnId(),
-                needsEncryption: !!this._roomEncryption
-            }, attachment);
+                needsEncryption: !!this._roomEncryption,
+                needsUpload: !!attachments
+            }, attachments);
             console.log("_createAndStoreEvent: adding to pendingEventsStore");
             pendingEventsStore.add(pendingEvent.data);
         } catch (err) {
@@ -187,5 +202,11 @@ export class SendQueue {
         }
         await txn.complete();
         return pendingEvent;
+    }
+
+    dispose() {
+        for (const pe in this._pendingEvents.array) {
+            pe.dispose();
+        }
     }
 }

@@ -14,10 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import aesjs from "../../../lib/aes-js/index.js";
-import {hkdf} from "../../utils/crypto/hkdf.js";
-import {Platform as ModernPlatform} from "./Platform.js";
+import {MessageTile} from "./MessageTile.js";
 
-export function Platform(container, paths) {
-    return new ModernPlatform(container, paths, {aesjs, hkdf});
+export class MissingAttachmentTile extends MessageTile {
+    get shape() {
+        return "missing-attachment"
+    }
+
+    get label() {
+        const name = this._getContent().body;
+        const msgtype = this._getContent().msgtype;
+        if (msgtype === "m.image") {
+            return this.i18n`The image ${name} wasn't fully sent previously and could not be recovered.`;
+        } else {
+            return this.i18n`The file ${name} wasn't fully sent previously and could not be recovered.`;
+        }
+    }
 }

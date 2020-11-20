@@ -21,6 +21,7 @@ import {
 } from "../../../../matrix/error.js";
 import {abortOnTimeout} from "./timeout.js";
 import {addCacheBuster} from "./common.js";
+import {xhrRequest} from "./xhr.js";
 
 class RequestResult {
     constructor(promise, controller) {
@@ -51,7 +52,12 @@ class RequestResult {
 }
 
 export function createFetchRequest(createTimeout) {
-    return function fetchRequest(url, {method, headers, body, timeout, format, cache = false}) {
+    return function fetchRequest(url, requestOptions) {
+        // fetch doesn't do upload progress yet, delegate to xhr
+        if (requestOptions?.uploadProgress) {
+            return xhrRequest(url, requestOptions);
+        }
+        let {method, headers, body, timeout, format, cache = false} = requestOptions;
         const controller = typeof AbortController === "function" ? new AbortController() : null;
         // if a BlobHandle, take native blob
         if (body?.nativeBlob) {

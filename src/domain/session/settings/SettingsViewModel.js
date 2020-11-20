@@ -36,10 +36,26 @@ export class SettingsViewModel extends ViewModel {
         this._sessionBackupViewModel = this.track(new SessionBackupViewModel(this.childOptions({session})));
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
         this._estimate = null;
+
+        this.sentImageSizeLimit = null;
+        this.minSentImageSizeLimit = 400;
+        this.maxSentImageSizeLimit = 4000;
+    }
+
+    setSentImageSizeLimit(size) {
+        if (size > this.maxSentImageSizeLimit || size < this.minSentImageSizeLimit) {
+            this.sentImageSizeLimit = null;
+            this.platform.settingsStorage.remove("sentImageSizeLimit");
+        } else {
+            this.sentImageSizeLimit = Math.round(size);
+            this.platform.settingsStorage.setInt("sentImageSizeLimit", size);
+        }
+        this.emitChange("sentImageSizeLimit");
     }
 
     async load() {
         this._estimate = await this.platform.estimateStorageUsage();
+        this.sentImageSizeLimit = await this.platform.settingsStorage.getInt("sentImageSizeLimit");
         this.emitChange("");
     }
 

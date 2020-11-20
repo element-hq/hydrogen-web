@@ -24,7 +24,7 @@ export function renderMessage(t, vm, children) {
         pending: vm.isPending,
         unverified: vm.isUnverified,
         continuation: vm => vm.isContinuation,
-        messageStatus: vm => vm.shape === "message-status",
+        messageStatus: vm => vm.shape === "message-status" || vm.shape === "missing-attachment" || vm.shape === "file",
     };
 
     const profile = t.div({className: "profile"}, [
