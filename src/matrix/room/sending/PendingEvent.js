@@ -38,6 +38,10 @@ export class PendingEvent {
         this._aborted = false;
         this._status = SendStatus.Waiting;
         this._sendRequest = null;
+        this._attachmentsTotalBytes = 0;
+        if (this._attachments) {
+            this._attachmentsTotalBytes = Object.values(this._attachments).reduce((t, a) => t + a.size, 0);
+        }
     }
 
     get roomId() { return this._data.roomId; }
@@ -89,7 +93,7 @@ export class PendingEvent {
     get error() { return this._error; }
 
     get attachmentsTotalBytes() {
-        return this._attachments && Object.values(this._attachments).reduce((t, a) => t + a.size, 0);
+        return this._attachmentsTotalBytes;
     }
 
     get attachmentsSentBytes() {
