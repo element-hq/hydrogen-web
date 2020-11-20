@@ -47,7 +47,7 @@ export class SettingsView extends TemplateView {
                 t.h3("Session Backup"),
                 t.view(new SessionBackupSettingsView(vm.sessionBackupViewModel)),
                 t.h3("Preferences"),
-                row(vm.i18n`Scale images down when sending`, this._imageCompressionRange(t, vm)),
+                row(vm.i18n`Scale down images when sending`, this._imageCompressionRange(t, vm)),
                 t.h3("Application"),
                 row(vm.i18n`Version`, version),
                 row(vm.i18n`Storage usage`, vm => `${vm.storageUsage} / ${vm.storageQuota}`),
