@@ -20,7 +20,7 @@ export async function downloadInIframe(container, iframeSrc, blob, filename) {
         iframe = document.createElement("iframe");
         iframe.setAttribute("sandbox", "allow-scripts allow-downloads allow-downloads-without-user-activation");
         iframe.setAttribute("src", iframeSrc);
-        iframe.className = "hidden";
+        iframe.className = "hidden downloadSandbox";
         container.appendChild(iframe);
         let detach;
         await new Promise((resolve, reject) => {
