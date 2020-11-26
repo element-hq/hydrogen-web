@@ -44,8 +44,8 @@ export class ImageHandle {
     async scale(maxDimension) {
         const aspectRatio = this.width / this.height;
         const scaleFactor = Math.min(1, maxDimension / (aspectRatio >= 1 ? this.width : this.height));
-        const scaledWidth = this.width * scaleFactor;
-        const scaledHeight = this.height * scaleFactor;
+        const scaledWidth = Math.round(this.width * scaleFactor);
+        const scaledHeight = Math.round(this.height * scaleFactor);
 
         const canvas = document.createElement("canvas");
         canvas.width = scaledWidth;
