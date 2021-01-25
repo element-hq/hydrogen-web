@@ -10,7 +10,7 @@ Hydrogen's goals are:
  - It is a standalone webapp, but can also be easily embedded into an existing website/webapp to add chat capabilities.
  - Loading (unused) parts of the application after initial page load should be supported
 
-If you find this interesting, come and discuss on `#hydrogen:matrix.org`.
+If you find this interesting, come and discuss on [`#hydrogen:matrix.org`](https://matrix.to/#/#hydrogen:matrix.org).
 
 # How to use
 
