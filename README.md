@@ -18,4 +18,4 @@ Hydrogen is deployed to [hydrogen.element.io](https://hydrogen.element.io). You 
 
 # FAQ
 
-Some frequently asked questions are anwsered [here](doc/FAQ.md).
+Some frequently asked questions are answered [here](doc/FAQ.md).
