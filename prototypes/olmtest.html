@@ -38,13 +38,24 @@
                 JSON.parse(bob.identity_keys()).curve25519,
                 bobOneTimeKey,
             );
-            const message = aliceSession.encrypt("hello secret world");
+            const message = aliceSession.encrypt("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Pulvinar pellentesque habitant morbi tristique. Pretium nibh ipsum consequat nisl. Molestie a iaculis at erat pellentesque adipiscing. Semper eget duis at tellus at urna condimentum. Malesuada fames ac turpis egestas maecenas pharetra convallis. Sed lectus vestibulum mattis ullamcorper. Elementum facilisis leo vel fringilla est. Mattis vulputate enim nulla aliquet porttitor lacus luctus accumsan tortor. Faucibus nisl tincidunt eget nullam non nisi est. Aliquam faucibus purus in massa tempor. Dui accumsan sit amet nulla facilisi morbi tempus iaculis. Pellentesque dignissim enim sit amet venenatis urna. Nisi porta lorem mollis aliquam ut porttitor leo. Adipiscing elit duis tristique sollicitudin nibh sit. Et netus et malesuada fames ac turpis. Ut diam quam nulla porttitor massa id neque. Pharetra convallis posuere morbi leo urna molestie. A pellentesque sit amet porttitor eget dolor morbi non arcu.");
             console.log("message", message);
             // decrypt
             const bobSession = new Olm.Session();
-            bobSession.create_inbound(bob, message.body);
-            const plaintext = bobSession.decrypt(message.type, message.body);
+
+            let plaintext;
+            const iterations = 698;
+            let decryptDuration = 0;
+            for (let i = 0; i < iterations; i += 1) {
+                bobSession.create_inbound(bob, message.body);
+                const start = performance.now();
+                plaintext = bobSession.decrypt(message.type, message.body);
+                const end = performance.now();
+                const duration = end - start;
+                decryptDuration += duration;
+            }
             console.log("plaintext", plaintext);
+            console.log(`took avg of ${decryptDuration / iterations}ms to decrypt over ${iterations} iterations`);
             // remove Bob's OTK as it was used to start an olm session
             console.log("bob OTK before removing", bob.one_time_keys());
             bob.remove_one_time_keys(bobSession);
