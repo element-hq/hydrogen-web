@@ -30,8 +30,8 @@ export class ViewModel extends EventEmitter {
     }
 
     childOptions(explicitOptions) {
-        const {navigation, urlCreator, platform} = this._options;
-        return Object.assign({navigation, urlCreator, platform}, explicitOptions);
+        const {navigation, urlCreator, platform, logger} = this._options;
+        return Object.assign({navigation, urlCreator, platform, logger}, explicitOptions);
     }
 
     // makes it easier to pass through dependencies of a sub-view model
@@ -78,14 +78,9 @@ export class ViewModel extends EventEmitter {
     // we probably are, if we're using routing with a url, we could just refresh.
     i18n(parts, ...expr) {
         // just concat for now
-        let result = "";
-        for (let i = 0; i < parts.length; ++i) {
-            result = result + parts[i];
-            if (i < expr.length) {
-                result = result + expr[i];
-            }
-        }
-        return result;
+        return parts.reduce((all, p, i) => {
+            return all + p + expr[i];
+        });
     }
 
     updateOptions(options) {
@@ -106,6 +101,10 @@ export class ViewModel extends EventEmitter {
 
     get clock() {
         return this._options.platform.clock;
+    }
+
+    get logger() {
+        return this._options.logger;
     }
 
     /**
