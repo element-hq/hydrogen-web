@@ -19,6 +19,7 @@ import {xhrRequest} from "./dom/request/xhr.js";
 import {StorageFactory} from "../../matrix/storage/idb/StorageFactory.js";
 import {SessionInfoStorage} from "../../matrix/sessioninfo/localstorage/SessionInfoStorage.js";
 import {SettingsStorage} from "./dom/SettingsStorage.js";
+import {UTF8} from "./dom/UTF8.js";
 import {OlmWorker} from "../../matrix/e2ee/OlmWorker.js";
 import {RootView} from "./ui/RootView.js";
 import {Clock} from "./dom/Clock.js";
@@ -83,6 +84,7 @@ export class Platform {
     constructor(container, paths, cryptoExtras = null) {
         this._paths = paths;
         this._container = container;
+        this.utf8 = new UTF8();
         this.clock = new Clock();
         this.history = new History();
         this.onlineStatus = new OnlineStatus();

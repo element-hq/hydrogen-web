@@ -184,7 +184,7 @@ export class Session {
         if (this._sessionBackup) {
             return false;
         }
-        const key = await ssssKeyFromCredential(type, credential, this._storage, this._platform.crypto, this._olm);
+        const key = await ssssKeyFromCredential(type, credential, this._storage, this._platform, this._olm);
         // and create session backup, which needs to read from accountData
         const readTxn = this._storage.readTxn([
             this._storage.storeNames.accountData,
@@ -206,7 +206,7 @@ export class Session {
     }
 
     async _createSessionBackup(ssssKey, txn) {
-        const secretStorage = new SecretStorage({key: ssssKey, crypto: this._platform.crypto});
+        const secretStorage = new SecretStorage({key: ssssKey, platform: this._platform});
         this._sessionBackup = await SessionBackup.fromSecretStorage({olm: this._olm, secretStorage, hsApi: this._hsApi, txn});
         if (this._sessionBackup) {
             for (const room of this._rooms.values()) {

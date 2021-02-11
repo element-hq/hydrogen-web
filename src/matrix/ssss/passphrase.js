@@ -22,10 +22,10 @@ const DEFAULT_BITSIZE = 256;
 /**
  * @param  {KeyDescription} keyDescription
  * @param  {string} passphrase
- * @param  {Crypto} crypto
+ * @param  {Platform} platform
  * @return {Key}
  */
-export async function keyFromPassphrase(keyDescription, passphrase, crypto) {
+export async function keyFromPassphrase(keyDescription, passphrase, platform) {
     const {passphraseParams} = keyDescription;
     if (!passphraseParams) {
         throw new Error("not a passphrase key");
@@ -33,13 +33,11 @@ export async function keyFromPassphrase(keyDescription, passphrase, crypto) {
     if (passphraseParams.algorithm !== "m.pbkdf2") {
         throw new Error(`Unsupported passphrase algorithm: ${passphraseParams.algorithm}`);
     }
-    // TODO: we should we move this to platform specific code
-    const textEncoder = new TextEncoder();
-    const keyBits = await crypto.derive.pbkdf2(
-        textEncoder.encode(passphrase),
+    const keyBits = await platform.crypto.derive.pbkdf2(
+        platform.utf8.encode(passphrase),
         passphraseParams.iterations || DEFAULT_ITERATIONS,
         // salt is just a random string, not encoded in any way
-        textEncoder.encode(passphraseParams.salt),
+        platform.utf8.encode(passphraseParams.salt),
         "SHA-512",
         passphraseParams.bits || DEFAULT_BITSIZE);
     return new Key(keyDescription, keyBits);

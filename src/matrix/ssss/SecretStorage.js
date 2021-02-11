@@ -17,9 +17,9 @@ limitations under the License.
 import base64 from "../../../lib/base64-arraybuffer/index.js";
 
 export class SecretStorage {
-    constructor({key, crypto}) {
+    constructor({key, platform}) {
         this._key = key;
-        this._crypto = crypto;
+        this._platform = platform;
     }
 
     async readSecret(name, txn) {
@@ -40,14 +40,11 @@ export class SecretStorage {
     }
 
     async _decryptAESSecret(type, encryptedData) {
-        // TODO: we should we move this to platform specific code
-        const textEncoder = new TextEncoder();
-        const textDecoder = new TextDecoder();
         // now derive the aes and mac key from the 4s key
-        const hkdfKey = await this._crypto.derive.hkdf(
+        const hkdfKey = await this._platform.crypto.derive.hkdf(
             this._key.binaryKey,
             new Uint8Array(8).buffer,   //zero salt
-            textEncoder.encode(type), // info
+            this._platform.utf8.encode(type), // info
             "SHA-256",
             512 // 512 bits or 64 bytes
         );
@@ -56,7 +53,7 @@ export class SecretStorage {
 
         const ciphertextBytes = base64.decode(encryptedData.ciphertext);
 
-        const isVerified = await this._crypto.hmac.verify(
+        const isVerified = await this._platform.crypto.hmac.verify(
             hmacKey, base64.decode(encryptedData.mac),
             ciphertextBytes, "SHA-256");
 
@@ -64,12 +61,12 @@ export class SecretStorage {
             throw new Error("Bad MAC");
         }
 
-        const plaintextBytes = await this._crypto.aes.decryptCTR({
+        const plaintextBytes = await this._platform.crypto.aes.decryptCTR({
             key: aesKey,
             iv: base64.decode(encryptedData.iv),
             data: ciphertextBytes
         });
 
-        return textDecoder.decode(plaintextBytes);
+        return this._platform.utf8.decode(plaintextBytes);
     }
 }
