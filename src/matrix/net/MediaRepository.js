@@ -28,7 +28,7 @@ export class MediaRepository {
         if (parts) {
             const [serverName, mediaId] = parts;
             const httpUrl = `${this._homeServer}/_matrix/media/r0/thumbnail/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`;
-            return httpUrl + "?" + encodeQueryParams({width, height, method});
+            return httpUrl + "?" + encodeQueryParams({width: Math.round(width), height: Math.round(height), method});
         }
         return null;
     }
