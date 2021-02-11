@@ -45,6 +45,13 @@ export class DeviceTracker {
 
     async writeDeviceChanges(deviceLists, txn) {
         const {userIdentities} = txn;
+        // TODO: should we also look at left here to handle this?:
+        // the usual problem here is that you share a room with a user,
+        // go offline, the remote user leaves the room, changes their devices,
+        // then rejoins the room you share (or another room).
+        // At which point you come online, all of this happens in the gap, 
+        // and you don't notice that they ever left, 
+        // and so the client doesn't invalidate their device cache for the user
         if (Array.isArray(deviceLists.changed) && deviceLists.changed.length) {
             await Promise.all(deviceLists.changed.map(async userId => {
                 const user = await userIdentities.get(userId);

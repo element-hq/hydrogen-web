@@ -121,6 +121,7 @@ export class Transaction {
     }
 
     abort() {
+        // TODO: should we wrap the exception in a StorageError?
         this._txn.abort();
     }
 }

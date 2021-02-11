@@ -287,7 +287,7 @@ export class Session {
     }
 
     /**
-     * @internal called when coming back online
+     * @internal called from session container when coming back online and catchup syncs have finished.
      * @param  {Object} lastVersionResponse a response from /versions, which is polled while offline,
      *                                      and useful to store so we can later tell what capabilities
      *                                      our homeserver has.
