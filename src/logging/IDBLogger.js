@@ -14,68 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {openDatabase, txnAsPromise, reqAsPromise, iterateCursor, fetchResults} from "../matrix/storage/idb/utils.js";
-import {LogItem} from "./LogItem.js";
+import {
+    openDatabase,
+    txnAsPromise,
+    reqAsPromise,
+    iterateCursor,
+    fetchResults,
+    encodeUint64
+} from "../matrix/storage/idb/utils.js";
+import {BaseLogger} from "./BaseLogger.js";
 
-class Logger {
-    constructor(clock) {
-        this._openItems = new Set();
-        this._clock = clock;
-    }
-
-    decend(label, callback, logLevel) {
-        const item = new LogItem(label, this, logLevel, this._clock);
-
-        const failItem = (err) => {
-            item.catch(err);
-            finishItem();
-            throw err;
-        };
-
-        const finishItem = () => {
-            item.finish();
-            this._persistItem(item);
-            this._openItems.remove(item);
-        };
-
-        let result;
-        try {
-            result = callback(item);
-            if (result instanceof Promise) {
-                result = result.then(promiseResult => {
-                    finishItem();
-                    return promiseResult;
-                }, failItem);
-            }
-        } catch (err) {
-            failItem(err);
-        }
-    }
-
-    _persistItem(item) {
-        throw new Error("not implemented");
-    }
-
-    async extractItems() {
-        throw new Error("not implemented");
-    }
-}
-
-export function encodeUint64(n) {
-    const hex = n.toString(16);
-    return "0".repeat(16 - hex.length) + hex;
-}
-
-export default class IDBLogger extends Logger {
-    constructor({name, clock, utf8, flushInterval = 2 * 60 * 1000, limit = 1000}) {
-        super(clock);
-        this._utf8 = utf8;
+export class IDBLogger extends BaseLogger {
+    constructor({name, platform, flushInterval = 2 * 60 * 1000, limit = 3000}) {
+        super(platform);
         this._name = name;
         this._limit = limit;
         // does not get loaded from idb on startup as we only use it to
         // differentiate between two items with the same start time
         this._itemCounter = 0;
         this._queuedItems = this._loadQueuedItems();
+        // TODO: add dirty flag when calling descend
+        // TODO: also listen for unload just in case sync keeps on running after pagehide is fired?
         window.addEventListener("pagehide", this, false);
         this._flushInterval = this._clock.createInterval(() => this._tryFlush(), flushInterval);
     }
@@ -100,6 +59,7 @@ export default class IDBLogger extends Logger {
             for(const i of this._queuedItems) {
                 logs.add(i);
             }
+            // TODO: delete more than needed so we don't delete on every flush?
             // trim logs if needed
             const itemCount = await reqAsPromise(logs.count());
             if (itemCount > this._limit) {
@@ -130,11 +90,13 @@ export default class IDBLogger extends Logger {
 
     _loadQueuedItems() {
         const key = `${this._name}_queuedItems`;
-        const json = window.localStorage.getItem(key);
-        if (json) {
-            window.localStorage.removeItem(key);
-            return JSON.parse(json);
-        }
+        try {
+            const json = window.localStorage.getItem(key);
+            if (json) {
+                window.localStorage.removeItem(key);
+                return JSON.parse(json);
+            }
+        } catch (e) {}
         return [];
     }
 
@@ -146,43 +108,79 @@ export default class IDBLogger extends Logger {
         this._itemCounter += 1;
         this._queuedItems.push({
             id: `${encodeUint64(item.start)}:${this._itemCounter}`,
-            // store as buffer so parsing overhead is lower
-            content: this._utf8.encode(JSON.stringify(item.serialize()))
+            tree: item.serialize()
         });
     }
 
     _persistQueuedItems(items) {
-        window.localStorage.setItem(`${this._name}_queuedItems`, JSON.stringify(items));
+        try {
+            window.localStorage.setItem(`${this._name}_queuedItems`, JSON.stringify(items));
+        } catch (e) {
+            console.warn("Could not persist queued log items in localStorage, they will likely be lost", e);
+        }
     }
 
-    // should we actually delete items and just not rely on trimming for it not to grow too large?
-    // just worried that people will create a file, not do anything with it, hit export logs again and then
-    // send a mostly empty file. we could just not delete but in _tryFlush (and perhaps make trimming delete a few more than needed to be below limit)
-    // how does eleweb handle this?
-    // 
-    // both deletes and reads items from store
-    async extractItems() {
+    async export() {
         const db = this._openDB();
         try {
-            const queuedItems = this._queuedItems.slice();
-            const txn = this.db.transaction(["logs"], "readwrite");
+            const txn = this.db.transaction(["logs"], "readonly");
             const logs = txn.objectStore("logs");
             const items = await fetchResults(logs.openCursor(), () => false);
-            // we know we have read all the items as we're doing this in a txn
-            logs.clear();
-            await txnAsPromise(txn);
-            // once the transaction is complete, remove the queued items
-            this._queuedItems.splice(0, queuedItems.length);
-            const sortedItems = items.concat(queuedItems).sort((a, b) => {
+            const sortedItems = items.concat(this._queuedItems).sort((a, b) => {
                 return a.id > b.id;
-            }).map(i => {
-
             });
-            return sortedItems;
+            return new IDBLogExport(sortedItems, this, this._platform);
         } finally {
             try {
                 db.close();
             } catch (e) {}
         }
+    }
+
+    async _removeItems(items) {
+        const db = this._openDB();
+        try {
+            const txn = this.db.transaction(["logs"], "readwrite");
+            const logs = txn.objectStore("logs");
+            for (const item of items) {
+                const queuedIdx = this._queuedItems.findIndex(i => i.id === item.id);
+                if (queuedIdx === -1) {
+                    logs.delete(item.id);
+                } else {
+                    this._queuedItems.splice(queuedIdx, 1);
+                }
+            }
+            await txnAsPromise(txn);
+        } finally {
+            try {
+                db.close();
+            } catch (e) {}
+        }
+    }
+}
+
+class IDBLogExport {
+    constructor(items, logger, platform) {
+        this._items = items;
+        this._logger = logger;
+        this._platform = platform;
+    }
+
+    /**
+     * @return {Promise}
+     */
+    removeFromStore() {
+        return this._logger._removeItems(this._items);
+    }
+
+    asBlob() {
+        const log = {
+            version: 1,
+            items: this._items
+        };
+        const json = JSON.stringify(log);
+        const buffer = this._platform.utf8.encode(json);
+        const blob = this._platform.createBlob(buffer, "application/json");
+        return blob;
     }
 }

@@ -15,25 +15,33 @@ limitations under the License.
 */
 
 export class LogItem {
-    constructor(label, parent, logLevel, clock) {
-        this._clock = clock;
-        this._start = clock.now();
+    constructor(labelOrValues, logLevel, platform) {
+        this._platform = platform;
+        this._start = platform.clock.now();
         this._end = null;
-        this._values = {label};
-        this._parent = parent;
+        this._values = typeof labelOrValues === "string" ? {label: labelOrValues} : labelOrValues;
         this._error = null;
         this._children = [];
         this._logLevel = logLevel;
     }
 
-    // should this handle errors in the same way as logger.descend/start?
-    descend(label, logLevel = this._logLevel) {
-        if (this._end !== null) {
-            throw new Error("can't descend on finished item");
-        }
-        const item = new LogItem(label, logLevel);
-        this._children.push(item);
-        return item;
+    /**
+     * Creates a new child item and runs it in `callback`.
+     */
+    wrap(labelOrValues, callback, logLevel = this._logLevel) {
+        const item = this._createChild(labelOrValues, logLevel);
+        return item.run(callback);
+    }
+    
+    /**
+     * Creates a new child item that finishes immediately
+     * and can hence not be modified anymore.
+     * 
+     * Hence, the child item is not returned.
+     */
+    log(labelOrValues, logLevel = this._logLevel) {
+        const item = this._createChild(labelOrValues, logLevel);
+        item.end = item.start;
     }
 
     set(key, value) {
@@ -45,22 +53,9 @@ export class LogItem {
         }
     }
 
-    // XXX: where will this be called? from wrapAsync?
-    finish() {
-        if (this._end === null) {
-            for(const c of this._children) {
-                c.finish();
-            }
-            this._end = this._clock.now();
-            if (this._parent) {
-                this._parent._closeChild(this);
-            }
-        }
-    }
-
-    catch(err) {
-        this._error = err;
-        console.error(`log item ${this.values.label} failed: ${err.message}:\n${err.stack}`);
+    anonymize(value) {
+        const buffer = this._platform.crypto.digest("SHA-256", value);
+        return this._platform.base64.encode(buffer);
     }
 
     serialize() {
@@ -81,14 +76,66 @@ export class LogItem {
         };
     }
 
-    async wrapAsync(fn) {
+    /**
+     * You probably want to use `wrap` instead of this.
+     * 
+     * Runs a callback passing this log item,
+     * recording the timing and any error.
+     *
+     * callback can return a Promise.
+     *
+     * Can only be called once, and will throw after.
+     * 
+     * @param  {Function} callback [description]
+     * @return {[type]}            [description]
+     */
+    run(callback) {
+        if (this._end !== null) {
+            throw new Error("item is finished");
+        }
+        let result;
         try {
-            const ret = await fn(this);
-            this.finish();
-            return ret;
+            result = callback(this);
+            if (result instanceof Promise) {
+                return result.then(promiseResult => {
+                    this._finish();
+                    return promiseResult;
+                }, err => {
+                    this._catch(err);
+                    this._finish();
+                    throw err;
+                });
+            } else {
+                this._finish();
+                return result;
+            }
         } catch (err) {
-            this.fail(err);
+            this._catch(err);
+            this._finish();
             throw err;
+        }
+    }
+
+    _catch(err) {
+        this._error = err;
+        console.error(`log item ${this.values.label} failed: ${err.message}:\n${err.stack}`);
+    }
+
+    _createChild(labelOrValues, logLevel) {
+        if (this._end !== null) {
+            throw new Error("item is finished");
+        }
+        const item = new LogItem(labelOrValues, logLevel, this._platform);
+        this._children.push(item);
+        return item;
+    }
+
+    _finish() {
+        if (this._end === null) {
+            for(const c of this._children) {
+                c._finish();
+            }
+            this._end = this._platform.clock.now();
         }
     }
 }
