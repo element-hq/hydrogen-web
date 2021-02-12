@@ -27,13 +27,14 @@ export class BaseLogger {
 
     wrapLog(labelOrValues, callback, logLevel = this._baseLogLevel) {
         const item = new LogItem(labelOrValues, logLevel, this._platform, this._anonymize);
+        this._openItems.add(item);
 
         const finishItem = () => {
             const serialized = item.serialize(this._baseLogLevel);
             if (serialized) {
                 this._persistItem(serialized);
             }
-            this._openItems.remove(item);
+            this._openItems.delete(item);
         };
 
         try {
