@@ -58,7 +58,7 @@ export class LogItem {
 
     anonymize(value) {
         if (this._anonymize) {
-            const buffer = this._platform.crypto.digest("SHA-256", value);
+            const buffer = this._platform.crypto.digest("SHA-256", this._platform.encoding.utf8.encode(value));
             return this._platform.encoding.base64.encode(buffer);
         } else {
             return value;
@@ -83,8 +83,8 @@ export class LogItem {
         let error = null;
         if (this._error) {
             error = {
-                message: this._error.message,
                 stack: this._error.stack,
+                name: this._error.name
             };
         }
         return {

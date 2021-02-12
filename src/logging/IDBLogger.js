@@ -37,7 +37,7 @@ export class IDBLogger extends BaseLogger {
         // TODO: add dirty flag when calling descend
         // TODO: also listen for unload just in case sync keeps on running after pagehide is fired?
         window.addEventListener("pagehide", this, false);
-        this._flushInterval = this._clock.createInterval(() => this._tryFlush(), flushInterval);
+        this._flushInterval = this._platform.clock.createInterval(() => this._tryFlush(), flushInterval);
     }
 
     dispose() {
@@ -54,7 +54,7 @@ export class IDBLogger extends BaseLogger {
     async _tryFlush() {
         const db = await this._openDB();
         try {
-            const txn = this.db.transaction(["logs"], "readwrite");
+            const txn = db.transaction(["logs"], "readwrite");
             const logs = txn.objectStore("logs");
             const amount = this._queuedItems.length;
             for(const i of this._queuedItems) {
@@ -118,9 +118,9 @@ export class IDBLogger extends BaseLogger {
     }
 
     async export() {
-        const db = this._openDB();
+        const db = await this._openDB();
         try {
-            const txn = this.db.transaction(["logs"], "readonly");
+            const txn = db.transaction(["logs"], "readonly");
             const logs = txn.objectStore("logs");
             const items = await fetchResults(logs.openCursor(), () => false);
             const sortedItems = items.concat(this._queuedItems).sort((a, b) => {
@@ -135,9 +135,9 @@ export class IDBLogger extends BaseLogger {
     }
 
     async _removeItems(items) {
-        const db = this._openDB();
+        const db = await this._openDB();
         try {
-            const txn = this.db.transaction(["logs"], "readwrite");
+            const txn = db.transaction(["logs"], "readwrite");
             const logs = txn.objectStore("logs");
             for (const item of items) {
                 const queuedIdx = this._queuedItems.findIndex(i => i.id === item.id);

@@ -21,7 +21,7 @@ import {SessionInfoStorage} from "../../matrix/sessioninfo/localstorage/SessionI
 import {SettingsStorage} from "./dom/SettingsStorage.js";
 import {Encoding} from "./utils/Encoding.js";
 import {OlmWorker} from "../../matrix/e2ee/OlmWorker.js";
-import {IDBLogger} from "../../logs/IDBLogger.js";
+import {IDBLogger} from "../../logging/IDBLogger.js";
 import {RootView} from "./ui/RootView.js";
 import {Clock} from "./dom/Clock.js";
 import {ServiceWorkerHandler} from "./dom/ServiceWorkerHandler.js";
@@ -85,9 +85,11 @@ export class Platform {
     constructor(container, paths, cryptoExtras = null) {
         this._paths = paths;
         this._container = container;
-        this.logger = new IDBLogger("hydrogen_logs", this);
-        this.encoding = new Encoding();
+        this.settingsStorage = new SettingsStorage("hydrogen_setting_v1_");
         this.clock = new Clock();
+        this.encoding = new Encoding();
+        this.random = Math.random;
+        this.logger = new IDBLogger({name: "hydrogen_logs", platform: this});
         this.history = new History();
         this.onlineStatus = new OnlineStatus();
         this._serviceWorkerHandler = null;
@@ -98,9 +100,7 @@ export class Platform {
         this.crypto = new Crypto(cryptoExtras);
         this.storageFactory = new StorageFactory(this._serviceWorkerHandler);
         this.sessionInfoStorage = new SessionInfoStorage("hydrogen_sessions_v1");
-        this.settingsStorage = new SettingsStorage("hydrogen_setting_v1_");
         this.estimateStorageUsage = estimateStorageUsage;
-        this.random = Math.random;
         if (typeof fetch === "function") {
             this.request = createFetchRequest(this.clock.createTimeout);
         } else {
