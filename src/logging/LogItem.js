@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {LogLevel} from "./LogLevel.js";
+
 export class LogItem {
     constructor(labelOrValues, logLevel, platform) {
         this._platform = platform;
@@ -58,8 +60,22 @@ export class LogItem {
         return this._platform.base64.encode(buffer);
     }
 
-    serialize() {
-        let error;
+    serialize(logLevel) {
+        const children = this._children.reduce((array, c) => {
+            const s = c.serialize(logLevel);
+            if (s) {
+                array = array || [];
+                array.push(s);
+            }
+            return array;
+        }, null);
+
+        // neither our children or us have a loglevel high enough, bail out.
+        if (!children && this._logLevel < logLevel) {
+            return null;
+        }
+
+        let error = null;
         if (this._error) {
             error = {
                 message: this._error.message,
@@ -71,7 +87,7 @@ export class LogItem {
             end: this._end,
             values: this._values,
             error,
-            children: this._children.map(c => c.serialize()),
+            children,
             logLevel: this._logLevel
         };
     }
@@ -98,26 +114,45 @@ export class LogItem {
             result = callback(this);
             if (result instanceof Promise) {
                 return result.then(promiseResult => {
-                    this._finish();
+                    this.finish();
                     return promiseResult;
                 }, err => {
                     this._catch(err);
-                    this._finish();
+                    this.finish();
                     throw err;
                 });
             } else {
-                this._finish();
+                this.finish();
                 return result;
             }
         } catch (err) {
             this._catch(err);
-            this._finish();
+            this.finish();
             throw err;
         }
     }
 
+    /**
+     * finished the item, recording the end time. After finishing, an item can't be modified anymore as it will be persisted.
+     * @internal shouldn't typically be called by hand. allows to force finish if a promise is still running when closing the app
+     */
+    finish() {
+        if (this._end === null) {
+            for(const c of this._children) {
+                c.finish();
+            }
+            this._end = this._platform.clock.now();
+        }
+    }
+    
+    // expose log level without needing 
+    get level() {
+        return LogLevel;
+    }
+
     _catch(err) {
         this._error = err;
+        this._logLevel = LogLevel.Error;
         console.error(`log item ${this.values.label} failed: ${err.message}:\n${err.stack}`);
     }
 
@@ -128,14 +163,5 @@ export class LogItem {
         const item = new LogItem(labelOrValues, logLevel, this._platform);
         this._children.push(item);
         return item;
-    }
-
-    _finish() {
-        if (this._end === null) {
-            for(const c of this._children) {
-                c._finish();
-            }
-            this._end = this._platform.clock.now();
-        }
     }
 }

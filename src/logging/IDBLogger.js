@@ -80,11 +80,7 @@ export class IDBLogger extends BaseLogger {
     }
 
     _finishAllAndFlush() {
-        for (const openItem of this._openItems) {
-            openItem.finish();
-            this._persistItem(openItem);
-        }
-        this._openItems.clear();
+        this._finishOpenItems();
         this._persistQueuedItems(this._queuedItems);
     }
 
@@ -104,11 +100,11 @@ export class IDBLogger extends BaseLogger {
         return openDatabase(this._name, db => db.createObjectStore("logs", {keyPath: "id"}), 1);
     }
     
-    _persistItem(item) {
+    _persistItem(serializedItem) {
         this._itemCounter += 1;
         this._queuedItems.push({
-            id: `${encodeUint64(item.start)}:${this._itemCounter}`,
-            tree: item.serialize()
+            id: `${encodeUint64(serializedItem.start)}:${this._itemCounter}`,
+            tree: serializedItem
         });
     }
 

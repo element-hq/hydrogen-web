@@ -15,18 +15,23 @@ limitations under the License.
 */
 
 import {LogItem} from "./LogItem.js";
+import {LogLevel} from "./LogLevel.js";
 
 export class BaseLogger {
-    constructor(platform) {
+    constructor(platform, baseLogLevel) {
         this._openItems = new Set();
         this._platform = platform;
+        this._baseLogLevel = baseLogLevel;
     }
 
-    wrapLog(labelOrValues, callback, logLevel) {
+    wrapLog(labelOrValues, callback, logLevel = this._baseLogLevel) {
         const item = new LogItem(labelOrValues, logLevel, this._platform);
 
         const finishItem = () => {
-            this._persistItem(item);
+            const serialized = item.serialize(this._baseLogLevel);
+            if (serialized) {
+                this._persistItem(serialized);
+            }
             this._openItems.remove(item);
         };
 
@@ -50,11 +55,27 @@ export class BaseLogger {
         }
     }
 
-    _persistItem(item) {
+    _finishOpenItems() {
+        for (const openItem of this._openItems) {
+            openItem.finish();
+            const serialized = openItem.serialize(this._baseLogLevel);
+            if (serialized) {
+                this._persistItem(serialized);
+            }
+        }
+        this._openItems.clear();
+    }
+
+    _persistItem() {
         throw new Error("not implemented");
     }
 
     async export() {
         throw new Error("not implemented");
+    }
+    
+    // expose log level without needing 
+    get level() {
+        return LogLevel;
     }
 }
