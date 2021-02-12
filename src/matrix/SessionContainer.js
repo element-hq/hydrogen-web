@@ -184,7 +184,7 @@ export class SessionContainer {
             await this._session.createIdentity();
         }
         
-        this._sync = new Sync({hsApi: this._requestScheduler.hsApi, storage: this._storage, session: this._session});
+        this._sync = new Sync({hsApi: this._requestScheduler.hsApi, storage: this._storage, session: this._session, logger: this._platform.logger});
         // notify sync and session when back online
         this._reconnectSubscription = this._reconnector.connectionStatus.subscribe(state => {
             if (state === ConnectionStatus.Online) {
