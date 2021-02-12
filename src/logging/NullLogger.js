@@ -20,7 +20,7 @@ export class NullLogger {
         this._item = new NullLogItem();
     }
 
-    wrapLog(_, callback) {
+    run(_, callback) {
         callback(this._item);    
     }
 
@@ -44,4 +44,14 @@ class NullLogItem {
     get level() {
         return LogLevel;
     }
+
+    catch(err) {
+        return err;
+    }
+
+    child() {
+        return this;
+    }
+
+    finish() {}
 }

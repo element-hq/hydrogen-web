@@ -19,24 +19,34 @@ import {HomeServerError, ConnectionError} from "../error.js";
 import {encodeQueryParams} from "./common.js";
 
 class RequestWrapper {
-    constructor(method, url, requestResult) {
+    constructor(method, url, requestResult, log) {
+        this._log = log;
         this._requestResult = requestResult;
         this._promise = requestResult.response().then(response => {
+            log?.set("status", response.status);
             // ok?
             if (response.status >= 200 && response.status < 300) {
+                log?.finish();
                 return response.body;
             } else {
                 if (response.status >= 400 && !response.body?.errcode) {
-                    throw new ConnectionError(`HTTP error status ${response.status} without errcode in body, assume this is a load balancer complaining the server is offline.`);
+                    const err = new ConnectionError(`HTTP error status ${response.status} without errcode in body, assume this is a load balancer complaining the server is offline.`);
+                    log?.catch(err);
+                    throw err;
                 } else {
-                    throw new HomeServerError(method, url, response.body, response.status);
+                    const err = new HomeServerError(method, url, response.body, response.status);
+                    log?.catch(err);
+                    throw err;
                 }
             }
         }, err => {
             // if this._requestResult is still set, the abort error came not from calling abort here
             if (err.name === "AbortError" && this._requestResult) {
-                throw new Error(`Request ${method} ${url} was unexpectedly aborted, see #187.`);
+                const err = new Error(`Unexpectedly aborted, see #187.`);
+                log?.catch(err);
+                throw err;
             } else {
+                log?.catch(err);
                 throw err;
             }
         });
@@ -44,6 +54,7 @@ class RequestWrapper {
 
     abort() {
         if (this._requestResult) {
+            this._log?.set("aborted", true);
             this._requestResult.abort();
             // to mark that it was on purpose in above rejection handler
             this._requestResult = null;
@@ -93,6 +104,15 @@ export class HomeServerApi {
     _baseRequest(method, url, queryParams, body, options, accessToken) {
         const queryString = encodeQueryParams(queryParams);
         url = `${url}?${queryString}`;
+        let log;
+        if (options?.log) {
+            const parent = options?.log;
+            log = parent.child({
+                kind: "request",
+                url,
+                method,
+            }, parent.level.Info);
+        }
         let encodedBody;
         const headers = new Map();
         if (accessToken) {
@@ -105,6 +125,7 @@ export class HomeServerApi {
             headers.set("Content-Length", encoded.length);
             encodedBody = encoded.body;
         }
+
         const requestResult = this._requestFn(url, {
             method,
             headers,
@@ -114,7 +135,7 @@ export class HomeServerApi {
             format: "json"  // response format
         });
 
-        const wrapper = new RequestWrapper(method, url, requestResult);
+        const wrapper = new RequestWrapper(method, url, requestResult, log);
         
         if (this._reconnector) {
             wrapper.response().catch(err => {

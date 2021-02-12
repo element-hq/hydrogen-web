@@ -32,7 +32,7 @@ export class LogItem {
      * Creates a new child item and runs it in `callback`.
      */
     wrap(labelOrValues, callback, logLevel = this._logLevel) {
-        const item = this._createChild(labelOrValues, logLevel);
+        const item = this.child(labelOrValues, logLevel);
         return item.run(callback);
     }
     
@@ -43,7 +43,7 @@ export class LogItem {
      * Hence, the child item is not returned.
      */
     log(labelOrValues, logLevel = this._logLevel) {
-        const item = this._createChild(labelOrValues, logLevel);
+        const item = this.child(labelOrValues, logLevel);
         item.end = item.start;
     }
 
@@ -105,14 +105,14 @@ export class LogItem {
      *
      * callback can return a Promise.
      *
-     * Can only be called once, and will throw after.
+     * Should only be called once.
      * 
      * @param  {Function} callback [description]
      * @return {[type]}            [description]
      */
     run(callback) {
         if (this._end !== null) {
-            throw new Error("item is finished");
+            console.trace("log item is finished, additional logs will likely not be recorded");
         }
         let result;
         try {
@@ -122,18 +122,14 @@ export class LogItem {
                     this.finish();
                     return promiseResult;
                 }, err => {
-                    this._catch(err);
-                    this.finish();
-                    throw err;
+                    throw this.catch(err);
                 });
             } else {
                 this.finish();
                 return result;
             }
         } catch (err) {
-            this._catch(err);
-            this.finish();
-            throw err;
+            throw this.catch(err);
         }
     }
 
@@ -155,15 +151,16 @@ export class LogItem {
         return LogLevel;
     }
 
-    _catch(err) {
+    catch(err) {
         this._error = err;
         this._logLevel = LogLevel.Error;
-        console.error(`log item ${this.values.label} failed: ${err.message}:\n${err.stack}`);
+        this.finish();
+        return err;
     }
 
-    _createChild(labelOrValues, logLevel) {
+    child(labelOrValues, logLevel) {
         if (this._end !== null) {
-            throw new Error("item is finished");
+            console.trace("log item is finished, additional logs will likely not be recorded");
         }
         const item = new LogItem(labelOrValues, logLevel, this._platform, this._anonymize);
         this._children.push(item);
