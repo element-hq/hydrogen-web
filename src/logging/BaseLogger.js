@@ -25,7 +25,7 @@ export class BaseLogger {
         this._baseLogLevel = baseLogLevel;
     }
 
-    wrapLog(labelOrValues, callback, logLevel = this._baseLogLevel) {
+    run(labelOrValues, callback, logLevel = this._baseLogLevel) {
         const item = new LogItem(labelOrValues, logLevel, this._platform, this._anonymize);
         this._openItems.add(item);
 
