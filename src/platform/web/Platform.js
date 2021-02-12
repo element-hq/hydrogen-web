@@ -21,6 +21,7 @@ import {SessionInfoStorage} from "../../matrix/sessioninfo/localstorage/SessionI
 import {SettingsStorage} from "./dom/SettingsStorage.js";
 import {UTF8} from "./dom/UTF8.js";
 import {OlmWorker} from "../../matrix/e2ee/OlmWorker.js";
+import {IDBLogger} from "../../logs/IDBLogger.js";
 import {RootView} from "./ui/RootView.js";
 import {Clock} from "./dom/Clock.js";
 import {ServiceWorkerHandler} from "./dom/ServiceWorkerHandler.js";
@@ -85,6 +86,7 @@ export class Platform {
         this._paths = paths;
         this._container = container;
         this.utf8 = new UTF8();
+        this.logger = new IDBLogger("hydrogen_logs", this);
         this.clock = new Clock();
         this.history = new History();
         this.onlineStatus = new OnlineStatus();
