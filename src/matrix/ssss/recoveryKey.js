@@ -13,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import bs58 from "../../../lib/bs58/index.js";
 import {Key} from "./common.js";
 
 const OLM_RECOVERY_KEY_PREFIX = [0x8B, 0x01];
@@ -24,8 +23,8 @@ const OLM_RECOVERY_KEY_PREFIX = [0x8B, 0x01];
  * @param  {string} recoveryKey
  * @return {Key}
  */
-export function keyFromRecoveryKey(olm, keyDescription, recoveryKey) {
-    const result = bs58.decode(recoveryKey.replace(/ /g, ''));
+export function keyFromRecoveryKey(keyDescription, recoveryKey, olm, platform) {
+    const result = platform.encoding.base58.decode(recoveryKey.replace(/ /g, ''));
 
     let parity = 0;
     for (const b of result) {

@@ -56,7 +56,7 @@ export async function keyFromCredential(type, credential, storage, platform, olm
     if (type === "phrase") {
         key = await keyFromPassphrase(keyDescription, credential, platform);
     } else if (type === "key") {
-        key = keyFromRecoveryKey(olm, keyDescription, credential);
+        key = keyFromRecoveryKey(keyDescription, credential, olm, platform);
     } else {
         throw new Error(`Invalid type: ${type}`);
     }
