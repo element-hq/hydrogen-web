@@ -18,11 +18,13 @@ import {LogItem} from "./LogItem.js";
 import {LogLevel} from "./LogLevel.js";
 
 export class BaseLogger {
-    constructor({platform, baseLogLevel, anonymize}) {
+    constructor({platform}) {
         this._openItems = new Set();
         this._platform = platform;
-        this._anonymize = anonymize;
-        this._baseLogLevel = baseLogLevel;
+        this._anonymize = false; //await platform.settingsStorage.getBool("anonymize", false);
+        this._baseLogLevel = LogLevel.Info; //await platform.settingsStorage.getInt("baseLogLevel", LogLevel.Info);
+    }
+
     }
 
     run(labelOrValues, callback, logLevel = this._baseLogLevel) {
