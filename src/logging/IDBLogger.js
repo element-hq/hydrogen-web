@@ -25,8 +25,9 @@ import {
 import {BaseLogger} from "./BaseLogger.js";
 
 export class IDBLogger extends BaseLogger {
-    constructor({name, platform, flushInterval = 2 * 60 * 1000, limit = 3000}) {
-        super(platform);
+    constructor(options) {
+        super(options);
+        const {name, flushInterval = 2 * 60 * 1000, limit = 3000} = options;
         this._name = name;
         this._limit = limit;
         // does not get loaded from idb on startup as we only use it to
@@ -175,7 +176,7 @@ class IDBLogExport {
             items: this._items
         };
         const json = JSON.stringify(log);
-        const buffer = this._platform.utf8.encode(json);
+        const buffer = this._platform.encoding.utf8.encode(json);
         const blob = this._platform.createBlob(buffer, "application/json");
         return blob;
     }

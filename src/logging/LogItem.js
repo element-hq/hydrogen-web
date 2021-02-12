@@ -17,8 +17,9 @@ limitations under the License.
 import {LogLevel} from "./LogLevel.js";
 
 export class LogItem {
-    constructor(labelOrValues, logLevel, platform) {
+    constructor(labelOrValues, logLevel, platform, anonymize) {
         this._platform = platform;
+        this._anonymize = anonymize;
         this._start = platform.clock.now();
         this._end = null;
         this._values = typeof labelOrValues === "string" ? {label: labelOrValues} : labelOrValues;
@@ -56,8 +57,12 @@ export class LogItem {
     }
 
     anonymize(value) {
-        const buffer = this._platform.crypto.digest("SHA-256", value);
-        return this._platform.base64.encode(buffer);
+        if (this._anonymize) {
+            const buffer = this._platform.crypto.digest("SHA-256", value);
+            return this._platform.encoding.base64.encode(buffer);
+        } else {
+            return value;
+        }
     }
 
     serialize(logLevel) {
@@ -144,7 +149,7 @@ export class LogItem {
             this._end = this._platform.clock.now();
         }
     }
-    
+
     // expose log level without needing 
     get level() {
         return LogLevel;
@@ -160,7 +165,7 @@ export class LogItem {
         if (this._end !== null) {
             throw new Error("item is finished");
         }
-        const item = new LogItem(labelOrValues, logLevel, this._platform);
+        const item = new LogItem(labelOrValues, logLevel, this._platform, this._anonymize);
         this._children.push(item);
         return item;
     }

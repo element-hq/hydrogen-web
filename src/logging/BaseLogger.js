@@ -18,14 +18,15 @@ import {LogItem} from "./LogItem.js";
 import {LogLevel} from "./LogLevel.js";
 
 export class BaseLogger {
-    constructor(platform, baseLogLevel) {
+    constructor({platform, baseLogLevel, anonymize}) {
         this._openItems = new Set();
         this._platform = platform;
+        this._anonymize = anonymize;
         this._baseLogLevel = baseLogLevel;
     }
 
     wrapLog(labelOrValues, callback, logLevel = this._baseLogLevel) {
-        const item = new LogItem(labelOrValues, logLevel, this._platform);
+        const item = new LogItem(labelOrValues, logLevel, this._platform, this._anonymize);
 
         const finishItem = () => {
             const serialized = item.serialize(this._baseLogLevel);
@@ -73,7 +74,7 @@ export class BaseLogger {
     async export() {
         throw new Error("not implemented");
     }
-    
+
     // expose log level without needing 
     get level() {
         return LogLevel;
