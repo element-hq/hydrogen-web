@@ -60,19 +60,20 @@ export class IDBLogger extends BaseLogger {
             for(const i of this._queuedItems) {
                 logs.add(i);
             }
-            // TODO: delete more than needed so we don't delete on every flush?
-            // trim logs if needed
             const itemCount = await reqAsPromise(logs.count());
             if (itemCount > this._limit) {
-                let currentCount = itemCount;
+                // delete an extra 10% so we don't need to delete every time we flush
+                let deleteAmount = (itemCount - this._limit) + Math.round(0.1 * this._limit);
                 await iterateCursor(logs.openCursor(), (_, __, cursor) => {
                     cursor.delete();
-                    currentCount -= 1;
-                    return {done: currentCount <= this._limit};
+                    deleteAmount -= 1;
+                    return {done: deleteAmount === 0};
                 });
             }
             await txnAsPromise(txn);
             this._queuedItems.splice(0, amount);
+        } catch (err) {
+            console.warn("Could not flush logs", err);
         } finally {
             try {
                 db.close();
