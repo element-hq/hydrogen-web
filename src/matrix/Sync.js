@@ -193,7 +193,7 @@ export class Sync {
 
         const isInitialSync = !syncToken;
         syncToken = response.next_batch;
-        log.set("syncToken", log.anonymize(syncToken));
+        log.set("syncToken", syncToken);
         log.set("status", this._status.get());
 
         const roomStates = this._parseRoomsResponse(response.rooms, isInitialSync);

@@ -21,20 +21,10 @@ export class BaseLogger {
     constructor({platform}) {
         this._openItems = new Set();
         this._platform = platform;
-        this._anonymize = false; //await platform.settingsStorage.getBool("anonymize", false);
-    }
-
-    get anonymize() {
-        return this._anonymize;
-    }
-
-    set anonymize(value) {
-        this._anonymize = !!value;
-        this._platform.settingsStorage.setBool("anonymize", this._anonymize);
     }
 
     run(labelOrValues, callback, logLevel = LogLevel.Info, filterCreator = null) {
-        const item = new LogItem(labelOrValues, logLevel, null, this._platform, this._anonymize);
+        const item = new LogItem(labelOrValues, logLevel, null, this._platform.clock);
         this._openItems.add(item);
 
         const finishItem = () => {

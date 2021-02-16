@@ -17,10 +17,9 @@ limitations under the License.
 import {LogLevel, LogFilter} from "./LogFilter.js";
 
 export class LogItem {
-    constructor(labelOrValues, logLevel, filterCreator, platform, anonymize) {
-        this._platform = platform;
-        this._anonymize = anonymize;
-        this._start = platform.clock.now();
+    constructor(labelOrValues, logLevel, filterCreator, clock) {
+        this._clock = clock;
+        this._start = clock.now();
         this._end = null;
         this._values = typeof labelOrValues === "string" ? {l: labelOrValues} : labelOrValues;
         this.error = null;
@@ -62,15 +61,6 @@ export class LogItem {
             Object.assign(this._values, values);
         } else {
             this._values[key] = value;
-        }
-    }
-
-    anonymize(value) {
-        if (this._anonymize) {
-            const buffer = this._platform.crypto.digest("SHA-256", this._platform.encoding.utf8.encode(value));
-            return this._platform.encoding.base64.encode(buffer);
-        } else {
-            return value;
         }
     }
 
@@ -165,7 +155,7 @@ export class LogItem {
                     c.finish();
                 }
             }
-            this._end = this._platform.clock.now();
+            this._end = this._clock.now();
         }
     }
 
@@ -185,7 +175,7 @@ export class LogItem {
         if (this._end !== null) {
             console.trace("log item is finished, additional logs will likely not be recorded");
         }
-        const item = new LogItem(labelOrValues, logLevel, filterCreator, this._platform, this._anonymize);
+        const item = new LogItem(labelOrValues, logLevel, filterCreator, this._clock);
         if (this._children === null) {
             this._children = [];
         }
