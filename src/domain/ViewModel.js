@@ -78,9 +78,14 @@ export class ViewModel extends EventEmitter {
     // we probably are, if we're using routing with a url, we could just refresh.
     i18n(parts, ...expr) {
         // just concat for now
-        return parts.reduce((all, p, i) => {
-            return all + p + expr[i];
-        });
+        let result = "";
+        for (let i = 0; i < parts.length; ++i) {
+            result = result + parts[i];
+            if (i < expr.length) {
+                result = result + expr[i];
+            }
+        }
+        return result;
     }
 
     updateOptions(options) {
