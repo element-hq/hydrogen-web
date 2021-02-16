@@ -27,14 +27,13 @@ import {BaseLogger} from "./BaseLogger.js";
 export class IDBLogger extends BaseLogger {
     constructor(options) {
         super(options);
-        const {name, flushInterval = 5 * 1000, limit = 3000} = options;
+        const {name, flushInterval = 60 * 1000, limit = 3000} = options;
         this._name = name;
         this._limit = limit;
         // does not get loaded from idb on startup as we only use it to
         // differentiate between two items with the same start time
         this._itemCounter = 0;
         this._queuedItems = this._loadQueuedItems();
-        // TODO: add dirty flag when calling descend
         // TODO: also listen for unload just in case sync keeps on running after pagehide is fired?
         window.addEventListener("pagehide", this, false);
         this._flushInterval = this._platform.clock.createInterval(() => this._tryFlush(), flushInterval);
