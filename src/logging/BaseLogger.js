@@ -35,9 +35,13 @@ export class BaseLogger {
                 // if not filter is specified, filter out anything lower than the initial log level
                 filter = filter.minLevel(logLevel);
             }
-            const serialized = item.serialize(filter, 0);
-            if (serialized) {
-                this._persistItem(serialized);
+            try {
+                const serialized = item.serialize(filter, 0);
+                if (serialized) {
+                    this._persistItem(serialized);
+                }
+            } catch (err) {
+                console.warn("Could not serialize log item", err);
             }
             this._openItems.delete(item);
         };
@@ -65,9 +69,13 @@ export class BaseLogger {
     _finishOpenItems() {
         for (const openItem of this._openItems) {
             openItem.finish();
-            const serialized = openItem.serialize(this._baseLogLevel);
-            if (serialized) {
-                this._persistItem(serialized);
+            try {
+                const serialized = openItem.serialize(this._baseLogLevel);
+                if (serialized) {
+                    this._persistItem(serialized);
+                }
+            } catch (err) {
+                console.warn("Could not serialize log item", err);
             }
         }
         this._openItems.clear();
