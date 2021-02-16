@@ -109,7 +109,17 @@ export class Sync {
                 //   for us. We do that by calling it with a zero timeout until it
                 //   doesn't give us any more to_device messages.
                 const timeout = this._status.get() === SyncStatus.Syncing ? INCREMENTAL_TIMEOUT : 0; 
-                const syncResult = await this._logger.run("sync", log => this._syncRequest(syncToken, timeout, log));
+                const syncResult = await this._logger.run("sync",
+                    log => this._syncRequest(syncToken, timeout, log),
+                    (filter, log) => {
+                        if (log.duration >= 2000) {
+                            return filter.min(log.level.Info).default(log.level.Warn);
+                        } if (this._status.get() === SyncStatus.CatchupSync) {
+                            return filter.min(log.level.Info).default(log.level.Info);
+                        } else {
+                            return filter.min(log.level.Error);
+                        }
+                });
                 syncToken = syncResult.syncToken;
                 roomStates = syncResult.roomStates;
                 sessionChanges = syncResult.sessionChanges;

@@ -27,7 +27,7 @@ import {BaseLogger} from "./BaseLogger.js";
 export class IDBLogger extends BaseLogger {
     constructor(options) {
         super(options);
-        const {name, flushInterval = 2 * 60 * 1000, limit = 3000} = options;
+        const {name, flushInterval = 5 * 1000, limit = 3000} = options;
         this._name = name;
         this._limit = limit;
         // does not get loaded from idb on startup as we only use it to
@@ -104,7 +104,7 @@ export class IDBLogger extends BaseLogger {
     _persistItem(serializedItem) {
         this._itemCounter += 1;
         this._queuedItems.push({
-            id: `${encodeUint64(serializedItem.start)}:${this._itemCounter}`,
+            id: `${encodeUint64(serializedItem.s)}:${this._itemCounter}`,
             tree: serializedItem
         });
     }
@@ -122,8 +122,9 @@ export class IDBLogger extends BaseLogger {
         try {
             const txn = db.transaction(["logs"], "readonly");
             const logs = txn.objectStore("logs");
-            const items = await fetchResults(logs.openCursor(), () => false);
-            const sortedItems = items.concat(this._queuedItems).sort((a, b) => {
+            const storedItems = await fetchResults(logs.openCursor(), () => false);
+            const allItems = storedItems.concat(this._queuedItems);
+            const sortedItems = allItems.sort((a, b) => {
                 return a.id > b.id;
             });
             return new IDBLogExport(sortedItems, this, this._platform);

@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {LogLevel} from "./LogLevel.js";
+import {LogLevel, wrapLogFilterSource} from "./LogFilter.js";
 
 export class LogItem {
-    constructor(labelOrValues, logLevel, platform, anonymize) {
+    constructor(labelOrValues, logFilterDef, platform, anonymize) {
         this._platform = platform;
         this._anonymize = anonymize;
         this._start = platform.clock.now();
@@ -25,15 +25,23 @@ export class LogItem {
         this._values = typeof labelOrValues === "string" ? {label: labelOrValues} : labelOrValues;
         this._error = null;
         this._children = [];
-        this._logLevel = logLevel;
+        this._logFilterSource = wrapLogFilterSource(logFilterDef);
     }
 
     /**
      * Creates a new child item and runs it in `callback`.
      */
-    wrap(labelOrValues, callback, logLevel = this._logLevel) {
-        const item = this.child(labelOrValues, logLevel);
+    wrap(labelOrValues, callback, logFilterDef = null) {
+        const item = this.child(labelOrValues, logFilterDef);
         return item.run(callback);
+    }
+
+    duration() {
+        if (this._end) {
+            return this._end - this._start;
+        } else {
+            return null;
+        }
     }
     
     /**
@@ -42,8 +50,8 @@ export class LogItem {
      * 
      * Hence, the child item is not returned.
      */
-    log(labelOrValues, logLevel = this._logLevel) {
-        const item = this.child(labelOrValues, logLevel);
+    log(labelOrValues, logFilterDef = null) {
+        const item = this.child(labelOrValues, logFilterDef);
         item.end = item.start;
     }
 
@@ -65,9 +73,12 @@ export class LogItem {
         }
     }
 
-    serialize(logLevel) {
+    serialize(parentFilter) {
+        const filter = this._logFilterSource ? this._logFilterSource.createFilter(this, parentFilter) : parentFilter;
+        const logLevel = filter.itemLevel(this);
+        console.log("logLevel for item", logLevel);
         const children = this._children.reduce((array, c) => {
-            const s = c.serialize(logLevel);
+            const s = c.serialize(filter);
             if (s) {
                 array = array || [];
                 array.push(s);
@@ -75,8 +86,8 @@ export class LogItem {
             return array;
         }, null);
 
-        // neither our children or us have a loglevel high enough, bail out.
-        if (!children && this._logLevel < logLevel) {
+        if (!filter.includeItem(this, logLevel, children)) {
+            console.log("excluding log item", logLevel, children, this);
             return null;
         }
 
@@ -87,14 +98,19 @@ export class LogItem {
                 name: this._error.name
             };
         }
-        return {
-            start: this._start,
-            end: this._end,
-            values: this._values,
-            error,
-            children,
-            logLevel: this._logLevel
+        const item = {
+            s: this._start,
+            e: this._end,
+            v: this._values,
+            l: logLevel
         };
+        if (error) {
+            item.err = error;
+        }
+        if (children) {
+            item.c = children;
+        }
+        return item;
     }
 
     /**
@@ -146,23 +162,22 @@ export class LogItem {
         }
     }
 
-    // expose log level without needing 
+    // expose log level without needing import everywhere
     get level() {
         return LogLevel;
     }
 
     catch(err) {
         this._error = err;
-        this._logLevel = LogLevel.Error;
         this.finish();
         return err;
     }
 
-    child(labelOrValues, logLevel) {
+    child(labelOrValues, logFilterDef = null) {
         if (this._end !== null) {
             console.trace("log item is finished, additional logs will likely not be recorded");
         }
-        const item = new LogItem(labelOrValues, logLevel, this._platform, this._anonymize);
+        const item = new LogItem(labelOrValues, logFilterDef, this._platform, this._anonymize);
         this._children.push(item);
         return item;
     }
