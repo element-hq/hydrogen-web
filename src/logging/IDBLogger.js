@@ -105,7 +105,7 @@ export class IDBLogger extends BaseLogger {
         this._itemCounter += 1;
         this._queuedItems.push({
             id: `${encodeUint64(serializedItem.s)}:${this._itemCounter}`,
-            tree: serializedItem
+            json: JSON.stringify(serializedItem)
         });
     }
 
@@ -192,7 +192,7 @@ class IDBLogExport {
     asBlob() {
         const log = {
             version: 1,
-            items: this._items
+            items: this._items.map(i => JSON.parse(i.json))
         };
         const json = JSON.stringify(log);
         const buffer = this._platform.encoding.utf8.encode(json);
