@@ -74,7 +74,10 @@ export class BaseLogger {
         for (const openItem of this._openItems) {
             openItem.finish();
             try {
-                const serialized = openItem.serialize(this._baseLogLevel);
+                // for now, serialize with an all-permitting filter
+                // as the createFilter function would get a distorted image anyway
+                // about the duration of the item, etc ...
+                const serialized = openItem.serialize(new LogFilter(), 0);
                 if (serialized) {
                     this._persistItem(serialized);
                 }
