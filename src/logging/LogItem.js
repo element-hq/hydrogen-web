@@ -21,6 +21,7 @@ export class LogItem {
         this._clock = clock;
         this._start = clock.now();
         this._end = null;
+        // (l)abel
         this._values = typeof labelOrValues === "string" ? {l: labelOrValues} : labelOrValues;
         this.error = null;
         this.logLevel = logLevel;
