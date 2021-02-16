@@ -93,7 +93,9 @@ export class IDBLogger extends BaseLogger {
                 window.localStorage.removeItem(key);
                 return JSON.parse(json);
             }
-        } catch (e) {}
+        } catch (err) {
+            console.error("Could not load queued log items", err);
+        }
         return [];
     }
 
