@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {LogItem} from "./LogItem.js";
-import {LogLevel} from "./LogFilter.js";
+import {LogLevel, LogFilter} from "./LogFilter.js";
 
 export class BaseLogger {
     constructor({platform}) {
@@ -33,13 +33,19 @@ export class BaseLogger {
         this._platform.settingsStorage.setBool("anonymize", this._anonymize);
     }
 
-    run(labelOrValues, callback, logFilterDef) {
-        const item = new LogItem(labelOrValues, logFilterDef, this._platform, this._anonymize);
+    run(labelOrValues, callback, logLevel = LogLevel.Info, filterCreator = null) {
+        const item = new LogItem(labelOrValues, logLevel, null, this._platform, this._anonymize);
         this._openItems.add(item);
 
         const finishItem = () => {
-            const serialized = item.serialize(null);
-            console.log("serialized log item", item, serialized);
+            let filter = new LogFilter();
+            if (filterCreator) {
+                filter = filterCreator(filter, this);
+            } else {
+                // if not filter is specified, filter out anything lower than the initial log level
+                filter = filter.minLevel(logLevel);
+            }
+            const serialized = item.serialize(filter, 0);
             if (serialized) {
                 this._persistItem(serialized);
             }

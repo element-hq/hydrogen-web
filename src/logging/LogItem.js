@@ -14,29 +14,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {LogLevel, wrapLogFilterSource} from "./LogFilter.js";
+import {LogLevel, LogFilter} from "./LogFilter.js";
 
 export class LogItem {
-    constructor(labelOrValues, logFilterDef, platform, anonymize) {
+    constructor(labelOrValues, logLevel, filterCreator, platform, anonymize) {
         this._platform = platform;
         this._anonymize = anonymize;
         this._start = platform.clock.now();
         this._end = null;
-        this._values = typeof labelOrValues === "string" ? {label: labelOrValues} : labelOrValues;
-        this._error = null;
-        this._children = [];
-        this._logFilterSource = wrapLogFilterSource(logFilterDef);
+        this._values = typeof labelOrValues === "string" ? {l: labelOrValues} : labelOrValues;
+        this.error = null;
+        this.logLevel = logLevel;
+        this._children = null;
+        this._filterCreator = filterCreator;
     }
 
     /**
      * Creates a new child item and runs it in `callback`.
      */
-    wrap(labelOrValues, callback, logFilterDef = null) {
-        const item = this.child(labelOrValues, logFilterDef);
+    wrap(labelOrValues, callback, logLevel = LogLevel.Info, filterCreator = null) {
+        const item = this.child(labelOrValues, logLevel, filterCreator);
         return item.run(callback);
     }
 
-    duration() {
+    get duration() {
         if (this._end) {
             return this._end - this._start;
         } else {
@@ -50,8 +51,8 @@ export class LogItem {
      * 
      * Hence, the child item is not returned.
      */
-    log(labelOrValues, logFilterDef = null) {
-        const item = this.child(labelOrValues, logFilterDef);
+    log(labelOrValues, logLevel = LogLevel.Info) {
+        const item = this.child(labelOrValues, logLevel, null);
         item.end = item.start;
     }
 
@@ -73,41 +74,45 @@ export class LogItem {
         }
     }
 
-    serialize(parentFilter) {
-        const filter = this._logFilterSource ? this._logFilterSource.createFilter(this, parentFilter) : parentFilter;
-        const logLevel = filter.itemLevel(this);
-        console.log("logLevel for item", logLevel);
-        const children = this._children.reduce((array, c) => {
-            const s = c.serialize(filter);
-            if (s) {
-                array = array || [];
-                array.push(s);
-            }
-            return array;
-        }, null);
-
-        if (!filter.includeItem(this, logLevel, children)) {
-            console.log("excluding log item", logLevel, children, this);
+    serialize(filter, depth) {
+        if (this._filterCreator) {
+            filter = this._filterCreator(new LogFilter(filter), this);
+        }
+        let children;
+        if (this._children !== null) {
+            children = this._children.reduce((array, c) => {
+                const s = c.serialize(filter, depth + 1);
+                if (s) {
+                    if (array === null) {
+                        array = [];
+                    }
+                    array.push(s);
+                }
+                return array;
+            }, null);
+        }
+        if (!filter.filter(this, children, depth)) {
             return null;
         }
-
-        let error = null;
-        if (this._error) {
-            error = {
-                stack: this._error.stack,
-                name: this._error.name
+        const item = {
+            // (s)tart
+            s: this._start,
+            // (d)uration
+            d: this.duration,
+            // (v)alues
+            v: this._values,
+            // (l)evel
+            l: this.logLevel
+        };
+        if (this.error) {
+            // (e)rror
+            item.e = {
+                stack: this.error.stack,
+                name: this.error.name
             };
         }
-        const item = {
-            s: this._start,
-            e: this._end,
-            v: this._values,
-            l: logLevel
-        };
-        if (error) {
-            item.err = error;
-        }
         if (children) {
+            // (c)hildren
             item.c = children;
         }
         return item;
@@ -155,8 +160,10 @@ export class LogItem {
      */
     finish() {
         if (this._end === null) {
-            for(const c of this._children) {
-                c.finish();
+            if (this._children !== null) {
+                for(const c of this._children) {
+                    c.finish();
+                }
             }
             this._end = this._platform.clock.now();
         }
@@ -168,16 +175,20 @@ export class LogItem {
     }
 
     catch(err) {
-        this._error = err;
+        this.error = err;
+        this.logLevel = LogLevel.Error;
         this.finish();
         return err;
     }
 
-    child(labelOrValues, logFilterDef = null) {
+    child(labelOrValues, logLevel, filterCreator) {
         if (this._end !== null) {
             console.trace("log item is finished, additional logs will likely not be recorded");
         }
-        const item = new LogItem(labelOrValues, logFilterDef, this._platform, this._anonymize);
+        const item = new LogItem(labelOrValues, logLevel, filterCreator, this._platform, this._anonymize);
+        if (this._children === null) {
+            this._children = [];
+        }
         this._children.push(item);
         return item;
     }

@@ -24,74 +24,37 @@ export const LogLevel = {
     Off: 7,
 }
 
-export function wrapLogFilterSource(logFilterDef) {
-    if (typeof logFilterDef === "function") {
-        return new DeferredFilterCreator(logFilterDef);
-    } else if (typeof logFilterDef === "number") {
-        return new SimpleFilterCreator(logFilterDef);
-    }
-    return null;
-}
-
-class LogFilter {
+export class LogFilter {
     constructor(parentFilter) {
-        this._default = parentFilter ? parentFilter._default : null;
-        this._min = parentFilter ? parentFilter._min : null;
+        this._parentFilter = parentFilter;
+        this._min = null;
+        this._maxDepth = null;
+    }
+
+    filter(item, children, depth) {
+        if (this._parentFilter) {
+            if (!this._parentFilter.filter(item, children, depth)) {
+                return false;
+            }
+        }
+        // neither our children or us have a loglevel high enough, filter out.
+        if (this._min !== null && children === null && item.logLevel < this._min) {
+            return false;
+        } if (this._maxDepth !== null && depth > this._maxDepth) {
+            return false;
+        } else {
+            return true;
+        }
     }
 
     /* methods to build the filter */
-    min(logLevel) {
+    minLevel(logLevel) {
         this._min = logLevel;
-        if (this._default === null) {
-            this._default = logLevel;
-        }
         return this;
     }
 
-    default(logLevel) {
-        this._default = logLevel;
-        if (this._min === null) {
-            this._min = logLevel;
-        }
+    maxDepth(depth) {
+        this._maxDepth = depth;
         return this;
-    }
-
-    /* methods to use the filter */
-    /** determine log level for item */
-    itemLevel(item) {
-        if (item._error) {
-            return LogLevel.Error;
-        }
-        return this._default;
-    }
-
-    /** determines whether an item should be persisted */
-    includeItem(item, logLevel, children) {
-        // neither our children or us have a loglevel high enough, bail out.
-        return logLevel >= this._min || children;
-    }
-}
-
-/**
- * Allows to determine the log level of an item after it has finished.
- * So we can set the log level on the item duration for example.
- */
-class DeferredFilterCreator {
-    constructor(fn) {
-        this._fn = fn;
-    }
-
-    createFilter(item, parentFilter) {
-        return this._fn(new LogFilter(parentFilter), item);
-    }
-}
-
-class SimpleFilterCreator {
-    constructor(logLevel) {
-        this._logLevel = logLevel;
-    }
-
-    createFilter(item, parentFilter) {
-        return new LogFilter(parentFilter).default(this._logLevel);
     }
 }

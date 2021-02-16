@@ -111,13 +111,14 @@ export class Sync {
                 const timeout = this._status.get() === SyncStatus.Syncing ? INCREMENTAL_TIMEOUT : 0; 
                 const syncResult = await this._logger.run("sync",
                     log => this._syncRequest(syncToken, timeout, log),
+                    this._logger.level.Info,
                     (filter, log) => {
-                        if (log.duration >= 2000) {
-                            return filter.min(log.level.Info).default(log.level.Warn);
-                        } if (this._status.get() === SyncStatus.CatchupSync) {
-                            return filter.min(log.level.Info).default(log.level.Info);
+                        if (log.duration >= 2000 || this._status.get() === SyncStatus.CatchupSync) {
+                            return filter.minLevel(log.level.Info);
+                        } else if (log.error) {
+                            return filter.minLevel(log.level.Error);
                         } else {
-                            return filter.min(log.level.Error);
+                            return filter.maxDepth(0);
                         }
                 });
                 syncToken = syncResult.syncToken;
@@ -192,7 +193,6 @@ export class Sync {
 
         const isInitialSync = !syncToken;
         syncToken = response.next_batch;
-        log.set("isInitialSync", isInitialSync);
         log.set("syncToken", log.anonymize(syncToken));
         log.set("status", this._status.get());
 
