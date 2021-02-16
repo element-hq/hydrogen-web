@@ -72,7 +72,7 @@ export class IDBLogger extends BaseLogger {
             await txnAsPromise(txn);
             this._queuedItems.splice(0, amount);
         } catch (err) {
-            console.warn("Could not flush logs", err);
+            console.error("Could not flush logs", err);
         } finally {
             try {
                 db.close();
@@ -113,7 +113,7 @@ export class IDBLogger extends BaseLogger {
         try {
             window.localStorage.setItem(`${this._name}_queuedItems`, JSON.stringify(items));
         } catch (e) {
-            console.warn("Could not persist queued log items in localStorage, they will likely be lost", e);
+            console.error("Could not persist queued log items in localStorage, they will likely be lost", e);
         }
     }
 

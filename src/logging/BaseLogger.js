@@ -30,7 +30,11 @@ export class BaseLogger {
         const finishItem = () => {
             let filter = new LogFilter();
             if (filterCreator) {
-                filter = filterCreator(filter, this);
+                try {
+                    filter = filterCreator(filter, this);
+                } catch (err) {
+                    console.error("Error while creating log filter", err);
+                }
             } else {
                 // if not filter is specified, filter out anything lower than the initial log level
                 filter = filter.minLevel(logLevel);
@@ -41,7 +45,7 @@ export class BaseLogger {
                     this._persistItem(serialized);
                 }
             } catch (err) {
-                console.warn("Could not serialize log item", err);
+                console.error("Could not serialize log item", err);
             }
             this._openItems.delete(item);
         };
@@ -75,7 +79,7 @@ export class BaseLogger {
                     this._persistItem(serialized);
                 }
             } catch (err) {
-                console.warn("Could not serialize log item", err);
+                console.error("Could not serialize log item", err);
             }
         }
         this._openItems.clear();

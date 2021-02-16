@@ -66,7 +66,11 @@ export class LogItem {
 
     serialize(filter, depth) {
         if (this._filterCreator) {
-            filter = this._filterCreator(new LogFilter(filter), this);
+            try {
+                filter = this._filterCreator(new LogFilter(filter), this);
+            } catch (err) {
+                console.error("Error creating log item", err);
+            }
         }
         let children;
         if (this._children !== null) {
