@@ -165,21 +165,7 @@ class IDBLogExport {
         this._logger = logger;
         this._platform = platform;
     }
-
-    get minTimestamp() {
-        if (!this._items.length) {
-            return 0;
-        }
-        return this._items[0].start;
-    }
-
-    get maxTimestamp() {
-        if (!this._items.length) {
-            return 0;
-        }
-        return this._items[this._items.length - 1].end;
-    }
-
+    
     get count() {
         return this._items.length;
     }
