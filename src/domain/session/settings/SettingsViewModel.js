@@ -110,5 +110,10 @@ export class SettingsViewModel extends ViewModel {
             return this.i18n`unknown`;
         }
     }
+
+    async exportLogs() {
+        const logExport = await this.logger.export();
+        this.platform.saveFileAs(logExport.asBlob(), "logs.json");
+    }
 }
 

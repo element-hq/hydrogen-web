@@ -51,6 +51,7 @@ export class SettingsView extends TemplateView {
                 t.h3("Application"),
                 row(vm.i18n`Version`, version),
                 row(vm.i18n`Storage usage`, vm => `${vm.storageUsage} / ${vm.storageQuota}`),
+                row(vm.i18n`Export logs`, t.button({onClick: () => vm.exportLogs()}, "Export")),
             ])
         ]);
     }
