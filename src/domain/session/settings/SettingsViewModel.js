@@ -113,7 +113,7 @@ export class SettingsViewModel extends ViewModel {
 
     async exportLogs() {
         const logExport = await this.logger.export();
-        this.platform.saveFileAs(logExport.asBlob(), "logs.json");
+        this.platform.saveFileAs(logExport.asBlob(), `hydrogen-logs-${this.platform.clock.now()}.json`);
     }
 }
 
