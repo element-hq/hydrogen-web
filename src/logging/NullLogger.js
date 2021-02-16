@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {LogLevel} from "./LogLevel.js";
+import {LogLevel} from "./LogFilter.js";
 
 export class NullLogger {
     constructor() {
@@ -21,7 +21,7 @@ export class NullLogger {
     }
 
     run(_, callback) {
-        callback(this._item);    
+        return callback(this._item);    
     }
 
     async export() {
@@ -35,7 +35,7 @@ export class NullLogger {
 
 class NullLogItem {
     wrap(_, callback) {
-        callback(this);
+        return callback(this);
     }
     log() {}
     set() {}
