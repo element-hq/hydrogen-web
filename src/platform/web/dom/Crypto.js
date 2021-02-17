@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import base64 from "../../../../lib/base64-arraybuffer/index.js";
+
 // turn IE11 result into promise
 function subtleCryptoResult(promiseOrOp, method) {
     if (promiseOrOp instanceof Promise) {
@@ -302,7 +304,6 @@ function rawKeyToJwk(key) {
     };
 }
 
-import base64 from "../../../../lib/base64-arraybuffer/index.js";
 
 class AESLegacyCrypto {
     constructor(aesjs, crypto) {

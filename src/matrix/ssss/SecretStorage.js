@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import base64 from "../../../lib/base64-arraybuffer/index.js";
-
 export class SecretStorage {
     constructor({key, platform}) {
         this._key = key;
@@ -40,17 +38,17 @@ export class SecretStorage {
     }
 
     async _decryptAESSecret(type, encryptedData) {
+        const {base64, utf8} = this._platform.encoding;
         // now derive the aes and mac key from the 4s key
         const hkdfKey = await this._platform.crypto.derive.hkdf(
             this._key.binaryKey,
             new Uint8Array(8).buffer,   //zero salt
-            this._platform.utf8.encode(type), // info
+            utf8.encode(type), // info
             "SHA-256",
             512 // 512 bits or 64 bytes
         );
         const aesKey = hkdfKey.slice(0, 32);
         const hmacKey = hkdfKey.slice(32);
-
         const ciphertextBytes = base64.decode(encryptedData.ciphertext);
 
         const isVerified = await this._platform.crypto.hmac.verify(
@@ -67,6 +65,6 @@ export class SecretStorage {
             data: ciphertextBytes
         });
 
-        return this._platform.utf8.decode(plaintextBytes);
+        return utf8.decode(plaintextBytes);
     }
 }

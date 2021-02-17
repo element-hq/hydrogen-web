@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import base64 from "../../../lib/base64-arraybuffer/index.js";
-
 /**
  * Decrypt an attachment.
  * @param {ArrayBuffer} ciphertextBuffer The encrypted attachment data buffer.
@@ -25,12 +23,14 @@ import base64 from "../../../lib/base64-arraybuffer/index.js";
  * @param {string} info.hashes.sha256 Base64 encoded SHA-256 hash of the ciphertext.
  * @return {Promise} A promise that resolves with an ArrayBuffer when the attachment is decrypted.
  */
-export async function decryptAttachment(crypto, ciphertextBuffer, info) {
+export async function decryptAttachment(platform, ciphertextBuffer, info) {
     if (info === undefined || info.key === undefined || info.iv === undefined
         || info.hashes === undefined || info.hashes.sha256 === undefined) {
        throw new Error("Invalid info. Missing info.key, info.iv or info.hashes.sha256 key");
     }
 
+    const {crypto} = platform;
+    const {base64} = platform.encoding;
     var ivArray = base64.decode(info.iv);
     // re-encode to not deal with padded vs unpadded
     var expectedSha256base64 = base64.encode(base64.decode(info.hashes.sha256));
@@ -59,6 +59,7 @@ export async function decryptAttachment(crypto, ciphertextBuffer, info) {
 
 export async function encryptAttachment(platform, blob) {
     const {crypto} = platform;
+    const {base64} = platform.encoding;
     const iv = await crypto.aes.generateIV();
     const key = await crypto.aes.generateKey("jwk", 256);
     const buffer = await blob.readAsBuffer();
@@ -69,20 +70,10 @@ export async function encryptAttachment(platform, blob) {
         info: {
             v: "v2",
             key,
-            iv: encodeUnpaddedBase64(iv),
+            iv: base64.encodeUnpadded(iv),
             hashes: {
-                sha256: encodeUnpaddedBase64(digest)
+                sha256: base64.encodeUnpadded(digest)
             }
         }
     };
-}
-
-function encodeUnpaddedBase64(buffer) {
-    const str = base64.encode(buffer);
-    const paddingIdx = str.indexOf("=");
-    if (paddingIdx !== -1) {
-        return str.substr(0, paddingIdx);
-    } else {
-        return str;
-    }
 }

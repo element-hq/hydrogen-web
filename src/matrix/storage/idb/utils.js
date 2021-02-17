@@ -54,6 +54,12 @@ export function encodeUint32(n) {
     return "0".repeat(8 - hex.length) + hex;
 }
 
+// used for logs where timestamp is part of key, which is larger than 32 bit
+export function encodeUint64(n) {
+    const hex = n.toString(16);
+    return "0".repeat(16 - hex.length) + hex;
+}
+
 export function decodeUint32(str) {
     return parseInt(str, 16);
 }
@@ -110,7 +116,7 @@ export function iterateCursor(cursorRequest, processValue) {
                 needsSyncPromise && Promise._flush && Promise._flush();
                 return; // end of results
             }
-            const result = processValue(cursor.value, cursor.key);
+            const result = processValue(cursor.value, cursor.key, cursor);
             // TODO: don't use object for result and assume it's jumpTo when not === true/false or undefined
             const done = result?.done;
             const jumpTo = result?.jumpTo;

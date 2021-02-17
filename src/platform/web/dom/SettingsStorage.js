@@ -20,18 +20,34 @@ export class SettingsStorage {
     }
 
     async setInt(key, value) {
-        window.localStorage.setItem(`${this._prefix}${key}`, value);
+        this._set(key, value);
     }
 
-    async getInt(key) {
+    async getInt(key, defaultValue = 0) {
         const value = window.localStorage.getItem(`${this._prefix}${key}`);
         if (typeof value === "string") {
             return parseInt(value, 10);
         }
-        return;
+        return defaultValue;
+    }
+
+    async setBool(key, value) {
+        this._set(key, value);
+    }
+
+    async getBool(key, defaultValue = false) {
+        const value = window.localStorage.getItem(`${this._prefix}${key}`);
+        if (typeof value === "string") {
+            return value === "true";
+        }
+        return defaultValue;
     }
 
     async remove(key) {
         window.localStorage.removeItem(`${this._prefix}${key}`);
+    }
+
+    async _set(key, value) {
+        window.localStorage.setItem(`${this._prefix}${key}`, value);
     }
 }

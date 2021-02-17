@@ -108,6 +108,10 @@ export class ViewModel extends EventEmitter {
         return this._options.platform.clock;
     }
 
+    get logger() {
+        return this.platform.logger;
+    }
+
     /**
      * The url router, only meant to be used to create urls with from view models.
      * @return {URLRouter}

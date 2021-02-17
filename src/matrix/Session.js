@@ -207,7 +207,12 @@ export class Session {
 
     async _createSessionBackup(ssssKey, txn) {
         const secretStorage = new SecretStorage({key: ssssKey, platform: this._platform});
-        this._sessionBackup = await SessionBackup.fromSecretStorage({olm: this._olm, secretStorage, hsApi: this._hsApi, txn});
+        this._sessionBackup = await SessionBackup.fromSecretStorage({
+            platform: this._platform,
+            olm: this._olm, secretStorage,
+            hsApi: this._hsApi,
+            txn
+        });
         if (this._sessionBackup) {
             for (const room of this._rooms.values()) {
                 if (room.isEncrypted) {

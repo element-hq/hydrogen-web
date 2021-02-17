@@ -33,11 +33,12 @@ export async function keyFromPassphrase(keyDescription, passphrase, platform) {
     if (passphraseParams.algorithm !== "m.pbkdf2") {
         throw new Error(`Unsupported passphrase algorithm: ${passphraseParams.algorithm}`);
     }
+    const {utf8} = platform.encoding;
     const keyBits = await platform.crypto.derive.pbkdf2(
-        platform.utf8.encode(passphrase),
+        utf8.encode(passphrase),
         passphraseParams.iterations || DEFAULT_ITERATIONS,
         // salt is just a random string, not encoded in any way
-        platform.utf8.encode(passphraseParams.salt),
+        utf8.encode(passphraseParams.salt),
         "SHA-512",
         passphraseParams.bits || DEFAULT_BITSIZE);
     return new Key(keyDescription, keyBits);

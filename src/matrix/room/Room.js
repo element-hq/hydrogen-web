@@ -175,7 +175,8 @@ export class Room extends EventEmitter {
         return request;
     }
 
-    async prepareSync(roomResponse, membership, txn) {
+    async prepareSync(roomResponse, membership, txn, log) {
+        log.set("roomId", this.id);
         const summaryChanges = this._summary.data.applySyncResponse(roomResponse, membership)
         let roomEncryption = this._roomEncryption;
         // encryption is enabled in this sync
@@ -211,7 +212,8 @@ export class Room extends EventEmitter {
     }
 
     /** @package */
-    async writeSync(roomResponse, isInitialSync, {summaryChanges, decryptChanges, roomEncryption}, txn) {
+    async writeSync(roomResponse, isInitialSync, {summaryChanges, decryptChanges, roomEncryption}, txn, log) {
+        log.set("roomId", this.id);
         const {entries, newLiveKey, memberChanges} =
             await this._syncWriter.writeSync(roomResponse, txn);
         if (decryptChanges) {
