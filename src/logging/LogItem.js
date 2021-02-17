@@ -32,7 +32,7 @@ export class LogItem {
     /**
      * Creates a new child item and runs it in `callback`.
      */
-    wrap(labelOrValues, callback, logLevel = LogLevel.Info, filterCreator = null) {
+    wrap(labelOrValues, callback, logLevel = null, filterCreator = null) {
         const item = this.child(labelOrValues, logLevel, filterCreator);
         return item.run(callback);
     }
@@ -51,7 +51,7 @@ export class LogItem {
      * 
      * Hence, the child item is not returned.
      */
-    log(labelOrValues, logLevel = LogLevel.Info) {
+    log(labelOrValues, logLevel = null) {
         const item = this.child(labelOrValues, logLevel, null);
         item.end = item.start;
     }
@@ -179,6 +179,9 @@ export class LogItem {
     child(labelOrValues, logLevel, filterCreator) {
         if (this._end !== null) {
             console.trace("log item is finished, additional logs will likely not be recorded");
+        }
+        if (!logLevel) {
+            logLevel = this.logLevel || LogLevel.Info;
         }
         const item = new LogItem(labelOrValues, logLevel, filterCreator, this._clock);
         if (this._children === null) {
