@@ -179,7 +179,8 @@ class IDBLogExport {
 
     asBlob() {
         const log = {
-            version: 1,
+            formatVersion: 1,
+            appVersion: this._platform.updateService?.version,
             items: this._items.map(i => JSON.parse(i.json))
         };
         const json = JSON.stringify(log);
