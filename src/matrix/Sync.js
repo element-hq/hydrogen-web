@@ -90,6 +90,14 @@ export class Sync {
         this._syncLoop(syncToken);
     }
 
+    _createLogFilter(filter, log) {
+        if (log.duration >= 2000 || log.error || this._status.get() === SyncStatus.CatchupSync) {
+            return filter.minLevel(log.level.Detail);
+        } else {
+            return filter.minLevel(log.level.Info);
+        }
+    }
+
     async _syncLoop(syncToken) {
         // if syncToken is falsy, it will first do an initial sync ... 
         while(this._status.get() !== SyncStatus.Stopped) {
@@ -112,15 +120,8 @@ export class Sync {
                 const syncResult = await this._logger.run("sync",
                     log => this._syncRequest(syncToken, timeout, log),
                     this._logger.level.Info,
-                    (filter, log) => {
-                        if (log.duration >= 2000 || this._status.get() === SyncStatus.CatchupSync) {
-                            return filter.minLevel(log.level.Info);
-                        } else if (log.error) {
-                            return filter.minLevel(log.level.Error);
-                        } else {
-                            return filter.maxDepth(0);
-                        }
-                });
+                    this._createLogFilter.bind(this)
+                );
                 syncToken = syncResult.syncToken;
                 roomStates = syncResult.roomStates;
                 sessionChanges = syncResult.sessionChanges;

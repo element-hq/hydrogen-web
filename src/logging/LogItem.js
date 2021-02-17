@@ -65,7 +65,7 @@ export class LogItem {
         }
     }
 
-    serialize(filter, depth) {
+    serialize(filter) {
         if (this._filterCreator) {
             try {
                 filter = this._filterCreator(new LogFilter(filter), this);
@@ -76,7 +76,7 @@ export class LogItem {
         let children;
         if (this._children !== null) {
             children = this._children.reduce((array, c) => {
-                const s = c.serialize(filter, depth + 1);
+                const s = c.serialize(filter);
                 if (s) {
                     if (array === null) {
                         array = [];
@@ -86,7 +86,7 @@ export class LogItem {
                 return array;
             }, null);
         }
-        if (!filter.filter(this, children, depth)) {
+        if (!filter.filter(this, children)) {
             return null;
         }
         const item = {

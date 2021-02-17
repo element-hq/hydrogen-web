@@ -40,7 +40,7 @@ export class BaseLogger {
                 filter = filter.minLevel(logLevel);
             }
             try {
-                const serialized = item.serialize(filter, 0);
+                const serialized = item.serialize(filter);
                 if (serialized) {
                     this._persistItem(serialized);
                 }
