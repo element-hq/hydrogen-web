@@ -374,7 +374,7 @@ export class Session {
     }
 
     /** @internal */
-    async writeSync(syncResponse, syncFilterId, txn) {
+    async writeSync(syncResponse, syncFilterId, txn, log) {
         const changes = {
             syncInfo: null,
             e2eeAccountChanges: null,
@@ -390,20 +390,20 @@ export class Session {
 
         const deviceOneTimeKeysCount = syncResponse.device_one_time_keys_count;
         if (this._e2eeAccount && deviceOneTimeKeysCount) {
-            changes.e2eeAccountChanges = this._e2eeAccount.writeSync(deviceOneTimeKeysCount, txn);
+            changes.e2eeAccountChanges = this._e2eeAccount.writeSync(deviceOneTimeKeysCount, txn, log);
         }
         
         if (this._deviceTracker) {
             const deviceLists = syncResponse.device_lists;
             if (deviceLists) {
-                await this._deviceTracker.writeDeviceChanges(deviceLists, txn);
+                await log.wrap("deviceTracker", log => this._deviceTracker.writeDeviceChanges(deviceLists, txn, log));
             }
         }
 
         const toDeviceEvents = syncResponse.to_device?.events;
         if (Array.isArray(toDeviceEvents)) {
             changes.deviceMessageDecryptionPending =
-                await this._deviceMessageHandler.writeSync(toDeviceEvents, txn);
+                await log.wrap("deviceMsgs", log => this._deviceMessageHandler.writeSync(toDeviceEvents, txn, log));
         }
 
         // store account data
@@ -430,10 +430,10 @@ export class Session {
     }
 
     /** @internal */
-    async afterSyncCompleted(changes, isCatchupSync) {
+    async afterSyncCompleted(changes, isCatchupSync, log) {
         const promises = [];
         if (changes.deviceMessageDecryptionPending) {
-            promises.push(this._deviceMessageHandler.decryptPending(this.rooms));
+            promises.push(log.wrap("decryptPending", log => this._deviceMessageHandler.decryptPending(this.rooms, log)));
         }
         // we don't start uploading one-time keys until we've caught up with
         // to-device messages, to help us avoid throwing away one-time-keys that we
@@ -442,7 +442,7 @@ export class Session {
         if (!isCatchupSync) {
             const needsToUploadOTKs = await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
             if (needsToUploadOTKs) {
-                promises.push(this._e2eeAccount.uploadKeys(this._storage));
+                promises.push(log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, log)));
             }
         }
         if (promises.length) {

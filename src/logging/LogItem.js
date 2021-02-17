@@ -89,6 +89,7 @@ export class LogItem {
         if (!filter.filter(this, children)) {
             return null;
         }
+        // in (v)alues, (l)abel and (t)ype are also reserved.
         const item = {
             // (s)tart
             s: this._start,

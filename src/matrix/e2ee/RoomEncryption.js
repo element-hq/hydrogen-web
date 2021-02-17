@@ -337,7 +337,7 @@ export class RoomEncryption {
         return id;
     }
 
-    async flushPendingRoomKeyShares(hsApi, operations = null) {
+    async flushPendingRoomKeyShares(hsApi, operations, log) {
         // this has to be reentrant as it can be called from Room.start while still running
         if (this._isFlushingRoomKeyShares) {
             return;

@@ -34,7 +34,7 @@ export class DeviceMessageHandler {
     /**
      * @return {bool} whether messages are waiting to be decrypted and `decryptPending` should be called.
      */
-    async writeSync(toDeviceEvents, txn) {
+    async writeSync(toDeviceEvents, txn, log) {
         const encryptedEvents = toDeviceEvents.filter(e => e.type === "m.room.encrypted");
         if (!encryptedEvents.length) {
             return false;
@@ -53,14 +53,14 @@ export class DeviceMessageHandler {
      * @param  {[type]} txn        [description]
      * @return {[type]}            [description]
      */
-    async _writeDecryptedEvents(olmResults, txn) {
+    async _writeDecryptedEvents(olmResults, txn, log) {
         const megOlmRoomKeysResults = olmResults.filter(r => {
             return r.event?.type === "m.room_key" && r.event.content?.algorithm === MEGOLM_ALGORITHM;
         });
         let roomKeys;
+        log.set("roomKeyCount", megOlmRoomKeysResults.length);
         if (megOlmRoomKeysResults.length) {
-            console.log("new room keys", megOlmRoomKeysResults);
-            roomKeys = await this._megolmDecryption.addRoomKeys(megOlmRoomKeysResults, txn);
+            roomKeys = await this._megolmDecryption.addRoomKeys(megOlmRoomKeysResults, txn, log);
         }
         return {roomKeys};
     }
@@ -76,12 +76,13 @@ export class DeviceMessageHandler {
     }
 
     // not safe to call multiple times without awaiting first call
-    async decryptPending(rooms) {
+    async decryptPending(rooms, log) {
         if (!this._olmDecryption) {
             return;
         }
         const readTxn = this._storage.readTxn([this._storage.storeNames.session]);
         const pendingEvents = await this._getPendingEvents(readTxn);
+        log.set("eventCount", pendingEvents.length);
         if (pendingEvents.length === 0) {
            return;
         }
@@ -89,7 +90,7 @@ export class DeviceMessageHandler {
         const olmEvents = pendingEvents.filter(e => e.content?.algorithm === OLM_ALGORITHM);
         const decryptChanges = await this._olmDecryption.decryptAll(olmEvents);
         for (const err of decryptChanges.errors) {
-            console.warn("decryption failed for event", err, err.event);
+            log.child("decrypt_error").catch(err);
         }
         const txn = this._storage.readWriteTxn([
             // both to remove the pending events and to modify the olm account
@@ -99,7 +100,7 @@ export class DeviceMessageHandler {
         ]);
         let changes;
         try {
-            changes = await this._writeDecryptedEvents(decryptChanges.results, txn);
+            changes = await this._writeDecryptedEvents(decryptChanges.results, txn, log);
             decryptChanges.write(txn);
             txn.session.remove(PENDING_ENCRYPTED_EVENTS);
         } catch (err) {

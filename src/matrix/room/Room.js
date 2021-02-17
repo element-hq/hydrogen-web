@@ -176,11 +176,12 @@ export class Room extends EventEmitter {
     }
 
     async prepareSync(roomResponse, membership, txn, log) {
-        log.set("roomId", this.id);
+        log.set("id", this.id);
         const summaryChanges = this._summary.data.applySyncResponse(roomResponse, membership)
         let roomEncryption = this._roomEncryption;
         // encryption is enabled in this sync
         if (!roomEncryption && summaryChanges.encryption) {
+            log.set("enableEncryption", true);
             roomEncryption = this._createRoomEncryption(this, summaryChanges.encryption);
         }
 
@@ -204,16 +205,19 @@ export class Room extends EventEmitter {
         };
     }
 
-    async afterPrepareSync(preparation) {
+    async afterPrepareSync(preparation, parentLog) {
         if (preparation.decryptPreparation) {
-            preparation.decryptChanges = await preparation.decryptPreparation.decrypt();
-            preparation.decryptPreparation = null;
+            await parentLog.wrap("afterPrepareSync decrypt", async log => {
+                log.set("id", this.id);
+                preparation.decryptChanges = await preparation.decryptPreparation.decrypt();
+                preparation.decryptPreparation = null;
+            });
         }
     }
 
     /** @package */
     async writeSync(roomResponse, isInitialSync, {summaryChanges, decryptChanges, roomEncryption}, txn, log) {
-        log.set("roomId", this.id);
+        log.set("id", this.id);
         const {entries, newLiveKey, memberChanges} =
             await this._syncWriter.writeSync(roomResponse, txn);
         if (decryptChanges) {
@@ -259,7 +263,8 @@ export class Room extends EventEmitter {
      * Called with the changes returned from `writeSync` to apply them and emit changes.
      * No storage or network operations should be done here.
      */
-    afterSync({summaryChanges, newTimelineEntries, newLiveKey, removedPendingEvents, memberChanges, heroChanges, roomEncryption}) {
+    afterSync({summaryChanges, newTimelineEntries, newLiveKey, removedPendingEvents, memberChanges, heroChanges, roomEncryption}, log) {
+        log.set("id", this.id);
         this._syncWriter.afterSync(newLiveKey);
         this._setEncryption(roomEncryption);
         if (memberChanges.size) {
@@ -310,9 +315,11 @@ export class Room extends EventEmitter {
      * Can be used to do longer running operations that resulted from the last sync,
      * like network operations.
      */
-    async afterSyncCompleted() {
+    async afterSyncCompleted(changes, log) {
+        log.set("id", this.id);
         if (this._roomEncryption) {
-            await this._roomEncryption.flushPendingRoomKeyShares(this._hsApi);
+            // TODO: pass log to flushPendingRoomKeyShares once we also have a logger in `start`
+            await this._roomEncryption.flushPendingRoomKeyShares(this._hsApi, null);
         }
     }
 

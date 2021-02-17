@@ -80,7 +80,7 @@ export class Account {
         return this._identityKeys;
     }
 
-    async uploadKeys(storage) {
+    async uploadKeys(storage, log) {
         const oneTimeKeys = JSON.parse(this._account.one_time_keys());
         // only one algorithm supported by olm atm, so hardcode its name
         const oneTimeKeysEntries = Object.entries(oneTimeKeys.curve25519);
@@ -93,8 +93,9 @@ export class Account {
             if (oneTimeKeysEntries.length) {
                 payload.one_time_keys = this._oneTimeKeysPayload(oneTimeKeysEntries);
             }
-            const response = await this._hsApi.uploadKeys(payload).response();
+            const response = await this._hsApi.uploadKeys(payload, {log}).response();
             this._serverOTKCount = response?.one_time_key_counts?.signed_curve25519;
+            log.set("serverOTKCount", this._serverOTKCount);
             // TODO: should we not modify this in the txn like we do elsewhere?
             // we'd have to pickle and unpickle the account to clone it though ...
             // and the upload has succeed at this point, so in-memory would be correct
@@ -173,11 +174,12 @@ export class Account {
         txn.session.set(ACCOUNT_SESSION_KEY, this._account.pickle(this._pickleKey));
     }
 
-    writeSync(deviceOneTimeKeysCount, txn) {
+    writeSync(deviceOneTimeKeysCount, txn, log) {
         // we only upload signed_curve25519 otks
         const otkCount = deviceOneTimeKeysCount.signed_curve25519 || 0;
         if (Number.isSafeInteger(otkCount) && otkCount !== this._serverOTKCount) {
             txn.session.set(SERVER_OTK_COUNT_SESSION_KEY, otkCount);
+            log.set("otkCount", otkCount);
             return otkCount;
         }
     }
