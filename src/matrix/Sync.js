@@ -163,7 +163,7 @@ export class Sync {
         const isCatchupSync = this._status.get() === SyncStatus.CatchupSync;
         const sessionPromise = (async () => {
             try {
-                await log.wrap("session", log => this._session.afterSyncCompleted(sessionChanges, isCatchupSync, log));
+                await log.wrap("session", log => this._session.afterSyncCompleted(sessionChanges, isCatchupSync, log), log.level.Detail);
             } catch (err) {} // error is logged, but don't fail sessionPromise
         })();
 
