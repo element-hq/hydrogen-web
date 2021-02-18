@@ -392,12 +392,10 @@ export class Session {
         if (this._e2eeAccount && deviceOneTimeKeysCount) {
             changes.e2eeAccountChanges = this._e2eeAccount.writeSync(deviceOneTimeKeysCount, txn, log);
         }
-        
-        if (this._deviceTracker) {
-            const deviceLists = syncResponse.device_lists;
-            if (deviceLists) {
-                await log.wrap("deviceTracker", log => this._deviceTracker.writeDeviceChanges(deviceLists, txn, log));
-            }
+    
+        const deviceLists = syncResponse.device_lists;
+        if (this._deviceTracker && Array.isArray(deviceLists.changed) && deviceLists.changed.length) {
+            await log.wrap("deviceLists", log => this._deviceTracker.writeDeviceChanges(deviceLists.changed, txn, log));
         }
 
         const toDeviceEvents = syncResponse.to_device?.events;
