@@ -399,7 +399,7 @@ export class Session {
         }
 
         const toDeviceEvents = syncResponse.to_device?.events;
-        if (Array.isArray(toDeviceEvents)) {
+        if (Array.isArray(toDeviceEvents) && toDeviceEvents.length) {
             changes.deviceMessageDecryptionPending =
                 await log.wrap("deviceMsgs", log => this._deviceMessageHandler.writeSync(toDeviceEvents, txn, log));
         }
