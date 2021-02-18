@@ -96,7 +96,7 @@ export class Sync {
         while(this._status.get() !== SyncStatus.Stopped) {
             let roomStates;
             let sessionChanges;
-            let wasCatchup = this._status.get() === SyncStatus.CatchupSync;
+            let wasCatchupOrInitial = this._status.get() === SyncStatus.CatchupSync || this._status.get() === SyncStatus.InitialSync;
             await this._logger.run("sync", async log => {
                 log.set("token", syncToken);
                 log.set("status", this._status.get());
@@ -150,7 +150,7 @@ export class Sync {
             },
             this._logger.level.Info,
             (filter, log) => {
-                if (log.duration >= 2000 || log.error || wasCatchup) {
+                if (log.durationWithoutType("network") >= 2000 || log.error || wasCatchupOrInitial) {
                     return filter.minLevel(log.level.Detail);
                 } else {
                     return filter.minLevel(log.level.Info);

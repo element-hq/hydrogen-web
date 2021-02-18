@@ -44,6 +44,22 @@ export class LogItem {
             return null;
         }
     }
+
+    durationWithoutType(type) {
+        return this.duration - this.durationOfType(type);
+    }
+
+    durationOfType(type) {
+        if (this._values.t === type) {
+            return this.duration;
+        } else if (this._children) {
+            return this._children.reduce((sum, c) => {
+                return sum + c.durationOfType(type);
+            }, 0);
+        } else {
+            return 0;
+        }
+    }
     
     /**
      * Creates a new child item that finishes immediately
