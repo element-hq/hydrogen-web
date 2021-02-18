@@ -81,12 +81,26 @@ async function loadFile() {
     const fragment = logs.items.reduce((fragment, item, i, items) => {
         const prevItem = i === 0 ? null : items[i - 1];
         fragment.appendChild(t.section([
-            t.h2(prevItem ? `+ ${itemStart(item) - itemEnd(prevItem)} ms` : new Date(itemStart(item)).toString()),
+            t.h2(prevItem ? `+ ${formatTime(itemStart(item) - itemEnd(prevItem))}` : new Date(itemStart(item)).toString()),
             t.div({className: "timeline"}, t.ol(itemToNode(item, [i])))
         ]));
         return fragment;
     }, document.createDocumentFragment());
     main.replaceChildren(fragment);
+}
+
+function formatTime(ms) {
+    if (ms < 1000) {
+        return `${ms}ms`;
+    } else if (ms < 1000 * 60) {
+        return `${(ms / 1000).toFixed(2)}s`;
+    } else if (ms < 1000 * 60 * 60) {
+        return `${(ms / (1000 * 60)).toFixed(2)}m`;
+    } else if (ms < 1000 * 60 * 60 * 24) {
+        return `${(ms / (1000 * 60 * 60)).toFixed(2)}h`;
+    } else  {
+        return `${(ms / (1000 * 60 * 60 * 24)).toFixed(2)}d`;
+    }
 }
 
 function itemChildren(item) { return item.c; }
