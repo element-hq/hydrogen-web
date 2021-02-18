@@ -27,10 +27,15 @@
 
             aside {
               grid-area: details;
+              padding: 8px;
             }
 
             aside h3 {
               word-wrap: anywhere;
+            }
+
+            aside p {
+                margin: 2px 0;
             }
 
             aside .values li span {
@@ -41,17 +46,26 @@
             aside .values {
               list-style: none;
               padding: 0;
+              border: 1px solid lightgray;
             }
 
-            aside .values span {
-              width: 50%;
+            aside .values span.key {
+              width: 30%;
               display: block;
+            }
+
+            aside .values span.value {
+              width: 70%;
+              display: block;
+              padding-left: 10px;
             }
 
             aside .values li {
               display: flex;
-              border: ;
-              border-bottom: 1px solid lightgray;
+            }
+
+            aside .values li:not(:first-child) {
+              border-top: 1px solid lightgray;
             }
 
             nav {

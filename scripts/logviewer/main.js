@@ -6,7 +6,9 @@ const main = document.querySelector("main");
 let selectedItemNode;
 let rootItem;
 
-document.querySelector("main").addEventListener("click", event => {
+const logLevels = [undefined, "All", "Debug", "Detail", "Info", "Warn", "Error", "Fatal", "Off"];
+
+main.addEventListener("click", event => {
     if (selectedItemNode) {
         selectedItemNode.classList.remove("selected");
         selectedItemNode = null;
@@ -30,12 +32,18 @@ document.querySelector("main").addEventListener("click", event => {
 });
 
 function showItemDetails(item, parent) {
+    const parentOffset = itemStart(parent) ? `${itemStart(item) - itemStart(parent)}ms` : "none";
     const aside = t.aside([
         t.h3(itemCaption(item)),
+        t.p([t.strong("Parent offset: "), parentOffset]),
+        t.p([t.strong("Log level: "), logLevels[itemLevel(item)]]),
+        t.p([t.strong("Error: "), itemError(item) ? `${itemError(item).name} ${itemError(item).stack}` : "none"]),
+        t.p([t.strong("Child count: "), itemChildren(item) ? `${itemChildren(item).length}` : "none"]),
+        t.p(t.strong("Values:")),
         t.ul({class: "values"}, Object.entries(itemValues(item)).map(([key, value]) => {
             return t.li([
-                t.span(normalizeValueKey(key)),
-                t.span(value)
+                t.span({className: "key"}, normalizeValueKey(key)),
+                t.span({className: "value"}, value)
             ]);
         }))
     ]);
