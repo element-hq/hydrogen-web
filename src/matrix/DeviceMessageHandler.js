@@ -36,6 +36,7 @@ export class DeviceMessageHandler {
      */
     async writeSync(toDeviceEvents, txn, log) {
         const encryptedEvents = toDeviceEvents.filter(e => e.type === "m.room.encrypted");
+        log.set("encryptedCount", encryptedEvents.length);
         if (!encryptedEvents.length) {
             return false;
         }
