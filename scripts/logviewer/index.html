@@ -72,6 +72,31 @@
               grid-area: nav;
             }
 
+            .timeline li:not(.expanded) > ol {
+                display: none;
+            }
+
+            .timeline li > div {
+                display: flex;
+            }
+
+            .timeline .toggleExpanded {
+                border: none;
+                background: none;
+                width: 24px;
+                height: 24px;
+                margin-right: 4px;
+                cursor: pointer;
+            }
+
+            .timeline .toggleExpanded:before {
+                content: "▶";
+            }
+
+            .timeline li.expanded > div > .toggleExpanded:before {
+                content: "▼";
+            }
+
             .timeline ol {
                 list-style: none;
                 padding: 0 0 0 20px;
@@ -86,6 +111,13 @@
                 padding: 2px;
                 display: flex;
                 margin: 1px;
+                flex: 1;
+                cursor: pointer;
+            }
+
+
+            .timeline div.item:not(.has-children) {
+                margin-left: calc(24px + 4px + 1px);
             }
 
             .timeline div.item .caption {

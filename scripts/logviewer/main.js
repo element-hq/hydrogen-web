@@ -13,21 +13,26 @@ main.addEventListener("click", event => {
         selectedItemNode.classList.remove("selected");
         selectedItemNode = null;
     }
-    const itemNode = event.target.closest(".item");
-    if (itemNode) {
-        selectedItemNode = itemNode;
-        selectedItemNode.classList.add("selected");
-        const path = selectedItemNode.dataset.path;
-        let item = rootItem;
-        let parent;
-        if (path.length) {
-            const indices = path.split("/").map(i => parseInt(i, 10));
-            for(const i of indices) {
-                parent = item;
-                item = itemChildren(item)[i];
+    if (event.target.classList.contains("toggleExpanded")) {
+        const li = event.target.parentElement.parentElement;
+        li.classList.toggle("expanded");
+    } else {
+        const itemNode = event.target.closest(".item");
+        if (itemNode) {
+            selectedItemNode = itemNode;
+            selectedItemNode.classList.add("selected");
+            const path = selectedItemNode.dataset.path;
+            let item = rootItem;
+            let parent;
+            if (path.length) {
+                const indices = path.split("/").map(i => parseInt(i, 10));
+                for(const i of indices) {
+                    parent = item;
+                    item = itemChildren(item)[i];
+                }
             }
+            showItemDetails(item, parent);
         }
-        showItemDetails(item, parent);
     }
 });
 
@@ -96,16 +101,22 @@ function normalizeValueKey(key) {
 
 // returns the node and the total range (recursively) occupied by the node
 function itemToNode(item, path) {
+    const hasChildren = !!itemChildren(item)?.length;
     const className = {
         item: true,
+        "has-children": hasChildren,
         error: itemError(item),
         [`type-${itemType(item)}`]: !!itemType(item),
         [`level-${itemLevel(item)}`]: true,
     };
+
     const li = t.li([
-        t.div({className, "data-path": path.join("/")}, [
-            t.span({class: "caption"}, itemCaption(item)),
-            t.span({class: "duration"}, `(${itemDuration(item)}ms)`),
+        t.div([
+            hasChildren ? t.button({className: "toggleExpanded"}) : "",
+            t.div({className, "data-path": path.join("/")}, [
+                t.span({class: "caption"}, itemCaption(item)),
+                t.span({class: "duration"}, `(${itemDuration(item)}ms)`),
+            ])
         ])
     ]);
     if (itemChildren(item) && itemChildren(item).length) {
