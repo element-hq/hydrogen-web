@@ -172,7 +172,7 @@ export class Sync {
         });
         const roomsPromises = roomsNeedingAfterSyncCompleted.map(async rs => {
             try {
-                await log.wrap("room", log => rs.room.afterSyncCompleted(rs.changes, log));
+                await log.wrap("room", log => rs.room.afterSyncCompleted(rs.changes, log), log.level.Detail);
             } catch (err) {} // error is logged, but don't fail roomsPromises
         });
         // run everything in parallel,

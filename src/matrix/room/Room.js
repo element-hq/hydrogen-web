@@ -211,7 +211,7 @@ export class Room extends EventEmitter {
                 log.set("id", this.id);
                 preparation.decryptChanges = await preparation.decryptPreparation.decrypt();
                 preparation.decryptPreparation = null;
-            });
+            }, parentLog.level.Detail);
         }
     }
 
