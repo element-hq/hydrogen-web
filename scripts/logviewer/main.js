@@ -31,18 +31,22 @@ main.addEventListener("click", event => {
                     item = itemChildren(item)[i];
                 }
             }
-            showItemDetails(item, parent);
+            showItemDetails(item, parent, itemNode);
         }
     }
 });
 
-function showItemDetails(item, parent) {
+function showItemDetails(item, parent, itemNode) {
     const parentOffset = itemStart(parent) ? `${itemStart(item) - itemStart(parent)}ms` : "none";
+    const expandButton = t.button("Expand recursively");
+    expandButton.addEventListener("click", () => expandResursively(itemNode.parentElement.parentElement));
     const aside = t.aside([
         t.h3(itemCaption(item)),
-        t.p([t.strong("Parent offset: "), parentOffset]),
         t.p([t.strong("Log level: "), logLevels[itemLevel(item)]]),
         t.p([t.strong("Error: "), itemError(item) ? `${itemError(item).name} ${itemError(item).stack}` : "none"]),
+        t.p([t.strong("Parent offset: "), parentOffset]),
+        t.p([t.strong("Start: "), new Date(itemStart(item)).toString()]),
+        t.p([t.strong("Duration: "), `${itemDuration(item)}ms`]),
         t.p([t.strong("Child count: "), itemChildren(item) ? `${itemChildren(item).length}` : "none"]),
         t.p(t.strong("Values:")),
         t.ul({class: "values"}, Object.entries(itemValues(item)).map(([key, value]) => {
@@ -50,9 +54,21 @@ function showItemDetails(item, parent) {
                 t.span({className: "key"}, normalizeValueKey(key)),
                 t.span({className: "value"}, value)
             ]);
-        }))
+        })),
+        t.p(expandButton)
     ]);
     document.querySelector("aside").replaceWith(aside);
+}
+
+function expandResursively(li) {
+    li.classList.add("expanded");
+    const ol = li.querySelector("ol");
+    if (ol) {
+        const len = ol.children.length;
+        for (let i = 0; i < len; i += 1) {
+            expandResursively(ol.children[i]);
+        }
+    }
 }
 
 document.getElementById("openFile").addEventListener("click", loadFile);
