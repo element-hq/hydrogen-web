@@ -68,7 +68,7 @@ function showItemDetails(item, parent, itemNode) {
         t.ul({class: "values"}, Object.entries(itemValues(item)).map(([key, value]) => {
             return t.li([
                 t.span({className: "key"}, normalizeValueKey(key)),
-                t.span({className: "value"}, value)
+                t.span({className: "value"}, value+"")
             ]);
         })),
         t.p(expandButton)
