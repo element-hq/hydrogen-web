@@ -82,6 +82,7 @@ export class IDBLogger extends BaseLogger {
 
     _finishAllAndFlush() {
         this._finishOpenItems();
+        this.log({l: "pagehide, closing logs", t: "navigation"});
         this._persistQueuedItems(this._queuedItems);
     }
 

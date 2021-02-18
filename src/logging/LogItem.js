@@ -86,7 +86,7 @@ export class LogItem {
                 return array;
             }, null);
         }
-        if (!filter.filter(this, children)) {
+        if (filter && !filter.filter(this, children)) {
             return null;
         }
         // in (v)alues, (l)abel and (t)ype are also reserved.
