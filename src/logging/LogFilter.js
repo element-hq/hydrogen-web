@@ -38,7 +38,7 @@ export class LogFilter {
             }
         }
         // neither our children or us have a loglevel high enough, filter out.
-        if (this._min !== null && children === null && item.logLevel < this._min) {
+        if (this._min !== null && !Array.isArray(children) && item.logLevel < this._min) {
             return false;
         } else {
             return true;
