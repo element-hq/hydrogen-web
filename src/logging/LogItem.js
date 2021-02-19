@@ -86,7 +86,7 @@ export class LogItem {
             try {
                 filter = this._filterCreator(new LogFilter(filter), this);
             } catch (err) {
-                console.error("Error creating log item", err);
+                console.error("Error creating log filter", err);
             }
         }
         let children;
