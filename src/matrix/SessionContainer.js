@@ -21,6 +21,7 @@ import {Reconnector, ConnectionStatus} from "./net/Reconnector.js";
 import {ExponentialRetryDelay} from "./net/ExponentialRetryDelay.js";
 import {MediaRepository} from "./net/MediaRepository.js";
 import {RequestScheduler} from "./net/RequestScheduler.js";
+import {TokenRefresher} from "./net/TokenRefresher.js";
 import {Sync, SyncStatus} from "./Sync.js";
 import {Session} from "./Session.js";
 
@@ -120,7 +121,13 @@ export class SessionContainer {
                     lastUsed: clock.now()
                 };
                 log.set("id", sessionId);
-                await this._platform.sessionInfoStorage.add(sessionInfo);            
+
+                if (loginData.refresh_token) {
+                    sessionInfo.accessTokenExpiresAt = clock.now() + loginData.expires_in * 1000;
+                    sessionInfo.refreshToken = loginData.refresh_token;
+                }
+
+                await this._platform.sessionInfoStorage.add(sessionInfo);
             } catch (err) {
                 this._error = err;
                 if (err.name === "HomeServerError") {
@@ -163,12 +170,30 @@ export class SessionContainer {
             retryDelay: new ExponentialRetryDelay(clock.createTimeout),
             createMeasure: clock.createMeasure
         });
+
+        let accessToken;
+        if (sessionInfo.refreshToken) {
+            this._tokenRefresher = new TokenRefresher({
+                accessToken: sessionInfo.accessToken,
+                accessTokenExpiresAt: sessionInfo.accessTokenExpiresAt,
+                refreshToken: sessionInfo.refreshToken,
+                anticipation: 10 * 1000, // Refresh 10 seconds before the expiration
+                clock,
+            });
+            accessToken = this._tokenRefresher.accessToken;
+        } else {
+            accessToken = new ObservableValue(sessionInfo.accessToken);
+        }
+
         const hsApi = new HomeServerApi({
             homeServer: sessionInfo.homeServer,
-            accessToken: sessionInfo.accessToken,
+            accessToken,
             request: this._platform.request,
             reconnector: this._reconnector,
         });
+        if (this._tokenRefresher) {
+            await this._tokenRefresher.start(hsApi);
+        }
         this._sessionId = sessionInfo.id;
         this._storage = await this._platform.storageFactory.create(sessionInfo.id);
         // no need to pass access token to session
