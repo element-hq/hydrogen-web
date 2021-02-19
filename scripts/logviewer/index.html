@@ -135,16 +135,33 @@
                 flex: 1;
             }
 
-            .timeline div.item.level-3 {
+            .timeline .item.level-3 {
                 --brightness: 90%;
             }
+
+            .timeline .item.level-2 {
+                --brightness: 95%;
+            }
+
+            .timeline .item.level-5 {
+                --brightness: 80%;
+            }
             
-            .timeline div.item.level-6 {
+            .timeline .item.level-6, .timeline .item.level-7 {
                 --hue: 0deg !important;
+            }
+
+            .timeline .item.level-7 {
+                --brightness: 50%;
+                color: white;
             }
 
             .timeline div.item.type-network {
                 --hue: 30deg;
+            }
+
+            .timeline div.item.type-navigation {
+                --hue: 200deg;
             }
 
             .timeline div.item.selected {
