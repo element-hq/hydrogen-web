@@ -106,7 +106,7 @@ export class SyncWriter {
      * @param  {Transaction} txn        used to read and write from the fragment store
      * @return {EventKey} the new event key to start writing events at
      */
-    async _ensureLiveFragment(currentKey, entries, timeline, txn) {
+    async _ensureLiveFragment(currentKey, entries, timeline, txn, log) {
         if (!currentKey) {
             // means we haven't synced this room yet (just joined or did initial sync)
             
@@ -115,6 +115,7 @@ export class SyncWriter {
             let liveFragment = await this._createLiveFragment(txn, timeline.prev_batch);
             currentKey = new EventKey(liveFragment.id, EventKey.defaultLiveKey.eventIndex);
             entries.push(FragmentBoundaryEntry.start(liveFragment, this._fragmentIdComparer));
+            log.log({l: "live fragment", first: true, id: currentKey.fragmentId});
         } else if (timeline.limited) {
             // replace live fragment for limited sync, *only* if we had a live fragment already
             const oldFragmentId = currentKey.fragmentId;
@@ -122,6 +123,7 @@ export class SyncWriter {
             const {oldFragment, newFragment} = await this._replaceLiveFragment(oldFragmentId, currentKey.fragmentId, timeline.prev_batch, txn);
             entries.push(FragmentBoundaryEntry.end(oldFragment, this._fragmentIdComparer));
             entries.push(FragmentBoundaryEntry.start(newFragment, this._fragmentIdComparer));
+            log.log({l: "live fragment", limited: true, id: currentKey.fragmentId});
         }
         return currentKey;
     }
@@ -148,10 +150,11 @@ export class SyncWriter {
         }
     }
 
-    _writeStateEvents(roomResponse, memberChanges, txn) {
+    _writeStateEvents(roomResponse, memberChanges, txn, log) {
         // persist state
         const {state} = roomResponse;
         if (Array.isArray(state?.events)) {
+            log.set("stateEvents", state.events.length);
             for (const event of state.events) {
                 const memberChange = this._writeStateEvent(event, txn);
                 if (memberChange) {
@@ -161,11 +164,13 @@ export class SyncWriter {
         }
     }
 
-    async _writeTimeline(entries, timeline, currentKey, memberChanges, txn) {
+    async _writeTimeline(entries, timeline, currentKey, memberChanges, txn, log) {
         if (Array.isArray(timeline.events) && timeline.events.length) {
             // only create a fragment when we will really write an event
-            currentKey = await this._ensureLiveFragment(currentKey, entries, timeline, txn);
+            currentKey = await this._ensureLiveFragment(currentKey, entries, timeline, txn, log);
             const events = deduplicateEvents(timeline.events);
+            log.set("timelineEvents", events.length);
+            let timelineStateEventCount = 0;
             for(const event of events) {
                 // store event in timeline
                 currentKey = currentKey.nextKey();
@@ -180,12 +185,14 @@ export class SyncWriter {
 
                 // process live state events first, so new member info is available
                 if (typeof event.state_key === "string") {
+                    timelineStateEventCount += 1;
                     const memberChange = this._writeStateEvent(event, txn);
                     if (memberChange) {
                         memberChanges.set(memberChange.userId, memberChange);
                     }
                 }
             }
+            log.set("timelineStateEventCount", timelineStateEventCount);
         }
         return currentKey;
     }
@@ -218,14 +225,15 @@ export class SyncWriter {
      * @param  {Transaction}  txn     
      * @return {SyncWriterResult}
      */
-    async writeSync(roomResponse, txn) {
+    async writeSync(roomResponse, txn, log) {
         const entries = [];
         const {timeline} = roomResponse;
         const memberChanges = new Map();
         // important this happens before _writeTimeline so
         // members are available in the transaction
-        this._writeStateEvents(roomResponse, memberChanges, txn);
-        const currentKey = await this._writeTimeline(entries, timeline, this._lastLiveKey, memberChanges, txn);
+        this._writeStateEvents(roomResponse, memberChanges, txn, log);
+        const currentKey = await this._writeTimeline(entries, timeline, this._lastLiveKey, memberChanges, txn, log);
+        log.set("memberChanges", memberChanges.size);
         return {entries, newLiveKey: currentKey, memberChanges};
     }
 

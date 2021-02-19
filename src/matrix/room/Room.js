@@ -219,7 +219,7 @@ export class Room extends EventEmitter {
     async writeSync(roomResponse, isInitialSync, {summaryChanges, decryptChanges, roomEncryption}, txn, log) {
         log.set("id", this.id);
         const {entries, newLiveKey, memberChanges} =
-            await this._syncWriter.writeSync(roomResponse, txn);
+            await log.wrap("syncWriter", log => this._syncWriter.writeSync(roomResponse, txn, log), log.level.Detail);
         if (decryptChanges) {
             const decryption = await decryptChanges.write(txn);
             decryption.applyToEntries(entries);

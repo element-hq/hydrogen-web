@@ -194,19 +194,17 @@ export class Sync {
 
         const isInitialSync = !syncToken;
         const roomStates = this._parseRoomsResponse(response.rooms, isInitialSync);
-        log.set("roomCount", roomStates.length);
 
         await log.wrap("prepare", log => this._prepareRooms(roomStates, log));
         
         let sessionChanges;
-        
         await log.wrap("write", async log => {
             const syncTxn = this._openSyncTxn();
             try {
-                sessionChanges = await log.wrap("session", log => this._session.writeSync(response, syncFilterId, syncTxn, log), log.level.Detail);
+                sessionChanges = await log.wrap("session", log => this._session.writeSync(response, syncFilterId, syncTxn, log));
                 await Promise.all(roomStates.map(async rs => {
                     rs.changes = await log.wrap("room", log => rs.room.writeSync(
-                        rs.roomResponse, isInitialSync, rs.preparation, syncTxn, log), log.level.Detail);
+                        rs.roomResponse, isInitialSync, rs.preparation, syncTxn, log));
                 }));
             } catch(err) {
                 // avoid corrupting state by only
