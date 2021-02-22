@@ -32,11 +32,13 @@ export class Disposables {
     }
 
     track(disposable) {
-        if (this.isDisposed) {
-            throw new Error("Already disposed, check isDisposed after await if needed");
-        }
         if (!isDisposable(disposable)) {
             throw new Error("Not a disposable");
+        }
+        if (this.isDisposed) {
+            console.warn("Disposables already disposed, disposing new value");
+            disposeValue(disposable);
+            return disposable;
         }
         this._disposables.push(disposable);
         return disposable;
