@@ -393,7 +393,7 @@ export class Session {
             changes.e2eeAccountChanges = this._e2eeAccount.writeSync(deviceOneTimeKeysCount, txn, log);
         }
     
-        const deviceLists = syncResponse?.device_lists;
+        const deviceLists = syncResponse.device_lists;
         if (this._deviceTracker && Array.isArray(deviceLists?.changed) && deviceLists.changed.length) {
             await log.wrap("deviceLists", log => this._deviceTracker.writeDeviceChanges(deviceLists.changed, txn, log));
         }
