@@ -1,5 +1,9 @@
 # FAQ
 
+## Is there a way to run the app as a desktop app?
+
+You can install Hydrogen as a PWA using Chrome/Chromium on any platform or Edge on Windows. Gnome Web/Ephiphany also allows to "Install site as web application". There is no Electron build of Hydrogen, and there will likely be none in the near future, as Electron complicates the release process considerably. Once Hydrogen is more mature and feature complete, we might reconsider and use [Tauri](https://tauri.studio) if there are compelling use cases not possible with PWAs. For now though, we want to keep development and releasing fast and nimble ;)
+
 ### Is feature X supported?
 
 If you can't find an easy way to locate the feature you are looking for, then the anwser is usually "no, not yet" :) But here are some things people have asked about in the past?
@@ -11,10 +15,6 @@ That's not yet a feature, as hydrogen just uses a single line text box for messa
 ### Hmm does Hydrogen not support leaving rooms? I left some rooms via Element and they moved to "Historical" but nothing happened on this end.
 
 Indeed :) Joining and leaving isn't implemented yet, just haven't gotten around to it.
-
-## Is there a way to run the app as a desktop app?
-
-You can install Hydrogen as a PWA using Chrome/Chromium on any platform or Edge on Windows. There is no Electron build of Hydrogen.
 
 ## How can I verify my session from Element?
 
