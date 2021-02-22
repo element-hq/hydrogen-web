@@ -90,7 +90,6 @@ export class Sync {
         this._syncLoop(syncToken);
     }
 
-
     async _syncLoop(syncToken) {
         // if syncToken is falsy, it will first do an initial sync ... 
         while(this._status.get() !== SyncStatus.Stopped) {
