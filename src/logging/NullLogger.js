@@ -20,6 +20,8 @@ export class NullLogger {
         this._item = new NullLogItem();
     }
 
+    log() {}
+
     run(_, callback) {
         return callback(this._item);    
     }

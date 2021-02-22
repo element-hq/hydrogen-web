@@ -122,33 +122,40 @@ export class Decryption {
      * @param {[type]} txn      a storage transaction with read/write on inboundGroupSessions
      * @return {Promise<Array<MegolmInboundSessionDescription>>} an array with the newly added sessions
      */
-    async addRoomKeys(decryptionResults, txn) {
+    async addRoomKeys(decryptionResults, txn, log) {
         const newSessions = [];
         for (const {senderCurve25519Key: senderKey, event, claimedEd25519Key} of decryptionResults) {
-            const roomId = event.content?.["room_id"];
-            const sessionId = event.content?.["session_id"];
-            const sessionKey = event.content?.["session_key"];
+            await log.wrap("room_key", async log => {
+                const roomId = event.content?.["room_id"];
+                const sessionId = event.content?.["session_id"];
+                const sessionKey = event.content?.["session_key"];
 
-            if (
-                typeof roomId !== "string" || 
-                typeof sessionId !== "string" || 
-                typeof senderKey !== "string" ||
-                typeof sessionKey !== "string"
-            ) {
-                return;
-            }
+                log.set("roomId", roomId);
+                log.set("sessionId", sessionId);
 
-            const session = new this._olm.InboundGroupSession();
-            try {
-                session.create(sessionKey);
-                const sessionEntry = await this._writeInboundSession(
-                    session, roomId, senderKey, claimedEd25519Key, sessionId, txn);
-                if (sessionEntry) {
-                    newSessions.push(sessionEntry);
+                if (
+                    typeof roomId !== "string" || 
+                    typeof sessionId !== "string" || 
+                    typeof senderKey !== "string" ||
+                    typeof sessionKey !== "string"
+                ) {
+                    log.logLevel = log.level.Warn;
+                    log.set("invalid", true);
+                    return;
                 }
-            } finally {
-                session.free();
-            }
+
+                const session = new this._olm.InboundGroupSession();
+                try {
+                    session.create(sessionKey);
+                    const sessionEntry = await this._writeInboundSession(
+                        session, roomId, senderKey, claimedEd25519Key, sessionId, txn);
+                    if (sessionEntry) {
+                        newSessions.push(sessionEntry);
+                    }
+                } finally {
+                    session.free();
+                }
+            }, log.level.Detail);
         }
         // this will be passed to the Room in notifyRoomKeys
         return newSessions;

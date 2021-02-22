@@ -108,7 +108,7 @@ export class HomeServerApi {
         if (options?.log) {
             const parent = options?.log;
             log = parent.child({
-                kind: "request",
+                t: "network",
                 url,
                 method,
             }, parent.level.Info);

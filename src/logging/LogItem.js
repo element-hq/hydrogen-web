@@ -32,7 +32,7 @@ export class LogItem {
     /**
      * Creates a new child item and runs it in `callback`.
      */
-    wrap(labelOrValues, callback, logLevel = LogLevel.Info, filterCreator = null) {
+    wrap(labelOrValues, callback, logLevel = null, filterCreator = null) {
         const item = this.child(labelOrValues, logLevel, filterCreator);
         return item.run(callback);
     }
@@ -44,6 +44,22 @@ export class LogItem {
             return null;
         }
     }
+
+    durationWithoutType(type) {
+        return this.duration - this.durationOfType(type);
+    }
+
+    durationOfType(type) {
+        if (this._values.t === type) {
+            return this.duration;
+        } else if (this._children) {
+            return this._children.reduce((sum, c) => {
+                return sum + c.durationOfType(type);
+            }, 0);
+        } else {
+            return 0;
+        }
+    }
     
     /**
      * Creates a new child item that finishes immediately
@@ -51,7 +67,7 @@ export class LogItem {
      * 
      * Hence, the child item is not returned.
      */
-    log(labelOrValues, logLevel = LogLevel.Info) {
+    log(labelOrValues, logLevel = null) {
         const item = this.child(labelOrValues, logLevel, null);
         item.end = item.start;
     }
@@ -65,18 +81,18 @@ export class LogItem {
         }
     }
 
-    serialize(filter, depth) {
+    serialize(filter) {
         if (this._filterCreator) {
             try {
                 filter = this._filterCreator(new LogFilter(filter), this);
             } catch (err) {
-                console.error("Error creating log item", err);
+                console.error("Error creating log filter", err);
             }
         }
         let children;
         if (this._children !== null) {
             children = this._children.reduce((array, c) => {
-                const s = c.serialize(filter, depth + 1);
+                const s = c.serialize(filter);
                 if (s) {
                     if (array === null) {
                         array = [];
@@ -86,9 +102,10 @@ export class LogItem {
                 return array;
             }, null);
         }
-        if (!filter.filter(this, children, depth)) {
+        if (filter && !filter.filter(this, children)) {
             return null;
         }
+        // in (v)alues, (l)abel and (t)ype are also reserved.
         const item = {
             // (s)tart
             s: this._start,
@@ -179,6 +196,9 @@ export class LogItem {
     child(labelOrValues, logLevel, filterCreator) {
         if (this._end !== null) {
             console.trace("log item is finished, additional logs will likely not be recorded");
+        }
+        if (!logLevel) {
+            logLevel = this.logLevel || LogLevel.Info;
         }
         const item = new LogItem(labelOrValues, logLevel, filterCreator, this._clock);
         if (this._children === null) {

@@ -43,7 +43,7 @@ export class DeviceTracker {
         this._ownDeviceId = ownDeviceId;
     }
 
-    async writeDeviceChanges(deviceLists, txn) {
+    async writeDeviceChanges(changed, txn, log) {
         const {userIdentities} = txn;
         // TODO: should we also look at left here to handle this?:
         // the usual problem here is that you share a room with a user,
@@ -52,15 +52,15 @@ export class DeviceTracker {
         // At which point you come online, all of this happens in the gap, 
         // and you don't notice that they ever left, 
         // and so the client doesn't invalidate their device cache for the user
-        if (Array.isArray(deviceLists.changed) && deviceLists.changed.length) {
-            await Promise.all(deviceLists.changed.map(async userId => {
-                const user = await userIdentities.get(userId);
-                if (user) {
-                    user.deviceTrackingStatus = TRACKING_STATUS_OUTDATED;
-                    userIdentities.set(user);
-                }
-            }));
-        }
+        log.set("changed", changed.length);
+        await Promise.all(changed.map(async userId => {
+            const user = await userIdentities.get(userId);
+            if (user) {
+                log.log({l: "outdated", id: userId});
+                user.deviceTrackingStatus = TRACKING_STATUS_OUTDATED;
+                userIdentities.set(user);
+            }
+        }));
     }
 
     writeMemberChanges(room, memberChanges, txn) {

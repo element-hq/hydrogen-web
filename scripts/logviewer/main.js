@@ -68,7 +68,7 @@ function showItemDetails(item, parent, itemNode) {
         t.ul({class: "values"}, Object.entries(itemValues(item)).map(([key, value]) => {
             return t.li([
                 t.span({className: "key"}, normalizeValueKey(key)),
-                t.span({className: "value"}, value)
+                t.span({className: "value"}, value+"")
             ]);
         })),
         t.p(expandButton)
@@ -128,11 +128,22 @@ function itemLevel(item) { return item.l; }
 function itemLabel(item) { return item.v?.l; }
 function itemType(item) { return item.v?.t; }
 function itemError(item) { return item.e; }
+function itemShortErrorMessage(item) {
+    if (itemError(item)) {
+        const e = itemError(item);
+        return e.name || e.stack.substr(0, e.stack.indexOf("\n")); 
+    }
+}
+
 function itemCaption(item) {
     if (itemType(item) === "network") {
         return `${itemValues(item)?.method} ${itemValues(item)?.url}`;
     } else if (itemLabel(item) && itemValues(item)?.id) {
         return `${itemLabel(item)} ${itemValues(item).id}`;
+    } else if (itemLabel(item) && itemValues(item)?.status) {
+        return `${itemLabel(item)} (${itemValues(item).status})`;
+    } else if (itemLabel(item) && itemError(item)) {
+        return `${itemLabel(item)} (${itemShortErrorMessage(item)})`;
     } else {
         return itemLabel(item) || itemType(item);
     }

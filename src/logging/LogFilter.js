@@ -17,30 +17,28 @@ limitations under the License.
 export const LogLevel = {
     All: 1,
     Debug: 2,
-    Info: 3,
-    Warn: 4,
-    Error: 5,
-    Fatal: 6,
-    Off: 7,
+    Detail: 3,
+    Info: 4,
+    Warn: 5,
+    Error: 6,
+    Fatal: 7,
+    Off: 8,
 }
 
 export class LogFilter {
     constructor(parentFilter) {
         this._parentFilter = parentFilter;
         this._min = null;
-        this._maxDepth = null;
     }
 
-    filter(item, children, depth) {
+    filter(item, children) {
         if (this._parentFilter) {
-            if (!this._parentFilter.filter(item, children, depth)) {
+            if (!this._parentFilter.filter(item, children)) {
                 return false;
             }
         }
         // neither our children or us have a loglevel high enough, filter out.
-        if (this._min !== null && children === null && item.logLevel < this._min) {
-            return false;
-        } if (this._maxDepth !== null && depth > this._maxDepth) {
+        if (this._min !== null && !Array.isArray(children) && item.logLevel < this._min) {
             return false;
         } else {
             return true;
@@ -50,11 +48,6 @@ export class LogFilter {
     /* methods to build the filter */
     minLevel(logLevel) {
         this._min = logLevel;
-        return this;
-    }
-
-    maxDepth(depth) {
-        this._maxDepth = depth;
         return this;
     }
 }

@@ -23,6 +23,12 @@ export class BaseLogger {
         this._platform = platform;
     }
 
+    log(labelOrValues, logLevel = LogLevel.Info) {
+        const item = new LogItem(labelOrValues, logLevel, null, this._platform.clock);
+        item._end = item._start;
+        this._persistItem(item.serialize(null));
+    }
+
     run(labelOrValues, callback, logLevel = LogLevel.Info, filterCreator = null) {
         const item = new LogItem(labelOrValues, logLevel, null, this._platform.clock);
         this._openItems.add(item);
@@ -31,7 +37,7 @@ export class BaseLogger {
             let filter = new LogFilter();
             if (filterCreator) {
                 try {
-                    filter = filterCreator(filter, this);
+                    filter = filterCreator(filter, item);
                 } catch (err) {
                     console.error("Error while creating log filter", err);
                 }
@@ -40,7 +46,7 @@ export class BaseLogger {
                 filter = filter.minLevel(logLevel);
             }
             try {
-                const serialized = item.serialize(filter, 0);
+                const serialized = item.serialize(filter);
                 if (serialized) {
                     this._persistItem(serialized);
                 }

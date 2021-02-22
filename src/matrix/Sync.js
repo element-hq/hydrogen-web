@@ -95,73 +95,75 @@ export class Sync {
         while(this._status.get() !== SyncStatus.Stopped) {
             let roomStates;
             let sessionChanges;
-            try {
-                console.log(`starting sync request with since ${syncToken} ...`);
-                // unless we are happily syncing already, we want the server to return
-                // as quickly as possible, even if there are no events queued. This
-                // serves two purposes:
-                //
-                // * When the connection dies, we want to know asap when it comes back,
-                //   so that we can hide the error from the user. (We don't want to
-                //   have to wait for an event or a timeout).
-                //
-                // * We want to know if the server has any to_device messages queued up
-                //   for us. We do that by calling it with a zero timeout until it
-                //   doesn't give us any more to_device messages.
-                const timeout = this._status.get() === SyncStatus.Syncing ? INCREMENTAL_TIMEOUT : 0; 
-                const syncResult = await this._logger.run("sync",
-                    log => this._syncRequest(syncToken, timeout, log),
-                    this._logger.level.Info,
-                    (filter, log) => {
-                        if (log.duration >= 2000 || this._status.get() === SyncStatus.CatchupSync) {
-                            return filter.minLevel(log.level.Info);
-                        } else if (log.error) {
-                            return filter.minLevel(log.level.Error);
-                        } else {
-                            return filter.maxDepth(0);
-                        }
-                });
-                syncToken = syncResult.syncToken;
-                roomStates = syncResult.roomStates;
-                sessionChanges = syncResult.sessionChanges;
-                // initial sync or catchup sync
-                if (this._status.get() !== SyncStatus.Syncing && syncResult.hadToDeviceMessages) {
-                    this._status.set(SyncStatus.CatchupSync);
+            let wasCatchupOrInitial = this._status.get() === SyncStatus.CatchupSync || this._status.get() === SyncStatus.InitialSync;
+            await this._logger.run("sync", async log => {
+                log.set("token", syncToken);
+                log.set("status", this._status.get());
+                try {
+                    // unless we are happily syncing already, we want the server to return
+                    // as quickly as possible, even if there are no events queued. This
+                    // serves two purposes:
+                    //
+                    // * When the connection dies, we want to know asap when it comes back,
+                    //   so that we can hide the error from the user. (We don't want to
+                    //   have to wait for an event or a timeout).
+                    //
+                    // * We want to know if the server has any to_device messages queued up
+                    //   for us. We do that by calling it with a zero timeout until it
+                    //   doesn't give us any more to_device messages.
+                    const timeout = this._status.get() === SyncStatus.Syncing ? INCREMENTAL_TIMEOUT : 0; 
+                    const syncResult = await this._syncRequest(syncToken, timeout, log);
+                    syncToken = syncResult.syncToken;
+                    roomStates = syncResult.roomStates;
+                    sessionChanges = syncResult.sessionChanges;
+                    // initial sync or catchup sync
+                    if (this._status.get() !== SyncStatus.Syncing && syncResult.hadToDeviceMessages) {
+                        this._status.set(SyncStatus.CatchupSync);
+                    } else {
+                        this._status.set(SyncStatus.Syncing);
+                    }
+                } catch (err) {
+                    // retry same request on timeout
+                    if (err.name === "ConnectionError" && err.isTimeout) {
+                        // don't run afterSyncCompleted
+                        return;
+                    }
+                    this._error = err;
+                    if (err.name !== "AbortError") {
+                        // sync wasn't asked to stop, but is stopping
+                        // because of the error.
+                        log.error = err;
+                        log.logLevel = log.level.Fatal;
+                    }
+                    log.set("stopping", true);
+                    this._status.set(SyncStatus.Stopped);
+                }
+                if (this._status.get() !== SyncStatus.Stopped) {
+                    // TODO: if we're not going to run this phase in parallel with the next
+                    // sync request (because this causes OTKs to be uploaded twice)
+                    // should we move this inside _syncRequest?
+                    // Alternatively, we can try to fix the OTK upload issue while still
+                    // running in parallel.
+                    await log.wrap("afterSyncCompleted", log => this._runAfterSyncCompleted(sessionChanges, roomStates, log));
+                }
+            },
+            this._logger.level.Info,
+            (filter, log) => {
+                if (log.durationWithoutType("network") >= 2000 || log.error || wasCatchupOrInitial) {
+                    return filter.minLevel(log.level.Detail);
                 } else {
-                    this._status.set(SyncStatus.Syncing);
+                    return filter.minLevel(log.level.Info);
                 }
-            } catch (err) {
-                // retry same request on timeout
-                if (err.name === "ConnectionError" && err.isTimeout) {
-                    // don't run afterSyncCompleted
-                    continue;
-                }
-                this._error = err;
-                if (err.name !== "AbortError") {
-                    console.warn("stopping sync because of error");
-                    console.error(err);
-                }
-                this._status.set(SyncStatus.Stopped);
-            }
-            if (this._status.get() !== SyncStatus.Stopped) {
-                // TODO: if we're not going to run this phase in parallel with the next
-                // sync request (because this causes OTKs to be uploaded twice)
-                // should we move this inside _syncRequest?
-                // Alternatively, we can try to fix the OTK upload issue while still
-                // running in parallel. 
-                await this._runAfterSyncCompleted(sessionChanges, roomStates);
-            }
+            });
         }
     }
 
-    async _runAfterSyncCompleted(sessionChanges, roomStates) {
+    async _runAfterSyncCompleted(sessionChanges, roomStates, log) {
         const isCatchupSync = this._status.get() === SyncStatus.CatchupSync;
         const sessionPromise = (async () => {
             try {
-                await this._session.afterSyncCompleted(sessionChanges, isCatchupSync);
-            } catch (err) {
-                console.error("error during session afterSyncCompleted, continuing",  err.stack);
-            }
+                await log.wrap("session", log => this._session.afterSyncCompleted(sessionChanges, isCatchupSync, log), log.level.Detail);
+            } catch (err) {} // error is logged, but don't fail sessionPromise
         })();
 
         const roomsNeedingAfterSyncCompleted = roomStates.filter(rs => {
@@ -169,10 +171,8 @@ export class Sync {
         });
         const roomsPromises = roomsNeedingAfterSyncCompleted.map(async rs => {
             try {
-                await rs.room.afterSyncCompleted(rs.changes);
-            } catch (err) {
-                console.error(`error during room ${rs.room.id} afterSyncCompleted, continuing`,  err.stack);
-            }
+                await log.wrap("room", log => rs.room.afterSyncCompleted(rs.changes, log), log.level.Detail);
+            } catch (err) {} // error is logged, but don't fail roomsPromises
         });
         // run everything in parallel,
         // we don't want to delay the next sync too much
@@ -184,7 +184,7 @@ export class Sync {
     async _syncRequest(syncToken, timeout, log) {
         let {syncFilterId} = this._session;
         if (typeof syncFilterId !== "string") {
-            this._currentRequest = this._hsApi.createFilter(this._session.user.id, {room: {state: {lazy_load_members: true}}});
+            this._currentRequest = this._hsApi.createFilter(this._session.user.id, {room: {state: {lazy_load_members: true}}}, {log});
             syncFilterId = (await this._currentRequest.response()).filter_id;
         }
         const totalRequestTimeout = timeout + (80 * 1000);  // same as riot-web, don't get stuck on wedged long requests
@@ -192,47 +192,44 @@ export class Sync {
         const response = await this._currentRequest.response();
 
         const isInitialSync = !syncToken;
-        syncToken = response.next_batch;
-        log.set("syncToken", syncToken);
-        log.set("status", this._status.get());
-
         const roomStates = this._parseRoomsResponse(response.rooms, isInitialSync);
-        await log.wrap("prepare rooms", log => this._prepareRooms(roomStates, log));
+
+        await log.wrap("prepare", log => this._prepareRooms(roomStates, log));
+        
         let sessionChanges;
-        const syncTxn = this._openSyncTxn();
-        try {
-            sessionChanges = await log.wrap("session.writeSync", log => this._session.writeSync(response, syncFilterId, syncTxn, log));
-            await Promise.all(roomStates.map(async rs => {
-                rs.changes = await log.wrap("room.writeSync", log => rs.room.writeSync(
-                    rs.roomResponse, isInitialSync, rs.preparation, syncTxn, log));
-            }));
-        } catch(err) {
-            // avoid corrupting state by only
-            // storing the sync up till the point
-            // the exception occurred
+        await log.wrap("write", async log => {
+            const syncTxn = this._openSyncTxn();
             try {
-                syncTxn.abort();
-            } catch (abortErr) {
-                console.error("Could not abort sync transaction, the sync response was probably only partially written and may have put storage in a inconsistent state.", abortErr);
+                sessionChanges = await log.wrap("session", log => this._session.writeSync(response, syncFilterId, syncTxn, log));
+                await Promise.all(roomStates.map(async rs => {
+                    rs.changes = await log.wrap("room", log => rs.room.writeSync(
+                        rs.roomResponse, isInitialSync, rs.preparation, syncTxn, log));
+                }));
+            } catch(err) {
+                // avoid corrupting state by only
+                // storing the sync up till the point
+                // the exception occurred
+                try {
+                    syncTxn.abort();
+                } catch (abortErr) {
+                    log.set("couldNotAbortTxn", true);
+                }
+                throw err;
             }
-            throw err;
-        }
-        try {
             await syncTxn.complete();
-            console.info("syncTxn committed!!");
-        } catch (err) {
-            console.error("unable to commit sync tranaction");
-            throw err;
-        }
-        this._session.afterSync(sessionChanges);
-        // emit room related events after txn has been closed
-        for(let rs of roomStates) {
-            rs.room.afterSync(rs.changes);
-        }
+        });
+
+        log.wrap("after", log => {
+            log.wrap("session", log => this._session.afterSync(sessionChanges, log), log.level.Detail);
+            // emit room related events after txn has been closed
+            for(let rs of roomStates) {
+                log.wrap("room", log => rs.room.afterSync(rs.changes, log), log.level.Detail);
+            }
+        });
 
         const toDeviceEvents = response.to_device?.events;
         return {
-            syncToken,
+            syncToken: response.next_batch,
             roomStates,
             sessionChanges,
             hadToDeviceMessages: Array.isArray(toDeviceEvents) && toDeviceEvents.length > 0,
@@ -249,11 +246,11 @@ export class Sync {
     async _prepareRooms(roomStates, log) {
         const prepareTxn = this._openPrepareSyncTxn();
         await Promise.all(roomStates.map(async rs => {
-            rs.preparation = await log.wrap("room.prepareSync", log => rs.room.prepareSync(rs.roomResponse, rs.membership, prepareTxn, log));
+            rs.preparation = await log.wrap("room", log => rs.room.prepareSync(rs.roomResponse, rs.membership, prepareTxn, log), log.level.Detail);
         }));
         // This is needed for safari to not throw TransactionInactiveErrors on the syncTxn. See docs/INDEXEDDB.md
         await prepareTxn.complete();
-        await Promise.all(roomStates.map(rs => rs.room.afterPrepareSync(rs.preparation)));
+        await Promise.all(roomStates.map(rs => rs.room.afterPrepareSync(rs.preparation, log)));
     }
 
     _openSyncTxn() {
