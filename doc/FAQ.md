@@ -4,9 +4,9 @@
 
 You can install Hydrogen as a PWA using Chrome/Chromium on any platform or Edge on Windows. Gnome Web/Ephiphany also allows to "Install site as web application". There is no Electron build of Hydrogen, and there will likely be none in the near future, as Electron complicates the release process considerably. Once Hydrogen is more mature and feature complete, we might reconsider and use [Tauri](https://tauri.studio) if there are compelling use cases not possible with PWAs. For now though, we want to keep development and releasing fast and nimble ;)
 
-### Is feature X supported?
+## Is feature X supported?
 
-If you can't find an easy way to locate the feature you are looking for, then the anwser is usually "no, not yet" :) But here are some things people have asked about in the past?
+If you can't find an easy way to locate the feature you are looking for, then the anwser is usually "no, not yet" :) But here are some things people have asked about in the past:
 
 ### How does newline work? Shift+Enter has no effect.
 
