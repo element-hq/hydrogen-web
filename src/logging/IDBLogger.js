@@ -20,7 +20,6 @@ import {
     reqAsPromise,
     iterateCursor,
     fetchResults,
-    encodeUint64
 } from "../matrix/storage/idb/utils.js";
 import {BaseLogger} from "./BaseLogger.js";
 
@@ -30,9 +29,6 @@ export class IDBLogger extends BaseLogger {
         const {name, flushInterval = 60 * 1000, limit = 3000} = options;
         this._name = name;
         this._limit = limit;
-        // does not get loaded from idb on startup as we only use it to
-        // differentiate between two items with the same start time
-        this._itemCounter = 0;
         this._queuedItems = this._loadQueuedItems();
         // TODO: also listen for unload just in case sync keeps on running after pagehide is fired?
         window.addEventListener("pagehide", this, false);
@@ -101,13 +97,11 @@ export class IDBLogger extends BaseLogger {
     }
 
     _openDB() {
-        return openDatabase(this._name, db => db.createObjectStore("logs", {keyPath: "id"}), 1);
+        return openDatabase(this._name, db => db.createObjectStore("logs", {keyPath: "id", autoIncrement: true}), 1);
     }
     
     _persistItem(serializedItem) {
-        this._itemCounter += 1;
         this._queuedItems.push({
-            id: `${encodeUint64(serializedItem.s)}:${this._itemCounter}`,
             json: JSON.stringify(serializedItem)
         });
     }
@@ -127,10 +121,7 @@ export class IDBLogger extends BaseLogger {
             const logs = txn.objectStore("logs");
             const storedItems = await fetchResults(logs.openCursor(), () => false);
             const allItems = storedItems.concat(this._queuedItems);
-            const sortedItems = allItems.sort((a, b) => {
-                return a.id > b.id;
-            });
-            return new IDBLogExport(sortedItems, this, this._platform);
+            return new IDBLogExport(allItems, this, this._platform);
         } finally {
             try {
                 db.close();
