@@ -14,7 +14,7 @@ That's not yet a feature, as hydrogen just uses a single line text box for messa
 
 ### Hmm does Hydrogen not support leaving rooms? I left some rooms via Element and they moved to "Historical" but nothing happened on this end.
 
-Indeed :) Joining and leaving isn't implemented yet, just haven't gotten around to it.
+Indeed :) [Joining](https://github.com/vector-im/hydrogen-web/issues/28) and [leaving](https://github.com/vector-im/hydrogen-web/issues/147) isn't implemented yet, just haven't gotten around to it.
 
 ## How can I verify my session from Element?
 
