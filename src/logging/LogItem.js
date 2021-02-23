@@ -77,7 +77,8 @@ export class LogItem {
      */
     log(labelOrValues, logLevel = null) {
         const item = this.child(labelOrValues, logLevel, null);
-        item.end = item.start;
+        item._end = item._start;
+    }
 
     refDetached(logItem, logLevel = null) {
         return this.log({ref: logItem._values.refId}, logLevel);
