@@ -97,15 +97,29 @@ function expandResursively(li) {
 
 document.getElementById("openFile").addEventListener("click", loadFile);
 
+function getRootItemHeader(prevItem, item) {
+    if (prevItem) {
+        const diff = itemStart(item) - itemEnd(prevItem);
+        if (diff >= 0) {
+            return `+ ${formatTime(diff)}`;
+        } else {
+            return `ran ${formatTime(-diff)} in parallel with`;
+        }
+    } else {
+        return new Date(itemStart(item)).toString();
+    }
+}
+
 async function loadFile() {
     const file = await openFile();
     const json = await readFileAsText(file);
     const logs = JSON.parse(json);
+    logs.items.sort((a, b) => itemStart(a) - itemStart(b));
     rootItem = {c: logs.items};
     const fragment = logs.items.reduce((fragment, item, i, items) => {
         const prevItem = i === 0 ? null : items[i - 1];
         fragment.appendChild(t.section([
-            t.h2(prevItem ? `+ ${formatTime(itemStart(item) - itemEnd(prevItem))}` : new Date(itemStart(item)).toString()),
+            t.h2(getRootItemHeader(prevItem, item)),
             t.div({className: "timeline"}, t.ol(itemToNode(item, [i])))
         ]));
         return fragment;
