@@ -52,6 +52,14 @@ main.addEventListener("click", event => {
     }
 });
 
+function stringifyItemValue(value) {
+    if (typeof value === "object" && value !== null) {
+        return JSON.stringify(value, undefined, 2);
+    } else {
+        return value + "";
+    }
+}
+
 function showItemDetails(item, parent, itemNode) {
     const parentOffset = itemStart(parent) ? `${itemStart(item) - itemStart(parent)}ms` : "none";
     const expandButton = t.button("Expand recursively");
@@ -68,7 +76,7 @@ function showItemDetails(item, parent, itemNode) {
         t.ul({class: "values"}, Object.entries(itemValues(item)).map(([key, value]) => {
             return t.li([
                 t.span({className: "key"}, normalizeValueKey(key)),
-                t.span({className: "value"}, value+"")
+                t.span({className: "value"}, stringifyItemValue(value))
             ]);
         })),
         t.p(expandButton)
