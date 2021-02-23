@@ -328,7 +328,7 @@ export class Session {
         const operations = await opsTxn.operations.getAll();
         const operationsByScope = groupBy(operations, o => o.scope);
 
-        for (const [, room] of this._rooms) {
+        for (const room of this._rooms.values()) {
             let roomOperationsByType;
             const roomOperations = operationsByScope.get(room.id);
             if (roomOperations) {
