@@ -69,11 +69,11 @@ export class DeviceTracker {
         }));
     }
 
-    async trackRoom(room) {
+    async trackRoom(room, log) {
         if (room.isTrackingMembers || !room.isEncrypted) {
             return;
         }
-        const memberList = await room.loadMemberList();
+        const memberList = await room.loadMemberList(log);
         try {
             const txn = this._storage.readWriteTxn([
                 this._storage.storeNames.roomSummary,
@@ -83,6 +83,7 @@ export class DeviceTracker {
             try {
                 isTrackingChanges = room.writeIsTrackingMembers(true, txn);
                 const members = Array.from(memberList.members.values());
+                log.set("members", members.length);
                 await this._writeJoinedMembers(members, txn);
             } catch (err) {
                 txn.abort();
@@ -142,7 +143,7 @@ export class DeviceTracker {
         }
     }
 
-    async _queryKeys(userIds, hsApi) {
+    async _queryKeys(userIds, hsApi, log) {
         // TODO: we need to handle the race here between /sync and /keys/query just like we need to do for the member list ...
         // there are multiple requests going out for /keys/query though and only one for /members
 
@@ -153,9 +154,9 @@ export class DeviceTracker {
                 return deviceKeysMap;
             }, {}),
             "token": this._getSyncToken()
-        }).response();
+        }, {log}).response();
 
-        const verifiedKeysPerUser = this._filterVerifiedDeviceKeys(deviceKeyResponse["device_keys"]);
+        const verifiedKeysPerUser = log.wrap("verify", log => this._filterVerifiedDeviceKeys(deviceKeyResponse["device_keys"], log));
         const txn = this._storage.readWriteTxn([
             this._storage.storeNames.userIdentities,
             this._storage.storeNames.deviceIdentities,
@@ -167,6 +168,7 @@ export class DeviceTracker {
                 return await this._storeQueriedDevicesForUserId(userId, deviceIdentities, txn);
             }));
             deviceIdentities = devicesIdentitiesPerUser.reduce((all, devices) => all.concat(devices), []);
+            log.set("devices", deviceIdentities.length);
         } catch (err) {
             txn.abort();
             throw err;
@@ -215,7 +217,7 @@ export class DeviceTracker {
     /**
      * @return {Array<{userId, verifiedKeys: Array<DeviceSection>>}
      */
-    _filterVerifiedDeviceKeys(keyQueryDeviceKeysResponse) {
+    _filterVerifiedDeviceKeys(keyQueryDeviceKeysResponse, parentLog) {
         const curve25519Keys = new Set();
         const verifiedKeys = Object.entries(keyQueryDeviceKeysResponse).map(([userId, keysByDevice]) => {
             const verifiedEntries = Object.entries(keysByDevice).filter(([deviceId, deviceKeys]) => {
@@ -233,11 +235,21 @@ export class DeviceTracker {
                     return false;
                 }
                 if (curve25519Keys.has(curve25519Key)) {
-                    console.warn("ignoring device with duplicate curve25519 key in /keys/query response", deviceKeys);
+                    parentLog.log({
+                        l: "ignore device with duplicate curve25519 key",
+                        keys: deviceKeys
+                    }, parentLog.level.Warn);
                     return false;
                 }
                 curve25519Keys.add(curve25519Key);
-                return this._hasValidSignature(deviceKeys);
+                const isValid = this._hasValidSignature(deviceKeys);
+                if (!isValid) {
+                    parentLog.log({
+                        l: "ignore device with invalid signature",
+                        keys: deviceKeys
+                    }, parentLog.level.Warn);
+                }
+                return isValid;
             });
             const verifiedKeys = verifiedEntries.map(([, deviceKeys]) => deviceKeys);
             return {userId, verifiedKeys};
@@ -258,7 +270,7 @@ export class DeviceTracker {
      * @param  {String} roomId [description]
      * @return {[type]}        [description]
      */
-    async devicesForTrackedRoom(roomId, hsApi) {
+    async devicesForTrackedRoom(roomId, hsApi, log) {
         const txn = this._storage.readTxn([
             this._storage.storeNames.roomMembers,
             this._storage.storeNames.userIdentities,
@@ -271,14 +283,14 @@ export class DeviceTracker {
         // So, this will also contain non-joined memberships
         const userIds = await txn.roomMembers.getAllUserIds(roomId);
 
-        return await this._devicesForUserIds(roomId, userIds, txn, hsApi);
+        return await this._devicesForUserIds(roomId, userIds, txn, hsApi, log);
     }
 
-    async devicesForRoomMembers(roomId, userIds, hsApi) {
+    async devicesForRoomMembers(roomId, userIds, hsApi, log) {
         const txn = this._storage.readTxn([
             this._storage.storeNames.userIdentities,
         ]);
-        return await this._devicesForUserIds(roomId, userIds, txn, hsApi);
+        return await this._devicesForUserIds(roomId, userIds, txn, hsApi, log);
     }
 
     /**
@@ -288,7 +300,7 @@ export class DeviceTracker {
      * @param  {HomeServerApi} hsApi
      * @return {Array<DeviceIdentity>}
      */
-    async _devicesForUserIds(roomId, userIds, userIdentityTxn, hsApi) {
+    async _devicesForUserIds(roomId, userIds, userIdentityTxn, hsApi, log) {
         const allMemberIdentities = await Promise.all(userIds.map(userId => userIdentityTxn.userIdentities.get(userId)));
         const identities = allMemberIdentities.filter(identity => {
             // identity will be missing for any userIds that don't have 
@@ -297,12 +309,14 @@ export class DeviceTracker {
         });
         const upToDateIdentities = identities.filter(i => i.deviceTrackingStatus === TRACKING_STATUS_UPTODATE);
         const outdatedIdentities = identities.filter(i => i.deviceTrackingStatus === TRACKING_STATUS_OUTDATED);
+        log.set("uptodate", upToDateIdentities.length);
+        log.set("outdated", outdatedIdentities.length);
         let queriedDevices;
         if (outdatedIdentities.length) {
             // TODO: ignore the race between /sync and /keys/query for now,
             // where users could get marked as outdated or added/removed from the room while
             // querying keys
-            queriedDevices = await this._queryKeys(outdatedIdentities.map(i => i.userId), hsApi);
+            queriedDevices = await this._queryKeys(outdatedIdentities.map(i => i.userId), hsApi, log);
         }
 
         const deviceTxn = this._storage.readTxn([

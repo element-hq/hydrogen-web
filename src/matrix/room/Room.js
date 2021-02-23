@@ -361,17 +361,26 @@ export class Room extends EventEmitter {
     }
 
     /** @public */
-    sendEvent(eventType, content, attachments) {
-        return this._sendQueue.enqueueEvent(eventType, content, attachments);
+    sendEvent(eventType, content, attachments, log = null) {
+        this._platform.logger.wrapOrRun(log, "send", log => {
+            log.set("id", this.id);
+            return this._sendQueue.enqueueEvent(eventType, content, attachments, log);
+        });
     }
 
     /** @public */
-    async ensureMessageKeyIsShared() {
-        return this._roomEncryption?.ensureMessageKeyIsShared(this._hsApi);
+    async ensureMessageKeyIsShared(log = null) {
+        if (!this._roomEncryption) {
+            return;
+        }
+        return this._platform.logger.wrapOrRun(log, "ensureMessageKeyIsShared", log => {
+            log.set("id", this.id);
+            return this._roomEncryption.ensureMessageKeyIsShared(this._hsApi, log);
+        });
     }
 
     /** @public */
-    async loadMemberList() {
+    async loadMemberList(log = null) {
         if (this._memberList) {
             // TODO: also await fetchOrLoadMembers promise here
             this._memberList.retain();
@@ -385,7 +394,8 @@ export class Room extends EventEmitter {
                 syncToken: this._getSyncToken(),
                 // to handle race between /members and /sync
                 setChangedMembersMap: map => this._changedMembersDuringSync = map,
-            });
+                log,
+            }, this._platform.logger);
             this._memberList = new MemberList({
                 members,
                 closeCallback: () => { this._memberList = null; }

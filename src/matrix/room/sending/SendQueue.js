@@ -26,9 +26,6 @@ export class SendQueue {
         this._storage = storage;
         this._hsApi = hsApi;
         this._pendingEvents = new SortedArray((a, b) => a.queueIndex - b.queueIndex);
-        if (pendingEvents.length) {
-            console.info(`SendQueue for room ${roomId} has ${pendingEvents.length} pending events`, pendingEvents);
-        }
         this._pendingEvents.setManyUnsorted(pendingEvents.map(data => this._createPendingEvent(data)));
         this._isSending = false;
         this._offline = false;
@@ -49,43 +46,49 @@ export class SendQueue {
         this._roomEncryption = roomEncryption;
     }
 
-    async _sendLoop() {
+    _sendLoop(log) {
         this._isSending = true;
-        try {
-            for (let i = 0; i < this._pendingEvents.length; i += 1) {
-                const pendingEvent = this._pendingEvents.get(i);
-                try {
-                    await this._sendEvent(pendingEvent);
-                } catch(err) {
-                    if (err instanceof ConnectionError) {
-                        this._offline = true;
-                        break;
-                    } else {
-                        pendingEvent.setError(err);
-                    }
-                } 
+        this._sendLoopLogItem = log.runDetached("send queue flush", async log => {
+            try {
+                for (let i = 0; i < this._pendingEvents.length; i += 1) {
+                    await log.wrap("send event", async log => {
+                        const pendingEvent = this._pendingEvents.get(i);
+                        log.set("id", pendingEvent.queueIndex);
+                        try {
+                            await this._sendEvent(pendingEvent, log);
+                        } catch(err) {
+                            if (err instanceof ConnectionError) {
+                                this._offline = true;
+                                log.set("offline", true);
+                            } else {
+                                log.catch(err);
+                                pendingEvent.setError(err);
+                            }
+                        }
+                    });
+                }
+            } finally {
+                this._isSending = false;
+                this._sendLoopLogItem = null;
             }
-        } finally {
-            this._isSending = false;
-        }
+        });
     }
 
-    async _sendEvent(pendingEvent) {
+    async _sendEvent(pendingEvent, log) {
         if (pendingEvent.needsUpload) {
-            await pendingEvent.uploadAttachments(this._hsApi);
-            console.log("attachments upload, content is now", pendingEvent.content);
+            await log.wrap("upload attachments", log => pendingEvent.uploadAttachments(this._hsApi, log));
             await this._tryUpdateEvent(pendingEvent);
         }
         if (pendingEvent.needsEncryption) {
             pendingEvent.setEncrypting();
-            const {type, content} = await this._roomEncryption.encrypt(
-                pendingEvent.eventType, pendingEvent.content, this._hsApi);
+            const {type, content} = await log.wrap("encrypt", log => this._roomEncryption.encrypt(
+                pendingEvent.eventType, pendingEvent.content, this._hsApi, log));
             pendingEvent.setEncrypted(type, content);
             await this._tryUpdateEvent(pendingEvent);
         }
         if (pendingEvent.needsSending) {
-            await pendingEvent.send(this._hsApi);
-            console.log("writing remoteId");
+            await pendingEvent.send(this._hsApi, log);
+            
             await this._tryUpdateEvent(pendingEvent);
         }
     }
@@ -134,19 +137,32 @@ export class SendQueue {
         }
     }
 
-    resumeSending() {
+    resumeSending(parentLog) {
         this._offline = false;
-        if (!this._isSending) {
-            this._sendLoop();
+        if (this._pendingEvents.length) {
+            parentLog.wrap("resumeSending", log => {
+                log.set("id", this._roomId);
+                log.set("pendingEvents", this._pendingEvents.length);
+                if (!this._isSending) {
+                    this._sendLoop(log);
+                }
+                if (this._sendLoopLogItem) {
+                    log.refDetached(this._sendLoopLogItem);
+                }
+            });
         }
     }
 
-    async enqueueEvent(eventType, content, attachments) {
+    async enqueueEvent(eventType, content, attachments, log) {
         const pendingEvent = await this._createAndStoreEvent(eventType, content, attachments);
         this._pendingEvents.set(pendingEvent);
-        console.log("added to _pendingEvents set", this._pendingEvents.length);
+        log.set("queueIndex", pendingEvent.queueIndex);
+        log.set("pendingEvents", this._pendingEvents.length);
         if (!this._isSending && !this._offline) {
-            this._sendLoop();
+            this._sendLoop(log);
+        }
+        if (this._sendLoopLogItem) {
+            log.refDetached(this._sendLoopLogItem);
         }
     }
 
@@ -156,34 +172,25 @@ export class SendQueue {
 
     async _tryUpdateEvent(pendingEvent) {
         const txn = this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
-        console.log("_tryUpdateEvent: got txn");
         try {
             // pendingEvent might have been removed already here
             // by a racing remote echo, so check first so we don't recreate it
-            console.log("_tryUpdateEvent: before exists");
             if (await txn.pendingEvents.exists(pendingEvent.roomId, pendingEvent.queueIndex)) {
-                console.log("_tryUpdateEvent: inside if exists");
                 txn.pendingEvents.update(pendingEvent.data);
             }
-            console.log("_tryUpdateEvent: after exists");
         } catch (err) {
             txn.abort();
-            console.log("_tryUpdateEvent: error", err);
             throw err;
         }
-        console.log("_tryUpdateEvent: try complete");
         await txn.complete();
     }
 
     async _createAndStoreEvent(eventType, content, attachments) {
-        console.log("_createAndStoreEvent");
         const txn = this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
         let pendingEvent;
         try {
             const pendingEventsStore = txn.pendingEvents;
-            console.log("_createAndStoreEvent getting maxQueueIndex");
             const maxQueueIndex = await pendingEventsStore.getMaxQueueIndex(this._roomId) || 0;
-            console.log("_createAndStoreEvent got maxQueueIndex", maxQueueIndex);
             const queueIndex = maxQueueIndex + 1;
             pendingEvent = this._createPendingEvent({
                 roomId: this._roomId,
@@ -194,7 +201,6 @@ export class SendQueue {
                 needsEncryption: !!this._roomEncryption,
                 needsUpload: !!attachments
             }, attachments);
-            console.log("_createAndStoreEvent: adding to pendingEventsStore");
             pendingEventsStore.add(pendingEvent.data);
         } catch (err) {
             txn.abort();

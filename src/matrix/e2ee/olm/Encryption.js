@@ -47,17 +47,17 @@ export class Encryption {
         this._senderKeyLock = senderKeyLock;
     }
 
-    async encrypt(type, content, devices, hsApi) {
+    async encrypt(type, content, devices, hsApi, log) {
         let messages = [];
         for (let i = 0; i < devices.length ; i += MAX_BATCH_SIZE) {
             const batchDevices = devices.slice(i, i + MAX_BATCH_SIZE);
-            const batchMessages = await this._encryptForMaxDevices(type, content, batchDevices, hsApi);
+            const batchMessages = await this._encryptForMaxDevices(type, content, batchDevices, hsApi, log);
             messages = messages.concat(batchMessages);
         }
         return messages;
     }
 
-    async _encryptForMaxDevices(type, content, devices, hsApi) {
+    async _encryptForMaxDevices(type, content, devices, hsApi, log) {
         // TODO: see if we can only hold some of the locks until after the /keys/claim call (if needed) 
         // take a lock on all senderKeys so decryption and other calls to encrypt (should not happen)
         // don't modify the sessions at the same time
@@ -75,16 +75,17 @@ export class Encryption {
             let encryptionTargets = [];
             try {
                 if (devicesWithoutSession.length) {
-                    const newEncryptionTargets = await this._createNewSessions(
-                        devicesWithoutSession, hsApi, timestamp);
+                    const newEncryptionTargets = await log.wrap("create sessions", log => this._createNewSessions(
+                        devicesWithoutSession, hsApi, timestamp, log));
                     encryptionTargets = encryptionTargets.concat(newEncryptionTargets);
                 }
                 await this._loadSessions(existingEncryptionTargets);
                 encryptionTargets = encryptionTargets.concat(existingEncryptionTargets);
-                const messages = encryptionTargets.map(target => {
+                const encryptLog = {l: "encrypt", targets: encryptionTargets.length};
+                const messages = log.wrap(encryptLog, () => encryptionTargets.map(target => {
                     const encryptedContent = this._encryptForDevice(type, content, target);
                     return new EncryptedMessage(encryptedContent, target.device);
-                });
+                }));
                 await this._storeSessions(encryptionTargets, timestamp);
                 return messages;
             } finally {
@@ -149,8 +150,8 @@ export class Encryption {
         }
     }
 
-    async _createNewSessions(devicesWithoutSession, hsApi, timestamp) {
-        const newEncryptionTargets = await this._claimOneTimeKeys(hsApi, devicesWithoutSession);
+    async _createNewSessions(devicesWithoutSession, hsApi, timestamp, log) {
+        const newEncryptionTargets = await log.wrap("claim", log => this._claimOneTimeKeys(hsApi, devicesWithoutSession, log));
         try {
             for (const target of newEncryptionTargets) {
                 const {device, oneTimeKey} = target;
@@ -166,7 +167,7 @@ export class Encryption {
         return newEncryptionTargets;
     }
 
-    async _claimOneTimeKeys(hsApi, deviceIdentities) {
+    async _claimOneTimeKeys(hsApi, deviceIdentities, log) {
         // create a Map<userId, Map<deviceId, deviceIdentity>>
         const devicesByUser = groupByWithCreator(deviceIdentities,
             device => device.userId,
@@ -183,11 +184,10 @@ export class Encryption {
         const claimResponse = await hsApi.claimKeys({
             timeout: 10000,
             one_time_keys: oneTimeKeys
-        }).response();
+        }, {log}).response();
         if (Object.keys(claimResponse.failures).length) {
-            console.warn("failures for claiming one time keys", oneTimeKeys, claimResponse.failures);
+            log.log({l: "failures", servers: Object.keys(claimResponse.failures)}, log.level.Warn);
         }
-        // TODO: log claimResponse.failures
         const userKeyMap = claimResponse?.["one_time_keys"];
         return this._verifyAndCreateOTKTargets(userKeyMap, devicesByUser);
     }
