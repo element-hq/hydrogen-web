@@ -17,9 +17,9 @@ limitations under the License.
 import {LogLevel, LogFilter} from "./LogFilter.js";
 
 export class LogItem {
-    constructor(labelOrValues, logLevel, filterCreator, clock) {
-        this._clock = clock;
-        this._start = clock.now();
+    constructor(labelOrValues, logLevel, filterCreator, logger) {
+        this._logger = logger;
+        this._start = logger._now();
         this._end = null;
         // (l)abel
         this._values = typeof labelOrValues === "string" ? {l: labelOrValues} : labelOrValues;
@@ -27,6 +27,14 @@ export class LogItem {
         this.logLevel = logLevel;
         this._children = null;
         this._filterCreator = filterCreator;
+    }
+
+    runDetached(labelOrValues, callback, logLevel, filterCreator) {
+        return this._logger.runDetached(labelOrValues, callback, logLevel, filterCreator);
+    }
+
+    wrapDetached(labelOrValues, callback, logLevel, filterCreator) {
+        this.refDetached(this.runDetached(labelOrValues, callback, logLevel, filterCreator));
     }
 
     /**
@@ -70,6 +78,9 @@ export class LogItem {
     log(labelOrValues, logLevel = null) {
         const item = this.child(labelOrValues, logLevel, null);
         item.end = item.start;
+
+    refDetached(logItem, logLevel = null) {
+        return this.log({ref: logItem._values.refId}, logLevel);
     }
 
     set(key, value) {
@@ -177,7 +188,7 @@ export class LogItem {
                     c.finish();
                 }
             }
-            this._end = this._clock.now();
+            this._end = this._logger._now();
         }
     }
 
@@ -200,7 +211,7 @@ export class LogItem {
         if (!logLevel) {
             logLevel = this.logLevel || LogLevel.Info;
         }
-        const item = new LogItem(labelOrValues, logLevel, filterCreator, this._clock);
+        const item = new LogItem(labelOrValues, logLevel, filterCreator, this._logger);
         if (this._children === null) {
             this._children = [];
         }

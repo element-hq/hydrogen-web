@@ -24,13 +24,39 @@ export class BaseLogger {
     }
 
     log(labelOrValues, logLevel = LogLevel.Info) {
-        const item = new LogItem(labelOrValues, logLevel, null, this._platform.clock);
+        const item = new LogItem(labelOrValues, logLevel, null, this);
         item._end = item._start;
         this._persistItem(item.serialize(null));
     }
 
-    run(labelOrValues, callback, logLevel = LogLevel.Info, filterCreator = null) {
-        const item = new LogItem(labelOrValues, logLevel, null, this._platform.clock);
+    wrapOrRun(item, labelOrValues, callback, logLevel = null, filterCreator = null) {
+        if (item) {
+            return item.wrap(labelOrValues, callback, logLevel, filterCreator);
+        } else {
+            return this.run(labelOrValues, callback, logLevel, filterCreator);
+        }
+    }
+
+    runDetached(labelOrValues, callback, logLevel = null, filterCreator = null) {
+        if (logLevel === null) {
+            logLevel = LogLevel.Info;
+        }
+        const item = new LogItem(labelOrValues, logLevel, null, this);
+        const refId = Math.round(this._platform.random() * Number.MAX_SAFE_INTEGER);
+        item.set("refId", refId);
+        this._run(item, callback, logLevel, filterCreator, false /* don't throw, nobody is awaiting */);
+        return item;
+    }
+
+    run(labelOrValues, callback, logLevel = null, filterCreator = null) {
+        if (logLevel === null) {
+            logLevel = LogLevel.Info;
+        }
+        const item = new LogItem(labelOrValues, logLevel, null, this);
+        return this._run(item, callback, logLevel, filterCreator, true);
+    }
+
+    _run(item, callback, logLevel, filterCreator, shouldThrow) {
         this._openItems.add(item);
 
         const finishItem = () => {
@@ -64,7 +90,9 @@ export class BaseLogger {
                     return promiseResult;
                 }, err => {
                     finishItem();
-                    throw err;
+                    if (shouldThrow) {
+                        throw err;
+                    }
                 });
             } else {
                 finishItem();
@@ -72,7 +100,9 @@ export class BaseLogger {
             }
         } catch (err) {
             finishItem();
-            throw err;
+            if (shouldThrow) {
+                throw err;
+            }
         }
     }
 
@@ -105,5 +135,9 @@ export class BaseLogger {
     // expose log level without needing 
     get level() {
         return LogLevel;
+    }
+
+    _now() {
+        return this._platform.clock.now();
     }
 }
