@@ -205,7 +205,7 @@ export class SendQueue {
     }
 
     dispose() {
-        for (const pe in this._pendingEvents.array) {
+        for (const pe of this._pendingEvents) {
             pe.dispose();
         }
     }
