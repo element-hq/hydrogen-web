@@ -29,12 +29,20 @@ export class LogItem {
         this._filterCreator = filterCreator;
     }
 
+    /** start a new root log item and run it detached mode, see BaseLogger.runDetached */
     runDetached(labelOrValues, callback, logLevel, filterCreator) {
         return this._logger.runDetached(labelOrValues, callback, logLevel, filterCreator);
     }
 
+    /** start a new detached root log item and log a reference to it from this item */
     wrapDetached(labelOrValues, callback, logLevel, filterCreator) {
         this.refDetached(this.runDetached(labelOrValues, callback, logLevel, filterCreator));
+    }
+
+    /** logs a reference to a different log item, obtained from runDetached.
+    This is useful if the referenced operation can't be awaited. */
+    refDetached(logItem, logLevel = null) {
+        return this.log({ref: logItem._values.refId}, logLevel);
     }
 
     /**
@@ -78,10 +86,6 @@ export class LogItem {
     log(labelOrValues, logLevel = null) {
         const item = this.child(labelOrValues, logLevel, null);
         item._end = item._start;
-    }
-
-    refDetached(logItem, logLevel = null) {
-        return this.log({ref: logItem._values.refId}, logLevel);
     }
 
     set(key, value) {

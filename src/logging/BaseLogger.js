@@ -29,6 +29,7 @@ export class BaseLogger {
         this._persistItem(item.serialize(null));
     }
 
+    /** if item is a log item, wrap the callback in a child of it, otherwise start a new root log item. */
     wrapOrRun(item, labelOrValues, callback, logLevel = null, filterCreator = null) {
         if (item) {
             return item.wrap(labelOrValues, callback, logLevel, filterCreator);
@@ -37,6 +38,11 @@ export class BaseLogger {
         }
     }
 
+    /** run a callback in detached mode,
+    where the (async) result or errors are not propagated but still logged.
+    Useful to pair with LogItem.refDetached.
+
+    @return {LogItem} the log item added, useful to pass to LogItem.refDetached */
     runDetached(labelOrValues, callback, logLevel = null, filterCreator = null) {
         if (logLevel === null) {
             logLevel = LogLevel.Info;
@@ -48,6 +54,9 @@ export class BaseLogger {
         return item;
     }
 
+    /** run a callback wrapped in a log operation.
+    Errors and duration are transparently logged, also for async operations.
+    Whatever the callback returns is returned here. */
     run(labelOrValues, callback, logLevel = null, filterCreator = null) {
         if (logLevel === null) {
             logLevel = LogLevel.Info;
