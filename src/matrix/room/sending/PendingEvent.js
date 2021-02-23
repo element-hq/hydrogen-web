@@ -30,10 +30,7 @@ export class PendingEvent {
     constructor({data, remove, emitUpdate, attachments}) {
         this._data = data;
         this._attachments = attachments;
-        this._emitUpdate = () => {
-            console.log("PendingEvent status", this.status, this._attachments && Object.entries(this._attachments).map(([key, a]) => `${key}: ${a.sentBytes}/${a.size}`));
-            emitUpdate();
-        };
+        this._emitUpdate = emitUpdate;
         this._removeFromQueueCallback = remove;
         this._aborted = false;
         this._status = SendStatus.Waiting;
@@ -169,6 +166,7 @@ export class PendingEvent {
         const response = await this._sendRequest.response();
         this._sendRequest = null;
         this._data.remoteId = response.event_id;
+        log.set("id", this._data.remoteId);
         this._status = SendStatus.Sent;
         this._emitUpdate("status");
     }

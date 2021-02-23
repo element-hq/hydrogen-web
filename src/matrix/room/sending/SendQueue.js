@@ -53,7 +53,7 @@ export class SendQueue {
                 for (let i = 0; i < this._pendingEvents.length; i += 1) {
                     await log.wrap("send event", async log => {
                         const pendingEvent = this._pendingEvents.get(i);
-                        log.set("id", pendingEvent.queueIndex);
+                        log.set("queueIndex", pendingEvent.queueIndex);
                         try {
                             await this._sendEvent(pendingEvent, log);
                         } catch(err) {
@@ -93,7 +93,7 @@ export class SendQueue {
         }
     }
 
-    removeRemoteEchos(events, txn) {
+    removeRemoteEchos(events, txn, parentLog) {
         const removed = [];
         for (const event of events) {
             const txnId = event.unsigned && event.unsigned.transaction_id;
@@ -105,6 +105,7 @@ export class SendQueue {
             }
             if (idx !== -1) {
                 const pendingEvent = this._pendingEvents.get(idx);
+                parentLog.log({l: "removeRemoteEcho", id: pendingEvent.remoteId});
                 txn.pendingEvents.remove(pendingEvent.roomId, pendingEvent.queueIndex);
                 removed.push(pendingEvent);
             }

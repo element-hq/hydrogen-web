@@ -246,7 +246,7 @@ export class Room extends EventEmitter {
         }
         let removedPendingEvents;
         if (Array.isArray(roomResponse.timeline?.events)) {
-            removedPendingEvents = this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn);
+            removedPendingEvents = this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn, log);
         }
         return {
             summaryChanges,
@@ -405,57 +405,59 @@ export class Room extends EventEmitter {
     } 
 
     /** @public */
-    async fillGap(fragmentEntry, amount) {
+    fillGap(fragmentEntry, amount, log = null) {
         // TODO move some/all of this out of Room
-        if (fragmentEntry.edgeReached) {
-            return;
-        }
-        const response = await this._hsApi.messages(this._roomId, {
-            from: fragmentEntry.token,
-            dir: fragmentEntry.direction.asApiString(),
-            limit: amount,
-            filter: {
-                lazy_load_members: true,
-                include_redundant_members: true,
+        return this._platform.logger.wrapOrRun(log, "fillGap", async log => {
+            if (fragmentEntry.edgeReached) {
+                return;
             }
-        }).response();
+            const response = await this._hsApi.messages(this._roomId, {
+                from: fragmentEntry.token,
+                dir: fragmentEntry.direction.asApiString(),
+                limit: amount,
+                filter: {
+                    lazy_load_members: true,
+                    include_redundant_members: true,
+                }
+            }, {log}).response();
 
-        const txn = this._storage.readWriteTxn([
-            this._storage.storeNames.pendingEvents,
-            this._storage.storeNames.timelineEvents,
-            this._storage.storeNames.timelineFragments,
-        ]);
-        let removedPendingEvents;
-        let gapResult;
-        try {
-            // detect remote echos of pending messages in the gap
-            removedPendingEvents = this._sendQueue.removeRemoteEchos(response.chunk, txn);
-            // write new events into gap
-            const gapWriter = new GapWriter({
-                roomId: this._roomId,
-                storage: this._storage,
-                fragmentIdComparer: this._fragmentIdComparer,
-            });
-            gapResult = await gapWriter.writeFragmentFill(fragmentEntry, response, txn);
-        } catch (err) {
-            txn.abort();
-            throw err;
-        }
-        await txn.complete();
-        if (this._roomEncryption) {
-            const decryptRequest = this._decryptEntries(DecryptionSource.Timeline, gapResult.entries);
-            await decryptRequest.complete();
-        }
-        // once txn is committed, update in-memory state & emit events
-        for (const fragment of gapResult.fragments) {
-            this._fragmentIdComparer.add(fragment);
-        }
-        if (removedPendingEvents) {
-            this._sendQueue.emitRemovals(removedPendingEvents);
-        }
-        if (this._timeline) {
-            this._timeline.addGapEntries(gapResult.entries);
-        }
+            const txn = this._storage.readWriteTxn([
+                this._storage.storeNames.pendingEvents,
+                this._storage.storeNames.timelineEvents,
+                this._storage.storeNames.timelineFragments,
+            ]);
+            let removedPendingEvents;
+            let gapResult;
+            try {
+                // detect remote echos of pending messages in the gap
+                removedPendingEvents = this._sendQueue.removeRemoteEchos(response.chunk, txn, log);
+                // write new events into gap
+                const gapWriter = new GapWriter({
+                    roomId: this._roomId,
+                    storage: this._storage,
+                    fragmentIdComparer: this._fragmentIdComparer,
+                });
+                gapResult = await gapWriter.writeFragmentFill(fragmentEntry, response, txn);
+            } catch (err) {
+                txn.abort();
+                throw err;
+            }
+            await txn.complete();
+            if (this._roomEncryption) {
+                const decryptRequest = this._decryptEntries(DecryptionSource.Timeline, gapResult.entries);
+                await decryptRequest.complete();
+            }
+            // once txn is committed, update in-memory state & emit events
+            for (const fragment of gapResult.fragments) {
+                this._fragmentIdComparer.add(fragment);
+            }
+            if (removedPendingEvents) {
+                this._sendQueue.emitRemovals(removedPendingEvents);
+            }
+            if (this._timeline) {
+                this._timeline.addGapEntries(gapResult.entries);
+            }
+        });
     }
 
     /** @public */
