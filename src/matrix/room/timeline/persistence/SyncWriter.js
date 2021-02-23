@@ -41,7 +41,7 @@ export class SyncWriter {
         this._lastLiveKey = null;
     }
 
-    async load(txn) {
+    async load(txn, log) {
         const liveFragment = await txn.timelineFragments.liveFragment(this._roomId);
         if (liveFragment) {
             const [lastEvent] = await txn.timelineEvents.lastEvents(this._roomId, liveFragment.id, 1);
@@ -53,7 +53,9 @@ export class SyncWriter {
         }
         // if there is no live fragment, we don't create it here because load gets a readonly txn.
         // this is on purpose, load shouldn't modify the store
-        console.log("room persister load", this._roomId, this._lastLiveKey && this._lastLiveKey.toString());
+        if (this._lastLiveKey) {
+            log.set("live key", this._lastLiveKey.toString());
+        }
     }
 
     async _createLiveFragment(txn, previousToken) {

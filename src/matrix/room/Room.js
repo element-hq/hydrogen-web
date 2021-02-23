@@ -167,6 +167,7 @@ export class Room extends EventEmitter {
                 throw err;
             }
             await writeTxn.complete();
+            // TODO: log decryption errors here
             decryption.applyToEntries(entries);
             if (this._observedEvents) {
                 this._observedEvents.updateEvents(entries);
@@ -318,30 +319,29 @@ export class Room extends EventEmitter {
     async afterSyncCompleted(changes, log) {
         log.set("id", this.id);
         if (this._roomEncryption) {
-            // TODO: pass log to flushPendingRoomKeyShares once we also have a logger in `start`
-            await this._roomEncryption.flushPendingRoomKeyShares(this._hsApi, null);
+            await this._roomEncryption.flushPendingRoomKeyShares(this._hsApi, null, log);
         }
     }
 
     /** @package */
-    async start(pendingOperations) {
+    start(pendingOperations, parentLog) {
         if (this._roomEncryption) {
-            try {
-                const roomKeyShares = pendingOperations?.get("share_room_key");
-                if (roomKeyShares) {
-                    // if we got interrupted last time sending keys to newly joined members
-                    await this._roomEncryption.flushPendingRoomKeyShares(this._hsApi, roomKeyShares);
-                }
-            } catch (err) {
-                // we should not throw here
-                console.error(`could not send out (all) pending room keys for room ${this.id}`, err.stack);
+            const roomKeyShares = pendingOperations?.get("share_room_key");
+            if (roomKeyShares) {
+                // if we got interrupted last time sending keys to newly joined members
+                parentLog.wrapDetached("flush room keys", log => {
+                    log.set("id", this.id);
+                    return this._roomEncryption.flushPendingRoomKeyShares(this._hsApi, roomKeyShares, log);
+                });
             }
         }
-        this._sendQueue.resumeSending();
+        
+        this._sendQueue.resumeSending(parentLog);
     }
 
     /** @package */
-    async load(summary, txn) {
+    async load(summary, txn, log) {
+        log.set("id", this.id);
         try {
             this._summary.load(summary);
             if (this._summary.data.encryption) {
@@ -354,7 +354,7 @@ export class Room extends EventEmitter {
                 const changes = await this._heroes.calculateChanges(this._summary.data.heroes, [], txn);
                 this._heroes.applyChanges(changes, this._summary.data);
             }
-            return this._syncWriter.load(txn);
+            return this._syncWriter.load(txn, log);
         } catch (err) {
             throw new WrappedError(`Could not load room ${this._roomId}`, err);
         }

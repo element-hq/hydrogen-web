@@ -73,68 +73,79 @@ export class SessionContainer {
             return;
         }
         this._status.set(LoadStatus.Loading);
-        try {
-            const sessionInfo = await this._platform.sessionInfoStorage.get(sessionId);
-            if (!sessionInfo) {
-                throw new Error("Invalid session id: " + sessionId);
+        this._platform.logger.run("load session", async log => {
+            log.set("id", sessionId);
+            try {
+                const sessionInfo = await this._platform.sessionInfoStorage.get(sessionId);
+                if (!sessionInfo) {
+                    throw new Error("Invalid session id: " + sessionId);
+                }
+                await this._loadSessionInfo(sessionInfo, false, log);
+                log.set("status", this._status.get());
+            } catch (err) {
+                log.catch(err);
+                this._error = err;
+                this._status.set(LoadStatus.Error);
             }
-            await this._loadSessionInfo(sessionInfo, false);
-        } catch (err) {
-            this._error = err;
-            this._status.set(LoadStatus.Error);
-        }
+        });
     }
 
     async startWithLogin(homeServer, username, password) {
         if (this._status.get() !== LoadStatus.NotLoading) {
             return;
         }
-        this._status.set(LoadStatus.Login);
-        const clock = this._platform.clock;
-        let sessionInfo;
-        try {
-            const request = this._platform.request;
-            const hsApi = new HomeServerApi({homeServer, request, createTimeout: clock.createTimeout});
-            const loginData = await hsApi.passwordLogin(username, password, "Hydrogen").response();
-            const sessionId = this.createNewSessionId();
-            sessionInfo = {
-                id: sessionId,
-                deviceId: loginData.device_id,
-                userId: loginData.user_id,
-                homeServer: homeServer,
-                accessToken: loginData.access_token,
-                lastUsed: clock.now()
-            };
-            await this._platform.sessionInfoStorage.add(sessionInfo);            
-        } catch (err) {
-            this._error = err;
-            if (err instanceof HomeServerError) {
-                if (err.errcode === "M_FORBIDDEN") {
-                    this._loginFailure = LoginFailure.Credentials;
+        this._platform.logger.run("login", async log => {
+            this._status.set(LoadStatus.Login);
+            const clock = this._platform.clock;
+            let sessionInfo;
+            try {
+                const request = this._platform.request;
+                const hsApi = new HomeServerApi({homeServer, request, createTimeout: clock.createTimeout});
+                const loginData = await hsApi.passwordLogin(username, password, "Hydrogen", {log}).response();
+                const sessionId = this.createNewSessionId();
+                sessionInfo = {
+                    id: sessionId,
+                    deviceId: loginData.device_id,
+                    userId: loginData.user_id,
+                    homeServer: homeServer,
+                    accessToken: loginData.access_token,
+                    lastUsed: clock.now()
+                };
+                log.set("id", sessionId);
+                await this._platform.sessionInfoStorage.add(sessionInfo);            
+            } catch (err) {
+                this._error = err;
+                if (err instanceof HomeServerError) {
+                    if (err.errcode === "M_FORBIDDEN") {
+                        this._loginFailure = LoginFailure.Credentials;
+                    } else {
+                        this._loginFailure = LoginFailure.Unknown;
+                    }
+                    log.set("loginFailure", this._loginFailure);
+                    this._status.set(LoadStatus.LoginFailed);
+                } else if (err instanceof ConnectionError) {
+                    this._loginFailure = LoginFailure.Connection;
+                    this._status.set(LoadStatus.LoginFailed);
                 } else {
-                    this._loginFailure = LoginFailure.Unknown;
+                    this._status.set(LoadStatus.Error);
                 }
-                this._status.set(LoadStatus.LoginFailed);
-            } else if (err instanceof ConnectionError) {
-                this._loginFailure = LoginFailure.Connection;
-                this._status.set(LoadStatus.LoginFailed);
-            } else {
+                return;
+            }
+            // loading the session can only lead to
+            // LoadStatus.Error in case of an error,
+            // so separate try/catch
+            try {
+                await this._loadSessionInfo(sessionInfo, true, log);
+                log.set("status", this._status.get());
+            } catch (err) {
+                log.catch(err);
+                this._error = err;
                 this._status.set(LoadStatus.Error);
             }
-            return;
-        }
-        // loading the session can only lead to
-        // LoadStatus.Error in case of an error,
-        // so separate try/catch
-        try {
-            await this._loadSessionInfo(sessionInfo, true);
-        } catch (err) {
-            this._error = err;
-            this._status.set(LoadStatus.Error);
-        }
+        });
     }
 
-    async _loadSessionInfo(sessionInfo, isNewLogin) {
+    async _loadSessionInfo(sessionInfo, isNewLogin, log) {
         const clock = this._platform.clock;
         this._sessionStartedByReconnector = false;
         this._status.set(LoadStatus.Loading);
@@ -178,24 +189,26 @@ export class SessionContainer {
             mediaRepository,
             platform: this._platform,
         });
-        await this._session.load();
+        await this._session.load(log);
         if (isNewLogin) {
             this._status.set(LoadStatus.SessionSetup);
-            await this._session.createIdentity();
+            await log.wrap("createIdentity", log => this._session.createIdentity(log));
         }
         
         this._sync = new Sync({hsApi: this._requestScheduler.hsApi, storage: this._storage, session: this._session, logger: this._platform.logger});
         // notify sync and session when back online
         this._reconnectSubscription = this._reconnector.connectionStatus.subscribe(state => {
             if (state === ConnectionStatus.Online) {
-                // needs to happen before sync and session or it would abort all requests
-                this._requestScheduler.start();
-                this._sync.start();
-                this._sessionStartedByReconnector = true;
-                this._session.start(this._reconnector.lastVersionsResponse);
+                this._platform.logger.runDetached("reconnect", async log => {
+                    // needs to happen before sync and session or it would abort all requests
+                    this._requestScheduler.start();
+                    this._sync.start();
+                    this._sessionStartedByReconnector = true;
+                    await log.wrap("session start", log => this._session.start(this._reconnector.lastVersionsResponse, log));
+                });
             }
         });
-        await this._waitForFirstSync();
+        await log.wrap("wait first sync", log => this._waitForFirstSync(log));
 
         this._status.set(LoadStatus.Ready);
 
@@ -204,12 +217,13 @@ export class SessionContainer {
         // started to session, so check first
         // to prevent an extra /versions request
         if (!this._sessionStartedByReconnector) {
-            const lastVersionsResponse = await hsApi.versions({timeout: 10000}).response();
-            this._session.start(lastVersionsResponse);
+            const lastVersionsResponse = await hsApi.versions({timeout: 10000, log}).response();
+            // log as ref as we don't want to await it
+            await log.wrap("session start", log => this._session.start(lastVersionsResponse, log));
         }
     }
 
-    async _waitForFirstSync() {
+    async _waitForFirstSync(log) {
         try {
             this._sync.start();
             this._status.set(LoadStatus.FirstSync);
