@@ -115,6 +115,7 @@ export class BaseLogger {
                 // about the duration of the item, etc ...
                 const serialized = openItem.serialize(new LogFilter(), 0);
                 if (serialized) {
+                    serialized.f = true;    //(f)orced
                     this._persistItem(serialized);
                 }
             } catch (err) {

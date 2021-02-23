@@ -139,6 +139,7 @@ export class LogItem {
             // (c)hildren
             item.c = children;
         }
+        // (f)orced can also be set on an item by the logger
         return item;
     }
 
