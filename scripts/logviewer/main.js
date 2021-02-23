@@ -72,6 +72,7 @@ function showItemDetails(item, parent, itemNode) {
         t.p([t.strong("Start: "), new Date(itemStart(item)).toString()]),
         t.p([t.strong("Duration: "), `${itemDuration(item)}ms`]),
         t.p([t.strong("Child count: "), itemChildren(item) ? `${itemChildren(item).length}` : "none"]),
+        t.p([t.strong("Forced finish: "), (itemForcedFinish(item) || false) + ""]),
         t.p(t.strong("Values:")),
         t.ul({class: "values"}, Object.entries(itemValues(item)).map(([key, value]) => {
             return t.li([
@@ -150,6 +151,7 @@ function itemLevel(item) { return item.l; }
 function itemLabel(item) { return item.v?.l; }
 function itemType(item) { return item.v?.t; }
 function itemError(item) { return item.e; }
+function itemForcedFinish(item) { return item.f; }
 function itemShortErrorMessage(item) {
     if (itemError(item)) {
         const e = itemError(item);
