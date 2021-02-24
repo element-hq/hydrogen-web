@@ -408,7 +408,11 @@ export class Room extends EventEmitter {
     fillGap(fragmentEntry, amount, log = null) {
         // TODO move some/all of this out of Room
         return this._platform.logger.wrapOrRun(log, "fillGap", async log => {
+            log.set("id", this.id);
+            log.set("fragment", fragmentEntry.fragmentId);
+            log.set("dir", fragmentEntry.direction.asApiString());
             if (fragmentEntry.edgeReached) {
+                log.set("edgeReached", true);
                 return;
             }
             const response = await this._hsApi.messages(this._roomId, {
