@@ -41,12 +41,12 @@ export class RoomViewModel extends ViewModel {
     async load() {
         this._room.on("change", this._onRoomChange);
         try {
+            const timeline = await this._room.openTimeline();
             const timelineVM = this.track(new TimelineViewModel(this.childOptions({
                 room: this._room,
-                timeline: this._room.openTimeline(),
+                timeline,
                 ownUserId: this._ownUserId,
             })));
-            await timelineVM.load();
             this._timelineVM = timelineVM;
             this.emitChange("timelineViewModel");
         } catch (err) {

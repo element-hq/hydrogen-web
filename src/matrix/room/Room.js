@@ -575,30 +575,34 @@ export class Room extends EventEmitter {
     }
 
     /** @public */
-    openTimeline() {
-        if (this._timeline) {
-            throw new Error("not dealing with load race here for now");
-        }
-        console.log(`opening the timeline for ${this._roomId}`);
-        this._timeline = new Timeline({
-            roomId: this.id,
-            storage: this._storage,
-            fragmentIdComparer: this._fragmentIdComparer,
-            pendingEvents: this._sendQueue.pendingEvents,
-            closeCallback: () => {
-                console.log(`closing the timeline for ${this._roomId}`);
-                this._timeline = null;
-                if (this._roomEncryption) {
-                    this._roomEncryption.notifyTimelineClosed();
-                }
-            },
-            user: this._user,
-            clock: this._platform.clock
+    openTimeline(log = null) {
+        return this._platform.logger.wrapOrRun(log, "open timeline", async log => {
+            log.set("id", this.id);
+            if (this._timeline) {
+                throw new Error("not dealing with load race here for now");
+            }
+            console.log(`opening the timeline for ${this._roomId}`);
+            this._timeline = new Timeline({
+                roomId: this.id,
+                storage: this._storage,
+                fragmentIdComparer: this._fragmentIdComparer,
+                pendingEvents: this._sendQueue.pendingEvents,
+                closeCallback: () => {
+                    this._timeline = null;
+                    if (this._roomEncryption) {
+                        this._roomEncryption.notifyTimelineClosed();
+                    }
+                },
+                user: this._user,
+                clock: this._platform.clock,
+                logger: this._platform.logger,
+            });
+            if (this._roomEncryption) {
+                this._timeline.enableEncryption(this._decryptEntries.bind(this, DecryptionSource.Timeline));
+            }
+            await this._timeline.load();
+            return this._timeline;
         });
-        if (this._roomEncryption) {
-            this._timeline.enableEncryption(this._decryptEntries.bind(this, DecryptionSource.Timeline));
-        }
-        return this._timeline;
     }
 
     get mediaRepository() {
