@@ -73,7 +73,7 @@ export class SessionContainer {
             return;
         }
         this._status.set(LoadStatus.Loading);
-        this._platform.logger.run("load session", async log => {
+        await this._platform.logger.run("load session", async log => {
             log.set("id", sessionId);
             try {
                 const sessionInfo = await this._platform.sessionInfoStorage.get(sessionId);
@@ -94,7 +94,7 @@ export class SessionContainer {
         if (this._status.get() !== LoadStatus.NotLoading) {
             return;
         }
-        this._platform.logger.run("login", async log => {
+        await this._platform.logger.run("login", async log => {
             this._status.set(LoadStatus.Login);
             const clock = this._platform.clock;
             let sessionInfo;
