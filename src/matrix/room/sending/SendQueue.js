@@ -46,13 +46,26 @@ export class SendQueue {
         this._roomEncryption = roomEncryption;
     }
 
+    _nextPendingEvent(current) {
+        if (!current) {
+            return this._pendingEvents.get(0);
+        } else {
+            const idx = this._pendingEvents.indexOf(current);
+            if (idx !== -1) {
+                return this._pendingEvents.get(idx + 1);
+            }
+            return;
+        }
+    }
+
     _sendLoop(log) {
         this._isSending = true;
         this._sendLoopLogItem = log.runDetached("send queue flush", async log => {
+            let pendingEvent;
             try {
-                for (let i = 0; i < this._pendingEvents.length; i += 1) {
+                // eslint-disable-next-line no-cond-assign
+                while (pendingEvent = this._nextPendingEvent(pendingEvent)) {
                     await log.wrap("send event", async log => {
-                        const pendingEvent = this._pendingEvents.get(i);
                         log.set("queueIndex", pendingEvent.queueIndex);
                         try {
                             await this._sendEvent(pendingEvent, log);
