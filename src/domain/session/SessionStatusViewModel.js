@@ -100,7 +100,6 @@ export class SessionStatusViewModel extends ViewModel {
                 this._retryTimer = this.disposeTracked(this._retryTimer);
             }
             this._status = newStatus;
-            console.log("newStatus", newStatus);
             this.emitChange();
         }
     }
