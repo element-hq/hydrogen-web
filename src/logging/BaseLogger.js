@@ -48,8 +48,6 @@ export class BaseLogger {
             logLevel = LogLevel.Info;
         }
         const item = new LogItem(labelOrValues, logLevel, null, this);
-        const refId = Math.round(this._platform.random() * Number.MAX_SAFE_INTEGER);
-        item.set("refId", refId);
         this._run(item, callback, logLevel, filterCreator, false /* don't throw, nobody is awaiting */);
         return item;
     }
@@ -149,5 +147,9 @@ export class BaseLogger {
 
     _now() {
         return this._platform.clock.now();
+    }
+
+    _createRefId() {
+        return Math.round(this._platform.random() * Number.MAX_SAFE_INTEGER);
     }
 }
