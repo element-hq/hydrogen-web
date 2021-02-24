@@ -408,7 +408,11 @@ export class Room extends EventEmitter {
     fillGap(fragmentEntry, amount, log = null) {
         // TODO move some/all of this out of Room
         return this._platform.logger.wrapOrRun(log, "fillGap", async log => {
+            log.set("id", this.id);
+            log.set("fragment", fragmentEntry.fragmentId);
+            log.set("dir", fragmentEntry.direction.asApiString());
             if (fragmentEntry.edgeReached) {
+                log.set("edgeReached", true);
                 return;
             }
             const response = await this._hsApi.messages(this._roomId, {
@@ -544,61 +548,67 @@ export class Room extends EventEmitter {
         this._emitCollectionChange(this);
     }
 
-    async clearUnread() {
+    async clearUnread(log = null) {
         if (this.isUnread || this.notificationCount) {
-            const txn = this._storage.readWriteTxn([
-                this._storage.storeNames.roomSummary,
-            ]);
-            let data;
-            try {
-                data = this._summary.writeClearUnread(txn);
-            } catch (err) {
-                txn.abort();
-                throw err;
-            }
-            await txn.complete();
-            this._summary.applyChanges(data);
-            this._emitUpdate();
-            
-            try {
-                const lastEventId = await this._getLastEventId();
-                if (lastEventId) {
-                    await this._hsApi.receipt(this._roomId, "m.read", lastEventId);
-                }
-            } catch (err) {
-                // ignore ConnectionError
-                if (err.name !== "ConnectionError") {
+            return await this._platform.logger.wrapOrRun(log, "clearUnread", async log => {
+                log.set("id", this.id);
+                const txn = this._storage.readWriteTxn([
+                    this._storage.storeNames.roomSummary,
+                ]);
+                let data;
+                try {
+                    data = this._summary.writeClearUnread(txn);
+                } catch (err) {
+                    txn.abort();
                     throw err;
                 }
-            }
+                await txn.complete();
+                this._summary.applyChanges(data);
+                this._emitUpdate();
+                
+                try {
+                    const lastEventId = await this._getLastEventId();
+                    if (lastEventId) {
+                        await this._hsApi.receipt(this._roomId, "m.read", lastEventId);
+                    }
+                } catch (err) {
+                    // ignore ConnectionError
+                    if (err.name !== "ConnectionError") {
+                        throw err;
+                    }
+                }
+            });
         }
     }
 
     /** @public */
-    openTimeline() {
-        if (this._timeline) {
-            throw new Error("not dealing with load race here for now");
-        }
-        console.log(`opening the timeline for ${this._roomId}`);
-        this._timeline = new Timeline({
-            roomId: this.id,
-            storage: this._storage,
-            fragmentIdComparer: this._fragmentIdComparer,
-            pendingEvents: this._sendQueue.pendingEvents,
-            closeCallback: () => {
-                console.log(`closing the timeline for ${this._roomId}`);
-                this._timeline = null;
-                if (this._roomEncryption) {
-                    this._roomEncryption.notifyTimelineClosed();
-                }
-            },
-            user: this._user,
-            clock: this._platform.clock
+    openTimeline(log = null) {
+        return this._platform.logger.wrapOrRun(log, "open timeline", async log => {
+            log.set("id", this.id);
+            if (this._timeline) {
+                throw new Error("not dealing with load race here for now");
+            }
+            this._timeline = new Timeline({
+                roomId: this.id,
+                storage: this._storage,
+                fragmentIdComparer: this._fragmentIdComparer,
+                pendingEvents: this._sendQueue.pendingEvents,
+                closeCallback: () => {
+                    this._timeline = null;
+                    if (this._roomEncryption) {
+                        this._roomEncryption.notifyTimelineClosed();
+                    }
+                },
+                user: this._user,
+                clock: this._platform.clock,
+                logger: this._platform.logger,
+            });
+            if (this._roomEncryption) {
+                this._timeline.enableEncryption(this._decryptEntries.bind(this, DecryptionSource.Timeline));
+            }
+            await this._timeline.load();
+            return this._timeline;
         });
-        if (this._roomEncryption) {
-            this._timeline.enableEncryption(this._decryptEntries.bind(this, DecryptionSource.Timeline));
-        }
-        return this._timeline;
     }
 
     get mediaRepository() {

@@ -52,7 +52,7 @@ export class SettingsView extends TemplateView {
                 row(vm.i18n`Version`, version),
                 row(vm.i18n`Storage usage`, vm => `${vm.storageUsage} / ${vm.storageQuota}`),
                 row(vm.i18n`Debug logs`, t.button({onClick: () => vm.exportLogs()}, "Export")),
-                t.p(["Debug logs contain application usage data including your username, the IDs or aliases of the rooms or groups you have visited and the usernames of other users. They do not contain messages. For more information, review our ",
+                t.p(["Debug logs contain application usage data including your username, the IDs or aliases of the rooms or groups you have visited, the usernames of other users and the names of files you send. They do not contain messages. For more information, review our ",
                     t.a({href: "https://element.io/privacy", target: "_blank", rel: "noopener"}, "privacy policy"), "."]),
             ])
         ]);
