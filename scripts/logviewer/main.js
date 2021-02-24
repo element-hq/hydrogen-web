@@ -133,7 +133,12 @@ function getRootItemHeader(prevItem, item) {
         if (diff >= 0) {
             return `+ ${formatTime(diff)}`;
         } else {
-            return `ran ${formatTime(-diff)} in parallel with`;
+            const overlap = -diff;
+            if (overlap >= itemDuration(item)) {
+                return `ran entirely in parallel with`;
+            } else {
+                return `ran ${formatTime(-diff)} in parallel with`;
+            }
         }
     } else {
         return new Date(itemStart(item)).toString();
@@ -176,18 +181,34 @@ function preprocessRecursively(item, parentElement, refsMap, path) {
     }
 }
 
+const MS_IN_SEC = 1000;
+const MS_IN_MIN = MS_IN_SEC * 60;
+const MS_IN_HOUR = MS_IN_MIN * 60;
+const MS_IN_DAY = MS_IN_HOUR * 24;
 function formatTime(ms) {
-    if (ms < 1000) {
-        return `${ms}ms`;
-    } else if (ms < 1000 * 60) {
-        return `${(ms / 1000).toFixed(2)}s`;
-    } else if (ms < 1000 * 60 * 60) {
-        return `${(ms / (1000 * 60)).toFixed(2)}m`;
-    } else if (ms < 1000 * 60 * 60 * 24) {
-        return `${(ms / (1000 * 60 * 60)).toFixed(2)}h`;
-    } else  {
-        return `${(ms / (1000 * 60 * 60 * 24)).toFixed(2)}d`;
+    let str = "";
+    if (ms > MS_IN_DAY) {
+        const days = Math.floor(ms / MS_IN_DAY);
+        ms -= days * MS_IN_DAY;
+        str += `${days}d`;
     }
+    if (ms > MS_IN_HOUR) {
+        const hours = Math.floor(ms / MS_IN_HOUR);
+        ms -= hours * MS_IN_HOUR;
+        str += `${hours}h`;
+    }
+    if (ms > MS_IN_MIN) {
+        const mins = Math.floor(ms / MS_IN_MIN);
+        ms -= mins * MS_IN_MIN;
+        str += `${mins}m`;
+    }
+    if (ms > MS_IN_SEC) {
+        const secs = ms / MS_IN_SEC;
+        str += `${secs.toFixed(2)}s`;
+    } else if (ms > 0 || !str.length) {
+        str += `${ms}ms`;
+    }
+    return str;
 }
 
 function itemChildren(item) { return item.c; }
@@ -264,7 +285,7 @@ function itemToNode(item) {
             hasChildren ? t.button({className: "toggleExpanded"}) : "",
             t.a({className, id, href: `#${id}`}, [
                 t.span({class: "caption"}, captionNode),
-                t.span({class: "duration"}, `(${itemDuration(item)}ms)`),
+                t.span({class: "duration"}, `(${formatTime(itemDuration(item))})`),
             ])
         ])
     ]);
