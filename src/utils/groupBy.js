@@ -33,3 +33,26 @@ export function groupByWithCreator(array, groupFn, createCollectionFn, addCollec
         return map;
     }, new Map());
 }
+
+export function countBy(events, mapper) {
+    return events.reduce((counts, event) => {
+        const mappedValue = mapper(event);
+        if (!counts[mappedValue]) {
+            counts[mappedValue] = 1;
+        } else {
+            counts[mappedValue] += 1;
+        }
+        return counts;
+    }, {});
+}
+
+export function tests() {
+    return {
+        countBy: assert => {
+            const counts = countBy([{type: "foo"}, {type: "bar"}, {type: "foo"}], o => o.type);
+            assert.equal(Object.keys(counts).length, 2);
+            assert.equal(counts.foo, 2);
+            assert.equal(counts.bar, 1);
+        }
+    }
+}

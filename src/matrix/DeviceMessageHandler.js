@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {OLM_ALGORITHM, MEGOLM_ALGORITHM} from "./e2ee/common.js";
+import {countBy} from "../utils/groupBy.js";
 
 // key to store in session store
 const PENDING_ENCRYPTED_EVENTS = "pendingEncryptedDeviceEvents";
@@ -36,10 +37,7 @@ export class DeviceMessageHandler {
      */
     async writeSync(toDeviceEvents, txn, log) {
         const encryptedEvents = toDeviceEvents.filter(e => e.type === "m.room.encrypted");
-        log.set("encryptedCount", encryptedEvents.length);
-        const keyRequestCount = toDeviceEvents.reduce((sum, e) => sum + e.type === "m.room_key_request" ? 1 : 0, 0);
-        log.set("keyRequestCount", keyRequestCount);
-        log.set("otherCount", toDeviceEvents.length - encryptedEvents.length - keyRequestCount);
+        log.set("eventsCount", countBy(toDeviceEvents, e => e.type));
         if (!encryptedEvents.length) {
             return false;
         }
@@ -62,10 +60,12 @@ export class DeviceMessageHandler {
             return r.event?.type === "m.room_key" && r.event.content?.algorithm === MEGOLM_ALGORITHM;
         });
         let roomKeys;
-        log.set("roomKeyCount", megOlmRoomKeysResults.length);
+        log.set("eventsCount", countBy(olmResults, r => r.event.type));
+        log.set("roomKeys", megOlmRoomKeysResults.length);
         if (megOlmRoomKeysResults.length) {
             roomKeys = await this._megolmDecryption.addRoomKeys(megOlmRoomKeysResults, txn, log);
         }
+        log.set("newRoomKeys", roomKeys.length);
         return {roomKeys};
     }
 
