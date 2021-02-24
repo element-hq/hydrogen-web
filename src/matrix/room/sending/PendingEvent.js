@@ -110,7 +110,7 @@ export class PendingEvent {
             for (const attachment of Object.values(this._attachments)) {
                 await log.wrap("encrypt", () => {
                     log.set("size", attachment.size);
-                    return attachment.encrypt()
+                    return attachment.encrypt();
                 });
                 if (this.aborted) {
                     throw new AbortError();
