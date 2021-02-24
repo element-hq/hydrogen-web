@@ -588,7 +588,6 @@ export class Room extends EventEmitter {
             if (this._timeline) {
                 throw new Error("not dealing with load race here for now");
             }
-            console.log(`opening the timeline for ${this._roomId}`);
             this._timeline = new Timeline({
                 roomId: this.id,
                 storage: this._storage,
