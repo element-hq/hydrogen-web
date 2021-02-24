@@ -24,13 +24,46 @@ export class BaseLogger {
     }
 
     log(labelOrValues, logLevel = LogLevel.Info) {
-        const item = new LogItem(labelOrValues, logLevel, null, this._platform.clock);
+        const item = new LogItem(labelOrValues, logLevel, null, this);
         item._end = item._start;
         this._persistItem(item.serialize(null));
     }
 
-    run(labelOrValues, callback, logLevel = LogLevel.Info, filterCreator = null) {
-        const item = new LogItem(labelOrValues, logLevel, null, this._platform.clock);
+    /** if item is a log item, wrap the callback in a child of it, otherwise start a new root log item. */
+    wrapOrRun(item, labelOrValues, callback, logLevel = null, filterCreator = null) {
+        if (item) {
+            return item.wrap(labelOrValues, callback, logLevel, filterCreator);
+        } else {
+            return this.run(labelOrValues, callback, logLevel, filterCreator);
+        }
+    }
+
+    /** run a callback in detached mode,
+    where the (async) result or errors are not propagated but still logged.
+    Useful to pair with LogItem.refDetached.
+
+    @return {LogItem} the log item added, useful to pass to LogItem.refDetached */
+    runDetached(labelOrValues, callback, logLevel = null, filterCreator = null) {
+        if (logLevel === null) {
+            logLevel = LogLevel.Info;
+        }
+        const item = new LogItem(labelOrValues, logLevel, null, this);
+        this._run(item, callback, logLevel, filterCreator, false /* don't throw, nobody is awaiting */);
+        return item;
+    }
+
+    /** run a callback wrapped in a log operation.
+    Errors and duration are transparently logged, also for async operations.
+    Whatever the callback returns is returned here. */
+    run(labelOrValues, callback, logLevel = null, filterCreator = null) {
+        if (logLevel === null) {
+            logLevel = LogLevel.Info;
+        }
+        const item = new LogItem(labelOrValues, logLevel, null, this);
+        return this._run(item, callback, logLevel, filterCreator, true);
+    }
+
+    _run(item, callback, logLevel, filterCreator, shouldThrow) {
         this._openItems.add(item);
 
         const finishItem = () => {
@@ -64,7 +97,9 @@ export class BaseLogger {
                     return promiseResult;
                 }, err => {
                     finishItem();
-                    throw err;
+                    if (shouldThrow) {
+                        throw err;
+                    }
                 });
             } else {
                 finishItem();
@@ -72,7 +107,9 @@ export class BaseLogger {
             }
         } catch (err) {
             finishItem();
-            throw err;
+            if (shouldThrow) {
+                throw err;
+            }
         }
     }
 
@@ -85,6 +122,7 @@ export class BaseLogger {
                 // about the duration of the item, etc ...
                 const serialized = openItem.serialize(new LogFilter(), 0);
                 if (serialized) {
+                    serialized.f = true;    //(f)orced
                     this._persistItem(serialized);
                 }
             } catch (err) {
@@ -105,5 +143,13 @@ export class BaseLogger {
     // expose log level without needing 
     get level() {
         return LogLevel;
+    }
+
+    _now() {
+        return this._platform.clock.now();
+    }
+
+    _createRefId() {
+        return Math.round(this._platform.random() * Number.MAX_SAFE_INTEGER);
     }
 }

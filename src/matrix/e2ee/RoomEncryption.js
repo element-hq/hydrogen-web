@@ -252,21 +252,21 @@ export class RoomEncryption {
     }
 
     /** shares the encryption key for the next message if needed */
-    async ensureMessageKeyIsShared(hsApi) {
+    async ensureMessageKeyIsShared(hsApi, log) {
         if (this._lastKeyPreShareTime?.measure() < MIN_PRESHARE_INTERVAL) {
             return;
         }
         this._lastKeyPreShareTime = this._clock.createMeasure();
         const roomKeyMessage = await this._megolmEncryption.ensureOutboundSession(this._room.id, this._encryptionParams);
         if (roomKeyMessage) {
-            await this._shareNewRoomKey(roomKeyMessage, hsApi);
+            await log.wrap("share key", log => this._shareNewRoomKey(roomKeyMessage, hsApi, log));
         }
     }
 
-    async encrypt(type, content, hsApi) {
-        const megolmResult = await this._megolmEncryption.encrypt(this._room.id, type, content, this._encryptionParams);
+    async encrypt(type, content, hsApi, log) {
+        const megolmResult = await log.wrap("megolm encrypt", () => this._megolmEncryption.encrypt(this._room.id, type, content, this._encryptionParams));
         if (megolmResult.roomKeyMessage) {
-            this._shareNewRoomKey(megolmResult.roomKeyMessage, hsApi);
+            log.wrapDetached("share key", log => this._shareNewRoomKey(megolmResult.roomKeyMessage, hsApi, log));
         }
         return {
             type: ENCRYPTED_TYPE,
@@ -283,9 +283,9 @@ export class RoomEncryption {
         return false;
     }
 
-    async _shareNewRoomKey(roomKeyMessage, hsApi) {
-        await this._deviceTracker.trackRoom(this._room);
-        const devices = await this._deviceTracker.devicesForTrackedRoom(this._room.id, hsApi);
+    async _shareNewRoomKey(roomKeyMessage, hsApi, log) {
+        await this._deviceTracker.trackRoom(this._room, log);
+        const devices = await this._deviceTracker.devicesForTrackedRoom(this._room.id, hsApi, log);
         const userIds = Array.from(devices.reduce((set, device) => set.add(device.userId), new Set()));
 
         // store operation for room key share, in case we don't finish here
@@ -297,13 +297,15 @@ export class RoomEncryption {
             writeOpTxn.abort();
             throw err;
         }
+        log.set("id", operationId);
+        log.set("sessionId", roomKeyMessage.session_id);
         await writeOpTxn.complete();
         // TODO: at this point we have the room key stored, and the rest is sort of optional
         // it would be nice if we could signal SendQueue that any error from here on is non-fatal and
         // return the encrypted payload.
 
         // send the room key
-        await this._sendRoomKey(roomKeyMessage, devices, hsApi);
+        await this._sendRoomKey(roomKeyMessage, devices, hsApi, log);
 
         // remove the operation
         const removeOpTxn = this._storage.readWriteTxn([this._storage.storeNames.operations]);
@@ -353,29 +355,33 @@ export class RoomEncryption {
                 if (operation.type !== "share_room_key") {
                     continue;
                 }
-                const devices = await this._deviceTracker.devicesForRoomMembers(this._room.id, operation.userIds, hsApi);
-                await this._sendRoomKey(operation.roomKeyMessage, devices, hsApi);
-                const removeTxn = this._storage.readWriteTxn([this._storage.storeNames.operations]);
-                try {
-                    removeTxn.operations.remove(operation.id);
-                } catch (err) {
-                    removeTxn.abort();
-                    throw err;
-                }
-                await removeTxn.complete();
+                await log.wrap("operation", async log => {
+                    log.set("id", operation.id);
+                    const devices = await this._deviceTracker.devicesForRoomMembers(this._room.id, operation.userIds, hsApi, log);
+                    await this._sendRoomKey(operation.roomKeyMessage, devices, hsApi, log);
+                    const removeTxn = this._storage.readWriteTxn([this._storage.storeNames.operations]);
+                    try {
+                        removeTxn.operations.remove(operation.id);
+                    } catch (err) {
+                        removeTxn.abort();
+                        throw err;
+                    }
+                    await removeTxn.complete();
+                });
             }
         } finally {
             this._isFlushingRoomKeyShares = false;
         }
     }
 
-    async _sendRoomKey(roomKeyMessage, devices, hsApi) {
-        const messages = await this._olmEncryption.encrypt(
-            "m.room_key", roomKeyMessage, devices, hsApi);
-        await this._sendMessagesToDevices(ENCRYPTED_TYPE, messages, hsApi);
+    async _sendRoomKey(roomKeyMessage, devices, hsApi, log) {
+        const messages = await log.wrap("olm encrypt", log => this._olmEncryption.encrypt(
+            "m.room_key", roomKeyMessage, devices, hsApi, log));
+        await log.wrap("send", log => this._sendMessagesToDevices(ENCRYPTED_TYPE, messages, hsApi, log));
     }
 
-    async _sendMessagesToDevices(type, messages, hsApi) {
+    async _sendMessagesToDevices(type, messages, hsApi, log) {
+        log.set("messages", messages.length);
         const messagesByUser = groupBy(messages, message => message.device.userId);
         const payload = {
             messages: Array.from(messagesByUser.entries()).reduce((userMap, [userId, messages]) => {
@@ -387,7 +393,7 @@ export class RoomEncryption {
             }, {})
         };
         const txnId = makeTxnId();
-        await hsApi.sendToDevice(type, payload, txnId).response();
+        await hsApi.sendToDevice(type, payload, txnId, {log}).response();
     }
 
     dispose() {

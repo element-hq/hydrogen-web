@@ -25,13 +25,13 @@ async function loadMembers({roomId, storage}) {
     return memberDatas.map(d => new RoomMember(d));
 }
 
-async function fetchMembers({summary, syncToken, roomId, hsApi, storage, setChangedMembersMap}) {
+async function fetchMembers({summary, syncToken, roomId, hsApi, storage, setChangedMembersMap}, log) {
     // if any members are changed by sync while we're fetching members,
     // they will end up here, so we check not to override them
     const changedMembersDuringSync = new Map();
     setChangedMembersMap(changedMembersDuringSync);
     
-    const memberResponse = await hsApi.members(roomId, {at: syncToken}).response();
+    const memberResponse = await hsApi.members(roomId, {at: syncToken}, {log}).response();
 
     const txn = storage.readWriteTxn([
         storage.storeNames.roomSummary,
@@ -48,6 +48,7 @@ async function fetchMembers({summary, syncToken, roomId, hsApi, storage, setChan
         if (!Array.isArray(memberEvents)) {
             throw new Error("malformed");
         }
+        log.set("members", memberEvents.length);
         members = await Promise.all(memberEvents.map(async memberEvent => {
             const userId = memberEvent?.state_key;
             if (!userId) {
@@ -80,10 +81,11 @@ async function fetchMembers({summary, syncToken, roomId, hsApi, storage, setChan
     return members;
 }
 
-export async function fetchOrLoadMembers(options) {
+export async function fetchOrLoadMembers(options, logger) {
     const {summary} = options;
     if (!summary.data.hasFetchedMembers) {
-        return fetchMembers(options);
+        // we only want to log if we fetch members, so start or continue the optional log operation here
+        return logger.wrapOrRun(options.log, "fetchMembers", log => fetchMembers(options, log));
     } else {
         return loadMembers(options);
     }

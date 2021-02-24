@@ -61,12 +61,13 @@ export class AttachmentUpload {
     }
 
     /** @package */
-    async upload(hsApi, progressCallback) {
+    async upload(hsApi, progressCallback, log) {
         this._uploadRequest = hsApi.uploadAttachment(this._transferredBlob, this._filename, {
             uploadProgress: sentBytes => {
                 this._sentBytes = sentBytes;
                 progressCallback();
-            }
+            },
+            log
         });
         const {content_uri} = await this._uploadRequest.response();
         this._mxcUrl = content_uri;

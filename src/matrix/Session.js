@@ -96,7 +96,6 @@ export class Session {
 
     // called once this._e2eeAccount is assigned
     _setupEncryption() {
-        console.log("loaded e2ee account with keys", this._e2eeAccount.identityKeys);
         // TODO: this should all go in a wrapper in e2ee/ that is bootstrapped by passing in the account
         // and can create RoomEncryption objects and handle encrypted to_device messages and device list changes.
         const senderKeyLock = new LockMap();
@@ -228,7 +227,7 @@ export class Session {
     }
 
     /** @internal */
-    async createIdentity() {
+    async createIdentity(log) {
         if (this._olm) {
             if (!this._e2eeAccount) {
                 this._e2eeAccount = await E2EEAccount.create({
@@ -240,15 +239,16 @@ export class Session {
                     olmWorker: this._olmWorker,
                     storage: this._storage,
                 });
+                log.set("keys", this._e2eeAccount.identityKeys);
                 this._setupEncryption();
             }
-            await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
-            await this._e2eeAccount.uploadKeys(this._storage);
+            await this._e2eeAccount.generateOTKsIfNeeded(this._storage, log);
+            await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, log));
         }
     }
 
     /** @internal */
-    async load() {
+    async load(log) {
         const txn = this._storage.readTxn([
             this._storage.storeNames.session,
             this._storage.storeNames.roomSummary,
@@ -271,6 +271,7 @@ export class Session {
                 txn
             });
             if (this._e2eeAccount) {
+                log.set("keys", this._e2eeAccount.identityKeys);
                 this._setupEncryption();
             }
         }
@@ -279,7 +280,7 @@ export class Session {
         const rooms = await txn.roomSummary.getAll();
         await Promise.all(rooms.map(summary => {
             const room = this.createRoom(summary.roomId, pendingEventsByRoomId.get(summary.roomId));
-            return room.load(summary, txn);
+            return log.wrap("room", log => room.load(summary, txn, log));
         }));
     }
 
@@ -297,7 +298,7 @@ export class Session {
      *                                      and useful to store so we can later tell what capabilities
      *                                      our homeserver has.
      */
-    async start(lastVersionResponse) {
+    async start(lastVersionResponse, log) {
         if (lastVersionResponse) {
             // store /versions response
             const txn = this._storage.readWriteTxn([
@@ -328,13 +329,13 @@ export class Session {
         const operations = await opsTxn.operations.getAll();
         const operationsByScope = groupBy(operations, o => o.scope);
 
-        for (const [, room] of this._rooms) {
+        for (const room of this._rooms.values()) {
             let roomOperationsByType;
             const roomOperations = operationsByScope.get(room.id);
             if (roomOperations) {
                 roomOperationsByType = groupBy(roomOperations, r => r.type);
             }
-            room.start(roomOperationsByType);
+            room.start(roomOperationsByType, log);
         }
     }
 
@@ -438,7 +439,7 @@ export class Session {
         // are about to receive messages for
         // (https://github.com/vector-im/riot-web/issues/2782).
         if (!isCatchupSync) {
-            const needsToUploadOTKs = await this._e2eeAccount.generateOTKsIfNeeded(this._storage);
+            const needsToUploadOTKs = await this._e2eeAccount.generateOTKsIfNeeded(this._storage, log);
             if (needsToUploadOTKs) {
                 promises.push(log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, log)));
             }

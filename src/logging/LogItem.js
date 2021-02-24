@@ -17,9 +17,9 @@ limitations under the License.
 import {LogLevel, LogFilter} from "./LogFilter.js";
 
 export class LogItem {
-    constructor(labelOrValues, logLevel, filterCreator, clock) {
-        this._clock = clock;
-        this._start = clock.now();
+    constructor(labelOrValues, logLevel, filterCreator, logger) {
+        this._logger = logger;
+        this._start = logger._now();
         this._end = null;
         // (l)abel
         this._values = typeof labelOrValues === "string" ? {l: labelOrValues} : labelOrValues;
@@ -27,6 +27,25 @@ export class LogItem {
         this.logLevel = logLevel;
         this._children = null;
         this._filterCreator = filterCreator;
+    }
+
+    /** start a new root log item and run it detached mode, see BaseLogger.runDetached */
+    runDetached(labelOrValues, callback, logLevel, filterCreator) {
+        return this._logger.runDetached(labelOrValues, callback, logLevel, filterCreator);
+    }
+
+    /** start a new detached root log item and log a reference to it from this item */
+    wrapDetached(labelOrValues, callback, logLevel, filterCreator) {
+        this.refDetached(this.runDetached(labelOrValues, callback, logLevel, filterCreator));
+    }
+
+    /** logs a reference to a different log item, usually obtained from runDetached.
+    This is useful if the referenced operation can't be awaited. */
+    refDetached(logItem, logLevel = null) {
+        if (!logItem._values.refId) {
+            logItem.set("refId", this._logger._createRefId());
+        }
+        return this.log({ref: logItem._values.refId}, logLevel);
     }
 
     /**
@@ -69,7 +88,7 @@ export class LogItem {
      */
     log(labelOrValues, logLevel = null) {
         const item = this.child(labelOrValues, logLevel, null);
-        item.end = item.start;
+        item._end = item._start;
     }
 
     set(key, value) {
@@ -81,7 +100,7 @@ export class LogItem {
         }
     }
 
-    serialize(filter) {
+    serialize(filter, parentStartTime = null) {
         if (this._filterCreator) {
             try {
                 filter = this._filterCreator(new LogFilter(filter), this);
@@ -92,7 +111,7 @@ export class LogItem {
         let children;
         if (this._children !== null) {
             children = this._children.reduce((array, c) => {
-                const s = c.serialize(filter);
+                const s = c.serialize(filter, this._start);
                 if (s) {
                     if (array === null) {
                         array = [];
@@ -108,7 +127,7 @@ export class LogItem {
         // in (v)alues, (l)abel and (t)ype are also reserved.
         const item = {
             // (s)tart
-            s: this._start,
+            s: parentStartTime === null ? this._start : this._start - parentStartTime,
             // (d)uration
             d: this.duration,
             // (v)alues
@@ -127,6 +146,7 @@ export class LogItem {
             // (c)hildren
             item.c = children;
         }
+        // (f)orced can also be set on an item by the logger
         return item;
     }
 
@@ -177,7 +197,7 @@ export class LogItem {
                     c.finish();
                 }
             }
-            this._end = this._clock.now();
+            this._end = this._logger._now();
         }
     }
 
@@ -200,7 +220,7 @@ export class LogItem {
         if (!logLevel) {
             logLevel = this.logLevel || LogLevel.Info;
         }
-        const item = new LogItem(labelOrValues, logLevel, filterCreator, this._clock);
+        const item = new LogItem(labelOrValues, logLevel, filterCreator, this._logger);
         if (this._children === null) {
             this._children = [];
         }

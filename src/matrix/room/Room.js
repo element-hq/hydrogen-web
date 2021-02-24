@@ -167,6 +167,7 @@ export class Room extends EventEmitter {
                 throw err;
             }
             await writeTxn.complete();
+            // TODO: log decryption errors here
             decryption.applyToEntries(entries);
             if (this._observedEvents) {
                 this._observedEvents.updateEvents(entries);
@@ -245,7 +246,7 @@ export class Room extends EventEmitter {
         }
         let removedPendingEvents;
         if (Array.isArray(roomResponse.timeline?.events)) {
-            removedPendingEvents = this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn);
+            removedPendingEvents = this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn, log);
         }
         return {
             summaryChanges,
@@ -318,30 +319,29 @@ export class Room extends EventEmitter {
     async afterSyncCompleted(changes, log) {
         log.set("id", this.id);
         if (this._roomEncryption) {
-            // TODO: pass log to flushPendingRoomKeyShares once we also have a logger in `start`
-            await this._roomEncryption.flushPendingRoomKeyShares(this._hsApi, null);
+            await this._roomEncryption.flushPendingRoomKeyShares(this._hsApi, null, log);
         }
     }
 
     /** @package */
-    async start(pendingOperations) {
+    start(pendingOperations, parentLog) {
         if (this._roomEncryption) {
-            try {
-                const roomKeyShares = pendingOperations?.get("share_room_key");
-                if (roomKeyShares) {
-                    // if we got interrupted last time sending keys to newly joined members
-                    await this._roomEncryption.flushPendingRoomKeyShares(this._hsApi, roomKeyShares);
-                }
-            } catch (err) {
-                // we should not throw here
-                console.error(`could not send out (all) pending room keys for room ${this.id}`, err.stack);
+            const roomKeyShares = pendingOperations?.get("share_room_key");
+            if (roomKeyShares) {
+                // if we got interrupted last time sending keys to newly joined members
+                parentLog.wrapDetached("flush room keys", log => {
+                    log.set("id", this.id);
+                    return this._roomEncryption.flushPendingRoomKeyShares(this._hsApi, roomKeyShares, log);
+                });
             }
         }
-        this._sendQueue.resumeSending();
+        
+        this._sendQueue.resumeSending(parentLog);
     }
 
     /** @package */
-    async load(summary, txn) {
+    async load(summary, txn, log) {
+        log.set("id", this.id);
         try {
             this._summary.load(summary);
             if (this._summary.data.encryption) {
@@ -354,24 +354,33 @@ export class Room extends EventEmitter {
                 const changes = await this._heroes.calculateChanges(this._summary.data.heroes, [], txn);
                 this._heroes.applyChanges(changes, this._summary.data);
             }
-            return this._syncWriter.load(txn);
+            return this._syncWriter.load(txn, log);
         } catch (err) {
             throw new WrappedError(`Could not load room ${this._roomId}`, err);
         }
     }
 
     /** @public */
-    sendEvent(eventType, content, attachments) {
-        return this._sendQueue.enqueueEvent(eventType, content, attachments);
+    sendEvent(eventType, content, attachments, log = null) {
+        this._platform.logger.wrapOrRun(log, "send", log => {
+            log.set("id", this.id);
+            return this._sendQueue.enqueueEvent(eventType, content, attachments, log);
+        });
     }
 
     /** @public */
-    async ensureMessageKeyIsShared() {
-        return this._roomEncryption?.ensureMessageKeyIsShared(this._hsApi);
+    async ensureMessageKeyIsShared(log = null) {
+        if (!this._roomEncryption) {
+            return;
+        }
+        return this._platform.logger.wrapOrRun(log, "ensureMessageKeyIsShared", log => {
+            log.set("id", this.id);
+            return this._roomEncryption.ensureMessageKeyIsShared(this._hsApi, log);
+        });
     }
 
     /** @public */
-    async loadMemberList() {
+    async loadMemberList(log = null) {
         if (this._memberList) {
             // TODO: also await fetchOrLoadMembers promise here
             this._memberList.retain();
@@ -385,7 +394,8 @@ export class Room extends EventEmitter {
                 syncToken: this._getSyncToken(),
                 // to handle race between /members and /sync
                 setChangedMembersMap: map => this._changedMembersDuringSync = map,
-            });
+                log,
+            }, this._platform.logger);
             this._memberList = new MemberList({
                 members,
                 closeCallback: () => { this._memberList = null; }
@@ -395,57 +405,59 @@ export class Room extends EventEmitter {
     } 
 
     /** @public */
-    async fillGap(fragmentEntry, amount) {
+    fillGap(fragmentEntry, amount, log = null) {
         // TODO move some/all of this out of Room
-        if (fragmentEntry.edgeReached) {
-            return;
-        }
-        const response = await this._hsApi.messages(this._roomId, {
-            from: fragmentEntry.token,
-            dir: fragmentEntry.direction.asApiString(),
-            limit: amount,
-            filter: {
-                lazy_load_members: true,
-                include_redundant_members: true,
+        return this._platform.logger.wrapOrRun(log, "fillGap", async log => {
+            if (fragmentEntry.edgeReached) {
+                return;
             }
-        }).response();
+            const response = await this._hsApi.messages(this._roomId, {
+                from: fragmentEntry.token,
+                dir: fragmentEntry.direction.asApiString(),
+                limit: amount,
+                filter: {
+                    lazy_load_members: true,
+                    include_redundant_members: true,
+                }
+            }, {log}).response();
 
-        const txn = this._storage.readWriteTxn([
-            this._storage.storeNames.pendingEvents,
-            this._storage.storeNames.timelineEvents,
-            this._storage.storeNames.timelineFragments,
-        ]);
-        let removedPendingEvents;
-        let gapResult;
-        try {
-            // detect remote echos of pending messages in the gap
-            removedPendingEvents = this._sendQueue.removeRemoteEchos(response.chunk, txn);
-            // write new events into gap
-            const gapWriter = new GapWriter({
-                roomId: this._roomId,
-                storage: this._storage,
-                fragmentIdComparer: this._fragmentIdComparer,
-            });
-            gapResult = await gapWriter.writeFragmentFill(fragmentEntry, response, txn);
-        } catch (err) {
-            txn.abort();
-            throw err;
-        }
-        await txn.complete();
-        if (this._roomEncryption) {
-            const decryptRequest = this._decryptEntries(DecryptionSource.Timeline, gapResult.entries);
-            await decryptRequest.complete();
-        }
-        // once txn is committed, update in-memory state & emit events
-        for (const fragment of gapResult.fragments) {
-            this._fragmentIdComparer.add(fragment);
-        }
-        if (removedPendingEvents) {
-            this._sendQueue.emitRemovals(removedPendingEvents);
-        }
-        if (this._timeline) {
-            this._timeline.addGapEntries(gapResult.entries);
-        }
+            const txn = this._storage.readWriteTxn([
+                this._storage.storeNames.pendingEvents,
+                this._storage.storeNames.timelineEvents,
+                this._storage.storeNames.timelineFragments,
+            ]);
+            let removedPendingEvents;
+            let gapResult;
+            try {
+                // detect remote echos of pending messages in the gap
+                removedPendingEvents = this._sendQueue.removeRemoteEchos(response.chunk, txn, log);
+                // write new events into gap
+                const gapWriter = new GapWriter({
+                    roomId: this._roomId,
+                    storage: this._storage,
+                    fragmentIdComparer: this._fragmentIdComparer,
+                });
+                gapResult = await gapWriter.writeFragmentFill(fragmentEntry, response, txn);
+            } catch (err) {
+                txn.abort();
+                throw err;
+            }
+            await txn.complete();
+            if (this._roomEncryption) {
+                const decryptRequest = this._decryptEntries(DecryptionSource.Timeline, gapResult.entries);
+                await decryptRequest.complete();
+            }
+            // once txn is committed, update in-memory state & emit events
+            for (const fragment of gapResult.fragments) {
+                this._fragmentIdComparer.add(fragment);
+            }
+            if (removedPendingEvents) {
+                this._sendQueue.emitRemovals(removedPendingEvents);
+            }
+            if (this._timeline) {
+                this._timeline.addGapEntries(gapResult.entries);
+            }
+        });
     }
 
     /** @public */

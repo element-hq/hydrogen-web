@@ -80,22 +80,24 @@ export class Account {
         return this._identityKeys;
     }
 
-    async uploadKeys(storage) {
+    async uploadKeys(storage, log) {
         const oneTimeKeys = JSON.parse(this._account.one_time_keys());
         // only one algorithm supported by olm atm, so hardcode its name
         const oneTimeKeysEntries = Object.entries(oneTimeKeys.curve25519);
         if (oneTimeKeysEntries.length || !this._areDeviceKeysUploaded) {
             const payload = {};
             if (!this._areDeviceKeysUploaded) {
+                log.set("identity", true);
                 const identityKeys = JSON.parse(this._account.identity_keys());
                 payload.device_keys = this._deviceKeysPayload(identityKeys);
             }
             if (oneTimeKeysEntries.length) {
+                log.set("otks", true);
                 payload.one_time_keys = this._oneTimeKeysPayload(oneTimeKeysEntries);
             }
-            const response = await this._hsApi.uploadKeys(payload, /*{log}*/).response();
+            const response = await this._hsApi.uploadKeys(payload, {log}).response();
             this._serverOTKCount = response?.one_time_key_counts?.signed_curve25519;
-            // log.set("serverOTKCount", this._serverOTKCount);
+            log.set("serverOTKCount", this._serverOTKCount);
             // TODO: should we not modify this in the txn like we do elsewhere?
             // we'd have to pickle and unpickle the account to clone it though ...
             // and the upload has succeed at this point, so in-memory would be correct
@@ -114,7 +116,7 @@ export class Account {
         }
     }
 
-    async generateOTKsIfNeeded(storage) {
+    async generateOTKsIfNeeded(storage, log) {
         const maxOTKs = this._account.max_number_of_one_time_keys();
         const limit = maxOTKs / 2;
         if (this._serverOTKCount < limit) {
@@ -128,11 +130,16 @@ export class Account {
             if (totalOTKCount < limit) {
                 // we could in theory also generated the keys and store them in
                 // writeSync, but then we would have to clone the account to avoid side-effects.
-                await this._updateSessionStorage(storage, sessionStore => {
+                await log.wrap("generate otks", log => this._updateSessionStorage(storage, sessionStore => {
                     const newKeyCount = maxOTKs - totalOTKCount;
+                    log.set("max", maxOTKs);
+                    log.set("server", this._serverOTKCount);
+                    log.set("unpublished", unpublishedOTKCount);
+                    log.set("new", newKeyCount);
+                    log.set("limit", limit);
                     this._account.generate_one_time_keys(newKeyCount);
                     sessionStore.set(ACCOUNT_SESSION_KEY, this._account.pickle(this._pickleKey));
-                });
+                }));
                 return true;
             }
         }

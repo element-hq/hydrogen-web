@@ -30,10 +30,7 @@ export class PendingEvent {
     constructor({data, remove, emitUpdate, attachments}) {
         this._data = data;
         this._attachments = attachments;
-        this._emitUpdate = () => {
-            console.log("PendingEvent status", this.status, this._attachments && Object.entries(this._attachments).map(([key, a]) => `${key}: ${a.sentBytes}/${a.size}`));
-            emitUpdate();
-        };
+        this._emitUpdate = emitUpdate;
         this._removeFromQueueCallback = remove;
         this._aborted = false;
         this._status = SendStatus.Waiting;
@@ -100,7 +97,7 @@ export class PendingEvent {
         return this._attachments && Object.values(this._attachments).reduce((t, a) => t + a.sentBytes, 0);
     }
 
-    async uploadAttachments(hsApi) {
+    async uploadAttachments(hsApi, log) {
         if (!this.needsUpload) {
             return;
         }
@@ -111,7 +108,10 @@ export class PendingEvent {
             this._status = SendStatus.EncryptingAttachments;
             this._emitUpdate("status");
             for (const attachment of Object.values(this._attachments)) {
-                await attachment.encrypt();
+                await log.wrap("encrypt", () => {
+                    log.set("size", attachment.size);
+                    return attachment.encrypt();
+                });
                 if (this.aborted) {
                     throw new AbortError();
                 }
@@ -123,8 +123,11 @@ export class PendingEvent {
         // upload smallest attachments first
         entries.sort(([, a1], [, a2]) => a1.size - a2.size);
         for (const [urlPath, attachment] of entries) {
-            await attachment.upload(hsApi, () => {
-                this._emitUpdate("attachmentsSentBytes");
+            await log.wrap("upload", log => {
+                log.set("size", attachment.size);
+                return attachment.upload(hsApi, () => {
+                    this._emitUpdate("attachmentsSentBytes");
+                }, log);
             });
             attachment.applyToContent(urlPath, this.content);
         }
@@ -148,8 +151,7 @@ export class PendingEvent {
         return this._aborted;
     }
 
-    async send(hsApi) {
-        console.log(`sending event ${this.eventType} in ${this.roomId}`);
+    async send(hsApi, log) {
         this._status = SendStatus.Sending;
         this._emitUpdate("status");
         const eventType = this._data.encryptedEventType || this._data.eventType;
@@ -158,11 +160,13 @@ export class PendingEvent {
                 this.roomId,
                 eventType,
                 this.txnId,
-                content
+                content,
+                {log}
             );
         const response = await this._sendRequest.response();
         this._sendRequest = null;
         this._data.remoteId = response.event_id;
+        log.set("id", this._data.remoteId);
         this._status = SendStatus.Sent;
         this._emitUpdate("status");
     }

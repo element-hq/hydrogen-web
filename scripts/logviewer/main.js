@@ -21,36 +21,62 @@ const main = document.querySelector("main");
 
 let selectedItemNode;
 let rootItem;
+let itemByRef;
 
 const logLevels = [undefined, "All", "Debug", "Detail", "Info", "Warn", "Error", "Fatal", "Off"];
 
 main.addEventListener("click", event => {
-    if (selectedItemNode) {
-        selectedItemNode.classList.remove("selected");
-        selectedItemNode = null;
-    }
     if (event.target.classList.contains("toggleExpanded")) {
         const li = event.target.parentElement.parentElement;
         li.classList.toggle("expanded");
     } else {
+        // allow clicking any links other than .item in the timeline, like refs
+        if (event.target.tagName === "A" && !event.target.classList.contains("item")) {
+            return;
+        }
         const itemNode = event.target.closest(".item");
         if (itemNode) {
-            selectedItemNode = itemNode;
-            selectedItemNode.classList.add("selected");
-            const path = selectedItemNode.dataset.path;
-            let item = rootItem;
-            let parent;
-            if (path.length) {
-                const indices = path.split("/").map(i => parseInt(i, 10));
-                for(const i of indices) {
-                    parent = item;
-                    item = itemChildren(item)[i];
-                }
-            }
-            showItemDetails(item, parent, itemNode);
+            // we don't want scroll to jump when clicking
+            // so prevent default behaviour, and select and push to history manually
+            event.preventDefault();
+            selectNode(itemNode);
+            history.pushState(null, null, `#${itemNode.id}`);
         }
     }
 });
+
+window.addEventListener("hashchange", () => {
+    const id = window.location.hash.substr(1);
+    const itemNode = document.getElementById(id);
+    if (itemNode && itemNode.closest("main")) {
+        selectNode(itemNode);
+        itemNode.scrollIntoView({behavior: "smooth", block: "nearest"});
+    }
+});
+
+function selectNode(itemNode) {
+    if (selectedItemNode) {
+        selectedItemNode.classList.remove("selected");
+    }
+    selectedItemNode = itemNode;
+    selectedItemNode.classList.add("selected");
+    let item = rootItem;
+    let parent;
+    const indices = selectedItemNode.id.split("/").map(i => parseInt(i, 10));
+    for(const i of indices) {
+        parent = item;
+        item = itemChildren(item)[i];
+    }
+    showItemDetails(item, parent, selectedItemNode);
+}
+
+function stringifyItemValue(value) {
+    if (typeof value === "object" && value !== null) {
+        return JSON.stringify(value, undefined, 2);
+    } else {
+        return value + "";
+    }
+}
 
 function showItemDetails(item, parent, itemNode) {
     const parentOffset = itemStart(parent) ? `${itemStart(item) - itemStart(parent)}ms` : "none";
@@ -64,11 +90,23 @@ function showItemDetails(item, parent, itemNode) {
         t.p([t.strong("Start: "), new Date(itemStart(item)).toString()]),
         t.p([t.strong("Duration: "), `${itemDuration(item)}ms`]),
         t.p([t.strong("Child count: "), itemChildren(item) ? `${itemChildren(item).length}` : "none"]),
+        t.p([t.strong("Forced finish: "), (itemForcedFinish(item) || false) + ""]),
         t.p(t.strong("Values:")),
         t.ul({class: "values"}, Object.entries(itemValues(item)).map(([key, value]) => {
+            let valueNode;
+            if (key === "ref") {
+                const refItem = itemByRef.get(value);
+                if (refItem) {
+                    valueNode = t.a({href: `#${refItem.id}`}, itemCaption(refItem));
+                } else {
+                    valueNode = `unknown ref ${value}`;
+                }
+            } else {
+                valueNode = stringifyItemValue(value);
+            }
             return t.li([
                 t.span({className: "key"}, normalizeValueKey(key)),
-                t.span({className: "value"}, value+"")
+                t.span({className: "value"}, valueNode)
             ]);
         })),
         t.p(expandButton)
@@ -89,20 +127,53 @@ function expandResursively(li) {
 
 document.getElementById("openFile").addEventListener("click", loadFile);
 
+function getRootItemHeader(prevItem, item) {
+    if (prevItem) {
+        const diff = itemStart(item) - itemEnd(prevItem);
+        if (diff >= 0) {
+            return `+ ${formatTime(diff)}`;
+        } else {
+            return `ran ${formatTime(-diff)} in parallel with`;
+        }
+    } else {
+        return new Date(itemStart(item)).toString();
+    }
+}
+
 async function loadFile() {
     const file = await openFile();
     const json = await readFileAsText(file);
     const logs = JSON.parse(json);
+    logs.items.sort((a, b) => itemStart(a) - itemStart(b));
     rootItem = {c: logs.items};
+    itemByRef = new Map();
+    preprocessRecursively(rootItem, null, itemByRef, []);
+
     const fragment = logs.items.reduce((fragment, item, i, items) => {
         const prevItem = i === 0 ? null : items[i - 1];
         fragment.appendChild(t.section([
-            t.h2(prevItem ? `+ ${formatTime(itemStart(item) - itemEnd(prevItem))}` : new Date(itemStart(item)).toString()),
+            t.h2(getRootItemHeader(prevItem, item)),
             t.div({className: "timeline"}, t.ol(itemToNode(item, [i])))
         ]));
         return fragment;
     }, document.createDocumentFragment());
     main.replaceChildren(fragment);
+}
+
+function preprocessRecursively(item, parentElement, refsMap, path) {
+    item.s = (parentElement?.s || 0) + item.s;
+    if (itemRefSource(item)) {
+        refsMap.set(itemRefSource(item), item);
+    }
+    if (itemChildren(item)) {
+        for (let i = 0; i < itemChildren(item).length; i += 1) {
+            // do it in advance for a child as we don't want to do it for the rootItem
+            const child = itemChildren(item)[i];
+            const childPath = path.concat(i);
+            child.id = childPath.join("/");
+            preprocessRecursively(child, item, refsMap, childPath);
+        }
+    }
 }
 
 function formatTime(ms) {
@@ -128,6 +199,9 @@ function itemLevel(item) { return item.l; }
 function itemLabel(item) { return item.v?.l; }
 function itemType(item) { return item.v?.t; }
 function itemError(item) { return item.e; }
+function itemForcedFinish(item) { return item.f; }
+function itemRef(item) { return item.v?.ref; }
+function itemRefSource(item) { return item.v?.refId; }
 function itemShortErrorMessage(item) {
     if (itemError(item)) {
         const e = itemError(item);
@@ -144,6 +218,13 @@ function itemCaption(item) {
         return `${itemLabel(item)} (${itemValues(item).status})`;
     } else if (itemLabel(item) && itemError(item)) {
         return `${itemLabel(item)} (${itemShortErrorMessage(item)})`;
+    } else if (itemRef(item)) {
+        const refItem = itemByRef.get(itemRef(item));
+        if (refItem) {
+            return `ref "${itemCaption(refItem)}"`
+        } else {
+            return `unknown ref ${itemRef(item)}`
+        }
     } else {
         return itemLabel(item) || itemType(item);
     }
@@ -157,7 +238,7 @@ function normalizeValueKey(key) {
 } 
 
 // returns the node and the total range (recursively) occupied by the node
-function itemToNode(item, path) {
+function itemToNode(item) {
     const hasChildren = !!itemChildren(item)?.length;
     const className = {
         item: true,
@@ -167,18 +248,29 @@ function itemToNode(item, path) {
         [`level-${itemLevel(item)}`]: true,
     };
 
+    const id = item.id;
+    let captionNode;
+    if (itemRef(item)) {
+        const refItem = itemByRef.get(itemRef(item));
+        if (refItem) {
+            captionNode = ["ref ", t.a({href: `#${refItem.id}`}, itemCaption(refItem))];
+        }
+    }
+    if (!captionNode) {
+        captionNode = itemCaption(item);
+    }
     const li = t.li([
         t.div([
             hasChildren ? t.button({className: "toggleExpanded"}) : "",
-            t.div({className, "data-path": path.join("/")}, [
-                t.span({class: "caption"}, itemCaption(item)),
+            t.a({className, id, href: `#${id}`}, [
+                t.span({class: "caption"}, captionNode),
                 t.span({class: "duration"}, `(${itemDuration(item)}ms)`),
             ])
         ])
     ]);
     if (itemChildren(item) && itemChildren(item).length) {
-        li.appendChild(t.ol(itemChildren(item).map((item, i) => {
-            return itemToNode(item, path.concat(i));
+        li.appendChild(t.ol(itemChildren(item).map(item => {
+            return itemToNode(item);
         })));
     }
     return li;
