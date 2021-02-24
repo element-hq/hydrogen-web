@@ -208,7 +208,7 @@ export class SessionContainer {
                 });
             }
         });
-        await log.wrap("wait first sync", log => this._waitForFirstSync(log));
+        await log.wrap("wait first sync", () => this._waitForFirstSync());
 
         this._status.set(LoadStatus.Ready);
 
@@ -223,7 +223,7 @@ export class SessionContainer {
         }
     }
 
-    async _waitForFirstSync(log) {
+    async _waitForFirstSync() {
         try {
             this._sync.start();
             this._status.set(LoadStatus.FirstSync);
