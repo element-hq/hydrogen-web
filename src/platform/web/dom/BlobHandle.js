@@ -107,20 +107,6 @@ export class BlobHandle {
         }
     }
 
-    async readAsText() {
-        if (this._buffer) {
-            return this._buffer;
-        } else {
-            const reader = new FileReader();
-            const promise = new Promise((resolve, reject) => {
-                reader.addEventListener("load", evt => resolve(evt.target.result)); 
-                reader.addEventListener("error", evt => reject(evt.target.error)); 
-            });
-            reader.readAsText(this._blob, "utf-8");
-            return promise;
-        }
-    }
-
     get url() {
         if (!this._url) {
              this._url = URL.createObjectURL(this._blob);
