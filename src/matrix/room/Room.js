@@ -548,33 +548,36 @@ export class Room extends EventEmitter {
         this._emitCollectionChange(this);
     }
 
-    async clearUnread() {
+    async clearUnread(log = null) {
         if (this.isUnread || this.notificationCount) {
-            const txn = this._storage.readWriteTxn([
-                this._storage.storeNames.roomSummary,
-            ]);
-            let data;
-            try {
-                data = this._summary.writeClearUnread(txn);
-            } catch (err) {
-                txn.abort();
-                throw err;
-            }
-            await txn.complete();
-            this._summary.applyChanges(data);
-            this._emitUpdate();
-            
-            try {
-                const lastEventId = await this._getLastEventId();
-                if (lastEventId) {
-                    await this._hsApi.receipt(this._roomId, "m.read", lastEventId);
-                }
-            } catch (err) {
-                // ignore ConnectionError
-                if (err.name !== "ConnectionError") {
+            return await this._platform.logger.wrapOrRun(log, "clearUnread", async log => {
+                log.set("id", this.id);
+                const txn = this._storage.readWriteTxn([
+                    this._storage.storeNames.roomSummary,
+                ]);
+                let data;
+                try {
+                    data = this._summary.writeClearUnread(txn);
+                } catch (err) {
+                    txn.abort();
                     throw err;
                 }
-            }
+                await txn.complete();
+                this._summary.applyChanges(data);
+                this._emitUpdate();
+                
+                try {
+                    const lastEventId = await this._getLastEventId();
+                    if (lastEventId) {
+                        await this._hsApi.receipt(this._roomId, "m.read", lastEventId);
+                    }
+                } catch (err) {
+                    // ignore ConnectionError
+                    if (err.name !== "ConnectionError") {
+                        throw err;
+                    }
+                }
+            });
         }
     }
 
