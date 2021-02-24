@@ -147,7 +147,7 @@ async function loadFile() {
     logs.items.sort((a, b) => itemStart(a) - itemStart(b));
     rootItem = {c: logs.items};
     itemByRef = new Map();
-    preprocessRecursively(rootItem, itemByRef, []);
+    preprocessRecursively(rootItem, null, itemByRef, []);
 
     const fragment = logs.items.reduce((fragment, item, i, items) => {
         const prevItem = i === 0 ? null : items[i - 1];
@@ -160,7 +160,8 @@ async function loadFile() {
     main.replaceChildren(fragment);
 }
 
-function preprocessRecursively(item, refsMap, path) {
+function preprocessRecursively(item, parentElement, refsMap, path) {
+    item.s = (parentElement?.s || 0) + item.s;
     if (itemRefSource(item)) {
         refsMap.set(itemRefSource(item), item);
     }
@@ -170,7 +171,7 @@ function preprocessRecursively(item, refsMap, path) {
             const child = itemChildren(item)[i];
             const childPath = path.concat(i);
             child.id = childPath.join("/");
-            preprocessRecursively(child, refsMap, childPath);
+            preprocessRecursively(child, item, refsMap, childPath);
         }
     }
 }

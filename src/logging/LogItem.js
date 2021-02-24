@@ -100,7 +100,7 @@ export class LogItem {
         }
     }
 
-    serialize(filter) {
+    serialize(filter, parentStartTime = null) {
         if (this._filterCreator) {
             try {
                 filter = this._filterCreator(new LogFilter(filter), this);
@@ -111,7 +111,7 @@ export class LogItem {
         let children;
         if (this._children !== null) {
             children = this._children.reduce((array, c) => {
-                const s = c.serialize(filter);
+                const s = c.serialize(filter, this._start);
                 if (s) {
                     if (array === null) {
                         array = [];
@@ -127,7 +127,7 @@ export class LogItem {
         // in (v)alues, (l)abel and (t)ype are also reserved.
         const item = {
             // (s)tart
-            s: this._start,
+            s: parentStartTime === null ? this._start : this._start - parentStartTime,
             // (d)uration
             d: this.duration,
             // (v)alues
