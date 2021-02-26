@@ -16,6 +16,7 @@ limitations under the License.
 
 import {UpdateAction} from "../UpdateAction.js";
 import {ViewModel} from "../../../../ViewModel.js";
+import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent.js";
 
 export class SimpleTile extends ViewModel {
     constructor(options) {
@@ -45,6 +46,10 @@ export class SimpleTile extends ViewModel {
 
     get isPending() {
         return this._entry.isPending;
+    }
+
+    get isUnsent() {
+        return this._entry.isPending && this._entry.status !== SendStatus.Sent;
     }
 
     abortSending() {
