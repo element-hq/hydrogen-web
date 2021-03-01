@@ -26,4 +26,4 @@ There are no published builds at this point. You need to checkout the version yo
 
 ## I want to embed Hydrogen in my website, how should I do that?
 
-There are no npm modules yet published for Hydrogen. The easiest is probably to setup your website project, do yarn init if you haven't yet, add, the hydrogen repo as a git dependency, and import the files/classes you want to use from Hydrogen. Feel free to ask which classes you need as the documentation is lacking somewhat still. Note that at this early, pre 1.0 stage of the project, there is no promise of API stability yet.
+There are no npm modules yet published for Hydrogen. The easiest is probably to setup your website project, do yarn/npm init if you haven't yet, then add the hydrogen repo as a git http dependency, and import the files/classes you want to use from Hydrogen. Feel free to ask which classes you need as the documentation is lacking somewhat still. Note that at this early, pre 1.0 stage of the project, there is no promise of API stability yet.
