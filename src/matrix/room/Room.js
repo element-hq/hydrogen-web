@@ -147,13 +147,13 @@ export class Room extends EventEmitter {
             const events = entries.filter(entry => {
                 return entry.eventType === EVENT_ENCRYPTED_TYPE;
             }).map(entry => entry.event);
-            const isTimelineOpen = this._isTimelineOpen;
-            r.preparation = await this._roomEncryption.prepareDecryptAll(events, null, source, isTimelineOpen, inboundSessionTxn);
+            r.preparation = await this._roomEncryption.prepareDecryptAll(events, null, source, inboundSessionTxn);
             if (r.cancelled) return;
             const changes = await r.preparation.decrypt();
             r.preparation = null;
             if (r.cancelled) return;
             const stores = [this._storage.storeNames.groupSessionDecryptions];
+            const isTimelineOpen = this._isTimelineOpen;
             if (isTimelineOpen) {
                 // read to fetch devices if timeline is open
                 stores.push(this._storage.storeNames.deviceIdentities);
@@ -162,6 +162,9 @@ export class Room extends EventEmitter {
             let decryption;
             try {
                 decryption = await changes.write(writeTxn);
+                if (isTimelineOpen) {
+                    await decryption.verifySenders(writeTxn);
+                }
             } catch (err) {
                 writeTxn.abort();
                 throw err;
@@ -210,7 +213,7 @@ export class Room extends EventEmitter {
                     return event?.type === EVENT_ENCRYPTED_TYPE;
                 });
                 decryptPreparation = await roomEncryption.prepareDecryptAll(
-                    eventsToDecrypt, newKeys, DecryptionSource.Sync, this._isTimelineOpen, txn);
+                    eventsToDecrypt, newKeys, DecryptionSource.Sync, txn);
             }
         }
 
@@ -240,6 +243,9 @@ export class Room extends EventEmitter {
             await log.wrap("syncWriter", log => this._syncWriter.writeSync(roomResponse, txn, log), log.level.Detail);
         if (decryptChanges) {
             const decryption = await decryptChanges.write(txn);
+            if (this._isTimelineOpen) {
+                await decryption.verifySenders(txn);
+            }
             if (retryEntries?.length) {
                 // TODO: this will modify existing timeline entries (which we should not do in writeSync), 
                 // but it is a temporary way of reattempting decryption while timeline is open

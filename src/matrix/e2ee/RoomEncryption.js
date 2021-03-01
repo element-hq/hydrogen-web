@@ -93,7 +93,7 @@ export class RoomEncryption {
     // this happens before entries exists, as they are created by the syncwriter
     // but we want to be able to map it back to something in the timeline easily
     // when retrying decryption.
-    async prepareDecryptAll(events, newKeys, source, isTimelineOpen, txn) {
+    async prepareDecryptAll(events, newKeys, source, txn) {
         const errors = new Map();
         const validEvents = [];
         for (const event of events) {
@@ -126,7 +126,7 @@ export class RoomEncryption {
         if (customCache) {
             customCache.dispose();
         }
-        return new DecryptionPreparation(preparation, errors, {isTimelineOpen, source}, this, events);
+        return new DecryptionPreparation(preparation, errors, source, this, events);
     }
 
     async _processDecryptionResults(events, results, errors, flags, txn) {
@@ -137,11 +137,6 @@ export class RoomEncryption {
             } else {
                 this._missingSessions.removeEvent(event);
                 this._missingSessionCandidates.removeEvent(event);
-            }
-        }
-        if (flags.isTimelineOpen) {
-            for (const result of results.values()) {
-                await this._verifyDecryptionResult(result, txn);
             }
         }
     }
@@ -424,10 +419,10 @@ export class RoomEncryption {
  * the decryption results before turning them
  */
 class DecryptionPreparation {
-    constructor(megolmDecryptionPreparation, extraErrors, flags, roomEncryption, events) {
+    constructor(megolmDecryptionPreparation, extraErrors, source, roomEncryption, events) {
         this._megolmDecryptionPreparation = megolmDecryptionPreparation;
         this._extraErrors = extraErrors;
-        this._flags = flags;
+        this._source = source;
         this._roomEncryption = roomEncryption;
         this._events = events;
     }
@@ -436,7 +431,7 @@ class DecryptionPreparation {
         return new DecryptionChanges(
             await this._megolmDecryptionPreparation.decrypt(),
             this._extraErrors,
-            this._flags,
+            this._source,
             this._roomEncryption,
             this._events);
     }
@@ -447,10 +442,10 @@ class DecryptionPreparation {
 }
 
 class DecryptionChanges {
-    constructor(megolmDecryptionChanges, extraErrors, flags, roomEncryption, events) {
+    constructor(megolmDecryptionChanges, extraErrors, source, roomEncryption, events) {
         this._megolmDecryptionChanges = megolmDecryptionChanges;
         this._extraErrors = extraErrors;
-        this._flags = flags;
+        this._source = source;
         this._roomEncryption = roomEncryption;
         this._events = events;
     }
@@ -458,15 +453,16 @@ class DecryptionChanges {
     async write(txn) {
         const {results, errors} = await this._megolmDecryptionChanges.write(txn);
         mergeMap(this._extraErrors, errors);
-        await this._roomEncryption._processDecryptionResults(this._events, results, errors, this._flags, txn);
-        return new BatchDecryptionResult(results, errors);
+        await this._roomEncryption._processDecryptionResults(this._events, results, errors, this._source, txn);
+        return new BatchDecryptionResult(results, errors, this._roomEncryption);
     }
 }
 
 class BatchDecryptionResult {
-    constructor(results, errors) {
+    constructor(results, errors, roomEncryption) {
         this.results = results;
         this.errors = errors;
+        this._roomEncryption = roomEncryption;
     }
 
     applyToEntries(entries) {
@@ -481,6 +477,12 @@ class BatchDecryptionResult {
                 }
             }
         }
+    }
+
+    verifySenders(txn) {
+        return Promise.all(Array.from(this.results.values()).map(result => {
+            return this._roomEncryption._verifyDecryptionResult(result, txn);
+        }));
     }
 }
 
