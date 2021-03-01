@@ -240,18 +240,14 @@ export class Room extends EventEmitter {
             await log.wrap("syncWriter", log => this._syncWriter.writeSync(roomResponse, txn, log), log.level.Detail);
         if (decryptChanges) {
             const decryption = await decryptChanges.write(txn);
-            decryption.applyToEntries(entries);
-            // now prepend updated copies of retryEntries
-            // so the originals don't get modified by the decryption
-            // (not needed for entries as they were just created by syncWriter)
             if (retryEntries?.length) {
                 // TODO: this will modify existing timeline entries (which we should not do in writeSync), 
                 // but it is a temporary way of reattempting decryption while timeline is open
                 // won't need copies when tracking missing sessions properly
-                const updatedEntries = decryption.applyToEntries(retryEntries);
                 // prepend the retried entries, as we know they are older (not that it should matter much for the summary)
-                entries.unshift(...updatedEntries);
+                entries.unshift(...retryEntries);
             }
+            decryption.applyToEntries(entries);
         }
         // pass member changes to device tracker
         if (roomEncryption && this.isTrackingMembers && memberChanges?.size) {
