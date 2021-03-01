@@ -17,8 +17,7 @@ limitations under the License.
 export function formatSize(size, decimals = 2) {
     if (Number.isSafeInteger(size)) {
         const base = Math.min(3, Math.floor(Math.log(size) / Math.log(1024)));
-        const decimalFactor = Math.pow(10, decimals);
-        const formattedSize = Math.round((size / Math.pow(1024, base)) * decimalFactor) / decimalFactor;
+        const formattedSize = Math.round(size / Math.pow(1024, base)).toFixed(decimals);
         switch (base) {
             case 0: return `${formattedSize} bytes`;
             case 1: return `${formattedSize} KB`;
