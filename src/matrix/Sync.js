@@ -257,6 +257,20 @@ export class Sync {
             response, sessionState.lock, prepareTxn, log));
 
         const newKeysByRoom = sessionState.preparation?.newKeysByRoom;
+
+        // add any rooms with new keys but no sync response to the list of rooms to be synced
+        if (newKeysByRoom) {
+            const {hasOwnProperty} = Object.prototype;
+            for (const roomId of newKeysByRoom.keys()) {
+                const isRoomInResponse = response.rooms?.join && hasOwnProperty.call(response.rooms.join, roomId);
+                if (!isRoomInResponse) {
+                    let room = this._session.rooms.get(roomId);
+                    if (room) {
+                        roomStates.push(new RoomSyncProcessState(room, {}, room.membership));
+                    }
+                }
+            }
+        }
         
         await Promise.all(roomStates.map(async rs => {
             const newKeys = newKeysByRoom?.get(rs.room.id);
