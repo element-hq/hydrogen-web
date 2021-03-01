@@ -400,6 +400,18 @@ export class RoomEncryption {
         await hsApi.sendToDevice(type, payload, txnId, {log}).response();
     }
 
+    filterEventEntriesForKeys(entries, keys) {
+        return entries.filter(entry => {
+            const {event} = entry;
+            if (event) {
+                const senderKey = event.content?.["sender_key"];
+                const sessionId = event.content?.["session_id"];
+                return keys.some(key => senderKey === key.senderKey && sessionId === key.sessionId);
+            }
+            return false;
+        });
+    }
+
     dispose() {
         this._disposed = true;
         this._megolmBackfillCache.dispose();

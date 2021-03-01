@@ -189,10 +189,22 @@ export class Room extends EventEmitter {
             roomEncryption = this._createRoomEncryption(this, summaryChanges.encryption);
         }
 
+        let retryEntries;
         let decryptPreparation;
         if (roomEncryption) {
             // also look for events in timeline here
             let events = roomResponse?.timeline?.events || [];
+            // when new keys arrive, also see if any events currently loaded in the timeline
+            // can now be retried to decrypt
+            if (this._timeline && newKeys) {
+                retryEntries = roomEncryption.filterEventEntriesForKeys(
+                    this._timeline.remoteEntries, newKeys);
+                if (retryEntries.length) {
+                    log.set("retry", retryEntries.length);
+                    events = events.concat(retryEntries.map(entry => entry.event));
+                }
+            }
+
             if (events.length) {
                 const eventsToDecrypt = events.filter(event => {
                     return event?.type === EVENT_ENCRYPTED_TYPE;
@@ -207,6 +219,7 @@ export class Room extends EventEmitter {
             summaryChanges,
             decryptPreparation,
             decryptChanges: null,
+            retryEntries
         };
     }
 
@@ -221,13 +234,24 @@ export class Room extends EventEmitter {
     }
 
     /** @package */
-    async writeSync(roomResponse, isInitialSync, {summaryChanges, decryptChanges, roomEncryption}, txn, log) {
+    async writeSync(roomResponse, isInitialSync, {summaryChanges, decryptChanges, roomEncryption, retryEntries}, txn, log) {
         log.set("id", this.id);
         const {entries, newLiveKey, memberChanges} =
             await log.wrap("syncWriter", log => this._syncWriter.writeSync(roomResponse, txn, log), log.level.Detail);
         if (decryptChanges) {
             const decryption = await decryptChanges.write(txn);
             decryption.applyToEntries(entries);
+            // now prepend updated copies of retryEntries
+            // so the originals don't get modified by the decryption
+            // (not needed for entries as they were just created by syncWriter)
+            if (retryEntries?.length) {
+                // TODO: this will modify existing timeline entries (which we should not do in writeSync), 
+                // but it is a temporary way of reattempting decryption while timeline is open
+                // won't need copies when tracking missing sessions properly
+                const updatedEntries = decryption.applyToEntries(retryEntries);
+                // prepend the retried entries, as we know they are older (not that it should matter much for the summary)
+                entries.unshift(...updatedEntries);
+            }
         }
         // pass member changes to device tracker
         if (roomEncryption && this.isTrackingMembers && memberChanges?.size) {
@@ -255,7 +279,7 @@ export class Room extends EventEmitter {
         return {
             summaryChanges,
             roomEncryption,
-            newTimelineEntries: entries,
+            newAndUpdatedEntries: entries,
             newLiveKey,
             removedPendingEvents,
             memberChanges,
@@ -268,7 +292,7 @@ export class Room extends EventEmitter {
      * Called with the changes returned from `writeSync` to apply them and emit changes.
      * No storage or network operations should be done here.
      */
-    afterSync({summaryChanges, newTimelineEntries, newLiveKey, removedPendingEvents, memberChanges, heroChanges, roomEncryption}, log) {
+    afterSync({summaryChanges, newAndUpdatedEntries, newLiveKey, removedPendingEvents, memberChanges, heroChanges, roomEncryption}, log) {
         log.set("id", this.id);
         this._syncWriter.afterSync(newLiveKey);
         this._setEncryption(roomEncryption);
@@ -301,10 +325,10 @@ export class Room extends EventEmitter {
             this._emitUpdate();
         }
         if (this._timeline) {
-            this._timeline.appendLiveEntries(newTimelineEntries);
+            this._timeline.appendLiveEntries(newAndUpdatedEntries);
         }
         if (this._observedEvents) {
-            this._observedEvents.updateEvents(newTimelineEntries);
+            this._observedEvents.updateEvents(newAndUpdatedEntries);
         }
         if (removedPendingEvents) {
             this._sendQueue.emitRemovals(removedPendingEvents);
@@ -520,6 +544,10 @@ export class Room extends EventEmitter {
 
     get isEncrypted() {
         return !!this._summary.data.encryption;
+    }
+
+    get membership() {
+        return this._summary.data.membership;
     }
 
     enableSessionBackup(sessionBackup) {
