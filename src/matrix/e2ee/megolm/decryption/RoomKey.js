@@ -95,20 +95,20 @@ class DeviceMessageRoomKey extends BaseRoomKey {
 }
 
 class BackupRoomKey extends BaseRoomKey {
-    constructor(roomId, sessionId, sessionInfo) {
+    constructor(roomId, sessionId, backupInfo) {
         super();
         this._roomId = roomId;
         this._sessionId = sessionId;
-        this._sessionInfo = sessionInfo;
+        this._backupInfo = backupInfo;
     }
 
     get roomId() { return this._roomId; }
-    get senderKey() { return this._sessionInfo["sender_key"]; }
+    get senderKey() { return this._backupInfo["sender_key"]; }
     get sessionId() { return this._sessionId; }
-    get claimedEd25519Key() { return this._sessionInfo["sender_claimed_keys"]?.["ed25519"]; }
+    get claimedEd25519Key() { return this._backupInfo["sender_claimed_keys"]?.["ed25519"]; }
 
     _loadSessionKey(session) {
-        const sessionKey = this._sessionInfo["session_key"];
+        const sessionKey = this._backupInfo["session_key"];
         session.import_session(sessionKey);
     }
 }
