@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -100,7 +101,8 @@ export class IDBLogger extends BaseLogger {
         return openDatabase(this._name, db => db.createObjectStore("logs", {keyPath: "id", autoIncrement: true}), 1);
     }
     
-    _persistItem(serializedItem) {
+    _persistItem(logItem, filter, forced) {
+        const serializedItem = logItem.serialize(filter, forced);
         this._queuedItems.push({
             json: JSON.stringify(serializedItem)
         });

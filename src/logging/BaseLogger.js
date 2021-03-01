@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,7 +27,7 @@ export class BaseLogger {
     log(labelOrValues, logLevel = LogLevel.Info) {
         const item = new LogItem(labelOrValues, logLevel, null, this);
         item._end = item._start;
-        this._persistItem(item.serialize(null));
+        this._persistItem(item, null, false);
     }
 
     /** if item is a log item, wrap the callback in a child of it, otherwise start a new root log item. */
@@ -79,12 +80,9 @@ export class BaseLogger {
                 filter = filter.minLevel(logLevel);
             }
             try {
-                const serialized = item.serialize(filter);
-                if (serialized) {
-                    this._persistItem(serialized);
-                }
+                this._persistItem(item, filter, false);
             } catch (err) {
-                console.error("Could not serialize log item", err);
+                console.error("Could not persist log item", err);
             }
             this._openItems.delete(item);
         };
@@ -120,11 +118,8 @@ export class BaseLogger {
                 // for now, serialize with an all-permitting filter
                 // as the createFilter function would get a distorted image anyway
                 // about the duration of the item, etc ...
-                const serialized = openItem.serialize(new LogFilter(), 0);
-                if (serialized) {
-                    serialized.f = true;    //(f)orced
-                    this._persistItem(serialized);
-                }
+                // true for force finish
+                this._persistItem(openItem, new LogFilter(), true);
             } catch (err) {
                 console.error("Could not serialize log item", err);
             }

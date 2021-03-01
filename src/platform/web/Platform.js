@@ -22,6 +22,7 @@ import {SettingsStorage} from "./dom/SettingsStorage.js";
 import {Encoding} from "./utils/Encoding.js";
 import {OlmWorker} from "../../matrix/e2ee/OlmWorker.js";
 import {IDBLogger} from "../../logging/IDBLogger.js";
+import {ConsoleLogger} from "../../logging/ConsoleLogger.js";
 import {RootView} from "./ui/RootView.js";
 import {Clock} from "./dom/Clock.js";
 import {ServiceWorkerHandler} from "./dom/ServiceWorkerHandler.js";
@@ -82,14 +83,18 @@ async function loadOlmWorker(paths) {
 }
 
 export class Platform {
-    constructor(container, paths, cryptoExtras = null) {
+    constructor(container, paths, cryptoExtras = null, options = null) {
         this._paths = paths;
         this._container = container;
         this.settingsStorage = new SettingsStorage("hydrogen_setting_v1_");
         this.clock = new Clock();
         this.encoding = new Encoding();
         this.random = Math.random;
-        this.logger = new IDBLogger({name: "hydrogen_logs", platform: this});
+        if (options?.development) {
+            this.logger = new ConsoleLogger({platform: this});
+        } else {
+            this.logger = new IDBLogger({name: "hydrogen_logs", platform: this});
+        }
         this.history = new History();
         this.onlineStatus = new OnlineStatus();
         this._serviceWorkerHandler = null;

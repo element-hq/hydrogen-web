@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -100,7 +101,7 @@ export class LogItem {
         }
     }
 
-    serialize(filter, parentStartTime = null) {
+    serialize(filter, parentStartTime = null, forced) {
         if (this._filterCreator) {
             try {
                 filter = this._filterCreator(new LogFilter(filter), this);
@@ -111,7 +112,7 @@ export class LogItem {
         let children;
         if (this._children !== null) {
             children = this._children.reduce((array, c) => {
-                const s = c.serialize(filter, this._start);
+                const s = c.serialize(filter, this._start, false);
                 if (s) {
                     if (array === null) {
                         array = [];
@@ -142,11 +143,13 @@ export class LogItem {
                 name: this.error.name
             };
         }
+        if (forced) {
+            item.f = true;    //(f)orced
+        }
         if (children) {
             // (c)hildren
             item.c = children;
         }
-        // (f)orced can also be set on an item by the logger
         return item;
     }
 
