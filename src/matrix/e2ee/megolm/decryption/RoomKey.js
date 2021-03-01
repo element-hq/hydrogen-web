@@ -84,7 +84,7 @@ class DeviceMessageRoomKey extends BaseRoomKey {
     }
 
     get roomId() { return this._decryptionResult.event.content?.["room_id"]; }
-    get senderKey() { return this._decryptionResult.senderKey; }
+    get senderKey() { return this._decryptionResult.senderCurve25519Key; }
     get sessionId() { return this._decryptionResult.event.content?.["session_id"]; }
     get claimedEd25519Key() { return this._decryptionResult.claimedEd25519Key; }
 
