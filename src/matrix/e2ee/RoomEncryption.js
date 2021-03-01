@@ -93,7 +93,7 @@ export class RoomEncryption {
     // this happens before entries exists, as they are created by the syncwriter
     // but we want to be able to map it back to something in the timeline easily
     // when retrying decryption.
-    async prepareDecryptAll(events, source, isTimelineOpen, txn) {
+    async prepareDecryptAll(events, newKeys, source, isTimelineOpen, txn) {
         const errors = new Map();
         const validEvents = [];
         for (const event of events) {
@@ -107,6 +107,8 @@ export class RoomEncryption {
         }
         let customCache;
         let sessionCache;
+        // we have different caches so we can keep them small but still
+        // have backfill and sync not invalidate each other
         if (source === DecryptionSource.Sync) {
             sessionCache = this._megolmSyncCache;
         } else if (source === DecryptionSource.Timeline) {
@@ -120,7 +122,7 @@ export class RoomEncryption {
             throw new Error("Unknown source: " + source);
         }
         const preparation = await this._megolmDecryption.prepareDecryptAll(
-            this._room.id, validEvents, sessionCache, txn);
+            this._room.id, validEvents, newKeys, sessionCache, txn);
         if (customCache) {
             customCache.dispose();
         }
@@ -188,20 +190,27 @@ export class RoomEncryption {
                     console.warn("Got session key back from backup with different sender key, ignoring", {session, senderKey});
                     return;
                 }
-                const txn = this._storage.readWriteTxn([this._storage.storeNames.inboundGroupSessions]);
-                let roomKey;
-                try {
-                    roomKey = await this._megolmDecryption.addRoomKeyFromBackup(
-                        this._room.id, sessionId, session, txn);
-                } catch (err) {
-                    txn.abort();
-                    throw err;
-                }
-                await txn.complete();
-
+                let roomKey = this._megolmDecryption.roomKeyFromBackup(this._room.id, sessionId, session);
                 if (roomKey) {
-                    // this will reattempt decryption
-                    await this._room.notifyRoomKey(roomKey);
+                    let keyIsBestOne = false;
+                    try {
+                        const txn = this._storage.readWriteTxn([this._storage.storeNames.inboundGroupSessions]);
+                        try {
+                            keyIsBestOne = await this._megolmDecryption.writeRoomKey(roomKey, txn);
+                        } catch (err) {
+                            txn.abort();
+                            throw err;
+                        }
+                        await txn.complete();
+                    } finally {
+                        // can still access properties on it afterwards
+                        // this is just clearing the internal sessionInfo
+                        roomKey.dispose();
+                    }
+                    if (keyIsBestOne) {
+                        // wrote the key, meaning we didn't have a better one, go ahead and reattempt decryption
+                        await this._room.notifyRoomKey(roomKey);
+                    }
                 }
             } else if (session?.algorithm) {
                 console.info(`Backed-up session of unknown algorithm: ${session.algorithm}`);
@@ -212,12 +221,7 @@ export class RoomEncryption {
     }
 
     /**
-     * @type {RoomKeyDescription}
-     * @property {RoomKeyDescription} senderKey the curve25519 key of the sender
-     * @property {RoomKeyDescription} sessionId
-     * 
-     * 
-     * @param  {Array<RoomKeyDescription>} roomKeys
+     * @param  {RoomKey} roomKeys
      * @return {Array<string>} the event ids that should be retried to decrypt
      */
     getEventIdsForRoomKey(roomKey) {

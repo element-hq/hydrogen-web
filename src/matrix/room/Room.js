@@ -148,7 +148,7 @@ export class Room extends EventEmitter {
                 return entry.eventType === EVENT_ENCRYPTED_TYPE;
             }).map(entry => entry.event);
             const isTimelineOpen = this._isTimelineOpen;
-            r.preparation = await this._roomEncryption.prepareDecryptAll(events, source, isTimelineOpen, inboundSessionTxn);
+            r.preparation = await this._roomEncryption.prepareDecryptAll(events, null, source, isTimelineOpen, inboundSessionTxn);
             if (r.cancelled) return;
             const changes = await r.preparation.decrypt();
             r.preparation = null;
@@ -176,8 +176,11 @@ export class Room extends EventEmitter {
         return request;
     }
 
-    async prepareSync(roomResponse, membership, txn, log) {
+    async prepareSync(roomResponse, membership, newKeys, txn, log) {
         log.set("id", this.id);
+        if (newKeys) {
+            log.set("newKeys", newKeys.length);
+        }
         const summaryChanges = this._summary.data.applySyncResponse(roomResponse, membership)
         let roomEncryption = this._roomEncryption;
         // encryption is enabled in this sync
@@ -194,7 +197,7 @@ export class Room extends EventEmitter {
                     return event?.type === EVENT_ENCRYPTED_TYPE;
                 });
                 decryptPreparation = await roomEncryption.prepareDecryptAll(
-                    eventsToDecrypt, DecryptionSource.Sync, this._isTimelineOpen, txn);
+                    eventsToDecrypt, newKeys, DecryptionSource.Sync, this._isTimelineOpen, txn);
             }
         }
 

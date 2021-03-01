@@ -40,7 +40,7 @@ function timelineIsEmpty(roomResponse) {
  * Sync steps in js-pseudocode:
  * ```js
  * // can only read some stores
- * const preparation = await room.prepareSync(roomResponse, membership, prepareTxn);
+ * const preparation = await room.prepareSync(roomResponse, membership, newRoomKeys, prepareTxn);
  * // can do async work that is not related to storage (such as decryption)
  * await room.afterPrepareSync(preparation);
  * // writes and calculates changes
@@ -190,35 +190,44 @@ export class Sync {
         const response = await this._currentRequest.response();
 
         const isInitialSync = !syncToken;
+        const sessionState = new SessionSyncProcessState();
         const roomStates = this._parseRoomsResponse(response.rooms, isInitialSync);
 
-        await log.wrap("prepare", log => this._prepareRooms(roomStates, log));
-        
-        let sessionChanges;
-        await log.wrap("write", async log => {
-            const syncTxn = this._openSyncTxn();
-            try {
-                sessionChanges = await log.wrap("session", log => this._session.writeSync(response, syncFilterId, syncTxn, log));
-                await Promise.all(roomStates.map(async rs => {
-                    rs.changes = await log.wrap("room", log => rs.room.writeSync(
-                        rs.roomResponse, isInitialSync, rs.preparation, syncTxn, log));
-                }));
-            } catch(err) {
-                // avoid corrupting state by only
-                // storing the sync up till the point
-                // the exception occurred
+        try {
+            // take a lock on olm sessions used in this sync so sending a message doesn't change them while syncing
+            sessionState.lock = await log.wrap("obtainSyncLock", () => this._session.obtainSyncLock(response));
+            await log.wrap("prepare", log => this._prepareSessionAndRooms(sessionState, roomStates, response, log));
+            await log.wrap("afterPrepareSync", log => Promise.all(roomStates.map(rs => {
+                return rs.room.afterPrepareSync(rs.preparation, log);
+            })));
+            await log.wrap("write", async log => {
+                const syncTxn = this._openSyncTxn();
                 try {
-                    syncTxn.abort();
-                } catch (abortErr) {
-                    log.set("couldNotAbortTxn", true);
+                    sessionState.changes = await log.wrap("session", log => this._session.writeSync(
+                        response, syncFilterId, sessionState.preparation, syncTxn, log));
+                    await Promise.all(roomStates.map(async rs => {
+                        rs.changes = await log.wrap("room", log => rs.room.writeSync(
+                            rs.roomResponse, isInitialSync, rs.preparation, syncTxn, log));
+                    }));
+                } catch(err) {
+                    // avoid corrupting state by only
+                    // storing the sync up till the point
+                    // the exception occurred
+                    try {
+                        syncTxn.abort();
+                    } catch (abortErr) {
+                        log.set("couldNotAbortTxn", true);
+                    }
+                    throw err;
                 }
-                throw err;
-            }
-            await syncTxn.complete();
-        });
+                await syncTxn.complete();
+            });
+        } finally {
+            sessionState.dispose();
+        }
 
         log.wrap("after", log => {
-            log.wrap("session", log => this._session.afterSync(sessionChanges, log), log.level.Detail);
+            log.wrap("session", log => this._session.afterSync(sessionState.changes, log), log.level.Detail);
             // emit room related events after txn has been closed
             for(let rs of roomStates) {
                 log.wrap("room", log => rs.room.afterSync(rs.changes, log), log.level.Detail);
@@ -229,7 +238,7 @@ export class Sync {
         return {
             syncToken: response.next_batch,
             roomStates,
-            sessionChanges,
+            sessionChanges: sessionState.changes,
             hadToDeviceMessages: Array.isArray(toDeviceEvents) && toDeviceEvents.length > 0,
         };
     }
@@ -237,18 +246,26 @@ export class Sync {
     _openPrepareSyncTxn() {
         const storeNames = this._storage.storeNames;
         return this._storage.readTxn([
+            storeNames.olmSessions,
             storeNames.inboundGroupSessions,
         ]);
     }
 
-    async _prepareRooms(roomStates, log) {
+    async _prepareSessionAndRooms(sessionState, roomStates, response, log) {
         const prepareTxn = this._openPrepareSyncTxn();
+        sessionState.preparation = await log.wrap("session", log => this._session.prepareSync(
+            response, sessionState.lock, prepareTxn, log));
+
+        const newKeysByRoom = sessionState.preparation?.newKeysByRoom;
+        
         await Promise.all(roomStates.map(async rs => {
-            rs.preparation = await log.wrap("room", log => rs.room.prepareSync(rs.roomResponse, rs.membership, prepareTxn, log), log.level.Detail);
+            const newKeys = newKeysByRoom?.get(rs.room.id);
+            rs.preparation = await log.wrap("room", log => rs.room.prepareSync(
+                rs.roomResponse, rs.membership, newKeys, prepareTxn, log), log.level.Detail);
         }));
+
         // This is needed for safari to not throw TransactionInactiveErrors on the syncTxn. See docs/INDEXEDDB.md
         await prepareTxn.complete();
-        await Promise.all(roomStates.map(rs => rs.room.afterPrepareSync(rs.preparation, log)));
     }
 
     _openSyncTxn() {
@@ -269,6 +286,9 @@ export class Sync {
             storeNames.outboundGroupSessions,
             storeNames.operations,
             storeNames.accountData,
+            // to decrypt and store new room keys
+            storeNames.olmSessions,
+            storeNames.inboundGroupSessions,
         ]);
     }
     
@@ -308,6 +328,19 @@ export class Sync {
             this._currentRequest.abort();
             this._currentRequest = null;
         }
+    }
+}
+
+class SessionSyncProcessState {
+    constructor() {
+        this.lock = null;
+        this.preparation = null;
+        this.changes = null;
+    }
+
+    dispose() {
+        this.lock?.release();
+        this.preparation?.dispose();
     }
 }
 

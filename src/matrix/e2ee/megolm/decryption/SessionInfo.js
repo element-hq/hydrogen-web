@@ -40,5 +40,6 @@ export class SessionInfo {
 
     dispose() {
         this.session.free();
+        this.session = null;
     }
 }

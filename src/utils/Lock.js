@@ -54,6 +54,18 @@ export class Lock {
     }
 }
 
+export class MultiLock {
+    constructor(locks) {
+        this.locks = locks;
+    }
+
+    release() {
+        for (const lock of this.locks) {
+            lock.release();
+        }
+    }
+}
+
 export function tests() {
     return {
         "taking a lock twice returns false": assert => {
