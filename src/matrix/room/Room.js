@@ -191,8 +191,9 @@ export class Room extends EventEmitter {
 
         let decryptPreparation;
         if (roomEncryption) {
-            const events = roomResponse?.timeline?.events;
-            if (Array.isArray(events)) {
+            // also look for events in timeline here
+            let events = roomResponse?.timeline?.events || [];
+            if (events.length) {
                 const eventsToDecrypt = events.filter(event => {
                     return event?.type === EVENT_ENCRYPTED_TYPE;
                 });
