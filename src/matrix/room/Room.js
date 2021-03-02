@@ -183,11 +183,10 @@ export class Room extends EventEmitter {
                     events = events.concat(retryEntries.map(entry => entry.event));
                 }
             }
-
-            if (events.length) {
-                const eventsToDecrypt = events.filter(event => {
-                    return event?.type === EVENT_ENCRYPTED_TYPE;
-                });
+            const eventsToDecrypt = events.filter(event => {
+                return event?.type === EVENT_ENCRYPTED_TYPE;
+            });
+            if (eventsToDecrypt.length) {
                 decryptPreparation = await roomEncryption.prepareDecryptAll(
                     eventsToDecrypt, newKeys, DecryptionSource.Sync, txn);
             }
