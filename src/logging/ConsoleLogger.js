@@ -70,17 +70,17 @@ function printToConsole(item) {
 }
 
 function itemCaption(item) {
-    if (item._values?.t === "network") {
-        return `${item._values?.method} ${item._values?.url}`;
-    } else if (item._values.l && item._values?.id) {
+    if (item._values.t === "network") {
+        return `${item._values.method} ${item._values.url}`;
+    } else if (item._values.l && typeof item._values.id !== "undefined") {
         return `${item._values.l} ${item._values.id}`;
-    } else if (item._values.l && item._values?.status) {
+    } else if (item._values.l && typeof item._values.status !== "undefined") {
         return `${item._values.l} (${item._values.status})`;
     } else if (item._values.l && item.error) {
         return `${item._values.l} failed`;
-    } else if (item._values.ref) {
+    } else if (typeof item._values.ref !== "undefined") {
         return `ref ${item._values.ref}`
     } else {
-        return item._values.l || item._values?.type;
+        return item._values.l || item._values.type;
     }
 }
