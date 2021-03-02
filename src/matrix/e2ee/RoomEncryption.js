@@ -17,6 +17,7 @@ limitations under the License.
 import {MEGOLM_ALGORITHM, DecryptionSource} from "./common.js";
 import {groupEventsBySession} from "./megolm/decryption/utils.js";
 import {mergeMap} from "../../utils/mergeMap.js";
+import {groupBy} from "../../utils/groupBy.js";
 import {makeTxnId} from "../common.js";
 
 const ENCRYPTED_TYPE = "m.room.encrypted";
