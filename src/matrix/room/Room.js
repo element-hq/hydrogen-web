@@ -536,6 +536,7 @@ export class Room extends EventEmitter {
 
     enableSessionBackup(sessionBackup) {
         this._roomEncryption?.enableSessionBackup(sessionBackup);
+        // TODO: do we really want to do this every time you open the app?
         if (this._timeline) {
             const timelineEvents = this._timeline.remoteEntries.filter(e => e.event).map(e => e.event);
             this._roomEncryption.restoreMissingSessionsFromBackup(timelineEvents);
