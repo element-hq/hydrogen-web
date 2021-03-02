@@ -41,7 +41,7 @@ class ReaderRequest {
  * Raw because it doesn't do decryption and in the future it should not read relations either.
  * It is just about reading entries and following fragment links
  */
-export async function readRawTimelineEntriesWithTxn(roomId, eventKey, direction, amount, fragmentIdComparer, txn) {
+async function readRawTimelineEntriesWithTxn(roomId, eventKey, direction, amount, fragmentIdComparer, txn) {
     let entries = [];
     const timelineStore = txn.timelineEvents;
     const fragmentStore = txn.timelineFragments;
