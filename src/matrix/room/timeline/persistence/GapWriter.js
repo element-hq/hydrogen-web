@@ -235,7 +235,7 @@ export class GapWriter {
             nonOverlappingEvents,
             neighbourFragmentEntry
         } = await this._findOverlappingEvents(fragmentEntry, chunk, txn, log);
-        if (!neighbourFragmentEntry && nonOverlappingEvents.length === 0) {
+        if (!neighbourFragmentEntry && nonOverlappingEvents.length === 0 && typeof end === "string") {
             log.log("hit #160, clearing token", log.level.Warn);
             end = null;
         }
