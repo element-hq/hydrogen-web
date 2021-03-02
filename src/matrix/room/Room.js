@@ -219,6 +219,8 @@ export class Room extends EventEmitter {
             await log.wrap("syncWriter", log => this._syncWriter.writeSync(roomResponse, txn, log), log.level.Detail);
         if (decryptChanges) {
             const decryption = await decryptChanges.write(txn);
+            log.set("decryptionResults", decryption.results.size);
+            log.set("decryptionErrors", decryption.errors.size);
             if (this._isTimelineOpen) {
                 await decryption.verifySenders(txn);
             }
@@ -229,6 +231,7 @@ export class Room extends EventEmitter {
             }
             decryption.applyToEntries(entries);
         }
+        log.set("entries", entries.length);
         let shouldFlushKeyShares = false;
         // pass member changes to device tracker
         if (roomEncryption && this.isTrackingMembers && memberChanges?.size) {
@@ -240,6 +243,9 @@ export class Room extends EventEmitter {
             entries, isInitialSync, !this._isTimelineOpen, this._user.id);
         // write summary changes, and unset if nothing was actually changed
         summaryChanges = this._summary.writeData(summaryChanges, txn);
+        if (summaryChanges) {
+            log.set("summaryChanges", summaryChanges.diff(this._summary.data));
+        }
         // fetch new members while we have txn open,
         // but don't make any in-memory changes yet
         let heroChanges;

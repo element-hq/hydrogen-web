@@ -169,6 +169,18 @@ class SummaryData {
         this.cloned = copy ? true : false;
     }
 
+    diff(other) {
+        const props = Object.getOwnPropertyNames(this);
+        return props.reduce((diff, prop) => {
+            if (prop !== "cloned") {
+                if (this[prop] !== other[prop]) {
+                    diff[prop] = this[prop];
+                }
+            }
+            return diff;
+        }, {});
+    }
+
     cloneIfNeeded() {
         if (this.cloned) {
             return this;
