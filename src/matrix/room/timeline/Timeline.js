@@ -74,13 +74,19 @@ export class Timeline {
     }
     
     // tries to prepend `amount` entries to the `entries` list.
+    /**
+     * [loadAtTop description]
+     * @param  {[type]} amount [description]
+     * @return {boolean} true if the top of the timeline has been reached
+     * 
+     */
     async loadAtTop(amount) {
         if (this._disposables.isDisposed) {
-            return;
+            return true;
         }
         const firstEventEntry = this._remoteEntries.array.find(e => !!e.eventType);
         if (!firstEventEntry) {
-            return;
+            return true;
         }
         const readerRequest = this._disposables.track(this._timelineReader.readFrom(
             firstEventEntry.asEventKey(),
@@ -90,6 +96,7 @@ export class Timeline {
         try {
             const entries = await readerRequest.complete();
             this._remoteEntries.setManySorted(entries);
+            return entries.length < amount;
         } finally {
             this._disposables.disposeTracked(readerRequest);
         }
