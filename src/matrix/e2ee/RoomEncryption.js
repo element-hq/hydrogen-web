@@ -80,14 +80,16 @@ export class RoomEncryption {
     }
 
     async writeMemberChanges(memberChanges, txn) {
+        let shouldFlush;
         const memberChangesArray = Array.from(memberChanges.values());
         if (memberChangesArray.some(m => m.hasLeft)) {
             this._megolmEncryption.discardOutboundSession(this._room.id, txn);
         }
         if (memberChangesArray.some(m => m.hasJoined)) {
-            await this._addShareRoomKeyOperationForNewMembers(memberChangesArray, txn);
+            shouldFlush = await this._addShareRoomKeyOperationForNewMembers(memberChangesArray, txn);
         }
         await this._deviceTracker.writeMemberChanges(this._room, memberChanges, txn);
+        return shouldFlush;
     }
 
     // this happens before entries exists, as they are created by the syncwriter
@@ -314,7 +316,9 @@ export class RoomEncryption {
             this._room.id, txn);
         if (roomKeyMessage) {
             this._writeRoomKeyShareOperation(roomKeyMessage, userIds, txn);
+            return true;
         }
+        return false;
     }
 
     _writeRoomKeyShareOperation(roomKeyMessage, userIds, txn) {

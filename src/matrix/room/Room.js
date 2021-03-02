@@ -232,9 +232,11 @@ export class Room extends EventEmitter {
             }
             decryption.applyToEntries(entries);
         }
+        let shouldFlushKeyShares = false;
         // pass member changes to device tracker
         if (roomEncryption && this.isTrackingMembers && memberChanges?.size) {
-            await roomEncryption.writeMemberChanges(memberChanges, txn);
+            shouldFlushKeyShares = await roomEncryption.writeMemberChanges(memberChanges, txn);
+            log.set("shouldFlushKeyShares", shouldFlushKeyShares);
         }
         // also apply (decrypted) timeline entries to the summary changes
         summaryChanges = summaryChanges.applyTimelineEntries(
@@ -263,6 +265,7 @@ export class Room extends EventEmitter {
             removedPendingEvents,
             memberChanges,
             heroChanges,
+            shouldFlushKeyShares,
         };
     }
 
@@ -314,8 +317,8 @@ export class Room extends EventEmitter {
         }
     }
 
-    needsAfterSyncCompleted({memberChanges}) {
-        return this._roomEncryption?.needsToShareKeys(memberChanges);
+    needsAfterSyncCompleted({shouldFlushKeyShares}) {
+        return shouldFlushKeyShares;
     }
 
     /**
