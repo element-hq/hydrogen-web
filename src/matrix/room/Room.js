@@ -441,7 +441,7 @@ export class Room extends EventEmitter {
                     storage: this._storage,
                     fragmentIdComparer: this._fragmentIdComparer,
                 });
-                gapResult = await gapWriter.writeFragmentFill(fragmentEntry, response, txn);
+                gapResult = await gapWriter.writeFragmentFill(fragmentEntry, response, txn, log);
             } catch (err) {
                 txn.abort();
                 throw err;
