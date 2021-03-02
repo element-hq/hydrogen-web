@@ -180,7 +180,7 @@ export class Room extends EventEmitter {
             // when new keys arrive, also see if any events that can now be retried to decrypt
             if (newKeys) {
                 const nestedEntries = await Promise.all(newKeys.map(key => this._getRetryDecryptEntriesForKey(key, txn)));
-                const retryEntries = nestedEntries.reduce((allEntries, entries) => allEntries.concat(entries), []);
+                retryEntries = nestedEntries.reduce((allEntries, entries) => allEntries.concat(entries), []);
                 if (retryEntries.length) {
                     log.set("retry", retryEntries.length);
                     events = events.concat(retryEntries.map(entry => entry.event));
