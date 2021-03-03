@@ -4,7 +4,7 @@
         <meta charset="utf-8">
     </head>
     <body>
-        <a id="link" href="#">Download!</a>
+        <a id="link" href="#">Download</a>
         <script type="text/javascript">
             var link = document.getElementById("link");
             function download(blob, filename) {
@@ -15,7 +15,7 @@
                 URL.revokeObjectURL(url);
             }
             window.addEventListener("message", function(event) {
-                if (event.data.type === "download") {
+                if (event.origin === window.location.origin && event.data.type === "download") {
                     download(event.data.blob, event.data.filename);
                 }
             });
