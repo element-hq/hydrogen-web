@@ -33,7 +33,7 @@ export class BaseRoomKey {
     async _isBetterThanKnown(session, olm, pickleKey, txn) {
         let isBetter = true;
         const existingSessionEntry = await txn.inboundGroupSessions.get(this.roomId, this.senderKey, this.sessionId);
-        if (existingSessionEntry) {
+        if (existingSessionEntry?.session) {
             const existingSession = new olm.InboundGroupSession();
             try {
                 existingSession.unpickle(pickleKey, existingSessionEntry.session);

@@ -15,25 +15,13 @@ limitations under the License.
 */
 
 import {DecryptionError} from "../common.js";
-import {groupBy} from "../../../utils/groupBy.js";
 import * as RoomKey from "./decryption/RoomKey.js";
 import {SessionInfo} from "./decryption/SessionInfo.js";
 import {DecryptionPreparation} from "./decryption/DecryptionPreparation.js";
 import {SessionDecryption} from "./decryption/SessionDecryption.js";
 import {SessionCache} from "./decryption/SessionCache.js";
 import {MEGOLM_ALGORITHM} from "../common.js";
-
-function getSenderKey(event) {
-    return event.content?.["sender_key"];
-}
-
-function getSessionId(event) {
-    return event.content?.["session_id"];
-}
-
-function getCiphertext(event) {
-    return event.content?.ciphertext;
-}
+import {validateEvent, groupEventsBySession} from "./decryption/utils.js";
 
 export class Decryption {
     constructor({pickleKey, olm, olmWorker}) {
@@ -44,6 +32,37 @@ export class Decryption {
 
     createSessionCache(size) {
         return new SessionCache(size);
+    }
+
+    async addMissingKeyEventIds(roomId, senderKey, sessionId, eventIds, txn) {
+        let sessionEntry = await txn.inboundGroupSessions.get(roomId, senderKey, sessionId);
+        // we never want to overwrite an existing key
+        if (sessionEntry?.session) {
+            return;
+        }
+        if (sessionEntry) {
+            const uniqueEventIds = new Set(sessionEntry.eventIds);
+            for (const id of eventIds) {
+                uniqueEventIds.add(id);
+            }
+            sessionEntry.eventIds = Array.from(uniqueEventIds);
+        } else {
+            sessionEntry = {roomId, senderKey, sessionId, eventIds};
+        }
+        txn.inboundGroupSessions.set(sessionEntry);
+    }
+
+    async getEventIdsForMissingKey(roomId, senderKey, sessionId, txn) {
+        const sessionEntry = await txn.inboundGroupSessions.get(roomId, senderKey, sessionId);
+        if (sessionEntry && !sessionEntry.session) {
+            return sessionEntry.eventIds;
+        }
+    }
+
+    async hasSession(roomId, senderKey, sessionId, txn) {
+        const sessionEntry = await txn.inboundGroupSessions.get(roomId, senderKey, sessionId);
+        const isValidSession = typeof sessionEntry?.session === "string";
+        return isValidSession;
     }
 
     /**
@@ -61,28 +80,22 @@ export class Decryption {
         const validEvents = [];
 
         for (const event of events) {
-            const isValid = typeof getSenderKey(event) === "string" &&
-                            typeof getSessionId(event) === "string" &&
-                            typeof getCiphertext(event) === "string";
-            if (isValid) {
+            if (validateEvent(event)) {
                 validEvents.push(event);
             } else {
                 errors.set(event.event_id, new DecryptionError("MEGOLM_INVALID_EVENT", event))
             }
         }
 
-        const eventsBySession = groupBy(validEvents, event => {
-            return `${getSenderKey(event)}|${getSessionId(event)}`;
-        });
+        const eventsBySession = groupEventsBySession(validEvents);
 
         const sessionDecryptions = [];
-        await Promise.all(Array.from(eventsBySession.values()).map(async eventsForSession => {
-            const firstEvent = eventsForSession[0];
-            const sessionInfo = await this._getSessionInfoForEvent(roomId, firstEvent, newKeys, sessionCache, txn);
+        await Promise.all(Array.from(eventsBySession.values()).map(async group => {
+            const sessionInfo = await this._getSessionInfo(roomId, group.senderKey, group.sessionId, newKeys, sessionCache, txn);
             if (sessionInfo) {
-                sessionDecryptions.push(new SessionDecryption(sessionInfo, eventsForSession, this._olmWorker));
+                sessionDecryptions.push(new SessionDecryption(sessionInfo, group.events, this._olmWorker));
             } else {
-                for (const event of eventsForSession) {
+                for (const event of group.events) {
                     errors.set(event.event_id, new DecryptionError("MEGOLM_NO_SESSION", event));
                 }
             }
@@ -91,9 +104,7 @@ export class Decryption {
         return new DecryptionPreparation(roomId, sessionDecryptions, errors);
     }
 
-    async _getSessionInfoForEvent(roomId, event, newKeys, sessionCache, txn) {
-        const senderKey = getSenderKey(event);
-        const sessionId = getSessionId(event);
+    async _getSessionInfo(roomId, senderKey, sessionId, newKeys, sessionCache, txn) {
         let sessionInfo;
         if (newKeys) {
             const key = newKeys.find(k => k.roomId === roomId && k.senderKey === senderKey && k.sessionId === sessionId);
@@ -110,7 +121,7 @@ export class Decryption {
         }
         if (!sessionInfo) {
             const sessionEntry = await txn.inboundGroupSessions.get(roomId, senderKey, sessionId);
-            if (sessionEntry) {
+            if (sessionEntry && sessionEntry.session) {
                 let session = new this._olm.InboundGroupSession();
                 try {
                     session.unpickle(this._pickleKey, sessionEntry.session);

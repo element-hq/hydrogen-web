@@ -122,36 +122,6 @@ function processTimelineEvent(data, eventEntry, isInitialSync, canMarkUnread, ow
             data = data.cloneIfNeeded();
             data.isUnread = true;
         }
-        const {content} = eventEntry;
-        const body = content?.body;
-        const msgtype = content?.msgtype;
-        if (msgtype === "m.text" && !eventEntry.isEncrypted) {
-            data = data.cloneIfNeeded();
-            data.lastMessageBody = body;
-        }
-    }
-    // store the event key of the last decrypted event so when decryption does succeed,
-    // we can attempt to re-decrypt from this point to update the room summary
-    if (!!data.encryption && eventEntry.isEncrypted && eventEntry.isDecrypted) {
-        let hasLargerEventKey = true;
-        if (data.lastDecryptedEventKey) {
-            try {
-                hasLargerEventKey = eventEntry.compare(data.lastDecryptedEventKey) > 0;
-            } catch (err) {
-                // TODO: load the fragments in between here?
-                // this could happen if an earlier event gets decrypted that
-                // is in a fragment different from the live one and the timeline is not open.
-                // In this case, we will just read too many events once per app load
-                // and then keep the mapping in memory. When eventually an event is decrypted in
-                // the live fragment, this should stop failing and the event key will be written.
-                hasLargerEventKey = false;
-            }
-        }
-        if (hasLargerEventKey) {
-            data = data.cloneIfNeeded();
-            const {fragmentId, entryIndex} = eventEntry;
-            data.lastDecryptedEventKey = {fragmentId, entryIndex};
-        }
     }
     return data;
 }
@@ -182,12 +152,9 @@ class SummaryData {
     constructor(copy, roomId) {
         this.roomId = copy ? copy.roomId : roomId;
         this.name = copy ? copy.name : null;
-        this.lastMessageBody = copy ? copy.lastMessageBody : null;
         this.lastMessageTimestamp = copy ? copy.lastMessageTimestamp : null;
         this.isUnread = copy ? copy.isUnread : false;
         this.encryption = copy ? copy.encryption : null;
-        this.lastDecryptedEventKey = copy ? copy.lastDecryptedEventKey : null;
-        this.isDirectMessage = copy ? copy.isDirectMessage : false;
         this.membership = copy ? copy.membership : null;
         this.inviteCount = copy ? copy.inviteCount : 0;
         this.joinCount = copy ? copy.joinCount : 0;
@@ -200,6 +167,18 @@ class SummaryData {
         this.highlightCount = copy ? copy.highlightCount : 0;
         this.tags = copy ? copy.tags : null;
         this.cloned = copy ? true : false;
+    }
+
+    diff(other) {
+        const props = Object.getOwnPropertyNames(this);
+        return props.reduce((diff, prop) => {
+            if (prop !== "cloned") {
+                if (this[prop] !== other[prop]) {
+                    diff[prop] = this[prop];
+                }
+            }
+            return diff;
+        }, {});
     }
 
     cloneIfNeeded() {

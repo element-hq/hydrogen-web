@@ -60,16 +60,8 @@ export class Timeline {
         }
     }
 
-    // TODO: should we rather have generic methods for
-    // - adding new entries
-    // - updating existing entries (redaction, relations)
     /** @package */
-    appendLiveEntries(newEntries) {
-        this._remoteEntries.setManySorted(newEntries);
-    }
-
-    /** @package */
-    addGapEntries(newEntries) {
+    addOrReplaceEntries(newEntries) {
         this._remoteEntries.setManySorted(newEntries);
     }
     

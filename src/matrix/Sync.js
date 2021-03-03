@@ -248,6 +248,7 @@ export class Sync {
         return this._storage.readTxn([
             storeNames.olmSessions,
             storeNames.inboundGroupSessions,
+            storeNames.timelineEvents // to read events that can now be decrypted
         ]);
     }
 

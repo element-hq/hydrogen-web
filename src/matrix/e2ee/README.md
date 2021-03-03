@@ -1,40 +1,41 @@
 ## Integratation within the sync lifetime cycle
 
-### prepareSync
+### session.prepareSync
+
+Decrypt any device messages, and turn them into RoomKey instances.
+Any rooms that are not in the sync response but for which we receive keys will be included in the rooms to sync.
+
+Runs before any room.prepareSync, so the new room keys can be passed to each room prepareSync to use in decryption.
+
+### room.prepareSync
     
     The session can start its own read/write transactions here, rooms only read from a shared transaction
 
-    - session
-        - device handler
-            - txn
-                - write pending encrypted
-            - txn
-                - olm decryption read
-            - olm async decryption
-                - dispatch to worker
-            - txn
-                - olm decryption write / remove pending encrypted
     - rooms (with shared read txn)
-        - megolm decryption read
+        - megolm decryption read using any new keys decrypted by the session.
 
-### afterPrepareSync
+### room.afterPrepareSync
 
     - rooms    
         - megolm async decryption   
             - dispatch to worker
 
-### writeSync
+### room.writeSync
 
     - rooms (with shared readwrite txn)
         - megolm decryption write, yielding decrypted events
         - use decrypted events to write room summary
 
-### afterSync
+### session.writeSync
+
+ - writes any room keys that were received
+
+### room.afterSync
 
     - rooms
         - emit changes
 
-### afterSyncCompleted
+### room.afterSyncCompleted
 
     - session
         - e2ee account
