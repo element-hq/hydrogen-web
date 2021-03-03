@@ -46,7 +46,7 @@ export class OperationStore {
     }
 
     update(operation) {
-        this._store.set(operation);
+        this._store.put(operation);
     }
 
     remove(id) {
