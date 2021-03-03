@@ -95,7 +95,7 @@ export class TimelineReader {
         this._decryptEntries = decryptEntries;
     }
 
-    _openTxn() {
+    get readTxnStores() {
         const stores = [
             this._storage.storeNames.timelineEvents,
             this._storage.storeNames.timelineFragments,
@@ -103,19 +103,19 @@ export class TimelineReader {
         if (this._decryptEntries) {
             stores.push(this._storage.storeNames.inboundGroupSessions);
         }
-        return this._storage.readTxn(stores);
+        return stores;
     }
 
     readFrom(eventKey, direction, amount) {
         return new ReaderRequest(async r => {
-            const txn = this._openTxn();
+            const txn = this._storage.readTxn(this.readTxnStores);
             return await this._readFrom(eventKey, direction, amount, r, txn);
         });
     }
 
-    readFromEnd(amount) {
+    readFromEnd(amount, existingTxn = null) {
         return new ReaderRequest(async r => {
-            const txn = this._openTxn();
+            const txn = existingTxn || this._storage.readTxn(this.readTxnStores);
             const liveFragment = await txn.timelineFragments.liveFragment(this._roomId);
             let entries;
             // room hasn't been synced yet
