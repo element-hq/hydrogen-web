@@ -83,7 +83,7 @@ export class Room extends EventEmitter {
             this._storage.storeNames.timelineEvents,
             this._storage.storeNames.inboundGroupSessions,
         ]);
-        const retryEntries = this._getRetryDecryptEntriesForKey(roomKey, txn);
+        const retryEntries = await this._getRetryDecryptEntriesForKey(roomKey, txn);
         if (retryEntries.length) {
             const decryptRequest = this._decryptEntries(DecryptionSource.Retry, retryEntries, txn);
             // this will close txn while awaiting decryption
