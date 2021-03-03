@@ -55,7 +55,8 @@ export class RoomEncryption {
         this._sessionBackup = sessionBackup;
     }
 
-    async restoreMissingSessionsFromBackup(events) {
+    async restoreMissingSessionsFromBackup(entries) {
+        const events = entries.filter(e => e.isEncrypted && !e.isDecrypted && e.event).map(e => e.event);
         const eventsBySession = groupEventsBySession(events);
         const groups = Array.from(eventsBySession.values());
         const txn = this._storage.readTxn([this._storage.storeNames.inboundGroupSessions]);
