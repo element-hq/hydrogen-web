@@ -159,7 +159,7 @@ export class Room extends EventEmitter {
     async _prepareSyncDecryption(events, newKeys, roomEncryption, txn, log) {
         let retryEntries;
         let decryptPreparation;
-        // when new keys arrive, also see if any events that can now be retried to decrypt
+        // when new keys arrive, also see if any events can now be retried to decrypt
         if (newKeys) {
             const entriesPerKey = await Promise.all(newKeys.map(key => this._getRetryDecryptEntriesForKey(key, txn)));
             retryEntries = entriesPerKey.reduce((allEntries, entries) => allEntries.concat(entries), []);
