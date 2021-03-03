@@ -79,14 +79,18 @@ export class RoomEncryption {
         this._senderDeviceCache = new Map();    // purge the sender device cache
     }
 
-    async writeMemberChanges(memberChanges, txn) {
+    async writeMemberChanges(memberChanges, txn, log) {
         let shouldFlush;
         const memberChangesArray = Array.from(memberChanges.values());
         if (memberChangesArray.some(m => m.hasLeft)) {
+            log.log({
+                l: "discardOutboundSession",
+                leftUsers: memberChangesArray.filter(m => m.hasLeft).map(m => m.userId),
+            });
             this._megolmEncryption.discardOutboundSession(this._room.id, txn);
         }
         if (memberChangesArray.some(m => m.hasJoined)) {
-            shouldFlush = await this._addShareRoomKeyOperationForNewMembers(memberChangesArray, txn);
+            shouldFlush = await this._addShareRoomKeyOperationForNewMembers(memberChangesArray, txn, log);
         }
         await this._deviceTracker.writeMemberChanges(this._room, memberChanges, txn);
         return shouldFlush;
@@ -310,11 +314,16 @@ export class RoomEncryption {
         await removeOpTxn.complete();
     }
 
-    async _addShareRoomKeyOperationForNewMembers(memberChangesArray, txn) {
+    async _addShareRoomKeyOperationForNewMembers(memberChangesArray, txn, log) {
         const userIds = memberChangesArray.filter(m => m.hasJoined).map(m => m.userId);
         const roomKeyMessage = await this._megolmEncryption.createRoomKeyMessage(
             this._room.id, txn);
         if (roomKeyMessage) {
+            log.log({
+                l: "share key for new members", userIds,
+                id: roomKeyMessage.session_id,
+                chain_index: roomKeyMessage.chain_index
+            });
             this._writeRoomKeyShareOperation(roomKeyMessage, userIds, txn);
             return true;
         }

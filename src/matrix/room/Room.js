@@ -256,7 +256,7 @@ export class Room extends EventEmitter {
         let shouldFlushKeyShares = false;
         // pass member changes to device tracker
         if (roomEncryption && this.isTrackingMembers && memberChanges?.size) {
-            shouldFlushKeyShares = await roomEncryption.writeMemberChanges(memberChanges, txn);
+            shouldFlushKeyShares = await roomEncryption.writeMemberChanges(memberChanges, txn, log);
             log.set("shouldFlushKeyShares", shouldFlushKeyShares);
         }
         // also apply (decrypted) timeline entries to the summary changes
