@@ -19,15 +19,17 @@ import {Disposables} from "../../../utils/Disposables.js";
 import {Direction} from "./Direction.js";
 import {TimelineReader} from "./persistence/TimelineReader.js";
 import {PendingEventEntry} from "./entries/PendingEventEntry.js";
+import {RoomMember} from "../members/RoomMember.js";
 
 export class Timeline {
-    constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, user, clock}) {
+    constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock}) {
         this._roomId = roomId;
         this._storage = storage;
         this._closeCallback = closeCallback;
         this._fragmentIdComparer = fragmentIdComparer;
         this._disposables = new Disposables();
         this._remoteEntries = new SortedArray((a, b) => a.compare(b));
+        this._ownMember = null;
         this._timelineReader = new TimelineReader({
             roomId: this._roomId,
             storage: this._storage,
@@ -35,7 +37,7 @@ export class Timeline {
         });
         this._readerRequest = null;
         const localEntries = new MappedList(pendingEvents, pe => {
-            return new PendingEventEntry({pendingEvent: pe, user, clock});
+            return new PendingEventEntry({pendingEvent: pe, member: this._ownMember, clock});
         }, (pee, params) => {
             pee.notifyUpdate(params);
         });
@@ -43,15 +45,26 @@ export class Timeline {
     }
 
     /** @package */
-    async load() {
+    async load(user) {
+        const txn = this._storage.readTxn(this._timelineReader.readTxnStores.concat(this._storage.storeNames.roomMembers));
+        const memberData = await txn.roomMembers.get(this._roomId, user.id);
+        this._ownMember = new RoomMember(memberData);
+        // it should be fine to not update the local entries,
+        // as they should only populate once the view subscribes to it
+        // if they are populated already, the sender profile would be empty
+
         // 30 seems to be a good amount to fill the entire screen
-        const readerRequest = this._disposables.track(this._timelineReader.readFromEnd(30));
+        const readerRequest = this._disposables.track(this._timelineReader.readFromEnd(30, txn));
         try {
             const entries = await readerRequest.complete();
             this._remoteEntries.setManySorted(entries);
         } finally {
             this._disposables.disposeTracked(readerRequest);
         }
+    }
+
+    updateOwnMember(member) {
+        this._ownMember = member;
     }
 
     replaceEntries(entries) {

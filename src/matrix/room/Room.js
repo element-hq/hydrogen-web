@@ -313,6 +313,14 @@ export class Room extends EventEmitter {
             if (this._memberList) {
                 this._memberList.afterSync(memberChanges);
             }
+            if (this._timeline) {
+                for (const [userId, memberChange] of memberChanges.entries()) {
+                    if (userId === this._user.id) {
+                        this._timeline.updateOwnMember(memberChange.member);
+                        break;
+                    }
+                }
+            }
         }
         let emitChange = false;
         if (summaryChanges) {
@@ -646,14 +654,13 @@ export class Room extends EventEmitter {
                         this._roomEncryption.notifyTimelineClosed();
                     }
                 },
-                user: this._user,
                 clock: this._platform.clock,
                 logger: this._platform.logger,
             });
             if (this._roomEncryption) {
                 this._timeline.enableEncryption(this._decryptEntries.bind(this, DecryptionSource.Timeline));
             }
-            await this._timeline.load();
+            await this._timeline.load(this._user);
             return this._timeline;
         });
     }
