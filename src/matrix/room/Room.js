@@ -226,8 +226,9 @@ export class Room extends EventEmitter {
     /** @package */
     async writeSync(roomResponse, isInitialSync, {summaryChanges, decryptChanges, roomEncryption, retryEntries}, txn, log) {
         log.set("id", this.id);
-        const {entries, newLiveKey, memberChanges} =
+        const {entries: newEntries, newLiveKey, memberChanges} =
             await log.wrap("syncWriter", log => this._syncWriter.writeSync(roomResponse, txn, log), log.level.Detail);
+        let allEntries = newEntries;
         if (decryptChanges) {
             const decryption = await decryptChanges.write(txn);
             log.set("decryptionResults", decryption.results.size);
@@ -235,14 +236,13 @@ export class Room extends EventEmitter {
             if (this._isTimelineOpen) {
                 await decryption.verifySenders(txn);
             }
+            decryption.applyToEntries(newEntries);
             if (retryEntries?.length) {
-                // prepend the retried entries, as we know they are older
-                // (not that it should matter much for the summary)
-                entries.unshift(...retryEntries);
+                decryption.applyToEntries(retryEntries);
+                allEntries = retryEntries.concat(allEntries);
             }
-            decryption.applyToEntries(entries);
         }
-        log.set("entries", entries.length);
+        log.set("allEntries", allEntries.length);
         let shouldFlushKeyShares = false;
         // pass member changes to device tracker
         if (roomEncryption && this.isTrackingMembers && memberChanges?.size) {
@@ -251,7 +251,7 @@ export class Room extends EventEmitter {
         }
         // also apply (decrypted) timeline entries to the summary changes
         summaryChanges = summaryChanges.applyTimelineEntries(
-            entries, isInitialSync, !this._isTimelineOpen, this._user.id);
+            allEntries, isInitialSync, !this._isTimelineOpen, this._user.id);
         // write summary changes, and unset if nothing was actually changed
         summaryChanges = this._summary.writeData(summaryChanges, txn);
         if (summaryChanges) {
@@ -274,7 +274,8 @@ export class Room extends EventEmitter {
         return {
             summaryChanges,
             roomEncryption,
-            newAndUpdatedEntries: entries,
+            newEntries,
+            updatedEntries: retryEntries || [],
             newLiveKey,
             removedPendingEvents,
             memberChanges,
@@ -288,7 +289,12 @@ export class Room extends EventEmitter {
      * Called with the changes returned from `writeSync` to apply them and emit changes.
      * No storage or network operations should be done here.
      */
-    afterSync({summaryChanges, newAndUpdatedEntries, newLiveKey, removedPendingEvents, memberChanges, heroChanges, roomEncryption}, log) {
+    afterSync(changes, log) {
+        const {
+            summaryChanges, newEntries, updatedEntries, newLiveKey,
+            removedPendingEvents, memberChanges,
+            heroChanges, roomEncryption
+        } = changes;
         log.set("id", this.id);
         this._syncWriter.afterSync(newLiveKey);
         this._setEncryption(roomEncryption);
@@ -321,10 +327,13 @@ export class Room extends EventEmitter {
             this._emitUpdate();
         }
         if (this._timeline) {
-            this._timeline.appendLiveEntries(newAndUpdatedEntries);
+            // these should not be added if not already there
+            this._timeline.replaceEntries(updatedEntries);
+            this._timeline.addOrReplaceEntries(newEntries);
         }
         if (this._observedEvents) {
-            this._observedEvents.updateEvents(newAndUpdatedEntries);
+            this._observedEvents.updateEvents(updatedEntries);
+            this._observedEvents.updateEvents(newEntries);
         }
         if (removedPendingEvents) {
             this._sendQueue.emitRemovals(removedPendingEvents);
@@ -483,7 +492,7 @@ export class Room extends EventEmitter {
                 this._sendQueue.emitRemovals(removedPendingEvents);
             }
             if (this._timeline) {
-                this._timeline.addGapEntries(gapResult.entries);
+                this._timeline.addOrReplaceEntries(gapResult.entries);
             }
         });
     }
