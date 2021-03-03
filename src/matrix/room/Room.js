@@ -156,40 +156,24 @@ export class Room extends EventEmitter {
         return request;
     }
 
-    async _prepareSyncDecryption(events, newKeys, roomEncryption, txn, log) {
-        let retryEntries;
-        let decryptPreparation;
-        // when new keys arrive, also see if any events can now be retried to decrypt
-        if (newKeys) {
-            const entriesPerKey = await Promise.all(newKeys.map(key => this._getRetryDecryptEntriesForKey(key, txn)));
-            retryEntries = entriesPerKey.reduce((allEntries, entries) => allEntries.concat(entries), []);
-            // If we have the timeline open, see if there are more entries for the new keys
-            // as we only store missing session information for synced events, not backfilled.
-            // We want to decrypt all events we can though if the user is looking
-            // at them when the timeline is open
-            if (this._timeline) {
-                let retryTimelineEntries = this._roomEncryption.filterUndecryptedEventEntriesForKeys(this._timeline.remoteEntries, newKeys);
-                // filter out any entries already in retryEntries so we don't decrypt them twice
-                const existingIds = retryEntries.reduce((ids, e) => {ids.add(e.id); return ids;}, new Set());
-                retryTimelineEntries = retryTimelineEntries.filter(e => !existingIds.has(e.id));
-                // make copies so we don't modify the original entry in writeSync, before the afterSync stage
-                const retryTimelineEntriesCopies = retryTimelineEntries.map(e => e.clone());
-                // add to other retry entries
-                retryEntries = retryEntries.concat(retryTimelineEntriesCopies);
-            }
-            if (retryEntries.length) {
-                log.set("retry", retryEntries.length);
-                events = events.concat(retryEntries.map(entry => entry.event));
-            }
+    async _getSyncRetryDecryptEntries(newKeys, txn) {
+        const entriesPerKey = await Promise.all(newKeys.map(key => this._getRetryDecryptEntriesForKey(key, txn)));
+        let retryEntries = entriesPerKey.reduce((allEntries, entries) => allEntries.concat(entries), []);
+        // If we have the timeline open, see if there are more entries for the new keys
+        // as we only store missing session information for synced events, not backfilled.
+        // We want to decrypt all events we can though if the user is looking
+        // at them when the timeline is open
+        if (this._timeline) {
+            let retryTimelineEntries = this._roomEncryption.filterUndecryptedEventEntriesForKeys(this._timeline.remoteEntries, newKeys);
+            // filter out any entries already in retryEntries so we don't decrypt them twice
+            const existingIds = retryEntries.reduce((ids, e) => {ids.add(e.id); return ids;}, new Set());
+            retryTimelineEntries = retryTimelineEntries.filter(e => !existingIds.has(e.id));
+            // make copies so we don't modify the original entry in writeSync, before the afterSync stage
+            const retryTimelineEntriesCopies = retryTimelineEntries.map(e => e.clone());
+            // add to other retry entries
+            retryEntries = retryEntries.concat(retryTimelineEntriesCopies);
         }
-        const eventsToDecrypt = events.filter(event => {
-            return event?.type === EVENT_ENCRYPTED_TYPE;
-        });
-        if (eventsToDecrypt.length) {
-            decryptPreparation = await roomEncryption.prepareDecryptAll(
-                eventsToDecrypt, newKeys, DecryptionSource.Sync, txn);
-        }
-        return {retryEntries, decryptPreparation};
+        return retryEntries;
     }
 
     async prepareSync(roomResponse, membership, newKeys, txn, log) {
@@ -208,10 +192,22 @@ export class Room extends EventEmitter {
         let retryEntries;
         let decryptPreparation;
         if (roomEncryption) {
-            const events = roomResponse?.timeline?.events || [];
-            const result = await this._prepareSyncDecryption(events, newKeys, roomEncryption, txn, log);
-            retryEntries = result.retryEntries;
-            decryptPreparation = result.decryptPreparation;
+            let eventsToDecrypt = roomResponse?.timeline?.events || [];
+            // when new keys arrive, also see if any older events can now be retried to decrypt
+            if (newKeys) {
+                retryEntries = await this._getSyncRetryDecryptEntries(newKeys, txn);
+                if (retryEntries.length) {
+                    log.set("retry", retryEntries.length);
+                    eventsToDecrypt = eventsToDecrypt.concat(retryEntries.map(entry => entry.event));
+                }
+            }
+            eventsToDecrypt = eventsToDecrypt.filter(event => {
+                return event?.type === EVENT_ENCRYPTED_TYPE;
+            });
+            if (eventsToDecrypt.length) {
+                decryptPreparation = await roomEncryption.prepareDecryptAll(
+                    eventsToDecrypt, newKeys, DecryptionSource.Sync, txn);
+            }
         }
 
         return {
