@@ -159,7 +159,7 @@ a {
     margin-left: auto;
 }
 
-.TextMessageView.pending .message-container {
+.TextMessageView.unsent .message-container {
     background-color: #333;
 }
 

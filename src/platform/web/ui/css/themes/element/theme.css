@@ -624,7 +624,7 @@ only loads when the top comes into view*/
     align-self: start;
 }
 
-.TextMessageView.pending .message-container {
+.TextMessageView.unsent .message-container {
     color: #ccc;
 }
 

@@ -21,7 +21,7 @@ export function renderMessage(t, vm, children) {
     const classes = {
         "TextMessageView": true,
         own: vm.isOwn,
-        pending: vm.isPending,
+        unsent: vm.isUnsent,
         unverified: vm.isUnverified,
         continuation: vm => vm.isContinuation,
         messageStatus: vm => vm.shape === "message-status" || vm.shape === "missing-attachment" || vm.shape === "file",
