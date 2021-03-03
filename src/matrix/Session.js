@@ -374,12 +374,25 @@ export class Session {
         return room;
     }
 
+    async obtainSyncLock(syncResponse) {
+        const toDeviceEvents = syncResponse.to_device?.events;
+        if (Array.isArray(toDeviceEvents) && toDeviceEvents.length) {
+            return await this._deviceMessageHandler.obtainSyncLock(toDeviceEvents);
+        }
+    }
+
+    async prepareSync(syncResponse, lock, txn, log) {
+        const toDeviceEvents = syncResponse.to_device?.events;
+        if (Array.isArray(toDeviceEvents) && toDeviceEvents.length) {
+            return await log.wrap("deviceMsgs", log => this._deviceMessageHandler.prepareSync(toDeviceEvents, lock, txn, log));
+        }
+    }
+
     /** @internal */
-    async writeSync(syncResponse, syncFilterId, txn, log) {
+    async writeSync(syncResponse, syncFilterId, preparation, txn, log) {
         const changes = {
             syncInfo: null,
             e2eeAccountChanges: null,
-            deviceMessageDecryptionPending: false
         };
         const syncToken = syncResponse.next_batch;
         if (syncToken !== this.syncToken) {
@@ -399,10 +412,8 @@ export class Session {
             await log.wrap("deviceLists", log => this._deviceTracker.writeDeviceChanges(deviceLists.changed, txn, log));
         }
 
-        const toDeviceEvents = syncResponse.to_device?.events;
-        if (Array.isArray(toDeviceEvents) && toDeviceEvents.length) {
-            changes.deviceMessageDecryptionPending =
-                await log.wrap("deviceMsgs", log => this._deviceMessageHandler.writeSync(toDeviceEvents, txn, log));
+        if (preparation) {
+            await log.wrap("deviceMsgs", log => this._deviceMessageHandler.writeSync(preparation, txn, log));
         }
 
         // store account data
@@ -431,9 +442,6 @@ export class Session {
     /** @internal */
     async afterSyncCompleted(changes, isCatchupSync, log) {
         const promises = [];
-        if (changes.deviceMessageDecryptionPending) {
-            promises.push(log.wrap("decryptPending", log => this._deviceMessageHandler.decryptPending(this.rooms, log)));
-        }
         // we don't start uploading one-time keys until we've caught up with
         // to-device messages, to help us avoid throwing away one-time-keys that we
         // are about to receive messages for

@@ -16,6 +16,7 @@ limitations under the License.
 
 import {DecryptionError} from "../common.js";
 import {groupBy} from "../../../utils/groupBy.js";
+import {MultiLock} from "../../../utils/Lock.js";
 import {Session} from "./Session.js";
 import {DecryptionResult} from "../DecryptionResult.js";
 
@@ -41,6 +42,29 @@ export class Decryption {
         this._olm = olm;
         this._senderKeyLock = senderKeyLock;
     }
+    
+    // we need to lock because both encryption and decryption can't be done in one txn,
+    // so for them not to step on each other toes, we need to lock.
+    // 
+    // the lock is release from 1 of 3 places, whichever comes first:
+    //  - decryptAll below fails (to release the lock as early as we can)
+    //  - DecryptionChanges.write succeeds
+    //  - Sync finishes the writeSync phase (or an error was thrown, in case we never get to DecryptionChanges.write) 
+    async obtainDecryptionLock(events) {
+        const senderKeys = new Set();
+        for (const event of events) {
+            const senderKey = event.content?.["sender_key"];
+            if (senderKey) {
+                senderKeys.add(senderKey);
+            }
+        }
+        // take a lock on all senderKeys so encryption or other calls to decryptAll (should not happen)
+        // don't modify the sessions at the same time
+        const locks = await Promise.all(Array.from(senderKeys).map(senderKey => {
+            return this._senderKeyLock.takeLock(senderKey);
+        }));
+        return new MultiLock(locks);
+    }
 
     // we need decryptAll because there is some parallelization we can do for decrypting different sender keys at once
     // but for the same sender key we need to do one by one
@@ -54,34 +78,28 @@ export class Decryption {
     // 
     
     /**
+     * It is importants the lock obtained from obtainDecryptionLock is for the same set of events as passed in here.
      * [decryptAll description]
      * @param  {[type]} events
      * @return {Promise<DecryptionChanges>}        [description]
      */
-    async decryptAll(events) {
-        const eventsPerSenderKey = groupBy(events, event => event.content?.["sender_key"]);
-        const timestamp = this._now();
-        // take a lock on all senderKeys so encryption or other calls to decryptAll (should not happen)
-        // don't modify the sessions at the same time
-        const locks = await Promise.all(Array.from(eventsPerSenderKey.keys()).map(senderKey => {
-            return this._senderKeyLock.takeLock(senderKey);
-        }));
+    async decryptAll(events, lock, txn) {
         try {
-            const readSessionsTxn = this._storage.readTxn([this._storage.storeNames.olmSessions]);
+            const eventsPerSenderKey = groupBy(events, event => event.content?.["sender_key"]);
+            const timestamp = this._now();
             // decrypt events for different sender keys in parallel
             const senderKeyOperations = await Promise.all(Array.from(eventsPerSenderKey.entries()).map(([senderKey, events]) => {
-                return this._decryptAllForSenderKey(senderKey, events, timestamp, readSessionsTxn);
+                return this._decryptAllForSenderKey(senderKey, events, timestamp, txn);
             }));
             const results = senderKeyOperations.reduce((all, r) => all.concat(r.results), []);
             const errors = senderKeyOperations.reduce((all, r) => all.concat(r.errors), []);
             const senderKeyDecryptions = senderKeyOperations.map(r => r.senderKeyDecryption);
-            return new DecryptionChanges(senderKeyDecryptions, results, errors, this._account, locks);
+            return new DecryptionChanges(senderKeyDecryptions, results, errors, this._account, lock);
         } catch (err) {
             // make sure the locks are release if something throws
             // otherwise they will be released in DecryptionChanges after having written
-            for (const lock of locks) {
-                lock.release();
-            }
+            // or after the writeSync phase in Sync
+            lock.release();
             throw err;
         }
     }
@@ -268,12 +286,12 @@ class SenderKeyDecryption {
  * @property {Array<DecryptionError>} errors  see DecryptionError.event to retrieve the event that failed to decrypt.
  */
 class DecryptionChanges {
-    constructor(senderKeyDecryptions, results, errors, account, locks) {
+    constructor(senderKeyDecryptions, results, errors, account, lock) {
         this._senderKeyDecryptions = senderKeyDecryptions;
         this._account = account;    
         this.results = results;
         this.errors = errors;
-        this._locks = locks;
+        this._lock = lock;
     }
 
     get hasNewSessions() {
@@ -304,9 +322,7 @@ class DecryptionChanges {
                 }
             }
         } finally {
-            for (const lock of this._locks) {
-                lock.release();
-            }
+            this._lock.release();
         }
     }
 }

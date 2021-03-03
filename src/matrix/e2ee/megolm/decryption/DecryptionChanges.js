@@ -47,6 +47,10 @@ export class DecryptionChanges {
         };
     }
 
+    // need to handle replay attack because
+    // if we redecrypted the same message twice and showed it again
+    // then it could be a malicious server admin replaying the word “yes”
+    // to make you respond to a msg you didn’t say “yes” to, or something
     async _handleReplayAttack(roomId, replayEntry, txn) {
         const {messageIndex, sessionId, eventId, timestamp} = replayEntry;
         const decryption = await txn.groupSessionDecryptions.get(roomId, sessionId, messageIndex);

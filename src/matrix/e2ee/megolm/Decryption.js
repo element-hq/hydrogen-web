@@ -16,11 +16,12 @@ limitations under the License.
 
 import {DecryptionError} from "../common.js";
 import {groupBy} from "../../../utils/groupBy.js";
-
+import * as RoomKey from "./decryption/RoomKey.js";
 import {SessionInfo} from "./decryption/SessionInfo.js";
 import {DecryptionPreparation} from "./decryption/DecryptionPreparation.js";
 import {SessionDecryption} from "./decryption/SessionDecryption.js";
 import {SessionCache} from "./decryption/SessionCache.js";
+import {MEGOLM_ALGORITHM} from "../common.js";
 
 function getSenderKey(event) {
     return event.content?.["sender_key"];
@@ -49,12 +50,13 @@ export class Decryption {
      * Reads all the state from storage to be able to decrypt the given events.
      * Decryption can then happen outside of a storage transaction.
      * @param  {[type]} roomId       [description]
-     * @param  {[type]} events        [description]
+     * @param  {[type]} events       [description]
+     * @param  {RoomKey[]?} newKeys  keys as returned from extractRoomKeys, but not yet committed to storage. May be undefined.
      * @param  {[type]} sessionCache [description]
      * @param  {[type]} txn          [description]
      * @return {DecryptionPreparation}
      */
-    async prepareDecryptAll(roomId, events, sessionCache, txn) {
+    async prepareDecryptAll(roomId, events, newKeys, sessionCache, txn) {
         const errors = new Map();
         const validEvents = [];
 
@@ -74,27 +76,38 @@ export class Decryption {
         });
 
         const sessionDecryptions = [];
-
         await Promise.all(Array.from(eventsBySession.values()).map(async eventsForSession => {
-            const first = eventsForSession[0];
-            const senderKey = getSenderKey(first);
-            const sessionId = getSessionId(first);
-            const sessionInfo = await this._getSessionInfo(roomId, senderKey, sessionId, sessionCache, txn);
-            if (!sessionInfo) {
+            const firstEvent = eventsForSession[0];
+            const sessionInfo = await this._getSessionInfoForEvent(roomId, firstEvent, newKeys, sessionCache, txn);
+            if (sessionInfo) {
+                sessionDecryptions.push(new SessionDecryption(sessionInfo, eventsForSession, this._olmWorker));
+            } else {
                 for (const event of eventsForSession) {
                     errors.set(event.event_id, new DecryptionError("MEGOLM_NO_SESSION", event));
                 }
-            } else {
-                sessionDecryptions.push(new SessionDecryption(sessionInfo, eventsForSession, this._olmWorker));
             }
         }));
 
         return new DecryptionPreparation(roomId, sessionDecryptions, errors);
     }
 
-    async _getSessionInfo(roomId, senderKey, sessionId, sessionCache, txn) {
+    async _getSessionInfoForEvent(roomId, event, newKeys, sessionCache, txn) {
+        const senderKey = getSenderKey(event);
+        const sessionId = getSessionId(event);
         let sessionInfo;
-        sessionInfo = sessionCache.get(roomId, senderKey, sessionId);
+        if (newKeys) {
+            const key = newKeys.find(k => k.roomId === roomId && k.senderKey === senderKey && k.sessionId === sessionId);
+            if (key) {
+                sessionInfo = await key.createSessionInfo(this._olm, this._pickleKey, txn);
+                if (sessionInfo) {
+                    sessionCache.add(sessionInfo);
+                }
+            }
+        }
+        // look only in the cache after looking into newKeys as it may contains that are better
+        if (!sessionInfo) {
+            sessionInfo = sessionCache.get(roomId, senderKey, sessionId);
+        }
         if (!sessionInfo) {
             const sessionEntry = await txn.inboundGroupSessions.get(roomId, senderKey, sessionId);
             if (sessionEntry) {
@@ -113,111 +126,45 @@ export class Decryption {
     }
 
     /**
-     * @type {MegolmInboundSessionDescription}
-     * @property {string} senderKey the sender key of the session
-     * @property {string} sessionId the session identifier
-     * 
-     * Adds room keys as inbound group sessions
-     * @param {Array<OlmDecryptionResult>} decryptionResults an array of m.room_key decryption results.
-     * @param {[type]} txn      a storage transaction with read/write on inboundGroupSessions
-     * @return {Promise<Array<MegolmInboundSessionDescription>>} an array with the newly added sessions
+     * Writes the key as an inbound group session if there is not already a better key in the store
+     * @param  {RoomKey}          key
+     * @param {Transaction} txn   a storage transaction with read/write on inboundGroupSessions
+     * @return {Promise<boolean>} whether the key was the best for the sessio id and was written
      */
-    async addRoomKeys(decryptionResults, txn, log) {
-        const newSessions = [];
-        for (const {senderCurve25519Key: senderKey, event, claimedEd25519Key} of decryptionResults) {
-            await log.wrap("room_key", async log => {
-                const roomId = event.content?.["room_id"];
-                const sessionId = event.content?.["session_id"];
-                const sessionKey = event.content?.["session_key"];
+    writeRoomKey(key, txn) {
+        return key.write(this._olm, this._pickleKey, txn);
+    }
 
-                log.set("roomId", roomId);
-                log.set("sessionId", sessionId);
-
-                if (
-                    typeof roomId !== "string" || 
-                    typeof sessionId !== "string" || 
-                    typeof senderKey !== "string" ||
-                    typeof sessionKey !== "string"
-                ) {
+    /**
+     * Extracts room keys from decrypted device messages.
+     * The key won't be persisted yet, you need to call RoomKey.write for that.
+     * 
+     * @param {Array<OlmDecryptionResult>} decryptionResults, any non megolm m.room_key messages will be ignored.
+     * @return {Array<RoomKey>} an array with validated RoomKey's. Note that it is possible we already have a better version of this key in storage though; writing the key will tell you so.
+     */
+    roomKeysFromDeviceMessages(decryptionResults, log) {
+        let keys = [];
+        for (const dr of decryptionResults) {
+            if (dr.event?.type !== "m.room_key" || dr.event.content?.algorithm !== MEGOLM_ALGORITHM) {
+                continue;
+            }
+            log.wrap("room_key", log => {
+                const key = RoomKey.fromDeviceMessage(dr);
+                if (key) {
+                    log.set("roomId", key.roomId);
+                    log.set("id", key.sessionId);
+                    keys.push(key);
+                } else {
                     log.logLevel = log.level.Warn;
                     log.set("invalid", true);
-                    return;
-                }
-
-                const session = new this._olm.InboundGroupSession();
-                try {
-                    session.create(sessionKey);
-                    const sessionEntry = await this._writeInboundSession(
-                        session, roomId, senderKey, claimedEd25519Key, sessionId, txn);
-                    if (sessionEntry) {
-                        newSessions.push(sessionEntry);
-                    }
-                } finally {
-                    session.free();
                 }
             }, log.level.Detail);
         }
-        // this will be passed to the Room in notifyRoomKeys
-        return newSessions;
+        return keys;
     }
 
-    /*
-    sessionInfo is a response from key backup and has the following keys:
-        algorithm
-        forwarding_curve25519_key_chain
-        sender_claimed_keys
-        sender_key
-        session_key
-     */
-    async addRoomKeyFromBackup(roomId, sessionId, sessionInfo, txn) {
-        const sessionKey = sessionInfo["session_key"];
-        const senderKey = sessionInfo["sender_key"];
-        // TODO: can we just trust this?
-        const claimedEd25519Key = sessionInfo["sender_claimed_keys"]?.["ed25519"];
-
-        if (
-            typeof roomId !== "string" || 
-            typeof sessionId !== "string" || 
-            typeof senderKey !== "string" ||
-            typeof sessionKey !== "string" ||
-            typeof claimedEd25519Key !== "string"
-        ) {
-            return;
-        }
-        const session = new this._olm.InboundGroupSession();
-        try {
-            session.import_session(sessionKey);
-            return await this._writeInboundSession(
-                session, roomId, senderKey, claimedEd25519Key, sessionId, txn);
-        } finally {
-            session.free();
-        }
-    }
-
-    async _writeInboundSession(session, roomId, senderKey, claimedEd25519Key, sessionId, txn) {
-        let incomingSessionIsBetter = true;
-        const existingSessionEntry = await txn.inboundGroupSessions.get(roomId, senderKey, sessionId);
-        if (existingSessionEntry) {
-            const existingSession = new this._olm.InboundGroupSession();
-            try {
-                existingSession.unpickle(this._pickleKey, existingSessionEntry.session);
-                incomingSessionIsBetter = session.first_known_index() < existingSession.first_known_index();
-            } finally {
-                existingSession.free();
-            }
-        }
-
-        if (incomingSessionIsBetter) {
-            const sessionEntry = {
-                roomId,
-                senderKey,
-                sessionId,
-                session: session.pickle(this._pickleKey),
-                claimedKeys: {ed25519: claimedEd25519Key},
-            };
-            txn.inboundGroupSessions.set(sessionEntry);
-            return sessionEntry;
-        }
+    roomKeyFromBackup(roomId, sessionId, sessionInfo) {
+        return RoomKey.fromBackup(roomId, sessionId, sessionInfo);
     }
 }
 

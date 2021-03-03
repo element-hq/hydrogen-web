@@ -14,11 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {OLM_ALGORITHM, MEGOLM_ALGORITHM} from "./e2ee/common.js";
-import {countBy} from "../utils/groupBy.js";
-
-// key to store in session store
-const PENDING_ENCRYPTED_EVENTS = "pendingEncryptedDeviceEvents";
+import {OLM_ALGORITHM} from "./e2ee/common.js";
+import {countBy, groupBy} from "../utils/groupBy.js";
 
 export class DeviceMessageHandler {
     constructor({storage}) {
@@ -32,90 +29,50 @@ export class DeviceMessageHandler {
         this._megolmDecryption = megolmDecryption;
     }
 
-    /**
-     * @return {bool} whether messages are waiting to be decrypted and `decryptPending` should be called.
-     */
-    async writeSync(toDeviceEvents, txn, log) {
+    obtainSyncLock(toDeviceEvents) {
+        return this._olmDecryption?.obtainDecryptionLock(toDeviceEvents);
+    }
+
+    async prepareSync(toDeviceEvents, lock, txn, log) {
+        log.set("messageTypes", countBy(toDeviceEvents, e => e.type));
         const encryptedEvents = toDeviceEvents.filter(e => e.type === "m.room.encrypted");
-        log.set("eventsCount", countBy(toDeviceEvents, e => e.type));
-        if (!encryptedEvents.length) {
-            return false;
-        }
-        // store encryptedEvents
-        let pendingEvents = await this._getPendingEvents(txn);
-        pendingEvents = pendingEvents.concat(encryptedEvents);
-        txn.session.set(PENDING_ENCRYPTED_EVENTS, pendingEvents);
-        // we don't handle anything other for now
-        return true;
-    }
-
-    /**
-     * [_writeDecryptedEvents description]
-     * @param  {Array<DecryptionResult>} olmResults
-     * @param  {[type]} txn        [description]
-     * @return {[type]}            [description]
-     */
-    async _writeDecryptedEvents(olmResults, txn, log) {
-        const megOlmRoomKeysResults = olmResults.filter(r => {
-            return r.event?.type === "m.room_key" && r.event.content?.algorithm === MEGOLM_ALGORITHM;
-        });
-        let roomKeys;
-        log.set("eventsCount", countBy(olmResults, r => r.event.type));
-        log.set("roomKeys", megOlmRoomKeysResults.length);
-        if (megOlmRoomKeysResults.length) {
-            roomKeys = await this._megolmDecryption.addRoomKeys(megOlmRoomKeysResults, txn, log);
-        }
-        log.set("newRoomKeys", roomKeys.length);
-        return {roomKeys};
-    }
-
-    async _applyDecryptChanges(rooms, {roomKeys}) {
-        if (Array.isArray(roomKeys)) {
-            for (const roomKey of roomKeys) {
-                const room = rooms.get(roomKey.roomId);
-                // TODO: this is less parallized than it could be (like sync)
-                await room?.notifyRoomKey(roomKey);
-            }
-        }
-    }
-
-    // not safe to call multiple times without awaiting first call
-    async decryptPending(rooms, log) {
         if (!this._olmDecryption) {
+            log.log("can't decrypt, encryption not enabled", log.level.Warn);
             return;
         }
-        const readTxn = this._storage.readTxn([this._storage.storeNames.session]);
-        const pendingEvents = await this._getPendingEvents(readTxn);
-        log.set("eventCount", pendingEvents.length);
-        if (pendingEvents.length === 0) {
-           return;
-        }
         // only know olm for now
-        const olmEvents = pendingEvents.filter(e => e.content?.algorithm === OLM_ALGORITHM);
-        const decryptChanges = await this._olmDecryption.decryptAll(olmEvents);
-        for (const err of decryptChanges.errors) {
-            log.child("decrypt_error").catch(err);
+        const olmEvents = encryptedEvents.filter(e => e.content?.algorithm === OLM_ALGORITHM);
+        if (olmEvents.length) {
+            const olmDecryptChanges = await this._olmDecryption.decryptAll(olmEvents, lock, txn);
+            log.set("decryptedTypes", countBy(olmDecryptChanges.results, r => r.event?.type));
+            for (const err of olmDecryptChanges.errors) {
+                log.child("decrypt_error").catch(err);
+            }
+            const newRoomKeys = this._megolmDecryption.roomKeysFromDeviceMessages(olmDecryptChanges.results, log);
+            return new SyncPreparation(olmDecryptChanges, newRoomKeys);
         }
-        const txn = this._storage.readWriteTxn([
-            // both to remove the pending events and to modify the olm account
-            this._storage.storeNames.session,
-            this._storage.storeNames.olmSessions,
-            this._storage.storeNames.inboundGroupSessions,
-        ]);
-        let changes;
-        try {
-            changes = await this._writeDecryptedEvents(decryptChanges.results, txn, log);
-            decryptChanges.write(txn);
-            txn.session.remove(PENDING_ENCRYPTED_EVENTS);
-        } catch (err) {
-            txn.abort();
-            throw err;
-        }
-        await txn.complete();
-        await this._applyDecryptChanges(rooms, changes);
     }
 
-    async _getPendingEvents(txn) {
-        return (await txn.session.get(PENDING_ENCRYPTED_EVENTS)) || [];
+    /** check that prep is not undefined before calling this */
+    async writeSync(prep, txn) {
+        // write olm changes
+        prep.olmDecryptChanges.write(txn);
+        await Promise.all(prep.newRoomKeys.map(key => this._megolmDecryption.writeRoomKey(key, txn)));
+    }
+}
+
+class SyncPreparation {
+    constructor(olmDecryptChanges, newRoomKeys) {
+        this.olmDecryptChanges = olmDecryptChanges;
+        this.newRoomKeys = newRoomKeys;
+        this.newKeysByRoom = groupBy(newRoomKeys, r => r.roomId);
+    }
+
+    dispose() {
+        if (this.newRoomKeys) {
+            for (const k of this.newRoomKeys) {
+                k.dispose();
+            }
+        }
     }
 }

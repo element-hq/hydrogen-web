@@ -116,6 +116,14 @@ export class Timeline {
         return this._allEntries;
     }
 
+    /**
+     * @internal
+     * @return {Array<EventEntry>} remote event entries, should not be modified
+     */
+    get remoteEntries() {
+        return this._remoteEntries.array;
+    }
+
     /** @public */
     dispose() {
         if (this._closeCallback) {

@@ -167,7 +167,7 @@ export class SyncWriter {
     }
 
     async _writeTimeline(entries, timeline, currentKey, memberChanges, txn, log) {
-        if (Array.isArray(timeline.events) && timeline.events.length) {
+        if (Array.isArray(timeline?.events) && timeline.events.length) {
             // only create a fragment when we will really write an event
             currentKey = await this._ensureLiveFragment(currentKey, entries, timeline, txn, log);
             const events = deduplicateEvents(timeline.events);
