@@ -108,14 +108,14 @@ export class TimelineReader {
 
     readFrom(eventKey, direction, amount) {
         return new ReaderRequest(async r => {
-            const txn = this._storage.readTxn(this.readTxnStores);
+            const txn = await this._storage.readTxn(this.readTxnStores);
             return await this._readFrom(eventKey, direction, amount, r, txn);
         });
     }
 
     readFromEnd(amount, existingTxn = null) {
         return new ReaderRequest(async r => {
-            const txn = existingTxn || this._storage.readTxn(this.readTxnStores);
+            const txn = existingTxn || await this._storage.readTxn(this.readTxnStores);
             const liveFragment = await txn.timelineFragments.liveFragment(this._roomId);
             let entries;
             // room hasn't been synced yet

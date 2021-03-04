@@ -79,7 +79,7 @@ export class Room extends EventEmitter {
         if (!this._roomEncryption) {
             return;
         }
-        const txn = this._storage.readTxn([
+        const txn = await this._storage.readTxn([
             this._storage.storeNames.timelineEvents,
             this._storage.storeNames.inboundGroupSessions,
         ]);
@@ -118,7 +118,7 @@ export class Room extends EventEmitter {
     _decryptEntries(source, entries, inboundSessionTxn = null) {
         const request = new DecryptionRequest(async r => {
             if (!inboundSessionTxn) {
-                inboundSessionTxn = this._storage.readTxn([this._storage.storeNames.inboundGroupSessions]);
+                inboundSessionTxn = await this._storage.readTxn([this._storage.storeNames.inboundGroupSessions]);
             }
             if (r.cancelled) return;
             const events = entries.filter(entry => {
@@ -135,7 +135,7 @@ export class Room extends EventEmitter {
                 // read to fetch devices if timeline is open
                 stores.push(this._storage.storeNames.deviceIdentities);
             }
-            const writeTxn = this._storage.readWriteTxn(stores);
+            const writeTxn = await this._storage.readWriteTxn(stores);
             let decryption;
             try {
                 decryption = await changes.write(writeTxn);
@@ -472,7 +472,7 @@ export class Room extends EventEmitter {
                 }
             }, {log}).response();
 
-            const txn = this._storage.readWriteTxn([
+            const txn = await this._storage.readWriteTxn([
                 this._storage.storeNames.pendingEvents,
                 this._storage.storeNames.timelineEvents,
                 this._storage.storeNames.timelineFragments,
@@ -584,7 +584,7 @@ export class Room extends EventEmitter {
     async _getLastEventId() {
         const lastKey = this._syncWriter.lastMessageKey;
         if (lastKey) {
-            const txn = this._storage.readTxn([
+            const txn = await this._storage.readTxn([
                 this._storage.storeNames.timelineEvents,
             ]);
             const eventEntry = await txn.timelineEvents.get(this._roomId, lastKey);
@@ -607,7 +607,7 @@ export class Room extends EventEmitter {
         if (this.isUnread || this.notificationCount) {
             return await this._platform.logger.wrapOrRun(log, "clearUnread", async log => {
                 log.set("id", this.id);
-                const txn = this._storage.readWriteTxn([
+                const txn = await this._storage.readWriteTxn([
                     this._storage.storeNames.roomSummary,
                 ]);
                 let data;
@@ -706,7 +706,7 @@ export class Room extends EventEmitter {
         if (this.isEncrypted) {
             stores.push(this._storage.storeNames.inboundGroupSessions);
         }
-        const txn = this._storage.readTxn(stores);
+        const txn = await this._storage.readTxn(stores);
         const storageEntry = await txn.timelineEvents.getByEventId(this._roomId, eventId);
         if (storageEntry) {
             const entry = new EventEntry(storageEntry, this._fragmentIdComparer);

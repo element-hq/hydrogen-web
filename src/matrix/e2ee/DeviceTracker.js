@@ -75,7 +75,7 @@ export class DeviceTracker {
         }
         const memberList = await room.loadMemberList(log);
         try {
-            const txn = this._storage.readWriteTxn([
+            const txn = await this._storage.readWriteTxn([
                 this._storage.storeNames.roomSummary,
                 this._storage.storeNames.userIdentities,
             ]);
@@ -157,7 +157,7 @@ export class DeviceTracker {
         }, {log}).response();
 
         const verifiedKeysPerUser = log.wrap("verify", log => this._filterVerifiedDeviceKeys(deviceKeyResponse["device_keys"], log));
-        const txn = this._storage.readWriteTxn([
+        const txn = await this._storage.readWriteTxn([
             this._storage.storeNames.userIdentities,
             this._storage.storeNames.deviceIdentities,
         ]);
@@ -271,7 +271,7 @@ export class DeviceTracker {
      * @return {[type]}        [description]
      */
     async devicesForTrackedRoom(roomId, hsApi, log) {
-        const txn = this._storage.readTxn([
+        const txn = await this._storage.readTxn([
             this._storage.storeNames.roomMembers,
             this._storage.storeNames.userIdentities,
         ]);
@@ -287,7 +287,7 @@ export class DeviceTracker {
     }
 
     async devicesForRoomMembers(roomId, userIds, hsApi, log) {
-        const txn = this._storage.readTxn([
+        const txn = await this._storage.readTxn([
             this._storage.storeNames.userIdentities,
         ]);
         return await this._devicesForUserIds(roomId, userIds, txn, hsApi, log);
@@ -319,7 +319,7 @@ export class DeviceTracker {
             queriedDevices = await this._queryKeys(outdatedIdentities.map(i => i.userId), hsApi, log);
         }
 
-        const deviceTxn = this._storage.readTxn([
+        const deviceTxn = await this._storage.readTxn([
             this._storage.storeNames.deviceIdentities,
         ]);
         const devicesPerUser = await Promise.all(upToDateIdentities.map(identity => {

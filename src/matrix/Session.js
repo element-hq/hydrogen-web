@@ -185,13 +185,13 @@ export class Session {
         }
         const key = await ssssKeyFromCredential(type, credential, this._storage, this._platform, this._olm);
         // and create session backup, which needs to read from accountData
-        const readTxn = this._storage.readTxn([
+        const readTxn = await this._storage.readTxn([
             this._storage.storeNames.accountData,
         ]);
         await this._createSessionBackup(key, readTxn);
         // only after having read a secret, write the key
         // as we only find out if it was good if the MAC verification succeeds
-        const writeTxn = this._storage.readWriteTxn([
+        const writeTxn = await this._storage.readWriteTxn([
             this._storage.storeNames.session,
         ]);
         try {
@@ -249,7 +249,7 @@ export class Session {
 
     /** @internal */
     async load(log) {
-        const txn = this._storage.readTxn([
+        const txn = await this._storage.readTxn([
             this._storage.storeNames.session,
             this._storage.storeNames.roomSummary,
             this._storage.storeNames.roomMembers,
@@ -301,7 +301,7 @@ export class Session {
     async start(lastVersionResponse, log) {
         if (lastVersionResponse) {
             // store /versions response
-            const txn = this._storage.readWriteTxn([
+            const txn = await this._storage.readWriteTxn([
                 this._storage.storeNames.session
             ]);
             txn.session.set("serverVersions", lastVersionResponse);
@@ -310,7 +310,7 @@ export class Session {
         }
         // enable session backup, this requests the latest backup version
         if (!this._sessionBackup) {
-            const txn = this._storage.readTxn([
+            const txn = await this._storage.readTxn([
                 this._storage.storeNames.session,
                 this._storage.storeNames.accountData,
             ]);
@@ -323,7 +323,7 @@ export class Session {
             this._hasSecretStorageKey.set(!!ssssKey);
         }
         // restore unfinished operations, like sending out room keys
-        const opsTxn = this._storage.readWriteTxn([
+        const opsTxn = await this._storage.readWriteTxn([
             this._storage.storeNames.operations
         ]);
         const operations = await opsTxn.operations.getAll();

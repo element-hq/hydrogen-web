@@ -251,7 +251,7 @@ export class RoomSummary {
         if (data === this._data) {
             return false;
         }
-        const txn = storage.readWriteTxn([
+        const txn = await storage.readWriteTxn([
             storage.storeNames.roomSummary,
         ]);
         try {
