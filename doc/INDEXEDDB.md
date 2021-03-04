@@ -23,6 +23,8 @@ without waiting for any *micro*tasks. See comments about Safari at https://githu
 Another failure mode perceived in Hydrogen on Safari is that when the (readonly) prepareTxn in sync wasn't awaited to be completed before opening and using the syncTxn.
 I haven't found any documentation online about this at all. Awaiting prepareTxn.complete() fixed the issue below. It's strange though the put does not fail.
 
+## Diagnose of problem
+
 What is happening below is:
  - in the sync loop:
     - we first open a readonly txn on inboundGroupSessions, which we don't use in the example below
