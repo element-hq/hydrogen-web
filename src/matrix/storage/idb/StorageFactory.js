@@ -18,6 +18,7 @@ import {Storage} from "./Storage.js";
 import { openDatabase, reqAsPromise } from "./utils.js";
 import { exportSession, importSession } from "./export.js";
 import { schema } from "./schema.js";
+import { detectWebkitEarlyCloseTxnBug } from "./quirks.js";
 
 const sessionName = sessionId => `hydrogen_session_${sessionId}`;
 const openDatabaseWithSessionId = sessionId => openDatabase(sessionName(sessionId), createStores, schema.length);
@@ -50,8 +51,10 @@ export class StorageFactory {
                 console.warn("no persisted storage, database can be evicted by browser");
             }
         });
+
+        const hasWebkitEarlyCloseTxnBug = await detectWebkitEarlyCloseTxnBug();
         const db = await openDatabaseWithSessionId(sessionId);
-        return new Storage(db);
+        return new Storage(db, hasWebkitEarlyCloseTxnBug);
     }
 
     delete(sessionId) {

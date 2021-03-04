@@ -16,10 +16,14 @@ limitations under the License.
 
 import {Transaction} from "./Transaction.js";
 import { STORE_NAMES, StorageError } from "../common.js";
+import { reqAsPromise } from "./utils.js";
+
+const WEBKITEARLYCLOSETXNBUG_BOGUS_KEY = "782rh281re38-boguskey";
 
 export class Storage {
-    constructor(idbDatabase) {
+    constructor(idbDatabase, hasWebkitEarlyCloseTxnBug) {
         this._db = idbDatabase;
+        this._hasWebkitEarlyCloseTxnBug = hasWebkitEarlyCloseTxnBug;
         const nameMap = STORE_NAMES.reduce((nameMap, name) => {
             nameMap[name] = name;
             return nameMap;
@@ -38,6 +42,11 @@ export class Storage {
         this._validateStoreNames(storeNames);
         try {
             const txn = this._db.transaction(storeNames, "readonly");
+            // https://bugs.webkit.org/show_bug.cgi?id=222746 workaround,
+            // await a bogus idb request on the new txn so it doesn't close early if we await a microtask first
+            if (this._hasWebkitEarlyCloseTxnBug) {
+                await reqAsPromise(txn.objectStore(storeNames[0]).get(WEBKITEARLYCLOSETXNBUG_BOGUS_KEY));
+            }
             return new Transaction(txn, storeNames);
         } catch(err) {
             throw new StorageError("readTxn failed", err);
@@ -48,6 +57,11 @@ export class Storage {
         this._validateStoreNames(storeNames);
         try {
             const txn = this._db.transaction(storeNames, "readwrite");
+            // https://bugs.webkit.org/show_bug.cgi?id=222746 workaround,
+            // await a bogus idb request on the new txn so it doesn't close early if we await a microtask first
+            if (this._hasWebkitEarlyCloseTxnBug) {
+                await reqAsPromise(txn.objectStore(storeNames[0]).get(WEBKITEARLYCLOSETXNBUG_BOGUS_KEY));
+            }
             return new Transaction(txn, storeNames);
         } catch(err) {
             throw new StorageError("readWriteTxn failed", err);
