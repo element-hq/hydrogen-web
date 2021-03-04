@@ -69,6 +69,8 @@ const ALLOWED_BLOB_MIMETYPES = {
     'audio/x-flac': true,
 };
 
+const DEFAULT_MIMETYPE = 'application/octet-stream';
+
 export class BlobHandle {
     constructor(blob, buffer = null) {
         this._blob = blob;
@@ -79,7 +81,7 @@ export class BlobHandle {
     static fromBuffer(buffer, mimetype) {
         mimetype = mimetype ? mimetype.split(";")[0].trim() : '';
         if (!ALLOWED_BLOB_MIMETYPES[mimetype]) {
-            mimetype = 'application/octet-stream';
+            mimetype = DEFAULT_MIMETYPE;
         }
         return new BlobHandle(new Blob([buffer], {type: mimetype}), buffer);
     }
@@ -119,7 +121,7 @@ export class BlobHandle {
     }
 
     get mimeType() {
-        return this._blob.type;
+        return this._blob.type || DEFAULT_MIMETYPE;
     }
 
     dispose() {
