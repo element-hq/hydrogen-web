@@ -1,0 +1,71 @@
+<html>
+<head><meta charset="utf-8"></head>
+<body>
+	<script type="text/javascript">
+
+        const log = (...params) => {
+            document.write(params.join(" ")+"<br>");
+        };
+
+        function reqAsPromise(req) {
+            return new Promise((resolve, reject) => {
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = (err) => reject(err);
+            });
+        }
+
+        function txnAsPromise(txn) {
+            return new Promise((resolve, reject) => {
+                txn.addEventListener("complete", resolve);
+                txn.addEventListener("abort", reject);
+            });
+        }
+
+        function openDatabase(name, createObjectStore, version) {
+            const req = indexedDB.open(name, version);
+            req.onupgradeneeded = (ev) => {
+                const db = ev.target.result;
+                const txn = ev.target.transaction;
+                const oldVersion = ev.oldVersion;
+                createObjectStore(db, txn, oldVersion, version);
+            }; 
+            return reqAsPromise(req);
+        }
+
+        async function detectWebkitEarlyCloseTxnBug() {
+            const dbName = "webkit_test_inactive_txn_" + Math.random() * Number.MAX_SAFE_INTEGER;
+            try {
+                const db = await openDatabase(dbName, db => {
+                    db.createObjectStore("test", {keyPath: "key"});
+                }, 1);
+                const readTxn = db.transaction(["test"], "readonly");
+                await reqAsPromise(readTxn.objectStore("test").get("somekey"));
+                // schedule a macro task in between the two txns
+                await new Promise(r => setTimeout(r, 0));
+                const writeTxn = db.transaction(["test"], "readwrite");
+                await Promise.resolve();
+                writeTxn.objectStore("test").add({key: "somekey", value: "foo"});
+                await txnAsPromise(writeTxn);
+            } catch (err) {
+                if (err.name === "TransactionInactiveError") {
+                    return true;
+                }
+            } finally {
+                try {
+                    indexedDB.deleteDatabase(dbName);
+                } catch (err) {}
+            }
+            return false;
+        }
+
+        (async () => {
+            if (await detectWebkitEarlyCloseTxnBug()) {
+                log("the test failed, your browser seems to have the bug");
+            } else {
+                log("the test succeeded, your browser seems fine");
+            }
+        })();
+
+	</script>
+</body>
+</html>
