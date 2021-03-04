@@ -14,7 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export async function downloadInIframe(container, iframeSrc, blob, filename) {
+// From https://stackoverflow.com/questions/9038625/detect-if-device-is-ios/9039885
+const isIOS = /iPad|iPhone|iPod/.test(navigator.platform) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) && !window.MSStream;
+
+export async function downloadInIframe(container, iframeSrc, blobHandle, filename) {
     let iframe = container.querySelector("iframe.downloadSandbox");
     if (!iframe) {
         iframe = document.createElement("iframe");
@@ -33,5 +36,21 @@ export async function downloadInIframe(container, iframeSrc, blob, filename) {
         });
         detach();
     }
-    iframe.contentWindow.postMessage({type: "download", blob: blob, filename: filename}, "*");
+    if (isIOS) {
+        // iOS can't read a blob in a sandboxed iframe,
+        // see https://github.com/vector-im/hydrogen-web/issues/244
+        const buffer = await blobHandle.readAsBuffer();
+        iframe.contentWindow.postMessage({
+            type: "downloadBuffer",
+            buffer,
+            mimeType: blobHandle.mimeType,
+            filename: filename
+        }, "*");
+    } else {
+        iframe.contentWindow.postMessage({
+            type: "downloadBlob",
+            blob: blobHandle.nativeBlob,
+            filename: filename
+        }, "*");
+    }
 }
