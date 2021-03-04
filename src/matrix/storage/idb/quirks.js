@@ -32,6 +32,7 @@ export async function detectWebkitEarlyCloseTxnBug() {
         await Promise.resolve();
         writeTxn.objectStore("test").add({key: "somekey", value: "foo"});
         await txnAsPromise(writeTxn);
+        db.close();
     } catch (err) {
         if (err.name === "TransactionInactiveError") {
             return true;
