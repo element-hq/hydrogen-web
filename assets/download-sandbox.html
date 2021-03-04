@@ -7,16 +7,40 @@
         <a id="link" href="#">Download</a>
         <script type="text/javascript">
             var link = document.getElementById("link");
-            function download(blob, filename) {
+
+            function downloadBlob(blob, filename) {
                 var url = URL.createObjectURL(blob);
                 link.href = url;
                 link.download = filename;
+                link.innerText = url;
                 link.click();
                 URL.revokeObjectURL(url);
             }
-            window.addEventListener("message", function(event) {
-                if (event.origin === window.location.origin && event.data.type === "download") {
-                    download(event.data.blob, event.data.filename);
+
+            function toBase64(buffer) {
+                const bytes = new Uint8Array(buffer);
+                let binaryStr = "";
+                for (let i = 0; i < bytes.byteLength; i++) {
+                    binaryStr += String.fromCharCode(bytes[i]);
+                }
+                return btoa(binaryStr);
+            }
+
+            function downloadBuffer(buffer, mimeType, filename) {
+                var url = "data:" + mimeType + ";base64," + toBase64(buffer);
+                link.href = url;
+                link.download = filename;
+                link.innerText = url;
+                link.click();
+            }
+
+            window.addEventListener("message", async function(event) {
+                if (event.origin === window.location.origin) {
+                    if (event.data.type === "downloadBuffer") {
+                        await downloadBuffer(event.data.buffer, event.data.mimeType, event.data.filename);
+                    } else if (event.data.type === "downloadBlob") {
+                        await downloadBlob(event.data.blob, event.data.filename);
+                    }
                 }
             });
         </script>

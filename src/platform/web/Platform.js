@@ -150,7 +150,7 @@ export class Platform {
         if (navigator.msSaveBlob) {
             navigator.msSaveBlob(blobHandle.nativeBlob, filename);
         } else {
-            downloadInIframe(this._container, this._paths.downloadSandbox, blobHandle.nativeBlob, filename);
+            downloadInIframe(this._container, this._paths.downloadSandbox, blobHandle, filename);
         }
     }
 
