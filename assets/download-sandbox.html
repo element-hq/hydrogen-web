@@ -12,7 +12,6 @@
                 var url = URL.createObjectURL(blob);
                 link.href = url;
                 link.download = filename;
-                link.innerText = url;
                 link.click();
                 URL.revokeObjectURL(url);
             }
@@ -30,7 +29,6 @@
                 var url = "data:" + mimeType + ";base64," + toBase64(buffer);
                 link.href = url;
                 link.download = filename;
-                link.innerText = url;
                 link.click();
             }
 
