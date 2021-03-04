@@ -46,7 +46,7 @@ export class Timeline {
 
     /** @package */
     async load(user) {
-        const txn = this._storage.readTxn(this._timelineReader.readTxnStores.concat(this._storage.storeNames.roomMembers));
+        const txn = await this._storage.readTxn(this._timelineReader.readTxnStores.concat(this._storage.storeNames.roomMembers));
         const memberData = await txn.roomMembers.get(this._roomId, user.id);
         this._ownMember = new RoomMember(memberData);
         // it should be fine to not update the local entries,

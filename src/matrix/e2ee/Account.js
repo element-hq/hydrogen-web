@@ -45,7 +45,7 @@ export class Account {
         }
         const pickledAccount = account.pickle(pickleKey);
         const areDeviceKeysUploaded = false;
-        const txn = storage.readWriteTxn([
+        const txn = await storage.readWriteTxn([
             storage.storeNames.session
         ]);
         try {
@@ -225,7 +225,7 @@ export class Account {
     }
 
     async _updateSessionStorage(storage, callback) {
-        const txn = storage.readWriteTxn([
+        const txn = await storage.readWriteTxn([
             storage.storeNames.session
         ]);
         try {

@@ -129,7 +129,7 @@ export class SendQueue {
     async _removeEvent(pendingEvent) {
         const idx = this._pendingEvents.array.indexOf(pendingEvent);
         if (idx !== -1) {
-            const txn = this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
+            const txn = await this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
             try {
                 txn.pendingEvents.remove(pendingEvent.roomId, pendingEvent.queueIndex);
             } catch (err) {
@@ -185,7 +185,7 @@ export class SendQueue {
     }
 
     async _tryUpdateEvent(pendingEvent) {
-        const txn = this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
+        const txn = await this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
         try {
             // pendingEvent might have been removed already here
             // by a racing remote echo, so check first so we don't recreate it
@@ -200,7 +200,7 @@ export class SendQueue {
     }
 
     async _createAndStoreEvent(eventType, content, attachments) {
-        const txn = this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
+        const txn = await this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
         let pendingEvent;
         try {
             const pendingEventsStore = txn.pendingEvents;

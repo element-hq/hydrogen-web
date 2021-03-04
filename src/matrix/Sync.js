@@ -201,7 +201,7 @@ export class Sync {
                 return rs.room.afterPrepareSync(rs.preparation, log);
             })));
             await log.wrap("write", async log => {
-                const syncTxn = this._openSyncTxn();
+                const syncTxn = await this._openSyncTxn();
                 try {
                     sessionState.changes = await log.wrap("session", log => this._session.writeSync(
                         response, syncFilterId, sessionState.preparation, syncTxn, log));
@@ -253,7 +253,7 @@ export class Sync {
     }
 
     async _prepareSessionAndRooms(sessionState, roomStates, response, log) {
-        const prepareTxn = this._openPrepareSyncTxn();
+        const prepareTxn = await this._openPrepareSyncTxn();
         sessionState.preparation = await log.wrap("session", log => this._session.prepareSync(
             response, sessionState.lock, prepareTxn, log));
 
