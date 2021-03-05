@@ -24,7 +24,7 @@ export class RoomMember {
     }
 
     static fromMemberEvent(roomId, memberEvent) {
-        const userId = memberEvent && memberEvent.state_key;
+        const userId = memberEvent?.state_key;
         if (typeof userId !== "string") {
             return;
         }
