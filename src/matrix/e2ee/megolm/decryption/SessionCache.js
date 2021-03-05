@@ -14,15 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {BaseLRUCache} from "../../../../utils/LRUCache.js";
 const DEFAULT_CACHE_SIZE = 10;
 
 /**
  * Cache of unpickled inbound megolm session.
  */
-export class SessionCache {
-    constructor(size) {
-        this._size = typeof size === "number" ? size : DEFAULT_CACHE_SIZE;
-        this._sessions = [];
+export class SessionCache extends BaseLRUCache {
+    constructor(limit) {
+        limit = typeof limit === "number" ? limit : DEFAULT_CACHE_SIZE;
+        super(limit);
     }
 
     /**
@@ -32,37 +33,28 @@ export class SessionCache {
      * @return {SessionInfo?}
      */
     get(roomId, senderKey, sessionId) {
-        const idx = this._sessions.findIndex(s => {
+        return this._get(s => {
             return s.roomId === roomId &&
                 s.senderKey === senderKey &&
-                sessionId === s.session.session_id();
+                sessionId === s.sessionId;
         });
-        if (idx !== -1) {
-            const sessionInfo = this._sessions[idx];
-            // move to top
-            if (idx > 0) {
-                this._sessions.splice(idx, 1);
-                this._sessions.unshift(sessionInfo);
-            }
-            return sessionInfo;
-        }
     }
 
     add(sessionInfo) {
         sessionInfo.retain();
-        // add new at top
-        this._sessions.unshift(sessionInfo);
-        if (this._sessions.length > this._size) {
-            // free sessions we're about to remove
-            for (let i = this._size; i < this._sessions.length; i += 1) {
-                this._sessions[i].release();
-            }
-            this._sessions = this._sessions.slice(0, this._size);
-        }
+        this._set(sessionInfo, s => {
+            return s.roomId === sessionInfo.roomId &&
+                s.senderKey === sessionInfo.senderKey &&
+                s.sessionId === sessionInfo.sessionId;
+        });
+    }
+
+    _onEvictEntry(sessionInfo) {
+        sessionInfo.release();
     }
 
     dispose() {
-        for (const sessionInfo of this._sessions) {
+        for (const sessionInfo of this._entries) {
             sessionInfo.release();
         }
     }
