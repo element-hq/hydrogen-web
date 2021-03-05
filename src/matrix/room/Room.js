@@ -55,8 +55,8 @@ export class Room extends EventEmitter {
         this._observedEvents = null;
     }
 
-    async _getRetryDecryptEntriesForKey(roomKey, txn) {
-        const retryEventIds = await this._roomEncryption.getEventIdsForMissingKey(roomKey, txn);
+    async _getRetryDecryptEntriesForKey(roomKey, roomEncryption, txn) {
+        const retryEventIds = await roomEncryption.getEventIdsForMissingKey(roomKey, txn);
         const retryEntries = [];
         if (retryEventIds) {
             for (const eventId of retryEventIds) {
@@ -83,7 +83,7 @@ export class Room extends EventEmitter {
             this._storage.storeNames.timelineEvents,
             this._storage.storeNames.inboundGroupSessions,
         ]);
-        const retryEntries = await this._getRetryDecryptEntriesForKey(roomKey, txn);
+        const retryEntries = await this._getRetryDecryptEntriesForKey(roomKey, this._roomEncryption, txn);
         if (retryEntries.length) {
             const decryptRequest = this._decryptEntries(DecryptionSource.Retry, retryEntries, txn);
             // this will close txn while awaiting decryption
@@ -156,8 +156,8 @@ export class Room extends EventEmitter {
         return request;
     }
 
-    async _getSyncRetryDecryptEntries(newKeys, txn) {
-        const entriesPerKey = await Promise.all(newKeys.map(key => this._getRetryDecryptEntriesForKey(key, txn)));
+    async _getSyncRetryDecryptEntries(newKeys, roomEncryption, txn) {
+        const entriesPerKey = await Promise.all(newKeys.map(key => this._getRetryDecryptEntriesForKey(key, roomEncryption, txn)));
         let retryEntries = entriesPerKey.reduce((allEntries, entries) => allEntries.concat(entries), []);
         // If we have the timeline open, see if there are more entries for the new keys
         // as we only store missing session information for synced events, not backfilled.
@@ -195,7 +195,7 @@ export class Room extends EventEmitter {
             let eventsToDecrypt = roomResponse?.timeline?.events || [];
             // when new keys arrive, also see if any older events can now be retried to decrypt
             if (newKeys) {
-                retryEntries = await this._getSyncRetryDecryptEntries(newKeys, txn);
+                retryEntries = await this._getSyncRetryDecryptEntries(newKeys, roomEncryption, txn);
                 if (retryEntries.length) {
                     log.set("retry", retryEntries.length);
                     eventsToDecrypt = eventsToDecrypt.concat(retryEntries.map(entry => entry.event));
