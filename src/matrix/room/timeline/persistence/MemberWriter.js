@@ -56,10 +56,20 @@ export class MemberWriter {
         if (!existingMember || !existingMember.equals(member)) {
             txn.roomMembers.set(member.serialize());
             this._cache.set(member);
-
-            if (!isLazyLoadingMember) {
-                return new MemberChange(member, existingMember?.membership);
+            // we also return a member change for lazy loading members if something changed,
+            // so when the dupe timeline event comes and it doesn't see a diff
+            // with the cache, we already returned the event here.
+            // 
+            // it's just important that we don't consider the first LL event
+            // for a user we see as a membership change, or we'll share keys with
+            // them, etc...
+            if (isLazyLoadingMember && !existingMember) {
+                // we don't have a previous member, but we know this is not a
+                // membership change as it's a lazy loaded
+                // member so take the membership from the member
+                return new MemberChange(member, member.membership);
             }
+            return new MemberChange(member, existingMember?.membership);
         }
     }
 
@@ -191,13 +201,26 @@ export function tests() {
             assert(!change.hasLeft);
             assert(!change.hasJoined);
         },
-        "lazy loaded member is written but no change returned": async assert => {
+        "lazy loaded member we already know about doens't return change": async assert => {
+            const writer = new MemberWriter(roomId);
+            const txn = createStorage([member("join", alice, "Alice")]);
+            const change = await writer.writeStateMemberEvent(createMemberEvent("join", alice, "Alice"), false, txn);
+            assert(!change);
+        },
+        "lazy loaded member we already know about changes display name": async assert => {
+            const writer = new MemberWriter(roomId);
+            const txn = createStorage([member("join", alice, "Alice")]);
+            const change = await writer.writeStateMemberEvent(createMemberEvent("join", alice, "Alies"), false, txn);
+            assert.equal(change.member.displayName, "Alies");
+        },
+        "unknown lazy loaded member returns change, but not considered a membership change": async assert => {
             const writer = new MemberWriter(roomId);
             const txn = createStorage();
             const change = await writer.writeStateMemberEvent(createMemberEvent("join", alice, "Alice"), false, txn);
-            assert(!change);
+            assert(!change.hasJoined);
+            assert(!change.hasLeft);
+            assert.equal(change.member.membership, "join");
             assert.equal(txn.members.get(alice).displayName, "Alice");
         },
-        
     };
 }
