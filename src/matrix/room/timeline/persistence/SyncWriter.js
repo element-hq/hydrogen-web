@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,7 +19,8 @@ import {EventKey} from "../EventKey.js";
 import {EventEntry} from "../entries/EventEntry.js";
 import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
 import {createEventEntry} from "./common.js";
-import {MemberChange, RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";
+import {EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";
+import {MemberWriter} from "./MemberWriter.js";
 
 // Synapse bug? where the m.room.create event appears twice in sync response
 // when first syncing the room
@@ -37,6 +39,7 @@ function deduplicateEvents(events) {
 export class SyncWriter {
     constructor({roomId, fragmentIdComparer}) {
         this._roomId = roomId;
+        this._memberWriter = new MemberWriter(roomId);
         this._fragmentIdComparer = fragmentIdComparer;
         this._lastLiveKey = null;
     }
@@ -130,37 +133,19 @@ export class SyncWriter {
         return currentKey;
     }
 
-    _writeMember(event, txn) {
-        const userId = event.state_key;
-        if (userId) {
-            const memberChange = new MemberChange(this._roomId, event);
-            const {member} = memberChange;
-            if (member) {
-                // TODO: can we avoid writing redundant members here by checking
-                // if this is not a limited sync and the state is not in the timeline?
-                txn.roomMembers.set(member.serialize());
-                return memberChange;
-            }
-        }
-    }
-
-    _writeStateEvent(event, txn) {
-        if (event.type === MEMBER_EVENT_TYPE) {
-            return this._writeMember(event, txn);
-        } else {
-            txn.roomState.set(this._roomId, event);
-        }
-    }
-
-    _writeStateEvents(roomResponse, memberChanges, txn, log) {
+    async _writeStateEvents(roomResponse, memberChanges, isLimited, txn, log) {
         // persist state
         const {state} = roomResponse;
         if (Array.isArray(state?.events)) {
             log.set("stateEvents", state.events.length);
             for (const event of state.events) {
-                const memberChange = this._writeStateEvent(event, txn);
-                if (memberChange) {
-                    memberChanges.set(memberChange.userId, memberChange);
+                if (event.type === MEMBER_EVENT_TYPE) {
+                    const memberChange = await this._memberWriter.writeStateMemberEvent(event, isLimited, txn);
+                    if (memberChange) {
+                        memberChanges.set(memberChange.userId, memberChange);
+                    }
+                } else {
+                    txn.roomState.set(this._roomId, event);
                 }
             }
         }
@@ -177,44 +162,32 @@ export class SyncWriter {
                 // store event in timeline
                 currentKey = currentKey.nextKey();
                 const entry = createEventEntry(currentKey, this._roomId, event);
-                let memberData = await this._findMemberData(event.sender, events, txn);
-                if (memberData) {
-                    entry.displayName = memberData.displayName;
-                    entry.avatarUrl = memberData.avatarUrl;
+                let member = await this._memberWriter.lookupMember(event.sender, events, txn);
+                if (member) {
+                    entry.displayName = member.displayName;
+                    entry.avatarUrl = member.avatarUrl;
                 }
                 txn.timelineEvents.insert(entry);
                 entries.push(new EventEntry(entry, this._fragmentIdComparer));
 
-                // process live state events first, so new member info is available
+                // update state events after writing event, so for a member event,
+                // we only update the member info after having written the member event
+                // to the timeline, as we want that event to have the old profile info
                 if (typeof event.state_key === "string") {
                     timelineStateEventCount += 1;
-                    const memberChange = this._writeStateEvent(event, txn);
-                    if (memberChange) {
-                        memberChanges.set(memberChange.userId, memberChange);
+                    if (event.type === MEMBER_EVENT_TYPE) {
+                        const memberChange = await this._memberWriter.writeTimelineMemberEvent(event, txn);
+                        if (memberChange) {
+                            memberChanges.set(memberChange.userId, memberChange);
+                        }
+                    } else {
+                        txn.roomState.set(this._roomId, event);
                     }
                 }
             }
             log.set("timelineStateEventCount", timelineStateEventCount);
         }
         return currentKey;
-    }
-
-    async _findMemberData(userId, events, txn) {
-        // TODO: perhaps add a small cache here?
-        const memberData = await txn.roomMembers.get(this._roomId, userId);
-        if (memberData) {
-            return memberData;
-        } else {
-            // sometimes the member event isn't included in state, but rather in the timeline,
-            // even if it is not the first event in the timeline. In this case, go look for the
-            // first occurence
-            const memberEvent = events.find(e => {
-                return e.type === MEMBER_EVENT_TYPE && e.state_key === userId;
-            });
-            if (memberEvent) {
-                return RoomMember.fromMemberEvent(this._roomId, memberEvent)?.serialize(); 
-            }
-        }
     }
 
     /**
@@ -233,7 +206,7 @@ export class SyncWriter {
         const memberChanges = new Map();
         // important this happens before _writeTimeline so
         // members are available in the transaction
-        this._writeStateEvents(roomResponse, memberChanges, txn, log);
+        await this._writeStateEvents(roomResponse, memberChanges, timeline?.limited, txn, log);
         const currentKey = await this._writeTimeline(entries, timeline, this._lastLiveKey, memberChanges, txn, log);
         log.set("memberChanges", memberChanges.size);
         return {entries, newLiveKey: currentKey, memberChanges};

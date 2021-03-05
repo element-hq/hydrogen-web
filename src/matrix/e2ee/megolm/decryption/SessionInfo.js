@@ -27,6 +27,10 @@ export class SessionInfo {
         this._refCounter = 0;
     }
 
+    get sessionId() {
+        return this.session?.session_id();
+    }
+
     retain() {
         this._refCounter += 1;
     }

@@ -112,10 +112,10 @@ export class GapWriter {
             const event = events[i];
             key = key.nextKeyForDirection(direction);
             const eventStorageEntry = createEventEntry(key, this._roomId, event);
-            const memberData = this._findMemberData(event.sender, state, events, i, direction);
-            if (memberData) {
-                eventStorageEntry.displayName = memberData?.displayName;
-                eventStorageEntry.avatarUrl = memberData?.avatarUrl;
+            const member = this._findMember(event.sender, state, events, i, direction);
+            if (member) {
+                eventStorageEntry.displayName = member.displayName;
+                eventStorageEntry.avatarUrl = member.avatarUrl;
             }
             txn.timelineEvents.insert(eventStorageEntry);
             const eventEntry = new EventEntry(eventStorageEntry, this._fragmentIdComparer);
@@ -124,7 +124,7 @@ export class GapWriter {
         return entries;
     }
 
-    _findMemberData(userId, state, events, index, direction) {
+    _findMember(userId, state, events, index, direction) {
         function isOurUser(event) {
             return event.type === MEMBER_EVENT_TYPE && event.state_key === userId;
         }
@@ -133,7 +133,7 @@ export class GapWriter {
         for (let i = index + inc; i >= 0 && i < events.length; i += inc) {
             const event = events[i];
             if (isOurUser(event)) {
-                return RoomMember.fromMemberEvent(this._roomId, event)?.serialize();
+                return RoomMember.fromMemberEvent(this._roomId, event);
             }
         }
         // look into newer events, but using prev_content if found.
@@ -143,14 +143,14 @@ export class GapWriter {
         for (let i = index; i >= 0 && i < events.length; i -= inc) {
             const event = events[i];
             if (isOurUser(event)) {
-                return RoomMember.fromReplacingMemberEvent(this._roomId, event)?.serialize();
+                return RoomMember.fromReplacingMemberEvent(this._roomId, event);
             }
         }
         // assuming the member hasn't changed within the chunk, just take it from state if it's there.
         // Don't assume state is set though, as it can be empty at the top of the timeline in some circumstances 
         const stateMemberEvent = state?.find(isOurUser);
         if (stateMemberEvent) {
-            return RoomMember.fromMemberEvent(this._roomId, stateMemberEvent)?.serialize();
+            return RoomMember.fromMemberEvent(this._roomId, stateMemberEvent);
         }
     }
 

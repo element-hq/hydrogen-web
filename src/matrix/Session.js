@@ -517,7 +517,7 @@ export function tests() {
                     }
                 }
             };
-            const newSessionData = await session.writeSync({next_batch: "b"}, 6, syncTxn);
+            const newSessionData = await session.writeSync({next_batch: "b"}, 6, null, syncTxn, {});
             assert(syncSet);
             assert.equal(session.syncToken, "a");
             assert.equal(session.syncFilterId, 5);
