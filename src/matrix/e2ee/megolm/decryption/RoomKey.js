@@ -6,9 +6,10 @@ export class BaseRoomKey {
         this._isBetter = null;
     }
 
-
-
     async createSessionInfo(olm, pickleKey, txn) {
+        if (this._isBetter === false) {
+            return;
+        }
         const session = new olm.InboundGroupSession();
         try {
             this._loadSessionKey(session);
@@ -32,6 +33,7 @@ export class BaseRoomKey {
 
     async _isBetterThanKnown(session, olm, pickleKey, txn) {
         let isBetter = true;
+        // TODO: we could potentially have a small speedup here if we looked first in the SessionCache here...
         const existingSessionEntry = await txn.inboundGroupSessions.get(this.roomId, this.senderKey, this.sessionId);
         if (existingSessionEntry?.session) {
             const existingSession = new olm.InboundGroupSession();
