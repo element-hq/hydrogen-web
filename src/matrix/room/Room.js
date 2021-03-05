@@ -266,6 +266,9 @@ export class Room extends EventEmitter {
         // fetch new members while we have txn open,
         // but don't make any in-memory changes yet
         let heroChanges;
+        // if any hero changes their display name, the summary in the room response
+        // is also updated, which will trigger a RoomSummary update
+        // and make summaryChanges non-falsy here
         if (summaryChanges?.needsHeroes) {
             // room name disappeared, open heroes
             if (!this._heroes) {
