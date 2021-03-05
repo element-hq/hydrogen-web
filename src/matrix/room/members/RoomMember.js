@@ -103,36 +103,34 @@ export class RoomMember {
     serialize() {
         return this._data;
     }
+
+    equals(other) {
+        const data = this._data;
+        const otherData = other._data;
+        return data.roomId === otherData.roomId &&
+            data.userId === otherData.userId &&
+            data.membership === otherData.membership &&
+            data.displayName === otherData.displayName &&
+            data.avatarUrl === otherData.avatarUrl;
+    }
 }
 
 export class MemberChange {
-    constructor(roomId, memberEvent) {
-        this._roomId = roomId;
-        this._memberEvent = memberEvent;
-        this._member = null;
-    }
-
-    get member() {
-        if (!this._member) {
-            this._member = RoomMember.fromMemberEvent(this._roomId, this._memberEvent);
-        }
-        return this._member;
+    constructor(member, previousMembership) {
+        this.member = member;
+        this.previousMembership = previousMembership;
     }
 
     get roomId() {
-        return this._roomId;
+        return this.member.roomId;
     }
 
     get userId() {
-        return this._memberEvent.state_key;
-    }
-
-    get previousMembership() {
-        return getPrevContentFromStateEvent(this._memberEvent)?.membership;
+        return this.member.userId;
     }
 
     get membership() {
-        return this._memberEvent.content?.membership;
+        return this.member.membership;
     }
 
     get hasLeft() {
