@@ -46,6 +46,9 @@ class RequestWrapper {
                 log?.catch(err);
                 throw err;
             } else {
+                if (err.name === "ConnectionError") {
+                    log?.set("timeout", err.isTimeout);
+                }
                 log?.catch(err);
                 throw err;
             }
