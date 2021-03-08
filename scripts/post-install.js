@@ -14,20 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import fsRoot from "fs";
+const fsRoot = require("fs");
 const fs = fsRoot.promises;
-import path from "path";
-import { rollup } from 'rollup';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+const path = require("path");
+const { rollup } = require('rollup');
+const { fileURLToPath } = require('url');
+const { dirname } = require('path');
 // needed to translate commonjs modules to esm
-import commonjs from '@rollup/plugin-commonjs';
-import { nodeResolve } from '@rollup/plugin-node-resolve';
-import {removeDirIfExists} from "./common.mjs";
+const commonjs = require('@rollup/plugin-commonjs');
+const { nodeResolve } = require('@rollup/plugin-node-resolve');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 const projectDir = path.join(__dirname, "../");
+
+async function removeDirIfExists(targetDir) {
+    try {
+        await fs.rmdir(targetDir, {recursive: true});
+    } catch (err) {
+        if (err.code !== "ENOENT") {
+            throw err;
+        }
+    }
+}
 
 /** function used to resolve common-js require calls below. */
 function packageIterator(request, start, defaultIterator) {
@@ -60,10 +67,9 @@ async function commonjsToESM(src, dst) {
 
 async function populateLib() {
     const libDir = path.join(projectDir, "lib/");
-    const modulesDir = path.join(projectDir, "node_modules/");
     await removeDirIfExists(libDir);
     await fs.mkdir(libDir);
-    const olmSrcDir = path.join(modulesDir, "olm/");
+    const olmSrcDir = path.dirname(require.resolve("olm"));
     const olmDstDir = path.join(libDir, "olm/");
     await fs.mkdir(olmDstDir);
     for (const file of ["olm.js", "olm.wasm", "olm_legacy.js"]) {
@@ -72,19 +78,19 @@ async function populateLib() {
     // transpile another-json to esm
     await fs.mkdir(path.join(libDir, "another-json/"));
     await commonjsToESM(
-        path.join(modulesDir, 'another-json/another-json.js'),
+        require.resolve('another-json/another-json.js'),
         path.join(libDir, "another-json/index.js")
     );
     // transpile bs58 to esm
     await fs.mkdir(path.join(libDir, "bs58/"));
     await commonjsToESM(
-        path.join(modulesDir, 'bs58/index.js'),
+        require.resolve('bs58/index.js'),
         path.join(libDir, "bs58/index.js")
     );
     // transpile base64-arraybuffer to esm
     await fs.mkdir(path.join(libDir, "base64-arraybuffer/"));
     await commonjsToESM(
-        path.join(modulesDir, 'base64-arraybuffer/lib/base64-arraybuffer.js'),
+        require.resolve('base64-arraybuffer/lib/base64-arraybuffer.js'),
         path.join(libDir, "base64-arraybuffer/index.js")
     );
     // this probably should no go in here, we can just import "aes-js" from legacy-extras.js
@@ -93,7 +99,7 @@ async function populateLib() {
     // transpile aesjs to esm
     await fs.mkdir(path.join(libDir, "aes-js/"));
     await commonjsToESM(
-        path.join(modulesDir, 'aes-js/index.js'),
+        require.resolve('aes-js/index.js'),
         path.join(libDir, "aes-js/index.js")
     );
     // es6-promise is already written as an es module,
@@ -102,7 +108,7 @@ async function populateLib() {
     // is conveniently not placed in node_modules rather than symlinking.
     await fs.mkdir(path.join(libDir, "es6-promise/"));
     await commonjsToESM(
-        path.join(modulesDir, 'es6-promise/lib/es6-promise/promise.js'),
+        require.resolve('es6-promise/lib/es6-promise/promise.js'),
         path.join(libDir, "es6-promise/index.js")
     );
 }
