@@ -59,10 +59,13 @@ export class SimpleTile extends ViewModel {
     // TilesCollection contract below
     setUpdateEmit(emitUpdate) {
         this.updateOptions({emitChange: paramName => {
+            // it can happen that after some network call
+            // we switched away from the room and the response
+            // comes in, triggering an emitChange in a tile that
+            // has been disposed already (and hence the change
+            // callback has been cleared by dispose) We should just ignore this.
             if (emitUpdate) {
                 emitUpdate(this, paramName);
-            } else {
-                console.trace("Tile is emitting event after being disposed");
             }
         }});
     }
