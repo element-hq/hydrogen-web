@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+    </head>
+    <body>
+        <iframe id="iframe" sandbox="allow-scripts allow-downloads allow-downloads-without-user-activation"></iframe>
+        <script type="text/javascript">
+            const iframeHtml = `
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <meta charset="utf-8">
+                </head>
+                <body>
+                    <button id="download">Download</button>
+                    <a id="link" href="#">Link to progamatically click</a>
+                    <script type="text/javascript">
+                        var link = document.getElementById("link");
+                        var button = document.getElementById("download");
+                        async function download(blob, filename) {
+                            const slice = blob.slice(0, 1);
+                            const reader = new FileReader();
+                            reader.readAsArrayBuffer(slice);
+                            const buffer = await new Promise((resolve, reject) => {
+                                reader.addEventListener("abort", () => reject(new Error("aborted")));
+                                reader.addEventListener("error", e => reject(e.error));
+                                reader.addEventListener("load", e => resolve(e.target.result));
+                            });
+                            document.body.appendChild(document.createTextNode("buffer: " + new Uint8Array(buffer)[0] + " (" + buffer.byteLength + ")"));
+                            var url = URL.createObjectURL(blob);
+                            link.href = url;
+                            link.download = filename;
+                            link.innerText = url;
+                            link.click();
+                            URL.revokeObjectURL(url);
+                        }
+                        button.addEventListener("click", async function(event) {
+                            try {
+                                await download(new Blob(["a message from the iframe"], {type: "text/plain"}), "hello world.txt");
+                            } catch (err) {
+                                document.body.appendChild(document.createTextNode(err.toString()));
+                            }
+                        });
+                    </${"script"}>
+                </body>
+            </html>`;
+            document.getElementById("iframe").setAttribute("srcdoc", iframeHtml);
+        </script>
+    </body>
+</html>

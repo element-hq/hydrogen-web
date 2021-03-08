@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+    </head>
+    <body>
+        <iframe id="iframe" sandbox="allow-scripts allow-downloads allow-downloads-without-user-activation"></iframe>
+        <script type="text/javascript">
+            const iframeHtml = `
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <meta charset="utf-8">
+                </head>
+                <body>
+                    <button id="download">Download</button>
+                    <a id="link" href="#">Link to progamatically click</a>
+                    <script type="text/javascript">
+                        var link = document.getElementById("link");
+                        var button = document.getElementById("download");
+                        function download(str, filename) {
+                            var url = "data:text/plain;base64," + btoa(str);
+                            link.href = url;
+                            link.download = filename;
+                            link.innerText = url;
+                            link.click();
+                            URL.revokeObjectURL(url);
+                        }
+                        button.addEventListener("click", function(event) {
+                            download("hello world", "hello world.txt");
+                        });
+                    </${"script"}>
+                </body>
+            </html>`;
+            document.getElementById("iframe").setAttribute("srcdoc", iframeHtml);
+        </script>
+    </body>
+</html>

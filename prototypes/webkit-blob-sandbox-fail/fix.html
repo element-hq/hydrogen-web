@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+    </head>
+    <body>
+        <button id="download">Download</button>
+        <iframe id="iframe" sandbox="allow-scripts allow-downloads allow-downloads-without-user-activation"></iframe>
+        <script type="text/javascript">
+            const iframeHtml = `
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <meta charset="utf-8">
+                </head>
+                <body>
+                    <a id="link" href="#">Link to progamatically click</a>
+                    <script type="text/javascript">
+                        var link = document.getElementById("link");
+
+                        function downloadBlob(blob, filename) {
+                            var url = URL.createObjectURL(blob);
+                            link.href = url;
+                            link.download = filename;
+                            link.innerText = url;
+                            link.click();
+                            URL.revokeObjectURL(url);
+                        }
+
+                        function toBase64(buffer) {
+                            let binaryStr = "";
+                            const bytes = new Uint8Array(buffer);
+                            for (let i = 0; i < bytes.byteLength; i++) {
+                                binaryStr += String.fromCharCode(bytes[i]);
+                            }
+                            return window.btoa(binaryStr);
+                        }
+
+                        function downloadBuffer(buffer, mimeType, filename) {
+                            var url = "data:" + mimeType + ";base64," + toBase64(buffer);
+                            link.href = url;
+                            link.download = filename;
+                            link.innerText = url;
+                            link.click();
+                        }
+
+                        window.addEventListener("message", async function(event) {
+                            // if (event.origin === window.location.origin) {
+                                if (event.data.type === "downloadBuffer") {
+                                    await downloadBuffer(event.data.buffer, event.data.mimeType, event.data.filename);
+                                } else if (event.data.type === "downloadBlob") {
+                                    await downloadBlob(event.data.blob, event.data.filename);
+                                }
+                            // }
+                        });
+                    </${"script"}>
+                </body>
+            </html>`;
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.platform) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) && !window.MSStream;
+            const iframe = document.getElementById("iframe");
+            const button = document.getElementById("download");
+            iframe.setAttribute("srcdoc", iframeHtml);
+            const blob = new Blob(["a message from the iframe"], {type: "text/plain"});
+            window.addEventListener("message", async event => {
+                //if (event.origin === window.location.origin) {
+                //}
+            });
+            button.addEventListener("click", async evt => {
+                if (isIOS) {
+                    const reader = new FileReader();
+                    const promise = new Promise((resolve, reject) => {
+                        reader.addEventListener("error", e => reject(e.error));
+                        reader.addEventListener("load", e => resolve(e.target.result));
+                    });
+                    reader.readAsArrayBuffer(blob);
+                    let buffer = await promise;
+
+                    iframe.contentWindow.postMessage({type: "downloadBuffer", mimeType: "text/plain", buffer, filename: "hello world.txt"}, "*");
+                } else {
+                    iframe.contentWindow.postMessage({type: "downloadBlob", blob, filename: "hello world.txt"}, "*");
+                }
+                /*
+                if (window.SharedArrayBuffer) {
+                    const srcView = new Uint8Array(buffer);
+                    const sharedBuffer = new SharedArrayBuffer(buffer.byteLength);
+                    const dstView = new Uint8Array(sharedBuffer);
+                    for (var i = srcView.length - 1; i >= 0; i--) {
+                        dstView[i] = srcView[i];
+                    }
+                    buffer = sharedBuffer;
+                }
+                */
+                //iframe.contentWindow.postMessage({type: "downloadBlob", blob, filename: "hello world.txt"}, "*");
+            });
+
+        </script>
+    </body>
+</html>
