@@ -10,7 +10,7 @@
     "test": "node_modules/.bin/impunity --entry-point src/main.js --force-esm-dirs lib/ src/",
     "start": "node scripts/serve-local.js",
     "build": "node --experimental-modules scripts/build.mjs",
-    "postinstall": "node ./scripts/post-install.mjs"
+    "postinstall": "node ./scripts/post-install.js"
   },
   "repository": {
     "type": "git",
