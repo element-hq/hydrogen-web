@@ -157,7 +157,7 @@ export class Encryption {
                 const {device, oneTimeKey} = target;
                 target.session = await this._account.createOutboundOlmSession(device.curve25519Key, oneTimeKey);
             }
-            this._storeSessions(newEncryptionTargets, timestamp);
+            await this._storeSessions(newEncryptionTargets, timestamp);
         } catch (err) {
             for (const target of newEncryptionTargets) {
                 target.dispose();

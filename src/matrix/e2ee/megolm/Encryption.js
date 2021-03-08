@@ -43,6 +43,17 @@ export class Encryption {
         }
     }
 
+    createWithheldMessage(roomMessage, code, reason) {
+        return {
+            algorithm: roomMessage.algorithm,
+            code,
+            reason,
+            room_id: roomMessage.room_id,
+            sender_key: this._account.identityKeys.curve25519,
+            session_id: roomMessage.session_id
+        };
+    }
+
     async ensureOutboundSession(roomId, encryptionParams) {
         let session = new this._olm.OutboundGroupSession();
         try {
