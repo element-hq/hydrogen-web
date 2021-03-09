@@ -29,12 +29,17 @@ class RequestWrapper {
                 log?.finish();
                 return response.body;
             } else {
-                if (response.status >= 400 && !response.body?.errcode) {
+                if (response.status >= 500) {
+                    const err = new ConnectionError(`Internal Server Error`);
+                    log?.catch(err);
+                    throw err;
+                } else if (response.status >= 400 && !response.body?.errcode) {
                     const err = new ConnectionError(`HTTP error status ${response.status} without errcode in body, assume this is a load balancer complaining the server is offline.`);
                     log?.catch(err);
                     throw err;
                 } else {
                     const err = new HomeServerError(method, url, response.body, response.status);
+                    log?.set("errcode", err.errcode);
                     log?.catch(err);
                     throw err;
                 }
