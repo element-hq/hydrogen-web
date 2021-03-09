@@ -187,6 +187,43 @@ export class RoomViewModel extends ViewModel {
         });
     }
 
+    async _pickAndSendVideo() {
+        try {
+            if (!this.platform.hasReadPixelPermission()) {
+                alert("Please allow canvas image data access, so we can scale your images down.");
+                return;
+            }
+            const file = await this.platform.openFile("video/*");
+            if (!file) {
+                return;
+            }
+            if (!file.blob.mimeType.startsWith("video/")) {
+                return this._sendFile(file);
+            }
+            let video = await this.platform.loadVideo(file.blob);
+            const content = {
+                body: file.name,
+                msgtype: "m.video",
+                info: videoToInfo(video)
+            };
+            const attachments = {
+                "url": this._room.createAttachment(video.blob, file.name),
+            };
+
+            const limit = await this.platform.settingsStorage.getInt("sentImageSizeLimit");
+            const maxDimension = limit || Math.min(video.maxDimension, 800);
+            const thumbnail = await video.scale(maxDimension);
+            content.info.thumbnail_info = imageToInfo(thumbnail);
+            attachments["info.thumbnail_url"] = 
+                this._room.createAttachment(thumbnail.blob, file.name);
+            await this._room.sendEvent("m.room.message", content, attachments);
+        } catch (err) {
+            this._sendError = err;
+            this.emitChange("error");
+            console.error(err.stack);
+        }
+    }
+
     async _pickAndSendPicture() {
         try {
             if (!this.platform.hasReadPixelPermission()) {
@@ -221,7 +258,9 @@ export class RoomViewModel extends ViewModel {
             }
             await this._room.sendEvent("m.room.message", content, attachments);
         } catch (err) {
-            console.error(err);
+            this._sendError = err;
+            this.emitChange("error");
+            console.error(err.stack);
         }
     }
     
@@ -259,6 +298,10 @@ class ComposerViewModel extends ViewModel {
         this._roomVM._pickAndSendFile();
     }
 
+    sendVideo() {
+        this._roomVM._pickAndSendVideo();
+    }
+
     get canSend() {
         return !this._isEmpty;
     }
@@ -282,4 +325,10 @@ function imageToInfo(image) {
         mimetype: image.blob.mimeType,
         size: image.blob.size
     };
+}
+
+function videoToInfo(video) {
+    const info = imageToInfo(video);
+    info.duration = video.duration;
+    return info;
 }

@@ -32,7 +32,7 @@ import {Crypto} from "./dom/Crypto.js";
 import {estimateStorageUsage} from "./dom/StorageEstimate.js";
 import {WorkerPool} from "./dom/WorkerPool.js";
 import {BlobHandle} from "./dom/BlobHandle.js";
-import {hasReadPixelPermission, ImageHandle} from "./dom/ImageHandle.js";
+import {hasReadPixelPermission, ImageHandle, VideoHandle} from "./dom/ImageHandle.js";
 import {downloadInIframe} from "./dom/download.js";
 
 function addScript(src) {
@@ -182,6 +182,10 @@ export class Platform {
 
     async loadImage(blob) {
         return ImageHandle.fromBlob(blob);
+    }
+
+    async loadVideo(blob) {
+        return VideoHandle.fromBlob(blob);
     }
 
     hasReadPixelPermission() {
