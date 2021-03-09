@@ -117,31 +117,52 @@ export class Account {
     }
 
     async generateOTKsIfNeeded(storage, log) {
+        // We need to keep a pool of one time public keys on the server so that
+        // other devices can start conversations with us. But we can only store
+        // a finite number of private keys in the olm Account object.
+        // To complicate things further then can be a delay between a device
+        // claiming a public one time key from the server and it sending us a
+        // message. We need to keep the corresponding private key locally until
+        // we receive the message.
+        // But that message might never arrive leaving us stuck with duff
+        // private keys clogging up our local storage.
+        // So we need some kind of engineering compromise to balance all of
+        // these factors.
+        
+        // Check how many keys we can store in the Account object.
         const maxOTKs = this._account.max_number_of_one_time_keys();
-        const limit = maxOTKs / 2;
-        if (this._serverOTKCount < limit) {
-            // TODO: cache unpublishedOTKCount, so we don't have to parse this JSON on every sync iteration
-            // for now, we only determine it when serverOTKCount is sufficiently low, which is should rarely be,
-            // and recheck
+        // Try to keep at most half that number on the server. This leaves the
+        // rest of the slots free to hold keys that have been claimed from the
+        // server but we haven't recevied a message for.
+        // If we run out of slots when generating new keys then olm will
+        // discard the oldest private keys first. This will eventually clean
+        // out stale private keys that won't receive a message.
+        const keyLimit = Math.floor(maxOTKs / 2);
+        // does the server have insufficient OTKs?
+        if (this._serverOTKCount < keyLimit) {
             const oneTimeKeys = JSON.parse(this._account.one_time_keys());
             const oneTimeKeysEntries = Object.entries(oneTimeKeys.curve25519);
             const unpublishedOTKCount = oneTimeKeysEntries.length;
-            const totalOTKCount = this._serverOTKCount + unpublishedOTKCount;
-            if (totalOTKCount < limit) {
-                // we could in theory also generated the keys and store them in
-                // writeSync, but then we would have to clone the account to avoid side-effects.
-                await log.wrap("generate otks", log => this._updateSessionStorage(storage, sessionStore => {
-                    const newKeyCount = maxOTKs - totalOTKCount;
+            // we want to end up with maxOTKs / 2 key on the server,
+            // so generate any on top of the remaining ones on the server and the unpublished ones
+            // (we have generated before but haven't uploaded yet for some reason)
+            // to get to that number.
+            const newKeyCount = keyLimit - unpublishedOTKCount - this._serverOTKCount;
+            if (newKeyCount > 0) {
+                await log.wrap("generate otks", log => {
                     log.set("max", maxOTKs);
                     log.set("server", this._serverOTKCount);
                     log.set("unpublished", unpublishedOTKCount);
                     log.set("new", newKeyCount);
-                    log.set("limit", limit);
+                    log.set("limit", keyLimit);
                     this._account.generate_one_time_keys(newKeyCount);
-                    sessionStore.set(ACCOUNT_SESSION_KEY, this._account.pickle(this._pickleKey));
-                }));
-                return true;
+                    this._updateSessionStorage(storage, sessionStore => {
+                        sessionStore.set(ACCOUNT_SESSION_KEY, this._account.pickle(this._pickleKey));
+                    });
+                });
             }
+            // even though we didn't generate any keys, we still have some unpublished ones that should be published
+            return true;
         }
         return false;
     }
