@@ -18,6 +18,7 @@ import {ListView} from "../../general/ListView.js";
 import {GapView} from "./timeline/GapView.js";
 import {TextMessageView} from "./timeline/TextMessageView.js";
 import {ImageView} from "./timeline/ImageView.js";
+import {VideoView} from "./timeline/VideoView.js";
 import {FileView} from "./timeline/FileView.js";
 import {MissingAttachmentView} from "./timeline/MissingAttachmentView.js";
 import {AnnouncementView} from "./timeline/AnnouncementView.js";
@@ -30,6 +31,7 @@ function viewClassForEntry(entry) {
         case "message-status":
             return TextMessageView;
         case "image": return ImageView;
+        case "video": return VideoView;
         case "file": return FileView;
         case "missing-attachment": return MissingAttachmentView;
     }
