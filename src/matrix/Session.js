@@ -441,7 +441,6 @@ export class Session {
 
     /** @internal */
     async afterSyncCompleted(changes, isCatchupSync, log) {
-        const promises = [];
         // we don't start uploading one-time keys until we've caught up with
         // to-device messages, to help us avoid throwing away one-time-keys that we
         // are about to receive messages for
@@ -449,12 +448,8 @@ export class Session {
         if (!isCatchupSync) {
             const needsToUploadOTKs = await this._e2eeAccount.generateOTKsIfNeeded(this._storage, log);
             if (needsToUploadOTKs) {
-                promises.push(log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, log)));
+                await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, log));
             }
-        }
-        if (promises.length) {
-            // run key upload and decryption in parallel
-            await Promise.all(promises);
         }
     }
 
