@@ -55,6 +55,8 @@ const ALLOWED_BLOB_MIMETYPES = {
     'video/mp4': true,
     'video/webm': true,
     'video/ogg': true,
+    'video/quicktime': true,
+    'video/VP8': true,
 
     'audio/mp4': true,
     'audio/webm': true,
