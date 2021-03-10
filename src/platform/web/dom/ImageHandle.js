@@ -124,6 +124,9 @@ async function loadVideoFromBlob(blob) {
     // seek to the first 1/10s to make sure that drawing the video
     // on a canvas won't give a blank image
     const seekPromise = domEventAsPromise(video, "seeked");
+    // needed for safari to reliably fire the seeked event,
+    // somewhat hacky but using raf for example didn't do the trick
+    await new Promise(r => setTimeout(r, 200));
     video.currentTime = 0.1;
     await seekPromise;
     return video;
