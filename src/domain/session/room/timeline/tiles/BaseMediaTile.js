@@ -106,9 +106,14 @@ export class BaseMediaTile extends MessageTile {
 
     get error() {
         if (this._error) {
-            return `Could not decrypt media: ${this._error.message}`;
+            return `Could not load media: ${this._error.message}`;
         }
         return null;
+    }
+
+    setViewError(err) {
+        this._error = err;
+        this.emitChange("error");
     }
 
     async _loadEncryptedFile(file) {
