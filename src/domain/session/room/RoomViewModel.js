@@ -188,20 +188,29 @@ export class RoomViewModel extends ViewModel {
     }
 
     async _pickAndSendVideo() {
-        let file;
         try {
             if (!this.platform.hasReadPixelPermission()) {
                 alert("Please allow canvas image data access, so we can scale your images down.");
                 return;
             }
-            file = await this.platform.openFile("video/*");
+            const file = await this.platform.openFile("video/*");
             if (!file) {
                 return;
             }
             if (!file.blob.mimeType.startsWith("video/")) {
                 return this._sendFile(file);
             }
-            let video = await this.platform.loadVideo(file.blob);
+            let video;
+            try {
+                video = await this.platform.loadVideo(file.blob);
+            } catch (err) {
+                // TODO: extract platform dependent code from view model
+                if (err instanceof window.MediaError && err.code === 4) {
+                    throw new Error(`this browser does not support videos of type ${file?.blob.mimeType}.`);
+                } else {
+                    throw err;
+                }
+            }
             const content = {
                 body: file.name,
                 msgtype: "m.video",
@@ -219,11 +228,7 @@ export class RoomViewModel extends ViewModel {
                 this._room.createAttachment(thumbnail.blob, file.name);
             await this._room.sendEvent("m.room.message", content, attachments);
         } catch (err) {
-            if (err instanceof window.MediaError && err.code === 4) {
-                this._sendError = new Error(`this browser does not support videos of type ${file?.blob.mimeType}.`);
-            } else {
-                this._sendError = err;
-            }
+            this._sendError = err;
             this.emitChange("error");
             console.error(err.stack);
         }
