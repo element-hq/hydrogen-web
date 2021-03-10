@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {BlobHandle} from "./BlobHandle.js";
+import {domEventAsPromise} from "./utils.js";
 
 export class ImageHandle {
     static async fromBlob(blob) {
@@ -27,18 +28,18 @@ export class ImageHandle {
         this.blob = blob;
         this.width = width;
         this.height = height;
-        this._imgElement = imgElement;
+        this._domElement = imgElement;
     }
 
     get maxDimension() {
         return Math.max(this.width, this.height);
     }
 
-    async _getImgElement() {
-        if (!this._imgElement) {
-            this._imgElement = await loadImgFromBlob(this.blob);
+    async _getDomElement() {
+        if (!this._domElement) {
+            this._domElement = await loadImgFromBlob(this.blob);
         }
-        return this._imgElement;
+        return this._domElement;
     }
 
     async scale(maxDimension) {
@@ -46,18 +47,18 @@ export class ImageHandle {
         const scaleFactor = Math.min(1, maxDimension / (aspectRatio >= 1 ? this.width : this.height));
         const scaledWidth = Math.round(this.width * scaleFactor);
         const scaledHeight = Math.round(this.height * scaleFactor);
-
         const canvas = document.createElement("canvas");
         canvas.width = scaledWidth;
         canvas.height = scaledHeight;
         const ctx = canvas.getContext("2d");
-        const img = await this._getImgElement();
-        ctx.drawImage(img, 0, 0, scaledWidth, scaledHeight);
+        const drawableElement = await this._getDomElement();
+        ctx.drawImage(drawableElement, 0, 0, scaledWidth, scaledHeight);
         let mimeType = this.blob.mimeType === "image/jpeg" ? "image/jpeg" : "image/png";
         let nativeBlob;
         if (canvas.toBlob) {
             nativeBlob = await new Promise(resolve => canvas.toBlob(resolve, mimeType));
         } else if (canvas.msToBlob) {
+            // TODO: provide a mimetype override in blob handle for this case
             mimeType = "image/png";
             nativeBlob = canvas.msToBlob();
         } else {
@@ -69,6 +70,21 @@ export class ImageHandle {
 
     dispose() {
         this.blob.dispose();
+    }
+}
+
+export class VideoHandle extends ImageHandle {
+    get duration() {
+        if (typeof this._domElement.duration === "number") {
+            return Math.round(this._domElement.duration * 1000);
+        }
+        return undefined;
+    }
+
+    static async fromBlob(blob) {
+        const video = await loadVideoFromBlob(blob);
+        const {videoWidth, videoHeight} = video;
+        return new VideoHandle(blob, videoWidth, videoHeight, video);
     }
 }
 
@@ -91,16 +107,27 @@ export function hasReadPixelPermission() {
 async function loadImgFromBlob(blob) {
     const img = document.createElement("img");
     let detach;
-    const loadPromise = new Promise((resolve, reject) => {
-        detach = () => {
-            img.removeEventListener("load", resolve);
-            img.removeEventListener("error", reject);
-        };
-        img.addEventListener("load", resolve);
-        img.addEventListener("error", reject);
-    });
+    const loadPromise = domEventAsPromise(img, "load");
     img.src = blob.url;
     await loadPromise;
     detach();
     return img;
+}
+
+async function loadVideoFromBlob(blob) {
+    const video = document.createElement("video");
+    video.muted = true;
+    const loadPromise = domEventAsPromise(video, "loadedmetadata");
+    video.src = blob.url;
+    video.load();
+    await loadPromise;
+    // seek to the first 1/10s to make sure that drawing the video
+    // on a canvas won't give a blank image
+    const seekPromise = domEventAsPromise(video, "seeked");
+    // needed for safari to reliably fire the seeked event,
+    // somewhat hacky but using raf for example didn't do the trick
+    await new Promise(r => setTimeout(r, 200));
+    video.currentTime = 0.1;
+    await seekPromise;
+    return video;
 }

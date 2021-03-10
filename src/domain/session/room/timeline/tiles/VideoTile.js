@@ -17,24 +17,31 @@ limitations under the License.
 
 import {BaseMediaTile} from "./BaseMediaTile.js";
 
-export class ImageTile extends BaseMediaTile {
-    constructor(options) {
-        super(options);
-        this._lightboxUrl = this.urlCreator.urlForSegments([
-            // ensure the right room is active if in grid view
-            this.navigation.segment("room", this._room.id),
-            this.navigation.segment("lightbox", this._entry.id)
-        ]);
+export class VideoTile extends BaseMediaTile {
+    async loadVideo() {
+        const file = this._getContent().file;
+        if (file && !this._decryptedFile) {
+            this._decryptedFile = await this._loadEncryptedFile(file);
+            this.emitChange("videoUrl");
+        }
     }
 
-    get lightboxUrl() {
-        if (!this.isPending) {
-            return this._lightboxUrl;
+    get videoUrl() {
+        if (this._decryptedFile) {
+            return this._decryptedFile.url;
+        }
+        const mxcUrl = this._getContent()?.url;
+        if (typeof mxcUrl === "string") {
+            return this._mediaRepository.mxcUrl(mxcUrl);
         }
         return "";
     }
 
     get shape() {
-        return "image";
+        return "video";
+    }
+
+    _isMainResourceImage() {
+        return false;
     }
 }

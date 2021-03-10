@@ -37,11 +37,12 @@ limitations under the License.
     margin: 5px 0;
 }
 
-.message-container .picture {
+.message-container .media {
     display: block;
 }
 
-.message-container .picture > img {
+.message-container .media > img,
+.message-container .media > video {
     display: block;
 }
 

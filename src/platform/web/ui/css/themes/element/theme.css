@@ -509,7 +509,7 @@ ul.Timeline > li.messageStatus .message-container > p {
 .message-container {
     padding: 1px 10px 0px 10px;
     margin: 5px 10px 0 10px;
-    /* so the .picture can grow horizontally and its spacer can grow vertically */
+    /* so the .media can grow horizontally and its spacer can grow vertically */
     width: 100%;
 }
 
@@ -555,14 +555,14 @@ ul.Timeline > li.messageStatus .message-container > p {
 }
 
 
-.message-container .picture {
+.message-container .media {
     display: grid;
     margin-top: 4px;
     width: 100%;
 }
 
 
-.message-container .picture > a {
+.message-container .media > a {
     text-decoration: none;
     width: 100%;
     display: block;
@@ -570,12 +570,12 @@ ul.Timeline > li.messageStatus .message-container > p {
 
 /* .spacer grows with an inline padding-top to the size of the image,
 so the timeline doesn't jump when the image loads */
-.message-container .picture > * {
+.message-container .media > * {
     grid-row: 1;
     grid-column: 1;
 }
 
-.message-container .picture img {
+.message-container .media img, .message-container .media video {
     width: 100%;
     height: auto;
     /* for IE11 to still scale even though the spacer is too tall */
@@ -587,29 +587,30 @@ so the timeline doesn't jump when the image loads */
 where we can trust the spacer to always have the correct height,
 otherwise the image starts with  height 0 and with loading=lazy
 only loads when the top comes into view*/
-.hydrogen:not(.legacy) .message-container .picture img {
+.hydrogen:not(.legacy) .message-container .media img,
+.hydrogen:not(.legacy) .message-container .media video {
     align-self: stretch;
 }
 
-.message-container .picture > .sendStatus {
+.message-container .media > .sendStatus {
     align-self: end;
     justify-self: start;
     font-size: 0.8em;
 }
 
-.message-container .picture > progress {
+.message-container .media > progress {
     align-self: center;
     justify-self: center;
     width: 75%;
 }
 
-.message-container .picture > time {
+.message-container .media > time {
     align-self: end;
     justify-self: end;
 }
 
-.message-container .picture > time,
-.message-container .picture > .sendStatus {
+.message-container .media > time,
+.message-container .media > .sendStatus {
     color: #2e2f32;
     display: block;
     padding: 2px;
@@ -617,7 +618,7 @@ only loads when the top comes into view*/
     background-color: rgba(255, 255, 255, 0.75);
     border-radius: 4px;
 }
-.message-container .picture > .spacer {
+.message-container .media > .spacer {
     /* TODO: can we implement this with a pseudo element? or perhaps they are not grid items? */
     width: 100%;
     /* don't stretch height as it is a spacer, just in case it doesn't match with image height */
