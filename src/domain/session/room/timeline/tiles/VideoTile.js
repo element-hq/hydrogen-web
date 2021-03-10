@@ -40,4 +40,8 @@ export class VideoTile extends BaseMediaTile {
     get shape() {
         return "video";
     }
+
+    _isMainResourceImage() {
+        return false;
+    }
 }

@@ -72,7 +72,7 @@ export class BaseMediaTile extends MessageTile {
             const attachment = this._entry.pendingEvent.getAttachment("info.thumbnail_url");
             return attachment && attachment.localPreview.url;
         }
-        if (this.mimeType?.startsWith("image/")) {
+        if (this._isMainResourceImage()) {
             if (this._decryptedFile) {
                 return this._decryptedFile.url;
             } else {
@@ -111,7 +111,6 @@ export class BaseMediaTile extends MessageTile {
         return null;
     }
 
-
     async _loadEncryptedFile(file) {
         const blob = await this._mediaRepository.downloadEncryptedFile(file, true);
         if (this.isDisposed) {
@@ -128,7 +127,7 @@ export class BaseMediaTile extends MessageTile {
             if (thumbnailFile) {
                 this._decryptedThumbnail = await this._loadEncryptedFile(thumbnailFile);
                 this.emitChange("thumbnailUrl");
-            } else if (file && this.mimeType?.startsWith("image/")) { // is the main resource an image? then try that for a thumbnail
+            } else if (file && this._isMainResourceImage()) { // is the main resource an image? then try that for a thumbnail
                 this._decryptedFile = await this._loadEncryptedFile(file);
                 this.emitChange("thumbnailUrl");
             }
@@ -145,5 +144,9 @@ export class BaseMediaTile extends MessageTile {
         // take the smallest scale factor, to respect all constraints
         // we should not upscale images, so limit scale factor to 1 upwards
         return Math.min(scaleWidthFactor, scaleHeightFactor, 1);
+    }
+
+    _isMainResourceImage() {
+        return true; // overwritten in VideoTile
     }
 }
