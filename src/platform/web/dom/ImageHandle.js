@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {BlobHandle} from "./BlobHandle.js";
+import {domEventAsPromise} from "./utils.js";
 
 export class ImageHandle {
     static async fromBlob(blob) {
@@ -106,15 +107,7 @@ export function hasReadPixelPermission() {
 async function loadImgFromBlob(blob) {
     const img = document.createElement("img");
     let detach;
-    const loadPromise = new Promise((resolve, _reject) => {
-        const reject = evt => _reject(evt.target.error);
-        detach = () => {
-            img.removeEventListener("load", resolve);
-            img.removeEventListener("error", reject);
-        };
-        img.addEventListener("load", resolve);
-        img.addEventListener("error", reject);
-    });
+    const loadPromise = domEventAsPromise(img, "load");
     img.src = blob.url;
     await loadPromise;
     detach();
@@ -124,32 +117,14 @@ async function loadImgFromBlob(blob) {
 async function loadVideoFromBlob(blob) {
     const video = document.createElement("video");
     video.muted = true;
-    let detach;
-    const loadPromise = new Promise((resolve, _reject) => {
-        const reject = evt => _reject(evt.target.error);
-        detach = () => {
-            video.removeEventListener("loadedmetadata", resolve);
-            video.removeEventListener("error", reject);
-        };
-        video.addEventListener("loadedmetadata", resolve);
-        video.addEventListener("error", reject);
-    });
+    const loadPromise = domEventAsPromise(video, "loadedmetadata");
     video.src = blob.url;
     video.load();
     await loadPromise;
     // seek to the first 1/10s to make sure that drawing the video
     // on a canvas won't give a blank image
-    const seekPromise = new Promise((resolve, _reject) => {
-        const reject = evt => _reject(evt.target.error);
-        detach = () => {
-            video.removeEventListener("seeked", resolve);
-            video.removeEventListener("error", reject);
-        };
-        video.addEventListener("seeked", resolve);
-        video.addEventListener("error", reject);
-    });
+    const seekPromise = domEventAsPromise(video, "seeked");
     video.currentTime = 0.1;
     await seekPromise;
-    detach();
     return video;
 }
