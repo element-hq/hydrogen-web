@@ -106,11 +106,9 @@ export function hasReadPixelPermission() {
 
 async function loadImgFromBlob(blob) {
     const img = document.createElement("img");
-    let detach;
     const loadPromise = domEventAsPromise(img, "load");
     img.src = blob.url;
     await loadPromise;
-    detach();
     return img;
 }
 
