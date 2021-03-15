@@ -195,4 +195,8 @@ export class Platform {
     get devicePixelRatio() {
         return window.devicePixelRatio || 1;
     }
+
+    get version() {
+        return window.HYDROGEN_VERSION;
+    }
 }

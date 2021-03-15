@@ -146,6 +146,7 @@ export class SessionContainer {
     }
 
     async _loadSessionInfo(sessionInfo, isNewLogin, log) {
+        log.set("appVersion", this._platform.version);
         const clock = this._platform.clock;
         this._sessionStartedByReconnector = false;
         this._status.set(LoadStatus.Loading);
