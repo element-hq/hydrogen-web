@@ -4,6 +4,7 @@ export class BaseRoomKey {
     constructor() {
         this._sessionInfo = null;
         this._isBetter = null;
+        this._eventIds = null;
     }
 
     async createSessionInfo(olm, pickleKey, txn) {
@@ -44,6 +45,11 @@ export class BaseRoomKey {
                 existingSession.free();
             }
         }
+        // store the event ids that can be decrypted with this key
+        // before we overwrite them if called from `write`.
+        if (existingSessionEntry?.eventIds) {
+            this._eventIds = existingSessionEntry.eventIds;
+        }
         return isBetter;
     }
 
@@ -69,6 +75,10 @@ export class BaseRoomKey {
             return true;
         }
         return false;
+    }
+
+    get eventIds() {
+        return this._eventIds;
     }
 
     dispose() {
