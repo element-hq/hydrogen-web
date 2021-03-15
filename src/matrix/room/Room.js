@@ -81,7 +81,7 @@ export class Room extends EventEmitter {
      * @param  {Array<string>} eventIds any event ids that should be retried. There might be more in the timeline though for this key.
      * @return {Promise}
      */
-    async retryDecryption(roomKey, eventIds) {
+    async notifyRoomKey(roomKey, eventIds) {
         if (!this._roomEncryption) {
             return;
         }

@@ -230,7 +230,7 @@ export class RoomEncryption {
                         roomKey.dispose();
                     }
                     if (keyIsBestOne) {
-                        await this._room.retryDecryption(roomKey, retryEventIds || []);
+                        await this._room.notifyRoomKey(roomKey, retryEventIds || []);
                     }
                 }
             } else if (session?.algorithm) {
