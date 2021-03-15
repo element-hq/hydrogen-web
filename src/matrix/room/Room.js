@@ -66,13 +66,22 @@ export class Room extends EventEmitter {
         return retryEntries;
     }
 
+    _getAdditionalTimelineRetryEntries(otherRetryEntries, roomKeys) {
+        let retryTimelineEntries = this._roomEncryption.filterUndecryptedEventEntriesForKeys(this._timeline.remoteEntries, roomKeys);
+        // filter out any entries already in retryEntries so we don't decrypt them twice
+        const existingIds = otherRetryEntries.reduce((ids, e) => {ids.add(e.id); return ids;}, new Set());
+        retryTimelineEntries = retryTimelineEntries.filter(e => !existingIds.has(e.id));
+        return retryTimelineEntries;
+    }
+
     /**
      * Used for retrying decryption from other sources than sync, like key backup.
      * @internal
-     * @param  {Array<string>} eventIds
+     * @param  {RoomKey} roomKey
+     * @param  {Array<string>} eventIds any event ids that should be retried. There might be more in the timeline though for this key.
      * @return {Promise}
      */
-    async retryDecryption(eventIds) {
+    async notifyRoomKey(roomKey, eventIds) {
         if (!this._roomEncryption) {
             return;
         }
@@ -80,7 +89,11 @@ export class Room extends EventEmitter {
             this._storage.storeNames.timelineEvents,
             this._storage.storeNames.inboundGroupSessions,
         ]);
-        const retryEntries = await this._eventIdsToEntries(eventIds, txn);
+        let retryEntries = await this._eventIdsToEntries(eventIds, txn);
+        if (this._timeline) {
+            const retryTimelineEntries = this._getAdditionalTimelineRetryEntries(retryEntries, [roomKey]);
+            retryEntries = retryEntries.concat(retryTimelineEntries);
+        }
         if (retryEntries.length) {
             const decryptRequest = this._decryptEntries(DecryptionSource.Retry, retryEntries, txn);
             // this will close txn while awaiting decryption
@@ -166,10 +179,7 @@ export class Room extends EventEmitter {
         // We want to decrypt all events we can though if the user is looking
         // at them when the timeline is open
         if (this._timeline) {
-            let retryTimelineEntries = this._roomEncryption.filterUndecryptedEventEntriesForKeys(this._timeline.remoteEntries, newKeys);
-            // filter out any entries already in retryEntries so we don't decrypt them twice
-            const existingIds = retryEntries.reduce((ids, e) => {ids.add(e.id); return ids;}, new Set());
-            retryTimelineEntries = retryTimelineEntries.filter(e => !existingIds.has(e.id));
+            const retryTimelineEntries = this._getAdditionalTimelineRetryEntries(retryEntries, newKeys);
             // make copies so we don't modify the original entry in writeSync, before the afterSync stage
             const retryTimelineEntriesCopies = retryTimelineEntries.map(e => e.clone());
             // add to other retry entries
