@@ -142,14 +142,18 @@ export class RoomEncryption {
         if (!missingSessionEvents.length) {
             return;
         }
+        // store missing event ids if received from sync
         const missingEventsBySession = groupEventsBySession(missingSessionEvents);
         if (source === DecryptionSource.Sync) {
-            // store missing event ids if received from sync
             await Promise.all(Array.from(missingEventsBySession.values()).map(async group => {
                 const eventIds = group.events.map(e => e.event_id);
                 return this._megolmDecryption.addMissingKeyEventIds(
                     this._room.id, group.senderKey, group.sessionId, eventIds, txn);
             }));
+        }
+        
+        if (!this._sessionBackup) {
+            return;
         }
 
         log.wrapDetached("check key backup", async log => {
