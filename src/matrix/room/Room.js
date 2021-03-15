@@ -126,7 +126,7 @@ export class Room extends EventEmitter {
      * Used for decrypting when loading/filling the timeline, and retrying decryption,
      * not during sync, where it is split up during the multiple phases.
      */
-    _decryptEntries(source, entries, inboundSessionTxn = null, log = null) {
+    _decryptEntries(source, entries, inboundSessionTxn, log = null) {
         const request = new DecryptionRequest(async (r, log) => {
             if (!inboundSessionTxn) {
                 inboundSessionTxn = await this._storage.readTxn([this._storage.storeNames.inboundGroupSessions]);
@@ -511,7 +511,7 @@ export class Room extends EventEmitter {
             }
             await txn.complete();
             if (this._roomEncryption) {
-                const decryptRequest = this._decryptEntries(DecryptionSource.Timeline, gapResult.entries, log);
+                const decryptRequest = this._decryptEntries(DecryptionSource.Timeline, gapResult.entries, null, log);
                 await decryptRequest.complete();
             }
             // once txn is committed, update in-memory state & emit events

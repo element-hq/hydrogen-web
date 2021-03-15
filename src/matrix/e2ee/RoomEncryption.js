@@ -152,7 +152,7 @@ export class RoomEncryption {
             }));
         }
 
-        log.refDetached("check key backup", async log => {
+        log.wrapDetached("check key backup", async log => {
             // if the message came from sync, wait 10s to see if the room key arrives late,
             // and only after that proceed to request from backup
             log.set("source", source);

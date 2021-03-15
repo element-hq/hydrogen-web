@@ -17,7 +17,6 @@ import {LogLevel} from "./LogFilter.js";
 
 function noop () {}
 
-export const Instance = new NullLogger(); 
 
 export class NullLogger {
     constructor() {
@@ -90,3 +89,5 @@ class NullLogItem {
 
     finish() {}
 }
+
+export const Instance = new NullLogger(); 
