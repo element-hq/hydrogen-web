@@ -163,7 +163,7 @@ export class Room extends EventEmitter {
             if (this._observedEvents) {
                 this._observedEvents.updateEvents(entries);
             }
-        }, this._platform.logger, log);
+        }, ensureLogItem(log));
         return request;
     }
 
@@ -746,10 +746,10 @@ export class Room extends EventEmitter {
 }
 
 class DecryptionRequest {
-    constructor(decryptFn, logger, log) {
+    constructor(decryptFn, log) {
         this._cancelled = false;
         this.preparation = null;
-        this._promise = logger.wrapOrRun(log, "decryptEntries", log => decryptFn(this, log));
+        this._promise = log.wrap("decryptEntries", log => decryptFn(this, log));
     }
 
     complete() {
