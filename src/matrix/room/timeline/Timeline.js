@@ -45,7 +45,7 @@ export class Timeline {
     }
 
     /** @package */
-    async load(user) {
+    async load(user, log) {
         const txn = await this._storage.readTxn(this._timelineReader.readTxnStores.concat(this._storage.storeNames.roomMembers));
         const memberData = await txn.roomMembers.get(this._roomId, user.id);
         this._ownMember = new RoomMember(memberData);
@@ -54,7 +54,7 @@ export class Timeline {
         // if they are populated already, the sender profile would be empty
 
         // 30 seems to be a good amount to fill the entire screen
-        const readerRequest = this._disposables.track(this._timelineReader.readFromEnd(30, txn));
+        const readerRequest = this._disposables.track(this._timelineReader.readFromEnd(30, txn, log));
         try {
             const entries = await readerRequest.complete();
             this._remoteEntries.setManySorted(entries);

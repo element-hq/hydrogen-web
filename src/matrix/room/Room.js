@@ -29,6 +29,7 @@ import {EventEntry} from "./timeline/entries/EventEntry.js";
 import {ObservedEventMap} from "./ObservedEventMap.js";
 import {AttachmentUpload} from "./AttachmentUpload.js";
 import {DecryptionSource} from "../e2ee/common.js";
+import {ensureLogItem} from "../../logging/utils.js";
 
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 
@@ -81,7 +82,7 @@ export class Room extends EventEmitter {
      * @param  {Array<string>} eventIds any event ids that should be retried. There might be more in the timeline though for this key.
      * @return {Promise}
      */
-    async notifyRoomKey(roomKey, eventIds) {
+    async notifyRoomKey(roomKey, eventIds, log) {
         if (!this._roomEncryption) {
             return;
         }
@@ -95,7 +96,7 @@ export class Room extends EventEmitter {
             retryEntries = retryEntries.concat(retryTimelineEntries);
         }
         if (retryEntries.length) {
-            const decryptRequest = this._decryptEntries(DecryptionSource.Retry, retryEntries, txn);
+            const decryptRequest = this._decryptEntries(DecryptionSource.Retry, retryEntries, txn, log);
             // this will close txn while awaiting decryption
             await decryptRequest.complete();
 
@@ -125,8 +126,8 @@ export class Room extends EventEmitter {
      * Used for decrypting when loading/filling the timeline, and retrying decryption,
      * not during sync, where it is split up during the multiple phases.
      */
-    _decryptEntries(source, entries, inboundSessionTxn = null) {
-        const request = new DecryptionRequest(async r => {
+    _decryptEntries(source, entries, inboundSessionTxn, log = null) {
+        const request = new DecryptionRequest(async (r, log) => {
             if (!inboundSessionTxn) {
                 inboundSessionTxn = await this._storage.readTxn([this._storage.storeNames.inboundGroupSessions]);
             }
@@ -148,7 +149,7 @@ export class Room extends EventEmitter {
             const writeTxn = await this._storage.readWriteTxn(stores);
             let decryption;
             try {
-                decryption = await changes.write(writeTxn);
+                decryption = await changes.write(writeTxn, log);
                 if (isTimelineOpen) {
                     await decryption.verifySenders(writeTxn);
                 }
@@ -162,7 +163,7 @@ export class Room extends EventEmitter {
             if (this._observedEvents) {
                 this._observedEvents.updateEvents(entries);
             }
-        });
+        }, ensureLogItem(log));
         return request;
     }
 
@@ -248,7 +249,7 @@ export class Room extends EventEmitter {
             await log.wrap("syncWriter", log => this._syncWriter.writeSync(roomResponse, txn, log), log.level.Detail);
         let allEntries = newEntries;
         if (decryptChanges) {
-            const decryption = await decryptChanges.write(txn);
+            const decryption = await log.wrap("decryptChanges", log => decryptChanges.write(txn, log));
             log.set("decryptionResults", decryption.results.size);
             log.set("decryptionErrors", decryption.errors.size);
             if (this._isTimelineOpen) {
@@ -510,7 +511,7 @@ export class Room extends EventEmitter {
             }
             await txn.complete();
             if (this._roomEncryption) {
-                const decryptRequest = this._decryptEntries(DecryptionSource.Timeline, gapResult.entries);
+                const decryptRequest = this._decryptEntries(DecryptionSource.Timeline, gapResult.entries, null, log);
                 await decryptRequest.complete();
             }
             // once txn is committed, update in-memory state & emit events
@@ -588,7 +589,9 @@ export class Room extends EventEmitter {
         this._roomEncryption?.enableSessionBackup(sessionBackup);
         // TODO: do we really want to do this every time you open the app?
         if (this._timeline) {
-            this._roomEncryption.restoreMissingSessionsFromBackup(this._timeline.remoteEntries);
+            this._platform.logger.run("enableSessionBackup", log => {
+                return this._roomEncryption.restoreMissingSessionsFromBackup(this._timeline.remoteEntries, log);
+            });
         }
     }
 
@@ -675,7 +678,7 @@ export class Room extends EventEmitter {
             if (this._roomEncryption) {
                 this._timeline.enableEncryption(this._decryptEntries.bind(this, DecryptionSource.Timeline));
             }
-            await this._timeline.load(this._user);
+            await this._timeline.load(this._user, log);
             return this._timeline;
         });
     }
@@ -745,10 +748,10 @@ export class Room extends EventEmitter {
 }
 
 class DecryptionRequest {
-    constructor(decryptFn) {
+    constructor(decryptFn, log) {
         this._cancelled = false;
         this.preparation = null;
-        this._promise = decryptFn(this);
+        this._promise = log.wrap("decryptEntries", log => decryptFn(this, log));
     }
 
     complete() {

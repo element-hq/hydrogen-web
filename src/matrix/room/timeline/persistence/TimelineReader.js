@@ -20,9 +20,9 @@ import {EventEntry} from "../entries/EventEntry.js";
 import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
 
 class ReaderRequest {
-    constructor(fn) {
+    constructor(fn, log) {
         this.decryptRequest = null;
-        this._promise = fn(this);
+        this._promise = fn(this, log);
     }
 
     complete() {
@@ -106,15 +106,15 @@ export class TimelineReader {
         return stores;
     }
 
-    readFrom(eventKey, direction, amount) {
-        return new ReaderRequest(async r => {
+    readFrom(eventKey, direction, amount, log) {
+        return new ReaderRequest(async (r, log) => {
             const txn = await this._storage.readTxn(this.readTxnStores);
-            return await this._readFrom(eventKey, direction, amount, r, txn);
-        });
+            return await this._readFrom(eventKey, direction, amount, r, txn, log);
+        }, log);
     }
 
-    readFromEnd(amount, existingTxn = null) {
-        return new ReaderRequest(async r => {
+    readFromEnd(amount, existingTxn = null, log) {
+        return new ReaderRequest(async (r, log) => {
             const txn = existingTxn || await this._storage.readTxn(this.readTxnStores);
             const liveFragment = await txn.timelineFragments.liveFragment(this._roomId);
             let entries;
@@ -125,17 +125,17 @@ export class TimelineReader {
                 this._fragmentIdComparer.add(liveFragment);
                 const liveFragmentEntry = FragmentBoundaryEntry.end(liveFragment, this._fragmentIdComparer);
                 const eventKey = liveFragmentEntry.asEventKey();
-                entries = await this._readFrom(eventKey, Direction.Backward, amount, r, txn);
+                entries = await this._readFrom(eventKey, Direction.Backward, amount, r, txn, log);
                 entries.unshift(liveFragmentEntry);
             }
             return entries;
-        });
+        }, log);
     }
 
-    async _readFrom(eventKey, direction, amount, r, txn) {
+    async _readFrom(eventKey, direction, amount, r, txn, log) {
         const entries = await readRawTimelineEntriesWithTxn(this._roomId, eventKey, direction, amount, this._fragmentIdComparer, txn);
         if (this._decryptEntries) {
-            r.decryptRequest = this._decryptEntries(entries, txn);
+            r.decryptRequest = this._decryptEntries(entries, txn, log);
             try {
                 await r.decryptRequest.complete();
             } finally {

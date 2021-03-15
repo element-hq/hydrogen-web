@@ -15,16 +15,30 @@ limitations under the License.
 */
 import {LogLevel} from "./LogFilter.js";
 
-// TODO: add missing methods
+function noop () {}
+
+
 export class NullLogger {
     constructor() {
-        this._item = new NullLogItem();
+        this.item = new NullLogItem();
     }
 
     log() {}
 
     run(_, callback) {
-        return callback(this._item);    
+        return callback(this.item);    
+    }
+
+    wrapOrRun(item, _, callback) {
+        if (item) {
+            item.wrap(null, callback);
+        } else {
+            this.run(null, callback);
+        }
+    }
+
+    runDetached(_, callback) {
+        new Promise(r => r(callback(this.item))).then(noop, noop);
     }
 
     async export() {
@@ -42,10 +56,27 @@ class NullLogItem {
     }
     log() {}
     set() {}
-    anonymize() {}
+
+    runDetached(_, callback) {
+        new Promise(r => r(callback(this))).then(noop, noop);
+    }
+
+    wrapDetached(_, callback) {
+        return this.refDetached(null, callback);
+    }
+
+    run(callback) {
+        return callback(this);
+    }
+
+    refDetached() {}
 
     get level() {
         return LogLevel;
+    }
+
+    get duration() {
+        return 0;
     }
 
     catch(err) {
@@ -58,3 +89,5 @@ class NullLogItem {
 
     finish() {}
 }
+
+export const Instance = new NullLogger(); 

@@ -56,7 +56,7 @@ export class RoomEncryption {
         this._sessionBackup = sessionBackup;
     }
 
-    async restoreMissingSessionsFromBackup(entries) {
+    async restoreMissingSessionsFromBackup(entries, log) {
         const events = entries.filter(e => e.isEncrypted && !e.isDecrypted && e.event).map(e => e.event);
         const eventsBySession = groupEventsBySession(events);
         const groups = Array.from(eventsBySession.values());
@@ -69,7 +69,7 @@ export class RoomEncryption {
             // start with last sessions which should be for the last items in the timeline
             for (var i = missingSessions.length - 1; i >= 0; i--) {
                 const session = missingSessions[i];
-                await this._requestMissingSessionFromBackup(session.senderKey, session.sessionId);
+                await log.wrap("session", log => this._requestMissingSessionFromBackup(session.senderKey, session.sessionId, log));
             }
         }
     }
@@ -98,9 +98,6 @@ export class RoomEncryption {
         return shouldFlush;
     }
 
-    // this happens before entries exists, as they are created by the syncwriter
-    // but we want to be able to map it back to something in the timeline easily
-    // when retrying decryption.
     async prepareDecryptAll(events, newKeys, source, txn) {
         const errors = new Map();
         const validEvents = [];
@@ -137,7 +134,7 @@ export class RoomEncryption {
         return new DecryptionPreparation(preparation, errors, source, this, events);
     }
 
-    async _processDecryptionResults(events, results, errors, source, txn) {
+    async _processDecryptionResults(events, results, errors, source, txn, log) {
         const missingSessionEvents = events.filter(event => {
             const error = errors.get(event.event_id);
             return error?.code === "MEGOLM_NO_SESSION";
@@ -145,20 +142,26 @@ export class RoomEncryption {
         if (!missingSessionEvents.length) {
             return;
         }
-        const eventsBySession = groupEventsBySession(events);
+        // store missing event ids if received from sync
+        const missingEventsBySession = groupEventsBySession(missingSessionEvents);
         if (source === DecryptionSource.Sync) {
-            await Promise.all(Array.from(eventsBySession.values()).map(async group => {
+            await Promise.all(Array.from(missingEventsBySession.values()).map(async group => {
                 const eventIds = group.events.map(e => e.event_id);
                 return this._megolmDecryption.addMissingKeyEventIds(
                     this._room.id, group.senderKey, group.sessionId, eventIds, txn);
             }));
         }
+        
+        if (!this._sessionBackup) {
+            return;
+        }
 
-        // TODO: do proper logging here
-        // run detached
-        Promise.resolve().then(async () => {
+        log.wrapDetached("check key backup", async log => {
             // if the message came from sync, wait 10s to see if the room key arrives late,
             // and only after that proceed to request from backup
+            log.set("source", source);
+            log.set("events", missingSessionEvents.length);
+            log.set("sessions", missingEventsBySession.size);
             if (source === DecryptionSource.Sync) {
                 await this._clock.createTimeout(10000).elapsed();
                 if (this._disposed) {
@@ -166,18 +169,15 @@ export class RoomEncryption {
                 }
                 // now check which sessions have been received already
                 const txn = await this._storage.readTxn([this._storage.storeNames.inboundGroupSessions]);
-                await Promise.all(Array.from(eventsBySession).map(async ([key, group]) => {
+                await Promise.all(Array.from(missingEventsBySession).map(async ([key, group]) => {
                     if (await this._megolmDecryption.hasSession(this._room.id, group.senderKey, group.sessionId, txn)) {
-                        eventsBySession.delete(key);
+                        missingEventsBySession.delete(key);
                     }
                 }));
             }
-            await Promise.all(Array.from(eventsBySession.values()).map(group => {
-                return this._requestMissingSessionFromBackup(group.senderKey, group.sessionId);
+            await Promise.all(Array.from(missingEventsBySession.values()).map(group => {
+                return log.wrap("session", log => this._requestMissingSessionFromBackup(group.senderKey, group.sessionId, log));
             }));
-        }).catch(err => {
-            console.log("failed to fetch missing session from key backup");
-            console.error(err);
         });
     }
 
@@ -194,18 +194,21 @@ export class RoomEncryption {
         }
     }
 
-    async _requestMissingSessionFromBackup(senderKey, sessionId) {
+    async _requestMissingSessionFromBackup(senderKey, sessionId, log) {
         // show prompt to enable secret storage
         if (!this._sessionBackup) {
+            log.set("enabled", false);
             this._notifyMissingMegolmSession();
             return;
         }
-
+        log.set("id", sessionId);
+        log.set("senderKey", senderKey);           
         try {
-            const session = await this._sessionBackup.getSession(this._room.id, sessionId);
+            const session = await this._sessionBackup.getSession(this._room.id, sessionId, log);
             if (session?.algorithm === MEGOLM_ALGORITHM) {
                 if (session["sender_key"] !== senderKey) {
-                    console.warn("Got session key back from backup with different sender key, ignoring", {session, senderKey});
+                    log.set("wrong_sender_key", session["sender_key"]);
+                    log.logLevel = log.level.Warn;
                     return;
                 }
                 let roomKey = this._megolmDecryption.roomKeyFromBackup(this._room.id, sessionId, session);
@@ -216,6 +219,7 @@ export class RoomEncryption {
                         const txn = await this._storage.readWriteTxn([this._storage.storeNames.inboundGroupSessions]);
                         try {
                             keyIsBestOne = await this._megolmDecryption.writeRoomKey(roomKey, txn);
+                            log.set("isBetter", keyIsBestOne);
                             if (keyIsBestOne) {
                                 retryEventIds = roomKey.eventIds;
                             }
@@ -230,15 +234,18 @@ export class RoomEncryption {
                         roomKey.dispose();
                     }
                     if (keyIsBestOne) {
-                        await this._room.notifyRoomKey(roomKey, retryEventIds || []);
+                        await log.wrap("retryDecryption", log => this._room.notifyRoomKey(roomKey, retryEventIds || [], log));
                     }
                 }
             } else if (session?.algorithm) {
-                console.info(`Backed-up session of unknown algorithm: ${session.algorithm}`);
+                log.set("unknown algorithm", session.algorithm);
             }
         } catch (err) {
             if (!(err.name === "HomeServerError" && err.errcode === "M_NOT_FOUND")) {
-                console.error(`Could not get session ${sessionId} from backup`, err);
+                log.set("not_found", true);
+            } else {
+                log.error = err;
+                log.logLevel = log.level.Error;
             }
         }
     }
@@ -485,10 +492,10 @@ class DecryptionChanges {
         this._events = events;
     }
 
-    async write(txn) {
+    async write(txn, log) {
         const {results, errors} = await this._megolmDecryptionChanges.write(txn);
         mergeMap(this._extraErrors, errors);
-        await this._roomEncryption._processDecryptionResults(this._events, results, errors, this._source, txn);
+        await this._roomEncryption._processDecryptionResults(this._events, results, errors, this._source, txn, log);
         return new BatchDecryptionResult(results, errors, this._roomEncryption);
     }
 }

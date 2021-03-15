@@ -140,7 +140,8 @@ export class LogItem {
             // (e)rror
             item.e = {
                 stack: this.error.stack,
-                name: this.error.name
+                name: this.error.name,
+                message: this.error.message.split("\n")[0]
             };
         }
         if (forced) {
