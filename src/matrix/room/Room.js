@@ -589,7 +589,9 @@ export class Room extends EventEmitter {
         this._roomEncryption?.enableSessionBackup(sessionBackup);
         // TODO: do we really want to do this every time you open the app?
         if (this._timeline) {
-            this._roomEncryption.restoreMissingSessionsFromBackup(this._timeline.remoteEntries, ensureLogItem());
+            this._platform.logger.run("enableSessionBackup", log => {
+                return this._roomEncryption.restoreMissingSessionsFromBackup(this._timeline.remoteEntries, log);
+            });
         }
     }
 
