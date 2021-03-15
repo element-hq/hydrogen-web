@@ -210,11 +210,12 @@ export class RoomEncryption {
                 }
                 let roomKey = this._megolmDecryption.roomKeyFromBackup(this._room.id, sessionId, session);
                 if (roomKey) {
+                    let keyIsBestOne = false;
                     let retryEventIds;
                     try {
                         const txn = await this._storage.readWriteTxn([this._storage.storeNames.inboundGroupSessions]);
                         try {
-                            const keyIsBestOne = await this._megolmDecryption.writeRoomKey(roomKey, txn);
+                            keyIsBestOne = await this._megolmDecryption.writeRoomKey(roomKey, txn);
                             if (keyIsBestOne) {
                                 retryEventIds = roomKey.eventIds;
                             }
@@ -228,8 +229,8 @@ export class RoomEncryption {
                         // this is just clearing the internal sessionInfo
                         roomKey.dispose();
                     }
-                    if (retryEventIds?.length) {
-                        await this._room.retryDecryption(retryEventIds);
+                    if (keyIsBestOne) {
+                        await this._room.retryDecryption(roomKey, retryEventIds || []);
                     }
                 }
             } else if (session?.algorithm) {
