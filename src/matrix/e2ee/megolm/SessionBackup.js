@@ -21,8 +21,8 @@ export class SessionBackup {
         this._hsApi = hsApi;
     }
 
-    async getSession(roomId, sessionId) {
-        const sessionResponse = await this._hsApi.roomKeyForRoomAndSession(this._backupInfo.version, roomId, sessionId).response();
+    async getSession(roomId, sessionId, log) {
+        const sessionResponse = await this._hsApi.roomKeyForRoomAndSession(this._backupInfo.version, roomId, sessionId, {log}).response();
         const sessionInfo = this._decryption.decrypt(
             sessionResponse.session_data.ephemeral,
             sessionResponse.session_data.mac,
