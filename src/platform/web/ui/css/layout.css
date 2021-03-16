@@ -54,6 +54,13 @@ main {
     min-width: 0;
 }
 
+/* resize and reposition session view to account for mobile Safari which shifts
+the layout viewport up without resizing it when the keyboard shows */
+.hydrogen.ios .SessionView {
+    height: var(--ios-viewport-height, 100%);
+    top: var(--ios-viewport-top, 0);
+}
+
 /* hide back button in middle section by default */
 .middle .close-middle { display: none; }
 /* mobile layout */
