@@ -185,6 +185,27 @@ self.addEventListener('message', (event) => {
     }
 });
 
+self.addEventListener('push', event => {
+    const n = event.data.json();
+    console.log("got a push message", n);
+    let sender = n.sender_display_name || n.sender;
+    if (sender && n.event_id) {
+        let label;
+        if (n.room_name) {
+            label = `${sender} wrote you in ${n.room_name}`;
+        } else {
+            label = `${sender} wrote you`;
+        }
+        let body = n.content?.body;
+        self.registration.showNotification(label, {
+            body,
+            data: {
+                sessionId: n.session_id,
+                roomId: n.room_id,
+            }
+        });
+    }
+});
 
 async function closeSession(sessionId, requestingClientId) {
     const clients = await self.clients.matchAll();
