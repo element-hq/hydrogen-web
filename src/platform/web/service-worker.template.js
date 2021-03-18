@@ -185,6 +185,33 @@ self.addEventListener('message', (event) => {
     }
 });
 
+async function openClientFromNotif(event) {
+    const clientList = await self.clients.matchAll({type: "window"});
+    const {sessionId, roomId} = event.notification.data;
+    const sessionHash = `#/session/${sessionId}`;
+    const roomHash = `${sessionHash}/room/${roomId}`;
+    const roomURL = `/${roomHash}`;
+    for (let i = 0; i < clientList.length; i++) {
+        const client = clientList[i];
+        const url = new URL(client.url, baseURL);
+        if (url.hash.startsWith(sessionHash)) {
+            client.navigate(roomURL);
+            if ('focus' in client) {
+                await client.focus();
+            }
+            return;
+        }
+    }
+    if (self.clients.openWindow) {
+        await self.clients.openWindow(roomURL);
+    }
+}
+
+self.addEventListener('notificationclick', event => {
+    event.notification.close();
+    event.waitUntil(openClientFromNotif(event));
+});
+
 self.addEventListener('push', event => {
     const n = event.data.json();
     console.log("got a push message", n);
