@@ -26,6 +26,7 @@ import {ConsoleLogger} from "../../logging/ConsoleLogger.js";
 import {RootView} from "./ui/RootView.js";
 import {Clock} from "./dom/Clock.js";
 import {ServiceWorkerHandler} from "./dom/ServiceWorkerHandler.js";
+import {NotificationService} from "./dom/NotificationService.js";
 import {History} from "./dom/History.js";
 import {OnlineStatus} from "./dom/OnlineStatus.js";
 import {Crypto} from "./dom/Crypto.js";
@@ -73,18 +74,18 @@ function relPath(path, basePath) {
     return "../".repeat(dirCount) + path;
 }
 
-async function loadOlmWorker(paths) {
-    const workerPool = new WorkerPool(paths.worker, 4);
+async function loadOlmWorker(config) {
+    const workerPool = new WorkerPool(config.worker, 4);
     await workerPool.init();
-    const path = relPath(paths.olm.legacyBundle, paths.worker);
+    const path = relPath(config.olm.legacyBundle, config.worker);
     await workerPool.sendAll({type: "load_olm", path});
     const olmWorker = new OlmWorker(workerPool);
     return olmWorker;
 }
 
 export class Platform {
-    constructor(container, paths, cryptoExtras = null, options = null) {
-        this._paths = paths;
+    constructor(container, config, cryptoExtras = null, options = null) {
+        this._config = config;
         this._container = container;
         this.settingsStorage = new SettingsStorage("hydrogen_setting_v1_");
         this.clock = new Clock();
@@ -98,10 +99,11 @@ export class Platform {
         this.history = new History();
         this.onlineStatus = new OnlineStatus();
         this._serviceWorkerHandler = null;
-        if (paths.serviceWorker && "serviceWorker" in navigator) {
+        if (config.serviceWorker && "serviceWorker" in navigator) {
             this._serviceWorkerHandler = new ServiceWorkerHandler();
-            this._serviceWorkerHandler.registerAndStart(paths.serviceWorker);
+            this._serviceWorkerHandler.registerAndStart(config.serviceWorker);
         }
+        this.notificationService = new NotificationService(this._serviceWorkerHandler, config.push);
         this.crypto = new Crypto(cryptoExtras);
         this.storageFactory = new StorageFactory(this._serviceWorkerHandler);
         this.sessionInfoStorage = new SessionInfoStorage("hydrogen_sessions_v1");
@@ -120,12 +122,12 @@ export class Platform {
     }
 
     loadOlm() {
-        return loadOlm(this._paths.olm);
+        return loadOlm(this._config.olm);
     }
 
     async loadOlmWorker() {
         if (!window.WebAssembly) {
-            return await loadOlmWorker(this._paths);
+            return await loadOlmWorker(this._config);
         }
     }
 
@@ -150,7 +152,7 @@ export class Platform {
         if (navigator.msSaveBlob) {
             navigator.msSaveBlob(blobHandle.nativeBlob, filename);
         } else {
-            downloadInIframe(this._container, this._paths.downloadSandbox, blobHandle, filename);
+            downloadInIframe(this._container, this._config.downloadSandbox, blobHandle, filename);
         }
     }
 
