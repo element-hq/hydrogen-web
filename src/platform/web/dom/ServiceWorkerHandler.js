@@ -42,7 +42,8 @@ export class ServiceWorkerHandler {
             this._currentController = navigator.serviceWorker.controller;
             this._registration.addEventListener("updatefound", this);
             this._registrationPromise = null;
-            if (this._registration.waiting) {
+            // do we have a new service worker waiting to activate?
+            if (this._registration.waiting && this._registration.active) {
                 this._proposeUpdate();
             }
             console.log("Service Worker registered");
