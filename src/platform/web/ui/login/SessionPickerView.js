@@ -70,14 +70,14 @@ class SessionPickerItemView extends TemplateView {
             disabled: vm => vm.isClearing,
             onClick: () => vm.export(),
         }, "Export");
-        const downloadExport = t.if(vm => vm.exportDataUrl, t.createTemplate((t, vm) => {
+        const downloadExport = t.if(vm => vm.exportDataUrl, (t, vm) => {
             return t.a({
                 href: vm.exportDataUrl,
                 download: `brawl-session-${vm.id}.json`,
                 onClick: () => setTimeout(() => vm.clearExport(), 100),
             }, "Download");
-        }));
-        const errorMessage = t.if(vm => vm.error, t.createTemplate(t => t.p({className: "error"}, vm => vm.error)));
+        });
+        const errorMessage = t.if(vm => vm.error, t => t.p({className: "error"}, vm => vm.error));
         return t.li([
             t.a({className: "session-info", href: vm.openUrl}, [
                 t.div({className: `avatar usercolor${vm.avatarColorNumber}`}, vm => vm.avatarInitials),
@@ -118,7 +118,7 @@ export class SessionPickerView extends TemplateView {
                         href: vm.cancelUrl
                     }, vm.i18n`Sign In`)
                 ]),
-                t.if(vm => vm.loadViewModel, vm => new SessionLoadStatusView(vm.loadViewModel)),
+                t.ifView(vm => vm.loadViewModel, () => new SessionLoadStatusView(vm.loadViewModel)),
                 t.p(hydrogenGithubLink(t))
             ])
         ]);

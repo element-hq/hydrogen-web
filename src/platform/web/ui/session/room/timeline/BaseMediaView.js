@@ -54,7 +54,7 @@ export class BaseMediaView extends TemplateView {
         }
         return renderMessage(t, vm, [
             t.div({className: "media", style: `max-width: ${vm.width}px`}, children),
-            t.if(vm => vm.error, t.createTemplate((t, vm) => t.p({className: "error"}, vm.error)))
+            t.if(vm => vm.error, t => t.p({className: "error"}, vm.error))
         ]);
     }
 }
