@@ -296,11 +296,6 @@ class TemplateBuilder {
         return root;
     }
 
-    // sugar
-    createTemplate(render) {
-        return vm => new TemplateView(vm, render);
-    }
-
     // map a value to a view, every time the value changes
     mapView(mapFn, viewCreator) {
         return this._addReplaceNodeBinding(mapFn, (prevNode) => {
@@ -321,12 +316,28 @@ class TemplateBuilder {
         });
     }
 
-    // creates a conditional subtemplate
-    if(fn, viewCreator) {
+    // Special case of mapView for a TemplateView.
+    // Always creates a TemplateView, if this is optional depending
+    // on mappedValue, use `if` or `mapView`
+    map(mapFn, renderFn) {
+        return this.mapView(mapFn, mappedValue => {
+            return new TemplateView(this._value, (t, vm) => {
+                return renderFn(mappedValue, t, vm);
+            });
+        });
+    }
+
+    ifView(predicate, viewCreator) {
         return this.mapView(
-            value => !!fn(value),
+            value => !!predicate(value),
             enabled => enabled ? viewCreator(this._value) : null
         );
+    }
+
+    // creates a conditional subtemplate
+    // use mapView if you need to map to a different view class
+    if(predicate, renderFn) {
+        return this.ifView(predicate, vm => new TemplateView(vm, renderFn));
     }
 }
 

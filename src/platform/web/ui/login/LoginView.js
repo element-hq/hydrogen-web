@@ -45,7 +45,7 @@ export class LoginView extends TemplateView {
             t.div({className: "logo"}),
             t.div({className: "LoginView form"}, [
                 t.h1([vm.i18n`Sign In`]),
-                t.if(vm => vm.error, t.createTemplate(t => t.div({className: "error"}, vm => vm.error))),
+                t.if(vm => vm.error, t => t.div({className: "error"}, vm => vm.error)),
                 t.form({
                     onSubmit: evnt => {
                         evnt.preventDefault();
