@@ -107,7 +107,7 @@ export class Platform {
         this.sessionInfoStorage = new SessionInfoStorage("hydrogen_sessions_v1");
         this.estimateStorageUsage = estimateStorageUsage;
         if (typeof fetch === "function") {
-            this.request = createFetchRequest(this.clock.createTimeout);
+            this.request = createFetchRequest(this.clock.createTimeout, this._serviceWorkerHandler);
         } else {
             this.request = xhrRequest;
         }
