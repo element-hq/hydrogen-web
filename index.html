@@ -24,6 +24,13 @@
             main(new Platform(document.body, {
                 worker: "src/worker.js",
                 downloadSandbox: "assets/download-sandbox.html", 
+                // ln -s src/platform/web/service-worker.template.js sw.js
+                // serviceWorker: "sw.js",
+                // push: {
+                //     appId: "io.element.hydrogen.web",
+                //     gatewayUrl: "...",
+                //     applicationServerKey: "...",
+                // },
                 olm: {
                     wasm: "lib/olm/olm.wasm",
                     legacyBundle: "lib/olm/olm_legacy.js",
