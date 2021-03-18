@@ -34,27 +34,60 @@ export class SettingsView extends TemplateView {
             ]);
         };
 
+        const settingNodes = [];
+
+        settingNodes.push(
+            t.h3("Session"),
+            row(vm.i18n`User ID`, vm.userId),
+            row(vm.i18n`Session ID`, vm.deviceId, "code"),
+            row(vm.i18n`Session key`, vm.fingerprintKey, "code")
+        );
+        settingNodes.push(
+            t.h3("Session Backup"),
+            t.view(new SessionBackupSettingsView(vm.sessionBackupViewModel))
+        );
+
+        settingNodes.push(
+            t.h3("Notifications"),
+            t.map(vm => vm.pushNotifications.supported, (supported, t) => {
+                if (supported === null) {
+                    return t.p(vm.i18n`Loading…`);
+                } else if (supported) {
+                    const label = vm => vm.pushNotifications.enabled ?
+                        vm.i18n`Push notifications are enabled`:
+                        vm.i18n`Push notifications are disabled`;
+                    const buttonLabel = vm => vm.pushNotifications.enabled ?
+                        vm.i18n`Disable`:
+                        vm.i18n`Enable`;
+                    return row(label, t.button({
+                        onClick: () => vm.togglePushNotifications(),
+                        disabled: vm => vm.pushNotifications.updating
+                    }, buttonLabel));
+                } else {
+                    return t.p(vm.i18n`Push notifications are not supported on this browser`);
+                }
+            })
+        );
+
+        settingNodes.push(
+            t.h3("Preferences"),
+            row(vm.i18n`Scale down images when sending`, this._imageCompressionRange(t, vm)),
+        );
+        settingNodes.push(
+            t.h3("Application"),
+            row(vm.i18n`Version`, version),
+            row(vm.i18n`Storage usage`, vm => `${vm.storageUsage} / ${vm.storageQuota}`),
+            row(vm.i18n`Debug logs`, t.button({onClick: () => vm.exportLogs()}, "Export")),
+            t.p(["Debug logs contain application usage data including your username, the IDs or aliases of the rooms or groups you have visited, the usernames of other users and the names of files you send. They do not contain messages. For more information, review our ",
+                t.a({href: "https://element.io/privacy", target: "_blank", rel: "noopener"}, "privacy policy"), "."]),
+        );
+
         return t.main({className: "Settings middle"}, [
             t.div({className: "middle-header"}, [
                 t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Close settings`}),
                 t.h2("Settings")
             ]),
-            t.div({className: "SettingsBody"}, [
-                t.h3("Session"),
-                row(vm.i18n`User ID`, vm.userId),
-                row(vm.i18n`Session ID`, vm.deviceId, "code"),
-                row(vm.i18n`Session key`, vm.fingerprintKey, "code"),
-                t.h3("Session Backup"),
-                t.view(new SessionBackupSettingsView(vm.sessionBackupViewModel)),
-                t.h3("Preferences"),
-                row(vm.i18n`Scale down images when sending`, this._imageCompressionRange(t, vm)),
-                t.h3("Application"),
-                row(vm.i18n`Version`, version),
-                row(vm.i18n`Storage usage`, vm => `${vm.storageUsage} / ${vm.storageQuota}`),
-                row(vm.i18n`Debug logs`, t.button({onClick: () => vm.exportLogs()}, "Export")),
-                t.p(["Debug logs contain application usage data including your username, the IDs or aliases of the rooms or groups you have visited, the usernames of other users and the names of files you send. They do not contain messages. For more information, review our ",
-                    t.a({href: "https://element.io/privacy", target: "_blank", rel: "noopener"}, "privacy policy"), "."]),
-            ])
+            t.div({className: "SettingsBody"}, settingNodes)
         ]);
     }
 
