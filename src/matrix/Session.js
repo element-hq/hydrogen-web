@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {Room} from "./room/Room.js";
+import {Pusher} from "./push/Pusher.js";
 import { ObservableMap } from "../observable/index.js";
 import {User} from "./User.js";
 import {DeviceMessageHandler} from "./DeviceMessageHandler.js";
@@ -38,6 +39,7 @@ import {SecretStorage} from "./ssss/SecretStorage.js";
 import {ObservableValue} from "../observable/ObservableValue.js";
 
 const PICKLE_KEY = "DEFAULT_KEY";
+const PUSHER_KEY = "pusher";
 
 export class Session {
     // sessionInfo contains deviceId, userId and homeServer
@@ -465,6 +467,60 @@ export class Session {
 
     get user() {
         return this._user;
+    }
+
+    enablePushNotifications(enable) {
+        if (enable) {
+            return this._enablePush();
+        } else {
+            return this._disablePush();
+        }
+    }
+
+    async _enablePush() {
+        return this._platform.logger.run("enablePush", async log => {
+            const defaultPayload = Pusher.createDefaultPayload(this._sessionInfo.id);
+            const pusher = await this._platform.notificationService.enablePush(Pusher, defaultPayload);
+            if (!pusher) {
+                log.set("no_pusher", true);
+                return false;
+            }
+            await pusher.enable(this._hsApi, log);
+            // store pusher data, so we know we enabled it across reloads,
+            // and we can disable it without too much hassle
+            const txn = await this._storage.readWriteTxn([this._storage.storeNames.session]);
+            txn.session.set(PUSHER_KEY, pusher.serialize());
+            await txn.complete();
+            return true;
+        });
+    }
+
+
+    async _disablePush() {
+        return this._platform.logger.run("disablePush", async log => {
+            await this._platform.notificationService.disablePush();
+            const readTxn = await this._storage.readTxn([this._storage.storeNames.session]);
+            const pusherData = await readTxn.session.get(PUSHER_KEY);
+            if (!pusherData) {
+                // we've disabled push in the notif service at least
+                return true;
+            }
+            const pusher = new Pusher(pusherData);
+            await pusher.disable(this._hsApi, log);
+            const txn = await this._storage.readWriteTxn([this._storage.storeNames.session]);
+            txn.session.remove(PUSHER_KEY);
+            await txn.complete();
+            return true;
+        });
+    }
+
+    async arePushNotificationsEnabled() {
+        if (await this._platform.notificationService.isPushEnabled()) {
+            return false;
+        }
+        const readTxn = await this._storage.readTxn([this._storage.storeNames.session]);
+        const pusherData = await readTxn.session.get(PUSHER_KEY);
+        return !!pusherData;
     }
 }
 
