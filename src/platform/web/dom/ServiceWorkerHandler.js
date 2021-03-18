@@ -182,4 +182,11 @@ export class ServiceWorkerHandler {
     async preventConcurrentSessionAccess(sessionId) {
         return this._sendAndWaitForReply("closeSession", {sessionId});
     }
+
+    async getRegistration() {
+        if (this._registrationPromise) {
+            await this._registrationPromise;
+        }
+        return this._registration;
+    }
 }
