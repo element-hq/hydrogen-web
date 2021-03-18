@@ -173,12 +173,12 @@ self.addEventListener('message', (event) => {
                 self.skipWaiting();
                 break;
             case "haltRequests":
-                event.waitUntil(haltRequests().then(() => reply()));
+                event.waitUntil(haltRequests().finally(() => reply()));
                 break;
             case "closeSession":
                 event.waitUntil(
                     closeSession(event.data.payload.sessionId, event.source.id)
-                        .then(() => reply())
+                        .finally(() => reply())
                 );
                 break;
         }
