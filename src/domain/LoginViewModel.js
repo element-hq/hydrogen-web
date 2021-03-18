@@ -41,6 +41,9 @@ export class LoginViewModel extends ViewModel {
         }
     }
 
+    // TODO: Rename this function to usernamePasswordLogin
+    //  to be obvious this function is for login by use name and password method
+
     async login(username, password, homeserver) {
         this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
         if (this._loadViewModel) {

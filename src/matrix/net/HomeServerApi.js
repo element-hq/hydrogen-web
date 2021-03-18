@@ -215,6 +215,14 @@ export class HomeServerApi {
         }, options);
     }
 
+    /**
+     *
+     */
+    // TODO: Docs this function
+    sso () {
+        //TODO: make sso login call here
+    }
+
     createFilter(userId, filter, options = null) {
         return this._post(`/user/${encodeURIComponent(userId)}/filter`, null, filter, options);
     }

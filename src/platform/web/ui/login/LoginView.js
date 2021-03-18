@@ -37,39 +37,89 @@ export class LoginView extends TemplateView {
             id: "homeserver",
             type: "url",
             placeholder: vm.i18n`Your matrix homeserver`,
-            value: vm.defaultHomeServer, 
+            value: vm.defaultHomeServer,
             disabled
         });
-        
-        return t.div({className: "PreSessionScreen"}, [
-            t.div({className: "logo"}),
-            t.div({className: "LoginView form"}, [
+
+        return t.div({ className: "PreSessionScreen" }, [
+            t.div({ className: "logo" }),
+            t.div({ className: "LoginView form" }, [
                 t.h1([vm.i18n`Sign In`]),
-                t.if(vm => vm.error, t.createTemplate(t => t.div({className: "error"}, vm => vm.error))),
-                t.form({
-                    onSubmit: evnt => {
-                        evnt.preventDefault();
-                        vm.login(username.value, password.value, homeserver.value);
-                    }
-                }, [
-                    t.div({className: "form-row"}, [t.label({for: "username"}, vm.i18n`Username`), username]),
-                    t.div({className: "form-row"}, [t.label({for: "password"}, vm.i18n`Password`), password]),
-                    t.div({className: "form-row"}, [t.label({for: "homeserver"}, vm.i18n`Homeserver`), homeserver]),
-                    t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadStatusView(loadViewModel) : null),
-                    t.div({className: "button-row"}, [
-                        t.a({
-                            className: "button-action secondary",
-                            href: vm.cancelUrl
-                        }, [vm.i18n`Go Back`]),
-                        t.button({
-                            className: "button-action primary",
-                            type: "submit"
-                        }, vm.i18n`Log In`),
-                    ]),
-                ]),
+                t.if(
+                    (vm) => vm.error,
+                    t.createTemplate((t) =>
+                        t.div({ className: "error" }, (vm) => vm.error)
+                    )
+                ),
+                t.form(
+                    {
+                        onSubmit: (evnt) => {
+                            evnt.preventDefault();
+                            vm.login(
+                                username.value,
+                                password.value,
+                                homeserver.value
+                            );
+                        },
+                    },
+                    [
+                        t.div({ className: "form-row" }, [
+                            t.label({ for: "username" }, vm.i18n`Username`),
+                            username,
+                        ]),
+                        t.div({ className: "form-row" }, [
+                            t.label({ for: "password" }, vm.i18n`Password`),
+                            password,
+                        ]),
+                        t.div({ className: "form-row" }, [
+                            t.label({ for: "homeserver" }, vm.i18n`Homeserver`),
+                            homeserver,
+                        ]),
+                        t.mapView(
+                            (vm) => vm.loadViewModel,
+                            (loadViewModel) =>
+                                loadViewModel
+                                    ? new SessionLoadStatusView(loadViewModel)
+                                    : null
+                        ),
+                        t.div({ className: "button-row" }, [
+                            t.a(
+                                {
+                                    className: "button-action secondary",
+                                    href: vm.cancelUrl,
+                                },
+                                [vm.i18n`Go Back`]
+                            ),
+                            t.button(
+                                {
+                                    className: "button-action primary",
+                                    type: "submit",
+                                },
+                                vm.i18n`Log In`
+                            ),
+                        ]),
+                        t.div({ className: "sso-container" }, [
+                            t.div({
+                                className: "sso-btn facebook",
+                            }),
+                            t.div({
+                                className: "sso-btn apple",
+                            }),
+                            t.div({
+                                className: "sso-btn github",
+                            }),
+                            t.div({
+                                className: "sso-btn gitlab",
+                            }),
+                            t.div({
+                                className: "sso-btn google",
+                            }),
+                        ]),
+                    ]
+                ),
                 // use t.mapView rather than t.if to create a new view when the view model changes too
-                t.p(hydrogenGithubLink(t))
-            ])
+                t.p(hydrogenGithubLink(t)),
+            ]),
         ]);
     }
 }

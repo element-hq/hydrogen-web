@@ -102,6 +102,7 @@ export class SessionContainer {
                 const request = this._platform.request;
                 const hsApi = new HomeServerApi({homeServer, request, createTimeout: clock.createTimeout});
                 const loginData = await hsApi.passwordLogin(username, password, "Hydrogen", {log}).response();
+                // TODO: Add SSO
                 const sessionId = this.createNewSessionId();
                 sessionInfo = {
                     id: sessionId,
