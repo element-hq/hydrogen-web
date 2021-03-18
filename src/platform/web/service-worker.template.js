@@ -37,6 +37,13 @@ self.addEventListener('install', function(e) {
     })());
 });
 
+self.addEventListener('activate', (event) => {
+    // on a first page load/sw install,
+    // start using the service worker on all pages straight away
+    self.clients.claim();
+    event.waitUntil(purgeOldCaches());
+});
+
 async function purgeOldCaches() {
     // remove any caches we don't know about
     const keyList = await caches.keys();
@@ -60,15 +67,6 @@ async function purgeOldCaches() {
     }
 }
 
-self.addEventListener('activate', (event) => {
-    event.waitUntil(Promise.all([
-        purgeOldCaches(),
-        // on a first page load/sw install,
-        // start using the service worker on all pages straight away
-        self.clients.claim()
-    ]));
-});
-
 self.addEventListener('fetch', (event) => {
     event.respondWith(handleRequest(event.request));
 });
@@ -85,9 +83,11 @@ function isCacheableThumbnail(url) {
 }
 
 const baseURL = new URL(self.registration.scope);
+let pendingFetchAbortController = new AbortController();
 async function handleRequest(request) {
     try {
         const url = new URL(request.url);
+        // rewrite / to /index.html so it hits the cache
         if (url.origin === baseURL.origin && url.pathname === baseURL.pathname) {
             request = new Request(new URL("index.html", baseURL.href));
         }
@@ -96,15 +96,15 @@ async function handleRequest(request) {
             // use cors so the resource in the cache isn't opaque and uses up to 7mb
             // https://developers.google.com/web/tools/chrome-devtools/progressive-web-apps?utm_source=devtools#opaque-responses
             if (isCacheableThumbnail(url)) {
-                response = await fetch(request, {mode: "cors", credentials: "omit"});
+                response = await fetch(request, {signal: pendingFetchAbortController.signal, mode: "cors", credentials: "omit"});
             } else {
-                response = await fetch(request);
+                response = await fetch(request, {signal: pendingFetchAbortController.signal});
             }
             await updateCache(request, response);
         }
         return response;
     } catch (err) {
-        if (!(err instanceof TypeError)) {
+        if (err.name !== "TypeError" && err.name !== "AbortError") {
             console.error("error in service worker", err);
         }
         throw err;
@@ -172,10 +172,13 @@ self.addEventListener('message', (event) => {
             case "skipWaiting":
                 self.skipWaiting();
                 break;
+            case "haltRequests":
+                event.waitUntil(haltRequests().finally(() => reply()));
+                break;
             case "closeSession":
                 event.waitUntil(
                     closeSession(event.data.payload.sessionId, event.source.id)
-                        .then(() => reply())
+                        .finally(() => reply())
                 );
                 break;
         }
@@ -190,6 +193,16 @@ async function closeSession(sessionId, requestingClientId) {
             await sendAndWaitForReply(client, "closeSession", {sessionId});
         }
     }));
+}
+
+async function haltRequests() {
+    // first ask all clients to block sending any more requests
+    const clients = await self.clients.matchAll({type: "window"});
+    await Promise.all(clients.map(client => {
+        return sendAndWaitForReply(client, "haltRequests");
+    }));
+    // and only then abort the current requests
+    pendingFetchAbortController.abort();
 }
 
 const pendingReplies = new Map();

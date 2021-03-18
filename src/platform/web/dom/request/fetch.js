@@ -51,8 +51,15 @@ class RequestResult {
     }
 }
 
-export function createFetchRequest(createTimeout) {
+export function createFetchRequest(createTimeout, serviceWorkerHandler) {
     return function fetchRequest(url, requestOptions) {
+        if (serviceWorkerHandler?.haltRequests) {
+            // prevent any requests while waiting
+            // for the new service worker to get activated.
+            // Once this happens, the page will be reloaded
+            // by the serviceWorkerHandler so this is fine.
+            return new RequestResult(new Promise(() => {}), {});
+        }
         // fetch doesn't do upload progress yet, delegate to xhr
         if (requestOptions?.uploadProgress) {
             return xhrRequest(url, requestOptions);
