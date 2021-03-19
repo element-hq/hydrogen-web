@@ -16,6 +16,7 @@ limitations under the License.
 
 import {ViewModel} from "./ViewModel.js";
 import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
+import { HomeServerApi } from "../matrix/net/HomeServerApi.js";
 
 export class LoginViewModel extends ViewModel {
     constructor(options) {
@@ -27,6 +28,7 @@ export class LoginViewModel extends ViewModel {
         this._sessionContainer = null;
         this._loadViewModel = null;
         this._loadViewModelSubscription = null;
+        this._supportedLoginFlows = {};
     }
 
     get defaultHomeServer() { return this._defaultHomeServer; }
@@ -41,8 +43,12 @@ export class LoginViewModel extends ViewModel {
         }
     }
 
+    get supportedLoginFlows () {
+        return this._supportedLoginFlows;
+    }
+
     // TODO: Rename this function to usernamePasswordLogin
-    //  to be obvious this function is for login by use name and password method
+    //  to be obvious this function is for login by use name and password login flow
 
     async login(username, password, homeserver) {
         this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
@@ -70,6 +76,16 @@ export class LoginViewModel extends ViewModel {
             }
             this.emitChange("isBusy");
         }));
+    }
+
+    async requestSupportedLoginFlows(homeServer = this.defaultHomeServer) {
+        try {
+            this._supportedLoginFlows = await this._sessionContainer.requestSupportedLoginFlows(
+                homeServer
+            );
+        } catch (error) {
+            console.error(error);
+        }
     }
 
     get cancelUrl() {

@@ -223,6 +223,10 @@ export class HomeServerApi {
         //TODO: make sso login call here
     }
 
+    getSupportedLoginMethods (options = null) {
+        return this._get("/login", null, null, options);
+    }
+
     createFilter(userId, filter, options = null) {
         return this._post(`/user/${encodeURIComponent(userId)}/filter`, null, filter, options);
     }

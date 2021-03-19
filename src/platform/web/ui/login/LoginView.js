@@ -20,6 +20,10 @@ import {SessionLoadStatusView} from "./SessionLoadStatusView.js";
 
 export class LoginView extends TemplateView {
     render(t, vm) {
+        console.log(
+            "#DEBUG Suported login flows inside the login view",
+            vm.supportedLoginFlows
+        );
         const disabled = vm => !!vm.isBusy;
         const username = t.input({
             id: "username",
@@ -38,7 +42,8 @@ export class LoginView extends TemplateView {
             type: "url",
             placeholder: vm.i18n`Your matrix homeserver`,
             value: vm.defaultHomeServer,
-            disabled
+            onchange: vm.requestSupportedLoginFlows,
+            disabled,
         });
 
         return t.div({ className: "PreSessionScreen" }, [
