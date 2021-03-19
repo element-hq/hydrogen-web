@@ -42,6 +42,8 @@ limitations under the License.
 
 .SessionPickerView li .user-id {
     flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .SessionPickerView li .error {
