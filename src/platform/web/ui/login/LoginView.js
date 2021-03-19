@@ -122,6 +122,7 @@ export class LoginView extends TemplateView {
                         ]),
                     ]
                 ),
+
                 // use t.mapView rather than t.if to create a new view when the view model changes too
                 t.p(hydrogenGithubLink(t)),
             ]),

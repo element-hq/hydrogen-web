@@ -67,11 +67,11 @@ function renderEnableFieldRow(t, vm, label, callback) {
 }
 
 function renderError(t) {
-    return t.if(vm => vm.error, t.createTemplate((t, vm) => {
+    return t.if(vm => vm.error, (t, vm) => {
         return t.div([
             t.p({className: "error"}, vm => vm.i18n`Could not enable session backup: ${vm.error}.`),
             t.p(vm.i18n`Try double checking that you did not mix up your security key, security phrase and login password as explained above.`)
         ])
-    }));
+    });
 }
 
