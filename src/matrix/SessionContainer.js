@@ -25,12 +25,6 @@ import {HomeServerError, ConnectionError, AbortError} from "./error.js";
 import {Sync, SyncStatus} from "./Sync.js";
 import {Session} from "./Session.js";
 
-/**
- * @typedef loginFlow
- * @type {Object}
- * @property {String} type - The login type. This is supplied as the type when logging in.
- */
-
 export const LoadStatus = createEnum(
     "NotLoading",
     "Login",
@@ -50,7 +44,7 @@ export const LoginFailure = createEnum(
 );
 
 export class SessionContainer {
-    constructor({ platform, olmPromise, workerPromise }) {
+    constructor({platform, olmPromise, workerPromise}) {
         this._platform = platform;
         this._sessionStartedByReconnector = false;
         this._status = new ObservableValue(LoadStatus.NotLoading);
@@ -67,9 +61,7 @@ export class SessionContainer {
     }
 
     createNewSessionId() {
-        return Math.floor(
-            this._platform.random() * Number.MAX_SAFE_INTEGER
-        ).toString();
+        return (Math.floor(this._platform.random() * Number.MAX_SAFE_INTEGER)).toString();
     }
 
     get sessionId() {
@@ -81,12 +73,10 @@ export class SessionContainer {
             return;
         }
         this._status.set(LoadStatus.Loading);
-        await this._platform.logger.run("load session", async (log) => {
+        await this._platform.logger.run("load session", async log => {
             log.set("id", sessionId);
             try {
-                const sessionInfo = await this._platform.sessionInfoStorage.get(
-                    sessionId
-                );
+                const sessionInfo = await this._platform.sessionInfoStorage.get(sessionId);
                 if (!sessionInfo) {
                     throw new Error("Invalid session id: " + sessionId);
                 }
@@ -104,20 +94,14 @@ export class SessionContainer {
         if (this._status.get() !== LoadStatus.NotLoading) {
             return;
         }
-        await this._platform.logger.run("login", async (log) => {
+        await this._platform.logger.run("login", async log => {
             this._status.set(LoadStatus.Login);
             const clock = this._platform.clock;
             let sessionInfo;
             try {
                 const request = this._platform.request;
-                const hsApi = new HomeServerApi({
-                    homeServer,
-                    request,
-                    createTimeout: clock.createTimeout,
-                });
-                const loginData = await hsApi
-                    .passwordLogin(username, password, "Hydrogen", { log })
-                    .response();
+                const hsApi = new HomeServerApi({homeServer, request, createTimeout: clock.createTimeout});
+                const loginData = await hsApi.passwordLogin(username, password, "Hydrogen", {log}).response();
                 // TODO: Add SSO
                 const sessionId = this.createNewSessionId();
                 sessionInfo = {
@@ -126,10 +110,10 @@ export class SessionContainer {
                     userId: loginData.user_id,
                     homeServer: homeServer,
                     accessToken: loginData.access_token,
-                    lastUsed: clock.now(),
+                    lastUsed: clock.now()
                 };
                 log.set("id", sessionId);
-                await this._platform.sessionInfoStorage.add(sessionInfo);
+                await this._platform.sessionInfoStorage.add(sessionInfo);            
             } catch (err) {
                 this._error = err;
                 if (err instanceof HomeServerError) {
@@ -170,19 +154,17 @@ export class SessionContainer {
         this._reconnector = new Reconnector({
             onlineStatus: this._platform.onlineStatus,
             retryDelay: new ExponentialRetryDelay(clock.createTimeout),
-            createMeasure: clock.createMeasure,
+            createMeasure: clock.createMeasure
         });
         const hsApi = new HomeServerApi({
             homeServer: sessionInfo.homeServer,
             accessToken: sessionInfo.accessToken,
             request: this._platform.request,
             reconnector: this._reconnector,
-            createTimeout: clock.createTimeout,
+            createTimeout: clock.createTimeout
         });
         this._sessionId = sessionInfo.id;
-        this._storage = await this._platform.storageFactory.create(
-            sessionInfo.id
-        );
+        this._storage = await this._platform.storageFactory.create(sessionInfo.id);
         // no need to pass access token to session
         const filteredSessionInfo = {
             deviceId: sessionInfo.deviceId,
@@ -194,7 +176,7 @@ export class SessionContainer {
         if (this._workerPromise) {
             olmWorker = await this._workerPromise;
         }
-        this._requestScheduler = new RequestScheduler({ hsApi, clock });
+        this._requestScheduler = new RequestScheduler({hsApi, clock});
         this._requestScheduler.start();
         const mediaRepository = new MediaRepository({
             homeServer: sessionInfo.homeServer,
@@ -212,39 +194,22 @@ export class SessionContainer {
         await this._session.load(log);
         if (isNewLogin) {
             this._status.set(LoadStatus.SessionSetup);
-            await log.wrap("createIdentity", (log) =>
-                this._session.createIdentity(log)
-            );
+            await log.wrap("createIdentity", log => this._session.createIdentity(log));
         }
-
-        this._sync = new Sync({
-            hsApi: this._requestScheduler.hsApi,
-            storage: this._storage,
-            session: this._session,
-            logger: this._platform.logger,
-        });
+        
+        this._sync = new Sync({hsApi: this._requestScheduler.hsApi, storage: this._storage, session: this._session, logger: this._platform.logger});
         // notify sync and session when back online
-        this._reconnectSubscription = this._reconnector.connectionStatus.subscribe(
-            (state) => {
-                if (state === ConnectionStatus.Online) {
-                    this._platform.logger.runDetached(
-                        "reconnect",
-                        async (log) => {
-                            // needs to happen before sync and session or it would abort all requests
-                            this._requestScheduler.start();
-                            this._sync.start();
-                            this._sessionStartedByReconnector = true;
-                            await log.wrap("session start", (log) =>
-                                this._session.start(
-                                    this._reconnector.lastVersionsResponse,
-                                    log
-                                )
-                            );
-                        }
-                    );
-                }
+        this._reconnectSubscription = this._reconnector.connectionStatus.subscribe(state => {
+            if (state === ConnectionStatus.Online) {
+                this._platform.logger.runDetached("reconnect", async log => {
+                    // needs to happen before sync and session or it would abort all requests
+                    this._requestScheduler.start();
+                    this._sync.start();
+                    this._sessionStartedByReconnector = true;
+                    await log.wrap("session start", log => this._session.start(this._reconnector.lastVersionsResponse, log));
+                });
             }
-        );
+        });
         await log.wrap("wait first sync", () => this._waitForFirstSync());
 
         this._status.set(LoadStatus.Ready);
@@ -254,13 +219,9 @@ export class SessionContainer {
         // started to session, so check first
         // to prevent an extra /versions request
         if (!this._sessionStartedByReconnector) {
-            const lastVersionsResponse = await hsApi
-                .versions({ timeout: 10000, log })
-                .response();
+            const lastVersionsResponse = await hsApi.versions({timeout: 10000, log}).response();
             // log as ref as we don't want to await it
-            await log.wrap("session start", (log) =>
-                this._session.start(lastVersionsResponse, log)
-            );
+            await log.wrap("session start", log => this._session.start(lastVersionsResponse, log));
         }
     }
 
@@ -270,16 +231,14 @@ export class SessionContainer {
             this._status.set(LoadStatus.FirstSync);
         } catch (err) {
             // swallow ConnectionError here and continue,
-            // as the reconnector above will call
+            // as the reconnector above will call 
             // sync.start again to retry in this case
             if (!(err instanceof ConnectionError)) {
                 throw err;
             }
         }
         // only transition into Ready once the first sync has succeeded
-        this._waitForFirstSyncHandle = this._sync.status.waitFor(
-            (s) => s === SyncStatus.Syncing || s === SyncStatus.Stopped
-        );
+        this._waitForFirstSyncHandle = this._sync.status.waitFor(s => s === SyncStatus.Syncing || s === SyncStatus.Stopped);
         try {
             await this._waitForFirstSyncHandle.promise;
             if (this._sync.status.get() === SyncStatus.Stopped) {
@@ -295,6 +254,7 @@ export class SessionContainer {
             this._waitForFirstSyncHandle = null;
         }
     }
+
 
     get loadStatus() {
         return this._status;
@@ -352,21 +312,5 @@ export class SessionContainer {
             ]);
             this._sessionId = null;
         }
-    }
-
-    /**
-     * This will getting the supported
-     * @param {String} homeServer
-     * @returns {Promise<Array<loginFlow>>}
-     */
-    async requestSupportedLoginFlows(homeServer) {
-        const request = this._platform.request;
-        const clock = this._platform.clock;
-        const hsApi = new HomeServerApi({
-            homeServer,
-            request,
-            createTimeout: clock.createTimeout,
-        });
-        return await hsApi.getSupportedLoginMethods().response();
     }
 }
