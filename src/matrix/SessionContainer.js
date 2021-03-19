@@ -25,6 +25,12 @@ import {HomeServerError, ConnectionError, AbortError} from "./error.js";
 import {Sync, SyncStatus} from "./Sync.js";
 import {Session} from "./Session.js";
 
+/**
+ * @typedef loginFlow
+ * @type {Object}
+ * @property {String} type - The login type. This is supplied as the type when logging in.
+ */
+
 export const LoadStatus = createEnum(
     "NotLoading",
     "Login",
@@ -312,5 +318,21 @@ export class SessionContainer {
             ]);
             this._sessionId = null;
         }
+    }
+
+    /**
+     * This will getting the supported
+     * @param {String} homeServer
+     * @returns {Promise<Array<loginFlow>>}
+     */
+    async requestSupportedLoginFlows(homeServer) {
+        const request = this._platform.request;
+        const clock = this._platform.clock;
+        const hsApi = new HomeServerApi({
+            homeServer,
+            request,
+            createTimeout: clock.createTimeout,
+        });
+        return await hsApi.getSupportedLoginMethods().response();
     }
 }

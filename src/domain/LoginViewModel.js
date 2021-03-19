@@ -72,6 +72,15 @@ export class LoginViewModel extends ViewModel {
         }));
     }
 
+    async requestSupportedLoginFlows(homeServer = this.defaultHomeServer) {
+        try {
+            this._supportedLoginFlows =
+                await this._sessionContainer.requestSupportedLoginFlows(homeServer);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
     get cancelUrl() {
         return this.urlCreator.urlForSegment("session");
     }
