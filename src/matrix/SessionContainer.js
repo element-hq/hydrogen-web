@@ -41,6 +41,7 @@ export const LoadStatus = createEnum(
     "FirstSync",
     "Error",
     "Ready",
+    "LoginFlowsLoaded"
 );
 
 export const LoginFailure = createEnum(
@@ -64,6 +65,7 @@ export class SessionContainer {
         this._requestScheduler = null;
         this._olmPromise = olmPromise;
         this._workerPromise = workerPromise;
+        this._supportedLoginFlows = {};
     }
 
     createNewSessionId() {
@@ -94,6 +96,10 @@ export class SessionContainer {
                 this._status.set(LoadStatus.Error);
             }
         });
+    }
+
+    get supportedLoginFlows () {
+        return this._supportedLoginFlows;
     }
 
     async startWithLogin(homeServer, username, password) {
@@ -326,13 +332,20 @@ export class SessionContainer {
      * @returns {Promise<Array<loginFlow>>}
      */
     async requestSupportedLoginFlows(homeServer) {
-        const request = this._platform.request;
-        const clock = this._platform.clock;
-        const hsApi = new HomeServerApi({
-            homeServer,
-            request,
-            createTimeout: clock.createTimeout,
-        });
-        return await hsApi.getSupportedLoginMethods().response();
+        try {
+            const request = this._platform.request;
+            const clock = this._platform.clock;
+            const hsApi = new HomeServerApi({
+                homeServer,
+                request,
+                createTimeout: clock.createTimeout,
+            });
+            this._supportedLoginFlows =  await hsApi.getSupportedLoginMethods().response();
+            this._status.set(LoadStatus.LoginFlowsLoaded);
+        } catch (err) {
+            this._error = new Error('This home serve URL is not valid');
+            console.error(err);
+            this._status.set(LoadStatus.Error);
+        }
     }
 }

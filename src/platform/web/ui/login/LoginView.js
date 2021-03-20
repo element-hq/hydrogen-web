@@ -38,7 +38,8 @@ export class LoginView extends TemplateView {
             type: "url",
             placeholder: vm.i18n`Your matrix homeserver`,
             value: vm.defaultHomeServer,
-            disabled
+            onchange: (event) => vm.onHomeServerUrlChanged(event.target.value),
+            disabled,
         });
 
         return t.div({ className: "PreSessionScreen" }, [
@@ -47,9 +48,7 @@ export class LoginView extends TemplateView {
                 t.h1([vm.i18n`Sign In`]),
                 t.if(
                     (vm) => vm.error,
-                    t.createTemplate((t) =>
-                        t.div({ className: "error" }, (vm) => vm.error)
-                    )
+                    t.div({ className: "error" }, (vm) => vm.error)
                 ),
                 t.form(
                     {
@@ -117,7 +116,6 @@ export class LoginView extends TemplateView {
                         ]),
                     ]
                 ),
-
                 // use t.mapView rather than t.if to create a new view when the view model changes too
                 t.p(hydrogenGithubLink(t)),
             ]),

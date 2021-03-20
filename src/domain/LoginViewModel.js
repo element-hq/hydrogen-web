@@ -27,6 +27,7 @@ export class LoginViewModel extends ViewModel {
         this._sessionContainer = null;
         this._loadViewModel = null;
         this._loadViewModelSubscription = null;
+        this._supportedLoginFlows = {};
     }
 
     get defaultHomeServer() { return this._defaultHomeServer; }
@@ -41,8 +42,12 @@ export class LoginViewModel extends ViewModel {
         }
     }
 
+    get supportedLoginFlows () {
+        return this._supportedLoginFlows;
+    }
+
     // TODO: Rename this function to usernamePasswordLogin
-    //  to be obvious this function is for login by use name and password method
+    //  to be obvious this function is for login by use name and password login flow
 
     async login(username, password, homeserver) {
         this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
@@ -64,21 +69,16 @@ export class LoginViewModel extends ViewModel {
         }));
         this._loadViewModel.start();
         this.emitChange("loadViewModel");
-        this._loadViewModelSubscription = this.track(this._loadViewModel.disposableOn("change", () => {
-            if (!this._loadViewModel.loading) {
-                this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
-            }
-            this.emitChange("isBusy");
-        }));
+        this._loadViewModelSubscription = this._trackLoadViewModelChange();
     }
 
-    async requestSupportedLoginFlows(homeServer = this.defaultHomeServer) {
-        try {
-            this._supportedLoginFlows =
-                await this._sessionContainer.requestSupportedLoginFlows(homeServer);
-        } catch (error) {
-            console.error(error);
-        }
+    /**
+     * Changes the current home-server URL
+     * @param {String} homeServer
+     */
+    onHomeServerUrlChanged (homeServer) {
+        this._defaultHomeServer = homeServer;
+        this._requestLoginFlows(homeServer);
     }
 
     get cancelUrl() {
@@ -93,4 +93,47 @@ export class LoginViewModel extends ViewModel {
             this._sessionContainer.deleteSession();
         }
     }
+
+    /**
+     * This function will track change event into the loadViewModal,
+     * and then handle it by emitChange (isBusy) in this model view
+     * @returns {Object} the load view model subscription
+     */
+    _trackLoadViewModelChange () {
+        const  _onchangeHandler = () => {
+            if (!this._loadViewModel.loading) {
+                this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
+            }
+            this.emitChange("isBusy");
+        }
+
+        return this.track(this._loadViewModel.disposableOn("change", _onchangeHandler));
+    }
+
+    /**
+     * This function requests the login flows from _sessionContainer using SessionLoadViewModel
+     * @param {String} homeServer - the homeserver url
+     */
+    _requestLoginFlows (homeServer) {
+        this._loadViewModel  = this.track(new SessionLoadViewModel({
+            createAndStartSessionContainer: () => {
+                this._sessionContainer = this._createSessionContainer();
+                this._sessionContainer.requestSupportedLoginFlows(homeServer);
+                return this._sessionContainer;
+            },
+            ready: sessionContainer => {
+                this._sessionContainer = null;
+                this._mapLoginView (sessionContainer.supportedLoginFlows);
+            },
+            homeServer,
+        }));
+        this._loadViewModel.start();
+        this.emitChange("loadViewModel");
+        this._loadViewModelSubscription = this._trackLoadViewModelChange();
+    }
+
+    _mapLoginView(loginFlows) {
+        // TODO: map view based on the loginFlows.
+    }
+
 }

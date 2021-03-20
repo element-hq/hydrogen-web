@@ -46,14 +46,15 @@ export class SessionLoadViewModel extends ViewModel {
                 return isCatchupSync ||
                     s === LoadStatus.LoginFailed ||
                     s === LoadStatus.Error ||
-                    s === LoadStatus.Ready;
+                    s === LoadStatus.Ready ||
+                    s === LoadStatus.LoginFlowsLoaded;
             });
             try {
                 await this._waitHandle.promise;
             } catch (err) {
                 return; // aborted by goBack
             }
-            // TODO: should we deal with no connection during initial sync 
+            // TODO: should we deal with no connection during initial sync
             // and we're retrying as well here?
             // e.g. show in the label what is going on wrt connectionstatus
             // much like we will once you are in the app. Probably a good idea
@@ -61,13 +62,15 @@ export class SessionLoadViewModel extends ViewModel {
             // did it finish or get stuck at LoginFailed or Error?
             const loadStatus = this._sessionContainer.loadStatus.get();
             const loadError = this._sessionContainer.loadError;
-            if (loadStatus === LoadStatus.FirstSync || loadStatus === LoadStatus.Ready) {
+            const isReady =
+                loadStatus === LoadStatus.FirstSync ||
+                loadStatus === LoadStatus.Ready ||
+                loadStatus === LoadStatus.LoginFlowsLoaded;
+            if (isReady) {
                 const sessionContainer = this._sessionContainer;
-                // session container is ready,
-                // don't dispose it anymore when 
-                // we get disposed
-                this._sessionContainer = null;
+
                 this._ready(sessionContainer);
+                this.emitChange("loadLabel");
             }
             if (loadError) {
                 console.error("session load error", loadError);
@@ -79,6 +82,11 @@ export class SessionLoadViewModel extends ViewModel {
             this._loading = false;
             // loadLabel in case of sc.loadError also gets updated through this
             this.emitChange("loading");
+
+            // session container is ready,
+            // don't dispose it anymore when
+            // we get disposed
+            this._sessionContainer = null;
         }
     }
 
@@ -130,11 +138,12 @@ export class SessionLoadViewModel extends ViewModel {
                     return `Loading your conversations…`;
                 case LoadStatus.FirstSync:
                     return `Getting your conversations from the server…`;
+                case LoadStatus.LoginFlowsLoaded:
+                    return `Now You Can login`;
                 default:
                     return this._sessionContainer.loadStatus.get();
             }
         }
-
         return `Preparing…`;
     }
 }
