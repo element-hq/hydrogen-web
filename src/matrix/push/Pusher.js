@@ -21,6 +21,12 @@ export class Pusher {
     }
 
     async enable(hsApi, log) {
+        try {
+            let endpointDomain = new URL(this._description.data.endpoint).host;
+            log.set("endpoint", endpointDomain);
+        } catch {
+            log.set("endpoint", null);
+        }
         await hsApi.setPusher(this._description, {log}).response();
     }
 
