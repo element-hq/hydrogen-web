@@ -1,0 +1,7 @@
+{
+  "push": {
+    "appId": "io.element.hydrogen.web",
+    "gatewayUrl": "https://matrix.org",
+    "applicationServerKey": "tbc"
+  }
+}

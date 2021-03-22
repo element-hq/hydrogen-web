@@ -79,6 +79,7 @@ async function build({modernOnly}) {
         await assets.write(`worker.js`, await buildJsLegacy("src/platform/web/worker/main.js", ['src/platform/web/worker/polyfill.js']));
     }
     // copy over non-theme assets
+    const baseConfig = JSON.parse(await fs.readFile(path.join(projectDir, "assets/config.json"), {encoding: "utf8"}));
     const downloadSandbox = "download-sandbox.html";
     let downloadSandboxHtml = await fs.readFile(path.join(projectDir, `assets/${downloadSandbox}`));
     await assets.write(downloadSandbox, downloadSandboxHtml);
@@ -95,7 +96,7 @@ async function build({modernOnly}) {
     const globalHash = assets.hashForAll();
 
     await buildServiceWorker(swSource, version, globalHash, assets);
-    await buildHtml(doc, version, globalHash, modernOnly, assets);
+    await buildHtml(doc, version, baseConfig, globalHash, modernOnly, assets);
     console.log(`built hydrogen ${version} (${globalHash}) successfully with ${assets.size} files`);
 }
 
@@ -135,7 +136,7 @@ async function copyThemeAssets(themes, assets) {
     return assets;
 }
 
-async function buildHtml(doc, version, globalHash, modernOnly, assets) {
+async function buildHtml(doc, version, baseConfig, globalHash, modernOnly, assets) {
     // transform html file
     // change path to main.css to css bundle
     doc("link[rel=stylesheet]:not([title])").attr("href", assets.resolve(`hydrogen.css`));
@@ -145,7 +146,7 @@ async function buildHtml(doc, version, globalHash, modernOnly, assets) {
     findThemes(doc, (themeName, theme) => {
         theme.attr("href", assets.resolve(`themes/${themeName}/bundle.css`));
     });
-    const pathsJSON = JSON.stringify({
+    const configJSON = JSON.stringify(Object.assign({}, baseConfig, {
         worker: assets.has("worker.js") ? assets.resolve(`worker.js`) : null,
         downloadSandbox: assets.resolve("download-sandbox.html"),
         serviceWorker: "sw.js",
@@ -154,14 +155,14 @@ async function buildHtml(doc, version, globalHash, modernOnly, assets) {
             legacyBundle: assets.resolve("olm_legacy.js"),
             wasmBundle: assets.resolve("olm.js"),
         }
-    });
+    }));
     const mainScripts = [
-        `<script type="module">import {main, Platform} from "./${assets.resolve(`hydrogen.js`)}"; main(new Platform(document.body, ${pathsJSON}));</script>`
+        `<script type="module">import {main, Platform} from "./${assets.resolve(`hydrogen.js`)}"; main(new Platform(document.body, ${configJSON}));</script>`
     ];
     if (!modernOnly) {
         mainScripts.push(
             `<script type="text/javascript" nomodule src="${assets.resolve(`hydrogen-legacy.js`)}"></script>`,
-            `<script type="text/javascript" nomodule>hydrogen.main(new hydrogen.Platform(document.body, ${pathsJSON}));</script>`
+            `<script type="text/javascript" nomodule>hydrogen.main(new hydrogen.Platform(document.body, ${configJSON}));</script>`
         );
     }
     doc("script#main").replaceWith(mainScripts.join(""));
