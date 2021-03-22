@@ -45,7 +45,7 @@ export class NotificationService {
 
     async disablePush() {
         const registration = await this._serviceWorkerHandler?.getRegistration();
-        if (this.registration?.pushManager) {
+        if (registration?.pushManager) {
             const subscription = await registration.pushManager.getSubscription();
             if (subscription) {
                 await subscription.unsubscribe();
@@ -55,7 +55,7 @@ export class NotificationService {
 
     async isPushEnabled() {
         const registration = await this._serviceWorkerHandler?.getRegistration();
-        if (this.registration?.pushManager) {
+        if (registration?.pushManager) {
             const subscription = await registration.pushManager.getSubscription();
             return !!subscription;
         }
