@@ -117,6 +117,9 @@ main {
     left: 0;
     right: 0;
     z-index: 1;
+    /* Safari requires an explicit height on the container to prevent picture content from collapsing */
+    box-sizing: border-box;
+    height: 100%;
 }
 
 .TimelinePanel {
