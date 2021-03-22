@@ -515,7 +515,7 @@ export class Session {
     }
 
     async arePushNotificationsEnabled() {
-        if (await this._platform.notificationService.isPushEnabled()) {
+        if (!await this._platform.notificationService.isPushEnabled()) {
             return false;
         }
         const readTxn = await this._storage.readTxn([this._storage.storeNames.session]);
