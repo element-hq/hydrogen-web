@@ -90,7 +90,7 @@ async function build({modernOnly}) {
     await buildManifest(assets);
     // all assets have been added, create a hash from all assets name to cache unhashed files like index.html
     assets.addToHashForAll("index.html", devHtml);
-    let swSource = await fs.readFile(path.join(projectDir, "src/platform/web/service-worker.template.js"), "utf8");
+    let swSource = await fs.readFile(path.join(projectDir, "src/platform/web/service-worker.js"), "utf8");
     assets.addToHashForAll("sw.js", swSource);
     
     const globalHash = assets.hashForAll();
