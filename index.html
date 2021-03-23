@@ -23,8 +23,8 @@
             import {Platform} from "./src/platform/web/Platform.js";
             main(new Platform(document.body, {
                 worker: "src/worker.js",
-                downloadSandbox: "assets/download-sandbox.html", 
-                // ln -s src/platform/web/service-worker.template.js sw.js
+                downloadSandbox: "assets/download-sandbox.html",
+                // NOTE: uncomment this if you want the service worker for local development
                 // serviceWorker: "sw.js",
                 // push: {
                 //     appId: "io.element.hydrogen.web",

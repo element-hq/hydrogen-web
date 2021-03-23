@@ -270,12 +270,21 @@ async function buildServiceWorker(swSource, version, globalHash, assets) {
             hashedCachedOnRequestAssets.push(resolved);
         }
     }
+
+    const replaceArrayInSource = (name, value) => {
+        const newSource = swSource.replace(`${name} = []`, `${name} = ${JSON.stringify(value)}`);
+        if (newSource === swSource) {
+            throw new Error(`${name} was not found in the service worker source`);
+        }
+        return newSource;
+    };
+
     // write service worker
     swSource = swSource.replace(`"%%VERSION%%"`, `"${version}"`);
     swSource = swSource.replace(`"%%GLOBAL_HASH%%"`, `"${globalHash}"`);
-    swSource = swSource.replace(`"%%UNHASHED_PRECACHED_ASSETS%%"`, JSON.stringify(unhashedPreCachedAssets));
-    swSource = swSource.replace(`"%%HASHED_PRECACHED_ASSETS%%"`, JSON.stringify(hashedPreCachedAssets));
-    swSource = swSource.replace(`"%%HASHED_CACHED_ON_REQUEST_ASSETS%%"`, JSON.stringify(hashedCachedOnRequestAssets));
+    swSource = replaceArrayInSource("UNHASHED_PRECACHED_ASSETS", unhashedPreCachedAssets);
+    swSource = replaceArrayInSource("HASHED_PRECACHED_ASSETS", hashedPreCachedAssets);
+    swSource = replaceArrayInSource("HASHED_CACHED_ON_REQUEST_ASSETS", hashedCachedOnRequestAssets);
     // service worker should not have a hashed name as it is polled by the browser for updates
     await assets.writeUnhashed("sw.js", swSource);
 }

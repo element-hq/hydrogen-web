@@ -17,9 +17,9 @@ limitations under the License.
 
 const VERSION = "%%VERSION%%";
 const GLOBAL_HASH = "%%GLOBAL_HASH%%";
-const UNHASHED_PRECACHED_ASSETS = "%%UNHASHED_PRECACHED_ASSETS%%";
-const HASHED_PRECACHED_ASSETS = "%%HASHED_PRECACHED_ASSETS%%";
-const HASHED_CACHED_ON_REQUEST_ASSETS = "%%HASHED_CACHED_ON_REQUEST_ASSETS%%";
+const UNHASHED_PRECACHED_ASSETS = [];
+const HASHED_PRECACHED_ASSETS = [];
+const HASHED_CACHED_ON_REQUEST_ASSETS = [];
 const unhashedCacheName = `hydrogen-assets-${GLOBAL_HASH}`;
 const hashedCacheName = `hydrogen-assets`;
 const mediaThumbnailCacheName = `hydrogen-media-thumbnails-v2`;
