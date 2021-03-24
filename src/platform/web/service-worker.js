@@ -189,23 +189,24 @@ const NOTIF_TAG_MESSAGES_READ = "messages_read";
 const NOTIF_TAG_NEW_MESSAGE = "new_message";
 
 async function openClientFromNotif(event) {
-    const clientList = await self.clients.matchAll({type: "window"});
+    if (event.notification.tag !== NOTIF_TAG_NEW_MESSAGE) {
+        return;
+    }
     const {sessionId, roomId} = event.notification.data;
     const sessionHash = `#/session/${sessionId}`;
     const roomHash = `${sessionHash}/room/${roomId}`;
     const roomURL = `/${roomHash}`;
-    for (let i = 0; i < clientList.length; i++) {
-        const client = clientList[i];
-        const url = new URL(client.url, baseURL);
-        if (url.hash.startsWith(sessionHash)) {
-            client.navigate(roomURL);
-            if ('focus' in client) {
-                await client.focus();
-            }
-            return;
+    const clientWithSession = await findClient(async client => {
+        return await sendAndWaitForReply(client, "hasSessionOpen", {sessionId});
+    });
+    if (clientWithSession) {
+        console.log("notificationclick: client has session open, showing room there");
+        clientWithSession.navigate(roomURL);
+        if ('focus' in clientWithSession) {
+            await clientWithSession.focus();
         }
-    }
-    if (self.clients.openWindow) {
+    } else if (self.client.openWindow) {
+        console.log("notificationclick: no client found with session open, opening new window");
         await self.clients.openWindow(roomURL);
     }
 }
