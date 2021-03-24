@@ -104,7 +104,7 @@ export class SessionLoadViewModel extends ViewModel {
         const sc = this._sessionContainer;
         const error = this._error || (sc && sc.loadError);
 
-        if (error || (sc && sc.loadStatus.get() === LoadStatus.Error)) {
+        if ((sc && sc.loadStatus.get() === LoadStatus.Error && !Object.values(LoadStatus).includes(sc.loadStatus.get()))) {
             return `Something went wrong: ${error && error.message}.`;
         }
 
