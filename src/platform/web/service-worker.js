@@ -20,6 +20,7 @@ const GLOBAL_HASH = "%%GLOBAL_HASH%%";
 const UNHASHED_PRECACHED_ASSETS = [];
 const HASHED_PRECACHED_ASSETS = [];
 const HASHED_CACHED_ON_REQUEST_ASSETS = [];
+const NOTIFICATION_BADGE_ICON = "assets/icon.png";
 const unhashedCacheName = `hydrogen-assets-${GLOBAL_HASH}`;
 const hashedCacheName = `hydrogen-assets`;
 const mediaThumbnailCacheName = `hydrogen-media-thumbnails-v2`;
@@ -261,6 +262,7 @@ async function handlePushNotification(n) {
             body,
             data: {sessionId, roomId},
             tag: NOTIF_TAG_NEW_MESSAGE
+            badge: NOTIFICATION_BADGE_ICON
         });
     } else if (n.unread === 0) {
         // hide the notifs
