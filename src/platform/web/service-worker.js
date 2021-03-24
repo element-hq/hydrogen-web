@@ -185,6 +185,9 @@ self.addEventListener('message', (event) => {
     }
 });
 
+const NOTIF_TAG_MESSAGES_READ = "messages_read";
+const NOTIF_TAG_NEW_MESSAGE = "new_message";
+
 async function openClientFromNotif(event) {
     const clientList = await self.clients.matchAll({type: "window"});
     const {sessionId, roomId} = event.notification.data;
@@ -212,11 +215,32 @@ self.addEventListener('notificationclick', event => {
     event.waitUntil(openClientFromNotif(event));
 });
 
-self.addEventListener('push', event => {
-    const n = event.data.json();
+async function handlePushNotification(n) {
     console.log("got a push message", n);
+    const sessionId = n.session_id;
     let sender = n.sender_display_name || n.sender;
     if (sender && n.event_id) {
+        const clientList = await self.clients.matchAll({type: "window"});
+        const roomId = n.room_id;
+        const hasFocusedClientOnRoom = !!await findClient(async client => {
+            if (client.visibilityState === "visible" && client.focused) {
+                return await sendAndWaitForReply(client, "hasRoomOpen", {sessionId, roomId});
+            }
+        });
+        if (hasFocusedClientOnRoom) {
+            console.log("client is focused, room is open, don't show notif");
+            return;
+        }
+        for (const client of clientList) {
+            // if the app is open and focused, don't show a notif when looking at the room already
+            if (client.visibilityState === "visible" && client.focused) {
+                const isRoomOpen = await sendAndWaitForReply(client, "hasRoomOpen", {sessionId, roomId});
+                if (isRoomOpen) {
+                    console.log("client is focused, room is open, don't show notif");
+                    return;
+                }
+            }
+        }
         let label;
         if (n.room_name) {
             label = `${sender} wrote you in ${n.room_name}`;
@@ -224,14 +248,44 @@ self.addEventListener('push', event => {
             label = `${sender} wrote you`;
         }
         let body = n.content?.body;
-        self.registration.showNotification(label, {
+        // close any previous notifications for this room
+        const newMessageNotifs = Array.from(await self.registration.getNotifications({tag: NOTIF_TAG_NEW_MESSAGE}));
+        const notifsForRoom = newMessageNotifs.filter(n => n.data.roomId === roomId);
+        for (const notif of notifsForRoom) {
+            console.log("close previous notification for room");
+            notif.close();
+        }
+        console.log("showing new message notification");
+        await self.registration.showNotification(label, {
             body,
-            data: {
-                sessionId: n.session_id,
-                roomId: n.room_id,
-            }
+            data: {sessionId, roomId},
+            tag: NOTIF_TAG_NEW_MESSAGE
         });
+    } else if (n.unread === 0) {
+        // hide the notifs
+        console.log("unread=0, close all notifs");
+        const notifs = Array.from(await self.registration.getNotifications());
+        for (const notif of notifs) {
+            if (notif.tag !== NOTIF_TAG_MESSAGES_READ) {
+                notif.close();
+            }
+        }
+        const hasVisibleClient = !!await findClient(client => client.visibilityState === "visible");
+        // ensure we always show a notification when no client is visible, see https://goo.gl/yqv4Q4
+        if (!hasVisibleClient) {
+            const readNotifs = Array.from(await self.registration.getNotifications({tag: NOTIF_TAG_MESSAGES_READ}));
+            if (readNotifs.length === 0) {
+                await self.registration.showNotification("New messages that have since been read", {
+                    tag: NOTIF_TAG_MESSAGES_READ,
+                    data: {sessionId}
+                });
+            }
+        }
     }
+}
+
+self.addEventListener('push', event => {
+    event.waitUntil(handlePushNotification(event.data.json()));
 });
 
 async function closeSession(sessionId, requestingClientId) {
@@ -263,4 +317,13 @@ function sendAndWaitForReply(client, type, payload) {
     });
     client.postMessage({type, id, payload});
     return promise;
+}
+
+async function findClient(predicate) {
+    const clientList = await self.clients.matchAll({type: "window"});
+    for (const client of clientList) {
+        if (await predicate(client)) {
+            return client;
+        }
+    }
 }

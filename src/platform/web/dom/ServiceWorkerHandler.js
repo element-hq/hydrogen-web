@@ -60,7 +60,14 @@ export class ServiceWorkerHandler {
                 resolve(data.payload);
             }
         }
-        if (data.type === "closeSession") {
+        if (data.type === "hasSessionOpen") {
+            const hasOpen = this._navigation.observe("session").get() === data.payload.sessionId;
+            event.source.postMessage({replyTo: data.id, payload: hasOpen});
+        } else if (data.type === "hasRoomOpen") {
+            const hasSessionOpen = this._navigation.observe("session").get() === data.payload.sessionId;
+            const hasRoomOpen = this._navigation.observe("room").get() === data.payload.roomId;
+            event.source.postMessage({replyTo: data.id, payload: hasSessionOpen && hasRoomOpen});
+        } else if (data.type === "closeSession") {
             const {sessionId} = data.payload;
             this._closeSessionIfNeeded(sessionId).finally(() => {
                 event.source.postMessage({replyTo: data.id});
