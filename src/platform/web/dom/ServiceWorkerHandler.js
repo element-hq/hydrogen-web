@@ -94,7 +94,7 @@ export class ServiceWorkerHandler {
         if (document.hidden) {
             return;
         }
-        const version = await this._sendAndWaitForReply("version");
+        const version = await this._sendAndWaitForReply("version", null, this._registration.waiting);
         if (confirm(`Version ${version.version} (${version.buildHash}) is available. Reload to apply?`)) {
             // prevent any fetch requests from going to the service worker
             // from any client, so that it is not kept active
