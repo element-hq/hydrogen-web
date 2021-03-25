@@ -204,7 +204,9 @@ async function openClientFromNotif(event) {
         console.log("notificationclick: client has session open, showing room there");
         clientWithSession.navigate(roomURL);
         if ('focus' in clientWithSession) {
-            await clientWithSession.focus();
+            try {
+                await clientWithSession.focus();
+            } catch (err) { console.error(err); } // I've had this throw on me on Android
         }
     } else if (self.clients.openWindow) {
         console.log("notificationclick: no client found with session open, opening new window");
