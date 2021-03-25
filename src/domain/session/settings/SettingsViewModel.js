@@ -17,6 +17,14 @@ limitations under the License.
 import {ViewModel} from "../../ViewModel.js";
 import {SessionBackupViewModel} from "./SessionBackupViewModel.js";
 
+class PushNotificationStatus {
+    constructor() {
+        this.supported = null;
+        this.enabled = false;
+        this.updating = false;
+    }
+}
+
 function formatKey(key) {
     const partLength = 4;
     const partCount = Math.ceil(key.length / partLength);
@@ -40,6 +48,7 @@ export class SettingsViewModel extends ViewModel {
         this.sentImageSizeLimit = null;
         this.minSentImageSizeLimit = 400;
         this.maxSentImageSizeLimit = 4000;
+        this.pushNotifications = new PushNotificationStatus();
     }
 
     setSentImageSizeLimit(size) {
@@ -56,6 +65,8 @@ export class SettingsViewModel extends ViewModel {
     async load() {
         this._estimate = await this.platform.estimateStorageUsage();
         this.sentImageSizeLimit = await this.platform.settingsStorage.getInt("sentImageSizeLimit");
+        this.pushNotifications.supported = await this.platform.notificationService.supportsPush();
+        this.pushNotifications.enabled = await this._session.arePushNotificationsEnabled();
         this.emitChange("");
     }
 
@@ -114,6 +125,22 @@ export class SettingsViewModel extends ViewModel {
     async exportLogs() {
         const logExport = await this.logger.export();
         this.platform.saveFileAs(logExport.asBlob(), `hydrogen-logs-${this.platform.clock.now()}.json`);
+    }
+
+    async togglePushNotifications() {
+        this.pushNotifications.updating = true;
+        this.emitChange("pushNotifications.updating");
+        try {
+            if (await this._session.enablePushNotifications(!this.pushNotifications.enabled)) {
+                this.pushNotifications.enabled = !this.pushNotifications.enabled;
+                if (this.pushNotifications.enabled) {
+                    this.platform.notificationService.showNotification(this.i18n`Push notifications are now enabled`);
+                }
+            }
+        } finally {
+        this.pushNotifications.updating = false;
+            this.emitChange("pushNotifications.updating");
+        }
     }
 }
 

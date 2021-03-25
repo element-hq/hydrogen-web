@@ -60,7 +60,14 @@ export class ServiceWorkerHandler {
                 resolve(data.payload);
             }
         }
-        if (data.type === "closeSession") {
+        if (data.type === "hasSessionOpen") {
+            const hasOpen = this._navigation.observe("session").get() === data.payload.sessionId;
+            event.source.postMessage({replyTo: data.id, payload: hasOpen});
+        } else if (data.type === "hasRoomOpen") {
+            const hasSessionOpen = this._navigation.observe("session").get() === data.payload.sessionId;
+            const hasRoomOpen = this._navigation.observe("room").get() === data.payload.roomId;
+            event.source.postMessage({replyTo: data.id, payload: hasSessionOpen && hasRoomOpen});
+        } else if (data.type === "closeSession") {
             const {sessionId} = data.payload;
             this._closeSessionIfNeeded(sessionId).finally(() => {
                 event.source.postMessage({replyTo: data.id});
@@ -94,7 +101,7 @@ export class ServiceWorkerHandler {
         if (document.hidden) {
             return;
         }
-        const version = await this._sendAndWaitForReply("version");
+        const version = await this._sendAndWaitForReply("version", null, this._registration.waiting);
         if (confirm(`Version ${version.version} (${version.buildHash}) is available. Reload to apply?`)) {
             // prevent any fetch requests from going to the service worker
             // from any client, so that it is not kept active
@@ -181,5 +188,12 @@ export class ServiceWorkerHandler {
 
     async preventConcurrentSessionAccess(sessionId) {
         return this._sendAndWaitForReply("closeSession", {sessionId});
+    }
+
+    async getRegistration() {
+        if (this._registrationPromise) {
+            await this._registrationPromise;
+        }
+        return this._registration;
     }
 }

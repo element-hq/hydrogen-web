@@ -17,9 +17,10 @@ limitations under the License.
 
 const VERSION = "%%VERSION%%";
 const GLOBAL_HASH = "%%GLOBAL_HASH%%";
-const UNHASHED_PRECACHED_ASSETS = "%%UNHASHED_PRECACHED_ASSETS%%";
-const HASHED_PRECACHED_ASSETS = "%%HASHED_PRECACHED_ASSETS%%";
-const HASHED_CACHED_ON_REQUEST_ASSETS = "%%HASHED_CACHED_ON_REQUEST_ASSETS%%";
+const UNHASHED_PRECACHED_ASSETS = [];
+const HASHED_PRECACHED_ASSETS = [];
+const HASHED_CACHED_ON_REQUEST_ASSETS = [];
+const NOTIFICATION_BADGE_ICON = "assets/icon.png";
 const unhashedCacheName = `hydrogen-assets-${GLOBAL_HASH}`;
 const hashedCacheName = `hydrogen-assets`;
 const mediaThumbnailCacheName = `hydrogen-media-thumbnails-v2`;
@@ -185,6 +186,107 @@ self.addEventListener('message', (event) => {
     }
 });
 
+const NOTIF_TAG_NEW_MESSAGE = "new_message";
+
+async function openClientFromNotif(event) {
+    if (event.notification.tag !== NOTIF_TAG_NEW_MESSAGE) {
+        console.log("clicked notif with tag", event.notification.tag);
+        return;
+    }
+    const {sessionId, roomId} = event.notification.data;
+    const sessionHash = `#/session/${sessionId}`;
+    const roomHash = `${sessionHash}/room/${roomId}`;
+    const roomURL = `/${roomHash}`;
+    const clientWithSession = await findClient(async client => {
+        return await sendAndWaitForReply(client, "hasSessionOpen", {sessionId});
+    });
+    if (clientWithSession) {
+        console.log("notificationclick: client has session open, showing room there");
+        clientWithSession.navigate(roomURL);
+        if ('focus' in clientWithSession) {
+            try {
+                await clientWithSession.focus();
+            } catch (err) { console.error(err); } // I've had this throw on me on Android
+        }
+    } else if (self.clients.openWindow) {
+        console.log("notificationclick: no client found with session open, opening new window");
+        await self.clients.openWindow(roomURL);
+    }
+}
+
+self.addEventListener('notificationclick', event => {
+    event.notification.close();
+    event.waitUntil(openClientFromNotif(event));
+});
+
+async function handlePushNotification(n) {
+    console.log("got a push message", n);
+    const sessionId = n.session_id;
+    let sender = n.sender_display_name || n.sender;
+    if (sender && n.event_id) {
+        const roomId = n.room_id;
+        const hasFocusedClientOnRoom = !!await findClient(async client => {
+            if (client.visibilityState === "visible" && client.focused) {
+                return await sendAndWaitForReply(client, "hasRoomOpen", {sessionId, roomId});
+            }
+        });
+        if (hasFocusedClientOnRoom) {
+            console.log("client is focused, room is open, don't show notif");
+            return;
+        }
+        const newMessageNotifs = Array.from(await self.registration.getNotifications({tag: NOTIF_TAG_NEW_MESSAGE}));
+        const notifsForRoom = newMessageNotifs.filter(n => n.data.roomId === roomId);
+        const nonMultiNotifsForRoom = newMessageNotifs.filter(n => !n.data.multi);
+        const roomName = n.room_name || n.room_alias;
+        const hasMultiNotification = notifsForRoom.some(n => n.data.multi);
+        let notifsToClose;
+        let multi = false;
+        let label;
+        let body;
+        if (hasMultiNotification) {
+            console.log("already have a multi message, don't do anything");
+            return;
+        } else if (nonMultiNotifsForRoom.length) {
+            notifsToClose = nonMultiNotifsForRoom;
+            console.log("showing multi message notification");
+            multi = true;
+            label = roomName || sender;
+            body = "New messages";
+        } else {
+            console.log("showing new message notification");
+            if (roomName && roomName !== sender) {
+                label = `${sender} in ${roomName}`;
+            } else {
+                label = sender;
+            }
+            body = n.content?.body || "New message";
+        }
+        await self.registration.showNotification(label, {
+            body,
+            data: {sessionId, roomId, multi},
+            tag: NOTIF_TAG_NEW_MESSAGE,
+            badge: NOTIFICATION_BADGE_ICON
+        });
+        // close any previous notifications for this room
+        // AFTER showing the new notification as on Android
+        // where we can only show 1 notification, this creates
+        // a smoother transition
+        if (notifsToClose) {
+            for (const notif of notifsToClose) {
+                console.log("close previous notification");
+                notif.close();
+            }
+        }
+    }
+    // we could consider hiding previous notifications here based on the unread count
+    // (although we can't really figure out which notifications to hide) and also hiding
+    // notifications makes it hard to ensure we always show a notification after a push message
+    // when no client is visible, see https://goo.gl/yqv4Q4
+}
+
+self.addEventListener('push', event => {
+    event.waitUntil(handlePushNotification(event.data.json()));
+});
 
 async function closeSession(sessionId, requestingClientId) {
     const clients = await self.clients.matchAll();
@@ -215,4 +317,13 @@ function sendAndWaitForReply(client, type, payload) {
     });
     client.postMessage({type, id, payload});
     return promise;
+}
+
+async function findClient(predicate) {
+    const clientList = await self.clients.matchAll({type: "window"});
+    for (const client of clientList) {
+        if (await predicate(client)) {
+            return client;
+        }
+    }
 }

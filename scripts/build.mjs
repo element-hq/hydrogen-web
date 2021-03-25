@@ -79,6 +79,7 @@ async function build({modernOnly}) {
         await assets.write(`worker.js`, await buildJsLegacy("src/platform/web/worker/main.js", ['src/platform/web/worker/polyfill.js']));
     }
     // copy over non-theme assets
+    const baseConfig = JSON.parse(await fs.readFile(path.join(projectDir, "assets/config.json"), {encoding: "utf8"}));
     const downloadSandbox = "download-sandbox.html";
     let downloadSandboxHtml = await fs.readFile(path.join(projectDir, `assets/${downloadSandbox}`));
     await assets.write(downloadSandbox, downloadSandboxHtml);
@@ -89,13 +90,13 @@ async function build({modernOnly}) {
     await buildManifest(assets);
     // all assets have been added, create a hash from all assets name to cache unhashed files like index.html
     assets.addToHashForAll("index.html", devHtml);
-    let swSource = await fs.readFile(path.join(projectDir, "src/platform/web/service-worker.template.js"), "utf8");
+    let swSource = await fs.readFile(path.join(projectDir, "src/platform/web/service-worker.js"), "utf8");
     assets.addToHashForAll("sw.js", swSource);
     
     const globalHash = assets.hashForAll();
 
     await buildServiceWorker(swSource, version, globalHash, assets);
-    await buildHtml(doc, version, globalHash, modernOnly, assets);
+    await buildHtml(doc, version, baseConfig, globalHash, modernOnly, assets);
     console.log(`built hydrogen ${version} (${globalHash}) successfully with ${assets.size} files`);
 }
 
@@ -135,7 +136,7 @@ async function copyThemeAssets(themes, assets) {
     return assets;
 }
 
-async function buildHtml(doc, version, globalHash, modernOnly, assets) {
+async function buildHtml(doc, version, baseConfig, globalHash, modernOnly, assets) {
     // transform html file
     // change path to main.css to css bundle
     doc("link[rel=stylesheet]:not([title])").attr("href", assets.resolve(`hydrogen.css`));
@@ -145,7 +146,7 @@ async function buildHtml(doc, version, globalHash, modernOnly, assets) {
     findThemes(doc, (themeName, theme) => {
         theme.attr("href", assets.resolve(`themes/${themeName}/bundle.css`));
     });
-    const pathsJSON = JSON.stringify({
+    const configJSON = JSON.stringify(Object.assign({}, baseConfig, {
         worker: assets.has("worker.js") ? assets.resolve(`worker.js`) : null,
         downloadSandbox: assets.resolve("download-sandbox.html"),
         serviceWorker: "sw.js",
@@ -154,14 +155,14 @@ async function buildHtml(doc, version, globalHash, modernOnly, assets) {
             legacyBundle: assets.resolve("olm_legacy.js"),
             wasmBundle: assets.resolve("olm.js"),
         }
-    });
+    }));
     const mainScripts = [
-        `<script type="module">import {main, Platform} from "./${assets.resolve(`hydrogen.js`)}"; main(new Platform(document.body, ${pathsJSON}));</script>`
+        `<script type="module">import {main, Platform} from "./${assets.resolve(`hydrogen.js`)}"; main(new Platform(document.body, ${configJSON}));</script>`
     ];
     if (!modernOnly) {
         mainScripts.push(
             `<script type="text/javascript" nomodule src="${assets.resolve(`hydrogen-legacy.js`)}"></script>`,
-            `<script type="text/javascript" nomodule>hydrogen.main(new hydrogen.Platform(document.body, ${pathsJSON}));</script>`
+            `<script type="text/javascript" nomodule>hydrogen.main(new hydrogen.Platform(document.body, ${configJSON}));</script>`
         );
     }
     doc("script#main").replaceWith(mainScripts.join(""));
@@ -269,12 +270,30 @@ async function buildServiceWorker(swSource, version, globalHash, assets) {
             hashedCachedOnRequestAssets.push(resolved);
         }
     }
+
+    const replaceArrayInSource = (name, value) => {
+        const newSource = swSource.replace(`${name} = []`, `${name} = ${JSON.stringify(value)}`);
+        if (newSource === swSource) {
+            throw new Error(`${name} was not found in the service worker source`);
+        }
+        return newSource;
+    };
+    const replaceStringInSource = (name, value) => {
+        const newSource = swSource.replace(new RegExp(`${name}\\s=\\s"[^"]*"`), `${name} = ${JSON.stringify(value)}`);
+        if (newSource === swSource) {
+            throw new Error(`${name} was not found in the service worker source`);
+        }
+        return newSource;
+    };
+
     // write service worker
     swSource = swSource.replace(`"%%VERSION%%"`, `"${version}"`);
     swSource = swSource.replace(`"%%GLOBAL_HASH%%"`, `"${globalHash}"`);
-    swSource = swSource.replace(`"%%UNHASHED_PRECACHED_ASSETS%%"`, JSON.stringify(unhashedPreCachedAssets));
-    swSource = swSource.replace(`"%%HASHED_PRECACHED_ASSETS%%"`, JSON.stringify(hashedPreCachedAssets));
-    swSource = swSource.replace(`"%%HASHED_CACHED_ON_REQUEST_ASSETS%%"`, JSON.stringify(hashedCachedOnRequestAssets));
+    swSource = replaceArrayInSource("UNHASHED_PRECACHED_ASSETS", unhashedPreCachedAssets);
+    swSource = replaceArrayInSource("HASHED_PRECACHED_ASSETS", hashedPreCachedAssets);
+    swSource = replaceArrayInSource("HASHED_CACHED_ON_REQUEST_ASSETS", hashedCachedOnRequestAssets);
+    swSource = replaceStringInSource("NOTIFICATION_BADGE_ICON", assets.resolve("icon.png"));
+
     // service worker should not have a hashed name as it is polled by the browser for updates
     await assets.writeUnhashed("sw.js", swSource);
 }

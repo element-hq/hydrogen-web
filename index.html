@@ -23,7 +23,12 @@
             import {Platform} from "./src/platform/web/Platform.js";
             main(new Platform(document.body, {
                 worker: "src/worker.js",
-                downloadSandbox: "assets/download-sandbox.html", 
+                downloadSandbox: "assets/download-sandbox.html",
+                // NOTE: uncomment this if you want the service worker for local development
+                // serviceWorker: "sw.js",
+                // NOTE: provide push config if you want push notifs for local development
+                //       see assets/config.json for what the config looks like
+                // push: {...},
                 olm: {
                     wasm: "lib/olm/olm.wasm",
                     legacyBundle: "lib/olm/olm_legacy.js",
