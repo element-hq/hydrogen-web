@@ -261,13 +261,16 @@ async function handlePushNotification(n) {
             }
             body = n.content?.body || "New message";
         }
-        // close any previous notifications for this room
         await self.registration.showNotification(label, {
             body,
             data: {sessionId, roomId, multi},
             tag: NOTIF_TAG_NEW_MESSAGE,
             badge: NOTIFICATION_BADGE_ICON
         });
+        // close any previous notifications for this room
+        // AFTER showing the new notification as on Android
+        // where we can only show 1 notification, this creates
+        // a smoother transition
         if (notifsToClose) {
             for (const notif of notifsToClose) {
                 console.log("close previous notification");
