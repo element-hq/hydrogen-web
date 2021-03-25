@@ -224,7 +224,6 @@ async function handlePushNotification(n) {
     const sessionId = n.session_id;
     let sender = n.sender_display_name || n.sender;
     if (sender && n.event_id) {
-        const clientList = await self.clients.matchAll({type: "window"});
         const roomId = n.room_id;
         const hasFocusedClientOnRoom = !!await findClient(async client => {
             if (client.visibilityState === "visible" && client.focused) {
@@ -234,16 +233,6 @@ async function handlePushNotification(n) {
         if (hasFocusedClientOnRoom) {
             console.log("client is focused, room is open, don't show notif");
             return;
-        }
-        for (const client of clientList) {
-            // if the app is open and focused, don't show a notif when looking at the room already
-            if (client.visibilityState === "visible" && client.focused) {
-                const isRoomOpen = await sendAndWaitForReply(client, "hasRoomOpen", {sessionId, roomId});
-                if (isRoomOpen) {
-                    console.log("client is focused, room is open, don't show notif");
-                    return;
-                }
-            }
         }
         let label;
         if (n.room_name) {
