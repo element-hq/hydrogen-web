@@ -50,12 +50,16 @@ const cssSrcDir = path.join(projectDir, "src/platform/web/ui/css/");
 const parameters = new commander.Command();
 parameters
     .option("--modern-only", "don't make a legacy build")
+    .option("--override-imports <json file>", "pass in a file to override import paths, see doc/SKINNING.md")
 parameters.parse(process.argv);
 
-async function build({modernOnly}) {
+async function build({modernOnly, overrideImports}) {
     // get version number
     const version = JSON.parse(await fs.readFile(path.join(projectDir, "package.json"), "utf8")).version;
-
+    let importOverridesMap;
+    if (overrideImports) {
+        importOverridesMap = await readImportOverrides(overrideImports);
+    }
     const devHtml = await fs.readFile(path.join(projectDir, "index.html"), "utf8");
     const doc = cheerio.load(devHtml);
     const themes = [];
@@ -70,12 +74,12 @@ async function build({modernOnly}) {
     // copy olm assets
     const olmAssets = await copyFolder(path.join(projectDir, "lib/olm/"), assets.directory);
     assets.addSubMap(olmAssets);
-    await assets.write(`hydrogen.js`, await buildJs("src/main.js", ["src/platform/web/Platform.js"]));
+    await assets.write(`hydrogen.js`, await buildJs("src/main.js", ["src/platform/web/Platform.js"], importOverridesMap));
     if (!modernOnly) {
         await assets.write(`hydrogen-legacy.js`, await buildJsLegacy("src/main.js", [
             'src/platform/web/legacy-polyfill.js',
             'src/platform/web/LegacyPlatform.js'
-        ]));
+        ], importOverridesMap));
         await assets.write(`worker.js`, await buildJsLegacy("src/platform/web/worker/main.js", ['src/platform/web/worker/polyfill.js']));
     }
     // copy over non-theme assets
@@ -177,11 +181,15 @@ async function buildHtml(doc, version, baseConfig, globalHash, modernOnly, asset
     await assets.writeUnhashed("index.html", doc.html());
 }
 
-async function buildJs(mainFile, extraFiles = []) {
+async function buildJs(mainFile, extraFiles, importOverrides) {
     // create js bundle
+    const plugins = [multi(), removeJsComments({comments: "none"})];
+    if (importOverrides) {
+        plugins.push(overridesAsRollupPlugin(importOverrides));
+    }
     const bundle = await rollup({
         input: extraFiles.concat(mainFile),
-        plugins: [multi(), removeJsComments({comments: "none"})]
+        plugins
     });
     const {output} = await bundle.generate({
         format: 'es',
@@ -192,7 +200,7 @@ async function buildJs(mainFile, extraFiles = []) {
     return code;
 }
 
-async function buildJsLegacy(mainFile, extraFiles = []) {
+async function buildJsLegacy(mainFile, extraFiles, importOverrides) {
     // compile down to whatever IE 11 needs
     const babelPlugin = babel.babel({
         babelHelpers: 'bundled',
@@ -212,13 +220,18 @@ async function buildJsLegacy(mainFile, extraFiles = []) {
             ]
         ]
     });
+    const plugins = [multi(), commonjs()];
+    if (importOverrides) {
+        plugins.push(overridesAsRollupPlugin(importOverrides));
+    }
+    plugins.push(nodeResolve(), babelPlugin);
     // create js bundle
     const rollupConfig = {
         // important the extraFiles come first,
         // so polyfills are available in the global scope
         // if needed for the mainfile
         input: extraFiles.concat(mainFile),
-        plugins: [multi(), commonjs(), nodeResolve(), babelPlugin]
+        plugins
     };
     const bundle = await rollup(rollupConfig);
     const {output} = await bundle.generate({
@@ -486,6 +499,39 @@ class AssetMap {
     addToHashForAll(resourcePath, content) {
         this._unhashedHashes.push(`${resourcePath}-${contentHash(Buffer.from(content))}`);
     }
+}
+
+async function readImportOverrides(filename) {
+    const json = await fs.readFile(filename, "utf8");
+    const mapping = new Map(Object.entries(JSON.parse(json)));
+    return {
+        basedir: path.dirname(path.resolve(filename))+path.sep,
+        mapping
+    };
+}
+
+function overridesAsRollupPlugin(importOverrides) {
+    const {mapping, basedir} = importOverrides;
+    return {
+        name: "rewrite-imports",
+        resolveId (source, importer) {
+            let file;
+            if (source.startsWith(path.sep)) {
+                file = source;
+            } else {
+                file = path.join(path.dirname(importer), source);
+            }
+            if (file.startsWith(basedir)) {
+                const searchPath = file.substr(basedir.length);
+                const replacingPath = mapping.get(searchPath);
+                if (replacingPath) {
+                    console.info(`replacing ${searchPath} with ${replacingPath}`);
+                    return path.join(basedir, replacingPath);
+                }
+            }
+            return null;
+        }
+    };
 }
 
 build(parameters).catch(err => console.error(err));
