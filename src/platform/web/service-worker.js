@@ -206,7 +206,7 @@ async function openClientFromNotif(event) {
         if ('focus' in clientWithSession) {
             await clientWithSession.focus();
         }
-    } else if (self.client.openWindow) {
+    } else if (self.clients.openWindow) {
         console.log("notificationclick: no client found with session open, opening new window");
         await self.clients.openWindow(roomURL);
     }
