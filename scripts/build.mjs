@@ -51,9 +51,10 @@ const parameters = new commander.Command();
 parameters
     .option("--modern-only", "don't make a legacy build")
     .option("--override-imports <json file>", "pass in a file to override import paths, see doc/SKINNING.md")
+    .option("--override-css <main css file>", "pass in an alternative main css file")
 parameters.parse(process.argv);
 
-async function build({modernOnly, overrideImports}) {
+async function build({modernOnly, overrideImports, overrideCss}) {
     // get version number
     const version = JSON.parse(await fs.readFile(path.join(projectDir, "package.json"), "utf8")).version;
     let importOverridesMap;
@@ -90,7 +91,7 @@ async function build({modernOnly, overrideImports}) {
     // creates the directories where the theme css bundles are placed in,
     // and writes to assets, so the build bundles can translate them, so do it first
     await copyThemeAssets(themes, assets);
-    await buildCssBundles(buildCssLegacy, themes, assets);
+    await buildCssBundles(buildCssLegacy, themes, assets, overrideCss);
     await buildManifest(assets);
     // all assets have been added, create a hash from all assets name to cache unhashed files like index.html
     assets.addToHashForAll("index.html", devHtml);
@@ -311,8 +312,11 @@ async function buildServiceWorker(swSource, version, globalHash, assets) {
     await assets.writeUnhashed("sw.js", swSource);
 }
 
-async function buildCssBundles(buildFn, themes, assets) {
-    const bundleCss = await buildFn(path.join(cssSrcDir, "main.css"));
+async function buildCssBundles(buildFn, themes, assets, mainCssFile = null) {
+    if (!mainCssFile) {
+        mainCssFile = path.join(cssSrcDir, "main.css");
+    }
+    const bundleCss = await buildFn(mainCssFile);
     await assets.write(`hydrogen.css`, bundleCss);
     for (const theme of themes) {
         const themeRelPath = `themes/${theme}/`;
