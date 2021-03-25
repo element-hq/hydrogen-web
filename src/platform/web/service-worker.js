@@ -236,18 +236,16 @@ async function handlePushNotification(n) {
         }
         const newMessageNotifs = Array.from(await self.registration.getNotifications({tag: NOTIF_TAG_NEW_MESSAGE}));
         const notifsForRoom = newMessageNotifs.filter(n => n.data.roomId === roomId);
-        const nonMultiNotifsForRoom = newMessageNotifs.filter(n => !n.data.multi);
-        const roomName = n.room_name || n.room_alias;
         const hasMultiNotification = notifsForRoom.some(n => n.data.multi);
-        let notifsToClose;
+        const hasSingleNotifsForRoom = newMessageNotifs.some(n => !n.data.multi);
+        const roomName = n.room_name || n.room_alias;
         let multi = false;
         let label;
         let body;
         if (hasMultiNotification) {
             console.log("already have a multi message, don't do anything");
             return;
-        } else if (nonMultiNotifsForRoom.length) {
-            notifsToClose = nonMultiNotifsForRoom;
+        } else if (hasSingleNotifsForRoom) {
             console.log("showing multi message notification");
             multi = true;
             label = roomName || sender;
@@ -267,16 +265,6 @@ async function handlePushNotification(n) {
             tag: NOTIF_TAG_NEW_MESSAGE,
             badge: NOTIFICATION_BADGE_ICON
         });
-        // close any previous notifications for this room
-        // AFTER showing the new notification as on Android
-        // where we can only show 1 notification, this creates
-        // a smoother transition
-        if (notifsToClose) {
-            for (const notif of notifsToClose) {
-                console.log("close previous notification");
-                notif.close();
-            }
-        }
     }
     // we could consider hiding previous notifications here based on the unread count
     // (although we can't really figure out which notifications to hide) and also hiding
