@@ -186,7 +186,6 @@ self.addEventListener('message', (event) => {
     }
 });
 
-const NOTIF_TAG_MESSAGES_READ = "messages_read";
 const NOTIF_TAG_NEW_MESSAGE = "new_message";
 
 async function openClientFromNotif(event) {
@@ -234,48 +233,51 @@ async function handlePushNotification(n) {
             console.log("client is focused, room is open, don't show notif");
             return;
         }
-        let label;
-        if (n.room_name) {
-            label = `${sender} wrote you in ${n.room_name}`;
-        } else {
-            label = `${sender} wrote you`;
-        }
-        let body = n.content?.body;
-        // close any previous notifications for this room
         const newMessageNotifs = Array.from(await self.registration.getNotifications({tag: NOTIF_TAG_NEW_MESSAGE}));
         const notifsForRoom = newMessageNotifs.filter(n => n.data.roomId === roomId);
-        for (const notif of notifsForRoom) {
-            console.log("close previous notification for room");
-            notif.close();
+        const nonMultiNotifsForRoom = newMessageNotifs.filter(n => !n.data.multi);
+        const roomName = n.room_name || n.room_alias;
+        const hasMultiNotification = notifsForRoom.some(n => n.data.multi);
+        let notifsToClose;
+        let multi = false;
+        let label;
+        let body;
+        if (hasMultiNotification) {
+            console.log("already have a multi message, don't do anything");
+            return;
+        } else if (nonMultiNotifsForRoom.length) {
+            notifsToClose = nonMultiNotifsForRoom;
+            console.log("showing multi message notification");
+            multi = true;
+            label = roomName || sender;
+            body = "New messages";
+        } else {
+            console.log("showing new message notification");
+            if (roomName && roomName !== sender) {
+                label = `${sender} in ${roomName}`;
+            } else {
+                label = sender;
+            }
+            body = n.content?.body || "New message";
         }
-        console.log("showing new message notification");
+        // close any previous notifications for this room
         await self.registration.showNotification(label, {
             body,
-            data: {sessionId, roomId},
-            tag: NOTIF_TAG_NEW_MESSAGE
+            data: {sessionId, roomId, multi},
+            tag: NOTIF_TAG_NEW_MESSAGE,
             badge: NOTIFICATION_BADGE_ICON
         });
-    } else if (n.unread === 0) {
-        // hide the notifs
-        console.log("unread=0, close all notifs");
-        const notifs = Array.from(await self.registration.getNotifications());
-        for (const notif of notifs) {
-            if (notif.tag !== NOTIF_TAG_MESSAGES_READ) {
+        if (notifsToClose) {
+            for (const notif of notifsToClose) {
+                console.log("close previous notification");
                 notif.close();
             }
         }
-        const hasVisibleClient = !!await findClient(client => client.visibilityState === "visible");
-        // ensure we always show a notification when no client is visible, see https://goo.gl/yqv4Q4
-        if (!hasVisibleClient) {
-            const readNotifs = Array.from(await self.registration.getNotifications({tag: NOTIF_TAG_MESSAGES_READ}));
-            if (readNotifs.length === 0) {
-                await self.registration.showNotification("New messages that have since been read", {
-                    tag: NOTIF_TAG_MESSAGES_READ,
-                    data: {sessionId}
-                });
-            }
-        }
     }
+    // we could consider hiding previous notifications here based on the unread count
+    // (although we can't really figure out which notifications to hide) and also hiding
+    // notifications makes it hard to ensure we always show a notification after a push message
+    // when no client is visible, see https://goo.gl/yqv4Q4
 }
 
 self.addEventListener('push', event => {
