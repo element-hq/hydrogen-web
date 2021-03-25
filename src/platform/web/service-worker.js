@@ -190,6 +190,7 @@ const NOTIF_TAG_NEW_MESSAGE = "new_message";
 
 async function openClientFromNotif(event) {
     if (event.notification.tag !== NOTIF_TAG_NEW_MESSAGE) {
+        console.log("clicked notif with tag", event.notification.tag);
         return;
     }
     const {sessionId, roomId} = event.notification.data;
