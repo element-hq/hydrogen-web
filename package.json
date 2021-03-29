@@ -43,7 +43,9 @@
     "regenerator-runtime": "^0.13.7",
     "rollup-plugin-cleanup": "^3.1.1",
     "serve-static": "^1.13.2",
-    "xxhashjs": "^0.2.2"
+    "xxhashjs": "^0.2.2",
+    "docdash": "^1.2.0",
+    "jsdoc": "^3.6.6"
   },
   "dependencies": {
     "@rollup/plugin-commonjs": "^15.0.0",
@@ -52,9 +54,7 @@
     "another-json": "^0.2.0",
     "base64-arraybuffer": "^0.2.0",
     "bs58": "^4.0.1",
-    "docdash": "^1.2.0",
     "es6-promise": "https://github.com/bwindels/es6-promise.git#bwindels/expose-flush",
-    "jsdoc": "^3.6.6",
     "olm": "https://packages.matrix.org/npm/olm/olm-3.1.4.tgz",
     "rollup": "^2.26.4",
     "text-encoding": "^0.7.0"
