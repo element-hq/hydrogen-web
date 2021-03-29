@@ -19,6 +19,7 @@ import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
 import {LoginViewModel} from "./LoginViewModel.js";
 import {SessionPickerViewModel} from "./SessionPickerViewModel.js";
 import {ViewModel} from "./ViewModel.js";
+import {setTheme} from "../platform/web/ui/general/theming.js";
 
 export class RootViewModel extends ViewModel {
     constructor(options) {
@@ -36,6 +37,7 @@ export class RootViewModel extends ViewModel {
         this.track(this.navigation.observe("login").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("session").subscribe(() => this._applyNavigation()));
         this._applyNavigation(this.urlCreator.getLastUrl());
+        setTheme(await this.platform.settingsStorage.getString("theme"));
     }
 
     async _applyNavigation(restoreUrlIfAtDefault) {

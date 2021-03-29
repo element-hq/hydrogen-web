@@ -16,6 +16,7 @@ limitations under the License.
 
 import {ViewModel} from "../../ViewModel.js";
 import {SessionBackupViewModel} from "./SessionBackupViewModel.js";
+import {getStyleSheetElements, setTheme} from "../../../platform/web/ui/general/theming.js";
 
 class PushNotificationStatus {
     constructor() {
@@ -46,6 +47,7 @@ export class SettingsViewModel extends ViewModel {
         this._sessionBackupViewModel = this.track(new SessionBackupViewModel(this.childOptions({session})));
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
         this._estimate = null;
+        this._styleSheetElements = getStyleSheetElements();
 
         this.sentImageSizeLimit = null;
         this.minSentImageSizeLimit = 400;
@@ -157,6 +159,29 @@ export class SettingsViewModel extends ViewModel {
             this.pushNotifications.serverError = err;
             this.emitChange("pushNotifications.serverError");
         }
+    }
+
+    get themes() {
+        return Object.keys(this._styleSheetElements);
+    }
+
+    get currentTheme() {
+        for (const name in this._styleSheetElements) {
+            if (!this._styleSheetElements[name].disabled) {
+                return name;
+            }
+        }
+    }
+
+    async setTheme(name) {
+        const vm = this;
+        return new Promise(resolve => {
+            setTheme(name, this._styleSheetElements).then(() => {
+                vm.platform.settingsStorage.setString("theme", name);
+                vm.emitChange("currentTheme");
+                resolve();
+            });
+        });
     }
 }
 

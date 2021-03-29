@@ -91,6 +91,18 @@ export class SettingsView extends TemplateView {
         );
 
         settingNodes.push(
+            t.h3("Theme"),
+            ...vm.themes.map(name => {
+                return row(name, t.input({
+                    type: "radio",
+                    name: "theme",
+                    value: name,
+                    checked: vm => name === vm.currentTheme,
+                    onClick: () => vm.setTheme(name),
+                }));
+            })
+        );
+        settingNodes.push(
             t.h3("Preferences"),
             row(vm.i18n`Scale down images when sending`, this._imageCompressionRange(t, vm)),
         );
