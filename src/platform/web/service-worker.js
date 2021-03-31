@@ -201,9 +201,8 @@ async function openClientFromNotif(event) {
     });
     if (clientWithSession) {
         console.log("notificationclick: client has session open, showing room there");
-        // just change the hash, so the page doesn't refresh on / vs /index.html
-        const roomURL = new URL(roomHash, clientWithSession.url).href;
-        clientWithSession.navigate(roomURL);
+        // use a message rather than clientWithSession.navigate here as this refreshes the page on chrome
+        clientWithSession.postMessage({type: "openRoom", payload: {roomId}});
         if ('focus' in clientWithSession) {
             try {
                 await clientWithSession.focus();

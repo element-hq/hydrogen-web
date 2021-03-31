@@ -76,6 +76,8 @@ export class ServiceWorkerHandler {
             // this flag is read in fetch.js
             this.haltRequests = true;
             event.source.postMessage({replyTo: data.id});
+        } else if (data.type === "openRoom") {
+            this._navigation.push("room", data.payload.roomId);
         }
     }
 
