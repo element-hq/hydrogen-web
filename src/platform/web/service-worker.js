@@ -196,12 +196,13 @@ async function openClientFromNotif(event) {
     const {sessionId, roomId} = event.notification.data;
     const sessionHash = `#/session/${sessionId}`;
     const roomHash = `${sessionHash}/room/${roomId}`;
-    const roomURL = `/${roomHash}`;
     const clientWithSession = await findClient(async client => {
         return await sendAndWaitForReply(client, "hasSessionOpen", {sessionId});
     });
     if (clientWithSession) {
         console.log("notificationclick: client has session open, showing room there");
+        // just change the hash, so the page doesn't refresh on / vs /index.html
+        const roomURL = new URL(roomHash, clientWithSession.url).href;
         clientWithSession.navigate(roomURL);
         if ('focus' in clientWithSession) {
             try {
@@ -210,6 +211,7 @@ async function openClientFromNotif(event) {
         }
     } else if (self.clients.openWindow) {
         console.log("notificationclick: no client found with session open, opening new window");
+        const roomURL = new URL(`./${roomHash}`, baseURL).href;
         await self.clients.openWindow(roomURL);
     }
 }
