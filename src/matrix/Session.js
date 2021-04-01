@@ -522,6 +522,18 @@ export class Session {
         const pusherData = await readTxn.session.get(PUSHER_KEY);
         return !!pusherData;
     }
+
+    async checkPusherEnabledOnHomeServer() {
+        const readTxn = await this._storage.readTxn([this._storage.storeNames.session]);
+        const pusherData = await readTxn.session.get(PUSHER_KEY);
+        if (!pusherData) {
+            return false;
+        }
+        const myPusher = new Pusher(pusherData);
+        const serverPushersData = await this._hsApi.getPushers().response();
+        const serverPushers = (serverPushersData?.pushers || []).map(data => new Pusher(data));
+        return serverPushers.some(p => p.equals(myPusher));
+    }
 }
 
 export function tests() {
