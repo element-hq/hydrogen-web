@@ -66,6 +66,27 @@ export class SettingsView extends TemplateView {
                 } else {
                     return t.p(vm.i18n`Push notifications are not supported on this browser`);
                 }
+            }),
+            t.if(vm => vm.pushNotifications.supported && vm.pushNotifications.enabled, t => {
+                return t.div([
+                    t.p([
+                        "If you think push notifications are not being delivered, ",
+                        t.button({className: "link", onClick: () => vm.checkPushEnabledOnServer()}, "check"),
+                        " if they got disabled on the server"
+                    ]),
+                    t.map(vm => vm.pushNotifications.enabledOnServer, (enabled, t) => {
+                        if (enabled === true) {
+                            return t.p("Push notifications are still enabled on the server, so everything should be working. Sometimes notifications can get dropped if they can't be delivered within a given time.");
+                        } else if (enabled === false) {
+                            return t.p("Push notifications have been disabled on the server, likely due to a bug. Please re-enable them by clicking Disable and then Enable again above.");
+                        }
+                    }),
+                    t.map(vm => vm.pushNotifications.serverError, (err, t) => {
+                        if (err) {
+                            return t.p("Couln't not check on server: " + err.message);
+                        }
+                    })
+                ]);
             })
         );
 

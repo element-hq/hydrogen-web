@@ -37,4 +37,14 @@ export class Pusher {
     serialize() {
         return this._description;
     }
+
+    equals(pusher) {
+        if (this._description.app_id !== pusher._description.app_id) {
+            return false;
+        }
+        if (this._description.pushkey !== pusher._description.pushkey) {
+            return false;
+        }
+        return JSON.stringify(this._description.data) === JSON.stringify(pusher._description.data);
+    }
 }

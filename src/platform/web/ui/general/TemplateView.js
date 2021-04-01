@@ -322,7 +322,11 @@ class TemplateBuilder {
     map(mapFn, renderFn) {
         return this.mapView(mapFn, mappedValue => {
             return new TemplateView(this._value, (t, vm) => {
-                return renderFn(mappedValue, t, vm);
+                const rootNode = renderFn(mappedValue, t, vm);
+                if (!rootNode) {
+                    return document.createComment("map placeholder");
+                }
+                return rootNode;
             });
         });
     }

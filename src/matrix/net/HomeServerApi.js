@@ -258,6 +258,10 @@ export class HomeServerApi {
     setPusher(pusher, options = null) {
         return this._post("/pushers/set", null, pusher, options);
     }
+
+    getPushers(options = null) {
+        return this._get("/pushers", null, null, options);
+    }
 }
 
 export function tests() {
