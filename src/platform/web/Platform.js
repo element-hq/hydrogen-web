@@ -125,6 +125,10 @@ export class Platform {
         return loadOlm(this._config.olm);
     }
 
+    get config() {
+        return this._config;
+    }
+
     async loadOlmWorker() {
         if (!window.WebAssembly) {
             return await loadOlmWorker(this._config);
