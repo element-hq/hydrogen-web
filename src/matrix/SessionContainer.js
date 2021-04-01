@@ -43,6 +43,14 @@ export const LoginFailure = createEnum(
     "Unknown",
 );
 
+function normalizeHomeserver(homeServer) {
+    try {
+        return new URL(homeServer).origin;
+    } catch (err) {
+        return new URL(`https://${homeServer}`).origin;
+    }
+}
+
 export class SessionContainer {
     constructor({platform, olmPromise, workerPromise}) {
         this._platform = platform;
@@ -96,6 +104,7 @@ export class SessionContainer {
         }
         await this._platform.logger.run("login", async log => {
             this._status.set(LoadStatus.Login);
+            homeServer = normalizeHomeserver(homeServer);
             const clock = this._platform.clock;
             let sessionInfo;
             try {
