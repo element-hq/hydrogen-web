@@ -100,8 +100,10 @@ export class Platform {
         this.onlineStatus = new OnlineStatus();
         this._serviceWorkerHandler = null;
         if (config.serviceWorker && "serviceWorker" in navigator) {
-            this._serviceWorkerHandler = new ServiceWorkerHandler();
-            this._serviceWorkerHandler.registerAndStart(config.serviceWorker);
+            const serviceWorkerHandler = new ServiceWorkerHandler();
+            if (serviceWorkerHandler.registerAndStart(config.serviceWorker)) {
+                this._serviceWorkerHandler = serviceWorkerHandler;
+            }
         }
         this.notificationService = new NotificationService(this._serviceWorkerHandler, config.push);
         this.crypto = new Crypto(cryptoExtras);

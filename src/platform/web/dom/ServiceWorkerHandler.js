@@ -34,10 +34,19 @@ export class ServiceWorkerHandler {
     }
 
     registerAndStart(path) {
+        navigator.serviceWorker.addEventListener("message", this);
+        navigator.serviceWorker.addEventListener("controllerchange", this);
+        let registrationPromise;
+        try {
+            // this can throw a SecurityError in Firefox with hardened settings
+            registrationPromise = navigator.serviceWorker.register(path);
+        } catch (err) {
+            navigator.serviceWorker.removeEventListener("message", this);
+            navigator.serviceWorker.removeEventListener("controllerchange", this);
+            return false;
+        }
         this._registrationPromise = (async () => {
-            navigator.serviceWorker.addEventListener("message", this);
-            navigator.serviceWorker.addEventListener("controllerchange", this);
-            this._registration = await navigator.serviceWorker.register(path);
+            this._registration = await registrationPromise;
             await navigator.serviceWorker.ready;
             this._currentController = navigator.serviceWorker.controller;
             this._registration.addEventListener("updatefound", this);
@@ -48,6 +57,7 @@ export class ServiceWorkerHandler {
             }
             console.log("Service Worker registered");
         })();
+        return true;
     }
 
     _onMessage(event) {
