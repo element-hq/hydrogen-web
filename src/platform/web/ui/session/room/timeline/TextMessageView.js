@@ -16,12 +16,12 @@ limitations under the License.
 
 import {TemplateView} from "../../../general/TemplateView.js";
 import {StaticView} from "../../../general/StaticView.js";
-import {text} from "../../../general/html.js";
+import {text, chatText} from "../../../general/html.js";
 import {renderMessage} from "./common.js";
 
 export class TextMessageView extends TemplateView {
     render(t, vm) {
-        const bodyView = t.mapView(vm => vm.text, text => new BodyView(text));
+        const bodyView = t.mapView(vm => vm.text, text => new BodyView(`${text}`));
         return renderMessage(t, vm,
             [t.p([bodyView, t.time({className: {hidden: !vm.date}}, vm.date + " " + vm.time)])]
         );
@@ -32,7 +32,7 @@ class BodyView extends StaticView {
     render(t, value) {
         const lines = (value || "").split("\n");
         if (lines.length === 1) {
-            return text(lines[0]);
+            return chatText(lines[0]);
         }
         const elements = [];
         for (const line of lines) {
@@ -40,7 +40,7 @@ class BodyView extends StaticView {
                 elements.push(t.br());
             }
             if (line.length) {
-                elements.push(t.span(line));
+                elements.push(t.span(chatText(line)));
             }
         }
         return t.span(elements);

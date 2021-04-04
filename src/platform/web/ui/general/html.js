@@ -87,6 +87,26 @@ export function text(str) {
     return document.createTextNode(str);
 }
 
+export function chatText(str) {
+    const splitText = str.split(/((?:[a-z]+:\/\/)?(?:(?:[a-z0-9\-]+\.)+(?:[a-z]{2}|aero|arpa|biz|com|coop|edu|gov|info|int|jobs|mil|museum|name|nato|net|org|pro|travel|local|internal))(?::[0-9]{1,5})?(?:\/[a-z0-9_\-.~]+)*(?:\/(?:[a-z0-9_\-.]*)(?:\?[a-z0-9+_\-.%=&amp;]*)?)?(?:#[a-zA-Z0-9!$&'(?:)*+.=-_~:@/?]*)?)(?:\s+|$)/);
+    var textSpan = document.createElement('span');
+    for (let splits of splitText) {
+        const linkMatch = splits.match(/((?:[a-z]+:\/\/)?(?:(?:[a-z0-9\-]+\.)+(?:[a-z]{2}|aero|arpa|biz|com|coop|edu|gov|info|int|jobs|mil|museum|name|nato|net|org|pro|travel|local|internal))(?::[0-9]{1,5})?(?:\/[a-z0-9_\-.~]+)*(?:\/(?:[a-z0-9_\-.]*)(?:\?[a-z0-9+_\-.%=&amp;]*)?)?(?:#[a-zA-Z0-9!$&'(?:)*+.=-_~:@/?]*)?)(?:\s+|$)/);
+        console.log(linkMatch);
+        if (linkMatch) {
+            var a = document.createElement('a');
+            a.href = linkMatch[0];
+            a.title = linkMatch[0];
+            a.appendChild(document.createTextNode(linkMatch[0]));
+            textSpan.appendChild(a);
+        } else {
+            textSpan.appendChild(document.createTextNode(`${splits}`));
+        }
+    }
+    // return document.createTextNode(str);
+    return textSpan;
+}
+
 export const HTML_NS = "http://www.w3.org/1999/xhtml";
 export const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -103,7 +123,7 @@ export const tag = {};
 
 for (const [ns, tags] of Object.entries(TAG_NAMES)) {
     for (const tagName of tags) {
-        tag[tagName] = function(attributes, children) {
+        tag[tagName] = function (attributes, children) {
             return elNS(ns, tagName, attributes, children);
         }
     }
