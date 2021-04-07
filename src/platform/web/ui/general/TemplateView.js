@@ -41,11 +41,13 @@ function objHasFns(obj) {
 export class TemplateView {
     constructor(value, render = undefined) {
         this._value = value;
+        // TODO: can avoid this if we have a separate class for inline templates vs class template views
         this._render = render;
         this._eventListeners = null;
         this._bindings = null;
         this._subViews = null;
         this._root = null;
+        // TODO: can avoid this if we adopt the handleEvent pattern in our EventListener
         this._boundUpdateFromValue = null;
     }
 
@@ -324,6 +326,8 @@ class TemplateBuilder {
             return new TemplateView(this._value, (t, vm) => {
                 const rootNode = renderFn(mappedValue, t, vm);
                 if (!rootNode) {
+                    // TODO: this will confuse mapView which assumes that
+                    // a comment node means there is no view to clean up
                     return document.createComment("map placeholder");
                 }
                 return rootNode;
