@@ -18,11 +18,23 @@ import {ObservableMap} from "../../../observable/map/ObservableMap.js";
 
 export class MemberList {
     constructor({members, closeCallback}) {
+        /**
+         * @private
+         * @type {ObservableMap}
+         */
         this._members = new ObservableMap();
         for (const member of members) {
             this._members.add(member.userId, member);
         }
+        /**
+         * @private
+         * @type {Function}
+         */
         this._closeCallback = closeCallback;
+        /**
+         * @private
+         * @type {Number}
+         */
         this._retentionCount = 1;
     }
 
