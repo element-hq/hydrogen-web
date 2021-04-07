@@ -23,6 +23,15 @@ export class RoomMember {
         this._data = data;
     }
 
+    static async fromFetch(roomId, userId, hsApi, log) {
+         const memberEvent = await hsApi.roomState(this._roomId, EVENT_TYPE, userId, {log}).response();
+         return RoomMember.fromMemberEvent(memberEvent);
+    }
+
+    static fromUserId(roomId, userId, membership) {
+        return new RoomMember({roomId, userId, membership});
+    }
+
     static fromMemberEvent(roomId, memberEvent) {
         const userId = memberEvent?.state_key;
         if (typeof userId !== "string") {

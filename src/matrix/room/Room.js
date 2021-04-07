@@ -425,8 +425,13 @@ export class Room extends EventEmitter {
 
     /** @public */
     sendEvent(eventType, content, attachments, log = null) {
-        this._platform.logger.wrapOrRun(log, "send", log => {
+        this._platform.logger.wrapOrRun(log, "send", async log => {
             log.set("id", this.id);
+            if (this._timeline) {
+                // ensure we have our own member loaded for the local echo
+                await this._timeline.ensureOwnMember(
+                    this._user, this._summary.data.membership, this._hsApi, log);
+            }
             return this._sendQueue.enqueueEvent(eventType, content, attachments, log);
         });
     }
@@ -678,7 +683,12 @@ export class Room extends EventEmitter {
             if (this._roomEncryption) {
                 this._timeline.enableEncryption(this._decryptEntries.bind(this, DecryptionSource.Timeline));
             }
-            await this._timeline.load(this._user, log);
+            if (this._sendQueue.pendingEvents.length !== 0) {
+                // ensure we have our own member loaded for the local echo
+                await this._timeline.ensureOwnMember(
+                    this._user, this._summary.data.membership, this._hsApi, log);
+            }
+            await this._timeline.load(log);
             return this._timeline;
         });
     }

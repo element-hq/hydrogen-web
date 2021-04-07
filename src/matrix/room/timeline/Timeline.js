@@ -45,14 +45,8 @@ export class Timeline {
     }
 
     /** @package */
-    async load(user, log) {
-        const txn = await this._storage.readTxn(this._timelineReader.readTxnStores.concat(this._storage.storeNames.roomMembers));
-        const memberData = await txn.roomMembers.get(this._roomId, user.id);
-        this._ownMember = new RoomMember(memberData);
-        // it should be fine to not update the local entries,
-        // as they should only populate once the view subscribes to it
-        // if they are populated already, the sender profile would be empty
-
+    async load(log) {
+        const txn = await this._storage.readTxn(this._timelineReader.readTxnStores);
         // 30 seems to be a good amount to fill the entire screen
         const readerRequest = this._disposables.track(this._timelineReader.readFromEnd(30, txn, log));
         try {
@@ -60,6 +54,41 @@ export class Timeline {
             this._remoteEntries.setManySorted(entries);
         } finally {
             this._disposables.disposeTracked(readerRequest);
+        }
+    }
+
+    async ensureOwnMember(user, myMembership, hsApi, log) {
+        if (this._ownMember) {
+            return;
+        }
+        const txn = await this._storage.readTxn(this._storage.storeNames.roomMembers);
+        const memberData = await txn.roomMembers.get(this._roomId, user.id);
+        if (memberData) {
+            this._ownMember = new RoomMember(memberData);
+        } else {
+            await log.wrap("own member missing", async log => {
+                // important this *never* throws, not even when offline,
+                // as it would prevent enqueueing a message, or opening the timeline
+                try {
+                    this._ownMember = await RoomMember.fromFetch(this._roomId, user.id, hsApi, log);
+                    const writeTxn = await this._storage.readWriteTxn(this._storage.storeNames.roomMembers);
+                    // check we still don't have the member after the fetch (e.g. from sync)
+                    // just to make sure we don't overwrite it
+                    const memberData = await writeTxn.roomMembers.get(this._roomId, user.id);
+                    if(!memberData) {
+                        writeTxn.roomMembers.set(this._roomId, this._ownMember.serialize());
+                        await writeTxn.complete();
+                    } else {
+                        this._ownMember = new RoomMember(memberData);
+                    }
+                } catch (err) {
+                    log.error = err;
+                    if (!this._ownMember) {
+                        log.set("fallback", true);
+                        this._ownMember = RoomMember.fromUserId(this._roomId, user.id, myMembership);
+                    }
+                }
+            });
         }
     }
 
