@@ -91,9 +91,6 @@ export class MemberWriter {
             });
             if (memberEvent) {
                 member = RoomMember.fromMemberEvent(this._roomId, memberEvent);
-                // adding it to the cache, but not storing it for now;
-                // we'll do that when we get to the event
-                this._cache.set(member);
             }
         }
         return member;
@@ -221,6 +218,15 @@ export function tests() {
             assert(!change.hasLeft);
             assert.equal(change.member.membership, "join");
             assert.equal(txn.members.get(alice).displayName, "Alice");
+        },
+        "newly joined member causes a change with lookup done first": async assert => {
+            const event = createMemberEvent("join", alice, "Alice");
+            const writer = new MemberWriter(roomId);
+            const txn = createStorage();
+            const member = await writer.lookupSenderMember(event, [event], txn);
+            assert(member);
+            const change = await writer.writeTimelineMemberEvent(event, txn);
+            assert(change);
         },
     };
 }
