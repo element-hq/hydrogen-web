@@ -36,7 +36,7 @@ export class SendQueue {
         const pendingEvent = new PendingEvent({
             data,
             remove: () => this._removeEvent(pendingEvent),
-            emitUpdate: () => this._pendingEvents.set(pendingEvent),
+            emitUpdate: () => this._pendingEvents.update(pendingEvent),
             attachments
         });
         return pendingEvent;
