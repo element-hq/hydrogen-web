@@ -73,7 +73,8 @@ export class MemberWriter {
         }
     }
 
-    async lookupMember(userId, timelineEvents, txn) {
+    async lookupSenderMember(event, timelineEvents, txn) {
+        const userId = event.sender;
         let member = this._cache.get(userId);
         if (!member) {
             const memberData = await txn.roomMembers.get(this._roomId, userId);
@@ -83,12 +84,21 @@ export class MemberWriter {
             }
         }
         if (!member) {
+            let memberEvent;
             // sometimes the member event isn't included in state, but rather in the timeline,
-            // even if it is not the first event in the timeline. In this case, go look for the
-            // first occurence
-            const memberEvent = timelineEvents.find(e => {
-                return e.type === MEMBER_EVENT_TYPE && e.state_key === userId;
-            });
+            // even if it is not the first event in the timeline. In this case, go look for
+            // the last one before the event
+            let foundEvent = false;
+            for (let i = timelineEvents.length - 1; i >= 0; i -= 1) {
+                const e = timelineEvents[i];
+                if (!foundEvent && e.event_id === event.event_id) {
+                    foundEvent = true;
+                }
+                if (foundEvent && e.type === MEMBER_EVENT_TYPE && e.state_key === userId) {
+                    memberEvent = e;
+                    break;
+                }
+            }
             if (memberEvent) {
                 member = RoomMember.fromMemberEvent(this._roomId, memberEvent);
             }
@@ -227,6 +237,14 @@ export function tests() {
             assert(member);
             const change = await writer.writeTimelineMemberEvent(event, txn);
             assert(change);
+        },
+        "lookupSenderMember returns closest member in the past": async assert => {
+            const event1 = createMemberEvent("join", alice, "Alice");
+            const event2 = createMemberEvent("join", alice, "Alies");
+            const writer = new MemberWriter(roomId);
+            const txn = createStorage();
+            const member = await writer.lookupSenderMember(event2, [event1, event2], txn);
+            assert.equal(member.displayName, "Alies");
         },
     };
 }
