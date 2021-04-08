@@ -678,7 +678,7 @@ export class Room extends EventEmitter {
             if (this._roomEncryption) {
                 this._timeline.enableEncryption(this._decryptEntries.bind(this, DecryptionSource.Timeline));
             }
-            await this._timeline.load(this._user, log);
+            await this._timeline.load(this._user, this._summary.data.membership, log);
             return this._timeline;
         });
     }
