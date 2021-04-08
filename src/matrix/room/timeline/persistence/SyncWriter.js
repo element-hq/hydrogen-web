@@ -162,7 +162,7 @@ export class SyncWriter {
                 // store event in timeline
                 currentKey = currentKey.nextKey();
                 const entry = createEventEntry(currentKey, this._roomId, event);
-                let member = await this._memberWriter.lookupSenderMember(event, events, txn);
+                let member = await this._memberWriter.lookupMember(event.sender, event, events, txn);
                 if (member) {
                     entry.displayName = member.displayName;
                     entry.avatarUrl = member.avatarUrl;
