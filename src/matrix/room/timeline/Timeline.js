@@ -76,7 +76,9 @@ export class Timeline {
 
     replaceEntries(entries) {
         for (const entry of entries) {
-            this._remoteEntries.replace(entry);
+            // this will use the comparator and thus
+            // check for equality using the compare method in BaseEntry
+            this._remoteEntries.update(entry);
         }
     }
 
