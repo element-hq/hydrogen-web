@@ -234,19 +234,18 @@ export class SessionContainer {
     }
 
     async _waitForFirstSync() {
-        try {
-            this._sync.start();
-            this._status.set(LoadStatus.FirstSync);
-        } catch (err) {
-            // swallow ConnectionError here and continue,
-            // as the reconnector above will call 
-            // sync.start again to retry in this case
-            if (!(err instanceof ConnectionError)) {
-                throw err;
-            }
-        }
+        this._sync.start();
+        this._status.set(LoadStatus.FirstSync);
         // only transition into Ready once the first sync has succeeded
-        this._waitForFirstSyncHandle = this._sync.status.waitFor(s => s === SyncStatus.Syncing || s === SyncStatus.Stopped);
+        this._waitForFirstSyncHandle = this._sync.status.waitFor(s => {
+            if (s === SyncStatus.Stopped) {
+                // keep waiting if there is a ConnectionError
+                // as the reconnector above will call 
+                // sync.start again to retry in this case
+                return this._sync.error.name !== "ConnectionError";
+            }
+            return s === SyncStatus.Syncing;
+        });
         try {
             await this._waitForFirstSyncHandle.promise;
             if (this._sync.status.get() === SyncStatus.Stopped) {
