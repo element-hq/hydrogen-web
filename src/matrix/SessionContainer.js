@@ -109,7 +109,7 @@ export class SessionContainer {
             let sessionInfo;
             try {
                 const request = this._platform.request;
-                const hsApi = new HomeServerApi({homeServer, request, createTimeout: clock.createTimeout});
+                const hsApi = new HomeServerApi({homeServer, request});
                 const loginData = await hsApi.passwordLogin(username, password, "Hydrogen", {log}).response();
                 const sessionId = this.createNewSessionId();
                 sessionInfo = {
@@ -169,7 +169,6 @@ export class SessionContainer {
             accessToken: sessionInfo.accessToken,
             request: this._platform.request,
             reconnector: this._reconnector,
-            createTimeout: clock.createTimeout
         });
         this._sessionId = sessionInfo.id;
         this._storage = await this._platform.storageFactory.create(sessionInfo.id);
