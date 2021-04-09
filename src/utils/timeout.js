@@ -52,45 +52,32 @@ export function abortOnTimeout(createTimeout, timeoutAmount, requestResult, resp
 // include platform specific code,
 // and this file is only included by platform specific code,
 // see how to run in package.json and replace src/main.js with this file.
-import {Clock} from "../mocks/Clock.js";
+import {Clock as MockClock} from "../mocks/Clock.js";
+import {Request as MockRequest} from "../mocks/Request.js";
 import {AbortError} from "../matrix/error.js";
 export function tests() {
-    function createRequest() {
-        let request = {
-            abort() {
-                this.aborted = true;
-                this.reject(new AbortError());
-            }
-        };
-        request.responsePromise = new Promise((resolve, reject) => {
-            request.resolve = resolve;
-            request.reject = reject;
-        });
-        return request;
-    }
-
     return {
         "ConnectionError on timeout": async assert => {
-            const clock = new Clock();
-            const request = createRequest();
-            const promise = abortOnTimeout(clock.createTimeout, 10000, request, request.responsePromise);
+            const clock = new MockClock();
+            const request = new MockRequest();
+            const promise = abortOnTimeout(clock.createTimeout, 10000, request, request.response());
             clock.elapse(10000);
             await assert.rejects(promise, ConnectionError);
             assert(request.aborted);
         },
         "Abort is canceled once response resolves": async assert => {
-            const clock = new Clock();
-            const request = createRequest();
-            const promise = abortOnTimeout(clock.createTimeout, 10000, request, request.responsePromise);
+            const clock = new MockClock();
+            const request = new MockRequest();
+            const promise = abortOnTimeout(clock.createTimeout, 10000, request, request.response());
             request.resolve(5);
             clock.elapse(10000);
             assert(!request.aborted);
             assert.equal(await promise, 5);
         },
         "AbortError from request is not mapped to ConnectionError": async assert => {
-            const clock = new Clock();
-            const request = createRequest();
-            const promise = abortOnTimeout(clock.createTimeout, 10000, request, request.responsePromise);
+            const clock = new MockClock();
+            const request = new MockRequest();
+            const promise = abortOnTimeout(clock.createTimeout, 10000, request, request.response());
             request.reject(new AbortError());
             assert(!request.aborted);
             assert.rejects(promise, AbortError);
