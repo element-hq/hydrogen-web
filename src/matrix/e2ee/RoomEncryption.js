@@ -46,6 +46,7 @@ export class RoomEncryption {
         this._clock = clock;
         this._isFlushingRoomKeyShares = false;
         this._lastKeyPreShareTime = null;
+        this._keySharePromise = null;
         this._disposed = false;
     }
 
@@ -265,13 +266,26 @@ export class RoomEncryption {
             return;
         }
         this._lastKeyPreShareTime = this._clock.createMeasure();
-        const roomKeyMessage = await this._megolmEncryption.ensureOutboundSession(this._room.id, this._encryptionParams);
-        if (roomKeyMessage) {
-            await log.wrap("share key", log => this._shareNewRoomKey(roomKeyMessage, hsApi, log));
+        try {
+            this._keySharePromise = (async () => {
+                const roomKeyMessage = await this._megolmEncryption.ensureOutboundSession(this._room.id, this._encryptionParams);
+                if (roomKeyMessage) {
+                    await log.wrap("share key", log => this._shareNewRoomKey(roomKeyMessage, hsApi, log));
+                }
+            })();
+            await this._keySharePromise;
+        } finally {
+            this._keySharePromise = null;
         }
     }
 
     async encrypt(type, content, hsApi, log) {
+        // ensureMessageKeyIsShared is still running,
+        // wait for it to create and share a key if needed
+        if (this._keySharePromise) {
+            log.set("waitForRunningKeyShare", true);
+            await this._keySharePromise;
+        }
         const megolmResult = await log.wrap("megolm encrypt", () => this._megolmEncryption.encrypt(this._room.id, type, content, this._encryptionParams));
         if (megolmResult.roomKeyMessage) {
             log.wrapDetached("share key", log => this._shareNewRoomKey(megolmResult.roomKeyMessage, hsApi, log));
