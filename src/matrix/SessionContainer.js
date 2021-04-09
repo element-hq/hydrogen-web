@@ -241,13 +241,13 @@ export class SessionContainer {
                 // keep waiting if there is a ConnectionError
                 // as the reconnector above will call 
                 // sync.start again to retry in this case
-                return this._sync.error.name !== "ConnectionError";
+                return this._sync.error?.name !== "ConnectionError";
             }
             return s === SyncStatus.Syncing;
         });
         try {
             await this._waitForFirstSyncHandle.promise;
-            if (this._sync.status.get() === SyncStatus.Stopped) {
+            if (this._sync.status.get() === SyncStatus.Stopped && this._sync.error) {
                 throw this._sync.error;
             }
         } catch (err) {
