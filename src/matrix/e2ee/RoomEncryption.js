@@ -288,7 +288,7 @@ export class RoomEncryption {
         }
         const megolmResult = await log.wrap("megolm encrypt", () => this._megolmEncryption.encrypt(this._room.id, type, content, this._encryptionParams));
         if (megolmResult.roomKeyMessage) {
-            log.wrapDetached("share key", log => this._shareNewRoomKey(megolmResult.roomKeyMessage, hsApi, log));
+            await log.wrap("share key", log => this._shareNewRoomKey(megolmResult.roomKeyMessage, hsApi, log));
         }
         return {
             type: ENCRYPTED_TYPE,
