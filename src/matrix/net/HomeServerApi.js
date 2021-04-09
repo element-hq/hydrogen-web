@@ -47,7 +47,23 @@ class RequestWrapper {
         }, err => {
             // if this._requestResult is still set, the abort error came not from calling abort here
             if (err.name === "AbortError" && this._requestResult) {
-                const err = new Error(`Unexpectedly aborted, see #187.`);
+                // The service worker sometimes (only on Firefox, on long, large request,
+                // perhaps it has its own timeout?) aborts the request, see #187.
+                // When it happens, the best thing to do seems to be to retry.
+                // 
+                // In the service worker, we will also actively abort requests when trying to
+                // get a new service worker to activate, as the service worker will only be replaced
+                // when there are no more (fetch) events for the current one to handle.
+                // 
+                // In that case, the request function (in fetch.js) will check 
+                // the haltRequests flag on the service worker handler, and it will
+                // actually not do any requests, as that would break the update process.
+                // 
+                // So it is OK to return a timeout ConnectionError here.
+                // If we're updating the service worker, the /versions polling will
+                // actually be blocked at the fetch level because haltRequests is set.
+                // And for #187, retrying is the right thing to do.
+                const err = new ConnectionError(`Service worker aborted, either updating or hit #187.`, true);
                 log?.catch(err);
                 throw err;
             } else {
