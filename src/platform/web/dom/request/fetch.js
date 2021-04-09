@@ -19,7 +19,7 @@ import {
     AbortError,
     ConnectionError
 } from "../../../../matrix/error.js";
-import {abortOnTimeout} from "./timeout.js";
+import {abortOnTimeout} from "../../../../utils/timeout.js";
 import {addCacheBuster} from "./common.js";
 import {xhrRequest} from "./xhr.js";
 
@@ -121,6 +121,8 @@ export function createFetchRequest(createTimeout, serviceWorkerHandler) {
             return {status, body};
         }, err => {
             if (err.name === "AbortError") {
+                // map DOMException with name AbortError to our own AbortError type
+                // as we don't want DOMExceptions in the protocol layer.
                 throw new AbortError();
             } else if (err instanceof TypeError) {
                 // Network errors are reported as TypeErrors, see

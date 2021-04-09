@@ -15,84 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {HomeServerError, ConnectionError} from "../error.js";
-import {encodeQueryParams} from "./common.js";
-
-class RequestWrapper {
-    constructor(method, url, requestResult, log) {
-        this._log = log;
-        this._requestResult = requestResult;
-        this._promise = requestResult.response().then(response => {
-            log?.set("status", response.status);
-            // ok?
-            if (response.status >= 200 && response.status < 300) {
-                log?.finish();
-                return response.body;
-            } else {
-                if (response.status >= 500) {
-                    const err = new ConnectionError(`Internal Server Error`);
-                    log?.catch(err);
-                    throw err;
-                } else if (response.status >= 400 && !response.body?.errcode) {
-                    const err = new ConnectionError(`HTTP error status ${response.status} without errcode in body, assume this is a load balancer complaining the server is offline.`);
-                    log?.catch(err);
-                    throw err;
-                } else {
-                    const err = new HomeServerError(method, url, response.body, response.status);
-                    log?.set("errcode", err.errcode);
-                    log?.catch(err);
-                    throw err;
-                }
-            }
-        }, err => {
-            // if this._requestResult is still set, the abort error came not from calling abort here
-            if (err.name === "AbortError" && this._requestResult) {
-                const err = new Error(`Unexpectedly aborted, see #187.`);
-                log?.catch(err);
-                throw err;
-            } else {
-                if (err.name === "ConnectionError") {
-                    log?.set("timeout", err.isTimeout);
-                }
-                log?.catch(err);
-                throw err;
-            }
-        });
-    }
-
-    abort() {
-        if (this._requestResult) {
-            this._log?.set("aborted", true);
-            this._requestResult.abort();
-            // to mark that it was on purpose in above rejection handler
-            this._requestResult = null;
-        }
-    }
-
-    response() {
-        return this._promise;
-    }
-}
-
-function encodeBody(body) {
-    if (body.nativeBlob && body.mimeType) {
-        const blob = body;
-        return {
-            mimeType: blob.mimeType,
-            body: blob, // will be unwrapped in request fn
-            length: blob.size
-        };
-    } else if (typeof body === "object") {
-        const json = JSON.stringify(body);
-        return {
-            mimeType: "application/json",
-            body: json,
-            length: body.length
-        };
-    } else {
-        throw new Error("Unknown body type: " + body);
-    }
-}
+import {encodeQueryParams, encodeBody} from "./common.js";
+import {HomeServerRequest} from "./HomeServerRequest.js";
 
 export class HomeServerApi {
     constructor({homeServer, accessToken, request, createTimeout, reconnector}) {
@@ -143,10 +67,10 @@ export class HomeServerApi {
             format: "json"  // response format
         });
 
-        const wrapper = new RequestWrapper(method, url, requestResult, log);
+        const hsRequest = new HomeServerRequest(method, url, requestResult, log);
         
         if (this._reconnector) {
-            wrapper.response().catch(err => {
+            hsRequest.response().catch(err => {
                 // Some endpoints such as /sync legitimately time-out
                 // (which is also reported as a ConnectionError) and will re-attempt,
                 // but spinning up the reconnector in this case is ok,
@@ -157,7 +81,7 @@ export class HomeServerApi {
             });
         }
 
-        return wrapper;
+        return hsRequest;
     }
 
     _unauthedRequest(method, url, queryParams, body, options) {
@@ -264,22 +188,13 @@ export class HomeServerApi {
     }
 }
 
-export function tests() {
-    function createRequestMock(result) {
-        return function() {
-            return {
-                abort() {},
-                response() {
-                    return Promise.resolve(result);
-                }
-            }
-        }
-    }
+import {Request as MockRequest} from "../../mocks/Request.js";
 
+export function tests() {
     return {
         "superficial happy path for GET": async assert => {
             const hsApi = new HomeServerApi({
-                request: createRequestMock({body: 42, status: 200}),
+                request: () => new MockRequest().respond(200, 42),
                 homeServer: "https://hs.tld"
             });
             const result = await hsApi._get("foo", null, null, null).response();
