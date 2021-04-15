@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../general/TemplateView.js";
-import {renderAvatar} from "../../common.js";
+import {AvatarView} from "../../avatar.js";
 
 export class RoomTileView extends TemplateView {
     render(t, vm) {
@@ -26,12 +26,12 @@ export class RoomTileView extends TemplateView {
         };
         return t.li({"className": classes}, [
             t.a({href: vm.url}, [
-                renderAvatar(t, vm, 32),
+                t.view(new AvatarView(vm, 32), {parentProvidesUpdates: true}),
                 t.div({className: "description"}, [
                     t.div({className: {"name": true, unread: vm => vm.isUnread}}, vm => vm.name),
                     t.div({
                         className: {
-                            "badge": true,
+                            badge: true,
                             highlighted: vm => vm.isHighlighted,
                             hidden: vm => !vm.badgeCount
                         }
@@ -39,5 +39,11 @@ export class RoomTileView extends TemplateView {
                 ])
             ])
         ]);
+    }
+
+    update(value, props) {
+        super.update(value);
+        // update the AvatarView as we told it to not subscribe itself with parentProvidesUpdates
+        this.updateSubViews(value, props);
     }
 }
