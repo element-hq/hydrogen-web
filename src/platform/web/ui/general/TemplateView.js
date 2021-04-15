@@ -68,12 +68,16 @@ export class TemplateView extends BaseUpdateView {
 
     mount(options) {
         const builder = new TemplateBuilder(this);
-        if (this._render) {
-            this._root = this._render(builder, this._value);
-        } else if (this.render) {   // overriden in subclass
-            this._root = this.render(builder, this._value);
-        } else {
-            throw new Error("no render function passed in, or overriden in subclass");
+        try {
+            if (this._render) {
+                this._root = this._render(builder, this._value);
+            } else if (this.render) {   // overriden in subclass
+                this._root = this.render(builder, this._value);
+            } else {
+                throw new Error("no render function passed in, or overriden in subclass");
+            }
+        } finally {
+            builder.close();
         }
         // takes care of update being called when needed
         super.mount(options);
@@ -145,6 +149,18 @@ export class TemplateView extends BaseUpdateView {
 class TemplateBuilder {
     constructor(templateView) {
         this._templateView = templateView;
+        this._closed = false;
+    }
+
+    close() {
+        this._closed = true;
+    }
+
+    _addBinding(fn) {
+        if (this._closed) {
+            console.trace("Adding a binding after render will likely cause memory leaks");
+        }
+        this._templateView._addBinding(fn);
     }
 
     get _value() {
@@ -164,7 +180,7 @@ class TemplateBuilder {
                 setAttribute(node, name, newValue);
             }
         };
-        this._templateView._addBinding(binding);
+        this._addBinding(binding);
         binding();
     }
 
@@ -184,7 +200,7 @@ class TemplateBuilder {
             }
         };
 
-        this._templateView._addBinding(binding);
+        this._addBinding(binding);
         return node;
     }
 
@@ -240,7 +256,7 @@ class TemplateBuilder {
                 node = newNode;
             }
         };
-        this._templateView._addBinding(binding);
+        this._addBinding(binding);
         return node;
     }
 
