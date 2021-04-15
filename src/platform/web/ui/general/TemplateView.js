@@ -16,6 +16,7 @@ limitations under the License.
 
 import { setAttribute, text, isChildren, classNames, TAG_NAMES, HTML_NS } from "./html.js";
 import {errorToDOM} from "./error.js";
+import {BaseUpdateView} from "./BaseUpdateView.js";
 
 function objHasFns(obj) {
     for(const value of Object.values(obj)) {
@@ -38,37 +39,15 @@ function objHasFns(obj) {
         - add subviews inside the template
 */
 // TODO: should we rename this to BoundView or something? As opposed to StaticView ...
-export class TemplateView {
+export class TemplateView extends BaseUpdateView {
     constructor(value, render = undefined) {
-        this._value = value;
+        super(value);
         // TODO: can avoid this if we have a separate class for inline templates vs class template views
         this._render = render;
         this._eventListeners = null;
         this._bindings = null;
         this._subViews = null;
         this._root = null;
-        // TODO: can avoid this if we adopt the handleEvent pattern in our EventListener
-        this._boundUpdateFromValue = null;
-    }
-
-    get value() {
-        return this._value;
-    }
-
-    _subscribe() {
-        if (typeof this._value?.on === "function") {
-            this._boundUpdateFromValue = this._updateFromValue.bind(this);
-            this._value.on("change", this._boundUpdateFromValue);
-        }
-    }
-
-    _unsubscribe() {
-        if (this._boundUpdateFromValue) {
-            if (typeof this._value.off === "function") {
-                this._value.off("change", this._boundUpdateFromValue);
-            }
-            this._boundUpdateFromValue = null;
-        }
     }
 
     _attach() {
@@ -96,17 +75,15 @@ export class TemplateView {
         } else {
             throw new Error("no render function passed in, or overriden in subclass");
         }
-        const parentProvidesUpdates = options && options.parentProvidesUpdates;
-        if (!parentProvidesUpdates) {
-            this._subscribe();
-        }
+        // takes care of update being called when needed
+        super.mount(options);
         this._attach();
         return this._root;
     }
 
     unmount() {
         this._detach();
-        this._unsubscribe();
+        super.unmount();
         if (this._subViews) {
             for (const v of this._subViews) {
                 v.unmount();
@@ -116,10 +93,6 @@ export class TemplateView {
 
     root() {
         return this._root;
-    }
-
-    _updateFromValue(changedProps) {
-        this.update(this._value, changedProps);
     }
 
     update(value) {
