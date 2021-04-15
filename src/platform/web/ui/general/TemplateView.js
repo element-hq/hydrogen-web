@@ -131,6 +131,14 @@ export class TemplateView extends BaseUpdateView {
             this._subViews.splice(idx, 1);
         }
     }
+
+    updateSubViews(value, props) {
+        if (this._subViews) {
+            for (const v of this._subViews) {
+                v.update(value, props);
+            }
+        }
+    }
 }
 
 // what is passed to render
@@ -260,10 +268,10 @@ class TemplateBuilder {
 
     // this insert a view, and is not a view factory for `if`, so returns the root element to insert in the template
     // you should not call t.view() and not use the result (e.g. attach the result to the template DOM tree).
-    view(view) {
+    view(view, mountOptions = undefined) {
         let root;
         try {
-            root = view.mount();
+            root = view.mount(mountOptions);
         } catch (err) {
             return errorToDOM(err);
         }
