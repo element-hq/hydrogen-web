@@ -107,7 +107,7 @@ export class Invite extends EventEmitter {
         }
     }
 
-    afterSync(changes, room) {
+    afterSync(changes) {
         if (changes) {
             this._inviteData = changes.inviteData;
             this._inviter = changes.inviter;

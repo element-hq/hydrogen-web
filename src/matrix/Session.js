@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020, 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -53,6 +54,8 @@ export class Session {
         this._sessionInfo = sessionInfo;
         this._rooms = new ObservableMap();
         this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
+        this._invites = new ObservableMap();
+        this._inviteRemoveCallback = invite => this._invites.remove(invite.id);
         this._user = new User(sessionInfo.userId);
         this._deviceMessageHandler = new DeviceMessageHandler({storage});
         this._olm = olm;
@@ -281,9 +284,10 @@ export class Session {
         const pendingEventsByRoomId = await this._getPendingEventsByRoom(txn);
         // load rooms
         const rooms = await txn.roomSummary.getAll();
-        await Promise.all(rooms.map(summary => {
+        await Promise.all(rooms.map(async summary => {
             const room = this.createRoom(summary.roomId, pendingEventsByRoomId.get(summary.roomId));
-            return log.wrap("room", log => room.load(summary, txn, log));
+            await log.wrap("room", log => room.load(summary, txn, log));
+            this._rooms.add(room.id, room);
         }));
     }
 
@@ -361,7 +365,7 @@ export class Session {
 
     /** @internal */
     createRoom(roomId, pendingEvents) {
-        const room = new Room({
+        return new Room({
             roomId,
             getSyncToken: this._getSyncToken,
             storage: this._storage,
@@ -373,8 +377,31 @@ export class Session {
             createRoomEncryption: this._createRoomEncryption,
             platform: this._platform
         });
-        this._rooms.add(roomId, room);
-        return room;
+    }
+
+    /** @internal */
+    addRoomAfterSync(room) {
+        this._rooms.add(room.id, room);
+    }
+
+    get invites() {
+        return this._invites;
+    }
+
+    /** @internal */
+    createInvite(roomId) {
+        return new Invite({
+            roomId,
+            hsApi: this._hsApi,
+            emitCollectionRemove: this._inviteRemoveCallback,
+            user: this._user,
+            clock: this._platform.clock,
+        });
+    }
+
+    /** @internal */
+    addInviteAfterSync(invite) {
+        this._invites.add(invite.id, invite);
     }
 
     async obtainSyncLock(syncResponse) {

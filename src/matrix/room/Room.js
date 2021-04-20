@@ -189,12 +189,15 @@ export class Room extends EventEmitter {
         return retryEntries;
     }
 
-    async prepareSync(roomResponse, membership, newKeys, txn, log) {
+    async prepareSync(roomResponse, membership, invite, newKeys, txn, log) {
         log.set("id", this.id);
         if (newKeys) {
             log.set("newKeys", newKeys.length);
         }
-        const summaryChanges = this._summary.data.applySyncResponse(roomResponse, membership)
+        let summaryChanges = this._summary.data.applySyncResponse(roomResponse, membership);
+        if (invite) {
+            summaryChanges = summaryChanges.applyInvite(invite);
+        }
         let roomEncryption = this._roomEncryption;
         // encryption is enabled in this sync
         if (!roomEncryption && summaryChanges.encryption) {
@@ -379,7 +382,7 @@ export class Room extends EventEmitter {
      * Can be used to do longer running operations that resulted from the last sync,
      * like network operations.
      */
-    async afterSyncCompleted(changes, log) {
+    async afterSyncCompleted(changes, isNewRoom, log) {
         log.set("id", this.id);
         if (this._roomEncryption) {
             await this._roomEncryption.flushPendingRoomKeyShares(this._hsApi, null, log);

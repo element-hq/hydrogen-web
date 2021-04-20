@@ -1,6 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
-Copyright 2020 The Matrix.org Foundation C.I.C.
+Copyright 2020, 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -191,7 +191,8 @@ export class Sync {
 
         const isInitialSync = !syncToken;
         const sessionState = new SessionSyncProcessState();
-        const roomStates = this._parseRoomsResponse(response.rooms, isInitialSync);
+        const inviteStates = this._parseInvites(response.rooms);
+        const roomStates = this._parseRoomsResponse(response.rooms, inviteStates, isInitialSync);
 
         try {
             // take a lock on olm sessions used in this sync so sending a message doesn't change them while syncing
@@ -205,6 +206,10 @@ export class Sync {
                 try {
                     sessionState.changes = await log.wrap("session", log => this._session.writeSync(
                         response, syncFilterId, sessionState.preparation, syncTxn, log));
+                    await Promise.all(inviteStates.map(async is => {
+                        is.changes = await log.wrap("invite", log => is.invite.writeSync(
+                            is.membership, is.roomResponse, syncTxn, log));
+                    }));
                     await Promise.all(roomStates.map(async rs => {
                         rs.changes = await log.wrap("room", log => rs.room.writeSync(
                             rs.roomResponse, isInitialSync, rs.preparation, syncTxn, log));
@@ -228,9 +233,19 @@ export class Sync {
 
         log.wrap("after", log => {
             log.wrap("session", log => this._session.afterSync(sessionState.changes, log), log.level.Detail);
+            // emit invite related events after txn has been closed
+            for(let is of inviteStates) {
+                log.wrap("invite", () => is.invite.afterSync(is.changes), log.level.Detail);
+                if (is.isNewInvite) {
+                    this._session.addInviteAfterSync(is.invite);
+                }
+            }
             // emit room related events after txn has been closed
             for(let rs of roomStates) {
                 log.wrap("room", log => rs.room.afterSync(rs.changes, log), log.level.Detail);
+                if (rs.isNewRoom) {
+                    this._session.addRoomAfterSync(rs.room);
+                }
             }
         });
 
@@ -267,7 +282,7 @@ export class Sync {
                 if (!isRoomInResponse) {
                     let room = this._session.rooms.get(roomId);
                     if (room) {
-                        roomStates.push(new RoomSyncProcessState(room, {}, room.membership));
+                        roomStates.push(new RoomSyncProcessState(room, false, null, {}, room.membership));
                     }
                 }
             }
@@ -276,7 +291,7 @@ export class Sync {
         await Promise.all(roomStates.map(async rs => {
             const newKeys = newKeysByRoom?.get(rs.room.id);
             rs.preparation = await log.wrap("room", log => rs.room.prepareSync(
-                rs.roomResponse, rs.membership, newKeys, prepareTxn, log), log.level.Detail);
+                rs.roomResponse, rs.membership, rs.invite, newKeys, prepareTxn, log), log.level.Detail);
         }));
 
         // This is needed for safari to not throw TransactionInactiveErrors on the syncTxn. See docs/INDEXEDDB.md
@@ -288,6 +303,7 @@ export class Sync {
         return this._storage.readWriteTxn([
             storeNames.session,
             storeNames.roomSummary,
+            storeNames.invites,
             storeNames.roomState,
             storeNames.roomMembers,
             storeNames.timelineEvents,
@@ -307,10 +323,10 @@ export class Sync {
         ]);
     }
     
-    _parseRoomsResponse(roomsSection, isInitialSync) {
+    _parseRoomsResponse(roomsSection, inviteStates, isInitialSync) {
         const roomStates = [];
         if (roomsSection) {
-            // don't do "invite", "leave" for now
+            // don't do "leave" for now
             const allMemberships = ["join"];
             for(const membership of allMemberships) {
                 const membershipSection = roomsSection[membership];
@@ -321,11 +337,20 @@ export class Sync {
                         if (isInitialSync && timelineIsEmpty(roomResponse)) {
                             continue;
                         }
+                        let isNewRoom = false;
                         let room = this._session.rooms.get(roomId);
                         if (!room) {
                             room = this._session.createRoom(roomId);
+                            isNewRoom = true;
                         }
-                        roomStates.push(new RoomSyncProcessState(room, roomResponse, membership));
+                        const invite = this._session.invites.get(roomId);
+                        // if there is an existing invite, add a process state for it
+                        // so its writeSync and afterSync will run and remove the invite
+                        if (invite) {
+                            inviteStates.push(new InviteSyncProcessState(invite, false, membership, null));
+                        }
+                        roomStates.push(new RoomSyncProcessState(
+                            room, isNewRoom, invite, roomResponse, membership));
                     }
                 }
             }
@@ -333,6 +358,21 @@ export class Sync {
         return roomStates;
     }
 
+    _parseInvites(invites, roomsSection) {
+        const inviteStates = [];
+        if (roomsSection.invite) {
+            for (const [roomId, roomResponse] of Object.entries(roomsSection.invite)) {
+                let invite = this._session.invites.get(roomId);
+                let isNewInvite = false;
+                if (!invite) {
+                    invite = this._session.createInvite(roomId);
+                    isNewInvite = true;
+                }
+                inviteStates.push(new InviteSyncProcessState(invite, isNewInvite, "invite", roomResponse));
+            }
+        }
+        return inviteStates;
+    }
 
     stop() {
         if (this._status.get() === SyncStatus.Stopped) {
@@ -360,11 +400,23 @@ class SessionSyncProcessState {
 }
 
 class RoomSyncProcessState {
-    constructor(room, roomResponse, membership) {
+    constructor(room, isNewRoom, invite, roomResponse, membership) {
         this.room = room;
+        this.isNewRoom = isNewRoom;
+        this.invite = invite;
         this.roomResponse = roomResponse;
         this.membership = membership;
         this.preparation = null;
+        this.changes = null;
+    }
+}
+
+class InviteSyncProcessState {
+    constructor(invite, isNewInvite, membership, roomResponse) {
+        this.invite = invite;
+        this.isNewInvite = isNewInvite;
+        this.membership = membership;
+        this.roomResponse = roomResponse;
         this.changes = null;
     }
 }
