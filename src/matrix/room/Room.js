@@ -382,7 +382,7 @@ export class Room extends EventEmitter {
      * Can be used to do longer running operations that resulted from the last sync,
      * like network operations.
      */
-    async afterSyncCompleted(changes, isNewRoom, log) {
+    async afterSyncCompleted(changes, log) {
         log.set("id", this.id);
         if (this._roomEncryption) {
             await this._roomEncryption.flushPendingRoomKeyShares(this._hsApi, null, log);
