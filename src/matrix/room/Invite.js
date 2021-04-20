@@ -70,7 +70,8 @@ export class Invite extends EventEmitter {
 
     }
 
-    load(inviteData) {
+    load(inviteData, log) {
+        log.set("id", this.id);
         this._inviteData = inviteData;
         this._inviter = inviteData.inviter ? new RoomMember(inviteData.inviter) : null;
     }
@@ -257,7 +258,7 @@ export function tests() {
             const txn = createStorage();
             await writeInvite.writeSync("invite", dmInviteFixture, txn, new NullLogItem());
             const invite = new Invite({roomId});
-            invite.load(txn.invitesMap.get(roomId));
+            invite.load(txn.invitesMap.get(roomId), new NullLogItem());
             assert.equal(invite.name, "Alice");
             assert.equal(invite.avatarUrl, aliceAvatarUrl);
             assert.equal(invite.timestamp, 1003);

@@ -258,6 +258,7 @@ export class Session {
         const txn = await this._storage.readTxn([
             this._storage.storeNames.session,
             this._storage.storeNames.roomSummary,
+            this._storage.storeNames.invites,
             this._storage.storeNames.roomMembers,
             this._storage.storeNames.timelineEvents,
             this._storage.storeNames.timelineFragments,
@@ -288,6 +289,13 @@ export class Session {
             const room = this.createRoom(summary.roomId, pendingEventsByRoomId.get(summary.roomId));
             await log.wrap("room", log => room.load(summary, txn, log));
             this._rooms.add(room.id, room);
+        }));
+        // load invites
+        const invites = await txn.invites.getAll();
+        await Promise.all(invites.map(async inviteData => {
+            const invite = this.createInvite(inviteData.roomId);
+            log.wrap("invite", log => invite.load(inviteData, log));
+            this._invites.add(invite.id, invite);
         }));
     }
 
@@ -580,6 +588,11 @@ export function tests() {
                         }
                     },
                     roomSummary: {
+                        getAll() {
+                            return Promise.resolve([]);
+                        }
+                    },
+                    invites: {
                         getAll() {
                             return Promise.resolve([]);
                         }
