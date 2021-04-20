@@ -15,17 +15,17 @@ limitations under the License.
 */
 
 export class InviteStore {
-	constructor(inviteStore) {
-		this._inviteStore = inviteStore;
-	}
+    constructor(inviteStore) {
+        this._inviteStore = inviteStore;
+    }
 
-	getAll() {
-		return this._inviteStore.selectAll();
-	}
+    getAll() {
+        return this._inviteStore.selectAll();
+    }
 
-	set(invite) {
-		return this._inviteStore.put(invite);
-	}
+    set(invite) {
+        return this._inviteStore.put(invite);
+    }
 
     remove(roomId) {
         this._store.delete(roomId);
