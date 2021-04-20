@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {Room} from "./room/Room.js";
+import {Invite} from "./room/Invite.js";
 import {Pusher} from "./push/Pusher.js";
 import { ObservableMap } from "../observable/index.js";
 import {User} from "./User.js";

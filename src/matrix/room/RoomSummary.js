@@ -85,7 +85,7 @@ function processRoomAccountData(data, event) {
     return data;
 }
 
-function processStateEvent(data, event) {
+export function processStateEvent(data, event) {
     if (event.type === "m.room.encryption") {
         const algorithm = event.content?.algorithm;
         if (!data.encryption && algorithm === MEGOLM_ALGORITHM) {
@@ -148,7 +148,7 @@ function updateSummary(data, summary) {
     return data;
 }
 
-class SummaryData {
+export class SummaryData {
     constructor(copy, roomId) {
         this.roomId = copy ? copy.roomId : roomId;
         this.name = copy ? copy.name : null;
