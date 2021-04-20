@@ -248,5 +248,25 @@ export function tests() {
             assert.equal(invite.inviter.displayName, "Alice");
             assert.equal(invite.inviter.avatarUrl, aliceAvatarUrl);
         },
+        "load persisted invite has correct fields": async assert => {
+            const writeInvite = new Invite({
+                roomId,
+                clock: new MockClock(1003),
+                user: {id: "@bob:hs.tld"}
+            });
+            const txn = createStorage();
+            await writeInvite.writeSync("invite", dmInviteFixture, txn, new NullLogItem());
+            const invite = new Invite({roomId});
+            invite.load(txn.invitesMap.get(roomId));
+            assert.equal(invite.name, "Alice");
+            assert.equal(invite.avatarUrl, aliceAvatarUrl);
+            assert.equal(invite.timestamp, 1003);
+            assert.equal(invite.isEncrypted, true);
+            assert.equal(invite.isDirectMessage, true);
+            assert(invite.inviter);
+            assert.equal(invite.inviter.userId, "@alice:hs.tld");
+            assert.equal(invite.inviter.displayName, "Alice");
+            assert.equal(invite.inviter.avatarUrl, aliceAvatarUrl);
+        },
     }
 }
