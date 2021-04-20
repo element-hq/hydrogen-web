@@ -70,11 +70,13 @@ export class Invite extends EventEmitter {
     async accept() {
         this._accepting = true;
         this._emitChange("accepting");
+        await this._hsApi.join(this._roomId).response();
     }
 
     async reject() {
         this._rejecting = true;
         this._emitChange("rejecting");
+        await this._hsApi.leave(this._roomId).response();
     }
 
     get accepting() {
