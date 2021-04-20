@@ -20,14 +20,19 @@ import {Heroes} from "./members/Heroes.js";
 import {MemberChange, RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "./members/RoomMember.js";
 
 export class Invite extends EventEmitter {
-    constructor({roomId, user, hsApi, emitCollectionRemove, clock}) {
+    constructor({roomId, user, hsApi, emitCollectionRemove, emitCollectionUpdate, clock}) {
         super();
         this._roomId = roomId;
         this._user = user;
         this._hsApi = hsApi;
         this._emitCollectionRemove = emitCollectionRemove;
+        this._emitCollectionUpdate = emitCollectionUpdate;
         this._clock = clock;
         this._inviteData = null;
+        this._accepting = false;
+        this._rejecting = false;
+        this._accepted = false;
+        this._rejected = false;
     }
 
     get id() {
@@ -63,11 +68,34 @@ export class Invite extends EventEmitter {
     }
 
     async accept() {
-
+        this._accepting = true;
+        this._emitChange("accepting");
     }
 
     async reject() {
+        this._rejecting = true;
+        this._emitChange("rejecting");
+    }
 
+    get accepting() {
+        return this._accepting;
+    }
+
+    get accepted() {
+        return this._accepted;
+    }
+
+    get rejecting() {
+        return this._rejecting;
+    }
+
+    get rejected() {
+        return this._rejected;
+    }
+
+    _emitChange(params) {
+        this.emit("change");
+        this._emitCollectionUpdate(params);
     }
 
     load(inviteData, log) {
@@ -101,18 +129,28 @@ export class Invite extends EventEmitter {
             log.set("id", this.id);
             log.set("membership", membership);
             txn.invites.remove(this.id);
-            return null;
+            return {removed: true, membership};
         }
     }
 
     afterSync(changes) {
         if (changes) {
-            this._inviteData = changes.inviteData;
-            this._inviter = changes.inviter;
-            // emit update/add
-        } else {
-            this._emitCollectionRemove(this);
-            this.emit("change");
+            if (changes.removed) {
+                this._accepting = false;
+                this._rejecting = false;
+                if (changes.membership === "join") {
+                    this._accepted = true;
+                } else {
+                    this._rejected = true;
+                }
+                this._emitCollectionRemove(this);
+                this.emit("change");
+            } else {
+                this._inviteData = changes.inviteData;
+                this._inviter = changes.inviter;
+                // sync will add the invite to the collection by
+                // calling session.addInviteAfterSync
+            }
         }
     }
 

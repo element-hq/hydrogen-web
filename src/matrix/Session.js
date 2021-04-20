@@ -56,6 +56,7 @@ export class Session {
         this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
         this._invites = new ObservableMap();
         this._inviteRemoveCallback = invite => this._invites.remove(invite.id);
+        this._inviteUpdateCallback = (invite, params) => this._invites.update(invite.id, params);
         this._user = new User(sessionInfo.userId);
         this._deviceMessageHandler = new DeviceMessageHandler({storage});
         this._olm = olm;
@@ -402,6 +403,7 @@ export class Session {
             roomId,
             hsApi: this._hsApi,
             emitCollectionRemove: this._inviteRemoveCallback,
+            emitCollectionUpdate: this._inviteUpdateCallback,
             user: this._user,
             clock: this._platform.clock,
         });

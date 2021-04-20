@@ -15,51 +15,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {avatarInitials, getIdentifierColorNumber} from "../../avatar.js";
-import {ViewModel} from "../../ViewModel.js";
+import {BaseTileViewModel} from "./BaseTileViewModel.js";
 
 function isSortedAsUnread(vm) {
     return vm.isUnread || (vm.isOpen && vm._wasUnreadWhenOpening);
 }
 
-export class RoomTileViewModel extends ViewModel {
+export class RoomTileViewModel extends BaseTileViewModel {
     constructor(options) {
         super(options);
         const {room} = options;
         this._room = room;
-        this._isOpen = false;
         this._wasUnreadWhenOpening = false;
-        this._hidden = false;
         this._url = this.urlCreator.openRoomActionUrl(this._room.id);
-        if (options.isOpen) {
-            this.open();
-        }
     }
 
-    get hidden() {
-        return this._hidden;
-    }
-
-    set hidden(value) {
-        if (value !== this._hidden) {
-            this._hidden = value;
-            this.emitChange("hidden");
-        }
-    }
-
-    close() {
-        if (this._isOpen) {
-            this._isOpen = false;
-            this.emitChange("isOpen");
-        }
-    }
-
-    open() {
-        if (!this._isOpen) {
-            this._isOpen = true;
-            this._wasUnreadWhenOpening = this._room.isUnread;
-            this.emitChange("isOpen");
-        }
+    get kind() {
+        return "room";
     }
 
     get url() {
@@ -67,6 +39,10 @@ export class RoomTileViewModel extends ViewModel {
     }
 
     compare(other) {
+        const parentComparison = super.compare(other);
+        if (parentComparison !== 0) {
+            return parentComparison;
+        }
         /*
         put unread rooms first
         then put rooms with a timestamp first, and sort by name
@@ -110,10 +86,6 @@ export class RoomTileViewModel extends ViewModel {
         return timeDiff;
     }
 
-    get isOpen() {
-        return this._isOpen;
-    }
-
     get isUnread() {
         return this._room.isUnread;
     }
@@ -122,32 +94,15 @@ export class RoomTileViewModel extends ViewModel {
         return this._room.name || this.i18n`Empty Room`;
     }
 
-    // Avatar view model contract
-    get avatarLetter() {
-        return avatarInitials(this.name);
-    }
-
-    get avatarColorNumber() {
-        return getIdentifierColorNumber(this._room.id)
-    }
-
-    get avatarUrl() {
-        if (this._room.avatarUrl) {
-            const size = 32 * this.platform.devicePixelRatio;
-            return this._room.mediaRepository.mxcUrlThumbnail(this._room.avatarUrl, size, size, "crop");
-        }
-        return null;
-    }
-
-    get avatarTitle() {
-        return this.name;
-    }
-
     get badgeCount() {
         return this._room.notificationCount;
     }
 
     get isHighlighted() {
         return this._room.highlightCount !== 0;
+    }
+
+    get _avatarSource() {
+        return this._room;
     }
 }
