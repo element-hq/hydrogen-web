@@ -77,33 +77,30 @@ export class Invite extends EventEmitter {
 
     async writeSync(membership, roomResponse, txn, log) {
         if (membership === "invite") {
-            return log.wrap("new invite", async log => {
-                log.set("id", this.id);
-                const inviteState = roomResponse["invite_state"]?.events;
-                if (!Array.isArray(inviteState)) {
-                    return null;
-                }
-                const summaryData = this._createSummaryData(inviteState);
-                let heroes;
-                if (!summaryData.name && !summaryData.canonicalAlias) {
-                    heroes = await this._createHeroes(inviteState);
-                }
-                const myInvite = this._getMyInvite(inviteState);
-                if (!myInvite) {
-                    return null;
-                }
-                const inviter = this._getInviter(myInvite, inviteState);
-                const inviteData = this._createData(inviteState, myInvite, inviter, summaryData, heroes);
-                txn.invites.set(inviteData);
-                return {inviteData, inviter};
-            });
-        } else {
-            return log.wrap("remove invite", log => {
-                log.set("id", this.id);
-                log.set("membership", membership);
-                txn.invites.remove(this.id);
+            log.set("id", this.id);
+            log.set("add", true);
+            const inviteState = roomResponse["invite_state"]?.events;
+            if (!Array.isArray(inviteState)) {
                 return null;
-            });
+            }
+            const summaryData = this._createSummaryData(inviteState);
+            let heroes;
+            if (!summaryData.name && !summaryData.canonicalAlias) {
+                heroes = await this._createHeroes(inviteState);
+            }
+            const myInvite = this._getMyInvite(inviteState);
+            if (!myInvite) {
+                return null;
+            }
+            const inviter = this._getInviter(myInvite, inviteState);
+            const inviteData = this._createData(inviteState, myInvite, inviter, summaryData, heroes);
+            txn.invites.set(inviteData);
+            return {inviteData, inviter};
+        } else {
+            log.set("id", this.id);
+            log.set("membership", membership);
+            txn.invites.remove(this.id);
+            return null;
         }
     }
 
