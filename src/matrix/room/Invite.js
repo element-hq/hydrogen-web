@@ -332,6 +332,8 @@ export function tests() {
             assert(!removedEmitted);
             invite.afterSync(joinChanges);
             assert.equal(txn.invitesMap.get(roomId), undefined);
+            assert.equal(invite.rejected, false);
+            assert.equal(invite.accepted, true);
             assert(removedEmitted);
         }
     }
