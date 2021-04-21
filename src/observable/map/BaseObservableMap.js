@@ -49,4 +49,9 @@ export class BaseObservableMap extends BaseObservable {
     get size() {
         throw new Error("unimplemented");
     }
+
+    // eslint-disable-next-line no-unused-vars
+    get(key) {
+        throw new Error("unimplemented");
+    }
 }

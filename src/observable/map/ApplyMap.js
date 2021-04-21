@@ -82,4 +82,8 @@ export class ApplyMap extends BaseObservableMap {
     get size() {
         return this._source.size;
     }
+
+    get(key) {
+        return this._source.get(key);
+    }
 }

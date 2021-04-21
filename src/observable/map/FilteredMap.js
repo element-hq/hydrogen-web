@@ -128,6 +128,13 @@ export class FilteredMap extends BaseObservableMap {
         });
         return count;
     }
+
+    get(key) {
+        const value = this._source.get(key);
+        if (value && this._filter(value, key)) {
+            return value;
+        }
+    }
 }
 
 class FilterIterator {
