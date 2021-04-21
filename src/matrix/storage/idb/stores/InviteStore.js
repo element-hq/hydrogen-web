@@ -28,6 +28,6 @@ export class InviteStore {
     }
 
     remove(roomId) {
-        this._store.delete(roomId);
+        this._inviteStore.delete(roomId);
     }
 }
