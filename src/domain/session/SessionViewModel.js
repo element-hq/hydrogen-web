@@ -108,10 +108,6 @@ export class SessionViewModel extends ViewModel {
         return this._settingsViewModel;
     }
 
-    get roomList() {
-        return this._roomList;
-    }
-
     get currentRoomViewModel() {
         return this._currentRoomViewModel;
     }
