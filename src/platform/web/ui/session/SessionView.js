@@ -17,6 +17,7 @@ limitations under the License.
 
 import {LeftPanelView} from "./leftpanel/LeftPanelView.js";
 import {RoomView} from "./room/RoomView.js";
+import {InviteView} from "./room/InviteView.js";
 import {LightboxView} from "./room/LightboxView.js";
 import {TemplateView} from "../general/TemplateView.js";
 import {StaticView} from "../general/StaticView.js";
@@ -40,7 +41,11 @@ export class SessionView extends TemplateView {
                 } else if (vm.settingsViewModel) {
                     return new SettingsView(vm.settingsViewModel);
                 } else if (vm.currentRoomViewModel) {
+                    if (vm.currentRoomViewModel.kind === "invite") {
+                        return new InviteView(vm.currentRoomViewModel);
+                    } else {
                         return new RoomView(vm.currentRoomViewModel);
+                    }
                 } else {
                     return new StaticView(t => t.div({className: "room-placeholder"}, t.h2(vm.i18n`Choose a room on the left side.`)));
                 }
