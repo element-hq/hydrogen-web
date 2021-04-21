@@ -72,7 +72,7 @@ export class BaseTileViewModel extends ViewModel {
     }
 
     get avatarColorNumber() {
-        return getIdentifierColorNumber(this._avatarSource.id)
+        return getIdentifierColorNumber(this._avatarSource.id);
     }
 
     get avatarUrl() {
