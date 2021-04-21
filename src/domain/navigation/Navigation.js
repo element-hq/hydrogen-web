@@ -147,6 +147,22 @@ class Path {
         return this._segments.find(s => s.type === type);
     }
 
+    replace(segment) {
+        const index = this._segments.findIndex(s => s.type === segment.type);
+        if (index !== -1) {
+            const parent = this._segments[index - 1];
+            if (this._allowsChild(parent, segment)) {
+                const child = this._segments[index + 1];
+                if (!child || this._allowsChild(segment, child)) {
+                    const newSegments = this._segments.slice();
+                    newSegments[index] = segment;
+                    return new Path(newSegments, this._allowsChild);
+                }
+            }
+        }
+        return null;
+    }
+
     get segments() {
         return this._segments;
     }
