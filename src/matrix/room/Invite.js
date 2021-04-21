@@ -149,6 +149,9 @@ export class Invite extends EventEmitter {
                 } else {
                     this._rejected = true;
                 }
+                // important to remove before emitting change
+                // so code checking session.invites.get(id) won't
+                // find the invite anymore on update
                 this._emitCollectionRemove(this);
                 this.emit("change");
             } else {
