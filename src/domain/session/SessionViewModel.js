@@ -36,6 +36,7 @@ export class SessionViewModel extends ViewModel {
             session: sessionContainer.session,
         })));
         this._leftPanelViewModel = this.track(new LeftPanelViewModel(this.childOptions({
+            invites: this._sessionContainer.session.invites,
             rooms: this._sessionContainer.session.rooms
         })));
         this._settingsViewModel = null;
