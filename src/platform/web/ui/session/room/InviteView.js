@@ -33,7 +33,11 @@ export class InviteView extends TemplateView {
                     ]),
                 ]),
                 t.div({className: "RoomView_error"}, vm => vm.error),
-                t.div(`You were invited into this room!`)
+                t.div([
+                    t.p(`You were invited into this room!`),
+                    t.p(t.button({onClick: () => vm.accept()}, vm.i18n`Accept`)),
+                    t.p(t.button({onClick: () => vm.reject()}, vm.i18n`Reject`)),
+                ])
             ])
         ]);
     }
