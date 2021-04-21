@@ -34,10 +34,6 @@ export class RoomViewModel extends ViewModel {
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
     }
 
-    get closeUrl() {
-        return this._closeUrl;
-    }
-
     async load() {
         this._room.on("change", this._onRoomChange);
         try {
@@ -92,21 +88,11 @@ export class RoomViewModel extends ViewModel {
         this.emitChange("name");
     }
 
-    get name() {
-        return this._room.name || this.i18n`Empty Room`;
-    }
-
-    get id() {
-        return this._room.id;
-    }
-
-    get timelineViewModel() {
-        return this._timelineVM;
-    }
-
-    get isEncrypted() {
-        return this._room.isEncrypted;
-    }
+    get closeUrl() { return this._closeUrl; }
+    get name() { return this._room.name || this.i18n`Empty Room`; }
+    get id() { return this._room.id; }
+    get timelineViewModel() { return this._timelineVM; }
+    get isEncrypted() { return this._room.isEncrypted; }
 
     get error() {
         if (this._timelineError) {
