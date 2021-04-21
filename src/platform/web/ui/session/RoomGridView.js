@@ -30,7 +30,7 @@ export class RoomGridView extends TemplateView {
                     [`tile${i}`]: true,
                     "focused": vm => vm.focusIndex === i
                 },
-            },t.mapView(vm => vm.roomViewModelAt(i), roomVM => {
+            }, t.mapView(vm => vm.roomViewModelAt(i), roomVM => {
                 if (roomVM) {
                     return new RoomView(roomVM);
                 } else {
