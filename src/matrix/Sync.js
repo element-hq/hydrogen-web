@@ -363,7 +363,7 @@ export class Sync {
         return roomStates;
     }
 
-    _parseInvites(invites, roomsSection) {
+    _parseInvites(roomsSection) {
         const inviteStates = [];
         if (roomsSection.invite) {
             for (const [roomId, roomResponse] of Object.entries(roomsSection.invite)) {
