@@ -507,6 +507,10 @@ export class Session {
         return this._user;
     }
 
+    get mediaRepository() {
+        return this._mediaRepository;
+    }
+
     enablePushNotifications(enable) {
         if (enable) {
             return this._enablePush();

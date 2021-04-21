@@ -88,6 +88,7 @@ export class RoomViewModel extends ViewModel {
         this.emitChange("name");
     }
 
+    get kind() { return "room"; }
     get closeUrl() { return this._closeUrl; }
     get name() { return this._room.name || this.i18n`Empty Room`; }
     get id() { return this._room.id; }
