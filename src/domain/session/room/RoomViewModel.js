@@ -86,12 +86,6 @@ export class RoomViewModel extends ViewModel {
         }
     }
 
-    // called from view to close room
-    // parent vm will dispose this vm
-    close() {
-        this._closeCallback();
-    }
-
     // room doesn't tell us yet which fields changed,
     // so emit all fields originating from summary
     _onRoomChange() {
