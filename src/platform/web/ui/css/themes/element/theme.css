@@ -276,7 +276,7 @@ a.button-action {
 }
 
 .RoomList .description {
-    align-items: baseline;
+    align-items: center;
 }
 
 .RoomList .name.unread {

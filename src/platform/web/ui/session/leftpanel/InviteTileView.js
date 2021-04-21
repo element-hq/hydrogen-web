@@ -17,6 +17,7 @@ limitations under the License.
 
 import {TemplateView} from "../../general/TemplateView.js";
 import {renderStaticAvatar} from "../../avatar.js";
+import {spinner} from "../../common.js";
 
 export class InviteTileView extends TemplateView {
     render(t, vm) {
@@ -29,7 +30,13 @@ export class InviteTileView extends TemplateView {
                 renderStaticAvatar(vm, 32),
                 t.div({className: "description"}, [
                     t.div({className: "name"}, vm.name),
-                    t.div({className: "badge highlighted"}, "!"),
+                    t.map(vm => vm.busy, busy => {
+                        if (busy) {
+                            return spinner(t);
+                        } else {
+                            return t.div({className: "badge highlighted"}, "!");
+                        }
+                    })
                 ])
             ])
         ]);
