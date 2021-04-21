@@ -20,14 +20,14 @@ import {Heroes} from "./members/Heroes.js";
 import {MemberChange, RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "./members/RoomMember.js";
 
 export class Invite extends EventEmitter {
-    constructor({roomId, user, hsApi, emitCollectionRemove, emitCollectionUpdate, clock}) {
+    constructor({roomId, user, hsApi, emitCollectionRemove, emitCollectionUpdate, platform}) {
         super();
         this._roomId = roomId;
         this._user = user;
         this._hsApi = hsApi;
         this._emitCollectionRemove = emitCollectionRemove;
         this._emitCollectionUpdate = emitCollectionUpdate;
-        this._clock = clock;
+        this._platform = platform;
         this._inviteData = null;
         this._accepting = false;
         this._rejecting = false;
@@ -67,16 +67,20 @@ export class Invite extends EventEmitter {
         return this._inviteData.joinRule;
     }
 
-    async accept() {
-        this._accepting = true;
-        this._emitChange("accepting");
-        await this._hsApi.join(this._roomId).response();
+    async accept(log = null) {
+        await this._platform.logger.wrapOrRun(log, "acceptInvite", async log => {
+            this._accepting = true;
+            this._emitChange("accepting");
+            await this._hsApi.join(this._roomId, {log}).response();
+        });
     }
 
-    async reject() {
-        this._rejecting = true;
-        this._emitChange("rejecting");
-        await this._hsApi.leave(this._roomId).response();
+    async reject(log = null) {
+        await this._platform.logger.wrapOrRun(log, "rejectInvite", async log => {
+            this._rejecting = true;
+            this._emitChange("rejecting");
+            await this._hsApi.leave(this._roomId, {log}).response();
+        });
     }
 
     get accepting() {
@@ -167,7 +171,7 @@ export class Invite extends EventEmitter {
             name,
             avatarUrl,
             canonicalAlias: summaryData.canonicalAlias,
-            timestamp: this._clock.now(),
+            timestamp: this._platform.clock.now(),
             joinRule: this._getJoinRule(inviteState),
             inviter: inviter?.serialize(),
         };
@@ -251,7 +255,7 @@ export function tests() {
         "invite for room has correct fields": async assert => {
             const invite = new Invite({
                 roomId,
-                clock: new MockClock(1001),
+                platform: {clock: new MockClock(1001)},
                 user: {id: "@bob:hs.tld"}
             });
             const txn = createStorage();
@@ -272,7 +276,7 @@ export function tests() {
         "invite for encrypted DM has correct fields": async assert => {
             const invite = new Invite({
                 roomId,
-                clock: new MockClock(1003),
+                platform: {clock: new MockClock(1003)},
                 user: {id: "@bob:hs.tld"}
             });
             const txn = createStorage();
@@ -292,7 +296,7 @@ export function tests() {
         "load persisted invite has correct fields": async assert => {
             const writeInvite = new Invite({
                 roomId,
-                clock: new MockClock(1003),
+                platform: {clock: new MockClock(1003)},
                 user: {id: "@bob:hs.tld"}
             });
             const txn = createStorage();
@@ -313,7 +317,7 @@ export function tests() {
             let removedEmitted = false;
             const invite = new Invite({
                 roomId,
-                clock: new MockClock(1003),
+                platform: {clock: new MockClock(1003)},
                 user: {id: "@bob:hs.tld"},
                 emitCollectionRemove: emittingInvite => {
                     assert.equal(emittingInvite, invite);

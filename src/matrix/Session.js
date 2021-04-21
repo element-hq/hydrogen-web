@@ -405,7 +405,7 @@ export class Session {
             emitCollectionRemove: this._inviteRemoveCallback,
             emitCollectionUpdate: this._inviteUpdateCallback,
             user: this._user,
-            clock: this._platform.clock,
+            platform: this._platform,
         });
     }
 
