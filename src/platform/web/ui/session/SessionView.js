@@ -34,16 +34,15 @@ export class SessionView extends TemplateView {
         }, [
             t.view(new SessionStatusView(vm.sessionStatusViewModel)),
             t.view(new LeftPanelView(vm.leftPanelViewModel)),
-            t.mapView(vm => vm.activeSection, activeSection => {
-                switch (activeSection) {
-                    case "roomgrid":
-                        return new RoomGridView(vm.roomGridViewModel);
-                    case "placeholder":
-                        return new StaticView(t => t.div({className: "room-placeholder"}, t.h2(vm.i18n`Choose a room on the left side.`)));
-                    case "settings":
-                        return new SettingsView(vm.settingsViewModel);
-                    default: //room id
+            t.mapView(vm => vm.activeMiddleViewModel, () => {
+                if (vm.roomGridViewModel) {
+                    return new RoomGridView(vm.roomGridViewModel);
+                } else if (vm.settingsViewModel) {
+                    return new SettingsView(vm.settingsViewModel);
+                } else if (vm.currentRoomViewModel) {
                         return new RoomView(vm.currentRoomViewModel);
+                } else {
+                    return new StaticView(t => t.div({className: "room-placeholder"}, t.h2(vm.i18n`Choose a room on the left side.`)));
                 }
             }),
             t.mapView(vm => vm.lightboxViewModel, lightboxViewModel => lightboxViewModel ? new LightboxView(lightboxViewModel) : null)

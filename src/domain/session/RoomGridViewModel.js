@@ -32,10 +32,11 @@ export class RoomGridViewModel extends ViewModel {
 
         this._width = options.width;
         this._height = options.height;
-        this._createRoomViewModel = options.createRoomViewModel;
+        this._createRoomOrInviteViewModel = options.createRoomOrInviteViewModel;
 
         this._selectedIndex = 0;
         this._viewModels = [];
+        this._replaceInviteWithRoom = this._replaceInviteWithRoom.bind(this);
         this._setupNavigation();
     }
 
@@ -61,6 +62,24 @@ export class RoomGridViewModel extends ViewModel {
             }
         }));
         // initial focus for a room is set by initializeRoomIdsAndTransferVM
+    }
+
+    _replaceInviteWithRoom(roomId) {
+        const index = this._viewModels.findIndex(vm => vm?.id === roomId);
+        if (index === -1) {
+            return;
+        }
+        this._viewModels[index] = this.disposeTracked(this._viewModels[index]);
+        // this will create a RoomViewModel because the invite is already
+        // removed from the collection (see Invite.afterSync)
+        const roomVM = this._createRoomOrInviteViewModel(roomId, this._replaceInviteWithRoom);
+        if (roomVM) {
+            this._viewModels[index] = this.track(roomVM);
+            if (this.focusIndex === index) {
+                roomVM.focus();
+            }
+        }
+        this.emitChange();
     }
 
     roomViewModelAt(i) {
@@ -128,7 +147,7 @@ export class RoomGridViewModel extends ViewModel {
                     this._viewModels[i] = this.disposeTracked(vm);
                 }
                 if (newId) {
-                    const newVM = this._createRoomViewModel(newId);
+                    const newVM = this._createRoomOrInviteViewModel(newId, this._replaceInviteWithRoom);
                     if (newVM) {
                         this._viewModels[i] = this.track(newVM);
                     }
@@ -211,7 +230,7 @@ export function tests() {
         "initialize with duplicate set of rooms": assert => {
             const navigation = createNavigationForRoom(["c", "a", "b", undefined, "a"], "a");
             const gridVM = new RoomGridViewModel({
-                createRoomViewModel: id => new RoomVMMock(id),
+                createRoomOrInviteViewModel: id => new RoomVMMock(id),
                 navigation,
                 width: 3,
                 height: 2,
@@ -228,7 +247,7 @@ export function tests() {
         "transfer room view model": assert => {
             const navigation = createNavigationForRoom(["a"], "a");
             const gridVM = new RoomGridViewModel({
-                createRoomViewModel: () => assert.fail("no vms should be created"),
+                createRoomOrInviteViewModel: () => assert.fail("no vms should be created"),
                 navigation,
                 width: 3,
                 height: 2,
@@ -242,7 +261,7 @@ export function tests() {
         "reject transfer for non-matching room view model": assert => {
             const navigation = createNavigationForRoom(["a"], "a");
             const gridVM = new RoomGridViewModel({
-                createRoomViewModel: id => new RoomVMMock(id),
+                createRoomOrInviteViewModel: id => new RoomVMMock(id),
                 navigation,
                 width: 3,
                 height: 2,
@@ -256,7 +275,7 @@ export function tests() {
         "created & released room view model is not disposed": assert => {
             const navigation = createNavigationForRoom(["a"], "a");
             const gridVM = new RoomGridViewModel({
-                createRoomViewModel: id => new RoomVMMock(id),
+                createRoomOrInviteViewModel: id => new RoomVMMock(id),
                 navigation,
                 width: 3,
                 height: 2,
@@ -270,7 +289,7 @@ export function tests() {
         "transfered & released room view model is not disposed": assert => {
             const navigation = createNavigationForRoom([undefined, "a"], "a");
             const gridVM = new RoomGridViewModel({
-                createRoomViewModel: () => assert.fail("no vms should be created"),
+                createRoomOrInviteViewModel: () => assert.fail("no vms should be created"),
                 navigation,
                 width: 3,
                 height: 2,
@@ -285,7 +304,7 @@ export function tests() {
         "try release non-existing room view model is": assert => {
             const navigation = createNavigationForEmptyTile([undefined, "b"], 3);
             const gridVM = new RoomGridViewModel({
-                createRoomViewModel: id => new RoomVMMock(id),
+                createRoomOrInviteViewModel: id => new RoomVMMock(id),
                 navigation,
                 width: 3,
                 height: 2,
@@ -297,7 +316,7 @@ export function tests() {
         "initial focus is set to empty tile": assert => {
             const navigation = createNavigationForEmptyTile(["a"], 1);
             const gridVM = new RoomGridViewModel({
-                createRoomViewModel: id => new RoomVMMock(id),
+                createRoomOrInviteViewModel: id => new RoomVMMock(id),
                 navigation,
                 width: 3,
                 height: 2,
@@ -309,7 +328,7 @@ export function tests() {
         "change room ids after creation": assert => {
             const navigation = createNavigationForRoom(["a", "b"], "a");
             const gridVM = new RoomGridViewModel({
-                createRoomViewModel: id => new RoomVMMock(id),
+                createRoomOrInviteViewModel: id => new RoomVMMock(id),
                 navigation,
                 width: 3,
                 height: 2,
