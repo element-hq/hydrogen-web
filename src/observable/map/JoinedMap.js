@@ -20,6 +20,7 @@ export class JoinedMap extends BaseObservableMap {
     constructor(sources) {
         super();
         this._sources = sources;
+        this._subscriptions = null;
     }
 
     onAdd(source, key, value) {
@@ -160,7 +161,7 @@ class SourceSubscriptionHandler {
     }
 
     subscribe() {
-        this._source.subscribe(this);
+        this._subscription = this._source.subscribe(this);
         return this;
     }
 
