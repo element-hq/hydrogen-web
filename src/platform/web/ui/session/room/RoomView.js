@@ -38,7 +38,7 @@ export class RoomView extends TemplateView {
                         new TimelineList(timelineViewModel) :
                         new TimelineLoadingView(vm);    // vm is just needed for i18n
                 }),
-                t.view(new MessageComposer(this.value.composerViewModel)),
+                t.view(new MessageComposer(vm.composerViewModel)),
             ])
         ]);
     }
