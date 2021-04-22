@@ -248,8 +248,9 @@ export class Room extends EventEmitter {
     /** @package */
     async writeSync(roomResponse, isInitialSync, {summaryChanges, decryptChanges, roomEncryption, retryEntries}, txn, log) {
         log.set("id", this.id);
+        const isRejoin = summaryChanges.membership === "join" && this._summary.data.membership === "leave";
         const {entries: newEntries, newLiveKey, memberChanges} =
-            await log.wrap("syncWriter", log => this._syncWriter.writeSync(roomResponse, txn, log), log.level.Detail);
+            await log.wrap("syncWriter", log => this._syncWriter.writeSync(roomResponse, isRejoin, txn, log), log.level.Detail);
         let allEntries = newEntries;
         if (decryptChanges) {
             const decryption = await log.wrap("decryptChanges", log => decryptChanges.write(txn, log));

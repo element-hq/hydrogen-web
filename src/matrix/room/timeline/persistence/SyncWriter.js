@@ -190,6 +190,26 @@ export class SyncWriter {
         return currentKey;
     }
 
+    async _handleRejoinOverlap(timeline, txn, log) {
+        if (this._lastLiveKey) {
+            const {fragmentId} = this._lastLiveKey;
+            const [lastEvent] = await txn.timelineEvents.lastEvents(this._roomId, fragmentId, 1);
+            if (lastEvent) {
+                const lastEventId = lastEvent.event.event_id;
+                const {events} = timeline;
+                const index = events.findIndex(event => event.event_id === lastEventId);
+                if (index !== -1) {
+                    log.set("overlap_event_id", lastEventId);
+                    return {
+                        limited: false,
+                        events: events.slice(index + 1)
+                    };
+                }
+            }
+        }
+        return timeline;
+    }
+
     /**
      * @type {SyncWriterResult}
      * @property {Array<BaseEntry>} entries new timeline entries written
@@ -197,12 +217,19 @@ export class SyncWriter {
      * @property {Map<string, MemberChange>} memberChanges member changes in the processed sync ny user id
      * 
      * @param  {Object}  roomResponse [description]
+     * @param  {boolean}  isRejoin whether the room was rejoined in the sync being processed
      * @param  {Transaction}  txn     
      * @return {SyncWriterResult}
      */
-    async writeSync(roomResponse, txn, log) {
+    async writeSync(roomResponse, isRejoin, txn, log) {
         const entries = [];
-        const {timeline} = roomResponse;
+        let {timeline} = roomResponse;
+        // we have rejoined the room after having synced it before,
+        // check for overlap with the last synced event
+        log.set("isRejoin", isRejoin);
+        if (isRejoin) {
+            timeline = await this._handleRejoinOverlap(timeline, txn, log);
+        }
         const memberChanges = new Map();
         // important this happens before _writeTimeline so
         // members are available in the transaction
