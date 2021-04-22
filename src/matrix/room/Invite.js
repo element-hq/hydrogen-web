@@ -35,6 +35,10 @@ export class Invite extends EventEmitter {
         this._rejected = false;
     }
 
+    get isInvite() {
+        return true;
+    }
+
     get id() {
         return this._roomId;
     }

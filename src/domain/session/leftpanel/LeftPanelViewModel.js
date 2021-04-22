@@ -35,23 +35,20 @@ export class LeftPanelViewModel extends ViewModel {
     }
 
     _mapTileViewModels(rooms, invites) {
-        const roomTileViewModels = rooms.mapValues((room, emitChange) => {
-            const isOpen = this.navigation.path.get("room")?.value === room.id;
-            const vm = new RoomTileViewModel(this.childOptions({isOpen, room, emitChange}));
+        // join is not commutative, invites will take precedence over rooms
+        return invites.join(rooms).mapValues((roomOrInvite, emitChange) => {
+            const isOpen = this.navigation.path.get("room")?.value === roomOrInvite.id;
+            let vm;
+            if (roomOrInvite.isInvite) {
+                vm = new InviteTileViewModel(this.childOptions({isOpen, invite: roomOrInvite, emitChange}));
+            } else {
+                vm = new RoomTileViewModel(this.childOptions({isOpen, room: roomOrInvite, emitChange}));
+            }
             if (isOpen) {
                 this._updateCurrentVM(vm);
             }
             return vm;
         });
-        const inviteTileViewModels = invites.mapValues((invite, emitChange) => {
-            const isOpen = this.navigation.path.get("room")?.value === invite.id;
-            const vm = new InviteTileViewModel(this.childOptions({isOpen, invite, emitChange}));
-            if (isOpen) {
-                this._updateCurrentVM(vm);
-            }
-            return vm;
-        });
-        return roomTileViewModels.join(inviteTileViewModels);
     }
 
     _updateCurrentVM(vm) {
