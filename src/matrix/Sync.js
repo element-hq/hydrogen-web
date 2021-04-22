@@ -331,8 +331,7 @@ export class Sync {
     _parseRoomsResponse(roomsSection, inviteStates, isInitialSync) {
         const roomStates = [];
         if (roomsSection) {
-            // don't do "leave" for now
-            const allMemberships = ["join"];
+            const allMemberships = ["join", "leave"];
             for(const membership of allMemberships) {
                 const membershipSection = roomsSection[membership];
                 if (membershipSection) {
