@@ -21,10 +21,10 @@ import {ViewModel} from "../../ViewModel.js";
 export class InviteViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {invite, mediaRepository, closeCallback} = options;
+        const {invite, mediaRepository, refreshRoomViewModel} = options;
         this._invite = invite;
         this._mediaRepository = mediaRepository;
-        this._closeCallback = closeCallback;
+        this._refreshRoomViewModel = refreshRoomViewModel;
         this._onInviteChange = this._onInviteChange.bind(this);
         this._error = null;
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
@@ -99,7 +99,7 @@ export class InviteViewModel extends ViewModel {
             // we're in a grid view, and opening the room doesn't change
             // the nav path because the url is the same for an
             // invite and the room.
-            this._closeCallback(this._invite.accepted);
+            this._refreshRoomViewModel(this.id);
         } else {
             this.emitChange();
         }

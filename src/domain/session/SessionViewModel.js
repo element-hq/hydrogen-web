@@ -42,8 +42,8 @@ export class SessionViewModel extends ViewModel {
         this._settingsViewModel = null;
         this._currentRoomViewModel = null;
         this._gridViewModel = null;
-        this._replaceInviteWithRoom = this._replaceInviteWithRoom.bind(this);
-        this._createRoomOrInviteViewModel = this._createRoomOrInviteViewModel.bind(this);
+        this._refreshRoomViewModel = this._refreshRoomViewModel.bind(this);
+        this._createRoomViewModel = this._createRoomViewModel.bind(this);
         this._setupNavigation();
     }
 
@@ -121,7 +121,7 @@ export class SessionViewModel extends ViewModel {
                 this._gridViewModel = this.track(new RoomGridViewModel(this.childOptions({
                     width: 3,
                     height: 2,
-                    createRoomOrInviteViewModel: this._createRoomOrInviteViewModel,
+                    createRoomViewModel: this._createRoomViewModel,
                 })));
                 if (this._gridViewModel.initializeRoomIdsAndTransferVM(roomIds, this._currentRoomViewModel)) {
                     this._currentRoomViewModel = this.untrack(this._currentRoomViewModel);
@@ -138,7 +138,7 @@ export class SessionViewModel extends ViewModel {
                 if (vm) {
                     this._currentRoomViewModel = this.track(vm);
                 } else {
-                    const newVM = this._createRoomViewModel(currentRoomId.value);
+                    const newVM = this._createRoomViewModel(currentRoomId.value, this._refreshRoomViewModel);
                     if (newVM) {
                         this._currentRoomViewModel = this.track(newVM);
                     }
@@ -151,72 +151,62 @@ export class SessionViewModel extends ViewModel {
         }
     }
 
-    _createRoomViewModel(roomId) {
-        const room = this._sessionContainer.session.rooms.get(roomId);
-        if (!room) {
-            return null;
-        }
-        const roomVM = new RoomViewModel(this.childOptions({
-            room,
-            ownUserId: this._sessionContainer.session.user.id,
-        }));
-        roomVM.load();
-        return roomVM;
-    }
-
-    _createInviteViewModel(roomId, replaceInviteWithRoom) {
+    /**
+     * @param  {string} roomId
+     * @param  {function} refreshRoomViewModel passed in as an argument, because the grid needs a different impl of this
+     * @return {RoomViewModel | InviteViewModel}
+     */
+    _createRoomViewModel(roomId, refreshRoomViewModel) {
         const invite = this._sessionContainer.session.invites.get(roomId);
-        if (!invite) {
-            return null;
-        }
-        return new InviteViewModel(this.childOptions({
-            invite,
-            mediaRepository: this._sessionContainer.session.mediaRepository,
-            closeCallback: accepted => this._closeInvite(roomId, accepted, replaceInviteWithRoom),
-        }));
-    }
-
-    _createRoomOrInviteViewModel(roomId, replaceInviteWithRoom) {
-        const inviteVM = this._createInviteViewModel(roomId, replaceInviteWithRoom);
-        if (inviteVM) {
-            return inviteVM;
-        }
-        return this._createRoomViewModel(roomId);
-    }
-
-    _closeInvite(roomId, accepted, replaceInviteWithRoom) {
-        if (accepted) {
-            replaceInviteWithRoom(roomId);
+        if (invite) {
+            console.log("got invite");
+            return new InviteViewModel(this.childOptions({
+                invite,
+                mediaRepository: this._sessionContainer.session.mediaRepository,
+                refreshRoomViewModel,
+            }));
         } else {
-            // close invite
-            this.navigation.applyPath(removeRoomFromPath(this.navigation.path, roomId));
+            const room = this._sessionContainer.session.rooms.get(roomId);
+            if (room) {
+                console.log("got room");
+                const roomVM = new RoomViewModel(this.childOptions({
+                    room,
+                    ownUserId: this._sessionContainer.session.user.id,
+                    refreshRoomViewModel
+                }));
+                roomVM.load();
+                return roomVM;
+            }
         }
+        return null;
     }
 
-    _replaceInviteWithRoom(roomId) {
+    /** refresh the room view model after an internal change that needs
+    to change between invite, room or none state */
+    _refreshRoomViewModel(roomId) {
         this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
-        const roomVM = this._createRoomViewModel(roomId);
+        const roomVM = this._createRoomViewModel(roomId, this._refreshRoomViewModel);
         if (roomVM) {
             this._currentRoomViewModel = this.track(roomVM);
+        } else {
+            // close room id
+            this.navigation.applyPath(removeRoomFromPath(this.navigation.path, roomId));
         }
         this.emitChange("activeMiddleViewModel");
     }
 
     _updateRoom(roomId) {
-        if (!roomId) {
-            // closing invite or room view?
-            if (this._currentRoomViewModel) {
-                this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
-                this.emitChange("activeMiddleViewModel");
-            }
-            return;
-        }
-        // already open?
+        // opening a room and already open?
         if (this._currentRoomViewModel?.id === roomId) {
+            console.log("bailing out");
             return;
         }
-        this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
-        const roomVM = this._createRoomOrInviteViewModel(roomId, this._replaceInviteWithRoom);
+        // close if needed
+        if (this._currentRoomViewModel) {
+            this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
+        }
+        // and try opening again
+        const roomVM = this._createRoomViewModel(roomId, this._refreshRoomViewModel);
         if (roomVM) {
             this._currentRoomViewModel = this.track(roomVM);
         }
