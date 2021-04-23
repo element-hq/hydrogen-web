@@ -300,6 +300,10 @@ export class Sync {
             if (is.isNewInvite) {
                 this._session.addInviteAfterSync(is.invite);
             }
+            // if we haven't archived or forgotten the (left) room yet,
+            // notify there is an invite now, so we can update the UI
+            if (is.room) {
+                is.room.setInvite(is.invite);
             }
         }
     }
@@ -352,7 +356,7 @@ export class Sync {
                         // if there is an existing invite, add a process state for it
                         // so its writeSync and afterSync will run and remove the invite
                         if (invite) {
-                            inviteStates.push(new InviteSyncProcessState(invite, false, membership, null));
+                            inviteStates.push(new InviteSyncProcessState(invite, false, null, membership, null));
                         }
                         roomStates.push(new RoomSyncProcessState(
                             room, isNewRoom, invite, roomResponse, membership));
@@ -373,7 +377,9 @@ export class Sync {
                     invite = this._session.createInvite(roomId);
                     isNewInvite = true;
                 }
-                inviteStates.push(new InviteSyncProcessState(invite, isNewInvite, "invite", roomResponse));
+                const room = this._session.rooms.get(roomId);
+                // TODO let the room know there is an invite now, so 
+                inviteStates.push(new InviteSyncProcessState(invite, isNewInvite, room, "invite", roomResponse));
             }
         }
         return inviteStates;
@@ -417,9 +423,10 @@ class RoomSyncProcessState {
 }
 
 class InviteSyncProcessState {
-    constructor(invite, isNewInvite, membership, roomResponse) {
+    constructor(invite, isNewInvite, room, membership, roomResponse) {
         this.invite = invite;
         this.isNewInvite = isNewInvite;
+        this.room = room;
         this.membership = membership;
         this.roomResponse = roomResponse;
         this.changes = null;

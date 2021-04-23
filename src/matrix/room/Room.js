@@ -54,6 +54,7 @@ export class Room extends EventEmitter {
         this._getSyncToken = getSyncToken;
         this._platform = platform;
         this._observedEvents = null;
+        this._invite = null;
     }
 
     async _eventIdsToEntries(eventIds, txn) {
@@ -344,6 +345,10 @@ export class Room extends EventEmitter {
         }
         let emitChange = false;
         if (summaryChanges) {
+            // if we joined the room, we can't have an invite anymore
+            if (summaryChanges.membership === "join" && this._summary.data.membership !== "join") {
+                this._invite = null;
+            }
             this._summary.applyChanges(summaryChanges);
             if (!this._summary.data.needsHeroes) {
                 this._heroes = null;
@@ -425,6 +430,14 @@ export class Room extends EventEmitter {
         } catch (err) {
             throw new WrappedError(`Could not load room ${this._roomId}`, err);
         }
+    }
+
+    /** @internal */
+    setInvite(invite) {
+        // called when an invite comes in for this room
+        // (e.g. when we're in membership leave and haven't been archived or forgotten yet)
+        this._invite = invite;
+        this._emitUpdate();
     }
 
     /** @public */
@@ -587,6 +600,17 @@ export class Room extends EventEmitter {
 
     get membership() {
         return this._summary.data.membership;
+    }
+
+    /**
+     * The invite for this room, if any.
+     * This will only be set if you've left a room, and
+     * don't archive or forget it, and then receive an invite
+     * for it again
+     * @return {Invite?}
+     */
+    get invite() {
+        return this._invite;
     }
 
     enableSessionBackup(sessionBackup) {

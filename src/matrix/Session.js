@@ -284,20 +284,28 @@ export class Session {
             }
         }
         const pendingEventsByRoomId = await this._getPendingEventsByRoom(txn);
-        // load rooms
-        const rooms = await txn.roomSummary.getAll();
-        await Promise.all(rooms.map(async summary => {
-            const room = this.createRoom(summary.roomId, pendingEventsByRoomId.get(summary.roomId));
-            await log.wrap("room", log => room.load(summary, txn, log));
-            this._rooms.add(room.id, room);
-        }));
         // load invites
         const invites = await txn.invites.getAll();
-        await Promise.all(invites.map(async inviteData => {
+        const inviteLoadPromise = Promise.all(invites.map(async inviteData => {
             const invite = this.createInvite(inviteData.roomId);
             log.wrap("invite", log => invite.load(inviteData, log));
             this._invites.add(invite.id, invite);
         }));
+        // load rooms
+        const rooms = await txn.roomSummary.getAll();
+        const roomLoadPromise = Promise.all(rooms.map(async summary => {
+            const room = this.createRoom(summary.roomId, pendingEventsByRoomId.get(summary.roomId));
+            await log.wrap("room", log => room.load(summary, txn, log));
+            this._rooms.add(room.id, room);
+        }));
+        // load invites and rooms in parallel
+        await Promise.all([inviteLoadPromise, roomLoadPromise]);
+        for (const [roomId, invite] of this.invites) {
+            const room = this.rooms.get(roomId);
+            if (room) {
+                room.setInvite(invite);
+            }
+        }
     }
 
     dispose() {
