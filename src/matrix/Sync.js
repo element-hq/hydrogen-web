@@ -287,18 +287,19 @@ export class Sync {
 
     _afterSync(sessionState, inviteStates, roomStates, log) {
         log.wrap("session", log => this._session.afterSync(sessionState.changes, log), log.level.Detail);
+        // emit room related events after txn has been closed
+        for(let rs of roomStates) {
+            log.wrap("room", log => rs.room.afterSync(rs.changes, log), log.level.Detail);
+            if (rs.isNewRoom) {
+                this._session.addRoomAfterSync(rs.room);
+            }
+        }
         // emit invite related events after txn has been closed
         for(let is of inviteStates) {
             log.wrap("invite", () => is.invite.afterSync(is.changes), log.level.Detail);
             if (is.isNewInvite) {
                 this._session.addInviteAfterSync(is.invite);
             }
-        }
-        // emit room related events after txn has been closed
-        for(let rs of roomStates) {
-            log.wrap("room", log => rs.room.afterSync(rs.changes, log), log.level.Detail);
-            if (rs.isNewRoom) {
-                this._session.addRoomAfterSync(rs.room);
             }
         }
     }
