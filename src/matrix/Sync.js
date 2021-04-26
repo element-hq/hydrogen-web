@@ -348,7 +348,8 @@ export class Sync {
                         }
                         let isNewRoom = false;
                         let room = this._session.rooms.get(roomId);
-                        if (!room) {
+                        // don't create a room for a rejected invite
+                        if (!room && membership === "join") {
                             room = this._session.createRoom(roomId);
                             isNewRoom = true;
                         }
@@ -358,8 +359,10 @@ export class Sync {
                         if (invite) {
                             inviteStates.push(new InviteSyncProcessState(invite, false, null, membership, null));
                         }
-                        roomStates.push(new RoomSyncProcessState(
-                            room, isNewRoom, invite, roomResponse, membership));
+                        if (room) {
+                            roomStates.push(new RoomSyncProcessState(
+                                room, isNewRoom, invite, roomResponse, membership));
+                        }
                     }
                 }
             }
