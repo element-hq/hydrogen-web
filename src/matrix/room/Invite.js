@@ -105,7 +105,7 @@ export class Invite extends EventEmitter {
 
     _emitChange(params) {
         this.emit("change");
-        this._emitCollectionUpdate(params);
+        this._emitCollectionUpdate(this, params);
     }
 
     load(inviteData, log) {
