@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {ViewModel} from "../ViewModel.js";
+import {removeRoomFromPath} from "../navigation/index.js";
 
 function dedupeSparse(roomIds) {
     return roomIds.map((id, idx) => {
@@ -77,6 +78,9 @@ export class RoomGridViewModel extends ViewModel {
             if (this.focusIndex === index) {
                 roomVM.focus();
             }
+        } else {
+            // close room id
+            this.navigation.applyPath(removeRoomFromPath(this.navigation.path, roomId));
         }
         this.emitChange();
     }
