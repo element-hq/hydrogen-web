@@ -24,7 +24,6 @@ limitations under the License.
     line-height: var(--avatar-size);
     font-size: calc(var(--avatar-size) * 0.6);
     text-align: center;
-    letter-spacing: calc(var(--avatar-size) * -0.05);
     speak: none;
 }
 
