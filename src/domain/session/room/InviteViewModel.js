@@ -137,6 +137,10 @@ class RoomMemberViewModel {
         this._platform = platform;
     }
 
+    get id() {
+        return this._member.userId;
+    }
+
     get name() {
         return this._member.name;
     }
