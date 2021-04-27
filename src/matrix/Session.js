@@ -412,6 +412,7 @@ export class Session {
             hsApi: this._hsApi,
             emitCollectionRemove: this._inviteRemoveCallback,
             emitCollectionUpdate: this._inviteUpdateCallback,
+            mediaRepository: this._mediaRepository,
             user: this._user,
             platform: this._platform,
         });

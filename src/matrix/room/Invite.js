@@ -20,13 +20,14 @@ import {Heroes} from "./members/Heroes.js";
 import {MemberChange, RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "./members/RoomMember.js";
 
 export class Invite extends EventEmitter {
-    constructor({roomId, user, hsApi, emitCollectionRemove, emitCollectionUpdate, platform}) {
+    constructor({roomId, user, hsApi, mediaRepository, emitCollectionRemove, emitCollectionUpdate, platform}) {
         super();
         this._roomId = roomId;
         this._user = user;
         this._hsApi = hsApi;
         this._emitCollectionRemove = emitCollectionRemove;
         this._emitCollectionUpdate = emitCollectionUpdate;
+        this._mediaRepository = mediaRepository;
         this._platform = platform;
         this._inviteData = null;
         this._accepting = false;
@@ -101,6 +102,10 @@ export class Invite extends EventEmitter {
 
     get rejected() {
         return this._rejected;
+    }
+
+    get mediaRepository() {
+        return this._mediaRepository;
     }
 
     _emitChange(params) {

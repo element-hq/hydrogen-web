@@ -78,7 +78,7 @@ export class BaseTileViewModel extends ViewModel {
     get avatarUrl() {
         if (this._avatarSource.avatarUrl) {
             const size = 32 * this.platform.devicePixelRatio;
-            return this._room.mediaRepository.mxcUrlThumbnail(this._avatarSource.avatarUrl, size, size, "crop");
+            return this._avatarSource.mediaRepository.mxcUrlThumbnail(this._avatarSource.avatarUrl, size, size, "crop");
         }
         return null;
     }
