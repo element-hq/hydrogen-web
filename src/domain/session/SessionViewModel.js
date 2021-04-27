@@ -159,7 +159,6 @@ export class SessionViewModel extends ViewModel {
     _createRoomViewModel(roomId, refreshRoomViewModel) {
         const invite = this._sessionContainer.session.invites.get(roomId);
         if (invite) {
-            console.log("got invite");
             return new InviteViewModel(this.childOptions({
                 invite,
                 mediaRepository: this._sessionContainer.session.mediaRepository,
@@ -168,7 +167,6 @@ export class SessionViewModel extends ViewModel {
         } else {
             const room = this._sessionContainer.session.rooms.get(roomId);
             if (room) {
-                console.log("got room");
                 const roomVM = new RoomViewModel(this.childOptions({
                     room,
                     ownUserId: this._sessionContainer.session.user.id,
@@ -198,7 +196,6 @@ export class SessionViewModel extends ViewModel {
     _updateRoom(roomId) {
         // opening a room and already open?
         if (this._currentRoomViewModel?.id === roomId) {
-            console.log("bailing out");
             return;
         }
         // close if needed
