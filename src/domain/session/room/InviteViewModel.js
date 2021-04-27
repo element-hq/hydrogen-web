@@ -151,7 +151,7 @@ class RoomMemberViewModel {
 
     get avatarUrl() {
         if (this._member.avatarUrl) {
-            const size = 32 * this.platform.devicePixelRatio;
+            const size = 24 * this._platform.devicePixelRatio;
             return this._mediaRepository.mxcUrlThumbnail(this._member.avatarUrl, size, size, "crop");
         }
         return null;
