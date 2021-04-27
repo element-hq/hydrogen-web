@@ -406,7 +406,7 @@ a {
 
 .middle-header {
     box-sizing: border-box;
-    height: 58px; /* 12 + 36 + 12 to align with filter field + margin */
+    flex: 0 0 56px; /* 12 + 32 + 12 to align with filter field + margin */
     background: white;
     padding: 0 16px;
     border-bottom: 1px solid rgba(245, 245, 245, 0.90);
