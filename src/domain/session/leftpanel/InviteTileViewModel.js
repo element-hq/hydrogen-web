@@ -42,7 +42,7 @@ export class InviteTileViewModel extends BaseTileViewModel {
         if (parentComparison !== 0) {
             return parentComparison;
         }
-        return this._invite.timestamp - other._invite.timestamp;
+        return other._invite.timestamp - this._invite.timestamp;
     }
 
     get name() {
