@@ -28,26 +28,29 @@ export class FilteredMap extends BaseObservableMap {
 
     setFilter(filter) {
         this._filter = filter;
-        this.update();
+        if (this._subscription) {
+            this._reapplyFilter();
+        }
     }
 
     /**
      * reapply the filter
      */
-    update() {
-        // TODO: need to check if we have a subscriber already? If not, we really should not iterate the source?
+    _reapplyFilter(silent = false) {
         if (this._filter) {
-            const hadFilterBefore = !!this._included;
+            const oldIncluded = this._included;
             this._included = this._included || new Map();
             for (const [key, value] of this._source) {
                 const isIncluded = this._filter(value, key);
-                const wasIncluded = hadFilterBefore ? this._included.get(key) : true;
                 this._included.set(key, isIncluded);
-                this._emitForUpdate(wasIncluded, isIncluded, key, value);
+                if (!silent) {
+                    const wasIncluded = oldIncluded ? oldIncluded.get(key) : true;
+                    this._emitForUpdate(wasIncluded, isIncluded, key, value);
+                }
             }
         } else { // no filter
             // did we have a filter before?
-            if (this._included) {
+            if (this._included && !silent) {
                 // add any non-included items again
                 for (const [key, value] of this._source) {
                     if (!this._included.get(key)) {
@@ -100,7 +103,7 @@ export class FilteredMap extends BaseObservableMap {
 
     onSubscribeFirst() {
         this._subscription = this._source.subscribe(this);
-        this.update();
+        this._reapplyFilter(true);
         super.onSubscribeFirst();
     }
 
@@ -111,7 +114,7 @@ export class FilteredMap extends BaseObservableMap {
     }
 
     onReset() {
-        this.update();
+        this._reapplyFilter();
         this.emitReset();
     }
 
@@ -140,7 +143,7 @@ export class FilteredMap extends BaseObservableMap {
 class FilterIterator {
     constructor(map, _included) {
         this._included = _included;
-        this._sourceIterator = map.entries();
+        this._sourceIterator = map[Symbol.iterator]();
     }
 
     next() {
@@ -150,7 +153,7 @@ class FilterIterator {
             if (sourceResult.done) {
                 return sourceResult;
             }
-            const key = sourceResult.value[1];
+            const key = sourceResult.value[0];
             if (this._included.get(key)) {
                 return sourceResult;
             }
@@ -158,26 +161,31 @@ class FilterIterator {
     }
 }
 
-// import {ObservableMap} from "./ObservableMap.js";
-// export function tests() {
-//     return {
-//         "filter preloaded list": assert => {
-//             const source = new ObservableMap();
-//             source.add("one", 1);
-//             source.add("two", 2);
-//             source.add("three", 3);
-//             const odds = Array.from(new FilteredMap(source, x => x % 2 !== 0));
-//             assert.equal(odds.length, 2);
+import {ObservableMap} from "./ObservableMap.js";
+export function tests() {
+    return {
+        "filter preloaded list": assert => {
+            const source = new ObservableMap();
+            source.add("one", 1);
+            source.add("two", 2);
+            source.add("three", 3);
+            const oddNumbers = new FilteredMap(source, x => x % 2 !== 0);
+            // can only iterate after subscribing
+            oddNumbers.subscribe({});
+            assert.equal(oddNumbers.size, 2);
+            const it = oddNumbers[Symbol.iterator]();
+            assert.deepEqual(it.next().value, ["one", 1]);
+            assert.deepEqual(it.next().value, ["three", 3]);
+            assert.equal(it.next().done, true);
+        },
+        // "filter added values": assert => {
 
-//         },
-//         "filter added values": assert => {
+        // },
+        // "filter removed values": assert => {
 
-//         },
-//         "filter removed values": assert => {
+        // },
+        // "filter changed values": assert => {
 
-//         },
-//         "filter changed values": assert => {
-
-//         },
-//     }
-// }
+        // },
+    }
+}
