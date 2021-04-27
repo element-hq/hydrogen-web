@@ -16,7 +16,6 @@ limitations under the License.
 */
 
 .avatar {
-    --avatar-size: 32px;
     width: var(--avatar-size);
     height: var(--avatar-size);
     overflow: hidden;

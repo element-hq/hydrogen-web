@@ -250,6 +250,7 @@ a.button-action {
     /* make scrollbar hit right edge of parent */
     padding-right: 8px;
     margin-right: -8px;
+    --avatar-size: 32px;
 }
 
 .RoomList > li {
@@ -432,6 +433,10 @@ a {
 .close-middle, .close-session {
     background-image: url('icons/chevron-left.svg');
     background-position-x: 10px;
+}
+
+.RoomHeader {
+    --avatar-size: 32px;
 }
 
 .RoomHeader .topic {
