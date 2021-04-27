@@ -30,7 +30,7 @@ export class InviteViewModel extends ViewModel {
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
         this._invite.on("change", this._onInviteChange);
         this._inviter = null;
-        if (this._invite.inviter && ! this._invite.isDirectMessage) {
+        if (this._invite.inviter) {
             this._inviter = new RoomMemberViewModel(this._invite.inviter, mediaRepository, this.platform);
         }
     }
