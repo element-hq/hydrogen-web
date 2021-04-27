@@ -30,7 +30,7 @@ export class SessionView extends TemplateView {
         return t.div({
             className: {
                 "SessionView": true,
-                "middle-shown": vm => vm.activeSection !== "placeholder"
+                "middle-shown": vm => !!vm.activeMiddleViewModel
             },
         }, [
             t.view(new SessionStatusView(vm.sessionStatusViewModel)),
