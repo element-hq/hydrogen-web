@@ -68,8 +68,12 @@ export class Invite extends EventEmitter {
         return this._inviter;
     }
 
-    get joinRule() {
-        return this._inviteData.joinRule;
+    get isPublic() {
+        return this._inviteData.joinRule === "public";
+    }
+
+    get canonicalAlias() {
+        return this._inviteData.canonicalAlias;
     }
 
     async accept(log = null) {
@@ -276,7 +280,7 @@ export function tests() {
             invite.afterSync(changes);
             assert.equal(invite.name, "Invite example");
             assert.equal(invite.avatarUrl, roomAvatarUrl);
-            assert.equal(invite.joinRule, "invite");
+            assert.equal(invite.isPublic, false);
             assert.equal(invite.timestamp, 1001);
             assert.equal(invite.isEncrypted, false);
             assert.equal(invite.isDirectMessage, false);
