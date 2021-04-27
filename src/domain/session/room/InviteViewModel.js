@@ -146,7 +146,7 @@ class RoomMemberViewModel {
     }
 
     get avatarColorNumber() {
-        return getIdentifierColorNumber(this._member.userId)
+        return getIdentifierColorNumber(this._member.userId);
     }
 
     get avatarUrl() {
