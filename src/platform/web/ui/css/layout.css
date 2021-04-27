@@ -98,6 +98,9 @@ main {
     min-height: 0;
     /* make popups relative to this element so changing the left panel width doesn't affect their position */
     position: relative;
+}
+
+.middle {
     display: flex;
     flex-direction: column;
 }
