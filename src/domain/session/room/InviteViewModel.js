@@ -33,6 +33,7 @@ export class InviteViewModel extends ViewModel {
         if (this._invite.inviter) {
             this._inviter = new RoomMemberViewModel(this._invite.inviter, mediaRepository, this.platform);
         }
+        this._roomDescription = this._createRoomDescription();
     }
 
     get kind() { return "invite"; }
@@ -65,6 +66,24 @@ export class InviteViewModel extends ViewModel {
             return this._mediaRepository.mxcUrlThumbnail(this._invite.avatarUrl, size, size, "crop");
         }
         return null;
+    }
+
+    _createRoomDescription() {
+        const parts = [];
+        if (this._invite.isPublic) {
+            parts.push("Public room");
+        } else {
+            parts.push("Private room");
+        }
+
+        if (this._invite.canonicalAlias) {
+            parts.push(this._invite.canonicalAlias);
+        }
+        return parts.join(" • ")
+    }
+
+    get roomDescription() {
+        return this._roomDescription;
     }
 
     get avatarTitle() {
