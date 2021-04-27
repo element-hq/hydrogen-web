@@ -92,11 +92,16 @@ limitations under the License.
     display: block;
 }
 
+.button-action {
+    cursor: pointer;
+}
+
 a.button-action {
     text-decoration: none;
     text-align: center;
     display: block;
 }
+
 
 .button-action.secondary {
     color: #03B381;
@@ -831,4 +836,76 @@ button.link {
 .menu button:hover {
     background-color: #03B381;
     color: white;
+}
+
+.InviteView_body {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    flex: 1;
+    overflow: auto;
+}
+
+.InviteView_invite {
+    display: flex;
+    width: 100%;
+    max-width: 400px;
+    flex-direction: column;
+    padding: 0 24px;
+}
+
+.InviteView_roomProfile {
+    display: grid;
+    gap: 4px;
+    grid-template:
+        "avatar name" auto
+        "avatar description" 1fr /
+        72px 1fr;
+    align-self: center;
+    margin-bottom: 24px;
+}
+
+.InviteView_roomProfile h3 {
+    grid-area: name;
+    margin: 0;
+}
+
+.InviteView_roomDescription {
+    grid-area: description;
+    font-size: 1.2rem;
+    margin: 0;
+    color: #777;
+}
+
+.InviteView_roomAvatar {
+    grid-area: avatar;
+    --avatar-size: 64px;
+}
+
+.InviteView_dmAvatar {
+    align-self: center;
+    --avatar-size: 128px;
+}
+
+.InviteView_inviter {
+    text-align: center;
+    margin: 24px 0px;
+}
+
+.InviteView_inviter .avatar {
+    --avatar-size: 24px;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 4px;
+}
+
+.InviteView_buttonRow {
+    margin: 10px auto;
+    max-width: 200px;
+    width: 100%;
+}
+
+.InviteView_buttonRow button {
+    display: block;
+    width: 100%;
 }
