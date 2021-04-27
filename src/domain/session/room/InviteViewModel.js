@@ -62,7 +62,7 @@ export class InviteViewModel extends ViewModel {
 
     get avatarUrl() {
         if (this._invite.avatarUrl) {
-            const size = 32 * this.platform.devicePixelRatio;
+            const size = 128 * this.platform.devicePixelRatio;
             return this._mediaRepository.mxcUrlThumbnail(this._invite.avatarUrl, size, size, "crop");
         }
         return null;
