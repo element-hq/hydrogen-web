@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
-import {avatarInitials, getIdentifierColorNumber} from "../../avatar.js";
+import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar.js";
 import {ViewModel} from "../../ViewModel.js";
 
 export class RoomViewModel extends ViewModel {
@@ -120,12 +120,8 @@ export class RoomViewModel extends ViewModel {
         return getIdentifierColorNumber(this._room.id)
     }
 
-    get avatarUrl() {
-        if (this._room.avatarUrl) {
-            const size = 32 * this.platform.devicePixelRatio;
-            return this._room.mediaRepository.mxcUrlThumbnail(this._room.avatarUrl, size, size, "crop");
-        }
-        return null;
+    avatarUrl(size) {
+        return getAvatarHttpUrl(this._room.avatarUrl, size, this.platform, this._room.mediaRepository);
     }
 
     get avatarTitle() {

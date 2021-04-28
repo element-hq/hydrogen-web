@@ -47,3 +47,11 @@ function hashCode(str) {
 export function getIdentifierColorNumber(id) {
     return (hashCode(id) % 8) + 1;
 }
+
+export function getAvatarHttpUrl(avatarUrl, cssSize, platform, mediaRepository) {
+    if (avatarUrl) {
+        const imageSize = cssSize * platform.devicePixelRatio;
+        return mediaRepository.mxcUrlThumbnail(avatarUrl, imageSize, imageSize, "crop");
+    }
+    return null;
+}

@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {avatarInitials, getIdentifierColorNumber} from "../../avatar.js";
+import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar.js";
 import {ViewModel} from "../../ViewModel.js";
 
 const KIND_ORDER = ["invite", "room"];
@@ -75,12 +75,8 @@ export class BaseTileViewModel extends ViewModel {
         return getIdentifierColorNumber(this._avatarSource.id);
     }
 
-    get avatarUrl() {
-        if (this._avatarSource.avatarUrl) {
-            const size = 32 * this.platform.devicePixelRatio;
-            return this._avatarSource.mediaRepository.mxcUrlThumbnail(this._avatarSource.avatarUrl, size, size, "crop");
-        }
-        return null;
+    avatarUrl(size) {
+        return getAvatarHttpUrl(this._avatarSource.avatarUrl, size, this.platform, this._avatarSource.mediaRepository);
     }
 
     get avatarTitle() {
