@@ -291,6 +291,9 @@ export class Sync {
         for(let rs of roomStates) {
             log.wrap("room", log => rs.room.afterSync(rs.changes, log), log.level.Detail);
             if (rs.isNewRoom) {
+                // important to add the room before removing the invite,
+                // so the room will be found if looking for it when the invite
+                // is removed
                 this._session.addRoomAfterSync(rs.room);
             }
         }
