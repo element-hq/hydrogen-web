@@ -107,6 +107,7 @@ export function renderStaticAvatar(vm, size, extraClasses = undefined) {
     const hasAvatar = !!vm.avatarUrl;
     let avatarClasses = classNames({
         avatar: true,
+        [`size-${size}`]: true,
         [`usercolor${vm.avatarColorNumber}`]: !hasAvatar,
     });
     if (extraClasses) {

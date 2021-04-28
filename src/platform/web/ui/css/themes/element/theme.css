@@ -255,7 +255,6 @@ a.button-action {
     /* make scrollbar hit right edge of parent */
     padding-right: 8px;
     margin-right: -8px;
-    --avatar-size: 32px;
 }
 
 .RoomList > li {
@@ -440,10 +439,6 @@ a {
     background-position-x: 10px;
 }
 
-.RoomHeader {
-    --avatar-size: 32px;
-}
-
 .RoomHeader .topic {
     font-size: 14rem;
 }
@@ -531,10 +526,6 @@ ul.Timeline > li.messageStatus .message-container > p {
 .message-container .profile {
     display: flex;
     align-items: center;
-}
-
-.message-container .avatar {
-    --avatar-size: 25px;
 }
 
 .TextMessageView {
@@ -879,12 +870,10 @@ button.link {
 
 .InviteView_roomAvatar {
     grid-area: avatar;
-    --avatar-size: 64px;
 }
 
 .InviteView_dmAvatar {
     align-self: center;
-    --avatar-size: 128px;
 }
 
 .InviteView_inviter {
@@ -893,7 +882,6 @@ button.link {
 }
 
 .InviteView_inviter .avatar {
-    --avatar-size: 24px;
     display: inline-block;
     vertical-align: middle;
     margin-right: 4px;
