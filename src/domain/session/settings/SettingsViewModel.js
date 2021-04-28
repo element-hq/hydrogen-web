@@ -22,6 +22,8 @@ class PushNotificationStatus {
         this.supported = null;
         this.enabled = false;
         this.updating = false;
+        this.enabledOnServer = null;
+        this.serverError = null;
     }
 }
 
@@ -129,6 +131,8 @@ export class SettingsViewModel extends ViewModel {
 
     async togglePushNotifications() {
         this.pushNotifications.updating = true;
+        this.pushNotifications.enabledOnServer = null;
+        this.pushNotifications.serverError = null;
         this.emitChange("pushNotifications.updating");
         try {
             if (await this._session.enablePushNotifications(!this.pushNotifications.enabled)) {
@@ -140,6 +144,18 @@ export class SettingsViewModel extends ViewModel {
         } finally {
         this.pushNotifications.updating = false;
             this.emitChange("pushNotifications.updating");
+        }
+    }
+
+    async checkPushEnabledOnServer() {
+        this.pushNotifications.enabledOnServer = null;
+        this.pushNotifications.serverError = null;
+        try {
+            this.pushNotifications.enabledOnServer = await this._session.checkPusherEnabledOnHomeServer();
+            this.emitChange("pushNotifications.enabledOnServer");
+        } catch (err) {
+            this.pushNotifications.serverError = err;
+            this.emitChange("pushNotifications.serverError");
         }
     }
 }

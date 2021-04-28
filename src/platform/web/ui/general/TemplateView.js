@@ -16,6 +16,7 @@ limitations under the License.
 
 import { setAttribute, text, isChildren, classNames, TAG_NAMES, HTML_NS } from "./html.js";
 import {errorToDOM} from "./error.js";
+import {BaseUpdateView} from "./BaseUpdateView.js";
 
 function objHasFns(obj) {
     for(const value of Object.values(obj)) {
@@ -38,35 +39,15 @@ function objHasFns(obj) {
         - add subviews inside the template
 */
 // TODO: should we rename this to BoundView or something? As opposed to StaticView ...
-export class TemplateView {
+export class TemplateView extends BaseUpdateView {
     constructor(value, render = undefined) {
-        this._value = value;
+        super(value);
+        // TODO: can avoid this if we have a separate class for inline templates vs class template views
         this._render = render;
         this._eventListeners = null;
         this._bindings = null;
         this._subViews = null;
         this._root = null;
-        this._boundUpdateFromValue = null;
-    }
-
-    get value() {
-        return this._value;
-    }
-
-    _subscribe() {
-        if (typeof this._value?.on === "function") {
-            this._boundUpdateFromValue = this._updateFromValue.bind(this);
-            this._value.on("change", this._boundUpdateFromValue);
-        }
-    }
-
-    _unsubscribe() {
-        if (this._boundUpdateFromValue) {
-            if (typeof this._value.off === "function") {
-                this._value.off("change", this._boundUpdateFromValue);
-            }
-            this._boundUpdateFromValue = null;
-        }
     }
 
     _attach() {
@@ -87,24 +68,26 @@ export class TemplateView {
 
     mount(options) {
         const builder = new TemplateBuilder(this);
-        if (this._render) {
-            this._root = this._render(builder, this._value);
-        } else if (this.render) {   // overriden in subclass
-            this._root = this.render(builder, this._value);
-        } else {
-            throw new Error("no render function passed in, or overriden in subclass");
+        try {
+            if (this._render) {
+                this._root = this._render(builder, this._value);
+            } else if (this.render) {   // overriden in subclass
+                this._root = this.render(builder, this._value);
+            } else {
+                throw new Error("no render function passed in, or overriden in subclass");
+            }
+        } finally {
+            builder.close();
         }
-        const parentProvidesUpdates = options && options.parentProvidesUpdates;
-        if (!parentProvidesUpdates) {
-            this._subscribe();
-        }
+        // takes care of update being called when needed
+        super.mount(options);
         this._attach();
         return this._root;
     }
 
     unmount() {
         this._detach();
-        this._unsubscribe();
+        super.unmount();
         if (this._subViews) {
             for (const v of this._subViews) {
                 v.unmount();
@@ -114,10 +97,6 @@ export class TemplateView {
 
     root() {
         return this._root;
-    }
-
-    _updateFromValue(changedProps) {
-        this.update(this._value, changedProps);
     }
 
     update(value) {
@@ -156,12 +135,32 @@ export class TemplateView {
             this._subViews.splice(idx, 1);
         }
     }
+
+    updateSubViews(value, props) {
+        if (this._subViews) {
+            for (const v of this._subViews) {
+                v.update(value, props);
+            }
+        }
+    }
 }
 
 // what is passed to render
 class TemplateBuilder {
     constructor(templateView) {
         this._templateView = templateView;
+        this._closed = false;
+    }
+
+    close() {
+        this._closed = true;
+    }
+
+    _addBinding(fn) {
+        if (this._closed) {
+            console.trace("Adding a binding after render will likely cause memory leaks");
+        }
+        this._templateView._addBinding(fn);
     }
 
     get _value() {
@@ -181,7 +180,7 @@ class TemplateBuilder {
                 setAttribute(node, name, newValue);
             }
         };
-        this._templateView._addBinding(binding);
+        this._addBinding(binding);
         binding();
     }
 
@@ -201,7 +200,7 @@ class TemplateBuilder {
             }
         };
 
-        this._templateView._addBinding(binding);
+        this._addBinding(binding);
         return node;
     }
 
@@ -257,7 +256,7 @@ class TemplateBuilder {
                 node = newNode;
             }
         };
-        this._templateView._addBinding(binding);
+        this._addBinding(binding);
         return node;
     }
 
@@ -285,10 +284,10 @@ class TemplateBuilder {
 
     // this insert a view, and is not a view factory for `if`, so returns the root element to insert in the template
     // you should not call t.view() and not use the result (e.g. attach the result to the template DOM tree).
-    view(view) {
+    view(view, mountOptions = undefined) {
         let root;
         try {
-            root = view.mount();
+            root = view.mount(mountOptions);
         } catch (err) {
             return errorToDOM(err);
         }
@@ -322,7 +321,13 @@ class TemplateBuilder {
     map(mapFn, renderFn) {
         return this.mapView(mapFn, mappedValue => {
             return new TemplateView(this._value, (t, vm) => {
-                return renderFn(mappedValue, t, vm);
+                const rootNode = renderFn(mappedValue, t, vm);
+                if (!rootNode) {
+                    // TODO: this will confuse mapView which assumes that
+                    // a comment node means there is no view to clean up
+                    return document.createComment("map placeholder");
+                }
+                return rootNode;
             });
         });
     }

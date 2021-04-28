@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {renderAvatar} from "../../../common.js";
+import {renderStaticAvatar} from "../../../avatar.js";
 
 export function renderMessage(t, vm, children) {
     const classes = {
@@ -28,7 +28,7 @@ export function renderMessage(t, vm, children) {
     };
 
     const profile = t.div({className: "profile"}, [
-        renderAvatar(t, vm, 30),
+        renderStaticAvatar(vm, 30),
         t.div({className: `sender usercolor${vm.avatarColorNumber}`}, vm.displayName)
     ]);
     children = [profile].concat(children);

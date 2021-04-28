@@ -45,10 +45,17 @@ export class Timeline {
     }
 
     /** @package */
-    async load(user, log) {
+    async load(user, membership, log) {
         const txn = await this._storage.readTxn(this._timelineReader.readTxnStores.concat(this._storage.storeNames.roomMembers));
         const memberData = await txn.roomMembers.get(this._roomId, user.id);
-        this._ownMember = new RoomMember(memberData);
+        if (memberData) {
+            this._ownMember = new RoomMember(memberData);
+        } else {
+            // this should never happen, as our own join into the room would have
+            // made us receive our own member event, but just to be on the safe side and not crash,
+            // fall back to bare user id
+            this._ownMember = RoomMember.fromUserId(this._roomId, user.id, membership);
+        }
         // it should be fine to not update the local entries,
         // as they should only populate once the view subscribes to it
         // if they are populated already, the sender profile would be empty
@@ -69,7 +76,9 @@ export class Timeline {
 
     replaceEntries(entries) {
         for (const entry of entries) {
-            this._remoteEntries.replace(entry);
+            // this will use the comparator and thus
+            // check for equality using the compare method in BaseEntry
+            this._remoteEntries.update(entry);
         }
     }
 

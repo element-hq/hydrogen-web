@@ -26,3 +26,23 @@ export function encodeQueryParams(queryParams) {
         })
         .join("&");
 }
+
+export function encodeBody(body) {
+    if (body.nativeBlob && body.mimeType) {
+        const blob = body;
+        return {
+            mimeType: blob.mimeType,
+            body: blob, // will be unwrapped in request fn
+            length: blob.size
+        };
+    } else if (typeof body === "object") {
+        const json = JSON.stringify(body);
+        return {
+            mimeType: "application/json",
+            body: json,
+            length: body.length
+        };
+    } else {
+        throw new Error("Unknown body type: " + body);
+    }
+}

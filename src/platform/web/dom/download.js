@@ -14,10 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// From https://stackoverflow.com/questions/9038625/detect-if-device-is-ios/9039885
-const isIOS = /iPad|iPhone|iPod/.test(navigator.platform) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) && !window.MSStream;
-
-export async function downloadInIframe(container, iframeSrc, blobHandle, filename) {
+export async function downloadInIframe(container, iframeSrc, blobHandle, filename, isIOS) {
     let iframe = container.querySelector("iframe.downloadSandbox");
     if (!iframe) {
         iframe = document.createElement("iframe");

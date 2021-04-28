@@ -16,15 +16,16 @@ limitations under the License.
 */
 
 import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
-import {avatarInitials, getIdentifierColorNumber} from "../../avatar.js";
+import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar.js";
 import {ViewModel} from "../../ViewModel.js";
 
 export class RoomViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {room, ownUserId} = options;
+        const {room, ownUserId, refreshRoomViewModel} = options;
         this._room = room;
         this._ownUserId = ownUserId;
+        this._refreshRoomViewModel = refreshRoomViewModel;
         this._timelineVM = null;
         this._onRoomChange = this._onRoomChange.bind(this);
         this._timelineError = null;
@@ -32,10 +33,6 @@ export class RoomViewModel extends ViewModel {
         this._composerVM = new ComposerViewModel(this);
         this._clearUnreadTimout = null;
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
-    }
-
-    get closeUrl() {
-        return this._closeUrl;
     }
 
     async load() {
@@ -69,7 +66,7 @@ export class RoomViewModel extends ViewModel {
         } catch (err) {
             if (err.name !== "AbortError") {
                 throw err;
-            }    
+            }
         }
     }
 
@@ -86,33 +83,24 @@ export class RoomViewModel extends ViewModel {
         }
     }
 
-    // called from view to close room
-    // parent vm will dispose this vm
-    close() {
-        this._closeCallback();
-    }
-
     // room doesn't tell us yet which fields changed,
     // so emit all fields originating from summary
     _onRoomChange() {
-        this.emitChange("name");
+        // if there is now an invite on this (left) room,
+        // show the invite view by refreshing the view model
+        if (this._room.invite) {
+            this._refreshRoomViewModel(this.id);
+        } else {
+            this.emitChange("name");
+        }
     }
 
-    get name() {
-        return this._room.name || this.i18n`Empty Room`;
-    }
-
-    get id() {
-        return this._room.id;
-    }
-
-    get timelineViewModel() {
-        return this._timelineVM;
-    }
-
-    get isEncrypted() {
-        return this._room.isEncrypted;
-    }
+    get kind() { return "room"; }
+    get closeUrl() { return this._closeUrl; }
+    get name() { return this._room.name || this.i18n`Empty Room`; }
+    get id() { return this._room.id; }
+    get timelineViewModel() { return this._timelineVM; }
+    get isEncrypted() { return this._room.isEncrypted; }
 
     get error() {
         if (this._timelineError) {
@@ -132,12 +120,8 @@ export class RoomViewModel extends ViewModel {
         return getIdentifierColorNumber(this._room.id)
     }
 
-    get avatarUrl() {
-        if (this._room.avatarUrl) {
-            const size = 32 * this.platform.devicePixelRatio;
-            return this._room.mediaRepository.mxcUrlThumbnail(this._room.avatarUrl, size, size, "crop");
-        }
-        return null;
+    avatarUrl(size) {
+        return getAvatarHttpUrl(this._room.avatarUrl, size, this.platform, this._room.mediaRepository);
     }
 
     get avatarTitle() {

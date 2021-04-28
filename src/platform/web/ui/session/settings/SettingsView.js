@@ -27,7 +27,7 @@ export class SettingsView extends TemplateView {
             ]);
         }
 
-        const row = (label, content, extraClass = "") => {
+        const row = (t, label, content, extraClass = "") => {
             return t.div({className: `row ${extraClass}`}, [
                 t.div({className: "label"}, label),
                 t.div({className: "content"}, content),
@@ -38,9 +38,9 @@ export class SettingsView extends TemplateView {
 
         settingNodes.push(
             t.h3("Session"),
-            row(vm.i18n`User ID`, vm.userId),
-            row(vm.i18n`Session ID`, vm.deviceId, "code"),
-            row(vm.i18n`Session key`, vm.fingerprintKey, "code")
+            row(t, vm.i18n`User ID`, vm.userId),
+            row(t, vm.i18n`Session ID`, vm.deviceId, "code"),
+            row(t, vm.i18n`Session key`, vm.fingerprintKey, "code")
         );
         settingNodes.push(
             t.h3("Session Backup"),
@@ -59,25 +59,46 @@ export class SettingsView extends TemplateView {
                     const buttonLabel = vm => vm.pushNotifications.enabled ?
                         vm.i18n`Disable`:
                         vm.i18n`Enable`;
-                    return row(label, t.button({
+                    return row(t, label, t.button({
                         onClick: () => vm.togglePushNotifications(),
                         disabled: vm => vm.pushNotifications.updating
                     }, buttonLabel));
                 } else {
                     return t.p(vm.i18n`Push notifications are not supported on this browser`);
                 }
+            }),
+            t.if(vm => vm.pushNotifications.supported && vm.pushNotifications.enabled, t => {
+                return t.div([
+                    t.p([
+                        "If you think push notifications are not being delivered, ",
+                        t.button({className: "link", onClick: () => vm.checkPushEnabledOnServer()}, "check"),
+                        " if they got disabled on the server"
+                    ]),
+                    t.map(vm => vm.pushNotifications.enabledOnServer, (enabled, t) => {
+                        if (enabled === true) {
+                            return t.p("Push notifications are still enabled on the server, so everything should be working. Sometimes notifications can get dropped if they can't be delivered within a given time.");
+                        } else if (enabled === false) {
+                            return t.p("Push notifications have been disabled on the server, likely due to a bug. Please re-enable them by clicking Disable and then Enable again above.");
+                        }
+                    }),
+                    t.map(vm => vm.pushNotifications.serverError, (err, t) => {
+                        if (err) {
+                            return t.p("Couln't not check on server: " + err.message);
+                        }
+                    })
+                ]);
             })
         );
 
         settingNodes.push(
             t.h3("Preferences"),
-            row(vm.i18n`Scale down images when sending`, this._imageCompressionRange(t, vm)),
+            row(t, vm.i18n`Scale down images when sending`, this._imageCompressionRange(t, vm)),
         );
         settingNodes.push(
             t.h3("Application"),
-            row(vm.i18n`Version`, version),
-            row(vm.i18n`Storage usage`, vm => `${vm.storageUsage} / ${vm.storageQuota}`),
-            row(vm.i18n`Debug logs`, t.button({onClick: () => vm.exportLogs()}, "Export")),
+            row(t, vm.i18n`Version`, version),
+            row(t, vm.i18n`Storage usage`, vm => `${vm.storageUsage} / ${vm.storageQuota}`),
+            row(t, vm.i18n`Debug logs`, t.button({onClick: () => vm.exportLogs()}, "Export")),
             t.p(["Debug logs contain application usage data including your username, the IDs or aliases of the rooms or groups you have visited, the usernames of other users and the names of files you send. They do not contain messages. For more information, review our ",
                 t.a({href: "https://element.io/privacy", target: "_blank", rel: "noopener"}, "privacy policy"), "."]),
         );

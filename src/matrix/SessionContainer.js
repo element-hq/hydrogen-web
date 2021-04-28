@@ -21,7 +21,6 @@ import {Reconnector, ConnectionStatus} from "./net/Reconnector.js";
 import {ExponentialRetryDelay} from "./net/ExponentialRetryDelay.js";
 import {MediaRepository} from "./net/MediaRepository.js";
 import {RequestScheduler} from "./net/RequestScheduler.js";
-import {HomeServerError, ConnectionError, AbortError} from "./error.js";
 import {Sync, SyncStatus} from "./Sync.js";
 import {Session} from "./Session.js";
 
@@ -42,6 +41,14 @@ export const LoginFailure = createEnum(
     "Credentials",
     "Unknown",
 );
+
+function normalizeHomeserver(homeServer) {
+    try {
+        return new URL(homeServer).origin;
+    } catch (err) {
+        return new URL(`https://${homeServer}`).origin;
+    }
+}
 
 export class SessionContainer {
     constructor({platform, olmPromise, workerPromise}) {
@@ -96,11 +103,12 @@ export class SessionContainer {
         }
         await this._platform.logger.run("login", async log => {
             this._status.set(LoadStatus.Login);
+            homeServer = normalizeHomeserver(homeServer);
             const clock = this._platform.clock;
             let sessionInfo;
             try {
                 const request = this._platform.request;
-                const hsApi = new HomeServerApi({homeServer, request, createTimeout: clock.createTimeout});
+                const hsApi = new HomeServerApi({homeServer, request});
                 const loginData = await hsApi.passwordLogin(username, password, "Hydrogen", {log}).response();
                 const sessionId = this.createNewSessionId();
                 sessionInfo = {
@@ -115,7 +123,7 @@ export class SessionContainer {
                 await this._platform.sessionInfoStorage.add(sessionInfo);            
             } catch (err) {
                 this._error = err;
-                if (err instanceof HomeServerError) {
+                if (err.name === "HomeServerError") {
                     if (err.errcode === "M_FORBIDDEN") {
                         this._loginFailure = LoginFailure.Credentials;
                     } else {
@@ -123,7 +131,7 @@ export class SessionContainer {
                     }
                     log.set("loginFailure", this._loginFailure);
                     this._status.set(LoadStatus.LoginFailed);
-                } else if (err instanceof ConnectionError) {
+                } else if (err.name === "ConnectionError") {
                     this._loginFailure = LoginFailure.Connection;
                     this._status.set(LoadStatus.LoginFailed);
                 } else {
@@ -160,7 +168,6 @@ export class SessionContainer {
             accessToken: sessionInfo.accessToken,
             request: this._platform.request,
             reconnector: this._reconnector,
-            createTimeout: clock.createTimeout
         });
         this._sessionId = sessionInfo.id;
         this._storage = await this._platform.storageFactory.create(sessionInfo.id);
@@ -226,27 +233,26 @@ export class SessionContainer {
     }
 
     async _waitForFirstSync() {
-        try {
-            this._sync.start();
-            this._status.set(LoadStatus.FirstSync);
-        } catch (err) {
-            // swallow ConnectionError here and continue,
-            // as the reconnector above will call 
-            // sync.start again to retry in this case
-            if (!(err instanceof ConnectionError)) {
-                throw err;
-            }
-        }
+        this._sync.start();
+        this._status.set(LoadStatus.FirstSync);
         // only transition into Ready once the first sync has succeeded
-        this._waitForFirstSyncHandle = this._sync.status.waitFor(s => s === SyncStatus.Syncing || s === SyncStatus.Stopped);
+        this._waitForFirstSyncHandle = this._sync.status.waitFor(s => {
+            if (s === SyncStatus.Stopped) {
+                // keep waiting if there is a ConnectionError
+                // as the reconnector above will call 
+                // sync.start again to retry in this case
+                return this._sync.error?.name !== "ConnectionError";
+            }
+            return s === SyncStatus.Syncing;
+        });
         try {
             await this._waitForFirstSyncHandle.promise;
-            if (this._sync.status.get() === SyncStatus.Stopped) {
+            if (this._sync.status.get() === SyncStatus.Stopped && this._sync.error) {
                 throw this._sync.error;
             }
         } catch (err) {
             // if dispose is called from stop, bail out
-            if (err instanceof AbortError) {
+            if (err.name === "AbortError") {
                 return;
             }
             throw err;

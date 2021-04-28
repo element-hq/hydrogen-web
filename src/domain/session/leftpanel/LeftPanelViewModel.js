@@ -17,35 +17,47 @@ limitations under the License.
 
 import {ViewModel} from "../../ViewModel.js";
 import {RoomTileViewModel} from "./RoomTileViewModel.js";
+import {InviteTileViewModel} from "./InviteTileViewModel.js";
 import {RoomFilter} from "./RoomFilter.js";
 import {ApplyMap} from "../../../observable/map/ApplyMap.js";
 
 export class LeftPanelViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {rooms} = options;
-        this._roomTileViewModels = rooms.mapValues((room, emitChange) => {
-            const isOpen = this.navigation.path.get("room")?.value === room.id;
-            const vm = new RoomTileViewModel(this.childOptions({
-                isOpen,
-                room,
-                emitChange
-            }));
-            // need to also update the current vm here as
-            // we can't call `_open` from the ctor as the map
-            // is only populated when the view subscribes.
-            if (isOpen) {
-                this._currentTileVM?.close();
-                this._currentTileVM = vm;
-            }
-            return vm;
-        });
-        this._roomListFilterMap = new ApplyMap(this._roomTileViewModels);
-        this._roomList = this._roomListFilterMap.sortValues((a, b) => a.compare(b));
+        const {rooms, invites} = options;
+        this._tileViewModelsMap = this._mapTileViewModels(rooms, invites);
+        this._tileViewModelsFilterMap = new ApplyMap(this._tileViewModelsMap);
+        this._tileViewModels = this._tileViewModelsFilterMap.sortValues((a, b) => a.compare(b));
         this._currentTileVM = null;
         this._setupNavigation();
         this._closeUrl = this.urlCreator.urlForSegment("session");
         this._settingsUrl = this.urlCreator.urlForSegment("settings");
+    }
+
+    _mapTileViewModels(rooms, invites) {
+        const joinedRooms = rooms.filterValues(room => room.membership === "join");
+        // join is not commutative, invites will take precedence over rooms
+        return invites.join(joinedRooms).mapValues((roomOrInvite, emitChange) => {
+            const isOpen = this.navigation.path.get("room")?.value === roomOrInvite.id;
+            let vm;
+            if (roomOrInvite.isInvite) {
+                vm = new InviteTileViewModel(this.childOptions({isOpen, invite: roomOrInvite, emitChange}));
+            } else {
+                vm = new RoomTileViewModel(this.childOptions({isOpen, room: roomOrInvite, emitChange}));
+            }
+            if (isOpen) {
+                this._updateCurrentVM(vm);
+            }
+            return vm;
+        });
+    }
+
+    _updateCurrentVM(vm) {
+        // need to also update the current vm here as
+        // we can't call `_open` from the ctor as the map
+        // is only populated when the view subscribes.
+        this._currentTileVM?.close();
+        this._currentTileVM = vm;
     }
 
     get closeUrl() {
@@ -75,7 +87,7 @@ export class LeftPanelViewModel extends ViewModel {
         this._currentTileVM?.close();
         this._currentTileVM = null;
         if (roomId) {
-            this._currentTileVM = this._roomTileViewModels.get(roomId);
+            this._currentTileVM = this._tileViewModelsMap.get(roomId);
             this._currentTileVM?.open();
         }
     }
@@ -102,13 +114,13 @@ export class LeftPanelViewModel extends ViewModel {
         }
     }
 
-    get roomList() {
-        return this._roomList;
+    get tileViewModels() {
+        return this._tileViewModels;
     }
 
     clearFilter() {
-        this._roomListFilterMap.setApply(null);
-        this._roomListFilterMap.applyOnce((roomId, vm) => vm.hidden = false);
+        this._tileViewModelsFilterMap.setApply(null);
+        this._tileViewModelsFilterMap.applyOnce((roomId, vm) => vm.hidden = false);
     }
 
     setFilter(query) {
@@ -117,7 +129,7 @@ export class LeftPanelViewModel extends ViewModel {
             this.clearFilter();
         } else {
             const filter = new RoomFilter(query);
-            this._roomListFilterMap.setApply((roomId, vm) => {
+            this._tileViewModelsFilterMap.setApply((roomId, vm) => {
                 vm.hidden = !filter.matches(vm);
             });
         }

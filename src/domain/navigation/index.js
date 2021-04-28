@@ -43,6 +43,30 @@ function allowsChild(parent, child) {
     }
 }
 
+export function removeRoomFromPath(path, roomId) {
+    const rooms = path.get("rooms");
+    let roomIdGridIndex = -1;
+    // first delete from rooms segment
+    if (rooms) {
+        roomIdGridIndex = rooms.value.indexOf(roomId);
+        if (roomIdGridIndex !== -1) {
+            const idsWithoutRoom = rooms.value.slice();
+            idsWithoutRoom[roomIdGridIndex] = "";
+            path = path.replace(new Segment("rooms", idsWithoutRoom));
+        }
+    }
+    const room = path.get("room");
+    // then from room (which occurs with or without rooms)
+    if (room && room.value === roomId) {
+        if (roomIdGridIndex !== -1) {
+            path = path.with(new Segment("empty-grid-tile", roomIdGridIndex));
+        } else {
+            path = path.until("session");
+        }
+    }
+    return path;
+}
+
 function roomsSegmentWithRoom(rooms, roomId, path) {
     if(!rooms.value.includes(roomId)) {
         const emptyGridTile = path.get("empty-grid-tile");
@@ -243,6 +267,79 @@ export function tests() {
             assert.equal(segments.length, 1);
             assert.equal(segments[0].type, "session");
             assert.strictEqual(segments[0].value, true);
-        }
+        },
+        "remove active room from grid path turns it into empty tile": assert => {
+            const nav = new Navigation(allowsChild);
+            const path = nav.pathFrom([
+                new Segment("session", 1),
+                new Segment("rooms", ["a", "b", "c"]),
+                new Segment("room", "b")
+            ]);
+            const newPath = removeRoomFromPath(path, "b");
+            assert.equal(newPath.segments.length, 3);
+            assert.equal(newPath.segments[0].type, "session");
+            assert.equal(newPath.segments[0].value, 1);
+            assert.equal(newPath.segments[1].type, "rooms");
+            assert.deepEqual(newPath.segments[1].value, ["a", "", "c"]);
+            assert.equal(newPath.segments[2].type, "empty-grid-tile");
+            assert.equal(newPath.segments[2].value, 1);
+        },
+        "remove inactive room from grid path": assert => {
+            const nav = new Navigation(allowsChild);
+            const path = nav.pathFrom([
+                new Segment("session", 1),
+                new Segment("rooms", ["a", "b", "c"]),
+                new Segment("room", "b")
+            ]);
+            const newPath = removeRoomFromPath(path, "a");
+            assert.equal(newPath.segments.length, 3);
+            assert.equal(newPath.segments[0].type, "session");
+            assert.equal(newPath.segments[0].value, 1);
+            assert.equal(newPath.segments[1].type, "rooms");
+            assert.deepEqual(newPath.segments[1].value, ["", "b", "c"]);
+            assert.equal(newPath.segments[2].type, "room");
+            assert.equal(newPath.segments[2].value, "b");
+        },
+        "remove inactive room from grid path with empty tile": assert => {
+            const nav = new Navigation(allowsChild);
+            const path = nav.pathFrom([
+                new Segment("session", 1),
+                new Segment("rooms", ["a", "b", ""]),
+                new Segment("empty-grid-tile", 3)
+            ]);
+            const newPath = removeRoomFromPath(path, "b");
+            assert.equal(newPath.segments.length, 3);
+            assert.equal(newPath.segments[0].type, "session");
+            assert.equal(newPath.segments[0].value, 1);
+            assert.equal(newPath.segments[1].type, "rooms");
+            assert.deepEqual(newPath.segments[1].value, ["a", "", ""]);
+            assert.equal(newPath.segments[2].type, "empty-grid-tile");
+            assert.equal(newPath.segments[2].value, 3);
+        },
+        "remove active room": assert => {
+            const nav = new Navigation(allowsChild);
+            const path = nav.pathFrom([
+                new Segment("session", 1),
+                new Segment("room", "b")
+            ]);
+            const newPath = removeRoomFromPath(path, "b");
+            assert.equal(newPath.segments.length, 1);
+            assert.equal(newPath.segments[0].type, "session");
+            assert.equal(newPath.segments[0].value, 1);
+        },
+        "remove inactive room doesn't do anything": assert => {
+            const nav = new Navigation(allowsChild);
+            const path = nav.pathFrom([
+                new Segment("session", 1),
+                new Segment("room", "b")
+            ]);
+            const newPath = removeRoomFromPath(path, "a");
+            assert.equal(newPath.segments.length, 2);
+            assert.equal(newPath.segments[0].type, "session");
+            assert.equal(newPath.segments[0].value, 1);
+            assert.equal(newPath.segments[1].type, "room");
+            assert.equal(newPath.segments[1].value, "b");
+        },
+        
     }
 }

@@ -32,6 +32,9 @@ export class NotificationService {
             const data = {
                 endpoint: subscriptionData.endpoint,
                 auth: subscriptionData.keys.auth,
+                // don't deliver unread count push messages
+                // as we don't want to show a notification in this case
+                events_only: true,
                 default_payload: defaultPayload
             };
             return pusherFactory.httpPusher(

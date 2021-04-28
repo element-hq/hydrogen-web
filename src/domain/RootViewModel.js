@@ -99,7 +99,7 @@ export class RootViewModel extends ViewModel {
     _showLogin() {
         this._setSection(() => {
             this._loginViewModel = new LoginViewModel(this.childOptions({
-                defaultHomeServer: "https://matrix.org",
+                defaultHomeServer: this.platform.config["defaultHomeServer"],
                 createSessionContainer: this._createSessionContainer,
                 ready: sessionContainer => {
                     // we don't want to load the session container again,
