@@ -245,6 +245,17 @@ export function tests() {
             const path = new Path([new Segment("foo", 5), new Segment("bar", 6)], () => true);
             assert.equal(path.get("foo").value, 5);
             assert.equal(path.get("bar").value, 6);
+        },
+        "path.replace success": assert => {
+            const path = new Path([new Segment("foo", 5), new Segment("bar", 6)], () => true);
+            const newPath = path.replace(new Segment("foo", 1));
+            assert.equal(newPath.get("foo").value, 1);
+            assert.equal(newPath.get("bar").value, 6);
+        },
+        "path.replace not found": assert => {
+            const path = new Path([new Segment("foo", 5), new Segment("bar", 6)], () => true);
+            const newPath = path.replace(new Segment("baz", 1));
+            assert.equal(newPath, null);
         }
     };
 }
