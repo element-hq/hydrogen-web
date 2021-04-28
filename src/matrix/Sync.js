@@ -384,7 +384,6 @@ export class Sync {
                     isNewInvite = true;
                 }
                 const room = this._session.rooms.get(roomId);
-                // TODO let the room know there is an invite now, so 
                 inviteStates.push(new InviteSyncProcessState(invite, isNewInvite, room, "invite", roomResponse));
             }
         }
