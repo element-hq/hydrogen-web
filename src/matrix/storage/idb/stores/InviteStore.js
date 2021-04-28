@@ -1,6 +1,5 @@
 /*
-Copyright 2020 Bruno Windels <bruno@windels.cloud>
-Copyright 2020 The Matrix.org Foundation C.I.C.
+Copyright 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,23 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-.avatar {
-    width: var(--avatar-size);
-    height: var(--avatar-size);
-    overflow: hidden;
-    flex-shrink: 0;
-    user-select: none;
-    line-height: var(--avatar-size);
-    font-size: calc(var(--avatar-size) * 0.6);
-    text-align: center;
-    speak: none;
-}
+export class InviteStore {
+    constructor(inviteStore) {
+        this._inviteStore = inviteStore;
+    }
 
-.avatar.large {
-    --avatar-size: 40px;
-}
+    getAll() {
+        return this._inviteStore.selectAll();
+    }
 
-.avatar img {
-    width: 100%;
-    height: 100%;
+    set(invite) {
+        return this._inviteStore.put(invite);
+    }
+
+    remove(roomId) {
+        this._inviteStore.delete(roomId);
+    }
 }

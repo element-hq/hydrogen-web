@@ -74,5 +74,54 @@
             }));
             document.getElementById("session-loading").appendChild(view.mount());
         </script>
+        <h2 name="invite-dm-view">Invite DM view</h2>
+        <div id="invite-dm-view" style="height: 600px" class="hydrogen"></div>
+        <script id="main" type="module">
+            import {InviteView} from "./session/room/InviteView.js";
+            const view = new InviteView(vm({
+                busy: false,
+                name: "Alice",
+                avatarTitle: "Alice",
+                avatarColorNumber: 5,
+                avatarLetter: "A",
+                error: "",
+                inviter: {
+                    id: "@alice:hs.tld",
+                    displayName: "Alice",
+                    name: "Alice",
+                    avatarTitle: "Alice",
+                    avatarColorNumber: 5,
+                    avatarLetter: "A",
+                },
+                isDirectMessage: true,
+                showDMProfile: true,
+            }));
+            document.getElementById("invite-dm-view").appendChild(view.mount());
+        </script>
+        <h2 name="invite-room-view">Invite Room view</h2>
+        <div id="invite-room-view" style="height: 600px" class="hydrogen"></div>
+        <script id="main" type="module">
+            import {InviteView} from "./session/room/InviteView.js";
+            const view = new InviteView(vm({
+                busy: false,
+                name: "Some Room",
+                avatarTitle: "Some Room",
+                avatarColorNumber: 2,
+                avatarLetter: "S",
+                error: "",
+                inviter: {
+                    id: "@alice:hs.tld",
+                    displayName: "Alice",
+                    name: "Alice",
+                    avatarTitle: "Alice",
+                    avatarColorNumber: 5,
+                    avatarLetter: "A",
+                },
+                roomDescription: "#some-room:hs.tld - public room",
+                isDirectMessage: false,
+                showDMProfile: false,
+            }));
+            document.getElementById("invite-room-view").appendChild(view.mount());
+        </script>
 	</body>
 </html>

@@ -100,10 +100,9 @@ main {
     position: relative;
 }
 
-.RoomView {
-    min-width: 0;
-    min-height: 0;
+.middle {
     display: flex;
+    flex-direction: column;
 }
 
 .SessionStatusView {
@@ -122,8 +121,8 @@ main {
     height: 100%;
 }
 
-.TimelinePanel {
-    flex: 3;
+.RoomView_body {
+    flex: 1;
     min-height: 0;
     min-width: 0;
     display: flex;
@@ -131,7 +130,7 @@ main {
     height: 100%;
 }
 
-.TimelinePanel .Timeline, .TimelinePanel .TimelineLoadingView {
+.RoomView_body .Timeline, .RoomView_body .TimelineLoadingView {
     flex: 1 0 0;
 }
 

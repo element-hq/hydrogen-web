@@ -18,6 +18,7 @@ export const STORE_NAMES = Object.freeze([
     "session",
     "roomState",
     "roomSummary",
+    "invites",
     "roomMembers",
     "timelineEvents",
     "timelineFragments",

@@ -85,7 +85,7 @@ function processRoomAccountData(data, event) {
     return data;
 }
 
-function processStateEvent(data, event) {
+export function processStateEvent(data, event) {
     if (event.type === "m.room.encryption") {
         const algorithm = event.content?.algorithm;
         if (!data.encryption && algorithm === MEGOLM_ALGORITHM) {
@@ -148,7 +148,19 @@ function updateSummary(data, summary) {
     return data;
 }
 
-class SummaryData {
+function applyInvite(data, invite) {
+    if (data.isDirectMessage !== invite.isDirectMessage) {
+        data = data.cloneIfNeeded();
+        data.isDirectMessage = invite.isDirectMessage;
+    }
+    if (data.dmUserId !== invite.inviter?.userId) {
+        data = data.cloneIfNeeded();
+        data.dmUserId = invite.inviter?.userId;
+    }
+    return data;
+}
+
+export class SummaryData {
     constructor(copy, roomId) {
         this.roomId = copy ? copy.roomId : roomId;
         this.name = copy ? copy.name : null;
@@ -166,6 +178,8 @@ class SummaryData {
         this.notificationCount = copy ? copy.notificationCount : 0;
         this.highlightCount = copy ? copy.highlightCount : 0;
         this.tags = copy ? copy.tags : null;
+        this.isDirectMessage = copy ? copy.isDirectMessage : false;
+        this.dmUserId = copy ? copy.dmUserId : null;
         this.cloned = copy ? true : false;
     }
 
@@ -200,6 +214,10 @@ class SummaryData {
 
     applySyncResponse(roomResponse, membership) {
         return applySyncResponse(this, roomResponse, membership);
+    }
+
+    applyInvite(invite) {
+        return applyInvite(this, invite);
     }
 
     get needsHeroes() {

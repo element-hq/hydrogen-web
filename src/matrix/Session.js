@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020, 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,6 +16,7 @@ limitations under the License.
 */
 
 import {Room} from "./room/Room.js";
+import {Invite} from "./room/Invite.js";
 import {Pusher} from "./push/Pusher.js";
 import { ObservableMap } from "../observable/index.js";
 import {User} from "./User.js";
@@ -52,6 +54,9 @@ export class Session {
         this._sessionInfo = sessionInfo;
         this._rooms = new ObservableMap();
         this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
+        this._invites = new ObservableMap();
+        this._inviteRemoveCallback = invite => this._invites.remove(invite.id);
+        this._inviteUpdateCallback = (invite, params) => this._invites.update(invite.id, params);
         this._user = new User(sessionInfo.userId);
         this._deviceMessageHandler = new DeviceMessageHandler({storage});
         this._olm = olm;
@@ -254,6 +259,7 @@ export class Session {
         const txn = await this._storage.readTxn([
             this._storage.storeNames.session,
             this._storage.storeNames.roomSummary,
+            this._storage.storeNames.invites,
             this._storage.storeNames.roomMembers,
             this._storage.storeNames.timelineEvents,
             this._storage.storeNames.timelineFragments,
@@ -278,12 +284,28 @@ export class Session {
             }
         }
         const pendingEventsByRoomId = await this._getPendingEventsByRoom(txn);
+        // load invites
+        const invites = await txn.invites.getAll();
+        const inviteLoadPromise = Promise.all(invites.map(async inviteData => {
+            const invite = this.createInvite(inviteData.roomId);
+            log.wrap("invite", log => invite.load(inviteData, log));
+            this._invites.add(invite.id, invite);
+        }));
         // load rooms
         const rooms = await txn.roomSummary.getAll();
-        await Promise.all(rooms.map(summary => {
+        const roomLoadPromise = Promise.all(rooms.map(async summary => {
             const room = this.createRoom(summary.roomId, pendingEventsByRoomId.get(summary.roomId));
-            return log.wrap("room", log => room.load(summary, txn, log));
+            await log.wrap("room", log => room.load(summary, txn, log));
+            this._rooms.add(room.id, room);
         }));
+        // load invites and rooms in parallel
+        await Promise.all([inviteLoadPromise, roomLoadPromise]);
+        for (const [roomId, invite] of this.invites) {
+            const room = this.rooms.get(roomId);
+            if (room) {
+                room.setInvite(invite);
+            }
+        }
     }
 
     dispose() {
@@ -360,7 +382,7 @@ export class Session {
 
     /** @internal */
     createRoom(roomId, pendingEvents) {
-        const room = new Room({
+        return new Room({
             roomId,
             getSyncToken: this._getSyncToken,
             storage: this._storage,
@@ -372,8 +394,33 @@ export class Session {
             createRoomEncryption: this._createRoomEncryption,
             platform: this._platform
         });
-        this._rooms.add(roomId, room);
-        return room;
+    }
+
+    /** @internal */
+    addRoomAfterSync(room) {
+        this._rooms.add(room.id, room);
+    }
+
+    get invites() {
+        return this._invites;
+    }
+
+    /** @internal */
+    createInvite(roomId) {
+        return new Invite({
+            roomId,
+            hsApi: this._hsApi,
+            emitCollectionRemove: this._inviteRemoveCallback,
+            emitCollectionUpdate: this._inviteUpdateCallback,
+            mediaRepository: this._mediaRepository,
+            user: this._user,
+            platform: this._platform,
+        });
+    }
+
+    /** @internal */
+    addInviteAfterSync(invite) {
+        this._invites.add(invite.id, invite);
     }
 
     async obtainSyncLock(syncResponse) {
@@ -469,6 +516,10 @@ export class Session {
         return this._user;
     }
 
+    get mediaRepository() {
+        return this._mediaRepository;
+    }
+
     enablePushNotifications(enable) {
         if (enable) {
             return this._enablePush();
@@ -552,6 +603,11 @@ export function tests() {
                         }
                     },
                     roomSummary: {
+                        getAll() {
+                            return Promise.resolve([]);
+                        }
+                    },
+                    invites: {
                         getAll() {
                             return Promise.resolve([]);
                         }

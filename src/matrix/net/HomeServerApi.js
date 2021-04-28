@@ -185,6 +185,14 @@ export class HomeServerApi {
     getPushers(options = null) {
         return this._get("/pushers", null, null, options);
     }
+
+    join(roomId, options = null) {
+        return this._post(`/rooms/${encodeURIComponent(roomId)}/join`, null, null, options);
+    }
+
+    leave(roomId, options = null) {
+        return this._post(`/rooms/${encodeURIComponent(roomId)}/leave`, null, null, options);
+    }
 }
 
 import {Request as MockRequest} from "../../mocks/Request.js";

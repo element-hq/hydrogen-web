@@ -103,12 +103,15 @@ export class AvatarView extends BaseUpdateView {
  * @param  {Number} size
  * @return {Element}
  */
-export function renderStaticAvatar(vm, size) {
+export function renderStaticAvatar(vm, size, extraClasses = undefined) {
     const hasAvatar = !!vm.avatarUrl;
-    const avatarClasses = classNames({
+    let avatarClasses = classNames({
         avatar: true,
         [`usercolor${vm.avatarColorNumber}`]: !hasAvatar,
     });
+    if (extraClasses) {
+        avatarClasses += ` ${extraClasses}`;
+    }
     const avatarContent = hasAvatar ? renderImg(vm, size) : text(vm.avatarLetter);
     return tag.div({className: avatarClasses}, [avatarContent]);
 }
