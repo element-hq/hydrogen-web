@@ -351,7 +351,11 @@ async function buildCssLegacy(entryPath, urlMapper = null) {
     const preCss = await fs.readFile(entryPath, "utf8");
     const options = [
         postcssImport,
-        cssvariables(),
+        cssvariables({
+            preserve: (declaration) => {
+                return declaration.value.indexOf("var(--ios-") == 0;
+            }
+        }),
         autoprefixer({overrideBrowserslist: ["IE 11"], grid: "no-autoplace"}),
         flexbugsFixes()
     ];
