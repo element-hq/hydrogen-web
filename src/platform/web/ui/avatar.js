@@ -37,8 +37,8 @@ export class AvatarView extends BaseUpdateView {
     }
 
     _avatarUrlChanged() {
-        if (this.value.avatarUrl !== this._avatarUrl) {
-            this._avatarUrl = this.value.avatarUrl;
+        if (this.value.avatarUrl(this._size) !== this._avatarUrl) {
+            this._avatarUrl = this.value.avatarUrl(this._size);
             return true;
         }
         return false;
@@ -79,7 +79,7 @@ export class AvatarView extends BaseUpdateView {
         if (this._avatarUrlChanged()) {
             // avatarColorNumber won't change, it's based on room/user id
             const bgColorClass = `usercolor${vm.avatarColorNumber}`;
-            if (vm.avatarUrl) {
+            if (vm.avatarUrl(this._size)) {
                 this._root.replaceChild(renderImg(vm, this._size), this._root.firstChild);
                 this._root.classList.remove(bgColorClass);
             } else {
@@ -87,7 +87,7 @@ export class AvatarView extends BaseUpdateView {
                 this._root.classList.add(bgColorClass);
             }
         }
-        const hasAvatar = !!vm.avatarUrl;
+        const hasAvatar = !!vm.avatarUrl(this._size);
         if (this._avatarTitleChanged() && hasAvatar) {
             const img = this._root.firstChild;
             img.setAttribute("title", vm.avatarTitle);
@@ -104,7 +104,7 @@ export class AvatarView extends BaseUpdateView {
  * @return {Element}
  */
 export function renderStaticAvatar(vm, size, extraClasses = undefined) {
-    const hasAvatar = !!vm.avatarUrl;
+    const hasAvatar = !!vm.avatarUrl(size);
     let avatarClasses = classNames({
         avatar: true,
         [`size-${size}`]: true,
@@ -119,5 +119,5 @@ export function renderStaticAvatar(vm, size, extraClasses = undefined) {
 
 function renderImg(vm, size) {
     const sizeStr = size.toString();
-    return tag.img({src: vm.avatarUrl, width: sizeStr, height: sizeStr, title: vm.avatarTitle});
+    return tag.img({src: vm.avatarUrl(size), width: sizeStr, height: sizeStr, title: vm.avatarTitle});
 }

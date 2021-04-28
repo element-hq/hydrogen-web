@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {avatarInitials, getIdentifierColorNumber} from "../../avatar.js";
+import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar.js";
 import {ViewModel} from "../../ViewModel.js";
 
 export class InviteViewModel extends ViewModel {
@@ -60,12 +60,8 @@ export class InviteViewModel extends ViewModel {
         return getIdentifierColorNumber(this._invite.id)
     }
 
-    get avatarUrl() {
-        if (this._invite.avatarUrl) {
-            const size = 128 * this.platform.devicePixelRatio;
-            return this._mediaRepository.mxcUrlThumbnail(this._invite.avatarUrl, size, size, "crop");
-        }
-        return null;
+    avatarUrl(size) {
+        return getAvatarHttpUrl(this._invite.avatarUrl, size, this.platform, this._mediaRepository);
     }
 
     _createRoomDescription() {
@@ -153,12 +149,8 @@ class RoomMemberViewModel {
         return getIdentifierColorNumber(this._member.userId);
     }
 
-    get avatarUrl() {
-        if (this._member.avatarUrl) {
-            const size = 24 * this._platform.devicePixelRatio;
-            return this._mediaRepository.mxcUrlThumbnail(this._member.avatarUrl, size, size, "crop");
-        }
-        return null;
+    avatarUrl(size) {
+        return getAvatarHttpUrl(this._member.avatarUrl, size, this._platform, this._mediaRepository);
     }
 
     get avatarTitle() {
