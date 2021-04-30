@@ -34,8 +34,8 @@
             - verify signature on key
             - ??? what about inbound/outbound sessions? do they require multiple OlmSession objects?
                 - doesn't look like it, more like a way to start the session but once started (type=1), they are equivalent?
-                    - for outbound, see  file:///home/bwindels/Downloads/matrix-docs/End-to-End%20Encryption%20implementation%20guide%20%7C%20Matrix.org.html#starting-an-olm-session
-                    - for inbound, see: file:///home/bwindels/Downloads/matrix-docs/End-to-End%20Encryption%20implementation%20guide%20|%20Matrix.org.html#handling-an-mroomencrypted-event
+                    - for outbound, see  https://matrix.org/docs/guides/end-to-end-encryption-implementation-guide#starting-an-olm-session
+                    - for inbound, see: https://matrix.org/docs/guides/end-to-end-encryption-implementation-guide#handling-an-mroomencrypted-event
                 - so in this case, it would the session would be created as an outbound session.
             - store pickled, index by curve25519 identity key?
         - get from storage if exists and unpickle
@@ -68,10 +68,10 @@
     - mark them as published in account
     - update picked session in storage
  - implement encrypting olm messages
-    - roughly file:///home/bwindels/Downloads/matrix-docs/End-to-End%20Encryption%20implementation%20guide%20|%20Matrix.org.html#encrypting-an-event-with-olm
+    - roughly https://matrix.org/docs/guides/end-to-end-encryption-implementation-guide#encrypting-an-event-with-olm
     - packaging as m.room.encrypted event
  - implement decrypting olm messages
-    - roughly file:///home/bwindels/Downloads/matrix-docs/End-to-End%20Encryption%20implementation%20guide%20|%20Matrix.org.html#handling-an-mroomencrypted-event
+    - roughly https://matrix.org/docs/guides/end-to-end-encryption-implementation-guide#handling-an-mroomencrypted-event
     - decrypt with libolm
     - verify signature
     - check message index, etc to detect replay attacks
