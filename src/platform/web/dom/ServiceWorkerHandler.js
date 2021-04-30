@@ -26,6 +26,7 @@ export class ServiceWorkerHandler {
         this._registration = null;
         this._registrationPromise = null;
         this._currentController = null;
+        this.haltRequests = false;
     }
 
     setNavigation(navigation) {
@@ -39,10 +40,13 @@ export class ServiceWorkerHandler {
             this._registration = await navigator.serviceWorker.register(path);
             await navigator.serviceWorker.ready;
             this._currentController = navigator.serviceWorker.controller;
-            this._registrationPromise = null;
-            console.log("Service Worker registered");
             this._registration.addEventListener("updatefound", this);
-            this._tryActivateUpdate();
+            this._registrationPromise = null;
+            // do we have a new service worker waiting to activate?
+            if (this._registration.waiting && this._registration.active) {
+                this._proposeUpdate();
+            }
+            console.log("Service Worker registered");
         })();
     }
 
@@ -56,11 +60,24 @@ export class ServiceWorkerHandler {
                 resolve(data.payload);
             }
         }
-        if (data.type === "closeSession") {
+        if (data.type === "hasSessionOpen") {
+            const hasOpen = this._navigation.observe("session").get() === data.payload.sessionId;
+            event.source.postMessage({replyTo: data.id, payload: hasOpen});
+        } else if (data.type === "hasRoomOpen") {
+            const hasSessionOpen = this._navigation.observe("session").get() === data.payload.sessionId;
+            const hasRoomOpen = this._navigation.observe("room").get() === data.payload.roomId;
+            event.source.postMessage({replyTo: data.id, payload: hasSessionOpen && hasRoomOpen});
+        } else if (data.type === "closeSession") {
             const {sessionId} = data.payload;
             this._closeSessionIfNeeded(sessionId).finally(() => {
                 event.source.postMessage({replyTo: data.id});
             });
+        } else if (data.type === "haltRequests") {
+            // this flag is read in fetch.js
+            this.haltRequests = true;
+            event.source.postMessage({replyTo: data.id});
+        } else if (data.type === "openRoom") {
+            this._navigation.push("room", data.payload.roomId);
         }
     }
 
@@ -82,15 +99,19 @@ export class ServiceWorkerHandler {
         }
     }
 
-    async _tryActivateUpdate() {
-        // we don't do confirm when the tab is hidden because it will block the event loop and prevent
-        // events from the service worker to be processed (like controllerchange when the visible tab applies the update). 
-        if (!document.hidden && this._registration.waiting && this._registration.active) {
-            this._registration.waiting.removeEventListener("statechange", this);
-            const version = await this._sendAndWaitForReply("version", null, this._registration.waiting);
-            if (confirm(`Version ${version.version} (${version.buildHash}) is ready to install. Apply now?`)) {
-                this._registration.waiting.postMessage({type: "skipWaiting"}); // will trigger controllerchange event
-            }
+    async _proposeUpdate() {
+        if (document.hidden) {
+            return;
+        }
+        const version = await this._sendAndWaitForReply("version", null, this._registration.waiting);
+        if (confirm(`Version ${version.version} (${version.buildHash}) is available. Reload to apply?`)) {
+            // prevent any fetch requests from going to the service worker
+            // from any client, so that it is not kept active
+            // when calling skipWaiting on the new one
+            await this._sendAndWaitForReply("haltRequests");
+            // only once all requests are blocked, ask the new
+            // service worker to skipWaiting
+            this._send("skipWaiting", null, this._registration.waiting);
         }
     }
 
@@ -101,11 +122,14 @@ export class ServiceWorkerHandler {
                 break;
             case "updatefound":
                 this._registration.installing.addEventListener("statechange", this);
-                this._tryActivateUpdate();
                 break;
-            case "statechange":
-                this._tryActivateUpdate();
+            case "statechange": {
+                if (event.target.state === "installed") {
+                    this._proposeUpdate();
+                    event.target.removeEventListener("statechange", this);
+                }
                 break;
+            }
             case "controllerchange":
                 if (!this._currentController) {
                     // Clients.claim() in the SW can trigger a controllerchange event
@@ -115,7 +139,7 @@ export class ServiceWorkerHandler {
                 } else {
                     // active service worker changed,
                     // refresh, so we can get all assets 
-                    // (and not some if we would not refresh)
+                    // (and not only some if we would not refresh)
                     // up to date from it
                     document.location.reload();
                 }
@@ -166,5 +190,12 @@ export class ServiceWorkerHandler {
 
     async preventConcurrentSessionAccess(sessionId) {
         return this._sendAndWaitForReply("closeSession", {sessionId});
+    }
+
+    async getRegistration() {
+        if (this._registrationPromise) {
+            await this._registrationPromise;
+        }
+        return this._registration;
     }
 }

@@ -15,8 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {removeRoomFromPath} from "../navigation/index.js";
 import {LeftPanelViewModel} from "./leftpanel/LeftPanelViewModel.js";
 import {RoomViewModel} from "./room/RoomViewModel.js";
+import {InviteViewModel} from "./room/InviteViewModel.js";
 import {LightboxViewModel} from "./room/LightboxViewModel.js";
 import {SessionStatusViewModel} from "./SessionStatusViewModel.js";
 import {RoomGridViewModel} from "./RoomGridViewModel.js";
@@ -34,11 +36,14 @@ export class SessionViewModel extends ViewModel {
             session: sessionContainer.session,
         })));
         this._leftPanelViewModel = this.track(new LeftPanelViewModel(this.childOptions({
+            invites: this._sessionContainer.session.invites,
             rooms: this._sessionContainer.session.rooms
         })));
         this._settingsViewModel = null;
         this._currentRoomViewModel = null;
         this._gridViewModel = null;
+        this._refreshRoomViewModel = this._refreshRoomViewModel.bind(this);
+        this._createRoomViewModel = this._createRoomViewModel.bind(this);
         this._setupNavigation();
     }
 
@@ -84,15 +89,8 @@ export class SessionViewModel extends ViewModel {
         this._sessionStatusViewModel.start();
     }
 
-    get activeSection() {
-        if (this._currentRoomViewModel) {
-            return this._currentRoomViewModel.id;
-        } else if (this._gridViewModel) {
-            return "roomgrid";
-        } else if (this._settingsViewModel) {
-            return "settings";
-        }
-        return "placeholder";
+    get activeMiddleViewModel() {
+        return this._currentRoomViewModel || this._gridViewModel || this._settingsViewModel;
     }
 
     get roomGridViewModel() {
@@ -111,10 +109,6 @@ export class SessionViewModel extends ViewModel {
         return this._settingsViewModel;
     }
 
-    get roomList() {
-        return this._roomList;
-    }
-
     get currentRoomViewModel() {
         return this._currentRoomViewModel;
     }
@@ -127,7 +121,7 @@ export class SessionViewModel extends ViewModel {
                 this._gridViewModel = this.track(new RoomGridViewModel(this.childOptions({
                     width: 3,
                     height: 2,
-                    createRoomViewModel: roomId => this._createRoomViewModel(roomId),
+                    createRoomViewModel: this._createRoomViewModel,
                 })));
                 if (this._gridViewModel.initializeRoomIdsAndTransferVM(roomIds, this._currentRoomViewModel)) {
                     this._currentRoomViewModel = this.untrack(this._currentRoomViewModel);
@@ -138,12 +132,13 @@ export class SessionViewModel extends ViewModel {
                 this._gridViewModel.setRoomIds(roomIds);
             }
         } else if (this._gridViewModel && !roomIds) {
+            // closing grid, try to show focused room in grid
             if (currentRoomId) {
                 const vm = this._gridViewModel.releaseRoomViewModel(currentRoomId.value);
                 if (vm) {
                     this._currentRoomViewModel = this.track(vm);
                 } else {
-                    const newVM = this._createRoomViewModel(currentRoomId.value);
+                    const newVM = this._createRoomViewModel(currentRoomId.value, this._refreshRoomViewModel);
                     if (newVM) {
                         this._currentRoomViewModel = this.track(newVM);
                     }
@@ -152,41 +147,67 @@ export class SessionViewModel extends ViewModel {
             this._gridViewModel = this.disposeTracked(this._gridViewModel);
         }
         if (changed) {
-            this.emitChange("activeSection");
+            this.emitChange("activeMiddleViewModel");
         }
     }
 
-    _createRoomViewModel(roomId) {
-        const room = this._sessionContainer.session.rooms.get(roomId);
-        if (!room) {
-            return null;
+    /**
+     * @param  {string} roomId
+     * @param  {function} refreshRoomViewModel passed in as an argument, because the grid needs a different impl of this
+     * @return {RoomViewModel | InviteViewModel}
+     */
+    _createRoomViewModel(roomId, refreshRoomViewModel) {
+        const invite = this._sessionContainer.session.invites.get(roomId);
+        if (invite) {
+            return new InviteViewModel(this.childOptions({
+                invite,
+                mediaRepository: this._sessionContainer.session.mediaRepository,
+                refreshRoomViewModel,
+            }));
+        } else {
+            const room = this._sessionContainer.session.rooms.get(roomId);
+            if (room) {
+                const roomVM = new RoomViewModel(this.childOptions({
+                    room,
+                    ownUserId: this._sessionContainer.session.user.id,
+                    refreshRoomViewModel
+                }));
+                roomVM.load();
+                return roomVM;
+            }
         }
-        const roomVM = new RoomViewModel(this.childOptions({
-            room,
-            ownUserId: this._sessionContainer.session.user.id,
-        }));
-        roomVM.load();
-        return roomVM;
+        return null;
+    }
+
+    /** refresh the room view model after an internal change that needs
+    to change between invite, room or none state */
+    _refreshRoomViewModel(roomId) {
+        this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
+        const roomVM = this._createRoomViewModel(roomId, this._refreshRoomViewModel);
+        if (roomVM) {
+            this._currentRoomViewModel = this.track(roomVM);
+        } else {
+            // close room id
+            this.navigation.applyPath(removeRoomFromPath(this.navigation.path, roomId));
+        }
+        this.emitChange("activeMiddleViewModel");
     }
 
     _updateRoom(roomId) {
-        if (!roomId) {
-            if (this._currentRoomViewModel) {
-                this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
-                this.emitChange("currentRoom");
-            }
-            return;
-        }
-        // already open?
+        // opening a room and already open?
         if (this._currentRoomViewModel?.id === roomId) {
             return;
         }
-        this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
-        const roomVM = this._createRoomViewModel(roomId);
+        // close if needed
+        if (this._currentRoomViewModel) {
+            this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
+        }
+        // and try opening again
+        const roomVM = this._createRoomViewModel(roomId, this._refreshRoomViewModel);
         if (roomVM) {
             this._currentRoomViewModel = this.track(roomVM);
         }
-        this.emitChange("currentRoom");
+        this.emitChange("activeMiddleViewModel");
     }
 
     _updateSettings(settingsOpen) {
@@ -199,7 +220,7 @@ export class SessionViewModel extends ViewModel {
             })));
             this._settingsViewModel.load();
         }
-        this.emitChange("activeSection");
+        this.emitChange("activeMiddleViewModel");
     }
 
     _updateLightbox(eventId) {

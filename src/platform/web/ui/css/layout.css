@@ -54,6 +54,13 @@ main {
     min-width: 0;
 }
 
+/* resize and reposition session view to account for mobile Safari which shifts
+the layout viewport up without resizing it when the keyboard shows */
+.hydrogen.ios .SessionView {
+    height: var(--ios-viewport-height, 100%);
+    top: var(--ios-viewport-top, 0);
+}
+
 /* hide back button in middle section by default */
 .middle .close-middle { display: none; }
 /* mobile layout */
@@ -100,10 +107,9 @@ main {
     position: relative;
 }
 
-.RoomView {
-    min-width: 0;
-    min-height: 0;
+.middle {
     display: flex;
+    flex-direction: column;
 }
 
 .SessionStatusView {
@@ -117,10 +123,13 @@ main {
     left: 0;
     right: 0;
     z-index: 1;
+    /* Safari requires an explicit height on the container to prevent picture content from collapsing */
+    box-sizing: border-box;
+    height: 100%;
 }
 
-.TimelinePanel {
-    flex: 3;
+.RoomView_body {
+    flex: 1;
     min-height: 0;
     min-width: 0;
     display: flex;
@@ -128,7 +137,7 @@ main {
     height: 100%;
 }
 
-.TimelinePanel .Timeline, .TimelinePanel .TimelineLoadingView {
+.RoomView_body .Timeline, .RoomView_body .TimelineLoadingView {
     flex: 1 0 0;
 }
 

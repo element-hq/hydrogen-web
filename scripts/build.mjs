@@ -50,12 +50,17 @@ const cssSrcDir = path.join(projectDir, "src/platform/web/ui/css/");
 const parameters = new commander.Command();
 parameters
     .option("--modern-only", "don't make a legacy build")
+    .option("--override-imports <json file>", "pass in a file to override import paths, see doc/SKINNING.md")
+    .option("--override-css <main css file>", "pass in an alternative main css file")
 parameters.parse(process.argv);
 
-async function build({modernOnly}) {
+async function build({modernOnly, overrideImports, overrideCss}) {
     // get version number
     const version = JSON.parse(await fs.readFile(path.join(projectDir, "package.json"), "utf8")).version;
-
+    let importOverridesMap;
+    if (overrideImports) {
+        importOverridesMap = await readImportOverrides(overrideImports);
+    }
     const devHtml = await fs.readFile(path.join(projectDir, "index.html"), "utf8");
     const doc = cheerio.load(devHtml);
     const themes = [];
@@ -70,32 +75,33 @@ async function build({modernOnly}) {
     // copy olm assets
     const olmAssets = await copyFolder(path.join(projectDir, "lib/olm/"), assets.directory);
     assets.addSubMap(olmAssets);
-    await assets.write(`hydrogen.js`, await buildJs("src/main.js", ["src/platform/web/Platform.js"]));
+    await assets.write(`hydrogen.js`, await buildJs("src/main.js", ["src/platform/web/Platform.js"], importOverridesMap));
     if (!modernOnly) {
         await assets.write(`hydrogen-legacy.js`, await buildJsLegacy("src/main.js", [
             'src/platform/web/legacy-polyfill.js',
             'src/platform/web/LegacyPlatform.js'
-        ]));
+        ], importOverridesMap));
         await assets.write(`worker.js`, await buildJsLegacy("src/platform/web/worker/main.js", ['src/platform/web/worker/polyfill.js']));
     }
     // copy over non-theme assets
+    const baseConfig = JSON.parse(await fs.readFile(path.join(projectDir, "assets/config.json"), {encoding: "utf8"}));
     const downloadSandbox = "download-sandbox.html";
     let downloadSandboxHtml = await fs.readFile(path.join(projectDir, `assets/${downloadSandbox}`));
     await assets.write(downloadSandbox, downloadSandboxHtml);
     // creates the directories where the theme css bundles are placed in,
     // and writes to assets, so the build bundles can translate them, so do it first
     await copyThemeAssets(themes, assets);
-    await buildCssBundles(buildCssLegacy, themes, assets);
+    await buildCssBundles(buildCssLegacy, themes, assets, overrideCss);
     await buildManifest(assets);
     // all assets have been added, create a hash from all assets name to cache unhashed files like index.html
     assets.addToHashForAll("index.html", devHtml);
-    let swSource = await fs.readFile(path.join(projectDir, "src/platform/web/service-worker.template.js"), "utf8");
+    let swSource = await fs.readFile(path.join(projectDir, "src/platform/web/service-worker.js"), "utf8");
     assets.addToHashForAll("sw.js", swSource);
     
     const globalHash = assets.hashForAll();
 
     await buildServiceWorker(swSource, version, globalHash, assets);
-    await buildHtml(doc, version, globalHash, modernOnly, assets);
+    await buildHtml(doc, version, baseConfig, globalHash, modernOnly, assets);
     console.log(`built hydrogen ${version} (${globalHash}) successfully with ${assets.size} files`);
 }
 
@@ -135,7 +141,7 @@ async function copyThemeAssets(themes, assets) {
     return assets;
 }
 
-async function buildHtml(doc, version, globalHash, modernOnly, assets) {
+async function buildHtml(doc, version, baseConfig, globalHash, modernOnly, assets) {
     // transform html file
     // change path to main.css to css bundle
     doc("link[rel=stylesheet]:not([title])").attr("href", assets.resolve(`hydrogen.css`));
@@ -145,7 +151,7 @@ async function buildHtml(doc, version, globalHash, modernOnly, assets) {
     findThemes(doc, (themeName, theme) => {
         theme.attr("href", assets.resolve(`themes/${themeName}/bundle.css`));
     });
-    const pathsJSON = JSON.stringify({
+    const configJSON = JSON.stringify(Object.assign({}, baseConfig, {
         worker: assets.has("worker.js") ? assets.resolve(`worker.js`) : null,
         downloadSandbox: assets.resolve("download-sandbox.html"),
         serviceWorker: "sw.js",
@@ -154,14 +160,14 @@ async function buildHtml(doc, version, globalHash, modernOnly, assets) {
             legacyBundle: assets.resolve("olm_legacy.js"),
             wasmBundle: assets.resolve("olm.js"),
         }
-    });
+    }));
     const mainScripts = [
-        `<script type="module">import {main, Platform} from "./${assets.resolve(`hydrogen.js`)}"; main(new Platform(document.body, ${pathsJSON}));</script>`
+        `<script type="module">import {main, Platform} from "./${assets.resolve(`hydrogen.js`)}"; main(new Platform(document.body, ${configJSON}));</script>`
     ];
     if (!modernOnly) {
         mainScripts.push(
             `<script type="text/javascript" nomodule src="${assets.resolve(`hydrogen-legacy.js`)}"></script>`,
-            `<script type="text/javascript" nomodule>hydrogen.main(new hydrogen.Platform(document.body, ${pathsJSON}));</script>`
+            `<script type="text/javascript" nomodule>hydrogen.main(new hydrogen.Platform(document.body, ${configJSON}));</script>`
         );
     }
     doc("script#main").replaceWith(mainScripts.join(""));
@@ -176,11 +182,15 @@ async function buildHtml(doc, version, globalHash, modernOnly, assets) {
     await assets.writeUnhashed("index.html", doc.html());
 }
 
-async function buildJs(mainFile, extraFiles = []) {
+async function buildJs(mainFile, extraFiles, importOverrides) {
     // create js bundle
+    const plugins = [multi(), removeJsComments({comments: "none"})];
+    if (importOverrides) {
+        plugins.push(overridesAsRollupPlugin(importOverrides));
+    }
     const bundle = await rollup({
         input: extraFiles.concat(mainFile),
-        plugins: [multi(), removeJsComments({comments: "none"})]
+        plugins
     });
     const {output} = await bundle.generate({
         format: 'es',
@@ -191,7 +201,7 @@ async function buildJs(mainFile, extraFiles = []) {
     return code;
 }
 
-async function buildJsLegacy(mainFile, extraFiles = []) {
+async function buildJsLegacy(mainFile, extraFiles, importOverrides) {
     // compile down to whatever IE 11 needs
     const babelPlugin = babel.babel({
         babelHelpers: 'bundled',
@@ -211,13 +221,18 @@ async function buildJsLegacy(mainFile, extraFiles = []) {
             ]
         ]
     });
+    const plugins = [multi(), commonjs()];
+    if (importOverrides) {
+        plugins.push(overridesAsRollupPlugin(importOverrides));
+    }
+    plugins.push(nodeResolve(), babelPlugin);
     // create js bundle
     const rollupConfig = {
         // important the extraFiles come first,
         // so polyfills are available in the global scope
         // if needed for the mainfile
         input: extraFiles.concat(mainFile),
-        plugins: [multi(), commonjs(), nodeResolve(), babelPlugin]
+        plugins
     };
     const bundle = await rollup(rollupConfig);
     const {output} = await bundle.generate({
@@ -269,18 +284,39 @@ async function buildServiceWorker(swSource, version, globalHash, assets) {
             hashedCachedOnRequestAssets.push(resolved);
         }
     }
+
+    const replaceArrayInSource = (name, value) => {
+        const newSource = swSource.replace(`${name} = []`, `${name} = ${JSON.stringify(value)}`);
+        if (newSource === swSource) {
+            throw new Error(`${name} was not found in the service worker source`);
+        }
+        return newSource;
+    };
+    const replaceStringInSource = (name, value) => {
+        const newSource = swSource.replace(new RegExp(`${name}\\s=\\s"[^"]*"`), `${name} = ${JSON.stringify(value)}`);
+        if (newSource === swSource) {
+            throw new Error(`${name} was not found in the service worker source`);
+        }
+        return newSource;
+    };
+
     // write service worker
     swSource = swSource.replace(`"%%VERSION%%"`, `"${version}"`);
     swSource = swSource.replace(`"%%GLOBAL_HASH%%"`, `"${globalHash}"`);
-    swSource = swSource.replace(`"%%UNHASHED_PRECACHED_ASSETS%%"`, JSON.stringify(unhashedPreCachedAssets));
-    swSource = swSource.replace(`"%%HASHED_PRECACHED_ASSETS%%"`, JSON.stringify(hashedPreCachedAssets));
-    swSource = swSource.replace(`"%%HASHED_CACHED_ON_REQUEST_ASSETS%%"`, JSON.stringify(hashedCachedOnRequestAssets));
+    swSource = replaceArrayInSource("UNHASHED_PRECACHED_ASSETS", unhashedPreCachedAssets);
+    swSource = replaceArrayInSource("HASHED_PRECACHED_ASSETS", hashedPreCachedAssets);
+    swSource = replaceArrayInSource("HASHED_CACHED_ON_REQUEST_ASSETS", hashedCachedOnRequestAssets);
+    swSource = replaceStringInSource("NOTIFICATION_BADGE_ICON", assets.resolve("icon.png"));
+
     // service worker should not have a hashed name as it is polled by the browser for updates
     await assets.writeUnhashed("sw.js", swSource);
 }
 
-async function buildCssBundles(buildFn, themes, assets) {
-    const bundleCss = await buildFn(path.join(cssSrcDir, "main.css"));
+async function buildCssBundles(buildFn, themes, assets, mainCssFile = null) {
+    if (!mainCssFile) {
+        mainCssFile = path.join(cssSrcDir, "main.css");
+    }
+    const bundleCss = await buildFn(mainCssFile);
     await assets.write(`hydrogen.css`, bundleCss);
     for (const theme of themes) {
         const themeRelPath = `themes/${theme}/`;
@@ -315,7 +351,11 @@ async function buildCssLegacy(entryPath, urlMapper = null) {
     const preCss = await fs.readFile(entryPath, "utf8");
     const options = [
         postcssImport,
-        cssvariables(),
+        cssvariables({
+            preserve: (declaration) => {
+                return declaration.value.indexOf("var(--ios-") == 0;
+            }
+        }),
         autoprefixer({overrideBrowserslist: ["IE 11"], grid: "no-autoplace"}),
         flexbugsFixes()
     ];
@@ -467,6 +507,39 @@ class AssetMap {
     addToHashForAll(resourcePath, content) {
         this._unhashedHashes.push(`${resourcePath}-${contentHash(Buffer.from(content))}`);
     }
+}
+
+async function readImportOverrides(filename) {
+    const json = await fs.readFile(filename, "utf8");
+    const mapping = new Map(Object.entries(JSON.parse(json)));
+    return {
+        basedir: path.dirname(path.resolve(filename))+path.sep,
+        mapping
+    };
+}
+
+function overridesAsRollupPlugin(importOverrides) {
+    const {mapping, basedir} = importOverrides;
+    return {
+        name: "rewrite-imports",
+        resolveId (source, importer) {
+            let file;
+            if (source.startsWith(path.sep)) {
+                file = source;
+            } else {
+                file = path.join(path.dirname(importer), source);
+            }
+            if (file.startsWith(basedir)) {
+                const searchPath = file.substr(basedir.length);
+                const replacingPath = mapping.get(searchPath);
+                if (replacingPath) {
+                    console.info(`replacing ${searchPath} with ${replacingPath}`);
+                    return path.join(basedir, replacingPath);
+                }
+            }
+            return null;
+        }
+    };
 }
 
 build(parameters).catch(err => console.error(err));

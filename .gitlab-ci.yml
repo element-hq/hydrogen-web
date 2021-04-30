@@ -1,0 +1,61 @@
+image: docker.io/alpine
+
+stages:
+  - test
+  - build
+
+.yarn-template:
+  image: docker.io/node
+  before_script:
+    - yarn install
+  cache:
+    paths:
+      - node_modules
+test:
+  extends: .yarn-template
+  stage: test
+  script:
+    - yarn test
+
+build:
+  extends: .yarn-template
+  stage: build
+  script:
+    - yarn build
+  artifacts:
+    paths:
+      - target
+
+.docker-template:
+  image: docker.io/docker
+  stage: build
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+
+docker-release:
+  extends: .docker-template
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+  script:
+    - docker build --pull -t "${CI_REGISTRY_IMAGE}:latest" -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}" .
+    - docker push "${CI_REGISTRY_IMAGE}:latest"
+    - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}"
+
+docker-tags:
+  extends: .docker-template
+  rules:
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_TAG !~ /^v\d+\.\d+\.\d+$/'
+  script:
+    - docker build --pull -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}" .
+    - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}"
+
+docker-branches:
+  extends: .docker-template
+  rules:
+    - if: $CI_COMMIT_BRANCH
+  script:
+    - docker build --pull -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}" .
+    - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}"
+

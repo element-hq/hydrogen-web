@@ -26,6 +26,7 @@ import {ConsoleLogger} from "../../logging/ConsoleLogger.js";
 import {RootView} from "./ui/RootView.js";
 import {Clock} from "./dom/Clock.js";
 import {ServiceWorkerHandler} from "./dom/ServiceWorkerHandler.js";
+import {NotificationService} from "./dom/NotificationService.js";
 import {History} from "./dom/History.js";
 import {OnlineStatus} from "./dom/OnlineStatus.js";
 import {Crypto} from "./dom/Crypto.js";
@@ -34,6 +35,7 @@ import {WorkerPool} from "./dom/WorkerPool.js";
 import {BlobHandle} from "./dom/BlobHandle.js";
 import {hasReadPixelPermission, ImageHandle, VideoHandle} from "./dom/ImageHandle.js";
 import {downloadInIframe} from "./dom/download.js";
+import {Disposables} from "../../utils/Disposables.js";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -73,18 +75,56 @@ function relPath(path, basePath) {
     return "../".repeat(dirCount) + path;
 }
 
-async function loadOlmWorker(paths) {
-    const workerPool = new WorkerPool(paths.worker, 4);
+async function loadOlmWorker(config) {
+    const workerPool = new WorkerPool(config.worker, 4);
     await workerPool.init();
-    const path = relPath(paths.olm.legacyBundle, paths.worker);
+    const path = relPath(config.olm.legacyBundle, config.worker);
     await workerPool.sendAll({type: "load_olm", path});
     const olmWorker = new OlmWorker(workerPool);
     return olmWorker;
 }
 
+// needed for mobile Safari which shifts the layout viewport up without resizing it
+// when the keyboard shows (see https://bugs.webkit.org/show_bug.cgi?id=141832)
+function adaptUIOnVisualViewportResize(container) {
+    if (!window.visualViewport) {
+        return;
+    }
+    const handler = () => {
+        const sessionView = container.querySelector('.SessionView');
+        if (!sessionView) {
+            return;
+        }
+
+        const scrollable = container.querySelector('.bottom-aligned-scroll');
+        let scrollTopBefore, heightBefore, heightAfter;
+
+        if (scrollable) {
+            scrollTopBefore = scrollable.scrollTop;
+            heightBefore = scrollable.offsetHeight;
+        }
+
+        // Ideally we'd use window.visualViewport.offsetTop but that seems to occasionally lag
+        // behind (last tested on iOS 14.4 simulator) so we have to compute the offset manually
+        const offsetTop = sessionView.offsetTop + sessionView.offsetHeight - window.visualViewport.height;
+
+        container.style.setProperty('--ios-viewport-height', window.visualViewport.height.toString() + 'px');
+        container.style.setProperty('--ios-viewport-top', offsetTop.toString() + 'px');
+
+        if (scrollable) {
+            heightAfter = scrollable.offsetHeight;
+            scrollable.scrollTop = scrollTopBefore + heightBefore - heightAfter;
+        }
+    };
+    window.visualViewport.addEventListener('resize', handler);
+    return () => {
+        window.visualViewport.removeEventListener('resize', handler);
+    };
+}
+
 export class Platform {
-    constructor(container, paths, cryptoExtras = null, options = null) {
-        this._paths = paths;
+    constructor(container, config, cryptoExtras = null, options = null) {
+        this._config = config;
         this._container = container;
         this.settingsStorage = new SettingsStorage("hydrogen_setting_v1_");
         this.clock = new Clock();
@@ -98,21 +138,26 @@ export class Platform {
         this.history = new History();
         this.onlineStatus = new OnlineStatus();
         this._serviceWorkerHandler = null;
-        if (paths.serviceWorker && "serviceWorker" in navigator) {
+        if (config.serviceWorker && "serviceWorker" in navigator) {
             this._serviceWorkerHandler = new ServiceWorkerHandler();
-            this._serviceWorkerHandler.registerAndStart(paths.serviceWorker);
+            this._serviceWorkerHandler.registerAndStart(config.serviceWorker);
         }
+        this.notificationService = new NotificationService(this._serviceWorkerHandler, config.push);
         this.crypto = new Crypto(cryptoExtras);
         this.storageFactory = new StorageFactory(this._serviceWorkerHandler);
         this.sessionInfoStorage = new SessionInfoStorage("hydrogen_sessions_v1");
         this.estimateStorageUsage = estimateStorageUsage;
         if (typeof fetch === "function") {
-            this.request = createFetchRequest(this.clock.createTimeout);
+            this.request = createFetchRequest(this.clock.createTimeout, this._serviceWorkerHandler);
         } else {
             this.request = xhrRequest;
         }
         const isIE11 = !!window.MSInputMethodContext && !!document.documentMode;
         this.isIE11 = isIE11;
+        // From https://stackoverflow.com/questions/9038625/detect-if-device-is-ios/9039885
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.platform) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) && !window.MSStream;
+        this.isIOS = isIOS;
+        this._disposables = new Disposables();
     }
 
     get updateService() {
@@ -120,18 +165,29 @@ export class Platform {
     }
 
     loadOlm() {
-        return loadOlm(this._paths.olm);
+        return loadOlm(this._config.olm);
+    }
+
+    get config() {
+        return this._config;
     }
 
     async loadOlmWorker() {
         if (!window.WebAssembly) {
-            return await loadOlmWorker(this._paths);
+            return await loadOlmWorker(this._config);
         }
     }
 
     createAndMountRootView(vm) {
         if (this.isIE11) {
             this._container.className += " legacy";
+        }
+        if (this.isIOS) {
+            this._container.className += " ios";
+            const disposable = adaptUIOnVisualViewportResize(this._container);
+            if (disposable) {
+                this._disposables.track(disposable);
+            }
         }
         window.__hydrogenViewModel = vm;
         const view = new RootView(vm);
@@ -150,7 +206,7 @@ export class Platform {
         if (navigator.msSaveBlob) {
             navigator.msSaveBlob(blobHandle.nativeBlob, filename);
         } else {
-            downloadInIframe(this._container, this._paths.downloadSandbox, blobHandle, filename);
+            downloadInIframe(this._container, this._config.downloadSandbox, blobHandle, filename, this.isIOS);
         }
     }
 
@@ -198,5 +254,9 @@ export class Platform {
 
     get version() {
         return window.HYDROGEN_VERSION;
+    }
+
+    dispose() {
+        this._disposables.dispose();
     }
 }

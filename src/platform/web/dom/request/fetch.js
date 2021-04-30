@@ -19,7 +19,7 @@ import {
     AbortError,
     ConnectionError
 } from "../../../../matrix/error.js";
-import {abortOnTimeout} from "./timeout.js";
+import {abortOnTimeout} from "../../../../utils/timeout.js";
 import {addCacheBuster} from "./common.js";
 import {xhrRequest} from "./xhr.js";
 
@@ -51,8 +51,15 @@ class RequestResult {
     }
 }
 
-export function createFetchRequest(createTimeout) {
+export function createFetchRequest(createTimeout, serviceWorkerHandler) {
     return function fetchRequest(url, requestOptions) {
+        if (serviceWorkerHandler?.haltRequests) {
+            // prevent any requests while waiting
+            // for the new service worker to get activated.
+            // Once this happens, the page will be reloaded
+            // by the serviceWorkerHandler so this is fine.
+            return new RequestResult(new Promise(() => {}), {});
+        }
         // fetch doesn't do upload progress yet, delegate to xhr
         if (requestOptions?.uploadProgress) {
             return xhrRequest(url, requestOptions);
@@ -114,6 +121,8 @@ export function createFetchRequest(createTimeout) {
             return {status, body};
         }, err => {
             if (err.name === "AbortError") {
+                // map DOMException with name AbortError to our own AbortError type
+                // as we don't want DOMExceptions in the protocol layer.
                 throw new AbortError();
             } else if (err instanceof TypeError) {
                 // Network errors are reported as TypeErrors, see

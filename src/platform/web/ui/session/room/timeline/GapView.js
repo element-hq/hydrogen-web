@@ -26,7 +26,7 @@ export class GapView extends TemplateView {
         return t.li({className}, [
             spinner(t),
             t.div(vm.i18n`Loading more messages …`),
-            t.if(vm => vm.error, t.createTemplate(t => t.strong(vm => vm.error)))
+            t.if(vm => vm.error, t => t.strong(vm => vm.error))
         ]);
     }
 }

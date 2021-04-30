@@ -33,7 +33,7 @@ export class RoomMemberTile extends SimpleTile {
             if (content.avatar_url !== prevContent.avatar_url) {
                 return `${senderName} changed their avatar`; 
             } else if (content.displayname !== prevContent.displayname) {
-                return `${senderName} changed their name to ${content.displayname}`; 
+                return `${prevContent.displayname} changed their name to ${content.displayname}`; 
             }
         } else if (membership === "join") {
             return `${targetName} joined the room`;

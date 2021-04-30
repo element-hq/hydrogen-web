@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020, 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,6 +16,8 @@ limitations under the License.
 */
 
 import {Room} from "./room/Room.js";
+import {Invite} from "./room/Invite.js";
+import {Pusher} from "./push/Pusher.js";
 import { ObservableMap } from "../observable/index.js";
 import {User} from "./User.js";
 import {DeviceMessageHandler} from "./DeviceMessageHandler.js";
@@ -38,6 +41,7 @@ import {SecretStorage} from "./ssss/SecretStorage.js";
 import {ObservableValue} from "../observable/ObservableValue.js";
 
 const PICKLE_KEY = "DEFAULT_KEY";
+const PUSHER_KEY = "pusher";
 
 export class Session {
     // sessionInfo contains deviceId, userId and homeServer
@@ -50,6 +54,9 @@ export class Session {
         this._sessionInfo = sessionInfo;
         this._rooms = new ObservableMap();
         this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
+        this._invites = new ObservableMap();
+        this._inviteRemoveCallback = invite => this._invites.remove(invite.id);
+        this._inviteUpdateCallback = (invite, params) => this._invites.update(invite.id, params);
         this._user = new User(sessionInfo.userId);
         this._deviceMessageHandler = new DeviceMessageHandler({storage});
         this._olm = olm;
@@ -252,6 +259,7 @@ export class Session {
         const txn = await this._storage.readTxn([
             this._storage.storeNames.session,
             this._storage.storeNames.roomSummary,
+            this._storage.storeNames.invites,
             this._storage.storeNames.roomMembers,
             this._storage.storeNames.timelineEvents,
             this._storage.storeNames.timelineFragments,
@@ -276,12 +284,28 @@ export class Session {
             }
         }
         const pendingEventsByRoomId = await this._getPendingEventsByRoom(txn);
+        // load invites
+        const invites = await txn.invites.getAll();
+        const inviteLoadPromise = Promise.all(invites.map(async inviteData => {
+            const invite = this.createInvite(inviteData.roomId);
+            log.wrap("invite", log => invite.load(inviteData, log));
+            this._invites.add(invite.id, invite);
+        }));
         // load rooms
         const rooms = await txn.roomSummary.getAll();
-        await Promise.all(rooms.map(summary => {
+        const roomLoadPromise = Promise.all(rooms.map(async summary => {
             const room = this.createRoom(summary.roomId, pendingEventsByRoomId.get(summary.roomId));
-            return log.wrap("room", log => room.load(summary, txn, log));
+            await log.wrap("room", log => room.load(summary, txn, log));
+            this._rooms.add(room.id, room);
         }));
+        // load invites and rooms in parallel
+        await Promise.all([inviteLoadPromise, roomLoadPromise]);
+        for (const [roomId, invite] of this.invites) {
+            const room = this.rooms.get(roomId);
+            if (room) {
+                room.setInvite(invite);
+            }
+        }
     }
 
     dispose() {
@@ -358,7 +382,7 @@ export class Session {
 
     /** @internal */
     createRoom(roomId, pendingEvents) {
-        const room = new Room({
+        return new Room({
             roomId,
             getSyncToken: this._getSyncToken,
             storage: this._storage,
@@ -370,8 +394,33 @@ export class Session {
             createRoomEncryption: this._createRoomEncryption,
             platform: this._platform
         });
-        this._rooms.add(roomId, room);
-        return room;
+    }
+
+    /** @internal */
+    addRoomAfterSync(room) {
+        this._rooms.add(room.id, room);
+    }
+
+    get invites() {
+        return this._invites;
+    }
+
+    /** @internal */
+    createInvite(roomId) {
+        return new Invite({
+            roomId,
+            hsApi: this._hsApi,
+            emitCollectionRemove: this._inviteRemoveCallback,
+            emitCollectionUpdate: this._inviteUpdateCallback,
+            mediaRepository: this._mediaRepository,
+            user: this._user,
+            platform: this._platform,
+        });
+    }
+
+    /** @internal */
+    addInviteAfterSync(invite) {
+        this._invites.add(invite.id, invite);
     }
 
     async obtainSyncLock(syncResponse) {
@@ -466,6 +515,76 @@ export class Session {
     get user() {
         return this._user;
     }
+
+    get mediaRepository() {
+        return this._mediaRepository;
+    }
+
+    enablePushNotifications(enable) {
+        if (enable) {
+            return this._enablePush();
+        } else {
+            return this._disablePush();
+        }
+    }
+
+    async _enablePush() {
+        return this._platform.logger.run("enablePush", async log => {
+            const defaultPayload = Pusher.createDefaultPayload(this._sessionInfo.id);
+            const pusher = await this._platform.notificationService.enablePush(Pusher, defaultPayload);
+            if (!pusher) {
+                log.set("no_pusher", true);
+                return false;
+            }
+            await pusher.enable(this._hsApi, log);
+            // store pusher data, so we know we enabled it across reloads,
+            // and we can disable it without too much hassle
+            const txn = await this._storage.readWriteTxn([this._storage.storeNames.session]);
+            txn.session.set(PUSHER_KEY, pusher.serialize());
+            await txn.complete();
+            return true;
+        });
+    }
+
+
+    async _disablePush() {
+        return this._platform.logger.run("disablePush", async log => {
+            await this._platform.notificationService.disablePush();
+            const readTxn = await this._storage.readTxn([this._storage.storeNames.session]);
+            const pusherData = await readTxn.session.get(PUSHER_KEY);
+            if (!pusherData) {
+                // we've disabled push in the notif service at least
+                return true;
+            }
+            const pusher = new Pusher(pusherData);
+            await pusher.disable(this._hsApi, log);
+            const txn = await this._storage.readWriteTxn([this._storage.storeNames.session]);
+            txn.session.remove(PUSHER_KEY);
+            await txn.complete();
+            return true;
+        });
+    }
+
+    async arePushNotificationsEnabled() {
+        if (!await this._platform.notificationService.isPushEnabled()) {
+            return false;
+        }
+        const readTxn = await this._storage.readTxn([this._storage.storeNames.session]);
+        const pusherData = await readTxn.session.get(PUSHER_KEY);
+        return !!pusherData;
+    }
+
+    async checkPusherEnabledOnHomeServer() {
+        const readTxn = await this._storage.readTxn([this._storage.storeNames.session]);
+        const pusherData = await readTxn.session.get(PUSHER_KEY);
+        if (!pusherData) {
+            return false;
+        }
+        const myPusher = new Pusher(pusherData);
+        const serverPushersData = await this._hsApi.getPushers().response();
+        const serverPushers = (serverPushersData?.pushers || []).map(data => new Pusher(data));
+        return serverPushers.some(p => p.equals(myPusher));
+    }
 }
 
 export function tests() {
@@ -484,6 +603,11 @@ export function tests() {
                         }
                     },
                     roomSummary: {
+                        getAll() {
+                            return Promise.resolve([]);
+                        }
+                    },
+                    invites: {
                         getAll() {
                             return Promise.resolve([]);
                         }

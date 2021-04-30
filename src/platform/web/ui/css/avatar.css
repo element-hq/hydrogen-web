@@ -15,25 +15,56 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-.avatar {
+.hydrogen {
     --avatar-size: 32px;
+}
+
+.hydrogen .avatar {
     width: var(--avatar-size);
     height: var(--avatar-size);
+    line-height: var(--avatar-size);
+    font-size: calc(var(--avatar-size) * 0.6);
     overflow: hidden;
     flex-shrink: 0;
     user-select: none;
-    line-height: var(--avatar-size);
-    font-size: calc(var(--avatar-size) * 0.6);
     text-align: center;
-    letter-spacing: calc(var(--avatar-size) * -0.05);
     speak: none;
 }
 
-.avatar.large {
-    --avatar-size: 40px;
-}
-
-.avatar img {
+.hydrogen .avatar img {
     width: 100%;
     height: 100%;
+}
+
+/* work around postcss-css-variables limitations and repeat variable usage */
+.hydrogen .avatar.size-128 {
+    --avatar-size: 128px;
+    width: var(--avatar-size);
+    height: var(--avatar-size);
+    line-height: var(--avatar-size);
+    font-size: calc(var(--avatar-size) * 0.6);
+}
+
+.hydrogen .avatar.size-64 {
+    --avatar-size: 64px;
+    width: var(--avatar-size);
+    height: var(--avatar-size);
+    line-height: var(--avatar-size);
+    font-size: calc(var(--avatar-size) * 0.6);
+}
+
+.hydrogen .avatar.size-30 {
+    --avatar-size: 30px;
+    width: var(--avatar-size);
+    height: var(--avatar-size);
+    line-height: var(--avatar-size);
+    font-size: calc(var(--avatar-size) * 0.6);
+}
+
+.hydrogen .avatar.size-24 {
+    --avatar-size: 24px;
+    width: var(--avatar-size);
+    height: var(--avatar-size);
+    line-height: var(--avatar-size);
+    font-size: calc(var(--avatar-size) * 0.6);
 }

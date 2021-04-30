@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {ViewModel} from "../ViewModel.js";
+import {removeRoomFromPath} from "../navigation/index.js";
 
 function dedupeSparse(roomIds) {
     return roomIds.map((id, idx) => {
@@ -33,9 +34,9 @@ export class RoomGridViewModel extends ViewModel {
         this._width = options.width;
         this._height = options.height;
         this._createRoomViewModel = options.createRoomViewModel;
-
         this._selectedIndex = 0;
         this._viewModels = [];
+        this._refreshRoomViewModel = this._refreshRoomViewModel.bind(this);
         this._setupNavigation();
     }
 
@@ -61,6 +62,27 @@ export class RoomGridViewModel extends ViewModel {
             }
         }));
         // initial focus for a room is set by initializeRoomIdsAndTransferVM
+    }
+
+    _refreshRoomViewModel(roomId) {
+        const index = this._viewModels.findIndex(vm => vm?.id === roomId);
+        if (index === -1) {
+            return;
+        }
+        this._viewModels[index] = this.disposeTracked(this._viewModels[index]);
+        // this will create a RoomViewModel because the invite is already
+        // removed from the collection (see Invite.afterSync)
+        const roomVM = this._createRoomViewModel(roomId, this._refreshRoomViewModel);
+        if (roomVM) {
+            this._viewModels[index] = this.track(roomVM);
+            if (this.focusIndex === index) {
+                roomVM.focus();
+            }
+        } else {
+            // close room id
+            this.navigation.applyPath(removeRoomFromPath(this.navigation.path, roomId));
+        }
+        this.emitChange();
     }
 
     roomViewModelAt(i) {
@@ -128,7 +150,7 @@ export class RoomGridViewModel extends ViewModel {
                     this._viewModels[i] = this.disposeTracked(vm);
                 }
                 if (newId) {
-                    const newVM = this._createRoomViewModel(newId);
+                    const newVM = this._createRoomViewModel(newId, this._refreshRoomViewModel);
                     if (newVM) {
                         this._viewModels[i] = this.track(newVM);
                     }

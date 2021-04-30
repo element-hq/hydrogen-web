@@ -36,7 +36,7 @@ export class SendQueue {
         const pendingEvent = new PendingEvent({
             data,
             remove: () => this._removeEvent(pendingEvent),
-            emitUpdate: () => this._pendingEvents.set(pendingEvent),
+            emitUpdate: () => this._pendingEvents.update(pendingEvent),
             attachments
         });
         return pendingEvent;
@@ -118,7 +118,7 @@ export class SendQueue {
             }
             if (idx !== -1) {
                 const pendingEvent = this._pendingEvents.get(idx);
-                parentLog.log({l: "removeRemoteEcho", id: pendingEvent.remoteId});
+                parentLog.log({l: "removeRemoteEcho", queueIndex: pendingEvent.queueIndex, remoteId: event.event_id, txnId});
                 txn.pendingEvents.remove(pendingEvent.roomId, pendingEvent.queueIndex);
                 removed.push(pendingEvent);
             }

@@ -147,6 +147,22 @@ class Path {
         return this._segments.find(s => s.type === type);
     }
 
+    replace(segment) {
+        const index = this._segments.findIndex(s => s.type === segment.type);
+        if (index !== -1) {
+            const parent = this._segments[index - 1];
+            if (this._allowsChild(parent, segment)) {
+                const child = this._segments[index + 1];
+                if (!child || this._allowsChild(segment, child)) {
+                    const newSegments = this._segments.slice();
+                    newSegments[index] = segment;
+                    return new Path(newSegments, this._allowsChild);
+                }
+            }
+        }
+        return null;
+    }
+
     get segments() {
         return this._segments;
     }
@@ -229,6 +245,17 @@ export function tests() {
             const path = new Path([new Segment("foo", 5), new Segment("bar", 6)], () => true);
             assert.equal(path.get("foo").value, 5);
             assert.equal(path.get("bar").value, 6);
+        },
+        "path.replace success": assert => {
+            const path = new Path([new Segment("foo", 5), new Segment("bar", 6)], () => true);
+            const newPath = path.replace(new Segment("foo", 1));
+            assert.equal(newPath.get("foo").value, 1);
+            assert.equal(newPath.get("bar").value, 6);
+        },
+        "path.replace not found": assert => {
+            const path = new Path([new Segment("foo", 5), new Segment("bar", 6)], () => true);
+            const newPath = path.replace(new Segment("baz", 1));
+            assert.equal(newPath, null);
         }
     };
 }

@@ -40,7 +40,7 @@ function viewClassForEntry(entry) {
 export class TimelineList extends ListView {
     constructor(viewModel) {
         const options = {
-            className: "Timeline",
+            className: "Timeline bottom-aligned-scroll",
             list: viewModel.tiles,
         }
         super(options, entry => {

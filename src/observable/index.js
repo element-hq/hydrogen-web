@@ -17,6 +17,7 @@ limitations under the License.
 import {SortedMapList} from "./list/SortedMapList.js";
 import {FilteredMap} from "./map/FilteredMap.js";
 import {MappedMap} from "./map/MappedMap.js";
+import {JoinedMap} from "./map/JoinedMap.js";
 import {BaseObservableMap} from "./map/BaseObservableMap.js";
 // re-export "root" (of chain) collections
 export { ObservableArray } from "./list/ObservableArray.js";
@@ -38,5 +39,9 @@ Object.assign(BaseObservableMap.prototype, {
 
     filterValues(filter) {
         return new FilteredMap(this, filter);
+    },
+
+    join(...otherMaps) {
+        return new JoinedMap([this].concat(otherMaps));
     }
 });
