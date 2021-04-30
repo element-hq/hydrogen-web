@@ -17,9 +17,6 @@ If you find this interesting, come and discuss on [`#hydrogen:matrix.org`](https
 Hydrogen is deployed to [hydrogen.element.io](https://hydrogen.element.io). You can run it locally `yarn install` (only the first time) and `yarn start` in the terminal, and point your browser to `http://localhost:3000`. If you prefer, you can also [use docker](doc/docker.md).
 
 Hydrogen uses symbolic links in the codebase, so if you are on Windows, have a look at [making git & symlinks work](https://github.com/git-for-windows/git/wiki/Symbolic-Links) there.
-## For Windows Users
-
-For security reasons, it is better to invoke the command prompt as administrator before running `yarn install`. It is due to the different behavior of [symlinks in windows](https://github.com/git-for-windows/git/wiki/Symbolic-Links).
 
 # FAQ
 
