@@ -205,7 +205,12 @@ export class SummaryData {
 
     serialize() {
         const {cloned, ...serializedProps} = this;
-        return serializedProps;
+        return Object.entries(this).reduce((obj, [key, value]) => {
+            if (key !== "cloned" && value !== null) {
+                obj[key] = value;
+            }
+            return obj;
+        }, {});
     }
 
     applyTimelineEntries(timelineEntries, isInitialSync, canMarkUnread, ownUserId) {
@@ -297,6 +302,16 @@ export class RoomSummary {
 
 export function tests() {
     return {
+        "serialize doesn't include null fields or cloned": assert => {
+            const roomId = "!123:hs.tld";
+            const data = new SummaryData(null, roomId);
+            const clone = data.cloneIfNeeded();
+            const serialized = clone.serialize();
+            assert.strictEqual(serialized.cloned, undefined);
+            assert.equal(serialized.roomId, roomId);
+            const nullCount = Object.values(serialized).reduce((count, value) => count + value === null ? 1 : 0, 0);
+            assert.strictEqual(nullCount, 0);
+        },
         "membership trigger change": function(assert) {
             const summary = new RoomSummary("id");
             let written = false;
