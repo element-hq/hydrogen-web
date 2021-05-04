@@ -64,6 +64,10 @@ export class Transaction {
     get roomSummary() {
         return this._store("roomSummary", idbStore => new RoomSummaryStore(idbStore));
     }
+    
+    get archivedRoomSummary() {
+        return this._store("archivedRoomSummary", idbStore => new RoomSummaryStore(idbStore));
+    }
 
     get invites() {
         return this._store("invites", idbStore => new InviteStore(idbStore));

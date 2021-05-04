@@ -27,6 +27,8 @@ store contains:
 	inviteCount
 	joinCount
 */
+
+/** Used for both roomSummary and archivedRoomSummary stores */
 export class RoomSummaryStore {
 	constructor(summaryStore) {
 		this._summaryStore = summaryStore;
@@ -38,5 +40,9 @@ export class RoomSummaryStore {
 
 	set(summary) {
 		return this._summaryStore.put(summary);
+	}
+
+	remove(roomId) {
+		return this._summaryStore.delete(roomId);
 	}
 }

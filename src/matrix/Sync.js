@@ -316,6 +316,7 @@ export class Sync {
         return this._storage.readWriteTxn([
             storeNames.session,
             storeNames.roomSummary,
+            storeNames.archivedRoomSummary,
             storeNames.invites,
             storeNames.roomState,
             storeNames.roomMembers,
