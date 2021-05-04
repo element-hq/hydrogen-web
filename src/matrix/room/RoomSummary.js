@@ -68,20 +68,25 @@ function applySyncResponse(data, roomResponse, membership, ownUserId) {
     }
     const unreadNotifications = roomResponse.unread_notifications;
     if (unreadNotifications) {
-        const highlightCount = unreadNotifications.highlight_count || 0;
-        if (highlightCount !== data.highlightCount) {
-            data = data.cloneIfNeeded();
-            data.highlightCount = highlightCount;
-        }
-        const notificationCount = unreadNotifications.notification_count;
-        if (notificationCount !== data.notificationCount) {
-            data = data.cloneIfNeeded();
-            data.notificationCount = notificationCount;
-        }
+        data = processNotificationCounts(data, unreadNotifications);
     }
 
     return data;
 }
+
+function processNotificationCounts(data, unreadNotifications) {
+    const highlightCount = unreadNotifications.highlight_count || 0;
+    if (highlightCount !== data.highlightCount) {
+        data = data.cloneIfNeeded();
+        data.highlightCount = highlightCount;
+    }
+    const notificationCount = unreadNotifications.notification_count;
+    if (notificationCount !== data.notificationCount) {
+        data = data.cloneIfNeeded();
+        data.notificationCount = notificationCount;
+    }
+    return data;
+} 
 
 function processRoomAccountData(data, event) {
     if (event?.type === "m.tag") {
