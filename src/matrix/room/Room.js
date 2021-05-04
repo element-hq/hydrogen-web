@@ -195,7 +195,7 @@ export class Room extends EventEmitter {
         if (newKeys) {
             log.set("newKeys", newKeys.length);
         }
-        let summaryChanges = this._summary.data.applySyncResponse(roomResponse, membership);
+        let summaryChanges = this._summary.data.applySyncResponse(roomResponse, membership, this._user.id);
         if (membership === "join" && invite) {
             summaryChanges = summaryChanges.applyInvite(invite);
         }
