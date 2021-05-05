@@ -250,6 +250,9 @@ export class Room extends EventEmitter {
     async writeSync(roomResponse, isInitialSync, {summaryChanges, decryptChanges, roomEncryption, retryEntries}, txn, log) {
         log.set("id", this.id);
         const isRejoin = summaryChanges.membership === "join" && this._summary.data.membership === "leave";
+        if (isRejoin) {
+            this._summary.tryRemoveArchive(txn);
+        }
         const {entries: newEntries, newLiveKey, memberChanges} =
             await log.wrap("syncWriter", log => this._syncWriter.writeSync(roomResponse, isRejoin, txn, log), log.level.Detail);
         let allEntries = newEntries;
@@ -276,8 +279,13 @@ export class Room extends EventEmitter {
         // also apply (decrypted) timeline entries to the summary changes
         summaryChanges = summaryChanges.applyTimelineEntries(
             allEntries, isInitialSync, !this._isTimelineOpen, this._user.id);
-        // write summary changes, and unset if nothing was actually changed
-        summaryChanges = this._summary.writeData(summaryChanges, txn);
+        // only archive a room if we had previously joined it
+        if (summaryChanges.membership === "leave" && this.membership === "join") {
+            summaryChanges = this._summary.removeAndWriteArchive(summaryChanges, txn);
+        } else {
+            // write summary changes, and unset if nothing was actually changed
+            summaryChanges = this._summary.writeData(summaryChanges, txn);
+        }
         if (summaryChanges) {
             log.set("summaryChanges", summaryChanges.diff(this._summary.data));
         }

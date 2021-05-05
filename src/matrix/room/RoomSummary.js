@@ -302,6 +302,20 @@ export class RoomSummary {
 		}
 	}
 
+    /** move summary to archived store when leaving the room */
+    removeAndWriteArchive(data, txn) {
+        txn.roomSummary.remove(data.roomId);
+        if (data !== this._data) {
+            txn.archivedRoomSummary.set(data.serialize());
+            return data;
+        }
+    }
+
+    /** delete archived summary when rejoining the room */
+    tryRemoveArchive(txn) {
+        txn.archivedRoomSummary.remove(this._data.roomId);
+    }
+
     async writeAndApplyData(data, storage) {
         if (data === this._data) {
             return false;
