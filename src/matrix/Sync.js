@@ -299,7 +299,15 @@ export class Sync {
         }
         // emit invite related events after txn has been closed
         for(let is of inviteStates) {
-            log.wrap("invite", () => is.invite.afterSync(is.changes), log.level.Detail);
+            log.wrap("invite", () => {
+                // important to remove before emitting change in afterSync
+                // so code checking session.invites.get(id) won't
+                // find the invite anymore on update
+                if (is.membership !== "invite") {
+                    this._session.removeInviteAfterSync(is.invite);
+                }
+                is.invite.afterSync(is.changes);
+            }, log.level.Detail);
             if (is.isNewInvite) {
                 this._session.addInviteAfterSync(is.invite);
             }

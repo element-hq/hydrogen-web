@@ -55,7 +55,6 @@ export class Session {
         this._rooms = new ObservableMap();
         this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
         this._invites = new ObservableMap();
-        this._inviteRemoveCallback = invite => this._invites.remove(invite.id);
         this._inviteUpdateCallback = (invite, params) => this._invites.update(invite.id, params);
         this._user = new User(sessionInfo.userId);
         this._deviceMessageHandler = new DeviceMessageHandler({storage});
@@ -410,7 +409,6 @@ export class Session {
         return new Invite({
             roomId,
             hsApi: this._hsApi,
-            emitCollectionRemove: this._inviteRemoveCallback,
             emitCollectionUpdate: this._inviteUpdateCallback,
             mediaRepository: this._mediaRepository,
             user: this._user,
@@ -421,6 +419,11 @@ export class Session {
     /** @internal */
     addInviteAfterSync(invite) {
         this._invites.add(invite.id, invite);
+    }
+
+    /** @internal */
+    removeInviteAfterSync(invite) {
+        this._invites.remove(invite.id);
     }
 
     async obtainSyncLock(syncResponse) {
