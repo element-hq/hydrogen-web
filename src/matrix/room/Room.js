@@ -423,7 +423,10 @@ export class Room extends EventEmitter {
     async load(summary, txn, log) {
         log.set("id", this.id);
         try {
-            this._summary.load(summary);
+            // if called from sync, there is no summary yet
+            if (summary) {
+                this._summary.load(summary);
+            }
             if (this._summary.data.encryption) {
                 const roomEncryption = this._createRoomEncryption(this, this._summary.data.encryption);
                 this._setEncryption(roomEncryption);
@@ -714,7 +717,7 @@ export class Room extends EventEmitter {
             if (this._roomEncryption) {
                 this._timeline.enableEncryption(this._decryptEntries.bind(this, DecryptionSource.Timeline));
             }
-            await this._timeline.load(this._user, this._summary.data.membership, log);
+            await this._timeline.load(this._user, this.membership, log);
             return this._timeline;
         });
     }

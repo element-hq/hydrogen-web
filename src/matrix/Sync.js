@@ -223,7 +223,11 @@ export class Sync {
         return this._storage.readTxn([
             storeNames.olmSessions,
             storeNames.inboundGroupSessions,
-            storeNames.timelineEvents // to read events that can now be decrypted
+            // to read fragments when loading sync writer when rejoining archived room
+            storeNames.timelineFragments,
+            // to read fragments when loading sync writer when rejoining archived room
+            // to read events that can now be decrypted
+            storeNames.timelineEvents,
         ]);
     }
 
@@ -250,8 +254,13 @@ export class Sync {
         
         await Promise.all(roomStates.map(async rs => {
             const newKeys = newKeysByRoom?.get(rs.room.id);
-            rs.preparation = await log.wrap("room", log => rs.room.prepareSync(
-                rs.roomResponse, rs.membership, rs.invite, newKeys, prepareTxn, log), log.level.Detail);
+            rs.preparation = await log.wrap("room", async log => {
+                if (rs.isNewRoom) {
+                    await rs.room.load(null, prepareTxn, log);
+                }
+                return rs.room.prepareSync(
+                    rs.roomResponse, rs.membership, rs.invite, newKeys, prepareTxn, log)
+            }, log.level.Detail);
         }));
 
         // This is needed for safari to not throw TransactionInactiveErrors on the syncTxn. See docs/INDEXEDDB.md
