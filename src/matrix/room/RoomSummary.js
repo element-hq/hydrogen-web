@@ -183,10 +183,11 @@ function applyInvite(data, invite) {
     if (data.isDirectMessage !== invite.isDirectMessage) {
         data = data.cloneIfNeeded();
         data.isDirectMessage = invite.isDirectMessage;
-    }
-    if (data.dmUserId !== invite.inviter?.userId) {
-        data = data.cloneIfNeeded();
-        data.dmUserId = invite.inviter?.userId;
+        if (invite.isDirectMessage) {
+            data.dmUserId = invite.inviter?.userId;
+        } else {
+            data.dmUserId = null;
+        }
     }
     return data;
 }
