@@ -81,8 +81,9 @@ export function reqAsPromise(req) {
             resolve(event.target.result);
             needsSyncPromise && Promise._flush && Promise._flush();
         });
-        req.addEventListener("error", () => {
-            reject(new IDBRequestError(req));
+        req.addEventListener("error", event => {
+            const error = new IDBRequestError(event.target);
+            reject(error);
             needsSyncPromise && Promise._flush && Promise._flush();
         });
     });
