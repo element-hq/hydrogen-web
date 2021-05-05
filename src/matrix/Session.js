@@ -54,6 +54,7 @@ export class Session {
         this._sessionInfo = sessionInfo;
         this._rooms = new ObservableMap();
         this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
+        this._archivedRooms = null;
         this._invites = new ObservableMap();
         this._inviteUpdateCallback = (invite, params) => this._invites.update(invite.id, params);
         this._user = new User(sessionInfo.userId);
@@ -424,6 +425,14 @@ export class Session {
     /** @internal */
     removeInviteAfterSync(invite) {
         this._invites.remove(invite.id);
+    }
+
+    /** @internal */
+    archiveRoomAfterSync(room) {
+        this._rooms.remove(room.id);
+        if (this._archivedRooms) {
+            this._archivedRooms.add(room.id, room);
+        }
     }
 
     async obtainSyncLock(syncResponse) {

@@ -295,6 +295,8 @@ export class Sync {
                 // so the room will be found if looking for it when the invite
                 // is removed
                 this._session.addRoomAfterSync(rs.room);
+            } else if (rs.membership === "leave") {
+                this._session.archiveRoomAfterSync(rs.room);
             }
         }
         // emit invite related events after txn has been closed
