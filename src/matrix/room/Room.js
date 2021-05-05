@@ -251,6 +251,9 @@ export class Room extends EventEmitter {
         log.set("id", this.id);
         const isRejoin = summaryChanges.membership === "join" && this.membership !== "join";
         if (isRejoin) {
+            // remove all room state before calling syncWriter,
+            // so no old state sticks around
+            txn.roomState.removeAllForRoom(this.id);
             this._summary.tryRemoveArchive(txn);
         }
         const {entries: newEntries, newLiveKey, memberChanges} =

@@ -14,22 +14,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+const MAX_UNICODE = "\u{10FFFF}";
+
 export class RoomStateStore {
 	constructor(idbStore) {
 		this._roomStateStore = idbStore;
 	}
 
 	async getAllForType(type) {
-
+		throw new Error("unimplemented");
 	}
 
 	async get(type, stateKey) {
-        
+        throw new Error("unimplemented");
 	}
 
 	async set(roomId, event) {
         const key = `${roomId}|${event.type}|${event.state_key}`;
         const entry = {roomId, event, key};
 		return this._roomStateStore.put(entry);
+	}
+
+	removeAllForRoom(roomId) {
+		// exclude both keys as they are theoretical min and max,
+		// but we should't have a match for just the room id, or room id with max
+		const range = IDBKeyRange.bound(roomId, `${roomId}|${MAX_UNICODE}`, true, true);
+		this._roomStateStore.delete(range);
 	}
 }
