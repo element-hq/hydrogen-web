@@ -249,7 +249,7 @@ export class Room extends EventEmitter {
     /** @package */
     async writeSync(roomResponse, isInitialSync, {summaryChanges, decryptChanges, roomEncryption, retryEntries}, txn, log) {
         log.set("id", this.id);
-        const isRejoin = summaryChanges.membership === "join" && this._summary.data.membership === "leave";
+        const isRejoin = summaryChanges.membership === "join" && this.membership !== "join";
         if (isRejoin) {
             this._summary.tryRemoveArchive(txn);
         }
