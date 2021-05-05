@@ -325,28 +325,25 @@ export function tests() {
             assert.equal(invite.inviter.displayName, "Alice");
             assert.equal(invite.inviter.avatarUrl, aliceAvatarUrl);
         },
-        "syncing with membership from invite removes the invite": async assert => {
-            let removedEmitted = false;
+        "syncing join sets accepted": async assert => {
+            let changeEmitCount = 0;
             const invite = new Invite({
                 roomId,
                 platform: {clock: new MockClock(1003)},
                 user: {id: "@bob:hs.tld"},
-                emitCollectionRemove: emittingInvite => {
-                    assert.equal(emittingInvite, invite);
-                    removedEmitted = true;
-                } 
             });
+            invite.on("change", () => { changeEmitCount += 1; });
             const txn = createStorage();
             const changes = await invite.writeSync("invite", dmInviteFixture, txn, new NullLogItem());
             assert.equal(txn.invitesMap.get(roomId).roomId, roomId);
             invite.afterSync(changes);
             const joinChanges = await invite.writeSync("join", null, txn, new NullLogItem());
-            assert(!removedEmitted);
+            assert.strictEqual(changeEmitCount, 0);
             invite.afterSync(joinChanges);
+            assert.strictEqual(changeEmitCount, 1);
             assert.equal(txn.invitesMap.get(roomId), undefined);
             assert.equal(invite.rejected, false);
             assert.equal(invite.accepted, true);
-            assert(removedEmitted);
         }
     }
 }
