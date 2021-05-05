@@ -354,7 +354,7 @@ export class Room extends EventEmitter {
         let emitChange = false;
         if (summaryChanges) {
             // if we joined the room, we can't have an invite anymore
-            if (summaryChanges.membership === "join" && this._summary.data.membership !== "join") {
+            if (summaryChanges.membership === "join" && this.membership !== "join") {
                 this._invite = null;
             }
             this._summary.applyChanges(summaryChanges);
