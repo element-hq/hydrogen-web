@@ -207,6 +207,10 @@ export class SyncWriter {
                 }
             }
         }
+        if (!timeline.limited) {
+            log.set("force_limited_without_overlap", true);
+            return Object.assign({}, timeline, {limited: true});
+        }
         return timeline;
     }
 
