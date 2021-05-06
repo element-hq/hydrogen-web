@@ -83,7 +83,7 @@ export class RoomEncryption {
     }
 
     async writeMemberChanges(memberChanges, txn, log) {
-        let shouldFlush;
+        let shouldFlush = false;
         const memberChangesArray = Array.from(memberChanges.values());
         if (memberChangesArray.some(m => m.hasLeft)) {
             log.log({
