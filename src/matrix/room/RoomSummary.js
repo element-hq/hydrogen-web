@@ -32,11 +32,11 @@ function applySyncResponse(data, roomResponse, membership, ownUserId) {
     if (roomResponse.summary) {
         data = updateSummary(data, roomResponse.summary);
     }
-    let needKickDetails = false;
+    let hasLeft = false;
     if (membership !== data.membership) {
         data = data.cloneIfNeeded();
         data.membership = membership;
-        needKickDetails = membership === "leave" || membership === "ban";
+        hasLeft = membership === "leave" || membership === "ban";
     }
     if (roomResponse.account_data) {
         data = roomResponse.account_data.events.reduce(processRoomAccountData, data);
@@ -45,10 +45,10 @@ function applySyncResponse(data, roomResponse, membership, ownUserId) {
     // state comes before timeline
     if (Array.isArray(stateEvents)) {
         data = stateEvents.reduce((data, event) => {
-            if (needKickDetails) {
+            if (hasLeft) {
                 data = findKickDetails(data, event, ownUserId);
             }
-            return processStateEvent(data, event, ownUserId, needKickDetails);
+            return processStateEvent(data, event, ownUserId, hasLeft);
         }, data);
     }
     const timelineEvents = roomResponse?.timeline?.events;
@@ -58,7 +58,7 @@ function applySyncResponse(data, roomResponse, membership, ownUserId) {
     if (Array.isArray(timelineEvents)) {
         data = timelineEvents.reduce((data, event) => {
             if (typeof event.state_key === "string") {
-                if (needKickDetails) {
+                if (hasLeft) {
                     data = findKickDetails(data, event, ownUserId);
                 }
                 return processStateEvent(data, event);
