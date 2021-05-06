@@ -375,7 +375,7 @@ export class Sync {
 
     _parseInvites(roomsSection) {
         const inviteStates = [];
-        if (roomsSection.invite) {
+        if (roomsSection?.invite) {
             for (const [roomId, roomResponse] of Object.entries(roomsSection.invite)) {
                 let invite = this._session.invites.get(roomId);
                 let isNewInvite = false;
