@@ -254,6 +254,7 @@ export class Room extends EventEmitter {
             // remove all room state before calling syncWriter,
             // so no old state sticks around
             txn.roomState.removeAllForRoom(this.id);
+            txn.roomMembers.removeAllForRoom(this.id);
             txn.archivedRoomSummary.remove(this.id);
         }
         const {entries: newEntries, newLiveKey, memberChanges} =
