@@ -261,6 +261,10 @@ export class SummaryData {
     get needsHeroes() {
         return !this.name && !this.canonicalAlias && this.heroes && this.heroes.length > 0;
     }
+
+    isNewJoin(oldData) {
+        return this.membership === "join" && oldData.membership !== "join";
+    }
 }
 
 export class RoomSummary {
@@ -304,17 +308,11 @@ export class RoomSummary {
 	}
 
     /** move summary to archived store when leaving the room */
-    removeAndWriteArchive(data, txn) {
-        txn.roomSummary.remove(data.roomId);
+    writeArchivedData(data, txn) {
         if (data !== this._data) {
             txn.archivedRoomSummary.set(data.serialize());
             return data;
         }
-    }
-
-    /** delete archived summary when rejoining the room */
-    tryRemoveArchive(txn) {
-        txn.archivedRoomSummary.remove(this._data.roomId);
     }
 
     async writeAndApplyData(data, storage) {

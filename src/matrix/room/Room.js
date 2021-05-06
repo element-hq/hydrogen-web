@@ -249,12 +249,12 @@ export class Room extends EventEmitter {
     /** @package */
     async writeSync(roomResponse, isInitialSync, {summaryChanges, decryptChanges, roomEncryption, retryEntries}, txn, log) {
         log.set("id", this.id);
-        const isRejoin = summaryChanges.membership === "join" && this.membership !== "join";
+        const isRejoin = summaryChanges.isNewJoin(this._summary.data);
         if (isRejoin) {
             // remove all room state before calling syncWriter,
             // so no old state sticks around
             txn.roomState.removeAllForRoom(this.id);
-            this._summary.tryRemoveArchive(txn);
+            txn.archivedRoomSummary.remove(this.id);
         }
         const {entries: newEntries, newLiveKey, memberChanges} =
             await log.wrap("syncWriter", log => this._syncWriter.writeSync(roomResponse, isRejoin, txn, log), log.level.Detail);
@@ -282,9 +282,11 @@ export class Room extends EventEmitter {
         // also apply (decrypted) timeline entries to the summary changes
         summaryChanges = summaryChanges.applyTimelineEntries(
             allEntries, isInitialSync, !this._isTimelineOpen, this._user.id);
+        
         // only archive a room if we had previously joined it
         if (summaryChanges.membership === "leave" && this.membership === "join") {
-            summaryChanges = this._summary.removeAndWriteArchive(summaryChanges, txn);
+            txn.roomSummary.remove(this.id);
+            summaryChanges = this._summary.writeArchivedData(summaryChanges, txn);
         } else {
             // write summary changes, and unset if nothing was actually changed
             summaryChanges = this._summary.writeData(summaryChanges, txn);
@@ -356,8 +358,7 @@ export class Room extends EventEmitter {
         }
         let emitChange = false;
         if (summaryChanges) {
-            // if we joined the room, we can't have an invite anymore
-            if (summaryChanges.membership === "join" && this.membership !== "join") {
+            if (summaryChanges.isNewJoin(this._summary.data)) {
                 this._invite = null;
             }
             this._summary.applyChanges(summaryChanges);
