@@ -39,7 +39,7 @@ import {
     writeKey as ssssWriteKey,
 } from "./ssss/index.js";
 import {SecretStorage} from "./ssss/SecretStorage.js";
-import {ObservableValue} from "../observable/ObservableValue.js";
+import {ObservableValue, RetainedObservableValue} from "../observable/ObservableValue.js";
 
 const PICKLE_KEY = "DEFAULT_KEY";
 const PUSHER_KEY = "pusher";
@@ -71,6 +71,7 @@ export class Session {
         this._olmWorker = olmWorker;
         this._sessionBackup = null;
         this._hasSecretStorageKey = new ObservableValue(null);
+        this._observedRoomStatus = new Map();
 
         if (olm) {
             this._olmUtil = new olm.Utility();
@@ -400,6 +401,8 @@ export class Session {
     /** @internal */
     addRoomAfterSync(room) {
         this._rooms.add(room.id, room);
+        const statusObservable = this._observedRoomStatus.get(room.id);
+        statusObservable?.set(RoomStatus.joined);
     }
 
     get invites() {
@@ -421,16 +424,26 @@ export class Session {
     /** @internal */
     addInviteAfterSync(invite) {
         this._invites.add(invite.id, invite);
+        const statusObservable = this._observedRoomStatus.get(invite.id);
+        if (statusObservable) {
+            statusObservable.set(statusObservable.get().withInvited());
+        }
     }
 
     /** @internal */
     removeInviteAfterSync(invite) {
         this._invites.remove(invite.id);
+        const statusObservable = this._observedRoomStatus.get(invite.id);
+        if (statusObservable) {
+            statusObservable.set(statusObservable.get().withoutInvited());
+        }
     }
 
     /** @internal */
     archiveRoomAfterSync(room) {
         this._rooms.remove(room.id);
+        const statusObservable = this._observedRoomStatus.get(room.id);
+        statusObservable?.set(RoomStatus.archived);
         if (this._archivedRooms) {
             this._archivedRooms.add(room.id, room);
         }
@@ -622,6 +635,18 @@ export class Session {
                 return RoomStatus.none;
             }
         }
+    }
+
+    async observeRoomStatus(roomId) {
+        let observable = this._observedRoomStatus.get(roomId);
+        if (!observable) {
+            const status = await this.getRoomStatus(roomId);
+            observable = new RetainedObservableValue(status, () => {
+                this._observedRoomStatus.delete(roomId);
+            });
+            this._observedRoomStatus.set(roomId, observable);
+        }
+        return observable;
     }
 }
 
