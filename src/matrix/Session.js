@@ -16,6 +16,7 @@ limitations under the License.
 */
 
 import {Room} from "./room/Room.js";
+import {RoomStatus} from "./room/RoomStatus.js";
 import {Invite} from "./room/Invite.js";
 import {Pusher} from "./push/Pusher.js";
 import { ObservableMap } from "../observable/index.js";
@@ -596,6 +597,31 @@ export class Session {
         const serverPushersData = await this._hsApi.getPushers().response();
         const serverPushers = (serverPushersData?.pushers || []).map(data => new Pusher(data));
         return serverPushers.some(p => p.equals(myPusher));
+    }
+
+    async getRoomStatus(roomId) {
+        const isJoined = !!this._rooms.get(roomId);
+        if (isJoined) {
+            return RoomStatus.joined;
+        } else {
+            const isInvited = !!this._invites.get(roomId);
+            let isArchived; 
+            if (this._archivedRooms) {
+                isArchived = !!this._archivedRooms.get(roomId);
+            } else {
+                const txn = await this._storage.readTxn([this._storage.storeNames.archivedRoomSummary]);
+                isArchived = await txn.archivedRoomSummary.has(roomId);
+            }
+            if (isInvited && isArchived) {
+                return RoomStatus.invitedAndArchived;
+            } else if (isInvited) {
+                return RoomStatus.invited;
+            } else if (isArchived) {
+                return RoomStatus.archived;
+            } else {
+                return RoomStatus.none;
+            }
+        }
     }
 }
 

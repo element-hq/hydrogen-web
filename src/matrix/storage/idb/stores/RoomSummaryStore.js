@@ -42,6 +42,11 @@ export class RoomSummaryStore {
 		return this._summaryStore.put(summary);
 	}
 
+	async has(roomId) {
+        const fetchedKey = await this._summaryStore.getKey(roomId);
+        return roomId === fetchedKey;
+	}
+
 	remove(roomId) {
 		return this._summaryStore.delete(roomId);
 	}
