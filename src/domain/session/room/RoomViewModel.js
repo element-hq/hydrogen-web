@@ -22,10 +22,9 @@ import {ViewModel} from "../../ViewModel.js";
 export class RoomViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {room, ownUserId, refreshRoomViewModel} = options;
+        const {room, ownUserId} = options;
         this._room = room;
         this._ownUserId = ownUserId;
-        this._refreshRoomViewModel = refreshRoomViewModel;
         this._timelineVM = null;
         this._onRoomChange = this._onRoomChange.bind(this);
         this._timelineError = null;
@@ -86,13 +85,7 @@ export class RoomViewModel extends ViewModel {
     // room doesn't tell us yet which fields changed,
     // so emit all fields originating from summary
     _onRoomChange() {
-        // if there is now an invite on this (left) room,
-        // show the invite view by refreshing the view model
-        if (this._room.invite) {
-            this._refreshRoomViewModel(this.id);
-        } else {
-            this.emitChange("name");
-        }
+        this.emitChange();
     }
 
     get kind() { return "room"; }

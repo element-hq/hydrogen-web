@@ -21,10 +21,9 @@ import {ViewModel} from "../../ViewModel.js";
 export class InviteViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {invite, mediaRepository, refreshRoomViewModel} = options;
+        const {invite, mediaRepository} = options;
         this._invite = invite;
         this._mediaRepository = mediaRepository;
-        this._refreshRoomViewModel = refreshRoomViewModel;
         this._onInviteChange = this._onInviteChange.bind(this);
         this._error = null;
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
@@ -107,17 +106,7 @@ export class InviteViewModel extends ViewModel {
     }
 
     _onInviteChange() {
-        if (this._invite.accepted || this._invite.rejected) {
-            // close invite if rejected, or open room if accepted.
-            // Done with a callback rather than manipulating the nav,
-            // as closing the invite changes the nav path depending whether
-            // we're in a grid view, and opening the room doesn't change
-            // the nav path because the url is the same for an
-            // invite and the room.
-            this._refreshRoomViewModel(this.id);
-        } else {
-            this.emitChange();
-        }
+        this.emitChange();
     }
 
     dispose() {
