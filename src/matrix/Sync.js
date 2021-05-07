@@ -322,11 +322,6 @@ export class Sync {
             if (is.isNewInvite) {
                 this._session.addInviteAfterSync(is.invite);
             }
-            // if we haven't archived or forgotten the (left) room yet,
-            // notify there is an invite now, so we can update the UI
-            if (is.room) {
-                is.room.setInvite(is.invite);
-            }
         }
     }
 
