@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {SortedArray, MappedList, ConcatList} from "../../../observable/index.js";
+import {SortedArray, MappedList, ConcatList, ObservableArray} from "../../../observable/index.js";
 import {Disposables} from "../../../utils/Disposables.js";
 import {Direction} from "./Direction.js";
 import {TimelineReader} from "./persistence/TimelineReader.js";
@@ -36,11 +36,16 @@ export class Timeline {
             fragmentIdComparer: this._fragmentIdComparer
         });
         this._readerRequest = null;
-        const localEntries = new MappedList(pendingEvents, pe => {
-            return new PendingEventEntry({pendingEvent: pe, member: this._ownMember, clock});
-        }, (pee, params) => {
-            pee.notifyUpdate(params);
-        });
+        let localEntries;
+        if (pendingEvents) {
+            localEntries = new MappedList(pendingEvents, pe => {
+                return new PendingEventEntry({pendingEvent: pe, member: this._ownMember, clock});
+            }, (pee, params) => {
+                pee.notifyUpdate(params);
+            });
+        } else {
+            localEntries = new ObservableArray();
+        }
         this._allEntries = new ConcatList(this._remoteEntries, localEntries);
     }
 
