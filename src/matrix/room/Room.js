@@ -442,7 +442,10 @@ export class Room extends EventEmitter {
                 const changes = await this._heroes.calculateChanges(this._summary.data.heroes, [], txn);
                 this._heroes.applyChanges(changes, this._summary.data);
             }
-            return this._syncWriter.load(txn, log);
+            // don't load sync writer for archived room
+            if (this.membership !== "leave") {
+                return this._syncWriter.load(txn, log);
+            }
         } catch (err) {
             throw new WrappedError(`Could not load room ${this._roomId}`, err);
         }

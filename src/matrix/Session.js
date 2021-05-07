@@ -648,6 +648,25 @@ export class Session {
         }
         return observable;
     }
+
+    loadArchivedRoom(roomId, log = null) {
+        return this._platform.logger.wrapOrRun(log, "loadArchivedRoom", async log => {
+            log.set("id", roomId);
+            const txn = await this._storage.readTxn([
+                this._storage.storeNames.archivedRoomSummary,
+                this._storage.storeNames.roomMembers,
+            ]);
+            const summary = await txn.archivedRoomSummary.get(roomId);
+            if (summary) {
+                // TODO: should we really be using a Room here?
+                // Or rather an ArchivedRoom that shares a common base class with Room?
+                // That will make the Room code harder to read though ...
+                const room = this.createRoom(roomId);
+                await room.load(summary, txn, log);
+                return room;
+            }
+        });
+    }
 }
 
 export function tests() {

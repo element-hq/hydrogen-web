@@ -42,6 +42,10 @@ export class RoomSummaryStore {
 		return this._summaryStore.put(summary);
 	}
 
+	get(roomId) {
+		return this._summaryStore.get(roomId);
+	}
+
 	async has(roomId) {
         const fetchedKey = await this._summaryStore.getKey(roomId);
         return roomId === fetchedKey;
