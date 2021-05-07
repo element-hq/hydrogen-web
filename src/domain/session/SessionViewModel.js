@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {removeRoomFromPath} from "../navigation/index.js";
 import {LeftPanelViewModel} from "./leftpanel/LeftPanelViewModel.js";
 import {RoomViewModel} from "./room/RoomViewModel.js";
 import {InviteViewModel} from "./room/InviteViewModel.js";
@@ -24,6 +23,7 @@ import {SessionStatusViewModel} from "./SessionStatusViewModel.js";
 import {RoomGridViewModel} from "./RoomGridViewModel.js";
 import {SettingsViewModel} from "./settings/SettingsViewModel.js";
 import {ViewModel} from "../ViewModel.js";
+import {RoomViewModelObservable} from "./RoomViewModelObservable.js";
 
 export class SessionViewModel extends ViewModel {
     constructor(options) {
@@ -40,10 +40,8 @@ export class SessionViewModel extends ViewModel {
             rooms: this._sessionContainer.session.rooms
         })));
         this._settingsViewModel = null;
-        this._currentRoomViewModel = null;
+        this._roomViewModelObservable = null;
         this._gridViewModel = null;
-        this._refreshRoomViewModel = this._refreshRoomViewModel.bind(this);
-        this._createRoomViewModel = this._createRoomViewModel.bind(this);
         this._setupNavigation();
     }
 
@@ -90,7 +88,7 @@ export class SessionViewModel extends ViewModel {
     }
 
     get activeMiddleViewModel() {
-        return this._currentRoomViewModel || this._gridViewModel || this._settingsViewModel;
+        return this._roomViewModelObservable?.get() || this._gridViewModel || this._settingsViewModel;
     }
 
     get roomGridViewModel() {
@@ -110,7 +108,7 @@ export class SessionViewModel extends ViewModel {
     }
 
     get currentRoomViewModel() {
-        return this._currentRoomViewModel;
+        return this._roomViewModelObservable?.get();
     }
 
     _updateGrid(roomIds) {
@@ -121,12 +119,14 @@ export class SessionViewModel extends ViewModel {
                 this._gridViewModel = this.track(new RoomGridViewModel(this.childOptions({
                     width: 3,
                     height: 2,
-                    createRoomViewModel: this._createRoomViewModel,
+                    createRoomViewModelObservable: roomId => new RoomViewModelObservable(this, roomId),
                 })));
-                if (this._gridViewModel.initializeRoomIdsAndTransferVM(roomIds, this._currentRoomViewModel)) {
-                    this._currentRoomViewModel = this.untrack(this._currentRoomViewModel);
-                } else if (this._currentRoomViewModel) {
-                    this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
+                // try to transfer the current room view model, so we don't have to reload the timeline
+                this._roomViewModelObservable?.unsubscribeAll();
+                if (this._gridViewModel.initializeRoomIdsAndTransferVM(roomIds, this._roomViewModelObservable)) {
+                    this._roomViewModelObservable = this.untrack(this._roomViewModelObservable);
+                } else if (this._roomViewModelObservable) {
+                    this._roomViewModelObservable = this.disposeTracked(this._roomViewModelObservable);
                 }
             } else {
                 this._gridViewModel.setRoomIds(roomIds);
@@ -134,14 +134,12 @@ export class SessionViewModel extends ViewModel {
         } else if (this._gridViewModel && !roomIds) {
             // closing grid, try to show focused room in grid
             if (currentRoomId) {
-                const vm = this._gridViewModel.releaseRoomViewModel(currentRoomId.value);
-                if (vm) {
-                    this._currentRoomViewModel = this.track(vm);
-                } else {
-                    const newVM = this._createRoomViewModel(currentRoomId.value, this._refreshRoomViewModel);
-                    if (newVM) {
-                        this._currentRoomViewModel = this.track(newVM);
-                    }
+                const vmo = this._gridViewModel.releaseRoomViewModel(currentRoomId.value);
+                if (vmo) {
+                    this._roomViewModelObservable = this.track(vmo);
+                    this._roomViewModelObservable.subscribe(() => {
+                        this.emitChange("activeMiddleViewModel");
+                    });
                 }
             }
             this._gridViewModel = this.disposeTracked(this._gridViewModel);
@@ -151,63 +149,59 @@ export class SessionViewModel extends ViewModel {
         }
     }
 
-    /**
-     * @param  {string} roomId
-     * @param  {function} refreshRoomViewModel passed in as an argument, because the grid needs a different impl of this
-     * @return {RoomViewModel | InviteViewModel}
-     */
-    _createRoomViewModel(roomId, refreshRoomViewModel) {
+    _createRoomViewModel(roomId) {
+        const room = this._sessionContainer.session.rooms.get(roomId);
+        if (room) {
+            const roomVM = new RoomViewModel(this.childOptions({
+                room,
+                ownUserId: this._sessionContainer.session.user.id,
+            }));
+            roomVM.load();
+            return roomVM;
+        }
+        return null;
+    }
+
+    async _createArchivedRoomViewModel(roomId) {
+        const room = await this._sessionContainer.session.loadArchivedRoom(roomId);
+        if (room) {
+            const roomVM = new RoomViewModel(this.childOptions({
+                room,
+                ownUserId: this._sessionContainer.session.user.id,
+            }));
+            roomVM.load();
+            return roomVM;
+        }
+        return null;
+    }
+
+    _createInviteViewModel(roomId) {
         const invite = this._sessionContainer.session.invites.get(roomId);
         if (invite) {
             return new InviteViewModel(this.childOptions({
                 invite,
                 mediaRepository: this._sessionContainer.session.mediaRepository,
-                refreshRoomViewModel,
             }));
-        } else {
-            const room = this._sessionContainer.session.rooms.get(roomId);
-            if (room) {
-                const roomVM = new RoomViewModel(this.childOptions({
-                    room,
-                    ownUserId: this._sessionContainer.session.user.id,
-                    refreshRoomViewModel
-                }));
-                roomVM.load();
-                return roomVM;
-            }
         }
         return null;
     }
 
-    /** refresh the room view model after an internal change that needs
-    to change between invite, room or none state */
-    _refreshRoomViewModel(roomId) {
-        this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
-        const roomVM = this._createRoomViewModel(roomId, this._refreshRoomViewModel);
-        if (roomVM) {
-            this._currentRoomViewModel = this.track(roomVM);
-        } else {
-            // close room id
-            this.navigation.applyPath(removeRoomFromPath(this.navigation.path, roomId));
-        }
-        this.emitChange("activeMiddleViewModel");
-    }
-
     _updateRoom(roomId) {
         // opening a room and already open?
-        if (this._currentRoomViewModel?.id === roomId) {
+        if (this._roomViewModelObservable?.id === roomId) {
             return;
         }
         // close if needed
-        if (this._currentRoomViewModel) {
-            this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
+        if (this._roomViewModelObservable) {
+            this._roomViewModelObservable = this.disposeTracked(this._roomViewModelObservable);
         }
-        // and try opening again
-        const roomVM = this._createRoomViewModel(roomId, this._refreshRoomViewModel);
-        if (roomVM) {
-            this._currentRoomViewModel = this.track(roomVM);
-        }
-        this.emitChange("activeMiddleViewModel");
+        const vmo = new RoomViewModelObservable(this, roomId);
+        this._roomViewModelObservable = this.track(vmo);
+        // subscription is unsubscribed in RoomViewModelObservable.dispose, and thus handled by track
+        this._roomViewModelObservable.subscribe(() => {
+            this.emitChange("activeMiddleViewModel");
+        });
+        vmo.initialize();
     }
 
     _updateSettings(settingsOpen) {
