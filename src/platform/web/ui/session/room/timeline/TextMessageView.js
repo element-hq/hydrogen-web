@@ -21,7 +21,7 @@ import {renderMessage} from "./common.js";
 
 export class TextMessageView extends TemplateView {
     render(t, vm) {
-        const bodyView = t.mapView(vm => vm.text, text => new BodyView(text));
+        const bodyView = t.mapView(vm => vm.messageFormat, messageFormat => new BodyView(messageFormat));
         return renderMessage(t, vm,
             [t.p([bodyView, t.time({className: {hidden: !vm.date}}, vm.date + " " + vm.time)])]
         );
@@ -29,20 +29,22 @@ export class TextMessageView extends TemplateView {
 }
 
 class BodyView extends StaticView {
+
+    get _formatFunction() {
+        return {
+            text: (param) => text(param.obj.text),
+            link: (param) => param.t.a({ href: param.obj.url, target: "_blank", rel: "noopener" }, [text(param.obj.text)]),
+            newline: (param) => param.t.br()
+        };
+    }
+
     render(t, value) {
-        const lines = (value || "").split("\n");
-        if (lines.length === 1) {
-            return text(lines[0]);
+        const children = [];
+        for (const m of value) {
+            const f = this._formatFunction[m.type];
+            const element = f({ obj: m, t: t });
+            children.push(element);
         }
-        const elements = [];
-        for (const line of lines) {
-            if (elements.length) {
-                elements.push(t.br());
-            }
-            if (line.length) {
-                elements.push(t.span(line));
-            }
-        }
-        return t.span(elements);
+        return t.span(children);
     }
 }
