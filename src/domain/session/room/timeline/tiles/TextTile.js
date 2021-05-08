@@ -15,15 +15,16 @@ limitations under the License.
 */
 
 import {MessageTile} from "./MessageTile.js";
+import { Linkifier } from "../../../../Linkifier.js";
 
 export class TextTile extends MessageTile {
-    get text() {
+    get messageFormat() {
         const content = this._getContent();
-        const body = content && content.body;
+        let body = content && content.body;
         if (content.msgtype === "m.emote") {
-            return `* ${this.displayName} ${body}`;
-        } else {
-            return body;
+            body = `* ${this.displayName} ${body}`;
         }
+        const obj = new Linkifier(body);
+        return obj.linkify();
     }
 }
