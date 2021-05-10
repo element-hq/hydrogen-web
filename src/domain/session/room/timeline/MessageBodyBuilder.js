@@ -10,6 +10,7 @@ export class MessageBodyBuilder {
         const components = text.split("\n");
         components.slice(0, -1).forEach(t => {
             linkify(t, this.insert.bind(this));
+            this.insertNewline();
         });
         const [last] = components.slice(-1);
         linkify(last, this.insert.bind(this));
