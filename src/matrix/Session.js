@@ -16,6 +16,7 @@ limitations under the License.
 */
 
 import {Room} from "./room/Room.js";
+import {ArchivedRoom} from "./room/ArchivedRoom.js";
 import {RoomStatus} from "./room/RoomStatus.js";
 import {Invite} from "./room/Invite.js";
 import {Pusher} from "./push/Pusher.js";
@@ -399,10 +400,18 @@ export class Session {
     }
 
     /** @internal */
-    addRoomAfterSync(room) {
-        this._rooms.add(room.id, room);
-        const statusObservable = this._observedRoomStatus.get(room.id);
-        statusObservable?.set(RoomStatus.joined);
+    createArchivedRoom(roomId) {
+        return new ArchivedRoom({
+            roomId,
+            getSyncToken: this._getSyncToken,
+            storage: this._storage,
+            emitCollectionChange: () => {},
+            hsApi: this._hsApi,
+            mediaRepository: this._mediaRepository,
+            user: this._user,
+            createRoomEncryption: this._createRoomEncryption,
+            platform: this._platform
+        });
     }
 
     get invites() {
@@ -419,34 +428,6 @@ export class Session {
             user: this._user,
             platform: this._platform,
         });
-    }
-
-    /** @internal */
-    addInviteAfterSync(invite) {
-        this._invites.add(invite.id, invite);
-        const statusObservable = this._observedRoomStatus.get(invite.id);
-        if (statusObservable) {
-            statusObservable.set(statusObservable.get().withInvited());
-        }
-    }
-
-    /** @internal */
-    removeInviteAfterSync(invite) {
-        this._invites.remove(invite.id);
-        const statusObservable = this._observedRoomStatus.get(invite.id);
-        if (statusObservable) {
-            statusObservable.set(statusObservable.get().withoutInvited());
-        }
-    }
-
-    /** @internal */
-    archiveRoomAfterSync(room) {
-        this._rooms.remove(room.id);
-        const statusObservable = this._observedRoomStatus.get(room.id);
-        statusObservable?.set(RoomStatus.archived);
-        if (this._archivedRooms) {
-            this._archivedRooms.add(room.id, room);
-        }
     }
 
     async obtainSyncLock(syncResponse) {
@@ -524,6 +505,58 @@ export class Session {
             const needsToUploadOTKs = await this._e2eeAccount.generateOTKsIfNeeded(this._storage, log);
             if (needsToUploadOTKs) {
                 await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, log));
+            }
+        }
+    }
+
+    applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates) {
+        // update the collections after sync
+        if (this._archivedRooms) {
+            for (const ars of archivedRoomStates) {
+                if (ars.shouldAdd) {
+                    this._archivedRooms.add(ars.id, ars.archivedRoom);
+                } else if (ars.shouldRemove) {
+                    this._archivedRooms.remove(ars.id);
+                }
+            }
+        }
+        for (const rs of roomStates) {
+            if (rs.shouldAdd) {
+                this._rooms.add(rs.id, rs.room);
+            } else if (rs.shouldRemove) {
+                this._rooms.remove(rs.id);
+            }
+        }
+        for (const is of inviteStates) {
+            if (is.shouldAdd) {
+                this._invites.add(is.id, is.invite);
+            } else if (is.shouldRemove) {
+                this._invites.remove(is.id);
+            }
+        }
+        // now all the collections are updated, update the room status
+        // so any listeners to the status will find the collections
+        // completely up to date
+        if (this._observedRoomStatus.size !== 0) {
+            for (const ars of archivedRoomStates) {
+                if (ars.shouldAdd) {
+                    this._observedRoomStatus.get(ars.id)?.set(RoomStatus.archived);
+                }
+            }
+            for (const rs of roomStates) {
+                if (rs.shouldAdd) {
+                    this._observedRoomStatus.get(rs.id)?.set(RoomStatus.joined);
+                }
+            }
+            for (const is of inviteStates) {
+                const statusObservable = this._observedRoomStatus.get(is.id);
+                if (statusObservable) {
+                    if (is.shouldAdd) {
+                        statusObservable.set(statusObservable.get().withInvited());
+                    } else if (is.shouldRemove) {
+                        statusObservable.set(statusObservable.get().withoutInvited());
+                    }
+                }
             }
         }
     }
@@ -658,10 +691,7 @@ export class Session {
             ]);
             const summary = await txn.archivedRoomSummary.get(roomId);
             if (summary) {
-                // TODO: should we really be using a Room here?
-                // Or rather an ArchivedRoom that shares a common base class with Room?
-                // That will make the Room code harder to read though ...
-                const room = this.createRoom(roomId);
+                const room = this.createArchivedRoom(roomId);
                 await room.load(summary, txn, log);
                 return room;
             }

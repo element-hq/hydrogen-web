@@ -45,7 +45,7 @@ export class Room extends BaseRoom {
         if (newKeys) {
             log.set("newKeys", newKeys.length);
         }
-        let summaryChanges = this._summary.data.applySyncResponse(roomResponse, membership, this._user.id);
+        let summaryChanges = this._summary.data.applySyncResponse(roomResponse, membership);
         if (membership === "join" && invite) {
             summaryChanges = summaryChanges.applyInvite(invite);
         }
@@ -105,8 +105,6 @@ export class Room extends BaseRoom {
             // so no old state sticks around
             txn.roomState.removeAllForRoom(this.id);
             txn.roomMembers.removeAllForRoom(this.id);
-            // TODO: this should be done in ArchivedRoom
-            txn.archivedRoomSummary.remove(this.id);
         }
         const {entries: newEntries, newLiveKey, memberChanges} =
             await log.wrap("syncWriter", log => this._syncWriter.writeSync(roomResponse, isRejoin, txn, log), log.level.Detail);
@@ -135,10 +133,9 @@ export class Room extends BaseRoom {
         summaryChanges = summaryChanges.applyTimelineEntries(
             allEntries, isInitialSync, !this._isTimelineOpen, this._user.id);
         
-        // only archive a room if we had previously joined it
-        if (summaryChanges.membership === "leave" && this.membership === "join") {
+        // if we've have left the room, remove the summary
+        if (summaryChanges.membership !== "join") {
             txn.roomSummary.remove(this.id);
-            summaryChanges = this._summary.writeArchivedData(summaryChanges, txn);
         } else {
             // write summary changes, and unset if nothing was actually changed
             summaryChanges = this._summary.writeData(summaryChanges, txn);

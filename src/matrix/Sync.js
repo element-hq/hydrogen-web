@@ -192,7 +192,8 @@ export class Sync {
         const isInitialSync = !syncToken;
         const sessionState = new SessionSyncProcessState();
         const inviteStates = this._parseInvites(response.rooms);
-        const roomStates = this._parseRoomsResponse(response.rooms, inviteStates, isInitialSync);
+        const {roomStates, archivedRoomStates} = await this._parseRoomsResponse(
+            response.rooms, inviteStates, isInitialSync);
 
         try {
             // take a lock on olm sessions used in this sync so sending a message doesn't change them while syncing
@@ -202,12 +203,14 @@ export class Sync {
                 return rs.room.afterPrepareSync(rs.preparation, log);
             })));
             await log.wrap("write", async log => this._writeSync(
-                sessionState, inviteStates, roomStates, response, syncFilterId, isInitialSync, log));
+                sessionState, inviteStates, roomStates, archivedRoomStates,
+                response, syncFilterId, isInitialSync, log));
         } finally {
             sessionState.dispose();
         }
         // sync txn comitted, emit updates and apply changes to in-memory state
-        log.wrap("after", log => this._afterSync(sessionState, inviteStates, roomStates, log));
+        log.wrap("after", log => this._afterSync(
+            sessionState, inviteStates, roomStates, archivedRoomStates, log));
 
         const toDeviceEvents = response.to_device?.events;
         return {
@@ -255,6 +258,8 @@ export class Sync {
         await Promise.all(roomStates.map(async rs => {
             const newKeys = newKeysByRoom?.get(rs.room.id);
             rs.preparation = await log.wrap("room", async log => {
+                // if previously joined and we still have the timeline for it,
+                // this loads the syncWriter at the correct position to continue writing the timeline
                 if (rs.isNewRoom) {
                     await rs.room.load(null, prepareTxn, log);
                 }
@@ -267,7 +272,7 @@ export class Sync {
         await prepareTxn.complete();
     }
 
-    async _writeSync(sessionState, inviteStates, roomStates, response, syncFilterId, isInitialSync, log) {
+    async _writeSync(sessionState, inviteStates, roomStates, archivedRoomStates, response, syncFilterId, isInitialSync, log) {
         const syncTxn = await this._openSyncTxn();
         try {
             sessionState.changes = await log.wrap("session", log => this._session.writeSync(
@@ -279,6 +284,13 @@ export class Sync {
             await Promise.all(roomStates.map(async rs => {
                 rs.changes = await log.wrap("room", log => rs.room.writeSync(
                     rs.roomResponse, isInitialSync, rs.preparation, syncTxn, log));
+            }));
+            // important to do this after roomStates,
+            // as we're referring to the roomState to get the summaryChanges
+            await Promise.all(archivedRoomStates.map(async ars => {
+                const summaryChanges = ars.roomState?.summaryChanges;
+                ars.changes = await log.wrap("archivedRoom", log => ars.archivedRoom.writeSync(
+                    summaryChanges, ars.roomResponse, ars.membership, syncTxn, log));
             }));
         } catch(err) {
             // avoid corrupting state by only
@@ -294,35 +306,18 @@ export class Sync {
         await syncTxn.complete();
     }
 
-    _afterSync(sessionState, inviteStates, roomStates, log) {
+    _afterSync(sessionState, inviteStates, roomStates, archivedRoomStates, log) {
         log.wrap("session", log => this._session.afterSync(sessionState.changes, log), log.level.Detail);
-        // emit room related events after txn has been closed
+        for(let ars of archivedRoomStates) {
+            log.wrap("archivedRoom", () => ars.archivedRoom.afterSync(ars.changes), log.level.Detail);
+        }
         for(let rs of roomStates) {
             log.wrap("room", log => rs.room.afterSync(rs.changes, log), log.level.Detail);
-            if (rs.isNewRoom) {
-                // important to add the room before removing the invite,
-                // so the room will be found if looking for it when the invite
-                // is removed
-                this._session.addRoomAfterSync(rs.room);
-            } else if (rs.membership === "leave") {
-                this._session.archiveRoomAfterSync(rs.room);
-            }
         }
-        // emit invite related events after txn has been closed
         for(let is of inviteStates) {
-            log.wrap("invite", () => {
-                // important to remove before emitting change in afterSync
-                // so code checking session.invites.get(id) won't
-                // find the invite anymore on update
-                if (is.membership !== "invite") {
-                    this._session.removeInviteAfterSync(is.invite);
-                }
-                is.invite.afterSync(is.changes);
-            }, log.level.Detail);
-            if (is.isNewInvite) {
-                this._session.addInviteAfterSync(is.invite);
-            }
+            log.wrap("invite", () => is.invite.afterSync(is.changes), log.level.Detail);
         }
+        this._session.applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates);
     }
 
     _openSyncTxn() {
@@ -351,8 +346,9 @@ export class Sync {
         ]);
     }
     
-    _parseRoomsResponse(roomsSection, inviteStates, isInitialSync) {
+    async _parseRoomsResponse(roomsSection, inviteStates, isInitialSync) {
         const roomStates = [];
+        const archivedRoomStates = [];
         if (roomsSection) {
             const allMemberships = ["join", "leave"];
             for(const membership of allMemberships) {
@@ -364,28 +360,64 @@ export class Sync {
                         if (isInitialSync && timelineIsEmpty(roomResponse)) {
                             continue;
                         }
-                        let isNewRoom = false;
-                        let room = this._session.rooms.get(roomId);
-                        // don't create a room for a rejected invite
-                        if (!room && membership === "join") {
-                            room = this._session.createRoom(roomId);
-                            isNewRoom = true;
-                        }
                         const invite = this._session.invites.get(roomId);
                         // if there is an existing invite, add a process state for it
                         // so its writeSync and afterSync will run and remove the invite
                         if (invite) {
-                            inviteStates.push(new InviteSyncProcessState(invite, false, null, membership, null));
+                            inviteStates.push(new InviteSyncProcessState(invite, false, null, membership));
                         }
-                        if (room) {
-                            roomStates.push(new RoomSyncProcessState(
-                                room, isNewRoom, invite, roomResponse, membership));
+                        const roomState = this._createRoomSyncState(roomId, invite, roomResponse, membership);
+                        if (roomState) {
+                            roomStates.push(roomState);
+                        }
+                        const ars = await this._createArchivedRoomSyncState(roomId, roomState, roomResponse, membership);
+                        if (ars) {
+                            archivedRoomStates.push(ars);
                         }
                     }
                 }
             }
         }
-        return roomStates;
+        return {roomStates, archivedRoomStates};
+    }
+
+    _createRoomSyncState(roomId, invite, roomResponse, membership) {
+        let isNewRoom = false;
+        let room = this._session.rooms.get(roomId);
+        // create room only on new join,
+        // don't create a room for a rejected invite
+        if (!room && membership === "join") {
+            room = this._session.createRoom(roomId);
+            isNewRoom = true;
+        }
+        if (room) {
+            return new RoomSyncProcessState(
+                room, isNewRoom, invite, roomResponse, membership);
+        }
+    }
+
+    async _createArchivedRoomSyncState(roomId, roomState, roomResponse, membership) {
+        let archivedRoom;
+        if (membership === "join") {
+            // when joining, always create the archived room to write the removal
+            archivedRoom = this._session.createArchivedRoom(roomId);
+        } else if (membership === "leave") {
+            if (roomState) {
+                // we still have a roomState, so we just left it
+                // in this case, create a new archivedRoom
+                archivedRoom = this._session.createArchivedRoom(roomId);
+            } else {
+                // this is an update of an already left room, restore
+                // it from storage first, so we can increment it.
+                // this happens for example when our membership changes
+                // after leaving (e.g. being (un)banned, possibly after being kicked), etc
+                archivedRoom = await this._session.loadArchivedRoom(roomId);
+            }
+        }
+        if (archivedRoom) {
+            return new ArchivedRoomSyncProcessState(
+                    archivedRoom, roomState, roomResponse, membership);
+        }
     }
 
     _parseInvites(roomsSection) {
@@ -398,8 +430,7 @@ export class Sync {
                     invite = this._session.createInvite(roomId);
                     isNewInvite = true;
                 }
-                const room = this._session.rooms.get(roomId);
-                inviteStates.push(new InviteSyncProcessState(invite, isNewInvite, room, "invite", roomResponse));
+                inviteStates.push(new InviteSyncProcessState(invite, isNewInvite, roomResponse, "invite"));
             }
         }
         return inviteStates;
@@ -440,15 +471,65 @@ class RoomSyncProcessState {
         this.preparation = null;
         this.changes = null;
     }
+
+    get id() {
+        return this.room.id;
+    }
+
+    get shouldAdd() {
+        return this.isNewRoom;
+    }
+
+    get shouldRemove() {
+        return this.membership !== "join";
+    }
+
+    get summaryChanges() {
+        return this.changes?.summaryChanges;
+    }
+}
+
+
+class ArchivedRoomSyncProcessState {
+    constructor(archivedRoom, roomState, roomResponse, membership) {
+        this.archivedRoom = archivedRoom;
+        this.roomState = roomState;
+        this.roomResponse = roomResponse;
+        this.membership = membership;
+        this.changes = null;
+    }
+
+    get id() {
+        return this.archivedRoom.id;
+    }
+
+    get shouldAdd() {
+        return this.roomState && this.membership === "leave";
+    }
+
+    get shouldRemove() {
+        return this.membership === "join";
+    }
 }
 
 class InviteSyncProcessState {
-    constructor(invite, isNewInvite, room, membership, roomResponse) {
+    constructor(invite, isNewInvite, roomResponse, membership) {
         this.invite = invite;
         this.isNewInvite = isNewInvite;
-        this.room = room;
         this.membership = membership;
         this.roomResponse = roomResponse;
         this.changes = null;
+    }
+
+    get id() {
+        return this.invite.id;
+    }
+
+    get shouldAdd() {
+        return this.isNewInvite;
+    }
+
+    get shouldRemove() {
+        return this.membership !== "invite";
     }
 }
