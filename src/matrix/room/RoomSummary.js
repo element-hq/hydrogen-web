@@ -27,45 +27,40 @@ function applyTimelineEntries(data, timelineEntries, isInitialSync, canMarkUnrea
     return data;
 }
 
+export function reduceStateEvents(roomResponse, callback, value) {
+    const stateEvents = roomResponse?.state?.events;
+    // state comes before timeline
+    if (Array.isArray(stateEvents)) {
+        value = stateEvents.reduce(callback, value);
+    }
+    const timelineEvents = roomResponse?.timeline?.events;
+    // and after that state events in the timeline
+    if (Array.isArray(timelineEvents)) {
+        value = timelineEvents.reduce((data, event) => {
+            if (typeof event.state_key === "string") {
+                value = callback(value, event);
+            }
+            return value;
+        }, value);
+    }
+    return value;
+}
 
-function applySyncResponse(data, roomResponse, membership, ownUserId) {
+function applySyncResponse(data, roomResponse, membership) {
     if (roomResponse.summary) {
         data = updateSummary(data, roomResponse.summary);
     }
-    let hasLeft = false;
     if (membership !== data.membership) {
         data = data.cloneIfNeeded();
         data.membership = membership;
-        hasLeft = membership === "leave" || membership === "ban";
     }
     if (roomResponse.account_data) {
         data = roomResponse.account_data.events.reduce(processRoomAccountData, data);
     }
-    const stateEvents = roomResponse?.state?.events;
-    // state comes before timeline
-    if (Array.isArray(stateEvents)) {
-        data = stateEvents.reduce((data, event) => {
-            if (hasLeft) {
-                data = findKickDetails(data, event, ownUserId);
-            }
-            return processStateEvent(data, event, ownUserId, hasLeft);
-        }, data);
-    }
-    const timelineEvents = roomResponse?.timeline?.events;
-    // process state events in timeline
+    // process state events in state and in timeline.
     // non-state events are handled by applyTimelineEntries
     // so decryption is handled properly
-    if (Array.isArray(timelineEvents)) {
-        data = timelineEvents.reduce((data, event) => {
-            if (typeof event.state_key === "string") {
-                if (hasLeft) {
-                    data = findKickDetails(data, event, ownUserId);
-                }
-                return processStateEvent(data, event);
-            }
-            return data;
-        }, data);
-    }
+    data = reduceStateEvents(roomResponse, processStateEvent, data);
     const unreadNotifications = roomResponse.unread_notifications;
     if (unreadNotifications) {
         data = processNotificationCounts(data, unreadNotifications);
@@ -123,22 +118,6 @@ export function processStateEvent(data, event) {
         const content = event.content;
         data = data.cloneIfNeeded();
         data.canonicalAlias = content.alias;
-    }
-    return data;
-}
-
-function findKickDetails(data, event, ownUserId) {
-    if (event.type === "m.room.member") {
-        // did we get kicked?
-        if (event.state_key === ownUserId && event.sender !== event.state_key) {
-            data = data.cloneIfNeeded();
-            data.kickDetails = {
-                // this is different from the room membership in the sync section, which can only be leave
-                membership: event.content?.membership, // could be leave or ban
-                reason: event.content?.reason,
-                sender: event.sender,
-            }
-        }
     }
     return data;
 }
@@ -212,7 +191,6 @@ export class SummaryData {
         this.tags = copy ? copy.tags : null;
         this.isDirectMessage = copy ? copy.isDirectMessage : false;
         this.dmUserId = copy ? copy.dmUserId : null;
-        this.kickDetails = copy ? copy.kickDetails : null;
         this.cloned = copy ? true : false;
     }
 
@@ -237,7 +215,6 @@ export class SummaryData {
     }
 
     serialize() {
-        const {cloned, ...serializedProps} = this;
         return Object.entries(this).reduce((obj, [key, value]) => {
             if (key !== "cloned" && value !== null) {
                 obj[key] = value;
@@ -250,8 +227,8 @@ export class SummaryData {
         return applyTimelineEntries(this, timelineEntries, isInitialSync, canMarkUnread, ownUserId);
     }
 
-    applySyncResponse(roomResponse, membership, ownUserId) {
-        return applySyncResponse(this, roomResponse, membership, ownUserId);
+    applySyncResponse(roomResponse, membership) {
+        return applySyncResponse(this, roomResponse, membership);
     }
 
     applyInvite(invite) {
@@ -346,17 +323,6 @@ export class RoomSummary {
 }
 
 export function tests() {
-    function createMemberEvent(sender, target, membership, reason) {
-        return {
-            sender,
-            state_key: target,
-            type: "m.room.member",
-            content: { reason, membership }
-        };
-    }
-    const bob = "@bob:hs.tld";
-    const alice = "@alice:hs.tld";
-
     return {
         "serialize doesn't include null fields or cloned": assert => {
             const roomId = "!123:hs.tld";
@@ -367,47 +333,6 @@ export function tests() {
             assert.equal(serialized.roomId, roomId);
             const nullCount = Object.values(serialized).reduce((count, value) => count + value === null ? 1 : 0, 0);
             assert.strictEqual(nullCount, 0);
-        },
-        "ban/kick sets kickDetails from state event": assert => {
-            const reason = "Bye!";
-            const leaveEvent = createMemberEvent(alice, bob, "ban", reason);
-            const data = new SummaryData(null, "!123:hs.tld");
-            const newData = data.applySyncResponse({state: {events: [leaveEvent]}}, "leave", bob);
-            assert.equal(newData.membership, "leave");
-            assert.equal(newData.kickDetails.membership, "ban");
-            assert.equal(newData.kickDetails.reason, reason);
-            assert.equal(newData.kickDetails.sender, alice);
-        },
-        "ban/kick sets kickDetails from timeline state event, taking precedence over state": assert => {
-            const reason = "Bye!";
-            const inviteEvent = createMemberEvent(alice, bob, "invite");
-            const leaveEvent = createMemberEvent(alice, bob, "ban", reason);
-            const data = new SummaryData(null, "!123:hs.tld");
-            const newData = data.applySyncResponse({
-                state: { events: [inviteEvent] },
-                timeline: {events: [leaveEvent] }
-            }, "leave", bob);
-            assert.equal(newData.membership, "leave");
-            assert.equal(newData.kickDetails.membership, "ban");
-            assert.equal(newData.kickDetails.reason, reason);
-            assert.equal(newData.kickDetails.sender, alice);
-        },
-        "leaving without being kicked doesn't produce kickDetails": assert => {
-            const leaveEvent = createMemberEvent(bob, bob, "leave");
-            const data = new SummaryData(null, "!123:hs.tld");
-            const newData = data.applySyncResponse({state: {events: [leaveEvent]}}, "leave", bob);
-            assert.equal(newData.membership, "leave");
-            assert.equal(newData.kickDetails, null);
-        },
-        "membership trigger change": function(assert) {
-            const summary = new RoomSummary("id");
-            let written = false;
-            let changes = summary.data.applySyncResponse({}, "join");
-            const txn = {roomSummary: {set: () => { written = true; }}};
-            changes = summary.writeData(changes, txn);
-            assert(changes);
-            assert(written);
-            assert.equal(changes.membership, "join");
         }
     }
 }
