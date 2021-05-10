@@ -1,4 +1,4 @@
-export class MessageObjectFormat {
+export class MessageBodyBuilder {
 
     constructor(message = []) {
         this._root = message;

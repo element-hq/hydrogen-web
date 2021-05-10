@@ -1,4 +1,4 @@
-import { MessageObjectFormat } from "./MessageObjectFormat.js";
+import { MessageBodyBuilder } from "./MessageBodyBuilder.js";
 
 export class Linkifier {
 
@@ -8,7 +8,7 @@ export class Linkifier {
     constructor(text) {
         this._text = text;
         this._curr = 0;
-        this._message = new MessageObjectFormat();
+        this._message = new MessageBodyBuilder();
     }
 
     /**
@@ -41,7 +41,7 @@ export class Linkifier {
 
     /**
      * Splits message text into parts (text, newline and links)
-     * @returns {MessageObjectFormat} Object representation of chat message
+     * @returns {MessageBodyBuilder} Object representation of chat message
      */
     linkify() {
         const regex = /(?:https|http|ftp):\/\/[a-zA-Z0-9:.\[\]#-]+(?:\/[^\s]*[^\s.,?!]|[^\s\u{80}-\u{10ffff}.,?!])/gui
@@ -64,7 +64,7 @@ export function tests() {
     }
 
     function test(assert, input, output) {
-        output = new MessageObjectFormat(output);
+        output = new MessageBodyBuilder(output);
         input = linkify(input);
         assert.deepEqual(input, output);
     }
