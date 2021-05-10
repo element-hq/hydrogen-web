@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {MessageTile} from "./MessageTile.js";
-import { Linkifier } from "../../../../Linkifier.js";
+import { Linkifier } from "../Linkifier.js";
 
 export class TextTile extends MessageTile {
     get messageFormat() {
