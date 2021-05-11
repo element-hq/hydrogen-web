@@ -73,7 +73,8 @@ export class ArchivedRoom extends BaseRoom {
      * Called with the changes returned from `writeSync` to apply them and emit changes.
      * No storage or network operations should be done here.
      */
-    afterSync({summaryData, kickDetails, kickAuthor}) {
+    afterSync({summaryData, kickDetails, kickAuthor}, log) {
+        log.set("id", this.id);
         if (summaryData) {
             this._summary.applyChanges(summaryData);
         }

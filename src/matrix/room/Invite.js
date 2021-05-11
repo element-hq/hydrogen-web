@@ -152,7 +152,8 @@ export class Invite extends EventEmitter {
         }
     }
 
-    afterSync(changes) {
+    afterSync(changes, log) {
+        log.set("id", this.id);
         if (changes) {
             if (changes.removed) {
                 this._accepting = false;

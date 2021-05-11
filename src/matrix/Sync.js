@@ -309,13 +309,13 @@ export class Sync {
     _afterSync(sessionState, inviteStates, roomStates, archivedRoomStates, log) {
         log.wrap("session", log => this._session.afterSync(sessionState.changes, log), log.level.Detail);
         for(let ars of archivedRoomStates) {
-            log.wrap("archivedRoom", () => ars.archivedRoom.afterSync(ars.changes), log.level.Detail);
+            log.wrap("archivedRoom", log => ars.archivedRoom.afterSync(ars.changes, log), log.level.Detail);
         }
         for(let rs of roomStates) {
             log.wrap("room", log => rs.room.afterSync(rs.changes, log), log.level.Detail);
         }
         for(let is of inviteStates) {
-            log.wrap("invite", () => is.invite.afterSync(is.changes), log.level.Detail);
+            log.wrap("invite", log => is.invite.afterSync(is.changes, log), log.level.Detail);
         }
         this._session.applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates);
     }
