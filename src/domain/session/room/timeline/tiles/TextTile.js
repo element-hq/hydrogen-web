@@ -20,7 +20,7 @@ import { MessageBodyBuilder } from "../MessageBodyBuilder.js";
 export class TextTile extends MessageTile {
     get messageFormat() {
         const content = this._getContent();
-        let body = content && content.body;
+        let body = content?.body || "";
         if (content.msgtype === "m.emote") {
             body = `* ${this.displayName} ${body}`;
         }
