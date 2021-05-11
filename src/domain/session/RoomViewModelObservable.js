@@ -51,6 +51,8 @@ export class RoomViewModelObservable extends ObservableValue {
         this._statusObservable = await session.observeRoomStatus(this.id);
         this.set(await this._statusToViewModel(this._statusObservable.get()));
         this._statusObservable.subscribe(async status => {
+            // first dispose existing VM, if any
+            this.get()?.dispose();
             this.set(await this._statusToViewModel(status));
         });
     }
