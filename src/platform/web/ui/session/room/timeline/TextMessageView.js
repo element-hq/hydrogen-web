@@ -28,20 +28,17 @@ export class TextMessageView extends TemplateView {
     }
 }
 
+const formatFunction = {
+    text: (param) => text(param.obj.text),
+    link: (param) => param.t.a({ href: param.obj.url, target: "_blank", rel: "noopener" }, [text(param.obj.text)]),
+    newline: (param) => param.t.br()
+};
+
 class BodyView extends StaticView {
-
-    get _formatFunction() {
-        return {
-            text: (param) => text(param.obj.text),
-            link: (param) => param.t.a({ href: param.obj.url, target: "_blank", rel: "noopener" }, [text(param.obj.text)]),
-            newline: (param) => param.t.br()
-        };
-    }
-
     render(t, value) {
         const children = [];
         for (const m of value) {
-            const f = this._formatFunction[m.type];
+            const f = formatFunction[m.type];
             const element = f({ obj: m, t: t });
             children.push(element);
         }
