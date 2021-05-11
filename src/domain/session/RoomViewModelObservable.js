@@ -61,12 +61,7 @@ export class RoomViewModelObservable extends ObservableValue {
         } else if (status.joined) {
             return this._sessionViewModel._createRoomViewModel(this.id);
         } else if (status.archived) {
-            if (!this.get() || this.get().kind !== "room") {
-                return await this._sessionViewModel._createArchivedRoomViewModel(this.id);
-            } else {
-                // reuse existing Room
-                return this.get();
-            }
+            return await this._sessionViewModel._createArchivedRoomViewModel(this.id);
         }
         return null;
     }
