@@ -22,15 +22,17 @@ export class TextTile extends MessageTile {
     get _contentBody() {
         const content = this._getContent();
         let body = content?.body || "";
-        if (content.msgtype === "m.emote")
+        if (content.msgtype === "m.emote") {
             body = `* ${this.displayName} ${body}`;
+        }
         return body;
     }
 
     get body() {
         const body = this._contentBody;
-        if (body === this._body)
+        if (body === this._body) {
             return this._message;
+        }
         const message = new MessageBodyBuilder();
         message.fromText(body);
         [this._body, this._message] = [body, message];

@@ -9,24 +9,31 @@ export class MessageBodyBuilder {
     fromText(text) {
         const components = text.split("\n");
         components.flatMap(e => ["\n", e]).slice(1).forEach(e => {
-            if (e === "\n")
+            if (e === "\n") {
                 this.insertNewline();
-            else
+            }
+            else {
                 linkify(e, this.insert.bind(this));
+            }
         });
     }
 
     insert(text, isLink) {
-        if (!text.length) return;
-        if (isLink)
+        if (!text.length) {
+            return;
+        }
+        if (isLink) {
             this.insertLink(text, text);
-        else
+        }
+        else {
             this.insertText(text);
+        }
     }
 
     insertText(text) {
-        if (text.length)
+        if (text.length) {
             this._root.push({ type: "text", text: text });
+        }
     }
 
     insertLink(link, displayText) {
