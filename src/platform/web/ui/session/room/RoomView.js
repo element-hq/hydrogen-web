@@ -19,10 +19,17 @@ import {TemplateView} from "../../general/TemplateView.js";
 import {TimelineList} from "./TimelineList.js";
 import {TimelineLoadingView} from "./TimelineLoadingView.js";
 import {MessageComposer} from "./MessageComposer.js";
+import {RoomArchivedView} from "./RoomArchivedView.js";
 import {AvatarView} from "../../avatar.js";
 
 export class RoomView extends TemplateView {
     render(t, vm) {
+        let bottomView;
+        if (vm.composerViewModel.kind === "composer") {
+            bottomView = new MessageComposer(vm.composerViewModel);
+        } else if (vm.composerViewModel.kind === "archived") {
+            bottomView = new RoomArchivedView(vm.composerViewModel);
+        }
         return t.main({className: "RoomView middle"}, [
             t.div({className: "RoomHeader middle-header"}, [
                 t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Close room`}),
@@ -38,7 +45,7 @@ export class RoomView extends TemplateView {
                         new TimelineList(timelineViewModel) :
                         new TimelineLoadingView(vm);    // vm is just needed for i18n
                 }),
-                t.view(new MessageComposer(vm.composerViewModel)),
+                t.view(bottomView),
             ])
         ]);
     }

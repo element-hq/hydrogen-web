@@ -897,3 +897,12 @@ button.link {
     display: block;
     width: 100%;
 }
+
+.RoomArchivedView {
+    padding: 12px;
+    background-color: rgba(245, 245, 245, 0.90);
+}
+
+.RoomArchivedView h3 {
+    margin: 0;
+}
