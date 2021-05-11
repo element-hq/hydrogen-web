@@ -165,10 +165,9 @@ export class Invite extends EventEmitter {
                 }
                 this.emit("change");
             } else {
+                // no emit change, adding to the collection is done by sync
                 this._inviteData = changes.inviteData;
                 this._inviter = changes.inviter;
-                // sync will add the invite to the collection by
-                // calling session.addInviteAfterSync
             }
         }
     }
