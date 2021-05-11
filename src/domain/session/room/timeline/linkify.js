@@ -103,6 +103,10 @@ export function tests() {
 
         "Link with unicode only after / must linkify": assert => {
             testLink(assert, "https://foo.bar.com/\uD83D\uDE03");
+        },
+
+        "Link with unicode after fragment without path must linkify": assert => {
+            testLink(assert, "https://foo.bar.com#\uD83D\uDE03");
         }
     };
 }
