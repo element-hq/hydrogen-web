@@ -56,7 +56,6 @@ export class Session {
         this._sessionInfo = sessionInfo;
         this._rooms = new ObservableMap();
         this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
-        this._archivedRooms = null;
         this._invites = new ObservableMap();
         this._inviteUpdateCallback = (invite, params) => this._invites.update(invite.id, params);
         this._user = new User(sessionInfo.userId);
@@ -511,15 +510,6 @@ export class Session {
 
     applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates) {
         // update the collections after sync
-        if (this._archivedRooms) {
-            for (const ars of archivedRoomStates) {
-                if (ars.shouldAdd) {
-                    this._archivedRooms.add(ars.id, ars.archivedRoom);
-                } else if (ars.shouldRemove) {
-                    this._archivedRooms.remove(ars.id);
-                }
-            }
-        }
         for (const rs of roomStates) {
             if (rs.shouldAdd) {
                 this._rooms.add(rs.id, rs.room);
@@ -651,13 +641,6 @@ export class Session {
             return RoomStatus.joined;
         } else {
             const isInvited = !!this._invites.get(roomId);
-            let isArchived; 
-            if (this._archivedRooms) {
-                isArchived = !!this._archivedRooms.get(roomId);
-            } else {
-                const txn = await this._storage.readTxn([this._storage.storeNames.archivedRoomSummary]);
-                isArchived = await txn.archivedRoomSummary.has(roomId);
-            }
             if (isInvited && isArchived) {
                 return RoomStatus.invitedAndArchived;
             } else if (isInvited) {
