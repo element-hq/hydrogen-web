@@ -22,7 +22,7 @@ export class ArchivedRoom extends BaseRoom {
     constructor(options) {
         super(options);
         this._kickDetails = null;
-        this._kickAuthor = null;
+        this._kickedBy = null;
     }
 
     async _getKickAuthor(sender, txn) {
@@ -38,7 +38,7 @@ export class ArchivedRoom extends BaseRoom {
         const {summary, kickDetails} = archivedRoomSummary;
         this._kickDetails = kickDetails;
         if (this._kickDetails) {
-            this._kickAuthor = await this._getKickAuthor(this._kickDetails.sender, txn);
+            this._kickedBy = await this._getKickAuthor(this._kickDetails.sender, txn);
         }
         return super.load(summary, txn, log);
     }
@@ -50,16 +50,16 @@ export class ArchivedRoom extends BaseRoom {
             const newKickDetails = findKickDetails(roomResponse, this._user.id);
             if (newKickDetails || joinedSummaryData) {
                 const kickDetails = newKickDetails || this._kickDetails;
-                let kickAuthor;
+                let kickedBy;
                 if (newKickDetails) {
-                    kickAuthor = await this._getKickAuthor(newKickDetails.sender, txn);
+                    kickedBy = await this._getKickAuthor(newKickDetails.sender, txn);
                 }
                 const summaryData = joinedSummaryData || this._summary.data;
                 txn.archivedRoomSummary.set({
                     summary: summaryData.serialize(),
                     kickDetails,
                 });
-                return {kickDetails, kickAuthor, summaryData};
+                return {kickDetails, kickedBy, summaryData};
             }
         } else if (membership === "join") {
             txn.archivedRoomSummary.remove(this.id);
@@ -73,7 +73,7 @@ export class ArchivedRoom extends BaseRoom {
      * Called with the changes returned from `writeSync` to apply them and emit changes.
      * No storage or network operations should be done here.
      */
-    afterSync({summaryData, kickDetails, kickAuthor}, log) {
+    afterSync({summaryData, kickDetails, kickedBy}, log) {
         log.set("id", this.id);
         if (summaryData) {
             this._summary.applyChanges(summaryData);
@@ -81,8 +81,8 @@ export class ArchivedRoom extends BaseRoom {
         if (kickDetails) {
             this._kickDetails = kickDetails;
         }
-        if (kickAuthor) {
-            this._kickAuthor = kickAuthor;
+        if (kickedBy) {
+            this._kickedBy = kickedBy;
         }
         this._emitUpdate();
     }
