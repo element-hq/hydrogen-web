@@ -18,7 +18,7 @@ import {MessageTile} from "./MessageTile.js";
 import { MessageBodyBuilder } from "../MessageBodyBuilder.js";
 
 export class TextTile extends MessageTile {
-    get messageFormat() {
+    get body() {
         const content = this._getContent();
         let body = content?.body || "";
         if (content.msgtype === "m.emote") {
