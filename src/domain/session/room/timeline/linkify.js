@@ -1,5 +1,6 @@
+const regex = /(?:https|http|ftp):\/\/[a-zA-Z0-9:.\[\]#-]+(?:\/[^\s]*[^\s.,?!]|[^\s\u{80}-\u{10ffff}.,?!])/gui
+
 export function linkify(text, callback) {
-    const regex = /(?:https|http|ftp):\/\/[a-zA-Z0-9:.\[\]#-]+(?:\/[^\s]*[^\s.,?!]|[^\s\u{80}-\u{10ffff}.,?!])/gui
     const matches = text.matchAll(regex);
     let curr = 0;
     for (let match of matches) {
