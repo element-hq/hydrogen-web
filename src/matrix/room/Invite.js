@@ -273,7 +273,7 @@ export function tests() {
             const txn = createStorage();
             const changes = await invite.writeSync("invite", roomInviteFixture, txn, new NullLogItem());
             assert.equal(txn.invitesMap.get(roomId).roomId, roomId);
-            invite.afterSync(changes);
+            invite.afterSync(changes, new NullLogItem());
             assert.equal(invite.name, "Invite example");
             assert.equal(invite.avatarUrl, roomAvatarUrl);
             assert.equal(invite.isPublic, false);
@@ -294,7 +294,7 @@ export function tests() {
             const txn = createStorage();
             const changes = await invite.writeSync("invite", dmInviteFixture, txn, new NullLogItem());
             assert.equal(txn.invitesMap.get(roomId).roomId, roomId);
-            invite.afterSync(changes);
+            invite.afterSync(changes, new NullLogItem());
             assert.equal(invite.name, "Alice");
             assert.equal(invite.avatarUrl, aliceAvatarUrl);
             assert.equal(invite.timestamp, 1003);
@@ -336,10 +336,10 @@ export function tests() {
             const txn = createStorage();
             const changes = await invite.writeSync("invite", dmInviteFixture, txn, new NullLogItem());
             assert.equal(txn.invitesMap.get(roomId).roomId, roomId);
-            invite.afterSync(changes);
+            invite.afterSync(changes, new NullLogItem());
             const joinChanges = await invite.writeSync("join", null, txn, new NullLogItem());
             assert.strictEqual(changeEmitCount, 0);
-            invite.afterSync(joinChanges);
+            invite.afterSync(joinChanges, new NullLogItem());
             assert.strictEqual(changeEmitCount, 1);
             assert.equal(txn.invitesMap.get(roomId), undefined);
             assert.equal(invite.rejected, false);
