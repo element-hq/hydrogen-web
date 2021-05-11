@@ -56,6 +56,7 @@ export class Session {
         this._sessionInfo = sessionInfo;
         this._rooms = new ObservableMap();
         this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
+        this._activeArchivedRooms = new Map();
         this._invites = new ObservableMap();
         this._inviteUpdateCallback = (invite, params) => this._invites.update(invite.id, params);
         this._user = new User(sessionInfo.userId);
@@ -399,18 +400,21 @@ export class Session {
     }
 
     /** @internal */
-    createArchivedRoom(roomId) {
-        return new ArchivedRoom({
+    _createArchivedRoom(roomId) {
+        const room = new ArchivedRoom({
             roomId,
             getSyncToken: this._getSyncToken,
             storage: this._storage,
             emitCollectionChange: () => {},
+            releaseCallback: () => this._activeArchivedRooms.delete(roomId),
             hsApi: this._hsApi,
             mediaRepository: this._mediaRepository,
             user: this._user,
             createRoomEncryption: this._createRoomEncryption,
             platform: this._platform
         });
+        this._activeArchivedRooms.set(roomId, room);
+        return room;
     }
 
     get invites() {
@@ -641,6 +645,8 @@ export class Session {
             return RoomStatus.joined;
         } else {
             const isInvited = !!this._invites.get(roomId);
+            const txn = await this._storage.readTxn([this._storage.storeNames.archivedRoomSummary]);
+            const isArchived = await txn.archivedRoomSummary.has(roomId);
             if (isInvited && isArchived) {
                 return RoomStatus.invitedAndArchived;
             } else if (isInvited) {
@@ -668,13 +674,18 @@ export class Session {
     loadArchivedRoom(roomId, log = null) {
         return this._platform.logger.wrapOrRun(log, "loadArchivedRoom", async log => {
             log.set("id", roomId);
+            const activeArchivedRoom = this._activeArchivedRooms.get(roomId);
+            if (activeArchivedRoom) {
+                activeArchivedRoom.retain();
+                return activeArchivedRoom;
+            }
             const txn = await this._storage.readTxn([
                 this._storage.storeNames.archivedRoomSummary,
                 this._storage.storeNames.roomMembers,
             ]);
             const summary = await txn.archivedRoomSummary.get(roomId);
             if (summary) {
-                const room = this.createArchivedRoom(roomId);
+                const room = this._createArchivedRoom(roomId);
                 await room.load(summary, txn, log);
                 return room;
             }

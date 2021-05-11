@@ -81,6 +81,9 @@ export class RoomViewModel extends ViewModel {
     dispose() {
         super.dispose();
         this._room.off("change", this._onRoomChange);
+        if (this._room.isArchived) {
+            this._room.release();
+        }
         if (this._clearUnreadTimout) {
             this._clearUnreadTimout.abort();
             this._clearUnreadTimout = null;

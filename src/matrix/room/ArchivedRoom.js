@@ -21,12 +21,27 @@ import {RoomMember} from "./members/RoomMember.js";
 export class ArchivedRoom extends BaseRoom {
     constructor(options) {
         super(options);
+        // archived rooms are reference counted,
+        // as they are not kept in memory when not needed
+        this._releaseCallback = options.releaseCallback;
+        this._retentionCount = 1;
         /**
         Some details from our own member event when being kicked or banned.
         We can't get this from the member store, because we don't store the reason field there.
         */
         this._kickDetails = null;
         this._kickedBy = null;
+    }
+
+    retain() {
+        this._retentionCount += 1;
+    }
+
+    release() {
+        this._retentionCount -= 1;
+        if (this._retentionCount === 0) {
+            this._releaseCallback();
+        }
     }
 
     async _getKickAuthor(sender, txn) {

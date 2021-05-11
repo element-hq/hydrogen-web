@@ -309,7 +309,10 @@ export class Sync {
     _afterSync(sessionState, inviteStates, roomStates, archivedRoomStates, log) {
         log.wrap("session", log => this._session.afterSync(sessionState.changes, log), log.level.Detail);
         for(let ars of archivedRoomStates) {
-            log.wrap("archivedRoom", log => ars.archivedRoom.afterSync(ars.changes, log), log.level.Detail);
+            log.wrap("archivedRoom", log => {
+                ars.archivedRoom.afterSync(ars.changes, log);
+                ars.archivedRoom.release();
+            }, log.level.Detail);
         }
         for(let rs of roomStates) {
             log.wrap("room", log => rs.room.afterSync(rs.changes, log), log.level.Detail);
@@ -407,12 +410,12 @@ export class Sync {
             // when adding a joined room during incremental sync,
             // always create the archived room to write the removal
             // of the archived summary
-            archivedRoom = this._session.createArchivedRoom(roomId);
+            archivedRoom = await this._session.loadArchivedRoom(roomId, log);
         } else if (membership === "leave") {
             if (roomState) {
                 // we still have a roomState, so we just left it
                 // in this case, create a new archivedRoom
-                archivedRoom = this._session.createArchivedRoom(roomId);
+                archivedRoom = await this._session.loadArchivedRoom(roomId, log);
             } else {
                 // this is an update of an already left room, restore
                 // it from storage first, so we can increment it.
