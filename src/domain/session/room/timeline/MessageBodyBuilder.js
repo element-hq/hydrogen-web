@@ -8,12 +8,12 @@ export class MessageBodyBuilder {
 
     fromText(text) {
         const components = text.split("\n");
-        components.slice(0, -1).forEach(t => {
-            linkify(t, this.insert.bind(this));
-            this.insertNewline();
+        components.flatMap(e => ["\n", e]).slice(1).forEach(e => {
+            if (e === "\n")
+                this.insertNewline();
+            else
+                linkify(e, this.insert.bind(this));
         });
-        const [last] = components.slice(-1);
-        linkify(last, this.insert.bind(this));
     }
 
     insert(text, isLink) {
