@@ -193,7 +193,7 @@ export class Sync {
         const sessionState = new SessionSyncProcessState();
         const inviteStates = this._parseInvites(response.rooms);
         const {roomStates, archivedRoomStates} = await this._parseRoomsResponse(
-            response.rooms, inviteStates, isInitialSync);
+            response.rooms, inviteStates, isInitialSync, log);
 
         try {
             // take a lock on olm sessions used in this sync so sending a message doesn't change them while syncing
@@ -346,7 +346,7 @@ export class Sync {
         ]);
     }
     
-    async _parseRoomsResponse(roomsSection, inviteStates, isInitialSync) {
+    async _parseRoomsResponse(roomsSection, inviteStates, isInitialSync, log) {
         const roomStates = [];
         const archivedRoomStates = [];
         if (roomsSection) {
@@ -366,11 +366,11 @@ export class Sync {
                         if (invite) {
                             inviteStates.push(new InviteSyncProcessState(invite, false, null, membership));
                         }
-                        const roomState = this._createRoomSyncState(roomId, invite, roomResponse, membership);
+                        const roomState = this._createRoomSyncState(roomId, invite, roomResponse, membership, isInitialSync);
                         if (roomState) {
                             roomStates.push(roomState);
                         }
-                        const ars = await this._createArchivedRoomSyncState(roomId, roomState, roomResponse, membership);
+                        const ars = await this._createArchivedRoomSyncState(roomId, roomState, roomResponse, membership, isInitialSync, log);
                         if (ars) {
                             archivedRoomStates.push(ars);
                         }
@@ -381,12 +381,17 @@ export class Sync {
         return {roomStates, archivedRoomStates};
     }
 
-    _createRoomSyncState(roomId, invite, roomResponse, membership) {
+    _createRoomSyncState(roomId, invite, roomResponse, membership, isInitialSync) {
         let isNewRoom = false;
         let room = this._session.rooms.get(roomId);
-        // create room only on new join,
-        // don't create a room for a rejected invite
-        if (!room && membership === "join") {
+        // create room only either on new join,
+        // or for an archived room during initial sync,
+        // where we create the summaryChanges with a joined
+        // room to then adopt by the archived room.
+        // This way the limited timeline, members, ...
+        // we receive also gets written.
+        // In any case, don't create a room for a rejected invite
+        if (!room && (membership === "join" || (isInitialSync && membership === "leave"))) {
             room = this._session.createRoom(roomId);
             isNewRoom = true;
         }
@@ -396,10 +401,12 @@ export class Sync {
         }
     }
 
-    async _createArchivedRoomSyncState(roomId, roomState, roomResponse, membership) {
+    async _createArchivedRoomSyncState(roomId, roomState, roomResponse, membership, isInitialSync, log) {
         let archivedRoom;
-        if (membership === "join") {
-            // when joining, always create the archived room to write the removal
+        if (roomState?.shouldAdd && !isInitialSync) {
+            // when adding a joined room during incremental sync,
+            // always create the archived room to write the removal
+            // of the archived summary
             archivedRoom = this._session.createArchivedRoom(roomId);
         } else if (membership === "leave") {
             if (roomState) {
@@ -411,12 +418,12 @@ export class Sync {
                 // it from storage first, so we can increment it.
                 // this happens for example when our membership changes
                 // after leaving (e.g. being (un)banned, possibly after being kicked), etc
-                archivedRoom = await this._session.loadArchivedRoom(roomId);
+                archivedRoom = await this._session.loadArchivedRoom(roomId, log);
             }
         }
         if (archivedRoom) {
             return new ArchivedRoomSyncProcessState(
-                    archivedRoom, roomState, roomResponse, membership);
+                archivedRoom, roomState, roomResponse, membership);
         }
     }
 
@@ -477,11 +484,11 @@ class RoomSyncProcessState {
     }
 
     get shouldAdd() {
-        return this.isNewRoom;
+        return this.isNewRoom && this.membership === "join";
     }
 
     get shouldRemove() {
-        return this.membership !== "join";
+        return !this.isNewRoom && this.membership !== "join";
     }
 
     get summaryChanges() {
@@ -491,11 +498,12 @@ class RoomSyncProcessState {
 
 
 class ArchivedRoomSyncProcessState {
-    constructor(archivedRoom, roomState, roomResponse, membership) {
+    constructor(archivedRoom, roomState, roomResponse, membership, isInitialSync) {
         this.archivedRoom = archivedRoom;
         this.roomState = roomState;
         this.roomResponse = roomResponse;
         this.membership = membership;
+        this.isInitialSync = isInitialSync;
         this.changes = null;
     }
 
@@ -504,7 +512,7 @@ class ArchivedRoomSyncProcessState {
     }
 
     get shouldAdd() {
-        return this.roomState && this.membership === "leave";
+        return (this.roomState || this.isInitialSync) && this.membership === "leave";
     }
 
     get shouldRemove() {
