@@ -671,6 +671,23 @@ export class Session {
         return observable;
     }
 
+    /**
+    Creates an empty (summary isn't loaded) the archived room if it isn't
+    loaded already, assuming sync will either remove it (when rejoining) or
+    write a full summary adopting it from the joined room when leaving
+    
+    @internal
+    */
+    createOrGetArchivedRoomForSync(roomId) {
+        let archivedRoom = this._activeArchivedRooms.get(roomId);
+        if (archivedRoom) {
+            archivedRoom.retain();
+        } else {
+            archivedRoom = this._createArchivedRoom(roomId);
+        }
+        return archivedRoom;
+    }
+
     loadArchivedRoom(roomId, log = null) {
         return this._platform.logger.wrapOrRun(log, "loadArchivedRoom", async log => {
             log.set("id", roomId);

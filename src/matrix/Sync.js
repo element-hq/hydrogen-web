@@ -410,12 +410,12 @@ export class Sync {
             // when adding a joined room during incremental sync,
             // always create the archived room to write the removal
             // of the archived summary
-            archivedRoom = await this._session.loadArchivedRoom(roomId, log);
+            archivedRoom = this._session.createOrGetArchivedRoomForSync(roomId);
         } else if (membership === "leave") {
             if (roomState) {
                 // we still have a roomState, so we just left it
                 // in this case, create a new archivedRoom
-                archivedRoom = await this._session.loadArchivedRoom(roomId, log);
+                archivedRoom = this._session.createOrGetArchivedRoomForSync(roomId);
             } else {
                 // this is an update of an already left room, restore
                 // it from storage first, so we can increment it.
