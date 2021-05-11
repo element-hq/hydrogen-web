@@ -3,8 +3,8 @@ export function linkify(text, callback) {
     const matches = text.matchAll(regex);
     let curr = 0;
     for (let match of matches) {
-        callback(match[0], true);
         callback(text.slice(curr, match.index), false);
+        callback(match[0], true);
         const len = match[0].length;
         curr = match.index + len;
     }
