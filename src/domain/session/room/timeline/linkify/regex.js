@@ -19,10 +19,13 @@ const nonASCII = "\\u{80}-\\u{10ffff}";
 const endASCII = `[^\\s${nonASCII}.,?!]`;
 
 /*
-URL must not contain non-ascii characters in host but may contain
-them in path or fragment components.
-https://matrix.org/<smiley> - valid
-https://matrix.org<smiley> - invalid
+Things to keep in mind:
+1.  URL must not contain non-ascii characters in host but may contain
+    them in path or fragment components.
+    https://matrix.org/<smiley> - valid
+    https://matrix.org<smiley> - invalid
+
+2. Do not treat punctuation at the end as a part of the URL (.,?!)
 */
 const urlRegex = `${scheme}${host}+(?:${additional}|${endASCII})`;
 
