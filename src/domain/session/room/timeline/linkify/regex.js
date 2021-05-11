@@ -18,7 +18,7 @@ const additional = `[\\/#][^\\s]*${end}`;
 /*
 Similarly, a URL not containing path or fragment must
 also end with a character that is not space nor punctuation.
-However the ending character must also be ASCII.
+Additionally, the ending character must also be ASCII.
 */
 const nonASCII = "\\u{80}-\\u{10ffff}";
 const endASCII = `[^\\s${nonASCII}.,?!]`;
