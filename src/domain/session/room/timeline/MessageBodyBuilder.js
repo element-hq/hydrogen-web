@@ -1,4 +1,4 @@
-import { linkify } from "./linkify.js";
+import { linkify } from "./linkify/linkify.js";
 
 export class MessageBodyBuilder {
 
