@@ -1,3 +1,8 @@
+/*
+The regex is split into component strings;
+meaning that any escapes (\) must be also
+be escaped.
+*/
 const scheme = "(?:https|http|ftp):\\/\\/";
 const host = "[a-zA-Z0-9:.\\[\\]-]";
 
@@ -24,7 +29,6 @@ Things to keep in mind:
     them in path or fragment components.
     https://matrix.org/<smiley> - valid
     https://matrix.org<smiley> - invalid
-
 2. Do not treat punctuation at the end as a part of the URL (.,?!)
 */
 const urlRegex = `${scheme}${host}+(?:${additional}|${endASCII})`;
