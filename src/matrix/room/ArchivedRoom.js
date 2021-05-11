@@ -21,6 +21,10 @@ import {RoomMember} from "./members/RoomMember.js";
 export class ArchivedRoom extends BaseRoom {
     constructor(options) {
         super(options);
+        /**
+        Some details from our own member event when being kicked or banned.
+        We can't get this from the member store, because we don't store the reason field there.
+        */
         this._kickDetails = null;
         this._kickedBy = null;
     }
@@ -87,15 +91,24 @@ export class ArchivedRoom extends BaseRoom {
         this._emitUpdate();
     }
 
-    getLeaveDetails() {
-        if (this.membership === "leave") {
-            return {
-                isKicked: this._kickDetails?.membership === "leave",
-                isBanned: this._kickDetails?.membership === "ban",
-                reason: this._kickDetails?.reason,
-                sender: this._kickAuthor,
-            };
-        }
+    get isKicked() {
+        return this._kickDetails?.membership === "leave";
+    }
+
+    get isBanned() {
+        return this._kickDetails?.membership === "ban";
+    }
+
+    get kickedBy() {
+        return this._kickedBy;
+    }
+
+    get kickReason() {
+        return this._kickDetails?.reason;
+    }
+
+    isArchived() {
+        return true;
     }
 
     forget() {
