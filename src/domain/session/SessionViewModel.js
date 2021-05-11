@@ -195,6 +195,12 @@ export class SessionViewModel extends ViewModel {
         if (this._roomViewModelObservable) {
             this._roomViewModelObservable = this.disposeTracked(this._roomViewModelObservable);
         }
+        if (!roomId) {
+            // if clearing the activeMiddleViewModel rather than changing to a different one,
+            // emit so the view picks it up and show the placeholder
+            this.emitChange("activeMiddleViewModel");
+            return;
+        }
         const vmo = new RoomViewModelObservable(this, roomId);
         this._roomViewModelObservable = this.track(vmo);
         // subscription is unsubscribed in RoomViewModelObservable.dispose, and thus handled by track
