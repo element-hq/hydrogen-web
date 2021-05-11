@@ -113,5 +113,5 @@ function createInviteStore(db) {
 
 // v8
 function createArchivedRoomSummaryStore(db) {
-    db.createObjectStore("archivedRoomSummary", {keyPath: "roomId"});
+    db.createObjectStore("archivedRoomSummary", {keyPath: "summary.roomId"});
 }
