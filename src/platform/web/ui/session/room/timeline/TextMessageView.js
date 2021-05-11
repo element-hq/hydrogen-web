@@ -16,7 +16,7 @@ limitations under the License.
 
 import {TemplateView} from "../../../general/TemplateView.js";
 import {StaticView} from "../../../general/StaticView.js";
-import {text} from "../../../general/html.js";
+import { tag, text } from "../../../general/html.js";
 import {renderMessage} from "./common.js";
 
 export class TextMessageView extends TemplateView {
@@ -29,9 +29,9 @@ export class TextMessageView extends TemplateView {
 }
 
 const formatFunction = {
-    text: (param) => text(param.obj.text),
-    link: (param) => param.t.a({ href: param.obj.url, target: "_blank", rel: "noopener" }, [text(param.obj.text)]),
-    newline: (param) => param.t.br()
+    text: (m) => text(m.text),
+    link: (m) => tag.a({ href: m.url, target: "_blank", rel: "noopener" }, [text(m.text)]),
+    newline: () => tag.br()
 };
 
 class BodyView extends StaticView {
@@ -39,7 +39,7 @@ class BodyView extends StaticView {
         const children = [];
         for (const m of value) {
             const f = formatFunction[m.type];
-            const element = f({ obj: m, t: t });
+            const element = f(m);
             children.push(element);
         }
         return t.span(children);
