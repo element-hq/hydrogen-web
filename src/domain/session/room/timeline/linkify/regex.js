@@ -4,24 +4,20 @@ meaning that any escapes (\) must also
 be escaped.
 */
 const scheme = "(?:https|http|ftp):\\/\\/";
-const host = "[a-zA-Z0-9:.\\[\\]-]";
+const noSpaceNorPunctuation = "[^\\s.,?!]";
+const hostCharacter = "[a-zA-Z0-9:.\\[\\]-]";
 
 /*
-A URL containing path (/) or fragment (#) component
-is allowed to end with any character which is not 
-space nor punctuation. The ending character may be 
-non-ASCII.
+Using non-consuming group here to combine two criteria for the last character.
+See point 1 below.
 */
-const end = "[^\\s.,?!]";
-const additional = `[\\/#][^\\s]*${end}`;
+const host = `${hostCharacter}*(?=${hostCharacter})${noSpaceNorPunctuation}`;
 
 /*
-Similarly, a URL not containing path or fragment must
-also end with a character that is not space nor punctuation.
-Additionally, the ending character must also be ASCII.
+Use sub groups so we accept just / or #; but if anything comes after it,
+it should not end with punctuation or space.
 */
-const nonASCII = "\\u{80}-\\u{10ffff}";
-const endASCII = `[^\\s${nonASCII}.,?!]`;
+const pathOrFragment = `(?:[\\/#](?:[^\\s]*${noSpaceNorPunctuation})?)`;
 
 /*
 Things to keep in mind:
@@ -30,7 +26,8 @@ Things to keep in mind:
     https://matrix.org/<smiley> - valid
     https://matrix.org<smiley> - invalid
 2. Do not treat punctuation at the end as a part of the URL (.,?!)
+3. Path/fragment is optional.
 */
-const urlRegex = `${scheme}${host}+(?:${additional}|${endASCII})`;
+const urlRegex = `${scheme}${host}${pathOrFragment}?`;
 
-export const regex = new RegExp(urlRegex, "gui");
+export const regex = new RegExp(urlRegex, "gi");
