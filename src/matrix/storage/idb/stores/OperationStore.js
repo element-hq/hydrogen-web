@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-function encodeTypeScopeKey(type, scope) {
-    return `${type}|${scope}`;
+export function encodeScopeTypeKey(scope, type) {
+    return `${scope}|${type}`;
 }
 
 export class OperationStore {
@@ -28,10 +28,10 @@ export class OperationStore {
     }
 
     async getAllByTypeAndScope(type, scope) {
-        const key = encodeTypeScopeKey(type, scope);
+        const key = encodeScopeTypeKey(scope, type);
         const results = [];
-        await this._store.index("byTypeAndScope").iterateWhile(key, value => {
-            if (value.typeScopeKey !== key) {
+        await this._store.index("byScopeAndType").iterateWhile(key, value => {
+            if (value.scopeTypeKey !== key) {
                 return false;
             }
             results.push(value);
@@ -41,7 +41,7 @@ export class OperationStore {
     }
 
     add(operation) {
-        operation.typeScopeKey = encodeTypeScopeKey(operation.type, operation.scope);
+        operation.scopeTypeKey = encodeScopeTypeKey(operation.scope, operation.type);
         this._store.add(operation);
     }
 
