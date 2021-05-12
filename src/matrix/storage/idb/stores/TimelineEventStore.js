@@ -257,4 +257,11 @@ export class TimelineEventStore {
     getByEventId(roomId, eventId) {
         return this._timelineStore.index("byEventId").get(encodeEventIdKey(roomId, eventId));
     }
+
+    removeAllForRoom(roomId) {
+        const minKey = encodeKey(roomId, KeyLimits.minStorageKey, KeyLimits.minStorageKey);
+        const maxKey = encodeKey(roomId, KeyLimits.maxStorageKey, KeyLimits.maxStorageKey);
+        const range = IDBKeyRange.bound(minKey, maxKey);
+        this._timelineStore.delete(range);
+    }
 }

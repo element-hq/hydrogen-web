@@ -42,6 +42,16 @@ export class RoomStatus {
             return RoomStatus.none;
         }
     }
+
+    withoutArchived() {
+        if (!this.archived) {
+            return this;
+        } else if (this.invited) {
+            return RoomStatus.invited;
+        } else {
+            return RoomStatus.none;
+        }
+    }
 }
 
 RoomStatus.joined = new RoomStatus(true, false, false);

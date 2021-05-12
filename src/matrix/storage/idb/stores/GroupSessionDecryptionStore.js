@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {MIN_UNICODE, MAX_UNICODE} from "./common.js";
+
 function encodeKey(roomId, sessionId, messageIndex) {
     return `${roomId}|${sessionId}|${messageIndex}`;
 }
@@ -30,5 +32,13 @@ export class GroupSessionDecryptionStore {
     set(roomId, sessionId, messageIndex, decryption) {
         decryption.key = encodeKey(roomId, sessionId, messageIndex);
         this._store.put(decryption);
+    }
+    
+    removeAllForRoom(roomId) {
+        const range = IDBKeyRange.bound(
+            encodeKey(roomId, MIN_UNICODE, MIN_UNICODE),
+            encodeKey(roomId, MAX_UNICODE, MAX_UNICODE)
+        );
+        this._store.delete(range);
     }
 }

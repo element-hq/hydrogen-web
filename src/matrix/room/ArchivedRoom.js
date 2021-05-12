@@ -24,6 +24,7 @@ export class ArchivedRoom extends BaseRoom {
         // archived rooms are reference counted,
         // as they are not kept in memory when not needed
         this._releaseCallback = options.releaseCallback;
+        this._forgetCallback = options.forgetCallback;
         this._retentionCount = 1;
         /**
         Some details from our own member event when being kicked or banned.
@@ -126,8 +127,40 @@ export class ArchivedRoom extends BaseRoom {
         return true;
     }
 
-    forget() {
+    forget(log = null) {
+        return this._platform.logger.wrapOrRun(log, "forget room", async log => {
+            log.set("id", this.id);
+            await this._hsApi.forget(this.id, {log}).response();
+            const storeNames = this._storage.storeNames;
+            const txn = await this._storage.readWriteTxn([
+                storeNames.roomState,
+                storeNames.archivedRoomSummary,
+                storeNames.roomMembers,
+                storeNames.timelineEvents,
+                storeNames.timelineFragments,
+                storeNames.pendingEvents,
+                storeNames.inboundGroupSessions,
+                storeNames.groupSessionDecryptions,
+                storeNames.operations,
+            ]);
 
+            txn.roomState.removeAllForRoom(this.id);
+            txn.archivedRoomSummary.remove(this.id);
+            txn.roomMembers.removeAllForRoom(this.id);
+            txn.timelineEvents.removeAllForRoom(this.id);
+            txn.timelineFragments.removeAllForRoom(this.id);
+            txn.pendingEvents.removeAllForRoom(this.id);
+            txn.inboundGroupSessions.removeAllForRoom(this.id);
+            txn.groupSessionDecryptions.removeAllForRoom(this.id);
+            await txn.operations.removeAllForScope(this.id);
+
+            await txn.complete();
+
+            this._retentionCount = 0;
+            this._releaseCallback();
+            
+            this._forgetCallback(this.id);
+        });
     }
 }
 
