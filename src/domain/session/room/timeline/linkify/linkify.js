@@ -4,12 +4,14 @@ export function linkify(text, callback) {
     const matches = text.matchAll(regex);
     let curr = 0;
     for (let match of matches) {
-        callback(text.slice(curr, match.index), false);
+        const precedingText = text.slice(curr, match.index);
+        callback(precedingText, false);
         callback(match[0], true);
         const len = match[0].length;
         curr = match.index + len;
     }
-    callback(text.slice(curr), false);
+    const remainingText = text.slice(curr);
+    callback(remainingText, false);
 }
 
 export function tests() {
