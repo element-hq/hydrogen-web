@@ -1,6 +1,6 @@
 {
   "name": "hydrogen-web",
-  "version": "0.1.48",
+  "version": "0.1.49",
   "description": "A javascript matrix client prototype, trying to minize RAM usage by offloading as much as possible to IndexedDB",
   "main": "index.js",
   "directories": {
@@ -25,15 +25,15 @@
   "devDependencies": {
     "@babel/core": "^7.11.1",
     "@babel/preset-env": "^7.11.0",
-    "rollup": "^2.26.4",
     "@rollup/plugin-babel": "^5.1.0",
-    "@rollup/plugin-multi-entry": "^4.0.0",
     "@rollup/plugin-commonjs": "^15.0.0",
+    "@rollup/plugin-multi-entry": "^4.0.0",
     "@rollup/plugin-node-resolve": "^9.0.0",
     "autoprefixer": "^10.0.1",
     "cheerio": "^1.0.0-rc.3",
     "commander": "^6.0.0",
     "core-js": "^3.6.5",
+    "eslint": "^7.25.0",
     "finalhandler": "^1.1.1",
     "impunity": "^1.0.0",
     "mdn-polyfills": "^5.20.0",
@@ -43,6 +43,7 @@
     "postcss-import": "^12.0.1",
     "postcss-url": "^8.0.0",
     "regenerator-runtime": "^0.13.7",
+    "rollup": "^2.26.4",
     "rollup-plugin-cleanup": "^3.1.1",
     "serve-static": "^1.13.2",
     "xxhashjs": "^0.2.2"
