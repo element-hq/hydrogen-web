@@ -139,6 +139,14 @@ export class RoomViewModel extends ViewModel {
     leaveRoom() {
         this._room.leave();
     }
+
+    get canForget() {
+        return this._room.isArchived;
+    }
+
+    forgetRoom() {
+        this._room.forget();
+    }
     
     async _sendMessage(message) {
         if (!this._room.isArchived && message) {
@@ -270,7 +278,6 @@ export class RoomViewModel extends ViewModel {
         }
     }
     
-
     get composerViewModel() {
         return this._composerVM;
     }

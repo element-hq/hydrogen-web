@@ -70,6 +70,9 @@ export class RoomView extends TemplateView {
             if (vm.canLeave) {
                 options.push(Menu.option(vm.i18n`Leave room`, () => vm.leaveRoom()));
             }
+            if (vm.canForget) {
+                options.push(Menu.option(vm.i18n`Forget room`, () => vm.forgetRoom()));
+            }
             if (!options.length) {
                 return;
             }

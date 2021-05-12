@@ -85,6 +85,7 @@ export class Session {
             });
         }
         this._createRoomEncryption = this._createRoomEncryption.bind(this);
+        this._forgetArchivedRoom = this._forgetArchivedRoom.bind(this);
         this.needsSessionBackup = new ObservableValue(false);
     }
 
@@ -407,6 +408,7 @@ export class Session {
             storage: this._storage,
             emitCollectionChange: () => {},
             releaseCallback: () => this._activeArchivedRooms.delete(roomId),
+            forgetCallback: this._forgetArchivedRoom,
             hsApi: this._hsApi,
             mediaRepository: this._mediaRepository,
             user: this._user,
@@ -552,6 +554,13 @@ export class Session {
                     }
                 }
             }
+        }
+    }
+
+    _forgetArchivedRoom(roomId) {
+        const statusObservable = this._observedRoomStatus.get(roomId);
+        if (statusObservable) {
+            statusObservable.set(statusObservable.get().withoutArchived());
         }
     }
 
