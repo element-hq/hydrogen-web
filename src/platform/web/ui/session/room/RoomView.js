@@ -16,6 +16,8 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../general/TemplateView.js";
+import {Popup} from "../../general/Popup.js";
+import {Menu} from "../../general/Menu.js";
 import {TimelineList} from "./TimelineList.js";
 import {TimelineLoadingView} from "./TimelineLoadingView.js";
 import {MessageComposer} from "./MessageComposer.js";
@@ -23,6 +25,11 @@ import {RoomArchivedView} from "./RoomArchivedView.js";
 import {AvatarView} from "../../avatar.js";
 
 export class RoomView extends TemplateView {
+    constructor(options) {
+        super(options);
+        this._optionsPopup = null;
+    }
+
     render(t, vm) {
         let bottomView;
         if (vm.composerViewModel.kind === "composer") {
@@ -37,6 +44,10 @@ export class RoomView extends TemplateView {
                 t.div({className: "room-description"}, [
                     t.h2(vm => vm.name),
                 ]),
+                t.button({
+                    className: "button-utility room-options",
+                    onClick: evt => this._toggleOptionsMenu(evt)
+                }, "⋮")
             ]),
             t.div({className: "RoomView_body"}, [
                 t.div({className: "RoomView_error"}, vm => vm.error),
@@ -48,5 +59,34 @@ export class RoomView extends TemplateView {
                 t.view(bottomView),
             ])
         ]);
+    }
+
+    _toggleOptionsMenu(evt) {
+        if (this._optionsPopup && this._optionsPopup.isOpen) {
+            this._optionsPopup.close();
+        } else {
+            const vm = this.value;
+            const options = [];
+            if (vm.canLeave) {
+                options.push(Menu.option(vm.i18n`Leave room`, () => vm.leaveRoom()));
+            }
+            if (!options.length) {
+                return;
+            }
+            this._optionsPopup = new Popup(new Menu(options));
+            this._optionsPopup.trackInTemplateView(this);
+            this._optionsPopup.showRelativeTo(evt.target, {
+                horizontal: {
+                    relativeTo: "end",
+                    align: "start",
+                    after: 0
+                },
+                vertical: {
+                    relativeTo: "start",
+                    align: "start",
+                    after: 40 + 4
+                }
+            });
+        }
     }
 }

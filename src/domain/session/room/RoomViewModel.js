@@ -131,6 +131,14 @@ export class RoomViewModel extends ViewModel {
     get avatarTitle() {
         return this.name;
     }
+
+    get canLeave() {
+        return this._room.isJoined;
+    }
+
+    leaveRoom() {
+        this._room.leave();
+    }
     
     async _sendMessage(message) {
         if (!this._room.isArchived && message) {

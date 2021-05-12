@@ -367,6 +367,13 @@ export class Room extends BaseRoom {
         }
     }
 
+    leave(log = null) {
+        return this._platform.logger.wrapOrRun(log, "leave room", async log => {
+            log.set("id", this.id);
+            await this._hsApi.leave(this.id, {log}).response();
+        });
+    }
+
     /* called by BaseRoom to pass pendingEvents when opening the timeline */
     _getPendingEvents() {
         return this._sendQueue.pendingEvents;
