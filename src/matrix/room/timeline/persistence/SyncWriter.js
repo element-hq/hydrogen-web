@@ -200,12 +200,16 @@ export class SyncWriter {
                 const index = events.findIndex(event => event.event_id === lastEventId);
                 if (index !== -1) {
                     log.set("overlap_event_id", lastEventId);
-                    return {
+                    return Object.assign({}, timeline, {
                         limited: false,
-                        events: events.slice(index + 1)
-                    };
+                        events: events.slice(index + 1),
+                    });
                 }
             }
+        }
+        if (!timeline.limited) {
+            log.set("force_limited_without_overlap", true);
+            return Object.assign({}, timeline, {limited: true});
         }
         return timeline;
     }

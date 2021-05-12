@@ -27,6 +27,24 @@ function applyTimelineEntries(data, timelineEntries, isInitialSync, canMarkUnrea
     return data;
 }
 
+export function reduceStateEvents(roomResponse, callback, value) {
+    const stateEvents = roomResponse?.state?.events;
+    // state comes before timeline
+    if (Array.isArray(stateEvents)) {
+        value = stateEvents.reduce(callback, value);
+    }
+    const timelineEvents = roomResponse?.timeline?.events;
+    // and after that state events in the timeline
+    if (Array.isArray(timelineEvents)) {
+        value = timelineEvents.reduce((data, event) => {
+            if (typeof event.state_key === "string") {
+                value = callback(value, event);
+            }
+            return value;
+        }, value);
+    }
+    return value;
+}
 
 function applySyncResponse(data, roomResponse, membership) {
     if (roomResponse.summary) {
@@ -39,39 +57,31 @@ function applySyncResponse(data, roomResponse, membership) {
     if (roomResponse.account_data) {
         data = roomResponse.account_data.events.reduce(processRoomAccountData, data);
     }
-    const stateEvents = roomResponse?.state?.events;
-    // state comes before timeline
-    if (Array.isArray(stateEvents)) {
-        data = stateEvents.reduce(processStateEvent, data);
-    }
-    const timelineEvents = roomResponse?.timeline?.events;
-    // process state events in timeline
+    // process state events in state and in timeline.
     // non-state events are handled by applyTimelineEntries
     // so decryption is handled properly
-    if (Array.isArray(timelineEvents)) {
-        data = timelineEvents.reduce((data, event) => {
-            if (typeof event.state_key === "string") {
-                return processStateEvent(data, event);
-            }
-            return data;
-        }, data);
-    }
+    data = reduceStateEvents(roomResponse, processStateEvent, data);
     const unreadNotifications = roomResponse.unread_notifications;
     if (unreadNotifications) {
-        const highlightCount = unreadNotifications.highlight_count || 0;
-        if (highlightCount !== data.highlightCount) {
-            data = data.cloneIfNeeded();
-            data.highlightCount = highlightCount;
-        }
-        const notificationCount = unreadNotifications.notification_count;
-        if (notificationCount !== data.notificationCount) {
-            data = data.cloneIfNeeded();
-            data.notificationCount = notificationCount;
-        }
+        data = processNotificationCounts(data, unreadNotifications);
     }
 
     return data;
 }
+
+function processNotificationCounts(data, unreadNotifications) {
+    const highlightCount = unreadNotifications.highlight_count || 0;
+    if (highlightCount !== data.highlightCount) {
+        data = data.cloneIfNeeded();
+        data.highlightCount = highlightCount;
+    }
+    const notificationCount = unreadNotifications.notification_count;
+    if (notificationCount !== data.notificationCount) {
+        data = data.cloneIfNeeded();
+        data.notificationCount = notificationCount;
+    }
+    return data;
+} 
 
 function processRoomAccountData(data, event) {
     if (event?.type === "m.tag") {
@@ -152,10 +162,11 @@ function applyInvite(data, invite) {
     if (data.isDirectMessage !== invite.isDirectMessage) {
         data = data.cloneIfNeeded();
         data.isDirectMessage = invite.isDirectMessage;
-    }
-    if (data.dmUserId !== invite.inviter?.userId) {
-        data = data.cloneIfNeeded();
-        data.dmUserId = invite.inviter?.userId;
+        if (invite.isDirectMessage) {
+            data.dmUserId = invite.inviter?.userId;
+        } else {
+            data.dmUserId = null;
+        }
     }
     return data;
 }
@@ -204,8 +215,12 @@ export class SummaryData {
     }
 
     serialize() {
-        const {cloned, ...serializedProps} = this;
-        return serializedProps;
+        return Object.entries(this).reduce((obj, [key, value]) => {
+            if (key !== "cloned" && value !== null) {
+                obj[key] = value;
+            }
+            return obj;
+        }, {});
     }
 
     applyTimelineEntries(timelineEntries, isInitialSync, canMarkUnread, ownUserId) {
@@ -222,6 +237,10 @@ export class SummaryData {
 
     get needsHeroes() {
         return !this.name && !this.canonicalAlias && this.heroes && this.heroes.length > 0;
+    }
+
+    isNewJoin(oldData) {
+        return this.membership === "join" && oldData.membership !== "join";
     }
 }
 
@@ -265,6 +284,14 @@ export class RoomSummary {
 		}
 	}
 
+    /** move summary to archived store when leaving the room */
+    writeArchivedData(data, txn) {
+        if (data !== this._data) {
+            txn.archivedRoomSummary.set(data.serialize());
+            return data;
+        }
+    }
+
     async writeAndApplyData(data, storage) {
         if (data === this._data) {
             return false;
@@ -297,15 +324,15 @@ export class RoomSummary {
 
 export function tests() {
     return {
-        "membership trigger change": function(assert) {
-            const summary = new RoomSummary("id");
-            let written = false;
-            let changes = summary.data.applySyncResponse({}, "join");
-            const txn = {roomSummary: {set: () => { written = true; }}};
-            changes = summary.writeData(changes, txn);
-            assert(changes);
-            assert(written);
-            assert.equal(changes.membership, "join");
+        "serialize doesn't include null fields or cloned": assert => {
+            const roomId = "!123:hs.tld";
+            const data = new SummaryData(null, roomId);
+            const clone = data.cloneIfNeeded();
+            const serialized = clone.serialize();
+            assert.strictEqual(serialized.cloned, undefined);
+            assert.equal(serialized.roomId, roomId);
+            const nullCount = Object.values(serialized).reduce((count, value) => count + value === null ? 1 : 0, 0);
+            assert.strictEqual(nullCount, 0);
         }
     }
 }

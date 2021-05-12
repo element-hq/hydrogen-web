@@ -81,21 +81,37 @@ export function reqAsPromise(req) {
             resolve(event.target.result);
             needsSyncPromise && Promise._flush && Promise._flush();
         });
-        req.addEventListener("error", () => {
-            reject(new IDBRequestError(req));
+        req.addEventListener("error", event => {
+            const error = new IDBRequestError(event.target);
+            reject(error);
             needsSyncPromise && Promise._flush && Promise._flush();
         });
     });
 }
 
 export function txnAsPromise(txn) {
+    let error;
     return new Promise((resolve, reject) => {
         txn.addEventListener("complete", () => {
             resolve();
             needsSyncPromise && Promise._flush && Promise._flush();
         });
-        txn.addEventListener("abort", () => {
-            reject(new IDBRequestError(txn));
+        txn.addEventListener("error", event => {
+            const request = event.target;
+            // catch first error here, but don't reject yet,
+            // as we don't have access to the failed request in the abort event handler
+            if (!error && request) {
+                error = new IDBRequestError(request);
+            }
+        });
+        txn.addEventListener("abort", event => {
+            if (!error) {
+                const txn = event.target;
+                const dbName = txn.db.name;
+                const storeNames = Array.from(txn.objectStoreNames).join(", ")
+                error = new StorageError(`Transaction on ${dbName} with stores ${storeNames} was aborted.`);
+            }
+            reject(error);
             needsSyncPromise && Promise._flush && Promise._flush();
         });
     });

@@ -12,7 +12,8 @@ export const schema = [
     createE2EEStores,
     migrateEncryptionFlag,
     createAccountDataStore,
-    createInviteStore
+    createInviteStore,
+    createArchivedRoomSummaryStore,
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -108,4 +109,9 @@ function createAccountDataStore(db) {
 // v7
 function createInviteStore(db) {
     db.createObjectStore("invites", {keyPath: "roomId"});
+}
+
+// v8
+function createArchivedRoomSummaryStore(db) {
+    db.createObjectStore("archivedRoomSummary", {keyPath: "summary.roomId"});
 }

@@ -152,7 +152,8 @@ export class Invite extends EventEmitter {
         }
     }
 
-    afterSync(changes) {
+    afterSync(changes, log) {
+        log.set("id", this.id);
         if (changes) {
             if (changes.removed) {
                 this._accepting = false;
@@ -162,16 +163,11 @@ export class Invite extends EventEmitter {
                 } else {
                     this._rejected = true;
                 }
-                // important to remove before emitting change
-                // so code checking session.invites.get(id) won't
-                // find the invite anymore on update
-                this._emitCollectionRemove(this);
                 this.emit("change");
             } else {
+                // no emit change, adding to the collection is done by sync
                 this._inviteData = changes.inviteData;
                 this._inviter = changes.inviter;
-                // sync will add the invite to the collection by
-                // calling session.addInviteAfterSync
             }
         }
     }
@@ -277,7 +273,7 @@ export function tests() {
             const txn = createStorage();
             const changes = await invite.writeSync("invite", roomInviteFixture, txn, new NullLogItem());
             assert.equal(txn.invitesMap.get(roomId).roomId, roomId);
-            invite.afterSync(changes);
+            invite.afterSync(changes, new NullLogItem());
             assert.equal(invite.name, "Invite example");
             assert.equal(invite.avatarUrl, roomAvatarUrl);
             assert.equal(invite.isPublic, false);
@@ -298,7 +294,7 @@ export function tests() {
             const txn = createStorage();
             const changes = await invite.writeSync("invite", dmInviteFixture, txn, new NullLogItem());
             assert.equal(txn.invitesMap.get(roomId).roomId, roomId);
-            invite.afterSync(changes);
+            invite.afterSync(changes, new NullLogItem());
             assert.equal(invite.name, "Alice");
             assert.equal(invite.avatarUrl, aliceAvatarUrl);
             assert.equal(invite.timestamp, 1003);
@@ -329,28 +325,25 @@ export function tests() {
             assert.equal(invite.inviter.displayName, "Alice");
             assert.equal(invite.inviter.avatarUrl, aliceAvatarUrl);
         },
-        "syncing with membership from invite removes the invite": async assert => {
-            let removedEmitted = false;
+        "syncing join sets accepted": async assert => {
+            let changeEmitCount = 0;
             const invite = new Invite({
                 roomId,
                 platform: {clock: new MockClock(1003)},
                 user: {id: "@bob:hs.tld"},
-                emitCollectionRemove: emittingInvite => {
-                    assert.equal(emittingInvite, invite);
-                    removedEmitted = true;
-                } 
             });
+            invite.on("change", () => { changeEmitCount += 1; });
             const txn = createStorage();
             const changes = await invite.writeSync("invite", dmInviteFixture, txn, new NullLogItem());
             assert.equal(txn.invitesMap.get(roomId).roomId, roomId);
-            invite.afterSync(changes);
+            invite.afterSync(changes, new NullLogItem());
             const joinChanges = await invite.writeSync("join", null, txn, new NullLogItem());
-            assert(!removedEmitted);
-            invite.afterSync(joinChanges);
+            assert.strictEqual(changeEmitCount, 0);
+            invite.afterSync(joinChanges, new NullLogItem());
+            assert.strictEqual(changeEmitCount, 1);
             assert.equal(txn.invitesMap.get(roomId), undefined);
             assert.equal(invite.rejected, false);
             assert.equal(invite.accepted, true);
-            assert(removedEmitted);
         }
     }
 }

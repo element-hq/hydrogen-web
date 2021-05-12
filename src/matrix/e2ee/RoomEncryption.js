@@ -83,8 +83,9 @@ export class RoomEncryption {
     }
 
     async writeMemberChanges(memberChanges, txn, log) {
-        let shouldFlush;
+        let shouldFlush = false;
         const memberChangesArray = Array.from(memberChanges.values());
+        // this also clears our session if we leave the room ourselves
         if (memberChangesArray.some(m => m.hasLeft)) {
             log.log({
                 l: "discardOutboundSession",

@@ -15,7 +15,6 @@ limitations under the License.
 */
 
 import {ViewModel} from "../ViewModel.js";
-import {removeRoomFromPath} from "../navigation/index.js";
 
 function dedupeSparse(roomIds) {
     return roomIds.map((id, idx) => {
@@ -33,10 +32,9 @@ export class RoomGridViewModel extends ViewModel {
 
         this._width = options.width;
         this._height = options.height;
-        this._createRoomViewModel = options.createRoomViewModel;
+        this._createRoomViewModelObservable = options.createRoomViewModelObservable;
         this._selectedIndex = 0;
-        this._viewModels = [];
-        this._refreshRoomViewModel = this._refreshRoomViewModel.bind(this);
+        this._viewModelsObservables = [];
         this._setupNavigation();
     }
 
@@ -55,38 +53,17 @@ export class RoomGridViewModel extends ViewModel {
         this.track(focusedRoom.subscribe(roomId => {
             if (roomId) {
                 // as the room will be in the "rooms" observable
-                // (monitored by the parent vm) as well,
+                // (monitored by the parent vmo) as well,
                 // we only change the focus here and trust
-                // setRoomIds to have created the vm already
+                // setRoomIds to have created the vmo already
                 this._setFocusRoom(roomId);
             }
         }));
         // initial focus for a room is set by initializeRoomIdsAndTransferVM
     }
 
-    _refreshRoomViewModel(roomId) {
-        const index = this._viewModels.findIndex(vm => vm?.id === roomId);
-        if (index === -1) {
-            return;
-        }
-        this._viewModels[index] = this.disposeTracked(this._viewModels[index]);
-        // this will create a RoomViewModel because the invite is already
-        // removed from the collection (see Invite.afterSync)
-        const roomVM = this._createRoomViewModel(roomId, this._refreshRoomViewModel);
-        if (roomVM) {
-            this._viewModels[index] = this.track(roomVM);
-            if (this.focusIndex === index) {
-                roomVM.focus();
-            }
-        } else {
-            // close room id
-            this.navigation.applyPath(removeRoomFromPath(this.navigation.path, roomId));
-        }
-        this.emitChange();
-    }
-
     roomViewModelAt(i) {
-        return this._viewModels[i];
+        return this._viewModelsObservables[i]?.get();
     }
 
     get focusIndex() {
@@ -105,9 +82,9 @@ export class RoomGridViewModel extends ViewModel {
         if (index === this._selectedIndex) {
             return;
         }
-        const vm = this._viewModels[index];
-        if (vm) {
-            this.navigation.push("room", vm.id);
+        const vmo = this._viewModelsObservables[index];
+        if (vmo) {
+            this.navigation.push("room", vmo.id);
         } else {
             this.navigation.push("empty-grid-tile", index);
         }
@@ -120,7 +97,8 @@ export class RoomGridViewModel extends ViewModel {
         if (existingRoomVM) {
             const index = roomIds.indexOf(existingRoomVM.id);
             if (index !== -1) {
-                this._viewModels[index] = this.track(existingRoomVM);
+                this._viewModelsObservables[index] = this.track(existingRoomVM);
+                existingRoomVM.subscribe(viewModel => this._refreshRoomViewModel(viewModel));
                 transfered = true;
             }
         }
@@ -128,7 +106,7 @@ export class RoomGridViewModel extends ViewModel {
         // now all view models exist, set the focus to the selected room
         const focusedRoom = this.navigation.path.get("room");
         if (focusedRoom) {
-            const index = this._viewModels.findIndex(vm => vm && vm.id === focusedRoom.value);
+            const index = this._viewModelsObservables.findIndex(vmo => vmo && vmo.id === focusedRoom.value);
             if (index !== -1) {
                 this._selectedIndex = index;
             }
@@ -143,17 +121,17 @@ export class RoomGridViewModel extends ViewModel {
         const len = this._height * this._width;
         for (let i = 0; i < len; i += 1) {
             const newId = roomIds[i];
-            const vm = this._viewModels[i];
+            const vmo = this._viewModelsObservables[i];
             // did anything change?
-            if ((!vm && newId) || (vm && vm.id !== newId)) {
-                if (vm) {
-                    this._viewModels[i] = this.disposeTracked(vm);
+            if ((!vmo && newId) || (vmo && vmo.id !== newId)) {
+                if (vmo) {
+                    this._viewModelsObservables[i] = this.disposeTracked(vmo);
                 }
                 if (newId) {
-                    const newVM = this._createRoomViewModel(newId, this._refreshRoomViewModel);
-                    if (newVM) {
-                        this._viewModels[i] = this.track(newVM);
-                    }
+                    const vmo = this._createRoomViewModelObservable(newId);
+                    this._viewModelsObservables[i] = this.track(vmo);
+                    vmo.subscribe(viewModel => this._refreshRoomViewModel(viewModel));
+                    vmo.initialize();
                 }
                 changed = true;
             }
@@ -163,15 +141,21 @@ export class RoomGridViewModel extends ViewModel {
         }
         return changed;
     }
+
+    _refreshRoomViewModel(viewModel) {
+        this.emitChange();
+        viewModel?.focus();
+    }
     
     /** called from SessionViewModel */
     releaseRoomViewModel(roomId) {
-        const index = this._viewModels.findIndex(vm => vm && vm.id === roomId);
+        const index = this._viewModelsObservables.findIndex(vmo => vmo && vmo.id === roomId);
         if (index !== -1) {
-            const vm = this._viewModels[index];
-            this.untrack(vm);
-            this._viewModels[index] = null;
-            return vm;
+            const vmo = this._viewModelsObservables[index];
+            this.untrack(vmo);
+            vmo.unsubscribeAll();
+            this._viewModelsObservables[index] = null;
+            return vmo;
         }
     }
 
@@ -180,13 +164,13 @@ export class RoomGridViewModel extends ViewModel {
             return;
         }
         this._selectedIndex = idx;
-        const vm = this._viewModels[this._selectedIndex];
-        vm?.focus();
+        const vmo = this._viewModelsObservables[this._selectedIndex];
+        vmo?.get()?.focus();
         this.emitChange("focusIndex");
     }
 
     _setFocusRoom(roomId) {
-        const index = this._viewModels.findIndex(vm => vm?.id === roomId);
+        const index = this._viewModelsObservables.findIndex(vmo => vmo?.id === roomId);
         if (index >= 0) {
             this._setFocusIndex(index);
         }
@@ -194,6 +178,8 @@ export class RoomGridViewModel extends ViewModel {
 }
 
 import {createNavigation} from "../navigation/index.js";
+import {ObservableValue} from "../../observable/ObservableValue.js";
+
 export function tests() { 
     class RoomVMMock {
         constructor(id) {
@@ -207,6 +193,12 @@ export function tests() {
         focus() {
             this.focused = true;
         }
+    }
+
+    class RoomViewModelObservableMock extends ObservableValue {
+        async initialize() {}
+        dispose() { this.get()?.dispose(); }
+        get id() { return this.get()?.id; }
     }
 
     function createNavigationForRoom(rooms, room) {
@@ -233,7 +225,7 @@ export function tests() {
         "initialize with duplicate set of rooms": assert => {
             const navigation = createNavigationForRoom(["c", "a", "b", undefined, "a"], "a");
             const gridVM = new RoomGridViewModel({
-                createRoomViewModel: id => new RoomVMMock(id),
+                createRoomViewModelObservable: id => new RoomViewModelObservableMock(new RoomVMMock(id)),
                 navigation,
                 width: 3,
                 height: 2,
@@ -250,12 +242,12 @@ export function tests() {
         "transfer room view model": assert => {
             const navigation = createNavigationForRoom(["a"], "a");
             const gridVM = new RoomGridViewModel({
-                createRoomViewModel: () => assert.fail("no vms should be created"),
+                createRoomViewModelObservable: () => assert.fail("no vms should be created"),
                 navigation,
                 width: 3,
                 height: 2,
             });
-            const existingRoomVM = new RoomVMMock("a");
+            const existingRoomVM = new RoomViewModelObservableMock(new RoomVMMock("a"));
             const transfered = gridVM.initializeRoomIdsAndTransferVM(navigation.path.get("rooms").value, existingRoomVM);
             assert.equal(transfered, true);
             assert.equal(gridVM.focusIndex, 0);
@@ -264,12 +256,12 @@ export function tests() {
         "reject transfer for non-matching room view model": assert => {
             const navigation = createNavigationForRoom(["a"], "a");
             const gridVM = new RoomGridViewModel({
-                createRoomViewModel: id => new RoomVMMock(id),
+                createRoomViewModelObservable: id => new RoomViewModelObservableMock(new RoomVMMock(id)),
                 navigation,
                 width: 3,
                 height: 2,
             });
-            const existingRoomVM = new RoomVMMock("f");
+            const existingRoomVM = new RoomViewModelObservableMock(new RoomVMMock("f"));
             const transfered = gridVM.initializeRoomIdsAndTransferVM(navigation.path.get("rooms").value, existingRoomVM);
             assert.equal(transfered, false);
             assert.equal(gridVM.focusIndex, 0);
@@ -278,7 +270,7 @@ export function tests() {
         "created & released room view model is not disposed": assert => {
             const navigation = createNavigationForRoom(["a"], "a");
             const gridVM = new RoomGridViewModel({
-                createRoomViewModel: id => new RoomVMMock(id),
+                createRoomViewModelObservable: id => new RoomViewModelObservableMock(new RoomVMMock(id)),
                 navigation,
                 width: 3,
                 height: 2,
@@ -287,27 +279,27 @@ export function tests() {
             assert.equal(transfered, false);
             const releasedVM = gridVM.releaseRoomViewModel("a");
             gridVM.dispose();
-            assert.equal(releasedVM.disposed, false);
+            assert.equal(releasedVM.get().disposed, false);
         },
         "transfered & released room view model is not disposed": assert => {
             const navigation = createNavigationForRoom([undefined, "a"], "a");
             const gridVM = new RoomGridViewModel({
-                createRoomViewModel: () => assert.fail("no vms should be created"),
+                createRoomViewModelObservable: () => assert.fail("no vms should be created"),
                 navigation,
                 width: 3,
                 height: 2,
             });
-            const existingRoomVM = new RoomVMMock("a");
+            const existingRoomVM = new RoomViewModelObservableMock(new RoomVMMock("a"));
             const transfered = gridVM.initializeRoomIdsAndTransferVM(navigation.path.get("rooms").value, existingRoomVM);
             assert.equal(transfered, true);
             const releasedVM = gridVM.releaseRoomViewModel("a");
             gridVM.dispose();
-            assert.equal(releasedVM.disposed, false);
+            assert.equal(releasedVM.get().disposed, false);
         },
         "try release non-existing room view model is": assert => {
             const navigation = createNavigationForEmptyTile([undefined, "b"], 3);
             const gridVM = new RoomGridViewModel({
-                createRoomViewModel: id => new RoomVMMock(id),
+                createRoomViewModelObservable: id => new RoomViewModelObservableMock(new RoomVMMock(id)),
                 navigation,
                 width: 3,
                 height: 2,
@@ -319,7 +311,7 @@ export function tests() {
         "initial focus is set to empty tile": assert => {
             const navigation = createNavigationForEmptyTile(["a"], 1);
             const gridVM = new RoomGridViewModel({
-                createRoomViewModel: id => new RoomVMMock(id),
+                createRoomViewModelObservable: id => new RoomViewModelObservableMock(new RoomVMMock(id)),
                 navigation,
                 width: 3,
                 height: 2,
@@ -331,7 +323,7 @@ export function tests() {
         "change room ids after creation": assert => {
             const navigation = createNavigationForRoom(["a", "b"], "a");
             const gridVM = new RoomGridViewModel({
-                createRoomViewModel: id => new RoomVMMock(id),
+                createRoomViewModelObservable: id => new RoomViewModelObservableMock(new RoomVMMock(id)),
                 navigation,
                 width: 3,
                 height: 2,

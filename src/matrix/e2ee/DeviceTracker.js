@@ -121,24 +121,38 @@ export class DeviceTracker {
         }
     }
 
+    async _removeRoomFromUserIdentity(roomId, userId, txn) {
+        const {userIdentities, deviceIdentities} = txn;
+        const identity = await userIdentities.get(userId);
+        if (identity) {
+            identity.roomIds = identity.roomIds.filter(id => id !== roomId);
+            // no more encrypted rooms with this user, remove
+            if (identity.roomIds.length === 0) {
+                userIdentities.remove(userId);
+                deviceIdentities.removeAllForUser(userId);
+            } else {
+                userIdentities.set(identity);
+            }
+        }
+    }
+
     async _applyMemberChange(memberChange, txn) {
         // TODO: depends whether we encrypt for invited users??
         // add room
-        if (memberChange.previousMembership !== "join" && memberChange.membership === "join") {
+        if (memberChange.hasJoined) {
             await this._writeMember(memberChange.member, txn);
         }
         // remove room
-        else if (memberChange.previousMembership === "join" && memberChange.membership !== "join") {
-            const {userIdentities} = txn;
-            const identity = await userIdentities.get(memberChange.userId);
-            if (identity) {
-                identity.roomIds = identity.roomIds.filter(roomId => roomId !== memberChange.roomId);
-                // no more encrypted rooms with this user, remove
-                if (identity.roomIds.length === 0) {
-                    userIdentities.remove(identity.userId);
-                } else {
-                    userIdentities.set(identity);
-                }
+        else if (memberChange.hasLeft) {
+            const {roomId} = memberChange;
+            // if we left the room, remove room from all user identities in the room
+            if (memberChange.userId === this._ownUserId) {
+                const userIds = await txn.roomMembers.getAllUserIds(roomId);
+                await Promise.all(userIds.map(userId => {
+                    return this._removeRoomFromUserIdentity(roomId, userId, txn);
+                }));
+            } else {
+                await this._removeRoomFromUserIdentity(roomId, memberChange.userId, txn);
             }
         }
     }

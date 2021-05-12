@@ -22,15 +22,19 @@ import {ViewModel} from "../../ViewModel.js";
 export class RoomViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {room, ownUserId, refreshRoomViewModel} = options;
+        const {room, ownUserId} = options;
         this._room = room;
         this._ownUserId = ownUserId;
-        this._refreshRoomViewModel = refreshRoomViewModel;
         this._timelineVM = null;
         this._onRoomChange = this._onRoomChange.bind(this);
         this._timelineError = null;
         this._sendError = null;
-        this._composerVM = new ComposerViewModel(this);
+        this._composerVM = null;
+        if (room.isArchived) {
+            this._composerVM = new ArchivedViewModel(this.childOptions({archivedRoom: room}));
+        } else {
+            this._composerVM = new ComposerViewModel(this);
+        }
         this._clearUnreadTimout = null;
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
     }
@@ -55,7 +59,7 @@ export class RoomViewModel extends ViewModel {
     }
 
     async _clearUnreadAfterDelay() {
-        if (this._clearUnreadTimout) {
+        if (this._room.isArchived || this._clearUnreadTimout) {
             return;
         }
         this._clearUnreadTimout = this.clock.createTimeout(2000);
@@ -77,6 +81,9 @@ export class RoomViewModel extends ViewModel {
     dispose() {
         super.dispose();
         this._room.off("change", this._onRoomChange);
+        if (this._room.isArchived) {
+            this._room.release();
+        }
         if (this._clearUnreadTimout) {
             this._clearUnreadTimout.abort();
             this._clearUnreadTimout = null;
@@ -86,13 +93,10 @@ export class RoomViewModel extends ViewModel {
     // room doesn't tell us yet which fields changed,
     // so emit all fields originating from summary
     _onRoomChange() {
-        // if there is now an invite on this (left) room,
-        // show the invite view by refreshing the view model
-        if (this._room.invite) {
-            this._refreshRoomViewModel(this.id);
-        } else {
-            this.emitChange("name");
+        if (this._room.isArchived) {
+            this._composerVM.emitChange();
         }
+        this.emitChange();
     }
 
     get kind() { return "room"; }
@@ -129,7 +133,7 @@ export class RoomViewModel extends ViewModel {
     }
     
     async _sendMessage(message) {
-        if (message) {
+        if (!this._room.isArchived && message) {
             try {
                 let msgtype = "m.text";
                 if (message.startsWith("/me ")) {
@@ -310,6 +314,10 @@ class ComposerViewModel extends ViewModel {
             this.emitChange("canSend");
         }
     }
+
+    get kind() {
+        return "composer";
+    }
 }
 
 function imageToInfo(image) {
@@ -325,4 +333,33 @@ function videoToInfo(video) {
     const info = imageToInfo(video);
     info.duration = video.duration;
     return info;
+}
+
+class ArchivedViewModel extends ViewModel {
+    constructor(options) {
+        super(options);
+        this._archivedRoom = options.archivedRoom;
+    }
+
+    get description() {
+        if (this._archivedRoom.isKicked) {
+            if (this._archivedRoom.kickReason) {
+                return this.i18n`You were kicked from the room by ${this._archivedRoom.kickedBy.name} because: ${this._archivedRoom.kickReason}`;
+            } else {
+                return this.i18n`You were kicked from the room by ${this._archivedRoom.kickedBy.name}.`;
+            }
+        } else if (this._archivedRoom.isBanned) {
+            if (this._archivedRoom.kickReason) {
+                return this.i18n`You were banned from the room by ${this._archivedRoom.kickedBy.name} because: ${this._archivedRoom.kickReason}`;
+            } else {
+                return this.i18n`You were banned from the room by ${this._archivedRoom.kickedBy.name}.`;
+            }
+        } else {
+            return this.i18n`You left this room`;
+        }
+    }
+
+    get kind() {
+        return "archived";
+    }
 }
