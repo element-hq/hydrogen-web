@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import {MIN_UNICODE, MAX_UNICODE} from "./common.js";
 
 export function encodeScopeTypeKey(scope, type) {
     return `${scope}|${type}`;
@@ -51,5 +52,17 @@ export class OperationStore {
 
     remove(id) {
         this._store.delete(id);
+    }
+
+    async removeAllForScope(scope) {
+        const range = IDBKeyRange.bound(
+            encodeScopeTypeKey(scope, MIN_UNICODE),
+            encodeScopeTypeKey(scope, MAX_UNICODE)
+        );
+        const index = this._store.index("byScopeAndType");
+        await index.iterateValues(range, (_, __, cur) => {
+            cur.delete();
+            return true;
+        });
     }
 }

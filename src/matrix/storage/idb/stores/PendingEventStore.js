@@ -68,4 +68,11 @@ export class PendingEventStore {
     getAll() {
         return this._eventStore.selectAll();
     }
+
+    removeAllForRoom(roomId) {
+        const minKey = encodeKey(roomId, KeyLimits.minStorageKey);
+        const maxKey = encodeKey(roomId, KeyLimits.maxStorageKey);
+        const range = IDBKeyRange.bound(minKey, maxKey);
+        this._eventStore.delete(range);
+    }
 }

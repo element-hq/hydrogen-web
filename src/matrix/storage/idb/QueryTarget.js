@@ -113,10 +113,18 @@ export class QueryTarget {
         return maxKey;
     }
 
+
+    async iterateValues(range, callback) {
+        const cursor = this._target.openCursor(range, "next");
+        await iterateCursor(cursor, (value, key, cur) => {
+            return {done: callback(value, key, cur)};
+        });
+    }
+
     async iterateKeys(range, callback) {
         const cursor = this._target.openKeyCursor(range, "next");
-        await iterateCursor(cursor, (_, key) => {
-            return {done: callback(key)};
+        await iterateCursor(cursor, (_, key, cur) => {
+            return {done: callback(key, cur)};
         });
     }
 
