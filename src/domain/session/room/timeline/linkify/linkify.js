@@ -112,8 +112,8 @@ export function tests() {
         },
 
         "Link ends with <": assert => {
-            const link = "https://matrxi.org";
-            const out = [{ type: "link", text: link }, { type: "text", text: "<" }];
+            const link = "https://matrix.org<";
+            const out = [{ type: "link", text: "https://matrix.org" }, { type: "text", text: "<" }];
             test(assert, link, out);
         }
     };
