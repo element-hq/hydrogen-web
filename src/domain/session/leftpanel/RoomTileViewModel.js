@@ -17,16 +17,11 @@ limitations under the License.
 
 import {BaseTileViewModel} from "./BaseTileViewModel.js";
 
-function isSortedAsUnread(vm) {
-    return vm.isUnread || (vm.isOpen && vm._wasUnreadWhenOpening);
-}
-
 export class RoomTileViewModel extends BaseTileViewModel {
     constructor(options) {
         super(options);
         const {room} = options;
         this._room = room;
-        this._wasUnreadWhenOpening = false;
         this._url = this.urlCreator.openRoomActionUrl(this._room.id);
     }
 
@@ -56,12 +51,6 @@ export class RoomTileViewModel extends BaseTileViewModel {
                 return 1;
             }
             return -1;
-        }
-        if (isSortedAsUnread(this) !== isSortedAsUnread(other)) {
-            if (isSortedAsUnread(this)) {
-                return -1;
-            }
-            return 1;
         }
         const myTimestamp = myRoom.lastMessageTimestamp;
         const theirTimestamp = theirRoom.lastMessageTimestamp;
@@ -104,11 +93,5 @@ export class RoomTileViewModel extends BaseTileViewModel {
 
     get _avatarSource() {
         return this._room;
-    }
-
-    open() {
-        if (super.open()) {
-            this._wasUnreadWhenOpening = this._room.isUnread;
-        }
     }
 }
