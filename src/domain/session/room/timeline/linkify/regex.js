@@ -1,6 +1,6 @@
 /*
 The regex is split into component strings;
-meaning that any escapes (\) must be also
+meaning that any escapes (\) must also
 be escaped.
 */
 const scheme = "(?:https|http|ftp):\\/\\/";
