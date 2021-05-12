@@ -443,6 +443,11 @@ a {
     font-size: 14rem;
 }
 
+.RoomHeader .room-options {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
 .RoomView_error {
     color: red;
 }
