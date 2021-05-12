@@ -16,7 +16,7 @@ limitations under the License.
 
 import {reduceStateEvents} from "./RoomSummary.js";
 import {BaseRoom} from "./BaseRoom.js";
-import {RoomMember} from "./members/RoomMember.js";
+import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "./members/RoomMember.js";
 
 export class ArchivedRoom extends BaseRoom {
     constructor(options) {
@@ -133,7 +133,7 @@ export class ArchivedRoom extends BaseRoom {
 
 function findKickDetails(roomResponse, ownUserId) {
     const kickEvent = reduceStateEvents(roomResponse, (kickEvent, event) => {
-        if (event.type === "m.room.member") {
+        if (event.type === MEMBER_EVENT_TYPE) {
             // did we get kicked?
             if (event.state_key === ownUserId && event.sender !== event.state_key) {
                 kickEvent = event;
