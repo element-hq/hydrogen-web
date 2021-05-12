@@ -44,6 +44,14 @@ export class Popup {
         this._trackingTemplateView.addSubView(this);
     }
 
+    /**
+    @param {DOMElement}
+    @param {string} arrangement.relativeTo: whether top/left or bottom/right is used to position
+    @param {string} arrangement.align: how much of the popup axis size (start: 0, end: width or center: width/2)
+           is taken into account when positioning relative to the target
+    @param {number} arrangement.before extra padding to shift the final positioning with
+    @param {number} arrangement.after extra padding to shift the final positioning with
+    */
     showRelativeTo(target, arrangement) {
         this._target = target;
         this._arrangement = arrangement;
@@ -102,6 +110,9 @@ export class Popup {
     }
 
     _applyArrangementAxis(axis, {relativeTo, align, before, after}) {
+        // TODO: using {relativeTo: "end", align: "start"} to align the right edge of the popup
+        // with the right side of the target doens't make sense here, we'd expect align: "right"?
+        // see RoomView
         if (relativeTo === "end") {
             let end = axis.size(this._target.offsetParent) - axis.offsetStart(this._target);
             if (align === "end") {
