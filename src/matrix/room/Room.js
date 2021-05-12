@@ -272,8 +272,8 @@ export class Room extends BaseRoom {
     /** @package */
     async load(summary, txn, log) {
         try {
-            super.load(summary, txn, log);
-            this._syncWriter.load(txn, log);
+            await super.load(summary, txn, log);
+            await this._syncWriter.load(txn, log);
         } catch (err) {
             throw new WrappedError(`Could not load room ${this._roomId}`, err);
         }
