@@ -105,4 +105,10 @@ export class RoomTileViewModel extends BaseTileViewModel {
     get _avatarSource() {
         return this._room;
     }
+
+    open() {
+        if (super.open()) {
+            this._wasUnreadWhenOpening = this._room.isUnread;
+        }
+    }
 }

@@ -25,9 +25,6 @@ export class BaseTileViewModel extends ViewModel {
         super(options);
         this._isOpen = false;
         this._hidden = false;
-        if (options.isOpen) {
-            this.open();
-        }
     }
 
     get hidden() {
@@ -52,7 +49,9 @@ export class BaseTileViewModel extends ViewModel {
         if (!this._isOpen) {
             this._isOpen = true;
             this.emitChange("isOpen");
+            return true;
         }
+        return false;
     }
 
     get isOpen() {
