@@ -96,6 +96,12 @@ export function tests() {
             }
         },
 
+        "Link doesn't adopt closing parenthesis": assert => {
+            const link = "(https://matrix.org)";
+            const out = [{ type: "text", text: "(" }, { type: "link", text: "https://matrix.org" }, { type: "text", text: ")" }];
+            test(assert, link, out);
+        },
+
         "Unicode in hostname must not linkify": assert => {
             const link = "https://foo.bar\uD83D\uDE03.com";
             const out = [{ type: "link", text: "https://foo.bar" },
