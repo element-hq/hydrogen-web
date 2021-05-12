@@ -15,15 +15,27 @@ limitations under the License.
 */
 
 import {MessageTile} from "./MessageTile.js";
+import { MessageBodyBuilder } from "../MessageBodyBuilder.js";
 
 export class TextTile extends MessageTile {
-    get text() {
+
+    get _contentBody() {
         const content = this._getContent();
-        const body = content && content.body;
+        let body = content?.body || "";
         if (content.msgtype === "m.emote") {
-            return `* ${this.displayName} ${body}`;
-        } else {
-            return body;
+            body = `* ${this.displayName} ${body}`;
         }
+        return body;
+    }
+
+    get body() {
+        const body = this._contentBody;
+        if (body === this._body) {
+            return this._message;
+        }
+        const message = new MessageBodyBuilder();
+        message.fromText(body);
+        [this._body, this._message] = [body, message];
+        return message;
     }
 }
