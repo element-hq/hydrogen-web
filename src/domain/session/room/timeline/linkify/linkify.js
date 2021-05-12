@@ -109,6 +109,12 @@ export function tests() {
 
         "Link with unicode after fragment without path must linkify": assert => {
             testLink(assert, "https://foo.bar.com#\uD83D\uDE03");
+        },
+
+        "Link ends with <": assert => {
+            const link = "https://matrxi.org";
+            const out = [{ type: "link", text: link }, { type: "text", text: "<" }];
+            test(assert, link, out);
         }
     };
 }
