@@ -49,9 +49,7 @@ export class BaseTileViewModel extends ViewModel {
         if (!this._isOpen) {
             this._isOpen = true;
             this.emitChange("isOpen");
-            return true;
         }
-        return false;
     }
 
     get isOpen() {
