@@ -4,7 +4,7 @@ meaning that any escapes (\) must also
 be escaped.
 */
 const scheme = "(?:https|http|ftp):\\/\\/";
-const noSpaceNorPunctuation = "[^\\s.,?!]";
+const noSpaceNorPunctuation = "[^\\s.,?!)]";
 const hostCharacter = "[a-zA-Z0-9:.\\[\\]-]";
 
 /*
