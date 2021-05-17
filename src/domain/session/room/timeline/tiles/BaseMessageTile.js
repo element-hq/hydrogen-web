@@ -17,7 +17,7 @@ limitations under the License.
 import {SimpleTile} from "./SimpleTile.js";
 import {getIdentifierColorNumber, avatarInitials, getAvatarHttpUrl} from "../../../../avatar.js";
 
-export class MessageTile extends SimpleTile {
+export class BaseMessageTile extends SimpleTile {
     constructor(options) {
         super(options);
         this._isOwn = this._entry.sender === options.ownUserId;
@@ -31,10 +31,6 @@ export class MessageTile extends SimpleTile {
 
     get _mediaRepository() {
         return this._room.mediaRepository;
-    }
-
-    get shape() {
-        return "message";
     }
 
     get displayName() {
@@ -89,7 +85,7 @@ export class MessageTile extends SimpleTile {
     updatePreviousSibling(prev) {
         super.updatePreviousSibling(prev);
         let isContinuation = false;
-        if (prev && prev instanceof MessageTile && prev.sender === this.sender) {
+        if (prev && prev instanceof BaseMessageTile && prev.sender === this.sender) {
             // timestamp is null for pending events
             const myTimestamp = this._entry.timestamp || this.clock.now();
             const otherTimestamp = prev._entry.timestamp || this.clock.now();

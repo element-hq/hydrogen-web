@@ -14,12 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {MessageTile} from "./MessageTile.js";
-import { MessageBodyBuilder } from "../MessageBodyBuilder.js";
+import {BaseTextTile} from "./BaseTextTile.js";
+import {parsePlainBody} from "../MessageBody.js";
 
-export class TextTile extends MessageTile {
-
-    get _contentBody() {
+export class TextTile extends BaseTextTile {
+    _getBodyAsString() {
         const content = this._getContent();
         let body = content?.body || "";
         if (content.msgtype === "m.emote") {
@@ -28,14 +27,7 @@ export class TextTile extends MessageTile {
         return body;
     }
 
-    get body() {
-        const body = this._contentBody;
-        if (body === this._body) {
-            return this._message;
-        }
-        const message = new MessageBodyBuilder();
-        message.fromText(body);
-        [this._body, this._message] = [body, message];
-        return message;
+    _parseBody(bodyString) {
+        return parsePlainBody(bodyString);
     }
 }
