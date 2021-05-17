@@ -54,16 +54,8 @@ class TextPart {
 
 class MessageBody {
     constructor(sourceString, parts) {
-        this._sourceString = sourceString;
-        this._parts = parts;
-    }
-
-    get sourceString() {
-        return this._sourceString;
-    }
-
-    get parts() {
-        return this._parts;
+        this.sourceString = sourceString;
+        this.parts = parts;
     }
 }
 
