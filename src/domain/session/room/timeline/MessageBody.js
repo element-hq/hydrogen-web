@@ -1,5 +1,10 @@
 import { linkify } from "./linkify/linkify.js";
 
+/**
+ * Parse text into parts such as newline, links and text.
+ * @param {string} body A string to parse into parts
+ * @returns {MessageBody} Parsed result
+ */
 export function parsePlainBody(body) {
     const parts = [];
     const lines = body.split("\n");
