@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {MessageTile} from "./MessageTile.js";
+import {BaseTextMessageTile} from "./BaseTextMessageTile.js";
 import {UpdateAction} from "../UpdateAction.js";
 
-export class EncryptedEventTile extends MessageTile {
+export class EncryptedEventTile extends BaseTextMessageTile {
     updateEntry(entry, params) {
         const parentResult = super.updateEntry(entry, params);
         // event got decrypted, recreate the tile and replace this one with it
@@ -33,7 +33,7 @@ export class EncryptedEventTile extends MessageTile {
         return "message-status"
     }
 
-    get text() {
+    _getBodyAsString() {
         const decryptionError = this._entry.decryptionError;
         const code = decryptionError?.code;
         if (code === "MEGOLM_NO_SESSION") {

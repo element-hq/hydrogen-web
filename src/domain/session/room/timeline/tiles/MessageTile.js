@@ -33,10 +33,6 @@ export class MessageTile extends SimpleTile {
         return this._room.mediaRepository;
     }
 
-    get shape() {
-        return "message";
-    }
-
     get displayName() {
         return this._entry.displayName || this.sender;
     }
