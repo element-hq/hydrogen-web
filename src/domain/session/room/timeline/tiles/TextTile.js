@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseTextMessageTile} from "./BaseTextMessageTile.js";
+import {BaseTextTile} from "./BaseTextTile.js";
 import {parsePlainBody} from "../MessageBody.js";
 
-export class TextTile extends BaseTextMessageTile {
+export class TextTile extends BaseTextTile {
     _getBodyAsString() {
         const content = this._getContent();
         let body = content?.body || "";

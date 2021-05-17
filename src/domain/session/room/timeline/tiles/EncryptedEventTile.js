@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseTextMessageTile} from "./BaseTextMessageTile.js";
+import {BaseTextTile} from "./BaseTextTile.js";
 import {UpdateAction} from "../UpdateAction.js";
 
-export class EncryptedEventTile extends BaseTextMessageTile {
+export class EncryptedEventTile extends BaseTextTile {
     updateEntry(entry, params) {
         const parentResult = super.updateEntry(entry, params);
         // event got decrypted, recreate the tile and replace this one with it

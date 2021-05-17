@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {MessageTile} from "./MessageTile.js";
+import {BaseMessageTile} from "./BaseMessageTile.js";
 import {stringAsBody} from "../MessageBody.js";
 
-export class BaseTextMessageTile extends MessageTile {
+export class BaseTextTile extends BaseMessageTile {
     constructor(options) {
         super(options);
         this._messageBody = null;
