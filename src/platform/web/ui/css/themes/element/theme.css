@@ -911,3 +911,21 @@ button.link {
 .RoomArchivedView h3 {
     margin: 0;
 }
+
+.UnknownRoomView {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 16px;
+    box-sizing: border-box;
+}
+
+.UnknownRoomView h2 {
+    word-break: break-all;
+    word-break: break-word;
+}
+
+.UnknownRoomView button {
+    max-width: 200px;
+    width: 100%;
+}

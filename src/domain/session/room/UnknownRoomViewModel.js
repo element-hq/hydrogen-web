@@ -22,7 +22,7 @@ export class UnknownRoomViewModel extends ViewModel {
         super(options);
         const {roomIdOrAlias, session} = options;
         this._session = session;
-        this._roomIdOrAlias = roomIdOrAlias;
+        this.roomIdOrAlias = roomIdOrAlias;
         this._error = null;
         this._busy = false;
     }
@@ -31,15 +31,11 @@ export class UnknownRoomViewModel extends ViewModel {
         return this._error?.message;
     }
 
-    get description() {
-        return this.i18n`You are currently not in ${this._roomIdOrAlias}. Want to join it?`;
-    }
-
     async join() {
         this._busy = true;
         this.emitChange("busy");
         try {
-            const roomId = await this._session.joinRoom(this._roomIdOrAlias);
+            const roomId = await this._session.joinRoom(this.roomIdOrAlias);
             // navigate to roomId if we were at the alias
             this.navigation.push("room", roomId);
         } catch (err) {
