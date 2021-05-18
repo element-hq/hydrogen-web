@@ -35,8 +35,10 @@ export class URLRouter {
 
     attach() {
         this._subscription = this._history.subscribe(url => this._applyUrl(url));
-        this._applyUrl(this._history.get());
+        // subscribe to path before applying initial url
+        // so redirects in _applyNavigationPath are reflected in url bar
         this._pathSubscription = this._navigation.pathObservable.subscribe(path => this._applyNavigationPath(path));
+        this._applyUrl(this._history.get());
     }
 
     dispose() {
