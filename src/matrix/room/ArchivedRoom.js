@@ -162,6 +162,12 @@ export class ArchivedRoom extends BaseRoom {
             this._forgetCallback(this.id);
         });
     }
+
+    join(log = null) {
+        return this._platform.logger.wrapOrRun(log, "rejoin archived room", async log => {
+            await this._hsApi.join(this.id, {log}).response();
+        });
+    }
 }
 
 function findKickDetails(roomResponse, ownUserId) {
