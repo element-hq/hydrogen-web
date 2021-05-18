@@ -23,6 +23,14 @@ export class URLRouter {
         this._subscription = null;
         this._pathSubscription = null;
         this._isApplyingUrl = false;
+        this._defaultSessionId = this._getLastSessionId();
+
+    }
+
+    _getLastSessionId() {
+        const urlPath = this._history.urlAsPath(this._history.getLastUrl());
+        const navPath = this._navigation.pathFrom(this._parseUrlPath(urlPath, this._navigation.path));
+        return navPath.get("session")?.value;
     }
 
     attach() {
@@ -50,7 +58,7 @@ export class URLRouter {
 
     _applyUrl(url) {    
         const urlPath = this._history.urlAsPath(url)
-        const navPath = this._navigation.pathFrom(this._parseUrlPath(urlPath, this._navigation.path));
+        const navPath = this._navigation.pathFrom(this._parseUrlPath(urlPath, this._navigation.path, this._defaultSessionId));
         // this will cause _applyNavigationPath to be called,
         // so set a flag whether this request came from ourselves
         // (in which case it is a redirect if the url does not match the current one)
