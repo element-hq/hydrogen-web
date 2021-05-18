@@ -16,13 +16,6 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../general/TemplateView.js";
-import {Popup} from "../../general/Popup.js";
-import {Menu} from "../../general/Menu.js";
-import {TimelineList} from "./TimelineList.js";
-import {TimelineLoadingView} from "./TimelineLoadingView.js";
-import {MessageComposer} from "./MessageComposer.js";
-import {RoomArchivedView} from "./RoomArchivedView.js";
-import {AvatarView} from "../../avatar.js";
 
 export class UnknownRoomView extends TemplateView {
     render(t, vm) {
