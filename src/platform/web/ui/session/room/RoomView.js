@@ -89,8 +89,8 @@ export class RoomView extends TemplateView {
                 },
                 vertical: {
                     relativeTo: "start",
-                    align: "start",
-                    after: 40 + 4
+                    align: "end",
+                    before: -32 - 4
                 }
             });
         }
