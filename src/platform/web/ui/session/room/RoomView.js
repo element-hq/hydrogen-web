@@ -73,6 +73,9 @@ export class RoomView extends TemplateView {
             if (vm.canForget) {
                 options.push(Menu.option(vm.i18n`Forget room`, () => vm.forgetRoom()));
             }
+            if (vm.canRejoin) {
+                options.push(Menu.option(vm.i18n`Rejoin room`, () => vm.rejoinRoom()));
+            }
             if (!options.length) {
                 return;
             }
@@ -86,8 +89,8 @@ export class RoomView extends TemplateView {
                 },
                 vertical: {
                     relativeTo: "start",
-                    align: "start",
-                    after: 40 + 4
+                    align: "end",
+                    before: -32 - 4
                 }
             });
         }

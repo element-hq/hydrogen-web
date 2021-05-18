@@ -17,6 +17,7 @@ limitations under the License.
 
 import {LeftPanelViewModel} from "./leftpanel/LeftPanelViewModel.js";
 import {RoomViewModel} from "./room/RoomViewModel.js";
+import {UnknownRoomViewModel} from "./room/UnknownRoomViewModel.js";
 import {InviteViewModel} from "./room/InviteViewModel.js";
 import {LightboxViewModel} from "./room/LightboxViewModel.js";
 import {SessionStatusViewModel} from "./SessionStatusViewModel.js";
@@ -160,6 +161,13 @@ export class SessionViewModel extends ViewModel {
             return roomVM;
         }
         return null;
+    }
+
+    _createUnknownRoomViewModel(roomIdOrAlias) {
+        return new UnknownRoomViewModel(this.childOptions({
+            roomIdOrAlias,
+            session: this._sessionContainer.session,
+        }));
     }
 
     async _createArchivedRoomViewModel(roomId) {

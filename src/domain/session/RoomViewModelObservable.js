@@ -36,6 +36,7 @@ This is also why there is an explicit initialize method, see comment there.
 export class RoomViewModelObservable extends ObservableValue {
     constructor(sessionViewModel, roomId) {
         super(null);
+        this._statusSubscription = null;
         this._sessionViewModel = sessionViewModel;
         this.id = roomId;
     }
@@ -48,9 +49,9 @@ export class RoomViewModelObservable extends ObservableValue {
     */
     async initialize() {
         const {session} = this._sessionViewModel._sessionContainer;
-        this._statusObservable = await session.observeRoomStatus(this.id);
-        this.set(await this._statusToViewModel(this._statusObservable.get()));
-        this._statusObservable.subscribe(async status => {
+        const statusObservable = await session.observeRoomStatus(this.id);
+        this.set(await this._statusToViewModel(statusObservable.get()));
+        this._statusSubscription = statusObservable.subscribe(async status => {
             // first dispose existing VM, if any
             this.get()?.dispose();
             this.set(await this._statusToViewModel(status));
@@ -64,8 +65,9 @@ export class RoomViewModelObservable extends ObservableValue {
             return this._sessionViewModel._createRoomViewModel(this.id);
         } else if (status.archived) {
             return await this._sessionViewModel._createArchivedRoomViewModel(this.id);
+        } else {
+            return this._sessionViewModel._createUnknownRoomViewModel(this.id);
         }
-        return null;
     }
 
     dispose() {

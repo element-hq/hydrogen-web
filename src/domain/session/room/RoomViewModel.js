@@ -147,6 +147,14 @@ export class RoomViewModel extends ViewModel {
     forgetRoom() {
         this._room.forget();
     }
+
+    get canRejoin() {
+        return this._room.isArchived;
+    }
+
+    rejoinRoom() {
+        this._room.join();
+    }
     
     async _sendMessage(message) {
         if (!this._room.isArchived && message) {

@@ -190,6 +190,10 @@ export class HomeServerApi {
         return this._post(`/rooms/${encodeURIComponent(roomId)}/join`, null, null, options);
     }
 
+    joinIdOrAlias(roomIdOrAlias, options = null) {
+        return this._post(`/join/${encodeURIComponent(roomIdOrAlias)}`, null, null, options);
+    }
+
     leave(roomId, options = null) {
         return this._post(`/rooms/${encodeURIComponent(roomId)}/leave`, null, null, options);
     }
