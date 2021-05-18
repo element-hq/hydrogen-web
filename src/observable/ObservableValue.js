@@ -94,6 +94,18 @@ export class ObservableValue extends BaseObservableValue {
     }
 }
 
+export class RetainedObservableValue extends ObservableValue {
+    constructor(initialValue, freeCallback) {
+        super(initialValue);
+        this._freeCallback = freeCallback;
+    }
+
+    onUnsubscribeLast() {
+        super.onUnsubscribeLast();
+        this._freeCallback();
+    }
+}
+
 export function tests() {
     return {
         "set emits an update": assert => {

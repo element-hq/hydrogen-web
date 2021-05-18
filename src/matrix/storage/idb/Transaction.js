@@ -19,6 +19,7 @@ import {StorageError} from "../common.js";
 import {Store} from "./Store.js";
 import {SessionStore} from "./stores/SessionStore.js";
 import {RoomSummaryStore} from "./stores/RoomSummaryStore.js";
+import {InviteStore} from "./stores/InviteStore.js";
 import {TimelineEventStore} from "./stores/TimelineEventStore.js";
 import {RoomStateStore} from "./stores/RoomStateStore.js";
 import {RoomMemberStore} from "./stores/RoomMemberStore.js";
@@ -62,6 +63,14 @@ export class Transaction {
 
     get roomSummary() {
         return this._store("roomSummary", idbStore => new RoomSummaryStore(idbStore));
+    }
+    
+    get archivedRoomSummary() {
+        return this._store("archivedRoomSummary", idbStore => new RoomSummaryStore(idbStore));
+    }
+
+    get invites() {
+        return this._store("invites", idbStore => new InviteStore(idbStore));
     }
 
     get timelineFragments() {

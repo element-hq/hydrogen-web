@@ -161,13 +161,15 @@ async function buildHtml(doc, version, baseConfig, globalHash, modernOnly, asset
             wasmBundle: assets.resolve("olm.js"),
         }
     }));
+    const modernScript = `import {main, Platform} from "./${assets.resolve(`hydrogen.js`)}"; main(new Platform(document.body, ${configJSON}));`;
     const mainScripts = [
-        `<script type="module">import {main, Platform} from "./${assets.resolve(`hydrogen.js`)}"; main(new Platform(document.body, ${configJSON}));</script>`
+        `<script type="module">${wrapWithLicenseComments(modernScript)}</script>`
     ];
     if (!modernOnly) {
+        const legacyScript = `hydrogen.main(new hydrogen.Platform(document.body, ${configJSON}));`;
         mainScripts.push(
             `<script type="text/javascript" nomodule src="${assets.resolve(`hydrogen-legacy.js`)}"></script>`,
-            `<script type="text/javascript" nomodule>hydrogen.main(new hydrogen.Platform(document.body, ${configJSON}));</script>`
+            `<script type="text/javascript" nomodule>${wrapWithLicenseComments(legacyScript)}</script>`
         );
     }
     doc("script#main").replaceWith(mainScripts.join(""));
@@ -177,7 +179,7 @@ async function buildHtml(doc, version, baseConfig, globalHash, modernOnly, asset
     let vSource = versionScript.contents().text();
     vSource = vSource.replace(`"%%VERSION%%"`, `"${version}"`);
     vSource = vSource.replace(`"%%GLOBAL_HASH%%"`, `"${globalHash}"`);
-    versionScript.text(vSource);
+    versionScript.text(wrapWithLicenseComments(vSource));
     doc("head").append(`<link rel="manifest" href="${assets.resolve("manifest.json")}">`);
     await assets.writeUnhashed("index.html", doc.html());
 }
@@ -198,7 +200,7 @@ async function buildJs(mainFile, extraFiles, importOverrides) {
         name: `hydrogen`
     });
     const code = output[0].code;
-    return code;
+    return wrapWithLicenseComments(code);
 }
 
 async function buildJsLegacy(mainFile, extraFiles, importOverrides) {
@@ -240,7 +242,14 @@ async function buildJsLegacy(mainFile, extraFiles, importOverrides) {
         name: `hydrogen`
     });
     const code = output[0].code;
-    return code;
+    return wrapWithLicenseComments(code);
+}
+
+function wrapWithLicenseComments(code) {
+    // Add proper license comments to make GNU LibreJS accept the file
+    const start = '// @license magnet:?xt=urn:btih:8e4f440f4c65981c5bf93c76d35135ba5064d8b7&dn=apache-2.0.txt Apache-2.0';
+    const end = '// @license-end';
+    return `${start}\n${code}\n${end}`;
 }
 
 const NON_PRECACHED_JS = [
@@ -360,7 +369,11 @@ async function buildCssLegacy(entryPath, urlMapper = null) {
     const preCss = await fs.readFile(entryPath, "utf8");
     const options = [
         postcssImport,
-        cssvariables(),
+        cssvariables({
+            preserve: (declaration) => {
+                return declaration.value.indexOf("var(--ios-") == 0;
+            }
+        }),
         autoprefixer({overrideBrowserslist: ["IE 11"], grid: "no-autoplace"}),
         flexbugsFixes()
     ];

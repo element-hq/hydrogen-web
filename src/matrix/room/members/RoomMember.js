@@ -23,6 +23,10 @@ export class RoomMember {
         this._data = data;
     }
 
+    static fromUserId(roomId, userId, membership) {
+        return new RoomMember({roomId, userId, membership});
+    }
+
     static fromMemberEvent(roomId, memberEvent) {
         const userId = memberEvent?.state_key;
         if (typeof userId !== "string") {

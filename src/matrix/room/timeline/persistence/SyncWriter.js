@@ -162,7 +162,7 @@ export class SyncWriter {
                 // store event in timeline
                 currentKey = currentKey.nextKey();
                 const entry = createEventEntry(currentKey, this._roomId, event);
-                let member = await this._memberWriter.lookupMember(event.sender, events, txn);
+                let member = await this._memberWriter.lookupMember(event.sender, event, events, txn);
                 if (member) {
                     entry.displayName = member.displayName;
                     entry.avatarUrl = member.avatarUrl;
@@ -190,6 +190,30 @@ export class SyncWriter {
         return currentKey;
     }
 
+    async _handleRejoinOverlap(timeline, txn, log) {
+        if (this._lastLiveKey) {
+            const {fragmentId} = this._lastLiveKey;
+            const [lastEvent] = await txn.timelineEvents.lastEvents(this._roomId, fragmentId, 1);
+            if (lastEvent) {
+                const lastEventId = lastEvent.event.event_id;
+                const {events} = timeline;
+                const index = events.findIndex(event => event.event_id === lastEventId);
+                if (index !== -1) {
+                    log.set("overlap_event_id", lastEventId);
+                    return Object.assign({}, timeline, {
+                        limited: false,
+                        events: events.slice(index + 1),
+                    });
+                }
+            }
+        }
+        if (!timeline.limited) {
+            log.set("force_limited_without_overlap", true);
+            return Object.assign({}, timeline, {limited: true});
+        }
+        return timeline;
+    }
+
     /**
      * @type {SyncWriterResult}
      * @property {Array<BaseEntry>} entries new timeline entries written
@@ -197,12 +221,19 @@ export class SyncWriter {
      * @property {Map<string, MemberChange>} memberChanges member changes in the processed sync ny user id
      * 
      * @param  {Object}  roomResponse [description]
+     * @param  {boolean}  isRejoin whether the room was rejoined in the sync being processed
      * @param  {Transaction}  txn     
      * @return {SyncWriterResult}
      */
-    async writeSync(roomResponse, txn, log) {
+    async writeSync(roomResponse, isRejoin, txn, log) {
         const entries = [];
-        const {timeline} = roomResponse;
+        let {timeline} = roomResponse;
+        // we have rejoined the room after having synced it before,
+        // check for overlap with the last synced event
+        log.set("isRejoin", isRejoin);
+        if (isRejoin) {
+            timeline = await this._handleRejoinOverlap(timeline, txn, log);
+        }
         const memberChanges = new Map();
         // important this happens before _writeTimeline so
         // members are available in the transaction
@@ -218,104 +249,5 @@ export class SyncWriter {
 
     get lastMessageKey() {
         return this._lastLiveKey;
-    }
-}
-
-//import MemoryStorage from "../storage/memory/MemoryStorage.js";
-
-export function xtests() {
-    const roomId = "!abc:hs.tld";
-
-    // sets sortKey and roomId on an array of entries
-    function createTimeline(roomId, entries) {
-        let key = new SortKey();
-        for (let entry of entries) {
-            if (entry.gap && entry.gap.prev_batch) {
-                key = key.nextKeyWithGap();
-            }
-            entry.sortKey = key;
-            if (entry.gap && entry.gap.next_batch) {
-                key = key.nextKeyWithGap();
-            } else if (!entry.gap) {
-                key = key.nextKey();
-            }
-            entry.roomId = roomId;
-        }
-    }
-
-    function areSorted(entries) {
-        for (var i = 1; i < entries.length; i++) {
-            const isSorted = entries[i - 1].sortKey.compare(entries[i].sortKey) < 0;
-            if(!isSorted) {
-                return false
-            }
-        }
-        return true;
-    }
-
-    return {
-        "test backwards gap fill with overlapping neighbouring event": async function(assert) {
-            const currentPaginationToken = "abc";
-            const gap = {gap: {prev_batch: currentPaginationToken}};
-            const storage = new MemoryStorage({roomTimeline: createTimeline(roomId, [
-                {event: {event_id: "b"}},
-                {gap: {next_batch: "ghi"}},
-                gap,
-            ])});
-            const persister = new RoomPersister({roomId, storage});
-            const response = {
-                start: currentPaginationToken,
-                end: "def",
-                chunk: [
-                    {event_id: "a"},
-                    {event_id: "b"},
-                    {event_id: "c"},
-                    {event_id: "d"},
-                ]
-            };
-            const {newEntries, replacedEntries} = await persister.persistGapFill(gap, response);
-            // should only have taken events up till existing event
-            assert.equal(newEntries.length, 2);
-            assert.equal(newEntries[0].event.event_id, "c");
-            assert.equal(newEntries[1].event.event_id, "d");
-            assert.equal(replacedEntries.length, 2);
-            assert.equal(replacedEntries[0].gap.next_batch, "hij");
-            assert.equal(replacedEntries[1].gap.prev_batch, currentPaginationToken);
-            assert(areSorted(newEntries));
-            assert(areSorted(replacedEntries));
-        },
-        "test backwards gap fill with non-overlapping neighbouring event": async function(assert) {
-            const currentPaginationToken = "abc";
-            const newPaginationToken = "def";
-            const gap = {gap: {prev_batch: currentPaginationToken}};
-            const storage = new MemoryStorage({roomTimeline: createTimeline(roomId, [
-                {event: {event_id: "a"}},
-                {gap: {next_batch: "ghi"}},
-                gap,
-            ])});
-            const persister = new RoomPersister({roomId, storage});
-            const response = {
-                start: currentPaginationToken,
-                end: newPaginationToken,
-                chunk: [
-                    {event_id: "c"},
-                    {event_id: "d"},
-                    {event_id: "e"},
-                    {event_id: "f"},
-                ]
-            };
-            const {newEntries, replacedEntries} = await persister.persistGapFill(gap, response);
-            // should only have taken events up till existing event
-            assert.equal(newEntries.length, 5);
-            assert.equal(newEntries[0].gap.prev_batch, newPaginationToken);
-            assert.equal(newEntries[1].event.event_id, "c");
-            assert.equal(newEntries[2].event.event_id, "d");
-            assert.equal(newEntries[3].event.event_id, "e");
-            assert.equal(newEntries[4].event.event_id, "f");
-            assert(areSorted(newEntries));
-
-            assert.equal(replacedEntries.length, 1);
-            assert.equal(replacedEntries[0].gap.prev_batch, currentPaginationToken);
-        },
     }
 }

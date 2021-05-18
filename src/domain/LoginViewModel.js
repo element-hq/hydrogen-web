@@ -46,7 +46,7 @@ export class LoginViewModel extends ViewModel {
         if (this._loadViewModel) {
             this._loadViewModel = this.disposeTracked(this._loadViewModel);
         }
-        this._loadViewModel = this.track(new SessionLoadViewModel({
+        this._loadViewModel = this.track(new SessionLoadViewModel(this.childOptions({
             createAndStartSessionContainer: () => {
                 this._sessionContainer = this._createSessionContainer();
                 this._sessionContainer.startWithLogin(homeserver, username, password);
@@ -58,7 +58,7 @@ export class LoginViewModel extends ViewModel {
                 this._ready(sessionContainer);
             },
             homeserver,
-        }));
+        })));
         this._loadViewModel.start();
         this.emitChange("loadViewModel");
         this._loadViewModelSubscription = this.track(this._loadViewModel.disposableOn("change", () => {

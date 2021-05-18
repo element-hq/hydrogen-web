@@ -15,12 +15,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {MessageTile} from "./MessageTile.js";
+import {BaseMessageTile} from "./BaseMessageTile.js";
 import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent.js";
 const MAX_HEIGHT = 300;
 const MAX_WIDTH = 400;
 
-export class BaseMediaTile extends MessageTile {
+export class BaseMediaTile extends BaseMessageTile {
     constructor(options) {
         super(options);
         this._decryptedThumbnail = null;

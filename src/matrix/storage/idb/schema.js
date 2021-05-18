@@ -2,6 +2,7 @@ import {iterateCursor, reqAsPromise} from "./utils.js";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/RoomMember.js";
 import {RoomMemberStore} from "./stores/RoomMemberStore.js";
 import {SessionStore} from "./stores/SessionStore.js";
+import {encodeScopeTypeKey} from "./stores/OperationStore.js";
 
 // FUNCTIONS SHOULD ONLY BE APPENDED!!
 // the index in the array is the database version
@@ -11,7 +12,10 @@ export const schema = [
     migrateSession,
     createE2EEStores,
     migrateEncryptionFlag,
-    createAccountDataStore
+    createAccountDataStore,
+    createInviteStore,
+    createArchivedRoomSummaryStore,
+    migrateOperationScopeIndex,
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -102,4 +106,33 @@ async function migrateEncryptionFlag(db, txn) {
 // v6
 function createAccountDataStore(db) {
     db.createObjectStore("accountData", {keyPath: "type"});
+}
+
+// v7
+function createInviteStore(db) {
+    db.createObjectStore("invites", {keyPath: "roomId"});
+}
+
+// v8
+function createArchivedRoomSummaryStore(db) {
+    db.createObjectStore("archivedRoomSummary", {keyPath: "summary.roomId"});
+}
+
+// v9
+async function migrateOperationScopeIndex(db, txn) {
+    try {
+        const operations = txn.objectStore("operations");
+        operations.deleteIndex("byTypeAndScope");
+        await iterateCursor(operations.openCursor(), (op, key, cur) => {
+            const {typeScopeKey} = op;
+            delete op.typeScopeKey;
+            const [type, scope] = typeScopeKey.split("|");
+            op.scopeTypeKey = encodeScopeTypeKey(scope, type);
+            cur.update(op);
+        });
+        operations.createIndex("byScopeAndType", "scopeTypeKey", {unique: false});
+    } catch (err) {
+        txn.abort();
+        console.error("could not migrate operations", err.stack);
+    }
 }

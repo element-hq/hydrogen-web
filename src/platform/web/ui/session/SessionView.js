@@ -17,6 +17,8 @@ limitations under the License.
 
 import {LeftPanelView} from "./leftpanel/LeftPanelView.js";
 import {RoomView} from "./room/RoomView.js";
+import {UnknownRoomView} from "./room/UnknownRoomView.js";
+import {InviteView} from "./room/InviteView.js";
 import {LightboxView} from "./room/LightboxView.js";
 import {TemplateView} from "../general/TemplateView.js";
 import {StaticView} from "../general/StaticView.js";
@@ -29,21 +31,26 @@ export class SessionView extends TemplateView {
         return t.div({
             className: {
                 "SessionView": true,
-                "middle-shown": vm => vm.activeSection !== "placeholder"
+                "middle-shown": vm => !!vm.activeMiddleViewModel
             },
         }, [
             t.view(new SessionStatusView(vm.sessionStatusViewModel)),
             t.view(new LeftPanelView(vm.leftPanelViewModel)),
-            t.mapView(vm => vm.activeSection, activeSection => {
-                switch (activeSection) {
-                    case "roomgrid":
-                        return new RoomGridView(vm.roomGridViewModel);
-                    case "placeholder":
-                        return new StaticView(t => t.div({className: "room-placeholder"}, t.h2(vm.i18n`Choose a room on the left side.`)));
-                    case "settings":
-                        return new SettingsView(vm.settingsViewModel);
-                    default: //room id
+            t.mapView(vm => vm.activeMiddleViewModel, () => {
+                if (vm.roomGridViewModel) {
+                    return new RoomGridView(vm.roomGridViewModel);
+                } else if (vm.settingsViewModel) {
+                    return new SettingsView(vm.settingsViewModel);
+                } else if (vm.currentRoomViewModel) {
+                    if (vm.currentRoomViewModel.kind === "invite") {
+                        return new InviteView(vm.currentRoomViewModel);
+                    } else if (vm.currentRoomViewModel.kind === "room") {
                         return new RoomView(vm.currentRoomViewModel);
+                    } else {
+                        return new UnknownRoomView(vm.currentRoomViewModel);
+                    }
+                } else {
+                    return new StaticView(t => t.div({className: "room-placeholder"}, t.h2(vm.i18n`Choose a room on the left side.`)));
                 }
             }),
             t.mapView(vm => vm.lightboxViewModel, lightboxViewModel => lightboxViewModel ? new LightboxView(lightboxViewModel) : null)

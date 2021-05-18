@@ -1,7 +1,9 @@
-FROM node:alpine3.12
+FROM docker.io/node:alpine as builder
 RUN apk add --no-cache git
-COPY . /code
-WORKDIR /code
-RUN yarn install
-EXPOSE 3000
-ENTRYPOINT ["yarn", "start"]
+COPY . /app
+WORKDIR /app
+RUN yarn install \
+ && yarn build
+
+FROM docker.io/nginx:alpine
+COPY --from=builder /app/target /usr/share/nginx/html

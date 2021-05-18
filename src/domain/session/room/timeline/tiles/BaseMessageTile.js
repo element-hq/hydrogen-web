@@ -15,9 +15,9 @@ limitations under the License.
 */
 
 import {SimpleTile} from "./SimpleTile.js";
-import {getIdentifierColorNumber, avatarInitials} from "../../../../avatar.js";
+import {getIdentifierColorNumber, avatarInitials, getAvatarHttpUrl} from "../../../../avatar.js";
 
-export class MessageTile extends SimpleTile {
+export class BaseMessageTile extends SimpleTile {
     constructor(options) {
         super(options);
         this._isOwn = this._entry.sender === options.ownUserId;
@@ -33,10 +33,6 @@ export class MessageTile extends SimpleTile {
         return this._room.mediaRepository;
     }
 
-    get shape() {
-        return "message";
-    }
-
     get displayName() {
         return this._entry.displayName || this.sender;
     }
@@ -50,11 +46,8 @@ export class MessageTile extends SimpleTile {
         return getIdentifierColorNumber(this._entry.sender);
     }
 
-    get avatarUrl() {
-        if (this._entry.avatarUrl) {
-            return this._mediaRepository.mxcUrlThumbnail(this._entry.avatarUrl, 30, 30, "crop");
-        }
-        return null;
+    avatarUrl(size) {
+        return getAvatarHttpUrl(this._entry.avatarUrl, size, this.platform, this._mediaRepository);
     }
 
     get avatarLetter() {
@@ -92,7 +85,7 @@ export class MessageTile extends SimpleTile {
     updatePreviousSibling(prev) {
         super.updatePreviousSibling(prev);
         let isContinuation = false;
-        if (prev && prev instanceof MessageTile && prev.sender === this.sender) {
+        if (prev && prev instanceof BaseMessageTile && prev.sender === this.sender) {
             // timestamp is null for pending events
             const myTimestamp = this._entry.timestamp || this.clock.now();
             const otherTimestamp = prev._entry.timestamp || this.clock.now();

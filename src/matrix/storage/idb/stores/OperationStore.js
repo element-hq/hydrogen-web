@@ -13,9 +13,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import {MIN_UNICODE, MAX_UNICODE} from "./common.js";
 
-function encodeTypeScopeKey(type, scope) {
-    return `${type}|${scope}`;
+export function encodeScopeTypeKey(scope, type) {
+    return `${scope}|${type}`;
 }
 
 export class OperationStore {
@@ -28,10 +29,10 @@ export class OperationStore {
     }
 
     async getAllByTypeAndScope(type, scope) {
-        const key = encodeTypeScopeKey(type, scope);
+        const key = encodeScopeTypeKey(scope, type);
         const results = [];
-        await this._store.index("byTypeAndScope").iterateWhile(key, value => {
-            if (value.typeScopeKey !== key) {
+        await this._store.index("byScopeAndType").iterateWhile(key, value => {
+            if (value.scopeTypeKey !== key) {
                 return false;
             }
             results.push(value);
@@ -41,7 +42,7 @@ export class OperationStore {
     }
 
     add(operation) {
-        operation.typeScopeKey = encodeTypeScopeKey(operation.type, operation.scope);
+        operation.scopeTypeKey = encodeScopeTypeKey(operation.scope, operation.type);
         this._store.add(operation);
     }
 
@@ -51,5 +52,17 @@ export class OperationStore {
 
     remove(id) {
         this._store.delete(id);
+    }
+
+    async removeAllForScope(scope) {
+        const range = IDBKeyRange.bound(
+            encodeScopeTypeKey(scope, MIN_UNICODE),
+            encodeScopeTypeKey(scope, MAX_UNICODE)
+        );
+        const index = this._store.index("byScopeAndType");
+        await index.iterateValues(range, (_, __, cur) => {
+            cur.delete();
+            return true;
+        });
     }
 }

@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {MAX_UNICODE, MIN_UNICODE} from "./common.js";
+
 function encodeKey(userId, deviceId) {
     return `${userId}|${deviceId}`;
 }
@@ -65,5 +67,12 @@ export class DeviceIdentityStore {
 
     remove(userId, deviceId) {
         this._store.delete(encodeKey(userId, deviceId));
+    }
+
+    removeAllForUser(userId) {
+        // exclude both keys as they are theoretical min and max,
+        // but we should't have a match for just the room id, or room id with max
+        const range = IDBKeyRange.bound(encodeKey(userId, MIN_UNICODE), encodeKey(userId, MAX_UNICODE), true, true);
+        this._store.delete(range);
     }
 }

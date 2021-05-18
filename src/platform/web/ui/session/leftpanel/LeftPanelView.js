@@ -17,6 +17,7 @@ limitations under the License.
 import {ListView} from "../../general/ListView.js";
 import {TemplateView} from "../../general/TemplateView.js";
 import {RoomTileView} from "./RoomTileView.js";
+import {InviteTileView} from "./InviteTileView.js";
 
 class FilterField extends TemplateView {
     render(t, options) {
@@ -31,6 +32,7 @@ class FilterField extends TemplateView {
             placeholder: options?.label,
             "aria-label": options?.label,
             autocomplete: options?.autocomplete,
+            enterkeyhint: 'search',
             name: options?.name,
             onInput: event => options.set(event.target.value),
             onKeydown: event => {
@@ -84,9 +86,15 @@ export class LeftPanelView extends TemplateView {
             t.view(new ListView(
                 {
                     className: "RoomList",
-                    list: vm.roomList,
+                    list: vm.tileViewModels,
                 },
-                roomTileVM => new RoomTileView(roomTileVM)
+                tileVM => {
+                    if (tileVM.kind === "invite") {
+                        return new InviteTileView(tileVM);
+                    } else {
+                        return new RoomTileView(tileVM);
+                    }
+                }
             ))
         ]);
     }

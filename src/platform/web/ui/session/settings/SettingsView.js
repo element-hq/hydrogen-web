@@ -27,7 +27,7 @@ export class SettingsView extends TemplateView {
             ]);
         }
 
-        const row = (label, content, extraClass = "") => {
+        const row = (t, label, content, extraClass = "") => {
             return t.div({className: `row ${extraClass}`}, [
                 t.div({className: "label"}, label),
                 t.div({className: "content"}, content),
@@ -38,9 +38,9 @@ export class SettingsView extends TemplateView {
 
         settingNodes.push(
             t.h3("Session"),
-            row(vm.i18n`User ID`, vm.userId),
-            row(vm.i18n`Session ID`, vm.deviceId, "code"),
-            row(vm.i18n`Session key`, vm.fingerprintKey, "code")
+            row(t, vm.i18n`User ID`, vm.userId),
+            row(t, vm.i18n`Session ID`, vm.deviceId, "code"),
+            row(t, vm.i18n`Session key`, vm.fingerprintKey, "code")
         );
         settingNodes.push(
             t.h3("Session Backup"),
@@ -59,7 +59,7 @@ export class SettingsView extends TemplateView {
                     const buttonLabel = vm => vm.pushNotifications.enabled ?
                         vm.i18n`Disable`:
                         vm.i18n`Enable`;
-                    return row(label, t.button({
+                    return row(t, label, t.button({
                         onClick: () => vm.togglePushNotifications(),
                         disabled: vm => vm.pushNotifications.updating
                     }, buttonLabel));
@@ -93,7 +93,7 @@ export class SettingsView extends TemplateView {
         settingNodes.push(
             t.h3("Theme"),
             ...vm.themes.map(name => {
-                return row(name, t.input({
+                return row(t, name, t.input({
                     type: "radio",
                     name: "theme",
                     value: name,
@@ -104,13 +104,13 @@ export class SettingsView extends TemplateView {
         );
         settingNodes.push(
             t.h3("Preferences"),
-            row(vm.i18n`Scale down images when sending`, this._imageCompressionRange(t, vm)),
+            row(t, vm.i18n`Scale down images when sending`, this._imageCompressionRange(t, vm)),
         );
         settingNodes.push(
             t.h3("Application"),
-            row(vm.i18n`Version`, version),
-            row(vm.i18n`Storage usage`, vm => `${vm.storageUsage} / ${vm.storageQuota}`),
-            row(vm.i18n`Debug logs`, t.button({onClick: () => vm.exportLogs()}, "Export")),
+            row(t, vm.i18n`Version`, version),
+            row(t, vm.i18n`Storage usage`, vm => `${vm.storageUsage} / ${vm.storageQuota}`),
+            row(t, vm.i18n`Debug logs`, t.button({onClick: () => vm.exportLogs()}, "Export")),
             t.p(["Debug logs contain application usage data including your username, the IDs or aliases of the rooms or groups you have visited, the usernames of other users and the names of files you send. They do not contain messages. For more information, review our ",
                 t.a({href: "https://element.io/privacy", target: "_blank", rel: "noopener"}, "privacy policy"), "."]),
         );

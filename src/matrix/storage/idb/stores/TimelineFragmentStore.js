@@ -72,4 +72,8 @@ export class TimelineFragmentStore {
     get(roomId, fragmentId) {
         return this._store.get(encodeKey(roomId, fragmentId));
     }
+
+    removeAllForRoom(roomId) {
+        this._store.delete(this._allRange(roomId));
+    }
 }

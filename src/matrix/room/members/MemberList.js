@@ -15,15 +15,15 @@ limitations under the License.
 */
 
 import {ObservableMap} from "../../../observable/map/ObservableMap.js";
+import {RetainedValue} from "../../../utils/RetainedValue.js";
 
-export class MemberList {
+export class MemberList extends RetainedValue {
     constructor({members, closeCallback}) {
+        super(closeCallback);
         this._members = new ObservableMap();
         for (const member of members) {
             this._members.add(member.userId, member);
         }
-        this._closeCallback = closeCallback;
-        this._retentionCount = 1;
     }
 
     afterSync(memberChanges) {
@@ -34,16 +34,5 @@ export class MemberList {
 
     get members() {
         return this._members;
-    }
-
-    retain() {
-        this._retentionCount += 1;
-    }
-
-    release() {
-        this._retentionCount -= 1;
-        if (this._retentionCount === 0) {
-            this._closeCallback();
-        }
     }
 }

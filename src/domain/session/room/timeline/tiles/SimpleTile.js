@@ -31,7 +31,7 @@ export class SimpleTile extends ViewModel {
     }
 
     // don't show display name / avatar
-    // probably only for MessageTiles of some sort?
+    // probably only for BaseMessageTiles of some sort?
     get isContinuation() {
         return false;
     }

@@ -73,7 +73,7 @@ export class MemberWriter {
         }
     }
 
-    async lookupMember(userId, timelineEvents, txn) {
+    async lookupMember(userId, event, timelineEvents, txn) {
         let member = this._cache.get(userId);
         if (!member) {
             const memberData = await txn.roomMembers.get(this._roomId, userId);
@@ -84,16 +84,37 @@ export class MemberWriter {
         }
         if (!member) {
             // sometimes the member event isn't included in state, but rather in the timeline,
-            // even if it is not the first event in the timeline. In this case, go look for the
-            // first occurence
-            const memberEvent = timelineEvents.find(e => {
-                return e.type === MEMBER_EVENT_TYPE && e.state_key === userId;
-            });
-            if (memberEvent) {
-                member = RoomMember.fromMemberEvent(this._roomId, memberEvent);
-                // adding it to the cache, but not storing it for now;
-                // we'll do that when we get to the event
-                this._cache.set(member);
+            // even if it is not the first event in the timeline. In this case, go look for
+            // the last one before the event, or if none is found,
+            // the least recent matching member event in the timeline.
+            // The latter is needed because of new joins picking up their own display name
+            let foundEvent = false;
+            let memberEventBefore;
+            let firstMemberEvent;
+            for (let i = timelineEvents.length - 1; i >= 0; i -= 1) {
+                const e = timelineEvents[i];
+                let matchingEvent;
+                if (e.type === MEMBER_EVENT_TYPE && e.state_key === userId) {
+                    matchingEvent = e;
+                    firstMemberEvent = matchingEvent;
+                }
+                if (!foundEvent) {
+                    if (e.event_id === event.event_id) {
+                        foundEvent = true;
+                    } 
+                } else if (matchingEvent) {
+                    memberEventBefore = matchingEvent;
+                    break;
+                }
+            }
+            // first see if we found a member event before the event we're looking up the sender for
+            if (memberEventBefore) {
+                member = RoomMember.fromMemberEvent(this._roomId, memberEventBefore);
+            }
+            // and only if we didn't, fall back to the first member event,
+            // regardless of where it is positioned relative to the lookup event
+            else if (firstMemberEvent) {
+                member = RoomMember.fromMemberEvent(this._roomId, firstMemberEvent);
             }
         }
         return member;
@@ -221,6 +242,24 @@ export function tests() {
             assert(!change.hasLeft);
             assert.equal(change.member.membership, "join");
             assert.equal(txn.members.get(alice).displayName, "Alice");
+        },
+        "newly joined member causes a change with lookup done first": async assert => {
+            const event = createMemberEvent("join", alice, "Alice");
+            const writer = new MemberWriter(roomId);
+            const txn = createStorage();
+            const member = await writer.lookupMember(event.sender, event, [event], txn);
+            assert(member);
+            const change = await writer.writeTimelineMemberEvent(event, txn);
+            assert(change);
+        },
+        "lookupMember returns closest member in the past": async assert => {
+            const event1 = createMemberEvent("join", alice, "Alice");
+            const event2 = createMemberEvent("join", alice, "Alies");
+            const event3 = createMemberEvent("join", alice, "Alys");
+            const writer = new MemberWriter(roomId);
+            const txn = createStorage();
+            const member = await writer.lookupMember(event3.sender, event3, [event1, event2, event3], txn);
+            assert.equal(member.displayName, "Alies");
         },
     };
 }

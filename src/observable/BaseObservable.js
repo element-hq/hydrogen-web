@@ -48,6 +48,13 @@ export class BaseObservable {
         return null;
     }
 
+    unsubscribeAll() {
+        if (this._handlers.size !== 0) {
+            this._handlers.clear();
+            this.onUnsubscribeLast();
+        }
+    }
+
     get hasSubscriptions() {
         return this._handlers.size !== 0;
     }

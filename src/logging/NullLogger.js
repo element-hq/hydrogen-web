@@ -50,7 +50,7 @@ export class NullLogger {
     }
 }
 
-class NullLogItem {
+export class NullLogItem {
     wrap(_, callback) {
         return callback(this);
     }

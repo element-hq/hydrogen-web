@@ -17,11 +17,14 @@ limitations under the License.
 
 import {LeftPanelViewModel} from "./leftpanel/LeftPanelViewModel.js";
 import {RoomViewModel} from "./room/RoomViewModel.js";
+import {UnknownRoomViewModel} from "./room/UnknownRoomViewModel.js";
+import {InviteViewModel} from "./room/InviteViewModel.js";
 import {LightboxViewModel} from "./room/LightboxViewModel.js";
 import {SessionStatusViewModel} from "./SessionStatusViewModel.js";
 import {RoomGridViewModel} from "./RoomGridViewModel.js";
 import {SettingsViewModel} from "./settings/SettingsViewModel.js";
 import {ViewModel} from "../ViewModel.js";
+import {RoomViewModelObservable} from "./RoomViewModelObservable.js";
 
 export class SessionViewModel extends ViewModel {
     constructor(options) {
@@ -34,10 +37,11 @@ export class SessionViewModel extends ViewModel {
             session: sessionContainer.session,
         })));
         this._leftPanelViewModel = this.track(new LeftPanelViewModel(this.childOptions({
+            invites: this._sessionContainer.session.invites,
             rooms: this._sessionContainer.session.rooms
         })));
         this._settingsViewModel = null;
-        this._currentRoomViewModel = null;
+        this._roomViewModelObservable = null;
         this._gridViewModel = null;
         this._setupNavigation();
     }
@@ -84,15 +88,8 @@ export class SessionViewModel extends ViewModel {
         this._sessionStatusViewModel.start();
     }
 
-    get activeSection() {
-        if (this._currentRoomViewModel) {
-            return this._currentRoomViewModel.id;
-        } else if (this._gridViewModel) {
-            return "roomgrid";
-        } else if (this._settingsViewModel) {
-            return "settings";
-        }
-        return "placeholder";
+    get activeMiddleViewModel() {
+        return this._roomViewModelObservable?.get() || this._gridViewModel || this._settingsViewModel;
     }
 
     get roomGridViewModel() {
@@ -111,12 +108,8 @@ export class SessionViewModel extends ViewModel {
         return this._settingsViewModel;
     }
 
-    get roomList() {
-        return this._roomList;
-    }
-
     get currentRoomViewModel() {
-        return this._currentRoomViewModel;
+        return this._roomViewModelObservable?.get();
     }
 
     _updateGrid(roomIds) {
@@ -127,66 +120,102 @@ export class SessionViewModel extends ViewModel {
                 this._gridViewModel = this.track(new RoomGridViewModel(this.childOptions({
                     width: 3,
                     height: 2,
-                    createRoomViewModel: roomId => this._createRoomViewModel(roomId),
+                    createRoomViewModelObservable: roomId => new RoomViewModelObservable(this, roomId),
                 })));
-                if (this._gridViewModel.initializeRoomIdsAndTransferVM(roomIds, this._currentRoomViewModel)) {
-                    this._currentRoomViewModel = this.untrack(this._currentRoomViewModel);
-                } else if (this._currentRoomViewModel) {
-                    this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
+                // try to transfer the current room view model, so we don't have to reload the timeline
+                this._roomViewModelObservable?.unsubscribeAll();
+                if (this._gridViewModel.initializeRoomIdsAndTransferVM(roomIds, this._roomViewModelObservable)) {
+                    this._roomViewModelObservable = this.untrack(this._roomViewModelObservable);
+                } else if (this._roomViewModelObservable) {
+                    this._roomViewModelObservable = this.disposeTracked(this._roomViewModelObservable);
                 }
             } else {
                 this._gridViewModel.setRoomIds(roomIds);
             }
         } else if (this._gridViewModel && !roomIds) {
+            // closing grid, try to show focused room in grid
             if (currentRoomId) {
-                const vm = this._gridViewModel.releaseRoomViewModel(currentRoomId.value);
-                if (vm) {
-                    this._currentRoomViewModel = this.track(vm);
-                } else {
-                    const newVM = this._createRoomViewModel(currentRoomId.value);
-                    if (newVM) {
-                        this._currentRoomViewModel = this.track(newVM);
-                    }
+                const vmo = this._gridViewModel.releaseRoomViewModel(currentRoomId.value);
+                if (vmo) {
+                    this._roomViewModelObservable = this.track(vmo);
+                    this._roomViewModelObservable.subscribe(() => {
+                        this.emitChange("activeMiddleViewModel");
+                    });
                 }
             }
             this._gridViewModel = this.disposeTracked(this._gridViewModel);
         }
         if (changed) {
-            this.emitChange("activeSection");
+            this.emitChange("activeMiddleViewModel");
         }
     }
 
     _createRoomViewModel(roomId) {
         const room = this._sessionContainer.session.rooms.get(roomId);
-        if (!room) {
-            return null;
+        if (room) {
+            const roomVM = new RoomViewModel(this.childOptions({
+                room,
+                ownUserId: this._sessionContainer.session.user.id,
+            }));
+            roomVM.load();
+            return roomVM;
         }
-        const roomVM = new RoomViewModel(this.childOptions({
-            room,
-            ownUserId: this._sessionContainer.session.user.id,
+        return null;
+    }
+
+    _createUnknownRoomViewModel(roomIdOrAlias) {
+        return new UnknownRoomViewModel(this.childOptions({
+            roomIdOrAlias,
+            session: this._sessionContainer.session,
         }));
-        roomVM.load();
-        return roomVM;
+    }
+
+    async _createArchivedRoomViewModel(roomId) {
+        const room = await this._sessionContainer.session.loadArchivedRoom(roomId);
+        if (room) {
+            const roomVM = new RoomViewModel(this.childOptions({
+                room,
+                ownUserId: this._sessionContainer.session.user.id,
+            }));
+            roomVM.load();
+            return roomVM;
+        }
+        return null;
+    }
+
+    _createInviteViewModel(roomId) {
+        const invite = this._sessionContainer.session.invites.get(roomId);
+        if (invite) {
+            return new InviteViewModel(this.childOptions({
+                invite,
+                mediaRepository: this._sessionContainer.session.mediaRepository,
+            }));
+        }
+        return null;
     }
 
     _updateRoom(roomId) {
+        // opening a room and already open?
+        if (this._roomViewModelObservable?.id === roomId) {
+            return;
+        }
+        // close if needed
+        if (this._roomViewModelObservable) {
+            this._roomViewModelObservable = this.disposeTracked(this._roomViewModelObservable);
+        }
         if (!roomId) {
-            if (this._currentRoomViewModel) {
-                this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
-                this.emitChange("currentRoom");
-            }
+            // if clearing the activeMiddleViewModel rather than changing to a different one,
+            // emit so the view picks it up and show the placeholder
+            this.emitChange("activeMiddleViewModel");
             return;
         }
-        // already open?
-        if (this._currentRoomViewModel?.id === roomId) {
-            return;
-        }
-        this._currentRoomViewModel = this.disposeTracked(this._currentRoomViewModel);
-        const roomVM = this._createRoomViewModel(roomId);
-        if (roomVM) {
-            this._currentRoomViewModel = this.track(roomVM);
-        }
-        this.emitChange("currentRoom");
+        const vmo = new RoomViewModelObservable(this, roomId);
+        this._roomViewModelObservable = this.track(vmo);
+        // subscription is unsubscribed in RoomViewModelObservable.dispose, and thus handled by track
+        this._roomViewModelObservable.subscribe(() => {
+            this.emitChange("activeMiddleViewModel");
+        });
+        vmo.initialize();
     }
 
     _updateSettings(settingsOpen) {
@@ -199,7 +228,7 @@ export class SessionViewModel extends ViewModel {
             })));
             this._settingsViewModel.load();
         }
-        this.emitChange("activeSection");
+        this.emitChange("activeMiddleViewModel");
     }
 
     _updateLightbox(eventId) {

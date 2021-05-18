@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {MessageTile} from "./MessageTile.js";
+import {BaseMessageTile} from "./BaseMessageTile.js";
 
-export class MissingAttachmentTile extends MessageTile {
+export class MissingAttachmentTile extends BaseMessageTile {
     get shape() {
         return "missing-attachment"
     }

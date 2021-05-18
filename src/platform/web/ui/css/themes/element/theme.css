@@ -39,7 +39,7 @@ limitations under the License.
 
 .avatar {
     border-radius: 100%;
-    background: #3D88FA;
+    background: #fff;
     color: white;
 }
 
@@ -92,11 +92,16 @@ limitations under the License.
     display: block;
 }
 
+.button-action {
+    cursor: pointer;
+}
+
 a.button-action {
     text-decoration: none;
     text-align: center;
     display: block;
 }
+
 
 .button-action.secondary {
     color: #03B381;
@@ -106,6 +111,11 @@ a.button-action {
     background-color: #03B381;
     border-radius: 8px;
     color: white;
+    font-weight: bold;
+}
+
+.button-action.primary:disabled {
+    color: #fffa;
 }
 
 .button-action.primary.destructive {
@@ -205,6 +215,10 @@ a.button-action {
     text-align: center;
 }
 
+.SessionLoadView {
+    padding-top: 16px;
+}
+
 @media screen and (min-width: 600px) {
     .PreSessionScreen {
         box-shadow: 0px 6px 32px rgba(0, 0, 0, 0.1);
@@ -276,7 +290,7 @@ a.button-action {
 }
 
 .RoomList .description {
-    align-items: baseline;
+    align-items: center;
 }
 
 .RoomList .name.unread {
@@ -406,7 +420,7 @@ a {
 
 .middle-header {
     box-sizing: border-box;
-    height: 58px; /* 12 + 36 + 12 to align with filter field + margin */
+    flex: 0 0 56px; /* 12 + 32 + 12 to align with filter field + margin */
     background: white;
     padding: 0 16px;
     border-bottom: 1px solid rgba(245, 245, 245, 0.90);
@@ -431,6 +445,11 @@ a {
 
 .RoomHeader .topic {
     font-size: 14rem;
+}
+
+.RoomHeader .room-options {
+    font-weight: bold;
+    font-size: 1.5rem;
 }
 
 .RoomView_error {
@@ -516,10 +535,6 @@ ul.Timeline > li.messageStatus .message-container > p {
 .message-container .profile {
     display: flex;
     align-items: center;
-}
-
-.message-container .avatar {
-    --avatar-size: 25px;
 }
 
 .TextMessageView {
@@ -821,4 +836,100 @@ button.link {
 .menu button:hover {
     background-color: #03B381;
     color: white;
+}
+
+.InviteView_body {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    flex: 1;
+    overflow: auto;
+}
+
+.InviteView_invite {
+    display: flex;
+    width: 100%;
+    max-width: 400px;
+    flex-direction: column;
+    padding: 0 24px;
+}
+
+.InviteView_roomProfile {
+    display: grid;
+    gap: 4px;
+    grid-template:
+        "avatar name" auto
+        "avatar description" 1fr /
+        72px 1fr;
+    align-self: center;
+    margin-bottom: 24px;
+}
+
+.InviteView_roomProfile h3 {
+    grid-area: name;
+    margin: 0;
+}
+
+.InviteView_roomDescription {
+    grid-area: description;
+    font-size: 1.2rem;
+    margin: 0;
+    color: #777;
+}
+
+.InviteView_roomAvatar {
+    grid-area: avatar;
+}
+
+.InviteView_dmAvatar {
+    align-self: center;
+}
+
+.InviteView_inviter {
+    text-align: center;
+    margin: 24px 0px;
+}
+
+.InviteView_inviter .avatar {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 4px;
+}
+
+.InviteView_buttonRow {
+    margin: 10px auto;
+    max-width: 200px;
+    width: 100%;
+}
+
+.InviteView_buttonRow button {
+    display: block;
+    width: 100%;
+}
+
+.RoomArchivedView {
+    padding: 12px;
+    background-color: rgba(245, 245, 245, 0.90);
+}
+
+.RoomArchivedView h3 {
+    margin: 0;
+}
+
+.UnknownRoomView {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 16px;
+    box-sizing: border-box;
+}
+
+.UnknownRoomView h2 {
+    word-break: break-all;
+    word-break: break-word;
+}
+
+.UnknownRoomView button {
+    max-width: 200px;
+    width: 100%;
 }
