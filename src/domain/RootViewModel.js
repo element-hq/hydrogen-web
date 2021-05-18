@@ -124,14 +124,14 @@ export class RootViewModel extends ViewModel {
 
     _showSessionLoader(sessionId) {
         this._setSection(() => {
-            this._sessionLoadViewModel = new SessionLoadViewModel({
+            this._sessionLoadViewModel = new SessionLoadViewModel(this.childOptions({
                 createAndStartSessionContainer: () => {
                     const sessionContainer = this._createSessionContainer();
                     sessionContainer.startWithExistingSession(sessionId);
                     return sessionContainer;
                 },
                 ready: sessionContainer => this._showSession(sessionContainer)
-            });
+            }));
             this._sessionLoadViewModel.start();
         });
     }
