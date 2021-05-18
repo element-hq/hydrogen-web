@@ -35,10 +35,10 @@ export class RootViewModel extends ViewModel {
     async load() {
         this.track(this.navigation.observe("login").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("session").subscribe(() => this._applyNavigation()));
-        this._applyNavigation(this.urlCreator.getLastUrl());
+        this._applyNavigation(true);
     }
 
-    async _applyNavigation(restoreUrlIfAtDefault) {
+    async _applyNavigation(shouldRestoreLastUrl) {
         const isLogin = this.navigation.observe("login").get();
         const sessionId = this.navigation.observe("session").get();
         if (isLogin) {
@@ -67,9 +67,7 @@ export class RootViewModel extends ViewModel {
             }
         } else {
             try {
-                if (restoreUrlIfAtDefault) {
-                    this.urlCreator.pushUrl(restoreUrlIfAtDefault);
-                } else {
+                if (!(shouldRestoreLastUrl && this.urlCreator.tryRestoreLastUrl())) {
                     const sessionInfos = await this.platform.sessionInfoStorage.getAll();
                     if (sessionInfos.length === 0) {
                         this.navigation.push("login");

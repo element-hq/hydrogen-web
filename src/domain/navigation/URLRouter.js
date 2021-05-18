@@ -24,20 +24,22 @@ export class URLRouter {
         this._pathSubscription = null;
         this._isApplyingUrl = false;
         this._defaultSessionId = this._getLastSessionId();
-
     }
 
     _getLastSessionId() {
-        const urlPath = this._history.urlAsPath(this._history.getLastUrl());
-        const navPath = this._navigation.pathFrom(this._parseUrlPath(urlPath, this._navigation.path));
-        return navPath.get("session")?.value;
+        const navPath = this._urlAsNavPath(this._history.getLastUrl() || "");
+        const sessionId = navPath.get("session")?.value;
+        if (typeof sessionId === "string") {
+            return sessionId;
+        }
+        return null;
     }
 
     attach() {
         this._subscription = this._history.subscribe(url => this._applyUrl(url));
         // subscribe to path before applying initial url
-        // so redirects in _applyNavigationPath are reflected in url bar
-        this._pathSubscription = this._navigation.pathObservable.subscribe(path => this._applyNavigationPath(path));
+        // so redirects in _applyNavPathToHistory are reflected in url bar
+        this._pathSubscription = this._navigation.pathObservable.subscribe(path => this._applyNavPathToHistory(path));
         this._applyUrl(this._history.get());
     }
 
@@ -46,7 +48,7 @@ export class URLRouter {
         this._pathSubscription = this._pathSubscription();
     }
 
-    _applyNavigationPath(path) {
+    _applyNavPathToHistory(path) {
         const url = this.urlForPath(path);
         if (url !== this._history.get()) {
             if (this._isApplyingUrl) {
@@ -58,10 +60,8 @@ export class URLRouter {
         }
     }
 
-    _applyUrl(url) {    
-        const urlPath = this._history.urlAsPath(url)
-        const navPath = this._navigation.pathFrom(this._parseUrlPath(urlPath, this._navigation.path, this._defaultSessionId));
-        // this will cause _applyNavigationPath to be called,
+    _applyNavPathToNavigation(navPath) {
+        // this will cause _applyNavPathToHistory to be called,
         // so set a flag whether this request came from ourselves
         // (in which case it is a redirect if the url does not match the current one)
         this._isApplyingUrl = true;
@@ -69,12 +69,27 @@ export class URLRouter {
         this._isApplyingUrl = false;
     }
 
+    _urlAsNavPath(url) {
+        const urlPath = this._history.urlAsPath(url);
+        return this._navigation.pathFrom(this._parseUrlPath(urlPath, this._navigation.path, this._defaultSessionId));
+    }
+
+    _applyUrl(url) {
+        const navPath = this._urlAsNavPath(url);
+        this._applyNavPathToNavigation(navPath);
+    }
+
     pushUrl(url) {
         this._history.pushUrl(url);
     }
 
-    getLastUrl() {
-        return this._history.getLastUrl();
+    tryRestoreLastUrl() {
+        const lastNavPath = this._urlAsNavPath(this._history.getLastUrl() || "");
+        if (lastNavPath.segments.length !== 0) {
+            this._applyNavPathToNavigation(navPath);
+            return true;
+        }
+        return false;
     }
 
     urlForSegments(segments) {
