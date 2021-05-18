@@ -68,7 +68,6 @@ export class RoomViewModelObservable extends ObservableValue {
         } else {
             return this._sessionViewModel._createUnknownRoomViewModel(this.id);
         }
-        return null;
     }
 
     dispose() {
