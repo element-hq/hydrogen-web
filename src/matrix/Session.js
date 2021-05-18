@@ -720,7 +720,7 @@ export class Session {
 
     joinRoom(roomIdOrAlias, log = null) {
         return this._platform.logger.wrapOrRun(log, "joinRoom", async log => {
-            const body = await this._hsApi.joinIdOrAlias(roomIdOrAlias).response();
+            const body = await this._hsApi.joinIdOrAlias(roomIdOrAlias, {log}).response();
             return body.room_id;
         });
     }
