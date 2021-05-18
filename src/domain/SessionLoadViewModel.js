@@ -28,6 +28,7 @@ export class SessionLoadViewModel extends ViewModel {
         this._deleteSessionOnCancel = deleteSessionOnCancel;
         this._loading = false;
         this._error = null;
+        this.backUrl = this.urlCreator.urlForSegment("session", true);
     }
 
     async start() {

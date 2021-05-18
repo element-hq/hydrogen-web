@@ -85,7 +85,7 @@ function roomsSegmentWithRoom(rooms, roomId, path) {
     }
 }
 
-export function parseUrlPath(urlPath, currentNavPath) {
+export function parseUrlPath(urlPath, currentNavPath, defaultSessionId) {
     // substr(1) to take of initial /
     const parts = urlPath.substr(1).split("/");
     const iterator = parts[Symbol.iterator]();
@@ -113,6 +113,14 @@ export function parseUrlPath(urlPath, currentNavPath) {
                 segments.push(roomsSegmentWithRoom(rooms, roomId, currentNavPath));
             }
             segments.push(new Segment("room", roomId));
+        } else if (type === "last-session") {
+            let sessionSegment = currentNavPath.get("session");
+            if (typeof sessionSegment?.value !== "string" && defaultSessionId) {
+                sessionSegment = new Segment("session", defaultSessionId);
+            }
+            if (sessionSegment) {
+                segments.push(sessionSegment);
+            }
         } else {
             // might be undefined, which will be turned into true by Segment 
             const value = iterator.next().value;

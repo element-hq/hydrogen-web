@@ -22,9 +22,10 @@ export class SessionLoadView extends TemplateView {
         return t.div({className: "PreSessionScreen"}, [
             t.div({className: "logo"}),
             t.div({className: "SessionLoadView"}, [
-                t.h1(vm.i18n`Loading…`),
                 t.view(new SessionLoadStatusView(vm))
-            ])
+            ]),
+            t.div({className: {"button-row": true, hidden: vm => vm.loading}},
+                t.a({className: "button-action primary", href: vm.backUrl}, vm.i18n`Go back`))
         ]);
     }
 }
