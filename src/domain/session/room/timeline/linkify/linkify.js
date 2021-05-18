@@ -1,5 +1,13 @@
 import { regex } from "./regex.js";
 
+/**
+ * Splits text into links and non-links.
+ * For each such separated token, callback is called
+ * with the token and a boolean passed as argument.
+ * The boolean indicates whether the token is a link or not.
+ * @param {string} text Text to split
+ * @param {function(string, boolean)} callback A function to call with split tokens
+ */
 export function linkify(text, callback) {
     const matches = text.matchAll(regex);
     let curr = 0;

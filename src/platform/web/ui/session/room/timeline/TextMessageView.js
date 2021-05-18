@@ -28,6 +28,9 @@ export class TextMessageView extends TemplateView {
     }
 }
 
+/**
+ * Map from part to function that outputs DOM for the part
+ */
 const formatFunction = {
     text: textPart => text(textPart.text),
     link: linkPart => tag.a({ href: linkPart.url, target: "_blank", rel: "noopener" }, [linkPart.text]),

@@ -1,5 +1,10 @@
 import { linkify } from "./linkify/linkify.js";
 
+/**
+ * Parse text into parts such as newline, links and text.
+ * @param {string} body A string to parse into parts
+ * @returns {MessageBody} Parsed result
+ */
 export function parsePlainBody(body) {
     const parts = [];
     const lines = body.split("\n");
@@ -16,7 +21,7 @@ export function parsePlainBody(body) {
     for (let i = 0; i < lines.length; i += 1) {
         const line = lines[i];
         if (line.length) {
-            linkify(lines[i], linkifyCallback);
+            linkify(line, linkifyCallback);
         }
         const isLastLine = i >= (lines.length - 1);
         if (!isLastLine) {
