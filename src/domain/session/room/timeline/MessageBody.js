@@ -21,7 +21,7 @@ export function parsePlainBody(body) {
     for (let i = 0; i < lines.length; i += 1) {
         const line = lines[i];
         if (line.length) {
-            linkify(lines[i], linkifyCallback);
+            linkify(line, linkifyCallback);
         }
         const isLastLine = i >= (lines.length - 1);
         if (!isLastLine) {
