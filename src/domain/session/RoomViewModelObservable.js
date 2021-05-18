@@ -65,6 +65,8 @@ export class RoomViewModelObservable extends ObservableValue {
             return this._sessionViewModel._createRoomViewModel(this.id);
         } else if (status.archived) {
             return await this._sessionViewModel._createArchivedRoomViewModel(this.id);
+        } else {
+            return this._sessionViewModel._createUnknownRoomViewModel(this.id);
         }
         return null;
     }
