@@ -52,15 +52,13 @@ export class ThemeManager {
             return;
         }
 
+        // Enable the selected stylesheet. Chrome only bothers to do an update on a true->false transition.
         styleSheetElements[name].disabled = false;
 
         return new Promise(resolve => {
             const switchTheme = function() {
-                styleSheetElements[name].disabled = false; // Poor man's race condition precaution
                 for (const other in styleSheetElements) {
-                    if (other !== name) {
-                        styleSheetElements[other].disabled = true;
-                    }
+                    styleSheetElements[other].disabled = other !== name;
                 }
                 resolve();
             };
@@ -69,8 +67,10 @@ export class ThemeManager {
 
             let cssLoaded = false;
 
+            // If the CSS was *not* preloaded, the onload handler will trigger the theme switch once it has loaded
             styleSheetElements[name].onload = switchTheme;
 
+            // Check if the CSS was preloaded or not
             for (const styleSheet of document.styleSheets) {
                 if (styleSheet && styleSheet.href === styleSheetElements[name].href) {
                     cssLoaded = true;
@@ -78,6 +78,7 @@ export class ThemeManager {
                 }
             }
 
+            // If the CSS was preloaded, unregister the onload handler and perform the theme switch directly
             if (cssLoaded) {
                 styleSheetElements[name].onload = undefined;
                 switchTheme();
