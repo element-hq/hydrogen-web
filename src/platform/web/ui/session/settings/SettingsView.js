@@ -93,8 +93,8 @@ export class SettingsView extends TemplateView {
         settingNodes.push(
             t.h3("Appearance"),
             row(t, "Theme", t.select({ onChange: e => vm.setTheme(e.target.value) },
-                vm.themes.map(name => t.option({ value: name, selected: vm => name === vm.currentTheme },
-                    [name === 'element' ? name : `${name} (experimental)`]))))
+                vm.themes.map(theme => t.option({ value: theme.name, selected: vm => theme.name === vm.currentThemeName },
+                    [theme.title]))))
         );
         settingNodes.push(
             t.h3("Preferences"),

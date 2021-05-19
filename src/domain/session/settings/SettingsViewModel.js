@@ -163,8 +163,8 @@ export class SettingsViewModel extends ViewModel {
         return this.platform.themeManager.themes;
     }
 
-    get currentTheme() {
-        return this.platform.themeManager.currentTheme;
+    get currentThemeName() {
+        return this.platform.themeManager.currentThemeName;
     }
 
     async setTheme(name) {
@@ -172,7 +172,7 @@ export class SettingsViewModel extends ViewModel {
         return new Promise(resolve => {
             vm.platform.themeManager.setTheme(name).then(() => {
                 vm.platform.settingsStorage.setString("theme", name);
-                vm.emitChange("currentTheme");
+                vm.emitChange("currentThemeName");
                 resolve();
             });
         });

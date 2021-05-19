@@ -31,10 +31,13 @@ export class ThemeManager {
     }
 
     get themes() {
-        return Object.keys(this._styleSheetElements);
+        return Object.keys(this._styleSheetElements).map(key => { return {
+            name: key,
+            title: this._styleSheetElements[key].getAttribute("title") ?? key
+        }});
     }
 
-    get currentTheme() {
+    get currentThemeName() {
         for (const name in this._styleSheetElements) {
             if (!this._styleSheetElements[name].disabled) {
                 return name;
