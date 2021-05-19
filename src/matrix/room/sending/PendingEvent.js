@@ -15,6 +15,8 @@ limitations under the License.
 */
 import {createEnum} from "../../../utils/enum.js";
 import {AbortError} from "../../../utils/error.js";
+import {isTxnId} from "../../common.js";
+import {REDACTION_TYPE} from "./SendQueue.js";
 
 export const SendStatus = createEnum(
     "Waiting",
@@ -134,7 +136,7 @@ export class PendingEvent {
         this._data.needsUpload = false;
     }
 
-    abort() {
+    async abort() {
         if (!this._aborted) {
             this._aborted = true;
             if (this._attachments) {
@@ -143,7 +145,7 @@ export class PendingEvent {
                 }
             }
             this._sendRequest?.abort();
-            this._removeFromQueueCallback();
+            await this._removeFromQueueCallback();
         }
     }
 
@@ -156,15 +158,27 @@ export class PendingEvent {
         this._emitUpdate("status");
         const eventType = this._data.encryptedEventType || this._data.eventType;
         const content = this._data.encryptedContent || this._data.content;
-        this._sendRequest = hsApi.send(
-                this.roomId,
-                eventType,
-                this.txnId,
-                content,
-                {log}
-            );
+        if (eventType === REDACTION_TYPE) {
+            // TODO: should we double check here that this._data.redacts is not a txnId here anymore?
+            this._sendRequest = hsApi.redact(
+                    this.roomId,
+                    this._data.redacts,
+                    this.txnId,
+                    content,
+                    {log}
+                );
+        } else {
+            this._sendRequest = hsApi.send(
+                    this.roomId,
+                    eventType,
+                    this.txnId,
+                    content,
+                    {log}
+                );
+        }
         const response = await this._sendRequest.response();
         this._sendRequest = null;
+        // both /send and /redact have the same response format
         this._data.remoteId = response.event_id;
         log.set("id", this._data.remoteId);
         this._status = SendStatus.Sent;
@@ -176,6 +190,18 @@ export class PendingEvent {
             for (const attachment of Object.values(this._attachments)) {
                 attachment.dispose();
             }
+        }
+    }
+
+    get relatedTxnId() {
+        if (isTxnId(this._data.redacts)) {
+            return this._data.redacts;
+        }
+    }
+
+    setRelatedEventId(eventId) {
+        if (this._data.redacts) {
+            this._data.redacts = eventId;
         }
     }
 }
