@@ -298,6 +298,14 @@ export class Room extends BaseRoom {
     }
 
     /** @public */
+    sendRedaction(eventIdOrTxnId, reason, log = null) {
+        this._platform.logger.wrapOrRun(log, "redact", log => {
+            log.set("id", this.id);
+            return this._sendQueue.enqueueRedaction(eventIdOrTxnId, reason, log);
+        });
+    }
+
+    /** @public */
     async ensureMessageKeyIsShared(log = null) {
         if (!this._roomEncryption) {
             return;

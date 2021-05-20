@@ -24,10 +24,6 @@ export class GapTile extends SimpleTile {
         this._error = null;
     }
 
-    get _room() {
-        return this.getOption("room");
-    }
-
     async fill() {
         // prevent doing this twice
         if (!this._loading) {

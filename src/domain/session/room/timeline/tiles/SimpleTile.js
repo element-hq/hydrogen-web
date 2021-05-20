@@ -118,4 +118,8 @@ export class SimpleTile extends ViewModel {
         super.dispose();
     }
     // TilesCollection contract above
+
+    get _room() {
+        return this.getOption("room");
+    }
 }

@@ -97,4 +97,8 @@ export class BaseMessageTile extends SimpleTile {
             this.emitChange("isContinuation");
         }
     }
+
+    redact(reason) {
+        this._room.sendRedaction(this._entry.id, reason);
+    }
 }

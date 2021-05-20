@@ -201,6 +201,7 @@ export class SendQueue {
 
     async enqueueRedaction(eventIdOrTxnId, reason, log) {
         if (isTxnId(eventIdOrTxnId)) {
+            log.set("txnIdToRedact", eventIdOrTxnId);
             const txnId = eventIdOrTxnId;
             const pe = this._pendingEvents.array.find(pe => pe.txnId === txnId);
             if (pe && !pe.remoteId && pe.status !== SendStatus.Sending) {
@@ -216,6 +217,8 @@ export class SendQueue {
                 // and a bit complicated to fix.
                 return;
             }
+        } else {
+            log.set("eventIdToRedact", eventIdOrTxnId);
         }
         await this._enqueueEvent(REDACTION_TYPE, {reason}, null, eventIdOrTxnId, log);
     }
