@@ -19,8 +19,9 @@ jobs:
         node-version: [14.x]
 
     steps:
-    - name: Install tools
+    - name: Checkout project source
     - uses: actions/checkout@v2
+    - name: Install tools
       uses: actions/setup-node@v2
       with:
         node-version: ${{ matrix.node-version }}
