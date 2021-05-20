@@ -7,7 +7,8 @@
     "doc": "doc"
   },
   "scripts": {
-    "lint": "eslint src/",
+    "lint": "eslint --cache src/",
+    "lint-ci": "eslint src/",
     "test": "impunity --entry-point src/main.js --force-esm-dirs lib/ src/",
     "start": "node scripts/serve-local.js",
     "build": "node --experimental-modules scripts/build.mjs",

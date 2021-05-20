@@ -86,7 +86,7 @@ export class URLRouter {
     tryRestoreLastUrl() {
         const lastNavPath = this._urlAsNavPath(this._history.getLastUrl() || "");
         if (lastNavPath.segments.length !== 0) {
-            this._applyNavPathToNavigation(navPath);
+            this._applyNavPathToNavigation(lastNavPath);
             return true;
         }
         return false;

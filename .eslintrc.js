@@ -10,6 +10,8 @@ module.exports = {
     },
     "rules": {
         "no-console": "off",
-        "no-empty": "off"
+        "no-empty": "off",
+        "no-prototype-builtins": "off",
+        "no-unused-vars": "warn",
     }
 };
