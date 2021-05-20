@@ -88,6 +88,11 @@ export class PendingEvent {
         this._emitUpdate("status");
     }
 
+    setWaiting() {
+        this._status = SendStatus.Waiting;
+        this._emitUpdate("status");
+    }
+
     get status() { return this._status; }
     get error() { return this._error; }
 

@@ -74,6 +74,7 @@ export class SendQueue {
                             if (err instanceof ConnectionError) {
                                 this._offline = true;
                                 log.set("offline", true);
+                                pendingEvent.setWaiting();
                             } else {
                                 log.catch(err);
                                 pendingEvent.setError(err);
