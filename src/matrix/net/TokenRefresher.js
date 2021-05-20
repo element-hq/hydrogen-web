@@ -24,6 +24,10 @@ export class TokenRefresher {
         this._renewingLoop();
     }
 
+    stop() {
+        // TODO
+    }
+
     get needsRenewing() {
         const remaining = this._accessTokenExpiresAt.get() - this._clock.now();
         const anticipated = remaining - this._anticipation;
@@ -62,6 +66,10 @@ export class TokenRefresher {
 
     get accessToken() {
         return this._accessToken;
+    }
+
+    get accessTokenExpiresAt() {
+        return this._accessTokenExpiresAt;
     }
 
     get refreshToken() {

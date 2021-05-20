@@ -192,6 +192,18 @@ export class SessionContainer {
             reconnector: this._reconnector,
         });
         if (this._tokenRefresher) {
+            this._tokenRefresher.accessToken.subscribe(token => {
+                this._platform.sessionInfoStorage.updateAccessToken(sessionInfo.id, token);
+            });
+
+            this._tokenRefresher.accessTokenExpiresAt.subscribe(expiresAt => {
+                this._platform.sessionInfoStorage.updateAccessTokenExpiresAt(sessionInfo.id, expiresAt);
+            });
+
+            this._tokenRefresher.refreshToken.subscribe(token => {
+                this._platform.sessionInfoStorage.updateRefreshToken(sessionInfo.id, token);
+            });
+
             await this._tokenRefresher.start(hsApi);
         }
         this._sessionId = sessionInfo.id;
@@ -330,6 +342,9 @@ export class SessionContainer {
         if (this._storage) {
             this._storage.close();
             this._storage = null;
+        }
+        if (this._tokenRefresher) {
+            this._tokenRefresher.stop();
         }
     }
 

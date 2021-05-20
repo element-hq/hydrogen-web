@@ -19,15 +19,19 @@ export class SessionInfoStorage {
         this._name = name;
     }
 
-    getAll() {
+    _getAllSync() {
         const sessionsJson = localStorage.getItem(this._name);
         if (sessionsJson) {
             const sessions = JSON.parse(sessionsJson);
             if (Array.isArray(sessions)) {
-                return Promise.resolve(sessions);
+                return sessions;
             }
         }
-        return Promise.resolve([]);
+        return [];
+    }
+
+    async getAll() {
+        return this._getAllSync();
     }
 
     async updateLastUsed(id, timestamp) {
@@ -36,6 +40,40 @@ export class SessionInfoStorage {
             const session = sessions.find(session => session.id === id);
             if (session) {
                 session.lastUsed = timestamp;
+                localStorage.setItem(this._name, JSON.stringify(sessions));
+            }
+        }
+    }
+
+    // Update to the session tokens are all done synchronousely to avoid data races
+    updateAccessToken(id, accessToken) {
+        const sessions = this._getAllSync();
+        if (sessions) {
+            const session = sessions.find(session => session.id === id);
+            if (session) {
+                session.accessToken = accessToken;
+                localStorage.setItem(this._name, JSON.stringify(sessions));
+            }
+        }
+    }
+
+    updateAccessTokenExpiresAt(id, accessTokenExpiresAt) {
+        const sessions = this._getAllSync();
+        if (sessions) {
+            const session = sessions.find(session => session.id === id);
+            if (session) {
+                session.accessTokenExpiresAt = accessTokenExpiresAt;
+                localStorage.setItem(this._name, JSON.stringify(sessions));
+            }
+        }
+    }
+
+    updateRefreshToken(id, refreshToken) {
+        const sessions = this._getAllSync();
+        if (sessions) {
+            const session = sessions.find(session => session.id === id);
+            if (session) {
+                session.refreshToken = refreshToken;
                 localStorage.setItem(this._name, JSON.stringify(sessions));
             }
         }
