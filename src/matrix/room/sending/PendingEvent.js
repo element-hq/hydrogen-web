@@ -15,8 +15,8 @@ limitations under the License.
 */
 import {createEnum} from "../../../utils/enum.js";
 import {AbortError} from "../../../utils/error.js";
+import {REDACTION_TYPE} from "../common.js";
 import {isTxnId} from "../../common.js";
-import {REDACTION_TYPE} from "./SendQueue.js";
 
 export const SendStatus = createEnum(
     "Waiting",

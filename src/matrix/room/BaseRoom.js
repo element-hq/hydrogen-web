@@ -288,6 +288,8 @@ export class BaseRoom extends EventEmitter {
                 this._applyGapFill(extraGapFillChanges);
             }
             if (this._timeline) {
+                // these should not be added if not already there
+                this._timeline.replaceEntries(gapResult.updatedEntries);
                 this._timeline.addOrReplaceEntries(gapResult.entries);
             }
         });

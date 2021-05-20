@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {RelationWriter} from "./RelationWriter.js";
 import {EventKey} from "../EventKey.js";
 import {EventEntry} from "../entries/EventEntry.js";
 import {createEventEntry, directionalAppend} from "./common.js";
@@ -24,6 +25,7 @@ export class GapWriter {
         this._roomId = roomId;
         this._storage = storage;
         this._fragmentIdComparer = fragmentIdComparer;
+        this._relationWriter = new RelationWriter(roomId, fragmentIdComparer);
     }
     // events is in reverse-chronological order (last event comes at index 0) if backwards
     async _findOverlappingEvents(fragmentEntry, events, txn, log) {
@@ -105,6 +107,7 @@ export class GapWriter {
 
     _storeEvents(events, startKey, direction, state, txn) {
         const entries = [];
+        const updatedEntries = [];
         // events is in reverse chronological order for backwards pagination,
         // e.g. order is moving away from the `from` point.
         let key = startKey;
@@ -120,6 +123,10 @@ export class GapWriter {
             txn.timelineEvents.insert(eventStorageEntry);
             const eventEntry = new EventEntry(eventStorageEntry, this._fragmentIdComparer);
             directionalAppend(entries, eventEntry, direction);
+            const updatedRelationTargetEntry = this._relationWriter.writeRelation(eventEntry);
+            if (updatedRelationTargetEntry) {
+                updatedEntries.push(updatedRelationTargetEntry);
+            }
         }
         return entries;
     }
@@ -201,7 +208,6 @@ export class GapWriter {
         // chunk is in reverse-chronological order when backwards
         const {chunk, start, state} = response;
         let {end} = response;
-        let entries;
 
         if (!Array.isArray(chunk)) {
             throw new Error("Invalid chunk in response");
@@ -240,9 +246,9 @@ export class GapWriter {
             end = null;
         }
         // create entries for all events in chunk, add them to entries
-        entries = this._storeEvents(nonOverlappingEvents, lastKey, direction, state, txn);
+        const {entries, updatedEntries} = this._storeEvents(nonOverlappingEvents, lastKey, direction, state, txn);
         const fragments = await this._updateFragments(fragmentEntry, neighbourFragmentEntry, end, entries, txn);
     
-        return {entries, fragments};
+        return {entries, updatedEntries, fragments};
     }
 }

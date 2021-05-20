@@ -108,4 +108,8 @@ export class EventEntry extends BaseEntry {
     get decryptionError() {
         return this._decryptionError;
     }
+
+    get relatedEventId() {
+        return this._eventEntry.event.redacts;
+    }
 }

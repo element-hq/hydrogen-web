@@ -18,8 +18,7 @@ import {SortedArray} from "../../../observable/list/SortedArray.js";
 import {ConnectionError} from "../../error.js";
 import {PendingEvent} from "./PendingEvent.js";
 import {makeTxnId, isTxnId} from "../../common.js";
-
-export const REDACTION_TYPE = "m.room.redaction";
+import {REDACTION_TYPE} from "../common.js";
 
 export class SendQueue {
     constructor({roomId, storage, hsApi, pendingEvents}) {

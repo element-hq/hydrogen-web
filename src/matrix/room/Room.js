@@ -106,9 +106,8 @@ export class Room extends BaseRoom {
             txn.roomState.removeAllForRoom(this.id);
             txn.roomMembers.removeAllForRoom(this.id);
         }
-        const {entries: newEntries, newLiveKey, memberChanges} =
+        const {entries: newEntries, updatedEntries, newLiveKey, memberChanges} =
             await log.wrap("syncWriter", log => this._syncWriter.writeSync(roomResponse, isRejoin, txn, log), log.level.Detail);
-        let allEntries = newEntries;
         if (decryptChanges) {
             const decryption = await log.wrap("decryptChanges", log => decryptChanges.write(txn, log));
             log.set("decryptionResults", decryption.results.size);
@@ -119,16 +118,18 @@ export class Room extends BaseRoom {
             decryption.applyToEntries(newEntries);
             if (retryEntries?.length) {
                 decryption.applyToEntries(retryEntries);
-                allEntries = retryEntries.concat(allEntries);
+                updatedEntries.push(...retryEntries);
             }
         }
-        log.set("allEntries", allEntries.length);
+        log.set("newEntries", newEntries.length);
+        log.set("updatedEntries", updatedEntries.length);
         let shouldFlushKeyShares = false;
         // pass member changes to device tracker
         if (roomEncryption && this.isTrackingMembers && memberChanges?.size) {
             shouldFlushKeyShares = await roomEncryption.writeMemberChanges(memberChanges, txn, log);
             log.set("shouldFlushKeyShares", shouldFlushKeyShares);
         }
+        const allEntries = newEntries.concat(updatedEntries);
         // also apply (decrypted) timeline entries to the summary changes
         summaryChanges = summaryChanges.applyTimelineEntries(
             allEntries, isInitialSync, !this._isTimelineOpen, this._user.id);
@@ -164,7 +165,7 @@ export class Room extends BaseRoom {
             summaryChanges,
             roomEncryption,
             newEntries,
-            updatedEntries: retryEntries || [],
+            updatedEntries,
             newLiveKey,
             removedPendingEvents,
             memberChanges,
