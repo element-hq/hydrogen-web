@@ -197,6 +197,7 @@ export class PendingEvent {
         if (isTxnId(this._data.redacts)) {
             return this._data.redacts;
         }
+        return null;
     }
 
     setRelatedEventId(eventId) {
