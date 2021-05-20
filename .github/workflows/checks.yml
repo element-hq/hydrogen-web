@@ -1,7 +1,7 @@
 # This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
 
-name: Unit tests
+name: Code checks
 
 on:
   push:
@@ -20,9 +20,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Run unit tests
+    - name: Install
       uses: actions/setup-node@v2
       with:
         node-version: ${{ matrix.node-version }}
     - run: npm install --also=dev
+    - name: Unit tests
     - run: npm test
+    - name: Lint
+    - run: npm run lint-ci
