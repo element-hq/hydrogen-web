@@ -116,4 +116,11 @@ export class EventEntry extends BaseEntry {
     get isRedacted() {
         return !!this._eventEntry.event.unsigned?.redacted_because;
     }
+
+    get redactionReason() {
+        const redactionEvent = this._eventEntry.event.unsigned?.redacted_because;
+        if (redactionEvent) {
+            return redactionEvent.content?.reason;
+        }
+    }
 }

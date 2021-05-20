@@ -22,6 +22,12 @@ export class RedactedTile extends BaseTextTile {
     }
 
     _getBodyAsString() {
-        return "This message has been deleted.";
+        const {redactionReason} = this._entry;
+        if (redactionReason) {
+            return this.i18n`This message has been deleted (${redactionReason}).`;
+
+        } else {
+            return this.i18n`This message has been deleted.`;
+        }
     }
 }
