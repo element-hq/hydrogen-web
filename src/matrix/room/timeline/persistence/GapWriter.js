@@ -105,7 +105,7 @@ export class GapWriter {
         }
     }
 
-    async _storeEvents(events, startKey, direction, state, txn) {
+    async _storeEvents(events, startKey, direction, state, txn, log) {
         const entries = [];
         const updatedEntries = [];
         // events is in reverse chronological order for backwards pagination,
@@ -123,12 +123,12 @@ export class GapWriter {
             txn.timelineEvents.insert(eventStorageEntry);
             const eventEntry = new EventEntry(eventStorageEntry, this._fragmentIdComparer);
             directionalAppend(entries, eventEntry, direction);
-            const updatedRelationTargetEntry = await this._relationWriter.writeRelation(eventEntry);
+            const updatedRelationTargetEntry = await this._relationWriter.writeRelation(eventEntry, txn, log);
             if (updatedRelationTargetEntry) {
                 updatedEntries.push(updatedRelationTargetEntry);
             }
         }
-        return entries;
+        return {entries, updatedEntries};
     }
 
     _findMember(userId, state, events, index, direction) {
@@ -246,7 +246,7 @@ export class GapWriter {
             end = null;
         }
         // create entries for all events in chunk, add them to entries
-        const {entries, updatedEntries} = await this._storeEvents(nonOverlappingEvents, lastKey, direction, state, txn);
+        const {entries, updatedEntries} = await this._storeEvents(nonOverlappingEvents, lastKey, direction, state, txn, log);
         const fragments = await this._updateFragments(fragmentEntry, neighbourFragmentEntry, end, entries, txn);
     
         return {entries, updatedEntries, fragments};

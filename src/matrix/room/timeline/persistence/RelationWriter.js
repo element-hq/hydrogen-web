@@ -24,11 +24,11 @@ export class RelationWriter {
     }
 
     // this needs to happen again after decryption too for edits
-    async writeRelation(sourceEntry, txn) {
+    async writeRelation(sourceEntry, txn, log) {
         if (sourceEntry.relatedEventId) {
             const target = await txn.timelineEvents.getByEventId(this._roomId, sourceEntry.relatedEventId);
             if (target) {
-                if (this._applyRelation(sourceEntry, target)) {
+                if (this._applyRelation(sourceEntry, target, log)) {
                     txn.timelineEvents.update(target);
                     return new EventEntry(target, this._fragmentIdComparer);
                 }
@@ -37,15 +37,17 @@ export class RelationWriter {
         return;
     }
 
-    _applyRelation(sourceEntry, target) {
+    _applyRelation(sourceEntry, target, log) {
         if (sourceEntry.eventType === REDACTION_TYPE) {
-            return this._applyRedaction(sourceEntry.event, target.event);
+            return log.wrap("redact", log => this._applyRedaction(sourceEntry.event, target.event, log));
         } else {
             return false;
         }
     }
 
-    _applyRedaction(redactionEvent, targetEvent) {
+    _applyRedaction(redactionEvent, targetEvent, log) {
+        log.set("redactionId", redactionEvent.event_id);
+        log.set("id", targetEvent.event_id);
         // TODO: should we make efforts to preserve the decrypted event type?
         // probably ok not to, as we'll show whatever is deleted as "deleted message"
         // reactions are the only thing that comes to mind, but we don't encrypt those (for now)

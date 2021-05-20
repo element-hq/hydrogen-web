@@ -174,7 +174,7 @@ export class SyncWriter {
                 txn.timelineEvents.insert(storageEntry);
                 const entry = new EventEntry(storageEntry, this._fragmentIdComparer);
                 entries.push(entry);
-                const updatedRelationTargetEntry = await this._relationWriter.writeRelation(entry);
+                const updatedRelationTargetEntry = await this._relationWriter.writeRelation(entry, txn, log);
                 if (updatedRelationTargetEntry) {
                     updatedEntries.push(updatedRelationTargetEntry);
                 }
@@ -246,7 +246,7 @@ export class SyncWriter {
         // members are available in the transaction
         await this._writeStateEvents(roomResponse, memberChanges, timeline?.limited, txn, log);
         const {currentKey, entries, updatedEntries} =
-            await this._writeTimeline(entries, updatedEntries, timeline, this._lastLiveKey, memberChanges, txn, log);
+            await this._writeTimeline(timeline, this._lastLiveKey, memberChanges, txn, log);
         log.set("memberChanges", memberChanges.size);
         return {entries, updatedEntries, newLiveKey: currentKey, memberChanges};
     }
