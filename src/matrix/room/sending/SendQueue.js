@@ -16,7 +16,7 @@ limitations under the License.
 
 import {SortedArray} from "../../../observable/list/SortedArray.js";
 import {ConnectionError} from "../../error.js";
-import {PendingEvent} from "./PendingEvent.js";
+import {PendingEvent, SendStatus} from "./PendingEvent.js";
 import {makeTxnId, isTxnId} from "../../common.js";
 import {REDACTION_TYPE} from "../common.js";
 
