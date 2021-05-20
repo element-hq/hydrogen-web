@@ -63,7 +63,17 @@ export class SendQueue {
                                 pendingEvent.setWaiting();
                             } else {
                                 log.catch(err);
-                                pendingEvent.setError(err);
+                                const isPermanentError = err.name === "HomeServerError" && (
+                                    err.statusCode === 400 ||   // bad request, must be a bug on our end
+                                    err.statusCode === 403 ||   // forbidden
+                                    err.statusCode === 404      // not found
+                                );
+                                if (isPermanentError) {
+                                    log.set("remove", true);
+                                    await pendingEvent.abort();
+                                } else {
+                                    pendingEvent.setError(err);
+                                }
                             }
                         }
                     });
