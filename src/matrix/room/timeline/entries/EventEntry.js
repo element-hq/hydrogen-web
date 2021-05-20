@@ -122,5 +122,6 @@ export class EventEntry extends BaseEntry {
         if (redactionEvent) {
             return redactionEvent.content?.reason;
         }
+        return null;
     }
 }
