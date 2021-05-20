@@ -104,7 +104,7 @@ export class SendQueue {
             // the relatedTxnId to a related event id, they need to do so now.
             // We ensure this by writing the new remote id for the pending event and all related events
             // with unresolved relatedTxnId in the queue in one transaction.
-            const relatedEvents = this._pendingEvents.array.find(pe => pe.relatedTxnId === pendingEvent.txnId);
+            const relatedEvents = this._pendingEvents.array.filter(pe => pe.relatedTxnId === pendingEvent.txnId);
             const txn = await this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
             try {
                 await this._tryUpdateEventWithTxn(pendingEvent, txn);
