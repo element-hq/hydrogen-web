@@ -112,4 +112,8 @@ export class EventEntry extends BaseEntry {
     get relatedEventId() {
         return this._eventEntry.event.redacts;
     }
+
+    get isRedacted() {
+        return !!this._eventEntry.event.unsigned?.redacted_because;
+    }
 }

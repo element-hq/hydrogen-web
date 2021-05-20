@@ -84,8 +84,13 @@ export class SimpleTile extends ViewModel {
 
     // update received for already included (falls within sort keys) entry
     updateEntry(entry, params) {
-        this._entry = entry;
-        return UpdateAction.Update(params);
+        if (entry.isRedacted) {
+            // recreate the tile if the entry becomes redacted
+            return UpdateAction.Replace(params);
+        } else {
+            this._entry = entry;
+            return UpdateAction.Update(params);
+        }
     }
 
     // return whether the tile should be removed
