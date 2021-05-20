@@ -20,14 +20,14 @@ jobs:
 
     steps:
     - name: Checkout project source
-    - uses: actions/checkout@v2
+      uses: actions/checkout@v2
     - name: Install tools
       uses: actions/setup-node@v2
       with:
         node-version: ${{ matrix.node-version }}
     - name: Install project dependencies
-    - run: npm install --also=dev
+      run: npm install --also=dev
     - name: Unit tests
-    - run: npm test
+      run: npm test
     - name: Lint
-    - run: npm run lint-ci
+      run: npm run lint-ci
