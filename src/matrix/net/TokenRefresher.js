@@ -56,7 +56,7 @@ export class TokenRefresher {
 
         this._accessToken.set(response["access_token"]);
         this._accessTokenExpiresAt.set(
-            this._clock.now() + response["expires_in"] * 1000
+            this._clock.now() + response["expires_in_ms"]
         );
     }
 

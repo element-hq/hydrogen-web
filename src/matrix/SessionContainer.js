@@ -123,7 +123,7 @@ export class SessionContainer {
                 log.set("id", sessionId);
 
                 if (loginData.refresh_token) {
-                    sessionInfo.accessTokenExpiresAt = clock.now() + loginData.expires_in * 1000;
+                    sessionInfo.accessTokenExpiresAt = clock.now() + loginData.expires_in_ms;
                     sessionInfo.refreshToken = loginData.refresh_token;
                 }
 
