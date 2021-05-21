@@ -231,7 +231,7 @@ export class GapWriter {
         if (chunk.length === 0) {
             fragmentEntry.edgeReached = true;
             await txn.timelineFragments.update(fragmentEntry.fragment);
-            return {entries: [fragmentEntry], fragments: []};
+            return {entries: [fragmentEntry], updatedEntries: [], fragments: []};
         }
 
         // find last event in fragment so we get the eventIndex to begin creating keys at
