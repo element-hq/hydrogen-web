@@ -159,7 +159,7 @@ export class Room extends BaseRoom {
         }
         let removedPendingEvents;
         if (Array.isArray(roomResponse.timeline?.events)) {
-            removedPendingEvents = this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn, log);
+            removedPendingEvents = await this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn, log);
         }
         return {
             summaryChanges,
@@ -280,8 +280,8 @@ export class Room extends BaseRoom {
         }
     }
 
-    _writeGapFill(gapChunk, txn, log) {
-        const removedPendingEvents = this._sendQueue.removeRemoteEchos(gapChunk, txn, log);
+    async _writeGapFill(gapChunk, txn, log) {
+        const removedPendingEvents = await this._sendQueue.removeRemoteEchos(gapChunk, txn, log);
         return removedPendingEvents;
     }
 

@@ -263,7 +263,7 @@ export class BaseRoom extends EventEmitter {
             let gapResult;
             try {
                 // detect remote echos of pending messages in the gap
-                extraGapFillChanges = this._writeGapFill(response.chunk, txn, log);
+                extraGapFillChanges = await this._writeGapFill(response.chunk, txn, log);
                 // write new events into gap
                 const gapWriter = new GapWriter({
                     roomId: this._roomId,
@@ -300,7 +300,7 @@ export class BaseRoom extends EventEmitter {
     JoinedRoom uses this update remote echos.
     */
     // eslint-disable-next-line no-unused-vars
-    _writeGapFill(chunk, txn, log) {}
+    async _writeGapFill(chunk, txn, log) {}
     _applyGapFill() {}
 
     /** @public */

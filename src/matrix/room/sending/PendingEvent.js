@@ -16,7 +16,6 @@ limitations under the License.
 import {createEnum} from "../../../utils/enum.js";
 import {AbortError} from "../../../utils/error.js";
 import {REDACTION_TYPE} from "../common.js";
-import {isTxnId} from "../../common.js";
 
 export const SendStatus = createEnum(
     "Waiting",
@@ -49,6 +48,13 @@ export class PendingEvent {
     get txnId() { return this._data.txnId; }
     get remoteId() { return this._data.remoteId; }
     get content() { return this._data.content; }
+    get relatedTxnId() { return this._data.relatedTxnId; }
+    get relatedEventId() { return this._data.relatedEventId; }
+
+    setRelatedEventId(eventId) {
+        this._data.relatedEventId = eventId;
+    }
+
     get data() { return this._data; }
 
     getAttachment(key) {
@@ -164,10 +170,9 @@ export class PendingEvent {
         const eventType = this._data.encryptedEventType || this._data.eventType;
         const content = this._data.encryptedContent || this._data.content;
         if (eventType === REDACTION_TYPE) {
-            // TODO: should we double check here that this._data.redacts is not a txnId here anymore?
             this._sendRequest = hsApi.redact(
                     this.roomId,
-                    this._data.redacts,
+                    this._data.relatedEventId,
                     this.txnId,
                     content,
                     {log}
@@ -195,19 +200,6 @@ export class PendingEvent {
             for (const attachment of Object.values(this._attachments)) {
                 attachment.dispose();
             }
-        }
-    }
-
-    get relatedTxnId() {
-        if (isTxnId(this._data.redacts)) {
-            return this._data.redacts;
-        }
-        return null;
-    }
-
-    setRelatedEventId(eventId) {
-        if (this._data.redacts) {
-            this._data.redacts = eventId;
         }
     }
 }
