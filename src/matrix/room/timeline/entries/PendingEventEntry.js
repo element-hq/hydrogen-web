@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseEntry, PENDING_FRAGMENT_ID} from "./BaseEntry.js";
+import {PENDING_FRAGMENT_ID} from "./BaseEntry.js";
+import {BaseEventEntry} from "./BaseEventEntry.js";
 
-export class PendingEventEntry extends BaseEntry {
+export class PendingEventEntry extends BaseEventEntry {
     constructor({pendingEvent, member, clock}) {
         super(null);
         this._pendingEvent = pendingEvent;
@@ -79,5 +80,9 @@ export class PendingEventEntry extends BaseEntry {
 
     notifyUpdate() {
         
+    }
+
+    get relatedEventId() {
+        return this._pendingEvent.relatedEventId;
     }
 }

@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,7 +29,9 @@ export class Timeline {
         this._closeCallback = closeCallback;
         this._fragmentIdComparer = fragmentIdComparer;
         this._disposables = new Disposables();
-        this._remoteEntries = new SortedArray((a, b) => a.compare(b));
+        this._pendingEvents = pendingEvents;
+        this._clock = clock;
+        this._remoteEntries = null;
         this._ownMember = null;
         this._timelineReader = new TimelineReader({
             roomId: this._roomId,
@@ -36,17 +39,7 @@ export class Timeline {
             fragmentIdComparer: this._fragmentIdComparer
         });
         this._readerRequest = null;
-        let localEntries;
-        if (pendingEvents) {
-            localEntries = new MappedList(pendingEvents, pe => {
-                return new PendingEventEntry({pendingEvent: pe, member: this._ownMember, clock});
-            }, (pee, params) => {
-                pee.notifyUpdate(params);
-            });
-        } else {
-            localEntries = new ObservableArray();
-        }
-        this._allEntries = new ConcatList(this._remoteEntries, localEntries);
+        this._allEntries = null;
     }
 
     /** @package */
@@ -69,9 +62,55 @@ export class Timeline {
         const readerRequest = this._disposables.track(this._timelineReader.readFromEnd(30, txn, log));
         try {
             const entries = await readerRequest.complete();
-            this._remoteEntries.setManySorted(entries);
+            this._setupEntries(entries);
         } finally {
             this._disposables.disposeTracked(readerRequest);
+        }
+    }
+
+    _setupEntries(timelineEntries) {
+        this._remoteEntries = new SortedArray((a, b) => a.compare(b));
+        this._remoteEntries.setManySorted(timelineEntries);
+        if (this._pendingEvents) {
+            this._localEntries = new MappedList(this._pendingEvents, pe => {
+                const pee = new PendingEventEntry({pendingEvent: pe, member: this._ownMember, clock: this._clock});
+                this._applyAndEmitLocalRelationChange(pee.pendingEvent, target => target.addLocalRelation(pee));
+                return pee;
+            }, (pee, params) => {
+                // is sending but redacted, who do we detect that here to remove the relation?
+                pee.notifyUpdate(params);
+            }, pee => {
+                this._applyAndEmitLocalRelationChange(pee.pendingEvent, target => target.removeLocalRelation(pee));
+            });
+            // we need a hook for when a pee is removed, so we can remove the local relation
+        } else {
+            this._localEntries = new ObservableArray();
+        }
+        this._allEntries = new ConcatList(this._remoteEntries, this._localEntries);
+    }
+
+    _applyAndEmitLocalRelationChange(pe, updater) {
+        // first, look in local entries (separately, as it has its own update mechanism)
+        const foundInLocalEntries = this._localEntries.findAndUpdate(
+            e => e.id === pe.relatedTxnId,
+            e => {
+                const params = updater(e);
+                return params ? params : false;
+            },
+        );
+        // now look in remote entries
+        if (!foundInLocalEntries && pe.relatedEventId) {
+            // TODO: ideally iterate in reverse as target is likely to be most recent,
+            // but not easy through ObservableList contract
+            for (const entry of this._allEntries) {
+                if (pe.relatedEventId === entry.id) {
+                    const params = updater(entry);
+                    if (params) {
+                        this._remoteEntries.update(entry, params);
+                    }
+                    return;
+                }
+            }
         }
     }
 
@@ -89,6 +128,15 @@ export class Timeline {
 
     /** @package */
     addOrReplaceEntries(newEntries) {
+        // find any local relations to this new remote event
+        for (const pee of this._localEntries) {
+            // this will work because we set relatedEventId when removing remote echos
+            if (pee.relatedEventId) {
+                const relationTarget = newEntries.find(e => e.id === pee.relatedEventId);
+                // no need to emit here as this entry is about to be added
+                relationTarget?.addLocalRelation(pee);
+            }
+        }
         this._remoteEntries.setManySorted(newEntries);
     }
     
@@ -128,6 +176,7 @@ export class Timeline {
                 return entry;
             }
         }
+        return null;
     }
 
     /** @public */

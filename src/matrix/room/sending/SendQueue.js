@@ -216,12 +216,12 @@ export class SendQueue {
         let relatedEventId;
         if (isTxnId(eventIdOrTxnId)) {
             relatedTxnId = eventIdOrTxnId;
-            log.set("relatedTxnId", eventIdOrTxnId);
             const txnId = eventIdOrTxnId;
             const pe = this._pendingEvents.array.find(pe => pe.txnId === txnId);
             if (pe && !pe.remoteId && pe.status !== SendStatus.Sending) {
                 // haven't started sending this event yet,
                 // just remove it from the queue
+                log.set("remove", relatedTxnId);
                 await pe.abort();
                 return;
             } else if (pe) {
@@ -236,8 +236,15 @@ export class SendQueue {
             }
         } else {
             relatedEventId = eventIdOrTxnId;
-            log.set("relatedEventId", relatedEventId);
+            const pe = this._pendingEvents.array.find(pe => pe.remoteId === relatedEventId);
+            if (pe) {
+                // also set the txn id just in case that an event id was passed
+                // for relating to a pending event that is still waiting for the remote echo
+                relatedTxnId = pe.txnId;
+            }
         }
+        log.set("relatedTxnId", eventIdOrTxnId);
+        log.set("relatedEventId", relatedEventId);
         await this._enqueueEvent(REDACTION_TYPE, {reason}, null, relatedTxnId, relatedEventId, log);
     }
 
