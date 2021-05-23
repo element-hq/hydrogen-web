@@ -35,7 +35,7 @@ function allowsChild(parent, child) {
             return type === "room" || type === "rooms" || type === "settings";
         case "rooms":
             // downside of the approach: both of these will control which tile is selected
-            return type === "room" || type === "empty-grid-tile";
+            return type === "room" || type === "empty-grid-tile" || type === "details";
         case "room":
             return type === "lightbox" || type === "details";
         default:
