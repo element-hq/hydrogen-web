@@ -251,7 +251,7 @@ export class SessionViewModel extends ViewModel {
     }
 
     _toggleRoomInformationPanel() {
-        const roomId = this.navigation.path.get("room").value;
+        const roomId = this.navigation.path.get("room")?.value;
         const room = this._sessionContainer.session.rooms.get(roomId);
         const enable = !!this.navigation.path.get("details");
         if (!room) {
