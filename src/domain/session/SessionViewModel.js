@@ -16,7 +16,8 @@ limitations under the License.
 */
 
 import {LeftPanelViewModel} from "./leftpanel/LeftPanelViewModel.js";
-import {RoomViewModel} from "./room/RoomViewModel.js";
+import { RoomViewModel } from "./room/RoomViewModel.js";
+import { RoomInfoViewModel } from "./rightpanel/RoomInfoViewModel.js";
 import {UnknownRoomViewModel} from "./room/UnknownRoomViewModel.js";
 import {InviteViewModel} from "./room/InviteViewModel.js";
 import {LightboxViewModel} from "./room/LightboxViewModel.js";
@@ -78,6 +79,10 @@ export class SessionViewModel extends ViewModel {
             this._updateLightbox(eventId);
         }));
         this._updateLightbox(lightbox.get());
+
+        const details = this.navigation.observe("details");
+        this.track(details.subscribe(() => this._toggleRoomInformationPanel()));
+
     }
 
     get id() {
@@ -110,6 +115,10 @@ export class SessionViewModel extends ViewModel {
 
     get currentRoomViewModel() {
         return this._roomViewModelObservable?.get();
+    }
+
+    get roomInfoViewModel() {
+        return this._roomInfoViewModel;
     }
 
     _updateGrid(roomIds) {
@@ -240,4 +249,18 @@ export class SessionViewModel extends ViewModel {
     get lightboxViewModel() {
         return this._lightboxViewModel;
     }
+
+    _toggleRoomInformationPanel() {
+        const roomId = this.navigation.path.get("room").value;
+        const room = this._sessionContainer.session.rooms.get(roomId);
+        const enable = !!this.navigation.path.get("details");
+        if (!room) {
+            return;
+        }
+        this._roomInfoViewModel = enable ?
+            this.track(new RoomInfoViewModel(this.childOptions({ room }))) :
+            this.disposeTracked(this._roomInfoViewModel);
+        this.emitChange();
+    }
+
 }
