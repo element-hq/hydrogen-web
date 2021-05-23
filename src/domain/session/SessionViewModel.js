@@ -260,7 +260,7 @@ export class SessionViewModel extends ViewModel {
         this._roomInfoViewModel = enable ?
             this.track(new RoomInfoViewModel(this.childOptions({ room }))) :
             this.disposeTracked(this._roomInfoViewModel);
-        this.emitChange();
+        this.emitChange("roomInfoViewModel");
     }
 
 }
