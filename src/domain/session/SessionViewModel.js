@@ -241,8 +241,7 @@ export class SessionViewModel extends ViewModel {
             this._lightboxViewModel = this.disposeTracked(this._lightboxViewModel);
         }
         if (eventId) {
-            const roomId = this.navigation.path.get("room").value;
-            const room = this._sessionContainer.session.rooms.get(roomId);
+            const room = this._roomFromNavigation();
             this._lightboxViewModel = this.track(new LightboxViewModel(this.childOptions({eventId, room})));
         }
         this.emitChange("lightboxViewModel");
@@ -252,10 +251,15 @@ export class SessionViewModel extends ViewModel {
         return this._lightboxViewModel;
     }
 
-    _toggleRoomInformationPanel() {
-        this._roomInfoViewModel = this.disposeTracked(this._roomInfoViewModel);
+    _roomFromNavigation() {
         const roomId = this.navigation.path.get("room")?.value;
         const room = this._sessionContainer.session.rooms.get(roomId);
+        return room;
+    }
+
+    _toggleRoomInformationPanel() {
+        this._roomInfoViewModel = this.disposeTracked(this._roomInfoViewModel);
+        const room = this._roomFromNavigation();
         if (!room) {
             return;
         }
