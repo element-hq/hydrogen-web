@@ -12,7 +12,7 @@ export class RoomInfoViewModel extends ViewModel {
     }
 
     get name() {
-        return this._roomSummary.name || this._room._heroes._roomName;
+        return this._roomSummary.name || this._room._heroes?._roomName || this._roomSummary.canonicalAlias;
     }
 
     get isEncrypted() {
