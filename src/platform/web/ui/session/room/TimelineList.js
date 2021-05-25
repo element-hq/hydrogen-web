@@ -29,6 +29,7 @@ function viewClassForEntry(entry) {
         case "announcement": return AnnouncementView;
         case "message":
         case "message-status":
+        case "redacted":
             return TextMessageView;
         case "image": return ImageView;
         case "video": return VideoView;

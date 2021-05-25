@@ -24,7 +24,7 @@ export function renderMessage(t, vm, children) {
         unsent: vm.isUnsent,
         unverified: vm.isUnverified,
         continuation: vm => vm.isContinuation,
-        messageStatus: vm => vm.shape === "message-status" || vm.shape === "missing-attachment" || vm.shape === "file",
+        messageStatus: vm => vm.shape === "message-status" || vm.shape === "missing-attachment" || vm.shape === "file" || vm.shape === "redacted",
     };
 
     const profile = t.div({className: "profile"}, [

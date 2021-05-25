@@ -18,7 +18,7 @@ import {BaseTextTile} from "./BaseTextTile.js";
 
 export class RedactedTile extends BaseTextTile {
     get shape() {
-        return "message-status"
+        return "redacted";
     }
 
     _getBodyAsString() {
