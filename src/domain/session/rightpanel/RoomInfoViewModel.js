@@ -1,4 +1,5 @@
 import { ViewModel } from "../../ViewModel.js";
+import { avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl } from "../../avatar.js";
 
 export class RoomInfoViewModel extends ViewModel {
     constructor(options) {
@@ -21,5 +22,21 @@ export class RoomInfoViewModel extends ViewModel {
 
     get memberCount() {
         return this._roomSummary.joinCount;
+    }
+
+    get avatarLetter() {
+        return avatarInitials(this.name);
+    }
+
+    get avatarColorNumber() {
+        return getIdentifierColorNumber(this.roomId)
+    }
+
+    avatarUrl(size) {
+        return getAvatarHttpUrl(this._room.avatarUrl, size, this.platform, this._room.mediaRepository);
+    }
+
+    get avatarTitle() {
+        return this.name;
     }
 }
