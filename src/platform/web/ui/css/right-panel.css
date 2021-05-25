@@ -1,4 +1,8 @@
 .RoomInfo{
     grid-area: right;
     background : rgba(245, 245, 245, 0.90);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding:10px;
 }
