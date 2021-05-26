@@ -39,4 +39,8 @@ export class RoomInfoViewModel extends ViewModel {
     get avatarTitle() {
         return this.name;
     }
+
+    get closeLink() {
+        return this.urlCreator.urlUntilSegment("room");
+    }
 }
