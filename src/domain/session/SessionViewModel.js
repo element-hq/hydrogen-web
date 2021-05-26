@@ -82,6 +82,7 @@ export class SessionViewModel extends ViewModel {
 
         const details = this.navigation.observe("details");
         this.track(details.subscribe(() => this._toggleRoomInformationPanel()));
+        this._toggleRoomInformationPanel();
 
     }
 
