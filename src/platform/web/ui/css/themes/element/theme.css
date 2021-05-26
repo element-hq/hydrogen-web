@@ -485,6 +485,10 @@ a {
     background-image: url("./icons/vertical-ellipsis.svg");
 }
 
+.RoomHeader .room-info {
+    background-image: url("./icons/info.svg");
+}
+
 .RoomView_error {
     color: red;
 }
