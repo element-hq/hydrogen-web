@@ -834,8 +834,9 @@ button.link {
 }
 
 /* Encryption icon next to avatar */
+
 .RoomEncryption {
-    width:  52px;
+    width: 52px;
     height: 52px;
     border-radius: 100%;
     background: #737D8C;
@@ -854,4 +855,13 @@ button.link {
 
 .unencrypted {
     content: url("./icons/e2ee-disabled.svg");
+}
+
+.RoomInfo .button-utility {
+    width: 24px;
+    height: 24px;
+}
+
+.RoomInfo .close {
+    background-image: url("./icons/clear.svg");
 }
