@@ -31,6 +31,11 @@ export class BaseEventEntry extends BaseEntry {
         return this.isRedacting;
     }
 
+    // when replacing an entry, local echo state can be transfered here
+    transferLocalEchoState(oldEntry) {
+        if (oldEntry._pendingRedactions) {
+            this._pendingRedactions = oldEntry._pendingRedactions;
+        }
     }
 
     /**

@@ -41,6 +41,22 @@ export class SortedArray extends BaseObservableList {
         }
     }
 
+    findAndUpdate(newValue, updater) {
+        const index = this.indexOf(newValue);
+        if (index !== -1) {
+            const oldValue = this._items[index];
+            // allow bailing out of sending an emit if updater determined its not needed
+            const params = updater(oldValue, newValue);
+            if (params !== false) {
+                this._items[index] = newValue;
+                this.emitUpdate(index, newValue, params);
+            }
+            // found
+            return true;
+        }
+        return false;
+    }
+
     update(item, updateParams = null) {
         const idx = this.indexOf(item);
         if (idx !== -1) {
