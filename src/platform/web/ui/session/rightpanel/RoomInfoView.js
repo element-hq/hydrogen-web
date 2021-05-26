@@ -6,17 +6,14 @@ export class RoomInfoView extends TemplateView {
 
     render(t, vm) {
         const encryptionString = vm.isEncrypted ? "On" : "Off";
-        return t.div({ className: "RoomInfo" }, [
 
+        return t.div({ className: "RoomInfo" }, [
+            this._createButton(),
             t.div({ className: "RoomAvatar" },
                 [t.view(new AvatarView(vm, 52)), this._createEncryptionIcon(vm.isEncrypted)]),
-
             t.div({ className: "RoomName" }, [t.h2(vm.name)]),
-
             t.div({ className: "RoomId" }, [text(vm.roomId)]),
-
             this._createSideBarRow("People", vm.memberCount, { MemberCount: true }),
-
             this._createSideBarRow("Encryption", encryptionString, { EncryptionStatus: true })
         ]);
     }
@@ -33,5 +30,9 @@ export class RoomInfoView extends TemplateView {
     _createEncryptionIcon(isEncrypted) {
         return tag.div({ className: "RoomEncryption" },
             [tag.div({ className: isEncrypted ? "encrypted" : "unencrypted" })])
+    }
+
+    _createButton() {
+        return tag.div({ className: "buttons" }, [tag.div({ className: "close button-utility" })]);
     }
 }
