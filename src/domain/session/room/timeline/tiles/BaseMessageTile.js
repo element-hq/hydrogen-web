@@ -98,7 +98,7 @@ export class BaseMessageTile extends SimpleTile {
         }
     }
 
-    redact(reason) {
-        this._room.sendRedaction(this._entry.id, reason);
+    redact(reason, log) {
+        return this._room.sendRedaction(this._entry.id, reason, log);
     }
 }
