@@ -1,8 +1,26 @@
-.RoomInfo{
+.RoomInfo {
     grid-area: right;
-    background : rgba(245, 245, 245, 0.90);
-    display: flex;
     flex-direction: column;
+}
+
+.RoomAvatar {
+    display: flex;
+}
+
+.RoomName h2 {
+    text-align: center;
+}
+
+.SidebarRow {
+    justify-content: space-between;
+}
+
+.SidebarLabel, .SidebarRow,
+.RoomInfo, .RoomEncryption {
+    display: flex;
     align-items: center;
-    padding:10px;
+} 
+
+.RoomEncryption {
+    justify-content: center;
 }
