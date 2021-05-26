@@ -7,7 +7,10 @@ export class RoomInfoView extends TemplateView {
     render(t, vm) {
         const encryptionString = vm.isEncrypted ? "On" : "Off";
         return t.div({ className: "RoomInfo" }, [
-            t.div({ className: "RoomAvatar" }, [t.view(new AvatarView(vm, 128))]),
+
+            t.div({ className: "RoomAvatar" },
+                [t.view(new AvatarView(vm, 52)), this._createEncryptionIcon(vm.isEncrypted)]),
+
             t.div({ className: "RoomName" }, [t.h2(vm.name)]),
 
             t.div({ className: "RoomId" }, [text(vm.roomId)]),
@@ -25,5 +28,10 @@ export class RoomInfoView extends TemplateView {
             tag.div({ className: labelClassString }, [text(label)]),
             tag.div({ className: valueClassString }, [text(value)])
         ]);
+    }
+
+    _createEncryptionIcon(isEncrypted) {
+        return tag.div({ className: "RoomEncryption" },
+            [tag.div({ className: isEncrypted ? "encrypted" : "unencrypted" })])
     }
 }
