@@ -22,7 +22,6 @@ limitations under the License.
     font-size: 10px;
 }
 
-
 .hydrogen {
     font-family: 'Inter', sans-serif, 'emoji';
     background-color: white;
@@ -48,14 +47,37 @@ limitations under the License.
     color: white;
 }
 
-.hydrogen .avatar.usercolor1 { background-color: var(--usercolor1); }
-.hydrogen .avatar.usercolor2 { background-color: var(--usercolor2); }
-.hydrogen .avatar.usercolor3 { background-color: var(--usercolor3); }
-.hydrogen .avatar.usercolor4 { background-color: var(--usercolor4); }
-.hydrogen .avatar.usercolor5 { background-color: var(--usercolor5); }
-.hydrogen .avatar.usercolor6 { background-color: var(--usercolor6); }
-.hydrogen .avatar.usercolor7 { background-color: var(--usercolor7); }
-.hydrogen .avatar.usercolor8 { background-color: var(--usercolor8); }
+.hydrogen .avatar.usercolor1 {
+    background-color: var(--usercolor1);
+}
+
+.hydrogen .avatar.usercolor2 {
+    background-color: var(--usercolor2);
+}
+
+.hydrogen .avatar.usercolor3 {
+    background-color: var(--usercolor3);
+}
+
+.hydrogen .avatar.usercolor4 {
+    background-color: var(--usercolor4);
+}
+
+.hydrogen .avatar.usercolor5 {
+    background-color: var(--usercolor5);
+}
+
+.hydrogen .avatar.usercolor6 {
+    background-color: var(--usercolor6);
+}
+
+.hydrogen .avatar.usercolor7 {
+    background-color: var(--usercolor7);
+}
+
+.hydrogen .avatar.usercolor8 {
+    background-color: var(--usercolor8);
+}
 
 .logo {
     height: 48px;
@@ -66,13 +88,16 @@ limitations under the License.
 }
 
 /** buttons */
+
 .button-row {
     display: flex;
 }
-.button-row > * {
+
+.button-row>* {
     margin-right: 10px;
 }
-.button-row > *:last-child {
+
+.button-row>*:last-child {
     margin-right: 0px;
 }
 
@@ -106,7 +131,6 @@ a.button-action {
     text-align: center;
     display: block;
 }
-
 
 .button-action.secondary {
     color: #03B381;
@@ -172,7 +196,8 @@ a.button-action {
     border-radius: 16px;
     height: 32px;
     align-items: center;
-    padding-left: 30px; /* 8 + 14 (icon) + 8*/
+    padding-left: 30px;
+    /* 8 + 14 (icon) + 8*/
     box-sizing: border-box;
 }
 
@@ -180,6 +205,7 @@ a.button-action {
     border: 1px #e1e3e6 solid;
     background-color: white;
 }
+
 .FilterField:focus-within button {
     border-color: white;
 }
@@ -200,13 +226,16 @@ a.button-action {
 }
 
 .FilterField button {
-    width: 30px; /* 32 - 1 (top) - 1 (bottom) */
-    height: 30px; /* 32 - 1 (top) - 1 (bottom) */
+    width: 30px;
+    /* 32 - 1 (top) - 1 (bottom) */
+    height: 30px;
+    /* 32 - 1 (top) - 1 (bottom) */
     background-position: center;
     background-color: #e1e3e6;
     background-repeat: no-repeat;
     background-image: url('icons/clear.svg');
-    border: 7px solid transparent; /* 8 - 1 */
+    border: 7px solid transparent;
+    /* 8 - 1 */
     border-radius: 100%;
     box-sizing: border-box;
 }
@@ -242,11 +271,11 @@ a.button-action {
     padding: 12px 8px 0 8px;
 }
 
-.LeftPanel > :not(:first-child) {
+.LeftPanel> :not(:first-child) {
     margin-top: 12px;
 }
 
-.LeftPanel .utilities > :not(:first-child) {
+.LeftPanel .utilities> :not(:first-child) {
     margin-left: 8px;
 }
 
@@ -266,14 +295,14 @@ a.button-action {
     margin-right: -8px;
 }
 
-.RoomList > li {
+.RoomList>li {
     margin: 0;
     padding: 4px 8px 4px 0;
     /* vertical align */
     align-items: center;
 }
 
-.RoomList > li > a {
+.RoomList>li>a {
     text-decoration: none;
     /* vertical align */
     align-items: center;
@@ -290,7 +319,7 @@ a.button-action {
     border-radius: 5px;
 }
 
-.RoomList li > a > * {
+.RoomList li>a>* {
     margin-right: 8px;
 }
 
@@ -332,13 +361,12 @@ a {
     align-items: center;
 }
 
-
 .SessionStatusView button.link {
     color: currentcolor;
     text-align: left;
 }
 
-.SessionStatusView > .end {
+.SessionStatusView>.end {
     flex: 1;
     display: flex;
     justify-content: flex-end;
@@ -364,7 +392,7 @@ a {
 }
 
 .SessionPickerView li {
-  font-size: 1.2em;
+    font-size: 1.2em;
 }
 
 .SessionPickerView .session-info {
@@ -383,10 +411,11 @@ a {
     display: flex;
 }
 
-.SessionPickerView .session-actions > * {
+.SessionPickerView .session-actions>* {
     margin-right: 10px;
 }
-.SessionPickerView .session-actions > *:last-child {
+
+.SessionPickerView .session-actions>*:last-child {
     margin-right: 0px;
 }
 
@@ -400,16 +429,16 @@ a {
     color: #FF4B55;
 }
 
-.RoomGridView > div.container {
+.RoomGridView>div.container {
     border-right: 1px solid rgba(245, 245, 245, 0.90);
     border-bottom: 1px solid rgba(245, 245, 245, 0.90);
 }
 
-.RoomGridView > .focused > .room-placeholder .unfocused {
+.RoomGridView>.focused>.room-placeholder .unfocused {
     display: none;
 }
 
-.RoomGridView > :not(.focused) > .room-placeholder .focused {
+.RoomGridView> :not(.focused)>.room-placeholder .focused {
     display: none;
 }
 
@@ -417,15 +446,15 @@ a {
     color: #8D99A5;
 }
 
-
-.RoomGridView > div.focus-ring {
+.RoomGridView>div.focus-ring {
     border: 2px solid rgba(134, 193, 165, 1);
     border-radius: 12px;
 }
 
 .middle-header {
     box-sizing: border-box;
-    flex: 0 0 56px; /* 12 + 32 + 12 to align with filter field + margin */
+    flex: 0 0 56px;
+    /* 12 + 32 + 12 to align with filter field + margin */
     background: white;
     padding: 0 16px;
     border-bottom: 1px solid rgba(245, 245, 245, 0.90);
@@ -436,7 +465,7 @@ a {
     font-weight: 600;
 }
 
-.middle-header > :not(:last-child) {
+.middle-header> :not(:last-child) {
     /* use margin-right because the first item,
     .close-middle might be hidden and then we don't
     want a margin-left on the second item*/
@@ -465,11 +494,11 @@ a {
     padding: 8px 16px;
 }
 
-.MessageComposer > :not(:first-child) {
+.MessageComposer> :not(:first-child) {
     margin-left: 12px;
 }
 
-.MessageComposer > input {
+.MessageComposer>input {
     padding: 0 16px;
     border: none;
     border-radius: 24px;
@@ -479,7 +508,7 @@ a {
     font-family: "Inter", sans-serif;
 }
 
-.MessageComposer > button.send {
+.MessageComposer>button.send {
     width: 32px;
     height: 32px;
     display: block;
@@ -487,14 +516,13 @@ a {
     border: none;
     text-indent: 200%;
     overflow: hidden;
-
     background-color: #03B381;
     background-image: url('icons/send.svg');
     background-repeat: no-repeat;
     background-position: center;
 }
 
-.MessageComposer > button.sendFile {
+.MessageComposer>button.sendFile {
     width: 32px;
     height: 32px;
     display: block;
@@ -508,7 +536,7 @@ a {
     background-position: center;
 }
 
-.MessageComposer > button.send:disabled {
+.MessageComposer>button.send:disabled {
     background-color: #E3E8F0;
 }
 
@@ -521,7 +549,7 @@ a {
 }
 
 .Settings p {
-  max-width: 700px;
+    max-width: 700px;
 }
 
 .Settings .row .label {
@@ -543,14 +571,14 @@ a {
 }
 
 .Settings .row .content button {
-  display: inline-block;
-  margin: 0 8px;
+    display: inline-block;
+    margin: 0 8px;
 }
 
 .Settings .row .content input[type=range] {
-  width: 100%;
-  max-width: 300px;
-  min-width: 160px;
+    width: 100%;
+    max-width: 300px;
+    min-width: 160px;
 }
 
 .Settings .row {
@@ -585,25 +613,17 @@ button.link {
 }
 
 .lightbox {
-    background-color: rgba(0,0,0,0.75);
+    background-color: rgba(0, 0, 0, 0.75);
     display: grid;
-    grid-template:
-        "content close"   auto
-        "content details" 1fr /
-        1fr      auto;
+    grid-template: "content close" auto "content details" 1fr / 1fr auto;
     color: white;
     padding: 4px;
 }
 
 @media (max-aspect-ratio: 1/1) {
     .lightbox {
-        grid-template:
-            "close"   auto
-            "content" 1fr
-            "details" auto /
-            1fr;
+        grid-template: "close" auto "content" 1fr "details" auto / 1fr;
     }
-
     .lightbox .details {
         width: 100% !important;
     }
@@ -627,7 +647,7 @@ button.link {
     display: flex;
 }
 
-.lightbox .loading > :not(:first-child) {
+.lightbox .loading> :not(:first-child) {
     margin-left: 8px;
 }
 
@@ -653,7 +673,7 @@ button.link {
 
 .menu {
     border-radius: 8px;
-    box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
     padding: 4px;
     background-color: white;
     list-style: none;
@@ -693,10 +713,7 @@ button.link {
 .InviteView_roomProfile {
     display: grid;
     gap: 4px;
-    grid-template:
-        "avatar name" auto
-        "avatar description" 1fr /
-        72px 1fr;
+    grid-template: "avatar name" auto "avatar description" 1fr / 72px 1fr;
     align-self: center;
     margin-bottom: 24px;
 }
@@ -768,4 +785,73 @@ button.link {
 .UnknownRoomView button {
     max-width: 200px;
     width: 100%;
+}
+
+/* Right Panel */
+
+.RoomInfo {
+    background: rgba(245, 245, 245, 0.90);
+    padding: 10px;
+}
+
+.RoomAvatar {
+    margin-top: 44px;
+}
+
+.RoomId {
+    color: #737D8C;
+    font-size: 12px;
+    margin-bottom: 36px;
+}
+
+.RoomName h2 {
+    margin-bottom: 4px;
+}
+
+.SidebarRow {
+    width: 90%;
+    margin-bottom: 20px;
+    font-weight: 500;
+    font-size: 15px;
+}
+
+.SidebarLabel::before {
+    padding-right: 16px;
+    height: 20px;
+    width: 20px;
+}
+
+.SidebarValue {
+    color: #737D8C;
+}
+
+.MemberCount::before {
+    content: url("./icons/room-members.svg");
+}
+
+.EncryptionStatus::before {
+    content: url("./icons/encryption-status.svg");
+}
+
+/* Encryption icon next to avatar */
+.RoomEncryption {
+    width:  52px;
+    height: 52px;
+    border-radius: 100%;
+    background: #737D8C;
+    border: 3px solid #F2F5F8;
+    margin-left: -16px;
+}
+
+.encrypted, .unencrypted {
+    height: 24px;
+    width: 24px;
+}
+
+.encrypted {
+    content: url("./icons/e2ee-normal.svg");
+}
+
+.unencrypted {
+    content: url("./icons/e2ee-disabled.svg");
 }
