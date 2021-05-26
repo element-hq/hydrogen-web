@@ -20,11 +20,17 @@ import {REDACTION_TYPE} from "../../common.js";
 export class BaseEventEntry extends BaseEntry {
     constructor(fragmentIdComparer) {
         super(fragmentIdComparer);
-        this._localRedactCount = 0;
+        this._pendingRedactions = null;
+    }
+
+    get isRedacting() {
+        return !!this._pendingRedactions;
     }
 
     get isRedacted() {
-        return this._localRedactCount > 0;
+        return this.isRedacting;
+    }
+
     }
 
     /**
@@ -33,8 +39,11 @@ export class BaseEventEntry extends BaseEntry {
     */
     addLocalRelation(entry) {
         if (entry.eventType === REDACTION_TYPE) {
-            this._localRedactCount += 1;
-            if (this._localRedactCount === 1) {
+            if (!this._pendingRedactions) {
+                this._pendingRedactions = [];
+            }
+            this._pendingRedactions.push(entry);
+            if (this._pendingRedactions.length === 1) {
                 return "isRedacted";
             }
         }
@@ -45,11 +54,25 @@ export class BaseEventEntry extends BaseEntry {
         @return [string] returns the name of the field that has changed, if any
     */
     removeLocalRelation(entry) {
-        if (entry.eventType === REDACTION_TYPE) {
-            this._localRedactCount -= 1;
-            if (this._localRedactCount === 0) {
-                return "isRedacted";
+        if (entry.eventType === REDACTION_TYPE && this._pendingRedactions) {
+            const countBefore = this._pendingRedactions.length;
+            this._pendingRedactions = this._pendingRedactions.filter(e => e !== entry);
+            if (this._pendingRedactions.length === 0) {
+                this._pendingRedactions = null;
+                if (countBefore !== 0) {
+                    return "isRedacted";
+                }
             }
+        }
+    }
+
+    async abortPendingRedaction() {
+        if (this._pendingRedactions) {
+            for (const pee of this._pendingRedactions) {
+                await pee.pendingEvent.abort();
+            }
+            // removing the pending events will call removeLocalRelation,
+            // so don't clear _pendingRedactions here
         }
     }
 }

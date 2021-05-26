@@ -14,20 +14,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseTextTile} from "./BaseTextTile.js";
+import {BaseMessageTile} from "./BaseMessageTile.js";
 
-export class RedactedTile extends BaseTextTile {
+export class RedactedTile extends BaseMessageTile {
     get shape() {
         return "redacted";
     }
 
-    _getBodyAsString() {
+    get description() {
         const {redactionReason} = this._entry;
-        if (redactionReason) {
-            return this.i18n`This message has been deleted (${redactionReason}).`;
-
+        if (this.isRedacting) {
+            return this.i18n`This message is being deleted …`;
         } else {
-            return this.i18n`This message has been deleted.`;
+            if (redactionReason) {
+                return this.i18n`This message has been deleted (${redactionReason}).`;
+            } else {
+                return this.i18n`This message has been deleted.`;
+            }
         }
+    }
+
+    get isRedacting() {
+        return this._entry.isRedacting;
+    }
+
+    abortPendingRedaction() {
+        return this._entry.abortPendingRedaction();
     }
 }
