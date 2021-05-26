@@ -37,6 +37,7 @@ limitations under the License.
 }
 
 /* work around postcss-css-variables limitations and repeat variable usage */
+
 .hydrogen .avatar.size-128 {
     --avatar-size: 128px;
     width: var(--avatar-size);
@@ -47,6 +48,14 @@ limitations under the License.
 
 .hydrogen .avatar.size-64 {
     --avatar-size: 64px;
+    width: var(--avatar-size);
+    height: var(--avatar-size);
+    line-height: var(--avatar-size);
+    font-size: calc(var(--avatar-size) * 0.6);
+}
+
+.hydrogen .avatar.size-52 {
+    --avatar-size: 52px;
     width: var(--avatar-size);
     height: var(--avatar-size);
     line-height: var(--avatar-size);
