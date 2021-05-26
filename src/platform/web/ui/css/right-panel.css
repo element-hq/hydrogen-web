@@ -15,12 +15,17 @@
     justify-content: space-between;
 }
 
-.SidebarLabel, .SidebarRow,
-.RoomInfo, .RoomEncryption {
+.SidebarLabel, .SidebarRow, .RoomInfo, .RoomEncryption {
     display: flex;
     align-items: center;
-} 
+}
 
 .RoomEncryption {
     justify-content: center;
+}
+
+.buttons {
+    display: flex;
+    justify-content: right;
+    width: 100%;
 }
