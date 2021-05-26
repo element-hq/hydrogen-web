@@ -104,6 +104,10 @@ export class RoomViewModel extends ViewModel {
     get timelineViewModel() { return this._timelineVM; }
     get isEncrypted() { return this._room.isEncrypted; }
 
+    get roomDetailsLink() {
+        return this.urlCreator.urlForSegment("details");
+    }
+
     get error() {
         if (this._timelineError) {
             return `Something went wrong loading the timeline: ${this._timelineError.message}`;
