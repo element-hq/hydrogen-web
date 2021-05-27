@@ -70,6 +70,10 @@ export class SortedMapList extends BaseObservableList {
     }
 
     onUpdate(key, value, params) {
+        // if an update is emitted while calling source.subscribe() from onSubscribeFirst, ignore it
+        if (!this._sortedPairs) {
+            return;
+        }
         // TODO: suboptimal for performance, see above for idea with BST to speed this up if we need to
         const oldIdx = this._sortedPairs.findIndex(p => p.key === key);
         // neccesary to remove pair from array before

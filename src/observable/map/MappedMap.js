@@ -49,6 +49,10 @@ export class MappedMap extends BaseObservableMap {
     }
 
     onUpdate(key, value, params) {
+        // if an update is emitted while calling source.subscribe() from onSubscribeFirst, ignore it
+        if (!this._mappedValues) {
+            return;
+        }
         const mappedValue = this._mappedValues.get(key);
         if (mappedValue !== undefined) {
             // TODO: map params somehow if needed?

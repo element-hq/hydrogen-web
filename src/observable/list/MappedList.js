@@ -48,6 +48,10 @@ export class MappedList extends BaseObservableList {
     }
 
     onUpdate(index, value, params) {
+        // if an update is emitted while calling source.subscribe() from onSubscribeFirst, ignore it
+        if (!this._mappedValues) {
+            return;
+        }
         const mappedValue = this._mappedValues[index];
         if (this._updater) {
             this._updater(mappedValue, params, value);

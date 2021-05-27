@@ -143,6 +143,10 @@ export class TilesCollection extends BaseObservableList {
     }
 
     onUpdate(index, entry, params) {
+        // if an update is emitted while calling source.subscribe() from onSubscribeFirst, ignore it
+        if (!this._tiles) {
+            return;
+        }
         const tileIdx = this._findTileIdx(entry);
         const tile = this._findTileAtIdx(entry, tileIdx);
         if (tile) {
