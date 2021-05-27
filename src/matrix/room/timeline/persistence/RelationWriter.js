@@ -37,9 +37,9 @@ export class RelationWriter {
         return;
     }
 
-    _applyRelation(sourceEntry, target, log) {
+    _applyRelation(sourceEntry, targetEntry, log) {
         if (sourceEntry.eventType === REDACTION_TYPE) {
-            return log.wrap("redact", log => this._applyRedaction(sourceEntry.event, target.event, log));
+            return log.wrap("redact", log => this._applyRedaction(sourceEntry.event, targetEntry.event, log));
         } else {
             return false;
         }
