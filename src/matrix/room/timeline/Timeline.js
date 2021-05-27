@@ -164,7 +164,7 @@ export class Timeline {
         ));
         try {
             const entries = await readerRequest.complete();
-            this._remoteEntries.setManySorted(entries);
+            this.addOrReplaceEntries(entries);
             return entries.length < amount;
         } finally {
             this._disposables.disposeTracked(readerRequest);
