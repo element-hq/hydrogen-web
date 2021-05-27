@@ -85,7 +85,6 @@ export function tests() {
             };
             const room = {
                 async fillGap(entry) {
-                    console.log(entry.token, currentToken);
                     assert.equal(entry.token, currentToken);
                     currentToken += 1;
                     const newEntry = entry.withUpdatedFragment(Object.assign({}, fragment, {previousToken: currentToken}));
