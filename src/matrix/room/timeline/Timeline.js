@@ -102,7 +102,7 @@ export class Timeline {
         if (!foundInLocalEntries && pe.relatedEventId) {
             // TODO: ideally iterate in reverse as target is likely to be most recent,
             // but not easy through ObservableList contract
-            for (const entry of this._allEntries) {
+            for (const entry of this._remoteEntries) {
                 if (pe.relatedEventId === entry.id) {
                     const params = updater(entry);
                     if (params) {
