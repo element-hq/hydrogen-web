@@ -163,6 +163,7 @@ export class BaseRoom extends EventEmitter {
         return request;
     }
 
+    // TODO: move this to Room
     async _getSyncRetryDecryptEntries(newKeys, roomEncryption, txn) {
         const entriesPerKey = await Promise.all(newKeys.map(async key => {
             const retryEventIds = await roomEncryption.getEventIdsForMissingKey(key, txn);
