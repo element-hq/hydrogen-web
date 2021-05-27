@@ -133,4 +133,8 @@ export class FragmentBoundaryEntry extends BaseEntry {
     createNeighbourEntry(neighbour) {
         return new FragmentBoundaryEntry(neighbour, !this._isFragmentStart, this._fragmentIdComparer);
     }
+
+    transferLocalEchoState() {}
+    addLocalRelation() {}
+    removeLocalRelation() {}
 }
