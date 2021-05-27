@@ -287,6 +287,13 @@ export class RoomViewModel extends ViewModel {
             console.error(err.stack);
         }
     }
+
+    toggleDetailsPanel() {
+        const isPanelOpen = !!this.navigation.path.get("details");
+        const link = isPanelOpen ? this.urlCreator.urlUntilSegment("room"):
+        this.urlCreator.urlForSegment("details");
+        window.location.href = link;
+    }
     
     get composerViewModel() {
         return this._composerVM;
