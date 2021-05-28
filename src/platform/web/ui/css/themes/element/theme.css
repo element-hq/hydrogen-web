@@ -671,14 +671,8 @@ button.link {
     padding: 8px 32px 8px 8px;
 }
 
-.menu button:focus {
-    background-color: #03B381;
-    color: white;
-}
-
-.menu button:hover {
-    background-color: #03B381;
-    color: white;
+.menu .destructive button {
+    color: #FF4B55;
 }
 
 .InviteView_body {

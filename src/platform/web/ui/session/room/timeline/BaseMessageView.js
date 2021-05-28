@@ -82,7 +82,7 @@ export class BaseMessageView extends TemplateView {
         if (vm.isPending) {
             options.push(Menu.option(vm.i18n`Cancel`, () => vm.abortSending()));
         } else if (vm.shape !== "redacted") {
-            options.push(Menu.option(vm.i18n`Delete`, () => vm.redact()));
+            options.push(Menu.option(vm.i18n`Delete`, () => vm.redact()).setDestructive());
         }
         return options;
     }
