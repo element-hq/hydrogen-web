@@ -9,7 +9,7 @@ export class RoomInfoViewModel extends ViewModel {
     }
 
     get roomId() {
-        return this._room.id;
+        return this._roomSummary.canonicalAlias || this._room.id;
     }
 
     get name() {
