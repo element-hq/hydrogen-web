@@ -448,8 +448,7 @@ a {
 }
 
 .RoomHeader .room-options {
-    font-weight: bold;
-    font-size: 1.5rem;
+    background-image: url("./icons/vertical-ellipsis.svg");
 }
 
 .RoomView_error {
