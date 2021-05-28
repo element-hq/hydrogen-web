@@ -14,22 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../../general/TemplateView.js";
-import {renderMessage} from "./common.js";
+import {BaseMessageView} from "./BaseMessageView.js";
 
-export class FileView extends TemplateView {
-    render(t, vm) {
+export class FileView extends BaseMessageView {
+    renderMessageBody(t, vm) {
         if (vm.isPending) {
-            return renderMessage(t, vm, t.p([
+            return t.p([
                 vm => vm.label,
                 " ",
                 t.button({className: "link", onClick: () => vm.abortSending()}, vm.i18n`Cancel`),
-            ]));
+            ]);
         } else {
-            return renderMessage(t, vm, t.p({className: "Timeline_messageBody statusMessage"}, [
+            return t.p({className: "Timeline_messageBody statusMessage"}, [
                 t.button({className: "link", onClick: () => vm.download()}, vm => vm.label),
                 t.time(vm.date + " " + vm.time)
-            ]));
+            ]);
         }
     }
 }

@@ -14,14 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../../general/TemplateView.js";
-import {renderMessage} from "./common.js";
+import {BaseMessageView} from "./BaseMessageView.js";
 
-export class RedactedView extends TemplateView {
-    render(t, vm) {
+export class RedactedView extends BaseMessageView {
+    renderMessageBody(t, vm) {
         const cancelButton = t.if(vm => vm.isRedacting, t => t.button({onClick: () => vm.abortPendingRedaction()}, "Cancel"));
-        return renderMessage(t, vm,
-            t.p({className: "Timeline_messageBody statusMessage"}, [vm => vm.description, " ", cancelButton])
-        );
+        return t.p({className: "Timeline_messageBody statusMessage"}, [vm => vm.description, " ", cancelButton]);
     }
 }

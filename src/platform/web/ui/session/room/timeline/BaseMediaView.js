@@ -14,11 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../../general/TemplateView.js";
-import {renderMessage} from "./common.js";
+import {BaseMessageView} from "./BaseMessageView.js";
 
-export class BaseMediaView extends TemplateView {
-    render(t, vm) {
+export class BaseMediaView extends BaseMessageView {
+    renderMessageBody(t, vm) {
         const heightRatioPercent = (vm.height / vm.width) * 100; 
         let spacerStyle = `padding-top: ${heightRatioPercent}%;`;
         if (vm.platform.isIE11) {
@@ -52,9 +51,9 @@ export class BaseMediaView extends TemplateView {
             });
             children.push(sendStatus, progress);
         }
-        return renderMessage(t, vm, t.div({className: "Timeline_messageBody"}, [
+        return t.div({className: "Timeline_messageBody"}, [
             t.div({className: "media", style: `max-width: ${vm.width}px`}, children),
             t.if(vm => vm.error, t => t.p({className: "error"}, vm.error))
-        ]));
+        ]);
     }
 }
