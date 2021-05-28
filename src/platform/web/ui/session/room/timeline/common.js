@@ -30,6 +30,6 @@ export function renderMessage(t, vm, body) {
         t.if(vm => !vm.isContinuation, t => t.div({className: `Timeline_messageSender usercolor${vm.avatarColorNumber}`}, vm.displayName)),
         body,
         // should be after body as it is overlayed on top
-        t.button({className: "Timeline_messageOptions"}, "⋮"),
+        t.button({className: "Timeline_messageOptions"}, "⋯"),
     ]);
 }

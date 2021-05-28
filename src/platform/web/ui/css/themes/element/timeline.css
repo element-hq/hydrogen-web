@@ -85,6 +85,11 @@ limitations under the License.
     justify-self: right;
     margin-top: -12px;
     margin-right: 4px;
+    /* button visuals */
+    border: #ccc 1px solid;
+    height: 24px;
+    background-color: #fff;
+    border-radius: 4px;
 }
 
 .Timeline_messageTime {
