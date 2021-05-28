@@ -198,11 +198,11 @@ only loads when the top comes into view*/
     align-self: start;
 }
 
-.Timeline_messageBody.unsent .Timeline_messageBody {
+.Timeline_message.unsent .Timeline_messageBody {
     color: #ccc;
 }
 
-.Timeline_messageBody.unverified .Timeline_messageBody {
+.Timeline_message.unverified .Timeline_messageBody {
     color: #ff4b55;
 }
 
