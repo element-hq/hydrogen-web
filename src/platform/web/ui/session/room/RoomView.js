@@ -47,7 +47,7 @@ export class RoomView extends TemplateView {
                 t.button({
                     className: "button-utility room-options",
                     onClick: evt => this._toggleOptionsMenu(evt)
-                }, "⋮")
+                })
             ]),
             t.div({className: "RoomView_body"}, [
                 t.div({className: "RoomView_error"}, vm => vm.error),
