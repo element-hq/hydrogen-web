@@ -38,6 +38,10 @@ limitations under the License.
     --usercolor8: #74D12C;
 }
 
+.hydrogen button {
+    font-family: inherit;
+}
+
 .avatar {
     border-radius: 100%;
     background: #fff;
