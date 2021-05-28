@@ -22,9 +22,13 @@ import {renderMessage} from "./common.js";
 export class TextMessageView extends TemplateView {
     render(t, vm) {
         const bodyView = t.mapView(vm => vm.body, body => new BodyView(body));
-        return renderMessage(t, vm,
-            t.p({className: "Timeline_messageBody"}, [bodyView, t.time({className: {hidden: !vm.date}}, vm.date + " " + vm.time)])
-        );
+        return renderMessage(t, vm, t.p({
+            className: "Timeline_messageBody",
+            statusMessage: vm => vm.shape === "message-status"
+        }, [
+            bodyView,
+            t.time({className: {hidden: !vm.date}}, vm.date + " " + vm.time)
+        ]));
     }
 }
 

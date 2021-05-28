@@ -15,11 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-ul.Timeline > li.messageStatus .Timeline_messageBody > p {
-    font-style: italic;
-    color: #777;
-}
-
 .Timeline_message {
     display: grid;
     grid-template:
@@ -104,6 +99,11 @@ ul.Timeline > li.messageStatus .Timeline_messageBody > p {
     font-size: 0.8em;
     line-height: normal;
     color: #aaa;
+}
+
+.Timeline_messageBody.statusMessage {
+    font-style: italic;
+    color: #777;
 }
 
 .Timeline_messageBody {

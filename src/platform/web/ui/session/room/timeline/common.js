@@ -24,7 +24,6 @@ export function renderMessage(t, vm, body) {
         unsent: vm.isUnsent,
         unverified: vm.isUnverified,
         continuation: vm => vm.isContinuation,
-        messageStatus: vm => vm.shape === "message-status" || vm.shape === "missing-attachment" || vm.shape === "file" || vm.shape === "redacted",
     };
     return t.li({className: classes}, [
         t.if(vm => !vm.isContinuation, t => renderStaticAvatar(vm, 30, "Timeline_messageAvatar")),

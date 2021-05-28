@@ -20,6 +20,6 @@ import {renderMessage} from "./common.js";
 export class MissingAttachmentView extends TemplateView {
     render(t, vm) {
         const remove = t.button({className: "link", onClick: () => vm.abortSending()}, vm.i18n`Remove`);
-        return renderMessage(t, vm, t.p({className: "Timeline_messageBody"}, [vm.label, " ", remove]));
+        return renderMessage(t, vm, t.p({className: "Timeline_messageBody statusMessage"}, [vm.label, " ", remove]));
     }
 }
