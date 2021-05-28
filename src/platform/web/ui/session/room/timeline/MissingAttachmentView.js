@@ -18,7 +18,6 @@ import {BaseMessageView} from "./BaseMessageView.js";
 
 export class MissingAttachmentView extends BaseMessageView {
     renderMessageBody(t, vm) {
-        const remove = t.button({className: "link", onClick: () => vm.abortSending()}, vm.i18n`Remove`);
-        return t.p({className: "Timeline_messageBody statusMessage"}, [vm.label, " ", remove]);
+        return t.p({className: "Timeline_messageBody statusMessage"}, vm.label);
     }
 }

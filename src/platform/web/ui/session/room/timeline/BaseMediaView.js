@@ -36,13 +36,12 @@ export class BaseMediaView extends BaseMessageView {
             t.time(vm.date + " " + vm.time),
         ];
         if (vm.isPending) {
-            const cancel = t.button({onClick: () => vm.abortSending(), className: "link"}, vm.i18n`Cancel`);
             const sendStatus = t.div({
                 className: {
                     sendStatus: true,
                     hidden: vm => !vm.sendStatus
                 },
-            }, [vm => vm.sendStatus, " ", cancel]);
+            }, vm => vm.sendStatus);
             const progress = t.progress({
                 min: 0,
                 max: 100,

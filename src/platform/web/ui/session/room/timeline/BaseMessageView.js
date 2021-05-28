@@ -59,7 +59,8 @@ export class BaseMessageView extends TemplateView {
                 return;
             }
             this.root().classList.add("menuOpen");
-            this._menuPopup = new Popup(new Menu(options), () => this.root().classList.remove("menuOpen"));
+            const onClose = () => this.root().classList.remove("menuOpen");
+            this._menuPopup = new Popup(new Menu(options), onClose);
             this._menuPopup.trackInTemplateView(this);
             this._menuPopup.showRelativeTo(button, {
                 horizontal: {
@@ -78,7 +79,9 @@ export class BaseMessageView extends TemplateView {
 
     createMenuOptions(vm) {
         const options = [];
-        if (vm.shape !== "redacted") {
+        if (vm.isPending) {
+            options.push(Menu.option(vm.i18n`Cancel`, () => vm.abortSending()));
+        } else if (vm.shape !== "redacted") {
             options.push(Menu.option(vm.i18n`Delete`, () => vm.redact()));
         }
         return options;
