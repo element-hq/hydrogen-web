@@ -23,10 +23,10 @@ export class RedactedView extends BaseMessageView {
     }
 
     createMenuOptions(vm) {
-    	const options = super.createMenuOptions(vm);
-    	if (vm.isRedacting) {
-    		options.push(Menu.option(vm.i18n`Cancel`, () => vm.abortPendingRedaction()));
-    	}
-    	return options;
+        const options = super.createMenuOptions(vm);
+        if (vm.isRedacting) {
+            options.push(Menu.option(vm.i18n`Cancel`, () => vm.abortPendingRedaction()));
+        }
+        return options;
     }
 }
