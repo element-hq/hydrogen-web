@@ -17,8 +17,15 @@ limitations under the License.
 
 import {renderStaticAvatar} from "../../../avatar.js";
 import {TemplateView} from "../../../general/TemplateView.js";
+import {Popup} from "../../../general/Popup.js";
+import {Menu} from "../../../general/Menu.js";
 
 export class BaseMessageView extends TemplateView {
+    constructor(value) {
+        super(value);
+        this._menuPopup = null;
+    }
+
     render(t, vm) {
         const classes = {
             "Timeline_message": true,
@@ -36,7 +43,46 @@ export class BaseMessageView extends TemplateView {
         ]);   
     }
 
-    renderMessageBody() {
-
+    /* This is called by the parent ListView, which just has 1 listener for the whole list */
+    onClick(evt) {
+        if (evt.target.className === "Timeline_messageOptions") {
+            this._toggleMenu(evt.target);
+        }
     }
+
+    _toggleMenu(button) {
+        if (this._menuPopup && this._menuPopup.isOpen) {
+            this._menuPopup.close();
+        } else {
+            const options = this.createMenuOptions(this.value);
+            if (!options.length) {
+                return;
+            }
+            this.root().classList.add("menuOpen");
+            this._menuPopup = new Popup(new Menu(options), () => this.root().classList.remove("menuOpen"));
+            this._menuPopup.trackInTemplateView(this);
+            this._menuPopup.showRelativeTo(button, {
+                horizontal: {
+                    relativeTo: "end",
+                    align: "start",
+                    after: 0
+                },
+                vertical: {
+                    relativeTo: "start",
+                    align: "end",
+                    before: -24
+                }
+            });
+        }
+    }
+
+    createMenuOptions(vm) {
+        const options = [];
+        if (vm.shape !== "redacted") {
+            options.push(Menu.option(vm.i18n`Delete`, () => vm.redact()));
+        }
+        return options;
+    }
+
+    renderMessageBody() {}
 }

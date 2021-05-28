@@ -45,6 +45,7 @@ export class TimelineList extends ListView {
         const options = {
             className: "Timeline bottom-aligned-scroll",
             list: viewModel.tiles,
+            onItemClick: (tileView, evt) => tileView.onClick(evt),
         }
         super(options, entry => {
             const View = viewClassForEntry(entry);

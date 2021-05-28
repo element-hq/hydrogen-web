@@ -20,4 +20,7 @@ export class AnnouncementView extends TemplateView {
     render(t) {
         return t.li({className: "AnnouncementView"}, t.div(vm => vm.announcement));
     }
+    
+    /* This is called by the parent ListView, which just has 1 listener for the whole list */
+    onClick() {}
 }

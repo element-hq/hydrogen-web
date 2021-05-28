@@ -30,13 +30,14 @@ const VerticalAxis = {
 };
 
 export class Popup {
-    constructor(view) {
+    constructor(view, closeCallback = null) {
         this._view = view;
         this._target = null;
         this._arrangement = null;
         this._scroller = null;
         this._fakeRoot = null;
         this._trackingTemplateView = null;
+        this._closeCallback = closeCallback;
     }
 
     trackInTemplateView(templateView) {
@@ -82,6 +83,9 @@ export class Popup {
             document.body.removeEventListener("click", this, false);
             this._popup.remove();
             this._view = null;
+            if (this._closeCallback) {
+                this._closeCallback();
+            }
         }
     }
 

@@ -15,10 +15,18 @@ limitations under the License.
 */
 
 import {BaseMessageView} from "./BaseMessageView.js";
+import {Menu} from "../../../general/Menu.js";
 
 export class RedactedView extends BaseMessageView {
     renderMessageBody(t, vm) {
-        const cancelButton = t.if(vm => vm.isRedacting, t => t.button({onClick: () => vm.abortPendingRedaction()}, "Cancel"));
-        return t.p({className: "Timeline_messageBody statusMessage"}, [vm => vm.description, " ", cancelButton]);
+        return t.p({className: "Timeline_messageBody statusMessage"}, vm => vm.description);
+    }
+
+    createMenuOptions(vm) {
+    	const options = super.createMenuOptions(vm);
+    	if (vm.isRedacting) {
+    		options.push(Menu.option(vm.i18n`Cancel`, () => vm.abortPendingRedaction()));
+    	}
+    	return options;
     }
 }

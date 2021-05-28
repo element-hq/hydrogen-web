@@ -49,12 +49,13 @@ limitations under the License.
     }
 }
 
-.Timeline_message:hover, .Timeline_message.selected {
+.Timeline_message:hover, .Timeline_message.selected, .Timeline_message.menuOpen {
     background-color: rgba(141, 151, 165, 0.1);
     border-radius: 4px;
 }
 
-.Timeline_message:hover > .Timeline_messageOptions {
+.Timeline_message:hover > .Timeline_messageOptions,
+.Timeline_message.menuOpen > .Timeline_messageOptions {
     display: block;
 }
 
