@@ -18,7 +18,7 @@ import {BaseMessageView} from "./BaseMessageView.js";
 import {Menu} from "../../../general/Menu.js";
 
 export class RedactedView extends BaseMessageView {
-    renderMessageBody(t, vm) {
+    renderMessageBody(t) {
         return t.p({className: "Timeline_messageBody statusMessage"}, vm => vm.description);
     }
 

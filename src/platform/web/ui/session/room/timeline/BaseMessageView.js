@@ -35,7 +35,7 @@ export class BaseMessageView extends TemplateView {
             continuation: vm => vm.isContinuation,
         };
         return t.li({className: classes}, [
-            t.if(vm => !vm.isContinuation, t => renderStaticAvatar(vm, 30, "Timeline_messageAvatar")),
+            t.if(vm => !vm.isContinuation, () => renderStaticAvatar(vm, 30, "Timeline_messageAvatar")),
             t.if(vm => !vm.isContinuation, t => t.div({className: `Timeline_messageSender usercolor${vm.avatarColorNumber}`}, vm.displayName)),
             this.renderMessageBody(t, vm),
             // should be after body as it is overlayed on top
