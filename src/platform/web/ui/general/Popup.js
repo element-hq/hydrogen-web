@@ -104,9 +104,10 @@ export class Popup {
     _onScroll() {
         if (this._scroller && !this._isVisibleInScrollParent(VerticalAxis)) {
             this.close();
+        } else {
+            this._applyArrangementAxis(HorizontalAxis, this._arrangement.horizontal);
+            this._applyArrangementAxis(VerticalAxis, this._arrangement.vertical);
         }
-        this._applyArrangementAxis(HorizontalAxis, this._arrangement.horizontal);
-        this._applyArrangementAxis(VerticalAxis, this._arrangement.vertical);
     }
 
     _onClick() {
@@ -190,7 +191,15 @@ function findScrollParent(el) {
     do {
         parent = parent.parentElement;
         if (parent.scrollHeight > parent.clientHeight) {
-            return parent;
+            // double check that overflow would allow a scrollbar
+            // because some elements, like a button with negative margin to increate the click target
+            // can cause the scrollHeight to be larger than the clientHeight in the parent
+            // see button.link class
+            const style = window.getComputedStyle(parent);
+            const {overflow} = style;
+            if (overflow === "auto" || overflow === "scroll") {
+                return parent;
+            }
         }
     } while (parent !== el.offsetParent);
 }
