@@ -52,9 +52,9 @@ export class BaseMediaView extends TemplateView {
             });
             children.push(sendStatus, progress);
         }
-        return renderMessage(t, vm, [
+        return renderMessage(t, vm, t.div({className: "Timeline_messageBody"}, [
             t.div({className: "media", style: `max-width: ${vm.width}px`}, children),
             t.if(vm => vm.error, t => t.p({className: "error"}, vm.error))
-        ]);
+        ]));
     }
 }

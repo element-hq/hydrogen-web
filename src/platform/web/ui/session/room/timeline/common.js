@@ -17,23 +17,20 @@ limitations under the License.
 
 import {renderStaticAvatar} from "../../../avatar.js";
 
-export function renderMessage(t, vm, children) {
+export function renderMessage(t, vm, body) {
     const classes = {
-        "TextMessageView": true,
+        "Timeline_message": true,
         own: vm.isOwn,
         unsent: vm.isUnsent,
         unverified: vm.isUnverified,
         continuation: vm => vm.isContinuation,
         messageStatus: vm => vm.shape === "message-status" || vm.shape === "missing-attachment" || vm.shape === "file" || vm.shape === "redacted",
     };
-
-    const profile = t.div({className: "profile"}, [
-        renderStaticAvatar(vm, 30),
-        t.div({className: `sender usercolor${vm.avatarColorNumber}`}, vm.displayName)
+    return t.li({className: classes}, [
+        t.if(vm => !vm.isContinuation, t => renderStaticAvatar(vm, 30, "Timeline_messageAvatar")),
+        t.if(vm => !vm.isContinuation, t => t.div({className: `Timeline_messageSender usercolor${vm.avatarColorNumber}`}, vm.displayName)),
+        body,
+        // should be after body as it is overlayed on top
+        t.button({className: "Timeline_messageOptions"}, "⋮"),
     ]);
-    children = [profile].concat(children);
-    return t.li(
-        {className: classes},
-        t.div({className: "message-container"}, children)
-    );
 }

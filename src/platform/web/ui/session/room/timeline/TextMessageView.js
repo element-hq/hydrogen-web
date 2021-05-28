@@ -22,9 +22,8 @@ import {renderMessage} from "./common.js";
 export class TextMessageView extends TemplateView {
     render(t, vm) {
         const bodyView = t.mapView(vm => vm.body, body => new BodyView(body));
-        const redactButton = t.button({onClick: () => vm.redact()}, "Redact");
         return renderMessage(t, vm,
-            [t.p([bodyView, redactButton, t.time({className: {hidden: !vm.date}}, vm.date + " " + vm.time)])]
+            t.p({className: "Timeline_messageBody"}, [bodyView, t.time({className: {hidden: !vm.date}}, vm.date + " " + vm.time)])
         );
     }
 }

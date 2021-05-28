@@ -43,11 +43,6 @@ limitations under the License.
     display: block;
 }
 
-.TextMessageView {
-    display: flex;
-    min-width: 0;
-}
-
 .AnnouncementView {
     display: flex;
     align-items: center;

@@ -21,7 +21,7 @@ export class RedactedView extends TemplateView {
     render(t, vm) {
         const cancelButton = t.if(vm => vm.isRedacting, t => t.button({onClick: () => vm.abortPendingRedaction()}, "Cancel"));
         return renderMessage(t, vm,
-            [t.p([vm => vm.description, " ", cancelButton, t.time({className: {hidden: !vm.date}}, vm.date + " " + vm.time)])]
+            t.p({className: "Timeline_messageBody"}, [vm => vm.description, " ", cancelButton])
         );
     }
 }
