@@ -222,3 +222,7 @@ only loads when the top comes into view*/
 .GapView > :not(:first-child) {
     margin-left: 12px;
 }
+
+.Timeline_messageBody a {
+    word-break: break-all;
+}
