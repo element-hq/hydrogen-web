@@ -87,8 +87,8 @@ export class BaseMessageTile extends SimpleTile {
         let isContinuation = false;
         if (prev && prev instanceof BaseMessageTile && prev.sender === this.sender) {
             // timestamp is null for pending events
-            const myTimestamp = this._entry.timestamp || this.clock.now();
-            const otherTimestamp = prev._entry.timestamp || this.clock.now();
+            const myTimestamp = this._entry.timestamp;
+            const otherTimestamp = prev._entry.timestamp;
             // other message was sent less than 5min ago
             isContinuation = (myTimestamp - otherTimestamp) < (5 * 60 * 1000);
         }
