@@ -16,6 +16,7 @@ limitations under the License.
 
 import {BaseObservableList} from "./BaseObservableList.js";
 import {sortedIndex} from "../../utils/sortedIndex.js";
+import {findAndUpdateInArray} from "./common.js";
 
 export class SortedArray extends BaseObservableList {
     constructor(comparator) {
@@ -41,20 +42,8 @@ export class SortedArray extends BaseObservableList {
         }
     }
 
-    findAndUpdate(newValue, updater) {
-        const index = this.indexOf(newValue);
-        if (index !== -1) {
-            const oldValue = this._items[index];
-            // allow bailing out of sending an emit if updater determined its not needed
-            const params = updater(oldValue, newValue);
-            if (params !== false) {
-                this._items[index] = newValue;
-                this.emitUpdate(index, newValue, params);
-            }
-            // found
-            return true;
-        }
-        return false;
+    findAndUpdate(predicate, updater) {
+        return findAndUpdateInArray(predicate, this._items, this, updater);
     }
 
     update(item, updateParams = null, previousCallback = null) {

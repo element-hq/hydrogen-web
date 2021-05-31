@@ -90,27 +90,23 @@ export class Timeline {
     }
 
     _applyAndEmitLocalRelationChange(pe, updater) {
-        // first, look in local entries (separately, as it has its own update mechanism)
+        const updateOrFalse = e => {
+            const params = updater(e);
+            return params ? params : false;
+        };
+        // first, look in local entries based on txn id
         const foundInLocalEntries = this._localEntries.findAndUpdate(
             e => e.id === pe.relatedTxnId,
-            e => {
-                const params = updater(e);
-                return params ? params : false;
-            },
+            updateOrFalse,
         );
-        // now look in remote entries
+        // now look in remote entries based on event id
         if (!foundInLocalEntries && pe.relatedEventId) {
             // TODO: ideally iterate in reverse as target is likely to be most recent,
             // but not easy through ObservableList contract
-            for (const entry of this._remoteEntries) {
-                if (pe.relatedEventId === entry.id) {
-                    const params = updater(entry);
-                    if (params) {
-                        this._remoteEntries.update(entry, params);
-                    }
-                    return;
-                }
-            }
+            this._remoteEntries.findAndUpdate(
+                e => e.id === pe.relatedEventId,
+                updateOrFalse
+            );
         }
     }
 

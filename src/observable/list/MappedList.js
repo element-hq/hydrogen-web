@@ -16,6 +16,7 @@ limitations under the License.
 */
 
 import {BaseObservableList} from "./BaseObservableList.js";
+import {findAndUpdateInArray} from "./common.js";
 
 export class MappedList extends BaseObservableList {
     constructor(sourceList, mapper, updater, removeCallback) {
@@ -80,18 +81,7 @@ export class MappedList extends BaseObservableList {
     }
 
     findAndUpdate(predicate, updater) {
-        const index = this._mappedValues.findIndex(predicate);
-        if (index !== -1) {
-            const mappedValue = this._mappedValues[index];
-            // allow bailing out of sending an emit if updater determined its not needed
-            const params = updater(mappedValue);
-            if (params !== false) {
-                this.emitUpdate(index, mappedValue, params);
-            }
-            // found
-            return true;
-        }
-        return false;
+        return findAndUpdateInArray(predicate, this._mappedValues, this, updater);
     }
 
     get length() {
