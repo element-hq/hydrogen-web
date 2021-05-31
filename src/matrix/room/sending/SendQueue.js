@@ -195,7 +195,6 @@ export class SendQueue {
         await this._enqueueEvent(eventType, content, attachments, null, null, log);
     }
 
-
     async _enqueueEvent(eventType, content, attachments, relatedTxnId, relatedEventId, log) {
         const pendingEvent = await this._createAndStoreEvent(eventType, content, relatedTxnId, relatedEventId, attachments);
         this._pendingEvents.set(pendingEvent);
