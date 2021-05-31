@@ -288,13 +288,10 @@ export class RoomViewModel extends ViewModel {
         }
     }
 
-    toggleDetailsPanel() {
-        const isPanelOpen = !!this.navigation.path.get("details");
-        const link = isPanelOpen ? this.urlCreator.urlUntilSegment("room"):
-        this.urlCreator.urlForSegment("details");
-        window.location.href = link;
+    get detailsLink() {
+        return this.urlCreator.urlForSegment("details");
     }
-    
+
     get composerViewModel() {
         return this._composerVM;
     }
