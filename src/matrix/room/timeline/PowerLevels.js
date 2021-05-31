@@ -41,8 +41,6 @@ export class PowerLevels {
             }
             if (typeof userLevel === "number") {
                 return userLevel;
-            } else {
-                return 0;
             }
         } else if (this._createEvent) {
             if (userId === this._createEvent.content?.creator) {
