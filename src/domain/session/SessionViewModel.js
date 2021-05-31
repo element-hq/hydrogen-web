@@ -63,6 +63,7 @@ export class SessionViewModel extends ViewModel {
             if (!this._gridViewModel) {
                 this._updateRoom(roomId);
             }
+            this._toggleRoomInformationPanel();
         }));
         if (!this._gridViewModel) {
             this._updateRoom(currentRoomId.get());
@@ -125,8 +126,6 @@ export class SessionViewModel extends ViewModel {
     _updateGrid(roomIds) {
         const changed = !(this._gridViewModel && roomIds);
         const currentRoomId = this.navigation.path.get("room");
-        // Close right-panel if needed
-        this._toggleRoomInformationPanel();
         if (roomIds) {
             if (!this._gridViewModel) {
                 this._gridViewModel = this.track(new RoomGridViewModel(this.childOptions({

@@ -113,6 +113,9 @@ export function parseUrlPath(urlPath, currentNavPath, defaultSessionId) {
                 segments.push(roomsSegmentWithRoom(rooms, roomId, currentNavPath));
             }
             segments.push(new Segment("room", roomId));
+            if (currentNavPath.get("details")?.value) {
+                segments.push(new Segment("details"));
+            }
         } else if (type === "last-session") {
             let sessionSegment = currentNavPath.get("session");
             if (typeof sessionSegment?.value !== "string" && defaultSessionId) {
