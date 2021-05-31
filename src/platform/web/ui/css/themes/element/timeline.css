@@ -83,12 +83,13 @@ limitations under the License.
     display: none;
     grid-area: body;
     align-self: start;
-    justify-self: right;
+    justify-self: end;
     margin-top: -12px;
     margin-right: 4px;
     /* button visuals */
     border: #ccc 1px solid;
     height: 24px;
+    width: 24px;
     background-color: #fff;
     border-radius: 4px;
 }
