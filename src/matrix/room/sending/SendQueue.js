@@ -124,8 +124,6 @@ export class SendQueue {
         for (const relatedPE of relatedEventWithoutRemoteId) {
             relatedPE.setRelatedEventId(remoteId);
             await this._tryUpdateEventWithTxn(relatedPE, txn);
-            // emit that we now have a related remote id
-            // this._pendingEvents.update(relatedPE);
         }
         return relatedEventWithoutRemoteId;
     }
