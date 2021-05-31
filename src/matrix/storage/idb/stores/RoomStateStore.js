@@ -18,33 +18,33 @@ limitations under the License.
 import {MAX_UNICODE} from "./common.js";
 
 function encodeKey(roomId, eventType, stateKey) {
-	 return `${roomId}|${eventType}|${stateKey}`;
+     return `${roomId}|${eventType}|${stateKey}`;
 }
 
 export class RoomStateStore {
-	constructor(idbStore) {
-		this._roomStateStore = idbStore;
-	}
+    constructor(idbStore) {
+        this._roomStateStore = idbStore;
+    }
 
-	getAllForType(roomId, type) {
-		throw new Error("unimplemented");
-	}
+    getAllForType(roomId, type) {
+        throw new Error("unimplemented");
+    }
 
-	get(roomId, type, stateKey) {
+    get(roomId, type, stateKey) {
         const key = encodeKey(roomId, type, stateKey);
-		return this._roomStateStore.get(key);
-	}
+        return this._roomStateStore.get(key);
+    }
 
-	set(roomId, event) {
+    set(roomId, event) {
         const key = encodeKey(roomId, event.type, event.state_key);
         const entry = {roomId, event, key};
-		return this._roomStateStore.put(entry);
-	}
+        return this._roomStateStore.put(entry);
+    }
 
-	removeAllForRoom(roomId) {
-		// exclude both keys as they are theoretical min and max,
-		// but we should't have a match for just the room id, or room id with max
-		const range = IDBKeyRange.bound(roomId, `${roomId}|${MAX_UNICODE}`, true, true);
-		this._roomStateStore.delete(range);
-	}
+    removeAllForRoom(roomId) {
+        // exclude both keys as they are theoretical min and max,
+        // but we should't have a match for just the room id, or room id with max
+        const range = IDBKeyRange.bound(roomId, `${roomId}|${MAX_UNICODE}`, true, true);
+        this._roomStateStore.delete(range);
+    }
 }
