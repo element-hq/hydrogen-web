@@ -213,7 +213,7 @@ async function buildJsLegacy(mainFile, extraFiles, importOverrides) {
                 "@babel/preset-env",
                 {
                     useBuiltIns: "entry",
-                    corejs: "3",
+                    corejs: "3.4",
                     targets: "IE 11",
                     // we provide our own promise polyfill (es6-promise)
                     // with support for synchronous flushing of
