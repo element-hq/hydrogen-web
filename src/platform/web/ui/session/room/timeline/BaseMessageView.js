@@ -94,7 +94,7 @@ export class BaseMessageView extends TemplateView {
         const options = [];
         if (vm.isPending) {
             options.push(Menu.option(vm.i18n`Cancel`, () => vm.abortSending()));
-        } else if (vm.shape !== "redacted" && vm.canRedact) {
+        } else if (vm.canRedact) {
             options.push(Menu.option(vm.i18n`Delete`, () => vm.redact()).setDestructive());
         }
         return options;

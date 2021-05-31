@@ -38,6 +38,10 @@ export class RedactedTile extends BaseMessageTile {
         return this._entry.isRedacting;
     }
 
+    get canRedact() {
+        return false;
+    }
+
     abortPendingRedaction() {
         return this._entry.abortPendingRedaction();
     }
