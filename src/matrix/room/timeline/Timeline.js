@@ -133,24 +133,27 @@ export class Timeline {
     }
 
     replaceEntries(entries) {
+        this._addLocalRelationsToNewRemoteEntries(entries);
         for (const entry of entries) {
-            this._remoteEntries.update(entry, null, previousEntry => {
-                entry.transferLocalEchoState(previousEntry);
-            });
+            this._remoteEntries.update(entry);
+        }
+    }
+
+    _addLocalRelationsToNewRemoteEntries(entries) {
+        // find any local relations to this new remote event
+        for (const pee of this._localEntries) {
+            // this will work because we set relatedEventId when removing remote echos
+            if (pee.relatedEventId) {
+                const relationTarget = entries.find(e => e.id === pee.relatedEventId);
+                // no need to emit here as this entry is about to be added
+                relationTarget?.addLocalRelation(pee);
+            }
         }
     }
 
     /** @package */
     addOrReplaceEntries(newEntries) {
-        // find any local relations to this new remote event
-        for (const pee of this._localEntries) {
-            // this will work because we set relatedEventId when removing remote echos
-            if (pee.relatedEventId) {
-                const relationTarget = newEntries.find(e => e.id === pee.relatedEventId);
-                // no need to emit here as this entry is about to be added
-                relationTarget?.addLocalRelation(pee);
-            }
-        }
+        this._addLocalRelationsToNewRemoteEntries(newEntries);
         this._remoteEntries.setManySorted(newEntries);
     }
     
