@@ -103,7 +103,6 @@ export class Timeline {
             }, pee => {
                 this._applyAndEmitLocalRelationChange(pee.pendingEvent, target => target.removeLocalRelation(pee));
             });
-            // we need a hook for when a pee is removed, so we can remove the local relation
         } else {
             this._localEntries = new ObservableArray();
         }
@@ -122,8 +121,6 @@ export class Timeline {
         );
         // now look in remote entries based on event id
         if (!foundInLocalEntries && pe.relatedEventId) {
-            // TODO: ideally iterate in reverse as target is likely to be most recent,
-            // but not easy through ObservableList contract
             this._remoteEntries.findAndUpdate(
                 e => e.id === pe.relatedEventId,
                 updateOrFalse
@@ -137,8 +134,6 @@ export class Timeline {
 
     replaceEntries(entries) {
         for (const entry of entries) {
-            // this will use the comparator and thus
-            // check for equality using the compare method in BaseEntry
             this._remoteEntries.update(entry, null, previousEntry => {
                 entry.transferLocalEchoState(previousEntry);
             });
