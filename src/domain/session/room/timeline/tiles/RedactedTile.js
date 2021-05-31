@@ -37,7 +37,8 @@ export class RedactedTile extends BaseMessageTile {
     get isRedacting() {
         return this._entry.isRedacting;
     }
-
+    
+    /** override parent property to disable redacting, even if still pending */
     get canRedact() {
         return false;
     }
