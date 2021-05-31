@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {tag} from "./html.js";
+import {errorToDOM} from "./error.js";
 
 function insertAt(parentNode, idx, childNode) {
     const isLast = idx === parentNode.childElementCount;
@@ -106,8 +107,12 @@ export class ListView {
         for (let item of this._list) {
             const child = this._childCreator(item);
             this._childInstances.push(child);
-            const childDomNode = child.mount(this._mountArgs);
-            fragment.appendChild(childDomNode);
+            try {
+                const childDomNode = child.mount(this._mountArgs);
+                fragment.appendChild(childDomNode);
+            } catch (err) {
+                fragment.appendChild(errorToDOM(err));
+            }
         }
         this._root.appendChild(fragment);
     }
