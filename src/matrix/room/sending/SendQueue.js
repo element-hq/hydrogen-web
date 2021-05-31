@@ -100,8 +100,9 @@ export class SendQueue {
         if (pendingEvent.needsSending) {
             await pendingEvent.send(this._hsApi, log);
             // we now have a remoteId, but this pending event may be removed at any point in the future
-            // once the remote echo comes in. So if we have any related events that need to resolve
-            // the relatedTxnId to a related event id, they need to do so now.
+            // (or past, so can't assume it still exists) once the remote echo comes in.
+            // So if we have any related events that need to resolve the relatedTxnId to a related event id,
+            // they need to do so now.
             // We ensure this by writing the new remote id for the pending event and all related events
             // with unresolved relatedTxnId in the queue in one transaction.
             const txn = await this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
