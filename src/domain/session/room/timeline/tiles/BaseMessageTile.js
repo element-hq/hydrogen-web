@@ -20,7 +20,6 @@ import {getIdentifierColorNumber, avatarInitials, getAvatarHttpUrl} from "../../
 export class BaseMessageTile extends SimpleTile {
     constructor(options) {
         super(options);
-        this._isOwn = this._entry.sender === options.timeline.me.userId;
         this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : null;
         this._isContinuation = false;
     }
@@ -67,7 +66,7 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     get isOwn() {
-        return this._isOwn;
+        return this._entry.sender === this._ownMember.userId;
     }
 
     get isContinuation() {

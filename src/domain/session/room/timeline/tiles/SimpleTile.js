@@ -121,10 +121,14 @@ export class SimpleTile extends ViewModel {
     // TilesCollection contract above
 
     get _room() {
-        return this.getOption("room");
+        return this._options.room;
     }
 
     get _powerLevels() {
-        return this.getOption("timeline").powerLevels;
+        return this._options.timeline.powerLevels;
+    }
+
+    get _ownMember() {
+        return this._options.timeline.me;
     }
 }
