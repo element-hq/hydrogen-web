@@ -16,6 +16,7 @@ limitations under the License.
 */
 
 import {renderStaticAvatar} from "../../../avatar.js";
+import {tag} from "../../../general/html.js";
 import {TemplateView} from "../../../general/TemplateView.js";
 import {Popup} from "../../../general/Popup.js";
 import {Menu} from "../../../general/Menu.js";
@@ -27,20 +28,32 @@ export class BaseMessageView extends TemplateView {
     }
 
     render(t, vm) {
-        const classes = {
+        const li = t.li({className: {
             "Timeline_message": true,
             own: vm.isOwn,
             unsent: vm.isUnsent,
             unverified: vm.isUnverified,
             continuation: vm => vm.isContinuation,
-        };
-        return t.li({className: classes}, [
-            t.if(vm => !vm.isContinuation, () => renderStaticAvatar(vm, 30, "Timeline_messageAvatar")),
-            t.if(vm => !vm.isContinuation, t => t.div({className: `Timeline_messageSender usercolor${vm.avatarColorNumber}`}, vm.displayName)),
+        }}, [
             this.renderMessageBody(t, vm),
             // should be after body as it is overlayed on top
             t.button({className: "Timeline_messageOptions"}, "⋯"),
-        ]);   
+        ]);
+        // given that there can be many tiles, we don't add
+        // unneeded DOM nodes in case of a continuation, and we add it
+        // with a side-effect binding to not have to create sub views,
+        // as the avatar or sender doesn't need any bindings or event handlers.
+        // don't use `t` from within the side-effect callback
+        t.mapSideEffect(vm => vm.isContinuation, (isContinuation, wasContinuation) => {
+            if (isContinuation && wasContinuation === false) {
+                li.removeChild(li.querySelector(".Timeline_messageAvatar"));
+                li.removeChild(li.querySelector(".Timeline_messageSender"));
+            } else if (!isContinuation) {
+                li.appendChild(renderStaticAvatar(vm, 30, "Timeline_messageAvatar"));
+                li.appendChild(tag.div({className: `Timeline_messageSender usercolor${vm.avatarColorNumber}`}, vm.displayName));
+            }
+        });
+        return li;
     }
 
     /* This is called by the parent ListView, which just has 1 listener for the whole list */
