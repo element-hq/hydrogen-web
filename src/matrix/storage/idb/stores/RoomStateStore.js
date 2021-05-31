@@ -17,21 +17,26 @@ limitations under the License.
 
 import {MAX_UNICODE} from "./common.js";
 
+function encodeKey(roomId, eventType, stateKey) {
+	 return `${roomId}|${eventType}|${stateKey}`;
+}
+
 export class RoomStateStore {
 	constructor(idbStore) {
 		this._roomStateStore = idbStore;
 	}
 
-	async getAllForType(type) {
+	getAllForType(roomId, type) {
 		throw new Error("unimplemented");
 	}
 
-	async get(type, stateKey) {
-        throw new Error("unimplemented");
+	get(roomId, type, stateKey) {
+        const key = encodeKey(roomId, type, stateKey);
+		return this._roomStateStore.get(key);
 	}
 
-	async set(roomId, event) {
-        const key = `${roomId}|${event.type}|${event.state_key}`;
+	set(roomId, event) {
+        const key = encodeKey(roomId, event.type, event.state_key);
         const entry = {roomId, event, key};
 		return this._roomStateStore.put(entry);
 	}

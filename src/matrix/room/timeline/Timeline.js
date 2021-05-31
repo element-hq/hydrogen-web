@@ -21,6 +21,7 @@ import {Direction} from "./Direction.js";
 import {TimelineReader} from "./persistence/TimelineReader.js";
 import {PendingEventEntry} from "./entries/PendingEventEntry.js";
 import {RoomMember} from "../members/RoomMember.js";
+import {PowerLevels} from "./PowerLevels.js";
 
 export class Timeline {
     constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock}) {
@@ -40,11 +41,15 @@ export class Timeline {
         });
         this._readerRequest = null;
         this._allEntries = null;
+        this._powerLevels = null;
     }
 
     /** @package */
     async load(user, membership, log) {
-        const txn = await this._storage.readTxn(this._timelineReader.readTxnStores.concat(this._storage.storeNames.roomMembers));
+        const txn = await this._storage.readTxn(this._timelineReader.readTxnStores.concat(
+            this._storage.storeNames.roomMembers,
+            this._storage.storeNames.roomState
+        ));
         const memberData = await txn.roomMembers.get(this._roomId, user.id);
         if (memberData) {
             this._ownMember = new RoomMember(memberData);
@@ -66,6 +71,22 @@ export class Timeline {
         } finally {
             this._disposables.disposeTracked(readerRequest);
         }
+        this._powerLevels = await this._loadPowerLevels(txn);
+    }
+
+    async _loadPowerLevels(txn) {
+        const powerLevelsState = await txn.roomState.get(this._roomId, "m.room.power_levels", "");
+        if (powerLevelsState) {
+            return new PowerLevels({
+                powerLevelEvent: powerLevelsState.event,
+                ownUserId: this._ownMember.userId
+            });
+        }
+        const createState = await txn.roomState.get(this._roomId, "m.room.create", "");
+        return new PowerLevels({
+            createEvent: createState.event,
+            ownUserId: this._ownMember.userId
+        });
     }
 
     _setupEntries(timelineEntries) {
@@ -199,7 +220,12 @@ export class Timeline {
         }
     }
 
+    /** @internal */
     enableEncryption(decryptEntries) {
         this._timelineReader.enableEncryption(decryptEntries);
+    }
+
+    get powerLevels() {
+        return this._powerLevels;
     }
 }

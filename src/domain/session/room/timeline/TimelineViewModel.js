@@ -40,7 +40,7 @@ export class TimelineViewModel extends ViewModel {
         super(options);
         const {room, timeline, ownUserId} = options;
         this._timeline = this.track(timeline);
-        this._tiles = new TilesCollection(timeline.entries, tilesCreator(this.childOptions({room, ownUserId})));
+        this._tiles = new TilesCollection(timeline.entries, tilesCreator(this.childOptions({room, timeline, ownUserId})));
     }
 
     /**

@@ -123,4 +123,8 @@ export class SimpleTile extends ViewModel {
     get _room() {
         return this.getOption("room");
     }
+
+    get _powerLevels() {
+        return this.getOption("timeline").powerLevels;
+    }
 }

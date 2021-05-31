@@ -101,4 +101,8 @@ export class BaseMessageTile extends SimpleTile {
     redact(reason, log) {
         return this._room.sendRedaction(this._entry.id, reason, log);
     }
+
+    get canRedact() {
+        return this._powerLevels.canRedactFromSender(this._entry.sender);
+    }
 }
