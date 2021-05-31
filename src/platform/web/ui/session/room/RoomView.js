@@ -68,10 +68,10 @@ export class RoomView extends TemplateView {
             const vm = this.value;
             const options = [];
             if (vm.canLeave) {
-                options.push(Menu.option(vm.i18n`Leave room`, () => vm.leaveRoom()));
+                options.push(Menu.option(vm.i18n`Leave room`, () => vm.leaveRoom()).setDestructive());
             }
             if (vm.canForget) {
-                options.push(Menu.option(vm.i18n`Forget room`, () => vm.forgetRoom()));
+                options.push(Menu.option(vm.i18n`Forget room`, () => vm.forgetRoom()).setDestructive());
             }
             if (vm.canRejoin) {
                 options.push(Menu.option(vm.i18n`Rejoin room`, () => vm.rejoinRoom()));
