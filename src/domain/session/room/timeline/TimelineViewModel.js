@@ -38,9 +38,9 @@ import {ViewModel} from "../../../ViewModel.js";
 export class TimelineViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {room, timeline, ownUserId} = options;
+        const {room, timeline} = options;
         this._timeline = this.track(timeline);
-        this._tiles = new TilesCollection(timeline.entries, tilesCreator(this.childOptions({room, timeline, ownUserId})));
+        this._tiles = new TilesCollection(timeline.entries, tilesCreator(this.childOptions({room, timeline})));
     }
 
     /**

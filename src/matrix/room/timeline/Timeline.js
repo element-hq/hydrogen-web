@@ -228,4 +228,8 @@ export class Timeline {
     get powerLevels() {
         return this._powerLevels;
     }
+
+    get me() {
+        return this._ownMember;
+    }
 }

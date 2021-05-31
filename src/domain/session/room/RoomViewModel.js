@@ -22,9 +22,8 @@ import {ViewModel} from "../../ViewModel.js";
 export class RoomViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {room, ownUserId} = options;
+        const {room} = options;
         this._room = room;
-        this._ownUserId = ownUserId;
         this._timelineVM = null;
         this._onRoomChange = this._onRoomChange.bind(this);
         this._timelineError = null;
@@ -46,7 +45,6 @@ export class RoomViewModel extends ViewModel {
             const timelineVM = this.track(new TimelineViewModel(this.childOptions({
                 room: this._room,
                 timeline,
-                ownUserId: this._ownUserId,
             })));
             this._timelineVM = timelineVM;
             this.emitChange("timelineViewModel");
