@@ -122,7 +122,7 @@ export class Timeline {
         for (const entry of entries) {
             // this will use the comparator and thus
             // check for equality using the compare method in BaseEntry
-            this._remoteEntries.findAndUpdate(entry, (previousEntry, entry) => {
+            this._remoteEntries.update(entry, null, previousEntry => {
                 entry.transferLocalEchoState(previousEntry);
             });
         }

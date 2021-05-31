@@ -57,9 +57,13 @@ export class SortedArray extends BaseObservableList {
         return false;
     }
 
-    update(item, updateParams = null) {
+    update(item, updateParams = null, previousCallback = null) {
         const idx = this.indexOf(item);
         if (idx !== -1) {
+            if (previousCallback) {
+                const oldItem = this._items[idx];
+                previousCallback(oldItem);
+            }
             this._items[idx] = item;
             this.emitUpdate(idx, item, updateParams);
         }
