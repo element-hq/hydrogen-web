@@ -12,13 +12,18 @@ export class RoomInfoView extends TemplateView {
             t.div({ className: "RoomAvatar" },
                 [t.view(new AvatarView(vm, 52)), this._createEncryptionIcon(vm.isEncrypted)]),
             t.div({ className: "RoomName" }, [t.h2(vm.name)]),
-            t.div({ className: "RoomId" }, [text(vm.roomId)]),
+            this._createRoomAliasDisplay(vm),
             t.div({ className: "SidebarRow_collection" },
                 [
                     this._createSideBarRow("People", vm.memberCount, { MemberCount: true }),
                     this._createSideBarRow("Encryption", encryptionString, { EncryptionStatus: true })
                 ])
         ]);
+    }
+
+    _createRoomAliasDisplay(vm) {
+        return vm.canonicalAlias ? tag.div({ className: "RoomId" }, [text(vm.canonicalAlias)]) :
+            "";
     }
 
     _createSideBarRow(label, value, labelClass, valueClass) {
