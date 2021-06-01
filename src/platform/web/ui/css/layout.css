@@ -195,6 +195,11 @@ the layout viewport up without resizing it when the keyboard shows */
     z-index: 2;
 }
 
+.menu .menu-item{
+    box-sizing: border-box;
+    width: 100%;
+}
+
 .Settings {
     display: flex;
     flex-direction: column;

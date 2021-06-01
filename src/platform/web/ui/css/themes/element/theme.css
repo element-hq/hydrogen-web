@@ -684,14 +684,17 @@ button.link {
     margin: 0;
 }
 
-.menu button {
+.menu li{
+    margin-bottom: 10px;
+}
+
+.menu .menu-item{
     border-radius: 4px;
-    display: block;
     border: none;
-    width: 100%;
     background-color: transparent;
     text-align: left;
     padding: 8px 32px 8px 8px;
+    text-decoration: none;
 }
 
 .menu .destructive button {

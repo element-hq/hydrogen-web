@@ -37,10 +37,10 @@ export class Menu extends TemplateView {
 
     _convertToDOM(option) {
         if (option.callback) {
-            return tag.button({ onClick: option.callback }, option.label);
+            return tag.button({ className: "menu-item", onClick: option.callback }, option.label);
         }
         else if (option.link) {
-            return tag.a({ href: option.link }, option.label);
+            return tag.a({ className: "menu-item", href: option.link }, option.label);
         }
     }
 
