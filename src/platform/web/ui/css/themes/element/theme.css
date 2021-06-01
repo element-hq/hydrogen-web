@@ -808,7 +808,11 @@ button.link {
 .RoomId {
     color: #737D8C;
     font-size: 12px;
-    margin-bottom: 36px;
+}
+
+.SidebarRow_collection{
+    margin-top: 36px;
+    width: 100%;
 }
 
 .RoomName h2 {
