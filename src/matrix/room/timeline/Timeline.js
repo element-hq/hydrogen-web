@@ -63,6 +63,7 @@ export class Timeline {
         // as they should only populate once the view subscribes to it
         // if they are populated already, the sender profile would be empty
 
+        this._powerLevels = await this._loadPowerLevels(txn);
         // 30 seems to be a good amount to fill the entire screen
         const readerRequest = this._disposables.track(this._timelineReader.readFromEnd(30, txn, log));
         try {
@@ -71,7 +72,7 @@ export class Timeline {
         } finally {
             this._disposables.disposeTracked(readerRequest);
         }
-        this._powerLevels = await this._loadPowerLevels(txn);
+        // txn should be assumed to have finished here, as decryption will close it.
     }
 
     async _loadPowerLevels(txn) {
