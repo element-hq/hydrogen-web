@@ -303,3 +303,45 @@ export class SendQueue {
         }
     }
 }
+
+import {HomeServer as MockHomeServer} from "../../../mocks/HomeServer.js";
+import {createMockStorage} from "../../../mocks/Storage.js";
+import {NullLogger} from "../../../logging/NullLogger.js";
+import {event, withContent, withTextBody, withTxnId} from "../../../mocks/event.js";
+import {poll} from "../../../mocks/poll.js";
+
+export function tests() {
+    const logger = new NullLogger();
+    return {
+        "enqueue second message when remote echo of first arrives before /send returns": async assert => {
+            const storage = await createMockStorage();
+            const hs = new MockHomeServer();
+            // 1. enqueue and start send event 1
+            const queue = new SendQueue({roomId: "!abc", storage, hsApi: hs.api});
+            const event1 = withTextBody(event("m.room.message", "$123"), "message 1");
+            await logger.run("event1", log => queue.enqueueEvent(event1.type, event1.content, null, log));
+            assert.equal(queue.pendingEvents.length, 1);
+            const sendRequest1 = hs.requests.send[0];
+            // 2. receive remote echo, before /send has returned
+            const remoteEcho = withTxnId(event1, sendRequest1.arguments[2]);
+            const txn = await storage.readWriteTxn([storage.storeNames.pendingEvents]);
+            const removal = await logger.run("remote echo", log => queue.removeRemoteEchos([remoteEcho], txn, log));
+            await txn.complete();
+            assert.equal(removal.length, 1);
+            queue.emitRemovals(removal);
+            assert.equal(queue.pendingEvents.length, 0);
+            // 3. now enqueue event 2
+            const event2 = withTextBody(event("m.room.message", "$456"), "message 2");
+            await logger.run("event2", log => queue.enqueueEvent(event2.type, event2.content, null, log));
+            // even though the first pending event has been removed by the remote echo,
+            // the second should get the next index, as the send loop is still blocking on the first one
+            assert.equal(Array.from(queue.pendingEvents)[0].queueIndex, 2);
+            // 4. send for event 1 comes back
+            sendRequest1.respond({event_id: event1.event_id});
+            // 5. now expect second send request for event 2
+            const sendRequest2 = await poll(() => hs.requests.send[1]);
+            sendRequest2.respond({event_id: event2.event_id});
+            await poll(() => !queue._isSending);
+        }
+    }
+}
