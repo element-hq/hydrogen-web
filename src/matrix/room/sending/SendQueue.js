@@ -245,7 +245,7 @@ export class SendQueue {
                 relatedTxnId = pe.txnId;
             }
         }
-        log.set("relatedTxnId", eventIdOrTxnId);
+        log.set("relatedTxnId", relatedTxnId);
         log.set("relatedEventId", relatedEventId);
         await this._enqueueEvent(REDACTION_TYPE, {reason}, null, relatedTxnId, relatedEventId, log);
     }
