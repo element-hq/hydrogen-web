@@ -16,17 +16,19 @@ limitations under the License.
 
 import {AbortError} from "../utils/error.js";
 
-export class Request {
+export class BaseRequest {
     constructor() {
         this._responsePromise = new Promise((resolve, reject) => {
             this.resolve = resolve;
             this.reject = reject;
         });
+        this.responded = false;
         this.aborted = false;
     }
 
-    respond(status, body) {
-        this.resolve({status, body});
+    _respond(value) {
+        this.responded = true;
+        this.resolve(value);
         return this;
     }
 
@@ -37,5 +39,12 @@ export class Request {
 
     response() {
         return this._responsePromise;
+    }
+}
+
+// this is a NetworkRequest as used by HomeServerApi
+export class Request extends BaseRequest {
+    respond(status, body) {
+        return this._respond({status, body});
     }
 }
