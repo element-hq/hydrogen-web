@@ -24,7 +24,11 @@ export class RedactedTile extends BaseMessageTile {
     get description() {
         const {redactionReason} = this._entry;
         if (this.isRedacting) {
-            return this.i18n`This message is being deleted …`;
+            if (redactionReason) {
+                return this.i18n`This message is being deleted (${redactionReason})…`;
+            } else {
+                return this.i18n`This message is being deleted…`;
+            }
         } else {
             if (redactionReason) {
                 return this.i18n`This message has been deleted (${redactionReason}).`;

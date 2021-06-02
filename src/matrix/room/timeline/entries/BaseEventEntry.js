@@ -31,6 +31,13 @@ export class BaseEventEntry extends BaseEntry {
         return this.isRedacting;
     }
 
+    get redactionReason() {
+        if (this._pendingRedactions) {
+            return this._pendingRedactions[0].content?.reason;
+        }
+        return null;
+    }
+
     /**
         aggregates local relation.
         @return [string] returns the name of the field that has changed, if any
