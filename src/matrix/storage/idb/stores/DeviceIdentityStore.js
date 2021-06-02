@@ -31,7 +31,7 @@ export class DeviceIdentityStore {
     }
 
     getAllForUserId(userId) {
-        const range = IDBKeyRange.lowerBound(encodeKey(userId, ""));
+        const range = this._store.IDBKeyRange.lowerBound(encodeKey(userId, ""));
         return this._store.selectWhile(range, device => {
             return device.userId === userId;
         });
@@ -39,7 +39,7 @@ export class DeviceIdentityStore {
 
     async getAllDeviceIds(userId) {
         const deviceIds = [];
-        const range = IDBKeyRange.lowerBound(encodeKey(userId, ""));
+        const range = this._store.IDBKeyRange.lowerBound(encodeKey(userId, ""));
         await this._store.iterateKeys(range, key => {
             const decodedKey = decodeKey(key);
             // prevent running into the next room
@@ -72,7 +72,7 @@ export class DeviceIdentityStore {
     removeAllForUser(userId) {
         // exclude both keys as they are theoretical min and max,
         // but we should't have a match for just the room id, or room id with max
-        const range = IDBKeyRange.bound(encodeKey(userId, MIN_UNICODE), encodeKey(userId, MAX_UNICODE), true, true);
+        const range = this._store.IDBKeyRange.bound(encodeKey(userId, MIN_UNICODE), encodeKey(userId, MAX_UNICODE), true, true);
         this._store.delete(range);
     }
 }

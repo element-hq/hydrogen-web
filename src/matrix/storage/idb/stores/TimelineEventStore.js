@@ -33,7 +33,8 @@ function decodeEventIdKey(eventIdKey) {
 }
 
 class Range {
-    constructor(only, lower, upper, lowerOpen, upperOpen) {
+    constructor(IDBKeyRange, only, lower, upper, lowerOpen, upperOpen) {
+        this._IDBKeyRange = IDBKeyRange;
         this._only = only;
         this._lower = lower;
         this._upper = upper;
@@ -45,12 +46,12 @@ class Range {
         try {
             // only
             if (this._only) {
-                return IDBKeyRange.only(encodeKey(roomId, this._only.fragmentId, this._only.eventIndex));
+                return this._IDBKeyRange.only(encodeKey(roomId, this._only.fragmentId, this._only.eventIndex));
             }
             // lowerBound
             // also bound as we don't want to move into another roomId
             if (this._lower && !this._upper) {
-                return IDBKeyRange.bound(
+                return this._IDBKeyRange.bound(
                     encodeKey(roomId, this._lower.fragmentId, this._lower.eventIndex),
                     encodeKey(roomId, this._lower.fragmentId, KeyLimits.maxStorageKey),
                     this._lowerOpen,
@@ -60,7 +61,7 @@ class Range {
             // upperBound
             // also bound as we don't want to move into another roomId
             if (!this._lower && this._upper) {
-                return IDBKeyRange.bound(
+                return this._IDBKeyRange.bound(
                     encodeKey(roomId, this._upper.fragmentId, KeyLimits.minStorageKey),
                     encodeKey(roomId, this._upper.fragmentId, this._upper.eventIndex),
                     false,
@@ -69,7 +70,7 @@ class Range {
             }
             // bound
             if (this._lower && this._upper) {
-                return IDBKeyRange.bound(
+                return this._IDBKeyRange.bound(
                     encodeKey(roomId, this._lower.fragmentId, this._lower.eventIndex),
                     encodeKey(roomId, this._upper.fragmentId, this._upper.eventIndex),
                     this._lowerOpen,
@@ -107,7 +108,7 @@ export class TimelineEventStore {
      *  @return {Range} the created range
      */
     onlyRange(eventKey) {
-        return new Range(eventKey);
+        return new Range(this._timelineStore.IDBKeyRange, eventKey);
     }
 
     /** Creates a range that includes all keys before eventKey, and optionally also the key itself.
@@ -116,7 +117,7 @@ export class TimelineEventStore {
      *  @return {Range} the created range
      */
     upperBoundRange(eventKey, open=false) {
-        return new Range(undefined, undefined, eventKey, undefined, open);
+        return new Range(this._timelineStore.IDBKeyRange, undefined, undefined, eventKey, undefined, open);
     }
 
     /** Creates a range that includes all keys after eventKey, and optionally also the key itself.
@@ -125,7 +126,7 @@ export class TimelineEventStore {
      *  @return {Range} the created range
      */
     lowerBoundRange(eventKey, open=false) {
-        return new Range(undefined, eventKey, undefined, open);
+        return new Range(this._timelineStore.IDBKeyRange, undefined, eventKey, undefined, open);
     }
 
     /** Creates a range that includes all keys between `lower` and `upper`, and optionally the given keys as well.
@@ -136,7 +137,7 @@ export class TimelineEventStore {
      *  @return {Range} the created range
      */
     boundRange(lower, upper, lowerOpen=false, upperOpen=false) {
-        return new Range(undefined, lower, upper, lowerOpen, upperOpen);
+        return new Range(this._timelineStore.IDBKeyRange, undefined, lower, upper, lowerOpen, upperOpen);
     }
 
     /** Looks up the last `amount` entries in the timeline for `roomId`.
@@ -261,7 +262,7 @@ export class TimelineEventStore {
     removeAllForRoom(roomId) {
         const minKey = encodeKey(roomId, KeyLimits.minStorageKey, KeyLimits.minStorageKey);
         const maxKey = encodeKey(roomId, KeyLimits.maxStorageKey, KeyLimits.maxStorageKey);
-        const range = IDBKeyRange.bound(minKey, maxKey);
+        const range = this._timelineStore.IDBKeyRange.bound(minKey, maxKey);
         this._timelineStore.delete(range);
     }
 }

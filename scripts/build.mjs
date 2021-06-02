@@ -191,6 +191,8 @@ async function buildJs(mainFile, extraFiles, importOverrides) {
         plugins.push(overridesAsRollupPlugin(importOverrides));
     }
     const bundle = await rollup({
+        // for fake-indexeddb, so usage for tests only doesn't put it in bundle
+        treeshake: {moduleSideEffects: false},
         input: extraFiles.concat(mainFile),
         plugins
     });
@@ -230,6 +232,8 @@ async function buildJsLegacy(mainFile, extraFiles, importOverrides) {
     plugins.push(nodeResolve(), babelPlugin);
     // create js bundle
     const rollupConfig = {
+        // for fake-indexeddb, so usage for tests only doesn't put it in bundle
+        treeshake: {moduleSideEffects: false},
         // important the extraFiles come first,
         // so polyfills are available in the global scope
         // if needed for the mainfile

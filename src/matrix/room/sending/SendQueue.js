@@ -31,6 +31,7 @@ export class SendQueue {
         this._isSending = false;
         this._offline = false;
         this._roomEncryption = null;
+        this._currentQueueIndex = 0;
     }
 
     _createPendingEvent(data, attachments = null) {
@@ -55,6 +56,7 @@ export class SendQueue {
                     await log.wrap("send event", async log => {
                         log.set("queueIndex", pendingEvent.queueIndex);
                         try {
+                            this._currentQueueIndex = pendingEvent.queueIndex;
                             await this._sendEvent(pendingEvent, log);
                         } catch(err) {
                             if (err instanceof ConnectionError) {
@@ -75,6 +77,8 @@ export class SendQueue {
                                     pendingEvent.setError(err);
                                 }
                             }
+                        } finally {
+                            this._currentQueueIndex = 0;
                         }
                     });
                 }
@@ -241,7 +245,7 @@ export class SendQueue {
                 relatedTxnId = pe.txnId;
             }
         }
-        log.set("relatedTxnId", eventIdOrTxnId);
+        log.set("relatedTxnId", relatedTxnId);
         log.set("relatedEventId", relatedEventId);
         await this._enqueueEvent(REDACTION_TYPE, {reason}, null, relatedTxnId, relatedEventId, log);
     }
@@ -274,7 +278,11 @@ export class SendQueue {
         let pendingEvent;
         try {
             const pendingEventsStore = txn.pendingEvents;
-            const maxQueueIndex = await pendingEventsStore.getMaxQueueIndex(this._roomId) || 0;
+            const maxStorageQueueIndex = await pendingEventsStore.getMaxQueueIndex(this._roomId) || 0;
+            // don't use the queueIndex of the pendingEvent currently waiting for /send to return
+            // if the remote echo already removed the pendingEvent in storage, as the send loop
+            // wouldn't be able to detect the remote echo already arrived and end up overwriting the new event
+            const maxQueueIndex = Math.max(maxStorageQueueIndex, this._currentQueueIndex);
             const queueIndex = maxQueueIndex + 1;
             const needsEncryption = eventType !== REDACTION_TYPE && !!this._roomEncryption;
             pendingEvent = this._createPendingEvent({
@@ -300,6 +308,48 @@ export class SendQueue {
     dispose() {
         for (const pe of this._pendingEvents) {
             pe.dispose();
+        }
+    }
+}
+
+import {HomeServer as MockHomeServer} from "../../../mocks/HomeServer.js";
+import {createMockStorage} from "../../../mocks/Storage.js";
+import {NullLogger} from "../../../logging/NullLogger.js";
+import {event, withTextBody, withTxnId} from "../../../mocks/event.js";
+import {poll} from "../../../mocks/poll.js";
+
+export function tests() {
+    const logger = new NullLogger();
+    return {
+        "enqueue second message when remote echo of first arrives before /send returns": async assert => {
+            const storage = await createMockStorage();
+            const hs = new MockHomeServer();
+            // 1. enqueue and start send event 1
+            const queue = new SendQueue({roomId: "!abc", storage, hsApi: hs.api});
+            const event1 = withTextBody(event("m.room.message", "$123"), "message 1");
+            await logger.run("event1", log => queue.enqueueEvent(event1.type, event1.content, null, log));
+            assert.equal(queue.pendingEvents.length, 1);
+            const sendRequest1 = hs.requests.send[0];
+            // 2. receive remote echo, before /send has returned
+            const remoteEcho = withTxnId(event1, sendRequest1.arguments[2]);
+            const txn = await storage.readWriteTxn([storage.storeNames.pendingEvents]);
+            const removal = await logger.run("remote echo", log => queue.removeRemoteEchos([remoteEcho], txn, log));
+            await txn.complete();
+            assert.equal(removal.length, 1);
+            queue.emitRemovals(removal);
+            assert.equal(queue.pendingEvents.length, 0);
+            // 3. now enqueue event 2
+            const event2 = withTextBody(event("m.room.message", "$456"), "message 2");
+            await logger.run("event2", log => queue.enqueueEvent(event2.type, event2.content, null, log));
+            // even though the first pending event has been removed by the remote echo,
+            // the second should get the next index, as the send loop is still blocking on the first one
+            assert.equal(Array.from(queue.pendingEvents)[0].queueIndex, 2);
+            // 4. send for event 1 comes back
+            sendRequest1.respond({event_id: event1.event_id});
+            // 5. now expect second send request for event 2
+            const sendRequest2 = await poll(() => hs.requests.send[1]);
+            sendRequest2.respond({event_id: event2.event_id});
+            await poll(() => !queue._isSending);
         }
     }
 }

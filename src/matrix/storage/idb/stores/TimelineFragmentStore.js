@@ -29,7 +29,7 @@ export class TimelineFragmentStore {
 
     _allRange(roomId) {
         try {
-            return IDBKeyRange.bound(
+            return this._store.IDBKeyRange.bound(
                 encodeKey(roomId, KeyLimits.minStorageKey),
                 encodeKey(roomId, KeyLimits.maxStorageKey)
             );

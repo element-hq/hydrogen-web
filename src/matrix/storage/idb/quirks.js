@@ -18,12 +18,12 @@ limitations under the License.
 import {openDatabase, txnAsPromise, reqAsPromise} from "./utils.js";
 
 // filed as https://bugs.webkit.org/show_bug.cgi?id=222746
-export async function detectWebkitEarlyCloseTxnBug() {
+export async function detectWebkitEarlyCloseTxnBug(idbFactory) {
     const dbName = "hydrogen_webkit_test_inactive_txn_bug";
     try {
         const db = await openDatabase(dbName, db => {
             db.createObjectStore("test", {keyPath: "key"});
-        }, 1);
+        }, 1, idbFactory);
         const readTxn = db.transaction(["test"], "readonly");
         await reqAsPromise(readTxn.objectStore("test").get("somekey"));
         // schedule a macro task in between the two txns

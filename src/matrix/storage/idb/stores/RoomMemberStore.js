@@ -42,7 +42,7 @@ export class RoomMemberStore {
 	}
 
     getAll(roomId) {
-        const range = IDBKeyRange.lowerBound(encodeKey(roomId, ""));
+        const range = this._roomMembersStore.IDBKeyRange.lowerBound(encodeKey(roomId, ""));
         return this._roomMembersStore.selectWhile(range, member => {
             return member.roomId === roomId;
         });
@@ -50,7 +50,7 @@ export class RoomMemberStore {
 
     async getAllUserIds(roomId) {
         const userIds = [];
-        const range = IDBKeyRange.lowerBound(encodeKey(roomId, ""));
+        const range = this._roomMembersStore.IDBKeyRange.lowerBound(encodeKey(roomId, ""));
         await this._roomMembersStore.iterateKeys(range, key => {
             const decodedKey = decodeKey(key);
             // prevent running into the next room
@@ -66,7 +66,7 @@ export class RoomMemberStore {
     removeAllForRoom(roomId) {
         // exclude both keys as they are theoretical min and max,
         // but we should't have a match for just the room id, or room id with max
-        const range = IDBKeyRange.bound(roomId, `${roomId}|${MAX_UNICODE}`, true, true);
+        const range = this._roomMembersStore.IDBKeyRange.bound(roomId, `${roomId}|${MAX_UNICODE}`, true, true);
         this._roomMembersStore.delete(range);
     }
 }

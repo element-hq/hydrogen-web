@@ -44,7 +44,7 @@ export class RoomStateStore {
     removeAllForRoom(roomId) {
         // exclude both keys as they are theoretical min and max,
         // but we should't have a match for just the room id, or room id with max
-        const range = IDBKeyRange.bound(roomId, `${roomId}|${MAX_UNICODE}`, true, true);
+        const range = this._roomStateStore.IDBKeyRange.bound(roomId, `${roomId}|${MAX_UNICODE}`, true, true);
         this._roomStateStore.delete(range);
     }
 }

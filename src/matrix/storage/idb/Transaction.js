@@ -35,10 +35,11 @@ import {OperationStore} from "./stores/OperationStore.js";
 import {AccountDataStore} from "./stores/AccountDataStore.js";
 
 export class Transaction {
-    constructor(txn, allowedStoreNames) {
+    constructor(txn, allowedStoreNames, IDBKeyRange) {
         this._txn = txn;
         this._allowedStoreNames = allowedStoreNames;
         this._stores = {};
+        this.IDBKeyRange = IDBKeyRange;
     }
 
     _idbStore(name) {
@@ -46,7 +47,7 @@ export class Transaction {
             // more specific error? this is a bug, so maybe not ...
             throw new StorageError(`Invalid store for transaction: ${name}, only ${this._allowedStoreNames.join(", ")} are allowed.`);
         }
-        return new Store(this._txn.objectStore(name));
+        return new Store(this._txn.objectStore(name), this);
     }
 
     _store(name, mapStore) {

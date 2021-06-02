@@ -55,7 +55,7 @@ export class OperationStore {
     }
 
     async removeAllForScope(scope) {
-        const range = IDBKeyRange.bound(
+        const range = this._store.IDBKeyRange.bound(
             encodeScopeTypeKey(scope, MIN_UNICODE),
             encodeScopeTypeKey(scope, MAX_UNICODE)
         );

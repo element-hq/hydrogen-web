@@ -126,6 +126,10 @@ export class Store extends QueryTarget {
         this._transaction = transaction;
     }
 
+    get IDBKeyRange() {
+        return this._transaction.IDBKeyRange;
+    }
+
     get _idbStore() {
         return this._target;
     }
