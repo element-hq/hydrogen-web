@@ -166,6 +166,7 @@ async function loadFile() {
     main.replaceChildren(fragment);
 }
 
+// TODO: make this use processRecursively
 function preprocessRecursively(item, parentElement, refsMap, path) {
     item.s = (parentElement?.s || 0) + item.s;
     if (itemRefSource(item)) {
@@ -297,3 +298,93 @@ function itemToNode(item) {
     }
     return li;
 }
+
+const highlightForm = document.getElementById("highlightForm");
+
+highlightForm.addEventListener("submit", evt => {
+    evt.preventDefault();
+    const query = document.getElementById("highlight").value;
+    if (query) {
+        processRecursively(rootItem, item => {
+            let domNode = document.getElementById(item.id);
+            if (itemMatchesFilter(item, query)) {
+                domNode.classList.add("highlighted");
+                domNode = domNode.parentElement;
+                while (domNode.nodeName !== "SECTION") {
+                    if (domNode.nodeName === "LI") {
+                        domNode.classList.add("expanded");
+                    }
+                    domNode = domNode.parentElement;
+                }
+            } else {
+                domNode.classList.remove("highlighted");
+            }
+        });
+    } else {
+        for (const node of document.querySelectorAll(".highlighted")) {
+            node.classList.remove("highlighted");
+        }
+    }
+});
+
+function itemMatchesFilter(item, query) {
+    if (itemError(item)) {
+        if (valueMatchesQuery(itemError(item), query)) {
+            return true;
+        }
+    }
+    return valueMatchesQuery(itemValues(item), query);
+}
+
+function valueMatchesQuery(value, query) {
+    if (typeof value === "string") {
+        return value.includes(query);
+    } else if (typeof value === "object" && value !== null) {
+        for (const key in value) {
+            if (value.hasOwnProperty(key) && valueMatchesQuery(value[key], query)) {
+                return true;
+            }
+        }
+    } else if (typeof value === "number") {
+        return value.toString().includes(query);
+    }
+    return false;
+}
+
+function processRecursively(item, callback, parentItem) {
+    if (item.id) {
+        callback(item, parentItem);
+    }
+    if (itemChildren(item)) {
+        for (let i = 0; i < itemChildren(item).length; i += 1) {
+            // do it in advance for a child as we don't want to do it for the rootItem
+            const child = itemChildren(item)[i];
+            processRecursively(child, callback, item);
+        }
+    }
+}
+
+document.getElementById("collapseAll").addEventListener("click", () => {
+    for (const node of document.querySelectorAll(".expanded")) {
+        node.classList.remove("expanded");
+    }
+});
+document.getElementById("hideCollapsed").addEventListener("click", () => {
+    for (const node of document.querySelectorAll("section > div.timeline > ol > li:not(.expanded)")) {
+        node.closest("section").classList.add("hidden");
+    }
+});
+document.getElementById("hideHighlightedSiblings").addEventListener("click", () => {
+    for (const node of document.querySelectorAll(".highlighted")) {
+        const list = node.closest("ol");
+        const siblings = Array.from(list.querySelectorAll("li > div > a:not(.highlighted)")).map(n => n.closest("li"));
+        for (const sibling of siblings) {
+            sibling.classList.add("hidden");
+        }
+    }
+});
+document.getElementById("showAll").addEventListener("click", () => {
+    for (const node of document.querySelectorAll(".hidden")) {
+        node.classList.remove("hidden");
+    }
+});

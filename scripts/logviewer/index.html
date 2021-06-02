@@ -172,13 +172,33 @@
                 color: HighlightText;
             }
 
+            .timeline .item.highlighted {
+                background-color: fuchsia;
+                color: white;
+            }
+
             .hidden {
                 display: none;
+            }
+
+            #highlight {
+                width: 300px;
+            }
+
+            nav form {
+                display: inline;
             }
         </style>
     </head>
     <body>
-        <nav><button id="openFile">Open log file</button></nav>
+        <nav>
+            <button id="openFile">Open log file</button>
+            <form id="highlightForm"><input type="text" id="highlight" placeholder="Highlight a search term"></form>
+            <button id="collapseAll">Collapse all</button>
+            <button id="hideCollapsed">Hide collapsed root items</button>
+            <button id="hideHighlightedSiblings">Hide siblings of highlighted</button>
+            <button id="showAll">Show all</button>
+        </nav>
         <main></main>
         <aside></aside>
         <script type="module" src="main.js"></script>
