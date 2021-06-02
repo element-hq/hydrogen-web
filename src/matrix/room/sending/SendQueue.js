@@ -315,7 +315,7 @@ export class SendQueue {
 import {HomeServer as MockHomeServer} from "../../../mocks/HomeServer.js";
 import {createMockStorage} from "../../../mocks/Storage.js";
 import {NullLogger} from "../../../logging/NullLogger.js";
-import {event, withTextBody, withTxnId} from "../../../mocks/event.js";
+import {createEvent, withTextBody, withTxnId} from "../../../mocks/event.js";
 import {poll} from "../../../mocks/poll.js";
 
 export function tests() {
@@ -326,12 +326,12 @@ export function tests() {
             const hs = new MockHomeServer();
             // 1. enqueue and start send event 1
             const queue = new SendQueue({roomId: "!abc", storage, hsApi: hs.api});
-            const event1 = withTextBody(event("m.room.message", "$123"), "message 1");
+            const event1 = withTextBody("message 1", createEvent("m.room.message", "$123"));
             await logger.run("event1", log => queue.enqueueEvent(event1.type, event1.content, null, log));
             assert.equal(queue.pendingEvents.length, 1);
             const sendRequest1 = hs.requests.send[0];
             // 2. receive remote echo, before /send has returned
-            const remoteEcho = withTxnId(event1, sendRequest1.arguments[2]);
+            const remoteEcho = withTxnId(sendRequest1.arguments[2], event1);
             const txn = await storage.readWriteTxn([storage.storeNames.pendingEvents]);
             const removal = await logger.run("remote echo", log => queue.removeRemoteEchos([remoteEcho], txn, log));
             await txn.complete();
@@ -339,7 +339,7 @@ export function tests() {
             queue.emitRemovals(removal);
             assert.equal(queue.pendingEvents.length, 0);
             // 3. now enqueue event 2
-            const event2 = withTextBody(event("m.room.message", "$456"), "message 2");
+            const event2 = withTextBody("message 2", createEvent("m.room.message", "$456"));
             await logger.run("event2", log => queue.enqueueEvent(event2.type, event2.content, null, log));
             // even though the first pending event has been removed by the remote echo,
             // the second should get the next index, as the send loop is still blocking on the first one

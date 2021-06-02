@@ -76,6 +76,7 @@ export class Timeline {
     }
 
     async _loadPowerLevels(txn) {
+        // TODO: update power levels as state is updated
         const powerLevelsState = await txn.roomState.get(this._roomId, "m.room.power_levels", "");
         if (powerLevelsState) {
             return new PowerLevels({
@@ -84,10 +85,14 @@ export class Timeline {
             });
         }
         const createState = await txn.roomState.get(this._roomId, "m.room.create", "");
-        return new PowerLevels({
-            createEvent: createState.event,
-            ownUserId: this._ownMember.userId
-        });
+        if (createState) {
+            return new PowerLevels({
+                createEvent: createState.event,
+                ownUserId: this._ownMember.userId
+            });
+        } else {
+            return new PowerLevels({ownUserId: this._ownMember.userId});
+        }
     }
 
     _setupEntries(timelineEntries) {
@@ -116,12 +121,17 @@ export class Timeline {
             return params ? params : false;
         };
         // first, look in local entries based on txn id
-        const foundInLocalEntries = this._localEntries.findAndUpdate(
-            e => e.id === pe.relatedTxnId,
-            updateOrFalse,
-        );
+        if (pe.relatedTxnId) {
+            const found = this._localEntries.findAndUpdate(
+                e => e.id === pe.relatedTxnId,
+                updateOrFalse,
+            );
+            if (found) {
+                return;
+            }
+        }
         // now look in remote entries based on event id
-        if (!foundInLocalEntries && pe.relatedEventId) {
+        if (pe.relatedEventId) {
             this._remoteEntries.findAndUpdate(
                 e => e.id === pe.relatedEventId,
                 updateOrFalse
@@ -141,6 +151,17 @@ export class Timeline {
     }
 
     _addLocalRelationsToNewRemoteEntries(entries) {
+        // because it is not safe to iterate a derived observable collection
+        // before it has any subscriptions, we bail out if this isn't
+        // the case yet. This can happen when sync adds or replaces entries
+        // before load has finished and the view has subscribed to the timeline.
+        // 
+        // Once the subscription is setup, MappedList will set up the local
+        // relations as needed with _applyAndEmitLocalRelationChange,
+        // so we're not missing anything by bailing out.
+        if (!this._localEntries.hasSubscriptions) {
+            return;
+        }
         // find any local relations to this new remote event
         for (const pee of this._localEntries) {
             // this will work because we set relatedEventId when removing remote echos
@@ -230,5 +251,54 @@ export class Timeline {
 
     get me() {
         return this._ownMember;
+    }
+}
+
+import {FragmentIdComparer} from "./FragmentIdComparer.js";
+import {Clock as MockClock} from "../../../mocks/Clock.js";
+import {createMockStorage} from "../../../mocks/Storage.js";
+import {createEvent, withTextBody, withSender} from "../../../mocks/event.js";
+import {NullLogItem} from "../../../logging/NullLogger.js";
+import {EventEntry} from "./entries/EventEntry.js";
+import {User} from "../../User.js";
+import {PendingEvent} from "../sending/PendingEvent.js";
+
+export function tests() {
+    const fragmentIdComparer = new FragmentIdComparer([]);
+    const roomId = "$abc";
+    return {
+        "adding or replacing entries before subscribing to entries does not loose local relations": async assert => {
+            const pendingEvents = new ObservableArray();
+            const timeline = new Timeline({
+                roomId,
+                storage: await createMockStorage(),
+                closeCallback: () => {},
+                fragmentIdComparer,
+                pendingEvents,
+                clock: new MockClock(),
+            });
+            // 1. load timeline
+            await timeline.load(new User("@alice:hs.tld"), "join", new NullLogItem());
+            // 2. test replaceEntries and addOrReplaceEntries don't fail
+            const event1 = withTextBody("hi!", withSender("@bob:hs.tld", createEvent("m.room.message", "!abc")));
+            const entry1 = new EventEntry({event: event1, fragmentId: 1, eventIndex: 1}, fragmentIdComparer);
+            timeline.replaceEntries([entry1]);
+            const event2 = withTextBody("hi bob!", withSender("@alice:hs.tld", createEvent("m.room.message", "!def")));
+            const entry2 = new EventEntry({event: event2, fragmentId: 1, eventIndex: 2}, fragmentIdComparer);
+            timeline.addOrReplaceEntries([entry2]);
+            // 3. add local relation (redaction)
+            pendingEvents.append(new PendingEvent({data: {
+                roomId,
+                queueIndex: 1,
+                eventType: "m.room.redaction",
+                txnId: "t123",
+                content: {},
+                relatedEventId: event2.event_id
+            }}));
+            // 4. subscribe (it's now safe to iterate timeline.entries)
+            timeline.entries.subscribe({});
+            // 5. check the local relation got correctly aggregated
+            assert.equal(Array.from(timeline.entries)[0].isRedacting, true);
+        }
     }
 }

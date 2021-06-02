@@ -404,10 +404,16 @@ export class BaseRoom extends EventEmitter {
                 clock: this._platform.clock,
                 logger: this._platform.logger,
             });
-            if (this._roomEncryption) {
-                this._timeline.enableEncryption(this._decryptEntries.bind(this, DecryptionSource.Timeline));
+            try {
+                if (this._roomEncryption) {
+                    this._timeline.enableEncryption(this._decryptEntries.bind(this, DecryptionSource.Timeline));
+                }
+                await this._timeline.load(this._user, this.membership, log);
+            } catch (err) {
+                // this also clears this._timeline in the closeCallback
+                this._timeline.dispose();
+                throw err;
             }
-            await this._timeline.load(this._user, this.membership, log);
             return this._timeline;
         });
     }
