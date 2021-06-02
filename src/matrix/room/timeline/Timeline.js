@@ -76,6 +76,7 @@ export class Timeline {
     }
 
     async _loadPowerLevels(txn) {
+        // TODO: update power levels as state is updated
         const powerLevelsState = await txn.roomState.get(this._roomId, "m.room.power_levels", "");
         if (powerLevelsState) {
             return new PowerLevels({
