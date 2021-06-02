@@ -84,10 +84,14 @@ export class Timeline {
             });
         }
         const createState = await txn.roomState.get(this._roomId, "m.room.create", "");
-        return new PowerLevels({
-            createEvent: createState.event,
-            ownUserId: this._ownMember.userId
-        });
+        if (createState) {
+            return new PowerLevels({
+                createEvent: createState.event,
+                ownUserId: this._ownMember.userId
+            });
+        } else {
+            return new PowerLevels({ownUserId: this._ownMember.userId});
+        }
     }
 
     _setupEntries(timelineEntries) {
