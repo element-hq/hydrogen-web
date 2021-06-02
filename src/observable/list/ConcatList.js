@@ -33,10 +33,7 @@ export class ConcatList extends BaseObservableList {
     }
 
     onSubscribeFirst() {
-        this._sourceUnsubscribes = [];
-        for (const sourceList of this._sourceLists) {
-            this._sourceUnsubscribes.push(sourceList.subscribe(this));
-        }
+        this._sourceUnsubscribes = this._sourceLists.map(sourceList => sourceList.subscribe(this));
     }
 
     onUnsubscribeLast() {
@@ -62,6 +59,11 @@ export class ConcatList extends BaseObservableList {
     }
 
     onUpdate(index, value, params, sourceList) {
+        // if an update is emitted while calling source.subscribe() from onSubscribeFirst, ignore it
+        // as we are not supposed to call `length` on any uninitialized list
+        if (!this._sourceUnsubscribes) {
+            return;
+        }
         this.emitUpdate(this._offsetForSource(sourceList) + index, value, params);
     }
 

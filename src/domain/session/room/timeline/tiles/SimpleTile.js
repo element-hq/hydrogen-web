@@ -49,7 +49,13 @@ export class SimpleTile extends ViewModel {
     }
 
     get isUnsent() {
-        return this._entry.isPending && this._entry.status !== SendStatus.Sent;
+        return this._entry.isPending && this._entry.pendingEvent.status !== SendStatus.Sent;
+    }
+
+    get canAbortSending() {
+        return this._entry.isPending &&
+            this._entry.pendingEvent.status !== SendStatus.Sending &&
+            this._entry.pendingEvent.status !== SendStatus.Sent;
     }
 
     abortSending() {
@@ -83,9 +89,15 @@ export class SimpleTile extends ViewModel {
     }
 
     // update received for already included (falls within sort keys) entry
-    updateEntry(entry, params) {
-        this._entry = entry;
-        return UpdateAction.Update(params);
+    updateEntry(entry, param) {
+        const renderedAsRedacted = this.shape === "redacted";
+        if (!entry.isGap && entry.isRedacted !== renderedAsRedacted) {
+            // recreate the tile if the entry becomes redacted
+            return UpdateAction.Replace("shape");
+        } else {
+            this._entry = entry;
+            return UpdateAction.Update(param);
+        }
     }
 
     // return whether the tile should be removed
@@ -113,4 +125,16 @@ export class SimpleTile extends ViewModel {
         super.dispose();
     }
     // TilesCollection contract above
+
+    get _room() {
+        return this._options.room;
+    }
+
+    get _powerLevels() {
+        return this._options.timeline.powerLevels;
+    }
+
+    get _ownMember() {
+        return this._options.timeline.me;
+    }
 }

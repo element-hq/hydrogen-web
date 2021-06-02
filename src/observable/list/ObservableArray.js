@@ -27,6 +27,11 @@ export class ObservableArray extends BaseObservableList {
         this.emitAdd(this._items.length - 1, item);
     }
 
+    remove(idx) {
+        const [item] = this._items.splice(idx, 1);
+        this.emitRemove(idx, item);
+    }
+
     insertMany(idx, items) {
         for(let item of items) {
             this.insert(idx, item);

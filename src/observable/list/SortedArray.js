@@ -16,6 +16,7 @@ limitations under the License.
 
 import {BaseObservableList} from "./BaseObservableList.js";
 import {sortedIndex} from "../../utils/sortedIndex.js";
+import {findAndUpdateInArray} from "./common.js";
 
 export class SortedArray extends BaseObservableList {
     constructor(comparator) {
@@ -41,6 +42,10 @@ export class SortedArray extends BaseObservableList {
         }
     }
 
+    findAndUpdate(predicate, updater) {
+        return findAndUpdateInArray(predicate, this._items, this, updater);
+    }
+
     update(item, updateParams = null) {
         const idx = this.indexOf(item);
         if (idx !== -1) {
@@ -56,6 +61,14 @@ export class SortedArray extends BaseObservableList {
         } else {
             return -1;
         }
+    }
+
+    _getNext(item) {
+        let idx = sortedIndex(this._items, item, this._comparator);
+        while(idx < this._items.length && this._comparator(this._items[idx], item) <= 0) {
+            idx += 1;
+        }
+        return this.get(idx);
     }
 
     set(item, updateParams = null) {
@@ -88,6 +101,72 @@ export class SortedArray extends BaseObservableList {
     }
 
     [Symbol.iterator]() {
-        return this._items.values();
+        return new Iterator(this);
+    }
+}
+
+// iterator that works even if the current value is removed while iterating
+class Iterator {
+    constructor(sortedArray) {
+        this._sortedArray = sortedArray;
+        this._current = null;
+    }
+
+    next() {
+        if (this._sortedArray) {
+            if (this._current) {
+                this._current = this._sortedArray._getNext(this._current);
+            } else {
+                this._current = this._sortedArray.get(0);
+            }
+            if (this._current) {
+                return {value: this._current};
+            } else {
+                // cause done below
+                this._sortedArray = null;
+            }
+        }
+        if (!this._sortedArray) {
+            return {done: true};
+        }
+    }
+}
+
+export function tests() {
+    return {
+        "setManyUnsorted": assert => {
+            const sa = new SortedArray((a, b) => a.localeCompare(b));
+            sa.setManyUnsorted(["b", "a", "c"]);
+            assert.equal(sa.length, 3);
+            assert.equal(sa.get(0), "a");
+            assert.equal(sa.get(1), "b");
+            assert.equal(sa.get(2), "c");
+        }, 
+        "_getNext": assert => {
+            const sa = new SortedArray((a, b) => a.localeCompare(b));
+            sa.setManyUnsorted(["b", "a", "f"]);
+            assert.equal(sa._getNext("a"), "b");
+            assert.equal(sa._getNext("b"), "f");
+            // also finds the next if the value is not in the collection
+            assert.equal(sa._getNext("c"), "f");
+            assert.equal(sa._getNext("f"), undefined);
+        },
+        "iterator with removals": assert => {
+            const queue = new SortedArray((a, b) => a.idx - b.idx);
+            queue.setManyUnsorted([{idx: 5}, {idx: 3}, {idx: 1}, {idx: 4}, {idx: 2}]);
+            const it = queue[Symbol.iterator]();
+            assert.equal(it.next().value.idx, 1);
+            assert.equal(it.next().value.idx, 2);
+            queue.remove(1);
+            assert.equal(it.next().value.idx, 3);
+            queue.remove(1);
+            assert.equal(it.next().value.idx, 4);
+            queue.remove(1);
+            assert.equal(it.next().value.idx, 5);
+            queue.remove(1);
+            assert.equal(it.next().done, true);
+            // check done persists
+            assert.equal(it.next().done, true);
+        }
     }
 }

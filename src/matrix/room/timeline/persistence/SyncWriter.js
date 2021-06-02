@@ -21,6 +21,7 @@ import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
 import {createEventEntry} from "./common.js";
 import {EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";
 import {MemberWriter} from "./MemberWriter.js";
+import {RelationWriter} from "./RelationWriter.js";
 
 // Synapse bug? where the m.room.create event appears twice in sync response
 // when first syncing the room
@@ -40,6 +41,7 @@ export class SyncWriter {
     constructor({roomId, fragmentIdComparer}) {
         this._roomId = roomId;
         this._memberWriter = new MemberWriter(roomId);
+        this._relationWriter = new RelationWriter(roomId, fragmentIdComparer);
         this._fragmentIdComparer = fragmentIdComparer;
         this._lastLiveKey = null;
     }
@@ -151,7 +153,9 @@ export class SyncWriter {
         }
     }
 
-    async _writeTimeline(entries, timeline, currentKey, memberChanges, txn, log) {
+    async _writeTimeline(timeline, currentKey, memberChanges, txn, log) {
+        const entries = [];
+        const updatedEntries = [];
         if (Array.isArray(timeline?.events) && timeline.events.length) {
             // only create a fragment when we will really write an event
             currentKey = await this._ensureLiveFragment(currentKey, entries, timeline, txn, log);
@@ -161,15 +165,19 @@ export class SyncWriter {
             for(const event of events) {
                 // store event in timeline
                 currentKey = currentKey.nextKey();
-                const entry = createEventEntry(currentKey, this._roomId, event);
+                const storageEntry = createEventEntry(currentKey, this._roomId, event);
                 let member = await this._memberWriter.lookupMember(event.sender, event, events, txn);
                 if (member) {
-                    entry.displayName = member.displayName;
-                    entry.avatarUrl = member.avatarUrl;
+                    storageEntry.displayName = member.displayName;
+                    storageEntry.avatarUrl = member.avatarUrl;
                 }
-                txn.timelineEvents.insert(entry);
-                entries.push(new EventEntry(entry, this._fragmentIdComparer));
-
+                txn.timelineEvents.insert(storageEntry);
+                const entry = new EventEntry(storageEntry, this._fragmentIdComparer);
+                entries.push(entry);
+                const updatedRelationTargetEntry = await this._relationWriter.writeRelation(entry, txn, log);
+                if (updatedRelationTargetEntry) {
+                    updatedEntries.push(updatedRelationTargetEntry);
+                }
                 // update state events after writing event, so for a member event,
                 // we only update the member info after having written the member event
                 // to the timeline, as we want that event to have the old profile info
@@ -187,7 +195,7 @@ export class SyncWriter {
             }
             log.set("timelineStateEventCount", timelineStateEventCount);
         }
-        return currentKey;
+        return {currentKey, entries, updatedEntries};
     }
 
     async _handleRejoinOverlap(timeline, txn, log) {
@@ -226,7 +234,6 @@ export class SyncWriter {
      * @return {SyncWriterResult}
      */
     async writeSync(roomResponse, isRejoin, txn, log) {
-        const entries = [];
         let {timeline} = roomResponse;
         // we have rejoined the room after having synced it before,
         // check for overlap with the last synced event
@@ -238,9 +245,10 @@ export class SyncWriter {
         // important this happens before _writeTimeline so
         // members are available in the transaction
         await this._writeStateEvents(roomResponse, memberChanges, timeline?.limited, txn, log);
-        const currentKey = await this._writeTimeline(entries, timeline, this._lastLiveKey, memberChanges, txn, log);
+        const {currentKey, entries, updatedEntries} =
+            await this._writeTimeline(timeline, this._lastLiveKey, memberChanges, txn, log);
         log.set("memberChanges", memberChanges.size);
-        return {entries, newLiveKey: currentKey, memberChanges};
+        return {entries, updatedEntries, newLiveKey: currentKey, memberChanges};
     }
 
     afterSync(newLiveKey) {

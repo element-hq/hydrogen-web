@@ -28,8 +28,15 @@ export class Menu extends TemplateView {
 
     render(t) {
         return t.ul({className: "menu", role: "menu"}, this._options.map(o => {
+            const className = {
+                destructive: o.destructive,
+            };
+            if (o.icon) {
+                className.icon = true;
+                className[o.icon] = true;
+            }
             return t.li({
-                className: o.icon ? `icon ${o.icon}` : "",
+                className,
             }, t.button({onClick: o.callback}, o.label));
         }));
     }
@@ -40,10 +47,16 @@ class MenuOption {
         this.label = label;
         this.callback = callback;
         this.icon = null;
+        this.destructive = false;
     }
 
     setIcon(className) {
         this.icon = className;
+        return this;
+    }
+
+    setDestructive() {
+        this.destructive = true;
         return this;
     }
 }

@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,19 +15,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseMessageView} from "./BaseMessageView.js";
-
-export class FileView extends BaseMessageView {
-    renderMessageBody(t, vm) {
-        const children = [];
-        if (vm.isPending) {
-            children.push(vm => vm.label);
-        } else {
-            children.push(
-                t.button({className: "link", onClick: () => vm.download()}, vm => vm.label),
-                t.time(vm.date + " " + vm.time)
-            );
+/* inline update of item in collection backed by array, without replacing the preexising item */
+export function findAndUpdateInArray(predicate, array, observable, updater) {
+    const index = array.findIndex(predicate);
+    if (index !== -1) {
+        const value = array[index];
+        // allow bailing out of sending an emit if updater determined its not needed
+        const params = updater(value);
+        if (params !== false) {
+            observable.emitUpdate(index, value, params);
         }
-        return t.p({className: "Timeline_messageBody statusMessage"}, children);
+        // found
+        return true;
     }
+    return false;
 }

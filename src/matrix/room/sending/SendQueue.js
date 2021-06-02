@@ -16,8 +16,9 @@ limitations under the License.
 
 import {SortedArray} from "../../../observable/list/SortedArray.js";
 import {ConnectionError} from "../../error.js";
-import {PendingEvent} from "./PendingEvent.js";
-import {makeTxnId} from "../../common.js";
+import {PendingEvent, SendStatus} from "./PendingEvent.js";
+import {makeTxnId, isTxnId} from "../../common.js";
+import {REDACTION_TYPE} from "../common.js";
 
 export class SendQueue {
     constructor({roomId, storage, hsApi, pendingEvents}) {
@@ -46,25 +47,11 @@ export class SendQueue {
         this._roomEncryption = roomEncryption;
     }
 
-    _nextPendingEvent(current) {
-        if (!current) {
-            return this._pendingEvents.get(0);
-        } else {
-            const idx = this._pendingEvents.indexOf(current);
-            if (idx !== -1) {
-                return this._pendingEvents.get(idx + 1);
-            }
-            return;
-        }
-    }
-
     _sendLoop(log) {
         this._isSending = true;
         this._sendLoopLogItem = log.runDetached("send queue flush", async log => {
-            let pendingEvent;
             try {
-                // eslint-disable-next-line no-cond-assign
-                while (pendingEvent = this._nextPendingEvent(pendingEvent)) {
+                for (const pendingEvent of this._pendingEvents) {
                     await log.wrap("send event", async log => {
                         log.set("queueIndex", pendingEvent.queueIndex);
                         try {
@@ -73,9 +60,20 @@ export class SendQueue {
                             if (err instanceof ConnectionError) {
                                 this._offline = true;
                                 log.set("offline", true);
+                                pendingEvent.setWaiting();
                             } else {
                                 log.catch(err);
-                                pendingEvent.setError(err);
+                                const isPermanentError = err.name === "HomeServerError" && (
+                                    err.statusCode === 400 ||   // bad request, must be a bug on our end
+                                    err.statusCode === 403 ||   // forbidden
+                                    err.statusCode === 404      // not found
+                                );
+                                if (isPermanentError) {
+                                    log.set("remove", true);
+                                    await pendingEvent.abort();
+                                } else {
+                                    pendingEvent.setError(err);
+                                }
                             }
                         }
                     });
@@ -101,12 +99,37 @@ export class SendQueue {
         }
         if (pendingEvent.needsSending) {
             await pendingEvent.send(this._hsApi, log);
-            
-            await this._tryUpdateEvent(pendingEvent);
+            // we now have a remoteId, but this pending event may be removed at any point in the future
+            // (or past, so can't assume it still exists) once the remote echo comes in.
+            // So if we have any related events that need to resolve the relatedTxnId to a related event id,
+            // they need to do so now.
+            // We ensure this by writing the new remote id for the pending event and all related events
+            // with unresolved relatedTxnId in the queue in one transaction.
+            const txn = await this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
+            try {
+                await this._tryUpdateEventWithTxn(pendingEvent, txn);
+                await this._resolveRemoteIdInPendingRelations(
+                    pendingEvent.txnId, pendingEvent.remoteId, txn);
+            } catch (err) {
+                txn.abort();
+                throw err;
+            }
+            await txn.complete();
         }
     }
 
-    removeRemoteEchos(events, txn, parentLog) {
+    async _resolveRemoteIdInPendingRelations(txnId, remoteId, txn) {
+        const relatedEventWithoutRemoteId = this._pendingEvents.array.filter(pe => {
+            return pe.relatedTxnId === txnId && pe.relatedEventId !== remoteId;
+        });
+        for (const relatedPE of relatedEventWithoutRemoteId) {
+            relatedPE.setRelatedEventId(remoteId);
+            await this._tryUpdateEventWithTxn(relatedPE, txn);
+        }
+        return relatedEventWithoutRemoteId;
+    }
+
+    async removeRemoteEchos(events, txn, parentLog) {
         const removed = [];
         for (const event of events) {
             const txnId = event.unsigned && event.unsigned.transaction_id;
@@ -118,9 +141,11 @@ export class SendQueue {
             }
             if (idx !== -1) {
                 const pendingEvent = this._pendingEvents.get(idx);
-                parentLog.log({l: "removeRemoteEcho", queueIndex: pendingEvent.queueIndex, remoteId: event.event_id, txnId});
+                const remoteId = event.event_id;
+                parentLog.log({l: "removeRemoteEcho", queueIndex: pendingEvent.queueIndex, remoteId, txnId});
                 txn.pendingEvents.remove(pendingEvent.roomId, pendingEvent.queueIndex);
                 removed.push(pendingEvent);
+                await this._resolveRemoteIdInPendingRelations(txnId, remoteId, txn);
             }
         }
         return removed;
@@ -168,7 +193,11 @@ export class SendQueue {
     }
 
     async enqueueEvent(eventType, content, attachments, log) {
-        const pendingEvent = await this._createAndStoreEvent(eventType, content, attachments);
+        await this._enqueueEvent(eventType, content, attachments, null, null, log);
+    }
+
+    async _enqueueEvent(eventType, content, attachments, relatedTxnId, relatedEventId, log) {
+        const pendingEvent = await this._createAndStoreEvent(eventType, content, relatedTxnId, relatedEventId, attachments);
         this._pendingEvents.set(pendingEvent);
         log.set("queueIndex", pendingEvent.queueIndex);
         log.set("pendingEvents", this._pendingEvents.length);
@@ -180,6 +209,43 @@ export class SendQueue {
         }
     }
 
+    async enqueueRedaction(eventIdOrTxnId, reason, log) {
+        let relatedTxnId;
+        let relatedEventId;
+        if (isTxnId(eventIdOrTxnId)) {
+            relatedTxnId = eventIdOrTxnId;
+            const txnId = eventIdOrTxnId;
+            const pe = this._pendingEvents.array.find(pe => pe.txnId === txnId);
+            if (pe && !pe.remoteId && pe.status !== SendStatus.Sending) {
+                // haven't started sending this event yet,
+                // just remove it from the queue
+                log.set("remove", relatedTxnId);
+                await pe.abort();
+                return;
+            } else if (pe) {
+                relatedEventId = pe.remoteId;
+            } else {
+                // we don't have the pending event anymore,
+                // the remote echo must have arrived in the meantime.
+                // we could look for it in the timeline, but for now
+                // we don't do anything as this race is quite unlikely
+                // and a bit complicated to fix.
+                return;
+            }
+        } else {
+            relatedEventId = eventIdOrTxnId;
+            const pe = this._pendingEvents.array.find(pe => pe.remoteId === relatedEventId);
+            if (pe) {
+                // also set the txn id just in case that an event id was passed
+                // for relating to a pending event that is still waiting for the remote echo
+                relatedTxnId = pe.txnId;
+            }
+        }
+        log.set("relatedTxnId", eventIdOrTxnId);
+        log.set("relatedEventId", relatedEventId);
+        await this._enqueueEvent(REDACTION_TYPE, {reason}, null, relatedTxnId, relatedEventId, log);
+    }
+
     get pendingEvents() {
         return this._pendingEvents;
     }
@@ -187,11 +253,7 @@ export class SendQueue {
     async _tryUpdateEvent(pendingEvent) {
         const txn = await this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
         try {
-            // pendingEvent might have been removed already here
-            // by a racing remote echo, so check first so we don't recreate it
-            if (await txn.pendingEvents.exists(pendingEvent.roomId, pendingEvent.queueIndex)) {
-                txn.pendingEvents.update(pendingEvent.data);
-            }
+            this._tryUpdateEventWithTxn(pendingEvent, txn);
         } catch (err) {
             txn.abort();
             throw err;
@@ -199,20 +261,31 @@ export class SendQueue {
         await txn.complete();
     }
 
-    async _createAndStoreEvent(eventType, content, attachments) {
+    async _tryUpdateEventWithTxn(pendingEvent, txn) {
+        // pendingEvent might have been removed already here
+        // by a racing remote echo, so check first so we don't recreate it
+        if (await txn.pendingEvents.exists(pendingEvent.roomId, pendingEvent.queueIndex)) {
+            txn.pendingEvents.update(pendingEvent.data);
+        }
+    }
+
+    async _createAndStoreEvent(eventType, content, relatedTxnId, relatedEventId, attachments) {
         const txn = await this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
         let pendingEvent;
         try {
             const pendingEventsStore = txn.pendingEvents;
             const maxQueueIndex = await pendingEventsStore.getMaxQueueIndex(this._roomId) || 0;
             const queueIndex = maxQueueIndex + 1;
+            const needsEncryption = eventType !== REDACTION_TYPE && !!this._roomEncryption;
             pendingEvent = this._createPendingEvent({
                 roomId: this._roomId,
                 queueIndex,
                 eventType,
                 content,
+                relatedTxnId,
+                relatedEventId,
                 txnId: makeTxnId(),
-                needsEncryption: !!this._roomEncryption,
+                needsEncryption,
                 needsUpload: !!attachments
             }, attachments);
             pendingEventsStore.add(pendingEvent.data);

@@ -153,10 +153,7 @@ export class SessionViewModel extends ViewModel {
     _createRoomViewModel(roomId) {
         const room = this._sessionContainer.session.rooms.get(roomId);
         if (room) {
-            const roomVM = new RoomViewModel(this.childOptions({
-                room,
-                ownUserId: this._sessionContainer.session.user.id,
-            }));
+            const roomVM = new RoomViewModel(this.childOptions({room}));
             roomVM.load();
             return roomVM;
         }
@@ -173,10 +170,7 @@ export class SessionViewModel extends ViewModel {
     async _createArchivedRoomViewModel(roomId) {
         const room = await this._sessionContainer.session.loadArchivedRoom(roomId);
         if (room) {
-            const roomVM = new RoomViewModel(this.childOptions({
-                room,
-                ownUserId: this._sessionContainer.session.user.id,
-            }));
+            const roomVM = new RoomViewModel(this.childOptions({room}));
             roomVM.load();
             return roomVM;
         }

@@ -20,7 +20,6 @@ import {getIdentifierColorNumber, avatarInitials, getAvatarHttpUrl} from "../../
 export class BaseMessageTile extends SimpleTile {
     constructor(options) {
         super(options);
-        this._isOwn = this._entry.sender === options.ownUserId;
         this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : null;
         this._isContinuation = false;
     }
@@ -67,7 +66,7 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     get isOwn() {
-        return this._isOwn;
+        return this._entry.sender === this._ownMember.userId;
     }
 
     get isContinuation() {
@@ -87,8 +86,8 @@ export class BaseMessageTile extends SimpleTile {
         let isContinuation = false;
         if (prev && prev instanceof BaseMessageTile && prev.sender === this.sender) {
             // timestamp is null for pending events
-            const myTimestamp = this._entry.timestamp || this.clock.now();
-            const otherTimestamp = prev._entry.timestamp || this.clock.now();
+            const myTimestamp = this._entry.timestamp;
+            const otherTimestamp = prev._entry.timestamp;
             // other message was sent less than 5min ago
             isContinuation = (myTimestamp - otherTimestamp) < (5 * 60 * 1000);
         }
@@ -96,5 +95,13 @@ export class BaseMessageTile extends SimpleTile {
             this._isContinuation = isContinuation;
             this.emitChange("isContinuation");
         }
+    }
+
+    redact(reason, log) {
+        return this._room.sendRedaction(this._entry.id, reason, log);
+    }
+
+    get canRedact() {
+        return this._powerLevels.canRedactFromSender(this._entry.sender);
     }
 }

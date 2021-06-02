@@ -15,6 +15,7 @@ limitations under the License.
 */
 import {createEnum} from "../../../utils/enum.js";
 import {AbortError} from "../../../utils/error.js";
+import {REDACTION_TYPE} from "../common.js";
 
 export const SendStatus = createEnum(
     "Waiting",
@@ -47,6 +48,13 @@ export class PendingEvent {
     get txnId() { return this._data.txnId; }
     get remoteId() { return this._data.remoteId; }
     get content() { return this._data.content; }
+    get relatedTxnId() { return this._data.relatedTxnId; }
+    get relatedEventId() { return this._data.relatedEventId; }
+
+    setRelatedEventId(eventId) {
+        this._data.relatedEventId = eventId;
+    }
+
     get data() { return this._data; }
 
     getAttachment(key) {
@@ -83,6 +91,11 @@ export class PendingEvent {
     setError(error) {
         this._status = SendStatus.Error;
         this._error = error;
+        this._emitUpdate("status");
+    }
+
+    setWaiting() {
+        this._status = SendStatus.Waiting;
         this._emitUpdate("status");
     }
 
@@ -134,7 +147,7 @@ export class PendingEvent {
         this._data.needsUpload = false;
     }
 
-    abort() {
+    async abort() {
         if (!this._aborted) {
             this._aborted = true;
             if (this._attachments) {
@@ -143,7 +156,7 @@ export class PendingEvent {
                 }
             }
             this._sendRequest?.abort();
-            this._removeFromQueueCallback();
+            await this._removeFromQueueCallback();
         }
     }
 
@@ -156,15 +169,26 @@ export class PendingEvent {
         this._emitUpdate("status");
         const eventType = this._data.encryptedEventType || this._data.eventType;
         const content = this._data.encryptedContent || this._data.content;
-        this._sendRequest = hsApi.send(
-                this.roomId,
-                eventType,
-                this.txnId,
-                content,
-                {log}
-            );
+        if (eventType === REDACTION_TYPE) {
+            this._sendRequest = hsApi.redact(
+                    this.roomId,
+                    this._data.relatedEventId,
+                    this.txnId,
+                    content,
+                    {log}
+                );
+        } else {
+            this._sendRequest = hsApi.send(
+                    this.roomId,
+                    eventType,
+                    this.txnId,
+                    content,
+                    {log}
+                );
+        }
         const response = await this._sendRequest.response();
         this._sendRequest = null;
+        // both /send and /redact have the same response format
         this._data.remoteId = response.event_id;
         log.set("id", this._data.remoteId);
         this._status = SendStatus.Sent;

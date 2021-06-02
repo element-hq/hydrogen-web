@@ -106,9 +106,8 @@ export class Room extends BaseRoom {
             txn.roomState.removeAllForRoom(this.id);
             txn.roomMembers.removeAllForRoom(this.id);
         }
-        const {entries: newEntries, newLiveKey, memberChanges} =
+        const {entries: newEntries, updatedEntries, newLiveKey, memberChanges} =
             await log.wrap("syncWriter", log => this._syncWriter.writeSync(roomResponse, isRejoin, txn, log), log.level.Detail);
-        let allEntries = newEntries;
         if (decryptChanges) {
             const decryption = await log.wrap("decryptChanges", log => decryptChanges.write(txn, log));
             log.set("decryptionResults", decryption.results.size);
@@ -119,16 +118,18 @@ export class Room extends BaseRoom {
             decryption.applyToEntries(newEntries);
             if (retryEntries?.length) {
                 decryption.applyToEntries(retryEntries);
-                allEntries = retryEntries.concat(allEntries);
+                updatedEntries.push(...retryEntries);
             }
         }
-        log.set("allEntries", allEntries.length);
+        log.set("newEntries", newEntries.length);
+        log.set("updatedEntries", updatedEntries.length);
         let shouldFlushKeyShares = false;
         // pass member changes to device tracker
         if (roomEncryption && this.isTrackingMembers && memberChanges?.size) {
             shouldFlushKeyShares = await roomEncryption.writeMemberChanges(memberChanges, txn, log);
             log.set("shouldFlushKeyShares", shouldFlushKeyShares);
         }
+        const allEntries = newEntries.concat(updatedEntries);
         // also apply (decrypted) timeline entries to the summary changes
         summaryChanges = summaryChanges.applyTimelineEntries(
             allEntries, isInitialSync, !this._isTimelineOpen, this._user.id);
@@ -158,13 +159,13 @@ export class Room extends BaseRoom {
         }
         let removedPendingEvents;
         if (Array.isArray(roomResponse.timeline?.events)) {
-            removedPendingEvents = this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn, log);
+            removedPendingEvents = await this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn, log);
         }
         return {
             summaryChanges,
             roomEncryption,
             newEntries,
-            updatedEntries: retryEntries || [],
+            updatedEntries,
             newLiveKey,
             removedPendingEvents,
             memberChanges,
@@ -279,8 +280,8 @@ export class Room extends BaseRoom {
         }
     }
 
-    _writeGapFill(gapChunk, txn, log) {
-        const removedPendingEvents = this._sendQueue.removeRemoteEchos(gapChunk, txn, log);
+    async _writeGapFill(gapChunk, txn, log) {
+        const removedPendingEvents = await this._sendQueue.removeRemoteEchos(gapChunk, txn, log);
         return removedPendingEvents;
     }
 
@@ -293,6 +294,14 @@ export class Room extends BaseRoom {
         this._platform.logger.wrapOrRun(log, "send", log => {
             log.set("id", this.id);
             return this._sendQueue.enqueueEvent(eventType, content, attachments, log);
+        });
+    }
+
+    /** @public */
+    sendRedaction(eventIdOrTxnId, reason, log = null) {
+        this._platform.logger.wrapOrRun(log, "redact", log => {
+            log.set("id", this.id);
+            return this._sendQueue.enqueueRedaction(eventIdOrTxnId, reason, log);
         });
     }
 

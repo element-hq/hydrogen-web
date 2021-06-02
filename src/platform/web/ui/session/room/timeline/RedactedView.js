@@ -14,13 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../../general/TemplateView.js";
+import {BaseMessageView} from "./BaseMessageView.js";
+import {Menu} from "../../../general/Menu.js";
 
-export class AnnouncementView extends TemplateView {
-    render(t) {
-        return t.li({className: "AnnouncementView"}, t.div(vm => vm.announcement));
+export class RedactedView extends BaseMessageView {
+    renderMessageBody(t) {
+        return t.p({className: "Timeline_messageBody statusMessage"}, vm => vm.description);
     }
-    
-    /* This is called by the parent ListView, which just has 1 listener for the whole list */
-    onClick() {}
+
+    createMenuOptions(vm) {
+        const options = super.createMenuOptions(vm);
+        if (vm.isRedacting) {
+            options.push(Menu.option(vm.i18n`Cancel`, () => vm.abortPendingRedaction()));
+        }
+        return options;
+    }
 }

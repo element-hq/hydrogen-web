@@ -16,6 +16,7 @@ limitations under the License.
 
 import {GapTile} from "./tiles/GapTile.js";
 import {TextTile} from "./tiles/TextTile.js";
+import {RedactedTile} from "./tiles/RedactedTile.js";
 import {ImageTile} from "./tiles/ImageTile.js";
 import {VideoTile} from "./tiles/VideoTile.js";
 import {FileTile} from "./tiles/FileTile.js";
@@ -31,6 +32,8 @@ export function tilesCreator(baseOptions) {
         const options = Object.assign({entry, emitUpdate}, baseOptions);
         if (entry.isGap) {
             return new GapTile(options);
+        } else if (entry.isRedacted) {
+            return new RedactedTile(options);
         } else if (entry.isPending && entry.pendingEvent.isMissingAttachments) {
             return new MissingAttachmentTile(options);
         } else if (entry.eventType) {

@@ -19,3 +19,5 @@ export function getPrevContentFromStateEvent(event) {
     // see https://matrix.to/#/!NasysSDfxKxZBzJJoE:matrix.org/$DvrAbZJiILkOmOIuRsNoHmh2v7UO5CWp_rYhlGk34fQ?via=matrix.org&via=pixie.town&via=amorgan.xyz
     return event.unsigned?.prev_content || event.prev_content;
 }
+
+export const REDACTION_TYPE = "m.room.redaction";

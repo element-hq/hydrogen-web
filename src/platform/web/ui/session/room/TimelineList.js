@@ -22,6 +22,7 @@ import {VideoView} from "./timeline/VideoView.js";
 import {FileView} from "./timeline/FileView.js";
 import {MissingAttachmentView} from "./timeline/MissingAttachmentView.js";
 import {AnnouncementView} from "./timeline/AnnouncementView.js";
+import {RedactedView} from "./timeline/RedactedView.js";
 
 function viewClassForEntry(entry) {
     switch (entry.shape) {
@@ -34,6 +35,8 @@ function viewClassForEntry(entry) {
         case "video": return VideoView;
         case "file": return FileView;
         case "missing-attachment": return MissingAttachmentView;
+        case "redacted":
+            return RedactedView;
     }
 }
 
@@ -42,6 +45,7 @@ export class TimelineList extends ListView {
         const options = {
             className: "Timeline bottom-aligned-scroll",
             list: viewModel.tiles,
+            onItemClick: (tileView, evt) => tileView.onClick(evt),
         }
         super(options, entry => {
             const View = viewClassForEntry(entry);

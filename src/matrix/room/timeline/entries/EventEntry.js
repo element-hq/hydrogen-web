@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseEntry} from "./BaseEntry.js";
+import {BaseEventEntry} from "./BaseEventEntry.js";
 import {getPrevContentFromStateEvent} from "../../common.js";
 
-export class EventEntry extends BaseEntry {
+export class EventEntry extends BaseEventEntry {
     constructor(eventEntry, fragmentIdComparer) {
         super(fragmentIdComparer);
         this._eventEntry = eventEntry;
@@ -107,5 +107,21 @@ export class EventEntry extends BaseEntry {
 
     get decryptionError() {
         return this._decryptionError;
+    }
+
+    get relatedEventId() {
+        return this._eventEntry.event.redacts;
+    }
+
+    get isRedacted() {
+        return super.isRedacted || !!this._eventEntry.event.unsigned?.redacted_because;
+    }
+
+    get redactionReason() {
+        const redactionEvent = this._eventEntry.event.unsigned?.redacted_because;
+        if (redactionEvent) {
+            return redactionEvent.content?.reason;
+        }
+        return super.redactionReason;
     }
 }

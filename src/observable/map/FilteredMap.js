@@ -82,6 +82,10 @@ export class FilteredMap extends BaseObservableMap {
     }
 
     onUpdate(key, value, params) {
+        // if an update is emitted while calling source.subscribe() from onSubscribeFirst, ignore it
+        if (!this._included) {
+            return;
+        }
         if (this._filter) {
             const wasIncluded = this._included.get(key);
             const isIncluded = this._filter(value, key);

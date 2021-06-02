@@ -143,6 +143,10 @@ export class TilesCollection extends BaseObservableList {
     }
 
     onUpdate(index, entry, params) {
+        // if an update is emitted while calling source.subscribe() from onSubscribeFirst, ignore it
+        if (!this._tiles) {
+            return;
+        }
         const tileIdx = this._findTileIdx(entry);
         const tile = this._findTileAtIdx(entry, tileIdx);
         if (tile) {
@@ -191,11 +195,14 @@ export class TilesCollection extends BaseObservableList {
     _removeTile(tileIdx, tile) {
         const prevTile = this._getTileAtIdx(tileIdx - 1);
         const nextTile = this._getTileAtIdx(tileIdx + 1);
+        // applying and emitting the remove should happen
+        // atomically, as updateNext/PreviousSibling might
+        // emit an update with the wrong index otherwise 
         this._tiles.splice(tileIdx, 1);
-        prevTile && prevTile.updateNextSibling(nextTile);
-        nextTile && nextTile.updatePreviousSibling(prevTile);
         tile.dispose();
         this.emitRemove(tileIdx, tile);
+        prevTile?.updateNextSibling(nextTile);
+        nextTile?.updatePreviousSibling(prevTile);
     }
 
     // would also be called when unloading a part of the timeline
@@ -297,5 +304,29 @@ export function tests() {
             entries.insert(1, {n: 7});
             assert(receivedAdd);
         },
+        "emit update with correct index in updatePreviousSibling during remove": assert => {
+            class UpdateOnSiblingTile extends TestTile {
+                updatePreviousSibling() {
+                    this.update?.(this, "previous");
+                }
+            }
+            const entries = new ObservableArray([{n: 5}, {n: 10}, {n: 15}]);
+            const tiles = new TilesCollection(entries, entry => new UpdateOnSiblingTile(entry));
+            const events = [];
+            tiles.subscribe({
+                onUpdate(idx, tile) {
+                    assert.equal(idx, 1);
+                    assert.equal(tile.entry.n, 15);
+                    events.push("update");
+                },
+                onRemove(idx, tile) {
+                    assert.equal(idx, 1);
+                    assert.equal(tile.entry.n, 10);
+                    events.push("remove");
+                }
+            });
+            entries.remove(1);
+            assert.deepEqual(events, ["remove", "update"]);
+        }
     }
 }

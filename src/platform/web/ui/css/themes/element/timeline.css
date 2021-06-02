@@ -1,0 +1,233 @@
+/*
+Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+.Timeline_message {
+    display: grid;
+    grid-template:
+        "avatar sender" auto
+        "avatar body" auto
+        "time   body" 1fr /
+         30px   1fr;
+    column-gap: 8px;
+    padding: 4px;
+    margin: 0 12px;
+    /* TODO: check whether this is needed for .media to maintain aspect ratio (on IE11) like the 100% above */
+    /* width: 100%; */
+    box-sizing: border-box;
+}
+
+.Timeline_message:not(.continuation) {
+    margin-top: 4px;
+}
+
+@media screen and (max-width: 800px) {
+    .Timeline_message {
+        grid-template:
+            "avatar sender" auto
+            "body body" 1fr
+            "time time" auto /
+             30px 1fr;
+    }
+
+    .Timeline_messageSender {
+        margin-top: 0 !important;
+        align-self: center;
+    }
+}
+
+.Timeline_message:hover, .Timeline_message.selected, .Timeline_message.menuOpen {
+    background-color: rgba(141, 151, 165, 0.1);
+    border-radius: 4px;
+}
+
+.Timeline_message:hover > .Timeline_messageOptions,
+.Timeline_message.menuOpen > .Timeline_messageOptions {
+    display: block;
+}
+
+.Timeline_messageAvatar {
+    grid-area: avatar;
+}
+
+.Timeline_messageSender {
+    grid-area: sender;
+    font-weight: bold;
+    line-height: 1.7rem;
+}
+
+.Timeline_messageSender, .Timeline_messageBody {
+    /* reset body margin */
+    margin: 0;
+}
+
+.Timeline_message:not(.continuation) .Timeline_messageSender,
+.Timeline_message:not(.continuation) .Timeline_messageBody {
+    margin-top: 4px;
+}
+
+.Timeline_messageOptions {
+    display: none;
+    grid-area: body;
+    align-self: start;
+    justify-self: end;
+    margin-top: -12px;
+    margin-right: 4px;
+    /* button visuals */
+    border: #ccc 1px solid;
+    height: 24px;
+    width: 24px;
+    background-color: #fff;
+    border-radius: 4px;
+    padding: 0;
+    text-align: center;
+    line-height: 22px;
+    cursor: pointer;
+}
+
+.Timeline_messageTime {
+    grid-area: time;
+}
+
+.Timeline_messageBody time {
+    padding: 2px 0 0px 10px;
+}
+
+.Timeline_messageBody time, .Timeline_messageTime {
+    font-size: 0.8em;
+    line-height: normal;
+    color: #aaa;
+}
+
+.Timeline_messageBody.statusMessage {
+    font-style: italic;
+    color: #777;
+}
+
+.Timeline_messageBody {
+    grid-area: body;
+    line-height: 2.2rem;
+    /* so the .media can grow horizontally and its spacer can grow vertically */
+    width: 100%;
+}
+
+.hydrogen .Timeline_messageSender.usercolor1 { color: var(--usercolor1); }
+.hydrogen .Timeline_messageSender.usercolor2 { color: var(--usercolor2); }
+.hydrogen .Timeline_messageSender.usercolor3 { color: var(--usercolor3); }
+.hydrogen .Timeline_messageSender.usercolor4 { color: var(--usercolor4); }
+.hydrogen .Timeline_messageSender.usercolor5 { color: var(--usercolor5); }
+.hydrogen .Timeline_messageSender.usercolor6 { color: var(--usercolor6); }
+.hydrogen .Timeline_messageSender.usercolor7 { color: var(--usercolor7); }
+.hydrogen .Timeline_messageSender.usercolor8 { color: var(--usercolor8); }
+
+
+.Timeline_messageBody .media {
+    display: grid;
+    margin-top: 4px;
+    width: 100%;
+}
+
+.Timeline_messageBody .media > a {
+    text-decoration: none;
+    width: 100%;
+    display: block;
+}
+
+/* .spacer grows with an inline padding-top to the size of the image,
+so the timeline doesn't jump when the image loads */
+.Timeline_messageBody .media > * {
+    grid-row: 1;
+    grid-column: 1;
+}
+
+.Timeline_messageBody .media img, .Timeline_messageBody .media video {
+    width: 100%;
+    height: auto;
+    /* for IE11 to still scale even though the spacer is too tall */
+    align-self: start;
+    border-radius: 4px;
+    display: block;
+}
+/* stretch the image (to the spacer) on platforms
+where we can trust the spacer to always have the correct height,
+otherwise the image starts with  height 0 and with loading=lazy
+only loads when the top comes into view*/
+.hydrogen:not(.legacy) .Timeline_messageBody .media img,
+.hydrogen:not(.legacy) .Timeline_messageBody .media video {
+    align-self: stretch;
+}
+
+.Timeline_messageBody .media > .sendStatus {
+    align-self: end;
+    justify-self: start;
+    font-size: 0.8em;
+}
+
+.Timeline_messageBody .media > progress {
+    align-self: center;
+    justify-self: center;
+    width: 75%;
+}
+
+.Timeline_messageBody .media > time {
+    align-self: end;
+    justify-self: end;
+}
+
+.Timeline_messageBody .media > time,
+.Timeline_messageBody .media > .sendStatus {
+    color: #2e2f32;
+    display: block;
+    padding: 2px;
+    margin: 4px;
+    background-color: rgba(255, 255, 255, 0.75);
+    border-radius: 4px;
+}
+.Timeline_messageBody .media > .spacer {
+    /* TODO: can we implement this with a pseudo element? or perhaps they are not grid items? */
+    width: 100%;
+    /* don't stretch height as it is a spacer, just in case it doesn't match with image height */
+    align-self: start;
+}
+
+.Timeline_message.unsent .Timeline_messageBody {
+    color: #ccc;
+}
+
+.Timeline_message.unverified .Timeline_messageBody {
+    color: #ff4b55;
+}
+
+.AnnouncementView {
+    margin: 5px 0;
+    padding: 5px 10%;
+}
+
+.AnnouncementView > div {
+    margin: 0 auto;
+    padding: 10px 20px;
+    background-color: rgba(245, 245, 245, 0.90);
+    text-align: center;
+    border-radius: 10px;
+}
+
+.GapView > :not(:first-child) {
+    margin-left: 12px;
+}
+
+.Timeline_messageBody a {
+    word-break: break-all;
+}

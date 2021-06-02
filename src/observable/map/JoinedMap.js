@@ -48,6 +48,10 @@ export class JoinedMap extends BaseObservableMap {
     }
 
     onUpdate(source, key, value, params) {
+        // if an update is emitted while calling source.subscribe() from onSubscribeFirst, ignore it
+        if (!this._subscriptions) {
+            return;
+        }
         if (!this._isKeyAtSourceOccluded(source, key)) {
             this.emitUpdate(key, value, params);
         }

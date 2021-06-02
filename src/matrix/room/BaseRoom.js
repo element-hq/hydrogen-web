@@ -163,6 +163,7 @@ export class BaseRoom extends EventEmitter {
         return request;
     }
 
+    // TODO: move this to Room
     async _getSyncRetryDecryptEntries(newKeys, roomEncryption, txn) {
         const entriesPerKey = await Promise.all(newKeys.map(async key => {
             const retryEventIds = await roomEncryption.getEventIdsForMissingKey(key, txn);
@@ -263,7 +264,7 @@ export class BaseRoom extends EventEmitter {
             let gapResult;
             try {
                 // detect remote echos of pending messages in the gap
-                extraGapFillChanges = this._writeGapFill(response.chunk, txn, log);
+                extraGapFillChanges = await this._writeGapFill(response.chunk, txn, log);
                 // write new events into gap
                 const gapWriter = new GapWriter({
                     roomId: this._roomId,
@@ -288,6 +289,8 @@ export class BaseRoom extends EventEmitter {
                 this._applyGapFill(extraGapFillChanges);
             }
             if (this._timeline) {
+                // these should not be added if not already there
+                this._timeline.replaceEntries(gapResult.updatedEntries);
                 this._timeline.addOrReplaceEntries(gapResult.entries);
             }
         });
@@ -298,7 +301,7 @@ export class BaseRoom extends EventEmitter {
     JoinedRoom uses this update remote echos.
     */
     // eslint-disable-next-line no-unused-vars
-    _writeGapFill(chunk, txn, log) {}
+    async _writeGapFill(chunk, txn, log) {}
     _applyGapFill() {}
 
     /** @public */

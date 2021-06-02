@@ -14,17 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../../general/TemplateView.js";
 import {StaticView} from "../../../general/StaticView.js";
 import {tag, text} from "../../../general/html.js";
-import {renderMessage} from "./common.js";
+import {BaseMessageView} from "./BaseMessageView.js";
 
-export class TextMessageView extends TemplateView {
-    render(t, vm) {
-        const bodyView = t.mapView(vm => vm.body, body => new BodyView(body));
-        return renderMessage(t, vm,
-            [t.p([bodyView, t.time({className: {hidden: !vm.date}}, vm.date + " " + vm.time)])]
-        );
+export class TextMessageView extends BaseMessageView {
+    renderMessageBody(t, vm) {
+        return t.p({
+            className: "Timeline_messageBody",
+            statusMessage: vm => vm.shape === "message-status"
+        }, [
+            t.mapView(vm => vm.body, body => new BodyView(body)),
+            t.time({className: {hidden: !vm.date}}, vm.date + " " + vm.time)
+        ]);
     }
 }
 

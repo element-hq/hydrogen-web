@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +21,7 @@ import {Direction} from "./Direction.js";
 import {TimelineReader} from "./persistence/TimelineReader.js";
 import {PendingEventEntry} from "./entries/PendingEventEntry.js";
 import {RoomMember} from "../members/RoomMember.js";
+import {PowerLevels} from "./PowerLevels.js";
 
 export class Timeline {
     constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock}) {
@@ -28,7 +30,9 @@ export class Timeline {
         this._closeCallback = closeCallback;
         this._fragmentIdComparer = fragmentIdComparer;
         this._disposables = new Disposables();
-        this._remoteEntries = new SortedArray((a, b) => a.compare(b));
+        this._pendingEvents = pendingEvents;
+        this._clock = clock;
+        this._remoteEntries = null;
         this._ownMember = null;
         this._timelineReader = new TimelineReader({
             roomId: this._roomId,
@@ -36,22 +40,16 @@ export class Timeline {
             fragmentIdComparer: this._fragmentIdComparer
         });
         this._readerRequest = null;
-        let localEntries;
-        if (pendingEvents) {
-            localEntries = new MappedList(pendingEvents, pe => {
-                return new PendingEventEntry({pendingEvent: pe, member: this._ownMember, clock});
-            }, (pee, params) => {
-                pee.notifyUpdate(params);
-            });
-        } else {
-            localEntries = new ObservableArray();
-        }
-        this._allEntries = new ConcatList(this._remoteEntries, localEntries);
+        this._allEntries = null;
+        this._powerLevels = null;
     }
 
     /** @package */
     async load(user, membership, log) {
-        const txn = await this._storage.readTxn(this._timelineReader.readTxnStores.concat(this._storage.storeNames.roomMembers));
+        const txn = await this._storage.readTxn(this._timelineReader.readTxnStores.concat(
+            this._storage.storeNames.roomMembers,
+            this._storage.storeNames.roomState
+        ));
         const memberData = await txn.roomMembers.get(this._roomId, user.id);
         if (memberData) {
             this._ownMember = new RoomMember(memberData);
@@ -69,9 +67,64 @@ export class Timeline {
         const readerRequest = this._disposables.track(this._timelineReader.readFromEnd(30, txn, log));
         try {
             const entries = await readerRequest.complete();
-            this._remoteEntries.setManySorted(entries);
+            this._setupEntries(entries);
         } finally {
             this._disposables.disposeTracked(readerRequest);
+        }
+        this._powerLevels = await this._loadPowerLevels(txn);
+    }
+
+    async _loadPowerLevels(txn) {
+        const powerLevelsState = await txn.roomState.get(this._roomId, "m.room.power_levels", "");
+        if (powerLevelsState) {
+            return new PowerLevels({
+                powerLevelEvent: powerLevelsState.event,
+                ownUserId: this._ownMember.userId
+            });
+        }
+        const createState = await txn.roomState.get(this._roomId, "m.room.create", "");
+        return new PowerLevels({
+            createEvent: createState.event,
+            ownUserId: this._ownMember.userId
+        });
+    }
+
+    _setupEntries(timelineEntries) {
+        this._remoteEntries = new SortedArray((a, b) => a.compare(b));
+        this._remoteEntries.setManySorted(timelineEntries);
+        if (this._pendingEvents) {
+            this._localEntries = new MappedList(this._pendingEvents, pe => {
+                const pee = new PendingEventEntry({pendingEvent: pe, member: this._ownMember, clock: this._clock});
+                this._applyAndEmitLocalRelationChange(pee.pendingEvent, target => target.addLocalRelation(pee));
+                return pee;
+            }, (pee, params) => {
+                // is sending but redacted, who do we detect that here to remove the relation?
+                pee.notifyUpdate(params);
+            }, pee => {
+                this._applyAndEmitLocalRelationChange(pee.pendingEvent, target => target.removeLocalRelation(pee));
+            });
+        } else {
+            this._localEntries = new ObservableArray();
+        }
+        this._allEntries = new ConcatList(this._remoteEntries, this._localEntries);
+    }
+
+    _applyAndEmitLocalRelationChange(pe, updater) {
+        const updateOrFalse = e => {
+            const params = updater(e);
+            return params ? params : false;
+        };
+        // first, look in local entries based on txn id
+        const foundInLocalEntries = this._localEntries.findAndUpdate(
+            e => e.id === pe.relatedTxnId,
+            updateOrFalse,
+        );
+        // now look in remote entries based on event id
+        if (!foundInLocalEntries && pe.relatedEventId) {
+            this._remoteEntries.findAndUpdate(
+                e => e.id === pe.relatedEventId,
+                updateOrFalse
+            );
         }
     }
 
@@ -80,15 +133,27 @@ export class Timeline {
     }
 
     replaceEntries(entries) {
+        this._addLocalRelationsToNewRemoteEntries(entries);
         for (const entry of entries) {
-            // this will use the comparator and thus
-            // check for equality using the compare method in BaseEntry
             this._remoteEntries.update(entry);
+        }
+    }
+
+    _addLocalRelationsToNewRemoteEntries(entries) {
+        // find any local relations to this new remote event
+        for (const pee of this._localEntries) {
+            // this will work because we set relatedEventId when removing remote echos
+            if (pee.relatedEventId) {
+                const relationTarget = entries.find(e => e.id === pee.relatedEventId);
+                // no need to emit here as this entry is about to be added
+                relationTarget?.addLocalRelation(pee);
+            }
         }
     }
 
     /** @package */
     addOrReplaceEntries(newEntries) {
+        this._addLocalRelationsToNewRemoteEntries(newEntries);
         this._remoteEntries.setManySorted(newEntries);
     }
     
@@ -114,7 +179,7 @@ export class Timeline {
         ));
         try {
             const entries = await readerRequest.complete();
-            this._remoteEntries.setManySorted(entries);
+            this.addOrReplaceEntries(entries);
             return entries.length < amount;
         } finally {
             this._disposables.disposeTracked(readerRequest);
@@ -128,6 +193,7 @@ export class Timeline {
                 return entry;
             }
         }
+        return null;
     }
 
     /** @public */
@@ -152,7 +218,16 @@ export class Timeline {
         }
     }
 
+    /** @internal */
     enableEncryption(decryptEntries) {
         this._timelineReader.enableEncryption(decryptEntries);
+    }
+
+    get powerLevels() {
+        return this._powerLevels;
+    }
+
+    get me() {
+        return this._ownMember;
     }
 }

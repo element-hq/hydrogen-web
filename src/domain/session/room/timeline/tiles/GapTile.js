@@ -24,10 +24,6 @@ export class GapTile extends SimpleTile {
         this._error = null;
     }
 
-    get _room() {
-        return this.getOption("room");
-    }
-
     async fill() {
         // prevent doing this twice
         if (!this._loading) {
@@ -74,5 +70,32 @@ export class GapTile extends SimpleTile {
             return `Could not load ${dir} messages: ${this._error.message}`;
         }
         return null;
+    }
+}
+
+import {FragmentBoundaryEntry} from "../../../../../matrix/room/timeline/entries/FragmentBoundaryEntry.js";
+export function tests() {
+    return {
+        "uses updated token to fill": async assert => {
+            let currentToken = 5;
+            const fragment = {
+                id: 0,
+                previousToken: currentToken,
+                roomId: "!abc"
+            };
+            const room = {
+                async fillGap(entry) {
+                    assert.equal(entry.token, currentToken);
+                    currentToken += 1;
+                    const newEntry = entry.withUpdatedFragment(Object.assign({}, fragment, {previousToken: currentToken}));
+                    tile.updateEntry(newEntry);
+                }
+            };
+            const tile = new GapTile({entry: new FragmentBoundaryEntry(fragment, true), room});
+            await tile.fill();
+            await tile.fill();
+            await tile.fill();
+            assert.equal(currentToken, 8);
+        }
     }
 }

@@ -344,6 +344,26 @@ class TemplateBuilder {
     if(predicate, renderFn) {
         return this.ifView(predicate, vm => new TemplateView(vm, renderFn));
     }
+
+    /** You probably are looking for something else, like map or mapView.
+    This is an escape hatch that allows you to do manual DOM manipulations
+    as a reaction to a binding change.
+    This should only be used if the side-effect won't add any bindings,
+    event handlers, ...
+    You should not call the TemplateBuilder (e.g. `t.xxx()`) at all from the side effect,
+    instead use tags from html.js to help you construct any DOM you need. */
+    mapSideEffect(mapFn, sideEffect) {
+        let prevValue = mapFn(this._value);
+        const binding = () => {
+            const newValue = mapFn(this._value);
+            if (prevValue !== newValue) {
+                sideEffect(newValue, prevValue);
+                prevValue = newValue;
+            }
+        };
+        this._addBinding(binding);
+        sideEffect(prevValue, undefined);
+    }
 }
 
 
