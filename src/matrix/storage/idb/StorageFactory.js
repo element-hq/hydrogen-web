@@ -21,14 +21,18 @@ import { schema } from "./schema.js";
 import { detectWebkitEarlyCloseTxnBug } from "./quirks.js";
 
 const sessionName = sessionId => `hydrogen_session_${sessionId}`;
-const openDatabaseWithSessionId = sessionId => openDatabase(sessionName(sessionId), createStores, schema.length);
+const openDatabaseWithSessionId = function(sessionId, idbFactory) {
+    return openDatabase(sessionName(sessionId), createStores, schema.length, idbFactory);
+}
 
 async function requestPersistedStorage() {
-    if (navigator?.storage?.persist) {
-        return await navigator.storage.persist();
-    } else if (document.requestStorageAccess) {
+    // don't assume browser so we can run in node with fake-idb
+    const glob = this;
+    if (glob?.navigator?.storage?.persist) {
+        return await glob.navigator.storage.persist();
+    } else if (glob?.document.requestStorageAccess) {
         try {
-            await document.requestStorageAccess();
+            await glob.document.requestStorageAccess();
             return true;
         } catch (err) {
             return false;
@@ -39,8 +43,10 @@ async function requestPersistedStorage() {
 }
 
 export class StorageFactory {
-    constructor(serviceWorkerHandler) {
+    constructor(serviceWorkerHandler, idbFactory = window.indexedDB, IDBKeyRange = window.IDBKeyRange) {
         this._serviceWorkerHandler = serviceWorkerHandler;
+        this._idbFactory = idbFactory;
+        this._IDBKeyRange = IDBKeyRange;
     }
 
     async create(sessionId) {
@@ -52,24 +58,24 @@ export class StorageFactory {
             }
         });
 
-        const hasWebkitEarlyCloseTxnBug = await detectWebkitEarlyCloseTxnBug();
-        const db = await openDatabaseWithSessionId(sessionId);
-        return new Storage(db, hasWebkitEarlyCloseTxnBug);
+        const hasWebkitEarlyCloseTxnBug = await detectWebkitEarlyCloseTxnBug(this._idbFactory);
+        const db = await openDatabaseWithSessionId(sessionId, this._idbFactory);
+        return new Storage(db, this._IDBKeyRange, hasWebkitEarlyCloseTxnBug);
     }
 
     delete(sessionId) {
         const databaseName = sessionName(sessionId);
-        const req = indexedDB.deleteDatabase(databaseName);
+        const req = this._idbFactory.deleteDatabase(databaseName);
         return reqAsPromise(req);
     }
 
     async export(sessionId) {
-        const db = await openDatabaseWithSessionId(sessionId);
+        const db = await openDatabaseWithSessionId(sessionId, this._idbFactory);
         return await exportSession(db);
     }
 
     async import(sessionId, data) {
-        const db = await openDatabaseWithSessionId(sessionId);
+        const db = await openDatabaseWithSessionId(sessionId, this._idbFactory);
         return await importSession(db, data);
     }
 }

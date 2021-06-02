@@ -64,8 +64,8 @@ export function decodeUint32(str) {
     return parseInt(str, 16);
 }
 
-export function openDatabase(name, createObjectStore, version) {
-    const req = indexedDB.open(name, version);
+export function openDatabase(name, createObjectStore, version, idbFactory = window.indexedDB) {
+    const req = idbFactory.open(name, version);
     req.onupgradeneeded = (ev) => {
         const db = ev.target.result;
         const txn = ev.target.transaction;

@@ -33,7 +33,7 @@ export class PendingEventStore {
     }
 
     async getMaxQueueIndex(roomId) {
-        const range = IDBKeyRange.bound(
+        const range = this._eventStore.IDBKeyRange.bound(
             encodeKey(roomId, KeyLimits.minStorageKey),
             encodeKey(roomId, KeyLimits.maxStorageKey),
             false,
@@ -46,12 +46,12 @@ export class PendingEventStore {
     }
 
     remove(roomId, queueIndex) {
-        const keyRange = IDBKeyRange.only(encodeKey(roomId, queueIndex));
+        const keyRange = this._eventStore.IDBKeyRange.only(encodeKey(roomId, queueIndex));
         this._eventStore.delete(keyRange);
     }
 
     async exists(roomId, queueIndex) {
-        const keyRange = IDBKeyRange.only(encodeKey(roomId, queueIndex));
+        const keyRange = this._eventStore.IDBKeyRange.only(encodeKey(roomId, queueIndex));
         const key = await this._eventStore.getKey(keyRange);
         return !!key;
     }
@@ -72,7 +72,7 @@ export class PendingEventStore {
     removeAllForRoom(roomId) {
         const minKey = encodeKey(roomId, KeyLimits.minStorageKey);
         const maxKey = encodeKey(roomId, KeyLimits.maxStorageKey);
-        const range = IDBKeyRange.bound(minKey, maxKey);
+        const range = this._eventStore.IDBKeyRange.bound(minKey, maxKey);
         this._eventStore.delete(range);
     }
 }

@@ -21,8 +21,9 @@ import { reqAsPromise } from "./utils.js";
 const WEBKITEARLYCLOSETXNBUG_BOGUS_KEY = "782rh281re38-boguskey";
 
 export class Storage {
-    constructor(idbDatabase, hasWebkitEarlyCloseTxnBug) {
+    constructor(idbDatabase, IDBKeyRange, hasWebkitEarlyCloseTxnBug) {
         this._db = idbDatabase;
+        this._IDBKeyRange = IDBKeyRange;
         this._hasWebkitEarlyCloseTxnBug = hasWebkitEarlyCloseTxnBug;
         const nameMap = STORE_NAMES.reduce((nameMap, name) => {
             nameMap[name] = name;
@@ -47,7 +48,7 @@ export class Storage {
             if (this._hasWebkitEarlyCloseTxnBug) {
                 await reqAsPromise(txn.objectStore(storeNames[0]).get(WEBKITEARLYCLOSETXNBUG_BOGUS_KEY));
             }
-            return new Transaction(txn, storeNames);
+            return new Transaction(txn, storeNames, this._IDBKeyRange);
         } catch(err) {
             throw new StorageError("readTxn failed", err);
         }
@@ -62,7 +63,7 @@ export class Storage {
             if (this._hasWebkitEarlyCloseTxnBug) {
                 await reqAsPromise(txn.objectStore(storeNames[0]).get(WEBKITEARLYCLOSETXNBUG_BOGUS_KEY));
             }
-            return new Transaction(txn, storeNames);
+            return new Transaction(txn, storeNames, this._IDBKeyRange);
         } catch(err) {
             throw new StorageError("readWriteTxn failed", err);
         }

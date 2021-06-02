@@ -41,7 +41,7 @@ export class InboundGroupSessionStore {
     }
 
     removeAllForRoom(roomId) {
-        const range = IDBKeyRange.bound(
+        const range = this._store.IDBKeyRange.bound(
             encodeKey(roomId, MIN_UNICODE, MIN_UNICODE),
             encodeKey(roomId, MAX_UNICODE, MAX_UNICODE)
         );

@@ -30,7 +30,7 @@ export class OlmSessionStore {
 
     async getSessionIds(senderKey) {
         const sessionIds = [];
-        const range = IDBKeyRange.lowerBound(encodeKey(senderKey, ""));
+        const range = this._store.IDBKeyRange.lowerBound(encodeKey(senderKey, ""));
         await this._store.iterateKeys(range, key => {
             const decodedKey = decodeKey(key);
             // prevent running into the next room
@@ -44,7 +44,7 @@ export class OlmSessionStore {
     }
 
     getAll(senderKey) {
-        const range = IDBKeyRange.lowerBound(encodeKey(senderKey, ""));
+        const range = this._store.IDBKeyRange.lowerBound(encodeKey(senderKey, ""));
         return this._store.selectWhile(range, session => {
             return session.senderKey === senderKey;
         });
