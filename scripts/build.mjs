@@ -46,6 +46,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectDir = path.join(__dirname, "../");
 const cssSrcDir = path.join(projectDir, "src/platform/web/ui/css/");
+const srcDir = path.join(projectDir, "src/");
+const isPathInSrcDir = path => path.startsWith(srcDir);
 
 const parameters = new commander.Command();
 parameters
@@ -192,7 +194,7 @@ async function buildJs(mainFile, extraFiles, importOverrides) {
     }
     const bundle = await rollup({
         // for fake-indexeddb, so usage for tests only doesn't put it in bundle
-        treeshake: {moduleSideEffects: false},
+        treeshake: {moduleSideEffects: isPathInSrcDir},
         input: extraFiles.concat(mainFile),
         plugins
     });
@@ -233,7 +235,7 @@ async function buildJsLegacy(mainFile, extraFiles, importOverrides) {
     // create js bundle
     const rollupConfig = {
         // for fake-indexeddb, so usage for tests only doesn't put it in bundle
-        treeshake: {moduleSideEffects: false},
+        treeshake: {moduleSideEffects: isPathInSrcDir},
         // important the extraFiles come first,
         // so polyfills are available in the global scope
         // if needed for the mainfile
