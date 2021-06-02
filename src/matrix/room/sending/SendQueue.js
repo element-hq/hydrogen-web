@@ -315,7 +315,7 @@ export class SendQueue {
 import {HomeServer as MockHomeServer} from "../../../mocks/HomeServer.js";
 import {createMockStorage} from "../../../mocks/Storage.js";
 import {NullLogger} from "../../../logging/NullLogger.js";
-import {event, withContent, withTextBody, withTxnId} from "../../../mocks/event.js";
+import {event, withTextBody, withTxnId} from "../../../mocks/event.js";
 import {poll} from "../../../mocks/poll.js";
 
 export function tests() {
