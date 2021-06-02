@@ -303,11 +303,15 @@ const highlightForm = document.getElementById("highlightForm");
 
 highlightForm.addEventListener("submit", evt => {
     evt.preventDefault();
+    const matchesOutput = document.getElementById("highlightMatches");
     const query = document.getElementById("highlight").value;
     if (query) {
+        matchesOutput.innerText = "Searching…";
+        let matches = 0;
         processRecursively(rootItem, item => {
             let domNode = document.getElementById(item.id);
             if (itemMatchesFilter(item, query)) {
+                matches += 1;
                 domNode.classList.add("highlighted");
                 domNode = domNode.parentElement;
                 while (domNode.nodeName !== "SECTION") {
@@ -320,10 +324,12 @@ highlightForm.addEventListener("submit", evt => {
                 domNode.classList.remove("highlighted");
             }
         });
+        matchesOutput.innerText = `${matches} matches`;
     } else {
         for (const node of document.querySelectorAll(".highlighted")) {
             node.classList.remove("highlighted");
         }
+        matchesOutput.innerText = "";
     }
 });
 
@@ -379,7 +385,9 @@ document.getElementById("hideHighlightedSiblings").addEventListener("click", () 
         const list = node.closest("ol");
         const siblings = Array.from(list.querySelectorAll("li > div > a:not(.highlighted)")).map(n => n.closest("li"));
         for (const sibling of siblings) {
-            sibling.classList.add("hidden");
+            if (!sibling.classList.contains("expanded")) {
+                sibling.classList.add("hidden");
+            }
         }
     }
 });

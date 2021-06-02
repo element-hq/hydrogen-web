@@ -193,11 +193,14 @@
     <body>
         <nav>
             <button id="openFile">Open log file</button>
-            <form id="highlightForm"><input type="text" id="highlight" placeholder="Highlight a search term"></form>
             <button id="collapseAll">Collapse all</button>
             <button id="hideCollapsed">Hide collapsed root items</button>
-            <button id="hideHighlightedSiblings">Hide siblings of highlighted</button>
+            <button id="hideHighlightedSiblings" title="Hide collapsed siblings of highlighted">Hide non-highlighted</button>
             <button id="showAll">Show all</button>
+            <form id="highlightForm">
+                <input type="text" id="highlight" name="highlight" placeholder="Highlight a search term" autocomplete="on">
+                <output id="highlightMatches"></output>
+            </form>
         </nav>
         <main></main>
         <aside></aside>
