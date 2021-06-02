@@ -36,6 +36,7 @@
     "commander": "^6.0.0",
     "core-js": "^3.6.5",
     "eslint": "^7.25.0",
+    "fake-indexeddb": "^3.1.2",
     "finalhandler": "^1.1.1",
     "impunity": "^1.0.0",
     "mdn-polyfills": "^5.20.0",

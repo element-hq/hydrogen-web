@@ -51,6 +51,7 @@ function packageIterator(request, start, defaultIterator) {
 async function commonjsToESM(src, dst) {
     // create js bundle
     const bundle = await rollup({
+        treeshake: {moduleSideEffects: false},
         input: src,
         plugins: [commonjs(), nodeResolve({
             browser: true,
@@ -110,6 +111,14 @@ async function populateLib() {
     await commonjsToESM(
         require.resolve('es6-promise/lib/es6-promise/promise.js'),
         path.join(libDir, "es6-promise/index.js")
+    );
+    // fake-indexeddb, used for tests (but unresolvable bare imports also makes the build complain)
+    // and might want to use it for in-memory storage too, although we probably do ts->es6 with esm
+    // directly rather than ts->es5->es6 as we do now. The bundle is 240K currently.
+    await fs.mkdir(path.join(libDir, "fake-indexeddb/"));
+    await commonjsToESM(
+        path.join(projectDir, "/scripts/package-overrides/fake-indexeddb.js"),
+        path.join(libDir, "fake-indexeddb/index.js")
     );
 }
 
