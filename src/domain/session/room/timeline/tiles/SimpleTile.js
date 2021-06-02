@@ -49,7 +49,13 @@ export class SimpleTile extends ViewModel {
     }
 
     get isUnsent() {
-        return this._entry.isPending && this._entry.status !== SendStatus.Sent;
+        return this._entry.isPending && this._entry.pendingEvent.status !== SendStatus.Sent;
+    }
+
+    get canAbortSending() {
+        return this._entry.isPending &&
+            this._entry.pendingEvent.status !== SendStatus.Sending &&
+            this._entry.pendingEvent.status !== SendStatus.Sent;
     }
 
     abortSending() {
