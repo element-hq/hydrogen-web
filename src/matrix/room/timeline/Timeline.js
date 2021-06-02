@@ -120,12 +120,17 @@ export class Timeline {
             return params ? params : false;
         };
         // first, look in local entries based on txn id
-        const foundInLocalEntries = this._localEntries.findAndUpdate(
-            e => e.id === pe.relatedTxnId,
-            updateOrFalse,
-        );
+        if (pe.relatedTxnId) {
+            const found = this._localEntries.findAndUpdate(
+                e => e.id === pe.relatedTxnId,
+                updateOrFalse,
+            );
+            if (found) {
+                return;
+            }
+        }
         // now look in remote entries based on event id
-        if (!foundInLocalEntries && pe.relatedEventId) {
+        if (pe.relatedEventId) {
             this._remoteEntries.findAndUpdate(
                 e => e.id === pe.relatedEventId,
                 updateOrFalse
