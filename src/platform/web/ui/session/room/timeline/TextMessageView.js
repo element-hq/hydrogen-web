@@ -21,8 +21,10 @@ import {BaseMessageView} from "./BaseMessageView.js";
 export class TextMessageView extends BaseMessageView {
     renderMessageBody(t, vm) {
         return t.p({
-            className: "Timeline_messageBody",
-            statusMessage: vm => vm.shape === "message-status"
+            className: {
+                "Timeline_messageBody": true,
+                statusMessage: vm => vm.shape === "message-status",
+            },
         }, [
             t.mapView(vm => vm.body, body => new BodyView(body)),
             t.time({className: {hidden: !vm.date}}, vm.date + " " + vm.time)
