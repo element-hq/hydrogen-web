@@ -145,6 +145,17 @@ export class Timeline {
     }
 
     _addLocalRelationsToNewRemoteEntries(entries) {
+        // because it is not safe to iterate a derived observable collection
+        // before it has any subscriptions, we bail out if this isn't
+        // the case yet. This can happen when sync adds or replaces entries
+        // before load has finished and the view has subscribed to the timeline.
+        // 
+        // Once the subscription is setup, MappedList will set up the local
+        // relations as needed with _applyAndEmitLocalRelationChange,
+        // so we're not missing anything by bailing out.
+        if (!this._localEntries.hasSubscriptions) {
+            return;
+        }
         // find any local relations to this new remote event
         for (const pee of this._localEntries) {
             // this will work because we set relatedEventId when removing remote echos
