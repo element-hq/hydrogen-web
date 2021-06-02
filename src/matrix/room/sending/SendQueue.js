@@ -31,6 +31,7 @@ export class SendQueue {
         this._isSending = false;
         this._offline = false;
         this._roomEncryption = null;
+        this._currentQueueIndex = 0;
     }
 
     _createPendingEvent(data, attachments = null) {
@@ -55,6 +56,7 @@ export class SendQueue {
                     await log.wrap("send event", async log => {
                         log.set("queueIndex", pendingEvent.queueIndex);
                         try {
+                            this._currentQueueIndex = pendingEvent.queueIndex;
                             await this._sendEvent(pendingEvent, log);
                         } catch(err) {
                             if (err instanceof ConnectionError) {
@@ -75,6 +77,8 @@ export class SendQueue {
                                     pendingEvent.setError(err);
                                 }
                             }
+                        } finally {
+                            this._currentQueueIndex = 0;
                         }
                     });
                 }
@@ -274,7 +278,11 @@ export class SendQueue {
         let pendingEvent;
         try {
             const pendingEventsStore = txn.pendingEvents;
-            const maxQueueIndex = await pendingEventsStore.getMaxQueueIndex(this._roomId) || 0;
+            const maxStorageQueueIndex = await pendingEventsStore.getMaxQueueIndex(this._roomId) || 0;
+            // don't use the queueIndex of the pendingEvent currently waiting for /send to return
+            // if the remote echo already removed the pendingEvent in storage, as the send loop
+            // wouldn't be able to detect the remote echo already arrived and end up overwriting the new event
+            const maxQueueIndex = Math.max(maxStorageQueueIndex, this._currentQueueIndex);
             const queueIndex = maxQueueIndex + 1;
             const needsEncryption = eventType !== REDACTION_TYPE && !!this._roomEncryption;
             pendingEvent = this._createPendingEvent({
