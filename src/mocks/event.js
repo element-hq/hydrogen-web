@@ -14,18 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export function event(type, id = null) {
+export function createEvent(type, id = null) {
     return {type, event_id: id};
 }
 
-export function withContent(event, content) {
+export function withContent(content, event) {
     return Object.assign({}, event, {content});
 }
 
-export function withTextBody(event, body) {
-    return withContent(event, {body, msgtype: "m.text"});
+export function withSender(sender, event) {
+    return Object.assign({}, event, {sender});
 }
 
-export function withTxnId(event, txnId) {
+export function withTextBody(body, event) {
+    return withContent({body, msgtype: "m.text"}, event);
+}
+
+export function withTxnId(txnId, event) {
     return Object.assign({}, event, {unsigned: {transaction_id: txnId}});
 }
