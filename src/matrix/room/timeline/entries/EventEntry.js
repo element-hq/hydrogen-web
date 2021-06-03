@@ -126,4 +126,8 @@ export class EventEntry extends BaseEventEntry {
         // fall back to local echo reason
         return super.redactionReason;
     }
+
+    get annotations() {
+        return this._eventEntry.annotations;
+    }
 }

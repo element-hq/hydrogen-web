@@ -74,6 +74,10 @@ export class ObservableMap extends BaseObservableMap {
     values() {
         return this._values.values();
     }
+
+    keys() {
+        return this._values.keys();
+    }
 }
 
 export function tests() {

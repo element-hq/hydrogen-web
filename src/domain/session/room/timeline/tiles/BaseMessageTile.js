@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {SimpleTile} from "./SimpleTile.js";
+import {ReactionsViewModel} from "../ReactionsViewModel.js";
 import {getIdentifierColorNumber, avatarInitials, getAvatarHttpUrl} from "../../../../avatar.js";
 
 export class BaseMessageTile extends SimpleTile {
@@ -22,6 +23,10 @@ export class BaseMessageTile extends SimpleTile {
         super(options);
         this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : null;
         this._isContinuation = false;
+        this._reactions = null;
+        if (this._entry.annotations) {
+            this._updateReactions();
+        }
     }
 
     get _room() {
@@ -97,11 +102,44 @@ export class BaseMessageTile extends SimpleTile {
         }
     }
 
+    updateEntry(entry, param) {
+        const action = super.updateEntry(entry, param);
+        if (action.shouldUpdate) {
+            this._updateReactions();
+        }
+        return action;
+    }
+
     redact(reason, log) {
         return this._room.sendRedaction(this._entry.id, reason, log);
     }
 
     get canRedact() {
         return this._powerLevels.canRedactFromSender(this._entry.sender);
+    }
+
+    get reactions() {
+        return this._reactions;
+    }
+
+    _updateReactions() {
+        const {annotations} = this._entry;
+        if (!annotations) {
+            if (this._reactions) {
+                this._reactions = null;
+                this.emitChange("reactions");
+            }
+        }
+        let isNewMap = false;
+        if (!this._reactions) {
+            this._reactions = new ReactionsViewModel(this);
+            isNewMap = true;
+        }
+
+        this._reactions.update(annotations);
+
+        if (isNewMap) {
+            this.emitChange("reactions");
+        }
     }
 }
