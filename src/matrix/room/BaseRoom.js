@@ -259,6 +259,7 @@ export class BaseRoom extends EventEmitter {
             const txn = await this._storage.readWriteTxn([
                 this._storage.storeNames.pendingEvents,
                 this._storage.storeNames.timelineEvents,
+                this._storage.storeNames.timelineRelations,
                 this._storage.storeNames.timelineFragments,
             ]);
             let extraGapFillChanges;
