@@ -5,7 +5,7 @@ import { AvatarView } from "../../avatar.js";
 export class RoomInfoView extends TemplateView {
 
     render(t, vm) {
-        const encryptionString = vm.isEncrypted ? "On" : "Off";
+        const encryptionString = vm.isEncrypted ? vm.i18n`On` : vm.i18n`Off`;
 
         return t.div({ className: "RoomInfo" }, [
             this._createButton(vm),
@@ -15,8 +15,8 @@ export class RoomInfoView extends TemplateView {
             this._createRoomAliasDisplay(vm),
             t.div({ className: "SidebarRow_collection" },
                 [
-                    this._createSideBarRow("People", vm.memberCount, { MemberCount: true }),
-                    this._createSideBarRow("Encryption", encryptionString, { EncryptionStatus: true })
+                    this._createSideBarRow(vm.i18n`People`, vm.memberCount, { MemberCount: true }),
+                    this._createSideBarRow(vm.i18n`Encryption`, encryptionString, { EncryptionStatus: true })
                 ])
         ]);
     }
