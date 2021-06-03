@@ -172,9 +172,9 @@ export class SyncWriter {
                 txn.timelineEvents.insert(storageEntry);
                 const entry = new EventEntry(storageEntry, this._fragmentIdComparer);
                 entries.push(entry);
-                const updatedRelationTargetEntry = await this._relationWriter.writeRelation(entry, txn, log);
-                if (updatedRelationTargetEntry) {
-                    updatedEntries.push(updatedRelationTargetEntry);
+                const updatedRelationTargetEntries = await this._relationWriter.writeRelation(entry, txn, log);
+                if (updatedRelationTargetEntries) {
+                    updatedEntries.push(...updatedRelationTargetEntries);
                 }
                 // update state events after writing event, so for a member event,
                 // we only update the member info after having written the member event

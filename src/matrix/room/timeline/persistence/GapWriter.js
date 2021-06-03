@@ -122,9 +122,9 @@ export class GapWriter {
             txn.timelineEvents.insert(eventStorageEntry);
             const eventEntry = new EventEntry(eventStorageEntry, this._fragmentIdComparer);
             directionalAppend(entries, eventEntry, direction);
-            const updatedRelationTargetEntry = await this._relationWriter.writeRelation(eventEntry, txn, log);
-            if (updatedRelationTargetEntry) {
-                updatedEntries.push(updatedRelationTargetEntry);
+            const updatedRelationTargetEntries = await this._relationWriter.writeRelation(eventEntry, txn, log);
+            if (updatedRelationTargetEntries) {
+                updatedEntries.push(...updatedRelationTargetEntries);
             }
         }
         return {entries, updatedEntries};
