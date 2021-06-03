@@ -122,6 +122,11 @@ export class BaseMessageTile extends SimpleTile {
         return this._reactions;
     }
 
+    get canReact() {
+        // TODO
+        return true;
+    }
+
     react(key) {
         return this._room.sendEvent("m.reaction", this._entry.annotate(key));
     }
