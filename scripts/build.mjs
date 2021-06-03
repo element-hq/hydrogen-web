@@ -35,6 +35,7 @@ import commonjs from '@rollup/plugin-commonjs';
 // multi-entry plugin so we can add polyfill file to main
 import multi from '@rollup/plugin-multi-entry';
 import removeJsComments from 'rollup-plugin-cleanup';
+import { terser } from "rollup-plugin-terser";
 // replace urls of asset names with content hashed version
 import postcssUrl from "postcss-url";
 
@@ -192,6 +193,7 @@ async function buildJs(mainFile, extraFiles, importOverrides) {
     if (importOverrides) {
         plugins.push(overridesAsRollupPlugin(importOverrides));
     }
+    plugins.push(terser());
     const bundle = await rollup({
         // for fake-indexeddb, so usage for tests only doesn't put it in bundle
         treeshake: {moduleSideEffects: isPathInSrcDir},
