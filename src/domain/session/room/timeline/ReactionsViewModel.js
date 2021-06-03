@@ -16,9 +16,8 @@ limitations under the License.
 import {ViewModel} from "../../../ViewModel.js";
 import {ObservableMap} from "../../../../observable/map/ObservableMap.js";
 
-export class ReactionsViewModel extends ViewModel {
+export class ReactionsViewModel {
     constructor(parentEntry) {
-        super();
         this._parentEntry = parentEntry;
         this._map = new ObservableMap();
         this._reactions = this._map.sortValues((a, b) => a._compare(b));
@@ -50,9 +49,8 @@ export class ReactionsViewModel extends ViewModel {
     }
 }
 
-class ReactionViewModel extends ViewModel {
+class ReactionViewModel {
     constructor(key, annotation, parentEntry) {
-        super();
         this._key = key;
         this._annotation = annotation;
         this._parentEntry = parentEntry;
