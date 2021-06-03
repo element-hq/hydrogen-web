@@ -15,7 +15,6 @@ limitations under the License.
 */
 
 export async function poll(fn) {
-    let result;
     do {
         const result = fn();
         if (result) {

@@ -26,10 +26,6 @@ export class RoomStateStore {
         this._roomStateStore = idbStore;
     }
 
-    getAllForType(roomId, type) {
-        throw new Error("unimplemented");
-    }
-
     get(roomId, type, stateKey) {
         const key = encodeKey(roomId, type, stateKey);
         return this._roomStateStore.get(key);

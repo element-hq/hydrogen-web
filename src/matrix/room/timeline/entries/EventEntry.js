@@ -122,6 +122,7 @@ export class EventEntry extends BaseEventEntry {
         if (redactionEvent) {
             return redactionEvent.content?.reason;
         }
+        // fall back to local echo reason
         return super.redactionReason;
     }
 }
