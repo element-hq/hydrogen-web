@@ -93,20 +93,17 @@ export class LeftPanelViewModel extends ViewModel {
     }
 
     toggleGrid() {
+        const room = this.navigation.path.get("room");
         const details = this.navigation.path.get("details");
+        let path = this.navigation.path.until("session");
         if (this.gridEnabled) {
-            let path = this.navigation.path.until("session");
-            const room = this.navigation.path.get("room");
             if (room) {
                 path = path.with(room);
                 if (details) {
                     path = path.with(details);
                 }
             }
-            this.navigation.applyPath(path);
         } else {
-            let path = this.navigation.path.until("session");
-            const room = this.navigation.path.get("room");
             if (room) {
                 path = path.with(this.navigation.segment("rooms", [room.value]));
                 path = path.with(room);
@@ -117,8 +114,8 @@ export class LeftPanelViewModel extends ViewModel {
                 path = path.with(this.navigation.segment("rooms", []));
                 path = path.with(this.navigation.segment("empty-grid-tile", 0));
             }
-            this.navigation.applyPath(path);
         }
+        this.navigation.applyPath(path);
     }
 
     get tileViewModels() {
