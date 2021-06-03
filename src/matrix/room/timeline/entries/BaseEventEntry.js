@@ -16,6 +16,7 @@ limitations under the License.
 
 import {BaseEntry} from "./BaseEntry.js";
 import {REDACTION_TYPE} from "../../common.js";
+import {createAnnotation} from "../relations.js";
 
 export class BaseEventEntry extends BaseEntry {
     constructor(fragmentIdComparer) {
@@ -79,5 +80,9 @@ export class BaseEventEntry extends BaseEntry {
             // removing the pending events will call removeLocalRelation,
             // so don't clear _pendingRedactions here
         }
+    }
+
+    annotate(key) {
+        return createAnnotation(this.id, key);
     }
 }
