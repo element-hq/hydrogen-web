@@ -20,7 +20,8 @@ limitations under the License.
     grid-template:
         "avatar sender" auto
         "avatar body" auto
-        "time   body" 1fr /
+        "time   body" 1fr
+        "time   reactions" auto /
          30px   1fr;
     column-gap: 8px;
     padding: 4px;
@@ -37,9 +38,10 @@ limitations under the License.
 @media screen and (max-width: 800px) {
     .Timeline_message {
         grid-template:
-            "avatar sender" auto
-            "body body" 1fr
-            "time time" auto /
+            "avatar    sender" auto
+            "body      body" 1fr
+            "time      time" auto
+            "reactions reactions" auto /
              30px 1fr;
     }
 
@@ -209,6 +211,10 @@ only loads when the top comes into view*/
 
 .Timeline_message.unverified .Timeline_messageBody {
     color: #ff4b55;
+}
+
+.Timeline_messageReactions {
+    grid-area: reactions;
 }
 
 .AnnouncementView {

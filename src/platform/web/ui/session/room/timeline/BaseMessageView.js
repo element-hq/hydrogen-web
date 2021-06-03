@@ -20,6 +20,7 @@ import {tag} from "../../../general/html.js";
 import {TemplateView} from "../../../general/TemplateView.js";
 import {Popup} from "../../../general/Popup.js";
 import {Menu} from "../../../general/Menu.js";
+import {ReactionsView} from "./ReactionsView.js";
 
 export class BaseMessageView extends TemplateView {
     constructor(value) {
@@ -38,6 +39,7 @@ export class BaseMessageView extends TemplateView {
             this.renderMessageBody(t, vm),
             // should be after body as it is overlayed on top
             t.button({className: "Timeline_messageOptions"}, "⋯"),
+            t.ifView(vm => vm.reactions, vm => new ReactionsView(vm.reactions)),
         ]);
         // given that there can be many tiles, we don't add
         // unneeded DOM nodes in case of a continuation, and we add it
