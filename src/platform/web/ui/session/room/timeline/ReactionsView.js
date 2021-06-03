@@ -21,6 +21,7 @@ export class ReactionsView extends ListView {
     constructor(reactionsViewModel) {
         const options = {
             className: "Timeline_messageReactions",
+            tagName: "div",
             list: reactionsViewModel.reactions,
             onItemClick: (reactionView, evt) => reactionView.onClick(),
         }

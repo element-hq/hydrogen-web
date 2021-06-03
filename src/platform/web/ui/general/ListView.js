@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {tag} from "./html.js";
+import {el} from "./html.js";
 import {errorToDOM} from "./error.js";
 
 function insertAt(parentNode, idx, childNode) {
@@ -28,10 +28,11 @@ function insertAt(parentNode, idx, childNode) {
 }
 
 export class ListView {
-    constructor({list, onItemClick, className, parentProvidesUpdates = true}, childCreator) {
+    constructor({list, onItemClick, className, tagName = "ul", parentProvidesUpdates = true}, childCreator) {
         this._onItemClick = onItemClick;
         this._list = list;
         this._className = className;
+        this._tagName = tagName;
         this._root = null;
         this._subscription = null;
         this._childCreator = childCreator;
@@ -62,7 +63,7 @@ export class ListView {
         if (this._className) {
             attr.className = this._className;
         }
-        this._root = tag.ul(attr);
+        this._root = el(this._tagName, attr);
         this.loadList();
         if (this._onItemClick) {
             this._root.addEventListener("click", this._onClick);
