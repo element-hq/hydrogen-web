@@ -22,10 +22,6 @@ If you can't find an easy way to locate the feature you are looking for, then th
 
 That's not yet a feature, as hydrogen just uses a single line text box for message input for now.
 
-### Hmm does Hydrogen not support leaving rooms? I left some rooms via Element and they moved to "Historical" but nothing happened on this end.
-
-Indeed :) [Joining](https://github.com/vector-im/hydrogen-web/issues/28) and [leaving](https://github.com/vector-im/hydrogen-web/issues/147) isn't implemented yet, just haven't gotten around to it.
-
 ## How can I verify my session from Element?
 
 You can only verify by comparing keys manually currently. In Element, go to your own profile in the right panel, click on the Hydrogen device and select Manually Verify by Text. The session key displayed should be the same as in the Hydrogen settings. You can't yet mark your Element session as trusted from Hydrogen.
