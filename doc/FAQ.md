@@ -2,7 +2,7 @@
 
 ## What browsers are supported?
 
-Internet Explorer 11, Chrome [1], Firefox [1] (not in a private window), Safari [1] and any mobile versions of these. It will probably also work on any derivatives of these.
+Internet Explorer 11, Chrome [1], Firefox [1] (not in a private window), Edge [1], Safari [1] and any mobile versions of these. It will probably also work on any derivatives of these.
 
 1: Because of https://github.com/vector-im/hydrogen-web/issues/230, only [more recent versions](https://caniuse.com/mdn-javascript_operators_optional_chaining) are supported.
 
