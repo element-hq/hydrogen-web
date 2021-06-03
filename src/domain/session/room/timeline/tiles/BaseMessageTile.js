@@ -29,10 +29,6 @@ export class BaseMessageTile extends SimpleTile {
         }
     }
 
-    get _room() {
-        return this.getOption("room");
-    }
-
     get _mediaRepository() {
         return this._room.mediaRepository;
     }
