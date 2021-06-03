@@ -18,8 +18,9 @@ import {EventEntry} from "../entries/EventEntry.js";
 import {REDACTION_TYPE} from "../../common.js";
 
 export class RelationWriter {
-    constructor(roomId, fragmentIdComparer) {
+    constructor({roomId, ownUserId, fragmentIdComparer}) {
         this._roomId = roomId;
+        this._ownUserId = ownUserId;
         this._fragmentIdComparer = fragmentIdComparer;
     }
 

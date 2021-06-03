@@ -16,6 +16,8 @@ limitations under the License.
 
 import {BaseRoom} from "./BaseRoom.js";
 import {SyncWriter} from "./timeline/persistence/SyncWriter.js";
+import {MemberWriter} from "./timeline/persistence/MemberWriter.js";
+import {RelationWriter} from "./timeline/persistence/RelationWriter.js";
 import {SendQueue} from "./sending/SendQueue.js";
 import {WrappedError} from "../error.js"
 import {Heroes} from "./members/Heroes.js";
@@ -28,7 +30,17 @@ export class Room extends BaseRoom {
     constructor(options) {
         super(options);
         const {pendingEvents} = options;
-        this._syncWriter = new SyncWriter({roomId: this.id, fragmentIdComparer: this._fragmentIdComparer});
+        const relationWriter = new RelationWriter({
+            roomId: this.id,
+            fragmentIdComparer: this._fragmentIdComparer,
+            ownUserId: this._user.id
+        });
+        this._syncWriter = new SyncWriter({
+            roomId: this.id,
+            fragmentIdComparer: this._fragmentIdComparer,
+            relationWriter,
+            memberWriter: new MemberWriter(this.id)
+        });
         this._sendQueue = new SendQueue({roomId: this.id, storage: this._storage, hsApi: this._hsApi, pendingEvents});
     }
 

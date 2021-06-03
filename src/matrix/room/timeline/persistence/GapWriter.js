@@ -14,18 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {RelationWriter} from "./RelationWriter.js";
 import {EventKey} from "../EventKey.js";
 import {EventEntry} from "../entries/EventEntry.js";
 import {createEventEntry, directionalAppend} from "./common.js";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";
 
 export class GapWriter {
-    constructor({roomId, storage, fragmentIdComparer}) {
+    constructor({roomId, storage, fragmentIdComparer, relationWriter}) {
         this._roomId = roomId;
         this._storage = storage;
         this._fragmentIdComparer = fragmentIdComparer;
-        this._relationWriter = new RelationWriter(roomId, fragmentIdComparer);
+        this._relationWriter = relationWriter;
     }
     // events is in reverse-chronological order (last event comes at index 0) if backwards
     async _findOverlappingEvents(fragmentEntry, events, txn, log) {

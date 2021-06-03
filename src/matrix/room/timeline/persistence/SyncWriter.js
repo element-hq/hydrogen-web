@@ -20,8 +20,6 @@ import {EventEntry} from "../entries/EventEntry.js";
 import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
 import {createEventEntry} from "./common.js";
 import {EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";
-import {MemberWriter} from "./MemberWriter.js";
-import {RelationWriter} from "./RelationWriter.js";
 
 // Synapse bug? where the m.room.create event appears twice in sync response
 // when first syncing the room
@@ -38,10 +36,10 @@ function deduplicateEvents(events) {
 }
 
 export class SyncWriter {
-    constructor({roomId, fragmentIdComparer}) {
+    constructor({roomId, fragmentIdComparer, memberWriter, relationWriter}) {
         this._roomId = roomId;
-        this._memberWriter = new MemberWriter(roomId);
-        this._relationWriter = new RelationWriter(roomId, fragmentIdComparer);
+        this._memberWriter = memberWriter;
+        this._relationWriter = relationWriter;
         this._fragmentIdComparer = fragmentIdComparer;
         this._lastLiveKey = null;
     }
