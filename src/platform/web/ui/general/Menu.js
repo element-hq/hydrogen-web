@@ -15,9 +15,14 @@ limitations under the License.
 */
 
 import {TemplateView} from "./TemplateView.js";
-import { tag } from "./html.js";
 
 export class Menu extends TemplateView {
+
+    constructor(options) {
+        super();
+        this._options = options;
+    }
+
     static optionWithButton(label, callback) {
         const option = new MenuOption(label);
         option.setCallback(callback);
@@ -30,17 +35,12 @@ export class Menu extends TemplateView {
         return option;
     }
 
-    constructor(options) {
-        super();
-        this._options = options;
-    }
-
-    _convertToDOM(option) {
+    _convertToDOM(t, option) {
         if (option.callback) {
-            return tag.button({ className: "menu-item", onClick: option.callback }, option.label);
+            return t.button({ className: "menu-item", onClick: option.callback }, option.label);
         }
         else if (option.link) {
-            return tag.a({ className: "menu-item", href: option.link }, option.label);
+            return t.a({ className: "menu-item", href: option.link }, option.label);
         }
     }
 
@@ -55,7 +55,7 @@ export class Menu extends TemplateView {
             }
             return t.li({
                 className,
-            }, this._convertToDOM(o));
+            }, this._convertToDOM(t, o));
         }));
     }
 }
