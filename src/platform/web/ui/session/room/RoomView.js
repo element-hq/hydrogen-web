@@ -68,6 +68,7 @@ export class RoomView extends TemplateView {
         } else {
             const vm = this.value;
             const options = [];
+            options.push(Menu.optionWithLink(vm.i18n`Room details`, vm.detailsLink))
             if (vm.canLeave) {
                 options.push(Menu.optionWithButton(vm.i18n`Leave room`, () => vm.leaveRoom()).setDestructive());
             }
@@ -77,7 +78,6 @@ export class RoomView extends TemplateView {
             if (vm.canRejoin) {
                 options.push(Menu.optionWithButton(vm.i18n`Rejoin room`, () => vm.rejoinRoom()));
             }
-            options.push(Menu.optionWithLink(vm.i18n`Room details`, vm.detailsLink))
             if (!options.length) {
                 return;
             }
