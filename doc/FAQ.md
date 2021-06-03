@@ -6,7 +6,7 @@ Internet Explorer 11, Chrome [1], Firefox [1] (not in a private window), Safari 
 
 1: Because of https://github.com/vector-im/hydrogen-web/issues/230, only [more recent versions](https://caniuse.com/mdn-javascript_operators_optional_chaining) are supported.
 
-TorBrowser ships a crippled IndexedDB implementation and will not work. At some point we should support a memory store as a fallback, but that will still give a sub-par experience with e2ee.
+TorBrowser ships a crippled IndexedDB implementation and will not work. At some point we should support a memory store as a fallback, but that will still give a sub-par experience with end-to-end encryption.
 
 It used work in pre-webkit Edge, to have it work on Windows Phone, but that support has probably bit-rotted as it isn't tested anymore.
 
