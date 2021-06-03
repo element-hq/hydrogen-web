@@ -1,5 +1,5 @@
-import { ViewModel } from "../../ViewModel.js";
-import { avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl } from "../../avatar.js";
+import {ViewModel} from "../../ViewModel.js";
+import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar.js";
 
 export class RoomInfoViewModel extends ViewModel {
     constructor(options) {

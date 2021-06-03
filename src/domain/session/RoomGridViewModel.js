@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { ViewModel } from "../ViewModel.js";
+import {ViewModel} from "../ViewModel.js";
 
 function dedupeSparse(roomIds) {
     return roomIds.map((id, idx) => {
@@ -181,10 +181,10 @@ export class RoomGridViewModel extends ViewModel {
     }
 }
 
-import { createNavigation } from "../navigation/index.js";
-import { ObservableValue } from "../../observable/ObservableValue.js";
+import {createNavigation} from "../navigation/index.js";
+import {ObservableValue} from "../../observable/ObservableValue.js";
 
-export function tests() {
+export function tests() { 
     class RoomVMMock {
         constructor(id) {
             this.id = id;
@@ -200,7 +200,7 @@ export function tests() {
     }
 
     class RoomViewModelObservableMock extends ObservableValue {
-        async initialize() { }
+        async initialize() {}
         dispose() { this.get()?.dispose(); }
         get id() { return this.get()?.id; }
     }
