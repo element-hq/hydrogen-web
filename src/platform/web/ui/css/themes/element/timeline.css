@@ -215,11 +215,25 @@ only loads when the top comes into view*/
 
 .Timeline_messageReactions {
     grid-area: reactions;
+    margin-top: 6px;
+}
+
+.Timeline_messageReactions button {
+    display: inline-flex;
+    line-height: 2.0rem;
+    margin-right: 6px;
+    padding: 1px 6px;
+    border: 1px solid #e9edf1;
+    border-radius: 10px;
+    background-color: #f3f8fd;
+    cursor: pointer;
+    user-select: none;
+    vertical-align: middle;
 }
 
 .Timeline_messageReactions button.haveReacted {
-    background-color: green;
-    color: white;
+    background-color: #e9fff9;
+    border-color: #0DBD8B;
 }
 
 .AnnouncementView {
