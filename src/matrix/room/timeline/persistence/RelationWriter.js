@@ -171,6 +171,9 @@ export class RelationWriter {
         const relations = await txn.timelineRelations.getForTargetAndType(this._roomId, targetId, ANNOTATION_RELATION_TYPE);
         log.set("relations", relations.length);
         delete target.annotations[key];
+        if (isObjectEmpty(target.annotations)) {
+            delete target.annotations;
+        }
         await Promise.all(relations.map(async relation => {
             const annotation = await txn.timelineEvents.getByEventId(this._roomId, relation.sourceEventId);
             if (!annotation) {
@@ -182,6 +185,15 @@ export class RelationWriter {
         }));
         return target;
     }
+}
+
+function isObjectEmpty(obj) {
+    for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 // copied over from matrix-js-sdk, copyright 2016 OpenMarket Ltd
