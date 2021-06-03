@@ -143,19 +143,12 @@ export class BaseMessageTile extends SimpleTile {
         if (!annotations) {
             if (this._reactions) {
                 this._reactions = null;
-                this.emitChange("reactions");
             }
-        }
-        let isNewMap = false;
-        if (!this._reactions) {
-            this._reactions = new ReactionsViewModel(this);
-            isNewMap = true;
-        }
-
-        this._reactions.update(annotations);
-
-        if (isNewMap) {
-            this.emitChange("reactions");
+        } else {
+            if (!this._reactions) {
+                this._reactions = new ReactionsViewModel(this);
+            }
+            this._reactions.update(annotations);
         }
     }
 }
