@@ -77,7 +77,7 @@ export class RoomView extends TemplateView {
             if (vm.canRejoin) {
                 options.push(Menu.optionWithButton(vm.i18n`Rejoin room`, () => vm.rejoinRoom()));
             }
-            options.push(Menu.optionWithLink(vm.i18n`Room Details`, vm.detailsLink))
+            options.push(Menu.optionWithLink(vm.i18n`Room details`, vm.detailsLink))
             if (!options.length) {
                 return;
             }
