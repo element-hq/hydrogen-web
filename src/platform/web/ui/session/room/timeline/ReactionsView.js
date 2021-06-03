@@ -32,12 +32,11 @@ class ReactionView extends TemplateView {
     render(t, vm) {
         const haveReacted = vm => vm.haveReacted;
         return t.button({
-            disabled: haveReacted,
             className: {haveReacted},
         }, [vm.key, " ", vm => `${vm.count}`]);
     }
 
     onClick() {
-        this.value.react();
+        this.value.toggleReaction();
     }
 }

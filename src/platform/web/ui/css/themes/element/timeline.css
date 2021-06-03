@@ -217,6 +217,11 @@ only loads when the top comes into view*/
     grid-area: reactions;
 }
 
+.Timeline_messageReactions button.haveReacted {
+    background-color: green;
+    color: white;
+}
+
 .AnnouncementView {
     margin: 5px 0;
     padding: 5px 10%;

@@ -130,4 +130,8 @@ export class EventEntry extends BaseEventEntry {
     get annotations() {
         return this._eventEntry.annotations;
     }
+
+    getOwnAnnotationId(room, key) {
+        return room.getOwnAnnotationEventId(this.id, key);
+    }
 }

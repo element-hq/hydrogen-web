@@ -86,7 +86,11 @@ class ReactionViewModel extends ViewModel {
         return this._annotation.count - other._annotation.count;
     }
 
-    react() {
-        return this._parentEntry.react(this.key);
+    toggleReaction() {
+        if (this.haveReacted) {
+            return this._parentEntry.redactReaction(this.key);
+        } else {
+            return this._parentEntry.react(this.key);
+        }
     }
 }

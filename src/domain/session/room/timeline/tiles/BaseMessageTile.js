@@ -123,7 +123,14 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     react(key) {
-        this._room.sendEvent("m.reaction", this._entry.annotate(key));
+        return this._room.sendEvent("m.reaction", this._entry.annotate(key));
+    }
+
+    async redactReaction(key) {
+        const id = await this._entry.getOwnAnnotationId(this._room, key);
+        if (id) {
+            this._room.sendRedaction(id);
+        }
     }
 
     _updateReactions() {

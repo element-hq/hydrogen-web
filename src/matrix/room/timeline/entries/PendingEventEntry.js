@@ -85,4 +85,9 @@ export class PendingEventEntry extends BaseEventEntry {
     get relatedEventId() {
         return this._pendingEvent.relatedEventId;
     }
+
+    getOwnAnnotationId(_, key) {
+        // TODO: implement this once local reactions are implemented
+        return null;
+    }
 }

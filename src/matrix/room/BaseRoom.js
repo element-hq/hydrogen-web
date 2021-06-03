@@ -28,6 +28,7 @@ import {EventEntry} from "./timeline/entries/EventEntry.js";
 import {ObservedEventMap} from "./ObservedEventMap.js";
 import {DecryptionSource} from "../e2ee/common.js";
 import {ensureLogItem} from "../../logging/utils.js";
+import {ANNOTATION_RELATION_TYPE, getRelation} from "./timeline/relations.js";
 
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 
@@ -449,6 +450,21 @@ export class BaseRoom extends EventEmitter {
             });
         }
         return observable;
+    }
+
+    async getOwnAnnotationEventId(targetId, key) {
+        const txn = await this._storage.readWriteTxn([
+            this._storage.storeNames.timelineEvents,
+            this._storage.storeNames.timelineRelations,
+        ]);
+        const relations = await txn.timelineRelations.getForTargetAndType(this.id, targetId, ANNOTATION_RELATION_TYPE);
+        for (const relation of relations) {
+            const annotation = await txn.timelineEvents.getByEventId(this.id, relation.sourceEventId);
+            if (annotation.event.sender === this._user.id && getRelation(annotation.event).key === key) {
+                return annotation.event.event_id;
+            }
+        }
+        return null;
     }
 
     async _readEventById(eventId) {
