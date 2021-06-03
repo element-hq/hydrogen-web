@@ -83,7 +83,13 @@ class ReactionViewModel extends ViewModel {
     }
 
     _compare(other) {
-        return this._annotation.count - other._annotation.count;
+        const a = this._annotation;
+        const b = other._annotation;
+        if (a.count !== b.count) {
+            return b.count - a.count;
+        } else {
+            return a.firstTimestamp - b.firstTimestamp;
+        }
     }
 
     toggleReaction() {
