@@ -93,9 +93,9 @@ export class BaseMessageView extends TemplateView {
     createMenuOptions(vm) {
         const options = [];
         if (vm.canAbortSending) {
-            options.push(Menu.option(vm.i18n`Cancel`, () => vm.abortSending()));
+            options.push(Menu.optionWithButton(vm.i18n`Cancel`, () => vm.abortSending()));
         } else if (vm.canRedact) {
-            options.push(Menu.option(vm.i18n`Delete`, () => vm.redact()).setDestructive());
+            options.push(Menu.optionWithButton(vm.i18n`Delete`, () => vm.redact()).setDestructive());
         }
         return options;
     }
