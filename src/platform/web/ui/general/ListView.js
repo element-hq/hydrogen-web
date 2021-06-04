@@ -122,7 +122,13 @@ export class ListView {
         this.onBeforeListChanged();
         const child = this._childCreator(value);
         this._childInstances.splice(idx, 0, child);
-        insertAt(this._root, idx, child.mount(this._mountArgs));
+        let node;
+        try {
+            node = child.mount(this._mountArgs);
+        } catch (err) {
+            node = errorToDOM(err);
+        }
+        insertAt(this._root, idx, node);
         this.onListChanged();
     }
 
