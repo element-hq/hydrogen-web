@@ -69,10 +69,12 @@ class MenuOption {
 
     setCallback(callback) {
         this.callback = callback;
+        return this;
     }
 
     setLink(link) {
         this.link = link;
+        return this;
     }
 
     setIcon(className) {
