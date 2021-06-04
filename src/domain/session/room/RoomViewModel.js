@@ -36,6 +36,7 @@ export class RoomViewModel extends ViewModel {
         }
         this._clearUnreadTimout = null;
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
+        this._detailsLink = this.urlCreator.urlForSegment("details");
     }
 
     async load() {
@@ -103,6 +104,7 @@ export class RoomViewModel extends ViewModel {
     get id() { return this._room.id; }
     get timelineViewModel() { return this._timelineVM; }
     get isEncrypted() { return this._room.isEncrypted; }
+    get detailsLink() { return this._detailsLink; }
 
     get error() {
         if (this._timelineError) {
@@ -282,10 +284,6 @@ export class RoomViewModel extends ViewModel {
             this.emitChange("error");
             console.error(err.stack);
         }
-    }
-
-    get detailsLink() {
-        return this.urlCreator.urlForSegment("details");
     }
 
     get composerViewModel() {
