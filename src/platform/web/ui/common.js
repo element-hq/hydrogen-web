@@ -14,10 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-const container = document.querySelector(".hydrogen");
+let container;
 
 export function spinner(t, extraClasses = undefined) {
-    if (container.classList.contains("legacy")) {
+    if (container === undefined) {
+        container = document.querySelector(".hydrogen");
+    }
+    if (container?.classList.contains("legacy")) {
         return t.div({className: "spinner"}, [
             t.div(),
             t.div(),
