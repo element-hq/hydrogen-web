@@ -5,7 +5,6 @@ export class RoomInfoViewModel extends ViewModel {
     constructor(options) {
         super(options);
         this._room = options.room;
-        this._roomSummary = this._room._summary._data;
     }
 
     get roomId() {
@@ -13,19 +12,19 @@ export class RoomInfoViewModel extends ViewModel {
     }
 
     get canonicalAlias() {
-        return this._roomSummary.canonicalAlias;
+        return this._room.canonicalAlias;
     }
 
     get name() {
-        return this._roomSummary.name || this._room._heroes?._roomName || this._roomSummary.canonicalAlias;
+        return this._room.name;
     }
 
     get isEncrypted() {
-        return !!this._roomSummary.encryption;
+        return !!this._room.isEncrypted;
     }
 
     get memberCount() {
-        return this._roomSummary.joinCount;
+        return this._room.joinedMemberCount;
     }
 
     get avatarLetter() {

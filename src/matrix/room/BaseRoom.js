@@ -354,6 +354,14 @@ export class BaseRoom extends EventEmitter {
         return this.membership === "leave";
     }
 
+    get canonicalAlias() {
+        return this._summary.data.canonicalAlias;
+    }
+
+    get joinedMemberCount() {
+        return this._summary.data.joinCount;
+    }
+
     get mediaRepository() {
         return this._mediaRepository;
     }
