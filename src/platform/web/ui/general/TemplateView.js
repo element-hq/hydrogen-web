@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import { setAttribute, text, isChildren, classNames, TAG_NAMES, HTML_NS } from "./html.js";
-import {errorToDOM} from "./error.js";
+import {mountView} from "./utils.js";
 import {BaseUpdateView} from "./BaseUpdateView.js";
 
 function objHasFns(obj) {
@@ -282,17 +282,11 @@ class TemplateBuilder {
         return node;
     }
 
-    // this insert a view, and is not a view factory for `if`, so returns the root element to insert in the template
+    // this inserts a view, and is not a view factory for `if`, so returns the root element to insert in the template
     // you should not call t.view() and not use the result (e.g. attach the result to the template DOM tree).
     view(view, mountOptions = undefined) {
-        let root;
-        try {
-            root = view.mount(mountOptions);
-        } catch (err) {
-            return errorToDOM(err);
-        }
         this._templateView.addSubView(view);
-        return root;
+        return mountView(view, mountOptions);
     }
 
     // map a value to a view, every time the value changes
