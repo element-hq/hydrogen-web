@@ -32,7 +32,8 @@ export class Timeline {
         this._disposables = new Disposables();
         this._pendingEvents = pendingEvents;
         this._clock = clock;
-        this._remoteEntries = null;
+        // constructing this early avoid some problem while sync and openTimeline race
+        this._remoteEntries = new SortedArray((a, b) => a.compare(b));
         this._ownMember = null;
         this._timelineReader = new TimelineReader({
             roomId: this._roomId,
@@ -96,7 +97,6 @@ export class Timeline {
     }
 
     _setupEntries(timelineEntries) {
-        this._remoteEntries = new SortedArray((a, b) => a.compare(b));
         this._remoteEntries.setManySorted(timelineEntries);
         if (this._pendingEvents) {
             this._localEntries = new MappedList(this._pendingEvents, pe => {
@@ -159,7 +159,9 @@ export class Timeline {
         // Once the subscription is setup, MappedList will set up the local
         // relations as needed with _applyAndEmitLocalRelationChange,
         // so we're not missing anything by bailing out.
-        if (!this._localEntries.hasSubscriptions) {
+        //
+        // _localEntries can also not yet exist
+        if (!this._localEntries?.hasSubscriptions) {
             return;
         }
         // find any local relations to this new remote event
