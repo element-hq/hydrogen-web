@@ -159,7 +159,9 @@ export class Timeline {
         // Once the subscription is setup, MappedList will set up the local
         // relations as needed with _applyAndEmitLocalRelationChange,
         // so we're not missing anything by bailing out.
-        if (!this._localEntries.hasSubscriptions) {
+        //
+        // _localEntries can also not yet exist
+        if (!this._localEntries?.hasSubscriptions) {
             return;
         }
         // find any local relations to this new remote event
