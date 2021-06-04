@@ -33,7 +33,7 @@ class ReactionView extends TemplateView {
     render(t, vm) {
         const haveReacted = vm => vm.haveReacted;
         return t.button({
-            className: {haveReacted},
+            className: {haveReacted, isPending: vm => vm.isPending},
         }, [vm.key, " ", vm => `${vm.count}`]);
     }
 

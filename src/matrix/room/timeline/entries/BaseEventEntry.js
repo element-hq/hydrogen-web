@@ -16,12 +16,14 @@ limitations under the License.
 
 import {BaseEntry} from "./BaseEntry.js";
 import {REDACTION_TYPE} from "../../common.js";
-import {createAnnotation} from "../relations.js";
+import {createAnnotation, getRelationFromContent, ANNOTATION_RELATION_TYPE} from "../relations.js";
+import {PendingAnnotations} from "../PendingAnnotations.js";
 
 export class BaseEventEntry extends BaseEntry {
     constructor(fragmentIdComparer) {
         super(fragmentIdComparer);
         this._pendingRedactions = null;
+        this._pendingAnnotations = null;
     }
 
     get isRedacting() {
@@ -52,6 +54,15 @@ export class BaseEventEntry extends BaseEntry {
             if (this._pendingRedactions.length === 1) {
                 return "isRedacted";
             }
+        } else {
+            const relation = getRelationFromContent(entry.content);
+            if (relation && relation.rel_type === ANNOTATION_RELATION_TYPE) {
+                if (!this._pendingAnnotations) {
+                    this._pendingAnnotations = new PendingAnnotations();
+                }
+                this._pendingAnnotations.add(entry);
+                return "pendingAnnotations";
+            }
         }
     }
     
@@ -69,6 +80,15 @@ export class BaseEventEntry extends BaseEntry {
                     return "isRedacted";
                 }
             }
+        } else {
+            const relation = getRelationFromContent(entry.content);
+            if (relation && relation.rel_type === ANNOTATION_RELATION_TYPE && this._pendingAnnotations) {
+                this._pendingAnnotations.remove(entry);
+                if (this._pendingAnnotations.isEmpty) {
+                    this._pendingAnnotations = null;
+                }
+                return "pendingAnnotations";
+            }
         }
     }
 
@@ -84,5 +104,14 @@ export class BaseEventEntry extends BaseEntry {
 
     annotate(key) {
         return createAnnotation(this.id, key);
+    }
+
+    get pendingAnnotations() {
+        return this._pendingAnnotations?.aggregatedAnnotations;
+    }
+
+    async getOwnAnnotationId(room, key) {
+        const pendingEvent = this._pendingAnnotations?.findForKey(key);
+        return pendingEvent?.id;
     }
 }

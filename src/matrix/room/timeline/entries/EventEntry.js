@@ -131,7 +131,12 @@ export class EventEntry extends BaseEventEntry {
         return this._eventEntry.annotations;
     }
 
-    getOwnAnnotationId(room, key) {
-        return room.getOwnAnnotationEventId(this.id, key);
+    async getOwnAnnotationId(room, key) {
+        const localId = await super.getOwnAnnotationId(room, key);
+        if (localId) {
+            return localId;
+        } else {
+            return room.getOwnAnnotationEventId(this.id, key);
+        }
     }
 }

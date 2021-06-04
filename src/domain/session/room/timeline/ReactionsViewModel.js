@@ -23,23 +23,47 @@ export class ReactionsViewModel {
         this._reactions = this._map.sortValues((a, b) => a._compare(b));
     }
 
-    update(annotations) {
-        for (const key in annotations) {
-            if (annotations.hasOwnProperty(key)) {
-                const annotation = annotations[key];
+    update(annotations, pendingAnnotations) {
+        if (annotations) {
+            for (const key in annotations) {
+                if (annotations.hasOwnProperty(key)) {
+                    const annotation = annotations[key];
+                    const reaction = this._map.get(key);
+                    if (reaction) {
+                        if (reaction._tryUpdate(annotation)) {
+                            this._map.update(key);
+                        }
+                    } else {
+                        this._map.add(key, new ReactionViewModel(key, annotation, 0, this._parentEntry));
+                    }
+                }
+            }
+        }
+        if (pendingAnnotations) {
+            for (const [key, count] of pendingAnnotations.entries()) {
                 const reaction = this._map.get(key);
                 if (reaction) {
-                    if (reaction._tryUpdate(annotation)) {
+                    if (reaction._tryUpdatePending(count)) {
                         this._map.update(key);
                     }
                 } else {
-                    this._map.add(key, new ReactionViewModel(key, annotation, this._parentEntry));
+                    this._map.add(key, new ReactionViewModel(key, null, count, this._parentEntry));
                 }
             }
         }
         for (const existingKey of this._map.keys()) {
-            if (!annotations.hasOwnProperty(existingKey)) {
+            const hasPending = pendingAnnotations?.has(existingKey);
+            const hasRemote = annotations?.hasOwnProperty(existingKey);
+            if (!hasRemote && !hasPending) {
                 this._map.remove(existingKey);
+            } else if (!hasRemote) {
+                if (this._map.get(existingKey)._tryUpdate(null)) {
+                    this._map.update(existingKey);
+                }
+            } else if (!hasPending) {
+                if (this._map.get(existingKey)._tryUpdatePending(0)) {
+                    this._map.update(existingKey);
+                }
             }
         }
     }
@@ -50,19 +74,31 @@ export class ReactionsViewModel {
 }
 
 class ReactionViewModel {
-    constructor(key, annotation, parentEntry) {
+    constructor(key, annotation, pendingCount, parentEntry) {
         this._key = key;
         this._annotation = annotation;
+        this._pendingCount = pendingCount;
         this._parentEntry = parentEntry;
     }
 
     _tryUpdate(annotation) {
-        if (
+        const oneSetAndOtherNot = !!this._annotation !== !!annotation;
+        const bothSet = this._annotation && annotation;
+        const areDifferent = bothSet &&  (
             annotation.me !== this._annotation.me ||
             annotation.count !== this._annotation.count ||
             annotation.firstTimestamp !== this._annotation.firstTimestamp
-        ) {
+        );
+        if (oneSetAndOtherNot || areDifferent) {
             this._annotation = annotation;
+            return true;
+        }
+        return false;
+    }
+
+    _tryUpdatePending(pendingCount) {
+        if (pendingCount !== this._pendingCount) {
+            this._pendingCount = pendingCount;
             return true;
         }
         return false;
@@ -73,20 +109,30 @@ class ReactionViewModel {
     }
 
     get count() {
-        return this._annotation.count;
+        return (this._annotation?.count || 0) + this._pendingCount;
+    }
+
+    get isPending() {
+        return this._pendingCount !== 0;
     }
 
     get haveReacted() {
-        return this._annotation.me;
+        return this._annotation?.me || this.isPending;
     }
 
     _compare(other) {
-        const a = this._annotation;
-        const b = other._annotation;
-        if (a.count !== b.count) {
-            return b.count - a.count;
+        if (this.count !== other.count) {
+            return other.count - this.count;
         } else {
-            return a.firstTimestamp - b.firstTimestamp;
+            const a = this._annotation;
+            const b = other._annotation;
+            if (a && b) {
+                return a.firstTimestamp - b.firstTimestamp;
+            } else if (a) {
+                return -1;
+            } else {
+                return 1;
+            }
         }
     }
 
@@ -97,4 +143,5 @@ class ReactionViewModel {
             return this._parentEntry.react(this.key);
         }
     }
+}
 }

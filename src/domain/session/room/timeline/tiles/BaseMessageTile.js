@@ -24,7 +24,7 @@ export class BaseMessageTile extends SimpleTile {
         this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : null;
         this._isContinuation = false;
         this._reactions = null;
-        if (this._entry.annotations) {
+        if (this._entry.annotations || this._entry.pendingAnnotations) {
             this._updateReactions();
         }
     }
@@ -135,8 +135,8 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     _updateReactions() {
-        const {annotations} = this._entry;
-        if (!annotations) {
+        const {annotations, pendingAnnotations} = this._entry;
+        if (!annotations && !pendingAnnotations) {
             if (this._reactions) {
                 this._reactions = null;
             }
@@ -144,7 +144,7 @@ export class BaseMessageTile extends SimpleTile {
             if (!this._reactions) {
                 this._reactions = new ReactionsViewModel(this);
             }
-            this._reactions.update(annotations);
+            this._reactions.update(annotations, pendingAnnotations);
         }
     }
 }
