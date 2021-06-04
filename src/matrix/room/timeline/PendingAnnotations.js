@@ -16,7 +16,7 @@ limitations under the License.
 
 import {getRelationFromContent} from "./relations.js";
 
-class PendingAnnotations {
+export class PendingAnnotations {
     constructor() {
         this.aggregatedAnnotations = new Map();
         this._entries = [];
