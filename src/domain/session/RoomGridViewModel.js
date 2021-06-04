@@ -84,7 +84,7 @@ export class RoomGridViewModel extends ViewModel {
         }
         const vmo = this._viewModelsObservables[index];
         if (vmo) {
-            const detailsShown = !!this.navigation.path.get("details");
+            const detailsShown = !!this.navigation.path.get("details")?.value;
             this.navigation.push("room", vmo.id);
             if (detailsShown) {
                 this.navigation.push("details", true);

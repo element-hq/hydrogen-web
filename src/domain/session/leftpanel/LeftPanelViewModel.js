@@ -94,7 +94,7 @@ export class LeftPanelViewModel extends ViewModel {
 
     _pathForDetails(path) {
         const details = this.navigation.path.get("details");
-        return details ? path.with(details) : path;
+        return details?.value ? path.with(details) : path;
     }
 
     toggleGrid() {

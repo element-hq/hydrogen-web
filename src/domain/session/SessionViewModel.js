@@ -260,7 +260,7 @@ export class SessionViewModel extends ViewModel {
     _toggleRoomInformationPanel() {
         this._roomInfoViewModel = this.disposeTracked(this._roomInfoViewModel);
         const room = this._roomFromNavigation();
-        const enable = !!this.navigation.path.get("details");
+        const enable = !!this.navigation.path.get("details")?.value;
         if (enable) {
             this._roomInfoViewModel = this.track(new RoomInfoViewModel(this.childOptions({ room })));
         }
