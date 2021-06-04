@@ -33,7 +33,7 @@ export class SessionView extends TemplateView {
             className: {
                 "SessionView": true,
                 "middle-shown": vm => !!vm.activeMiddleViewModel,
-                "SideBarActive": vm => !!vm.roomInfoViewModel
+                "right-shown": vm => !!vm.roomInfoViewModel
             },
         }, [
             t.view(new SessionStatusView(vm.sessionStatusViewModel)),
