@@ -41,7 +41,11 @@ export function getRelatedEventId(event) {
     return null;
 }
 
+export function getRelationFromContent(content) {
+    return content?.["m.relates_to"];
+}
+
 export function getRelation(event) {
-	return event.content?.["m.relates_to"];
+	return getRelationFromContent(event.content);
 }
 

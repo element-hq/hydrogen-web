@@ -16,6 +16,7 @@ limitations under the License.
 import {createEnum} from "../../../utils/enum.js";
 import {AbortError} from "../../../utils/error.js";
 import {REDACTION_TYPE} from "../common.js";
+import {getRelationFromContent} from "../timeline/relations.js";
 
 export const SendStatus = createEnum(
     "Waiting",
@@ -49,10 +50,23 @@ export class PendingEvent {
     get remoteId() { return this._data.remoteId; }
     get content() { return this._data.content; }
     get relatedTxnId() { return this._data.relatedTxnId; }
-    get relatedEventId() { return this._data.relatedEventId; }
+    get relatedEventId() {
+        const relation = getRelationFromContent(this.content);
+        if (relation) {
+            // may be null when target is not sent yet, is indented
+            return relation.event_id;
+        } else {
+            return this._data.relatedEventId;
+        }
+    }
 
     setRelatedEventId(eventId) {
-        this._data.relatedEventId = eventId;
+        const relation = getRelationFromContent(this.content);
+        if (relation) {
+            relation.event_id = eventId;
+        } else {
+            this._data.relatedEventId = eventId;
+        }
     }
 
     get data() { return this._data; }

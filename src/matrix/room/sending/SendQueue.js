@@ -19,6 +19,7 @@ import {ConnectionError} from "../../error.js";
 import {PendingEvent, SendStatus} from "./PendingEvent.js";
 import {makeTxnId, isTxnId} from "../../common.js";
 import {REDACTION_TYPE} from "../common.js";
+import {getRelationFromContent} from "../timeline/relations.js";
 
 export class SendQueue {
     constructor({roomId, storage, hsApi, pendingEvents}) {
@@ -197,7 +198,13 @@ export class SendQueue {
     }
 
     async enqueueEvent(eventType, content, attachments, log) {
-        await this._enqueueEvent(eventType, content, attachments, null, null, log);
+        const relation = getRelationFromContent(content);
+        let relatedTxnId = null;
+        if (relation && isTxnId(relation.event_id)) {
+            relatedTxnId = relation.event_id;
+            relation.event_id = null;
+        }
+        await this._enqueueEvent(eventType, content, attachments, relatedTxnId, null, log);
     }
 
     async _enqueueEvent(eventType, content, attachments, relatedTxnId, relatedEventId, log) {
