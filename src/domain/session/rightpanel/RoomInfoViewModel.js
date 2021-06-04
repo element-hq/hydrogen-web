@@ -44,7 +44,8 @@ export class RoomInfoViewModel extends ViewModel {
         return this.name;
     }
 
-    get closeLink() {
-        return this.urlCreator.urlUntilSegment("room");
+    closePanel() {
+        const path = this.navigation.path.until("room");
+        this.navigation.applyPath(path);
     }
 }
