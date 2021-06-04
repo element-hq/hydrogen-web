@@ -36,7 +36,6 @@ export class RoomViewModel extends ViewModel {
         }
         this._clearUnreadTimout = null;
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
-        this._detailsUrl = this.urlCreator.urlForSegment("details");
     }
 
     async load() {
@@ -104,7 +103,6 @@ export class RoomViewModel extends ViewModel {
     get id() { return this._room.id; }
     get timelineViewModel() { return this._timelineVM; }
     get isEncrypted() { return this._room.isEncrypted; }
-    get detailsUrl() { return this._detailsUrl; }
 
     get error() {
         if (this._timelineError) {
@@ -288,6 +286,12 @@ export class RoomViewModel extends ViewModel {
 
     get composerViewModel() {
         return this._composerVM;
+    }
+
+    toggleDetailsPanel() {
+        let path = this.navigation.path.until("room");
+        path = path.with(this.navigation.segment("details", true));
+        this.navigation.applyPath(path);
     }
 }
 

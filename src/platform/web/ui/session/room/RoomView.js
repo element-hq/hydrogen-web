@@ -68,15 +68,15 @@ export class RoomView extends TemplateView {
         } else {
             const vm = this.value;
             const options = [];
-            options.push(Menu.optionWithLink(vm.i18n`Room details`, vm.detailsUrl))
+            options.push(Menu.option(vm.i18n`Room details`, () => vm.toggleDetailsPanel()))
             if (vm.canLeave) {
-                options.push(Menu.optionWithButton(vm.i18n`Leave room`, () => vm.leaveRoom()).setDestructive());
+                options.push(Menu.option(vm.i18n`Leave room`, () => vm.leaveRoom()).setDestructive());
             }
             if (vm.canForget) {
-                options.push(Menu.optionWithButton(vm.i18n`Forget room`, () => vm.forgetRoom()).setDestructive());
+                options.push(Menu.option(vm.i18n`Forget room`, () => vm.forgetRoom()).setDestructive());
             }
             if (vm.canRejoin) {
-                options.push(Menu.optionWithButton(vm.i18n`Rejoin room`, () => vm.rejoinRoom()));
+                options.push(Menu.option(vm.i18n`Rejoin room`, () => vm.rejoinRoom()));
             }
             if (!options.length) {
                 return;
