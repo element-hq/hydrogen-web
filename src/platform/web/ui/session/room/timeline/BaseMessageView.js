@@ -17,6 +17,7 @@ limitations under the License.
 
 import {renderStaticAvatar} from "../../../avatar.js";
 import {tag} from "../../../general/html.js";
+import {mountView} from "../../../general/utils.js";
 import {TemplateView} from "../../../general/TemplateView.js";
 import {Popup} from "../../../general/Popup.js";
 import {Menu} from "../../../general/Menu.js";
@@ -36,10 +37,10 @@ export class BaseMessageView extends TemplateView {
             unverified: vm.isUnverified,
             continuation: vm => vm.isContinuation,
         }}, [
+            // dynamically added and removed nodes are handled below
             this.renderMessageBody(t, vm),
             // should be after body as it is overlayed on top
             t.button({className: "Timeline_messageOptions"}, "⋯"),
-            t.ifView(vm => vm.reactions, vm => new ReactionsView(vm.reactions)),
         ]);
         // given that there can be many tiles, we don't add
         // unneeded DOM nodes in case of a continuation, and we add it
@@ -53,6 +54,21 @@ export class BaseMessageView extends TemplateView {
             } else if (!isContinuation) {
                 li.insertBefore(renderStaticAvatar(vm, 30, "Timeline_messageAvatar"), li.firstChild);
                 li.insertBefore(tag.div({className: `Timeline_messageSender usercolor${vm.avatarColorNumber}`}, vm.displayName), li.firstChild);
+            }
+        });
+        // similarly, we could do this with a simple ifView,
+        // but that adds a comment node to all messages without reactions
+        let reactionsView = null;
+        t.mapSideEffect(vm => vm.reactions, reactions => {
+            if (reactions && !reactionsView) {
+                reactionsView = new ReactionsView(vm.reactions);
+                this.addSubView(reactionsView);
+                li.appendChild(mountView(reactionsView));
+            } else if (!reactions && reactionsView) {
+                li.removeChild(reactionsView.root());
+                reactionsView.unmount();
+                this.removeSubView(reactionsView);
+                reactionsView = null;
             }
         });
         return li;
