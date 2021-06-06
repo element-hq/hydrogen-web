@@ -17,7 +17,7 @@ limitations under the License.
 
 import {LeftPanelViewModel} from "./leftpanel/LeftPanelViewModel.js";
 import {RoomViewModel} from "./room/RoomViewModel.js";
-import {RoomInfoViewModel} from "./rightpanel/RoomInfoViewModel.js";
+import {RoomDetailsViewModel} from "./rightpanel/RoomDetailsViewModel.js";
 import {UnknownRoomViewModel} from "./room/UnknownRoomViewModel.js";
 import {InviteViewModel} from "./room/InviteViewModel.js";
 import {LightboxViewModel} from "./room/LightboxViewModel.js";
@@ -63,7 +63,7 @@ export class SessionViewModel extends ViewModel {
             if (!this._gridViewModel) {
                 this._updateRoom(roomId);
             }
-            this._toggleRoomInformationPanel();
+            this._toggleRoomDetailsPanel();
         }));
         if (!this._gridViewModel) {
             this._updateRoom(currentRoomId.get());
@@ -82,8 +82,8 @@ export class SessionViewModel extends ViewModel {
         this._updateLightbox(lightbox.get());
 
         const details = this.navigation.observe("details");
-        this.track(details.subscribe(() => this._toggleRoomInformationPanel()));
-        this._toggleRoomInformationPanel();
+        this.track(details.subscribe(() => this._toggleRoomDetailsPanel()));
+        this._toggleRoomDetailsPanel();
     }
 
     get id() {
@@ -118,8 +118,8 @@ export class SessionViewModel extends ViewModel {
         return this._roomViewModelObservable?.get();
     }
 
-    get roomInfoViewModel() {
-        return this._roomInfoViewModel;
+    get roomDetailsViewModel() {
+        return this._roomDetailsViewModel;
     }
 
     _updateGrid(roomIds) {
@@ -256,14 +256,14 @@ export class SessionViewModel extends ViewModel {
         return room;
     }
 
-    _toggleRoomInformationPanel() {
-        this._roomInfoViewModel = this.disposeTracked(this._roomInfoViewModel);
+    _toggleRoomDetailsPanel() {
+        this._roomDetailsViewModel = this.disposeTracked(this._roomDetailsViewModel);
         const enable = !!this.navigation.path.get("details")?.value;
         if (enable) {
             const room = this._roomFromNavigation();
-            this._roomInfoViewModel = this.track(new RoomInfoViewModel(this.childOptions({ room })));
+            this._roomDetailsViewModel = this.track(new RoomDetailsViewModel(this.childOptions({ room })));
         }
-        this.emitChange("roomInfoViewModel");
+        this.emitChange("roomDetailsViewModel");
     }
 
 }

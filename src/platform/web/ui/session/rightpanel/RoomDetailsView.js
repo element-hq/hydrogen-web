@@ -2,7 +2,7 @@ import { TemplateView } from "../../general/TemplateView.js";
 import { text, classNames, tag } from "../../general/html.js";
 import { AvatarView } from "../../avatar.js";
 
-export class RoomInfoView extends TemplateView {
+export class RoomDetailsView extends TemplateView {
 
     render(t, vm) {
         const encryptionString = () => vm.isEncrypted ? vm.i18n`On` : vm.i18n`Off`;
