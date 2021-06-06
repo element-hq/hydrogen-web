@@ -780,44 +780,44 @@ button.link {
 
 /* Right Panel */
 
-.RoomInfo {
+.RoomDetailsView {
     background: rgba(245, 245, 245, 0.90);
     padding: 10px;
 }
 
-.RoomAvatar {
+.RoomDetailsView_avatar {
     margin-top: 44px;
 }
 
-.RoomId {
+.RoomDetailsView_id {
     color: #737D8C;
     font-size: 12px;
 }
 
-.SidebarRow_collection{
+.RoomDetailsView_rows{
     margin-top: 36px;
     width: 100%;
 }
 
-.RoomName h2 {
+.RoomDetailsView_name h2 {
     margin-bottom: 4px;
     font-size: 1.8rem;
 }
 
-.SidebarRow {
+.RoomDetailsView_row {
     width: 90%;
     margin-bottom: 20px;
     font-weight: 500;
     font-size: 15px;
 }
 
-.SidebarLabel::before {
+.RoomDetailsView_label::before {
     padding-right: 16px;
     height: 20px;
     width: 20px;
 }
 
-.SidebarValue {
+.RoomDetailsView_value {
     color: #737D8C;
 }
 
@@ -831,7 +831,7 @@ button.link {
 
 /* Encryption icon next to avatar */
 
-.RoomEncryption {
+.EncryptionIconView {
     width: 52px;
     height: 52px;
     border-radius: 100%;
@@ -840,24 +840,24 @@ button.link {
     margin-left: -16px;
 }
 
-.encrypted, .unencrypted {
+.EncryptionIconView_encrypted, .EncryptionIconView_unencrypted {
     height: 24px;
     width: 24px;
 }
 
-.encrypted {
+.EncryptionIconView_encrypted {
     content: url("./icons/e2ee-normal.svg");
 }
 
-.unencrypted {
+.EncryptionIconView_unencrypted {
     content: url("./icons/e2ee-disabled.svg");
 }
 
-.RoomInfo .button-utility {
+.RoomDetailsView .button-utility {
     width: 24px;
     height: 24px;
 }
 
-.RoomInfo .close {
+.RoomDetailsView .close {
     background-image: url("./icons/clear.svg");
 }
