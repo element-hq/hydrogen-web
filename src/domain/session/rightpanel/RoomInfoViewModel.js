@@ -5,6 +5,7 @@ export class RoomInfoViewModel extends ViewModel {
     constructor(options) {
         super(options);
         this._room = options.room;
+        this._room.on("change", () => this.emitChange());
     }
 
     get roomId() {
