@@ -44,9 +44,9 @@ export class RoomDetailsView extends TemplateView {
     }
 }
 
-class EncryptionIconView extends TemplateView{
+class EncryptionIconView extends TemplateView {
     render(t, isEncrypted) {
-       return t.div({ className: "EncryptionIconView" },
+        return t.div({ className: "EncryptionIconView" },
             [t.div({ className: isEncrypted ? "EncryptionIconView_encrypted" : "EncryptionIconView_unencrypted" })]);
     }
 }
