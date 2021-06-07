@@ -17,8 +17,8 @@ export class RoomDetailsView extends TemplateView {
             this._createRoomAliasDisplay(vm),
             t.div({ className: "RoomDetailsView_rows" },
                 [
-                    this._createRightPanelRow(t, vm.i18n`People`, vm => vm.memberCount, { MemberCount: true }),
-                    this._createRightPanelRow(t, vm.i18n`Encryption`, encryptionString, { EncryptionStatus: true })
+                    this._createRightPanelRow(t, vm.i18n`People`, { MemberCount: true }, vm => vm.memberCount),
+                    this._createRightPanelRow(t, vm.i18n`Encryption`, { EncryptionStatus: true }, encryptionString)
                 ])
         ]);
     }
@@ -28,12 +28,11 @@ export class RoomDetailsView extends TemplateView {
             "";
     }
 
-    _createRightPanelRow(t, label, value, labelClass, valueClass) {
+    _createRightPanelRow(t, label, labelClass, value) {
         const labelClassString = classNames({ RoomDetailsView_label: true, ...labelClass });
-        const valueClassString = classNames({ RoomDetailsView_value: true, ...valueClass });
         return t.div({ className: "RoomDetailsView_row" }, [
             t.div({ className: labelClassString }, [text(label)]),
-            t.div({ className: valueClassString }, value)
+            t.div({ className: "RoomDetailsView_value" }, value)
         ]);
     }
 
