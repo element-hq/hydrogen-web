@@ -13,5 +13,6 @@ module.exports = {
         "no-empty": "off",
         "no-prototype-builtins": "off",
         "no-unused-vars": "warn",
+        "object-curly-spacing": ["warn", "never"]
     }
 };
