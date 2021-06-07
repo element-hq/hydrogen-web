@@ -91,7 +91,6 @@ the layout viewport up without resizing it when the keyboard shows */
             "status" auto
             "right" 1fr /
             1fr;
-        
     }
 
     .SessionView:not(.middle-shown) .room-placeholder { display: none; }
