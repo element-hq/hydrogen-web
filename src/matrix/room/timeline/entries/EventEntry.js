@@ -131,12 +131,12 @@ export class EventEntry extends BaseEventEntry {
         return this._eventEntry.annotations;
     }
 
-    async getOwnAnnotationId(room, key) {
-        const localId = await super.getOwnAnnotationId(room, key);
+    async getOwnAnnotationEntry(timeline, key) {
+        const localId = await super.getOwnAnnotationEntry(timeline, key);
         if (localId) {
             return localId;
         } else {
-            return room.getOwnAnnotationEventId(this.id, key);
+            return timeline.getOwnAnnotationEntry(this.id, key);
         }
     }
 }

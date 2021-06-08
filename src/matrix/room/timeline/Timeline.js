@@ -22,7 +22,7 @@ import {TimelineReader} from "./persistence/TimelineReader.js";
 import {PendingEventEntry} from "./entries/PendingEventEntry.js";
 import {RoomMember} from "../members/RoomMember.js";
 import {PowerLevels} from "./PowerLevels.js";
-import {getRelationFromContent} from "./relations.js";
+import {getRelationFromContent, getRelation, ANNOTATION_RELATION_TYPE} from "./relations.js";
 
 export class Timeline {
     constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock}) {
@@ -124,7 +124,6 @@ export class Timeline {
             }
             return params;
         });
-        console.log("redactedEntry", redactedEntry);
         if (redactedEntry) {
             const redactedRelation = getRelationFromContent(redactedEntry.content);
             if (redactedRelation?.event_id) {
@@ -132,7 +131,6 @@ export class Timeline {
                     e => e.id === redactedRelation.event_id,
                     relationTarget => relationTarget.addLocalRelation(redactedEntry) || false
                 );
-                console.log("found", found);
             }
         }
     }
@@ -180,6 +178,24 @@ export class Timeline {
                 updateOrFalse
             );
         }
+    }
+
+
+    async getOwnAnnotationEntry(targetId, key) {
+        const txn = await this._storage.readWriteTxn([
+            this._storage.storeNames.timelineEvents,
+            this._storage.storeNames.timelineRelations,
+        ]);
+        const relations = await txn.timelineRelations.getForTargetAndType(this._roomId, targetId, ANNOTATION_RELATION_TYPE);
+        for (const relation of relations) {
+            const annotation = await txn.timelineEvents.getByEventId(this._roomId, relation.sourceEventId);
+            if (annotation.event.sender === this._ownMember.userId && getRelation(annotation.event).key === key) {
+                const eventEntry = new EventEntry(annotation, this._fragmentIdComparer);
+                this._addLocalRelationsToNewRemoteEntries([eventEntry]);
+                return eventEntry;
+            }
+        }
+        return null;
     }
 
     updateOwnMember(member) {

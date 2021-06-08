@@ -303,7 +303,7 @@ export class Room extends BaseRoom {
 
     /** @public */
     sendEvent(eventType, content, attachments, log = null) {
-        this._platform.logger.wrapOrRun(log, "send", log => {
+        return this._platform.logger.wrapOrRun(log, "send", log => {
             log.set("id", this.id);
             return this._sendQueue.enqueueEvent(eventType, content, attachments, log);
         });
@@ -311,7 +311,7 @@ export class Room extends BaseRoom {
 
     /** @public */
     sendRedaction(eventIdOrTxnId, reason, log = null) {
-        this._platform.logger.wrapOrRun(log, "redact", log => {
+        return this._platform.logger.wrapOrRun(log, "redact", log => {
             log.set("id", this.id);
             return this._sendQueue.enqueueRedaction(eventIdOrTxnId, reason, log);
         });

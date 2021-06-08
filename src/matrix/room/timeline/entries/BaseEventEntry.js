@@ -117,11 +117,7 @@ export class BaseEventEntry extends BaseEntry {
         return this._pendingAnnotations?.aggregatedAnnotations;
     }
 
-    async getOwnAnnotationId(room, key) {
-        return this.getPendingAnnotationEntry(key)?.id;
-    }
-
-    getPendingAnnotationEntry(key) {
+    async getOwnAnnotationEntry(timeline, key) {
         return this._pendingAnnotations?.findForKey(key);
     }
 }

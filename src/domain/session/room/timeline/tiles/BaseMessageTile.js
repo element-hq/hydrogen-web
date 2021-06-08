@@ -124,27 +124,23 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     react(key, log = null) {
-        return this.logger.wrapOrRun(log, "react", log => {
-            // this assumes the existing reaction is not a remote one
-            // we would need to do getOwnAnnotation(Id) and see if there are any pending redactions for it
-            const pee = this._entry.getPendingAnnotationEntry(key);
-            const redaction = pee?.pendingRedaction;
-            log.set("has_redaction", !!redaction);
-            log.set("has_redaction", !!redaction);
-            if (redaction && !redaction.hasStartedSending) {
+        return this.logger.wrapOrRun(log, "react", async log => {
+            const existingAnnotation = await this._entry.getOwnAnnotationEntry(this._timeline, key);
+            const redaction = existingAnnotation?.pendingRedaction;
+            if (redaction && !redaction.pendingEvent.hasStartedSending) {
                 log.set("abort_redaction", true);
-                return redaction.pendingEvent.abort();
+                await redaction.pendingEvent.abort();
             } else {
-                return this._room.sendEvent("m.reaction", this._entry.annotate(key), null, log);
+                await this._room.sendEvent("m.reaction", this._entry.annotate(key), null, log);
             }
         });
     }
 
-    async redactReaction(key, log = null) {
-        return this.logger.wrapOrRun(log, "redactReaction", log => {
-            const id = await this._entry.getOwnAnnotationId(this._room, key);
-            if (id) {
-                this._room.sendRedaction(id, null, log);
+    redactReaction(key, log = null) {
+        return this.logger.wrapOrRun(log, "redactReaction", async log => {
+            const entry = await this._entry.getOwnAnnotationEntry(this._timeline, key);
+            if (entry) {
+                await this._room.sendRedaction(entry.id, null, log);
             }
         });
     }

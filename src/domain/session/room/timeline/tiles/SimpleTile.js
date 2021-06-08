@@ -129,8 +129,12 @@ export class SimpleTile extends ViewModel {
         return this._options.room;
     }
 
+    get _timeline() {
+        return this._options.timeline;
+    }
+
     get _powerLevels() {
-        return this._options.timeline.powerLevels;
+        return this._timeline.powerLevels;
     }
 
     get _ownMember() {

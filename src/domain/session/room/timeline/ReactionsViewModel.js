@@ -79,6 +79,7 @@ class ReactionViewModel {
         this._annotation = annotation;
         this._pendingCount = pendingCount;
         this._parentEntry = parentEntry;
+        this._isToggling = false;
     }
 
     _tryUpdate(annotation) {
@@ -143,14 +144,24 @@ class ReactionViewModel {
         }
     }
 
-    toggleReaction() {
-        const havePendingReaction = this._pendingCount > 0;
-        const haveRemoteReaction = this._annotation?.me;
-        const haveReaction = havePendingReaction || haveRemoteReaction;
-        if (haveReaction) {
-            return this._parentEntry.redactReaction(this.key);
-        } else {
-            return this._parentEntry.react(this.key);
+    async toggleReaction() {
+        if (this._isToggling) {
+            console.log("blocking toggleReaction, call ongoing");
+            return;
+        }
+        this._isToggling = true;
+        try {
+            const haveLocalRedaction = this._pendingCount < 0;
+            const havePendingReaction = this._pendingCount > 0;
+            const haveRemoteReaction = this._annotation?.me;
+            const haveReaction = havePendingReaction || (haveRemoteReaction && !haveLocalRedaction);
+            if (haveReaction) {
+                await this._parentEntry.redactReaction(this.key);
+            } else {
+                await this._parentEntry.react(this.key);
+            }
+        } finally {
+            this._isToggling = false;
         }
     }
 }

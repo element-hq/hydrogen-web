@@ -117,7 +117,7 @@ export class PendingEvent {
     get error() { return this._error; }
 
     get hasStartedSending() {
-        return this._status !== SendStatus.Sending && this._status !== SendStatus.Sent;
+        return this._status === SendStatus.Sending || this._status === SendStatus.Sent;
     }
 
     get attachmentsTotalBytes() {

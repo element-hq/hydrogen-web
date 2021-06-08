@@ -452,7 +452,7 @@ export class BaseRoom extends EventEmitter {
         return observable;
     }
 
-    async getOwnAnnotationEventId(targetId, key) {
+    async getOwnAnnotationEntry(targetId, key) {
         const txn = await this._storage.readWriteTxn([
             this._storage.storeNames.timelineEvents,
             this._storage.storeNames.timelineRelations,
@@ -461,7 +461,9 @@ export class BaseRoom extends EventEmitter {
         for (const relation of relations) {
             const annotation = await txn.timelineEvents.getByEventId(this.id, relation.sourceEventId);
             if (annotation.event.sender === this._user.id && getRelation(annotation.event).key === key) {
-                return annotation.event.event_id;
+                const eventEntry = new EventEntry(annotation, this._fragmentIdComparer);
+                // add local relations
+                return eventEntry;
             }
         }
         return null;
