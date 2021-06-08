@@ -54,8 +54,7 @@ export class SimpleTile extends ViewModel {
 
     get canAbortSending() {
         return this._entry.isPending &&
-            this._entry.pendingEvent.status !== SendStatus.Sending &&
-            this._entry.pendingEvent.status !== SendStatus.Sent;
+            !this._entry.pendingEvent.hasStartedSending;
     }
 
     abortSending() {

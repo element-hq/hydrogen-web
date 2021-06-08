@@ -22,6 +22,7 @@ import {TimelineReader} from "./persistence/TimelineReader.js";
 import {PendingEventEntry} from "./entries/PendingEventEntry.js";
 import {RoomMember} from "../members/RoomMember.js";
 import {PowerLevels} from "./PowerLevels.js";
+import {getRelationFromContent} from "./relations.js";
 
 export class Timeline {
     constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock}) {
@@ -101,18 +102,60 @@ export class Timeline {
         if (this._pendingEvents) {
             this._localEntries = new MappedList(this._pendingEvents, pe => {
                 const pee = new PendingEventEntry({pendingEvent: pe, member: this._ownMember, clock: this._clock});
-                this._applyAndEmitLocalRelationChange(pee.pendingEvent, target => target.addLocalRelation(pee));
+                this._onAddPendingEvent(pee);
                 return pee;
             }, (pee, params) => {
                 // is sending but redacted, who do we detect that here to remove the relation?
                 pee.notifyUpdate(params);
-            }, pee => {
-                this._applyAndEmitLocalRelationChange(pee.pendingEvent, target => target.removeLocalRelation(pee));
-            });
+            }, pee => this._onRemovePendingEvent(pee));
         } else {
             this._localEntries = new ObservableArray();
         }
         this._allEntries = new ConcatList(this._remoteEntries, this._localEntries);
+    }
+
+    _onAddPendingEvent(pee) {
+        let redactedEntry;
+        this._applyAndEmitLocalRelationChange(pee.pendingEvent, target => {
+            const wasRedacted = target.isRedacted;
+            const params = target.addLocalRelation(pee);
+            if (!wasRedacted && target.isRedacted) {
+                redactedEntry = target;
+            }
+            return params;
+        });
+        console.log("redactedEntry", redactedEntry);
+        if (redactedEntry) {
+            const redactedRelation = getRelationFromContent(redactedEntry.content);
+            if (redactedRelation?.event_id) {
+                const found = this._remoteEntries.findAndUpdate(
+                    e => e.id === redactedRelation.event_id,
+                    relationTarget => relationTarget.addLocalRelation(redactedEntry) || false
+                );
+                console.log("found", found);
+            }
+        }
+    }
+
+    _onRemovePendingEvent(pee) {
+        let unredactedEntry;
+        this._applyAndEmitLocalRelationChange(pee.pendingEvent, target => {
+            const wasRedacted = target.isRedacted;
+            const params = target.removeLocalRelation(pee);
+            if (wasRedacted && !target.isRedacted) {
+                unredactedEntry = target;
+            }
+            return params;
+        });
+        if (unredactedEntry) {
+            const redactedRelation = getRelationFromContent(unredactedEntry.content);
+            if (redactedRelation?.event_id) {
+                this._remoteEntries.findAndUpdate(
+                    e => e.id === redactedRelation.event_id,
+                    relationTarget => relationTarget.removeLocalRelation(unredactedEntry) || false
+                );
+            }
+        }
     }
 
     _applyAndEmitLocalRelationChange(pe, updater) {

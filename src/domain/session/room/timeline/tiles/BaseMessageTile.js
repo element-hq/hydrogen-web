@@ -123,15 +123,30 @@ export class BaseMessageTile extends SimpleTile {
         return true;
     }
 
-    react(key) {
-        return this._room.sendEvent("m.reaction", this._entry.annotate(key));
+    react(key, log = null) {
+        return this.logger.wrapOrRun(log, "react", log => {
+            // this assumes the existing reaction is not a remote one
+            // we would need to do getOwnAnnotation(Id) and see if there are any pending redactions for it
+            const pee = this._entry.getPendingAnnotationEntry(key);
+            const redaction = pee?.pendingRedaction;
+            log.set("has_redaction", !!redaction);
+            log.set("has_redaction", !!redaction);
+            if (redaction && !redaction.hasStartedSending) {
+                log.set("abort_redaction", true);
+                return redaction.pendingEvent.abort();
+            } else {
+                return this._room.sendEvent("m.reaction", this._entry.annotate(key), null, log);
+            }
+        });
     }
 
-    async redactReaction(key) {
-        const id = await this._entry.getOwnAnnotationId(this._room, key);
-        if (id) {
-            this._room.sendRedaction(id);
-        }
+    async redactReaction(key, log = null) {
+        return this.logger.wrapOrRun(log, "redactReaction", log => {
+            const id = await this._entry.getOwnAnnotationId(this._room, key);
+            if (id) {
+                this._room.sendRedaction(id, null, log);
+            }
+        });
     }
 
     _updateReactions() {

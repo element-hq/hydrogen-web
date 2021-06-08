@@ -157,8 +157,8 @@ export class SendQueue {
     }
 
     async _removeEvent(pendingEvent) {
-        const idx = this._pendingEvents.array.indexOf(pendingEvent);
-        if (idx !== -1) {
+        let hasEvent = this._pendingEvents.array.indexOf(pendingEvent) !== -1;
+        if (hasEvent) {
             const txn = await this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
             try {
                 txn.pendingEvents.remove(pendingEvent.roomId, pendingEvent.queueIndex);
@@ -166,7 +166,12 @@ export class SendQueue {
                 txn.abort();
             }
             await txn.complete();
-            this._pendingEvents.remove(idx);
+            // lookup index after async txn is complete,
+            // to make sure we're not racing with anything
+            const idx = this._pendingEvents.array.indexOf(pendingEvent);
+            if (idx !== -1) {
+                this._pendingEvents.remove(idx);
+            }
         }
         pendingEvent.dispose();
     }

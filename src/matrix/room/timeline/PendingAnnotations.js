@@ -22,30 +22,33 @@ export class PendingAnnotations {
         this._entries = [];
     }
 
-    add(pendingEventEntry) {
-        const relation = getRelationFromContent(pendingEventEntry.content);
+    /** adds either a pending annotation entry, or a remote annotation entry with a pending redaction */
+    add(annotationEntry) {
+        const relation = getRelationFromContent(annotationEntry.content);
         const key = relation.key;
         if (!key) {
             return;
         }
         const count = this.aggregatedAnnotations.get(key) || 0;
-        //const addend = pendingEventEntry.isRedacted ? -1 : 1;
-        //this.aggregatedAnnotations.set(key, count + addend);
-        this.aggregatedAnnotations.set(key, count + 1);
-        this._entries.push(pendingEventEntry);
+        const addend = annotationEntry.isRedacted ? -1 : 1;
+        console.log("add", count, addend);
+        this.aggregatedAnnotations.set(key, count + addend);
+        this._entries.push(annotationEntry);
     }
 
-    remove(pendingEventEntry) {
-        const idx = this._entries.indexOf(pendingEventEntry);
+    /** removes either a pending annotation entry, or a remote annotation entry with a pending redaction */
+    remove(annotationEntry) {
+        const idx = this._entries.indexOf(annotationEntry);
         if (idx === -1) {
             return;
         }
         this._entries.splice(idx, 1);
-        const relation = getRelationFromContent(pendingEventEntry.content);
+        const relation = getRelationFromContent(annotationEntry.content);
         const key = relation.key;
         let count = this.aggregatedAnnotations.get(key);
         if (count !== undefined) {
-            count -= 1;
+            const addend = annotationEntry.isRedacted ? 1 : -1;
+            count += addend;
             if (count <= 0) {
                 this.aggregatedAnnotations.delete(key);
             } else {

@@ -42,7 +42,7 @@ export class BaseEventEntry extends BaseEntry {
     }
 
     /**
-        aggregates local relation.
+        aggregates local relation or local redaction of remote relation.
         @return [string] returns the name of the field that has changed, if any
     */
     addLocalRelation(entry) {
@@ -102,6 +102,13 @@ export class BaseEventEntry extends BaseEntry {
         }
     }
 
+    get pendingRedaction() {
+        if (this._pendingRedactions) {
+            return this._pendingRedactions[0];
+        }
+        return null;
+    }
+
     annotate(key) {
         return createAnnotation(this.id, key);
     }
@@ -111,7 +118,10 @@ export class BaseEventEntry extends BaseEntry {
     }
 
     async getOwnAnnotationId(room, key) {
-        const pendingEvent = this._pendingAnnotations?.findForKey(key);
-        return pendingEvent?.id;
+        return this.getPendingAnnotationEntry(key)?.id;
+    }
+
+    getPendingAnnotationEntry(key) {
+        return this._pendingAnnotations?.findForKey(key);
     }
 }

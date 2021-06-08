@@ -34,7 +34,7 @@ export class ReactionsViewModel {
                             this._map.update(key);
                         }
                     } else {
-                        this._map.add(key, new ReactionViewModel(key, annotation, 0, this._parentEntry));
+                        this._map.add(key, new ReactionViewModel(key, annotation, null, this._parentEntry));
                     }
                 }
             }
@@ -61,7 +61,7 @@ export class ReactionsViewModel {
                     this._map.update(existingKey);
                 }
             } else if (!hasPending) {
-                if (this._map.get(existingKey)._tryUpdatePending(0)) {
+                if (this._map.get(existingKey)._tryUpdatePending(null)) {
                     this._map.update(existingKey);
                 }
             }
@@ -109,11 +109,18 @@ class ReactionViewModel {
     }
 
     get count() {
-        return (this._annotation?.count || 0) + this._pendingCount;
+        let count = 0;
+        if (this._annotation) {
+            count += this._annotation.count;
+        }
+        if (this._pendingCount !== null) {
+            count += this._pendingCount;
+        }
+        return count;
     }
 
     get isPending() {
-        return this._pendingCount !== 0;
+        return this._pendingCount !== null;
     }
 
     get haveReacted() {
@@ -137,7 +144,10 @@ class ReactionViewModel {
     }
 
     toggleReaction() {
-        if (this.haveReacted) {
+        const havePendingReaction = this._pendingCount > 0;
+        const haveRemoteReaction = this._annotation?.me;
+        const haveReaction = havePendingReaction || haveRemoteReaction;
+        if (haveReaction) {
             return this._parentEntry.redactReaction(this.key);
         } else {
             return this._parentEntry.react(this.key);
