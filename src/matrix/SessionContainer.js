@@ -51,7 +51,7 @@ function normalizeHomeserver(homeServer) {
 }
 
 export class SessionContainer {
-    constructor({platform, olmPromise, workerPromise}) {
+    constructor({platform, olmPromise, workerPromise, guestAccount = false}) {
         this._platform = platform;
         this._sessionStartedByReconnector = false;
         this._status = new ObservableValue(LoadStatus.NotLoading);
@@ -65,6 +65,7 @@ export class SessionContainer {
         this._requestScheduler = null;
         this._olmPromise = olmPromise;
         this._workerPromise = workerPromise;
+        this._guestAccount = guestAccount;
     }
 
     createNewSessionId() {
@@ -97,20 +98,25 @@ export class SessionContainer {
         });
     }
 
-    async startWithLogin(homeServer, username, password, guest = false) {
+    async startWithLogin(homeServer, username, password, guestAccount = false) {
         if (this._status.get() !== LoadStatus.NotLoading) {
             return;
         }
         await this._platform.logger.run("login", async log => {
             this._status.set(LoadStatus.Login);
+            this._guestAccount = guestAccount;
             homeServer = normalizeHomeserver(homeServer);
             const clock = this._platform.clock;
             let sessionInfo;
             try {
                 const request = this._platform.request;
-                const hsApi = new HomeServerApi({homeServer, request});
+                const hsApi = new HomeServerApi({
+                    homeServer,
+                    request,
+                    guestAccount: this._guestAccount
+                });
                 let loginData;
-                if (guest === true) {
+                if (guestAccount === true) {
                     loginData = await hsApi.guestLogin("Hydrogen", {log}).response();
                 } else {
                     loginData = await hsApi.passwordLogin(username, password, "Hydrogen", {log}).response();
@@ -122,7 +128,8 @@ export class SessionContainer {
                     userId: loginData.user_id,
                     homeServer: homeServer,
                     accessToken: loginData.access_token,
-                    lastUsed: clock.now()
+                    lastUsed: clock.now(),
+                    guestAccount: this._guestAccount
                 };
                 log.set("id", sessionId);
                 await this._platform.sessionInfoStorage.add(sessionInfo);            
@@ -161,6 +168,7 @@ export class SessionContainer {
     async _loadSessionInfo(sessionInfo, isNewLogin, log) {
         log.set("appVersion", this._platform.version);
         const clock = this._platform.clock;
+        this._guestAccount = !!sessionInfo.guestAccount;
         this._sessionStartedByReconnector = false;
         this._status.set(LoadStatus.Loading);
         this._reconnector = new Reconnector({
@@ -173,6 +181,7 @@ export class SessionContainer {
             accessToken: sessionInfo.accessToken,
             request: this._platform.request,
             reconnector: this._reconnector,
+            guestAccount: this._guestAccount,
         });
         this._sessionId = sessionInfo.id;
         this._storage = await this._platform.storageFactory.create(sessionInfo.id);
@@ -188,7 +197,7 @@ export class SessionContainer {
         if (this._workerPromise) {
             olmWorker = await this._workerPromise;
         }
-        this._requestScheduler = new RequestScheduler({hsApi, clock});
+        this._requestScheduler = new RequestScheduler({hsApi, clock, guestAccount: this._guestAccount});
         this._requestScheduler.start();
         const mediaRepository = new MediaRepository({
             homeServer: sessionInfo.homeServer,

@@ -19,13 +19,14 @@ import {encodeQueryParams, encodeBody} from "./common.js";
 import {HomeServerRequest} from "./HomeServerRequest.js";
 
 export class HomeServerApi {
-    constructor({homeServer, accessToken, request, reconnector}) {
+    constructor({homeServer, accessToken, request, reconnector, guestAccount = false}) {
         // store these both in a closure somehow so it's harder to get at in case of XSS?
         // one could change the homeserver as well so the token gets sent there, so both must be protected from read/write
         this._homeserver = homeServer;
         this._accessToken = accessToken;
         this._requestFn = request;
         this._reconnector = reconnector;
+        this._guestAccount = guestAccount;
     }
 
     _url(csPath) {
@@ -104,6 +105,10 @@ export class HomeServerApi {
     }
 
     sync(since, filter, timeout, options = null) {
+        const _filter =  {room: {state: {lazy_load_members: true}}};
+        if (this._isGuestAccount()) {
+            filter = _filter;
+        }
         return this._get("/sync", {since, timeout, filter}, null, options);
     }
 
@@ -210,6 +215,10 @@ export class HomeServerApi {
 
     forget(roomId, options = null) {
         return this._post(`/rooms/${encodeURIComponent(roomId)}/forget`, null, null, options);
+    }
+
+    _isGuestAccount() {
+        return this._guestAccount;
     }
 }
 

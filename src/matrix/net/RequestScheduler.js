@@ -60,13 +60,14 @@ for (const methodName of Object.getOwnPropertyNames(HomeServerApi.prototype)) {
 }
 
 export class RequestScheduler {
-    constructor({hsApi, clock}) {
+    constructor({hsApi, clock, guestAccount = false}) {
         this._hsApi = hsApi;
         this._clock = clock;
         this._requests = new Set();
         this._isRateLimited = false;
         this._isDrainingRateLimit = false;
         this._stopped = true;
+        this._guestAccount = guestAccount;
         this._wrapper = new HomeServerApiWrapper(this);
     }
 
