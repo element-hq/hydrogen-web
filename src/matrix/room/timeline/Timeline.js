@@ -23,6 +23,7 @@ import {PendingEventEntry} from "./entries/PendingEventEntry.js";
 import {RoomMember} from "../members/RoomMember.js";
 import {PowerLevels} from "./PowerLevels.js";
 import {getRelationFromContent, getRelation, ANNOTATION_RELATION_TYPE} from "./relations.js";
+import {REDACTION_TYPE} from "../common.js";
 
 export class Timeline {
     constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock}) {
@@ -125,13 +126,17 @@ export class Timeline {
             return params;
         });
         if (redactedEntry) {
-            const redactedRelation = getRelationFromContent(redactedEntry.content);
-            if (redactedRelation?.event_id) {
-                const found = this._remoteEntries.findAndUpdate(
-                    e => e.id === redactedRelation.event_id,
-                    relationTarget => relationTarget.addLocalRelation(redactedEntry) || false
-                );
-            }
+            this._addLocallyRedactedRelationToTarget(redactedEntry);
+        }
+    }
+
+    _addLocallyRedactedRelationToTarget(redactedEntry) {    
+        const redactedRelation = getRelationFromContent(redactedEntry.content);
+        if (redactedRelation?.event_id) {
+            const found = this._remoteEntries.findAndUpdate(
+                e => e.id === redactedRelation.event_id,
+                relationTarget => relationTarget.addLocalRelation(redactedEntry) || false
+            );
         }
     }
 
@@ -180,7 +185,6 @@ export class Timeline {
         }
     }
 
-
     async getOwnAnnotationEntry(targetId, key) {
         const txn = await this._storage.readWriteTxn([
             this._storage.storeNames.timelineEvents,
@@ -227,9 +231,33 @@ export class Timeline {
         for (const pee of this._localEntries) {
             // this will work because we set relatedEventId when removing remote echos
             if (pee.relatedEventId) {
+
+
                 const relationTarget = entries.find(e => e.id === pee.relatedEventId);
-                // no need to emit here as this entry is about to be added
-                relationTarget?.addLocalRelation(pee);
+                if (relationTarget) {
+                    const wasRedacted = relationTarget.isRedacted;
+                    // no need to emit here as this entry is about to be added
+                    relationTarget.addLocalRelation(pee);
+                    if (!wasRedacted && relationTarget.isRedacted) {
+                        this._addLocallyRedactedRelationToTarget(relationTarget);
+                    }
+                } else if (pee.eventType === REDACTION_TYPE) {
+                    // if pee is a redaction, we need to lookup the event it is redacting,
+                    // and see if that is a relation of one of the entries
+                    const redactedEntry = this.getByEventId(pee.relatedEventId);
+                    if (redactedEntry) {
+                        const relation = getRelation(redactedEntry);
+                        if (relation) {
+                            const redactedRelationTarget = entries.find(e => e.id === relation.event_id);
+                            redactedRelationTarget?.addLocalRelation(redactedEntry);
+                        }
+                    }
+                } else {
+                    // TODO: errors are swallowed here
+                    // console.log(`could not find target for pee ${pee.relatedEventId} ` + entries.filter(e => !["m.reaction", "m.room.redaction"].includes(e.eventType)).map(e => `${e.id}: ${e.content?.body}`).join(","));
+                    // console.log(`could not find target for pee ${pee.relatedEventId} ` + entries.filter(e => "m.reaction" === e.eventType).map(e => `${e.id}: ${getRelation(e)?.key}`).join(","));
+                    // console.log(`could not find target for pee ${pee.relatedEventId} ` + entries.map(e => `${e.id}: ${e._eventEntry.key.substr(e._eventEntry.key.lastIndexOf("|") + 1)}`).join(","));
+                }
             }
         }
     }
