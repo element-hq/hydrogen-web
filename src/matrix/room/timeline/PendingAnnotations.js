@@ -19,35 +19,33 @@ import {getRelationFromContent} from "./relations.js";
 export class PendingAnnotations {
     constructor() {
         this.aggregatedAnnotations = new Map();
+        // this contains both pending annotation entries, and pending redactions of remote annotation entries 
         this._entries = [];
     }
 
     /** adds either a pending annotation entry, or a remote annotation entry with a pending redaction */
-    add(annotationEntry) {
-        const relation = getRelationFromContent(annotationEntry.content);
-        const key = relation.key;
+    add(entry) {
+        const {key} = entry.ownOrRedactedRelation;
         if (!key) {
             return;
         }
         const count = this.aggregatedAnnotations.get(key) || 0;
-        const addend = annotationEntry.isRedacted ? -1 : 1;
-        console.log("add", count, addend);
+        const addend = entry.isRedaction ? -1 : 1;
         this.aggregatedAnnotations.set(key, count + addend);
-        this._entries.push(annotationEntry);
+        this._entries.push(entry);
     }
 
     /** removes either a pending annotation entry, or a remote annotation entry with a pending redaction */
-    remove(annotationEntry) {
-        const idx = this._entries.indexOf(annotationEntry);
+    remove(entry) {
+        const idx = this._entries.indexOf(entry);
         if (idx === -1) {
             return;
         }
         this._entries.splice(idx, 1);
-        const relation = getRelationFromContent(annotationEntry.content);
-        const key = relation.key;
+        const {key} = entry.ownOrRedactedRelation;
         let count = this.aggregatedAnnotations.get(key);
         if (count !== undefined) {
-            const addend = annotationEntry.isRedacted ? 1 : -1;
+            const addend = entry.isRedaction ? 1 : -1;
             count += addend;
             if (count <= 0) {
                 this.aggregatedAnnotations.delete(key);
@@ -60,13 +58,22 @@ export class PendingAnnotations {
     findForKey(key) {
         return this._entries.find(e => {
             const relation = getRelationFromContent(e.content);
-            if (relation.key === key) {
+            if (relation && relation.key === key) {
+                return e;
+            }
+        });
+    }
+
+    findRedactionForKey(key) {
+        return this._entries.find(e => {
+            const relation = e.redactingRelation;
+            if (relation && relation.key === key) {
                 return e;
             }
         });
     }
 
     get isEmpty() {
-        return this._entries.length;
+        return this._entries.length === 0;
     }
 }

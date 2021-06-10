@@ -125,8 +125,7 @@ export class BaseMessageTile extends SimpleTile {
 
     react(key, log = null) {
         return this.logger.wrapOrRun(log, "react", async log => {
-            const existingAnnotation = await this._entry.getOwnAnnotationEntry(this._timeline, key);
-            const redaction = existingAnnotation?.pendingRedaction;
+            const redaction = this._entry.getAnnotationPendingRedaction(key);
             if (redaction && !redaction.pendingEvent.hasStartedSending) {
                 log.set("abort_redaction", true);
                 await redaction.pendingEvent.abort();
@@ -138,9 +137,16 @@ export class BaseMessageTile extends SimpleTile {
 
     redactReaction(key, log = null) {
         return this.logger.wrapOrRun(log, "redactReaction", async log => {
+            const redaction = this._entry.getAnnotationPendingRedaction(key);
+            if (redaction) {
+                log.set("already_redacting", true);
+                return;
+            }
             const entry = await this._entry.getOwnAnnotationEntry(this._timeline, key);
             if (entry) {
                 await this._room.sendRedaction(entry.id, null, log);
+            } else {
+                log.set("no_reaction", true);
             }
         });
     }

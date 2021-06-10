@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {SortedArray, MappedList, ConcatList, ObservableArray} from "../../../observable/index.js";
+import {SortedArray, AsyncMappedList, ConcatList, ObservableArray} from "../../../observable/index.js";
 import {Disposables} from "../../../utils/Disposables.js";
 import {Direction} from "./Direction.js";
 import {TimelineReader} from "./persistence/TimelineReader.js";
@@ -101,85 +101,65 @@ export class Timeline {
     _setupEntries(timelineEntries) {
         this._remoteEntries.setManySorted(timelineEntries);
         if (this._pendingEvents) {
-            this._localEntries = new MappedList(this._pendingEvents, pe => {
-                const pee = new PendingEventEntry({pendingEvent: pe, member: this._ownMember, clock: this._clock});
-                this._onAddPendingEvent(pee);
-                return pee;
-            }, (pee, params) => {
-                // is sending but redacted, who do we detect that here to remove the relation?
-                pee.notifyUpdate(params);
-            }, pee => this._onRemovePendingEvent(pee));
+            this._localEntries = new AsyncMappedList(this._pendingEvents,
+                pe => this._mapPendingEventToEntry(pe),
+                (pee, params) => {
+                    // is sending but redacted, who do we detect that here to remove the relation?
+                    pee.notifyUpdate(params);
+                },
+                pee => this._applyAndEmitLocalRelationChange(pee, target => target.removeLocalRelation(pee))
+            );
         } else {
             this._localEntries = new ObservableArray();
         }
         this._allEntries = new ConcatList(this._remoteEntries, this._localEntries);
     }
 
-    _onAddPendingEvent(pee) {
-        let redactedEntry;
-        this._applyAndEmitLocalRelationChange(pee.pendingEvent, target => {
-            const wasRedacted = target.isRedacted;
-            const params = target.addLocalRelation(pee);
-            if (!wasRedacted && target.isRedacted) {
-                redactedEntry = target;
-            }
-            return params;
-        });
-        if (redactedEntry) {
-            this._addLocallyRedactedRelationToTarget(redactedEntry);
+    async _mapPendingEventToEntry(pe) {
+        // we load the remote redaction target for pending events,
+        // so if we are redacting a relation, we can pass the redaction
+        // to the relation target and the removal of the relation can
+        // be taken into account for local echo.
+        let redactionTarget;
+        if (pe.eventType === REDACTION_TYPE && pe.relatedEventId) {
+            const txn = await this._storage.readWriteTxn([
+                this._storage.storeNames.timelineEvents,
+            ]);
+            const redactionTargetEntry = await txn.timelineEvents.getByEventId(this._roomId, pe.relatedEventId);
+            redactionTarget = redactionTargetEntry?.event;
         }
+        const pee = new PendingEventEntry({pendingEvent: pe, member: this._ownMember, clock: this._clock, redactionTarget});
+        this._applyAndEmitLocalRelationChange(pee, target => target.addLocalRelation(pee));
+        return pee;
     }
 
-    _addLocallyRedactedRelationToTarget(redactedEntry) {    
-        const redactedRelation = getRelationFromContent(redactedEntry.content);
-        if (redactedRelation?.event_id) {
-            const found = this._remoteEntries.findAndUpdate(
-                e => e.id === redactedRelation.event_id,
-                relationTarget => relationTarget.addLocalRelation(redactedEntry) || false
-            );
-        }
-    }
 
-    _onRemovePendingEvent(pee) {
-        let unredactedEntry;
-        this._applyAndEmitLocalRelationChange(pee.pendingEvent, target => {
-            const wasRedacted = target.isRedacted;
-            const params = target.removeLocalRelation(pee);
-            if (wasRedacted && !target.isRedacted) {
-                unredactedEntry = target;
-            }
-            return params;
-        });
-        if (unredactedEntry) {
-            const redactedRelation = getRelationFromContent(unredactedEntry.content);
-            if (redactedRelation?.event_id) {
-                this._remoteEntries.findAndUpdate(
-                    e => e.id === redactedRelation.event_id,
-                    relationTarget => relationTarget.removeLocalRelation(unredactedEntry) || false
-                );
-            }
-        }
-    }
-
-    _applyAndEmitLocalRelationChange(pe, updater) {
+    _applyAndEmitLocalRelationChange(pee, updater) {
         const updateOrFalse = e => {
             const params = updater(e);
             return params ? params : false;
         };
+        let found = false;
+        const {relatedTxnId} = pee.pendingEvent;
         // first, look in local entries based on txn id
-        if (pe.relatedTxnId) {
-            const found = this._localEntries.findAndUpdate(
-                e => e.id === pe.relatedTxnId,
+        if (relatedTxnId) {
+            found = this._localEntries.findAndUpdate(
+                e => e.id === relatedTxnId,
                 updateOrFalse,
             );
-            if (found) {
-                return;
-            }
         }
         // now look in remote entries based on event id
-        if (pe.relatedEventId) {
+        if (!found && pee.relatedEventId) {
             this._remoteEntries.findAndUpdate(
-                e => e.id === pe.relatedEventId,
+                e => e.id === pee.relatedEventId,
+                updateOrFalse
+            );
+        }
+        // also look for a relation target to update with this redaction
+        if (pee.redactingRelation) {
+            const eventId = pee.redactingRelation.event_id;
+            const found = this._remoteEntries.findAndUpdate(
+                e => e.id === eventId,
                 updateOrFalse
             );
         }
@@ -231,32 +211,17 @@ export class Timeline {
         for (const pee of this._localEntries) {
             // this will work because we set relatedEventId when removing remote echos
             if (pee.relatedEventId) {
-
-
                 const relationTarget = entries.find(e => e.id === pee.relatedEventId);
                 if (relationTarget) {
-                    const wasRedacted = relationTarget.isRedacted;
                     // no need to emit here as this entry is about to be added
                     relationTarget.addLocalRelation(pee);
-                    if (!wasRedacted && relationTarget.isRedacted) {
-                        this._addLocallyRedactedRelationToTarget(relationTarget);
-                    }
-                } else if (pee.eventType === REDACTION_TYPE) {
-                    // if pee is a redaction, we need to lookup the event it is redacting,
-                    // and see if that is a relation of one of the entries
-                    const redactedEntry = this.getByEventId(pee.relatedEventId);
-                    if (redactedEntry) {
-                        const relation = getRelation(redactedEntry);
-                        if (relation) {
-                            const redactedRelationTarget = entries.find(e => e.id === relation.event_id);
-                            redactedRelationTarget?.addLocalRelation(redactedEntry);
-                        }
-                    }
-                } else {
-                    // TODO: errors are swallowed here
-                    // console.log(`could not find target for pee ${pee.relatedEventId} ` + entries.filter(e => !["m.reaction", "m.room.redaction"].includes(e.eventType)).map(e => `${e.id}: ${e.content?.body}`).join(","));
-                    // console.log(`could not find target for pee ${pee.relatedEventId} ` + entries.filter(e => "m.reaction" === e.eventType).map(e => `${e.id}: ${getRelation(e)?.key}`).join(","));
-                    // console.log(`could not find target for pee ${pee.relatedEventId} ` + entries.map(e => `${e.id}: ${e._eventEntry.key.substr(e._eventEntry.key.lastIndexOf("|") + 1)}`).join(","));
+                }
+            }
+            if (pee.redactingRelation) {
+                const eventId = pee.redactingRelation.event_id;
+                const relationTarget = entries.find(e => e.id === eventId);
+                if (relationTarget) {
+                    relationTarget.addLocalRelation(pee);
                 }
             }
         }
@@ -344,6 +309,7 @@ export class Timeline {
 }
 
 import {FragmentIdComparer} from "./FragmentIdComparer.js";
+import {poll} from "../../../mocks/poll.js";
 import {Clock as MockClock} from "../../../mocks/Clock.js";
 import {createMockStorage} from "../../../mocks/Storage.js";
 import {createEvent, withTextBody, withSender} from "../../../mocks/event.js";
@@ -355,6 +321,14 @@ import {PendingEvent} from "../sending/PendingEvent.js";
 export function tests() {
     const fragmentIdComparer = new FragmentIdComparer([]);
     const roomId = "$abc";
+    const noopHandler = {};
+    noopHandler.onAdd = 
+    noopHandler.onUpdate =
+    noopHandler.onRemove =
+    noopHandler.onMove =
+    noopHandler.onReset =
+        function() {};
+
     return {
         "adding or replacing entries before subscribing to entries does not loose local relations": async assert => {
             const pendingEvents = new ObservableArray();
@@ -384,10 +358,11 @@ export function tests() {
                 content: {},
                 relatedEventId: event2.event_id
             }}));
-            // 4. subscribe (it's now safe to iterate timeline.entries)
-            timeline.entries.subscribe({});
+            // 4. subscribe (it's now safe to iterate timeline.entries) 
+            timeline.entries.subscribe(noopHandler);
             // 5. check the local relation got correctly aggregated
-            assert.equal(Array.from(timeline.entries)[0].isRedacting, true);
+            const locallyRedacted = await poll(() => Array.from(timeline.entries)[0].isRedacting);
+            assert.equal(locallyRedacted, true);
         }
     }
 }

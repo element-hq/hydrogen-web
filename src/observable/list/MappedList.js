@@ -15,20 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableList} from "./BaseObservableList.js";
-import {findAndUpdateInArray} from "./common.js";
+import {BaseMappedList, runAdd, runUpdate, runRemove, runMove, runReset} from "./BaseMappedList.js";
 
-export class MappedList extends BaseObservableList {
-    constructor(sourceList, mapper, updater, removeCallback) {
-        super();
-        this._sourceList = sourceList;
-        this._mapper = mapper;
-        this._updater = updater;
-        this._removeCallback = removeCallback;
-        this._sourceUnsubscribe = null;
-        this._mappedValues = null;
-    }
-
+export class MappedList extends BaseMappedList {
     onSubscribeFirst() {
         this._sourceUnsubscribe = this._sourceList.subscribe(this);
         this._mappedValues = [];
@@ -38,14 +27,12 @@ export class MappedList extends BaseObservableList {
     }
 
     onReset() {
-        this._mappedValues = [];
-        this.emitReset();
+        runReset(this);
     }
 
     onAdd(index, value) {
         const mappedValue = this._mapper(value);
-        this._mappedValues.splice(index, 0, mappedValue);
-        this.emitAdd(index, mappedValue);
+        runAdd(this, index, mappedValue);
     }
 
     onUpdate(index, value, params) {
@@ -53,47 +40,24 @@ export class MappedList extends BaseObservableList {
         if (!this._mappedValues) {
             return;
         }
-        const mappedValue = this._mappedValues[index];
-        if (this._updater) {
-            this._updater(mappedValue, params, value);
-        }
-        this.emitUpdate(index, mappedValue, params);
+        runUpdate(this, index, value, params);
     }
 
     onRemove(index) {
-        const mappedValue = this._mappedValues[index];
-        this._mappedValues.splice(index, 1);
-        if (this._removeCallback) {
-            this._removeCallback(mappedValue);
-        }
-        this.emitRemove(index, mappedValue);
+        runRemove(this, index);
     }
 
     onMove(fromIdx, toIdx) {
-        const mappedValue = this._mappedValues[fromIdx];
-        this._mappedValues.splice(fromIdx, 1);
-        this._mappedValues.splice(toIdx, 0, mappedValue);
-        this.emitMove(fromIdx, toIdx, mappedValue);
+        runMove(this, fromIdx, toIdx);
     }
 
     onUnsubscribeLast() {
         this._sourceUnsubscribe();
     }
-
-    findAndUpdate(predicate, updater) {
-        return findAndUpdateInArray(predicate, this._mappedValues, this, updater);
-    }
-
-    get length() {
-        return this._mappedValues.length;
-    }
-
-    [Symbol.iterator]() {
-        return this._mappedValues.values();
-    }
 }
 
 import {ObservableArray} from "./ObservableArray.js";
+import {BaseObservableList} from "./BaseObservableList.js";
 
 export async function tests() {
     class MockList extends BaseObservableList {

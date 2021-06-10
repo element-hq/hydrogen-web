@@ -34,6 +34,10 @@ export class BaseEventEntry extends BaseEntry {
         return this.isRedacting;
     }
 
+    get isRedaction() {
+        return this.eventType === REDACTION_TYPE;
+    }
+
     get redactionReason() {
         if (this._pendingRedactions) {
             return this._pendingRedactions[0].content?.reason;
@@ -46,7 +50,7 @@ export class BaseEventEntry extends BaseEntry {
         @return [string] returns the name of the field that has changed, if any
     */
     addLocalRelation(entry) {
-        if (entry.eventType === REDACTION_TYPE) {
+        if (entry.eventType === REDACTION_TYPE && entry.relatedEventId === this.id) {
             if (!this._pendingRedactions) {
                 this._pendingRedactions = [];
             }
@@ -55,23 +59,25 @@ export class BaseEventEntry extends BaseEntry {
                 return "isRedacted";
             }
         } else {
-            const relation = getRelationFromContent(entry.content);
-            if (relation && relation.rel_type === ANNOTATION_RELATION_TYPE) {
-                if (!this._pendingAnnotations) {
-                    this._pendingAnnotations = new PendingAnnotations();
+            const relation = entry.ownOrRedactedRelation;
+            if (relation && relation.event_id === this.id) {
+                if (relation.rel_type === ANNOTATION_RELATION_TYPE) {
+                    if (!this._pendingAnnotations) {
+                        this._pendingAnnotations = new PendingAnnotations();
+                    }
+                    this._pendingAnnotations.add(entry);
+                    return "pendingAnnotations";
                 }
-                this._pendingAnnotations.add(entry);
-                return "pendingAnnotations";
             }
         }
     }
     
     /**
-        deaggregates local relation.
+        deaggregates local relation or a local redaction of a remote relation.
         @return [string] returns the name of the field that has changed, if any
     */
     removeLocalRelation(entry) {
-        if (entry.eventType === REDACTION_TYPE && this._pendingRedactions) {
+        if (entry.eventType === REDACTION_TYPE && entry.relatedEventId === this.id && this._pendingRedactions) {
             const countBefore = this._pendingRedactions.length;
             this._pendingRedactions = this._pendingRedactions.filter(e => e !== entry);
             if (this._pendingRedactions.length === 0) {
@@ -81,13 +87,15 @@ export class BaseEventEntry extends BaseEntry {
                 }
             }
         } else {
-            const relation = getRelationFromContent(entry.content);
-            if (relation && relation.rel_type === ANNOTATION_RELATION_TYPE && this._pendingAnnotations) {
-                this._pendingAnnotations.remove(entry);
-                if (this._pendingAnnotations.isEmpty) {
-                    this._pendingAnnotations = null;
+            const relation = entry.ownOrRedactedRelation;
+            if (relation && relation.event_id === this.id) {
+                if (relation.rel_type === ANNOTATION_RELATION_TYPE && this._pendingAnnotations) {
+                    this._pendingAnnotations.remove(entry);
+                    if (this._pendingAnnotations.isEmpty) {
+                        this._pendingAnnotations = null;
+                    }
+                    return "pendingAnnotations";
                 }
-                return "pendingAnnotations";
             }
         }
     }
@@ -119,5 +127,9 @@ export class BaseEventEntry extends BaseEntry {
 
     async getOwnAnnotationEntry(timeline, key) {
         return this._pendingAnnotations?.findForKey(key);
+    }
+
+    getAnnotationPendingRedaction(key) {
+        return this._pendingAnnotations?.findRedactionForKey(key);
     }
 }

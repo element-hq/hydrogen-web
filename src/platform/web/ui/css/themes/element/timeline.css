@@ -243,7 +243,7 @@ only loads when the top comes into view*/
 
 .Timeline_messageReactions button.haveReacted.isPending {
     animation-name: glow-reaction-border;
-    animation-duration: 0.8s;
+    animation-duration: 0.5s;
     animation-direction: alternate;
     animation-iteration-count: infinite;
     animation-timing-function: linear;
