@@ -23,7 +23,7 @@ export class ReactionsView extends ListView {
             className: "Timeline_messageReactions",
             tagName: "div",
             list: reactionsViewModel.reactions,
-            onItemClick: (reactionView, evt) => reactionView.onClick(),
+            onItemClick: reactionView => reactionView.onClick(),
         }
         super(options, reactionVM => new ReactionView(reactionVM));
     }

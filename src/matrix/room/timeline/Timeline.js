@@ -22,7 +22,7 @@ import {TimelineReader} from "./persistence/TimelineReader.js";
 import {PendingEventEntry} from "./entries/PendingEventEntry.js";
 import {RoomMember} from "../members/RoomMember.js";
 import {PowerLevels} from "./PowerLevels.js";
-import {getRelationFromContent, getRelation, ANNOTATION_RELATION_TYPE} from "./relations.js";
+import {getRelation, ANNOTATION_RELATION_TYPE} from "./relations.js";
 import {REDACTION_TYPE} from "../common.js";
 
 export class Timeline {
@@ -158,7 +158,7 @@ export class Timeline {
         // also look for a relation target to update with this redaction
         if (pee.redactingRelation) {
             const eventId = pee.redactingRelation.event_id;
-            const found = this._remoteEntries.findAndUpdate(
+            this._remoteEntries.findAndUpdate(
                 e => e.id === eventId,
                 updateOrFalse
             );

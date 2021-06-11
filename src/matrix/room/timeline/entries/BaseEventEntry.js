@@ -16,7 +16,7 @@ limitations under the License.
 
 import {BaseEntry} from "./BaseEntry.js";
 import {REDACTION_TYPE} from "../../common.js";
-import {createAnnotation, getRelationFromContent, ANNOTATION_RELATION_TYPE} from "../relations.js";
+import {createAnnotation, ANNOTATION_RELATION_TYPE} from "../relations.js";
 import {PendingAnnotations} from "../PendingAnnotations.js";
 
 export class BaseEventEntry extends BaseEntry {

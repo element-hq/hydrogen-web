@@ -28,7 +28,6 @@ import {EventEntry} from "./timeline/entries/EventEntry.js";
 import {ObservedEventMap} from "./ObservedEventMap.js";
 import {DecryptionSource} from "../e2ee/common.js";
 import {ensureLogItem} from "../../logging/utils.js";
-import {ANNOTATION_RELATION_TYPE, getRelation} from "./timeline/relations.js";
 
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 

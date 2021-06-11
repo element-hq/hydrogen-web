@@ -92,6 +92,7 @@ export class PendingEventEntry extends BaseEventEntry {
         if (this._redactionTarget) {
             return getRelationFromContent(this._redactionTarget.content);
         }
+        return null;
     }
     /**
      * returns either the relationship on this entry,
@@ -104,10 +105,5 @@ export class PendingEventEntry extends BaseEventEntry {
         } else {
             return getRelationFromContent(this._pendingEvent.content);
         }
-    }
-
-    getOwnAnnotationId(_, key) {
-        // TODO: implement this once local reactions are implemented
-        return null;
     }
 }
