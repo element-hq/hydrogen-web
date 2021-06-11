@@ -103,8 +103,6 @@ export function createFetchRequest(createTimeout, serviceWorkerHandler) {
             }
             options.headers = fetchHeaders;
         }
-        const promise = Promise.reject(new ConnectionError());
-        /*
         const promise = fetch(url, options).then(async response => {
             const {status} = response;
             let body;
@@ -137,7 +135,6 @@ export function createFetchRequest(createTimeout, serviceWorkerHandler) {
             }
             throw err;
         });
-        */
         const result = new RequestResult(promise, controller);
 
         if (timeout) {
