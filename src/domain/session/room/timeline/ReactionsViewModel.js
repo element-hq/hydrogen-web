@@ -135,7 +135,12 @@ class ReactionViewModel {
             const a = this._annotation;
             const b = other._annotation;
             if (a && b) {
-                return a.firstTimestamp - b.firstTimestamp;
+                const cmp = a.firstTimestamp - b.firstTimestamp;
+                if (cmp === 0) {
+                    return this.key < other.key ? -1 : 1;
+                } else {
+                    return cmp;
+                }
             } else if (a) {
                 return -1;
             } else {
