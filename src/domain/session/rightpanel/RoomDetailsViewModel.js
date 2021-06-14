@@ -5,7 +5,8 @@ export class RoomDetailsViewModel extends ViewModel {
     constructor(options) {
         super(options);
         this._room = options.room;
-        this._room.on("change", () => this.emitChange());
+        this._onRoomChange = this._onRoomChange.bind(this);
+        this._room.on("change", this._onRoomChange);
     }
 
     get roomId() {
@@ -44,8 +45,17 @@ export class RoomDetailsViewModel extends ViewModel {
         return this.name;
     }
 
+    _onRoomChange() {
+        this.emitChange();
+    }
+
     closePanel() {
         const path = this.navigation.path.until("room");
         this.navigation.applyPath(path);
+    }
+
+    dispose() {
+        super.dispose();
+        this._room.off("change", this._onRoomChange);
     }
 }
