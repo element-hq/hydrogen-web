@@ -63,7 +63,7 @@ export class SessionViewModel extends ViewModel {
             if (!this._gridViewModel) {
                 this._updateRoom(roomId);
             }
-            this._toggleRoomDetailsPanel();
+            this._updateRoomDetails();
         }));
         if (!this._gridViewModel) {
             this._updateRoom(currentRoomId.get());
@@ -82,8 +82,8 @@ export class SessionViewModel extends ViewModel {
         this._updateLightbox(lightbox.get());
 
         const details = this.navigation.observe("details");
-        this.track(details.subscribe(() => this._toggleRoomDetailsPanel()));
-        this._toggleRoomDetailsPanel();
+        this.track(details.subscribe(() => this._updateRoomDetails()));
+        this._updateRoomDetails();
     }
 
     get id() {
@@ -256,7 +256,7 @@ export class SessionViewModel extends ViewModel {
         return room;
     }
 
-    _toggleRoomDetailsPanel() {
+    _updateRoomDetails() {
         this._roomDetailsViewModel = this.disposeTracked(this._roomDetailsViewModel);
         const enable = !!this.navigation.path.get("details")?.value;
         if (enable) {
