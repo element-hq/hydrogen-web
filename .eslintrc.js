@@ -12,7 +12,6 @@ module.exports = {
         "no-console": "off",
         "no-empty": "off",
         "no-prototype-builtins": "off",
-        "no-unused-vars": "warn",
-        "object-curly-spacing": ["warn", "never"]
+        "no-unused-vars": "warn"
     }
 };
