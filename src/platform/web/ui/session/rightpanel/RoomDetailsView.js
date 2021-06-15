@@ -1,5 +1,5 @@
 import {TemplateView} from "../../general/TemplateView.js";
-import {text, classNames, tag} from "../../general/html.js";
+import {classNames, tag} from "../../general/html.js";
 import {AvatarView} from "../../avatar.js";
 
 export class RoomDetailsView extends TemplateView {
@@ -23,14 +23,14 @@ export class RoomDetailsView extends TemplateView {
     }
 
     _createRoomAliasDisplay(vm) {
-        return vm.canonicalAlias ? tag.div({className: "RoomDetailsView_id"}, [text(vm.canonicalAlias)]) :
+        return vm.canonicalAlias ? tag.div({className: "RoomDetailsView_id"}, [vm.canonicalAlias]) :
             "";
     }
 
     _createRightPanelRow(t, label, labelClass, value) {
         const labelClassString = classNames({RoomDetailsView_label: true, ...labelClass});
         return t.div({className: "RoomDetailsView_row"}, [
-            t.div({className: labelClassString}, [text(label)]),
+            t.div({className: labelClassString}, [label]),
             t.div({className: "RoomDetailsView_value"}, value)
         ]);
     }
