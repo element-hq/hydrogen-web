@@ -72,7 +72,7 @@ the layout viewport up without resizing it when the keyboard shows */
 .middle .close-middle { display: none; }
 /* mobile layout */
 @media screen and (max-width: 800px) {
-    .SessionView:not(.middle-shown, .right-shown) {
+    .SessionView:not(.middle-shown) {
         grid-template:
             "status" auto
             "left" 1fr /
