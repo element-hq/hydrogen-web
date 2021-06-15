@@ -22,6 +22,7 @@ export class ReactionsViewModel {
         this._reactions = this._map.sortValues((a, b) => a._compare(b));
     }
 
+    /** @package */
     update(annotations, pendingAnnotations) {
         if (annotations) {
             for (const key in annotations) {
@@ -33,7 +34,7 @@ export class ReactionsViewModel {
                             this._map.update(key);
                         }
                     } else {
-                        this._map.add(key, new ReactionViewModel(key, annotation, null, this._parentEntry));
+                        this._map.add(key, new ReactionViewModel(key, annotation, 0, this._parentEntry));
                     }
                 }
             }
@@ -60,7 +61,7 @@ export class ReactionsViewModel {
                     this._map.update(existingKey);
                 }
             } else if (!hasPending) {
-                if (this._map.get(existingKey)._tryUpdatePending(null)) {
+                if (this._map.get(existingKey)._tryUpdatePending(0)) {
                     this._map.update(existingKey);
                 }
             }
@@ -109,18 +110,15 @@ class ReactionViewModel {
     }
 
     get count() {
-        let count = 0;
+        let count = this._pendingCount;
         if (this._annotation) {
             count += this._annotation.count;
-        }
-        if (this._pendingCount !== null) {
-            count += this._pendingCount;
         }
         return count;
     }
 
     get isPending() {
-        return this._pendingCount !== null;
+        return this._pendingCount !== 0;
     }
 
     get haveReacted() {
@@ -156,7 +154,6 @@ class ReactionViewModel {
 
     async toggleReaction() {
         if (this._isToggling) {
-            console.log("blocking toggleReaction, call ongoing");
             return;
         }
         this._isToggling = true;

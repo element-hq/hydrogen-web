@@ -19,13 +19,13 @@ import {BaseEventEntry} from "./BaseEventEntry.js";
 import {getRelationFromContent} from "../relations.js";
 
 export class PendingEventEntry extends BaseEventEntry {
-    constructor({pendingEvent, member, clock, redactionTarget}) {
+    constructor({pendingEvent, member, clock, redactingRelation}) {
         super(null);
         this._pendingEvent = pendingEvent;
         /** @type {RoomMember} */
         this._member = member;
         this._clock = clock;
-        this._redactionTarget = redactionTarget;
+        this._redactingRelation = redactingRelation;
     }
 
     get fragmentId() {
@@ -89,10 +89,7 @@ export class PendingEventEntry extends BaseEventEntry {
     }
 
     get redactingRelation() {
-        if (this._redactionTarget) {
-            return getRelationFromContent(this._redactionTarget.content);
-        }
-        return null;
+        return this._redactingRelation;
     }
     /**
      * returns either the relationship on this entry,
@@ -100,10 +97,6 @@ export class PendingEventEntry extends BaseEventEntry {
      * 
      * Useful while aggregating relations for local echo. */
     get ownOrRedactedRelation() {
-        if (this._redactionTarget) {
-            return getRelationFromContent(this._redactionTarget.content);
-        } else {
-            return getRelationFromContent(this._pendingEvent.content);
-        }
+        return this.redactingRelation || getRelationFromContent(this._pendingEvent.content);
     }
 }

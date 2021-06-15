@@ -22,7 +22,7 @@ import {TimelineReader} from "./persistence/TimelineReader.js";
 import {PendingEventEntry} from "./entries/PendingEventEntry.js";
 import {RoomMember} from "../members/RoomMember.js";
 import {PowerLevels} from "./PowerLevels.js";
-import {getRelation, ANNOTATION_RELATION_TYPE} from "./relations.js";
+import {getRelation, getRelationFromContent, ANNOTATION_RELATION_TYPE} from "./relations.js";
 import {REDACTION_TYPE} from "../common.js";
 
 export class Timeline {
@@ -116,19 +116,34 @@ export class Timeline {
     }
 
     async _mapPendingEventToEntry(pe) {
-        // we load the remote redaction target for pending events,
+        // we load the redaction target for pending events,
         // so if we are redacting a relation, we can pass the redaction
         // to the relation target and the removal of the relation can
         // be taken into account for local echo.
-        let redactionTarget;
-        if (pe.eventType === REDACTION_TYPE && pe.relatedEventId) {
-            const txn = await this._storage.readWriteTxn([
-                this._storage.storeNames.timelineEvents,
-            ]);
-            const redactionTargetEntry = await txn.timelineEvents.getByEventId(this._roomId, pe.relatedEventId);
-            redactionTarget = redactionTargetEntry?.event;
+        let redactingRelation;
+        if (pe.eventType === REDACTION_TYPE) {
+            if (pe.relatedEventId) {
+                const txn = await this._storage.readWriteTxn([
+                    this._storage.storeNames.timelineEvents,
+                ]);
+                const redactionTargetEntry = await txn.timelineEvents.getByEventId(this._roomId, pe.relatedEventId);
+                if (redactionTargetEntry) {
+                    redactingRelation = getRelation(redactionTargetEntry.event);
+                }
+            } else if (pe.relatedTxnId) {
+                // also look for redacting relation in pending events, in case the target is already being sent
+                for (const p of this._localEntries) {
+                    if (p.id === pe.relatedTxnId) {
+                        redactingRelation = getRelationFromContent(p.content);
+                        break;
+                    }
+                }
+            }
         }
-        const pee = new PendingEventEntry({pendingEvent: pe, member: this._ownMember, clock: this._clock, redactionTarget});
+        const pee = new PendingEventEntry({
+            pendingEvent: pe, member: this._ownMember,
+            clock: this._clock, redactingRelation
+        });
         this._applyAndEmitLocalRelationChange(pee, target => target.addLocalRelation(pee));
         return pee;
     }
@@ -158,6 +173,7 @@ export class Timeline {
         // also look for a relation target to update with this redaction
         if (pee.redactingRelation) {
             const eventId = pee.redactingRelation.event_id;
+            // TODO: also support reacting to pending entries
             this._remoteEntries.findAndUpdate(
                 e => e.id === eventId,
                 updateOrFalse
