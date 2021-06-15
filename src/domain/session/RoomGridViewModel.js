@@ -78,17 +78,23 @@ export class RoomGridViewModel extends ViewModel {
         return this._height;
     }
 
+    _switchToRoom(roomId) {
+        const detailsShown = !!this.navigation.path.get("details")?.value;
+        let path = this.navigation.path.until("rooms");
+        path = path.with(new Segment("room", roomId));
+        if (detailsShown) {
+            path = path.with(new Segment("details", true));
+        }
+        this.navigation.applyPath(path);
+    }
+
     focusTile(index) {
         if (index === this._selectedIndex) {
             return;
         }
         const vmo = this._viewModelsObservables[index];
         if (vmo) {
-            const detailsShown = !!this.navigation.path.get("details")?.value;
-            this.navigation.push("room", vmo.id);
-            if (detailsShown) {
-                this.navigation.push("details", true);
-            }
+            this._switchToRoom(vmo.id);
         } else {
             this.navigation.push("empty-grid-tile", index);
         }
@@ -183,6 +189,7 @@ export class RoomGridViewModel extends ViewModel {
 
 import {createNavigation} from "../navigation/index.js";
 import {ObservableValue} from "../../observable/ObservableValue.js";
+import { Segment } from "../navigation/Navigation.js";
 
 export function tests() { 
     class RoomVMMock {
