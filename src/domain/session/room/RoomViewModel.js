@@ -288,7 +288,7 @@ export class RoomViewModel extends ViewModel {
         return this._composerVM;
     }
 
-    toggleDetailsPanel() {
+    openDetailsPanel() {
         let path = this.navigation.path.until("room");
         path = path.with(this.navigation.segment("details", true));
         this.navigation.applyPath(path);

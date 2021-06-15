@@ -68,7 +68,7 @@ export class RoomView extends TemplateView {
         } else {
             const vm = this.value;
             const options = [];
-            options.push(Menu.option(vm.i18n`Room details`, () => vm.toggleDetailsPanel()))
+            options.push(Menu.option(vm.i18n`Room details`, () => vm.openDetailsPanel()))
             if (vm.canLeave) {
                 options.push(Menu.option(vm.i18n`Leave room`, () => vm.leaveRoom()).setDestructive());
             }
