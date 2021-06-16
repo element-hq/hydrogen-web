@@ -34,7 +34,7 @@ export class ReactionsViewModel {
                             this._map.update(key);
                         }
                     } else {
-                        this._map.add(key, new ReactionViewModel(key, annotation, 0, this._parentEntry));
+                        this._map.add(key, new ReactionViewModel(key, annotation, null, this._parentEntry));
                     }
                 }
             }
@@ -61,7 +61,7 @@ export class ReactionsViewModel {
                     this._map.update(existingKey);
                 }
             } else if (!hasPending) {
-                if (this._map.get(existingKey)._tryUpdatePending(0)) {
+                if (this._map.get(existingKey)._tryUpdatePending(null)) {
                     this._map.update(existingKey);
                 }
             }
@@ -110,7 +110,7 @@ class ReactionViewModel {
     }
 
     get count() {
-        let count = this._pendingCount;
+        let count = this._pendingCount || 0;
         if (this._annotation) {
             count += this._annotation.count;
         }
@@ -118,7 +118,9 @@ class ReactionViewModel {
     }
 
     get isPending() {
-        return this._pendingCount !== 0;
+        // even if pendingCount is 0,
+        // it means we have both a pending reaction and redaction
+        return this._pendingCount !== null;
     }
 
     get haveReacted() {
@@ -158,8 +160,8 @@ class ReactionViewModel {
         }
         this._isToggling = true;
         try {
-            const haveLocalRedaction = this._pendingCount < 0;
-            const havePendingReaction = this._pendingCount > 0;
+            const haveLocalRedaction = this.isPending && this._pendingCount < 0;
+            const havePendingReaction = this.isPending && this._pendingCount > 0;
             const haveRemoteReaction = this._annotation?.me;
             const haveReaction = havePendingReaction || (haveRemoteReaction && !haveLocalRedaction);
             if (haveReaction) {

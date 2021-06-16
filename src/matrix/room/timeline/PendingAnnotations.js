@@ -47,11 +47,10 @@ export class PendingAnnotations {
         if (count !== undefined) {
             const addend = entry.isRedaction ? 1 : -1;
             count += addend;
-            if (count <= 0) {
-                this.aggregatedAnnotations.delete(key);
-            } else {
-                this.aggregatedAnnotations.set(key, count);
-            }
+            this.aggregatedAnnotations.set(key, count);
+        }
+        if (!this._entries.length) {
+            this.aggregatedAnnotations.clear();
         }
     }
 
