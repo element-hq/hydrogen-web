@@ -160,7 +160,8 @@ class ReactionViewModel {
         }
         this._isToggling = true;
         try {
-            const haveLocalRedaction = this.isPending && this._pendingCount < 0;
+            // TODO: should some of this go into BaseMessageTile?
+            const haveLocalRedaction = this.isPending && this._pendingCount <= 0;
             const havePendingReaction = this.isPending && this._pendingCount > 0;
             const haveRemoteReaction = this._annotation?.me;
             const haveReaction = havePendingReaction || (haveRemoteReaction && !haveLocalRedaction);
