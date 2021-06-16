@@ -16,16 +16,15 @@ limitations under the License.
 
 import {PENDING_FRAGMENT_ID} from "./BaseEntry.js";
 import {BaseEventEntry} from "./BaseEventEntry.js";
-import {getRelationFromContent} from "../relations.js";
 
 export class PendingEventEntry extends BaseEventEntry {
-    constructor({pendingEvent, member, clock, redactingRelation}) {
+    constructor({pendingEvent, member, clock, redactingEntry}) {
         super(null);
         this._pendingEvent = pendingEvent;
         /** @type {RoomMember} */
         this._member = member;
         this._clock = clock;
-        this._redactingRelation = redactingRelation;
+        this._redactingEntry = redactingEntry;
     }
 
     get fragmentId() {
@@ -84,19 +83,18 @@ export class PendingEventEntry extends BaseEventEntry {
         
     }
 
+    isRelationForId(id) {
+        if (id && id === this._pendingEvent.relatedTxnId) {
+            return true;
+        }
+        return super.isRelationForId(id);
+    }
+
     get relatedEventId() {
         return this._pendingEvent.relatedEventId;
     }
 
-    get redactingRelation() {
-        return this._redactingRelation;
-    }
-    /**
-     * returns either the relationship on this entry,
-     * or the relationship this entry is redacting.
-     * 
-     * Useful while aggregating relations for local echo. */
-    get ownOrRedactedRelation() {
-        return this.redactingRelation || getRelationFromContent(this._pendingEvent.content);
+    get redactingEntry() {
+        return this._redactingEntry;
     }
 }

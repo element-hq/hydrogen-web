@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {getRelationFromContent} from "./relations.js";
-
 export class PendingAnnotations {
     constructor() {
         this.aggregatedAnnotations = new Map();
@@ -25,7 +23,7 @@ export class PendingAnnotations {
 
     /** adds either a pending annotation entry, or a remote annotation entry with a pending redaction */
     add(entry) {
-        const {key} = entry.ownOrRedactedRelation;
+        const {key} = (entry.redactingEntry || entry).relation;
         if (!key) {
             return;
         }
@@ -42,7 +40,7 @@ export class PendingAnnotations {
             return;
         }
         this._entries.splice(idx, 1);
-        const {key} = entry.ownOrRedactedRelation;
+        const {key} = (entry.redactingEntry || entry).relation;
         let count = this.aggregatedAnnotations.get(key);
         if (count !== undefined) {
             const addend = entry.isRedaction ? 1 : -1;
@@ -56,8 +54,7 @@ export class PendingAnnotations {
 
     findForKey(key) {
         return this._entries.find(e => {
-            const relation = getRelationFromContent(e.content);
-            if (relation && relation.key === key) {
+            if (e.relation?.key === key) {
                 return e;
             }
         });
@@ -65,8 +62,7 @@ export class PendingAnnotations {
 
     findRedactionForKey(key) {
         return this._entries.find(e => {
-            const relation = e.redactingRelation;
-            if (relation && relation.key === key) {
+            if (e.redactingEntry?.relation?.key === key) {
                 return e;
             }
         });

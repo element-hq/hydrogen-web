@@ -16,9 +16,11 @@ limitations under the License.
 
 import {BaseEntry} from "./BaseEntry.js";
 import {REDACTION_TYPE} from "../../common.js";
-import {createAnnotation, ANNOTATION_RELATION_TYPE} from "../relations.js";
+import {createAnnotation, ANNOTATION_RELATION_TYPE, getRelationFromContent} from "../relations.js";
 import {PendingAnnotations} from "../PendingAnnotations.js";
 
+/** Deals mainly with local echo for relations and redactions,
+ * so it is shared between PendingEventEntry and EventEntry */
 export class BaseEventEntry extends BaseEntry {
     constructor(fragmentIdComparer) {
         super(fragmentIdComparer);
@@ -59,9 +61,9 @@ export class BaseEventEntry extends BaseEntry {
                 return "isRedacted";
             }
         } else {
-            const relation = entry.ownOrRedactedRelation;
-            if (relation && relation.event_id === this.id) {
-                if (relation.rel_type === ANNOTATION_RELATION_TYPE) {
+            const relationEntry = entry.redactingEntry || entry;
+            if (relationEntry.isRelationForId(this.id)) {
+                if (relationEntry.relation.rel_type === ANNOTATION_RELATION_TYPE) {
                     if (!this._pendingAnnotations) {
                         this._pendingAnnotations = new PendingAnnotations();
                     }
@@ -87,9 +89,9 @@ export class BaseEventEntry extends BaseEntry {
                 }
             }
         } else {
-            const relation = entry.ownOrRedactedRelation;
-            if (relation && relation.event_id === this.id) {
-                if (relation.rel_type === ANNOTATION_RELATION_TYPE && this._pendingAnnotations) {
+            const relationEntry = entry.redactingEntry || entry;
+            if (relationEntry.isRelationForId(this.id)) {
+                if (relationEntry.relation.rel_type === ANNOTATION_RELATION_TYPE && this._pendingAnnotations) {
                     this._pendingAnnotations.remove(entry);
                     if (this._pendingAnnotations.isEmpty) {
                         this._pendingAnnotations = null;
@@ -119,6 +121,14 @@ export class BaseEventEntry extends BaseEntry {
 
     annotate(key) {
         return createAnnotation(this.id, key);
+    }
+
+    isRelationForId(id) {
+        return id && this.relation?.event_id === id;
+    }
+
+    get relation() {
+        return getRelationFromContent(this.content);
     }
 
     get pendingAnnotations() {
