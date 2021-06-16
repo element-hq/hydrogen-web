@@ -119,13 +119,14 @@ export class GapWriter {
                 eventStorageEntry.displayName = member.displayName;
                 eventStorageEntry.avatarUrl = member.avatarUrl;
             }
-            txn.timelineEvents.insert(eventStorageEntry);
-            const eventEntry = new EventEntry(eventStorageEntry, this._fragmentIdComparer);
-            directionalAppend(entries, eventEntry, direction);
-            const updatedRelationTargetEntries = await this._relationWriter.writeRelation(eventEntry, txn, log);
+            // this will modify eventStorageEntry if it is a relation target
+            const updatedRelationTargetEntries = await this._relationWriter.writeGapRelation(eventStorageEntry, direction, txn, log);
             if (updatedRelationTargetEntries) {
                 updatedEntries.push(...updatedRelationTargetEntries);
             }
+            txn.timelineEvents.insert(eventStorageEntry);
+            const eventEntry = new EventEntry(eventStorageEntry, this._fragmentIdComparer);
+            directionalAppend(entries, eventEntry, direction);
         }
         return {entries, updatedEntries};
     }

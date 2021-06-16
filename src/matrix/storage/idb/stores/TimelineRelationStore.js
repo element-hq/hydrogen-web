@@ -59,4 +59,17 @@ export class TimelineRelationStore {
         const keys = await this._store.selectAll(range);
         return keys.map(decodeKey);
     }
+
+    async getAllForTarget(roomId, targetId) {
+        // exclude both keys as they are theoretical min and max,
+        // but we should't have a match for just the room id, or room id with max
+        const range = this._store.IDBKeyRange.bound(
+            encodeKey(roomId, targetId, MIN_UNICODE, MIN_UNICODE),
+            encodeKey(roomId, targetId, MAX_UNICODE, MAX_UNICODE),
+            true,
+            true
+        );
+        const keys = await this._store.selectAll(range);
+        return keys.map(decodeKey);
+    }
 }

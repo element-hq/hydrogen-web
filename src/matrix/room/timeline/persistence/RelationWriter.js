@@ -44,8 +44,34 @@ export class RelationWriter {
                 }
             }
         }
-        // TODO: check if sourceEntry is in timelineRelations as a target, and if so reaggregate it
         return null;
+    }
+
+    /**
+     * @param {Object} storageEntry the event object, as it will be stored in storage.
+     *        Will be modified (but not written to storage) in case this event is
+     *        a relation target for which we've previously received relations.
+     * @param {Direction} direction of the gap fill
+     * */
+    async writeGapRelation(storageEntry, direction, txn, log) {
+        const sourceEntry = new EventEntry(storageEntry, this._fragmentIdComparer);
+        const result = await this.writeRelation(sourceEntry, txn, log);
+        // when back-paginating, it can also happen that we've received relations
+        // for this event before, which now upon receiving the target need to be aggregated.
+        if (direction.isBackward) {
+            const relations = await txn.timelineRelations.getAllForTarget(this._roomId, sourceEntry.id);
+            if (relations.length) {
+                for (const r of relations) {
+                    const relationStorageEntry = await txn.timelineEvents.getByEventId(this._roomId, r.sourceEventId);
+                    if (relationStorageEntry) {
+                        const relationEntry = new EventEntry(relationStorageEntry, this._fragmentIdComparer);
+                        await this._applyRelation(relationEntry, storageEntry, txn, log);
+                    }
+                }
+            }
+        }
+
+        return result;
     }
 
     /**
