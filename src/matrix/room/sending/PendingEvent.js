@@ -53,7 +53,7 @@ export class PendingEvent {
     get relatedEventId() {
         const relation = getRelationFromContent(this.content);
         if (relation) {
-            // may be null when target is not sent yet, is indented
+            // may be null when target is not sent yet, is intended
             return relation.event_id;
         } else {
             return this._data.relatedEventId;
