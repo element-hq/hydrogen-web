@@ -163,7 +163,7 @@ export class Timeline {
                 updateOrFalse,
             );
         }
-        // now look in remote entries based on event id
+        // if not found here, look in remote entries based on event id
         if (!found && pee.relatedEventId) {
             this._remoteEntries.findAndUpdate(
                 e => e.id === pee.relatedEventId,
