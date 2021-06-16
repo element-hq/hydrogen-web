@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {BaseEventEntry} from "./BaseEventEntry.js";
-import {getPrevContentFromStateEvent} from "../../common.js";
+import {getPrevContentFromStateEvent, isRedacted} from "../../common.js";
 import {getRelatedEventId} from "../relations.js";
 
 export class EventEntry extends BaseEventEntry {
@@ -115,7 +115,7 @@ export class EventEntry extends BaseEventEntry {
     }
 
     get isRedacted() {
-        return super.isRedacted || !!this._eventEntry.event.unsigned?.redacted_because;
+        return super.isRedacted || isRedacted(this._eventEntry.event);
     }
 
     get redactionReason() {

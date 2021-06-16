@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {EventEntry} from "../entries/EventEntry.js";
-import {REDACTION_TYPE} from "../../common.js";
+import {REDACTION_TYPE, isRedacted} from "../../common.js";
 import {ANNOTATION_RELATION_TYPE, getRelation} from "../relations.js";
 
 export class RelationWriter {
@@ -58,7 +58,7 @@ export class RelationWriter {
         const result = await this.writeRelation(sourceEntry, txn, log);
         // when back-paginating, it can also happen that we've received relations
         // for this event before, which now upon receiving the target need to be aggregated.
-        if (direction.isBackward) {
+        if (direction.isBackward && !isRedacted(storageEntry.event)) {
             const relations = await txn.timelineRelations.getAllForTarget(this._roomId, sourceEntry.id);
             if (relations.length) {
                 for (const r of relations) {
@@ -99,7 +99,7 @@ export class RelationWriter {
             });
         } else {
             const relation = getRelation(sourceEntry.event);
-            if (relation) {
+            if (relation && !isRedacted(targetStorageEntry.event)) {
                 const relType = relation.rel_type;
                 if (relType === ANNOTATION_RELATION_TYPE) {
                     const aggregated = log.wrap("react", log => {
