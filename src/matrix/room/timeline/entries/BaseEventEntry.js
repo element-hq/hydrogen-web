@@ -52,7 +52,7 @@ export class BaseEventEntry extends BaseEntry {
         @return [string] returns the name of the field that has changed, if any
     */
     addLocalRelation(entry) {
-        if (entry.eventType === REDACTION_TYPE && entry.relatedEventId === this.id) {
+        if (entry.eventType === REDACTION_TYPE && entry.isRelatedToId(this.id)) {
             if (!this._pendingRedactions) {
                 this._pendingRedactions = [];
             }
@@ -62,7 +62,7 @@ export class BaseEventEntry extends BaseEntry {
             }
         } else {
             const relationEntry = entry.redactingEntry || entry;
-            if (relationEntry.isRelationForId(this.id)) {
+            if (relationEntry.isRelatedToId(this.id)) {
                 if (relationEntry.relation.rel_type === ANNOTATION_RELATION_TYPE) {
                     if (!this._pendingAnnotations) {
                         this._pendingAnnotations = new PendingAnnotations();
@@ -79,7 +79,7 @@ export class BaseEventEntry extends BaseEntry {
         @return [string] returns the name of the field that has changed, if any
     */
     removeLocalRelation(entry) {
-        if (entry.eventType === REDACTION_TYPE && entry.relatedEventId === this.id && this._pendingRedactions) {
+        if (entry.eventType === REDACTION_TYPE && entry.isRelatedToId(this.id) && this._pendingRedactions) {
             const countBefore = this._pendingRedactions.length;
             this._pendingRedactions = this._pendingRedactions.filter(e => e !== entry);
             if (this._pendingRedactions.length === 0) {
@@ -90,8 +90,8 @@ export class BaseEventEntry extends BaseEntry {
             }
         } else {
             const relationEntry = entry.redactingEntry || entry;
-            if (relationEntry.isRelationForId(this.id)) {
-                if (relationEntry.relation.rel_type === ANNOTATION_RELATION_TYPE && this._pendingAnnotations) {
+            if (relationEntry.isRelatedToId(this.id)) {
+                if (relationEntry.relation?.rel_type === ANNOTATION_RELATION_TYPE && this._pendingAnnotations) {
                     this._pendingAnnotations.remove(entry);
                     if (this._pendingAnnotations.isEmpty) {
                         this._pendingAnnotations = null;
@@ -123,8 +123,9 @@ export class BaseEventEntry extends BaseEntry {
         return createAnnotation(this.id, key);
     }
 
-    isRelationForId(id) {
-        return id && this.relation?.event_id === id;
+    /** takes both remote event id and local txn id into account, see overriding in PendingEventEntry */
+    isRelatedToId(id) {
+        return id && this.relatedEventId === id;
     }
 
     get relation() {

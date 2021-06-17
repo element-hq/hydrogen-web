@@ -83,11 +83,11 @@ export class PendingEventEntry extends BaseEventEntry {
         
     }
 
-    isRelationForId(id) {
+    isRelatedToId(id) {
         if (id && id === this._pendingEvent.relatedTxnId) {
             return true;
         }
-        return super.isRelationForId(id);
+        return super.isRelatedToId(id);
     }
 
     get relatedEventId() {
