@@ -352,7 +352,7 @@ export function tests() {
         function() {};
 
     return {
-        "adding or replacing entries before subscribing to entries does not loose local relations": async assert => {
+        "adding or replacing entries before subscribing to entries does not lose local relations": async assert => {
             const pendingEvents = new ObservableArray();
             const timeline = new Timeline({
                 roomId,
