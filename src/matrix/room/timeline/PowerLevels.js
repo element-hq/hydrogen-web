@@ -98,7 +98,8 @@ export function tests() {
     const eventsPowerLevelEvent = {content: {
         events_default: 5,
         events: {
-            "m.room.message": 45
+            "m.room.message": 45,
+            "m.room.topic": 50,
         },
         users: {
             [alice]: 50,
@@ -138,9 +139,10 @@ export function tests() {
             assert.equal(pl.canSendType("m.foo"), true);
             assert.equal(pl.canSendType("m.room.message"), false);
         },
-        "can send event below events[type]": assert => {
+        "can send event above or at events[type]": assert => {
             const pl = new PowerLevels({powerLevelEvent: eventsPowerLevelEvent, ownUserId: alice});
             assert.equal(pl.canSendType("m.room.message"), true);
+            assert.equal(pl.canSendType("m.room.topic"), true);
         },
     }
 }
