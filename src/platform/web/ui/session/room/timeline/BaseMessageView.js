@@ -111,8 +111,7 @@ export class BaseMessageView extends TemplateView {
     createMenuOptions(vm) {
         const options = [];
         if (vm.canReact) {
-            options.push(Menu.option(vm.i18n`React with 👍`, () => vm.react("👍")))
-            options.push(Menu.option(vm.i18n`React with 🙈`, () => vm.react("🙈")))
+            options.push(new QuickReactionsMenuOption(vm));
         }
         if (vm.canAbortSending) {
             options.push(Menu.option(vm.i18n`Cancel`, () => vm.abortSending()));
@@ -123,4 +122,22 @@ export class BaseMessageView extends TemplateView {
     }
 
     renderMessageBody() {}
+}
+
+class QuickReactionsMenuOption {
+    constructor(vm) {
+        this._vm = vm;
+    }
+    toDOM(t) {
+        const emojiButtons = ["👍", "👎", "😄", "🎉", "😕", "❤️", "🚀", "👀"].map(emoji => {
+            return t.button({onClick: () => this._vm.react(emoji)}, emoji);
+        });
+        const customButton = t.button({onClick: () => {
+            const key = prompt("Enter your reaction (emoji)");
+            if (key) {
+                this._vm.react(key);
+            }
+        }}, "…");
+        return t.li({className: "quick-reactions"}, [...emojiButtons, customButton]);
+    }
 }
