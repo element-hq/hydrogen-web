@@ -140,11 +140,10 @@ export class Timeline {
         };
         this._findAndUpdateRelatedEntry(pee.pendingEvent.relatedTxnId, pee.relatedEventId, updateOrFalse);
         // also look for a relation target to update with this redaction
-        const {redactingEntry} = pee;
-        if (redactingEntry) {
+        if (pee.redactingEntry) {
             // redactingEntry might be a PendingEventEntry or an EventEntry, so don't assume pendingEvent
-            const relatedTxnId = redactingEntry.pendingEvent?.relatedTxnId;
-            this._findAndUpdateRelatedEntry(relatedTxnId, redactingEntry.relatedEventId, updateOrFalse);
+            const relatedTxnId = pee.redactingEntry.pendingEvent?.relatedTxnId;
+            this._findAndUpdateRelatedEntry(relatedTxnId, pee.redactingEntry.relatedEventId, updateOrFalse);
         }
     }
 
