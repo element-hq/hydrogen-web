@@ -29,8 +29,16 @@ export class PowerLevels {
         }
     }
 
+    canSendType(eventType) {
+        return this._myLevel >= this._getEventTypeLevel(eventType);
+    }
+
     get canRedact() {
-        return this._getUserLevel(this._ownUserId) >= this._getActionLevel("redact");
+        return this._myLevel >= this._getActionLevel("redact");
+    }
+
+    get _myLevel() {
+        return this._getUserLevel(this._ownUserId);
     }
 
     _getUserLevel(userId) {
@@ -59,25 +67,51 @@ export class PowerLevels {
             return 50;
         }
     }
+
+    _getEventTypeLevel(eventType) {
+        const level = this._plEvent?.content.events?.[eventType];
+        if (typeof level === "number") {
+            return level;
+        } else {
+            const level = this._plEvent?.content.events_default;
+            if (typeof level === "number") {
+                return level;
+            } else {
+                return 0;
+            }
+        }
+    }
 }
 
 export function tests() {
     const alice = "@alice:hs.tld";
     const bob = "@bob:hs.tld";
+    const charly = "@charly:hs.tld";
     const createEvent = {content: {creator: alice}};
-    const powerLevelEvent = {content: {
+    const redactPowerLevelEvent = {content: {
         redact: 50,
         users: {
             [alice]: 50
         },
         users_default: 0
     }};
+    const eventsPowerLevelEvent = {content: {
+        events_default: 5,
+        events: {
+            "m.room.message": 45
+        },
+        users: {
+            [alice]: 50,
+            [bob]: 10
+        },
+        users_default: 0
+    }};
 
     return {
         "redact somebody else event with power level event": assert => {
-            const pl1 = new PowerLevels({powerLevelEvent, ownUserId: alice});
+            const pl1 = new PowerLevels({powerLevelEvent: redactPowerLevelEvent, ownUserId: alice});
             assert.equal(pl1.canRedact, true);
-            const pl2 = new PowerLevels({powerLevelEvent, ownUserId: bob});
+            const pl2 = new PowerLevels({powerLevelEvent: redactPowerLevelEvent, ownUserId: bob});
             assert.equal(pl2.canRedact, false);
         },
         "redact somebody else event with create event": assert => {
@@ -90,6 +124,23 @@ export function tests() {
             const pl = new PowerLevels({ownUserId: alice});
             assert.equal(pl.canRedactFromSender(alice), true);
             assert.equal(pl.canRedactFromSender(bob), false);
+        },
+        "can send event without power levels": assert => {
+            const pl = new PowerLevels({createEvent, ownUserId: charly});
+            assert.equal(pl.canSendType("m.room.message"), true);
+        },
+        "can't send any event below events_default": assert => {
+            const pl = new PowerLevels({powerLevelEvent: eventsPowerLevelEvent, ownUserId: charly});
+            assert.equal(pl.canSendType("m.foo"), false);
+        },
+        "can't send event below events[type]": assert => {
+            const pl = new PowerLevels({powerLevelEvent: eventsPowerLevelEvent, ownUserId: bob});
+            assert.equal(pl.canSendType("m.foo"), true);
+            assert.equal(pl.canSendType("m.room.message"), false);
+        },
+        "can send event below events[type]": assert => {
+            const pl = new PowerLevels({powerLevelEvent: eventsPowerLevelEvent, ownUserId: alice});
+            assert.equal(pl.canSendType("m.room.message"), true);
         },
     }
 }

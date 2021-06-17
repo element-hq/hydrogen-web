@@ -119,8 +119,7 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     get canReact() {
-        // TODO
-        return true;
+        return this._powerLevels.canSendType("m.reaction");
     }
 
     react(key, log = null) {
