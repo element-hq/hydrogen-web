@@ -110,7 +110,7 @@ export class BaseMessageView extends TemplateView {
 
     createMenuOptions(vm) {
         const options = [];
-        if (vm.canReact) {
+        if (vm.canReact && vm.shape !== "redacted") {
             options.push(new QuickReactionsMenuOption(vm));
         }
         if (vm.canAbortSending) {
