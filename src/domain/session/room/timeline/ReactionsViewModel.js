@@ -128,7 +128,7 @@ class ReactionViewModel {
     }
 
     _compare(other) {
-        // the comparator is also used to test for equality, if the comparison returns 0
+        // the comparator is also used to test for equality by sortValues, if the comparison returns 0
         // given that the firstTimestamp isn't set anymore when the last reaction is removed,
         // the remove event wouldn't be able to find the correct index anymore. So special case equality.
         if (other === this) {
