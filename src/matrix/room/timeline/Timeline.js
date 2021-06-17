@@ -212,17 +212,13 @@ export class Timeline {
             // this will work because we set relatedEventId when removing remote echos
             if (pee.relatedEventId) {
                 const relationTarget = entries.find(e => e.id === pee.relatedEventId);
-                if (relationTarget) {
-                    // no need to emit here as this entry is about to be added
-                    relationTarget.addLocalRelation(pee);
-                }
+                // no need to emit here as this entry is about to be added
+                relationTarget?.addLocalRelation(pee);
             }
             if (pee.redactingEntry) {
                 const eventId = pee.redactingEntry.relatedEventId;
                 const relationTarget = entries.find(e => e.id === eventId);
-                if (relationTarget) {
-                    relationTarget.addLocalRelation(pee);
-                }
+                relationTarget?.addLocalRelation(pee);
             }
         }
     }
