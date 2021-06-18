@@ -20,7 +20,7 @@ export class ListObserver {
     }
 
     _nextEvent(type) {
-        const queue = this._queuesPerType.get(type);
+        let queue = this._queuesPerType.get(type);
         if (!queue) {
             queue = [];
             this._queuesPerType.set(type, queue);
@@ -55,7 +55,7 @@ export class ListObserver {
         return queue?.unshift();
     }
 
-    onReset(list) {
+    onReset() {
         const resolve = this._popQueue("reset");
         resolve && resolve();
     }
