@@ -419,6 +419,7 @@ export function tests() {
                 content: {},
                 relatedTxnId: reactionEntry.id
             }}));
+            // TODO: await nextUpdate here with ListObserver, to ensure entry emits an update when pendingAnnotations changes
             await poll(() => timeline.entries.length === 3);
             assert.equal(entry.pendingAnnotations.get("👋"), 0);
             // 4. cancel redaction
@@ -452,7 +453,6 @@ export function tests() {
             assert.equal(reactionEntry.relation.key, "👋");
         },
         "remote reaction": async assert => {
-            const storage = await createMockStorage();
             const messageEntry = new EventEntry({
                 event: withTextBody("hi bob!", createEvent("m.room.message", "!abc", alice)),
                 fragmentId: 1, eventIndex: 2, roomId,
