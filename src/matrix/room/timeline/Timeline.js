@@ -334,6 +334,7 @@ import {FragmentIdComparer} from "./FragmentIdComparer.js";
 import {poll} from "../../../mocks/poll.js";
 import {Clock as MockClock} from "../../../mocks/Clock.js";
 import {createMockStorage} from "../../../mocks/Storage.js";
+import {ListObserver} from "../../../mocks/ListObserver.js";
 import {createEvent, withTextBody, withContent, withSender} from "../../../mocks/event.js";
 import {NullLogItem} from "../../../logging/NullLogger.js";
 import {EventEntry} from "./entries/EventEntry.js";
@@ -343,14 +344,6 @@ import {createAnnotation} from "./relations.js";
 
 export function tests() {
     const fragmentIdComparer = new FragmentIdComparer([]);
-    const noopHandler = {};
-    noopHandler.onAdd = 
-    noopHandler.onUpdate =
-    noopHandler.onRemove =
-    noopHandler.onMove =
-    noopHandler.onReset =
-        function() {};
-
     const roomId = "$abc";
     const alice = "@alice:hs.tld";
     const bob = "@bob:hs.tld";
@@ -369,14 +362,8 @@ export function tests() {
     return {
         "adding or replacing entries before subscribing to entries does not lose local relations": async assert => {
             const pendingEvents = new ObservableArray();
-            const timeline = new Timeline({
-                roomId,
-                storage: await createMockStorage(),
-                closeCallback: () => {},
-                fragmentIdComparer,
-                pendingEvents,
-                clock: new MockClock(),
-            });
+            const timeline = new Timeline({roomId, storage: await createMockStorage(),
+                closeCallback: () => {}, fragmentIdComparer, pendingEvents, clock: new MockClock()});
             // 1. load timeline
             await timeline.load(new User(alice), "join", new NullLogItem());
             // 2. test replaceEntries and addOrReplaceEntries don't fail
@@ -396,21 +383,22 @@ export function tests() {
                 relatedEventId: event2.event_id
             }}));
             // 4. subscribe (it's now safe to iterate timeline.entries) 
-            timeline.entries.subscribe(noopHandler);
+            timeline.entries.subscribe(new ListObserver());
             // 5. check the local relation got correctly aggregated
             const locallyRedacted = await poll(() => Array.from(timeline.entries)[0].isRedacting);
             assert.equal(locallyRedacted, true);
         },
-        "add local reaction": async assert => {
-            const storage = await createMockStorage();
+        "add and remove local reaction, and cancel again": async assert => {
+            // 1. setup timeline with message
             const pendingEvents = new ObservableArray();
-            const timeline = new Timeline({roomId, storage, closeCallback: () => {},
-                fragmentIdComparer, pendingEvents, clock: new MockClock()});
+            const timeline = new Timeline({roomId, storage: await createMockStorage(),
+                closeCallback: () => {}, fragmentIdComparer, pendingEvents, clock: new MockClock()});
             await timeline.load(new User(bob), "join", new NullLogItem());
-            timeline.entries.subscribe(noopHandler);
+            timeline.entries.subscribe(new ListObserver());
             const event = withTextBody("hi bob!", withSender(alice, createEvent("m.room.message", "!abc")));
             timeline.addOrReplaceEntries([new EventEntry({event, fragmentId: 1, eventIndex: 2}, fragmentIdComparer)]);
             let entry = getIndexFromIterable(timeline.entries, 0);
+            // 2. add local reaction
             pendingEvents.append(new PendingEvent({data: {
                 roomId,
                 queueIndex: 1,
@@ -419,44 +407,89 @@ export function tests() {
                 content: entry.annotate("👋"),
                 relatedEventId: entry.id
             }}));
-            // poll because turning pending events into entries is done async
-            const pendingAnnotations = await poll(() => entry.pendingAnnotations);
-            assert.equal(pendingAnnotations.get("👋"), 1);
+            await poll(() => timeline.entries.length === 2);
+            assert.equal(entry.pendingAnnotations.get("👋"), 1);
+            const reactionEntry = getIndexFromIterable(timeline.entries, 1);
+            // 3. add redaction to timeline
+            pendingEvents.append(new PendingEvent({data: {
+                roomId,
+                queueIndex: 2,
+                eventType: "m.room.redaction",
+                txnId: "t456",
+                content: {},
+                relatedTxnId: reactionEntry.id
+            }}));
+            await poll(() => timeline.entries.length === 3);
+            assert.equal(entry.pendingAnnotations.get("👋"), 0);
+            // 4. cancel redaction
+            pendingEvents.remove(1);
+            await poll(() => timeline.entries.length === 2);
+            assert.equal(entry.pendingAnnotations.get("👋"), 1);
+            // 5. cancel reaction
+            pendingEvents.remove(0);
+            await poll(() => timeline.entries.length === 1);
+            assert(!entry.pendingAnnotations);
         },
-        "add reaction local removal": async assert => {
+        "getOwnAnnotationEntry": async assert => {
+            const messageId = "!abc";
+            const reactionId = "!def";
             // 1. put event and reaction into storage
             const storage = await createMockStorage();
-            const messageStorageEntry = {
+            const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
+            txn.timelineEvents.insert({
+                event: withContent(createAnnotation(messageId, "👋"), createEvent("m.reaction", reactionId, bob)),
+                fragmentId: 1, eventIndex: 1, roomId
+            });
+            txn.timelineRelations.add(roomId, messageId, ANNOTATION_RELATION_TYPE, reactionId);
+            await txn.complete();
+            // 2. setup the timeline
+            const timeline = new Timeline({roomId, storage, closeCallback: () => {},
+                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
+            await timeline.load(new User(bob), "join", new NullLogItem());
+            // 3. get the own annotation out
+            const reactionEntry = await timeline.getOwnAnnotationEntry(messageId, "👋");
+            assert.equal(reactionEntry.id, reactionId);
+            assert.equal(reactionEntry.relation.key, "👋");
+        },
+        "remote reaction": async assert => {
+            const storage = await createMockStorage();
+            const messageEntry = new EventEntry({
                 event: withTextBody("hi bob!", createEvent("m.room.message", "!abc", alice)),
                 fragmentId: 1, eventIndex: 2, roomId,
                 annotations: { // aggregated like RelationWriter would
                     "👋": {count: 1, me: true, firstTimestamp: 0}
                 },
-            };
-            const messageEntry = new EventEntry(messageStorageEntry, fragmentIdComparer);
-            const reactionStorageEntry = {
-                event: withContent(createAnnotation(messageEntry.id, "👋"), createEvent("m.reaction", "!def", bob)),
-                fragmentId: 1, eventIndex: 3, roomId
-            };
-            const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
-            txn.timelineEvents.insert(messageStorageEntry);
-            txn.timelineEvents.insert(reactionStorageEntry);
-            txn.timelineRelations.add(roomId, messageEntry.id, ANNOTATION_RELATION_TYPE, reactionStorageEntry.event.event_id);
-            await txn.complete();
+            }, fragmentIdComparer);
             // 2. setup timeline
             const pendingEvents = new ObservableArray();
-            const timeline = new Timeline({roomId, storage, closeCallback: () => {},
-                fragmentIdComparer, pendingEvents, clock: new MockClock()});
+            const timeline = new Timeline({roomId, storage: await createMockStorage(),
+                closeCallback: () => {}, fragmentIdComparer, pendingEvents, clock: new MockClock()});
             await timeline.load(new User(bob), "join", new NullLogItem());
-            timeline.entries.subscribe(noopHandler);
+            timeline.entries.subscribe(new ListObserver());
             // 3. add message to timeline
             timeline.addOrReplaceEntries([messageEntry]);
             const entry = getIndexFromIterable(timeline.entries, 0);
             assert.equal(entry, messageEntry);
             assert.equal(entry.annotations["👋"].count, 1);
-            // 4. redact reaction
-            const reactionEntry = await timeline.getOwnAnnotationEntry(entry.id, "👋");
-            assert.equal(reactionEntry.id, reactionStorageEntry.event.event_id);
+        },
+        "remove remote reaction": async assert => {
+            // 1. setup timeline
+            const pendingEvents = new ObservableArray();
+            const timeline = new Timeline({roomId, storage: await createMockStorage(),
+                closeCallback: () => {}, fragmentIdComparer, pendingEvents, clock: new MockClock()});
+            await timeline.load(new User(bob), "join", new NullLogItem());
+            timeline.entries.subscribe(new ListObserver());
+            // 2. add message and reaction to timeline
+            const messageEntry = new EventEntry({
+                event: withTextBody("hi bob!", createEvent("m.room.message", "!abc", alice)),
+                fragmentId: 1, eventIndex: 2, roomId,
+            }, fragmentIdComparer);
+            const reactionEntry = new EventEntry({
+                event: withContent(createAnnotation(messageEntry.id, "👋"), createEvent("m.reaction", "!def", bob)),
+                fragmentId: 1, eventIndex: 3, roomId
+            }, fragmentIdComparer);
+            timeline.addOrReplaceEntries([messageEntry, reactionEntry]);
+            // 3. redact reaction
             pendingEvents.append(new PendingEvent({data: {
                 roomId,
                 queueIndex: 1,
@@ -465,8 +498,8 @@ export function tests() {
                 content: {},
                 relatedEventId: reactionEntry.id
             }}));
-            const pendingAnnotations = await poll(() => entry.pendingAnnotations); // poll because turning pending events into entries is done async
-            assert.equal(pendingAnnotations.get("👋"), -1);
+            await poll(() => timeline.entries.length >= 3);
+            assert.equal(messageEntry.pendingAnnotations.get("👋"), -1);
         },
-    }
+    };
 }
