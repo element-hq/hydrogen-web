@@ -501,5 +501,68 @@ export function tests() {
             await poll(() => timeline.entries.length >= 3);
             assert.equal(messageEntry.pendingAnnotations.get("👋"), -1);
         },
+        "local reaction gets applied after remote echo is added to timeline": async assert => {
+            const messageEntry = new EventEntry({event: withTextBody("hi bob!", withSender(alice, createEvent("m.room.message", "!abc"))),
+                fragmentId: 1, eventIndex: 2}, fragmentIdComparer);
+            // 1. setup timeline
+            const pendingEvents = new ObservableArray();
+            const timeline = new Timeline({roomId, storage: await createMockStorage(),
+                closeCallback: () => {}, fragmentIdComparer, pendingEvents, clock: new MockClock()});
+            await timeline.load(new User(bob), "join", new NullLogItem());
+            timeline.entries.subscribe(new ListObserver());
+            // 2. add local reaction
+            pendingEvents.append(new PendingEvent({data: {
+                roomId,
+                queueIndex: 1,
+                eventType: "m.reaction",
+                txnId: "t123",
+                content: messageEntry.annotate("👋"),
+                relatedEventId: messageEntry.id
+            }}));
+            await poll(() => timeline.entries.length === 1);
+            // 3. add remote reaction target
+            timeline.addOrReplaceEntries([messageEntry]);
+            await poll(() => timeline.entries.length === 2);
+            const entry = getIndexFromIterable(timeline.entries, 0);
+            assert.equal(entry, messageEntry);
+            assert.equal(entry.pendingAnnotations.get("👋"), 1);
+        },
+        "local reaction removal gets applied after remote echo is added to timeline with reaction not loaded": async assert => {
+            const messageId = "!abc";
+            const reactionId = "!def";
+            // 1. put reaction in storage
+            const storage = await createMockStorage();
+            const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
+            txn.timelineEvents.insert({
+                event: withContent(createAnnotation(messageId, "👋"), createEvent("m.reaction", reactionId, bob)),
+                fragmentId: 1, eventIndex: 3, roomId
+            });
+            await txn.complete();
+            // 2. setup timeline
+            const pendingEvents = new ObservableArray();
+            const timeline = new Timeline({roomId, storage, closeCallback: () => {},
+                fragmentIdComparer, pendingEvents, clock: new MockClock()});
+            await timeline.load(new User(bob), "join", new NullLogItem());
+            timeline.entries.subscribe(new ListObserver());
+            // 3. add local redaction for reaction
+            pendingEvents.append(new PendingEvent({data: {
+                roomId,
+                queueIndex: 1,
+                eventType: "m.room.redaction",
+                txnId: "t123",
+                content: {},
+                relatedEventId: reactionId
+            }}));
+            await poll(() => timeline.entries.length === 1);
+            // 4. add reaction target
+            timeline.addOrReplaceEntries([new EventEntry({
+                event: withTextBody("hi bob!", createEvent("m.room.message", messageId, alice)),
+                fragmentId: 1, eventIndex: 2}, fragmentIdComparer)
+            ]);
+            await poll(() => timeline.entries.length === 2);
+            // 5. check that redaction was linked to reaction target
+            const entry = getIndexFromIterable(timeline.entries, 0);
+            assert.equal(entry.pendingAnnotations.get("👋"), -1);
+        },
     };
 }
