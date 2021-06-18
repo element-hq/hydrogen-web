@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export function createEvent(type, id = null) {
-    return {type, event_id: id};
+export function createEvent(type, id = null, sender = null) {
+    return {type, event_id: id, sender};
 }
 
 export function withContent(content, event) {
