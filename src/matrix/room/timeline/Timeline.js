@@ -407,7 +407,7 @@ export function tests() {
             const timeline = new Timeline({roomId, storage, closeCallback: () => {},
                 fragmentIdComparer, pendingEvents, clock: new MockClock()});
             await timeline.load(new User(bob), "join", new NullLogItem());
-            const subscription = timeline.entries.subscribe(noopHandler);
+            timeline.entries.subscribe(noopHandler);
             const event = withTextBody("hi bob!", withSender(alice, createEvent("m.room.message", "!abc")));
             timeline.addOrReplaceEntries([new EventEntry({event, fragmentId: 1, eventIndex: 2}, fragmentIdComparer)]);
             let entry = getIndexFromIterable(timeline.entries, 0);
@@ -448,7 +448,7 @@ export function tests() {
             const timeline = new Timeline({roomId, storage, closeCallback: () => {},
                 fragmentIdComparer, pendingEvents, clock: new MockClock()});
             await timeline.load(new User(bob), "join", new NullLogItem());
-            const subscription = timeline.entries.subscribe(noopHandler);
+            timeline.entries.subscribe(noopHandler);
             // 3. add message to timeline
             timeline.addOrReplaceEntries([messageEntry]);
             const entry = getIndexFromIterable(timeline.entries, 0);
