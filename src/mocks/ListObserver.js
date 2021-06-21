@@ -16,67 +16,46 @@ limitations under the License.
 
 export class ListObserver {
     constructor() {
-        this._queuesPerType = new Map();
+        this._queue = [];
+        this._backlog = [];
     }
 
-    _nextEvent(type) {
-        let queue = this._queuesPerType.get(type);
-        if (!queue) {
-            queue = [];
-            this._queuesPerType.set(type, queue);
+    next() {
+        if (this._backlog.length) {
+            return Promise.resolve(this._backlog.shift());
+        } else {
+            return new Promise(resolve => {
+                this._queue.push(resolve);
+            });
         }
-        return new Promise(resolve => {
-            queue.push(resolve);
-        });
     }
 
-    nextAdd() {
-        return this._nextEvent("add");
-    }
-
-    nextUpdate() {
-        return this._nextEvent("update");
-    }
-
-    nextRemove() {
-        return this._nextEvent("remove");
-    }
-
-    nextMove() {
-        return this._nextEvent("move");
-    }
-
-    nextReset() {
-        return this._nextEvent("reset");
-    }
-
-    _popQueue(type) {
-        const queue = this._queuesPerType.get(type);
-        return queue?.unshift();
+    _fullfillNext(value) {
+        if (this._queue.length) {
+            const resolve = this._queue.shift();
+            resolve(value);
+        } else {
+            this._backlog.push(value);
+        }
     }
 
     onReset() {
-        const resolve = this._popQueue("reset");
-        resolve && resolve();
+        this._fullfillNext({type: "reset"});
     }
     
     onAdd(index, value) {
-        const resolve = this._popQueue("add");
-        resolve && resolve({index, value});
+        this._fullfillNext({type: "add", index, value});
     }
     
     onUpdate(index, value, params) {
-        const resolve = this._popQueue("update");
-        resolve && resolve({index, value, params});
+        this._fullfillNext({type: "update", index, value, params});
     }
     
     onRemove(index, value) {
-        const resolve = this._popQueue("remove");
-        resolve && resolve({index, value});
+        this._fullfillNext({type: "remove", index, value});
     }
 
     onMove(fromIdx, toIdx, value) {
-        const resolve = this._popQueue("move");
-        resolve && resolve({fromIdx, toIdx, value});
+        this._fullfillNext({type: "move", fromIdx, toIdx, value});
     }
 }

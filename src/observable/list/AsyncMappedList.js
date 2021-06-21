@@ -143,8 +143,55 @@ class ResetEvent {
     }
 }
 
+import {ObservableArray} from "./ObservableArray.js";
+import {ListObserver} from "../../mocks/ListObserver.js";
+
 export function tests() {
     return {
-
+        "events are emitted in order": async assert => {
+            const double = n => n * n;
+            const source = new ObservableArray();
+            const mapper = new AsyncMappedList(source, async n => {
+                await new Promise(r => setTimeout(r, n));
+                return {n: double(n)};
+            }, (o, params, n) => {
+                o.n = double(n);
+            });
+            const observer = new ListObserver();
+            mapper.subscribe(observer);
+            source.append(2); // will sleep this amount, so second append would take less time
+            source.append(1);
+            source.update(0, 7, "lucky seven")
+            source.remove(0);
+            {
+                const {type, index, value} = await observer.next();
+                assert.equal(mapper.length, 1);
+                assert.equal(type, "add");
+                assert.equal(index, 0);
+                assert.equal(value.n, 4);
+            }
+            {
+                const {type, index, value} = await observer.next();
+                assert.equal(mapper.length, 2);
+                assert.equal(type, "add");
+                assert.equal(index, 1);
+                assert.equal(value.n, 1);
+            }
+            {
+                const {type, index, value, params} = await observer.next();
+                assert.equal(mapper.length, 2);
+                assert.equal(type, "update");
+                assert.equal(index, 0);
+                assert.equal(value.n, 49);
+                assert.equal(params, "lucky seven");
+            }
+            {
+                const {type, index, value} = await observer.next();
+                assert.equal(mapper.length, 1);
+                assert.equal(type, "remove");
+                assert.equal(index, 0);
+                assert.equal(value.n, 49);
+            }
+        }
     }
 }
