@@ -253,7 +253,8 @@ const _REDACT_KEEP_CONTENT_MAP = {
 // end of matrix-js-sdk code
 
 import {createMockStorage} from "../../../../mocks/Storage.js";
-import {createEvent, withTextBody, withRedacts} from "../../../../mocks/event.js";
+import {createEvent, withTextBody, withRedacts, withContent} from "../../../../mocks/event.js";
+import {createAnnotation} from "../relations.js";
 import {FragmentIdComparer} from "../FragmentIdComparer.js";
 import {NullLogItem} from "../../../../logging/NullLogger.js";
 
@@ -288,6 +289,98 @@ export function tests() {
             await readTxn.complete();
             assert.equal(storedMessage.event.content.body, undefined);
             assert.equal(storedMessage.event.unsigned.redacted_because.content.reason, reason);
-        }
+        },
+        "aggregate reaction": async assert => {
+            const event = withTextBody("Dogs > Cats", createEvent("m.room.message", "!abc", bob));
+            const reaction = withContent(createAnnotation(event.event_id, "🐶"), createEvent("m.reaction", "!def", alice));
+            reaction.origin_server_ts = 5;
+            const reactionEntry = new EventEntry({event: reaction, roomId}, fragmentIdComparer);
+            const relationWriter = new RelationWriter({roomId, ownUserId: alice, fragmentIdComparer});
+
+            const storage = await createMockStorage();
+            const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
+            txn.timelineEvents.insert({fragmentId: 1, eventIndex: 2, event, roomId});
+            const updatedEntries = await relationWriter.writeRelation(reactionEntry, txn, new NullLogItem());
+            await txn.complete();
+
+            assert.equal(updatedEntries.length, 1);
+            const reactedMessage = updatedEntries[0];
+            assert.equal(reactedMessage.id, "!abc");
+            const annotation = reactedMessage.annotations["🐶"];
+            assert.equal(annotation.me, true);
+            assert.equal(annotation.count, 1);
+            assert.equal(annotation.firstTimestamp, 5);
+            
+            const readTxn = await storage.readTxn([storage.storeNames.timelineEvents]);
+            const storedMessage = await readTxn.timelineEvents.getByEventId(roomId, "!abc");
+            await readTxn.complete();
+            assert(storedMessage.annotations["🐶"]);
+        },
+        "aggregate second reaction": async assert => {
+            const event = withTextBody("Dogs > Cats", createEvent("m.room.message", "!abc", bob));
+            const reaction1 = withContent(createAnnotation(event.event_id, "🐶"), createEvent("m.reaction", "!def", alice));
+            reaction1.origin_server_ts = 5;
+            const reaction1Entry = new EventEntry({event: reaction1, roomId}, fragmentIdComparer);
+            const reaction2 = withContent(createAnnotation(event.event_id, "🐶"), createEvent("m.reaction", "!hij", bob));
+            reaction2.origin_server_ts = 10;
+            const reaction2Entry = new EventEntry({event: reaction2, roomId}, fragmentIdComparer);
+            const relationWriter = new RelationWriter({roomId, ownUserId: alice, fragmentIdComparer});
+
+            const storage = await createMockStorage();
+            const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
+            txn.timelineEvents.insert({fragmentId: 1, eventIndex: 2, event, roomId});
+            await relationWriter.writeRelation(reaction1Entry, txn, new NullLogItem());
+            const updatedEntries = await relationWriter.writeRelation(reaction2Entry, txn, new NullLogItem());
+            await txn.complete();
+
+            assert.equal(updatedEntries.length, 1);
+
+            const reactedMessage = updatedEntries[0];
+            assert.equal(reactedMessage.id, "!abc");
+            const annotation = reactedMessage.annotations["🐶"];
+            assert.equal(annotation.me, true);
+            assert.equal(annotation.count, 2);
+            assert.equal(annotation.firstTimestamp, 5);
+        },
+        "redact second reaction": async assert => {
+            const event = withTextBody("Dogs > Cats", createEvent("m.room.message", "!abc", bob));
+            const myReaction = withContent(createAnnotation(event.event_id, "🐶"), createEvent("m.reaction", "!def", alice));
+            myReaction.origin_server_ts = 5;
+            const bobReaction = withContent(createAnnotation(event.event_id, "🐶"), createEvent("m.reaction", "!hij", bob));
+            bobReaction.origin_server_ts = 10;
+            const myReactionRedaction = withRedacts(myReaction.event_id, "", createEvent("m.room.redaction", "!pol", alice));
+
+            const myReactionEntry = new EventEntry({event: myReaction, roomId}, fragmentIdComparer);
+            const bobReactionEntry = new EventEntry({event: bobReaction, roomId}, fragmentIdComparer);
+            const myReactionRedactionEntry = new EventEntry({event: myReactionRedaction, roomId}, fragmentIdComparer);
+            const relationWriter = new RelationWriter({roomId, ownUserId: alice, fragmentIdComparer});
+
+            const storage = await createMockStorage();
+            const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
+            txn.timelineEvents.insert({fragmentId: 1, eventIndex: 2, event, roomId});
+            txn.timelineEvents.insert({fragmentId: 1, eventIndex: 3, event: myReaction, roomId});
+            await relationWriter.writeRelation(myReactionEntry, txn, new NullLogItem());
+            txn.timelineEvents.insert({fragmentId: 1, eventIndex: 4, event: bobReaction, roomId});
+            await relationWriter.writeRelation(bobReactionEntry, txn, new NullLogItem());
+            const updatedEntries = await relationWriter.writeRelation(myReactionRedactionEntry, txn, new NullLogItem());
+            await txn.complete();
+
+            assert.equal(updatedEntries.length, 2);
+
+            const redactedReaction = updatedEntries[0];
+            assert.equal(redactedReaction.id, "!def");
+            const reaggregatedMessage = updatedEntries[1];
+            assert.equal(reaggregatedMessage.id, "!abc");
+            const annotation = reaggregatedMessage.annotations["🐶"];
+            assert.equal(annotation.me, false);
+            assert.equal(annotation.count, 1);
+            assert.equal(annotation.firstTimestamp, 10);
+
+            const readTxn = await storage.readTxn([storage.storeNames.timelineEvents]);
+            const storedMessage = await readTxn.timelineEvents.getByEventId(roomId, "!abc");
+            await readTxn.complete();
+            assert.equal(storedMessage.annotations["🐶"].count, 1);
+        },
+        
     }
 }
