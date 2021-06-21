@@ -251,3 +251,43 @@ const _REDACT_KEEP_CONTENT_MAP = {
     'm.room.aliases': {'aliases': 1},
 };
 // end of matrix-js-sdk code
+
+import {createMockStorage} from "../../../../mocks/Storage.js";
+import {createEvent, withTextBody, withRedacts} from "../../../../mocks/event.js";
+import {FragmentIdComparer} from "../FragmentIdComparer.js";
+import {NullLogItem} from "../../../../logging/NullLogger.js";
+
+export function tests() {
+    const fragmentIdComparer = new FragmentIdComparer([]);
+    const roomId = "$abc";
+    const alice = "@alice:hs.tld";
+    const bob = "@bob:hs.tld";
+
+    return {
+        "apply redaction": async assert => {
+            const event = withTextBody("Dogs > Cats", createEvent("m.room.message", "!abc", bob));
+            const reason = "nonsense, cats are the best!";
+            const redaction = withRedacts(event.event_id, reason, createEvent("m.room.redaction", "!def", alice));
+            const redactionEntry = new EventEntry({fragmentId: 1, eventIndex: 3, event: redaction, roomId}, fragmentIdComparer);
+            const relationWriter = new RelationWriter({roomId, ownUserId: bob, fragmentIdComparer});
+
+            const storage = await createMockStorage();
+            const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
+            txn.timelineEvents.insert({fragmentId: 1, eventIndex: 2, event, roomId});
+            const updatedEntries = await relationWriter.writeRelation(redactionEntry, txn, new NullLogItem());
+            await txn.complete();
+
+            assert.equal(updatedEntries.length, 1);
+            const redactedMessage = updatedEntries[0];
+            assert.equal(redactedMessage.id, "!abc");
+            assert.equal(redactedMessage.content.body, undefined);
+            assert.equal(redactedMessage.redactionReason, reason);
+            
+            const readTxn = await storage.readTxn([storage.storeNames.timelineEvents]);
+            const storedMessage = await readTxn.timelineEvents.getByEventId(roomId, "!abc");
+            await readTxn.complete();
+            assert.equal(storedMessage.event.content.body, undefined);
+            assert.equal(storedMessage.event.unsigned.redacted_because.content.reason, reason);
+        }
+    }
+}
