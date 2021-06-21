@@ -39,7 +39,7 @@ export class SendQueue {
         const pendingEvent = new PendingEvent({
             data,
             remove: () => this._removeEvent(pendingEvent),
-            emitUpdate: () => this._pendingEvents.update(pendingEvent),
+            emitUpdate: params => this._pendingEvents.update(pendingEvent, params),
             attachments
         });
         return pendingEvent;
@@ -326,7 +326,8 @@ export class SendQueue {
 
 import {HomeServer as MockHomeServer} from "../../../mocks/HomeServer.js";
 import {createMockStorage} from "../../../mocks/Storage.js";
-import {NullLogger} from "../../../logging/NullLogger.js";
+import {ListObserver} from "../../../mocks/ListObserver.js";
+import {NullLogger, NullLogItem} from "../../../logging/NullLogger.js";
 import {createEvent, withTextBody, withTxnId} from "../../../mocks/event.js";
 import {poll} from "../../../mocks/poll.js";
 
@@ -362,6 +363,34 @@ export function tests() {
             const sendRequest2 = await poll(() => hs.requests.send[1]);
             sendRequest2.respond({event_id: event2.event_id});
             await poll(() => !queue._isSending);
+        },
+        "redaction of pending event that hasn't started sending yet aborts it": async assert => {
+            const queue = new SendQueue({
+                roomId: "!abc",
+                storage: await createMockStorage(),
+                hsApi: new MockHomeServer().api
+            });
+            // first, enqueue a message that will be attempted to send, but we don't respond
+            await queue.enqueueEvent("m.room.message", {body: "hello!"}, null, new NullLogItem());
+
+            const observer = new ListObserver();
+            queue.pendingEvents.subscribe(observer);
+            await queue.enqueueEvent("m.room.message", {body: "...world"}, null, new NullLogItem());
+            let txnId;
+            {
+                const {type, index, value} = await observer.next();
+                assert.equal(type, "add");
+                assert.equal(index, 1);
+                assert.equal(typeof value.txnId, "string");
+                txnId = value.txnId;
+            }
+            await queue.enqueueRedaction(txnId, null, new NullLogItem());
+            {
+                const {type, value, index} = await observer.next();
+                assert.equal(type, "remove");
+                assert.equal(index, 1);
+                assert.equal(txnId, value.txnId);
+            }
         }
     }
 }
