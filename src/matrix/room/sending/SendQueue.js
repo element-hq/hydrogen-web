@@ -19,7 +19,7 @@ import {ConnectionError} from "../../error.js";
 import {PendingEvent, SendStatus} from "./PendingEvent.js";
 import {makeTxnId, isTxnId} from "../../common.js";
 import {REDACTION_TYPE} from "../common.js";
-import {getRelationFromContent} from "../timeline/relations.js";
+import {getRelationFromContent, REACTION_TYPE} from "../timeline/relations.js";
 
 export class SendQueue {
     constructor({roomId, storage, hsApi, pendingEvents}) {
@@ -296,7 +296,9 @@ export class SendQueue {
             // wouldn't be able to detect the remote echo already arrived and end up overwriting the new event
             const maxQueueIndex = Math.max(maxStorageQueueIndex, this._currentQueueIndex);
             const queueIndex = maxQueueIndex + 1;
-            const needsEncryption = eventType !== REDACTION_TYPE && !!this._roomEncryption;
+            const needsEncryption = eventType !== REDACTION_TYPE &&
+                eventType !== REACTION_TYPE &&
+                !!this._roomEncryption;
             pendingEvent = this._createPendingEvent({
                 roomId: this._roomId,
                 queueIndex,
