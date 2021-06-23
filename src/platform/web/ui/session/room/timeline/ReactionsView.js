@@ -31,9 +31,11 @@ export class ReactionsView extends ListView {
 
 class ReactionView extends TemplateView {
     render(t, vm) {
-        const haveReacted = vm => vm.haveReacted;
         return t.button({
-            className: {haveReacted, isPending: vm => vm.isPending},
+            className: {
+                active: vm => vm.isActive,
+                isPending: vm => vm.isPending
+            },
         }, [vm.key, " ", vm => `${vm.count}`]);
     }
 

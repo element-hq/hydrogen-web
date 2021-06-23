@@ -72,7 +72,7 @@ export class ReactionsViewModel {
         return this._reactions;
     }
 
-    getReactionViewModelForKey(key) {
+    getReaction(key) {
         return this._map.get(key);
     }
 }
@@ -127,8 +127,30 @@ class ReactionViewModel {
         return this._pendingCount !== null;
     }
 
-    get haveReacted() {
+    /** @returns {boolean} true if the user has a (pending) reaction
+     *    already for this key, or they have a pending redaction for
+     *    the reaction, false if there is nothing pending and
+     *    the user has not reacted yet. */
+    get isActive() {
         return this._annotation?.me || this.isPending;
+    }
+
+    /** @returns {boolean} Whether the user has reacted with this key,
+     * taking the local reaction and reaction redaction into account. */
+    get haveReacted() {
+        // determine whether if everything pending is sent, if we have a
+        // reaction or not. This depends on the order of the pending events ofcourse,
+        // which we don't have access to here, but we assume that a redaction comes first
+        // if we have a remote reaction
+        const {isPending} = this;
+        const haveRemoteReaction = this._annotation?.me;
+        const haveLocalRedaction = isPending && this._pendingCount <= 0;
+        const haveLocalReaction = isPending && this._pendingCount >= 0;
+        const haveReaction = (haveRemoteReaction && !haveLocalRedaction) ||
+            // if remote, then assume redaction comes first and reaction last, so final state is reacted
+            (haveRemoteReaction && haveLocalRedaction && haveLocalReaction) ||
+            (!haveRemoteReaction && !haveLocalRedaction && haveLocalReaction);
+        return haveReaction;
     }
 
     _compare(other) {
@@ -166,23 +188,10 @@ class ReactionViewModel {
             }
             this._isToggling = true;
             try {
-                // determine whether if everything pending is sent, if we have a
-                // reaction or not. This depends on the order of the pending events ofcourse,
-                // which we don't have access to here, but we assume that a redaction comes first
-                // if we have a remote reaction
-                const {isPending} = this;
-                const haveRemoteReaction = this._annotation?.me;
-                const haveLocalRedaction = isPending && this._pendingCount <= 0;
-                const haveLocalReaction = isPending && this._pendingCount >= 0;
-                const haveReaction = (haveRemoteReaction && !haveLocalRedaction) ||
-                    // if remote, then assume redaction comes first and reaction last, so final state is reacted
-                    (haveRemoteReaction && haveLocalRedaction && haveLocalReaction) ||
-                    (!haveRemoteReaction && !haveLocalRedaction && haveLocalReaction);
-                log.set({status: haveReaction ? "redact" : "react", haveLocalRedaction, haveLocalReaction, haveRemoteReaction, haveReaction, remoteCount: this._annotation?.count, pendingCount: this._pendingCount});
-                if (haveReaction) {
-                    await this._parentTile.redactReaction(this.key, log);
+                if (this.haveReacted) {
+                    await log.wrap("redactReaction", log => this._parentTile._redactReaction(this.key, log));
                 } else {
-                    await this._parentTile.react(this.key, log);
+                    await log.wrap("react", log => this._parentTile._react(this.key, log));
                 }
             } finally {
                 this._isToggling = false;
@@ -247,8 +256,22 @@ export function tests() {
         return tiles;
     }
 
-    // these are more an integration test than unit tests, but fully tests the local echo when toggling
     return {
+        "haveReacted": assert => {
+            assert.equal(false, new ReactionViewModel("🚀", null, null).haveReacted);
+            assert.equal(false, new ReactionViewModel("🚀", {me: false, count: 1}, null).haveReacted);
+            assert.equal(true, new ReactionViewModel("🚀", {me: true, count: 1}, null).haveReacted);
+            assert.equal(true, new ReactionViewModel("🚀", {me: true, count: 2}, null).haveReacted);
+            assert.equal(true, new ReactionViewModel("🚀", null, 1).haveReacted);
+            assert.equal(false, new ReactionViewModel("🚀", {me: true, count: 1}, -1).haveReacted);
+            // pending count 0 means the remote reaction has been redacted and is sending, then a new reaction was queued
+            assert.equal(true, new ReactionViewModel("🚀", {me: true, count: 1}, 0).haveReacted);
+            // should typically not happen without a remote reaction already present, but should still be false
+            assert.equal(false, new ReactionViewModel("🚀", null, 0).haveReacted);
+        },
+        // these are more an integration test than unit tests,
+        // but fully test the local echo when toggling and
+        // the correct send queue modifications happen
         "toggling reaction with own remote reaction": async assert => {
             // 1. put message and reaction in storage
             const messageEvent = withTextBody("Dogs > Cats", createEvent("m.room.message", "!abc", bob));
@@ -279,7 +302,7 @@ export function tests() {
             queue.pendingEvents.subscribe(queueObserver);
             tiles.subscribe(new ListObserver());
             const messageTile = findInIterarable(tiles, e => !!e); // the other entries are mapped to null
-            const reactionVM = messageTile.reactions.getReactionViewModelForKey("🐶");
+            const reactionVM = messageTile.reactions.getReaction("🐶");
             // 5. test toggling
             // make sure the preexisting reaction is counted
             assert.equal(reactionVM.count, 1);
@@ -344,7 +367,7 @@ export function tests() {
             // 5.1. set reaction, should send a new reaction as there is none yet
             await messageTile.react("🐶");
             // now there should be a reactions view model
-            const reactionVM = messageTile.reactions.getReactionViewModelForKey("🐶");
+            const reactionVM = messageTile.reactions.getReaction("🐶");
             let reactionTxnId;
             {
                 assert.equal(reactionVM.count, 1);
