@@ -139,11 +139,6 @@ export class BaseMessageTile extends SimpleTile {
 
     redactReaction(key, log = null) {
         return this.logger.wrapOrRun(log, "redactReaction", async log => {
-            const redaction = this._entry.getAnnotationPendingRedaction(key);
-            if (redaction) {
-                log.set("already_redacting", true);
-                return;
-            }
             const entry = await this._entry.getOwnAnnotationEntry(this._timeline, key);
             if (entry) {
                 const updatePromise = new Promise(resolve => this._pendingReactionChangeCallback = resolve);
