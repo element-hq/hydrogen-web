@@ -27,6 +27,7 @@ export class BaseMessageTile extends SimpleTile {
         if (this._entry.annotations || this._entry.pendingAnnotations) {
             this._updateReactions();
         }
+        this._pendingReactionChangeCallback = null;
     }
 
     get _mediaRepository() {
@@ -125,12 +126,14 @@ export class BaseMessageTile extends SimpleTile {
     react(key, log = null) {
         return this.logger.wrapOrRun(log, "react", async log => {
             const redaction = this._entry.getAnnotationPendingRedaction(key);
+            const updatePromise = new Promise(resolve => this._pendingReactionChangeCallback = resolve);
             if (redaction && !redaction.pendingEvent.hasStartedSending) {
                 log.set("abort_redaction", true);
                 await redaction.pendingEvent.abort();
             } else {
                 await this._room.sendEvent("m.reaction", this._entry.annotate(key), null, log);
             }
+            await updatePromise;
         });
     }
 
@@ -143,7 +146,9 @@ export class BaseMessageTile extends SimpleTile {
             }
             const entry = await this._entry.getOwnAnnotationEntry(this._timeline, key);
             if (entry) {
+                const updatePromise = new Promise(resolve => this._pendingReactionChangeCallback = resolve);
                 await this._room.sendRedaction(entry.id, null, log);
+                await updatePromise;
             } else {
                 log.set("no_reaction", true);
             }
@@ -155,12 +160,14 @@ export class BaseMessageTile extends SimpleTile {
         if (!annotations && !pendingAnnotations) {
             if (this._reactions) {
                 this._reactions = null;
+                this._pendingReactionChangeCallback && this._pendingReactionChangeCallback();
             }
         } else {
             if (!this._reactions) {
                 this._reactions = new ReactionsViewModel(this);
             }
             this._reactions.update(annotations, pendingAnnotations);
+            this._pendingReactionChangeCallback && this._pendingReactionChangeCallback();
         }
     }
 }
