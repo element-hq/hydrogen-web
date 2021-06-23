@@ -16,8 +16,8 @@ limitations under the License.
 import {ObservableMap} from "../../../../observable/map/ObservableMap.js";
 
 export class ReactionsViewModel {
-    constructor(parentEntry) {
-        this._parentEntry = parentEntry;
+    constructor(parentTile) {
+        this._parentTile = parentTile;
         this._map = new ObservableMap();
         this._reactions = this._map.sortValues((a, b) => a._compare(b));
     }
@@ -34,7 +34,7 @@ export class ReactionsViewModel {
                             this._map.update(key);
                         }
                     } else {
-                        this._map.add(key, new ReactionViewModel(key, annotation, null, this._parentEntry));
+                        this._map.add(key, new ReactionViewModel(key, annotation, null, this._parentTile));
                     }
                 }
             }
@@ -47,7 +47,7 @@ export class ReactionsViewModel {
                         this._map.update(key);
                     }
                 } else {
-                    this._map.add(key, new ReactionViewModel(key, null, count, this._parentEntry));
+                    this._map.add(key, new ReactionViewModel(key, null, count, this._parentTile));
                 }
             }
         }
@@ -71,14 +71,18 @@ export class ReactionsViewModel {
     get reactions() {
         return this._reactions;
     }
+
+    getReactionViewModelForKey(key) {
+        return this._map.get(key);
+    }
 }
 
 class ReactionViewModel {
-    constructor(key, annotation, pendingCount, parentEntry) {
+    constructor(key, annotation, pendingCount, parentTile) {
         this._key = key;
         this._annotation = annotation;
         this._pendingCount = pendingCount;
-        this._parentEntry = parentEntry;
+        this._parentTile = parentTile;
         this._isToggling = false;
     }
 
@@ -154,24 +158,38 @@ class ReactionViewModel {
         }
     }
 
-    async toggleReaction() {
-        if (this._isToggling) {
-            return;
-        }
-        this._isToggling = true;
-        try {
-            // TODO: should some of this go into BaseMessageTile?
-            const haveLocalRedaction = this.isPending && this._pendingCount <= 0;
-            const havePendingReaction = this.isPending && this._pendingCount > 0;
-            const haveRemoteReaction = this._annotation?.me;
-            const haveReaction = havePendingReaction || (haveRemoteReaction && !haveLocalRedaction);
-            if (haveReaction) {
-                await this._parentEntry.redactReaction(this.key);
-            } else {
-                await this._parentEntry.react(this.key);
+    toggleReaction(log = null) {
+        return this._parentTile.logger.wrapOrRun(log, "toggleReaction", async log => {
+            if (this._isToggling) {
+                log.set("busy", true);
+                return;
             }
-        } finally {
-            this._isToggling = false;
+            this._isToggling = true;
+            try {
+                // determine whether if everything pending is sent, if we have a
+                // reaction or not. This depends on the order of the pending events ofcourse,
+                // which we don't have access to here, but we assume that a redaction comes first
+                // if we have a remote reaction
+                const {isPending} = this;
+                const haveRemoteReaction = this._annotation?.me;
+                const haveLocalRedaction = isPending && this._pendingCount <= 0;
+                const haveLocalReaction = isPending && this._pendingCount >= 0;
+                const haveReaction = (haveRemoteReaction && !haveLocalRedaction) ||
+                    // if remote, then assume redaction comes first and reaction last, so final state is reacted
+                    (haveRemoteReaction && haveLocalRedaction && haveLocalReaction) ||
+                    (!haveRemoteReaction && !haveLocalRedaction && haveLocalReaction);
+                log.set({status: haveReaction ? "redact" : "react", haveLocalRedaction, haveLocalReaction, haveRemoteReaction, haveReaction, remoteCount: this._annotation?.count, pendingCount: this._pendingCount});
+                if (haveReaction) {
+                    await this._parentTile.redactReaction(this.key, log);
+                } else {
+                    await this._parentTile.react(this.key, log);
+                }
+            } finally {
+                this._isToggling = false;
+            }
+        });
+    }
+}
         }
     }
 }
