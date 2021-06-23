@@ -59,6 +59,7 @@ limitations under the License.
 .Timeline_message:hover > .Timeline_messageOptions,
 .Timeline_message.menuOpen > .Timeline_messageOptions {
     display: block;
+    user-select: none;
 }
 
 .Timeline_messageAvatar {
@@ -106,6 +107,7 @@ limitations under the License.
 
 .Timeline_messageBody time {
     padding: 2px 0 0px 10px;
+    user-select: none;
 }
 
 .Timeline_messageBody time, .Timeline_messageTime {
@@ -135,6 +137,9 @@ limitations under the License.
 .hydrogen .Timeline_messageSender.usercolor7 { color: var(--usercolor7); }
 .hydrogen .Timeline_messageSender.usercolor8 { color: var(--usercolor8); }
 
+.Timeline_messageBody a {
+    word-break: break-all;
+}
 
 .Timeline_messageBody .media {
     display: grid;
@@ -231,7 +236,7 @@ only loads when the top comes into view*/
     vertical-align: middle;
 }
 
-.Timeline_messageReactions button.haveReacted {
+.Timeline_messageReactions button.active {
     background-color: #e9fff9;
     border-color: #0DBD8B;
 }
@@ -241,7 +246,7 @@ only loads when the top comes into view*/
     100% { border-color: #0DBD8B; }
 }
 
-.Timeline_messageReactions button.haveReacted.isPending {
+.Timeline_messageReactions button.active.pending {
     animation-name: glow-reaction-border;
     animation-duration: 0.5s;
     animation-direction: alternate;
@@ -264,8 +269,4 @@ only loads when the top comes into view*/
 
 .GapView > :not(:first-child) {
     margin-left: 12px;
-}
-
-.Timeline_messageBody a {
-    word-break: break-all;
 }

@@ -34,7 +34,7 @@ class ReactionView extends TemplateView {
         return t.button({
             className: {
                 active: vm => vm.isActive,
-                isPending: vm => vm.isPending
+                pending: vm => vm.isPending
             },
         }, [vm.key, " ", vm => `${vm.count}`]);
     }
