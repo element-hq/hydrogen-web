@@ -33,3 +33,7 @@ export function withTextBody(body, event) {
 export function withTxnId(txnId, event) {
     return Object.assign({}, event, {unsigned: {transaction_id: txnId}});
 }
+
+export function withRedacts(redacts, reason, event) {
+    return Object.assign({redacts, content: {reason}}, event);
+}
