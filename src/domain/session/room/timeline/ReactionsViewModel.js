@@ -190,6 +190,192 @@ class ReactionViewModel {
         });
     }
 }
+
+// matrix classes uses in the integration test below
+import {User} from "../../../../matrix/User.js";
+import {SendQueue} from "../../../../matrix/room/sending/SendQueue.js";
+import {Timeline} from "../../../../matrix/room/timeline/Timeline.js";
+import {EventEntry} from "../../../../matrix/room/timeline/entries/EventEntry.js";
+import {RelationWriter} from "../../../../matrix/room/timeline/persistence/RelationWriter.js";
+import {FragmentIdComparer} from "../../../../matrix/room/timeline/FragmentIdComparer.js";
+import {createAnnotation} from "../../../../matrix/room/timeline/relations.js";
+// mocks
+import {Clock as MockClock} from "../../../../mocks/Clock.js";
+import {createMockStorage} from "../../../../mocks/Storage.js";
+import {ListObserver} from "../../../../mocks/ListObserver.js";
+import {createEvent, withTextBody, withContent} from "../../../../mocks/event.js";
+import {NullLogItem, NullLogger} from "../../../../logging/NullLogger.js";
+import {HomeServer as MockHomeServer} from "../../../../mocks/HomeServer.js";
+// other imports
+import {BaseMessageTile} from "./tiles/BaseMessageTile.js";
+import {MappedList} from "../../../../observable/list/MappedList.js";
+
+export function tests() {
+    const fragmentIdComparer = new FragmentIdComparer([]);
+    const roomId = "$abc";
+    const alice = "@alice:hs.tld";
+    const bob = "@bob:hs.tld";
+    const logger = new NullLogger();
+
+    function findInIterarable(it, predicate) {
+        let i = 0;
+        for (const item of it) {
+            if (predicate(item, i)) {
+                return item;
+            }
+            i += 1;
         }
+        throw new Error("not found");
+    }
+
+    function mapMessageEntriesToBaseMessageTile(timeline, queue) {
+        const room = {
+            id: roomId,
+            sendEvent(eventType, content, attachments, log) {
+                return queue.enqueueEvent(eventType, content, attachments, log);
+            },
+            sendRedaction(eventIdOrTxnId, reason, log) {
+                return queue.enqueueRedaction(eventIdOrTxnId, reason, log);
+            }
+        };
+        const tiles = new MappedList(timeline.entries, entry => {
+            if (entry.eventType === "m.room.message") {
+                return new BaseMessageTile({entry, room, timeline, platform: {logger}});
+            }
+            return null;
+        }, (tile, params, entry) => tile?.updateEntry(entry, params));
+        return tiles;
+    }
+
+    // these are more an integration test than unit tests, but fully tests the local echo when toggling
+    return {
+        "toggling reaction with own remote reaction": async assert => {
+            // 1. put message and reaction in storage
+            const messageEvent = withTextBody("Dogs > Cats", createEvent("m.room.message", "!abc", bob));
+            const myReactionEvent = withContent(createAnnotation(messageEvent.event_id, "🐶"), createEvent("m.reaction", "!def", alice));
+            myReactionEvent.origin_server_ts = 5;
+            const myReactionEntry = new EventEntry({event: myReactionEvent, roomId}, fragmentIdComparer);
+            const relationWriter = new RelationWriter({roomId, ownUserId: alice, fragmentIdComparer});
+            const storage = await createMockStorage();
+            const txn = await storage.readWriteTxn([
+                storage.storeNames.timelineEvents,
+                storage.storeNames.timelineRelations,
+                storage.storeNames.timelineFragments
+            ]);
+            txn.timelineFragments.add({id: 1, roomId});
+            txn.timelineEvents.insert({fragmentId: 1, eventIndex: 2, event: messageEvent, roomId});
+            txn.timelineEvents.insert({fragmentId: 1, eventIndex: 3, event: myReactionEvent, roomId});
+            await relationWriter.writeRelation(myReactionEntry, txn, new NullLogItem());
+            await txn.complete();
+            // 2. setup queue & timeline
+            const queue = new SendQueue({roomId, storage, hsApi: new MockHomeServer().api});
+            const timeline = new Timeline({roomId, storage, fragmentIdComparer,
+                clock: new MockClock(), pendingEvents: queue.pendingEvents});
+            // 3. load the timeline, which will load the message with the reaction
+            await timeline.load(new User(alice), "join", new NullLogItem());
+            const tiles = mapMessageEntriesToBaseMessageTile(timeline, queue);
+            // 4. subscribe to the queue to observe, and the tiles (so we can safely iterate)
+            const queueObserver = new ListObserver();
+            queue.pendingEvents.subscribe(queueObserver);
+            tiles.subscribe(new ListObserver());
+            const messageTile = findInIterarable(tiles, e => !!e); // the other entries are mapped to null
+            const reactionVM = messageTile.reactions.getReactionViewModelForKey("🐶");
+            // 5. test toggling
+            // make sure the preexisting reaction is counted
+            assert.equal(reactionVM.count, 1);
+            // 5.1. unset reaction, should redact the pre-existing reaction
+            await reactionVM.toggleReaction();
+            {
+                assert.equal(reactionVM.count, 0);
+                const {value: redaction, type} = await queueObserver.next();
+                assert.equal("add", type);
+                assert.equal(redaction.eventType, "m.room.redaction");
+                assert.equal(redaction.relatedEventId, myReactionEntry.id);
+                // SendQueue puts redaction in sending status, as it is first in the queue
+                assert.equal("update", (await queueObserver.next()).type);
+            }
+            // 5.2. set reaction, should send a new reaction as the redaction is already sending
+            await reactionVM.toggleReaction();
+            let reactionIndex;
+            {
+                assert.equal(reactionVM.count, 1);
+                const {value: reaction, type, index} = await queueObserver.next();
+                assert.equal("add", type);
+                assert.equal(reaction.eventType, "m.reaction");
+                assert.equal(reaction.relatedEventId, messageEvent.event_id);
+                reactionIndex = index;
+            }
+            // 5.3. unset reaction, should abort the previous pending reaction as it hasn't started sending yet
+            await reactionVM.toggleReaction();
+            {
+                assert.equal(reactionVM.count, 0);
+                const {index, type} = await queueObserver.next();
+                assert.equal("remove", type);
+                assert.equal(reactionIndex, index);
+            }
+        },
+        "toggling reaction without own remote reaction": async assert => {
+            // 1. put message in storage
+            const messageEvent = withTextBody("Dogs > Cats", createEvent("m.room.message", "!abc", bob));
+            const storage = await createMockStorage();
+
+            const txn = await storage.readWriteTxn([
+                storage.storeNames.timelineEvents,
+                storage.storeNames.timelineFragments
+            ]);
+            txn.timelineFragments.add({id: 1, roomId});
+            txn.timelineEvents.insert({fragmentId: 1, eventIndex: 2, event: messageEvent, roomId});
+            await txn.complete();
+            // 2. setup queue & timeline
+            const queue = new SendQueue({roomId, storage, hsApi: new MockHomeServer().api});
+            const timeline = new Timeline({roomId, storage, fragmentIdComparer,
+                clock: new MockClock(), pendingEvents: queue.pendingEvents});
+
+            // 3. load the timeline, which will load the message with the reaction
+            await timeline.load(new User(alice), "join", new NullLogItem());
+            const tiles = mapMessageEntriesToBaseMessageTile(timeline, queue);
+            // 4. subscribe to the queue to observe, and the tiles (so we can safely iterate)
+            const queueObserver = new ListObserver();
+            queue.pendingEvents.subscribe(queueObserver);
+            tiles.subscribe(new ListObserver());
+            const messageTile = findInIterarable(tiles, e => !!e); // the other entries are mapped to null
+            // 5. test toggling
+            assert.equal(messageTile.reactions, null);
+            // 5.1. set reaction, should send a new reaction as there is none yet
+            await messageTile.react("🐶");
+            // now there should be a reactions view model
+            const reactionVM = messageTile.reactions.getReactionViewModelForKey("🐶");
+            let reactionTxnId;
+            {
+                assert.equal(reactionVM.count, 1);
+                const {value: reaction, type} = await queueObserver.next();
+                assert.equal("add", type);
+                assert.equal(reaction.eventType, "m.reaction");
+                assert.equal(reaction.relatedEventId, messageEvent.event_id);
+                // SendQueue puts reaction in sending status, as it is first in the queue
+                assert.equal("update", (await queueObserver.next()).type);
+                reactionTxnId = reaction.txnId;
+            }
+            // 5.2. unset reaction, should redact the previous pending reaction as it has started sending already
+            let redactionIndex;
+            await reactionVM.toggleReaction();
+            {
+                assert.equal(reactionVM.count, 0);
+                const {value: redaction, type, index} = await queueObserver.next();
+                assert.equal("add", type);
+                assert.equal(redaction.eventType, "m.room.redaction");
+                assert.equal(redaction.relatedTxnId, reactionTxnId);
+                redactionIndex = index;
+            }
+            // 5.3. set reaction, should abort the previous pending redaction as it hasn't started sending yet
+            await reactionVM.toggleReaction();
+            {
+                assert.equal(reactionVM.count, 1);
+                const {index, type} = await queueObserver.next();
+                assert.equal("remove", type);
+                assert.equal(redactionIndex, index);
+                redactionIndex = index;
+            }
+        },
     }
 }
