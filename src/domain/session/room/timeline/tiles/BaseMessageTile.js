@@ -171,7 +171,6 @@ export class BaseMessageTile extends SimpleTile {
             log.set("ongoing", true);
             return;
         }
-        return this.logger.wrapOrRun(log, "redactReaction", async log => {
             const entry = await this._entry.getOwnAnnotationEntry(this._timeline, key);
             if (entry) {
                 const updatePromise = new Promise(resolve => this._pendingReactionChangeCallback = resolve);
@@ -181,7 +180,6 @@ export class BaseMessageTile extends SimpleTile {
             } else {
                 log.set("no_reaction", true);
             }
-        });
     }
 
     _updateReactions() {
