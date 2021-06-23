@@ -182,15 +182,9 @@ export class Timeline {
         return null;
     }
 
+    /** @package */
     updateOwnMember(member) {
         this._ownMember = member;
-    }
-
-    replaceEntries(entries) {
-        this._addLocalRelationsToNewRemoteEntries(entries);
-        for (const entry of entries) {
-            this._remoteEntries.update(entry);
-        }
     }
 
     _addLocalRelationsToNewRemoteEntries(entries) {
@@ -223,8 +217,22 @@ export class Timeline {
         }
     }
 
+    // used in replaceEntries
+    static _entryUpdater(existingEntry, entry) {
+        entry.updateFrom(existingEntry);
+        return entry;
+    }
+
     /** @package */
-    addOrReplaceEntries(newEntries) {
+    replaceEntries(entries) {
+        this._addLocalRelationsToNewRemoteEntries(entries);
+        for (const entry of entries) {
+            this._remoteEntries.getAndUpdate(entry, Timeline._entryUpdater);
+        }
+    }
+
+    /** @package */
+    addEntries(newEntries) {
         this._addLocalRelationsToNewRemoteEntries(newEntries);
         this._remoteEntries.setManySorted(newEntries);
     }
@@ -251,7 +259,7 @@ export class Timeline {
         ));
         try {
             const entries = await readerRequest.complete();
-            this.addOrReplaceEntries(entries);
+            this.addEntries(entries);
             return entries.length < amount;
         } finally {
             this._disposables.disposeTracked(readerRequest);
@@ -366,13 +374,13 @@ export function tests() {
                 closeCallback: () => {}, fragmentIdComparer, pendingEvents, clock: new MockClock()});
             // 1. load timeline
             await timeline.load(new User(alice), "join", new NullLogItem());
-            // 2. test replaceEntries and addOrReplaceEntries don't fail
+            // 2. test replaceEntries and addEntries don't fail
             const event1 = withTextBody("hi!", withSender(bob, createEvent("m.room.message", "!abc")));
             const entry1 = new EventEntry({event: event1, fragmentId: 1, eventIndex: 1}, fragmentIdComparer);
             timeline.replaceEntries([entry1]);
             const event2 = withTextBody("hi bob!", withSender(alice, createEvent("m.room.message", "!def")));
             const entry2 = new EventEntry({event: event2, fragmentId: 1, eventIndex: 2}, fragmentIdComparer);
-            timeline.addOrReplaceEntries([entry2]);
+            timeline.addEntries([entry2]);
             // 3. add local relation (redaction)
             pendingEvents.append(new PendingEvent({data: {
                 roomId,
@@ -396,7 +404,7 @@ export function tests() {
             await timeline.load(new User(bob), "join", new NullLogItem());
             timeline.entries.subscribe(new ListObserver());
             const event = withTextBody("hi bob!", withSender(alice, createEvent("m.room.message", "!abc")));
-            timeline.addOrReplaceEntries([new EventEntry({event, fragmentId: 1, eventIndex: 2}, fragmentIdComparer)]);
+            timeline.addEntries([new EventEntry({event, fragmentId: 1, eventIndex: 2}, fragmentIdComparer)]);
             let entry = getIndexFromIterable(timeline.entries, 0);
             // 2. add local reaction
             pendingEvents.append(new PendingEvent({data: {
@@ -467,7 +475,7 @@ export function tests() {
             await timeline.load(new User(bob), "join", new NullLogItem());
             timeline.entries.subscribe(new ListObserver());
             // 3. add message to timeline
-            timeline.addOrReplaceEntries([messageEntry]);
+            timeline.addEntries([messageEntry]);
             const entry = getIndexFromIterable(timeline.entries, 0);
             assert.equal(entry, messageEntry);
             assert.equal(entry.annotations["👋"].count, 1);
@@ -488,7 +496,7 @@ export function tests() {
                 event: withContent(createAnnotation(messageEntry.id, "👋"), createEvent("m.reaction", "!def", bob)),
                 fragmentId: 1, eventIndex: 3, roomId
             }, fragmentIdComparer);
-            timeline.addOrReplaceEntries([messageEntry, reactionEntry]);
+            timeline.addEntries([messageEntry, reactionEntry]);
             // 3. redact reaction
             pendingEvents.append(new PendingEvent({data: {
                 roomId,
@@ -521,7 +529,7 @@ export function tests() {
             }}));
             await poll(() => timeline.entries.length === 1);
             // 3. add remote reaction target
-            timeline.addOrReplaceEntries([messageEntry]);
+            timeline.addEntries([messageEntry]);
             await poll(() => timeline.entries.length === 2);
             const entry = getIndexFromIterable(timeline.entries, 0);
             assert.equal(entry, messageEntry);
@@ -555,7 +563,7 @@ export function tests() {
             }}));
             await poll(() => timeline.entries.length === 1);
             // 4. add reaction target
-            timeline.addOrReplaceEntries([new EventEntry({
+            timeline.addEntries([new EventEntry({
                 event: withTextBody("hi bob!", createEvent("m.room.message", messageId, alice)),
                 fragmentId: 1, eventIndex: 2}, fragmentIdComparer)
             ]);
@@ -564,5 +572,32 @@ export function tests() {
             const entry = getIndexFromIterable(timeline.entries, 0);
             assert.equal(entry.pendingAnnotations.get("👋"), -1);
         },
+        "decrypted entry preserves content when receiving other update without decryption": async assert => {
+            // 1. create encrypted and decrypted entry
+            const encryptedEntry = new EventEntry({
+                event: withContent({ciphertext: "abc"}, createEvent("m.room.encrypted", "!abc", alice)),
+                    fragmentId: 1, eventIndex: 1, roomId
+            }, fragmentIdComparer);
+            const decryptedEntry = encryptedEntry.clone();
+            decryptedEntry.setDecryptionResult({
+                event: withTextBody("hi bob!", createEvent("m.room.message", encryptedEntry.id, encryptedEntry.sender))
+            });
+            // 2. setup the timeline
+            const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
+                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
+            await timeline.load(new User(alice), "join", new NullLogItem());
+            timeline.addEntries([decryptedEntry]);
+            const observer = new ListObserver();
+            timeline.entries.subscribe(observer);
+            // 3. replace the entry with one that is not decrypted
+            //    (as would happen when receiving a reaction,
+            //    as it does not rerun the decryption)
+            //    and check that the decrypted content is preserved
+            timeline.replaceEntries([encryptedEntry]);
+            const {value, type} = await observer.next();
+            assert.equal(type, "update");
+            assert.equal(value.eventType, "m.room.message");
+            assert.equal(value.content.body, "hi bob!");
+        }
     };
 }

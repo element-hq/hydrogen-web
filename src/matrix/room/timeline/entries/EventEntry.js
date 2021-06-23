@@ -28,9 +28,18 @@ export class EventEntry extends BaseEventEntry {
 
     clone() {
         const clone = new EventEntry(this._eventEntry, this._fragmentIdComparer);
-        clone._decryptionResult = this._decryptionResult;
-        clone._decryptionError = this._decryptionError;
+        clone.updateFrom(this);
         return clone;
+    }
+
+    updateFrom(other) {
+        super.updateFrom(other);
+        if (other._decryptionResult && !this._decryptionResult) {
+            this._decryptionResult = other._decryptionResult;
+        }
+        if (other._decryptionError && !this._decryptionError) {
+            this._decryptionError = other._decryptionError;
+        }
     }
 
     get event() {

@@ -239,7 +239,7 @@ export class Room extends BaseRoom {
         if (this._timeline) {
             // these should not be added if not already there
             this._timeline.replaceEntries(updatedEntries);
-            this._timeline.addOrReplaceEntries(newEntries);
+            this._timeline.addEntries(newEntries);
         }
         if (this._observedEvents) {
             this._observedEvents.updateEvents(updatedEntries);
