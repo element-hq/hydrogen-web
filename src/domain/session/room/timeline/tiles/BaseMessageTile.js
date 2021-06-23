@@ -142,15 +142,18 @@ export class BaseMessageTile extends SimpleTile {
             return;
         }
         const redaction = this._entry.getAnnotationPendingRedaction(key);
-        const updatePromise = new Promise(resolve => this._pendingReactionChangeCallback = resolve);
-        if (redaction && !redaction.pendingEvent.hasStartedSending) {
-            log.set("abort_redaction", true);
-            await redaction.pendingEvent.abort();
-        } else {
-            await this._room.sendEvent("m.reaction", this._entry.annotate(key), null, log);
+        try {
+            const updatePromise = new Promise(resolve => this._pendingReactionChangeCallback = resolve);
+            if (redaction && !redaction.pendingEvent.hasStartedSending) {
+                log.set("abort_redaction", true);
+                await redaction.pendingEvent.abort();
+            } else {
+                await this._room.sendEvent("m.reaction", this._entry.annotate(key), null, log);
+            }
+            await updatePromise;
+        } finally {
+            this._pendingReactionChangeCallback = null;
         }
-        await updatePromise;
-        this._pendingReactionChangeCallback = null;
     }
 
     redactReaction(key, log = null) {
@@ -171,15 +174,18 @@ export class BaseMessageTile extends SimpleTile {
             log.set("ongoing", true);
             return;
         }
-            const entry = await this._entry.getOwnAnnotationEntry(this._timeline, key);
-            if (entry) {
+        const entry = await this._entry.getOwnAnnotationEntry(this._timeline, key);
+        if (entry) {
+            try {
                 const updatePromise = new Promise(resolve => this._pendingReactionChangeCallback = resolve);
                 await this._room.sendRedaction(entry.id, null, log);
                 await updatePromise;
+            } finally {
                 this._pendingReactionChangeCallback = null;
-            } else {
-                log.set("no_reaction", true);
             }
+        } else {
+            log.set("no_reaction", true);
+        }
     }
 
     _updateReactions() {
