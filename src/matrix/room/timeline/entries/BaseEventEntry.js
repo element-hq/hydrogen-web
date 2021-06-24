@@ -64,17 +64,7 @@ export class BaseEventEntry extends BaseEntry {
             const relationEntry = entry.redactingEntry || entry;
             if (relationEntry.isRelatedToId(this.id)) {
                 if (relationEntry.relation.rel_type === ANNOTATION_RELATION_TYPE) {
-                    if (!this._pendingAnnotations) {
-                        this._pendingAnnotations = new Map();
-                    }
-                    const {key} = (entry.redactingEntry || entry).relation;
-                    if (key) {
-                        let annotation = this._pendingAnnotations.get(key);
-                        if (!annotation) {
-                            annotation = new PendingAnnotation();
-                            this._pendingAnnotations.set(key, annotation);
-                        }
-                        annotation.add(entry);
+                    if (this._addPendingAnnotation(entry)) {
                         return "pendingAnnotations";
                     }
                 }
@@ -100,20 +90,44 @@ export class BaseEventEntry extends BaseEntry {
             const relationEntry = entry.redactingEntry || entry;
             if (relationEntry.isRelatedToId(this.id)) {
                 if (relationEntry.relation?.rel_type === ANNOTATION_RELATION_TYPE && this._pendingAnnotations) {
-                    const {key} = (entry.redactingEntry || entry).relation;
-                    if (key) {
-                        let annotation = this._pendingAnnotations.get(key);
-                        if (annotation.remove(entry) && annotation.isEmpty) {
-                            this._pendingAnnotations.delete(key);
-                        }
-                        if (this._pendingAnnotations.size === 0) {
-                            this._pendingAnnotations = null;
-                        }
+                    if (this._removePendingAnnotation(entry)) {
                         return "pendingAnnotations";
                     }
                 }
             }
         }
+    }
+
+    _addPendingAnnotation(entry) {
+        if (!this._pendingAnnotations) {
+            this._pendingAnnotations = new Map();
+        }
+        const {key} = (entry.redactingEntry || entry).relation;
+        if (key) {
+            let annotation = this._pendingAnnotations.get(key);
+            if (!annotation) {
+                annotation = new PendingAnnotation();
+                this._pendingAnnotations.set(key, annotation);
+            }
+            annotation.add(entry);
+            return true;
+        }
+        return false;
+    }
+
+    _removePendingAnnotation(entry) {
+        const {key} = (entry.redactingEntry || entry).relation;
+        if (key) {
+            let annotation = this._pendingAnnotations.get(key);
+            if (annotation.remove(entry) && annotation.isEmpty) {
+                this._pendingAnnotations.delete(key);
+            }
+            if (this._pendingAnnotations.size === 0) {
+                this._pendingAnnotations = null;
+            }
+            return true;
+        }
+        return false;
     }
 
     async abortPendingRedaction() {
