@@ -157,8 +157,17 @@ class ReactionViewModel {
         }
     }
 
-    toggle(log = null) {
-        return this._parentTile.toggleReaction(this.key, log);
+    async toggle(log = null) {
+        if (this._isToggling) {
+            console.log("busy toggling reaction already");
+            return;
+        }
+        this._isToggling = true;
+        try {
+            await this._parentTile.toggleReaction(this.key, log);
+        } finally {
+            this._isToggling = false;
+        }
     }
 }
 
