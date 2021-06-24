@@ -30,7 +30,7 @@ export class TimelineRelationStore {
     }
 
     add(roomId, targetEventId, relType, sourceEventId) {
-        return this._store.add(encodeKey(roomId, targetEventId, relType, sourceEventId));
+        return this._store.add({key: encodeKey(roomId, targetEventId, relType, sourceEventId)});
     }
 
     remove(roomId, targetEventId, relType, sourceEventId) {
@@ -56,8 +56,8 @@ export class TimelineRelationStore {
             true,
             true
         );
-        const keys = await this._store.selectAll(range);
-        return keys.map(decodeKey);
+        const items = await this._store.selectAll(range);
+        return items.map(i => decodeKey(i.key));
     }
 
     async getAllForTarget(roomId, targetId) {
@@ -69,7 +69,7 @@ export class TimelineRelationStore {
             true,
             true
         );
-        const keys = await this._store.selectAll(range);
-        return keys.map(decodeKey);
+        const items = await this._store.selectAll(range);
+        return items.map(i => decodeKey(i.key));
     }
 }

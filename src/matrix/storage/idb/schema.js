@@ -140,5 +140,5 @@ async function migrateOperationScopeIndex(db, txn) {
 
 //v10
 function createTimelineRelationsStore(db) {
-    db.createObjectStore("timelineRelations", {keyPath: ""});
+    db.createObjectStore("timelineRelations", {keyPath: "key"});
 }
