@@ -81,9 +81,9 @@ export class RoomGridViewModel extends ViewModel {
     _switchToRoom(roomId) {
         const detailsShown = !!this.navigation.path.get("details")?.value;
         let path = this.navigation.path.until("rooms");
-        path = path.with(new Segment("room", roomId));
+        path = path.with(this.navigation.segment("room", roomId));
         if (detailsShown) {
-            path = path.with(new Segment("details", true));
+            path = path.with(this.navigation.segment("details", true));
         }
         this.navigation.applyPath(path);
     }
@@ -189,7 +189,6 @@ export class RoomGridViewModel extends ViewModel {
 
 import {createNavigation} from "../navigation/index.js";
 import {ObservableValue} from "../../observable/ObservableValue.js";
-import { Segment } from "../navigation/Navigation.js";
 
 export function tests() { 
     class RoomVMMock {
