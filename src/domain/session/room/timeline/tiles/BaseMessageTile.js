@@ -115,7 +115,9 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     get reactions() {
-        return this._reactions;
+        if (this.shape !== "redacted") {
+            return this._reactions;
+        }
     }
 
     get canReact() {
