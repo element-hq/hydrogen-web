@@ -46,6 +46,16 @@ export class SortedArray extends BaseObservableList {
         return findAndUpdateInArray(predicate, this._items, this, updater);
     }
 
+    getAndUpdate(item, updater, updateParams = null) {
+        const idx = this.indexOf(item);
+        if (idx !== -1) {
+            const existingItem = this._items[idx];
+            const newItem = updater(existingItem, item);
+            this._items[idx] = newItem;
+            this.emitUpdate(idx, newItem, updateParams);
+        }
+    }
+
     update(item, updateParams = null) {
         const idx = this.indexOf(item);
         if (idx !== -1) {

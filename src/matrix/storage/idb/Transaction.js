@@ -21,6 +21,7 @@ import {SessionStore} from "./stores/SessionStore.js";
 import {RoomSummaryStore} from "./stores/RoomSummaryStore.js";
 import {InviteStore} from "./stores/InviteStore.js";
 import {TimelineEventStore} from "./stores/TimelineEventStore.js";
+import {TimelineRelationStore} from "./stores/TimelineRelationStore.js";
 import {RoomStateStore} from "./stores/RoomStateStore.js";
 import {RoomMemberStore} from "./stores/RoomMemberStore.js";
 import {TimelineFragmentStore} from "./stores/TimelineFragmentStore.js";
@@ -80,6 +81,10 @@ export class Transaction {
 
     get timelineEvents() {
         return this._store("timelineEvents", idbStore => new TimelineEventStore(idbStore));
+    }
+
+    get timelineRelations() {
+        return this._store("timelineRelations", idbStore => new TimelineRelationStore(idbStore));
     }
 
     get roomState() {

@@ -16,6 +16,8 @@ limitations under the License.
 
 import {BaseRoom} from "./BaseRoom.js";
 import {SyncWriter} from "./timeline/persistence/SyncWriter.js";
+import {MemberWriter} from "./timeline/persistence/MemberWriter.js";
+import {RelationWriter} from "./timeline/persistence/RelationWriter.js";
 import {SendQueue} from "./sending/SendQueue.js";
 import {WrappedError} from "../error.js"
 import {Heroes} from "./members/Heroes.js";
@@ -28,7 +30,17 @@ export class Room extends BaseRoom {
     constructor(options) {
         super(options);
         const {pendingEvents} = options;
-        this._syncWriter = new SyncWriter({roomId: this.id, fragmentIdComparer: this._fragmentIdComparer});
+        const relationWriter = new RelationWriter({
+            roomId: this.id,
+            fragmentIdComparer: this._fragmentIdComparer,
+            ownUserId: this._user.id
+        });
+        this._syncWriter = new SyncWriter({
+            roomId: this.id,
+            fragmentIdComparer: this._fragmentIdComparer,
+            relationWriter,
+            memberWriter: new MemberWriter(this.id)
+        });
         this._sendQueue = new SendQueue({roomId: this.id, storage: this._storage, hsApi: this._hsApi, pendingEvents});
     }
 
@@ -227,7 +239,7 @@ export class Room extends BaseRoom {
         if (this._timeline) {
             // these should not be added if not already there
             this._timeline.replaceEntries(updatedEntries);
-            this._timeline.addOrReplaceEntries(newEntries);
+            this._timeline.addEntries(newEntries);
         }
         if (this._observedEvents) {
             this._observedEvents.updateEvents(updatedEntries);
@@ -291,7 +303,7 @@ export class Room extends BaseRoom {
 
     /** @public */
     sendEvent(eventType, content, attachments, log = null) {
-        this._platform.logger.wrapOrRun(log, "send", log => {
+        return this._platform.logger.wrapOrRun(log, "send", log => {
             log.set("id", this.id);
             return this._sendQueue.enqueueEvent(eventType, content, attachments, log);
         });
@@ -299,7 +311,7 @@ export class Room extends BaseRoom {
 
     /** @public */
     sendRedaction(eventIdOrTxnId, reason, log = null) {
-        this._platform.logger.wrapOrRun(log, "redact", log => {
+        return this._platform.logger.wrapOrRun(log, "redact", log => {
             log.set("id", this.id);
             return this._sendQueue.enqueueRedaction(eventIdOrTxnId, reason, log);
         });

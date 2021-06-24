@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {tag} from "./html.js";
-import {errorToDOM} from "./error.js";
+import {el} from "./html.js";
+import {mountView} from "./utils.js";
 
 function insertAt(parentNode, idx, childNode) {
     const isLast = idx === parentNode.childElementCount;
@@ -28,10 +28,11 @@ function insertAt(parentNode, idx, childNode) {
 }
 
 export class ListView {
-    constructor({list, onItemClick, className, parentProvidesUpdates = true}, childCreator) {
+    constructor({list, onItemClick, className, tagName = "ul", parentProvidesUpdates = true}, childCreator) {
         this._onItemClick = onItemClick;
         this._list = list;
         this._className = className;
+        this._tagName = tagName;
         this._root = null;
         this._subscription = null;
         this._childCreator = childCreator;
@@ -62,7 +63,7 @@ export class ListView {
         if (this._className) {
             attr.className = this._className;
         }
-        this._root = tag.ul(attr);
+        this._root = el(this._tagName, attr);
         this.loadList();
         if (this._onItemClick) {
             this._root.addEventListener("click", this._onClick);
@@ -107,12 +108,7 @@ export class ListView {
         for (let item of this._list) {
             const child = this._childCreator(item);
             this._childInstances.push(child);
-            try {
-                const childDomNode = child.mount(this._mountArgs);
-                fragment.appendChild(childDomNode);
-            } catch (err) {
-                fragment.appendChild(errorToDOM(err));
-            }
+            fragment.appendChild(mountView(child, this._mountArgs));
         }
         this._root.appendChild(fragment);
     }
@@ -121,7 +117,7 @@ export class ListView {
         this.onBeforeListChanged();
         const child = this._childCreator(value);
         this._childInstances.splice(idx, 0, child);
-        insertAt(this._root, idx, child.mount(this._mountArgs));
+        insertAt(this._root, idx, mountView(child, this._mountArgs));
         this.onListChanged();
     }
 

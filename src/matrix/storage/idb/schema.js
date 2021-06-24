@@ -16,6 +16,7 @@ export const schema = [
     createInviteStore,
     createArchivedRoomSummaryStore,
     migrateOperationScopeIndex,
+    createTimelineRelationsStore,
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -135,4 +136,9 @@ async function migrateOperationScopeIndex(db, txn) {
         txn.abort();
         console.error("could not migrate operations", err.stack);
     }
+}
+
+//v10
+function createTimelineRelationsStore(db) {
+    db.createObjectStore("timelineRelations", {keyPath: "key"});
 }

@@ -14,18 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {RelationWriter} from "./RelationWriter.js";
 import {EventKey} from "../EventKey.js";
 import {EventEntry} from "../entries/EventEntry.js";
 import {createEventEntry, directionalAppend} from "./common.js";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";
 
 export class GapWriter {
-    constructor({roomId, storage, fragmentIdComparer}) {
+    constructor({roomId, storage, fragmentIdComparer, relationWriter}) {
         this._roomId = roomId;
         this._storage = storage;
         this._fragmentIdComparer = fragmentIdComparer;
-        this._relationWriter = new RelationWriter(roomId, fragmentIdComparer);
+        this._relationWriter = relationWriter;
     }
     // events is in reverse-chronological order (last event comes at index 0) if backwards
     async _findOverlappingEvents(fragmentEntry, events, txn, log) {
@@ -120,13 +119,14 @@ export class GapWriter {
                 eventStorageEntry.displayName = member.displayName;
                 eventStorageEntry.avatarUrl = member.avatarUrl;
             }
+            // this will modify eventStorageEntry if it is a relation target
+            const updatedRelationTargetEntries = await this._relationWriter.writeGapRelation(eventStorageEntry, direction, txn, log);
+            if (updatedRelationTargetEntries) {
+                updatedEntries.push(...updatedRelationTargetEntries);
+            }
             txn.timelineEvents.insert(eventStorageEntry);
             const eventEntry = new EventEntry(eventStorageEntry, this._fragmentIdComparer);
             directionalAppend(entries, eventEntry, direction);
-            const updatedRelationTargetEntry = await this._relationWriter.writeRelation(eventEntry, txn, log);
-            if (updatedRelationTargetEntry) {
-                updatedEntries.push(updatedRelationTargetEntry);
-            }
         }
         return {entries, updatedEntries};
     }

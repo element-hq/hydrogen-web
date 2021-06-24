@@ -74,6 +74,7 @@ export class TimelineList extends ListView {
             }
         }
         catch (err) {
+            console.error(err);
             //ignore error, as it is handled in the VM
         }
         finally {

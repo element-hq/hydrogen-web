@@ -32,13 +32,14 @@ export function tilesCreator(baseOptions) {
         const options = Object.assign({entry, emitUpdate}, baseOptions);
         if (entry.isGap) {
             return new GapTile(options);
-        } else if (entry.isRedacted) {
-            return new RedactedTile(options);
         } else if (entry.isPending && entry.pendingEvent.isMissingAttachments) {
             return new MissingAttachmentTile(options);
         } else if (entry.eventType) {
             switch (entry.eventType) {
                 case "m.room.message": {
+                    if (entry.isRedacted) {
+                        return new RedactedTile(options);
+                    }
                     const content = entry.content;
                     const msgtype = content && content.msgtype;
                     switch (msgtype) {

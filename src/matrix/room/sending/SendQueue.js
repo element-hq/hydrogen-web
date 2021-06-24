@@ -19,6 +19,7 @@ import {ConnectionError} from "../../error.js";
 import {PendingEvent, SendStatus} from "./PendingEvent.js";
 import {makeTxnId, isTxnId} from "../../common.js";
 import {REDACTION_TYPE} from "../common.js";
+import {getRelationFromContent, REACTION_TYPE, ANNOTATION_RELATION_TYPE} from "../timeline/relations.js";
 
 export class SendQueue {
     constructor({roomId, storage, hsApi, pendingEvents}) {
@@ -38,7 +39,7 @@ export class SendQueue {
         const pendingEvent = new PendingEvent({
             data,
             remove: () => this._removeEvent(pendingEvent),
-            emitUpdate: () => this._pendingEvents.update(pendingEvent),
+            emitUpdate: params => this._pendingEvents.update(pendingEvent, params),
             attachments
         });
         return pendingEvent;
@@ -156,8 +157,8 @@ export class SendQueue {
     }
 
     async _removeEvent(pendingEvent) {
-        const idx = this._pendingEvents.array.indexOf(pendingEvent);
-        if (idx !== -1) {
+        let hasEvent = this._pendingEvents.array.indexOf(pendingEvent) !== -1;
+        if (hasEvent) {
             const txn = await this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);
             try {
                 txn.pendingEvents.remove(pendingEvent.roomId, pendingEvent.queueIndex);
@@ -165,7 +166,12 @@ export class SendQueue {
                 txn.abort();
             }
             await txn.complete();
-            this._pendingEvents.remove(idx);
+            // lookup index after async txn is complete,
+            // to make sure we're not racing with anything
+            const idx = this._pendingEvents.array.indexOf(pendingEvent);
+            if (idx !== -1) {
+                this._pendingEvents.remove(idx);
+            }
         }
         pendingEvent.dispose();
     }
@@ -197,7 +203,26 @@ export class SendQueue {
     }
 
     async enqueueEvent(eventType, content, attachments, log) {
-        await this._enqueueEvent(eventType, content, attachments, null, null, log);
+        const relation = getRelationFromContent(content);
+        let relatedTxnId = null;
+        if (relation) {
+            if (isTxnId(relation.event_id)) {
+                relatedTxnId = relation.event_id;
+                relation.event_id = null;
+            }
+            if (relation.rel_type === ANNOTATION_RELATION_TYPE) {
+                const isAlreadyAnnotating = this._pendingEvents.array.some(pe => {
+                    const r = getRelationFromContent(pe.content);
+                    return pe.eventType === eventType && r && r.key === relation.key &&
+                        (pe.relatedTxnId === relatedTxnId || r.event_id === relation.event_id);
+                });
+                if (isAlreadyAnnotating) {
+                    log.set("already_annotating", true);
+                    return;
+                }
+            }
+        }
+        await this._enqueueEvent(eventType, content, attachments, relatedTxnId, null, log);
     }
 
     async _enqueueEvent(eventType, content, attachments, relatedTxnId, relatedEventId, log) {
@@ -214,6 +239,14 @@ export class SendQueue {
     }
 
     async enqueueRedaction(eventIdOrTxnId, reason, log) {
+        const isAlreadyRedacting = this._pendingEvents.array.some(pe => {
+            return pe.eventType === REDACTION_TYPE &&
+                (pe.relatedTxnId === eventIdOrTxnId || pe.relatedEventId === eventIdOrTxnId);
+        });
+        if (isAlreadyRedacting) {
+            log.set("already_redacting", true);
+            return;
+        }
         let relatedTxnId;
         let relatedEventId;
         if (isTxnId(eventIdOrTxnId)) {
@@ -284,7 +317,9 @@ export class SendQueue {
             // wouldn't be able to detect the remote echo already arrived and end up overwriting the new event
             const maxQueueIndex = Math.max(maxStorageQueueIndex, this._currentQueueIndex);
             const queueIndex = maxQueueIndex + 1;
-            const needsEncryption = eventType !== REDACTION_TYPE && !!this._roomEncryption;
+            const needsEncryption = eventType !== REDACTION_TYPE &&
+                eventType !== REACTION_TYPE &&
+                !!this._roomEncryption;
             pendingEvent = this._createPendingEvent({
                 roomId: this._roomId,
                 queueIndex,
@@ -314,9 +349,11 @@ export class SendQueue {
 
 import {HomeServer as MockHomeServer} from "../../../mocks/HomeServer.js";
 import {createMockStorage} from "../../../mocks/Storage.js";
-import {NullLogger} from "../../../logging/NullLogger.js";
+import {ListObserver} from "../../../mocks/ListObserver.js";
+import {NullLogger, NullLogItem} from "../../../logging/NullLogger.js";
 import {createEvent, withTextBody, withTxnId} from "../../../mocks/event.js";
 import {poll} from "../../../mocks/poll.js";
+import {createAnnotation} from "../timeline/relations.js";
 
 export function tests() {
     const logger = new NullLogger();
@@ -350,6 +387,61 @@ export function tests() {
             const sendRequest2 = await poll(() => hs.requests.send[1]);
             sendRequest2.respond({event_id: event2.event_id});
             await poll(() => !queue._isSending);
-        }
+        },
+        "redaction of pending event that hasn't started sending yet aborts it": async assert => {
+            const queue = new SendQueue({
+                roomId: "!abc",
+                storage: await createMockStorage(),
+                hsApi: new MockHomeServer().api
+            });
+            // first, enqueue a message that will be attempted to send, but we don't respond
+            await queue.enqueueEvent("m.room.message", {body: "hello!"}, null, new NullLogItem());
+
+            const observer = new ListObserver();
+            queue.pendingEvents.subscribe(observer);
+            await queue.enqueueEvent("m.room.message", {body: "...world"}, null, new NullLogItem());
+            let txnId;
+            {
+                const {type, index, value} = await observer.next();
+                assert.equal(type, "add");
+                assert.equal(index, 1);
+                assert.equal(typeof value.txnId, "string");
+                txnId = value.txnId;
+            }
+            await queue.enqueueRedaction(txnId, null, new NullLogItem());
+            {
+                const {type, value, index} = await observer.next();
+                assert.equal(type, "remove");
+                assert.equal(index, 1);
+                assert.equal(txnId, value.txnId);
+            }
+        },
+        "duplicate redaction gets dropped": async assert => {
+            const queue = new SendQueue({
+                roomId: "!abc",
+                storage: await createMockStorage(),
+                hsApi: new MockHomeServer().api
+            });
+            assert.equal(queue.pendingEvents.length, 0);
+            await queue.enqueueRedaction("!event", null, new NullLogItem());
+            assert.equal(queue.pendingEvents.length, 1);
+            await queue.enqueueRedaction("!event", null, new NullLogItem());
+            assert.equal(queue.pendingEvents.length, 1);
+        },
+        "duplicate reaction gets dropped": async assert => {
+            const queue = new SendQueue({
+                roomId: "!abc",
+                storage: await createMockStorage(),
+                hsApi: new MockHomeServer().api
+            });
+            assert.equal(queue.pendingEvents.length, 0);
+            await queue.enqueueEvent("m.reaction", createAnnotation("!target", "🚀"), null, new NullLogItem());
+            assert.equal(queue.pendingEvents.length, 1);
+            await queue.enqueueEvent("m.reaction", createAnnotation("!target", "👋"), null, new NullLogItem());
+            assert.equal(queue.pendingEvents.length, 2);
+            await queue.enqueueEvent("m.reaction", createAnnotation("!target", "🚀"), null, new NullLogItem());
+            assert.equal(queue.pendingEvents.length, 2);
+        },
+        
     }
 }

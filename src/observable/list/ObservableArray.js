@@ -44,6 +44,13 @@ export class ObservableArray extends BaseObservableList {
         this.emitAdd(idx, item);
     }
 
+    update(idx, item, params = null) {
+        if (idx < this._items.length) {
+            this._items[idx] = item;
+            this.emitUpdate(idx, item, params);
+        }
+    }
+
     get array() {
         return this._items;
     }
