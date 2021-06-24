@@ -19,7 +19,7 @@ import {ConnectionError} from "../../error.js";
 import {PendingEvent, SendStatus} from "./PendingEvent.js";
 import {makeTxnId, isTxnId} from "../../common.js";
 import {REDACTION_TYPE} from "../common.js";
-import {getRelationFromContent, REACTION_TYPE} from "../timeline/relations.js";
+import {getRelationFromContent, REACTION_TYPE, ANNOTATION_RELATION_TYPE} from "../timeline/relations.js";
 
 export class SendQueue {
     constructor({roomId, storage, hsApi, pendingEvents}) {
@@ -205,9 +205,22 @@ export class SendQueue {
     async enqueueEvent(eventType, content, attachments, log) {
         const relation = getRelationFromContent(content);
         let relatedTxnId = null;
-        if (relation && isTxnId(relation.event_id)) {
-            relatedTxnId = relation.event_id;
-            relation.event_id = null;
+        if (relation) {
+            if (isTxnId(relation.event_id)) {
+                relatedTxnId = relation.event_id;
+                relation.event_id = null;
+            }
+            if (relation.rel_type === ANNOTATION_RELATION_TYPE) {
+                const isAlreadyAnnotating = this._pendingEvents.array.some(pe => {
+                    const r = getRelationFromContent(pe.content);
+                    return pe.eventType === eventType && r && r.key === relation.key &&
+                        (pe.relatedTxnId === relatedTxnId || r.event_id === relation.event_id);
+                });
+                if (isAlreadyAnnotating) {
+                    log.set("already_annotating", true);
+                    return;
+                }
+            }
         }
         await this._enqueueEvent(eventType, content, attachments, relatedTxnId, null, log);
     }
@@ -226,11 +239,11 @@ export class SendQueue {
     }
 
     async enqueueRedaction(eventIdOrTxnId, reason, log) {
-        const existingRedaction = this._pendingEvents.array.find(pe => {
+        const isAlreadyRedacting = this._pendingEvents.array.some(pe => {
             return pe.eventType === REDACTION_TYPE &&
                 (pe.relatedTxnId === eventIdOrTxnId || pe.relatedEventId === eventIdOrTxnId);
         });
-        if (existingRedaction) {
+        if (isAlreadyRedacting) {
             log.set("already_redacting", true);
             return;
         }
@@ -340,6 +353,7 @@ import {ListObserver} from "../../../mocks/ListObserver.js";
 import {NullLogger, NullLogItem} from "../../../logging/NullLogger.js";
 import {createEvent, withTextBody, withTxnId} from "../../../mocks/event.js";
 import {poll} from "../../../mocks/poll.js";
+import {createAnnotation} from "../timeline/relations.js";
 
 export function tests() {
     const logger = new NullLogger();
@@ -413,6 +427,19 @@ export function tests() {
             assert.equal(queue.pendingEvents.length, 1);
             await queue.enqueueRedaction("!event", null, new NullLogItem());
             assert.equal(queue.pendingEvents.length, 1);
-        }
+        },
+        "duplicate reaction gets dropped": async assert => {
+            const queue = new SendQueue({
+                roomId: "!abc",
+                storage: await createMockStorage(),
+                hsApi: new MockHomeServer().api
+            });
+            assert.equal(queue.pendingEvents.length, 0);
+            await queue.enqueueEvent("m.reaction", createAnnotation("!target", "🚀"), null, new NullLogItem());
+            assert.equal(queue.pendingEvents.length, 1);
+            await queue.enqueueEvent("m.reaction", createAnnotation("!target", "🚀"), null, new NullLogItem());
+            assert.equal(queue.pendingEvents.length, 1);
+        },
+        
     }
 }
