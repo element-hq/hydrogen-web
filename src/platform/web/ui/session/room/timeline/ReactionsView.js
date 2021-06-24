@@ -40,6 +40,6 @@ class ReactionView extends TemplateView {
     }
 
     onClick() {
-        this.value.toggleReaction();
+        this.value.toggle();
     }
 }

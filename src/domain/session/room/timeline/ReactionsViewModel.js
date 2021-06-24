@@ -164,7 +164,7 @@ class ReactionViewModel {
         }
     }
 
-    toggleReaction(log = null) {
+    toggle(log = null) {
         return this._parentTile.toggleReaction(this.key, log);
     }
 }
@@ -264,7 +264,7 @@ export function tests() {
             // make sure the preexisting reaction is counted
             assert.equal(reactionVM.count, 1);
             // 5.1. unset reaction, should redact the pre-existing reaction
-            await reactionVM.toggleReaction();
+            await reactionVM.toggle();
             {
                 assert.equal(reactionVM.count, 0);
                 const {value: redaction, type} = await queueObserver.next();
@@ -275,7 +275,7 @@ export function tests() {
                 assert.equal("update", (await queueObserver.next()).type);
             }
             // 5.2. set reaction, should send a new reaction as the redaction is already sending
-            await reactionVM.toggleReaction();
+            await reactionVM.toggle();
             let reactionIndex;
             {
                 assert.equal(reactionVM.count, 1);
@@ -286,7 +286,7 @@ export function tests() {
                 reactionIndex = index;
             }
             // 5.3. unset reaction, should abort the previous pending reaction as it hasn't started sending yet
-            await reactionVM.toggleReaction();
+            await reactionVM.toggle();
             {
                 assert.equal(reactionVM.count, 0);
                 const {index, type} = await queueObserver.next();
@@ -338,7 +338,7 @@ export function tests() {
             }
             // 5.2. unset reaction, should redact the previous pending reaction as it has started sending already
             let redactionIndex;
-            await reactionVM.toggleReaction();
+            await reactionVM.toggle();
             {
                 assert.equal(reactionVM.count, 0);
                 const {value: redaction, type, index} = await queueObserver.next();
@@ -348,7 +348,7 @@ export function tests() {
                 redactionIndex = index;
             }
             // 5.3. set reaction, should abort the previous pending redaction as it hasn't started sending yet
-            await reactionVM.toggleReaction();
+            await reactionVM.toggle();
             {
                 assert.equal(reactionVM.count, 1);
                 const {index, type} = await queueObserver.next();
