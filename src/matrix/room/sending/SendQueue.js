@@ -226,6 +226,14 @@ export class SendQueue {
     }
 
     async enqueueRedaction(eventIdOrTxnId, reason, log) {
+        const existingRedaction = this._pendingEvents.array.find(pe => {
+            return pe.eventType === REDACTION_TYPE &&
+                (pe.relatedTxnId === eventIdOrTxnId || pe.relatedEventId === eventIdOrTxnId);
+        });
+        if (existingRedaction) {
+            log.set("already_redacting", true);
+            return;
+        }
         let relatedTxnId;
         let relatedEventId;
         if (isTxnId(eventIdOrTxnId)) {
@@ -393,6 +401,18 @@ export function tests() {
                 assert.equal(index, 1);
                 assert.equal(txnId, value.txnId);
             }
+        },
+        "duplicate redaction gets dropped": async assert => {
+            const queue = new SendQueue({
+                roomId: "!abc",
+                storage: await createMockStorage(),
+                hsApi: new MockHomeServer().api
+            });
+            assert.equal(queue.pendingEvents.length, 0);
+            await queue.enqueueRedaction("!event", null, new NullLogItem());
+            assert.equal(queue.pendingEvents.length, 1);
+            await queue.enqueueRedaction("!event", null, new NullLogItem());
+            assert.equal(queue.pendingEvents.length, 1);
         }
     }
 }
