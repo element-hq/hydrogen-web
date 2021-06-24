@@ -47,7 +47,17 @@ const __dirname = dirname(__filename);
 const projectDir = path.join(__dirname, "../");
 const cssSrcDir = path.join(projectDir, "src/platform/web/ui/css/");
 const srcDir = path.join(projectDir, "src/");
-const isPathInSrcDir = path => path.startsWith(srcDir);
+
+const allowSideEffectsTreeShakeDirs = [
+    path.join(projectDir, "node_modules/mdn-polyfills/"),
+    path.join(projectDir, "node_modules/core-js/"),
+    path.join(projectDir, "node_modules/text-encoding/"),
+    srcDir,
+];
+
+const isPathInSrcDir = path => {
+    return allowSideEffectsTreeShakeDirs.some(p => path.startsWith(p));
+};
 
 const parameters = new commander.Command();
 parameters
