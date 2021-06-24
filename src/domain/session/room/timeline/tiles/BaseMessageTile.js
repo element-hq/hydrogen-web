@@ -124,6 +124,10 @@ export class BaseMessageTile extends SimpleTile {
 
     react(key, log = null) {
         return this.logger.wrapOrRun(log, "react", async log => {
+            if (!this.canReact) {
+                log.set("powerlevel_lacking", true);
+                return;
+            }
             if (this._entry.haveAnnotation(key)) {
                 log.set("already_reacted", true);
                 return;
@@ -140,6 +144,10 @@ export class BaseMessageTile extends SimpleTile {
 
     redactReaction(key, log = null) {
         return this.logger.wrapOrRun(log, "redactReaction", async log => {
+            if (!this._powerLevels.canRedactFromSender(this._ownMember.userId)) {
+                log.set("powerlevel_lacking", true);
+                return;
+            }
             if (!this._entry.haveAnnotation(key)) {
                 log.set("not_yet_reacted", true);
                 return;

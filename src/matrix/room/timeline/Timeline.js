@@ -66,7 +66,7 @@ export class Timeline {
         // as they should only populate once the view subscribes to it
         // if they are populated already, the sender profile would be empty
 
-        this._powerLevels = await this._loadPowerLevels(txn);
+        this._powerLevels = await this._loadPowerLevels(membership, txn);
         // 30 seems to be a good amount to fill the entire screen
         const readerRequest = this._disposables.track(this._timelineReader.readFromEnd(30, txn, log));
         try {
@@ -78,23 +78,25 @@ export class Timeline {
         // txn should be assumed to have finished here, as decryption will close it.
     }
 
-    async _loadPowerLevels(txn) {
+    async _loadPowerLevels(membership, txn) {
         // TODO: update power levels as state is updated
         const powerLevelsState = await txn.roomState.get(this._roomId, "m.room.power_levels", "");
         if (powerLevelsState) {
             return new PowerLevels({
                 powerLevelEvent: powerLevelsState.event,
-                ownUserId: this._ownMember.userId
+                ownUserId: this._ownMember.userId,
+                membership
             });
         }
         const createState = await txn.roomState.get(this._roomId, "m.room.create", "");
         if (createState) {
             return new PowerLevels({
                 createEvent: createState.event,
-                ownUserId: this._ownMember.userId
+                ownUserId: this._ownMember.userId,
+                membership
             });
         } else {
-            return new PowerLevels({ownUserId: this._ownMember.userId});
+            return new PowerLevels({ownUserId: this._ownMember.userId, membership});
         }
     }
 

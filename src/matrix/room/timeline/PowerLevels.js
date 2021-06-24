@@ -15,14 +15,15 @@ limitations under the License.
 */
 
 export class PowerLevels {
-    constructor({powerLevelEvent, createEvent, ownUserId}) {
+    constructor({powerLevelEvent, createEvent, ownUserId, membership}) {
         this._plEvent = powerLevelEvent;
         this._createEvent = createEvent;
         this._ownUserId = ownUserId;
+        this._membership = membership;
     }
 
     canRedactFromSender(userId) {
-        if (userId === this._ownUserId) {
+        if (userId === this._ownUserId && this._membership === "join") {
             return true;
         } else {
             return this.canRedact;
@@ -38,6 +39,9 @@ export class PowerLevels {
     }
 
     get _myLevel() {
+        if (this._membership !== "join") {
+            return Number.MIN_SAFE_INTEGER;
+        }
         return this._getUserLevel(this._ownUserId);
     }
 
