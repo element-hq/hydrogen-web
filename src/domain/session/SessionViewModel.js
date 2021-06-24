@@ -261,6 +261,7 @@ export class SessionViewModel extends ViewModel {
         const enable = !!this.navigation.path.get("details")?.value;
         if (enable) {
             const room = this._roomFromNavigation();
+            if (!room) { return; }
             this._roomDetailsViewModel = this.track(new RoomDetailsViewModel(this.childOptions({room})));
         }
         this.emitChange("roomDetailsViewModel");
