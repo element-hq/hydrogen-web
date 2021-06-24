@@ -157,7 +157,6 @@ export class BaseMessageTile extends SimpleTile {
 
     redactReaction(key, log = null) {
         return this.logger.wrapOrRun(log, "redactReaction", log => {
-            const keyVM = this.reactions?.getReaction(key);
             if (!this._entry.haveAnnotation(key)) {
                 log.set("not_yet_reacted", true);
                 return;
