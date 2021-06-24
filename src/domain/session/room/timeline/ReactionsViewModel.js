@@ -128,13 +128,6 @@ class ReactionViewModel {
         return this._annotation?.me || this.isPending;
     }
 
-    /** @returns {boolean} Whether the user has reacted with this key,
-     * taking the local reaction and reaction redaction into account. */
-    get haveReacted() {
-        // TODO: cleanup
-        return this._parentTile._entry.haveAnnotation(this.key);
-    }
-
     get firstTimestamp() {
         let ts = Number.MAX_SAFE_INTEGER;
         if (this._annotation) {
