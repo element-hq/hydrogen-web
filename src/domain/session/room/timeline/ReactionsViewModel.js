@@ -40,14 +40,13 @@ export class ReactionsViewModel {
             }
         }
         if (pendingAnnotations) {
-            for (const [key, count] of pendingAnnotations.entries()) {
+            for (const [key, annotation] of pendingAnnotations.entries()) {
                 const reaction = this._map.get(key);
                 if (reaction) {
-                    if (reaction._tryUpdatePending(count)) {
-                        this._map.update(key);
-                    }
+                    reaction._tryUpdatePending(annotation);
+                    this._map.update(key);
                 } else {
-                    this._map.add(key, new ReactionViewModel(key, null, count, this._parentTile));
+                    this._map.add(key, new ReactionViewModel(key, null, annotation, this._parentTile));
                 }
             }
         }
@@ -78,10 +77,10 @@ export class ReactionsViewModel {
 }
 
 class ReactionViewModel {
-    constructor(key, annotation, pendingCount, parentTile) {
+    constructor(key, annotation, pending, parentTile) {
         this._key = key;
         this._annotation = annotation;
-        this._pendingCount = pendingCount;
+        this._pending = pending;
         this._parentTile = parentTile;
         this._isToggling = false;
     }
@@ -101,12 +100,12 @@ class ReactionViewModel {
         return false;
     }
 
-    _tryUpdatePending(pendingCount) {
-        if (pendingCount !== this._pendingCount) {
-            this._pendingCount = pendingCount;
-            return true;
+    _tryUpdatePending(pending) {
+        if (!pending && !this._pending) {
+            return false;
         }
-        return false;
+        this._pending = pending;
+        return true;
     }
 
     get key() {
@@ -114,17 +113,11 @@ class ReactionViewModel {
     }
 
     get count() {
-        let count = this._pendingCount || 0;
-        if (this._annotation) {
-            count += this._annotation.count;
-        }
-        return count;
+        return (this._pending?.count || 0) + (this._annotation?.count || 0);
     }
 
     get isPending() {
-        // even if pendingCount is 0,
-        // it means we have both a pending reaction and redaction
-        return this._pendingCount !== null;
+        return this._pending !== null;
     }
 
     /** @returns {boolean} true if the user has a (pending) reaction
@@ -138,19 +131,19 @@ class ReactionViewModel {
     /** @returns {boolean} Whether the user has reacted with this key,
      * taking the local reaction and reaction redaction into account. */
     get haveReacted() {
-        // determine whether if everything pending is sent, if we have a
-        // reaction or not. This depends on the order of the pending events ofcourse,
-        // which we don't have access to here, but we assume that a redaction comes first
-        // if we have a remote reaction
-        const {isPending} = this;
-        const haveRemoteReaction = this._annotation?.me;
-        const haveLocalRedaction = isPending && this._pendingCount <= 0;
-        const haveLocalReaction = isPending && this._pendingCount >= 0;
-        const haveReaction = (haveRemoteReaction && !haveLocalRedaction) ||
-            // if remote, then assume redaction comes first and reaction last, so final state is reacted
-            (haveRemoteReaction && haveLocalRedaction && haveLocalReaction) ||
-            (!haveRemoteReaction && !haveLocalRedaction && haveLocalReaction);
-        return haveReaction;
+        // TODO: cleanup
+        return this._parentTile._entry.haveAnnotation(this.key);
+    }
+
+    get firstTimestamp() {
+        let ts = Number.MAX_SAFE_INTEGER;
+        if (this._annotation) {
+            ts = Math.min(ts, this._annotation.firstTimestamp);
+        }
+        if (this._pending) {
+            ts = Math.min(ts, this._pending.firstTimestamp);
+        }
+        return ts;
     }
 
     _compare(other) {
@@ -163,40 +156,16 @@ class ReactionViewModel {
         if (this.count !== other.count) {
             return other.count - this.count;
         } else {
-            const a = this._annotation;
-            const b = other._annotation;
-            if (a && b) {
-                const cmp = a.firstTimestamp - b.firstTimestamp;
-                if (cmp === 0) {
-                    return this.key < other.key ? -1 : 1;
-                } else {
-                    return cmp;
-                }
-            } else if (a) {
-                return -1;
-            } else {
-                return 1;
+            const cmp = this.firstTimestamp - other.firstTimestamp;
+            if (cmp === 0) {
+                return this.key < other.key ? -1 : 1;
             }
+            return cmp;
         }
     }
 
     toggleReaction(log = null) {
-        return this._parentTile.logger.wrapOrRun(log, "toggleReaction", async log => {
-            if (this._isToggling) {
-                log.set("busy", true);
-                return;
-            }
-            this._isToggling = true;
-            try {
-                if (this.haveReacted) {
-                    await log.wrap("redactReaction", log => this._parentTile._redactReaction(this.key, log));
-                } else {
-                    await log.wrap("react", log => this._parentTile._react(this.key, log));
-                }
-            } finally {
-                this._isToggling = false;
-            }
-        });
+        return this._parentTile.toggleReaction(this.key, log);
     }
 }
 
@@ -257,18 +226,6 @@ export function tests() {
     }
 
     return {
-        "haveReacted": assert => {
-            assert.equal(false, new ReactionViewModel("🚀", null, null).haveReacted);
-            assert.equal(false, new ReactionViewModel("🚀", {me: false, count: 1}, null).haveReacted);
-            assert.equal(true, new ReactionViewModel("🚀", {me: true, count: 1}, null).haveReacted);
-            assert.equal(true, new ReactionViewModel("🚀", {me: true, count: 2}, null).haveReacted);
-            assert.equal(true, new ReactionViewModel("🚀", null, 1).haveReacted);
-            assert.equal(false, new ReactionViewModel("🚀", {me: true, count: 1}, -1).haveReacted);
-            // pending count 0 means the remote reaction has been redacted and is sending, then a new reaction was queued
-            assert.equal(true, new ReactionViewModel("🚀", {me: true, count: 1}, 0).haveReacted);
-            // should typically not happen without a remote reaction already present, but should still be false
-            assert.equal(false, new ReactionViewModel("🚀", null, 0).haveReacted);
-        },
         // these are more an integration test than unit tests,
         // but fully test the local echo when toggling and
         // the correct send queue modifications happen

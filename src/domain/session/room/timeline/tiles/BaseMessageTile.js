@@ -125,8 +125,7 @@ export class BaseMessageTile extends SimpleTile {
 
     react(key, log = null) {
         return this.logger.wrapOrRun(log, "react", log => {
-            const keyVM = this.reactions?.getReaction(key);
-            if (keyVM?.haveReacted) {
+            if (this._entry.haveAnnotation(key)) {
                 log.set("already_reacted", true);
                 return;
             }
@@ -141,7 +140,7 @@ export class BaseMessageTile extends SimpleTile {
             log.set("ongoing", true);
             return;
         }
-        const redaction = this._entry.getAnnotationPendingRedaction(key);
+        const redaction = this._entry.pendingAnnotations?.get(key)?.redactionEntry;
         try {
             const updatePromise = new Promise(resolve => this._pendingReactionChangeCallback = resolve);
             if (redaction && !redaction.pendingEvent.hasStartedSending) {
@@ -159,7 +158,7 @@ export class BaseMessageTile extends SimpleTile {
     redactReaction(key, log = null) {
         return this.logger.wrapOrRun(log, "redactReaction", log => {
             const keyVM = this.reactions?.getReaction(key);
-            if (!keyVM?.haveReacted) {
+            if (!this._entry.haveAnnotation(key)) {
                 log.set("not_yet_reacted", true);
                 return;
             }
@@ -170,11 +169,16 @@ export class BaseMessageTile extends SimpleTile {
     async _redactReaction(key, log) {
         // This will also block concurently removing multiple reactions,
         // but in practice it happens fast enough.
+
+        // TODO: remove this as we'll protect against reentry in the SendQueue
         if (this._pendingReactionChangeCallback) {
             log.set("ongoing", true);
             return;
         }
-        const entry = await this._entry.getOwnAnnotationEntry(this._timeline, key);
+        let entry = this._entry.pendingAnnotations?.get(key)?.annotationEntry;
+        if (!entry) {
+            entry = await this._timeline.getOwnAnnotationEntry(this._entry.id, key);
+        }
         if (entry) {
             try {
                 const updatePromise = new Promise(resolve => this._pendingReactionChangeCallback = resolve);
@@ -186,6 +190,16 @@ export class BaseMessageTile extends SimpleTile {
         } else {
             log.set("no_reaction", true);
         }
+    }
+
+    toggleReaction(key, log = null) {
+        return this.logger.wrapOrRun(log, "toggleReaction", async log => {
+            if (this._entry.haveAnnotation(key)) {
+                await log.wrap("redactReaction", log => this._redactReaction(key, log));
+            } else {
+                await log.wrap("react", log => this._react(key, log));
+            }
+        });
     }
 
     _updateReactions() {

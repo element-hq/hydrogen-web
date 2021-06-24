@@ -23,7 +23,10 @@ export class PendingEventEntry extends BaseEventEntry {
         this._pendingEvent = pendingEvent;
         /** @type {RoomMember} */
         this._member = member;
-        this._clock = clock;
+        // try to come up with a timestamp that is around construction time and
+        // will be roughly sorted by queueIndex, so it can be used to as a secondary
+        // sorting dimension for reactions
+        this._timestamp = clock.now() - (100 - pendingEvent.queueIndex);
         this._redactingEntry = redactingEntry;
     }
 
@@ -64,7 +67,7 @@ export class PendingEventEntry extends BaseEventEntry {
     }
 
     get timestamp() {
-        return this._clock.now();
+        return this._timestamp;
     }
 
     get isPending() {

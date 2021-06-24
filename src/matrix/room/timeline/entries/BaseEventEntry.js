@@ -17,7 +17,7 @@ limitations under the License.
 import {BaseEntry} from "./BaseEntry.js";
 import {REDACTION_TYPE} from "../../common.js";
 import {createAnnotation, ANNOTATION_RELATION_TYPE, getRelationFromContent} from "../relations.js";
-import {PendingAnnotations} from "../PendingAnnotations.js";
+import {PendingAnnotation} from "../PendingAnnotation.js";
 
 /** Deals mainly with local echo for relations and redactions,
  * so it is shared between PendingEventEntry and EventEntry */
@@ -65,10 +65,18 @@ export class BaseEventEntry extends BaseEntry {
             if (relationEntry.isRelatedToId(this.id)) {
                 if (relationEntry.relation.rel_type === ANNOTATION_RELATION_TYPE) {
                     if (!this._pendingAnnotations) {
-                        this._pendingAnnotations = new PendingAnnotations();
+                        this._pendingAnnotations = new Map();
                     }
-                    this._pendingAnnotations.add(entry);
-                    return "pendingAnnotations";
+                    const {key} = (entry.redactingEntry || entry).relation;
+                    if (key) {
+                        let annotation = this._pendingAnnotations.get(key);
+                        if (!annotation) {
+                            annotation = new PendingAnnotation();
+                            this._pendingAnnotations.set(key, annotation);
+                        }
+                        annotation.add(entry);
+                        return "pendingAnnotations";
+                    }
                 }
             }
         }
@@ -92,11 +100,17 @@ export class BaseEventEntry extends BaseEntry {
             const relationEntry = entry.redactingEntry || entry;
             if (relationEntry.isRelatedToId(this.id)) {
                 if (relationEntry.relation?.rel_type === ANNOTATION_RELATION_TYPE && this._pendingAnnotations) {
-                    this._pendingAnnotations.remove(entry);
-                    if (this._pendingAnnotations.isEmpty) {
-                        this._pendingAnnotations = null;
+                    const {key} = (entry.redactingEntry || entry).relation;
+                    if (key) {
+                        let annotation = this._pendingAnnotations.get(key);
+                        if (annotation.remove(entry) && annotation.isEmpty) {
+                            this._pendingAnnotations.delete(key);
+                        }
+                        if (this._pendingAnnotations.size === 0) {
+                            this._pendingAnnotations = null;
+                        }
+                        return "pendingAnnotations";
                     }
-                    return "pendingAnnotations";
                 }
             }
         }
@@ -128,19 +142,29 @@ export class BaseEventEntry extends BaseEntry {
         return id && this.relatedEventId === id;
     }
 
+    haveAnnotation(key) {
+        const haveRemoteReaction = this.annotations?.[key]?.me || false;
+        const pendingAnnotation = this.pendingAnnotations?.get(key);
+        const willAnnotate = pendingAnnotation?.willAnnotate || false;
+        /*
+        We have an annotation in these case:
+        - remote annotation with me, no pending
+        - remote annotation with me, pending redaction and then annotation
+        - pending annotation without redaction after it
+        */
+        return (haveRemoteReaction && (!pendingAnnotation || willAnnotate)) ||
+            (!haveRemoteReaction && willAnnotate);
+    }
+
     get relation() {
         return getRelationFromContent(this.content);
     }
 
     get pendingAnnotations() {
-        return this._pendingAnnotations?.aggregatedAnnotations;
+        return this._pendingAnnotations;
     }
 
-    async getOwnAnnotationEntry(timeline, key) {
-        return this._pendingAnnotations?.findForKey(key);
-    }
-
-    getAnnotationPendingRedaction(key) {
-        return this._pendingAnnotations?.findRedactionForKey(key);
+    get annotations() {
+        return null; //overwritten in EventEntry
     }
 }

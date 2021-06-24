@@ -416,7 +416,7 @@ export function tests() {
                 relatedEventId: entry.id
             }}));
             await poll(() => timeline.entries.length === 2);
-            assert.equal(entry.pendingAnnotations.get("👋"), 1);
+            assert.equal(entry.pendingAnnotations.get("👋").count, 1);
             const reactionEntry = getIndexFromIterable(timeline.entries, 1);
             // 3. add redaction to timeline
             pendingEvents.append(new PendingEvent({data: {
@@ -429,11 +429,11 @@ export function tests() {
             }}));
             // TODO: await nextUpdate here with ListObserver, to ensure entry emits an update when pendingAnnotations changes
             await poll(() => timeline.entries.length === 3);
-            assert.equal(entry.pendingAnnotations.get("👋"), 0);
+            assert.equal(entry.pendingAnnotations.get("👋").count, 0);
             // 4. cancel redaction
             pendingEvents.remove(1);
             await poll(() => timeline.entries.length === 2);
-            assert.equal(entry.pendingAnnotations.get("👋"), 1);
+            assert.equal(entry.pendingAnnotations.get("👋").count, 1);
             // 5. cancel reaction
             pendingEvents.remove(0);
             await poll(() => timeline.entries.length === 1);
@@ -507,7 +507,7 @@ export function tests() {
                 relatedEventId: reactionEntry.id
             }}));
             await poll(() => timeline.entries.length >= 3);
-            assert.equal(messageEntry.pendingAnnotations.get("👋"), -1);
+            assert.equal(messageEntry.pendingAnnotations.get("👋").count, -1);
         },
         "local reaction gets applied after remote echo is added to timeline": async assert => {
             const messageEntry = new EventEntry({event: withTextBody("hi bob!", withSender(alice, createEvent("m.room.message", "!abc"))),
@@ -533,7 +533,7 @@ export function tests() {
             await poll(() => timeline.entries.length === 2);
             const entry = getIndexFromIterable(timeline.entries, 0);
             assert.equal(entry, messageEntry);
-            assert.equal(entry.pendingAnnotations.get("👋"), 1);
+            assert.equal(entry.pendingAnnotations.get("👋").count, 1);
         },
         "local reaction removal gets applied after remote echo is added to timeline with reaction not loaded": async assert => {
             const messageId = "!abc";
@@ -570,7 +570,7 @@ export function tests() {
             await poll(() => timeline.entries.length === 2);
             // 5. check that redaction was linked to reaction target
             const entry = getIndexFromIterable(timeline.entries, 0);
-            assert.equal(entry.pendingAnnotations.get("👋"), -1);
+            assert.equal(entry.pendingAnnotations.get("👋").count, -1);
         },
         "decrypted entry preserves content when receiving other update without decryption": async assert => {
             // 1. create encrypted and decrypted entry
