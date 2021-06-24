@@ -59,6 +59,6 @@ class MenuOption {
         }
         return t.li({
             className,
-        }, t.button({onClick: this.callback}, this.label));
+        }, t.button({className:"menu-item", onClick: this.callback}, this.label));
     }
 }

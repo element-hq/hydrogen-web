@@ -1,0 +1,31 @@
+.RoomDetailsView {
+    grid-area: right;
+    flex-direction: column;
+}
+
+.RoomDetailsView_avatar {
+    display: flex;
+}
+
+.RoomDetailsView_name h2 {
+    text-align: center;
+}
+
+.RoomDetailsView_row {
+    justify-content: space-between;
+}
+
+.RoomDetailsView_label, .RoomDetailsView_row, .RoomDetailsView, .EncryptionIconView {
+    display: flex;
+    align-items: center;
+}
+
+.EncryptionIconView {
+    justify-content: center;
+}
+
+.RoomDetailsView_buttons {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+}

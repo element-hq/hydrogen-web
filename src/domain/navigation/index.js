@@ -37,7 +37,7 @@ function allowsChild(parent, child) {
             // downside of the approach: both of these will control which tile is selected
             return type === "room" || type === "empty-grid-tile";
         case "room":
-            return type === "lightbox";
+            return type === "lightbox" || type === "details";
         default:
             return false;
     }
@@ -113,6 +113,9 @@ export function parseUrlPath(urlPath, currentNavPath, defaultSessionId) {
                 segments.push(roomsSegmentWithRoom(rooms, roomId, currentNavPath));
             }
             segments.push(new Segment("room", roomId));
+            if (currentNavPath.get("details")?.value) {
+                segments.push(new Segment("details"));
+            }
         } else if (type === "last-session") {
             let sessionSegment = currentNavPath.get("session");
             if (typeof sessionSegment?.value !== "string" && defaultSessionId) {
@@ -253,6 +256,25 @@ export function tests() {
             assert.deepEqual(segments[1].value, ["a", "b", "c"]);
             assert.equal(segments[2].type, "room");
             assert.equal(segments[2].value, "a");
+        },
+        "parse open-room action changing focus to an existing room with details open": assert => {
+            const nav = new Navigation(allowsChild);
+            const path = nav.pathFrom([
+                new Segment("session", 1),
+                new Segment("rooms", ["a", "b", "c"]),
+                new Segment("room", "b"),
+                new Segment("details", true)
+            ]);
+            const segments = parseUrlPath("/session/1/open-room/a", path);
+            assert.equal(segments.length, 4);
+            assert.equal(segments[0].type, "session");
+            assert.equal(segments[0].value, "1");
+            assert.equal(segments[1].type, "rooms");
+            assert.deepEqual(segments[1].value, ["a", "b", "c"]);
+            assert.equal(segments[2].type, "room");
+            assert.equal(segments[2].value, "a");
+            assert.equal(segments[3].type, "details");
+            assert.equal(segments[3].value, true);
         },
         "parse open-room action setting a room in an empty tile": assert => {
             const nav = new Navigation(allowsChild);

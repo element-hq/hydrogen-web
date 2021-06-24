@@ -25,13 +25,15 @@ import {StaticView} from "../general/StaticView.js";
 import {SessionStatusView} from "./SessionStatusView.js";
 import {RoomGridView} from "./RoomGridView.js";
 import {SettingsView} from "./settings/SettingsView.js";
+import {RoomDetailsView} from "./rightpanel/RoomDetailsView.js";
 
 export class SessionView extends TemplateView {
     render(t, vm) {
         return t.div({
             className: {
                 "SessionView": true,
-                "middle-shown": vm => !!vm.activeMiddleViewModel
+                "middle-shown": vm => !!vm.activeMiddleViewModel,
+                "right-shown": vm => !!vm.roomDetailsViewModel
             },
         }, [
             t.view(new SessionStatusView(vm.sessionStatusViewModel)),
@@ -53,6 +55,7 @@ export class SessionView extends TemplateView {
                     return new StaticView(t => t.div({className: "room-placeholder"}, t.h2(vm.i18n`Choose a room on the left side.`)));
                 }
             }),
+            t.mapView(vm => vm.roomDetailsViewModel, roomDetailsViewModel => roomDetailsViewModel ? new RoomDetailsView(roomDetailsViewModel) : null),
             t.mapView(vm => vm.lightboxViewModel, lightboxViewModel => lightboxViewModel ? new LightboxView(lightboxViewModel) : null)
         ]);
     }
