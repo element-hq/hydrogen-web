@@ -72,7 +72,7 @@ the layout viewport up without resizing it when the keyboard shows */
 .middle .close-middle { display: none; }
 /* mobile layout */
 @media screen and (max-width: 800px) {
-    .SessionView:not(.middle-shown) {
+    .SessionView:not(.middle-shown):not(.right-shown) {
         grid-template:
             "status" auto
             "left" 1fr /
@@ -93,9 +93,9 @@ the layout viewport up without resizing it when the keyboard shows */
             1fr;
     }
 
-    .SessionView:not(.middle-shown) .room-placeholder { display: none; }
+    .SessionView:not(.middle-shown):not(.right-shown) .room-placeholder { display: none; }
     .SessionView.middle-shown .LeftPanel { display: none; }
-    .SessionView.right-shown .middle { display: none; }
+    .SessionView.right-shown .middle, .SessionView.right-shown .LeftPanel { display: none; }
 
     /* show back button */
     .middle .close-middle { display: block !important; }
