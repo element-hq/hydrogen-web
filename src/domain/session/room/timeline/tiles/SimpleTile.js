@@ -54,8 +54,7 @@ export class SimpleTile extends ViewModel {
 
     get canAbortSending() {
         return this._entry.isPending &&
-            this._entry.pendingEvent.status !== SendStatus.Sending &&
-            this._entry.pendingEvent.status !== SendStatus.Sent;
+            !this._entry.pendingEvent.hasStartedSending;
     }
 
     abortSending() {
@@ -130,8 +129,12 @@ export class SimpleTile extends ViewModel {
         return this._options.room;
     }
 
+    get _timeline() {
+        return this._options.timeline;
+    }
+
     get _powerLevels() {
-        return this._options.timeline.powerLevels;
+        return this._timeline.powerLevels;
     }
 
     get _ownMember() {

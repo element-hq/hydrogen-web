@@ -23,6 +23,7 @@ import {BaseObservableMap} from "./map/BaseObservableMap.js";
 export { ObservableArray } from "./list/ObservableArray.js";
 export { SortedArray } from "./list/SortedArray.js";
 export { MappedList } from "./list/MappedList.js";
+export { AsyncMappedList } from "./list/AsyncMappedList.js";
 export { ConcatList } from "./list/ConcatList.js";
 export { ObservableMap } from "./map/ObservableMap.js";
 

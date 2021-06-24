@@ -6,6 +6,8 @@
        local('Segoe UI Emoji'),
        local('Segoe UI Symbol'),
        local('Noto Color Emoji'),
+       local('Twemoji'),
+       local('Twemoji Mozilla'),
        local('Android Emoji'),
        local('EmojiSymbols'),
        local('Symbola');

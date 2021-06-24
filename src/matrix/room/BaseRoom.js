@@ -17,6 +17,7 @@ limitations under the License.
 import {EventEmitter} from "../../utils/EventEmitter.js";
 import {RoomSummary} from "./RoomSummary.js";
 import {GapWriter} from "./timeline/persistence/GapWriter.js";
+import {RelationWriter} from "./timeline/persistence/RelationWriter.js";
 import {Timeline} from "./timeline/Timeline.js";
 import {FragmentIdComparer} from "./timeline/FragmentIdComparer.js";
 import {WrappedError} from "../error.js"
@@ -258,6 +259,7 @@ export class BaseRoom extends EventEmitter {
             const txn = await this._storage.readWriteTxn([
                 this._storage.storeNames.pendingEvents,
                 this._storage.storeNames.timelineEvents,
+                this._storage.storeNames.timelineRelations,
                 this._storage.storeNames.timelineFragments,
             ]);
             let extraGapFillChanges;
@@ -266,10 +268,16 @@ export class BaseRoom extends EventEmitter {
                 // detect remote echos of pending messages in the gap
                 extraGapFillChanges = await this._writeGapFill(response.chunk, txn, log);
                 // write new events into gap
+                const relationWriter = new RelationWriter({
+                    roomId: this._roomId,
+                    fragmentIdComparer: this._fragmentIdComparer,
+                    ownUserId: this._user.id,
+                });
                 const gapWriter = new GapWriter({
                     roomId: this._roomId,
                     storage: this._storage,
                     fragmentIdComparer: this._fragmentIdComparer,
+                    relationWriter
                 });
                 gapResult = await gapWriter.writeFragmentFill(fragmentEntry, response, txn, log);
             } catch (err) {
@@ -291,7 +299,7 @@ export class BaseRoom extends EventEmitter {
             if (this._timeline) {
                 // these should not be added if not already there
                 this._timeline.replaceEntries(gapResult.updatedEntries);
-                this._timeline.addOrReplaceEntries(gapResult.entries);
+                this._timeline.addEntries(gapResult.entries);
             }
         });
     }

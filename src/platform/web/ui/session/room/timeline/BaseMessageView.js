@@ -17,9 +17,11 @@ limitations under the License.
 
 import {renderStaticAvatar} from "../../../avatar.js";
 import {tag} from "../../../general/html.js";
+import {mountView} from "../../../general/utils.js";
 import {TemplateView} from "../../../general/TemplateView.js";
 import {Popup} from "../../../general/Popup.js";
 import {Menu} from "../../../general/Menu.js";
+import {ReactionsView} from "./ReactionsView.js";
 
 export class BaseMessageView extends TemplateView {
     constructor(value) {
@@ -35,6 +37,7 @@ export class BaseMessageView extends TemplateView {
             unverified: vm.isUnverified,
             continuation: vm => vm.isContinuation,
         }}, [
+            // dynamically added and removed nodes are handled below
             this.renderMessageBody(t, vm),
             // should be after body as it is overlayed on top
             t.button({className: "Timeline_messageOptions"}, "⋯"),
@@ -51,6 +54,21 @@ export class BaseMessageView extends TemplateView {
             } else if (!isContinuation) {
                 li.insertBefore(renderStaticAvatar(vm, 30, "Timeline_messageAvatar"), li.firstChild);
                 li.insertBefore(tag.div({className: `Timeline_messageSender usercolor${vm.avatarColorNumber}`}, vm.displayName), li.firstChild);
+            }
+        });
+        // similarly, we could do this with a simple ifView,
+        // but that adds a comment node to all messages without reactions
+        let reactionsView = null;
+        t.mapSideEffect(vm => vm.reactions, reactions => {
+            if (reactions && !reactionsView) {
+                reactionsView = new ReactionsView(vm.reactions);
+                this.addSubView(reactionsView);
+                li.appendChild(mountView(reactionsView));
+            } else if (!reactions && reactionsView) {
+                li.removeChild(reactionsView.root());
+                reactionsView.unmount();
+                this.removeSubView(reactionsView);
+                reactionsView = null;
             }
         });
         return li;
@@ -92,6 +110,9 @@ export class BaseMessageView extends TemplateView {
 
     createMenuOptions(vm) {
         const options = [];
+        if (vm.canReact && vm.shape !== "redacted") {
+            options.push(new QuickReactionsMenuOption(vm));
+        }
         if (vm.canAbortSending) {
             options.push(Menu.option(vm.i18n`Cancel`, () => vm.abortSending()));
         } else if (vm.canRedact) {
@@ -101,4 +122,22 @@ export class BaseMessageView extends TemplateView {
     }
 
     renderMessageBody() {}
+}
+
+class QuickReactionsMenuOption {
+    constructor(vm) {
+        this._vm = vm;
+    }
+    toDOM(t) {
+        const emojiButtons = ["👍", "👎", "😄", "🎉", "😕", "❤️", "🚀", "👀"].map(emoji => {
+            return t.button({onClick: () => this._vm.react(emoji)}, emoji);
+        });
+        const customButton = t.button({onClick: () => {
+            const key = prompt("Enter your reaction (emoji)");
+            if (key) {
+                this._vm.react(key);
+            }
+        }}, "…");
+        return t.li({className: "quick-reactions"}, [...emojiButtons, customButton]);
+    }
 }

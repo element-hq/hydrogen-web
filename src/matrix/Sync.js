@@ -333,6 +333,7 @@ export class Sync {
             storeNames.roomState,
             storeNames.roomMembers,
             storeNames.timelineEvents,
+            storeNames.timelineRelations,
             storeNames.timelineFragments,
             storeNames.pendingEvents,
             storeNames.userIdentities,

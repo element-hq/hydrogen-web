@@ -9,13 +9,12 @@ SyncWriter will need to resolve the related remote id to a [fragmentId, eventInd
 	sourceEventId:
 	targetEventId:
 	rel_type:
-	type:
 	roomId: 
 }
 
 `{"key": "!bEWtlqtDwCLFIAKAcv:matrix.org|$apmyieZOI5vm4DzjEFzjbRiZW9oeQQR21adM6A6eRwM|m.annotation|m.reaction|$jSisozR3is5XUuDZXD5cyaVMOQ5_BtFS3jKfcP89MOM"}`
 
-or actually stored like `roomId|targetEventId|rel_type|source_event_type|sourceEventId`. How can we get the last edit? They are sorted by origin_server_ts IIRC? Should this be part of the key? Solved: we store the event id of a replacement on the target event
+or actually stored like `roomId|targetEventId|rel_type|sourceEventId`. How can we get the last edit? They are sorted by origin_server_ts IIRC? Should this be part of the key? Solved: we store the event id of a replacement on the target event
 
 We should look into what part of the relationships will be present on the event once it is received from the server (e.g. m.replace might be evident, but not all the reaction events?). If not, we could add a object store with missing relation targets.
 

@@ -16,11 +16,16 @@ limitations under the License.
 
 import {BaseEntry} from "./BaseEntry.js";
 import {REDACTION_TYPE} from "../../common.js";
+import {createAnnotation, ANNOTATION_RELATION_TYPE, getRelationFromContent} from "../relations.js";
+import {PendingAnnotation} from "../PendingAnnotation.js";
 
+/** Deals mainly with local echo for relations and redactions,
+ * so it is shared between PendingEventEntry and EventEntry */
 export class BaseEventEntry extends BaseEntry {
     constructor(fragmentIdComparer) {
         super(fragmentIdComparer);
         this._pendingRedactions = null;
+        this._pendingAnnotations = null;
     }
 
     get isRedacting() {
@@ -31,6 +36,10 @@ export class BaseEventEntry extends BaseEntry {
         return this.isRedacting;
     }
 
+    get isRedaction() {
+        return this.eventType === REDACTION_TYPE;
+    }
+
     get redactionReason() {
         if (this._pendingRedactions) {
             return this._pendingRedactions[0].content?.reason;
@@ -39,11 +48,11 @@ export class BaseEventEntry extends BaseEntry {
     }
 
     /**
-        aggregates local relation.
+        aggregates local relation or local redaction of remote relation.
         @return [string] returns the name of the field that has changed, if any
     */
     addLocalRelation(entry) {
-        if (entry.eventType === REDACTION_TYPE) {
+        if (entry.eventType === REDACTION_TYPE && entry.isRelatedToId(this.id)) {
             if (!this._pendingRedactions) {
                 this._pendingRedactions = [];
             }
@@ -51,15 +60,24 @@ export class BaseEventEntry extends BaseEntry {
             if (this._pendingRedactions.length === 1) {
                 return "isRedacted";
             }
+        } else {
+            const relationEntry = entry.redactingEntry || entry;
+            if (relationEntry.isRelatedToId(this.id)) {
+                if (relationEntry.relation.rel_type === ANNOTATION_RELATION_TYPE) {
+                    if (this._addPendingAnnotation(entry)) {
+                        return "pendingAnnotations";
+                    }
+                }
+            }
         }
     }
     
     /**
-        deaggregates local relation.
+        deaggregates local relation or a local redaction of a remote relation.
         @return [string] returns the name of the field that has changed, if any
     */
     removeLocalRelation(entry) {
-        if (entry.eventType === REDACTION_TYPE && this._pendingRedactions) {
+        if (entry.eventType === REDACTION_TYPE && entry.isRelatedToId(this.id) && this._pendingRedactions) {
             const countBefore = this._pendingRedactions.length;
             this._pendingRedactions = this._pendingRedactions.filter(e => e !== entry);
             if (this._pendingRedactions.length === 0) {
@@ -68,7 +86,48 @@ export class BaseEventEntry extends BaseEntry {
                     return "isRedacted";
                 }
             }
+        } else {
+            const relationEntry = entry.redactingEntry || entry;
+            if (relationEntry.isRelatedToId(this.id)) {
+                if (relationEntry.relation?.rel_type === ANNOTATION_RELATION_TYPE && this._pendingAnnotations) {
+                    if (this._removePendingAnnotation(entry)) {
+                        return "pendingAnnotations";
+                    }
+                }
+            }
         }
+    }
+
+    _addPendingAnnotation(entry) {
+        if (!this._pendingAnnotations) {
+            this._pendingAnnotations = new Map();
+        }
+        const {key} = (entry.redactingEntry || entry).relation;
+        if (key) {
+            let annotation = this._pendingAnnotations.get(key);
+            if (!annotation) {
+                annotation = new PendingAnnotation();
+                this._pendingAnnotations.set(key, annotation);
+            }
+            annotation.add(entry);
+            return true;
+        }
+        return false;
+    }
+
+    _removePendingAnnotation(entry) {
+        const {key} = (entry.redactingEntry || entry).relation;
+        if (key) {
+            let annotation = this._pendingAnnotations.get(key);
+            if (annotation.remove(entry) && annotation.isEmpty) {
+                this._pendingAnnotations.delete(key);
+            }
+            if (this._pendingAnnotations.size === 0) {
+                this._pendingAnnotations = null;
+            }
+            return true;
+        }
+        return false;
     }
 
     async abortPendingRedaction() {
@@ -79,5 +138,47 @@ export class BaseEventEntry extends BaseEntry {
             // removing the pending events will call removeLocalRelation,
             // so don't clear _pendingRedactions here
         }
+    }
+
+    get pendingRedaction() {
+        if (this._pendingRedactions) {
+            return this._pendingRedactions[0];
+        }
+        return null;
+    }
+
+    annotate(key) {
+        return createAnnotation(this.id, key);
+    }
+
+    /** takes both remote event id and local txn id into account, see overriding in PendingEventEntry */
+    isRelatedToId(id) {
+        return id && this.relatedEventId === id;
+    }
+
+    haveAnnotation(key) {
+        const haveRemoteReaction = this.annotations?.[key]?.me || false;
+        const pendingAnnotation = this.pendingAnnotations?.get(key);
+        const willAnnotate = pendingAnnotation?.willAnnotate || false;
+        /*
+        We have an annotation in these case:
+        - remote annotation with me, no pending
+        - remote annotation with me, pending redaction and then annotation
+        - pending annotation without redaction after it
+        */
+        return (haveRemoteReaction && (!pendingAnnotation || willAnnotate)) ||
+            (!haveRemoteReaction && willAnnotate);
+    }
+
+    get relation() {
+        return getRelationFromContent(this.content);
+    }
+
+    get pendingAnnotations() {
+        return this._pendingAnnotations;
+    }
+
+    get annotations() {
+        return null; //overwritten in EventEntry
     }
 }
