@@ -437,8 +437,10 @@ export function tests() {
             assert.equal(queue.pendingEvents.length, 0);
             await queue.enqueueEvent("m.reaction", createAnnotation("!target", "🚀"), null, new NullLogItem());
             assert.equal(queue.pendingEvents.length, 1);
+            await queue.enqueueEvent("m.reaction", createAnnotation("!target", "👋"), null, new NullLogItem());
+            assert.equal(queue.pendingEvents.length, 2);
             await queue.enqueueEvent("m.reaction", createAnnotation("!target", "🚀"), null, new NullLogItem());
-            assert.equal(queue.pendingEvents.length, 1);
+            assert.equal(queue.pendingEvents.length, 2);
         },
         
     }
