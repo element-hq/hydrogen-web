@@ -33,7 +33,10 @@ export class RoomMemberTile extends SimpleTile {
             if (content.avatar_url !== prevContent.avatar_url) {
                 return `${senderName} changed their avatar`; 
             } else if (content.displayname !== prevContent.displayname) {
-                return `${prevContent.displayname} changed their name to ${content.displayname}`; 
+                if (!content.displayname) {
+                    return `${stateKey} removed their name (${prevContent.displayname})`;
+                }
+                return `${prevContent.displayname ?? stateKey} changed their name to ${content.displayname}`; 
             }
         } else if (membership === "join") {
             return `${targetName} joined the room`;
@@ -58,4 +61,29 @@ export class RoomMemberTile extends SimpleTile {
         
         return `${sender} membership changed to ${content.membership}`;
     }
+}
+
+export function tests() {
+    return {
+        "user removes display name": (assert) => {
+            const tile = new RoomMemberTile({
+                entry: {
+                    prevContent: {displayname: "foo", membership: "join"},
+                    content: {membership: "join"},
+                    stateKey: "foo@bar.com",
+                },
+            });
+            assert.strictEqual(tile.announcement, "foo@bar.com removed their name (foo)");
+        },
+        "user without display name sets a new display name": (assert) => {
+            const tile = new RoomMemberTile({
+                entry: {
+                    prevContent: {membership: "join"},
+                    content: {displayname: "foo", membership: "join" },
+                    stateKey: "foo@bar.com",
+                },
+            });
+            assert.strictEqual(tile.announcement, "foo@bar.com changed their name to foo");
+        },
+    };
 }
