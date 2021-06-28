@@ -97,4 +97,13 @@ export class Heroes {
         }
         return null;
     }
+
+    get roomAvatarColorId() {
+        if (this._members.size === 1) {
+            for (const member of this._members.values()) {
+                return member.userId;
+            }
+        }
+        return null;
+    }
 }

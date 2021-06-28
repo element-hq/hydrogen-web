@@ -119,7 +119,7 @@ export class RoomViewModel extends ViewModel {
     }
 
     get avatarColorNumber() {
-        return getIdentifierColorNumber(this._room.id)
+        return getIdentifierColorNumber(this._room.avatarColorId)
     }
 
     avatarUrl(size) {
