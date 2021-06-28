@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {getIdentifierColorNumber} from "../../avatar.js";
 import {BaseTileViewModel} from "./BaseTileViewModel.js";
 
 export class RoomTileViewModel extends BaseTileViewModel {
@@ -73,6 +74,10 @@ export class RoomTileViewModel extends BaseTileViewModel {
             return nameCmp;
         }
         return timeDiff;
+    }
+
+    get avatarColorNumber() {
+        return getIdentifierColorNumber(this._room.avatarColorId);
     }
 
     get isUnread() {
