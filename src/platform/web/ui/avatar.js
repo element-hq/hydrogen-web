@@ -44,7 +44,7 @@ export class AvatarView extends BaseUpdateView {
         return false;
     }
 
-    setAvatarError() {
+    _setAvatarError() {
         this._avatarError = true;
         this.update(this.value);
     }
@@ -55,6 +55,20 @@ export class AvatarView extends BaseUpdateView {
             return true;
         }
         return false;
+    }
+
+    _addListenersToAvatar(image) {
+        const handleAvatarError = (e) => {
+            const image = e.target;
+            image.removeEventListener("load", removeErrorHandler);
+            this._setAvatarError();
+        };
+        const removeErrorHandler = (e) => {
+            const image = e.target;
+            image.removeEventListener("error", handleAvatarError);
+        };
+        image?.addEventListener("error", handleAvatarError);
+        image?.addEventListener("load", removeErrorHandler);
     }
 
     _avatarLetterChanged() {
@@ -71,7 +85,7 @@ export class AvatarView extends BaseUpdateView {
         this._avatarTitleChanged();
         this._root = renderStaticAvatar(this.value, this._size);
         const image = this._root.firstChild;
-        image?.addEventListener("error", () => this.setAvatarError());
+        this._addListenersToAvatar(image);
         // takes care of update being called when needed
         super.mount(options);
         return this._root;
