@@ -341,6 +341,10 @@ export class BaseRoom extends EventEmitter {
         return null;
     }
 
+    get avatarColorId() {
+        return this._heroes?.roomAvatarColorId || this._roomId
+    }
+
     get lastMessageTimestamp() {
         return this._summary.data.lastMessageTimestamp;
     }

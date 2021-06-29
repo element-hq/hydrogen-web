@@ -328,10 +328,6 @@ export class Room extends BaseRoom {
         });
     }
 
-    get avatarColorId() {
-        return this._heroes?.roomAvatarColorId || this._roomId
-    }
-
     get isUnread() {
         return this._summary.data.isUnread;
     }

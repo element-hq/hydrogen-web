@@ -56,7 +56,7 @@ export class InviteViewModel extends ViewModel {
     }
 
     get avatarColorNumber() {
-        return getIdentifierColorNumber(this._invite.id)
+        return getIdentifierColorNumber(this._invite.avatarColorId)
     }
 
     avatarUrl(size) {

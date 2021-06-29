@@ -56,6 +56,10 @@ export class Invite extends EventEmitter {
         return this._inviteData.avatarUrl;
     }
 
+    get avatarColorId() {
+        return this._inviteData.avatarColorId;
+    }
+
     get timestamp() {
         return this._inviteData.timestamp;
     }
@@ -175,6 +179,7 @@ export class Invite extends EventEmitter {
     _createData(inviteState, myInvite, inviter, summaryData, heroes) {
         const name = heroes ? heroes.roomName : summaryData.name;
         const avatarUrl = heroes ? heroes.roomAvatarUrl : summaryData.avatarUrl;
+        const avatarColorId = heroes ? heroes.roomAvatarColorId : summaryData.avatarColorId;
         return {
             roomId: this.id,
             isEncrypted: !!summaryData.encryption,
@@ -182,6 +187,7 @@ export class Invite extends EventEmitter {
 //            type: 
             name,
             avatarUrl,
+            avatarColorId,
             canonicalAlias: summaryData.canonicalAlias,
             timestamp: this._platform.clock.now(),
             joinRule: this._getJoinRule(inviteState),

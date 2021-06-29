@@ -107,6 +107,10 @@ export class ArchivedRoom extends BaseRoom {
         this._emitUpdate();
     }
 
+    get avatarColorId() {
+        return this._summary.data.avatarColorId;
+    }
+
     get isKicked() {
         return this._kickDetails?.membership === "leave";
     }
