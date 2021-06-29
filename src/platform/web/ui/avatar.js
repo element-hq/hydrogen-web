@@ -58,17 +58,14 @@ export class AvatarView extends BaseUpdateView {
     }
 
     _addListenersToAvatar(image) {
-        const handleAvatarError = (e) => {
+        const imageEventHandler = (e) => {
+            if(e.type === "error") { this._setAvatarError(); }
             const image = e.target;
-            image.removeEventListener("load", removeErrorHandler);
-            this._setAvatarError();
+            image.removeEventListener("error", imageEventHandler);
+            image.removeEventListener("load", imageEventHandler);
         };
-        const removeErrorHandler = (e) => {
-            const image = e.target;
-            image.removeEventListener("error", handleAvatarError);
-        };
-        image?.addEventListener("error", handleAvatarError);
-        image?.addEventListener("load", removeErrorHandler);
+        image?.addEventListener("error", imageEventHandler);
+        image?.addEventListener("load", imageEventHandler);
     }
 
     _avatarLetterChanged() {
