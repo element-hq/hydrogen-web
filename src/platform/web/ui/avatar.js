@@ -44,28 +44,12 @@ export class AvatarView extends BaseUpdateView {
         return false;
     }
 
-    _setAvatarError() {
-        this._avatarError = true;
-        this.update(this.value);
-    }
-
     _avatarTitleChanged() {
         if (this.value.avatarTitle !== this._avatarTitle) {
             this._avatarTitle = this.value.avatarTitle;
             return true;
         }
         return false;
-    }
-
-    _addListenersToAvatar(image) {
-        const imageEventHandler = (e) => {
-            if(e.type === "error") { this._setAvatarError(); }
-            const image = e.target;
-            image.removeEventListener("error", imageEventHandler);
-            image.removeEventListener("load", imageEventHandler);
-        };
-        image?.addEventListener("error", imageEventHandler);
-        image?.addEventListener("load", imageEventHandler);
     }
 
     _avatarLetterChanged() {
@@ -81,8 +65,6 @@ export class AvatarView extends BaseUpdateView {
         this._avatarLetterChanged();
         this._avatarTitleChanged();
         this._root = renderStaticAvatar(this.value, this._size);
-        const image = this._root.firstChild;
-        this._addListenersToAvatar(image);
         // takes care of update being called when needed
         super.mount(options);
         return this._root;
@@ -94,10 +76,10 @@ export class AvatarView extends BaseUpdateView {
 
     update(vm) {
         // important to always call _...changed for every prop 
-        if (this._avatarUrlChanged() || this._avatarError) {
+        if (this._avatarUrlChanged()) {
             // avatarColorNumber won't change, it's based on room/user id
             const bgColorClass = `usercolor${vm.avatarColorNumber}`;
-            if (vm.avatarUrl(this._size) && !this._avatarError) {
+            if (vm.avatarUrl(this._size)) {
                 this._root.replaceChild(renderImg(vm, this._size), this._root.firstChild);
                 this._root.classList.remove(bgColorClass);
             } else {
@@ -105,7 +87,7 @@ export class AvatarView extends BaseUpdateView {
                 this._root.classList.add(bgColorClass);
             }
         }
-        const hasAvatar = !!(vm.avatarUrl(this._size) && !vm._avatarError);
+        const hasAvatar = !!vm.avatarUrl(this._size);
         if (this._avatarTitleChanged() && hasAvatar) {
             const img = this._root.firstChild;
             img.setAttribute("title", vm.avatarTitle);
@@ -113,7 +95,6 @@ export class AvatarView extends BaseUpdateView {
         if (this._avatarLetterChanged() && !hasAvatar) {
             this._root.firstChild.textContent = vm.avatarLetter;
         }
-        if (this._avatarError) { this._avatarError = false;}
     }
 }
 
@@ -123,7 +104,7 @@ export class AvatarView extends BaseUpdateView {
  * @return {Element}
  */
 export function renderStaticAvatar(vm, size, extraClasses = undefined) {
-    const hasAvatar = !!(vm.avatarUrl(size) && !vm.avatarError);
+    const hasAvatar = !!vm.avatarUrl(size);
     let avatarClasses = classNames({
         avatar: true,
         [`size-${size}`]: true,
