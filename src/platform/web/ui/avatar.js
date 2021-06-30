@@ -25,8 +25,7 @@ export function renderStaticAvatar(vm, size, extraClasses = undefined) {
     let avatarClasses = classNames({
         avatar: true,
         [`size-${size}`]: true,
-        [`usercolor${vm.avatarColorNumber}`]: true, 
-        ['has-image']: true
+        [`usercolor${vm.avatarColorNumber}`]: true
     });
     if (extraClasses) {
         avatarClasses += ` ${extraClasses}`;
@@ -50,7 +49,5 @@ export function handleAvatarError(e) {
     if (!isAvatarEvent(e)) { return; }
     const parent = e.target.parentElement;
     const avatarLetter = parent.getAttribute("data-avatar-letter");
-    const letterNode = document.createTextNode(avatarLetter);
-    parent.appendChild(letterNode);
-    parent.classList.remove("has-image");
+    parent.textContent = avatarLetter;
 }
