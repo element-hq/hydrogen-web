@@ -342,7 +342,7 @@ export class BaseRoom extends EventEmitter {
     }
 
     get avatarColorId() {
-        return this._heroes?.roomAvatarColorId || this._roomId
+        return this._summary.data.avatarColorId;
     }
 
     get lastMessageTimestamp() {
