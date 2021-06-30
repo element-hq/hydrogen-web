@@ -1,6 +1,6 @@
 import {TemplateView} from "../../general/TemplateView.js";
 import {classNames, tag} from "../../general/html.js";
-import {AvatarView} from "../../avatar.js";
+import {AvatarView} from "../../AvatarView.js";
 
 export class RoomDetailsView extends TemplateView {
     render(t, vm) {

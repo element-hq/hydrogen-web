@@ -22,7 +22,7 @@ import {TimelineList} from "./TimelineList.js";
 import {TimelineLoadingView} from "./TimelineLoadingView.js";
 import {MessageComposer} from "./MessageComposer.js";
 import {RoomArchivedView} from "./RoomArchivedView.js";
-import {AvatarView} from "../../avatar.js";
+import {AvatarView} from "../../AvatarView.js";
 
 export class RoomView extends TemplateView {
     constructor(options) {
