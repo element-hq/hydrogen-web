@@ -239,15 +239,6 @@ export class SummaryData {
         return !this.name && !this.canonicalAlias && this.heroes && this.heroes.length > 0;
     }
 
-    get avatarColorId() {
-        if (this.heroes && this.heroes.length === 1) {
-            for (const hero of this.heroes) {
-                return hero;
-            }
-        }
-        return this.roomId;
-    }
-
     isNewJoin(oldData) {
         return this.membership === "join" && oldData.membership !== "join";
     }
