@@ -108,16 +108,32 @@ export function renderStaticAvatar(vm, size, extraClasses = undefined) {
     let avatarClasses = classNames({
         avatar: true,
         [`size-${size}`]: true,
-        [`usercolor${vm.avatarColorNumber}`]: !hasAvatar,
+        [`usercolor${vm.avatarColorNumber}`]: true, 
+        ['has-image']: true
     });
     if (extraClasses) {
         avatarClasses += ` ${extraClasses}`;
     }
     const avatarContent = hasAvatar ? renderImg(vm, size) : text(vm.avatarLetter);
-    return tag.div({className: avatarClasses}, [avatarContent]);
+    return tag.div({className: avatarClasses, 'data-avatar-letter': vm.avatarLetter}, [avatarContent]);
 }
 
 function renderImg(vm, size) {
     const sizeStr = size.toString();
     return tag.img({src: vm.avatarUrl(size), width: sizeStr, height: sizeStr, title: vm.avatarTitle});
+}
+
+function isAvatarEvent(e) {
+    const element = e.target;
+    const parent = element.parentElement;
+    return element.tagName === "IMG" && parent.classList.contains("avatar");
+}
+
+export function handleAvatarError(e) {
+    if (!isAvatarEvent(e)) { return; }
+    const parent = e.target.parentElement;
+    const avatarLetter = parent.getAttribute("data-avatar-letter");
+    const letterNode = document.createTextNode(avatarLetter);
+    parent.appendChild(letterNode);
+    parent.classList.remove("has-image");
 }
