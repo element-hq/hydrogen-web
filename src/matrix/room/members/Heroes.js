@@ -98,6 +98,14 @@ export class Heroes {
         return null;
     }
 
+    /**
+     * In DM rooms, we want the room's color to be
+     * the same as the other user's color. Thus, if the room
+     * only has one hero, we use their ID, instead
+     * of the room's, to get the avatar color.
+     *
+     * @returns {?string} the ID of the single hero.
+     */
     get roomAvatarColorId() {
         if (this._members.size === 1) {
             for (const member of this._members.keys()) {
