@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {tag, text, classNames} from "./general/html.js";
+import {tag, text, classNames, setAttribute} from "./general/html.js";
 /**
  * @param  {Object} vm   view model with {avatarUrl, avatarColorNumber, avatarTitle, avatarLetter}
  * @param  {Number} size
@@ -31,7 +31,12 @@ export function renderStaticAvatar(vm, size, extraClasses = undefined) {
         avatarClasses += ` ${extraClasses}`;
     }
     const avatarContent = hasAvatar ? renderImg(vm, size) : text(vm.avatarLetter);
-    return tag.div({className: avatarClasses, 'data-avatar-letter': vm.avatarLetter, 'data-avatar-color': vm.avatarColorNumber}, [avatarContent]);
+    const avatar = tag.div({className: avatarClasses}, [avatarContent]);
+    if (hasAvatar) {
+        setAttribute(avatar, "data-avatar-letter", vm.avatarLetter);
+        setAttribute(avatar, "data-avatar-color", vm.avatarColorNumber);
+    }
+    return avatar;
 }
 
 export function renderImg(vm, size) {
