@@ -70,8 +70,8 @@ class EmphPart {
 }
 
 class CodePart {
-    constructor(wraps) {
-        this.wraps = wraps;
+    constructor(text) {
+        this.text = text;
     }
 
     get type() { return "code"; }
