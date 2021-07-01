@@ -341,6 +341,16 @@ export class BaseRoom extends EventEmitter {
         return null;
     }
 
+    /**
+     * Retrieve the identifier that should be used to color
+     * this room's avatar. By default this is the room's
+     * ID, but DM rooms should be the same color as their
+     * user's avatar.
+     */
+    get avatarColorId() {
+        return this._roomId;
+    }
+
     get lastMessageTimestamp() {
         return this._summary.data.lastMessageTimestamp;
     }
