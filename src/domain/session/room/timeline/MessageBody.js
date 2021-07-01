@@ -36,8 +36,46 @@ export function stringAsBody(body) {
     return new MessageBody(body, [new TextPart(body)]);
 }
 
+class HeaderBlock {
+    constructor(level, inlines) {
+        this.level = level;
+        this.inlines = inlines;
+    }
+
+    get type() { return "header"; }
+    isBlock() { return true; }
+}
+
+class CodeBlock {
+    constructor(text) {
+        this.text = text;
+    }
+
+    get type() { return "codeblock"; }
+    isBlock() { return true; }
+}
+
 class NewLinePart {
     get type() { return "newline"; }
+    isBlock() { return false; }
+}
+
+class EmphPart {
+    constructor(wraps) {
+        this.wraps = wraps;
+    }
+
+    get type() { return "emph"; }
+    isBlock() { return false; }
+}
+
+class CodePart {
+    constructor(wraps) {
+        this.wraps = wraps;
+    }
+
+    get type() { return "code"; }
+    isBlock() { return false; }
 }
 
 class LinkPart {
@@ -47,6 +85,7 @@ class LinkPart {
     }
 
     get type() { return "link"; }
+    isBlock() { return false; }
 }
 
 class TextPart {
@@ -55,6 +94,7 @@ class TextPart {
     }
 
     get type() { return "text"; }
+    isBlock() { return false; }
 }
 
 class MessageBody {
