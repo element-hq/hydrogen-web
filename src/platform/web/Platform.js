@@ -191,6 +191,7 @@ export class Platform {
             }
         }
         this._container.addEventListener("error", handleAvatarError, true);
+        this._disposables.track(() => this._container.removeEventListener("error", handleAvatarError, true));
         window.__hydrogenViewModel = vm;
         const view = new RootView(vm);
         this._container.appendChild(view.mount());
