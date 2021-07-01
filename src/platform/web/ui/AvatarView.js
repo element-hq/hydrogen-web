@@ -68,17 +68,19 @@ export class AvatarView extends BaseUpdateView {
                 this._root.replaceChild(renderImg(vm, this._size), this._root.firstChild);
                 this._root.classList.remove(bgColorClass);
             } else {
-                this._root.replaceChild(text(vm.avatarLetter), this._root.firstChild);
+                this._root.textContent = vm.avatarLetter;
                 this._root.classList.add(bgColorClass);
             }
         }
         const hasAvatar = !!vm.avatarUrl(this._size);
         if (this._avatarTitleChanged() && hasAvatar) {
-            const img = this._root.firstChild;
-            img.setAttribute("title", vm.avatarTitle);
+            const element = this._root.firstChild;
+            if (element.tagName === "IMG") {
+                element.setAttribute("title", vm.avatarTitle);
+            }
         }
         if (this._avatarLetterChanged() && !hasAvatar) {
-            this._root.firstChild.textContent = vm.avatarLetter;
+            this._root.textContent = vm.avatarLetter;
         }
     }
 }
