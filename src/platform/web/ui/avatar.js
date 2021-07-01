@@ -25,13 +25,13 @@ export function renderStaticAvatar(vm, size, extraClasses = undefined) {
     let avatarClasses = classNames({
         avatar: true,
         [`size-${size}`]: true,
-        [`usercolor${vm.avatarColorNumber}`]: true
+        [`usercolor${vm.avatarColorNumber}`]: !hasAvatar
     });
     if (extraClasses) {
         avatarClasses += ` ${extraClasses}`;
     }
     const avatarContent = hasAvatar ? renderImg(vm, size) : text(vm.avatarLetter);
-    return tag.div({className: avatarClasses, 'data-avatar-letter': vm.avatarLetter}, [avatarContent]);
+    return tag.div({className: avatarClasses, 'data-avatar-letter': vm.avatarLetter, 'data-avatar-color': vm.avatarColorNumber}, [avatarContent]);
 }
 
 export function renderImg(vm, size) {
@@ -48,6 +48,8 @@ function isAvatarEvent(e) {
 export function handleAvatarError(e) {
     if (!isAvatarEvent(e)) { return; }
     const parent = e.target.parentElement;
+    const avatarColorNumber = parent.getAttribute("data-avatar-color");
+    parent.classList.add(`usercolor${avatarColorNumber}`);
     const avatarLetter = parent.getAttribute("data-avatar-letter");
     parent.textContent = avatarLetter;
 }
