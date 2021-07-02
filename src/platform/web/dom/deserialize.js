@@ -47,7 +47,7 @@ function parseList(node) {
 
 function parseCodeBlock(node) {
     let codeNode;
-    if (!((codeNode = node.firstChild) && codeNode.nodeName == "CODE")) {
+    if (!((codeNode = node.firstChild) && codeNode.nodeName === "CODE")) {
         return null;
     }
     let language = "";
@@ -101,7 +101,7 @@ const nodes = buildNodeMap();
 function parseNode(node) {
     if (node.nodeType === Node.TEXT_NODE) {
         return new TextPart(node.nodeValue);
-    } else if (node.nodeType == Node.ELEMENT_NODE) {
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
         const f = nodes[node.nodeName];
         if (!f) {
             return null;
