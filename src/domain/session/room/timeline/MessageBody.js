@@ -12,7 +12,7 @@ export function parsePlainBody(body) {
     // create callback outside of loop
     const linkifyCallback = (text, isLink) => {
         if (isLink) {
-            parts.push(new LinkPart(text, text));
+            parts.push(new LinkPart(text, [new TextPart(text)]));
         } else {
             parts.push(new TextPart(text));
         }
@@ -36,65 +36,63 @@ export function stringAsBody(body) {
     return new MessageBody(body, [new TextPart(body)]);
 }
 
-class HeaderBlock {
+export class HeaderBlock {
     constructor(level, inlines) {
         this.level = level;
         this.inlines = inlines;
     }
 
     get type() { return "header"; }
-    isBlock() { return true; }
 }
 
-class CodeBlock {
-    constructor(text) {
+export class CodeBlock {
+    constructor(language, text) {
+        this.language = language;
         this.text = text;
     }
 
     get type() { return "codeblock"; }
-    isBlock() { return true; }
 }
 
-class NewLinePart {
+export class ListBlock {
+    constructor(startOffset, items) {
+        this.items = items;
+        this.startOffset = startOffset;
+    }
+}
+
+export class RulePart {
+    get type( ) { return "rule"; }
+}
+
+export class NewLinePart {
     get type() { return "newline"; }
-    isBlock() { return false; }
 }
 
-class EmphPart {
-    constructor(wraps) {
-        this.wraps = wraps;
+export class FormatPart {
+    constructor(format, children) {
+        this.format = format;
+        this.children = children;
     }
 
-    get type() { return "emph"; }
-    isBlock() { return false; }
+    get type() { return "format"; }
 }
 
-class CodePart {
-    constructor(text) {
-        this.text = text;
-    }
-
-    get type() { return "code"; }
-    isBlock() { return false; }
-}
-
-class LinkPart {
-    constructor(url, text) {
+export class LinkPart {
+    constructor(url, inlines) {
         this.url = url;
-        this.text = text;
+        this.inlines = inlines;
     }
 
     get type() { return "link"; }
-    isBlock() { return false; }
 }
 
-class TextPart {
+export class TextPart {
     constructor(text) {
         this.text = text;
     }
 
     get type() { return "text"; }
-    isBlock() { return false; }
 }
 
 class MessageBody {

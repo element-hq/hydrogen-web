@@ -38,10 +38,10 @@ export class TextMessageView extends BaseMessageView {
 const formatFunction = {
     header: headerBlock => tag["h" + Math.min(6,headerBlock.level)]({}, renderParts(headerBlock.inlines)),
     codeblock: codeBlock => tag.pre({}, tag.code({}, text(codeBlock.text))),
-    emph: emphPart => tag.em({}, [renderPart(emphPart.wraps)]),
+    emph: emphPart => tag.em({}, renderPart(emphPart.inlines)),
     code: codePart => tag.code({}, text(codePart.text)),
     text: textPart => text(textPart.text),
-    link: linkPart => tag.a({ href: linkPart.url, target: "_blank", rel: "noopener" }, [linkPart.text]),
+    link: linkPart => tag.a({ href: linkPart.url, target: "_blank", rel: "noopener" }, renderParts(linkPart.inlines)),
     newline: () => tag.br()
 };
 

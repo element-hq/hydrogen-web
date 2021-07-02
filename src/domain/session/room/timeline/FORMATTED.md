@@ -4,6 +4,12 @@
   inspiration from [Pandoc's AST](https://hackage.haskell.org/package/pandoc-types-1.22/docs/Text-Pandoc-Definition.html#t:Block).
   Then, much like Pandoc AST, we can turn our representation into
   markdown in the editor, or HTML in the view.
+  * This is good for both serialization and deserialization.
+    We can use the representation when going input -> formatted
+    message, which would allow other, non-web platforms
+    to rely on non-Markdown input types. We can also
+    use it going formatted message -> display, since a frontend
+    can then choose to use non-HTML output (GTK JS bindings?).
 * As such, we represent formatting by nesting parts
   (we'd have a `ItalicsPart`, `BoldPart`, etc.)
 * We keep the "inline"/"block" distinction, but only
