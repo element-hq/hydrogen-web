@@ -17,41 +17,49 @@ const basicNodes = ["EM", "STRONG", "CODE", "DEL", "P", "DIV", "SPAN" ]
  * Return a builder function for a particular tag.
  */
 function basicWrapper(tag) {
-    return (_, children) => new FormatPart(tag, children);
+    return (result, node, children) => new FormatPart(tag, children);
 }
 
 /**
  * Return a builder function for a particular header level.
  */
 function headerWrapper(level) {
-    return (_, children) => new HeaderBlock(level, children);
+    return (result, node, children) => new HeaderBlock(level, children);
 }
 
-function parseLink(node, children) {
-    return new LinkPart(node.href, children);
+function parseLink(result, node, children) {
+    // TODO Not equivalent to `node.href`!
+    // Add another HTMLParseResult method?
+    let href = result.getAttributeValue(node, "href");
+    return new LinkPart(href, children);
 }
 
-function parseList(node) {
-    const start = node.getAttribute("start") || 1;
+function parseList(result, node) {
+    // TODO Attribute's a string.
+    const start = result.getAttributeValue(node, "start") || 1;
     const nodes = [];
-    const len = node.childNodes.length;
-    for (let i = 0; i < len; i += 1) {
-        const child = node.childNodes[i];
-        if (child.tagName !== "LI") {
+    for (const child of result.getChildNodes(node)) {
+        if (result.getNodeElementName(child) !== "LI") {
             continue;
         }
-        nodes.push(parseNodes(child.childNodes));
+        const item = parseNodes(result, result.getChildNodes(child));
+        nodes.push(item);
     }
     return new ListBlock(start, nodes);
 }
 
-function parseCodeBlock(node) {
+function parseCodeBlock(result, node) {
     let codeNode;
-    if (!((codeNode = node.firstChild) && codeNode.nodeName === "CODE")) {
+    for (const child of result.getChildNodes(node)) {
+        codeNode = child;
+        break;
+    }
+    if (!(codeNode && result.getNodeElementName(codeNode) === "CODE")) {
         return null;
     }
     let language = "";
-    for (const clname of codeNode.classList) {
+    const cl = result.getAttributeValue(codeNode, "class") || ""
+    for (const clname of cl.split(" ")) {
         if (clname.startsWith("language-") && !clname.startsWith("language-_")) {
             language = clname.substring(9) // "language-".length
             break;
@@ -60,7 +68,7 @@ function parseCodeBlock(node) {
     return new CodeBlock(language, codeNode.textContent);
 }
 
-function parseImage(node) {
+function parseImage(result, node) {
     return null;
 }
 
@@ -98,25 +106,24 @@ function buildNodeMap() {
  */
 const nodes = buildNodeMap();
 
-function parseNode(node) {
-    if (node.nodeType === Node.TEXT_NODE) {
-        return new TextPart(node.nodeValue);
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
-        const f = nodes[node.nodeName];
+function parseNode(result, node) {
+    if (result.isTextNode(node)) {
+        return new TextPart(result.getNodeText(node));
+    } else if (result.isElementNode(node)) {
+        const f = nodes[result.getNodeElementName(node)];
         if (!f) {
             return null;
         }
-        let result = f.parsefn(node, f.descend ? parseNodes(node.childNodes) : null);
-        return result;
+        const children = f.descend ? parseNodes(result, node.childNodes) : null;
+        return f.parsefn(result, node, children);
     }
     return null;
 }
 
-function parseNodes(nodes) {
-    const len = nodes.length;
+function parseNodes(result, nodes) {
     const parsed = [];
-    for (let i = 0; i < len; i ++) {
-        let node = parseNode(nodes[i]);
+    for (const htmlNode of nodes) {
+        let node = parseNode(result, htmlNode);
         // Just ignore invalid / unknown tags.
         if (node) {
             parsed.push(node);
@@ -125,7 +132,7 @@ function parseNodes(nodes) {
     return parsed;
 }
 
-export function parse(html) {
-    const rootNode = new DOMParser().parseFromString(html, "text/html").body;
-    return parseNodes(rootNode.childNodes);
+export function parse(platform, html) {
+    const parseResult = platform.parseHTML(html);
+    return parseNodes(parseResult, parseResult.rootNodes);
 }
