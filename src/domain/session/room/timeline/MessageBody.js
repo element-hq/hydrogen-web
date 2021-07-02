@@ -67,6 +67,25 @@ export class RulePart {
 
 export class NewLinePart {
     get type() { return "newline"; }
+    isBlock() { return false; }
+}
+
+class EmphPart {
+    constructor(wraps) {
+        this.wraps = wraps;
+    }
+
+    get type() { return "emph"; }
+    isBlock() { return false; }
+}
+
+class CodePart {
+    constructor(text) {
+        this.text = text;
+    }
+
+    get type() { return "code"; }
+    isBlock() { return false; }
 }
 
 export class FormatPart {
@@ -85,6 +104,7 @@ export class LinkPart {
     }
 
     get type() { return "link"; }
+    isBlock() { return false; }
 }
 
 export class TextPart {
@@ -93,6 +113,7 @@ export class TextPart {
     }
 
     get type() { return "text"; }
+    isBlock() { return false; }
 }
 
 class MessageBody {
