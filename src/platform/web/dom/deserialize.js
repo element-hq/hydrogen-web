@@ -7,12 +7,22 @@ import { HeaderBlock, ListBlock, CodeBlock, FormatPart, NewLinePart, RulePart, T
  *     strong, em, strike, code, hr, br, div, table, thead, tbody, tr, th, td, caption, pre, span, img
  */
 
+/**
+ * Nodes that don't have any properties to them other than their tag.
+ * While <a> has `href`, and <img> has `src`, these have... themselves.
+ */
 const basicNodes = ["EM", "STRONG", "CODE", "DEL", "P", "DIV", "SPAN" ]
 
+/**
+ * Return a builder function for a particular tag.
+ */
 function basicWrapper(tag) {
     return (_, children) => new FormatPart(tag, children);
 }
 
+/**
+ * Return a builder function for a particular header level.
+ */
 function headerWrapper(level) {
     return (_, children) => new HeaderBlock(level, children);
 }
@@ -74,6 +84,18 @@ function buildNodeMap() {
     return map;
 }
 
+/**
+ * Handlers for various nodes.
+ *
+ * Each handler has two properties: `descend` and `parsefn`.
+ * If `descend` is true, the node's children should be
+ * parsed just like any other node, and fed as a second argument
+ * to `parsefn`. If not, the node's children are either to be ignored
+ * (as in <pre>) or processed specially (as in <ul>).
+ *
+ * The `parsefn` combines a node's data and its children into
+ * an internal representation node.
+ */
 const nodes = buildNodeMap();
 
 function parseNode(node) {
@@ -95,6 +117,7 @@ function parseNodes(nodes) {
     const parsed = [];
     for (let i = 0; i < len; i ++) {
         let node = parseNode(nodes[i]);
+        // Just ignore invalid / unknown tags.
         if (node) {
             parsed.push(node);
         }
