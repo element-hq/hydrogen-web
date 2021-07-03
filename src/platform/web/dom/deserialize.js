@@ -1,4 +1,4 @@
-import { HeaderBlock, ListBlock, CodeBlock, FormatPart, NewLinePart, RulePart, TextPart, LinkPart } from "../../../domain/session/room/timeline/MessageBody.js"
+import { MessageBody, HeaderBlock, ListBlock, CodeBlock, FormatPart, NewLinePart, RulePart, TextPart, LinkPart } from "../../../domain/session/room/timeline/MessageBody.js"
 
 
 /* At the time of writing (Jul 1 2021), Matrix Spec recommends
@@ -132,7 +132,8 @@ function parseNodes(result, nodes) {
     return parsed;
 }
 
-export function parse(platform, html) {
+export function parseHTMLBody(platform, html) {
     const parseResult = platform.parseHTML(html);
-    return parseNodes(parseResult, parseResult.rootNodes);
+    const parts = parseNodes(parseResult, parseResult.rootNodes);
+    return new MessageBody(html, parts);
 }
