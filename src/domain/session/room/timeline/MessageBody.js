@@ -59,6 +59,8 @@ export class ListBlock {
         this.items = items;
         this.startOffset = startOffset;
     }
+
+    get type() { return "list"; }
 }
 
 export class RulePart {
@@ -71,7 +73,7 @@ export class NewLinePart {
 
 export class FormatPart {
     constructor(format, children) {
-        this.format = format;
+        this.format = format.toLowerCase();
         this.children = children;
     }
 
@@ -95,7 +97,7 @@ export class TextPart {
     get type() { return "text"; }
 }
 
-class MessageBody {
+export class MessageBody {
     constructor(sourceString, parts) {
         this.sourceString = sourceString;
         this.parts = parts;
