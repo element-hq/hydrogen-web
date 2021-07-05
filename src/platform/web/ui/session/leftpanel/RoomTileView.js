@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../general/TemplateView.js";
-import {AvatarView} from "../../avatar.js";
+import {AvatarView} from "../../AvatarView.js";
 
 export class RoomTileView extends TemplateView {
     render(t, vm) {

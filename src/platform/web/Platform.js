@@ -36,6 +36,7 @@ import {BlobHandle} from "./dom/BlobHandle.js";
 import {hasReadPixelPermission, ImageHandle, VideoHandle} from "./dom/ImageHandle.js";
 import {downloadInIframe} from "./dom/download.js";
 import {Disposables} from "../../utils/Disposables.js";
+import {handleAvatarError} from "./ui/avatar.js";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -189,6 +190,8 @@ export class Platform {
                 this._disposables.track(disposable);
             }
         }
+        this._container.addEventListener("error", handleAvatarError, true);
+        this._disposables.track(() => this._container.removeEventListener("error", handleAvatarError, true));
         window.__hydrogenViewModel = vm;
         const view = new RootView(vm);
         this._container.appendChild(view.mount());
