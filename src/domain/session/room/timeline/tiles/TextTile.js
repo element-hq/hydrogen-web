@@ -16,18 +16,39 @@ limitations under the License.
 
 import {BaseTextTile} from "./BaseTextTile.js";
 import {parsePlainBody} from "../MessageBody.js";
+import {parseHTMLBody} from "../../../../../platform/web/dom/deserialize.js";
 
 export class TextTile extends BaseTextTile {
-    _getBodyAsString() {
+    _getContentString(key, format, fallback = null) {
         const content = this._getContent();
-        let body = content?.body || "";
-        if (content.msgtype === "m.emote") {
-            body = `* ${this.displayName} ${body}`;
+        let val = content?.[key] || fallback;
+        if (!val && val !== "") { // empty string is falsy, but OK here.
+            return null;
         }
-        return body;
+        if (content.msgtype === "m.emote") {
+            val = `* ${this.displayName} ${body}`;
+        }
+        return { string: val, format };
     }
 
-    _parseBody(bodyString) {
-        return parsePlainBody(bodyString);
+    _getPlainBody() {
+        return this._getContentString("body", "plain", "");
+    }
+
+    _getFormattedBody() {
+        return this._getContentString("formatted_body", "html");
+    }
+
+    _getBody() {
+        return this._getFormattedBody() || this._getPlainBody();
+    }
+
+    _parseBody(body) {
+        const string = body.string;
+        if (body.format === "html") {
+            return parseHTMLBody(this.platform, string);
+        } else {
+            return parsePlainBody(string);
+        }
     }
 }

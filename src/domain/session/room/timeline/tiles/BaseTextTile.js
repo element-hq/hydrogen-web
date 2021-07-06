@@ -21,26 +21,30 @@ export class BaseTextTile extends BaseMessageTile {
     constructor(options) {
         super(options);
         this._messageBody = null;
+        this._messageFormat = null
     }
 
     get shape() {
         return "message";
     }
 
-    _parseBody(bodyString) {
-        return stringAsBody(bodyString);
+    _parseBody(body) {
+        return stringAsBody(body.string);
     }
 
     get body() {
-        const body = this._getBodyAsString();
-        // body is a string, so we can check for difference by just
+        const body = this._getBody();
+        // body.string is a string, so we can check for difference by just
         // doing an equality check
-        if (!this._messageBody || this._messageBody.sourceString !== body) {
+        // Even if the body hasn't changed, but the format has, we need
+        // to re-fill our cache.
+        if (!this._messageBody || this._messageBody.sourceString !== body.string || this._messageFormat !== body.format) {
             // body with markup is an array of parts,
             // so we should not recreate it for the same body string,
             // or else the equality check in the binding will always fail.
             // So cache it here.
             this._messageBody = this._parseBody(body);
+            this._messageFormat = body.format;
         }
         return this._messageBody;
     }

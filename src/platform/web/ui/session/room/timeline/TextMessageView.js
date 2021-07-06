@@ -42,6 +42,7 @@ const formatFunction = {
     code: codePart => tag.code({}, text(codePart.text)),
     text: textPart => text(textPart.text),
     link: linkPart => tag.a({ href: linkPart.url, target: "_blank", rel: "noopener" }, renderParts(linkPart.inlines)),
+    format: formatPart => tag[formatPart.format]({}, renderParts(formatPart.children)),
     newline: () => tag.br()
 };
 

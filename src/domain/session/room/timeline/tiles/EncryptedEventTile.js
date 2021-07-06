@@ -33,13 +33,15 @@ export class EncryptedEventTile extends BaseTextTile {
         return "message-status"
     }
 
-    _getBodyAsString() {
+    _getBody() {
         const decryptionError = this._entry.decryptionError;
         const code = decryptionError?.code;
+        let string;
         if (code === "MEGOLM_NO_SESSION") {
-            return this.i18n`The sender hasn't sent us the key for this message yet.`;
+            string = this.i18n`The sender hasn't sent us the key for this message yet.`;
         } else {
-            return decryptionError?.message || this.i18n`Could not decrypt message because of unknown reason.`;
+            string = decryptionError?.message || this.i18n`Could not decrypt message because of unknown reason.`;
         }
+        return { string, format: "plain" };
     }
 }
