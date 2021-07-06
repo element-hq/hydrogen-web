@@ -35,8 +35,11 @@ function parseLink(result, node, children) {
 }
 
 function parseList(result, node) {
-    // TODO Attribute's a string.
-    const start = result.getAttributeValue(node, "start") || 1;
+    let start = null;
+    if (result.getNodeElementName(node) == "OL") {
+        // Will return 1 for, say, '1A', which may not be intended?
+        start = parseInt(result.getAttributeValue(node, "start")) || 1;
+    }
     const nodes = [];
     for (const child of result.getChildNodes(node)) {
         if (result.getNodeElementName(child) !== "LI") {
