@@ -32,6 +32,15 @@ export class TextMessageView extends BaseMessageView {
     }
 }
 
+function renderList(listBlock) {
+    const items = listBlock.items.map(item => tag.li({}, renderParts(item)));
+    const start = listBlock.startOffset;
+    if (start) {
+        return tag.ol({ start }, items);
+    } else {
+        return tag.ul({}, items);
+    }
+}
 /**
  * Map from part to function that outputs DOM for the part
  */
@@ -43,6 +52,7 @@ const formatFunction = {
     text: textPart => text(textPart.text),
     link: linkPart => tag.a({ href: linkPart.url, target: "_blank", rel: "noopener" }, renderParts(linkPart.inlines)),
     format: formatPart => tag[formatPart.format]({}, renderParts(formatPart.children)),
+    list: renderList,
     newline: () => tag.br()
 };
 

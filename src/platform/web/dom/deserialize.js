@@ -36,7 +36,7 @@ function parseLink(result, node, children) {
 
 function parseList(result, node) {
     let start = null;
-    if (result.getNodeElementName(node) == "OL") {
+    if (result.getNodeElementName(node) === "OL") {
         // Will return 1 for, say, '1A', which may not be intended?
         start = parseInt(result.getAttributeValue(node, "start")) || 1;
     }
