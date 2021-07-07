@@ -4,15 +4,15 @@ export class HTMLParseResult {
     }
 
     get rootNodes() {
-        return this._bodyNode.childNodes;
+        return Array.from(this._bodyNode.childNodes);
     }
     
     getChildNodes(node) {
-        return node.childNodes;
+        return Array.from(node.childNodes);
     }
 
     getAttributeNames(node) {
-        return node.getAttributeNames();
+        return Array.from(node.getAttributeNames());
     }
 
     getAttributeValue(node, attr) {
