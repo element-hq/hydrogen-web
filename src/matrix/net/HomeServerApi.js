@@ -135,7 +135,7 @@ export class HomeServerApi {
             return this._post(`/rooms/${encodeURIComponent(roomId)}/receipt/${encodeURIComponent(receiptType)}/${encodeURIComponent(eventId)}`,
                 {}, {}, options);
         }
-        return () => {};
+        return Promise.resolve(() => {});
     }
 
     passwordLogin(username, password, initialDeviceDisplayName, options = null) {
