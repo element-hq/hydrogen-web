@@ -140,3 +140,113 @@ export function parseHTMLBody(platform, html) {
     const parts = parseNodes(parseResult, parseResult.rootNodes);
     return new MessageBody(html, parts);
 }
+
+import parser from 'node-html-parser';
+const { parse } = parser;
+
+export class HTMLParseResult {
+    constructor(bodyNode) {
+        this._bodyNode = bodyNode;
+    }
+
+    get rootNodes() {
+        return this._bodyNode.childNodes;
+    }
+
+    getChildNodes(node) {
+        return node.childNodes;
+    }
+
+    getAttributeNames(node) {
+        return node.getAttributeNames();
+    }
+
+    getAttributeValue(node, attr) {
+        return node.getAttribute(attr);
+    }
+
+    isTextNode(node) {
+        return !node.tagName;
+    }
+
+    getNodeText(node) {
+        return node.text;
+    }
+
+    isElementNode(node) {
+        return !!node.tagName;
+    }
+
+    getNodeElementName(node) {
+        return node.tagName;
+    }
+}
+
+const platform = {
+    parseHTML: (html) => new HTMLParseResult(parse(html))
+};
+
+export function tests() {
+    function test(assert, input, output) {
+        assert.deepEqual(parseHTMLBody(platform, input), new MessageBody(input, output));
+    }
+
+    return {
+        "Text only": assert => {
+            const input = "This is a sentence";
+            const output = [new TextPart(input)];
+            test(assert, input, output);
+        },
+        "Text with inline code format": assert => {
+            const input = "Here's <em>some</em> <code>code</code>!";
+            const output = [
+                new TextPart("Here's "),
+                new FormatPart("em", [new TextPart("some")]),
+                new TextPart(" "),
+                new FormatPart("code", [new TextPart("code")]),
+                new TextPart("!")
+            ];
+            test(assert, input, output);
+        },
+        "Text with ordered list with no attributes": assert => {
+            const input = "<ol><li>Lorem</li><li>Ipsum</li></ol>";
+            const output = [
+                new ListBlock(1, [
+                    [ new TextPart("Lorem") ],
+                    [ new TextPart("Ipsum") ]
+                ])
+            ];
+            test(assert, input, output);
+        },
+        "Text with ordered list starting at 3": assert => {
+            const input = '<ol start="3"><li>Lorem</li><li>Ipsum</li></ol>';
+            const output = [
+                new ListBlock(3, [
+                    [ new TextPart("Lorem") ],
+                    [ new TextPart("Ipsum") ]
+                ])
+            ];
+            test(assert, input, output);
+        },
+        "Text with unordered list": assert => {
+            const input = '<ul start="3"><li>Lorem</li><li>Ipsum</li></ul>';
+            const output = [
+                new ListBlock(null, [
+                    [ new TextPart("Lorem") ],
+                    [ new TextPart("Ipsum") ]
+                ])
+            ];
+            test(assert, input, output);
+        },
+        /* Doesnt work: HTML library doesn't handle <pre><code> properly.
+        "Text with code block": assert => {
+            const code = 'main :: IO ()\nmain = putStrLn "Hello"'
+            const input = `<pre><code>${code}</code></pre>`;
+            const output = [
+                new CodeBlock(null, code)
+            ];
+            test(assert, input, output);
+        }
+        */
+    };
+}
