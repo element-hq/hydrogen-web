@@ -131,8 +131,10 @@ export class HomeServerApi {
     }
 
     receipt(roomId, receiptType, eventId, options = null) {
-        return this._post(`/rooms/${encodeURIComponent(roomId)}/receipt/${encodeURIComponent(receiptType)}/${encodeURIComponent(eventId)}`,
-            {}, {}, options);
+        if(!this._isGuestAccount()) {
+            return this._post(`/rooms/${encodeURIComponent(roomId)}/receipt/${encodeURIComponent(receiptType)}/${encodeURIComponent(eventId)}`,
+                {}, {}, options);
+        }
     }
 
     passwordLogin(username, password, initialDeviceDisplayName, options = null) {
