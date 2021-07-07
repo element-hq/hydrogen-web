@@ -210,6 +210,12 @@ only loads when the top comes into view*/
     align-self: start;
 }
 
+.Timeline_messageBody pre {
+    background-color: #f7f7f7;
+    border: 1px solid rgb(229, 229, 229);
+    padding: 10px;
+}
+
 .Timeline_message.unsent .Timeline_messageBody {
     color: #ccc;
 }
