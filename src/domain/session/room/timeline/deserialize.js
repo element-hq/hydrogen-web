@@ -1,4 +1,4 @@
-import { MessageBody, HeaderBlock, ListBlock, CodeBlock, FormatPart, NewLinePart, RulePart, TextPart, LinkPart } from "../../../domain/session/room/timeline/MessageBody.js"
+import { MessageBody, HeaderBlock, ListBlock, CodeBlock, FormatPart, NewLinePart, RulePart, TextPart, LinkPart } from "./MessageBody.js"
 
 
 /* At the time of writing (Jul 1 2021), Matrix Spec recommends
@@ -141,8 +141,7 @@ export function parseHTMLBody(platform, html) {
     return new MessageBody(html, parts);
 }
 
-import parser from 'node-html-parser';
-const { parse } = parser;
+import parse from '../../../../../lib/node-html-parser/index.js';
 
 export class HTMLParseResult {
     constructor(bodyNode) {
