@@ -70,7 +70,7 @@ async function populateLib() {
     const libDir = path.join(projectDir, "lib/");
     await removeDirIfExists(libDir);
     await fs.mkdir(libDir);
-    const olmSrcDir = path.dirname(require.resolve("olm"));
+    const olmSrcDir = path.dirname(require.resolve("@matrix-org/olm"));
     const olmDstDir = path.join(libDir, "olm/");
     await fs.mkdir(olmDstDir);
     for (const file of ["olm.js", "olm.wasm", "olm_legacy.js"]) {

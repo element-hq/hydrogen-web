@@ -21,3 +21,7 @@ export function getPrevContentFromStateEvent(event) {
 }
 
 export const REDACTION_TYPE = "m.room.redaction";
+
+export function isRedacted(event) {
+    return !!event?.unsigned?.redacted_because;
+}

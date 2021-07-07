@@ -78,13 +78,23 @@ export class RoomGridViewModel extends ViewModel {
         return this._height;
     }
 
+    _switchToRoom(roomId) {
+        const detailsShown = !!this.navigation.path.get("details")?.value;
+        let path = this.navigation.path.until("rooms");
+        path = path.with(this.navigation.segment("room", roomId));
+        if (detailsShown) {
+            path = path.with(this.navigation.segment("details", true));
+        }
+        this.navigation.applyPath(path);
+    }
+
     focusTile(index) {
         if (index === this._selectedIndex) {
             return;
         }
         const vmo = this._viewModelsObservables[index];
         if (vmo) {
-            this.navigation.push("room", vmo.id);
+            this._switchToRoom(vmo.id);
         } else {
             this.navigation.push("empty-grid-tile", index);
         }
@@ -146,7 +156,7 @@ export class RoomGridViewModel extends ViewModel {
         this.emitChange();
         viewModel?.focus();
     }
-    
+
     /** called from SessionViewModel */
     releaseRoomViewModel(roomId) {
         const index = this._viewModelsObservables.findIndex(vmo => vmo && vmo.id === roomId);

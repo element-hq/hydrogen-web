@@ -20,8 +20,6 @@ import {EventEntry} from "../entries/EventEntry.js";
 import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
 import {createEventEntry} from "./common.js";
 import {EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";
-import {MemberWriter} from "./MemberWriter.js";
-import {RelationWriter} from "./RelationWriter.js";
 
 // Synapse bug? where the m.room.create event appears twice in sync response
 // when first syncing the room
@@ -38,10 +36,10 @@ function deduplicateEvents(events) {
 }
 
 export class SyncWriter {
-    constructor({roomId, fragmentIdComparer}) {
+    constructor({roomId, fragmentIdComparer, memberWriter, relationWriter}) {
         this._roomId = roomId;
-        this._memberWriter = new MemberWriter(roomId);
-        this._relationWriter = new RelationWriter(roomId, fragmentIdComparer);
+        this._memberWriter = memberWriter;
+        this._relationWriter = relationWriter;
         this._fragmentIdComparer = fragmentIdComparer;
         this._lastLiveKey = null;
     }
@@ -174,9 +172,9 @@ export class SyncWriter {
                 txn.timelineEvents.insert(storageEntry);
                 const entry = new EventEntry(storageEntry, this._fragmentIdComparer);
                 entries.push(entry);
-                const updatedRelationTargetEntry = await this._relationWriter.writeRelation(entry, txn, log);
-                if (updatedRelationTargetEntry) {
-                    updatedEntries.push(updatedRelationTargetEntry);
+                const updatedRelationTargetEntries = await this._relationWriter.writeRelation(entry, txn, log);
+                if (updatedRelationTargetEntries) {
+                    updatedEntries.push(...updatedRelationTargetEntries);
                 }
                 // update state events after writing event, so for a member event,
                 // we only update the member info after having written the member event

@@ -22,7 +22,7 @@ import {TimelineList} from "./TimelineList.js";
 import {TimelineLoadingView} from "./TimelineLoadingView.js";
 import {MessageComposer} from "./MessageComposer.js";
 import {RoomArchivedView} from "./RoomArchivedView.js";
-import {AvatarView} from "../../avatar.js";
+import {AvatarView} from "../../AvatarView.js";
 
 export class RoomView extends TemplateView {
     constructor(options) {
@@ -68,6 +68,7 @@ export class RoomView extends TemplateView {
         } else {
             const vm = this.value;
             const options = [];
+            options.push(Menu.option(vm.i18n`Room details`, () => vm.openDetailsPanel()))
             if (vm.canLeave) {
                 options.push(Menu.option(vm.i18n`Leave room`, () => vm.leaveRoom()).setDestructive());
             }

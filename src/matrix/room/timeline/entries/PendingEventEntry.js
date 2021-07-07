@@ -18,12 +18,16 @@ import {PENDING_FRAGMENT_ID} from "./BaseEntry.js";
 import {BaseEventEntry} from "./BaseEventEntry.js";
 
 export class PendingEventEntry extends BaseEventEntry {
-    constructor({pendingEvent, member, clock}) {
+    constructor({pendingEvent, member, clock, redactingEntry}) {
         super(null);
         this._pendingEvent = pendingEvent;
         /** @type {RoomMember} */
         this._member = member;
-        this._clock = clock;
+        // try to come up with a timestamp that is around construction time and
+        // will be roughly sorted by queueIndex, so it can be used to as a secondary
+        // sorting dimension for reactions
+        this._timestamp = clock.now() - (100 - pendingEvent.queueIndex);
+        this._redactingEntry = redactingEntry;
     }
 
     get fragmentId() {
@@ -63,7 +67,7 @@ export class PendingEventEntry extends BaseEventEntry {
     }
 
     get timestamp() {
-        return this._clock.now();
+        return this._timestamp;
     }
 
     get isPending() {
@@ -82,7 +86,18 @@ export class PendingEventEntry extends BaseEventEntry {
         
     }
 
+    isRelatedToId(id) {
+        if (id && id === this._pendingEvent.relatedTxnId) {
+            return true;
+        }
+        return super.isRelatedToId(id);
+    }
+
     get relatedEventId() {
         return this._pendingEvent.relatedEventId;
+    }
+
+    get redactingEntry() {
+        return this._redactingEntry;
     }
 }

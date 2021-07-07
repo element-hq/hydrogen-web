@@ -47,4 +47,6 @@ export class BaseEntry {
     asEventKey() {
         return new EventKey(this.fragmentId, this.entryIndex);
     }
+
+    updateFrom() {}
 }

@@ -119,7 +119,7 @@ export class RoomViewModel extends ViewModel {
     }
 
     get avatarColorNumber() {
-        return getIdentifierColorNumber(this._room.id)
+        return getIdentifierColorNumber(this._room.avatarColorId)
     }
 
     avatarUrl(size) {
@@ -283,9 +283,15 @@ export class RoomViewModel extends ViewModel {
             console.error(err.stack);
         }
     }
-    
+
     get composerViewModel() {
         return this._composerVM;
+    }
+
+    openDetailsPanel() {
+        let path = this.navigation.path.until("room");
+        path = path.with(this.navigation.segment("details", true));
+        this.navigation.applyPath(path);
     }
 }
 

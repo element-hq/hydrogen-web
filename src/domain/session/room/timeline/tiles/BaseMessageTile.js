@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {SimpleTile} from "./SimpleTile.js";
+import {ReactionsViewModel} from "../ReactionsViewModel.js";
 import {getIdentifierColorNumber, avatarInitials, getAvatarHttpUrl} from "../../../../avatar.js";
 
 export class BaseMessageTile extends SimpleTile {
@@ -22,10 +23,10 @@ export class BaseMessageTile extends SimpleTile {
         super(options);
         this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : null;
         this._isContinuation = false;
-    }
-
-    get _room() {
-        return this.getOption("room");
+        this._reactions = null;
+        if (this._entry.annotations || this._entry.pendingAnnotations) {
+            this._updateReactions();
+        }
     }
 
     get _mediaRepository() {
@@ -97,11 +98,96 @@ export class BaseMessageTile extends SimpleTile {
         }
     }
 
+    updateEntry(entry, param) {
+        const action = super.updateEntry(entry, param);
+        if (action.shouldUpdate) {
+            this._updateReactions();
+        }
+        return action;
+    }
+
     redact(reason, log) {
         return this._room.sendRedaction(this._entry.id, reason, log);
     }
 
     get canRedact() {
         return this._powerLevels.canRedactFromSender(this._entry.sender);
+    }
+
+    get reactions() {
+        if (this.shape !== "redacted") {
+            return this._reactions;
+        }
+        return null;
+    }
+
+    get canReact() {
+        return this._powerLevels.canSendType("m.reaction");
+    }
+
+    react(key, log = null) {
+        return this.logger.wrapOrRun(log, "react", async log => {
+            if (!this.canReact) {
+                log.set("powerlevel_lacking", true);
+                return;
+            }
+            if (this._entry.haveAnnotation(key)) {
+                log.set("already_reacted", true);
+                return;
+            }
+            const redaction = this._entry.pendingAnnotations?.get(key)?.redactionEntry;
+            if (redaction && !redaction.pendingEvent.hasStartedSending) {
+                log.set("abort_redaction", true);
+                await redaction.pendingEvent.abort();
+            } else {
+                await this._room.sendEvent("m.reaction", this._entry.annotate(key), null, log);
+            }
+        });
+    }
+
+    redactReaction(key, log = null) {
+        return this.logger.wrapOrRun(log, "redactReaction", async log => {
+            if (!this._powerLevels.canRedactFromSender(this._ownMember.userId)) {
+                log.set("powerlevel_lacking", true);
+                return;
+            }
+            if (!this._entry.haveAnnotation(key)) {
+                log.set("not_yet_reacted", true);
+                return;
+            }
+            let entry = this._entry.pendingAnnotations?.get(key)?.annotationEntry;
+            if (!entry) {
+                entry = await this._timeline.getOwnAnnotationEntry(this._entry.id, key);
+            }
+            if (entry) {
+                await this._room.sendRedaction(entry.id, null, log);
+            } else {
+                log.set("no_reaction", true);
+            }
+        });
+    }
+
+    toggleReaction(key, log = null) {
+        return this.logger.wrapOrRun(log, "toggleReaction", async log => {
+            if (this._entry.haveAnnotation(key)) {
+                await this.redactReaction(key, log);
+            } else {
+                await this.react(key, log);
+            }
+        });
+    }
+
+    _updateReactions() {
+        const {annotations, pendingAnnotations} = this._entry;
+        if (!annotations && !pendingAnnotations) {
+            if (this._reactions) {
+                this._reactions = null;
+            }
+        } else {
+            if (!this._reactions) {
+                this._reactions = new ReactionsViewModel(this);
+            }
+            this._reactions.update(annotations, pendingAnnotations);
+        }
     }
 }

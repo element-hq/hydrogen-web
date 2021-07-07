@@ -12,6 +12,6 @@ module.exports = {
         "no-console": "off",
         "no-empty": "off",
         "no-prototype-builtins": "off",
-        "no-unused-vars": "warn",
+        "no-unused-vars": "warn"
     }
 };

@@ -31,9 +31,9 @@ export class NullLogger {
 
     wrapOrRun(item, _, callback) {
         if (item) {
-            item.wrap(null, callback);
+            return item.wrap(null, callback);
         } else {
-            this.run(null, callback);
+            return this.run(null, callback);
         }
     }
 

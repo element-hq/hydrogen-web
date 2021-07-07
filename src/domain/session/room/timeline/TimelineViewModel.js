@@ -52,7 +52,7 @@ export class TimelineViewModel extends ViewModel {
             return true;
         }
         const firstTile = this._tiles.getFirst();
-        if (firstTile.shape === "gap") {
+        if (firstTile?.shape === "gap") {
             return await firstTile.fill();
         } else {
             const topReached = await this._timeline.loadAtTop(10);

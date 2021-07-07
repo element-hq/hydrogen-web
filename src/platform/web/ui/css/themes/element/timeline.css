@@ -20,7 +20,8 @@ limitations under the License.
     grid-template:
         "avatar sender" auto
         "avatar body" auto
-        "time   body" 1fr /
+        "time   body" 1fr
+        "time   reactions" auto /
          30px   1fr;
     column-gap: 8px;
     padding: 4px;
@@ -37,9 +38,10 @@ limitations under the License.
 @media screen and (max-width: 800px) {
     .Timeline_message {
         grid-template:
-            "avatar sender" auto
-            "body body" 1fr
-            "time time" auto /
+            "avatar    sender" auto
+            "body      body" 1fr
+            "time      time" auto
+            "reactions reactions" auto /
              30px 1fr;
     }
 
@@ -57,6 +59,7 @@ limitations under the License.
 .Timeline_message:hover > .Timeline_messageOptions,
 .Timeline_message.menuOpen > .Timeline_messageOptions {
     display: block;
+    user-select: none;
 }
 
 .Timeline_messageAvatar {
@@ -104,6 +107,7 @@ limitations under the License.
 
 .Timeline_messageBody time {
     padding: 2px 0 0px 10px;
+    user-select: none;
 }
 
 .Timeline_messageBody time, .Timeline_messageTime {
@@ -133,6 +137,9 @@ limitations under the License.
 .hydrogen .Timeline_messageSender.usercolor7 { color: var(--usercolor7); }
 .hydrogen .Timeline_messageSender.usercolor8 { color: var(--usercolor8); }
 
+.Timeline_messageBody a {
+    word-break: break-all;
+}
 
 .Timeline_messageBody .media {
     display: grid;
@@ -211,6 +218,42 @@ only loads when the top comes into view*/
     color: #ff4b55;
 }
 
+.Timeline_messageReactions {
+    grid-area: reactions;
+    margin-top: 6px;
+}
+
+.Timeline_messageReactions button {
+    display: inline-flex;
+    line-height: 2.0rem;
+    margin-right: 6px;
+    padding: 1px 6px;
+    border: 1px solid #e9edf1;
+    border-radius: 10px;
+    background-color: #f3f8fd;
+    cursor: pointer;
+    user-select: none;
+    vertical-align: middle;
+}
+
+.Timeline_messageReactions button.active {
+    background-color: #e9fff9;
+    border-color: #0DBD8B;
+}
+
+@keyframes glow-reaction-border {
+    0% {   border-color: #e9edf1; }
+    100% { border-color: #0DBD8B; }
+}
+
+.Timeline_messageReactions button.active.pending {
+    animation-name: glow-reaction-border;
+    animation-duration: 0.5s;
+    animation-direction: alternate;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+}
+
 .AnnouncementView {
     margin: 5px 0;
     padding: 5px 10%;
@@ -226,8 +269,4 @@ only loads when the top comes into view*/
 
 .GapView > :not(:first-child) {
     margin-left: 12px;
-}
-
-.Timeline_messageBody a {
-    word-break: break-all;
 }
