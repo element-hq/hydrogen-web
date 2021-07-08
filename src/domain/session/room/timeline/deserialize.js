@@ -17,24 +17,25 @@ const basicNodes = ["EM", "STRONG", "CODE", "DEL", "P", "DIV", "SPAN" ]
  * Return a builder function for a particular tag.
  */
 function basicWrapper(tag) {
-    return (result, node, children) => new FormatPart(tag, children);
+    return (_, node, children) => new FormatPart(tag, children);
 }
 
 /**
  * Return a builder function for a particular header level.
  */
 function headerWrapper(level) {
-    return (result, node, children) => new HeaderBlock(level, children);
+    return (_, node, children) => new HeaderBlock(level, children);
 }
 
-function parseLink(result, node, children) {
+function parseLink(options, node, children) {
     // TODO Not equivalent to `node.href`!
     // Add another HTMLParseResult method?
-    let href = result.getAttributeValue(node, "href");
+    let href = options.result.getAttributeValue(node, "href");
     return new LinkPart(href, children);
 }
 
-function parseList(result, node) {
+function parseList(options, node) {
+    const { result } = options;
     let start = null;
     if (result.getNodeElementName(node) === "OL") {
         // Will return 1 for, say, '1A', which may not be intended?
@@ -45,13 +46,14 @@ function parseList(result, node) {
         if (result.getNodeElementName(child) !== "LI") {
             continue;
         }
-        const item = parseNodes(result, result.getChildNodes(child));
+        const item = parseNodes(options, result.getChildNodes(child));
         nodes.push(item);
     }
     return new ListBlock(start, nodes);
 }
 
-function parseCodeBlock(result, node) {
+function parseCodeBlock(options, node) {
+    const { result } = options;
     let codeNode;
     for (const child of result.getChildNodes(node)) {
         codeNode = child;
@@ -81,17 +83,19 @@ function parseMxcUrl(url) {
     }
 }
 
-function parseImage(result, node) {
+function parseImage(options, node) {
+    const { result, mediaRepository } = options;
     const src = result.getAttributeValue(node, "src") || "";
+    const url = mediaRepository.mxcUrl(src);
     // We just ignore non-mxc `src` attributes.
-    if (!parseMxcUrl(src)) {
+    if (!url) {
         return null;
     }
     const width = result.getAttributeValue(node, "width");
     const height = result.getAttributeValue(node, "height");
     const alt = result.getAttributeValue(node, "alt");
     const title = result.getAttributeValue(node, "title");
-    return new ImagePart(src, { width, height, alt, title });
+    return new ImagePart(url, { width, height, alt, title });
 }
 
 function buildNodeMap() {
@@ -128,7 +132,8 @@ function buildNodeMap() {
  */
 const nodes = buildNodeMap();
 
-function parseNode(result, node) {
+function parseNode(options, node) {
+    const { result } = options;
     if (result.isTextNode(node)) {
         return new TextPart(result.getNodeText(node));
     } else if (result.isElementNode(node)) {
@@ -136,16 +141,16 @@ function parseNode(result, node) {
         if (!f) {
             return null;
         }
-        const children = f.descend ? parseNodes(result, node.childNodes) : null;
-        return f.parsefn(result, node, children);
+        const children = f.descend ? parseNodes(options, node.childNodes) : null;
+        return f.parsefn(options, node, children);
     }
     return null;
 }
 
-function parseNodes(result, nodes) {
+function parseNodes(options, nodes) {
     const parsed = [];
     for (const htmlNode of nodes) {
-        let node = parseNode(result, htmlNode);
+        let node = parseNode(options, htmlNode);
         // Just ignore invalid / unknown tags.
         if (node) {
             parsed.push(node);
@@ -156,7 +161,8 @@ function parseNodes(result, nodes) {
 
 export function parseHTMLBody({ mediaRepository, platform }, html) {
     const parseResult = platform.parseHTML(html);
-    const parts = parseNodes(parseResult, parseResult.rootNodes);
+    const options = { result: parseResult, mediaRepository };
+    const parts = parseNodes(options, parseResult.rootNodes);
     return new MessageBody(html, parts);
 }
 
