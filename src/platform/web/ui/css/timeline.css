@@ -61,3 +61,7 @@ limitations under the License.
 .GapView > :nth-child(2) {
     flex: 1;
 }
+
+.Timeline_messageBody img {
+    max-width: 50%;
+}
