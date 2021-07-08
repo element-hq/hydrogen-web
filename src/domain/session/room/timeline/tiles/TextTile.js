@@ -46,7 +46,7 @@ export class TextTile extends BaseTextTile {
     _parseBody(body) {
         const string = body.string;
         if (body.format === "html") {
-            return parseHTMLBody(this.platform, string);
+            return parseHTMLBody({ mediaRepository: this._mediaRepository, platform: this.platform }, string);
         } else {
             return parsePlainBody(string);
         }

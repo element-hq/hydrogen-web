@@ -1,4 +1,4 @@
-import { MessageBody, HeaderBlock, ListBlock, CodeBlock, FormatPart, NewLinePart, RulePart, TextPart, LinkPart } from "./MessageBody.js"
+import { MessageBody, HeaderBlock, ListBlock, CodeBlock, FormatPart, NewLinePart, RulePart, TextPart, LinkPart, ImagePart } from "./MessageBody.js"
 
 
 /* At the time of writing (Jul 1 2021), Matrix Spec recommends
@@ -71,8 +71,27 @@ function parseCodeBlock(result, node) {
     return new CodeBlock(language, codeNode.textContent);
 }
 
+// TODO: duplicated from MediaRepository. Extract somewhere.
+function parseMxcUrl(url) {
+    const prefix = "mxc://";
+    if (url.startsWith(prefix)) {
+        return url.substr(prefix.length).split("/", 2);
+    } else {
+        return null;
+    }
+}
+
 function parseImage(result, node) {
-    return null;
+    const src = result.getAttributeValue(node, "src") || "";
+    // We just ignore non-mxc `src` attributes.
+    if (!parseMxcUrl(src)) {
+        return null;
+    }
+    const width = result.getAttributeValue(node, "width");
+    const height = result.getAttributeValue(node, "height");
+    const alt = result.getAttributeValue(node, "alt");
+    const title = result.getAttributeValue(node, "title");
+    return new ImagePart(src, { width, height, alt, title });
 }
 
 function buildNodeMap() {
@@ -135,7 +154,7 @@ function parseNodes(result, nodes) {
     return parsed;
 }
 
-export function parseHTMLBody(platform, html) {
+export function parseHTMLBody({ mediaRepository, platform }, html) {
     const parseResult = platform.parseHTML(html);
     const parts = parseNodes(parseResult, parseResult.rootNodes);
     return new MessageBody(html, parts);
@@ -187,7 +206,7 @@ const platform = {
 
 export function tests() {
     function test(assert, input, output) {
-        assert.deepEqual(parseHTMLBody(platform, input), new MessageBody(input, output));
+        assert.deepEqual(parseHTMLBody({ mediaRepository: null, platform }, input), new MessageBody(input, output));
     }
 
     return {

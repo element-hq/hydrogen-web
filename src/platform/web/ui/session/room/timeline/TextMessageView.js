@@ -41,6 +41,11 @@ function renderList(listBlock) {
         return tag.ul({}, items);
     }
 }
+
+function renderImage(imagePart) {
+    return text(imagePart.src);
+}
+
 /**
  * Map from part to function that outputs DOM for the part
  */
@@ -53,6 +58,7 @@ const formatFunction = {
     link: linkPart => tag.a({ href: linkPart.url, target: "_blank", rel: "noopener" }, renderParts(linkPart.inlines)),
     format: formatPart => tag[formatPart.format]({}, renderParts(formatPart.children)),
     list: renderList,
+    image: renderImage,
     newline: () => tag.br()
 };
 

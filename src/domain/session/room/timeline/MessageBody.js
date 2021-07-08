@@ -80,6 +80,15 @@ export class FormatPart {
     get type() { return "format"; }
 }
 
+export class ImagePart {
+    constructor(src, properties) {
+        this.src = src;
+        this.properties = properties;
+    }
+
+    get type() { return "image"; }
+};
+
 export class LinkPart {
     constructor(url, inlines) {
         this.url = url;
