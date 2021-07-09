@@ -73,16 +73,6 @@ function parseCodeBlock(options, node) {
     return new CodeBlock(language, codeNode.textContent);
 }
 
-// TODO: duplicated from MediaRepository. Extract somewhere.
-function parseMxcUrl(url) {
-    const prefix = "mxc://";
-    if (url.startsWith(prefix)) {
-        return url.substr(prefix.length).split("/", 2);
-    } else {
-        return null;
-    }
-}
-
 function parseImage(options, node) {
     const { result, mediaRepository } = options;
     const src = result.getAttributeValue(node, "src") || "";
