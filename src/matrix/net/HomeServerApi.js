@@ -32,6 +32,10 @@ export class HomeServerApi {
         return `${this._homeserver}/_matrix/client/r0${csPath}`;
     }
 
+    _unstableUrl(feature, csPath) {
+        return `${this._homeserver}/_matrix/client/unstable/${feature}${csPath}`;
+    }
+
     _baseRequest(method, url, queryParams, body, options, accessToken) {
         const queryString = encodeQueryParams(queryParams);
         url = `${url}?${queryString}`;
@@ -88,7 +92,7 @@ export class HomeServerApi {
     }
 
     _authedRequest(method, url, queryParams, body, options) {
-        return this._baseRequest(method, url, queryParams, body, options, this._accessToken);
+        return this._baseRequest(method, url, queryParams, body, options, this._accessToken.get());
     }
 
     _post(csPath, queryParams, body, options) {
@@ -131,7 +135,9 @@ export class HomeServerApi {
     }
 
     passwordLogin(username, password, initialDeviceDisplayName, options = null) {
-        return this._unauthedRequest("POST", this._url("/login"), null, {
+        return this._unauthedRequest("POST", this._url("/login"), {
+          "org.matrix.msc2918.refresh_token": "true"
+        }, {
           "type": "m.login.password",
           "identifier": {
             "type": "m.id.user",
@@ -139,6 +145,12 @@ export class HomeServerApi {
           },
           "password": password,
           "initial_device_display_name": initialDeviceDisplayName
+        }, options);
+    }
+
+    refreshToken(token, options = null) {
+        return this._unauthedRequest("POST", this._unstableUrl("org.matrix.msc2918.refresh_token", "/refresh"), null, {
+            "refresh_token": token
         }, options);
     }
 
