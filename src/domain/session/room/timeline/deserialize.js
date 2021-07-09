@@ -1,5 +1,5 @@
 import { MessageBody, HeaderBlock, ListBlock, CodeBlock, FormatPart, NewLinePart, RulePart, TextPart, LinkPart, ImagePart } from "./MessageBody.js"
-
+import sanitizeHtml from "../../../../../lib/sanitize-html/index.js"
 
 /* At the time of writing (Jul 1 2021), Matrix Spec recommends
  * allowing the following HTML tags:
@@ -159,8 +159,27 @@ function parseNodes(options, nodes) {
     return parsed;
 }
 
+const sanitizeConfig = {
+    allowedTags: [
+        "font", "del", "h1", "h2", "h3", "h4", "h5", "h6",
+        "blockquote", "p", "a", "ul", "ol", "sup", "sub", "li",
+        "b", "i", "u", "strong", "em", "strike", "code", "hr",
+        "br", "div", "table", "thead", "tbody", "tr", "th", "td",
+        "caption", "pre", "span", "img"
+    ],
+    allowedAttributes: {
+        "font": ["data-mx-bg-color", "data-mx-color"],
+        "span": ["data-mx-bg-color", "data-mx-color"],
+        "a": ["name", "target", "href"],
+        "img": ["width", "height", "alt", "title", "src"],
+        "ol": ["start"],
+        "code": ["class"]
+    },
+    allowedSchemes: [ "http", "https", "ftp", "mailto", "tel", "mxc" ]
+};
+
 export function parseHTMLBody({ mediaRepository, platform }, html) {
-    const parseResult = platform.parseHTML(html);
+    const parseResult = platform.parseHTML(sanitizeHtml(html, sanitizeConfig));
     const options = { result: parseResult, mediaRepository };
     const parts = parseNodes(options, parseResult.rootNodes);
     return new MessageBody(html, parts);
