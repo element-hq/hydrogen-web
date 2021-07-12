@@ -36,7 +36,7 @@ import {BlobHandle} from "./dom/BlobHandle.js";
 import {hasReadPixelPermission, ImageHandle, VideoHandle} from "./dom/ImageHandle.js";
 import {downloadInIframe} from "./dom/download.js";
 import {Disposables} from "../../utils/Disposables.js";
-import {HTMLParseResult} from "./HTMLParseResult.js";
+import {parseHTML} from "./parsehtml.js";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -238,8 +238,7 @@ export class Platform {
     }
 
     parseHTML(html) {
-        const bodyNode = new DOMParser().parseFromString(html, "text/html").body;
-        return new HTMLParseResult(bodyNode);
+        return parseHTML(html);
     }
 
     async loadImage(blob) {

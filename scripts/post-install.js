@@ -83,11 +83,11 @@ async function populateLib() {
         require.resolve('node-html-parser/dist/index.js'),
         path.join(libDir, "node-html-parser/index.js")
     );
-    // transpile sanitize-html to esm
-    await fs.mkdir(path.join(libDir, "sanitize-html/"));
-    await commonjsToESM(
-        require.resolve('sanitize-html/index.js'),
-        path.join(libDir, "sanitize-html/index.js")
+    // Symlink dompurify
+    await fs.mkdir(path.join(libDir, "dompurify/"));
+    await fs.symlink(
+        require.resolve('dompurify/dist/purify.es.js'),
+        path.join(libDir, "dompurify/index.js")
     );
     // transpile another-json to esm
     await fs.mkdir(path.join(libDir, "another-json/"));

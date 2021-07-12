@@ -1,4 +1,6 @@
-export class HTMLParseResult {
+import DOMPurify from "../../../../../lib/dompurify/index.js"
+
+class HTMLParseResult {
     constructor(bodyNode) {
         this._bodyNode = bodyNode;
     }
@@ -34,4 +36,16 @@ export class HTMLParseResult {
     getNodeElementName(node) {
         return node.tagName;
     }
+}
+
+const sanitizeConfig = {
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|xxx|mxc):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+}
+
+export function parseHTML(html) {
+    // If DOMPurify uses DOMParser, can't we just get the built tree from it
+    // instead of re-parsing?
+    const sanitized = DOMPurify.sanitize(html, sanitizeConfig);
+    const bodyNode = new DOMParser().parseFromString(sanitized, "text/html").body;
+    return new HTMLParseResult(bodyNode);
 }
