@@ -19,7 +19,7 @@ import {parsePlainBody} from "../MessageBody.js";
 import {parseHTMLBody} from "../deserialize.js";
 
 export class TextTile extends BaseTextTile {
-    _getContentString(key, format, fallback = null) {
+    _getContentString(key, fallback = null) {
         const content = this._getContent();
         let val = content?.[key] || fallback;
         if (!val && val !== "") { // empty string is falsy, but OK here.
@@ -28,27 +28,30 @@ export class TextTile extends BaseTextTile {
         if (content.msgtype === "m.emote") {
             val = `* ${this.displayName} ${body}`;
         }
-        return { string: val, format };
+        return val;
     }
 
     _getPlainBody() {
-        return this._getContentString("body", "plain", "");
+        return this._getContentString("body", "");
     }
 
     _getFormattedBody() {
-        return this._getContentString("formatted_body", "html");
+        return this._getContentString("formatted_body");
     }
 
     _getBody() {
         return this._getFormattedBody() || this._getPlainBody();
     }
 
-    _parseBody(body) {
-        const string = body.string;
-        if (body.format === "html") {
-            return parseHTMLBody({ mediaRepository: this._mediaRepository, platform: this.platform }, string);
+    _getBodyFormat() {
+        return this._getContent()?.["formatted_body"] ? "html" : "plain"
+    }
+
+    _parseBody(body, format) {
+        if (format === "html") {
+            return parseHTMLBody({ mediaRepository: this._mediaRepository, platform: this.platform }, body);
         } else {
-            return parsePlainBody(string);
+            return parsePlainBody(body);
         }
     }
 }
