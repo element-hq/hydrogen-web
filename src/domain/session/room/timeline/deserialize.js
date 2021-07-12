@@ -248,6 +248,14 @@ export function tests() {
             ];
             test(assert, input, output);
         },
+        "Auto-closed tags": assert => {
+            const input = '<p>hello<p>world</p></p>';
+            const output = [
+                new FormatPart("p", [new TextPart("hello")]),
+                new FormatPart("p", [new TextPart("world")])
+            ];
+            test(assert, input, output);
+        },
         /* Doesnt work: HTML library doesn't handle <pre><code> properly.
         "Text with code block": assert => {
             const code = 'main :: IO ()\nmain = putStrLn "Hello"'
