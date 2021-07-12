@@ -13,140 +13,137 @@ import sanitizeHtml from "../../../../../lib/sanitize-html/index.js"
  */
 const basicNodes = ["EM", "STRONG", "CODE", "DEL", "P", "DIV", "SPAN" ]
 
-/**
- * Return a builder function for a particular tag.
- */
-function basicWrapper(tag) {
-    return (_, node, children) => new FormatPart(tag, children);
-}
-
-/**
- * Return a builder function for a particular header level.
- */
-function headerWrapper(level) {
-    return (_, node, children) => new HeaderBlock(level, children);
-}
-
-function parseLink(options, node, children) {
-    // TODO Not equivalent to `node.href`!
-    // Add another HTMLParseResult method?
-    let href = options.result.getAttributeValue(node, "href");
-    return new LinkPart(href, children);
-}
-
-function parseList(options, node) {
-    const { result } = options;
-    let start = null;
-    if (result.getNodeElementName(node) === "OL") {
-        // Will return 1 for, say, '1A', which may not be intended?
-        start = parseInt(result.getAttributeValue(node, "start")) || 1;
+class Deserializer {
+    constructor(result, mediaRepository) {
+        this.result = result;
+        this.mediaRepository = mediaRepository;
     }
-    const nodes = [];
-    for (const child of result.getChildNodes(node)) {
-        if (result.getNodeElementName(child) !== "LI") {
-            continue;
+
+    parseLink(node, children) {
+        // TODO Not equivalent to `node.href`!
+        // Add another HTMLParseResult method?
+        let href = this.result.getAttributeValue(node, "href");
+        return new LinkPart(href, children);
+    }
+
+    parseList(node) {
+        const result = this.result;
+        let start = null;
+        if (result.getNodeElementName(node) === "OL") {
+            // Will return 1 for, say, '1A', which may not be intended?
+            start = parseInt(result.getAttributeValue(node, "start")) || 1;
         }
-        const item = parseNodes(options, result.getChildNodes(child));
-        nodes.push(item);
+        const nodes = [];
+        for (const child of result.getChildNodes(node)) {
+            if (result.getNodeElementName(child) !== "LI") {
+                continue;
+            }
+            const item = this.parseNodes(result.getChildNodes(child));
+            nodes.push(item);
+        }
+        return new ListBlock(start, nodes);
     }
-    return new ListBlock(start, nodes);
-}
 
-function parseCodeBlock(options, node) {
-    const { result } = options;
-    let codeNode;
-    for (const child of result.getChildNodes(node)) {
-        codeNode = child;
-        break;
-    }
-    if (!(codeNode && result.getNodeElementName(codeNode) === "CODE")) {
-        return null;
-    }
-    let language = "";
-    const cl = result.getAttributeValue(codeNode, "class") || ""
-    for (const clname of cl.split(" ")) {
-        if (clname.startsWith("language-") && !clname.startsWith("language-_")) {
-            language = clname.substring(9) // "language-".length
+    parseCodeBlock(node) {
+        const result = this.result;
+        let codeNode;
+        for (const child of result.getChildNodes(node)) {
+            codeNode = child;
             break;
         }
-    }
-    return new CodeBlock(language, codeNode.textContent);
-}
-
-function parseImage(options, node) {
-    const { result, mediaRepository } = options;
-    const src = result.getAttributeValue(node, "src") || "";
-    const url = mediaRepository.mxcUrl(src);
-    // We just ignore non-mxc `src` attributes.
-    if (!url) {
-        return null;
-    }
-    const width = result.getAttributeValue(node, "width");
-    const height = result.getAttributeValue(node, "height");
-    const alt = result.getAttributeValue(node, "alt");
-    const title = result.getAttributeValue(node, "title");
-    return new ImagePart(url, { width, height, alt, title });
-}
-
-function buildNodeMap() {
-    let map = {
-        A: { descend: true, parsefn: parseLink },
-        UL: { descend: false, parsefn: parseList },
-        OL: { descend: false, parsefn: parseList },
-        PRE: { descend: false, parsefn: parseCodeBlock },
-        BR: { descend: false, parsefn: () => new NewLinePart() },
-        HR: { descend: false, parsefn: () => new RulePart() },
-        IMG: { descend: false, parsefn: parseImage }
-    }
-    for (const tag of basicNodes) {
-        map[tag] = { descend: true, parsefn: basicWrapper(tag) }
-    }
-    for (let level = 1; level <= 6; level++) {
-        const tag = "h" + level;
-        map[tag] = { descend: true, parsefn: headerWrapper(level) }
-    }
-    return map;
-}
-
-/**
- * Handlers for various nodes.
- *
- * Each handler has two properties: `descend` and `parsefn`.
- * If `descend` is true, the node's children should be
- * parsed just like any other node, and fed as a second argument
- * to `parsefn`. If not, the node's children are either to be ignored
- * (as in <pre>) or processed specially (as in <ul>).
- *
- * The `parsefn` combines a node's data and its children into
- * an internal representation node.
- */
-const nodes = buildNodeMap();
-
-function parseNode(options, node) {
-    const { result } = options;
-    if (result.isTextNode(node)) {
-        return new TextPart(result.getNodeText(node));
-    } else if (result.isElementNode(node)) {
-        const f = nodes[result.getNodeElementName(node)];
-        if (!f) {
+        if (!(codeNode && result.getNodeElementName(codeNode) === "CODE")) {
             return null;
         }
-        const children = f.descend ? parseNodes(options, node.childNodes) : null;
-        return f.parsefn(options, node, children);
+        let language = "";
+        const cl = result.getAttributeValue(codeNode, "class") || ""
+        for (const clname of cl.split(" ")) {
+            if (clname.startsWith("language-") && !clname.startsWith("language-_")) {
+                language = clname.substring(9) // "language-".length
+                break;
+            }
+        }
+        return new CodeBlock(language, codeNode.textContent);
     }
-    return null;
-}
 
-function parseNodes(options, nodes) {
-    const parsed = [];
-    for (const htmlNode of nodes) {
-        let node = parseNode(options, htmlNode);
-        // Just ignore invalid / unknown tags.
-        if (node) {
-            parsed.push(node);
+    parseImage(node) {
+        const result = this.result;
+        const src = result.getAttributeValue(node, "src") || "";
+        const url = this.mediaRepository.mxcUrl(src);
+        // We just ignore non-mxc `src` attributes.
+        if (!url) {
+            return null;
+        }
+        const width = result.getAttributeValue(node, "width");
+        const height = result.getAttributeValue(node, "height");
+        const alt = result.getAttributeValue(node, "alt");
+        const title = result.getAttributeValue(node, "title");
+        return new ImagePart(url, { width, height, alt, title });
+    }
+
+    parseElement(node) {
+        const result = this.result;
+        const tag = result.getNodeElementName(node);
+        switch (tag) {
+            case "H1":
+            case "H2":
+            case "H3":
+            case "H4":
+            case "H5":
+            case "H6": {
+                const children = this.parseChildNodes(node);
+                return new HeaderBlock(parseInt(tag[1]), children)
+            }
+            case "A": {
+                const children = this.parseChildNodes(node);
+                return this.parseLink(node, children);
+            }
+            case "UL":
+            case "OL":
+                return this.parseList(node);
+            case "PRE":
+                return this.parseCodeBlock(node);
+            case "BR":
+                return new NewLinePart();
+            case "HR":
+                return new RulePart();
+            case "IMG":
+                return this.parseImage(node);
+            default: {
+                if (!basicNodes.includes(tag)) {
+                    return null;
+                }
+                const children = this.parseChildNodes(node);
+                return new FormatPart(tag, children);
+            }
         }
     }
-    return parsed;
+
+    parseNode(node) {
+        const result = this.result;
+        if (result.isTextNode(node)) {
+            return new TextPart(result.getNodeText(node));
+        } else if (result.isElementNode(node)) {
+            return this.parseElement(node);
+        }
+        return null;
+    }
+
+    parseChildNodes(node) {
+        const childNodes = this.result.getChildNodes(node);
+        return this.parseNodes(childNodes);
+    }
+
+    parseNodes(nodes) {
+        const parsed = [];
+        for (const htmlNode of nodes) {
+            let node = this.parseNode(htmlNode);
+            // Just ignore invalid / unknown tags.
+            if (node) {
+                parsed.push(node);
+            }
+        }
+        return parsed;
+    }
 }
 
 const sanitizeConfig = {
@@ -170,8 +167,8 @@ const sanitizeConfig = {
 
 export function parseHTMLBody({ mediaRepository, platform }, html) {
     const parseResult = platform.parseHTML(sanitizeHtml(html, sanitizeConfig));
-    const options = { result: parseResult, mediaRepository };
-    const parts = parseNodes(options, parseResult.rootNodes);
+    const deserializer = new Deserializer(parseResult, mediaRepository);
+    const parts = deserializer.parseNodes(parseResult.rootNodes);
     return new MessageBody(html, parts);
 }
 
