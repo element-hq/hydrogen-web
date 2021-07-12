@@ -174,51 +174,51 @@ export function parseHTMLBody(platform, mediaRepository, html) {
 
 import parse from '../../../../../lib/node-html-parser/index.js';
 
-export class HTMLParseResult {
-    constructor(bodyNode) {
-        this._bodyNode = bodyNode;
-    }
-
-    get rootNodes() {
-        return this._bodyNode.childNodes;
-    }
-
-    getChildNodes(node) {
-        return node.childNodes;
-    }
-
-    getAttributeNames(node) {
-        return node.getAttributeNames();
-    }
-
-    getAttributeValue(node, attr) {
-        return node.getAttribute(attr);
-    }
-
-    isTextNode(node) {
-        return !node.tagName;
-    }
-
-    getNodeText(node) {
-        return node.text;
-    }
-
-    isElementNode(node) {
-        return !!node.tagName;
-    }
-
-    getNodeElementName(node) {
-        return node.tagName;
-    }
-}
-
-const platform = {
-    parseHTML: (html) => new HTMLParseResult(parse(html))
-};
-
 export function tests() {
+    class HTMLParseResult {
+        constructor(bodyNode) {
+            this._bodyNode = bodyNode;
+        }
+
+        get rootNodes() {
+            return this._bodyNode.childNodes;
+        }
+
+        getChildNodes(node) {
+            return node.childNodes;
+        }
+
+        getAttributeNames(node) {
+            return node.getAttributeNames();
+        }
+
+        getAttributeValue(node, attr) {
+            return node.getAttribute(attr);
+        }
+
+        isTextNode(node) {
+            return !node.tagName;
+        }
+
+        getNodeText(node) {
+            return node.text;
+        }
+
+        isElementNode(node) {
+            return !!node.tagName;
+        }
+
+        getNodeElementName(node) {
+            return node.tagName;
+        }
+    }
+
+    const platform = {
+        parseHTML: (html) => new HTMLParseResult(parse(html))
+    };
+
     function test(assert, input, output) {
-        assert.deepEqual(parseHTMLBody({ mediaRepository: null, platform }, input), new MessageBody(input, output));
+        assert.deepEqual(parseHTMLBody(platform, null, input), new MessageBody(input, output));
     }
 
     return {
