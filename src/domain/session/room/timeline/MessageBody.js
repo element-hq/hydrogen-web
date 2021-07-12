@@ -81,9 +81,12 @@ export class FormatPart {
 }
 
 export class ImagePart {
-    constructor(src, properties) {
+    constructor(src, width, height, alt, title) {
         this.src = src;
-        this.properties = properties;
+        this.width = width;
+        this.height = height;
+        this.alt = alt;
+        this.title = title;
     }
 
     get type() { return "image"; }

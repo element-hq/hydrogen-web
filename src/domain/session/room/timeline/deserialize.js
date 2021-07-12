@@ -73,11 +73,11 @@ class Deserializer {
         if (!url) {
             return null;
         }
-        const width = result.getAttributeValue(node, "width");
-        const height = result.getAttributeValue(node, "height");
+        const width = parseInt(result.getAttributeValue(node, "width")) || null;
+        const height = parseInt(result.getAttributeValue(node, "height")) || null;
         const alt = result.getAttributeValue(node, "alt");
         const title = result.getAttributeValue(node, "title");
-        return new ImagePart(url, { width, height, alt, title });
+        return new ImagePart(url, width, height, alt, title);
     }
 
     parseElement(node) {

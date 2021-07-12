@@ -43,13 +43,12 @@ function renderList(listBlock) {
 }
 
 function renderImage(imagePart) {
-    const props = imagePart.properties;
     const attributes = Object.assign(
         { src: imagePart.src },
-        props.width && { width: props.width },
-        props.height && { height: props.height },
-        props.alt && { alt: props.alt },
-        props.title && { title: props.title }
+        imagePart.width && { width: imagePart.width },
+        imagePart.height && { height: imagePart.height },
+        imagePart.alt && { alt: imagePart.alt },
+        imagePart.title && { title: imagePart.title }
     );
     return tag.img(attributes, []);
 }
