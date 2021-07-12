@@ -165,7 +165,7 @@ const sanitizeConfig = {
     allowedSchemes: [ "http", "https", "ftp", "mailto", "tel", "mxc" ]
 };
 
-export function parseHTMLBody({ mediaRepository, platform }, html) {
+export function parseHTMLBody(platform, mediaRepository, html) {
     const parseResult = platform.parseHTML(sanitizeHtml(html, sanitizeConfig));
     const deserializer = new Deserializer(parseResult, mediaRepository);
     const parts = deserializer.parseNodes(parseResult.rootNodes);
