@@ -345,6 +345,13 @@ export function tests() {
             ];
             test(assert, input, output);
         },
+        "Unknown and invalid attributes are stripped": assert => {
+            const input = '<em onmouseover=alert("Bad code!")>Hello</em>';
+            const output = [
+                new FormatPart("em", [new TextPart("Hello")])
+            ];
+            test(assert, input, output);
+        },
         /* Doesnt work: HTML library doesn't handle <pre><code> properly.
         "Text with code block": assert => {
             const code = 'main :: IO ()\nmain = putStrLn "Hello"'
