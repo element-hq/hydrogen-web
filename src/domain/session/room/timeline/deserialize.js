@@ -1,4 +1,5 @@
 import { MessageBody, HeaderBlock, ListBlock, CodeBlock, FormatPart, NewLinePart, RulePart, TextPart, LinkPart, ImagePart } from "./MessageBody.js"
+import { linkify } from "./linkify/linkify.js";
 
 /* At the time of writing (Jul 1 2021), Matrix Spec recommends
  * allowing the following HTML tags:
@@ -113,11 +114,7 @@ class Deserializer {
      *   element is not inline or not allowed.
      */
     parseInlineNode(node) {
-        const result = this.result;
-        if (result.isTextNode(node)) {
-            // TODO Linkify
-            return new TextPart(result.getNodeText(node));
-        } else if (result.isElementNode(node)) {
+        if (this.result.isElementNode(node)) {
             return this.parseInlineElement(node);
         }
         return null;
@@ -172,15 +169,36 @@ class Deserializer {
      *   is not a block element.
      */
     parseBlockNode(node) {
-        const result = this.result;
-        if (result.isElementNode(node)) {
+        if (this.result.isElementNode(node)) {
             return this.parseBlockElement(node);
         }
         return null;
     }
 
+    _parseTextParts(node, into) {
+        if(!this.result.isTextNode(node)) {
+            return false;
+        }
+
+        // XXX pretty much identical to `MessageBody`'s.
+        const linkifyCallback = (text, isLink) => {
+            if (isLink) {
+                into.push(new LinkPart(text, [new TextPart(text)]));
+            } else {
+                into.push(new TextPart(text));
+            }
+        };
+        linkify(this.result.getNodeText(node), linkifyCallback);
+        return true;
+    }
+
     _parseInlineNodes(nodes, into) {
         for (const htmlNode of nodes) {
+            if (this._parseTextParts(htmlNode, into)) {
+                // This was a text node, and we already
+                // dumped its parts into our list.
+                continue;
+            }
             const node = this.parseInlineNode(htmlNode);
             if (node) {
                 into.push(node);
@@ -198,8 +216,14 @@ class Deserializer {
         return into;
     }
 
+    // XXX very similar to `_parseInlineNodes`.
     _parseAnyNodes(nodes, into) {
         for (const htmlNode of nodes) {
+            if (this._parseTextParts(htmlNode, into)) {
+                // This was a text node, and we already
+                // dumped its parts into our list.
+                continue;
+            }
             const node = this.parseInlineNode(htmlNode) || this.parseBlockNode(htmlNode);
             if (node) {
                 into.push(node);
