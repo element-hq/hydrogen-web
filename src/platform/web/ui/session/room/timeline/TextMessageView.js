@@ -64,12 +64,29 @@ function renderPill(pillPart) {
     return tag.a({ class: "pill", href: pillPart.href }, children);
 }
 
+function renderTable(tablePart) {
+    const children = [];
+    if (tablePart.head) {
+        const headers = tablePart.head
+            .map(cell => tag.th({}, renderParts(cell)));
+        children.push(tag.thead({}, tag.tr({}, headers)))
+    }
+    const rows = [];
+    for (const row of tablePart.body) {
+        const data = row.map(cell => tag.td({}, renderParts(cell)));
+        rows.push(tag.tr({}, data));
+    }
+    children.push(tag.tbody({}, rows));
+    return tag.table({}, children);
+}
+
 /**
  * Map from part to function that outputs DOM for the part
  */
 const formatFunction = {
     header: headerBlock => tag["h" + Math.min(6,headerBlock.level)]({}, renderParts(headerBlock.inlines)),
     codeblock: codeBlock => tag.pre({}, tag.code({}, text(codeBlock.text))),
+    table: tableBlock => renderTable(tableBlock),
     emph: emphPart => tag.em({}, renderParts(emphPart.inlines)),
     code: codePart => tag.code({}, text(codePart.text)),
     text: textPart => text(textPart.text),

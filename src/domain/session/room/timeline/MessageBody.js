@@ -64,6 +64,15 @@ export class ListBlock {
     get type() { return "list"; }
 }
 
+export class TableBlock {
+    constructor(head, body) {
+        this.head = head;
+        this.body = body;
+    }
+
+    get type() { return "table"; }
+}
+
 export class RulePart {
     get type( ) { return "rule"; }
 }

@@ -1,4 +1,4 @@
-import { MessageBody, HeaderBlock, ListBlock, CodeBlock, PillPart, FormatPart, NewLinePart, RulePart, TextPart, LinkPart, ImagePart } from "./MessageBody.js"
+import { MessageBody, HeaderBlock, TableBlock, ListBlock, CodeBlock, PillPart, FormatPart, NewLinePart, RulePart, TextPart, LinkPart, ImagePart } from "./MessageBody.js"
 import { linkify } from "./linkify/linkify.js";
 import { parsePillLink } from "./pills.js"
 
@@ -53,6 +53,12 @@ class Deserializer {
         return new ListBlock(start, nodes);
     }
 
+    _ensureElement(node, tag) {
+        return node &&
+            this.result.isElementNode(node) &&
+            this.result.getNodeElementName(node) === tag;
+    }
+
     parseCodeBlock(node) {
         const result = this.result;
         let codeNode;
@@ -60,7 +66,7 @@ class Deserializer {
             codeNode = child;
             break;
         }
-        if (!(codeNode && result.getNodeElementName(codeNode) === "CODE")) {
+        if (!this._ensureElement(codeNode, "CODE")) {
             return null;
         }
         let language = "";
@@ -87,6 +93,56 @@ class Deserializer {
         const alt = result.getAttributeValue(node, "alt");
         const title = result.getAttributeValue(node, "title");
         return new ImagePart(url, width, height, alt, title);
+    }
+
+    parseTableRow(row, tag) {
+        const cells = [];
+        for (const node of this.result.getChildNodes(row)) {
+            if(!this._ensureElement(node, tag)) {
+                continue;
+            }
+            const children = this.result.getChildNodes(node);
+            const inlines = this.parseInlineNodes(children);
+            cells.push(inlines);
+        }
+        return cells;
+    }
+
+    parseTableHead(head) {
+        let headRow = null;
+        for (const node of this.result.getChildNodes(head)) {
+            headRow = node;
+            break;
+        }
+        if (this._ensureElement(headRow, "TR")) {
+            return this.parseTableRow(headRow, "TH");
+        }
+        return null;
+    }
+
+    parseTableBody(body) {
+        const rows = [];
+        for (const node of this.result.getChildNodes(body)) {
+            if(!this._ensureElement(node, "TR")) {
+                continue;
+            }
+            rows.push(this.parseTableRow(node, "TD"));
+        }
+        return rows;
+    }
+
+    parseTable(node) {
+        // We are only assuming iterable, so convert to arrary for indexing.
+        const children = Array.from(this.result.getChildNodes(node));
+        let head, body;
+        if (this._ensureElement(children[0], "THEAD") && this._ensureElement(children[1], "TBODY")) {
+            head = this.parseTableHead(children[0]);
+            body = this.parseTableBody(children[1]);
+        } else if (this._ensureElement(children[0], "TBODY")) {
+            head = null;
+            body = this.parseTableBody(children[0]);
+        }
+        return new TableBlock(head, body);
     }
 
     /** Once a node is known to be an element,
@@ -161,6 +217,8 @@ class Deserializer {
                 const inlines = this.parseInlineNodes(children);
                 return new FormatPart(tag, inlines);
             }
+            case "TABLE":
+                return this.parseTable(node);
             default: {
                 if (!basicBlock.includes(tag)) {
                     return null;
