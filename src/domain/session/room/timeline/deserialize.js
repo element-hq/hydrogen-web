@@ -10,7 +10,8 @@ import { MessageBody, HeaderBlock, ListBlock, CodeBlock, FormatPart, NewLinePart
  * Nodes that don't have any properties to them other than their tag.
  * While <a> has `href`, and <img> has `src`, these have... themselves.
  */
-const basicNodes = ["EM", "STRONG", "CODE", "DEL", "P", "DIV", "SPAN" ]
+const basicInline = ["EM", "STRONG", "CODE", "DEL", "SPAN" ];
+const basicBlock = ["DIV"];
 
 class Deserializer {
     constructor(result, mediaRepository) {
@@ -21,7 +22,7 @@ class Deserializer {
     parseLink(node, children) {
         // TODO Not equivalent to `node.href`!
         // Add another HTMLParseResult method?
-        let href = this.result.getAttributeValue(node, "href");
+        const href = this.result.getAttributeValue(node, "href");
         return new LinkPart(href, children);
     }
 
@@ -37,7 +38,7 @@ class Deserializer {
             if (result.getNodeElementName(child) !== "LI") {
                 continue;
             }
-            const item = this.parseNodes(result.getChildNodes(child));
+            const item = this.parseAnyNodes(result.getChildNodes(child));
             nodes.push(item);
         }
         return new ListBlock(start, nodes);
@@ -79,9 +80,59 @@ class Deserializer {
         return new ImagePart(url, width, height, alt, title);
     }
 
-    parseElement(node) {
+    /** Once a node is known to be an element,
+     * attempt to interpret it as an inline element.
+     *
+     * @returns the inline message part, or null if the element
+     *   is not inline or not allowed.
+     */
+    parseInlineElement(node) {
         const result = this.result;
         const tag = result.getNodeElementName(node);
+        const children = result.getChildNodes(node);
+        switch (tag) {
+            case "A": {
+                const inlines = this.parseInlineNodes(children);
+                return this.parseLink(node, inlines);
+            }
+            case "BR":
+                return new NewLinePart();
+            default: {
+                if (!basicInline.includes(tag)) {
+                    return null;
+                }
+                const inlines = this.parseInlineNodes(children);
+                return new FormatPart(tag, inlines);
+            }
+        }
+    }
+
+    /** Attempt to interpret a node as inline.
+     *
+     * @returns the inline message part, or null if the
+     *   element is not inline or not allowed.
+     */
+    parseInlineNode(node) {
+        const result = this.result;
+        if (result.isTextNode(node)) {
+            // TODO Linkify
+            return new TextPart(result.getNodeText(node));
+        } else if (result.isElementNode(node)) {
+            return this.parseInlineElement(node);
+        }
+        return null;
+    }
+
+    /** Once a node is known to be an element, attempt
+     * to interpret it as a block element.
+     *
+     * @returns the block message part, or null of the
+     *   element is not a block or not allowed.
+     */
+    parseBlockElement(node) {
+        const result = this.result;
+        const tag = result.getNodeElementName(node);
+        const children = result.getChildNodes(node);
         switch (tag) {
             case "H1":
             case "H2":
@@ -89,66 +140,87 @@ class Deserializer {
             case "H4":
             case "H5":
             case "H6": {
-                const children = this.parseChildNodes(node);
-                return new HeaderBlock(parseInt(tag[1]), children)
-            }
-            case "A": {
-                const children = this.parseChildNodes(node);
-                return this.parseLink(node, children);
+                const inlines = this.parseInlineNodes(children);
+                return new HeaderBlock(parseInt(tag[1]), inlines)
             }
             case "UL":
             case "OL":
                 return this.parseList(node);
             case "PRE":
                 return this.parseCodeBlock(node);
-            case "BR":
-                return new NewLinePart();
             case "HR":
                 return new RulePart();
             case "IMG":
                 return this.parseImage(node);
+            case "P": {
+                const inlines = this.parseInlineNodes(children);
+                return new FormatPart(tag, inlines);
+            }
             default: {
-                if (!basicNodes.includes(tag)) {
+                if (!basicBlock.includes(tag)) {
                     return null;
                 }
-                const children = this.parseChildNodes(node);
-                return new FormatPart(tag, children);
+                const blocks = this.parseAnyNodes(children);
+                return new FormatPart(tag, blocks);
             }
         }
     }
 
-    parseNode(node) {
+    /** Attempt to parse a node as a block.
+     *
+     * @return the block message part, or null if the node
+     *   is not a block element.
+     */
+    parseBlockNode(node) {
         const result = this.result;
-        if (result.isTextNode(node)) {
-            return new TextPart(result.getNodeText(node));
-        } else if (result.isElementNode(node)) {
-            return this.parseElement(node);
+        if (result.isElementNode(node)) {
+            return this.parseBlockElement(node);
         }
         return null;
     }
 
-    parseChildNodes(node) {
-        const childNodes = this.result.getChildNodes(node);
-        return this.parseNodes(childNodes);
+    _parseInlineNodes(nodes, into) {
+        for (const htmlNode of nodes) {
+            const node = this.parseInlineNode(htmlNode);
+            if (node) {
+                into.push(node);
+                continue;
+            }
+            // Node is either block or unrecognized. In
+            // both cases, just move on to its children.
+            this._parseInlineNodes(this.result.getChildNodes(htmlNode), into);
+        }
     }
 
-    parseNodes(nodes) {
-        const parsed = [];
+    parseInlineNodes(nodes) {
+        const into = [];
+        this._parseInlineNodes(nodes, into);
+        return into;
+    }
+
+    _parseAnyNodes(nodes, into) {
         for (const htmlNode of nodes) {
-            let node = this.parseNode(htmlNode);
-            // Just ignore invalid / unknown tags.
+            const node = this.parseInlineNode(htmlNode) || this.parseBlockNode(htmlNode);
             if (node) {
-                parsed.push(node);
+                into.push(node);
+                continue;
             }
+            // Node is unrecognized. Just move on to its children.
+            this._parseAnyNodes(this.result.getChildNodes(htmlNode), into);
         }
-        return parsed;
+    }
+
+    parseAnyNodes(nodes) {
+        const into = [];
+        this._parseAnyNodes(nodes, into);
+        return into;
     }
 }
 
 export function parseHTMLBody(platform, mediaRepository, html) {
     const parseResult = platform.parseHTML(html);
     const deserializer = new Deserializer(parseResult, mediaRepository);
-    const parts = deserializer.parseNodes(parseResult.rootNodes);
+    const parts = deserializer.parseAnyNodes(parseResult.rootNodes);
     return new MessageBody(html, parts);
 }
 
@@ -253,6 +325,23 @@ export function tests() {
             const output = [
                 new FormatPart("p", [new TextPart("hello")]),
                 new FormatPart("p", [new TextPart("world")])
+            ];
+            test(assert, input, output);
+        },
+        "Block elements ignored inside inline elements": assert => {
+            const input = '<span><p><code>Hello</code></p></span>';
+            const output = [
+                new FormatPart("span", [new FormatPart("code", [new TextPart("Hello")])])
+            ];
+            test(assert, input, output);
+        },
+        "Unknown tags are ignored, but their children are kept": assert => {
+            const input = '<span><dfn><code>Hello</code></dfn><footer><em>World</em></footer></span>';
+            const output = [
+                new FormatPart("span", [
+                    new FormatPart("code", [new TextPart("Hello")]),
+                    new FormatPart("em", [new TextPart("World")])
+                ])
             ];
             test(assert, input, output);
         },
