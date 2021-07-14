@@ -390,7 +390,7 @@ export class BaseRoom extends EventEmitter {
         return this._summary.data.membership;
     }
 
-    async loadPowerLevels() {
+    async _loadPowerLevels() {
         const txn = await this._storage.readTxn([this._storage.storeNames.roomState]);
         const powerLevelsState = await txn.roomState.get(this._roomId, "m.room.power_levels", "");
         if (powerLevelsState) {
@@ -416,7 +416,7 @@ export class BaseRoom extends EventEmitter {
     async observePowerLevels() {
         let observable = this._powerLevels;
         if (!observable) {
-            const powerLevels = await this.loadPowerLevels();
+            const powerLevels = await this._loadPowerLevels();
             observable = new RetainedObservableValue(powerLevels, () => { this._powerLevels = null; });
             this._powerLevels = observable;
         }
