@@ -73,19 +73,17 @@ export class LazyListView extends ListView {
         return new ItemRange(topCount, renderCount, bottomCount);
     }
 
-    _renderIfNeeded() {
+    _renderIfNeeded(forceRender = false) {
+        /*
+        forceRender only because we don't optimize onAdd/onRemove yet.
+        Ideally, onAdd/onRemove should only render whatever has changed + update padding + update renderRange
+        */
         const range = this._getVisibleRange();
         const intersectRange = range.expand(this._overflowMargin);
         const renderRange = range.expand(this._overflowItems);
-        const listHasChangedSize = !!this._renderRange && this._list.length !== this._renderRange.totalSize();
-        // console.log("currentRange", range);
-        // console.log("renderRange", renderRange);
-        // console.log("intersectRange", intersectRange);
-        // console.log("LastRenderedRange", this._renderRange);
-        // only update render Range if the new range + overflowMargin isn't contained by the old anymore
-        if (listHasChangedSize || !this._renderRange.contains(intersectRange)) {
-            // console.log("New render change");
-            // console.log("scrollTop", this._parent.scrollTop);
+        // only update render Range if the new range + overflowMargin isn't contained by the old anymore 
+        // or if we are force rendering
+        if (forceRender || !this._renderRange.contains(intersectRange)) {
             this._renderRange = renderRange;
             this._renderElementsInRange();
         }
@@ -176,11 +174,11 @@ export class LazyListView extends ListView {
 
     // If size of the list changes, re-render
     onAdd() {
-        this._renderIfNeeded();
+        this._renderIfNeeded(true);
     }
 
     onRemove() {
-        this._renderIfNeeded();
+        this._renderIfNeeded(true);
     }
 
     onUpdate(idx, value, params) {
