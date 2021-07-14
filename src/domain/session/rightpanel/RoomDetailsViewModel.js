@@ -62,4 +62,11 @@ export class RoomDetailsViewModel extends ViewModel {
         super.dispose();
         this._room.off("change", this._onRoomChange);
     }
+
+    openPanel(segment) {
+        let path = this.navigation.path.until("room");
+        path = path.with(this.navigation.segment("right-panel", true));
+        path = path.with(this.navigation.segment(segment, true));
+        this.navigation.applyPath(path);
+    }
 }

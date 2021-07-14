@@ -16,7 +16,8 @@ export class RoomDetailsView extends TemplateView {
             this._createRoomAliasDisplay(vm),
             t.div({className: "RoomDetailsView_rows"},
                 [
-                    this._createRightPanelRow(t, vm.i18n`People`, {MemberCount: true}, vm => vm.memberCount),
+                    this._createRightPanelButtonRow(t, vm.i18n`People`, { MemberCount: true }, vm => vm.memberCount,
+                    () => vm.openPanel("members")),
                     this._createRightPanelRow(t, vm.i18n`Encryption`, {EncryptionStatus: true}, encryptionString)
                 ])
         ]);
@@ -30,6 +31,14 @@ export class RoomDetailsView extends TemplateView {
     _createRightPanelRow(t, label, labelClass, value) {
         const labelClassString = classNames({RoomDetailsView_label: true, ...labelClass});
         return t.div({className: "RoomDetailsView_row"}, [
+            t.div({className: labelClassString}, [label]),
+            t.div({className: "RoomDetailsView_value"}, value)
+        ]);
+    }
+
+    _createRightPanelButtonRow(t, label, labelClass, value, onClick) {
+        const labelClassString = classNames({RoomDetailsView_label: true, ...labelClass});
+        return t.button({className: "RoomDetailsView_row", onClick}, [
             t.div({className: labelClassString}, [label]),
             t.div({className: "RoomDetailsView_value"}, value)
         ]);
