@@ -868,6 +868,10 @@ button.link {
 
 /* Memberlist Panel */
 
+.MemberListView {
+    padding-left: 16px;
+}
+
 .MemberTileView {
     margin-top: 8px;
 }
