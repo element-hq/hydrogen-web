@@ -789,8 +789,11 @@ button.link {
 
 /* Right Panel */
 
-.RoomDetailsView {
+.RightPanelView {
     background: rgba(245, 245, 245, 0.90);
+}
+
+.RoomDetailsView {
     padding: 16px;
 }
 
@@ -813,6 +816,24 @@ button.link {
     margin-bottom: 20px;
     font-weight: 500;
     font-size: 15px;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+button.RoomDetailsView_row {
+    cursor: pointer;
+}
+
+button.RoomDetailsView_row::after {
+    content: url("./icons/chevron-small.svg");
+    margin-left: 12px;
+}
+
+.RoomDetailsView_row:not(button)::after{
+    content: " ";
+    width: 19px;
 }
 
 .RoomDetailsView_label::before {
@@ -821,8 +842,13 @@ button.link {
     width: 20px;
 }
 
+.RoomDetailsView_label {
+    width: 200px;
+}
+
 .RoomDetailsView_value {
     color: #737D8C;
+    width: 50px;
 }
 
 .MemberCount::before {
