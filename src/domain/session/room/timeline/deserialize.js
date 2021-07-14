@@ -12,7 +12,7 @@ import { linkify } from "./linkify/linkify.js";
  * While <a> has `href`, and <img> has `src`, these have... themselves.
  */
 const basicInline = ["EM", "STRONG", "CODE", "DEL", "SPAN" ];
-const basicBlock = ["DIV"];
+const basicBlock = ["DIV", "BLOCKQUOTE"];
 
 class Deserializer {
     constructor(result, mediaRepository) {
