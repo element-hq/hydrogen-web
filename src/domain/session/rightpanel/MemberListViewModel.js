@@ -13,7 +13,7 @@ export class MemberListViewModel extends ViewModel {
         this.track(powerLevelsObservable.subscribe(() => { /*resort based on new power levels here*/ }));
 
         const powerLevels = powerLevelsObservable.get();
-        this.memberTileViewModels = this._mapTileViewModels(this._filterJoinedMembers(list.members))
+        this.memberTileViewModels = this._mapTileViewModels(list.members.filterValues(member => member.membership === "join"))
                                         .sortValues(createMemberComparator(powerLevels));
         this.nameDisambiguator = new Disambiguator();
         this.mediaRepository = options.mediaRepository;
@@ -24,10 +24,6 @@ export class MemberListViewModel extends ViewModel {
     get shouldShowBackButton() { return true; }
 
     get previousSegmentName() { return "details"; }
-
-    _filterJoinedMembers(members) {
-        return members.filterValues(member => member.membership === "join");
-    }
 
     _mapTileViewModels(members) {
         const mapper = (member, emitChange) => {
