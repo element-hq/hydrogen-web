@@ -413,6 +413,11 @@ export class BaseRoom extends EventEmitter {
         }
     }
 
+    /**
+     * Get the PowerLevels of the room.
+     * Always subscribe to the value returned by this method.
+     * @returns {RetainedObservableValue} PowerLevels of the room
+     */
     async observePowerLevels() {
         if (this._powerLevelLoading) { await this._powerLevelLoading; }
         let observable = this._powerLevels;
