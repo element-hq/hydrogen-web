@@ -54,6 +54,9 @@ function renderImage(imagePart) {
 }
 
 function renderPill(pillPart) {
+    // The classes and structure are borrowed from avatar.js;
+    // We don't call renderStaticAvatar because that would require
+    // an intermediate object that has getAvatarUrl etc.
     const classes = `avatar size-12 usercolor${pillPart.avatarColorNumber}`;
     const avatar = tag.div({class: classes}, text(pillPart.avatarInitials));
     const children = renderParts(pillPart.children);
