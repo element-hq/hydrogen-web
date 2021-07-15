@@ -99,7 +99,7 @@ export class LazyListView extends ListView {
         await new Promise(r => requestAnimationFrame(r));
 
         this._height = this._parent.clientHeight;
-        if(this._height === 0) { throw "LazyListView could not calculate parent height."}
+        if (this._height === 0) { console.error("LazyListView could not calculate parent height."); }
         const range = this._getVisibleRange();
         const renderRange = range.expand(this._overflowItems);
         this._renderRange = renderRange;
