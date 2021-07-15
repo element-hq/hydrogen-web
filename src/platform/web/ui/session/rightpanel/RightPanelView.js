@@ -11,7 +11,7 @@ export class RightPanelView extends TemplateView {
         };
         return t.div({ className: "RightPanelView" },
             [
-                t.mapView(vm => vm.activeViewModel && vm, vm => vm ? new ButtonsView(vm) : null),
+                t.ifView(vm => vm.activeViewModel, vm => new ButtonsView(vm)),
                 t.mapView(vm => vm.activeViewModel, vm => vm ? new viewFromType[vm.type](vm) : new LoadingView())
             ]
         );
