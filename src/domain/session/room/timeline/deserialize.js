@@ -22,10 +22,13 @@ class Deserializer {
     }
 
     parseLink(node, children) {
-        // TODO Not equivalent to `node.href`!
-        // Add another HTMLParseResult method?
         const href = this.result.getAttributeValue(node, "href");
-        const pillData = href && parsePillLink(href);
+        if (!href || !href.match(/^[a-z]+:[\/]{2}/i)) {
+            // Invalid or missing URLs are not turned into links
+            // We throw away relative links, too.
+            return new FormatPart("span", children);
+        }
+        const pillData = parsePillLink(href);
         if (pillData && pillData.userId) {
             return new PillPart(pillData.userId, href, children);
         }
