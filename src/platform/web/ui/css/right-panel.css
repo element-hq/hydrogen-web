@@ -46,9 +46,5 @@
 
 .MemberTileView {
     display: flex;
-}
-
-.MemberTileView_name {
-    display: flex;
     align-items: center;
 }
