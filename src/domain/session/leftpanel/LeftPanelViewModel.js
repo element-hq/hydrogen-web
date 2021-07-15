@@ -93,25 +93,19 @@ export class LeftPanelViewModel extends ViewModel {
         }
     }
 
-    _pathForRightPanel(path) {
-        let _path = path;
-        _path = addPanelIfNeeded(this.navigation, _path);
-        return _path;
-    }
-
     toggleGrid() {
         const room = this.navigation.path.get("room");
         let path = this.navigation.path.until("session");
         if (this.gridEnabled) {
             if (room) {
                 path = path.with(room);
-                path = this._pathForRightPanel(path);
+                path = addPanelIfNeeded(this.navigation, path);
             }
         } else {
             if (room) {
                 path = path.with(this.navigation.segment("rooms", [room.value]));
                 path = path.with(room);
-                path = this._pathForRightPanel(path);
+                path = addPanelIfNeeded(this.navigation, path);
             } else {
                 path = path.with(this.navigation.segment("rooms", []));
                 path = path.with(this.navigation.segment("empty-grid-tile", 0));
