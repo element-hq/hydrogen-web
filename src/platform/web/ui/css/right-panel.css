@@ -7,7 +7,7 @@
 
 .RoomDetailsView {
     flex-direction: column;
-    height: 100%;
+    flex: 1;
 }
 
 .RoomDetailsView_avatar {
