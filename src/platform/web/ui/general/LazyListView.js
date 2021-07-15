@@ -106,17 +106,6 @@ export class LazyListView extends ListView {
         this._renderElementsInRange();
     }
 
-    _renderItems(items) {
-        this._childInstances = [];
-        const fragment = document.createDocumentFragment();
-        for (const item of items) {
-            const view = this._childCreator(item);
-            this._childInstances.push(view);
-            fragment.appendChild(mountView(view, this._mountArgs));
-        }
-        this._root.appendChild(fragment);
-    }
-
     _itemsFromList(start, end) {
         const array = [];
         let i = 0;
@@ -140,7 +129,14 @@ export class LazyListView extends ListView {
             child.root().remove();
             child.unmount();
         }
-        this._renderItems(renderedItems);
+        this._childInstances = [];
+        const fragment = document.createDocumentFragment();
+        for (const item of renderedItems) {
+            const view = this._childCreator(item);
+            this._childInstances.push(view);
+            fragment.appendChild(mountView(view, this._mountArgs));
+        }
+        this._root.appendChild(fragment);
     }
 
     mount() {
