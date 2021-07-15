@@ -1,4 +1,5 @@
 import { linkify } from "./linkify/linkify.js";
+import { getIdentifierColorNumber, avatarInitials } from "../../../avatar.js";
 
 /**
  * Parse text into parts such as newline, links and text.
@@ -91,6 +92,24 @@ export class ImagePart {
 
     get type() { return "image"; }
 };
+
+export class PillPart {
+    constructor(id, href, children) {
+        this.id = id;
+        this.href = href;
+        this.children = children;
+    }
+
+    get type() { return "pill"; }
+
+    get avatarColorNumber() {
+        return getIdentifierColorNumber(this.id);
+    }
+
+    get avatarInitials() {
+        return avatarInitials(this.id);
+    }
+}
 
 export class LinkPart {
     constructor(url, inlines) {

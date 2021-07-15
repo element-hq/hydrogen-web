@@ -1,5 +1,6 @@
-import { MessageBody, HeaderBlock, ListBlock, CodeBlock, FormatPart, NewLinePart, RulePart, TextPart, LinkPart, ImagePart } from "./MessageBody.js"
+import { MessageBody, HeaderBlock, ListBlock, CodeBlock, PillPart, FormatPart, NewLinePart, RulePart, TextPart, LinkPart, ImagePart } from "./MessageBody.js"
 import { linkify } from "./linkify/linkify.js";
+import { parsePillLink } from "./pills.js"
 
 /* At the time of writing (Jul 1 2021), Matrix Spec recommends
  * allowing the following HTML tags:
@@ -24,6 +25,10 @@ class Deserializer {
         // TODO Not equivalent to `node.href`!
         // Add another HTMLParseResult method?
         const href = this.result.getAttributeValue(node, "href");
+        const pillData = href && parsePillLink(href);
+        if (pillData && pillData.userId) {
+            return new PillPart(pillData.userId, href, children);
+        }
         return new LinkPart(href, children);
     }
 

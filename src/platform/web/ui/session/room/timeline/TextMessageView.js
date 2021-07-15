@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {StaticView} from "../../../general/StaticView.js";
-import {tag, text} from "../../../general/html.js";
+import {tag, text, classNames} from "../../../general/html.js";
 import {BaseMessageView} from "./BaseMessageView.js";
 
 export class TextMessageView extends BaseMessageView {
@@ -53,6 +53,14 @@ function renderImage(imagePart) {
     return tag.img(attributes, []);
 }
 
+function renderPill(pillPart) {
+    const classes = `avatar size-12 usercolor${pillPart.avatarColorNumber}`;
+    const avatar = tag.div({class: classes}, text(pillPart.avatarInitials));
+    const children = renderParts(pillPart.children);
+    children.unshift(avatar);
+    return tag.a({ class: "pill", href: pillPart.href }, children);
+}
+
 /**
  * Map from part to function that outputs DOM for the part
  */
@@ -63,6 +71,7 @@ const formatFunction = {
     code: codePart => tag.code({}, text(codePart.text)),
     text: textPart => text(textPart.text),
     link: linkPart => tag.a({ href: linkPart.url, target: "_blank", rel: "noopener" }, renderParts(linkPart.inlines)),
+    pill: renderPill,
     format: formatPart => tag[formatPart.format]({}, renderParts(formatPart.children)),
     list: renderList,
     image: renderImage,

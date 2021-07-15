@@ -76,3 +76,11 @@ limitations under the License.
     line-height: var(--avatar-size);
     font-size: calc(var(--avatar-size) * 0.6);
 }
+
+.hydrogen .avatar.size-12 {
+    --avatar-size: 12px;
+    width: var(--avatar-size);
+    height: var(--avatar-size);
+    line-height: var(--avatar-size);
+    font-size: calc(var(--avatar-size) * 0.6);
+}
