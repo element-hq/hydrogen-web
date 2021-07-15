@@ -1,4 +1,4 @@
-import {PowerLevels} from "../../../matrix/room/timeline/PowerLevels.js";
+import {PowerLevels} from "../../../../matrix/room/timeline/PowerLevels.js";
 
 export function createMemberComparator(powerLevels) {
     const collator = new Intl.Collator();

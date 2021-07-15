@@ -1,7 +1,7 @@
 import {ViewModel} from "../../ViewModel.js";
 import {MemberTileViewModel} from "./MemberTileViewModel.js";
-import {createMemberComparator} from "./comparator.js";
-import {Disambiguator} from "./disambiguator.js";
+import {createMemberComparator} from "./members/comparator.js";
+import {Disambiguator} from "./members/disambiguator.js";
 
 export class MemberListViewModel extends ViewModel {
     constructor(options) {
