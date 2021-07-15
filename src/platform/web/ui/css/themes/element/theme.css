@@ -787,6 +787,15 @@ button.link {
     width: 100%;
 }
 
+.LoadingView {
+    height: 100%;
+    width: 100%;
+}
+
+.LoadingView .spinner {
+    margin-left: 5px;
+}
+
 /* Right Panel */
 
 .RightPanelView {
