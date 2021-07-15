@@ -222,6 +222,24 @@ only loads when the top comes into view*/
     border-left: 4px solid rgb(229, 229, 229);
 }
 
+.Timeline_messageBody table {
+    border: 1px solid rgb(206, 206, 206);
+    border-radius: 2px;
+    border-spacing: 0;
+}
+
+.Timeline_messageBody thead th {
+    border-bottom: 1px solid rgb(206, 206, 206);
+}
+
+.Timeline_messageBody td, .Timeline_messageBody th {
+    padding: 2px 5px 2px 5px;
+}
+
+.Timeline_messageBody tbody tr:nth-child(2n) {
+    background-color: #f6f6f6;
+}
+
 .Timeline_messageBody .pill {
     padding: 0px 5px 0px 5px;
     border-radius: 15px;
