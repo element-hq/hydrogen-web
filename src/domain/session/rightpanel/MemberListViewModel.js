@@ -8,8 +8,11 @@ export class MemberListViewModel extends ViewModel {
         super(options);
         const list = options.members;
         this.track(() => list.release());
-        const powerLevels = options.powerLevelsObservable.get();
-        // We should subscribe to the observable here so that we can resort when pl changes
+
+        const powerLevelsObservable = options.powerLevelsObservable;
+        this.track(powerLevelsObservable.subscribe(() => { /*resort based on new power levels here*/ }));
+
+        const powerLevels = powerLevelsObservable.get();
         this.memberTileViewModels = this._mapTileViewModels(this._filterJoinedMembers(list.members))
                                         .sortValues(createMemberComparator(powerLevels));
         this.nameDisambiguator = new Disambiguator();
