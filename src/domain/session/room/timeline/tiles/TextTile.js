@@ -26,7 +26,7 @@ export class TextTile extends BaseTextTile {
             return null;
         }
         if (content.msgtype === "m.emote") {
-            val = `* ${this.displayName} ${body}`;
+            val = `* ${this.displayName} ${val}`;
         }
         return val;
     }
