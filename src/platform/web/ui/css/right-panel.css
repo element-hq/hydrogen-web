@@ -30,10 +30,16 @@
     justify-content: center;
 }
 
-.RoomDetailsView_buttons {
+.RightPanelView_buttons {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     width: 100%;
+    box-sizing: border-box;
+    padding: 8px;
+}
+
+.RightPanelView_buttons .hide {
+    visibility: hidden;
 }
 
 .MemberTileView {

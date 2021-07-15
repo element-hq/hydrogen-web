@@ -883,13 +883,17 @@ button.RoomDetailsView_row::after {
     content: url("./icons/e2ee-disabled.svg");
 }
 
-.RoomDetailsView .button-utility {
+.RightPanelView_buttons .button-utility {
     width: 24px;
     height: 24px;
 }
 
-.RoomDetailsView .close {
+.RightPanelView_buttons .close {
     background-image: url("./icons/clear.svg");
+}
+
+.RightPanelView_buttons .back {
+    background-image: url("./icons/chevron-thin-left.svg");
 }
 
 /* Memberlist Panel */
@@ -911,4 +915,12 @@ button.RoomDetailsView_row::after {
     overflow: clip;
     width: 184px;
     white-space: nowrap;
+}
+
+.LazyListParent {
+    overflow: hidden;
+}
+
+.LazyListParent:hover {
+    overflow-y: auto;
 }

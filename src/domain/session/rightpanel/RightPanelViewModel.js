@@ -44,4 +44,19 @@ export class RightPanelViewModel extends ViewModel {
         updater(true);
         return updater;
     }
+
+    closePanel() {
+        const path = this.navigation.path.until("room");
+        this.navigation.applyPath(path);
+    }
+
+    showPreviousPanel() {
+        const segmentName = this.activeViewModel.previousSegmentName;
+        if (segmentName) {
+            let path = this.navigation.path.until("room");
+            path = path.with(this.navigation.segment("right-panel", true));
+            path = path.with(this.navigation.segment(segmentName, true));
+            this.navigation.applyPath(path);
+        }
+    }
 }

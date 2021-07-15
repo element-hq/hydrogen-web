@@ -6,7 +6,6 @@ export class RoomDetailsView extends TemplateView {
     render(t, vm) {
         const encryptionString = () => vm.isEncrypted ? vm.i18n`On` : vm.i18n`Off`;
         return t.div({className: "RoomDetailsView"}, [
-            this._createButton(t, vm),
             t.div({className: "RoomDetailsView_avatar"},
                 [
                     t.view(new AvatarView(vm, 52)),
@@ -44,12 +43,6 @@ export class RoomDetailsView extends TemplateView {
         ]);
     }
 
-    _createButton(t, vm) {
-        return t.div({className: "RoomDetailsView_buttons"},
-            [
-                t.button({className: "close button-utility", onClick: () => vm.closePanel()})
-            ]);
-    }
 }
 
 class EncryptionIconView extends TemplateView {

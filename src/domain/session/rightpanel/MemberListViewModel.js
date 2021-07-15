@@ -16,6 +16,10 @@ export class MemberListViewModel extends ViewModel {
 
     get type() { return "member-list"; }
 
+    get shouldShowBackButton() { return true; }
+
+    get previousSegmentName() { return "details"; }
+
     _filterJoinedMembers(members) {
         return members.filterValues(member => member.membership === "join");
     }
