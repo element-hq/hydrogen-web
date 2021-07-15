@@ -6,9 +6,11 @@ import {Disambiguator} from "./disambiguator.js";
 export class MemberListViewModel extends ViewModel {
     constructor(options) {
         super(options);
+        const list = options.members;
+        this.track(() => list.release());
         const powerLevels = options.powerLevelsObservable.get();
         // We should subscribe to the observable here so that we can resort when pl changes
-        this.memberTileViewModels = this._mapTileViewModels(this._filterJoinedMembers(options.members))
+        this.memberTileViewModels = this._mapTileViewModels(this._filterJoinedMembers(list.members))
                                         .sortValues(createMemberComparator(powerLevels));
         this.nameDisambiguator = new Disambiguator();
         this.mediaRepository = options.mediaRepository;

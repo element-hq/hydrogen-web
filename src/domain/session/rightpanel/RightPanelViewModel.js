@@ -12,10 +12,10 @@ export class RightPanelViewModel extends ViewModel {
     get activeViewModel() { return this._activeViewModel; }
 
     async _getMemberArguments() {
-        const list = await this._room.loadMemberList();
+        const members = await this._room.loadMemberList();
         const room = this._room;
         const powerLevelsObservable = await this._room.observePowerLevels();
-        return {members: list.members, powerLevelsObservable, mediaRepository: room.mediaRepository};
+        return {members, powerLevelsObservable, mediaRepository: room.mediaRepository};
     }
 
     _setupNavigation() {
