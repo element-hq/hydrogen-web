@@ -92,12 +92,14 @@ function pushRightPanelSegment(array, segment) {
     array.push(new Segment(segment));
 }
 
-export function addPanelIfNeeded(navigation, panel, path) {
-    const segment = navigation.path.get(panel);
+export function addPanelIfNeeded(navigation, path) {
+    const segments = navigation.path.segments;
+    const i = segments.findIndex(segment => segment.type === "right-panel");
     let _path = path;
-    if (segment?.value) {
-        _path = _path.with(navigation.segment("right-panel"));
-        _path = _path.with(segment)
+    if (i !== -1) {
+        _path = path.until("room");
+        _path = _path.with(segments[i]);
+        _path = _path.with(segments[i + 1]);
     }
     return _path;
 }

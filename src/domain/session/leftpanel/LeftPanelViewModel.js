@@ -95,8 +95,7 @@ export class LeftPanelViewModel extends ViewModel {
 
     _pathForRightPanel(path) {
         let _path = path;
-        _path = addPanelIfNeeded(this.navigation, "details", _path);
-        _path = addPanelIfNeeded(this.navigation, "members", _path);
+        _path = addPanelIfNeeded(this.navigation, _path);
         return _path;
     }
 
