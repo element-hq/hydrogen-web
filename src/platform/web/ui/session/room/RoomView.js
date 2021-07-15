@@ -70,7 +70,7 @@ export class RoomView extends TemplateView {
             const options = [];
             options.push(Menu.option(vm.i18n`Room details`, () => vm.openDetailsPanel()))
             if (vm.canLeave) {
-                options.push(Menu.option(vm.i18n`Leave room`, () => vm.leaveRoom()).setDestructive());
+                options.push(Menu.option(vm.i18n`Leave room`, () => this._confirmToLeaveRoom()).setDestructive());
             }
             if (vm.canForget) {
                 options.push(Menu.option(vm.i18n`Forget room`, () => vm.forgetRoom()).setDestructive());
@@ -95,6 +95,12 @@ export class RoomView extends TemplateView {
                     before: -32 - 4
                 }
             });
+        }
+    }
+
+    _confirmToLeaveRoom() {
+        if (confirm(this.value.i18n`Are you sure you want to leave "${this.value.name}"?`)) {
+            this.value.leaveRoom();
         }
     }
 }
