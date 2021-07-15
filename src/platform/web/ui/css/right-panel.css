@@ -1,6 +1,8 @@
 .RightPanelView{
     grid-area: right;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .RoomDetailsView {

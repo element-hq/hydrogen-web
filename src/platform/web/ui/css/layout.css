@@ -210,7 +210,5 @@ the layout viewport up without resizing it when the keyboard shows */
 }
 
 .LazyListParent {
-    overflow:scroll;
-    overflow-x:hidden;
     height: 100vh;
 }
