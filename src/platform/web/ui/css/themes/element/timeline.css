@@ -216,6 +216,12 @@ only loads when the top comes into view*/
     padding: 10px;
 }
 
+.Timeline_messageBody blockquote {
+    margin-left: 0;
+    padding-left: 20px;
+    border-left: 4px solid rgb(229, 229, 229);
+}
+
 .Timeline_messageBody .pill {
     padding: 0px 5px 0px 5px;
     border-radius: 15px;
