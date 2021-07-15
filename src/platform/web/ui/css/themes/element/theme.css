@@ -804,6 +804,7 @@ button.link {
 
 .RoomDetailsView {
     padding: 16px;
+    padding-top: 0;
 }
 
 .RoomDetailsView_id {
