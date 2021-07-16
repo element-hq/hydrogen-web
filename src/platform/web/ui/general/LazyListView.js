@@ -205,7 +205,10 @@ export class LazyListView extends ListView {
         }
     }
 
-    _renderAdditionalElement(fromIdx, toIdx) {
+    /**
+     * Render additional element from top or bottom to offset the outgoing element
+     */
+    _renderExtraOnMove(fromIdx, toIdx) {
         const {topCount, renderCount} = this._renderRange;
         if (toIdx < fromIdx) {
             // Element is moved up the list, so render element from top boundary
@@ -223,7 +226,10 @@ export class LazyListView extends ListView {
         }
     }
 
-    _removeAdditionalElement(fromIdx, toIdx) {
+    /**
+     * Remove an element from top or bottom to make space for the incoming element 
+     */
+    _removeElementOnMove(fromIdx, toIdx) {
         // If element comes from the bottom, remove element at bottom and vice versa
         const child = toIdx < fromIdx ? this._childInstances.pop() : this._childInstances.shift();
         this._removeChild(child);
@@ -241,13 +247,13 @@ export class LazyListView extends ListView {
             this.onBeforeListChanged();
             const [child] = this._childInstances.splice(normalizedFromIdx, 1);
             this._removeChild(child);
-            this._renderAdditionalElement(fromIdx, toIdx);
+            this._renderExtraOnMove(fromIdx, toIdx);
             this.onListChanged();
         }
         else if (!fromInRange && toInRange) {
             this.onBeforeListChanged();
             const child = this._childCreator(value);
-            this._removeAdditionalElement(fromIdx, toIdx);
+            this._removeElementOnMove(fromIdx, toIdx);
             this._childInstances.splice(normalizedToIdx, 0, child);
             insertAt(this._root, normalizedToIdx, mountView(child, this._mountArgs));
             this.onListChanged();
