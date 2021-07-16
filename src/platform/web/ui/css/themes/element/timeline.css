@@ -141,6 +141,11 @@ limitations under the License.
     word-break: break-all;
 }
 
+.Timeline_messageBody a.link {
+    color: #238cf5;
+    text-decoration: none;
+}
+
 .Timeline_messageBody .media {
     display: grid;
     margin-top: 4px;
