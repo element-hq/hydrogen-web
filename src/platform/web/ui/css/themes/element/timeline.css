@@ -244,7 +244,15 @@ only loads when the top comes into view*/
 
 .Timeline_messageBody pre {
     border: 1px solid rgb(229, 229, 229);
-    padding: 10px;
+    padding: 0.5em;
+    max-height: 30em;
+    overflow: auto;
+}
+
+.Timeline_messageBody pre > code {
+    background-color: unset;
+    border-radius: unset;
+    display: block;
 }
 
 .Timeline_messageBody blockquote {
