@@ -40,12 +40,12 @@ export class TextMessageView extends BaseMessageView {
 }
 
 function renderList(listBlock) {
-    const items = listBlock.items.map(item => tag.li({}, renderParts(item)));
+    const items = listBlock.items.map(item => tag.li(renderParts(item)));
     const start = listBlock.startOffset;
     if (start) {
         return tag.ol({ start }, items);
     } else {
-        return tag.ul({}, items);
+        return tag.ul(items);
     }
 }
 
@@ -57,7 +57,7 @@ function renderImage(imagePart) {
         imagePart.alt && { alt: imagePart.alt },
         imagePart.title && { title: imagePart.title }
     );
-    return tag.img(attributes, []);
+    return tag.img(attributes);
 }
 
 function renderPill(pillPart) {
@@ -75,30 +75,30 @@ function renderTable(tablePart) {
     const children = [];
     if (tablePart.head) {
         const headers = tablePart.head
-            .map(cell => tag.th({}, renderParts(cell)));
-        children.push(tag.thead({}, tag.tr({}, headers)))
+            .map(cell => tag.th(renderParts(cell)));
+        children.push(tag.thead(tag.tr(headers)))
     }
     const rows = [];
     for (const row of tablePart.body) {
-        const data = row.map(cell => tag.td({}, renderParts(cell)));
-        rows.push(tag.tr({}, data));
+        const data = row.map(cell => tag.td(renderParts(cell)));
+        rows.push(tag.tr(data));
     }
-    children.push(tag.tbody({}, rows));
-    return tag.table({}, children);
+    children.push(tag.tbody(rows));
+    return tag.table(children);
 }
 
 /**
  * Map from part to function that outputs DOM for the part
  */
 const formatFunction = {
-    header: headerBlock => tag["h" + Math.min(6,headerBlock.level)]({}, renderParts(headerBlock.inlines)),
-    codeblock: codeBlock => tag.pre({}, tag.code({}, text(codeBlock.text))),
+    header: headerBlock => tag["h" + Math.min(6,headerBlock.level)](renderParts(headerBlock.inlines)),
+    codeblock: codeBlock => tag.pre(tag.code(text(codeBlock.text))),
     table: tableBlock => renderTable(tableBlock),
-    code: codePart => tag.code({}, text(codePart.text)),
+    code: codePart => tag.code(text(codePart.text)),
     text: textPart => text(textPart.text),
     link: linkPart => tag.a({href: linkPart.url, className: "link", target: "_blank", rel: "noopener" }, renderParts(linkPart.inlines)),
     pill: renderPill,
-    format: formatPart => tag[formatPart.format]({}, renderParts(formatPart.children)),
+    format: formatPart => tag[formatPart.format](renderParts(formatPart.children)),
     list: renderList,
     image: renderImage,
     newline: () => tag.br()
