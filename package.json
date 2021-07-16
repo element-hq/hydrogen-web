@@ -29,6 +29,7 @@
     "@babel/preset-env": "^7.11.0",
     "@rollup/plugin-babel": "^5.1.0",
     "@rollup/plugin-commonjs": "^15.0.0",
+    "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-multi-entry": "^4.0.0",
     "@rollup/plugin-node-resolve": "^9.0.0",
     "autoprefixer": "^10.2.6",
@@ -40,6 +41,7 @@
     "finalhandler": "^1.1.1",
     "impunity": "^1.0.0",
     "mdn-polyfills": "^5.20.0",
+    "node-html-parser": "^4.0.0",
     "postcss": "^8.1.1",
     "postcss-css-variables": "^0.17.0",
     "postcss-flexbugs-fixes": "^4.2.1",
@@ -52,12 +54,13 @@
     "xxhashjs": "^0.2.2"
   },
   "dependencies": {
+    "@matrix-org/olm": "https://gitlab.matrix.org/api/v4/projects/27/packages/npm/@matrix-org/olm/-/@matrix-org/olm-3.2.3.tgz",
     "aes-js": "^3.1.2",
     "another-json": "^0.2.0",
     "base64-arraybuffer": "^0.2.0",
     "bs58": "^4.0.1",
+    "dompurify": "^2.3.0",
     "es6-promise": "https://github.com/bwindels/es6-promise.git#bwindels/expose-flush",
-    "@matrix-org/olm": "https://gitlab.matrix.org/api/v4/projects/27/packages/npm/@matrix-org/olm/-/@matrix-org/olm-3.2.3.tgz",
     "text-encoding": "^0.7.0"
   }
 }

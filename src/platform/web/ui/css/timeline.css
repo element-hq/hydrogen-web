@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 
-.RoomView_body ul {
+.RoomView_body > ul {
     overflow-y: auto;
     overscroll-behavior: contain;
     list-style: none;
@@ -60,4 +60,9 @@ limitations under the License.
 
 .GapView > :nth-child(2) {
     flex: 1;
+}
+
+.Timeline_messageBody img {
+    max-width: 400px;
+    max-height: 300px;
 }

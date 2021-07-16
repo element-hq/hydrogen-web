@@ -14,20 +14,49 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseTextTile} from "./BaseTextTile.js";
+import {BaseTextTile, BodyFormat} from "./BaseTextTile.js";
 import {parsePlainBody} from "../MessageBody.js";
+import {parseHTMLBody} from "../deserialize.js";
 
 export class TextTile extends BaseTextTile {
-    _getBodyAsString() {
+    _getContentString(key) {
         const content = this._getContent();
-        let body = content?.body || "";
+        let val = content?.[key] || "";
         if (content.msgtype === "m.emote") {
-            body = `* ${this.displayName} ${body}`;
+            val = `* ${this.displayName} ${val}`;
         }
-        return body;
+        return val;
     }
 
-    _parseBody(bodyString) {
-        return parsePlainBody(bodyString);
+    _getPlainBody() {
+        return this._getContentString("body");
+    }
+
+    _getFormattedBody() {
+        return this._getContentString("formatted_body");
+    }
+
+    _getBody() {
+        if (this._getBodyFormat() === BodyFormat.Html) {
+            return this._getFormattedBody();
+        } else {
+            return this._getPlainBody();
+        }
+    }
+
+    _getBodyFormat() {
+        if (this._getContent()?.format === "org.matrix.custom.html") {
+            return BodyFormat.Html;
+        } else {
+            return BodyFormat.Plain;
+        }
+    }
+
+    _parseBody(body, format) {
+        if (format === BodyFormat.Html) {
+            return parseHTMLBody(this.platform, this._mediaRepository, body);
+        } else {
+            return parsePlainBody(body);
+        }
     }
 }

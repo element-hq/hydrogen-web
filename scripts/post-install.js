@@ -22,6 +22,7 @@ const { fileURLToPath } = require('url');
 const { dirname } = require('path');
 // needed to translate commonjs modules to esm
 const commonjs = require('@rollup/plugin-commonjs');
+const json = require('@rollup/plugin-json');
 const { nodeResolve } = require('@rollup/plugin-node-resolve');
 
 const projectDir = path.join(__dirname, "../");
@@ -53,7 +54,7 @@ async function commonjsToESM(src, dst) {
     const bundle = await rollup({
         treeshake: {moduleSideEffects: false},
         input: src,
-        plugins: [commonjs(), nodeResolve({
+        plugins: [commonjs(), json(), nodeResolve({
             browser: true,
             preferBuiltins: false,
             customResolveOptions: {packageIterator}
@@ -76,6 +77,18 @@ async function populateLib() {
     for (const file of ["olm.js", "olm.wasm", "olm_legacy.js"]) {
         await fs.symlink(path.join(olmSrcDir, file), path.join(olmDstDir, file));
     }
+    // transpile node-html-parser to esm
+    await fs.mkdir(path.join(libDir, "node-html-parser/"));
+    await commonjsToESM(
+        require.resolve('node-html-parser/dist/index.js'),
+        path.join(libDir, "node-html-parser/index.js")
+    );
+    // Symlink dompurify
+    await fs.mkdir(path.join(libDir, "dompurify/"));
+    await fs.symlink(
+        require.resolve('dompurify/dist/purify.es.js'),
+        path.join(libDir, "dompurify/index.js")
+    );
     // transpile another-json to esm
     await fs.mkdir(path.join(libDir, "another-json/"));
     await commonjsToESM(

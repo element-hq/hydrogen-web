@@ -36,6 +36,7 @@ import {BlobHandle} from "./dom/BlobHandle.js";
 import {hasReadPixelPermission, ImageHandle, VideoHandle} from "./dom/ImageHandle.js";
 import {downloadInIframe} from "./dom/download.js";
 import {Disposables} from "../../utils/Disposables.js";
+import {parseHTML} from "./parsehtml.js";
 import {handleAvatarError} from "./ui/avatar.js";
 
 function addScript(src) {
@@ -237,6 +238,10 @@ export class Platform {
         this._container.appendChild(input);
         input.click();
         return promise;
+    }
+
+    parseHTML(html) {
+        return parseHTML(html);
     }
 
     async loadImage(blob) {

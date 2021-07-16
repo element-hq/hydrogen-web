@@ -126,6 +126,8 @@ limitations under the License.
     line-height: 2.2rem;
     /* so the .media can grow horizontally and its spacer can grow vertically */
     width: 100%;
+    /* Fix for pre overflow */
+    min-width: 0;
 }
 
 .hydrogen .Timeline_messageSender.usercolor1 { color: var(--usercolor1); }
@@ -137,8 +139,30 @@ limitations under the License.
 .hydrogen .Timeline_messageSender.usercolor7 { color: var(--usercolor7); }
 .hydrogen .Timeline_messageSender.usercolor8 { color: var(--usercolor8); }
 
+.Timeline_messageBody h1,
+.Timeline_messageBody h2,
+.Timeline_messageBody h3,
+.Timeline_messageBody h4,
+.Timeline_messageBody h5,
+.Timeline_messageBody h6 {
+    font-weight: bold;
+    margin: 0.7em 0;
+}
+
+.Timeline_messageBody h1 { font-size: 1.6em; }
+.Timeline_messageBody h2 { font-size: 1.5em; }
+.Timeline_messageBody h3 { font-size: 1.4em; }
+.Timeline_messageBody h4 { font-size: 1.3em; }
+.Timeline_messageBody h5 { font-size: 1.2em; }
+.Timeline_messageBody h6 { font-size: 1.1em; }
+
 .Timeline_messageBody a {
     word-break: break-all;
+}
+
+.Timeline_messageBody a.link {
+    color: #238cf5;
+    text-decoration: none;
 }
 
 .Timeline_messageBody .media {
@@ -208,6 +232,73 @@ only loads when the top comes into view*/
     width: 100%;
     /* don't stretch height as it is a spacer, just in case it doesn't match with image height */
     align-self: start;
+}
+.Timeline_messageBody code, .Timeline_messageBody pre {
+    background-color: #f8f8f8;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+.Timeline_messageBody code {
+    border-radius: 3px;
+    padding: .2em .3em;
+    margin: 0;
+}
+
+.Timeline_messageBody pre {
+    border: 1px solid rgb(229, 229, 229);
+    padding: 0.5em;
+    max-height: 30em;
+    overflow: auto;
+}
+
+.Timeline_messageBody pre > code {
+    background-color: unset;
+    border-radius: unset;
+    display: block;
+    font-size: unset;
+}
+
+.Timeline_messageBody blockquote {
+    margin-left: 0;
+    padding-left: 20px;
+    border-left: 4px solid rgb(229, 229, 229);
+}
+
+.Timeline_messageBody table {
+    border: 1px solid rgb(206, 206, 206);
+    border-radius: 2px;
+    border-spacing: 0;
+}
+
+.Timeline_messageBody thead th {
+    border-bottom: 1px solid rgb(206, 206, 206);
+}
+
+.Timeline_messageBody td, .Timeline_messageBody th {
+    padding: 2px 5px 2px 5px;
+}
+
+.Timeline_messageBody tbody tr:nth-child(2n) {
+    background-color: #f6f6f6;
+}
+
+.Timeline_messageBody .pill {
+    padding: 0px 5px;
+    border-radius: 15px;
+    background-color: #f6f6f6;
+    border: 1px solid rgb(206, 206, 206);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    line-height: 2rem;
+    vertical-align: top;
+    margin: 1px;
+}
+
+.Timeline_messageBody .pill div.avatar {
+    display: inline-block;
+    margin-right: 3px;
 }
 
 .Timeline_message.unsent .Timeline_messageBody {
