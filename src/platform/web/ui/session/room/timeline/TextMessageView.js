@@ -14,21 +14,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {StaticView} from "../../../general/StaticView.js";
 import {tag, text, classNames} from "../../../general/html.js";
 import {BaseMessageView} from "./BaseMessageView.js";
 
 export class TextMessageView extends BaseMessageView {
     renderMessageBody(t, vm) {
-        return t.p({
+        const time = t.time({className: {hidden: !vm.date}}, vm.date + " " + vm.time);
+        const container = t.div({
             className: {
                 "Timeline_messageBody": true,
                 statusMessage: vm => vm.shape === "message-status",
             },
-        }, [
-            t.mapView(vm => vm.body, body => new BodyView(body)),
-            t.time({className: {hidden: !vm.date}}, vm.date + " " + vm.time)
-        ]);
+        });
+        t.mapSideEffect(vm => vm.body, body => {
+            while (container.lastChild) {
+                container.removeChild(container.lastChild);
+            }
+            for (const part of body.parts) {
+                container.appendChild(renderPart(part));
+            }
+            container.appendChild(time);
+        });
+        return container;
     }
 }
 
@@ -104,14 +111,4 @@ function renderPart(part) {
 
 function renderParts(parts) {
     return Array.from(parts, renderPart);
-}
-
-class BodyView extends StaticView {
-    render(t, messageBody) {
-        const container = t.span();
-        for (const part of messageBody.parts) {
-            container.appendChild(renderPart(part));
-        }
-        return container;
-    }
 }
