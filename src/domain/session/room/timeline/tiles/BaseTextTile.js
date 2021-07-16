@@ -18,7 +18,7 @@ import {BaseMessageTile} from "./BaseMessageTile.js";
 import {stringAsBody} from "../MessageBody.js";
 import {createEnum} from "../../../../../utils/enum.js";
 
-export const TextTileFormat = createEnum("Plain", "Html");
+export const BodyFormat = createEnum("Plain", "Html");
 
 export class BaseTextTile extends BaseMessageTile {
     constructor(options) {
@@ -36,7 +36,7 @@ export class BaseTextTile extends BaseMessageTile {
     }
 
     _getBodyFormat() {
-        return TextTileFormat.Plain;
+        return BodyFormat.Plain;
     }
 
     get body() {

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseTextTile, TextTileFormat} from "./BaseTextTile.js";
+import {BaseTextTile, BodyFormat} from "./BaseTextTile.js";
 import {parsePlainBody} from "../MessageBody.js";
 import {parseHTMLBody} from "../deserialize.js";
 
@@ -37,7 +37,7 @@ export class TextTile extends BaseTextTile {
     }
 
     _getBody() {
-        if (this._getBodyFormat() == TextTileFormat.Html) {
+        if (this._getBodyFormat() == BodyFormat.Html) {
             return this._getFormattedBody();
         } else {
             return this._getPlainBody();
@@ -45,15 +45,15 @@ export class TextTile extends BaseTextTile {
     }
 
     _getBodyFormat() {
-        if (this._getContent()?.["format"] === "org.matrix.custom.html") {
-            return TextTileFormat.Html;
+        if (this._getContent()?.format === "org.matrix.custom.html") {
+            return BodyFormat.Html;
         } else {
-            return TextTileFormat.Plain;
+            return BodyFormat.Plain;
         }
     }
 
     _parseBody(body, format) {
-        if (format === TextTileFormat.Html) {
+        if (format === BodyFormat.Html) {
             return parseHTMLBody(this.platform, this._mediaRepository, body);
         } else {
             return parsePlainBody(body);
