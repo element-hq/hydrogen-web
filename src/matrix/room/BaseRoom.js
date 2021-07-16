@@ -52,6 +52,8 @@ export class BaseRoom extends EventEmitter {
         this._getSyncToken = getSyncToken;
         this._platform = platform;
         this._observedEvents = null;
+        this._powerLevels = null;
+        this._powerLevelLoading = null;
     }
 
     async _eventIdsToEntries(eventIds, txn) {
