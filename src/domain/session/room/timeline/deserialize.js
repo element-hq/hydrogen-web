@@ -1,6 +1,5 @@
 import { MessageBody, HeaderBlock, TableBlock, ListBlock, CodeBlock, PillPart, FormatPart, NewLinePart, RulePart, TextPart, LinkPart, ImagePart } from "./MessageBody.js"
 import { linkify } from "./linkify/linkify.js";
-import { parsePillLink } from "./pills.js"
 
 /* At the time of writing (Jul 1 2021), Matrix Spec recommends
  * allowing the following HTML tags:
@@ -15,11 +14,24 @@ import { parsePillLink } from "./pills.js"
 const basicInline = ["EM", "STRONG", "CODE", "DEL", "SPAN" ];
 const basicBlock = ["DIV", "BLOCKQUOTE"];
 const safeSchemas = ["https", "http", "ftp", "mailto", "magnet"].map(name => `${name}://`);
+const baseUrl = 'https://matrix.to';
+const linkPrefix = `${baseUrl}/#/`;
 
 class Deserializer {
     constructor(result, mediaRepository) {
         this.result = result;
         this.mediaRepository = mediaRepository;
+    }
+
+    parsePillLink(link) {
+        if (!link.startsWith(linkPrefix)) {
+            return null;
+        }
+        const contents = link.substring(linkPrefix.length);
+        if (contents[0] === '@') {
+            return contents;
+        }
+        return null;
     }
 
     parseLink(node, children) {
@@ -29,9 +41,9 @@ class Deserializer {
         if (!lcUrl || !safeSchemas.some(schema => lcUrl.startsWith(schema))) {
             return new FormatPart("span", children);
         }
-        const pillData = parsePillLink(href);
-        if (pillData && pillData.userId) {
-            return new PillPart(pillData.userId, href, children);
+        const pillId = this.parsePillLink(href);
+        if (pillId) {
+            return new PillPart(pillId, href, children);
         }
         return new LinkPart(href, children);
     }
@@ -43,13 +55,13 @@ class Deserializer {
             // Will return 1 for, say, '1A', which may not be intended?
             start = parseInt(result.getAttributeValue(node, "start")) || 1;
         }
-        const nodes = [];
+        const items = [];
         for (const child of result.getChildNodes(node)) {
             if (result.getNodeElementName(child) !== "LI") {
                 continue;
             }
             const item = this.parseAnyNodes(result.getChildNodes(child));
-            nodes.push(item);
+            items.push(item);
         }
         return new ListBlock(start, nodes);
     }
