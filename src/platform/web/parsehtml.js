@@ -26,7 +26,7 @@ class HTMLParseResult {
     }
 
     getNodeText(node) {
-        return node.nodeValue;
+        return node.textContent;
     }
 
     isElementNode(node) {

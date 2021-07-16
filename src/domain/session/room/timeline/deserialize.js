@@ -67,10 +67,10 @@ class Deserializer {
             codeNode = child;
             break;
         }
+        let language = null;
         if (!this._ensureElement(codeNode, "CODE")) {
-            return null;
+            return new CodeBlock(language, this.result.getNodeText(node));
         }
-        let language = "";
         const cl = result.getAttributeValue(codeNode, "class") || ""
         for (const clname of cl.split(" ")) {
             if (clname.startsWith("language-") && !clname.startsWith("language-_")) {
@@ -78,7 +78,7 @@ class Deserializer {
                 break;
             }
         }
-        return new CodeBlock(language, codeNode.textContent);
+        return new CodeBlock(language, this.result.getNodeText(codeNode));
     }
 
     parseImage(node) {
@@ -443,6 +443,22 @@ export function tests() {
             ];
             test(assert, input, output);
         },
+        "Text with code block but no <code> tag": assert => {
+            const code = 'main :: IO ()\nmain = putStrLn "Hello"'
+            const input = `<pre>${code}</pre>`;
+            const output = [
+                new CodeBlock(null, code)
+            ];
+            test(assert, input, output);
+        },
+        "Text with code block and 'unsupported' tag": assert => {
+            const code = '<em>Hello, world</em>'
+            const input = `<pre>${code}</pre>`;
+            const output = [
+                new CodeBlock(null, code)
+            ];
+            test(assert, input, output);
+        }
         /* Doesnt work: HTML library doesn't handle <pre><code> properly.
         "Text with code block": assert => {
             const code = 'main :: IO ()\nmain = putStrLn "Hello"'
