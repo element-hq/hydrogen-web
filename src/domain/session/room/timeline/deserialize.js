@@ -14,6 +14,7 @@ import { parsePillLink } from "./pills.js"
  */
 const basicInline = ["EM", "STRONG", "CODE", "DEL", "SPAN" ];
 const basicBlock = ["DIV", "BLOCKQUOTE"];
+const safeSchemas = ["https", "http", "ftp", "mailto", "magnet"].map(name => `${name}://`);
 
 class Deserializer {
     constructor(result, mediaRepository) {
@@ -23,9 +24,9 @@ class Deserializer {
 
     parseLink(node, children) {
         const href = this.result.getAttributeValue(node, "href");
-        if (!href || !href.match(/^[a-z]+:[\/]{2}/i)) {
-            // Invalid or missing URLs are not turned into links
-            // We throw away relative links, too.
+        const lcUrl = href?.toLowerCase();
+        // urls should be absolute and with a safe schema, as listed in the spec
+        if (!lcUrl || !safeSchemas.some(schema => lcUrl.startsWith(schema))) {
             return new FormatPart("span", children);
         }
         const pillData = parsePillLink(href);
