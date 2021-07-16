@@ -249,6 +249,7 @@ only loads when the top comes into view*/
     padding: 0.5em;
     max-height: 30em;
     overflow: auto;
+    font-size: 0.9em;
 }
 
 .Timeline_messageBody pre > code {
