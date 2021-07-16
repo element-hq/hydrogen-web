@@ -42,7 +42,7 @@ export class BaseTextTile extends BaseMessageTile {
     get body() {
         const body = this._getBody();
         const format = this._getBodyFormat();
-        // body.string is a string, so we can check for difference by just
+        // body is a string, so we can check for difference by just
         // doing an equality check
         // Even if the body hasn't changed, but the format has, we need
         // to re-fill our cache.
