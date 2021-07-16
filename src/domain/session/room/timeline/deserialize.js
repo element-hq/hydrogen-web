@@ -63,7 +63,7 @@ class Deserializer {
             const item = this.parseAnyNodes(result.getChildNodes(child));
             items.push(item);
         }
-        return new ListBlock(start, nodes);
+        return new ListBlock(start, items);
     }
 
     _ensureElement(node, tag) {
