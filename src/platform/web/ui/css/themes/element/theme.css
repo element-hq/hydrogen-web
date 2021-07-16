@@ -858,7 +858,7 @@ button.RoomDetailsView_row::after {
 
 .RoomDetailsView_value {
     color: #737D8C;
-    width: 50px;
+    flex: 1;
 }
 
 .MemberCount::before {
