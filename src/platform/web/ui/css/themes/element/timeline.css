@@ -137,7 +137,12 @@ limitations under the License.
 .hydrogen .Timeline_messageSender.usercolor7 { color: var(--usercolor7); }
 .hydrogen .Timeline_messageSender.usercolor8 { color: var(--usercolor8); }
 
-.Timeline_messageBody h1, h2, h3, h4, h5, h6 {
+.Timeline_messageBody h1,
+.Timeline_messageBody h2,
+.Timeline_messageBody h3,
+.Timeline_messageBody h4,
+.Timeline_messageBody h5,
+.Timeline_messageBody h6 {
     font-weight: bold;
     margin: 0.7em 0;
 }
