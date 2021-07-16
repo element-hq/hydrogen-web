@@ -126,8 +126,7 @@ export class LazyListView extends ListView {
         this._root.style.paddingTop = `${paddingTop}px`;
         this._root.style.paddingBottom = `${paddingBottom}px`;
         for (const child of this._childInstances) {
-            child.root().remove();
-            child.unmount();
+            this._removeChild(child);
         }
         this._childInstances = [];
         const fragment = document.createDocumentFragment();
@@ -167,6 +166,10 @@ export class LazyListView extends ListView {
         */
     }
 
+    _removeChild(child) {
+        child.root().remove();
+        child.unmount();
+    }
 
     // If size of the list changes, re-render
     onAdd() {
@@ -198,13 +201,14 @@ export class LazyListView extends ListView {
             // Element is moved up the list, so render element from top boundary
             const index = topCount;
             const child = childFromIndex(index);
-            // Modify childInstances here
+            this._childInstances.unshift(child);
             this._root.insertBefore(mountView(child, this._mountArgs), this._root.firstChild);
         }
         else {
             // Element is moved down the list, so render element from bottom boundary
             const index = topCount + renderCount - 1;
             const child = childFromIndex(index);
+            this._childInstances.push(child);
             this._root.appendChild(mountView(child, this._mountArgs));
         }
     }
@@ -212,10 +216,12 @@ export class LazyListView extends ListView {
     _removeAdditionalElement(fromIdx, toIdx) {
         if (toIdx < fromIdx) {
             // Element comes from the bottom, so remove element at bottom
-            this._root.lastChild.remove();
+            const child = this._childInstances.pop();
+            this._removeChild(child);
         }
         else {
-            this._root.firstChild.remove();
+            const child = this._childInstances.shift();
+            this._removeChild(child);
         }
     }
 
@@ -230,7 +236,7 @@ export class LazyListView extends ListView {
         else if (fromInRange && !toInRange) {
             this.onBeforeListChanged();
             const [child] = this._childInstances.splice(normalizedFromIdx, 1);
-            child.root().remove();
+            this._removeChild(child);
             this._renderAdditionalElement(fromIdx, toIdx);
             this.onListChanged();
         }
