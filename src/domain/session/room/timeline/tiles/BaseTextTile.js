@@ -32,7 +32,7 @@ export class BaseTextTile extends BaseMessageTile {
     }
 
     _parseBody(body) {
-        return stringAsBody(body.string);
+        return stringAsBody(body);
     }
 
     _getBodyFormat() {
