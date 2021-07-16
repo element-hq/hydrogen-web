@@ -50,13 +50,11 @@ function renderList(listBlock) {
 }
 
 function renderImage(imagePart) {
-    const attributes = Object.assign(
-        { src: imagePart.src },
-        imagePart.width && { width: imagePart.width },
-        imagePart.height && { height: imagePart.height },
-        imagePart.alt && { alt: imagePart.alt },
-        imagePart.title && { title: imagePart.title }
-    );
+    const attributes = { src: imagePart.src };
+    if (imagePart.width) { attributes.width = imagePart.width }
+    if (imagePart.height) { attributes.height = imagePart.height }
+    if (imagePart.alt) { attributes.alt = imagePart.alt }
+    if (imagePart.title) { attributes.title = imagePart.title }
     return tag.img(attributes);
 }
 
