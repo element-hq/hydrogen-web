@@ -100,7 +100,7 @@ export class ImagePart {
     }
 
     get type() { return "image"; }
-};
+}
 
 export class PillPart {
     constructor(id, href, children) {

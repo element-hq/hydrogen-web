@@ -31,7 +31,7 @@ export class BaseTextTile extends BaseMessageTile {
         return "message";
     }
 
-    _parseBody(body, _) {
+    _parseBody(body) {
         return stringAsBody(body.string);
     }
 
