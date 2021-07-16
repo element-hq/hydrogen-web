@@ -32,9 +32,10 @@ export class Disambiguator {
         const value = this._map.get(name);
         if (value) {
             if (Array.isArray(value)) {
+                if (value.findIndex(member => member.userId === vm.userId) !== -1) { return; }
                 value.push(vm);
                 return value;
-            } else {
+            } else if(vm.userId !== value.userId) {
                 const array = [value, vm]
                 this._map.set(name, array);
                 return array;
