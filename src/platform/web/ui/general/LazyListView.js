@@ -118,6 +118,17 @@ export class LazyListView extends ListView {
         return array;
     }
 
+    _itemAtIndex(idx) {
+        let i = 0;
+        for (const item of this._list) {
+            if (i === idx) {
+                return item;
+            }
+            i = i + 1;
+        }
+        return null;
+    }
+
     _renderElementsInRange() {
         const { topCount, renderCount, bottomCount } = this._renderRange;
         const paddingTop = topCount * this._itemHeight;
@@ -196,18 +207,17 @@ export class LazyListView extends ListView {
 
     _renderAdditionalElement(fromIdx, toIdx) {
         const {topCount, renderCount} = this._renderRange;
-        const childFromIndex = index => this._childCreator(this._list.get(index));
         if (toIdx < fromIdx) {
             // Element is moved up the list, so render element from top boundary
             const index = topCount;
-            const child = childFromIndex(index);
+            const child = this._childCreator(this._itemAtIndex(index));
             this._childInstances.unshift(child);
             this._root.insertBefore(mountView(child, this._mountArgs), this._root.firstChild);
         }
         else {
             // Element is moved down the list, so render element from bottom boundary
             const index = topCount + renderCount - 1;
-            const child = childFromIndex(index);
+            const child = this._childCreator(this._itemAtIndex(index));
             this._childInstances.push(child);
             this._root.appendChild(mountView(child, this._mountArgs));
         }
