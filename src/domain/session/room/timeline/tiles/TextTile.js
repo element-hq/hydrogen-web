@@ -37,7 +37,7 @@ export class TextTile extends BaseTextTile {
     }
 
     _getBody() {
-        if (this._getBodyFormat() == BodyFormat.Html) {
+        if (this._getBodyFormat() === BodyFormat.Html) {
             return this._getFormattedBody();
         } else {
             return this._getPlainBody();
