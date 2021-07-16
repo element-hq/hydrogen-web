@@ -14,17 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseTextTile} from "./BaseTextTile.js";
+import {BaseTextTile, TextTileFormat} from "./BaseTextTile.js";
 import {parsePlainBody} from "../MessageBody.js";
 import {parseHTMLBody} from "../deserialize.js";
 
 export class TextTile extends BaseTextTile {
-    _getContentString(key, fallback = null) {
+    _getContentString(key) {
         const content = this._getContent();
-        let val = content?.[key] || fallback;
-        if (!val && val !== "") { // empty string is falsy, but OK here.
-            return null;
-        }
+        let val = content?.[key] || "";
         if (content.msgtype === "m.emote") {
             val = `* ${this.displayName} ${val}`;
         }
@@ -32,7 +29,7 @@ export class TextTile extends BaseTextTile {
     }
 
     _getPlainBody() {
-        return this._getContentString("body", "");
+        return this._getContentString("body");
     }
 
     _getFormattedBody() {
@@ -40,15 +37,23 @@ export class TextTile extends BaseTextTile {
     }
 
     _getBody() {
-        return this._getFormattedBody() || this._getPlainBody();
+        if (this._getBodyFormat() == TextTileFormat.Html) {
+            return this._getFormattedBody();
+        } else {
+            return this._getPlainBody();
+        }
     }
 
     _getBodyFormat() {
-        return this._getContent()?.["formatted_body"] ? "html" : "plain"
+        if (this._getContent()?.["format"] === "org.matrix.custom.html") {
+            return TextTileFormat.Html;
+        } else {
+            return TextTileFormat.Plain;
+        }
     }
 
     _parseBody(body, format) {
-        if (format === "html") {
+        if (format === TextTileFormat.Html) {
             return parseHTMLBody(this.platform, this._mediaRepository, body);
         } else {
             return parsePlainBody(body);

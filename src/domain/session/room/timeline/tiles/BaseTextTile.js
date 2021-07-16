@@ -16,12 +16,15 @@ limitations under the License.
 
 import {BaseMessageTile} from "./BaseMessageTile.js";
 import {stringAsBody} from "../MessageBody.js";
+import {createEnum} from "../../../../../utils/enum.js";
+
+export const TextTileFormat = createEnum("Plain", "Html");
 
 export class BaseTextTile extends BaseMessageTile {
     constructor(options) {
         super(options);
         this._messageBody = null;
-        this._messageFormat = null
+        this._format = null
     }
 
     get shape() {
@@ -33,7 +36,7 @@ export class BaseTextTile extends BaseMessageTile {
     }
 
     _getBodyFormat() {
-        return "plain";
+        return TextTileFormat.Plain;
     }
 
     get body() {
@@ -43,13 +46,13 @@ export class BaseTextTile extends BaseMessageTile {
         // doing an equality check
         // Even if the body hasn't changed, but the format has, we need
         // to re-fill our cache.
-        if (!this._messageBody || this._messageBody.sourceString !== body || this._messageFormat !== format) {
+        if (!this._messageBody || this._messageBody.sourceString !== body || this._format !== format) {
             // body with markup is an array of parts,
             // so we should not recreate it for the same body string,
             // or else the equality check in the binding will always fail.
             // So cache it here.
             this._messageBody = this._parseBody(body, format);
-            this._messageFormat = body.format;
+            this._format = body.format;
         }
         return this._messageBody;
     }

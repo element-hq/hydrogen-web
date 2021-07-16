@@ -42,6 +42,6 @@ export class EncryptedEventTile extends BaseTextTile {
         } else {
             string = decryptionError?.message || this.i18n`Could not decrypt message because of unknown reason.`;
         }
-        return { string, format: "plain" };
+        return string;
     }
 }
