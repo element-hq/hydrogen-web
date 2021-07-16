@@ -6,7 +6,6 @@ export class RoomDetailsView extends TemplateView {
     render(t, vm) {
         const encryptionString = () => vm.isEncrypted ? vm.i18n`On` : vm.i18n`Off`;
         return t.div({className: "RoomDetailsView"}, [
-            this._createButton(t, vm),
             t.div({className: "RoomDetailsView_avatar"},
                 [
                     t.view(new AvatarView(vm, 52)),
@@ -16,7 +15,8 @@ export class RoomDetailsView extends TemplateView {
             this._createRoomAliasDisplay(vm),
             t.div({className: "RoomDetailsView_rows"},
                 [
-                    this._createRightPanelRow(t, vm.i18n`People`, {MemberCount: true}, vm => vm.memberCount),
+                    this._createRightPanelButtonRow(t, vm.i18n`People`, { MemberCount: true }, vm => vm.memberCount,
+                    () => vm.openPanel("members")),
                     this._createRightPanelRow(t, vm.i18n`Encryption`, {EncryptionStatus: true}, encryptionString)
                 ])
         ]);
@@ -35,12 +35,14 @@ export class RoomDetailsView extends TemplateView {
         ]);
     }
 
-    _createButton(t, vm) {
-        return t.div({className: "RoomDetailsView_buttons"},
-            [
-                t.button({className: "close button-utility", onClick: () => vm.closePanel()})
-            ]);
+    _createRightPanelButtonRow(t, label, labelClass, value, onClick) {
+        const labelClassString = classNames({RoomDetailsView_label: true, ...labelClass});
+        return t.button({className: "RoomDetailsView_row", onClick}, [
+            t.div({className: labelClassString}, [label]),
+            t.div({className: "RoomDetailsView_value"}, value)
+        ]);
     }
+
 }
 
 class EncryptionIconView extends TemplateView {

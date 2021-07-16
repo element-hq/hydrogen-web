@@ -787,11 +787,24 @@ button.link {
     width: 100%;
 }
 
+.LoadingView {
+    height: 100%;
+    width: 100%;
+}
+
+.LoadingView .spinner {
+    margin-right: 5px;
+}
+
 /* Right Panel */
 
-.RoomDetailsView {
+.RightPanelView {
     background: rgba(245, 245, 245, 0.90);
+}
+
+.RoomDetailsView {
     padding: 16px;
+    padding-top: 0;
 }
 
 .RoomDetailsView_id {
@@ -813,6 +826,24 @@ button.link {
     margin-bottom: 20px;
     font-weight: 500;
     font-size: 15px;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+button.RoomDetailsView_row {
+    cursor: pointer;
+}
+
+button.RoomDetailsView_row::after {
+    content: url("./icons/chevron-small.svg");
+    margin-left: 12px;
+}
+
+.RoomDetailsView_row:not(button)::after{
+    content: " ";
+    width: 19px;
 }
 
 .RoomDetailsView_label::before {
@@ -821,8 +852,13 @@ button.link {
     width: 20px;
 }
 
+.RoomDetailsView_label {
+    width: 200px;
+}
+
 .RoomDetailsView_value {
     color: #737D8C;
+    flex: 1;
 }
 
 .MemberCount::before {
@@ -857,11 +893,42 @@ button.link {
     content: url("./icons/e2ee-disabled.svg");
 }
 
-.RoomDetailsView .button-utility {
+.RightPanelView_buttons .button-utility {
     width: 24px;
     height: 24px;
 }
 
-.RoomDetailsView .close {
+.RightPanelView_buttons .close {
     background-image: url("./icons/clear.svg");
+}
+
+.RightPanelView_buttons .back {
+    background-image: url("./icons/chevron-thin-left.svg");
+}
+
+/* Memberlist Panel */
+
+.MemberListView {
+    padding-left: 16px;
+    padding-right: 16px;
+    margin: 0;
+}
+
+.MemberTileView {
+    margin-bottom: 8px;
+}
+
+.MemberTileView .avatar {
+    margin-right: 8px;
+}
+
+.MemberTileView_name {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    flex: 1;
+}
+
+.LazyListParent {
+    overflow-y: auto;
 }

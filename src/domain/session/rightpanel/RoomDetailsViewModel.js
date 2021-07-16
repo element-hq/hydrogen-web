@@ -9,6 +9,18 @@ export class RoomDetailsViewModel extends ViewModel {
         this._room.on("change", this._onRoomChange);
     }
 
+    get type() {
+        return "room-details";
+    }
+
+    get shouldShowBackButton() {
+        return false;
+    }
+
+    get previousSegmentName() {
+        return false;
+    }
+
     get roomId() {
         return this._room.id;
     }
@@ -49,13 +61,15 @@ export class RoomDetailsViewModel extends ViewModel {
         this.emitChange();
     }
 
-    closePanel() {
-        const path = this.navigation.path.until("room");
-        this.navigation.applyPath(path);
-    }
-
     dispose() {
         super.dispose();
         this._room.off("change", this._onRoomChange);
+    }
+
+    openPanel(segment) {
+        let path = this.navigation.path.until("room");
+        path = path.with(this.navigation.segment("right-panel", true));
+        path = path.with(this.navigation.segment(segment, true));
+        this.navigation.applyPath(path);
     }
 }
