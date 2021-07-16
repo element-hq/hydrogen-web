@@ -1,5 +1,5 @@
 import {TemplateView} from "../../general/TemplateView.js";
-import {AvatarView} from "../../avatar.js";
+import {AvatarView} from "../../AvatarView.js";
 
 export class MemberTileView extends TemplateView {
     render(t, vm) {
