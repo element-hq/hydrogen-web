@@ -214,15 +214,9 @@ export class LazyListView extends ListView {
     }
 
     _removeAdditionalElement(fromIdx, toIdx) {
-        if (toIdx < fromIdx) {
-            // Element comes from the bottom, so remove element at bottom
-            const child = this._childInstances.pop();
-            this._removeChild(child);
-        }
-        else {
-            const child = this._childInstances.shift();
-            this._removeChild(child);
-        }
+        // If element comes from the bottom, remove element at bottom and vice versa
+        const child = toIdx < fromIdx ? this._childInstances.pop() : this._childInstances.shift();
+        this._removeChild(child);
     }
 
     onMove(fromIdx, toIdx, value) {
