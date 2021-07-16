@@ -126,6 +126,8 @@ limitations under the License.
     line-height: 2.2rem;
     /* so the .media can grow horizontally and its spacer can grow vertically */
     width: 100%;
+    /* Fix for pre overflow */
+    min-width: 0;
 }
 
 .hydrogen .Timeline_messageSender.usercolor1 { color: var(--usercolor1); }
