@@ -241,13 +241,16 @@ only loads when the top comes into view*/
 }
 
 .Timeline_messageBody .pill {
-    padding: 0px 5px 0px 5px;
+    padding: 0px 5px;
     border-radius: 15px;
     background-color: #f6f6f6;
     border: 1px solid rgb(206, 206, 206);
     text-decoration: none;
     display: inline-flex;
     align-items: center;
+    line-height: 2rem;
+    vertical-align: top;
+    margin: 1px;
 }
 
 .Timeline_messageBody .pill div.avatar {

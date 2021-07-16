@@ -61,7 +61,7 @@ function renderPill(pillPart) {
     const avatar = tag.div({class: classes}, text(pillPart.avatarInitials));
     const children = renderParts(pillPart.children);
     children.unshift(avatar);
-    return tag.a({ class: "pill", href: pillPart.href }, children);
+    return tag.a({class: "pill", href: pillPart.href, rel: "noopener", target: "_blank"}, children);
 }
 
 function renderTable(tablePart) {
