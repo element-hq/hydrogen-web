@@ -237,8 +237,8 @@ export class LazyListView extends ListView {
         else if (!fromInRange && toInRange) {
             this.onBeforeListChanged();
             const child = this._childCreator(value);
-            this._childInstances.splice(normalizedToIdx, 0, child);
             this._removeAdditionalElement(fromIdx, toIdx);
+            this._childInstances.splice(normalizedToIdx, 0, child);
             insertAt(this._root, normalizedToIdx, mountView(child, this._mountArgs));
             this.onListChanged();
         }
