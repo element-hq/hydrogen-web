@@ -214,9 +214,18 @@ only loads when the top comes into view*/
     /* don't stretch height as it is a spacer, just in case it doesn't match with image height */
     align-self: start;
 }
+.Timeline_messageBody code, .Timeline_messageBody pre {
+    background-color: #f8f8f8;
+    font-family: monospace;
+}
+
+.Timeline_messageBody code {
+    border-radius: 3px;
+    padding: .2em .3em;
+    margin: 0;
+}
 
 .Timeline_messageBody pre {
-    background-color: #f7f7f7;
     border: 1px solid rgb(229, 229, 229);
     padding: 10px;
 }
