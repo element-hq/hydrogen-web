@@ -208,3 +208,13 @@ the layout viewport up without resizing it when the keyboard shows */
     min-height: 0;
     overflow-y: auto;
 }
+
+.LazyListParent {
+    flex: 1;
+}
+
+.LoadingView {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}

@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {ViewModel} from "../ViewModel.js";
+import {addPanelIfNeeded} from "../navigation/index.js";
 
 function dedupeSparse(roomIds) {
     return roomIds.map((id, idx) => {
@@ -79,12 +80,9 @@ export class RoomGridViewModel extends ViewModel {
     }
 
     _switchToRoom(roomId) {
-        const detailsShown = !!this.navigation.path.get("details")?.value;
         let path = this.navigation.path.until("rooms");
         path = path.with(this.navigation.segment("room", roomId));
-        if (detailsShown) {
-            path = path.with(this.navigation.segment("details", true));
-        }
+        path = addPanelIfNeeded(this.navigation, path);
         this.navigation.applyPath(path);
     }
 

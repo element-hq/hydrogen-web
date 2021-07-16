@@ -20,6 +20,7 @@ import {RoomTileViewModel} from "./RoomTileViewModel.js";
 import {InviteTileViewModel} from "./InviteTileViewModel.js";
 import {RoomFilter} from "./RoomFilter.js";
 import {ApplyMap} from "../../../observable/map/ApplyMap.js";
+import {addPanelIfNeeded} from "../../navigation/index.js";
 
 export class LeftPanelViewModel extends ViewModel {
     constructor(options) {
@@ -92,24 +93,19 @@ export class LeftPanelViewModel extends ViewModel {
         }
     }
 
-    _pathForDetails(path) {
-        const details = this.navigation.path.get("details");
-        return details?.value ? path.with(details) : path;
-    }
-
     toggleGrid() {
         const room = this.navigation.path.get("room");
         let path = this.navigation.path.until("session");
         if (this.gridEnabled) {
             if (room) {
                 path = path.with(room);
-                path = this._pathForDetails(path);
+                path = addPanelIfNeeded(this.navigation, path);
             }
         } else {
             if (room) {
                 path = path.with(this.navigation.segment("rooms", [room.value]));
                 path = path.with(room);
-                path = this._pathForDetails(path);
+                path = addPanelIfNeeded(this.navigation, path);
             } else {
                 path = path.with(this.navigation.segment("rooms", []));
                 path = path.with(this.navigation.segment("empty-grid-tile", 0));
