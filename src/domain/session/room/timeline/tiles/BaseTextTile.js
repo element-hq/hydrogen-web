@@ -52,7 +52,7 @@ export class BaseTextTile extends BaseMessageTile {
             // or else the equality check in the binding will always fail.
             // So cache it here.
             this._messageBody = this._parseBody(body, format);
-            this._format = body.format;
+            this._format = format;
         }
         return this._messageBody;
     }
