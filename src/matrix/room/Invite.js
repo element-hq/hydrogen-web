@@ -180,7 +180,7 @@ export class Invite extends EventEmitter {
     _createData(inviteState, myInvite, inviter, summaryData, heroes) {
         const name = heroes ? heroes.roomName : summaryData.name;
         const avatarUrl = heroes ? heroes.roomAvatarUrl : summaryData.avatarUrl;
-        const avatarColorId = heroes ? heroes.roomAvatarColorId : this.id;
+        const avatarColorId = heroes?.roomAvatarColorId || this.id;
         return {
             roomId: this.id,
             isEncrypted: !!summaryData.encryption,
