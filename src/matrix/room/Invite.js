@@ -58,7 +58,7 @@ export class Invite extends EventEmitter {
 
     /** @see BaseRoom.avatarColorId */
     get avatarColorId() {
-        return this._inviteData.avatarColorId;
+        return this._inviteData.avatarColorId || this.id;
     }
 
     get timestamp() {
