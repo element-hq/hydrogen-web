@@ -1,6 +1,7 @@
 import {ViewModel} from "../../ViewModel.js";
 import {RoomDetailsViewModel} from "./RoomDetailsViewModel.js";
 import {MemberListViewModel} from "./MemberListViewModel.js";
+import {MemberDetailsViewModel} from "./MemberDetailsViewModel.js";
 
 export class RightPanelViewModel extends ViewModel {
     constructor(options) {
@@ -11,16 +12,24 @@ export class RightPanelViewModel extends ViewModel {
 
     get activeViewModel() { return this._activeViewModel; }
 
-    async _getMemberArguments() {
+    async _getMemberListArguments() {
         const members = await this._room.loadMemberList();
         const room = this._room;
         const powerLevelsObservable = await this._room.observePowerLevels();
         return {members, powerLevelsObservable, mediaRepository: room.mediaRepository};
     }
 
+    async _getMemberDetailsArguments() {
+        const segment = this.navigation.path.get("member"); 
+        const userId = segment.value;
+        const observableMember = await this._room.observeMember(userId);
+        return {observableMember, mediaRepository: this._room.mediaRepository};
+    }
+
     _setupNavigation() {
         this._hookUpdaterToSegment("details", RoomDetailsViewModel, () => { return {room: this._room}; });
-        this._hookUpdaterToSegment("members", MemberListViewModel, () => this._getMemberArguments());
+        this._hookUpdaterToSegment("members", MemberListViewModel, () => this._getMemberListArguments());
+        this._hookUpdaterToSegment("member", MemberDetailsViewModel, () => this._getMemberDetailsArguments());
     }
 
     _hookUpdaterToSegment(segment, viewmodel, argCreator) {

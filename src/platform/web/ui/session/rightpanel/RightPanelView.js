@@ -2,12 +2,14 @@ import {TemplateView} from "../../general/TemplateView.js";
 import {RoomDetailsView} from "./RoomDetailsView.js";
 import {MemberListView} from "./MemberListView.js";
 import {LoadingView} from "../../general/LoadingView.js";
+import {MemberDetailsView} from "./MemberDetailsView.js";
 
 export class RightPanelView extends TemplateView {
     render(t) {
         const viewFromType = {
             "room-details": RoomDetailsView,
-            "member-list": MemberListView
+            "member-list": MemberListView,
+            "member-details": MemberDetailsView
         };
         return t.div({ className: "RightPanelView" },
             [
