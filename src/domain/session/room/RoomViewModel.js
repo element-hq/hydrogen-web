@@ -44,6 +44,7 @@ export class RoomViewModel extends ViewModel {
             const timeline = await this._room.openTimeline();
             const timelineVM = this.track(new TimelineViewModel(this.childOptions({
                 room: this._room,
+                roomVM: this,
                 timeline,
             })));
             this._timelineVM = timelineVM;
@@ -294,17 +295,35 @@ export class RoomViewModel extends ViewModel {
         path = path.with(this.navigation.segment("details", true));
         this.navigation.applyPath(path);
     }
+
+    setReply(entry) {
+        this._composerVM.setReply(entry);
+    }
 }
 
 class ComposerViewModel extends ViewModel {
     constructor(roomVM) {
         super();
         this._roomVM = roomVM;
+        this._replyTo = null;
         this._isEmpty = true;
     }
 
     get isEncrypted() {
         return this._roomVM.isEncrypted;
+    }
+
+    setReply(entry) {
+        this._replyTo = entry;
+        this.emitChange("replyTo");
+    }
+
+    clearReply() {
+        this.setReply(null);
+    }
+
+    get replyTo() {
+        return this._replyTo;
     }
 
     sendMessage(message) {
