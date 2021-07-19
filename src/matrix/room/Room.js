@@ -209,6 +209,9 @@ export class Room extends BaseRoom {
             if (this._memberList) {
                 this._memberList.afterSync(memberChanges);
             }
+            if (this._observedMembers) {
+                this._updateObservedMembers(memberChanges);
+            }
             if (this._timeline) {
                 for (const [userId, memberChange] of memberChanges.entries()) {
                     if (userId === this._user.id) {
@@ -247,6 +250,15 @@ export class Room extends BaseRoom {
         }
         if (removedPendingEvents) {
             this._sendQueue.emitRemovals(removedPendingEvents);
+        }
+    }
+
+    _updateObservedMembers(memberChanges) {
+        for (const [userId, memberChange] of memberChanges) {
+            const observableMember = this._observedMembers.get(userId);
+            if (observableMember) {
+                observableMember.set(memberChange.member);
+            }
         }
     }
 

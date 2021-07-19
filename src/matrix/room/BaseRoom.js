@@ -21,7 +21,7 @@ import {RelationWriter} from "./timeline/persistence/RelationWriter.js";
 import {Timeline} from "./timeline/Timeline.js";
 import {FragmentIdComparer} from "./timeline/FragmentIdComparer.js";
 import {WrappedError} from "../error.js"
-import {fetchOrLoadMembers} from "./members/load.js";
+import {fetchOrLoadMembers, loadMember} from "./members/load.js";
 import {MemberList} from "./members/MemberList.js";
 import {Heroes} from "./members/Heroes.js";
 import {EventEntry} from "./timeline/entries/EventEntry.js";
@@ -54,6 +54,7 @@ export class BaseRoom extends EventEmitter {
         this._observedEvents = null;
         this._powerLevels = null;
         this._powerLevelLoading = null;
+        this._observedMembers = null;
     }
 
     async _eventIdsToEntries(eventIds, txn) {
@@ -213,6 +214,23 @@ export class BaseRoom extends EventEmitter {
             throw new WrappedError(`Could not load room ${this._roomId}`, err);
         }
     }
+
+    async observeMember(userId) {
+        if (!this._observedMembers) {
+            this._observedMembers = new Map();
+        }
+        const mapMember = this._observedMembers.get(userId);
+        if (mapMember) {
+            // Hit, we're already observing this member
+            return mapMember;
+        }
+        // Miss, load from storage and set in map
+        const member = await loadMember({roomId: this._roomId, userId, storage: this._storage});
+        const observableMember = new RetainedObservableValue(member, () => this._observedMembers.delete(userId));
+        this._observedMembers.set(userId, observableMember);
+        return observableMember;
+    }
+
 
     /** @public */
     async loadMemberList(log = null) {
