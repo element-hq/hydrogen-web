@@ -29,13 +29,25 @@ export function createAnnotation(targetId, key) {
     };
 }
 
+export function getRelationTarget(relation) {
+    return relation.event_id || relation["m.in_reply_to"]?.event_id
+}
+
+export function setRelationTarget(relation, target) {
+    if (relation.event_id !== undefined) {
+        relation.event_id = target;
+    } else if (relation["m.in_reply_to"]) {
+        relation["m.in_reply_to"].event_id = target;
+    }
+}
+
 export function getRelatedEventId(event) {
 	if (event.type === REDACTION_TYPE) {
         return event.redacts;
     } else {
         const relation = getRelation(event);
         if (relation) {
-            return relation.event_id;
+            return getRelationTarget(relation);
         }
     }
     return null;

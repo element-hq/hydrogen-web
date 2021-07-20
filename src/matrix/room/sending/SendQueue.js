@@ -19,7 +19,7 @@ import {ConnectionError} from "../../error.js";
 import {PendingEvent, SendStatus} from "./PendingEvent.js";
 import {makeTxnId, isTxnId} from "../../common.js";
 import {REDACTION_TYPE} from "../common.js";
-import {getRelationFromContent, REACTION_TYPE, ANNOTATION_RELATION_TYPE} from "../timeline/relations.js";
+import {getRelationFromContent, getRelationTarget, setRelationTarget, REACTION_TYPE, ANNOTATION_RELATION_TYPE} from "../timeline/relations.js";
 
 export class SendQueue {
     constructor({roomId, storage, hsApi, pendingEvents}) {
@@ -206,11 +206,13 @@ export class SendQueue {
         const relation = getRelationFromContent(content);
         let relatedTxnId = null;
         if (relation) {
-            if (isTxnId(relation.event_id)) {
-                relatedTxnId = relation.event_id;
-                relation.event_id = null;
+            const relationTarget = getRelationTarget(relation);
+            if (isTxnId(relationTarget)) {
+                relatedTxnId = relationTarget;
+                setRelationTarget(relation, null);
             }
             if (relation.rel_type === ANNOTATION_RELATION_TYPE) {
+                // Here we know the shape of the relation, and can use event_id safely
                 const isAlreadyAnnotating = this._pendingEvents.array.some(pe => {
                     const r = getRelationFromContent(pe.content);
                     return pe.eventType === eventType && r && r.key === relation.key &&
