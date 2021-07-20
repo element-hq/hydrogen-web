@@ -16,7 +16,7 @@ limitations under the License.
 
 import {BaseEntry} from "./BaseEntry.js";
 import {REDACTION_TYPE} from "../../common.js";
-import {createAnnotation, ANNOTATION_RELATION_TYPE, getRelationFromContent} from "../relations.js";
+import {createAnnotation, createReply, ANNOTATION_RELATION_TYPE, getRelationFromContent} from "../relations.js";
 import {PendingAnnotation} from "../PendingAnnotation.js";
 
 /** Deals mainly with local echo for relations and redactions,
@@ -149,6 +149,10 @@ export class BaseEventEntry extends BaseEntry {
 
     annotate(key) {
         return createAnnotation(this.id, key);
+    }
+
+    reply() {
+        return createReply(this.id);
     }
 
     /** takes both remote event id and local txn id into account, see overriding in PendingEventEntry */

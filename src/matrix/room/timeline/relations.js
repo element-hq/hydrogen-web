@@ -29,6 +29,14 @@ export function createAnnotation(targetId, key) {
     };
 }
 
+export function createReply(targetId) {
+    return {
+        "m.in_reply_to": {
+            "event_id": targetId
+        }
+    };
+}
+
 export function getRelationTarget(relation) {
     return relation.event_id || relation["m.in_reply_to"]?.event_id
 }

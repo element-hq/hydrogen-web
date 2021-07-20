@@ -155,7 +155,7 @@ export class RoomViewModel extends ViewModel {
         this._room.join();
     }
     
-    async _sendMessage(message) {
+    async _sendMessage(message, replyTo) {
         if (!this._room.isArchived && message) {
             try {
                 let msgtype = "m.text";
@@ -163,7 +163,11 @@ export class RoomViewModel extends ViewModel {
                     message = message.substr(4).trim();
                     msgtype = "m.emote";
                 }
-                await this._room.sendEvent("m.room.message", {msgtype, body: message});
+                const content = {msgtype, body: message};
+                if (replyTo) {
+                    content["m.relates_to"] = replyTo.reply();
+                }
+                await this._room.sendEvent("m.room.message", content);
             } catch (err) {
                 console.error(`room.sendMessage(): ${err.message}:\n${err.stack}`);
                 this._sendError = err;
@@ -327,7 +331,7 @@ class ComposerViewModel extends ViewModel {
     }
 
     sendMessage(message) {
-        const success = this._roomVM._sendMessage(message);
+        const success = this._roomVM._sendMessage(message, this._replyTo);
         if (success) {
             this._isEmpty = true;
             this.emitChange("canSend");
