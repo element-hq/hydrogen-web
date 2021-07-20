@@ -175,6 +175,7 @@ export class RoomViewModel extends ViewModel {
                 this.emitChange("error");
                 return false;
             }
+            this.setReply(null);
             return true;
         }
         return false;
