@@ -30,6 +30,10 @@ export class MemberDetailsViewModel extends ViewModel {
     get userId() { return this._member.userId; }
 
     get type() { return "member-details"; }
+    
+    get role() {
+        return "Admin";
+    }
 
     _onMemberChange() {
         this._member = this._observableMember.get();

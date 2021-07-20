@@ -15,14 +15,24 @@ limitations under the License.
 */
 
 import {AvatarView} from "../../AvatarView.js";
+import {classNames} from "../../general/html.js";
 import {TemplateView} from "../../general/TemplateView.js";
 
 export class MemberDetailsView extends TemplateView {
     render(t, vm) {
-        return t.div({ className: "MemberDetailsView" },
+        return t.div({className: "MemberDetailsView"},
             [   t.view(new AvatarView(vm, 128)),
-                t.div({ className: "MemberDetailsView_name" }, vm.name),
-                t.div({ className: "MemberDetailsView_userId" }, vm.userId)
+                t.div({className: "MemberDetailsView_name"}, [t.h2(vm.name)]),
+                t.div({ className: "MemberDetailsView_id" }, vm.userId),
+                this._createSection(t, "ROLE", {}, vm.role)
             ]);
+    }
+
+    _createSection(t, label, labelClass, value) {
+        const labelClassString = classNames({MemberDetailsView_label: true, ...labelClass});
+        return t.div({className: "MemberDetailsView_section"}, [
+            t.div({className: labelClassString}, [label]),
+            t.div({className: "MemberDetailsView_value"}, value)
+        ]);
     }
 }
