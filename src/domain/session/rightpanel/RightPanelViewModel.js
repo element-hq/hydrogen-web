@@ -23,7 +23,8 @@ export class RightPanelViewModel extends ViewModel {
         const segment = this.navigation.path.get("member"); 
         const userId = segment.value;
         const observableMember = await this._room.observeMember(userId);
-        return {observableMember, mediaRepository: this._room.mediaRepository};
+        const isEncrypted = this._room.isEncrypted;
+        return {observableMember, isEncrypted, mediaRepository: this._room.mediaRepository};
     }
 
     _setupNavigation() {

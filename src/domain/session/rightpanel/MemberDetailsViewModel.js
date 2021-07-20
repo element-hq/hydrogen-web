@@ -23,6 +23,7 @@ export class MemberDetailsViewModel extends ViewModel {
         this._observableMember = options.observableMember;
         this._mediaRepository = options.mediaRepository;
         this._member = this._observableMember.get();
+        this._isEncrypted = options.isEncrypted;
         this.track(this._observableMember.subscribe( () => this._onMemberChange()));
     }
 
@@ -54,5 +55,9 @@ export class MemberDetailsViewModel extends ViewModel {
 
     get avatarTitle() {
         return this.name;
+    }
+
+    get isEncrypted() {
+        return this._isEncrypted;
     }
 }
