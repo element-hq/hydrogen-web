@@ -942,9 +942,21 @@ button.RoomDetailsView_row::after {
     color: #8d99a5;
 }
 
-.MemberDetailsView_value {
+.MemberDetailsView_value, .MemberDetailsView_options {
     margin-left: 8px;
+    margin-top: 5px;
     font-size: 12px;
+}
+
+.MemberDetailsView_options {
+    display: inline-flex;
+    flex-direction: column;
+}
+
+.MemberDetailsView_options a{
+    color: #0dbd8b;
+    text-decoration: none;
+    margin-bottom: 3px;
 }
 
 .LazyListParent {

@@ -15,24 +15,41 @@ limitations under the License.
 */
 
 import {AvatarView} from "../../AvatarView.js";
-import {classNames} from "../../general/html.js";
 import {TemplateView} from "../../general/TemplateView.js";
 
 export class MemberDetailsView extends TemplateView {
     render(t, vm) {
+        const encryptionMessages = {
+            true: vm.i18n`Messages in this room are end-to-end encrypted.`,
+            false: vm.i18n`Messages in this room are not end-to-end encrypted.`
+        };
         return t.div({className: "MemberDetailsView"},
             [   t.view(new AvatarView(vm, 128)),
-                t.div({className: "MemberDetailsView_name"}, [t.h2(vm.name)]),
-                t.div({ className: "MemberDetailsView_id" }, vm.userId),
-                this._createSection(t, "ROLE", {}, vm.role)
+                t.div({className: "MemberDetailsView_name"}, t.h2(vm.name)),
+                t.div({className: "MemberDetailsView_id"}, vm.userId),
+                this._createSection(t, vm.i18n`ROLE`, vm.role),
+                this._createSection(t, vm.i18n`SECURITY`, encryptionMessages[vm.isEncrypted]),
+                this._createOptions(t, vm)
             ]);
     }
 
-    _createSection(t, label, labelClass, value) {
-        const labelClassString = classNames({MemberDetailsView_label: true, ...labelClass});
-        return t.div({className: "MemberDetailsView_section"}, [
-            t.div({className: labelClassString}, [label]),
-            t.div({className: "MemberDetailsView_value"}, value)
-        ]);
+    _createSection(t, label, value) {
+        return t.div({ className: "MemberDetailsView_section" },
+            [
+                t.div({className: "MemberDetailsView_label"}, label),
+                t.div({className: "MemberDetailsView_value"}, value)
+            ]);
+    }
+
+    _createOptions(t, vm) {
+        return t.div({ className: "MemberDetailsView_section" },
+            [
+                t.div({className: "MemberDetailsView_label"}, vm.i18n`OPTIONS`),
+                t.div({ className: "MemberDetailsView_options" },
+                    [
+                        t.a({href: "#"}, vm.i18n`Direct Message`),
+                        t.a({href: "#"}, vm.i18n`Open Link to User`)
+                    ])
+            ]);
     }
 }
