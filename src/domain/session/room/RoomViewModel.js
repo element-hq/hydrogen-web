@@ -155,7 +155,7 @@ export class RoomViewModel extends ViewModel {
         this._room.join();
     }
     
-    async _sendMessage(message, replyTo) {
+    async _sendMessage(message, replyingTo) {
         if (!this._room.isArchived && message) {
             try {
                 let msgtype = "m.text";
@@ -164,8 +164,8 @@ export class RoomViewModel extends ViewModel {
                     msgtype = "m.emote";
                 }
                 const content = {msgtype, body: message};
-                if (replyTo) {
-                    content["m.relates_to"] = replyTo.reply();
+                if (replyingTo) {
+                    content["m.relates_to"] = replyingTo.reply();
                 }
                 await this._room.sendEvent("m.room.message", content);
             } catch (err) {
@@ -175,7 +175,6 @@ export class RoomViewModel extends ViewModel {
                 this.emitChange("error");
                 return false;
             }
-            this.setReply(null);
             return true;
         }
         return false;
@@ -301,8 +300,10 @@ export class RoomViewModel extends ViewModel {
         this.navigation.applyPath(path);
     }
 
-    setReply(entry) {
-        this._composerVM.setReply(entry);
+    startReply(entry) {
+        if (!this._room.isArchived) {
+            this._composerVM.startReply(entry);
+        }
     }
 }
 
@@ -310,32 +311,23 @@ class ComposerViewModel extends ViewModel {
     constructor(roomVM) {
         super();
         this._roomVM = roomVM;
-        this._replyTo = null;
-        this._isEmpty = true;
+        this._replyVM = new ReplyViewModel(roomVM);
+    }
+
+    startReply(entry) {
+        this._replyVM.setReplyingTo(entry);
     }
 
     get isEncrypted() {
         return this._roomVM.isEncrypted;
     }
 
-    setReply(entry) {
-        this._replyTo = entry;
-        this.emitChange("replyTo");
-    }
-
-    clearReply() {
-        this.setReply(null);
-    }
-
-    get replyTo() {
-        return this._replyTo;
-    }
-
     sendMessage(message) {
-        const success = this._roomVM._sendMessage(message, this._replyTo);
+        const success = this._roomVM._sendMessage(message, this._replyVM.replyingTo);
         if (success) {
             this._isEmpty = true;
             this.emitChange("canSend");
+            this._replyVM.clearReply();
         }
         return success;
     }
@@ -369,6 +361,30 @@ class ComposerViewModel extends ViewModel {
 
     get kind() {
         return "composer";
+    }
+}
+
+class ReplyViewModel extends ViewModel {
+    constructor(roomVM) {
+        super();
+        this._roomVM = roomVM;
+        this._replyingTo = null;
+    }
+
+    setReplyingTo(entry) {
+        const changed = this._replyingTo !== entry;
+        this._replyingTo = entry;
+        if (changed) {
+            this.emitChange("replyingTo");
+        }
+    }
+
+    clearReply() {
+        this.setReplyingTo(null);
+    }
+
+    get replyingTo() {
+        return this._replyingTo;
     }
 }
 

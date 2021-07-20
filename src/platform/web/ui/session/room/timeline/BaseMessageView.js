@@ -113,7 +113,7 @@ export class BaseMessageView extends TemplateView {
         if (vm.canReact && vm.shape !== "redacted") {
             options.push(new QuickReactionsMenuOption(vm));
         }
-        options.push(Menu.option(vm.i18n`Reply`, () => vm.setReply()));
+        options.push(Menu.option(vm.i18n`Reply`, () => vm.startReply()));
         if (vm.canAbortSending) {
             options.push(Menu.option(vm.i18n`Cancel`, () => vm.abortSending()));
         } else if (vm.canRedact) {
