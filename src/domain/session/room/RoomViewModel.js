@@ -155,7 +155,7 @@ export class RoomViewModel extends ViewModel {
         this._room.join();
     }
     
-    async _sendMessage(message, replyingTo) {
+    async _sendMessage(message, reply) {
         if (!this._room.isArchived && message) {
             try {
                 let msgtype = "m.text";
@@ -164,8 +164,8 @@ export class RoomViewModel extends ViewModel {
                     msgtype = "m.emote";
                 }
                 const content = {msgtype, body: message};
-                if (replyingTo) {
-                    content["m.relates_to"] = replyingTo.reply();
+                if (reply) {
+                    content["m.relates_to"] = reply;
                 }
                 await this._room.sendEvent("m.room.message", content);
             } catch (err) {
@@ -302,7 +302,7 @@ export class RoomViewModel extends ViewModel {
 
     startReply(entry) {
         if (!this._room.isArchived) {
-            this._composerVM.startReply(entry);
+            this._composerVM.setReplyingTo(entry);
         }
     }
 }
@@ -311,11 +311,24 @@ class ComposerViewModel extends ViewModel {
     constructor(roomVM) {
         super();
         this._roomVM = roomVM;
-        this._replyVM = new ReplyViewModel(roomVM);
+        this._isEmpty = true;
+        this._replyVM = null;
     }
 
-    startReply(entry) {
-        this._replyVM.setReplyingTo(entry);
+    setReplyingTo(tile) {
+        const changed = this._replyVM !== tile;
+        this._replyVM = tile;
+        if (changed) {
+            this.emitChange("replyViewModel");
+        }
+    }
+
+    clearReplyingTo() {
+        this.setReplyingTo(null);
+    }
+
+    get replyViewModel() {
+        return this._replyVM;
     }
 
     get isEncrypted() {
@@ -323,11 +336,11 @@ class ComposerViewModel extends ViewModel {
     }
 
     sendMessage(message) {
-        const success = this._roomVM._sendMessage(message, this._replyVM.replyingTo);
+        const success = this._roomVM._sendMessage(message, this._replyVM?.reply());
         if (success) {
             this._isEmpty = true;
             this.emitChange("canSend");
-            this._replyVM.clearReply();
+            this.clearReplyingTo();
         }
         return success;
     }
@@ -361,30 +374,6 @@ class ComposerViewModel extends ViewModel {
 
     get kind() {
         return "composer";
-    }
-}
-
-class ReplyViewModel extends ViewModel {
-    constructor(roomVM) {
-        super();
-        this._roomVM = roomVM;
-        this._replyingTo = null;
-    }
-
-    setReplyingTo(entry) {
-        const changed = this._replyingTo !== entry;
-        this._replyingTo = entry;
-        if (changed) {
-            this.emitChange("replyingTo");
-        }
-    }
-
-    clearReply() {
-        this.setReplyingTo(null);
-    }
-
-    get replyingTo() {
-        return this._replyingTo;
     }
 }
 
