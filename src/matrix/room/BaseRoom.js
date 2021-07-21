@@ -226,6 +226,9 @@ export class BaseRoom extends EventEmitter {
         }
         // Miss, load from storage and set in map
         const member = await loadMember({roomId: this._roomId, userId, storage: this._storage});
+        if (!member) {
+            return false;
+        }
         const observableMember = new RetainedObservableValue(member, () => this._observedMembers.delete(userId));
         this._observedMembers.set(userId, observableMember);
         return observableMember;
