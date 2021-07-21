@@ -45,10 +45,10 @@ export class MemberDetailsView extends TemplateView {
         return t.div({ className: "MemberDetailsView_section" },
             [
                 t.div({className: "MemberDetailsView_label"}, vm.i18n`OPTIONS`),
-                t.div({ className: "MemberDetailsView_options" },
+                t.div({className: "MemberDetailsView_options"},
                     [
-                        t.a({href: "#"}, vm.i18n`Direct Message`),
-                        t.a({href: "#"}, vm.i18n`Open Link to User`)
+                        t.a({href: vm.dmLink}, vm.i18n`Direct Message`),
+                        t.a({href: vm.linkToUser, target: "_blank", rel: "noopener"}, vm.i18n`Open Link to User`)
                     ])
             ]);
     }

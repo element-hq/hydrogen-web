@@ -25,7 +25,7 @@ export class MemberDetailsViewModel extends ViewModel {
         this._member = this._observableMember.get();
         this._isEncrypted = options.isEncrypted;
         this._powerLevelsObservable = options.powerLevelsObservable;
-        this._powerLevel = this._powerLevelFromObservable(this._powerLevelsObservable);
+        this._powerLevel = this._powerLevelsObservable.get().getUserLevel(this._member.userId);
         this.track(this._powerLevelsObservable.subscribe(() => this._onPowerLevelsChange()));
         this.track(this._observableMember.subscribe( () => this._onMemberChange()));
     }
@@ -71,5 +71,13 @@ export class MemberDetailsViewModel extends ViewModel {
 
     get isEncrypted() {
         return this._isEncrypted;
+    }
+
+    get dmLink() {
+        return `${this.urlCreator.urlUntilSegment("session")}/open-room/${this._member.userId}`;
+    }
+
+    get linkToUser() {
+        return `https://matrix.to/#/${this._member.userId}`;
     }
 }
