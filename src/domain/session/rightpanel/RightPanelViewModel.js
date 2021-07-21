@@ -24,7 +24,8 @@ export class RightPanelViewModel extends ViewModel {
         const userId = segment.value;
         const observableMember = await this._room.observeMember(userId);
         const isEncrypted = this._room.isEncrypted;
-        return {observableMember, isEncrypted, mediaRepository: this._room.mediaRepository};
+        const powerLevelsObservable = await this._room.observePowerLevels();
+        return {observableMember, isEncrypted, powerLevelsObservable, mediaRepository: this._room.mediaRepository};
     }
 
     _setupNavigation() {

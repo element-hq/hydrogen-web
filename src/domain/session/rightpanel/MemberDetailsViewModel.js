@@ -24,6 +24,9 @@ export class MemberDetailsViewModel extends ViewModel {
         this._mediaRepository = options.mediaRepository;
         this._member = this._observableMember.get();
         this._isEncrypted = options.isEncrypted;
+        this._powerLevelsObservable = options.powerLevelsObservable;
+        this._powerLevel = this._powerLevelFromObservable(this._powerLevelsObservable);
+        this.track(this._powerLevelsObservable.subscribe(() => this._onPowerLevelsChange()));
         this.track(this._observableMember.subscribe( () => this._onMemberChange()));
     }
 
@@ -33,11 +36,20 @@ export class MemberDetailsViewModel extends ViewModel {
     get type() { return "member-details"; }
     
     get role() {
-        return "Admin";
+        if (this._powerLevel >= 100) { return "Admin"; }
+        else if (this._powerLevel >= 50) { return "Moderator"; }
+        else if (this._powerLevel === 0) { return "Default"; }
+        else { return `Custom (${this._powerLevel})`; }
     }
 
     _onMemberChange() {
         this._member = this._observableMember.get();
+        this.emitChange();
+    }
+
+    _onPowerLevelsChange() {
+        const powerLevels = this._powerLevelsObservable.get();
+        this._powerLevel = powerLevels.getUserLevel(this._member.userId);
         this.emitChange();
     }
 
