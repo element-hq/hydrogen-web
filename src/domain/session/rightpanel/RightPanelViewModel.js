@@ -23,6 +23,9 @@ export class RightPanelViewModel extends ViewModel {
         const segment = this.navigation.path.get("member"); 
         const userId = segment.value;
         const observableMember = await this._room.observeMember(userId);
+        if (!observableMember) {
+            return false;
+        }
         const isEncrypted = this._room.isEncrypted;
         const powerLevelsObservable = await this._room.observePowerLevels();
         return {observableMember, isEncrypted, powerLevelsObservable, mediaRepository: this._room.mediaRepository};
@@ -31,16 +34,22 @@ export class RightPanelViewModel extends ViewModel {
     _setupNavigation() {
         this._hookUpdaterToSegment("details", RoomDetailsViewModel, () => { return {room: this._room}; });
         this._hookUpdaterToSegment("members", MemberListViewModel, () => this._getMemberListArguments());
-        this._hookUpdaterToSegment("member", MemberDetailsViewModel, () => this._getMemberDetailsArguments());
+        this._hookUpdaterToSegment("member", MemberDetailsViewModel, () => this._getMemberDetailsArguments(),
+            () => {
+                // If we fail to create the member details panel, fallback to memberlist
+                const url = `${this.urlCreator.urlUntilSegment("room")}/members`;
+                this.urlCreator.pushUrl(url);
+            }
+        );
     }
 
-    _hookUpdaterToSegment(segment, viewmodel, argCreator) {
+    _hookUpdaterToSegment(segment, viewmodel, argCreator, failCallback) {
         const observable = this.navigation.observe(segment);
-        const updater = this._setupUpdater(segment, viewmodel, argCreator);
+        const updater = this._setupUpdater(segment, viewmodel, argCreator, failCallback);
         this.track(observable.subscribe(() => updater()));
     }
 
-    _setupUpdater(segment, viewmodel, argCreator) {
+    _setupUpdater(segment, viewmodel, argCreator, failCallback) {
         const updater = async (skipDispose = false) => {
             if (!skipDispose) {
                 this._activeViewModel = this.disposeTracked(this._activeViewModel);
@@ -48,6 +57,10 @@ export class RightPanelViewModel extends ViewModel {
             const enable = !!this.navigation.path.get(segment)?.value;
             if (enable) {
                 const args = await argCreator();
+                if (!args && failCallback) {
+                    failCallback();
+                    return;
+                }
                 this._activeViewModel = this.track(new viewmodel(this.childOptions(args)));
             }
             this.emitChange("activeViewModel");
