@@ -33,17 +33,17 @@ export class MessageComposer extends TemplateView {
             onKeydown: e => this._onKeyDown(e),
             onInput: () => vm.setInput(this._input.value),
         });
-        return t.div({className: "MessageComposer"}, [
-            t.map(vm => vm.replyViewModel, (rvm, t) => !rvm ? null :
-                t.div({
-                    className: "replyBox"
-                }, [
-                    t.span('Replying'),
-                    t.span({onClick: () => this._clearReplyingTo()}, 'Close'),
-                    // TODO need proper view, not just assumed TextMessageView
-                    t.view(new TextMessageView(vm.replyViewModel, true, "div"))
-                ])
-            ),
+        const replyPreview = t.map(vm => vm.replyViewModel, (rvm, t) => !rvm ? null :
+            t.div({
+                className: "MessageComposer_replyPreview"
+            }, [
+                t.span('Replying'),
+                t.span({onClick: () => this._clearReplyingTo()}, 'Close'),
+                // TODO need proper view, not just assumed TextMessageView
+                t.view(new TextMessageView(vm.replyViewModel, true, "div"))
+            ])
+        );
+        const input = t.div({className: "MessageComposer_input"}, [
             this._input,
             t.button({
                 className: "sendFile",
@@ -57,6 +57,7 @@ export class MessageComposer extends TemplateView {
                 onClick: () => this._trySend(),
             }, vm.i18n`Send`),
         ]);
+        return t.div({ className: "MessageComposer" }, [replyPreview, input]);
     }
 
     _clearReplyingTo() {
