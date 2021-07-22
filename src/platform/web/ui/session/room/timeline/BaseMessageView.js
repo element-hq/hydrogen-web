@@ -24,9 +24,12 @@ import {Menu} from "../../../general/Menu.js";
 import {ReactionsView} from "./ReactionsView.js";
 
 export class BaseMessageView extends TemplateView {
-    constructor(value) {
+    constructor(value, disabled = false) {
         super(value);
         this._menuPopup = null;
+        // TODO An enum could be nice to make code
+        //      easier to read at call sites.
+        this._disabled = disabled;
     }
 
     render(t, vm) {
@@ -40,7 +43,7 @@ export class BaseMessageView extends TemplateView {
             // dynamically added and removed nodes are handled below
             this.renderMessageBody(t, vm),
             // should be after body as it is overlayed on top
-            t.button({className: "Timeline_messageOptions"}, "⋯"),
+            this._disabled ? [] : t.button({className: "Timeline_messageOptions"}, "⋯"),
         ]);
         // given that there can be many tiles, we don't add
         // unneeded DOM nodes in case of a continuation, and we add it
@@ -48,10 +51,10 @@ export class BaseMessageView extends TemplateView {
         // as the avatar or sender doesn't need any bindings or event handlers.
         // don't use `t` from within the side-effect callback
         t.mapSideEffect(vm => vm.isContinuation, (isContinuation, wasContinuation) => {
-            if (isContinuation && wasContinuation === false) {
+            if (isContinuation && wasContinuation === false && !this._disabled) {
                 li.removeChild(li.querySelector(".Timeline_messageAvatar"));
                 li.removeChild(li.querySelector(".Timeline_messageSender"));
-            } else if (!isContinuation) {
+            } else if (!isContinuation || this._disabled) {
                 li.insertBefore(renderStaticAvatar(vm, 30, "Timeline_messageAvatar"), li.firstChild);
                 li.insertBefore(tag.div({className: `Timeline_messageSender usercolor${vm.avatarColorNumber}`}, vm.displayName), li.firstChild);
             }
@@ -60,11 +63,11 @@ export class BaseMessageView extends TemplateView {
         // but that adds a comment node to all messages without reactions
         let reactionsView = null;
         t.mapSideEffect(vm => vm.reactions, reactions => {
-            if (reactions && !reactionsView) {
+            if (reactions && !reactionsView && !this._disabled) {
                 reactionsView = new ReactionsView(vm.reactions);
                 this.addSubView(reactionsView);
                 li.appendChild(mountView(reactionsView));
-            } else if (!reactions && reactionsView) {
+            } else if (!reactions && reactionsView && !this._disabled) {
                 li.removeChild(reactionsView.root());
                 reactionsView.unmount();
                 this.removeSubView(reactionsView);
