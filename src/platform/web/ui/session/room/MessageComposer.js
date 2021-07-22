@@ -17,6 +17,7 @@ limitations under the License.
 import {TemplateView} from "../../general/TemplateView.js";
 import {Popup} from "../../general/Popup.js";
 import {Menu} from "../../general/Menu.js";
+import {TextMessageView} from "./timeline/TextMessageView.js";
 
 export class MessageComposer extends TemplateView {
     constructor(viewModel) {
@@ -33,6 +34,16 @@ export class MessageComposer extends TemplateView {
             onInput: () => vm.setInput(this._input.value),
         });
         return t.div({className: "MessageComposer"}, [
+            t.map(vm => vm.replyViewModel, (rvm, t) => !rvm ? null :
+                t.div({
+                    className: "replyBox"
+                }, [
+                    t.span('Replying'),
+                    t.span({onClick: () => this._clearReplyingTo()}, 'Close'),
+                    // TODO need proper view, not just assumed TextMessageView
+                    t.view(new TextMessageView(vm.replyViewModel, true))
+                ])
+            ),
             this._input,
             t.button({
                 className: "sendFile",
@@ -46,6 +57,10 @@ export class MessageComposer extends TemplateView {
                 onClick: () => this._trySend(),
             }, vm.i18n`Send`),
         ]);
+    }
+
+    _clearReplyingTo() {
+        this.value.clearReplyingTo();
     }
 
     _trySend() {
