@@ -45,7 +45,7 @@
     visibility: hidden;
 }
 
-.MemberTileView {
+.MemberTileView a {
     display: flex;
     align-items: center;
 }

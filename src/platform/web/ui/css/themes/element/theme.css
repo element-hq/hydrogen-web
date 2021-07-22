@@ -916,6 +916,11 @@ button.RoomDetailsView_row::after {
 
 .MemberTileView {
     margin-bottom: 8px;
+    list-style: none;
+}
+
+.MemberTileView a {
+    text-decoration: none;
 }
 
 .MemberTileView .avatar {
