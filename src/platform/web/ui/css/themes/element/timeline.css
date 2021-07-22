@@ -51,7 +51,7 @@ limitations under the License.
     }
 }
 
-.Timeline_message:hover, .Timeline_message.selected, .Timeline_message.menuOpen {
+.Timeline_message:hover:not(.disabled), .Timeline_message.selected, .Timeline_message.menuOpen {
     background-color: rgba(141, 151, 165, 0.1);
     border-radius: 4px;
 }

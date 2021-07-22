@@ -37,8 +37,11 @@ export class MessageComposer extends TemplateView {
             t.div({
                 className: "MessageComposer_replyPreview"
             }, [
-                t.span('Replying'),
-                t.span({onClick: () => this._clearReplyingTo()}, 'Close'),
+                t.span({ className: "replying" }, "Replying"),
+                t.button({
+                    className: "cancel",
+                    onClick: () => this._clearReplyingTo()
+                }, "Close"),
                 // TODO need proper view, not just assumed TextMessageView
                 t.view(new TextMessageView(vm.replyViewModel, true, "div"))
             ])

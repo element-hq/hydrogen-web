@@ -462,9 +462,35 @@ a {
     color: red;
 }
 
-.MessageComposer_input {
+.MessageComposer_replyPreview .Timeline_message {
+    margin: 0;
+    margin-top: 5px;
+}
+
+.MessageComposer_input, .MessageComposer_replyPreview {
     border-top: 1px solid rgba(245, 245, 245, 0.90);
     padding: 8px 16px;
+}
+
+.MessageComposer_replyPreview > .replying {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.MessageComposer_replyPreview > button.cancel {
+    width: 32px;
+    height: 32px;
+    display: block;
+    border: none;
+    text-indent: 200%;
+    white-space: nowrap;
+    overflow: hidden;
+    background-color: transparent;
+    background-image: url('icons/clear.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 18px;
 }
 
 .MessageComposer_input > :not(:first-child) {
