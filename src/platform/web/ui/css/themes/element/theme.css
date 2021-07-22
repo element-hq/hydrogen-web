@@ -467,8 +467,12 @@ a {
     margin-top: 5px;
 }
 
+.MessageComposer_replyPreview {
+    border: 1px solid rgba(225, 225, 225, 0.9);
+    background: rgba(245, 245, 245, 0.90);
+}
+
 .MessageComposer_input, .MessageComposer_replyPreview {
-    border-top: 1px solid rgba(245, 245, 245, 0.90);
     padding: 8px 16px;
 }
 
@@ -491,6 +495,10 @@ a {
     background-repeat: no-repeat;
     background-position: center;
     background-size: 18px;
+}
+
+.MessageComposer_input:first-child {
+    border-top: 1px solid rgba(245, 245, 245, 0.90);
 }
 
 .MessageComposer_input > :not(:first-child) {
