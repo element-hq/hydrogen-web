@@ -34,6 +34,8 @@ export class MemberDetailsViewModel extends ViewModel {
     get userId() { return this._member.userId; }
 
     get type() { return "member-details"; }
+    get shouldShowBackButton() { return true; }
+    get previousSegmentName() { return "members"; }
     
     get role() {
         if (this._powerLevel >= 100) { return "Admin"; }
