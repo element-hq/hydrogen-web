@@ -30,6 +30,10 @@ export class MemberTileViewModel extends ViewModel {
         return this._nameChanged;
     }
 
+    get detailsUrl() {
+        return `${this.urlCreator.urlUntilSegment("room")}/member/${this._member.userId}`;
+    }
+
     _updatePreviousName(newName) {
         const currentName = this._member.name;
         if (currentName !== newName) {
