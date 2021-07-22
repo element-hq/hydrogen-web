@@ -7,16 +7,20 @@ export class RightPanelViewModel extends ViewModel {
     constructor(options) {
         super(options);
         this._room = options.room;
+        this._members = null;
         this._setupNavigation();
     }
 
     get activeViewModel() { return this._activeViewModel; }
 
     async _getMemberListArguments() {
-        const members = await this._room.loadMemberList();
+        if (!this._members) {
+            this._members = await this._room.loadMemberList();
+            this.track(() => this._members.release());
+        }
         const room = this._room;
         const powerLevelsObservable = await this._room.observePowerLevels();
-        return {members, powerLevelsObservable, mediaRepository: room.mediaRepository};
+        return {members: this._members, powerLevelsObservable, mediaRepository: room.mediaRepository};
     }
 
     async _getMemberDetailsArguments() {

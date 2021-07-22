@@ -7,7 +7,6 @@ export class MemberListViewModel extends ViewModel {
     constructor(options) {
         super(options);
         const list = options.members;
-        this.track(() => list.release());
 
         const powerLevelsObservable = options.powerLevelsObservable;
         this.track(powerLevelsObservable.subscribe(() => { /*resort based on new power levels here*/ }));
