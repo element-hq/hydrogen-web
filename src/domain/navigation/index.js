@@ -132,10 +132,12 @@ export function parseUrlPath(urlPath, currentNavPath, defaultSessionId) {
                 segments.push(roomsSegmentWithRoom(rooms, roomId, currentNavPath));
             }
             segments.push(new Segment("room", roomId));
-            if (currentNavPath.get("details")?.value) {
-                pushRightPanelSegment(segments, "details");
-            } else if (currentNavPath.get("members")?.value) {
-                pushRightPanelSegment(segments, "members");
+            // Add right-panel segments from previous path
+            const previousSegments = currentNavPath.segments;
+            const i = previousSegments.findIndex(s => s.type === "right-panel");
+            if (i !== -1) {
+                segments.push(previousSegments[i]);
+                segments.push(previousSegments[i + 1]);
             }
         } else if (type === "last-session") {
             let sessionSegment = currentNavPath.get("session");
