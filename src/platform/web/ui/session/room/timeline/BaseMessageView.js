@@ -24,20 +24,22 @@ import {Menu} from "../../../general/Menu.js";
 import {ReactionsView} from "./ReactionsView.js";
 
 export class BaseMessageView extends TemplateView {
-    constructor(value, disabled = false) {
+    constructor(value, disabled = false, tagName = "li") {
         super(value);
         this._menuPopup = null;
+        this._tagName = tagName;
         // TODO An enum could be nice to make code
         //      easier to read at call sites.
         this._disabled = disabled;
     }
 
     render(t, vm) {
-        const li = t.li({className: {
+        const li = t.el(this._tagName, {className: {
             "Timeline_message": true,
             own: vm.isOwn,
             unsent: vm.isUnsent,
             unverified: vm.isUnverified,
+            disabled: this._disabled,
             continuation: vm => vm.isContinuation,
         }}, [
             // dynamically added and removed nodes are handled below
@@ -115,8 +117,8 @@ export class BaseMessageView extends TemplateView {
         const options = [];
         if (vm.canReact && vm.shape !== "redacted") {
             options.push(new QuickReactionsMenuOption(vm));
+            options.push(Menu.option(vm.i18n`Reply`, () => vm.startReply()));
         }
-        options.push(Menu.option(vm.i18n`Reply`, () => vm.startReply()));
         if (vm.canAbortSending) {
             options.push(Menu.option(vm.i18n`Cancel`, () => vm.abortSending()));
         } else if (vm.canRedact) {
