@@ -50,12 +50,12 @@ limitations under the License.
     margin: 0;
 }
 
-.MessageComposer {
+.MessageComposer_input {
     display: flex;
     align-items: center;
 }
 
-.MessageComposer > input {
+.MessageComposer_input > input {
     display: block;
     flex: 1;
     min-width: 0;

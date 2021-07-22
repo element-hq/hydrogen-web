@@ -462,16 +462,16 @@ a {
     color: red;
 }
 
-.MessageComposer {
+.MessageComposer_input {
     border-top: 1px solid rgba(245, 245, 245, 0.90);
     padding: 8px 16px;
 }
 
-.MessageComposer > :not(:first-child) {
+.MessageComposer_input > :not(:first-child) {
     margin-left: 12px;
 }
 
-.MessageComposer > input {
+.MessageComposer_input > input {
     padding: 0 16px;
     border: none;
     border-radius: 24px;
@@ -481,7 +481,7 @@ a {
     font-family: "Inter", sans-serif;
 }
 
-.MessageComposer > button.send {
+.MessageComposer_input > button.send {
     width: 32px;
     height: 32px;
     display: block;
@@ -496,7 +496,7 @@ a {
     background-position: center;
 }
 
-.MessageComposer > button.sendFile {
+.MessageComposer_input > button.sendFile {
     width: 32px;
     height: 32px;
     display: block;
@@ -510,7 +510,7 @@ a {
     background-position: center;
 }
 
-.MessageComposer > button.send:disabled {
+.MessageComposer_input > button.send:disabled {
     background-color: #E3E8F0;
 }
 

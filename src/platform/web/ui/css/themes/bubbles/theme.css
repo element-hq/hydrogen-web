@@ -118,7 +118,7 @@ a {
     color: red;
 }
 
-.MessageComposer > input {
+.MessageComposer_input > input {
     padding: 0.8em;
     border: none;
 }
