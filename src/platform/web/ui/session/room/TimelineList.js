@@ -24,7 +24,7 @@ import {MissingAttachmentView} from "./timeline/MissingAttachmentView.js";
 import {AnnouncementView} from "./timeline/AnnouncementView.js";
 import {RedactedView} from "./timeline/RedactedView.js";
 
-function viewClassForEntry(entry) {
+export function viewClassForEntry(entry) {
     switch (entry.shape) {
         case "gap": return GapView;
         case "announcement": return AnnouncementView;

@@ -18,6 +18,7 @@ import {TemplateView} from "../../general/TemplateView.js";
 import {Popup} from "../../general/Popup.js";
 import {Menu} from "../../general/Menu.js";
 import {TextMessageView} from "./timeline/TextMessageView.js";
+import {viewClassForEntry} from "./TimelineList.js"
 
 export class MessageComposer extends TemplateView {
     constructor(viewModel) {
@@ -33,19 +34,20 @@ export class MessageComposer extends TemplateView {
             onKeydown: e => this._onKeyDown(e),
             onInput: () => vm.setInput(this._input.value),
         });
-        const replyPreview = t.map(vm => vm.replyViewModel, (rvm, t) => !rvm ? null :
-            t.div({
-                className: "MessageComposer_replyPreview"
-            }, [
-                t.span({ className: "replying" }, "Replying"),
-                t.button({
-                    className: "cancel",
-                    onClick: () => this._clearReplyingTo()
-                }, "Close"),
-                // TODO need proper view, not just assumed TextMessageView
-                t.view(new TextMessageView(vm.replyViewModel, true, "div"))
-            ])
-        );
+        const replyPreview = t.map(vm => vm.replyViewModel, (rvm, t) => {
+            const View = rvm && viewClassForEntry(rvm);
+            if (!View) { return null; }
+            return t.div({
+                    className: "MessageComposer_replyPreview"
+                }, [
+                    t.span({ className: "replying" }, "Replying"),
+                    t.button({
+                        className: "cancel",
+                        onClick: () => this._clearReplyingTo()
+                    }, "Close"),
+                    t.view(new View(rvm, true, "div"))
+                ])
+        });
         const input = t.div({className: "MessageComposer_input"}, [
             this._input,
             t.button({
