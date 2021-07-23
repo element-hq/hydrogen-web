@@ -151,8 +151,18 @@ export class BaseEventEntry extends BaseEntry {
         return createAnnotation(this.id, key);
     }
 
+    _formatReplyBody() {
+        // This is just a rough sketch for now.
+        // TODO case-by-case formatting
+        // TODO check for absense?
+        const bodyLines = this.content.body.split("\n");
+        const sender = this.sender;
+        bodyLines[0] = `<${sender}> ${bodyLines[0]}`
+        return `> ${bodyLines.join("\n> ")}\n\n`;
+    }
+
     reply(msgtype, body) {
-        return createReply(this.id, msgtype, body);
+        return createReply(this.id, msgtype, this._formatReplyBody() + body);
     }
 
     /** takes both remote event id and local txn id into account, see overriding in PendingEventEntry */
