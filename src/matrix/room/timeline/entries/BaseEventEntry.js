@@ -151,8 +151,8 @@ export class BaseEventEntry extends BaseEntry {
         return createAnnotation(this.id, key);
     }
 
-    reply() {
-        return createReply(this.id);
+    reply(msgtype, body) {
+        return createReply(this.id, msgtype, body);
     }
 
     /** takes both remote event id and local txn id into account, see overriding in PendingEventEntry */

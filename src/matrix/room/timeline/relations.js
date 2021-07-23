@@ -29,10 +29,14 @@ export function createAnnotation(targetId, key) {
     };
 }
 
-export function createReply(targetId) {
+export function createReply(targetId, msgtype, body) {
     return {
-        "m.in_reply_to": {
-            "event_id": targetId
+        msgtype,
+        body,
+        "m.relates_to": {
+            "m.in_reply_to": {
+                "event_id": targetId
+            }
         }
     };
 }
