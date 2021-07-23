@@ -151,18 +151,48 @@ export class BaseEventEntry extends BaseEntry {
         return createAnnotation(this.id, key);
     }
 
-    _formatReplyBody() {
-        // This is just a rough sketch for now.
-        // TODO case-by-case formatting
+    _fallbackBlurb() {
+        switch (this.content.msgtype) {
+            case "m.file":
+                return "sent a file.";
+            case "m.image":
+                return "sent an image.";
+            case "m.video":
+                return "sent a video.";
+            case "m.audio":
+                return "sent an audio file.";
+        }
+    }
+
+    _fallbackPrefix() {
+        return this.content.msgtype === "m.emote" ? "* " : "";
+    }
+
+    _replyFormattedFallback() {
         // TODO check for absense?
-        const bodyLines = this.content.body.split("\n");
-        const sender = this.sender;
-        bodyLines[0] = `<${sender}> ${bodyLines[0]}`
-        return `> ${bodyLines.join("\n> ")}\n\n`;
+        // TODO escape unformatted body if needed
+        const body = this._fallbackBlurb() || this.content.formatted_body || this.content.body;
+        const prefix = this._fallbackPrefix();
+        return `<mx-reply>
+          <blockquote>
+            In reply to
+            ${prefix}<a href="https://matrix.to/#/${this.sender}">${this.displayName}</a>
+            <br />
+            ${body}
+          </blockquote>
+        </mx-reply>`
+    }
+
+    _replyBodyFallback() {
+        // TODO check for absense?
+        const body = this._fallbackBlurb() || this.content.body;
+        const bodyLines = body.split("\n");
+        bodyLines[0] = `> <${this.sender}> ${bodyLines[0]}`
+        return `${bodyLines.join("\n> ")}`;
     }
 
     reply(msgtype, body) {
-        return createReply(this.id, msgtype, this._formatReplyBody() + body);
+        return createReply(this.id, msgtype, this._replyBodyFallback() + '\n\n' + body);
     }
 
     /** takes both remote event id and local txn id into account, see overriding in PendingEventEntry */
