@@ -75,10 +75,6 @@ export class MemberDetailsViewModel extends ViewModel {
         return this._isEncrypted;
     }
 
-    get dmLink() {
-        return `${this.urlCreator.urlUntilSegment("session")}/open-room/${this._member.userId}`;
-    }
-
     get linkToUser() {
         return `https://matrix.to/#/${this._member.userId}`;
     }
