@@ -29,10 +29,12 @@ export function createAnnotation(targetId, key) {
     };
 }
 
-export function createReply(targetId, msgtype, body) {
+export function createReply(targetId, msgtype, body, formattedBody) {
     return {
         msgtype,
         body,
+        "format": "org.matrix.custom.html",
+        "formatted_body": formattedBody,
         "m.relates_to": {
             "m.in_reply_to": {
                 "event_id": targetId

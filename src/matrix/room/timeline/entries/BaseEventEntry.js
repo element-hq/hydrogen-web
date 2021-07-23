@@ -170,7 +170,7 @@ export class BaseEventEntry extends BaseEntry {
 
     _replyFormattedFallback() {
         // TODO check for absense?
-        // TODO escape unformatted body if needed
+        // TODO escape and tranform unformatted body as needed
         const body = this._fallbackBlurb() || this.content.formatted_body || this.content.body;
         const prefix = this._fallbackPrefix();
         return `<mx-reply>
@@ -192,7 +192,9 @@ export class BaseEventEntry extends BaseEntry {
     }
 
     reply(msgtype, body) {
-        return createReply(this.id, msgtype, this._replyBodyFallback() + '\n\n' + body);
+        const newBody = this._replyBodyFallback() + '\n\n' + body;
+        const newFormattedBody = this._replyFormattedFallback() + body;
+        return createReply(this.id, msgtype, newBody, newFormattedBody);
     }
 
     /** takes both remote event id and local txn id into account, see overriding in PendingEventEntry */
