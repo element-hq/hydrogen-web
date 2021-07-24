@@ -167,6 +167,8 @@ export class LazyListView extends ListView {
 
     mount() {
         const root = super.mount();
+        this._subscription = this._list.subscribe(this);
+        this._childInstances = [];
         this._parent = el("div", {className: "LazyListParent"}, root);
         /*
         Hooking to scroll events can be expensive.
@@ -180,17 +182,12 @@ export class LazyListView extends ListView {
     update(attributes) {
         this._renderRange = null;
         super.update(attributes);
+        this._childInstances = [];
         this._initialRender();
     }
 
     loadList() {
-        if (!this._list) { return; }
-        this._subscription = this._list.subscribe(this);
-        this._childInstances = [];
-        /*
-        super.loadList() would render the entire list at this point.
-        We instead lazy render a part of the list in _renderIfNeeded
-        */
+        // We don't render the entire list; so nothing to see here.
     }
 
     _removeChild(child) {
