@@ -18,6 +18,11 @@ import {el} from "./html.js";
 import {mountView} from "./utils.js";
 import {insertAt, ListView} from "./ListView.js";
 
+class ScrollDirection {
+    static get downwards() { return 1; }
+    static get upwards() { return -1; }
+}
+
 class ItemRange {
     constructor(topCount, renderCount, bottomCount) {
         this.topCount = topCount;
@@ -55,6 +60,10 @@ class ItemRange {
         );
     }
 
+    get lastIndex() {
+        return this.topCount + this.renderCount;
+    }
+
     totalSize() {
         return this.topCount + this.renderCount + this.bottomCount;
     }
@@ -67,6 +76,23 @@ class ItemRange {
         in DOM tree/childInstance array.
         */
         return idx - this.topCount;
+    }
+
+    scrollDirectionTo(range) {
+        return range.bottomCount < this.bottomCount ? ScrollDirection.downwards : ScrollDirection.upwards;
+    }
+
+    diff(range) {
+        const diffResult = {};
+        if (this.scrollDirectionTo(range) === ScrollDirection.downwards) {
+            diffResult.toRemove = { start: this.topCount, end: range.topCount - 1 };
+            diffResult.toAdd = { start: this.lastIndex + 1, end: range.lastIndex };
+        }
+        else {
+            diffResult.toRemove = { start: range.lastIndex + 1, end: this.lastIndex };
+            diffResult.toAdd = { start: range.topCount, end: this.topCount - 1 };
+        }
+        return diffResult;
     }
 }
 
@@ -100,6 +126,9 @@ export class LazyListView extends ListView {
         // only update render Range if the new range + overflowMargin isn't contained by the old anymore 
         // or if we are force rendering
         if (forceRender || !this._renderRange.contains(intersectRange)) {
+            console.log("new", renderRange);
+            console.log("current", this._renderRange);
+            console.log("diff", this._renderRange.diff(renderRange));
             this._renderRange = renderRange;
             this._renderElementsInRange();
         }
@@ -145,13 +174,18 @@ export class LazyListView extends ListView {
         return null;
     }
 
-    _renderElementsInRange() {
+    _adjustPadding() {
+
+    }
+    
+    _renderElementsInRange(range) {
         const { topCount, renderCount, bottomCount } = this._renderRange;
+        const renderedItems = this._itemsFromList(topCount, topCount + renderCount);
         const paddingTop = topCount * this._itemHeight;
         const paddingBottom = bottomCount * this._itemHeight;
-        const renderedItems = this._itemsFromList(topCount, topCount + renderCount);
         this._root.style.paddingTop = `${paddingTop}px`;
         this._root.style.paddingBottom = `${paddingBottom}px`;
+
         for (const child of this._childInstances) {
             this._removeChild(child);
         }
