@@ -56,6 +56,7 @@ class HTMLParseResult {
 
 const sanitizeConfig = {
     ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|xxx|mxc):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
+    ADD_TAGS: ['mx-reply']
 }
 
 export function parseHTML(html) {
