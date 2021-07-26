@@ -19,6 +19,10 @@ import {REDACTION_TYPE} from "../../common.js";
 import {createAnnotation, createReply, ANNOTATION_RELATION_TYPE, getRelationFromContent} from "../relations.js";
 import {PendingAnnotation} from "../PendingAnnotation.js";
 
+function htmlEscape(string) {
+    return string.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 /** Deals mainly with local echo for relations and redactions,
  * so it is shared between PendingEventEntry and EventEntry */
 export class BaseEventEntry extends BaseEntry {
@@ -168,15 +172,21 @@ export class BaseEventEntry extends BaseEntry {
         return this.content.msgtype === "m.emote" ? "* " : "";
     }
 
+    get _formattedBody() {
+        return this.content.formatted_body || (this.content.body && htmlEscape(this.content.body));
+    }
+
+    get _plainBody() {
+        return this.content.body;
+    }
+
     _replyFormattedFallback() {
-        // TODO check for absense?
-        // TODO escape and tranform unformatted body as needed
-        const body = this._fallbackBlurb() || this.content.formatted_body || this.content.body;
+        const body = this._fallbackBlurb() || this._formattedBody || "";
         const prefix = this._fallbackPrefix();
         return `<mx-reply>
           <blockquote>
             In reply to
-            ${prefix}<a href="https://matrix.to/#/${this.sender}">${this.displayName}</a>
+            ${prefix}<a href="https://matrix.to/#/${this.sender}">${this.displayName || this.sender}</a>
             <br />
             ${body}
           </blockquote>
@@ -184,16 +194,16 @@ export class BaseEventEntry extends BaseEntry {
     }
 
     _replyBodyFallback() {
-        // TODO check for absense?
-        const body = this._fallbackBlurb() || this.content.body;
+        const body = this._fallbackBlurb() || this._plainBody || "";
         const bodyLines = body.split("\n");
         bodyLines[0] = `> <${this.sender}> ${bodyLines[0]}`
-        return `${bodyLines.join("\n> ")}`;
+        return bodyLines.join("\n> ");
     }
 
     reply(msgtype, body) {
+        // TODO check for absense of sender / body / msgtype / etc?
         const newBody = this._replyBodyFallback() + '\n\n' + body;
-        const newFormattedBody = this._replyFormattedFallback() + body;
+        const newFormattedBody = this._replyFormattedFallback() + htmlEscape(body);
         return createReply(this.id, msgtype, newBody, newFormattedBody);
     }
 
