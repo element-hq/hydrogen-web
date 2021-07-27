@@ -190,10 +190,10 @@ export class BaseEventEntry extends BaseEntry {
             <br />
             ${body}
           </blockquote>
-        </mx-reply>`
+        </mx-reply>`;
     }
 
-    _replyBodyFallback() {
+    _replyPlainFallback() {
         const body = this._fallbackBlurb() || this._plainBody || "";
         const bodyLines = body.split("\n");
         bodyLines[0] = `> <${this.sender}> ${bodyLines[0]}`
@@ -202,7 +202,7 @@ export class BaseEventEntry extends BaseEntry {
 
     reply(msgtype, body) {
         // TODO check for absense of sender / body / msgtype / etc?
-        const newBody = this._replyBodyFallback() + '\n\n' + body;
+        const newBody = this._replyPlainFallback() + '\n\n' + body;
         const newFormattedBody = this._replyFormattedFallback() + htmlEscape(body);
         return createReply(this.id, msgtype, newBody, newFormattedBody);
     }

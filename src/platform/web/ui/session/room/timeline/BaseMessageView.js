@@ -28,8 +28,7 @@ export class BaseMessageView extends TemplateView {
         super(value);
         this._menuPopup = null;
         this._tagName = tagName;
-        // TODO An enum could be nice to make code
-        //      easier to read at call sites.
+        // TODO An enum could be nice to make code easier to read at call sites.
         this._disabled = disabled;
     }
 
@@ -56,7 +55,7 @@ export class BaseMessageView extends TemplateView {
             if (isContinuation && wasContinuation === false && !this._disabled) {
                 li.removeChild(li.querySelector(".Timeline_messageAvatar"));
                 li.removeChild(li.querySelector(".Timeline_messageSender"));
-            } else if (!isContinuation || this._disabled) {
+            } else if (!isContinuation && !this._disabled) {
                 li.insertBefore(renderStaticAvatar(vm, 30, "Timeline_messageAvatar"), li.firstChild);
                 li.insertBefore(tag.div({className: `Timeline_messageSender usercolor${vm.avatarColorNumber}`}, vm.displayName), li.firstChild);
             }
