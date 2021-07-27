@@ -134,6 +134,10 @@ export class HomeServerApi {
         return this._get(`/rooms/${encodeURIComponent(roomId)}/state/${encodeURIComponent(eventType)}/${encodeURIComponent(stateKey)}`, {}, null, options);
     }
 
+    queryLogin() {
+        return this._unauthedRequest("GET", this._url("/login"), null, null, null);
+    }
+
     passwordLogin(username, password, initialDeviceDisplayName, options = null) {
         return this._unauthedRequest("POST", this._url("/login"), null, {
           "type": "m.login.password",

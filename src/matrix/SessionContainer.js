@@ -97,6 +97,12 @@ export class SessionContainer {
         });
     }
 
+    async queryLogin(homeServer) {
+        homeServer = normalizeHomeserver(homeServer);
+        const hsApi = new HomeServerApi({homeServer, request: this._platform.request});
+        const response = hsApi.queryLogin();
+    }
+
     async startWithLogin(homeServer, username, password) {
         if (this._status.get() !== LoadStatus.NotLoading) {
             return;
