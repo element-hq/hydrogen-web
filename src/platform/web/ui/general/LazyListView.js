@@ -83,16 +83,17 @@ class ItemRange {
     }
 
     diff(range) {
-        const diffResult = {};
-        if (this.scrollDirectionTo(range) === ScrollDirection.downwards) {
-            diffResult.toRemove = { start: this.topCount, end: range.topCount - 1 };
-            diffResult.toAdd = { start: this.lastIndex + 1, end: range.lastIndex };
+        const scrollDirection = this.scrollDirectionTo(range);
+        let toRemove, toAdd;
+        if (scrollDirection === ScrollDirection.downwards) {
+            toRemove = { start: this.topCount, end: range.topCount - 1 };
+            toAdd = { start: this.lastIndex, end: range.lastIndex };
         }
         else {
-            diffResult.toRemove = { start: range.lastIndex + 1, end: this.lastIndex };
-            diffResult.toAdd = { start: range.topCount, end: this.topCount - 1 };
+            toRemove = { start: range.lastIndex, end: this.lastIndex };
+            toAdd = { start: range.topCount, end: this.topCount - 1 };
         }
-        return diffResult;
+        return { toRemove, toAdd, scrollDirection };
     }
 }
 
@@ -129,8 +130,7 @@ export class LazyListView extends ListView {
             console.log("new", renderRange);
             console.log("current", this._renderRange);
             console.log("diff", this._renderRange.diff(renderRange));
-            this._renderRange = renderRange;
-            this._renderElementsInRange();
+            this._renderElementsInRange(renderRange);
         }
     }
 
@@ -148,7 +148,18 @@ export class LazyListView extends ListView {
         const range = this._getVisibleRange();
         const renderRange = range.expand(this._overflowItems);
         this._renderRange = renderRange;
-        this._renderElementsInRange();
+
+        const { topCount, renderCount } = this._renderRange;
+        const renderedItems = this._itemsFromList(topCount, topCount + renderCount);
+        this._adjustPadding(renderRange);
+        this._childInstances = [];
+        const fragment = document.createDocumentFragment();
+        for (const item of renderedItems) {
+            const view = this._childCreator(item);
+            this._childInstances.push(view);
+            fragment.appendChild(mountView(view, this._mountArgs));
+        }
+        this._root.appendChild(fragment);
     }
 
     _itemsFromList(start, end) {
@@ -174,29 +185,58 @@ export class LazyListView extends ListView {
         return null;
     }
 
-    _adjustPadding() {
-
-    }
-    
-    _renderElementsInRange(range) {
-        const { topCount, renderCount, bottomCount } = this._renderRange;
-        const renderedItems = this._itemsFromList(topCount, topCount + renderCount);
+    _adjustPadding(range) {
+        const { topCount, bottomCount } = range;
         const paddingTop = topCount * this._itemHeight;
         const paddingBottom = bottomCount * this._itemHeight;
         this._root.style.paddingTop = `${paddingTop}px`;
         this._root.style.paddingBottom = `${paddingBottom}px`;
+    }
 
-        for (const child of this._childInstances) {
-            this._removeChild(child);
-        }
-        this._childInstances = [];
+    _renderedFragment(items, childInstanceModifier) {
         const fragment = document.createDocumentFragment();
-        for (const item of renderedItems) {
+        for (const item of items) {
             const view = this._childCreator(item);
-            this._childInstances.push(view);
+            childInstanceModifier(view);
             fragment.appendChild(mountView(view, this._mountArgs));
         }
-        this._root.appendChild(fragment);
+        return fragment;
+    }
+
+    _renderElementsInRange(range) {
+        const diff = this._renderRange.diff(range);
+        const {start, end} = diff.toAdd;
+        const renderedItems = this._itemsFromList(start, end);
+        this._adjustPadding(range);
+
+        if (diff.scrollDirection === ScrollDirection.downwards) {
+            const {start, end} = diff.toRemove;
+            this._childInstances.splice(0, end - start + 1)
+                                .forEach(child => this._removeChild(child));
+            const fragment = this._renderedFragment(renderedItems, view => this._childInstances.push(view));
+            this._root.appendChild(fragment);
+        }
+        else {
+            const {start, end} = diff.toRemove;
+            const normalizedStart = this._renderRange.normalize(start);
+            this._childInstances.splice(normalizedStart, end - start + 1)
+                                .forEach(child => this._removeChild(child));
+            const fragment = this._renderedFragment(renderedItems, view => this._childInstances.unshift(view));
+            this._root.insertBefore(fragment, this._root.firstChild);
+        }
+        this._renderRange = range;
+        // for (const child of this._childInstances) {
+        //     this._removeChild(child);
+        // }
+        // this._childInstances = [];
+
+        // const fragment = document.createDocumentFragment();
+        // for (const item of renderedItems) {
+        //     const view = this._childCreator(item);
+        //     this._childInstances.push(view);
+        //     fragment.appendChild(mountView(view, this._mountArgs));
+        // }
+        // this._root.appendChild(fragment);
     }
 
     mount() {
