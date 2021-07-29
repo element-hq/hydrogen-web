@@ -28,7 +28,7 @@ You can only verify by comparing keys manually currently. In Element, go to your
 
 ## I want to host my own Hydrogen, how do I do that?
 
-There are no published builds at this point. You need to checkout the version you want to build, or master if you want to run bleeding edge, and run `yarn init` and then `yarn build` in a console (and install nodejs > 14 and yarn if you haven't yet). Now you should find all the files needed to host Hydrogen in the `target/` folder, just copy them all over to your server. As always, don't host your client on the same [origin](https://web.dev/same-origin-policy/#what's-considered-same-origin) as your homeserver.
+There are no published builds at this point. You need to checkout the version you want to build, or master if you want to run bleeding edge, and run `yarn install` and then `yarn build` in a console (and install nodejs > 14 and yarn if you haven't yet). Now you should find all the files needed to host Hydrogen in the `target/` folder, just copy them all over to your server. As always, don't host your client on the same [origin](https://web.dev/same-origin-policy/#what's-considered-same-origin) as your homeserver.
 
 ## I want to embed Hydrogen in my website, how should I do that?
 
