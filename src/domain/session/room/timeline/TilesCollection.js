@@ -181,6 +181,8 @@ export class TilesCollection extends BaseObservableList {
     }
 
     _replaceTile(tileIdx, existingTile, newTile, updateParams) {
+        // TODO What happens with a tile that's being replied to? Can we have
+        //      reference counting of some sort?
         existingTile.dispose();
         const prevTile = this._getTileAtIdx(tileIdx - 1);
         const nextTile = this._getTileAtIdx(tileIdx + 1);
