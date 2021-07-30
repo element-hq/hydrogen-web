@@ -28,6 +28,10 @@ export const SendStatus = createEnum(
     "Error",
 );
 
+const preservedContentFields = {
+    "m.room.message": [ "m.relates_to" ]
+};
+
 export class PendingEvent {
     constructor({data, remove, emitUpdate, attachments}) {
         this._data = data;
@@ -96,7 +100,20 @@ export class PendingEvent {
         this._emitUpdate("status");
     }
 
+    _preserveContentFields(into) {
+        const preservedFields = preservedContentFields[this.eventType];
+        if (preservedFields) {
+            const content = this._data.content;
+            for (const field of preservedFields) {
+                if (content[field] !== undefined) {
+                    into[field] = content[field];
+                }
+            }
+        }
+    }
+
     setEncrypted(type, content) {
+        this._preserveContentFields(content);
         this._data.encryptedEventType = type;
         this._data.encryptedContent = content;
         this._data.needsEncryption = false;
