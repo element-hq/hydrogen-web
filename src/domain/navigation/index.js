@@ -152,6 +152,10 @@ export function parseUrlPath(urlPath, currentNavPath, defaultSessionId) {
             const userId = iterator.next().value;
             if (!userId) { break; }
             pushRightPanelSegment(segments, type, userId);
+        } else if (type.includes("loginToken")) {
+            // Special case for SSO-login with query parameter loginToken=<token>
+            const loginToken = type.split("=").pop();
+            segments.push(new Segment("sso", loginToken));
         } else {
             // might be undefined, which will be turned into true by Segment 
             const value = iterator.next().value;
