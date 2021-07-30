@@ -4,6 +4,7 @@ export class LoginMethod {
         this._platform = platform;
     }
 
+    // eslint-disable-next-line no-unused-vars
     async login(hsApi, deviceName) {
         throw("Not Implemented");
     }
