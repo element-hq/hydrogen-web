@@ -38,7 +38,7 @@ export class SessionLoadViewModel extends ViewModel {
         try {
             this._loading = true;
             this.emitChange("loading");
-            this._sessionContainer = this._createAndStartSessionContainer();
+            this._sessionContainer = await this._createAndStartSessionContainer();
             this._waitHandle = this._sessionContainer.loadStatus.waitFor(s => {
                 this.emitChange("loadLabel");
                 // wait for initial sync, but not catchup sync

@@ -47,10 +47,12 @@ export class LoginViewModel extends ViewModel {
             this._loadViewModel = this.disposeTracked(this._loadViewModel);
         }
         this._loadViewModel = this.track(new SessionLoadViewModel(this.childOptions({
-            createAndStartSessionContainer: () => {
+            createAndStartSessionContainer: async () => {
                 this._sessionContainer = this._createSessionContainer();
-                this._sessionContainer.queryLogin(homeserver);
-                this._sessionContainer.startWithLogin(homeserver, username, password);
+                const loginOptions =  await this._sessionContainer.queryLogin(homeserver);
+                if (loginOptions.password) {
+                    this._sessionContainer.startWithLogin(loginOptions.password(username, password));
+                }
                 return this._sessionContainer;
             },
             ready: sessionContainer => {

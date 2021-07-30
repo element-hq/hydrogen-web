@@ -23,6 +23,7 @@ import {MediaRepository} from "./net/MediaRepository.js";
 import {RequestScheduler} from "./net/RequestScheduler.js";
 import {Sync, SyncStatus} from "./Sync.js";
 import {Session} from "./Session.js";
+import {PasswordLoginMethod} from "./PasswordLoginMethod.js";
 
 export const LoadStatus = createEnum(
     "NotLoading",
@@ -97,25 +98,40 @@ export class SessionContainer {
         });
     }
 
+    parseLoginOptions(options, homeServer) {
+        /* Take server response and return new object which has two props password and sso which
+        implements LoginMethod
+        */
+        const flows = options.flows;
+        const result = {};
+        for (const flow of flows) {
+            if (flow.type === "m.login.password") {
+                result.password = (username, password) => new PasswordLoginMethod({homeServer, username, password, platform: this._platform});
+            }
+        }
+        return result;
+    }
+
     async queryLogin(homeServer) {
         homeServer = normalizeHomeserver(homeServer);
         const hsApi = new HomeServerApi({homeServer, request: this._platform.request});
-        const response = hsApi.queryLogin();
+        const response = await hsApi.queryLogin().response();
+        return this.parseLoginOptions(response, homeServer);
     }
 
-    async startWithLogin(homeServer, username, password) {
+    async startWithLogin(loginMethod) {
         if (this._status.get() !== LoadStatus.NotLoading) {
             return;
         }
         await this._platform.logger.run("login", async log => {
             this._status.set(LoadStatus.Login);
-            homeServer = normalizeHomeserver(homeServer);
             const clock = this._platform.clock;
             let sessionInfo;
             try {
                 const request = this._platform.request;
+                const homeServer = normalizeHomeserver(loginMethod.homeServer);
                 const hsApi = new HomeServerApi({homeServer, request});
-                const loginData = await hsApi.passwordLogin(username, password, "Hydrogen", {log}).response();
+                const loginData = await loginMethod.login(hsApi, "Hydrogen", log);
                 const sessionId = this.createNewSessionId();
                 sessionInfo = {
                     id: sessionId,
