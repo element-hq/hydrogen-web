@@ -23,7 +23,7 @@ import {MediaRepository} from "./net/MediaRepository.js";
 import {RequestScheduler} from "./net/RequestScheduler.js";
 import {Sync, SyncStatus} from "./Sync.js";
 import {Session} from "./Session.js";
-import {PasswordLoginMethod} from "./PasswordLoginMethod.js";
+import {PasswordLoginMethod} from "./login/PasswordLoginMethod.js";
 
 export const LoadStatus = createEnum(
     "NotLoading",
