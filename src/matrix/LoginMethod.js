@@ -22,6 +22,10 @@ export class LoginMethod {
 
     // eslint-disable-next-line no-unused-vars
     async login(hsApi, deviceName) {
+        /*
+        Regardless of the login method, SessionContainer.startWithLogin()
+        can do SomeLoginMethod.login()
+        */
         throw("Not Implemented");
     }
 }
