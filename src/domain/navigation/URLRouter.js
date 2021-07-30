@@ -120,4 +120,8 @@ export class URLRouter {
         const urlPath = `${this._stringifyPath(this._navigation.path.until("session"))}/open-room/${roomId}`;
         return this._history.pathAsUrl(urlPath);
     }
+
+    createSSOCallbackURL() {
+        return window.location.origin;
+    }
 }
