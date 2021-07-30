@@ -232,6 +232,12 @@ export function tests() {
             const urlPath = stringifyPath(path);
             assert.equal(urlPath, "/session/1/rooms/a,b,c/1/details");
         },
+        "Parse loginToken query parameter into SSO segment": assert => {
+            const segments = parseUrlPath("/?loginToken=a1232aSD123");
+            assert.equal(segments.length, 1);
+            assert.equal(segments[0].type, "sso");
+            assert.equal(segments[0].value, "a1232aSD123");
+        },
         "parse grid url path with focused empty tile": assert => {
             const segments = parseUrlPath("/session/1/rooms/a,b,c/3");
             assert.equal(segments.length, 3);
