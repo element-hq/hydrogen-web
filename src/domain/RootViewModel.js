@@ -35,12 +35,16 @@ export class RootViewModel extends ViewModel {
     async load() {
         this.track(this.navigation.observe("login").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("session").subscribe(() => this._applyNavigation()));
+        this.track(this.navigation.observe("sso").subscribe(() => {
+            this._applyNavigation();
+        }));
         this._applyNavigation(true);
     }
 
     async _applyNavigation(shouldRestoreLastUrl) {
         const isLogin = this.navigation.observe("login").get();
         const sessionId = this.navigation.observe("session").get();
+        const SSOSegment = this.navigation.path.get("sso");
         if (isLogin) {
             if (this.activeSection !== "login") {
                 this._showLogin();
@@ -65,7 +69,10 @@ export class RootViewModel extends ViewModel {
                     this._showSessionLoader(sessionId);
                 }
             }
-        } else {
+        } else if (SSOSegment) {
+            this._setSection(() => this.showCompletionView = true);
+        }
+        else {
             try {
                 if (!(shouldRestoreLastUrl && this.urlCreator.tryRestoreLastUrl())) {
                     const sessionInfos = await this.platform.sessionInfoStorage.getAll();
@@ -147,6 +154,8 @@ export class RootViewModel extends ViewModel {
             return "picker";
         } else if (this._sessionLoadViewModel) {
             return "loading";
+        } else if (this.showCompletionView) {
+            return "sso";
         } else {
             return "redirecting";
         }
