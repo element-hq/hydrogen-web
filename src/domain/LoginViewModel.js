@@ -17,6 +17,14 @@ limitations under the License.
 import {ViewModel} from "./ViewModel.js";
 import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
 
+function normalizeHomeserver(homeServer) {
+    try {
+        return new URL(homeServer).origin;
+    } catch (err) {
+        return new URL(`https://${homeServer}`).origin;
+    }
+}
+
 export class LoginViewModel extends ViewModel {
     constructor(options) {
         super(options);
@@ -27,6 +35,8 @@ export class LoginViewModel extends ViewModel {
         this._sessionContainer = null;
         this._loadViewModel = null;
         this._loadViewModelSubscription = null;
+        this._supportsSSOLogin = false;
+        this.queryLogin();
     }
 
     get defaultHomeServer() { return this._defaultHomeServer; }
@@ -41,6 +51,31 @@ export class LoginViewModel extends ViewModel {
         }
     }
 
+    async queryLogin(homeServer = this.defaultHomeServer) {
+        // See if we support SSO, if so shows SSO link
+        /* For this, we'd need to poll queryLogin before we do login()
+        */
+        if (!this._sessionContainer) {
+            this._sessionContainer = this._createSessionContainer();
+        }
+        const normalizedHS = normalizeHomeserver(homeServer);
+        try {
+            this.loginOptions = await this._sessionContainer.queryLogin(normalizedHS);
+            this._supportsSSOLogin = !!this.loginOptions.sso;
+        }
+        catch (e) {
+            // Something went wrong, assume SSO is not supported
+            this._supportsSSOLogin = false;
+            console.error("Could not query login methods supported by the homeserver");
+        }
+        this.emitChange("supportsSSOLogin");
+    }
+
+    queryLoginFromInput() {
+        const homeServer = document.querySelector("#homeserver").value;
+        this.queryLogin(homeServer);
+    }
+
     async login(username, password, homeserver) {
         this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
         if (this._loadViewModel) {
@@ -48,10 +83,8 @@ export class LoginViewModel extends ViewModel {
         }
         this._loadViewModel = this.track(new SessionLoadViewModel(this.childOptions({
             createAndStartSessionContainer: async () => {
-                this._sessionContainer = this._createSessionContainer();
-                const loginOptions =  await this._sessionContainer.queryLogin(homeserver);
-                if (loginOptions.password) {
-                    this._sessionContainer.startWithLogin(loginOptions.password(username, password));
+                if (this.loginOptions.password) {
+                    this._sessionContainer.startWithLogin(this.loginOptions.password(username, password));
                 }
                 return this._sessionContainer;
             },
@@ -74,6 +107,10 @@ export class LoginViewModel extends ViewModel {
 
     get cancelUrl() {
         return this.urlCreator.urlForSegment("session");
+    }
+
+    get supportsSSOLogin() {
+        return this._supportsSSOLogin;
     }
 
     dispose() {
