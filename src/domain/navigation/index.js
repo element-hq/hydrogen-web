@@ -180,7 +180,8 @@ export function stringifyPath(path) {
                 }
                 break;
             case "right-panel":
-                // Ignore right-panel in url
+            case "sso":
+                // Do not put these segments in URL
                 continue;
             default:
                 urlPath += `/${segment.type}`;
