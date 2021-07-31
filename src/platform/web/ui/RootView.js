@@ -20,6 +20,7 @@ import {SessionLoadView} from "./login/SessionLoadView.js";
 import {SessionPickerView} from "./login/SessionPickerView.js";
 import {TemplateView} from "./general/TemplateView.js";
 import {StaticView} from "./general/StaticView.js";
+import {CompleteSSOView} from "../../../domain/CompleteSSOView.js";
 
 export class RootView extends TemplateView {
     render(t, vm) {
@@ -42,6 +43,8 @@ export class RootView extends TemplateView {
                     return new StaticView(t => t.p("Redirecting..."));
                 case "loading":
                     return new SessionLoadView(vm.sessionLoadViewModel);
+                case "sso":
+                    return new CompleteSSOView();
                 default:
                     throw new Error(`Unknown section: ${vm.activeSection}`);
             }
