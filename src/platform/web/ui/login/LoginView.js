@@ -38,7 +38,7 @@ export class LoginView extends TemplateView {
             type: "text",
             placeholder: vm.i18n`Your matrix homeserver`,
             value: vm.defaultHomeServer,
-            onChange: () => vm.queryLoginFromInput(),
+            onChange: () => vm.queryLogin(homeserver.value),
             disabled
         });
         
