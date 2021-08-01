@@ -43,14 +43,6 @@ export const LoginFailure = createEnum(
     "Unknown",
 );
 
-function normalizeHomeserver(homeServer) {
-    try {
-        return new URL(homeServer).origin;
-    } catch (err) {
-        return new URL(`https://${homeServer}`).origin;
-    }
-}
-
 export class SessionContainer {
     constructor({platform, olmPromise, workerPromise}) {
         this._platform = platform;
@@ -113,7 +105,6 @@ export class SessionContainer {
     }
 
     async queryLogin(homeServer) {
-        homeServer = normalizeHomeserver(homeServer);
         const hsApi = new HomeServerApi({homeServer, request: this._platform.request});
         const response = await hsApi.queryLogin().response();
         return this.parseLoginOptions(response, homeServer);
@@ -129,15 +120,14 @@ export class SessionContainer {
             let sessionInfo;
             try {
                 const request = this._platform.request;
-                const homeServer = normalizeHomeserver(loginMethod.homeServer);
-                const hsApi = new HomeServerApi({homeServer, request});
+                const hsApi = new HomeServerApi({homeServer: loginMethod.homeServer, request});
                 const loginData = await loginMethod.login(hsApi, "Hydrogen", log);
                 const sessionId = this.createNewSessionId();
                 sessionInfo = {
                     id: sessionId,
                     deviceId: loginData.device_id,
                     userId: loginData.user_id,
-                    homeServer: homeServer,
+                    homeServer: loginMethod.homeServer,
                     accessToken: loginData.access_token,
                     lastUsed: clock.now()
                 };
