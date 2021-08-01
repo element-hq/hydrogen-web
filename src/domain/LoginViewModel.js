@@ -71,11 +71,6 @@ export class LoginViewModel extends ViewModel {
         this.emitChange("supportsSSOLogin");
     }
 
-    queryLoginFromInput() {
-        const homeServer = document.querySelector("#homeserver").value;
-        this.queryLogin(homeServer);
-    }
-
     async login(username, password, homeserver) {
         this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
         if (this._loadViewModel) {
