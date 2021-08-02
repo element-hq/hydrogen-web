@@ -106,7 +106,7 @@ export class SessionContainer {
         const result = {};
         for (const flow of flows) {
             if (flow.type === "m.login.password") {
-                result.password = (username, password) => new PasswordLoginMethod({homeServer, username, password, platform: this._platform});
+                result.password = (username, password) => new PasswordLoginMethod({homeServer, username, password});
             }
         }
         return result;
