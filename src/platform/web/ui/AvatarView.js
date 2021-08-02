@@ -1,6 +1,5 @@
 import {BaseUpdateView} from "./general/BaseUpdateView.js";
 import {renderStaticAvatar, renderImg} from "./avatar.js";
-import {text} from "./general/html.js";
 
 /*
 optimization to not use a sub view when changing between img and text
