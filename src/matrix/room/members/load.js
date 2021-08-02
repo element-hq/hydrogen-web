@@ -108,7 +108,16 @@ async function loadMember({roomId, userId, storage}) {
 }
 
 async function fetchMember({roomId, userId, hsApi, storage}, log) {
-    const memberData = await hsApi.state(roomId, "m.room.member", userId, {log}).response();
+    let memberData;
+    try {
+        memberData = await hsApi.state(roomId, "m.room.member", userId, { log }).response();
+    }
+    catch (error) {
+        if (error.name === "HomeServerError" && error.errcode === "M_NOT_FOUND") {
+            return null;
+        }
+        throw error;
+    }
     const member = new RoomMember({
         roomId,
         userId,
