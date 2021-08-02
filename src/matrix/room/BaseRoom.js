@@ -233,7 +233,7 @@ export class BaseRoom extends EventEmitter {
             hsApi: this._hsApi
         }, this._platform.logger);
         if (!member) {
-            return false;
+            return null;
         }
         const observableMember = new RetainedObservableValue(member, () => this._observedMembers.delete(userId));
         this._observedMembers.set(userId, observableMember);
