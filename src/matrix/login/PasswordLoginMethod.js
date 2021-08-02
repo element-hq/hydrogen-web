@@ -23,9 +23,7 @@ export class PasswordLoginMethod extends LoginMethod {
         this.password = options.password;
     }
 
-    async login(hsApi, deviceName) {
-        return this._platform.logger.run("passwordLogin", async log => 
-            await hsApi.passwordLogin(this.username, this.password, deviceName, {log}).response()
-        );
+    async login(hsApi, deviceName, log) {
+        return await hsApi.passwordLogin(this.username, this.password, deviceName, {log}).response();
     }
 }

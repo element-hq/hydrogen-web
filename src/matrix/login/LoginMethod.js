@@ -15,13 +15,12 @@ limitations under the License.
 */
 
 export class LoginMethod {
-    constructor({homeServer, platform}) {
+    constructor({homeServer}) {
         this.homeServer = homeServer;
-        this._platform = platform;
     }
 
     // eslint-disable-next-line no-unused-vars
-    async login(hsApi, deviceName) {
+    async login(hsApi, deviceName, log) {
         /*
         Regardless of the login method, SessionContainer.startWithLogin()
         can do SomeLoginMethod.login()
