@@ -21,7 +21,7 @@ import {RelationWriter} from "./timeline/persistence/RelationWriter.js";
 import {Timeline} from "./timeline/Timeline.js";
 import {FragmentIdComparer} from "./timeline/FragmentIdComparer.js";
 import {WrappedError} from "../error.js"
-import {fetchOrLoadMembers, loadMember} from "./members/load.js";
+import {fetchOrLoadMembers, fetchOrLoadMember} from "./members/load.js";
 import {MemberList} from "./members/MemberList.js";
 import {Heroes} from "./members/Heroes.js";
 import {EventEntry} from "./timeline/entries/EventEntry.js";
@@ -224,8 +224,14 @@ export class BaseRoom extends EventEmitter {
             // Hit, we're already observing this member
             return mapMember;
         }
-        // Miss, load from storage and set in map
-        const member = await loadMember({roomId: this._roomId, userId, storage: this._storage});
+        // Miss, load from storage/hs and set in map
+        const member = await fetchOrLoadMember({
+            summary: this._summary,
+            roomId: this._roomId,
+            userId,
+            storage: this._storage,
+            hsApi: this._hsApi
+        }, this._platform.logger);
         if (!member) {
             return false;
         }
