@@ -25,7 +25,7 @@ export class MemberDetailsViewModel extends ViewModel {
         this._member = this._observableMember.get();
         this._isEncrypted = options.isEncrypted;
         this._powerLevelsObservable = options.powerLevelsObservable;
-        this._powerLevel = this._powerLevelsObservable.get().getUserLevel(this._member.userId);
+        this._powerLevel = null;
         this.track(this._powerLevelsObservable.subscribe(() => this._onPowerLevelsChange()));
         this.track(this._observableMember.subscribe( () => this._onMemberChange()));
     }
@@ -38,10 +38,10 @@ export class MemberDetailsViewModel extends ViewModel {
     get previousSegmentName() { return "members"; }
     
     get role() {
-        if (this._powerLevel >= 100) { return "Admin"; }
-        else if (this._powerLevel >= 50) { return "Moderator"; }
-        else if (this._powerLevel === 0) { return "Default"; }
-        else { return `Custom (${this._powerLevel})`; }
+        if (this.powerLevel >= 100) { return "Admin"; }
+        else if (this.powerLevel >= 50) { return "Moderator"; }
+        else if (this.powerLevel === 0) { return "Default"; }
+        else { return `Custom (${this.powerLevel})`; }
     }
 
     _onMemberChange() {
@@ -73,6 +73,14 @@ export class MemberDetailsViewModel extends ViewModel {
 
     get isEncrypted() {
         return this._isEncrypted;
+    }
+
+    get powerLevel() {
+        if (!this._powerLevel) {
+            const powerLevels = this._powerLevelsObservable.get();
+            this._powerLevel = powerLevels.getUserLevel(this._member.userId);
+        }
+        return this._powerLevel;
     }
 
     get linkToUser() {
