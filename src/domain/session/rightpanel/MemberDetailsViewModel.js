@@ -38,10 +38,10 @@ export class MemberDetailsViewModel extends ViewModel {
     get previousSegmentName() { return "members"; }
     
     get role() {
-        if (this.powerLevel >= 100) { return "Admin"; }
-        else if (this.powerLevel >= 50) { return "Moderator"; }
-        else if (this.powerLevel === 0) { return "Default"; }
-        else { return `Custom (${this.powerLevel})`; }
+        if (this.powerLevel >= 100) { return this.i18n`Admin`; }
+        else if (this.powerLevel >= 50) { return this.i18n`Moderator`; }
+        else if (this.powerLevel === 0) { return this.i18n`Default`; }
+        else { return this.i18n`Custom (${this.powerLevel})`; }
     }
 
     _onMemberChange() {
