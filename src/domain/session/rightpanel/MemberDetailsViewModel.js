@@ -46,13 +46,13 @@ export class MemberDetailsViewModel extends ViewModel {
 
     _onMemberChange() {
         this._member = this._observableMember.get();
-        this.emitChange();
+        this.emitChange("member");
     }
 
     _onPowerLevelsChange() {
         const powerLevels = this._powerLevelsObservable.get();
         this._powerLevel = powerLevels.getUserLevel(this._member.userId);
-        this.emitChange();
+        this.emitChange("role");
     }
 
     get avatarLetter() {
