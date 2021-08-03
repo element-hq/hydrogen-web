@@ -945,6 +945,7 @@ button.RoomDetailsView_row::after {
     font-size: 12px;
     font-weight: 600;
     color: #8d99a5;
+    text-transform: uppercase;
 }
 
 .MemberDetailsView_value, .MemberDetailsView_options {

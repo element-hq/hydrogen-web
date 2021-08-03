@@ -27,8 +27,8 @@ export class MemberDetailsView extends TemplateView {
             [   t.view(new AvatarView(vm, 128)),
                 t.div({className: "MemberDetailsView_name"}, t.h2(vm => vm.name)),
                 t.div({className: "MemberDetailsView_id"}, vm.userId),
-                this._createSection(t, vm.i18n`ROLE`, vm => vm.role),
-                this._createSection(t, vm.i18n`SECURITY`, encryptionMessages[vm.isEncrypted]),
+                this._createSection(t, vm.i18n`Role`, vm => vm.role),
+                this._createSection(t, vm.i18n`Security`, encryptionMessages[vm.isEncrypted]),
                 this._createOptions(t, vm)
             ]);
     }
@@ -44,7 +44,7 @@ export class MemberDetailsView extends TemplateView {
     _createOptions(t, vm) {
         return t.div({ className: "MemberDetailsView_section" },
             [
-                t.div({className: "MemberDetailsView_label"}, vm.i18n`OPTIONS`),
+                t.div({className: "MemberDetailsView_label"}, vm.i18n`Options`),
                 t.div({className: "MemberDetailsView_options"},
                     [
                         t.a({href: vm.linkToUser, target: "_blank", rel: "noopener"}, vm.i18n`Open Link to User`)
