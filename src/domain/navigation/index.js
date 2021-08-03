@@ -136,8 +136,7 @@ export function parseUrlPath(urlPath, currentNavPath, defaultSessionId) {
             const previousSegments = currentNavPath.segments;
             const i = previousSegments.findIndex(s => s.type === "right-panel");
             if (i !== -1) {
-                segments.push(previousSegments[i]);
-                segments.push(previousSegments[i + 1]);
+                segments.push(...previousSegments.slice(i));
             }
         } else if (type === "last-session") {
             let sessionSegment = currentNavPath.get("session");
