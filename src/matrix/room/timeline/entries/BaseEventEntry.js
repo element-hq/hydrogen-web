@@ -16,8 +16,9 @@ limitations under the License.
 
 import {BaseEntry} from "./BaseEntry.js";
 import {REDACTION_TYPE} from "../../common.js";
-import {createAnnotation, createReply, ANNOTATION_RELATION_TYPE, getRelationFromContent} from "../relations.js";
+import {createAnnotation, ANNOTATION_RELATION_TYPE, getRelationFromContent} from "../relations.js";
 import {PendingAnnotation} from "../PendingAnnotation.js";
+import {createReply, fallbackBlurb, fallbackPrefix} from "./reply.js"
 
 function htmlEscape(string) {
     return string.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -155,55 +156,26 @@ export class BaseEventEntry extends BaseEntry {
         return createAnnotation(this.id, key);
     }
 
-    _fallbackBlurb() {
-        switch (this.content.msgtype) {
-            case "m.file":
-                return "sent a file.";
-            case "m.image":
-                return "sent an image.";
-            case "m.video":
-                return "sent a video.";
-            case "m.audio":
-                return "sent an audio file.";
-        }
-    }
-
-    _fallbackPrefix() {
-        return this.content.msgtype === "m.emote" ? "* " : "";
-    }
-
-    get _formattedBody() {
-        return this.content.formatted_body || (this.content.body && htmlEscape(this.content.body));
-    }
-
-    get _plainBody() {
-        return this.content.body;
-    }
-
-    _replyFormattedFallback() {
-        const body = this._fallbackBlurb() || this._formattedBody || "";
-        const prefix = this._fallbackPrefix();
-        return `<mx-reply>
-          <blockquote>
-            In reply to
-            ${prefix}<a href="https://matrix.to/#/${this.sender}">${this.displayName || this.sender}</a>
-            <br />
-            ${body}
-          </blockquote>
-        </mx-reply>`;
-    }
-
-    _replyPlainFallback() {
-        const body = this._fallbackBlurb() || this._plainBody || "";
-        const bodyLines = body.split("\n");
-        bodyLines[0] = `> <${this.sender}> ${bodyLines[0]}`
-        return bodyLines.join("\n> ");
-    }
-
     reply(msgtype, body) {
         // TODO check for absense of sender / body / msgtype / etc?
-        const newBody = this._replyPlainFallback() + '\n\n' + body;
-        const newFormattedBody = this._replyFormattedFallback() + htmlEscape(body);
+        let blurb = fallbackBlurb(this.content.msgtype);
+        const prefix = fallbackPrefix(this.content.msgtype);
+        const sender = this.sender;
+        const name = this.displayName || sender;
+
+        const formattedBody = blurb || this.content.formatted_body ||
+            (this.content.body && htmlEscape(this.content.body)) || "";
+        const formattedFallback = `<mx-reply><blockquote>In reply to ${prefix}` +
+            `<a href="https://matrix.to/#/${sender}">${name}</a><br />` +
+            `${formattedBody}</blockquote></mx-reply>`;
+
+        const plainBody = blurb || this.content.body || "";
+        const bodyLines = plainBody.split("\n");
+        bodyLines[0] = `> ${prefix}<${sender}> ${bodyLines[0]}`
+        const plainFallback = bodyLines.join("\n> ");
+
+        const newBody = plainFallback + '\n\n' + body;
+        const newFormattedBody = formattedFallback + htmlEscape(body);
         return createReply(this.id, msgtype, newBody, newFormattedBody);
     }
 
