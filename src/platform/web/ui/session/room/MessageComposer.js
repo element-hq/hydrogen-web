@@ -45,7 +45,7 @@ export class MessageComposer extends TemplateView {
                         className: "cancel",
                         onClick: () => this._clearReplyingTo()
                     }, "Close"),
-                    t.view(new View(rvm, true, "div"))
+                    t.view(new View(rvm, false, "div"))
                 ])
         });
         const input = t.div({className: "MessageComposer_input"}, [

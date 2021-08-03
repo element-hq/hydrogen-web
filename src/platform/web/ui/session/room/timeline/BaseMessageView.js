@@ -24,12 +24,12 @@ import {Menu} from "../../../general/Menu.js";
 import {ReactionsView} from "./ReactionsView.js";
 
 export class BaseMessageView extends TemplateView {
-    constructor(value, disabled = false, tagName = "li") {
+    constructor(value, interactive = true, tagName = "li") {
         super(value);
         this._menuPopup = null;
         this._tagName = tagName;
         // TODO An enum could be nice to make code easier to read at call sites.
-        this._disabled = disabled;
+        this._interactive = interactive;
     }
 
     render(t, vm) {
@@ -38,13 +38,13 @@ export class BaseMessageView extends TemplateView {
             own: vm.isOwn,
             unsent: vm.isUnsent,
             unverified: vm.isUnverified,
-            disabled: this._disabled,
+            disabled: !this._interactive,
             continuation: vm => vm.isContinuation,
         }}, [
             // dynamically added and removed nodes are handled below
             this.renderMessageBody(t, vm),
             // should be after body as it is overlayed on top
-            this._disabled ? [] : t.button({className: "Timeline_messageOptions"}, "⋯"),
+            this._interactive ? t.button({className: "Timeline_messageOptions"}, "⋯") : [],
         ]);
         // given that there can be many tiles, we don't add
         // unneeded DOM nodes in case of a continuation, and we add it
@@ -52,10 +52,10 @@ export class BaseMessageView extends TemplateView {
         // as the avatar or sender doesn't need any bindings or event handlers.
         // don't use `t` from within the side-effect callback
         t.mapSideEffect(vm => vm.isContinuation, (isContinuation, wasContinuation) => {
-            if (isContinuation && !this._disabled && wasContinuation === false) {
+            if (isContinuation && this._interactive && wasContinuation === false) {
                 li.removeChild(li.querySelector(".Timeline_messageAvatar"));
                 li.removeChild(li.querySelector(".Timeline_messageSender"));
-            } else if (!isContinuation || this._disabled) {
+            } else if (!isContinuation || !this._interactive) {
                 li.insertBefore(renderStaticAvatar(vm, 30, "Timeline_messageAvatar"), li.firstChild);
                 li.insertBefore(tag.div({className: `Timeline_messageSender usercolor${vm.avatarColorNumber}`}, vm.displayName), li.firstChild);
             }
@@ -64,7 +64,7 @@ export class BaseMessageView extends TemplateView {
         // but that adds a comment node to all messages without reactions
         let reactionsView = null;
         t.mapSideEffect(vm => vm.reactions, reactions => {
-            if (reactions && !this._disabled && !reactionsView) {
+            if (reactions && this._interactive && !reactionsView) {
                 reactionsView = new ReactionsView(vm.reactions);
                 this.addSubView(reactionsView);
                 li.appendChild(mountView(reactionsView));
