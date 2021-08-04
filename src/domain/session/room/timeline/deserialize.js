@@ -398,7 +398,7 @@ export function tests() {
     };
 
     function test(assert, input, output) {
-        assert.deepEqual(parseHTMLBody(platform, null, input), new MessageBody(input, output));
+        assert.deepEqual(parseHTMLBody(platform, null, true, input), new MessageBody(input, output));
     }
 
     return {
