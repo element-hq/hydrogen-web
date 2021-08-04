@@ -137,6 +137,10 @@ export class TextPart {
     get type() { return "text"; }
 }
 
+function isBlockquote(part){
+    return part.type === "format" && part.format === "blockquote";
+}
+
 export class MessageBody {
     constructor(sourceString, parts) {
         this.sourceString = sourceString;
@@ -148,7 +152,7 @@ export class MessageBody {
         // We assume that such quotes are not TextParts, because replies
         // must have a formatted body.
         let i = 0;
-        for (i = 0; i < this.parts.length && this.parts[i].type === "format" && this.parts[i].format === "blockquote"; i++);
+        for (; i < this.parts.length && isBlockquote(this.parts[i]); i++);
         this.parts.splice(i, 0, new TextPart(string));
     }
 }
