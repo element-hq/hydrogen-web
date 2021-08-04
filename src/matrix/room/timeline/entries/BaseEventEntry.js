@@ -29,6 +29,10 @@ export class BaseEventEntry extends BaseEntry {
         this._pendingAnnotations = null;
     }
 
+    get isReply() {
+        return !!this.relation?.["m.in_reply_to"];
+    }
+
     get isRedacting() {
         return !!this._pendingRedactions;
     }
