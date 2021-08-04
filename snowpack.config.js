@@ -11,7 +11,7 @@ module.exports = {
   },
   exclude: [
     /* Avoid scanning scripts which use dev-dependencies and pull in babel, rollup, etc. */
-    '**/node_modules/**/*', '**/scripts/**', '**/target/**', '**/prototypes/**'
+    '**/node_modules/**/*', '**/scripts/**', '**/target/**', '**/prototypes/**', '**/src/matrix/storage/memory/**'
   ],
   plugins: [
     /* ... */
