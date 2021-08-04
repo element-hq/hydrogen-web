@@ -49,16 +49,16 @@ export class ComposerViewModel extends ViewModel {
     }
 
     _updateReplyEntry(entry) {
-        const update = this._replyVM.updateEntry(entry);
-        if (update.shouldReplace) {
+        const action = this._replyVM.updateEntry(entry);
+        if (action.shouldReplace) {
             const newTile = this._roomVM._createTile(entry);
             this._replyVM.dispose();
             this._replyVM = newTile || null;
-        } else if (update.shouldRemove) {
+        } else if (action.shouldRemove) {
             this._replyVM.dispose();
             this._replyVM = null;
-        } else if (update.shouldUpdate) {
-            // Nothing, since we'll be calling emitChange anyway.
+        } else if (action.shouldUpdate) {
+            this._replyVM.emitChange(action.updateParams);
         }
     }
 
