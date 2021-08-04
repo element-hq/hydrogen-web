@@ -23,6 +23,7 @@ import {WrappedError} from "../error.js"
 import {Heroes} from "./members/Heroes.js";
 import {AttachmentUpload} from "./AttachmentUpload.js";
 import {DecryptionSource} from "../e2ee/common.js";
+import {PowerLevels, EVENT_TYPE as POWERLEVELS_EVENT_TYPE } from "./timeline/PowerLevels.js";
 
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 
@@ -173,6 +174,7 @@ export class Room extends BaseRoom {
         if (Array.isArray(roomResponse.timeline?.events)) {
             removedPendingEvents = await this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn, log);
         }
+        this._updatePowerLevels(roomResponse);
         return {
             summaryChanges,
             roomEncryption,
@@ -259,6 +261,18 @@ export class Room extends BaseRoom {
             if (observableMember) {
                 observableMember.set(memberChange.member);
             }
+        }
+    }
+
+    _updatePowerLevels(roomResponse) {
+        const powerLevelEvent = roomResponse.timeline.events.find(event => event.type === POWERLEVELS_EVENT_TYPE);
+        if (powerLevelEvent && this._powerLevels) {
+            const newPowerLevels = new PowerLevels({
+                powerLevelEvent,
+                ownUserId: this._user.id,
+                membership: this.membership,
+            });
+            this._powerLevels.set(newPowerLevels);
         }
     }
 
