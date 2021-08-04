@@ -6,14 +6,46 @@ export class ComposerViewModel extends ViewModel {
         this._roomVM = roomVM;
         this._isEmpty = true;
         this._replyVM = null;
+        this._replySub = null;
+        this._replyingToId = null;
     }
 
-    setReplyingTo(tile) {
-        const changed = this._replyVM !== tile;
-        this._replyVM = tile;
-        if (changed) {
-            this.emitChange("replyViewModel");
+    setReplyingTo(id) {
+        if (this._replyingToId === id) {
+            return;
         }
+        this._replyingToId = id;
+        // Dispose of event subscription
+        if (this._replySub) {
+            this._replySub();
+            this.untrack(this._replySub);
+        }
+        // replyVM may not be created yet even if subscribed.
+        if (this._replyVM) {
+            this._replyVM.dispose();
+        }
+        // Early return if we don't have an ID to reply to.
+        if (!id) {
+            this._replyVM = null;
+            this._replySub = null;
+            this.emitChange("replyViewModel");
+            return;
+        }
+        const observable = this._roomVM._observeEvent(id);
+        const entry = observable.get();
+        if (entry) {
+            this._replyVM = this._roomVM._createTile(entry);
+        }
+        this._replySub = observable.subscribe(entry => {
+            if (!this._replyVM) {
+                this._replyVM = this._roomVM._createTile(entry);
+            } else {
+                this._replyVM.updateEntry(entry);
+            }
+            this.emitChange("replyViewModel");
+        });
+        this.track(this._replySub);
+        this.emitChange("replyViewModel");
     }
 
     clearReplyingTo() {

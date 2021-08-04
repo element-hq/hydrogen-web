@@ -107,7 +107,7 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     startReply() {
-        this._roomVM.startReply(this);
+        this._roomVM.startReply(this._entry.id);
     }
 
     reply(msgtype, body, log = null) {

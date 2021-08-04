@@ -306,10 +306,18 @@ export class RoomViewModel extends ViewModel {
         this.navigation.applyPath(path);
     }
 
-    startReply(entry) {
+    startReply(id) {
         if (!this._room.isArchived) {
-            this._composerVM.setReplyingTo(entry);
+            this._composerVM.setReplyingTo(id);
         }
+    }
+
+    _createTile(entry) {
+        return this._tilesCreator(entry);
+    }
+
+    _observeEvent(eventId) {
+        return this._room.observeEvent(eventId);
     }
 }
 
