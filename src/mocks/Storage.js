@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {FDBFactory, FDBKeyRange} from "../../lib/fake-indexeddb/index.js";
+import fdb from "fake-indexeddb";
 import {StorageFactory} from "../matrix/storage/idb/StorageFactory.js";
 
 export function createMockStorage() {
-    return new StorageFactory(null, new FDBFactory(), FDBKeyRange).create(1);
+    return new StorageFactory(null, new fdb.FDBFactory(), fdb.FDBKeyRange).create(1);
 }

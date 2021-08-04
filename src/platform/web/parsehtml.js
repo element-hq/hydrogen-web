@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import DOMPurify from "../../../lib/dompurify/index.js"
+import DOMPurify from "dompurify"
 
 class HTMLParseResult {
     constructor(bodyNode) {
