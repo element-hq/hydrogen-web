@@ -212,7 +212,22 @@ export class Timeline {
     replaceEntries(entries) {
         this._addLocalRelationsToNewRemoteEntries(entries);
         for (const entry of entries) {
-            this._remoteEntries.getAndUpdate(entry, Timeline._entryUpdater);
+            try {
+                this._remoteEntries.getAndUpdate(entry, Timeline._entryUpdater);
+            } catch (err) {
+                if (err.name === "CompareError") {
+                    // see FragmentIdComparer, if the replacing entry is on a fragment
+                    // that is currently not loaded into the FragmentIdComparer, it will
+                    // throw a CompareError, and it means that the event is not loaded 
+                    // in the timeline (like when receiving a relation for an event
+                    // that is not loaded in memory) so we can just drop this error as
+                    // replacing an event that is not already loaded is a no-op.
+                    continue;
+                } else {
+                    // don't swallow other errors
+                    throw err;
+                }
+            }
         }
     }
 

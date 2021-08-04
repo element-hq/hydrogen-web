@@ -127,6 +127,10 @@ class Island {
     }
 }
 
+export class CompareError extends Error {
+    get name() { return "CompareError"; }
+}
+
 /*
 index for fast lookup of how two fragments can be sorted
 */
@@ -139,7 +143,7 @@ export class FragmentIdComparer {
     _getIsland(id) {
         const island = this._idToIsland.get(id);
         if (island === undefined) {
-            throw new Error(`Unknown fragment id ${id}`);
+            throw new CompareError(`Unknown fragment id ${id}`);
         }
         return island;
     }
@@ -151,7 +155,7 @@ export class FragmentIdComparer {
         const islandA = this._getIsland(idA);
         const islandB = this._getIsland(idB);
         if (islandA !== islandB) {
-            throw new Error(`${idA} and ${idB} are on different islands, can't tell order`);
+            throw new CompareError(`${idA} and ${idB} are on different islands, can't tell order`);
         }
         return islandA.compare(idA, idB);
     }
