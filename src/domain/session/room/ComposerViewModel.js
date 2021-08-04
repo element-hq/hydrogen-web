@@ -23,10 +23,10 @@ export class ComposerViewModel extends ViewModel {
         // replyVM may not be created yet even if subscribed.
         if (this._replyVM) {
             this._replyVM.dispose();
+            this._replyVM = null;
         }
         // Early return if we don't have an ID to reply to.
         if (!id) {
-            this._replyVM = null;
             this._replySub = null;
             this.emitChange("replyViewModel");
             return;
@@ -40,12 +40,26 @@ export class ComposerViewModel extends ViewModel {
             if (!this._replyVM) {
                 this._replyVM = this._roomVM._createTile(entry);
             } else {
-                this._replyVM.updateEntry(entry);
+                this._updateReplyEntry(entry);
             }
             this.emitChange("replyViewModel");
         });
         this.track(this._replySub);
         this.emitChange("replyViewModel");
+    }
+
+    _updateReplyEntry(entry) {
+        const update = this._replyVM.updateEntry(entry);
+        if (update.shouldReplace) {
+            const newTile = this._roomVM._createTile(entry);
+            this._replyVM.dispose();
+            this._replyVM = newTile || null;
+        } else if (update.shouldRemove) {
+            this._replyVM.dispose();
+            this._replyVM = null;
+        } else if (update.shouldUpdate) {
+            // Nothing, since we'll be calling emitChange anyway.
+        }
     }
 
     clearReplyingTo() {
