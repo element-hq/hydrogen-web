@@ -18,7 +18,7 @@ function htmlEscape(string) {
     return string.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function fallbackBlurb(msgtype) {
+function fallbackForNonTextualMessage(msgtype) {
     switch (msgtype) {
         case "m.file":
             return "sent a file.";
@@ -52,18 +52,18 @@ function createReply(targetId, msgtype, body, formattedBody) {
 
 export function reply(entry, msgtype, body) {
     // TODO check for absense of sender / body / msgtype / etc?
-    let blurb = fallbackBlurb(entry.content.msgtype);
+    const nonTextual = fallbackForNonTextualMessage(entry.content.msgtype);
     const prefix = fallbackPrefix(entry.content.msgtype);
     const sender = entry.sender;
     const name = entry.displayName || sender;
 
-    const formattedBody = blurb || entry.content.formatted_body ||
+    const formattedBody = nonTextual || entry.content.formatted_body ||
         (entry.content.body && htmlEscape(entry.content.body)) || "";
     const formattedFallback = `<mx-reply><blockquote>In reply to ${prefix}` +
         `<a href="https://matrix.to/#/${sender}">${name}</a><br />` +
         `${formattedBody}</blockquote></mx-reply>`;
 
-    const plainBody = blurb || entry.content.body || "";
+    const plainBody = nonTextual || entry.content.body || "";
     const bodyLines = plainBody.split("\n");
     bodyLines[0] = `> ${prefix}<${sender}> ${bodyLines[0]}`
     const plainFallback = bodyLines.join("\n> ");
