@@ -19,6 +19,7 @@ import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
 import {ComposerViewModel} from "./ComposerViewModel.js"
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar.js";
 import {ViewModel} from "../../ViewModel.js";
+import {tilesCreator} from "./timeline/tilesCreator.js";
 
 export class RoomViewModel extends ViewModel {
     constructor(options) {
@@ -30,6 +31,7 @@ export class RoomViewModel extends ViewModel {
         this._timelineError = null;
         this._sendError = null;
         this._composerVM = null;
+        this._tilesCreator = null;
         if (room.isArchived) {
             this._composerVM = new ArchivedViewModel(this.childOptions({archivedRoom: room}));
         } else {
@@ -43,12 +45,15 @@ export class RoomViewModel extends ViewModel {
         this._room.on("change", this._onRoomChange);
         try {
             const timeline = await this._room.openTimeline();
-            const timelineVM = this.track(new TimelineViewModel(this.childOptions({
+            this._tilesCreator = tilesCreator(this.childOptions({
                 room: this._room,
                 roomVM: this,
                 timeline,
+            }));
+            this._timelineVM = this.track(new TimelineViewModel(this.childOptions({
+                tilesCreator: this._tilesCreator,
+                timeline
             })));
-            this._timelineVM = timelineVM;
             this.emitChange("timelineViewModel");
         } catch (err) {
             console.error(`room.openTimeline(): ${err.message}:\n${err.stack}`);
