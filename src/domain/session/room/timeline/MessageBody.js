@@ -142,6 +142,15 @@ export class MessageBody {
         this.sourceString = sourceString;
         this.parts = parts;
     }
+
+    insertEmote(string) {
+        // We want to skip quotes introduced by replies when emoting.
+        // We assume that such quotes are not TextParts, because replies
+        // must have a formatted body.
+        let i = 0;
+        for (i = 0; i < this.parts.length && this.parts[i].type === "format" && this.parts[i].format === "blockquote"; i++);
+        this.parts.splice(i, 0, new TextPart(string));
+    }
 }
 
 export function tests() {
