@@ -18,11 +18,7 @@ import {BaseEntry} from "./BaseEntry.js";
 import {REDACTION_TYPE} from "../../common.js";
 import {createAnnotation, ANNOTATION_RELATION_TYPE, getRelationFromContent} from "../relations.js";
 import {PendingAnnotation} from "../PendingAnnotation.js";
-import {createReply, fallbackBlurb, fallbackPrefix} from "./reply.js"
-
-function htmlEscape(string) {
-    return string.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
+import {reply} from "./reply.js"
 
 /** Deals mainly with local echo for relations and redactions,
  * so it is shared between PendingEventEntry and EventEntry */
@@ -157,26 +153,7 @@ export class BaseEventEntry extends BaseEntry {
     }
 
     reply(msgtype, body) {
-        // TODO check for absense of sender / body / msgtype / etc?
-        let blurb = fallbackBlurb(this.content.msgtype);
-        const prefix = fallbackPrefix(this.content.msgtype);
-        const sender = this.sender;
-        const name = this.displayName || sender;
-
-        const formattedBody = blurb || this.content.formatted_body ||
-            (this.content.body && htmlEscape(this.content.body)) || "";
-        const formattedFallback = `<mx-reply><blockquote>In reply to ${prefix}` +
-            `<a href="https://matrix.to/#/${sender}">${name}</a><br />` +
-            `${formattedBody}</blockquote></mx-reply>`;
-
-        const plainBody = blurb || this.content.body || "";
-        const bodyLines = plainBody.split("\n");
-        bodyLines[0] = `> ${prefix}<${sender}> ${bodyLines[0]}`
-        const plainFallback = bodyLines.join("\n> ");
-
-        const newBody = plainFallback + '\n\n' + body;
-        const newFormattedBody = formattedFallback + htmlEscape(body);
-        return createReply(this.id, msgtype, newBody, newFormattedBody);
+        return reply(this, msgtype, body);
     }
 
     /** takes both remote event id and local txn id into account, see overriding in PendingEventEntry */

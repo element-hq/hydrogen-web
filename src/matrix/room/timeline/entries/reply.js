@@ -1,5 +1,24 @@
+/*
+Copyright 2021 The Matrix.org Foundation C.I.C.
 
-export function fallbackBlurb(msgtype) {
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+function htmlEscape(string) {
+    return string.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function fallbackBlurb(msgtype) {
     switch (msgtype) {
         case "m.file":
             return "sent a file.";
@@ -13,11 +32,11 @@ export function fallbackBlurb(msgtype) {
     return null;
 }
 
-export function fallbackPrefix(msgtype) {
+function fallbackPrefix(msgtype) {
     return msgtype === "m.emote" ? "* " : "";
 }
 
-export function createReply(targetId, msgtype, body, formattedBody) {
+function createReply(targetId, msgtype, body, formattedBody) {
     return {
         msgtype,
         body,
@@ -31,3 +50,25 @@ export function createReply(targetId, msgtype, body, formattedBody) {
     };
 }
 
+export function reply(entry, msgtype, body) {
+    // TODO check for absense of sender / body / msgtype / etc?
+    let blurb = fallbackBlurb(entry.content.msgtype);
+    const prefix = fallbackPrefix(entry.content.msgtype);
+    const sender = entry.sender;
+    const name = entry.displayName || sender;
+
+    const formattedBody = blurb || entry.content.formatted_body ||
+        (entry.content.body && htmlEscape(entry.content.body)) || "";
+    const formattedFallback = `<mx-reply><blockquote>In reply to ${prefix}` +
+        `<a href="https://matrix.to/#/${sender}">${name}</a><br />` +
+        `${formattedBody}</blockquote></mx-reply>`;
+
+    const plainBody = blurb || entry.content.body || "";
+    const bodyLines = plainBody.split("\n");
+    bodyLines[0] = `> ${prefix}<${sender}> ${bodyLines[0]}`
+    const plainFallback = bodyLines.join("\n> ");
+
+    const newBody = plainFallback + '\n\n' + body;
+    const newFormattedBody = formattedFallback + htmlEscape(body);
+    return createReply(entry.id, msgtype, newBody, newFormattedBody);
+}
