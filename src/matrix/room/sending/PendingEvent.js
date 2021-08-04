@@ -28,9 +28,7 @@ export const SendStatus = createEnum(
     "Error",
 );
 
-const preservedContentFields = {
-    "m.room.message": [ "m.relates_to" ]
-};
+const preservedContentFields = [ "m.relates_to" ];
 
 export class PendingEvent {
     constructor({data, remove, emitUpdate, attachments}) {
@@ -100,14 +98,19 @@ export class PendingEvent {
         this._emitUpdate("status");
     }
 
+    get cleanedContent() {
+        const content = Object.assign({}, this._data.content);
+        for (const field of preservedContentFields) {
+            delete content[field];
+        }
+        return content;
+    }
+
     _preserveContentFields(into) {
-        const preservedFields = preservedContentFields[this.eventType];
-        if (preservedFields) {
-            const content = this._data.content;
-            for (const field of preservedFields) {
-                if (content[field] !== undefined) {
-                    into[field] = content[field];
-                }
+        const content = this._data.content;
+        for (const field of preservedContentFields) {
+            if (content[field] !== undefined) {
+                into[field] = content[field];
             }
         }
     }
