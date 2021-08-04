@@ -34,7 +34,8 @@ const baseUrl = 'https://matrix.to';
 const linkPrefix = `${baseUrl}/#/`;
 
 class Deserializer {
-    constructor(result, mediaRepository) {
+    constructor(result, mediaRepository, allowReplies) {
+        this.allowReplies = allowReplies;
         this.result = result;
         this.mediaRepository = mediaRepository;
     }
@@ -287,6 +288,10 @@ class Deserializer {
         return true;
     }
 
+    _isAllowedNode(node) {
+        return this.allowReplies || !this._ensureElement(node, "MX-REPLY");
+    }
+
     _parseInlineNodes(nodes, into) {
         for (const htmlNode of nodes) {
             if (this._parseTextParts(htmlNode, into)) {
@@ -301,7 +306,9 @@ class Deserializer {
             }
             // Node is either block or unrecognized. In
             // both cases, just move on to its children.
-            this._parseInlineNodes(this.result.getChildNodes(htmlNode), into);
+            if (this._isAllowedNode(htmlNode)) {
+                this._parseInlineNodes(this.result.getChildNodes(htmlNode), into);
+            }
         }
     }
 
@@ -325,7 +332,9 @@ class Deserializer {
                 continue;
             }
             // Node is unrecognized. Just move on to its children.
-            this._parseAnyNodes(this.result.getChildNodes(htmlNode), into);
+            if (this._isAllowedNode(htmlNode)) {
+                this._parseAnyNodes(this.result.getChildNodes(htmlNode), into);
+            }
         }
     }
 
@@ -336,9 +345,9 @@ class Deserializer {
     }
 }
 
-export function parseHTMLBody(platform, mediaRepository, html) {
+export function parseHTMLBody(platform, mediaRepository, allowReplies, html) {
     const parseResult = platform.parseHTML(html);
-    const deserializer = new Deserializer(parseResult, mediaRepository);
+    const deserializer = new Deserializer(parseResult, mediaRepository, allowReplies);
     const parts = deserializer.parseAnyNodes(parseResult.rootNodes);
     return new MessageBody(html, parts);
 }
