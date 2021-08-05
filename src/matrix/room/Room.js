@@ -270,7 +270,7 @@ export class Room extends BaseRoom {
 
     _getPowerLevelsEvent(roomResponse) {
         const isPowerlevelEvent = event => event.type === POWERLEVELS_EVENT_TYPE;
-        const powerLevelEvent = roomResponse.state?.events.find(isPowerlevelEvent) ?? roomResponse.timeline?.events.find(isPowerlevelEvent);
+        const powerLevelEvent = roomResponse.timeline.events.find(isPowerlevelEvent) ?? roomResponse.state.events.find(isPowerlevelEvent);
         return powerLevelEvent;
     }
 
