@@ -104,7 +104,7 @@ export async function fetchOrLoadMember(options, logger) {
 async function loadMember({roomId, userId, storage}) {
     const txn = await storage.readTxn([storage.storeNames.roomMembers,]);
     const member = await txn.roomMembers.get(roomId, userId);
-    return member? new RoomMember(member) : undefined;
+    return member? new RoomMember(member) : null;
 }
 
 async function fetchMember({roomId, userId, hsApi, storage}, log) {
