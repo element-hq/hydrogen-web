@@ -90,3 +90,49 @@ export async function fetchOrLoadMembers(options, logger) {
         return loadMembers(options);
     }
 }
+
+export async function fetchOrLoadMember(options, logger) {
+    const member = await loadMember(options);
+    const {summary} = options;
+    if (!summary.data.hasFetchedMembers && !member) {
+        // We haven't fetched the memberlist yet; so ping the hs to see if this member does exist
+        return logger.wrapOrRun(options.log, "fetchMember", log => fetchMember(options, log));
+    }
+    return member;
+}
+
+async function loadMember({roomId, userId, storage}) {
+    const txn = await storage.readTxn([storage.storeNames.roomMembers,]);
+    const member = await txn.roomMembers.get(roomId, userId);
+    return member? new RoomMember(member) : null;
+}
+
+async function fetchMember({roomId, userId, hsApi, storage}, log) {
+    let memberData;
+    try {
+        memberData = await hsApi.state(roomId, "m.room.member", userId, { log }).response();
+    }
+    catch (error) {
+        if (error.name === "HomeServerError" && error.errcode === "M_NOT_FOUND") {
+            return null;
+        }
+        throw error;
+    }
+    const member = new RoomMember({
+        roomId,
+        userId,
+        membership: memberData.membership,
+        avatarUrl: memberData.avatar_url,
+        displayName: memberData.displayname,
+    });
+    const txn = await storage.readWriteTxn([storage.storeNames.roomMembers]);
+    try {
+        txn.roomMembers.set(member.serialize());
+    }
+    catch(e) {
+        txn.abort();
+        throw e;
+    }
+    await txn.complete();
+    return member;
+}
