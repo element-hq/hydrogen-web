@@ -5,13 +5,23 @@ export class ComposerViewModel extends ViewModel {
         super();
         this._roomVM = roomVM;
         this._isEmpty = true;
+        this._replyId = null;
         this._replyVM = null;
     }
 
-    setReplyingTo(tile) {
-        const changed = this._replyVM !== tile;
-        this._replyVM = tile;
+    setReplyingTo(entry) {
+        const newId = entry?.id || null;
+        const changed = this._replyId !== newId;
         if (changed) {
+            this._replyId = newId;
+            if (this._replyVM) {
+                this.untrack(this._replyVM);
+                this._replyVM.dispose();
+            }
+            this._replyVM = entry && this._roomVM._createTile(entry);
+            if (this._replyVM) {
+                this.track(this._replyVM);
+            }
             this.emitChange("replyViewModel");
         }
     }

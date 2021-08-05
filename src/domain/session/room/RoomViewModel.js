@@ -160,6 +160,10 @@ export class RoomViewModel extends ViewModel {
     rejoinRoom() {
         this._room.join();
     }
+
+    _createTile(entry) {
+        return this._tilesCreator(entry);
+    }
     
     async _sendMessage(message, replyingTo) {
         if (!this._room.isArchived && message) {
