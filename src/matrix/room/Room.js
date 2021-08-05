@@ -174,7 +174,7 @@ export class Room extends BaseRoom {
         if (Array.isArray(roomResponse.timeline?.events)) {
             removedPendingEvents = await this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn, log);
         }
-        this._updatePowerLevels(roomResponse);
+        const powerLevelsEvent = this._getPowerLevelsEvent(roomResponse);
         return {
             summaryChanges,
             roomEncryption,
@@ -184,6 +184,7 @@ export class Room extends BaseRoom {
             removedPendingEvents,
             memberChanges,
             heroChanges,
+            powerLevelsEvent,
             shouldFlushKeyShares,
         };
     }
@@ -196,7 +197,7 @@ export class Room extends BaseRoom {
     afterSync(changes, log) {
         const {
             summaryChanges, newEntries, updatedEntries, newLiveKey,
-            removedPendingEvents, memberChanges,
+            removedPendingEvents, memberChanges, powerLevelsEvent,
             heroChanges, roomEncryption
         } = changes;
         log.set("id", this.id);
@@ -238,6 +239,9 @@ export class Room extends BaseRoom {
                 emitChange = true;
             }
         }
+        if (powerLevelsEvent) {
+            this._updatePowerLevels(powerLevelsEvent);
+        }
         if (emitChange) {
             this._emitUpdate();
         }
@@ -264,9 +268,14 @@ export class Room extends BaseRoom {
         }
     }
 
-    _updatePowerLevels(roomResponse) {
-        const powerLevelEvent = roomResponse.timeline.events.find(event => event.type === POWERLEVELS_EVENT_TYPE);
-        if (powerLevelEvent && this._powerLevels) {
+    _getPowerLevelsEvent(roomResponse) {
+        const isPowerlevelEvent = event => event.type === POWERLEVELS_EVENT_TYPE;
+        const powerLevelEvent = roomResponse.state?.events.find(isPowerlevelEvent) ?? roomResponse.timeline?.events.find(isPowerlevelEvent);
+        return powerLevelEvent;
+    }
+
+    _updatePowerLevels(powerLevelEvent) {
+        if (this._powerLevels) {
             const newPowerLevels = new PowerLevels({
                 powerLevelEvent,
                 ownUserId: this._user.id,
