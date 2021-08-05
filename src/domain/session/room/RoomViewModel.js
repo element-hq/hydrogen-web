@@ -18,6 +18,7 @@ limitations under the License.
 import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
 import {ComposerViewModel} from "./ComposerViewModel.js"
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar.js";
+import {tilesCreator} from "./timeline/tilesCreator.js";
 import {ViewModel} from "../../ViewModel.js";
 
 export class RoomViewModel extends ViewModel {
@@ -26,6 +27,7 @@ export class RoomViewModel extends ViewModel {
         const {room} = options;
         this._room = room;
         this._timelineVM = null;
+        this._tilesCreator = null;
         this._onRoomChange = this._onRoomChange.bind(this);
         this._timelineError = null;
         this._sendError = null;
@@ -43,12 +45,15 @@ export class RoomViewModel extends ViewModel {
         this._room.on("change", this._onRoomChange);
         try {
             const timeline = await this._room.openTimeline();
-            const timelineVM = this.track(new TimelineViewModel(this.childOptions({
+            this._tilesCreator = tilesCreator(this.childOptions({
                 room: this._room,
                 roomVM: this,
                 timeline,
+            }));
+            this._timelineVM = this.track(new TimelineViewModel(this.childOptions({
+                tilesCreator: this._tilesCreator,
+                timeline,
             })));
-            this._timelineVM = timelineVM;
             this.emitChange("timelineViewModel");
         } catch (err) {
             console.error(`room.openTimeline(): ${err.message}:\n${err.stack}`);
