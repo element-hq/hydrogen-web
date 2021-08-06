@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseEntry} from "./BaseEntry.js";
+import {BaseEntry} from "./BaseEntry";
 import {REDACTION_TYPE} from "../../common.js";
 import {createAnnotation, ANNOTATION_RELATION_TYPE, getRelationFromContent} from "../relations.js";
 import {PendingAnnotation} from "../PendingAnnotation.js";
