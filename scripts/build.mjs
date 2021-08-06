@@ -63,7 +63,7 @@ async function build({modernOnly, overrideImports, overrideCss}) {
     if (overrideImports) {
         importOverridesMap = await readImportOverrides(overrideImports);
     }
-    const devHtml = await fs.readFile(path.join(projectDir, "index.html"), "utf8");
+    const devHtml = await fs.readFile(path.join(projectDir, "public/index.html"), "utf8");
     const doc = cheerio.load(devHtml);
     const themes = [];
     findThemes(doc, themeName => {
@@ -96,7 +96,7 @@ async function build({modernOnly, overrideImports, overrideCss}) {
     await buildCssBundles(buildCssLegacy, themes, assets, overrideCss);
     await buildManifest(assets);
     // all assets have been added, create a hash from all assets name to cache unhashed files like index.html
-    assets.addToHashForAll("index.html", devHtml);
+    assets.addToHashForAll("public/index.html", devHtml);
     let swSource = await fs.readFile(path.join(projectDir, "src/platform/web/service-worker.js"), "utf8");
     assets.addToHashForAll("sw.js", swSource);
     
