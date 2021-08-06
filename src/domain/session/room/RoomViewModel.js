@@ -46,7 +46,6 @@ export class RoomViewModel extends ViewModel {
         try {
             const timeline = await this._room.openTimeline();
             this._tilesCreator = tilesCreator(this.childOptions({
-                room: this._room,
                 roomVM: this,
                 timeline,
             }));
@@ -297,6 +296,10 @@ export class RoomViewModel extends ViewModel {
             this.emitChange("error");
             console.error(err.stack);
         }
+    }
+
+    get room() {
+        return this._room;
     }
 
     get composerViewModel() {

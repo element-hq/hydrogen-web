@@ -126,7 +126,7 @@ export class SimpleTile extends ViewModel {
     // TilesCollection contract above
 
     get _room() {
-        return this._options.room;
+        return this._roomVM.room;
     }
 
     get _roomVM() {
