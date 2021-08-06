@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {PowerLevels} from "../../../../matrix/room/timeline/PowerLevels.js";
+import {PowerLevels} from "../../../../matrix/room/PowerLevels.js";
 
 export function createMemberComparator(powerLevels) {
     const collator = new Intl.Collator();

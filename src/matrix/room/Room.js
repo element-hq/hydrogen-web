@@ -23,7 +23,7 @@ import {WrappedError} from "../error.js"
 import {Heroes} from "./members/Heroes.js";
 import {AttachmentUpload} from "./AttachmentUpload.js";
 import {DecryptionSource} from "../e2ee/common.js";
-import {PowerLevels, EVENT_TYPE as POWERLEVELS_EVENT_TYPE } from "./timeline/PowerLevels.js";
+import {PowerLevels, EVENT_TYPE as POWERLEVELS_EVENT_TYPE } from "./PowerLevels.js";
 
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 
