@@ -397,8 +397,8 @@ export function tests() {
         parseHTML: (html) => new HTMLParseResult(parse(html))
     };
 
-    function test(assert, input, output) {
-        assert.deepEqual(parseHTMLBody(platform, null, true, input), new MessageBody(input, output));
+    function test(assert, input, output, replies=true) {
+        assert.deepEqual(parseHTMLBody(platform, null, replies, input), new MessageBody(input, output));
     }
 
     return {
@@ -495,6 +495,24 @@ export function tests() {
                 new CodeBlock(null, code)
             ];
             test(assert, input, output);
+        },
+        "Replies are inserted when allowed": assert => {
+            const input = 'Hello, <em><mx-reply>World</mx-reply></em>!';
+            const output = [
+                new TextPart('Hello, '),
+                new FormatPart("em", [new TextPart('World')]),
+                new TextPart('!'),
+            ];
+            test(assert, input, output);
+        },
+        "Replies are stripped when not allowed": assert => {
+            const input = 'Hello, <em><mx-reply>World</mx-reply></em>!';
+            const output = [
+                new TextPart('Hello, '),
+                new FormatPart("em", []),
+                new TextPart('!'),
+            ];
+            test(assert, input, output, false);
         }
         /* Doesnt work: HTML library doesn't handle <pre><code> properly.
         "Text with code block": assert => {
