@@ -50,8 +50,6 @@ export class MemberDetailsViewModel extends ViewModel {
     }
 
     _onPowerLevelsChange() {
-        const powerLevels = this._powerLevelsObservable.get();
-        this._powerLevel = powerLevels.getUserLevel(this._member.userId);
         this.emitChange("role");
     }
 
