@@ -50,7 +50,7 @@ export class RightPanelViewModel extends ViewModel {
     _hookUpdaterToSegment(segment, viewmodel, argCreator, failCallback) {
         const observable = this.navigation.observe(segment);
         const updater = this._setupUpdater(segment, viewmodel, argCreator, failCallback);
-        this.track(observable.subscribe(() => updater()));
+        this.track(observable.subscribe(updater));
     }
 
     _setupUpdater(segment, viewmodel, argCreator, failCallback) {
