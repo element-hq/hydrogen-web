@@ -14,25 +14,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {FragmentIdComparer} from "./BaseEntry.js"
 import {BaseEventEntry} from "./BaseEventEntry.js";
 import {getPrevContentFromStateEvent, isRedacted} from "../../common.js";
 import {getRelatedEventId} from "../relations.js";
 
 export class EventEntry extends BaseEventEntry {
-    constructor(eventEntry, fragmentIdComparer) {
+    private _eventEntry: any // TODO Need type
+    private _decryptionError: Error | null
+    private _decryptionResult: any | null // TODO Need type
+    
+    constructor(eventEntry: any, fragmentIdComparer: FragmentIdComparer = { compare: (x, y) => 0 }) {
         super(fragmentIdComparer);
         this._eventEntry = eventEntry;
         this._decryptionError = null;
         this._decryptionResult = null;
     }
 
-    clone() {
+    clone(): EventEntry {
         const clone = new EventEntry(this._eventEntry, this._fragmentIdComparer);
         clone.updateFrom(this);
         return clone;
     }
 
-    updateFrom(other) {
+    updateFrom(other: EventEntry) {
         super.updateFrom(other);
         if (other._decryptionResult && !this._decryptionResult) {
             this._decryptionResult = other._decryptionResult;

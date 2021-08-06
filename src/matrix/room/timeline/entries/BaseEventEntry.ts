@@ -14,33 +14,48 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseEntry} from "./BaseEntry.js";
+import {FragmentIdComparer, BaseEntry} from "./BaseEntry";
+import {PendingEventEntry} from "./PendingEventEntry.js"
 import {REDACTION_TYPE} from "../../common.js";
 import {createAnnotation, ANNOTATION_RELATION_TYPE, getRelationFromContent} from "../relations.js";
 import {PendingAnnotation} from "../PendingAnnotation.js";
 
+export interface Annotation {
+    count: number,
+    me: boolean,
+    firstTimestamp: number
+}
+
 /** Deals mainly with local echo for relations and redactions,
  * so it is shared between PendingEventEntry and EventEntry */
-export class BaseEventEntry extends BaseEntry {
-    constructor(fragmentIdComparer) {
+export abstract class BaseEventEntry extends BaseEntry {
+    private _pendingRedactions: Array<PendingEventEntry> | null
+    private _pendingAnnotations: Map<string, PendingAnnotation> | null
+
+    abstract id: string
+    abstract relatedEventId: string
+    abstract eventType: string
+    abstract content: any
+    
+    constructor(fragmentIdComparer: FragmentIdComparer) {
         super(fragmentIdComparer);
         this._pendingRedactions = null;
         this._pendingAnnotations = null;
     }
 
-    get isRedacting() {
+    get isRedacting(): boolean {
         return !!this._pendingRedactions;
     }
 
-    get isRedacted() {
+    get isRedacted(): boolean {
         return this.isRedacting;
     }
 
-    get isRedaction() {
+    get isRedaction(): boolean {
         return this.eventType === REDACTION_TYPE;
     }
 
-    get redactionReason() {
+    get redactionReason(): string | null {
         if (this._pendingRedactions) {
             return this._pendingRedactions[0].content?.reason;
         }
@@ -51,7 +66,7 @@ export class BaseEventEntry extends BaseEntry {
         aggregates local relation or local redaction of remote relation.
         @return [string] returns the name of the field that has changed, if any
     */
-    addLocalRelation(entry) {
+    addLocalRelation(entry: PendingEventEntry): string | undefined {
         if (entry.eventType === REDACTION_TYPE && entry.isRelatedToId(this.id)) {
             if (!this._pendingRedactions) {
                 this._pendingRedactions = [];
@@ -76,7 +91,7 @@ export class BaseEventEntry extends BaseEntry {
         deaggregates local relation or a local redaction of a remote relation.
         @return [string] returns the name of the field that has changed, if any
     */
-    removeLocalRelation(entry) {
+    removeLocalRelation(entry: PendingEventEntry): string | undefined {
         if (entry.eventType === REDACTION_TYPE && entry.isRelatedToId(this.id) && this._pendingRedactions) {
             const countBefore = this._pendingRedactions.length;
             this._pendingRedactions = this._pendingRedactions.filter(e => e !== entry);
@@ -98,7 +113,7 @@ export class BaseEventEntry extends BaseEntry {
         }
     }
 
-    _addPendingAnnotation(entry) {
+    _addPendingAnnotation(entry: PendingEventEntry): boolean {
         if (!this._pendingAnnotations) {
             this._pendingAnnotations = new Map();
         }
@@ -115,14 +130,14 @@ export class BaseEventEntry extends BaseEntry {
         return false;
     }
 
-    _removePendingAnnotation(entry) {
+    _removePendingAnnotation(entry: PendingEventEntry) {
         const {key} = (entry.redactingEntry || entry).relation;
         if (key) {
-            let annotation = this._pendingAnnotations.get(key);
+            let annotation = this._pendingAnnotations?.get(key);
             if (annotation.remove(entry) && annotation.isEmpty) {
-                this._pendingAnnotations.delete(key);
+                this._pendingAnnotations?.delete(key);
             }
-            if (this._pendingAnnotations.size === 0) {
+            if (this._pendingAnnotations?.size === 0) {
                 this._pendingAnnotations = null;
             }
             return true;
@@ -140,23 +155,23 @@ export class BaseEventEntry extends BaseEntry {
         }
     }
 
-    get pendingRedaction() {
+    get pendingRedaction(): PendingEventEntry | null {
         if (this._pendingRedactions) {
             return this._pendingRedactions[0];
         }
         return null;
     }
 
-    annotate(key) {
+    annotate(key: string): any {
         return createAnnotation(this.id, key);
     }
 
     /** takes both remote event id and local txn id into account, see overriding in PendingEventEntry */
-    isRelatedToId(id) {
-        return id && this.relatedEventId === id;
+    isRelatedToId(id: string | null): boolean {
+        return !!id && this.relatedEventId === id;
     }
 
-    haveAnnotation(key) {
+    haveAnnotation(key: string): boolean {
         const haveRemoteReaction = this.annotations?.[key]?.me || false;
         const pendingAnnotation = this.pendingAnnotations?.get(key);
         const willAnnotate = pendingAnnotation?.willAnnotate || false;
@@ -170,15 +185,15 @@ export class BaseEventEntry extends BaseEntry {
             (!haveRemoteReaction && willAnnotate);
     }
 
-    get relation() {
+    get relation(): any {
         return getRelationFromContent(this.content);
     }
 
-    get pendingAnnotations() {
+    get pendingAnnotations(): Map<string, PendingAnnotation> | null {
         return this._pendingAnnotations;
     }
 
-    get annotations() {
+    get annotations(): { [key: string]: Annotation } | null {
         return null; //overwritten in EventEntry
     }
 }
