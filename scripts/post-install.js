@@ -75,19 +75,13 @@ async function populateLib() {
     const olmDstDir = path.join(libDir, "olm/");
     await fs.mkdir(olmDstDir);
     for (const file of ["olm.js", "olm.wasm", "olm_legacy.js"]) {
-        await fs.symlink(path.join(olmSrcDir, file), path.join(olmDstDir, file));
+        await fs.copyFile(path.join(olmSrcDir, file), path.join(olmDstDir, file));
     }
     // transpile node-html-parser to esm
     await fs.mkdir(path.join(libDir, "node-html-parser/"));
     await commonjsToESM(
         require.resolve('node-html-parser/dist/index.js'),
         path.join(libDir, "node-html-parser/index.js")
-    );
-    // Symlink dompurify
-    await fs.mkdir(path.join(libDir, "dompurify/"));
-    await fs.symlink(
-        require.resolve('dompurify/dist/purify.es.js'),
-        path.join(libDir, "dompurify/index.js")
     );
     // transpile another-json to esm
     await fs.mkdir(path.join(libDir, "another-json/"));
