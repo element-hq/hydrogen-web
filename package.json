@@ -10,7 +10,7 @@
     "lint": "eslint --cache src/",
     "lint-ci": "eslint src/",
     "test": "impunity --entry-point src/main.js --force-esm-dirs lib/ src/",
-    "start": "node scripts/serve-local.js",
+    "start": "snowpack dev --port 3000",
     "build": "node --experimental-modules scripts/build.mjs",
     "postinstall": "node ./scripts/post-install.js"
   },
