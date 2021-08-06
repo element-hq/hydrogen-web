@@ -500,6 +500,7 @@ a {
     background-repeat: no-repeat;
     background-position: center;
     background-size: 18px;
+    cursor: pointer;
 }
 
 .MessageComposer_input:first-child {
