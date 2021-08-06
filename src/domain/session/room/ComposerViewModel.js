@@ -21,15 +21,12 @@ export class ComposerViewModel extends ViewModel {
         super();
         this._roomVM = roomVM;
         this._isEmpty = true;
-        this._replyId = null;
         this._replyVM = null;
     }
 
     setReplyingTo(entry) {
-        const newId = entry?.id || null;
-        const changed = this._replyId !== newId;
+        const changed = this._replyVM?.internalId !== entry?.asEventKey().toString();
         if (changed) {
-            this._replyId = newId;
             if (this._replyVM) {
                 this.untrack(this._replyVM);
                 this._replyVM.dispose();
