@@ -42,7 +42,7 @@ export class BaseMessageView extends TemplateView {
             // should be after body as it is overlayed on top
             t.button({className: "Timeline_messageOptions"}, "⋯"),
         ]);
-        const avatar = t.a({href: vm.memberPanelLink}, [renderStaticAvatar(vm, 30, "Timeline_messageAvatar")]);
+        const avatar = t.a({href: vm.memberPanelLink, className: "Timeline_messageAvatar"}, [renderStaticAvatar(vm, 30)]);
         // given that there can be many tiles, we don't add
         // unneeded DOM nodes in case of a continuation, and we add it
         // with a side-effect binding to not have to create sub views,
