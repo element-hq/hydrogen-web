@@ -91,7 +91,7 @@ export function tests() {
                     tile.updateEntry(newEntry);
                 }
             };
-            const tile = new GapTile({entry: new FragmentBoundaryEntry(fragment, true), room});
+            const tile = new GapTile({entry: new FragmentBoundaryEntry(fragment, true), roomVM: {room}});
             await tile.fill();
             await tile.fill();
             await tile.fill();
