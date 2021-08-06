@@ -47,8 +47,8 @@ export class ComposerViewModel extends ViewModel {
         return this._roomVM.isEncrypted;
     }
 
-    sendMessage(message) {
-        const success = this._roomVM._sendMessage(message, this._replyVM);
+    async sendMessage(message) {
+        const success = await this._roomVM._sendMessage(message, this._replyVM);
         if (success) {
             this._isEmpty = true;
             this.emitChange("canSend");

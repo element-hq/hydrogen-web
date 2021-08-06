@@ -69,9 +69,9 @@ export class MessageComposer extends TemplateView {
         this.value.clearReplyingTo();
     }
 
-    _trySend() {
+    async _trySend() {
         this._input.focus();
-        if (this.value.sendMessage(this._input.value)) {
+        if (await this.value.sendMessage(this._input.value)) {
             this._input.value = "";
         }
     }
