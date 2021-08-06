@@ -7,6 +7,8 @@ module.exports = {
     "src": "/src",
     "public": "/",
     "lib": {url: "/lib", static: true },
+    "src/platform/web/ui/css/themes": "/themes",
+    "assets": "/assets",
     /* ... */
   },
   exclude: [
