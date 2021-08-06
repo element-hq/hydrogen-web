@@ -36,7 +36,7 @@ function fallbackPrefix(msgtype) {
     return msgtype === "m.emote" ? "* " : "";
 }
 
-function createReply(targetId, msgtype, body, formattedBody) {
+function _createReplyContent(targetId, msgtype, body, formattedBody) {
     return {
         msgtype,
         body,
@@ -50,7 +50,7 @@ function createReply(targetId, msgtype, body, formattedBody) {
     };
 }
 
-export function reply(entry, msgtype, body) {
+export function createReplyContent(entry, msgtype, body) {
     // TODO check for absense of sender / body / msgtype / etc?
     const nonTextual = fallbackForNonTextualMessage(entry.content.msgtype);
     const prefix = fallbackPrefix(entry.content.msgtype);
@@ -70,5 +70,5 @@ export function reply(entry, msgtype, body) {
 
     const newBody = plainFallback + '\n\n' + body;
     const newFormattedBody = formattedFallback + htmlEscape(body);
-    return createReply(entry.id, msgtype, newBody, newFormattedBody);
+    return _createReplyContent(entry.id, msgtype, newBody, newFormattedBody);
 }
