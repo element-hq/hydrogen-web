@@ -18,19 +18,30 @@ import {TemplateView} from "../../general/TemplateView.js";
 import {RoomDetailsView} from "./RoomDetailsView.js";
 import {MemberListView} from "./MemberListView.js";
 import {LoadingView} from "../../general/LoadingView.js";
+import {MemberDetailsView} from "./MemberDetailsView.js";
 
 export class RightPanelView extends TemplateView {
     render(t) {
-        const viewFromType = {
-            "room-details": RoomDetailsView,
-            "member-list": MemberListView
-        };
         return t.div({ className: "RightPanelView" },
             [
                 t.ifView(vm => vm.activeViewModel, vm => new ButtonsView(vm)),
-                t.mapView(vm => vm.activeViewModel, vm => vm ? new viewFromType[vm.type](vm) : new LoadingView())
+                t.mapView(vm => vm.activeViewModel, vm => this._viewFromType(vm))
             ]
         );
+    }
+
+    _viewFromType(vm) {
+        const type = vm?.type;
+        switch (type) {
+            case "room-details":
+                return new RoomDetailsView(vm);
+            case "member-list":
+                return new MemberListView(vm);
+            case "member-details":
+                return new MemberDetailsView(vm);
+            default:
+                return new LoadingView();
+        }
     }
 }
 

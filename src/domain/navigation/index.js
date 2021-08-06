@@ -39,7 +39,7 @@ function allowsChild(parent, child) {
         case "room":
             return type === "lightbox" || type === "right-panel";
         case "right-panel":
-            return type === "details"|| type === "members";
+            return type === "details"|| type === "members" || type === "member";
         default:
             return false;
     }
@@ -87,9 +87,9 @@ function roomsSegmentWithRoom(rooms, roomId, path) {
     }
 }
 
-function pushRightPanelSegment(array, segment) {
+function pushRightPanelSegment(array, segment, value = true) {
     array.push(new Segment("right-panel"));
-    array.push(new Segment(segment));
+    array.push(new Segment(segment, value));
 }
 
 export function addPanelIfNeeded(navigation, path) {
@@ -132,10 +132,11 @@ export function parseUrlPath(urlPath, currentNavPath, defaultSessionId) {
                 segments.push(roomsSegmentWithRoom(rooms, roomId, currentNavPath));
             }
             segments.push(new Segment("room", roomId));
-            if (currentNavPath.get("details")?.value) {
-                pushRightPanelSegment(segments, "details");
-            } else if (currentNavPath.get("members")?.value) {
-                pushRightPanelSegment(segments, "members");
+            // Add right-panel segments from previous path
+            const previousSegments = currentNavPath.segments;
+            const i = previousSegments.findIndex(s => s.type === "right-panel");
+            if (i !== -1) {
+                segments.push(...previousSegments.slice(i));
             }
         } else if (type === "last-session") {
             let sessionSegment = currentNavPath.get("session");
@@ -147,6 +148,10 @@ export function parseUrlPath(urlPath, currentNavPath, defaultSessionId) {
             }
         } else if (type === "details" || type === "members") {
             pushRightPanelSegment(segments, type);
+        } else if (type === "member") {
+            const userId = iterator.next().value;
+            if (!userId) { break; }
+            pushRightPanelSegment(segments, type, userId);
         } else {
             // might be undefined, which will be turned into true by Segment 
             const value = iterator.next().value;

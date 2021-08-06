@@ -6,7 +6,7 @@
     flex-direction: column;
 }
 
-.RoomDetailsView {
+.RoomDetailsView, .MemberDetailsView {
     flex-direction: column;
     flex: 1;
 }
@@ -15,11 +15,11 @@
     display: flex;
 }
 
-.RoomDetailsView_name h2 {
+.RoomDetailsView_name h2, .MemberDetailsView_name h2 {
     text-align: center;
 }
 
-.RoomDetailsView_label, .RoomDetailsView_row, .RoomDetailsView, .EncryptionIconView {
+.RoomDetailsView_label, .RoomDetailsView_row, .RoomDetailsView, .MemberDetailsView, .EncryptionIconView {
     display: flex;
     align-items: center;
 }
@@ -45,7 +45,7 @@
     visibility: hidden;
 }
 
-.MemberTileView {
+.MemberTileView a {
     display: flex;
     align-items: center;
 }

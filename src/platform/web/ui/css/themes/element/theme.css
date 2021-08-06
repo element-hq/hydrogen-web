@@ -807,7 +807,7 @@ button.link {
     padding-top: 0;
 }
 
-.RoomDetailsView_id {
+.RoomDetailsView_id, .MemberDetailsView_id {
     color: #737D8C;
     font-size: 12px;
 }
@@ -817,7 +817,7 @@ button.link {
     width: 100%;
 }
 
-.RoomDetailsView_name h2 {
+.RoomDetailsView_name h2, .MemberDetailsView_name h2 {
     margin-bottom: 4px;
     font-size: 1.8rem;
 }
@@ -916,6 +916,11 @@ button.RoomDetailsView_row::after {
 
 .MemberTileView {
     margin-bottom: 8px;
+    list-style: none;
+}
+
+.MemberTileView a {
+    text-decoration: none;
 }
 
 .MemberTileView .avatar {
@@ -927,6 +932,37 @@ button.RoomDetailsView_row::after {
     overflow: hidden;
     white-space: nowrap;
     flex: 1;
+}
+
+/* Member details panel */
+.MemberDetailsView_section {
+    box-sizing: border-box;
+    padding: 16px;
+    width: 100%;
+}
+
+.MemberDetailsView_label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #8d99a5;
+    text-transform: uppercase;
+}
+
+.MemberDetailsView_value, .MemberDetailsView_options {
+    margin-left: 8px;
+    margin-top: 5px;
+    font-size: 12px;
+}
+
+.MemberDetailsView_options {
+    display: inline-flex;
+    flex-direction: column;
+}
+
+.MemberDetailsView_options a{
+    color: #0dbd8b;
+    text-decoration: none;
+    margin-bottom: 3px;
 }
 
 .LazyListParent {
