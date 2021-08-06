@@ -41,6 +41,10 @@ export class BaseMessageTile extends SimpleTile {
         return this._entry.sender;
     }
 
+    get memberPanelLink() {
+        return `${this.urlCreator.urlUntilSegment("room")}/member/${this.sender}`;
+    }
+
     // Avatar view model contract
     get avatarColorNumber() {
         return getIdentifierColorNumber(this._entry.sender);
