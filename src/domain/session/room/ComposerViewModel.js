@@ -27,13 +27,9 @@ export class ComposerViewModel extends ViewModel {
     setReplyingTo(entry) {
         const changed = this._replyVM?.internalId !== entry?.asEventKey().toString();
         if (changed) {
-            if (this._replyVM) {
-                this.untrack(this._replyVM);
-                this._replyVM.dispose();
-            }
-            this._replyVM = entry && this._roomVM._createTile(entry);
-            if (this._replyVM) {
-                this.track(this._replyVM);
+            this._replyVM = this.disposeTracked(this._replyVM);
+            if (entry) {
+                this._replyVM = this.track(this._roomVM._createTile(entry));
             }
             this.emitChange("replyViewModel");
         }
