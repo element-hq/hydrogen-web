@@ -74,7 +74,7 @@ export class TableBlock {
 }
 
 export class RulePart {
-    get type( ) { return "rule"; }
+    get type() { return "rule"; }
 }
 
 export class NewLinePart {
