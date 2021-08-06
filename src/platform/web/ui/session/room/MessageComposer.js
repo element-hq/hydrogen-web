@@ -25,6 +25,7 @@ export class MessageComposer extends TemplateView {
         super(viewModel);
         this._input = null;
         this._attachmentPopup = null;
+        this._focusInput = null;
     }
 
     render(t, vm) {
@@ -34,6 +35,8 @@ export class MessageComposer extends TemplateView {
             onKeydown: e => this._onKeyDown(e),
             onInput: () => vm.setInput(this._input.value),
         });
+        this._focusInput = () => this._input.focus();
+        this.value.on("focus", this._focusInput);
         const replyPreview = t.map(vm => vm.replyViewModel, (rvm, t) => {
             const View = rvm && viewClassForEntry(rvm);
             if (!View) { return null; }
@@ -63,6 +66,13 @@ export class MessageComposer extends TemplateView {
             }, vm.i18n`Send`),
         ]);
         return t.div({ className: "MessageComposer" }, [replyPreview, input]);
+    }
+
+    unmount() {
+        if (this._focusInput) {
+            this.value.off("focus", this._focusInput);
+        }
+        super.unmount();
     }
 
     _clearReplyingTo() {

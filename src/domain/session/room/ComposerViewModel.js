@@ -32,6 +32,7 @@ export class ComposerViewModel extends ViewModel {
                 this._replyVM = this.track(this._roomVM._createTile(entry));
             }
             this.emitChange("replyViewModel");
+            this.emit("focus");
         }
     }
 
