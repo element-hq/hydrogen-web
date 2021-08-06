@@ -64,6 +64,7 @@ limitations under the License.
 
 .Timeline_messageAvatar {
     grid-area: avatar;
+    text-decoration: none;
 }
 
 .Timeline_messageSender {
