@@ -97,9 +97,9 @@ export class SendQueue {
         }
         if (pendingEvent.needsEncryption) {
             pendingEvent.setEncrypting();
-            const cleanedContent = pendingEvent.cleanedContent;
+            const encryptionContent = pendingEvent.contentForEncryption;
             const {type, content} = await log.wrap("encrypt", log => this._roomEncryption.encrypt(
-                pendingEvent.eventType, cleanedContent, this._hsApi, log));
+                pendingEvent.eventType, encryptionContent, this._hsApi, log));
             pendingEvent.setEncrypted(type, content);
             await this._tryUpdateEvent(pendingEvent);
         }

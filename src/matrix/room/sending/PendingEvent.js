@@ -28,7 +28,7 @@ export const SendStatus = createEnum(
     "Error",
 );
 
-const preservedContentFields = [ "m.relates_to" ];
+const unencryptedContentFields = [ "m.relates_to" ];
 
 export class PendingEvent {
     constructor({data, remove, emitUpdate, attachments}) {
@@ -98,9 +98,9 @@ export class PendingEvent {
         this._emitUpdate("status");
     }
 
-    get cleanedContent() {
+    get contentForEncryption() {
         const content = Object.assign({}, this._data.content);
-        for (const field of preservedContentFields) {
+        for (const field of unencryptedContentFields) {
             delete content[field];
         }
         return content;
@@ -108,7 +108,7 @@ export class PendingEvent {
 
     _preserveContentFields(into) {
         const content = this._data.content;
-        for (const field of preservedContentFields) {
+        for (const field of unencryptedContentFields) {
             if (content[field] !== undefined) {
                 into[field] = content[field];
             }
