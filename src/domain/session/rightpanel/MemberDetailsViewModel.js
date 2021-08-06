@@ -25,7 +25,6 @@ export class MemberDetailsViewModel extends ViewModel {
         this._member = this._observableMember.get();
         this._isEncrypted = options.isEncrypted;
         this._powerLevelsObservable = options.powerLevelsObservable;
-        this._powerLevel = null;
         this.track(this._powerLevelsObservable.subscribe(() => this._onPowerLevelsChange()));
         this.track(this._observableMember.subscribe( () => this._onMemberChange()));
     }
