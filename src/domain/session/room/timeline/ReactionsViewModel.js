@@ -190,7 +190,7 @@ import {HomeServer as MockHomeServer} from "../../../../mocks/HomeServer.js";
 import {BaseMessageTile} from "./tiles/BaseMessageTile.js";
 import {MappedList} from "../../../../observable/list/MappedList.js";
 import {ObservableValue} from "../../../../observable/ObservableValue.js";
-import {PowerLevels} from "../../../../matrix/room/timeline/PowerLevels.js";
+import {PowerLevels} from "../../../../matrix/room/PowerLevels.js";
 
 export function tests() {
     const fragmentIdComparer = new FragmentIdComparer([]);
