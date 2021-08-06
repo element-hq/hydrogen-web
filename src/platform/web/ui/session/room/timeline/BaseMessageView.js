@@ -52,10 +52,10 @@ export class BaseMessageView extends TemplateView {
         // as the avatar or sender doesn't need any bindings or event handlers.
         // don't use `t` from within the side-effect callback
         t.mapSideEffect(vm => vm.isContinuation, (isContinuation, wasContinuation) => {
-            if (isContinuation && this._interactive && wasContinuation === false) {
+            if (isContinuation && wasContinuation === false) {
                 li.removeChild(li.querySelector(".Timeline_messageAvatar"));
                 li.removeChild(li.querySelector(".Timeline_messageSender"));
-            } else if (!isContinuation || !this._interactive) {
+            } else if (!isContinuation) {
                 li.insertBefore(renderStaticAvatar(vm, 30, "Timeline_messageAvatar"), li.firstChild);
                 li.insertBefore(tag.div({className: `Timeline_messageSender usercolor${vm.avatarColorNumber}`}, vm.displayName), li.firstChild);
             }
