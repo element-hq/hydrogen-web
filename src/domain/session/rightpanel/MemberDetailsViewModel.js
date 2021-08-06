@@ -76,11 +76,7 @@ export class MemberDetailsViewModel extends ViewModel {
     }
 
     get powerLevel() {
-        if (!this._powerLevel) {
-            const powerLevels = this._powerLevelsObservable.get();
-            this._powerLevel = powerLevels.getUserLevel(this._member.userId);
-        }
-        return this._powerLevel;
+        return this._powerLevelsObservable.get()?.getUserLevel(this._member.userId);
     }
 
     get linkToUser() {
