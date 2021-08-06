@@ -16,7 +16,9 @@ limitations under the License.
 */
 
 import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
+import {ComposerViewModel} from "./ComposerViewModel.js"
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar.js";
+import {tilesCreator} from "./timeline/tilesCreator.js";
 import {ViewModel} from "../../ViewModel.js";
 
 export class RoomViewModel extends ViewModel {
@@ -25,6 +27,7 @@ export class RoomViewModel extends ViewModel {
         const {room} = options;
         this._room = room;
         this._timelineVM = null;
+        this._tilesCreator = null;
         this._onRoomChange = this._onRoomChange.bind(this);
         this._timelineError = null;
         this._sendError = null;
@@ -42,11 +45,14 @@ export class RoomViewModel extends ViewModel {
         this._room.on("change", this._onRoomChange);
         try {
             const timeline = await this._room.openTimeline();
-            const timelineVM = this.track(new TimelineViewModel(this.childOptions({
-                room: this._room,
+            this._tilesCreator = tilesCreator(this.childOptions({
+                roomVM: this,
+                timeline,
+            }));
+            this._timelineVM = this.track(new TimelineViewModel(this.childOptions({
+                tilesCreator: this._tilesCreator,
                 timeline,
             })));
-            this._timelineVM = timelineVM;
             this.emitChange("timelineViewModel");
         } catch (err) {
             console.error(`room.openTimeline(): ${err.message}:\n${err.stack}`);
@@ -153,8 +159,12 @@ export class RoomViewModel extends ViewModel {
     rejoinRoom() {
         this._room.join();
     }
+
+    _createTile(entry) {
+        return this._tilesCreator(entry);
+    }
     
-    async _sendMessage(message) {
+    async _sendMessage(message, replyingTo) {
         if (!this._room.isArchived && message) {
             try {
                 let msgtype = "m.text";
@@ -162,7 +172,11 @@ export class RoomViewModel extends ViewModel {
                     message = message.substr(4).trim();
                     msgtype = "m.emote";
                 }
-                await this._room.sendEvent("m.room.message", {msgtype, body: message});
+                if (replyingTo) {
+                    await replyingTo.reply(msgtype, message);
+                } else {
+                    await this._room.sendEvent("m.room.message", {msgtype, body: message});
+                }
             } catch (err) {
                 console.error(`room.sendMessage(): ${err.message}:\n${err.stack}`);
                 this._sendError = err;
@@ -284,6 +298,10 @@ export class RoomViewModel extends ViewModel {
         }
     }
 
+    get room() {
+        return this._room;
+    }
+
     get composerViewModel() {
         return this._composerVM;
     }
@@ -294,57 +312,11 @@ export class RoomViewModel extends ViewModel {
         path = path.with(this.navigation.segment("details", true));
         this.navigation.applyPath(path);
     }
-}
 
-class ComposerViewModel extends ViewModel {
-    constructor(roomVM) {
-        super();
-        this._roomVM = roomVM;
-        this._isEmpty = true;
-    }
-
-    get isEncrypted() {
-        return this._roomVM.isEncrypted;
-    }
-
-    sendMessage(message) {
-        const success = this._roomVM._sendMessage(message);
-        if (success) {
-            this._isEmpty = true;
-            this.emitChange("canSend");
+    startReply(entry) {
+        if (!this._room.isArchived) {
+            this._composerVM.setReplyingTo(entry);
         }
-        return success;
-    }
-
-    sendPicture() {
-        this._roomVM._pickAndSendPicture();
-    }
-
-    sendFile() {
-        this._roomVM._pickAndSendFile();
-    }
-
-    sendVideo() {
-        this._roomVM._pickAndSendVideo();
-    }
-
-    get canSend() {
-        return !this._isEmpty;
-    }
-
-    async setInput(text) {
-        const wasEmpty = this._isEmpty;
-        this._isEmpty = text.length === 0;
-        if (wasEmpty && !this._isEmpty) {
-            this._roomVM._room.ensureMessageKeyIsShared();
-        }
-        if (wasEmpty !== this._isEmpty) {
-            this.emitChange("canSend");
-        }
-    }
-
-    get kind() {
-        return "composer";
     }
 }
 

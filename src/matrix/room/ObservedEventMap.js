@@ -25,7 +25,7 @@ export class ObservedEventMap {
     observe(eventId, eventEntry = null) {
         let observable = this._map.get(eventId);
         if (!observable) {
-            observable = new ObservedEvent(this, eventEntry);
+            observable = new ObservedEvent(this, eventEntry, eventId);
             this._map.set(eventId, observable);
         }
         return observable;
@@ -39,8 +39,8 @@ export class ObservedEventMap {
         }
     }
 
-    _remove(observable) {
-        this._map.delete(observable.get().id);
+    _remove(id) {
+        this._map.delete(id);
         if (this._map.size === 0) {
             this._notifyEmpty();
         }
@@ -48,16 +48,17 @@ export class ObservedEventMap {
 }
 
 class ObservedEvent extends BaseObservableValue {
-    constructor(eventMap, entry) {
+    constructor(eventMap, entry, id) {
         super();
         this._eventMap = eventMap;
         this._entry = entry;
+        this._id = id;
         // remove subscription in microtask after creating it
         // otherwise ObservedEvents would easily never get
         // removed if you never subscribe
         Promise.resolve().then(() => {
             if (!this.hasSubscriptions) {
-                this._eventMap.remove(this);
+                this._eventMap._remove(this._id);
                 this._eventMap = null;
             }
         });
@@ -71,7 +72,7 @@ class ObservedEvent extends BaseObservableValue {
     }
 
     onUnsubscribeLast() {
-        this._eventMap._remove(this);
+        this._eventMap._remove(this._id);
         this._eventMap = null;
         super.onUnsubscribeLast();
     }

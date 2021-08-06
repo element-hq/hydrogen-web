@@ -30,7 +30,8 @@ export class RelationWriter {
         const {relatedEventId} = sourceEntry;
         if (relatedEventId) {
             const relation = getRelation(sourceEntry.event);
-            if (relation) {
+            if (relation && relation.rel_type) {
+                // we don't consider replies (which aren't relations in the MSC2674 sense)
                 txn.timelineRelations.add(this._roomId, relation.event_id, relation.rel_type, sourceEntry.id);
             }
             const target = await txn.timelineEvents.getByEventId(this._roomId, relatedEventId);
@@ -120,7 +121,7 @@ export class RelationWriter {
         log.set("id", redactedEvent.event_id);
 
         const relation = getRelation(redactedEvent);
-        if (relation) {
+        if (relation && relation.rel_type) {
             txn.timelineRelations.remove(this._roomId, relation.event_id, relation.rel_type, redactedEvent.event_id);
         }
         // check if we're the target of a relation and remove all relations then as well

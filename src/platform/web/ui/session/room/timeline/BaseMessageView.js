@@ -24,23 +24,27 @@ import {Menu} from "../../../general/Menu.js";
 import {ReactionsView} from "./ReactionsView.js";
 
 export class BaseMessageView extends TemplateView {
-    constructor(value) {
+    constructor(value, interactive = true, tagName = "li") {
         super(value);
         this._menuPopup = null;
+        this._tagName = tagName;
+        // TODO An enum could be nice to make code easier to read at call sites.
+        this._interactive = interactive;
     }
 
     render(t, vm) {
-        const li = t.li({className: {
+        const li = t.el(this._tagName, {className: {
             "Timeline_message": true,
             own: vm.isOwn,
             unsent: vm.isUnsent,
             unverified: vm.isUnverified,
+            disabled: !this._interactive,
             continuation: vm => vm.isContinuation,
         }}, [
             // dynamically added and removed nodes are handled below
             this.renderMessageBody(t, vm),
             // should be after body as it is overlayed on top
-            t.button({className: "Timeline_messageOptions"}, "⋯"),
+            this._interactive ? t.button({className: "Timeline_messageOptions"}, "⋯") : [],
         ]);
         const avatar = t.a({href: vm.memberPanelLink, className: "Timeline_messageAvatar"}, [renderStaticAvatar(vm, 30)]);
         // given that there can be many tiles, we don't add
@@ -61,7 +65,7 @@ export class BaseMessageView extends TemplateView {
         // but that adds a comment node to all messages without reactions
         let reactionsView = null;
         t.mapSideEffect(vm => vm.reactions, reactions => {
-            if (reactions && !reactionsView) {
+            if (reactions && this._interactive && !reactionsView) {
                 reactionsView = new ReactionsView(vm.reactions);
                 this.addSubView(reactionsView);
                 li.appendChild(mountView(reactionsView));
@@ -113,6 +117,7 @@ export class BaseMessageView extends TemplateView {
         const options = [];
         if (vm.canReact && vm.shape !== "redacted") {
             options.push(new QuickReactionsMenuOption(vm));
+            options.push(Menu.option(vm.i18n`Reply`, () => vm.startReply()));
         }
         if (vm.canAbortSending) {
             options.push(Menu.option(vm.i18n`Cancel`, () => vm.abortSending()));

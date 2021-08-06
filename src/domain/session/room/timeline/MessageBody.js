@@ -137,10 +137,23 @@ export class TextPart {
     get type() { return "text"; }
 }
 
+function isBlockquote(part){
+    return part.type === "format" && part.format === "blockquote";
+}
+
 export class MessageBody {
     constructor(sourceString, parts) {
         this.sourceString = sourceString;
         this.parts = parts;
+    }
+
+    insertEmote(string) {
+        // We want to skip quotes introduced by replies when emoting.
+        // We assume that such quotes are not TextParts, because replies
+        // must have a formatted body.
+        let i = 0;
+        for (; i < this.parts.length && isBlockquote(this.parts[i]); i++);
+        this.parts.splice(i, 0, new TextPart(string));
     }
 }
 

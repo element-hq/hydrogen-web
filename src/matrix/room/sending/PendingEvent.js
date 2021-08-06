@@ -16,7 +16,7 @@ limitations under the License.
 import {createEnum} from "../../../utils/enum.js";
 import {AbortError} from "../../../utils/error.js";
 import {REDACTION_TYPE} from "../common.js";
-import {getRelationFromContent} from "../timeline/relations.js";
+import {getRelationFromContent, getRelationTarget, setRelationTarget} from "../timeline/relations.js";
 
 export const SendStatus = createEnum(
     "Waiting",
@@ -27,6 +27,8 @@ export const SendStatus = createEnum(
     "Sent",
     "Error",
 );
+
+const unencryptedContentFields = [ "m.relates_to" ];
 
 export class PendingEvent {
     constructor({data, remove, emitUpdate, attachments}) {
@@ -54,7 +56,7 @@ export class PendingEvent {
         const relation = getRelationFromContent(this.content);
         if (relation) {
             // may be null when target is not sent yet, is intended
-            return relation.event_id;
+            return getRelationTarget(relation);
         } else {
             return this._data.relatedEventId;
         }
@@ -63,7 +65,7 @@ export class PendingEvent {
     setRelatedEventId(eventId) {
         const relation = getRelationFromContent(this.content);
         if (relation) {
-            relation.event_id = eventId;
+            setRelationTarget(relation, eventId);
         } else {
             this._data.relatedEventId = eventId;
         }
@@ -96,7 +98,25 @@ export class PendingEvent {
         this._emitUpdate("status");
     }
 
+    get contentForEncryption() {
+        const content = Object.assign({}, this._data.content);
+        for (const field of unencryptedContentFields) {
+            delete content[field];
+        }
+        return content;
+    }
+
+    _preserveContentFields(into) {
+        const content = this._data.content;
+        for (const field of unencryptedContentFields) {
+            if (content[field] !== undefined) {
+                into[field] = content[field];
+            }
+        }
+    }
+
     setEncrypted(type, content) {
+        this._preserveContentFields(content);
         this._data.encryptedEventType = type;
         this._data.encryptedContent = content;
         this._data.needsEncryption = false;

@@ -16,7 +16,7 @@ limitations under the License.
 
 import {BaseEventEntry} from "./BaseEventEntry.js";
 import {getPrevContentFromStateEvent, isRedacted} from "../../common.js";
-import {getRelatedEventId} from "../relations.js";
+import {getRelationFromContent, getRelatedEventId} from "../relations.js";
 
 export class EventEntry extends BaseEventEntry {
     constructor(eventEntry, fragmentIdComparer) {
@@ -138,6 +138,12 @@ export class EventEntry extends BaseEventEntry {
 
     get annotations() {
         return this._eventEntry.annotations;
+    }
+
+    get relation() {
+        const originalContent = this._eventEntry.event.content;
+        const originalRelation = originalContent && getRelationFromContent(originalContent);
+        return originalRelation || getRelationFromContent(this.content);
     }
 }
 

@@ -20,12 +20,7 @@ import {parseHTMLBody} from "../deserialize.js";
 
 export class TextTile extends BaseTextTile {
     _getContentString(key) {
-        const content = this._getContent();
-        let val = content?.[key] || "";
-        if (content.msgtype === "m.emote") {
-            val = `* ${this.displayName} ${val}`;
-        }
-        return val;
+        return this._getContent()?.[key] || "";
     }
 
     _getPlainBody() {
@@ -53,10 +48,15 @@ export class TextTile extends BaseTextTile {
     }
 
     _parseBody(body, format) {
+        let messageBody;
         if (format === BodyFormat.Html) {
-            return parseHTMLBody(this.platform, this._mediaRepository, body);
+            messageBody = parseHTMLBody(this.platform, this._mediaRepository, this._entry.isReply, body);
         } else {
-            return parsePlainBody(body);
+            messageBody = parsePlainBody(body);
         }
+        if (this._getContent()?.msgtype === "m.emote") {
+            messageBody.insertEmote(`* ${this.displayName} `);
+        }
+        return messageBody;
     }
 }

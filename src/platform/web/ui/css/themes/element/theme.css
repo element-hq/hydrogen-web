@@ -462,16 +462,56 @@ a {
     color: red;
 }
 
-.MessageComposer {
-    border-top: 1px solid rgba(245, 245, 245, 0.90);
+.MessageComposer_replyPreview .Timeline_message {
+    margin: 0;
+    margin-top: 5px;
+    max-height: 30vh;
+    overflow: auto;
+}
+
+.MessageComposer_replyPreview {
+    background: rgba(245, 245, 245, 0.90);
+    margin: 0px 10px 10px 10px;
+    box-shadow: 0px 0px 5px #91919169;
+    border-radius: 5px;
+}
+
+.MessageComposer_input, .MessageComposer_replyPreview {
     padding: 8px 16px;
 }
 
-.MessageComposer > :not(:first-child) {
+.MessageComposer_replyPreview > .replying {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    font-weight: bold;
+}
+
+.MessageComposer_replyPreview > button.cancel {
+    width: 32px;
+    height: 32px;
+    display: block;
+    border: none;
+    text-indent: 200%;
+    white-space: nowrap;
+    overflow: hidden;
+    background-color: transparent;
+    background-image: url('icons/clear.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 18px;
+    cursor: pointer;
+}
+
+.MessageComposer_input:first-child {
+    border-top: 1px solid rgba(245, 245, 245, 0.90);
+}
+
+.MessageComposer_input > :not(:first-child) {
     margin-left: 12px;
 }
 
-.MessageComposer > input {
+.MessageComposer_input > input {
     padding: 0 16px;
     border: none;
     border-radius: 24px;
@@ -481,7 +521,7 @@ a {
     font-family: "Inter", sans-serif;
 }
 
-.MessageComposer > button.send {
+.MessageComposer_input > button.send {
     width: 32px;
     height: 32px;
     display: block;
@@ -496,7 +536,7 @@ a {
     background-position: center;
 }
 
-.MessageComposer > button.sendFile {
+.MessageComposer_input > button.sendFile {
     width: 32px;
     height: 32px;
     display: block;
@@ -510,7 +550,7 @@ a {
     background-position: center;
 }
 
-.MessageComposer > button.send:disabled {
+.MessageComposer_input > button.send:disabled {
     background-color: #E3E8F0;
 }
 

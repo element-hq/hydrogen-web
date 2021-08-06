@@ -18,6 +18,7 @@ import {BaseEntry} from "./BaseEntry.js";
 import {REDACTION_TYPE} from "../../common.js";
 import {createAnnotation, ANNOTATION_RELATION_TYPE, getRelationFromContent} from "../relations.js";
 import {PendingAnnotation} from "../PendingAnnotation.js";
+import {createReplyContent} from "./reply.js"
 
 /** Deals mainly with local echo for relations and redactions,
  * so it is shared between PendingEventEntry and EventEntry */
@@ -26,6 +27,10 @@ export class BaseEventEntry extends BaseEntry {
         super(fragmentIdComparer);
         this._pendingRedactions = null;
         this._pendingAnnotations = null;
+    }
+
+    get isReply() {
+        return !!this.relation?.["m.in_reply_to"];
     }
 
     get isRedacting() {
@@ -149,6 +154,10 @@ export class BaseEventEntry extends BaseEntry {
 
     annotate(key) {
         return createAnnotation(this.id, key);
+    }
+
+    reply(msgtype, body) {
+        return createReplyContent(this, msgtype, body);
     }
 
     /** takes both remote event id and local txn id into account, see overriding in PendingEventEntry */

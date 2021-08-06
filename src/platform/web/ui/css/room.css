@@ -50,12 +50,21 @@ limitations under the License.
     margin: 0;
 }
 
-.MessageComposer {
+.MessageComposer_replyPreview {
+    display: grid;
+    grid-template-columns: 1fr auto;
+}
+
+.MessageComposer_replyPreview .Timeline_message {
+    grid-column: 1/-1;
+}
+
+.MessageComposer_input {
     display: flex;
     align-items: center;
 }
 
-.MessageComposer > input {
+.MessageComposer_input > input {
     display: block;
     flex: 1;
     min-width: 0;
