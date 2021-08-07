@@ -105,6 +105,9 @@ const formatFunction = {
 
 function renderPart(part) {
     const f = formatFunction[part.type];
+    if (!f) {
+        return text(`[unknown part type ${part.type}]`);
+    }
     return f(part);
 }
 
