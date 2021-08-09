@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {txnAsPromise} from "./utils.js";
+import {txnAsPromise} from "./utils";
 import {StorageError} from "../common";
 import {Store} from "./Store.js";
 import {SessionStore} from "./stores/SessionStore.js";

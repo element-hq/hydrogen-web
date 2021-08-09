@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { iterateCursor, txnAsPromise } from "./utils.js";
+import { iterateCursor, txnAsPromise } from "./utils";
 import { STORE_NAMES } from "../common";
 
 export async function exportSession(db) {

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { encodeUint32, decodeUint32 } from "../utils.js";
+import { encodeUint32, decodeUint32 } from "../utils";
 import {KeyLimits} from "../../common";
 
 function encodeKey(roomId, queueIndex) {
