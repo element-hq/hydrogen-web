@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {build as snowpackBuild, loadConfiguration} from "snowpack"
 import cheerio from "cheerio";
 import fsRoot from "fs";
 const fs = fsRoot.promises;
@@ -46,7 +47,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectDir = path.join(__dirname, "../");
 const cssSrcDir = path.join(projectDir, "src/platform/web/ui/css/");
-const srcDir = path.join(projectDir, "src/");
+const snowpackConfig = await loadConfiguration({}, "snowpack.config.js");
+const snowpackOutDir = snowpackConfig.buildOptions.out.substring(projectDir.length);
+const srcDir = path.join(projectDir, `${snowpackOutDir}/src/`);
 const isPathInSrcDir = path => path.startsWith(srcDir);
 
 const parameters = new commander.Command();
@@ -56,7 +59,12 @@ parameters
     .option("--override-css <main css file>", "pass in an alternative main css file")
 parameters.parse(process.argv);
 
+function srcPath(src) {
+    return path.join(snowpackOutDir, 'src', src);
+}
+
 async function build({modernOnly, overrideImports, overrideCss}) {
+    await snowpackBuild({config: snowpackConfig});
     // get version number
     const version = JSON.parse(await fs.readFile(path.join(projectDir, "package.json"), "utf8")).version;
     let importOverridesMap;
@@ -77,13 +85,13 @@ async function build({modernOnly, overrideImports, overrideCss}) {
     // copy olm assets
     const olmAssets = await copyFolder(path.join(projectDir, "lib/olm/"), assets.directory);
     assets.addSubMap(olmAssets);
-    await assets.write(`hydrogen.js`, await buildJs("src/main.js", ["src/platform/web/Platform.js"], importOverridesMap));
+    await assets.write(`hydrogen.js`, await buildJs(srcPath("main.js"), [srcPath("platform/web/Platform.js")], importOverridesMap));
     if (!modernOnly) {
-        await assets.write(`hydrogen-legacy.js`, await buildJsLegacy("src/main.js", [
-            'src/platform/web/legacy-polyfill.js',
-            'src/platform/web/LegacyPlatform.js'
+        await assets.write(`hydrogen-legacy.js`, await buildJsLegacy(srcPath("main.js"), [
+            srcPath('platform/web/legacy-polyfill.js'),
+            srcPath('platform/web/LegacyPlatform.js')
         ], importOverridesMap));
-        await assets.write(`worker.js`, await buildJsLegacy("src/platform/web/worker/main.js", ['src/platform/web/worker/polyfill.js']));
+        await assets.write(`worker.js`, await buildJsLegacy(srcPath("platform/web/worker/main.js"), [srcPath('platform/web/worker/polyfill.js')]));
     }
     // copy over non-theme assets
     const baseConfig = JSON.parse(await fs.readFile(path.join(projectDir, "assets/config.json"), {encoding: "utf8"}));
@@ -97,7 +105,7 @@ async function build({modernOnly, overrideImports, overrideCss}) {
     await buildManifest(assets);
     // all assets have been added, create a hash from all assets name to cache unhashed files like index.html
     assets.addToHashForAll("public/index.html", devHtml);
-    let swSource = await fs.readFile(path.join(projectDir, "src/platform/web/service-worker.js"), "utf8");
+    let swSource = await fs.readFile(path.join(projectDir, srcPath("platform/web/service-worker.js")), "utf8");
     assets.addToHashForAll("sw.js", swSource);
     
     const globalHash = assets.hashForAll();
