@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import { encodeUint32, decodeUint32 } from "../utils.js";
-import {KeyLimits} from "../../common.js";
+import {KeyLimits} from "../../common";
 
 function encodeKey(roomId, queueIndex) {
     return `${roomId}|${encodeUint32(queueIndex)}`;

@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {Transaction} from "./Transaction.js";
-import { STORE_MAP, STORE_NAMES } from "../common.js";
+import { STORE_MAP, STORE_NAMES } from "../common";
 
 export class Storage {
 	constructor(initialStoreValues = {}) {

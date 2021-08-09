@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { StorageError } from "../../common.js";
-import {KeyLimits} from "../../common.js";
+import { StorageError } from "../../common";
+import {KeyLimits} from "../../common";
 import { encodeUint32 } from "../utils.js";
 
 function encodeKey(roomId, fragmentId) {
