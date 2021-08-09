@@ -173,7 +173,7 @@ export class LazyListView extends ListView {
         this._renderRange = renderRange;
 
         const { topCount, renderCount } = this._renderRange;
-        const renderedItems = this._itemsFromList(topCount, topCount + renderCount);
+        const renderedItems = this._itemsFromList({ start: topCount, end: topCount + renderCount});
         this._adjustPadding(renderRange);
         this._childInstances = [];
         const fragment = document.createDocumentFragment();
@@ -185,7 +185,7 @@ export class LazyListView extends ListView {
         this._root.appendChild(fragment);
     }
 
-    _itemsFromList(start, end) {
+    _itemsFromList({start, end}) {
         const array = [];
         let i = 0;
         for (const item of this._list) {
@@ -228,22 +228,18 @@ export class LazyListView extends ListView {
 
     _renderElementsInRange(range) {
         const diff = this._renderRange.diff(range);
-        const {start, end} = diff.toAdd;
-        const renderedItems = this._itemsFromList(start, end);
+        const renderedItems = this._itemsFromList(diff.toAdd);
         this._adjustPadding(range);
 
+        const {start, end} = diff.toRemove;
+        const normalizedStart = this._renderRange.normalize(start);
+        this._childInstances.splice(normalizedStart, end - start + 1).forEach(child => this._removeChild(child));
+
         if (diff.scrollDirection === ScrollDirection.downwards) {
-            const {start, end} = diff.toRemove;
-            this._childInstances.splice(0, end - start + 1)
-                                .forEach(child => this._removeChild(child));
             const fragment = this._renderedFragment(renderedItems, view => this._childInstances.push(view));
             this._root.appendChild(fragment);
         }
         else {
-            const {start, end} = diff.toRemove;
-            const normalizedStart = this._renderRange.normalize(start);
-            this._childInstances.splice(normalizedStart, end - start + 1)
-                                .forEach(child => this._removeChild(child));
             const fragment = this._renderedFragment(renderedItems, view => this._childInstances.unshift(view));
             this._root.insertBefore(fragment, this._root.firstChild);
         }
