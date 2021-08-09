@@ -83,18 +83,40 @@ class ItemRange {
         return range.bottomCount < this.bottomCount ? ScrollDirection.downwards : ScrollDirection.upwards;
     }
 
+    /**
+     * Check if this range intersects with another range 
+     * @param {ItemRange} range The range to check against
+     * @param {ScrollDirection} scrollDirection
+     * @returns {Boolean}
+     */
+    intersects(range) {
+        return !!Math.max(0, Math.min(this.lastIndex, range.lastIndex) - Math.max(this.topCount, range.topCount));
+    }
+
     diff(range) {
+        /**
+         *      Range-1
+         * |----------------------|
+         *              Range-2
+         *          |---------------------|
+         * <-------><------------><------->
+         * bisect-1  intersection  bisect-2
+         */
         const scrollDirection = this.scrollDirectionTo(range);
-        let toRemove, toAdd;
-        if (scrollDirection === ScrollDirection.downwards) {
-            toRemove = { start: this.topCount, end: range.topCount - 1 };
-            toAdd = { start: this.lastIndex, end: range.lastIndex };
+        if (!this.intersects(range)) {
+            // There is no intersection between the ranges; which can happen if you scroll really fast
+            // In this case, we need to do full render of the new range
+            const toRemove = { start: this.topCount, end: this.lastIndex };
+            const toAdd = { start: range.topCount, end: range.lastIndex };
+            return {toRemove, toAdd, scrollDirection};
         }
-        else {
-            toRemove = { start: range.lastIndex, end: this.lastIndex };
-            toAdd = { start: range.topCount, end: this.topCount - 1 };
-        }
-        return { toRemove, toAdd, scrollDirection };
+        const bisection1 = {start: Math.min(this.topCount, range.topCount), end: Math.max(this.topCount, range.topCount) - 1};
+        const bisection2 = {start: Math.min(this.lastIndex, range.lastIndex), end: Math.max(this.lastIndex, range.lastIndex)};
+        // When scrolling down, bisection1 needs to be removed and bisection2 needs to be added
+        // When scrolling up, vice versa
+        const toRemove = scrollDirection === ScrollDirection.downwards ? bisection1 : bisection2;
+        const toAdd = scrollDirection === ScrollDirection.downwards ? bisection2 : bisection1;
+        return {toAdd, toRemove, scrollDirection};
     }
 }
 
@@ -226,18 +248,6 @@ export class LazyListView extends ListView {
             this._root.insertBefore(fragment, this._root.firstChild);
         }
         this._renderRange = range;
-        // for (const child of this._childInstances) {
-        //     this._removeChild(child);
-        // }
-        // this._childInstances = [];
-
-        // const fragment = document.createDocumentFragment();
-        // for (const item of renderedItems) {
-        //     const view = this._childCreator(item);
-        //     this._childInstances.push(view);
-        //     fragment.appendChild(mountView(view, this._mountArgs));
-        // }
-        // this._root.appendChild(fragment);
     }
 
     mount() {
