@@ -168,21 +168,10 @@ export class LazyListView extends ListView {
 
         this._height = this._parent.clientHeight;
         if (this._height === 0) { console.error("LazyListView could not calculate parent height."); }
-        const range = this._getVisibleRange();
-        const renderRange = range.expand(this._overflowItems);
-        this._renderRange = renderRange;
-
-        const { topCount, renderCount } = this._renderRange;
-        const renderedItems = this._itemsFromList({ start: topCount, end: topCount + renderCount});
-        this._adjustPadding(renderRange);
-        this._childInstances = [];
-        const fragment = document.createDocumentFragment();
-        for (const item of renderedItems) {
-            const view = this._childCreator(item);
-            this._childInstances.push(view);
-            fragment.appendChild(mountView(view, this._mountArgs));
-        }
-        this._root.appendChild(fragment);
+        const initialRange = this._getVisibleRange();
+        const initialRenderRange = initialRange.expand(this._overflowItems);
+        this._renderRange = new ItemRange(0, 0, 0);
+        this._renderElementsInRange(initialRenderRange);
     }
 
     _itemsFromList({start, end}) {
