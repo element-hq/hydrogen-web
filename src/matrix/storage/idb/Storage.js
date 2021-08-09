@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {Transaction} from "./Transaction.js";
-import { STORE_NAMES, StorageError } from "../common.js";
+import { STORE_NAMES, StorageError } from "../common";
 import { reqAsPromise } from "./utils.js";
 
 const WEBKITEARLYCLOSETXNBUG_BOGUS_KEY = "782rh281re38-boguskey";

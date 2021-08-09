@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export const STORE_NAMES = Object.freeze([
+export const STORE_NAMES: Readonly<string[]> = Object.freeze([
     "session",
     "roomState",
     "roomSummary",
@@ -35,13 +35,16 @@ export const STORE_NAMES = Object.freeze([
     "accountData",
 ]);
 
-export const STORE_MAP = Object.freeze(STORE_NAMES.reduce((nameMap, name) => {
+export const STORE_MAP: Readonly<{ [name : string]: string }> = Object.freeze(STORE_NAMES.reduce((nameMap, name) => {
     nameMap[name] = name;
     return nameMap;
 }, {}));
 
 export class StorageError extends Error {
-    constructor(message, cause) {
+    errcode?: string;
+    cause?: Error;
+
+    constructor(message: string, cause?: Error) {
         super(message);
         if (cause) {
             this.errcode = cause.name;
@@ -49,23 +52,23 @@ export class StorageError extends Error {
         this.cause = cause;
     }
 
-    get name() {
+    get name(): string {
         return "StorageError";
     }
 }
 
 export const KeyLimits = {
-    get minStorageKey() {
+    get minStorageKey(): number {
         // for indexeddb, we use unsigned 32 bit integers as keys
         return 0;
     },
     
-    get middleStorageKey() {
+    get middleStorageKey(): number {
         // for indexeddb, we use unsigned 32 bit integers as keys
         return 0x7FFFFFFF;
     },
 
-    get maxStorageKey() {
+    get maxStorageKey(): number {
         // for indexeddb, we use unsigned 32 bit integers as keys
         return 0xFFFFFFFF;
     }

@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { StorageError } from "../common.js";
+import { StorageError } from "../common";
 
 export class IDBError extends StorageError {
     constructor(message, source, cause) {

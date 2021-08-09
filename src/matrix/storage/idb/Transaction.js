@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {txnAsPromise} from "./utils.js";
-import {StorageError} from "../common.js";
+import {StorageError} from "../common";
 import {Store} from "./Store.js";
 import {SessionStore} from "./stores/SessionStore.js";
 import {RoomSummaryStore} from "./stores/RoomSummaryStore.js";
