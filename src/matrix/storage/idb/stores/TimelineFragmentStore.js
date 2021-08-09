@@ -16,7 +16,7 @@ limitations under the License.
 
 import { StorageError } from "../../common";
 import {KeyLimits} from "../../common";
-import { encodeUint32 } from "../utils.js";
+import { encodeUint32 } from "../utils";
 
 function encodeKey(roomId, fragmentId) {
     return `${roomId}|${encodeUint32(fragmentId)}`;

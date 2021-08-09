@@ -20,12 +20,15 @@ import { StorageError } from "../common";
 
 let needsSyncPromise = false;
 
+export const DONE = { done: true }
+export const NOT_DONE = { done: false }
+
 /* should be called on legacy platforms to see
    if transactions close before draining the microtask queue (IE11 on Windows 7).
    If this is the case, promises need to be resolved
    synchronously from the idb request handler to prevent the transaction from closing prematurely.
 */
-export async function checkNeedsSyncPromise() {
+export async function checkNeedsSyncPromise(): Promise<boolean> {
     // important to have it turned off while doing the test,
     // otherwise reqAsPromise would not fail
     needsSyncPromise = false;
@@ -49,51 +52,57 @@ export async function checkNeedsSyncPromise() {
 }
 
 // storage keys are defined to be unsigned 32bit numbers in KeyLimits, which is assumed by idb
-export function encodeUint32(n) {
+export function encodeUint32(n: number): string {
     const hex = n.toString(16);
     return "0".repeat(8 - hex.length) + hex;
 }
 
 // used for logs where timestamp is part of key, which is larger than 32 bit
-export function encodeUint64(n) {
+export function encodeUint64(n: number): string {
     const hex = n.toString(16);
     return "0".repeat(16 - hex.length) + hex;
 }
 
-export function decodeUint32(str) {
+export function decodeUint32(str: string): number {
     return parseInt(str, 16);
 }
 
-export function openDatabase(name, createObjectStore, version, idbFactory = window.indexedDB) {
+type CreateObjectStore = (db : IDBDatabase, txn: IDBTransaction | null, oldVersion: number, version: number) => any
+
+export function openDatabase(name: string, createObjectStore: CreateObjectStore, version: number, idbFactory: IDBFactory = window.indexedDB): Promise<IDBDatabase> {
     const req = idbFactory.open(name, version);
-    req.onupgradeneeded = (ev) => {
-        const db = ev.target.result;
-        const txn = ev.target.transaction;
+    req.onupgradeneeded = (ev : IDBVersionChangeEvent) => {
+        const req = ev.target as IDBRequest<IDBDatabase>;
+        const db = req.result;
+        const txn = req.transaction;
         const oldVersion = ev.oldVersion;
         createObjectStore(db, txn, oldVersion, version);
     }; 
     return reqAsPromise(req);
 }
 
-export function reqAsPromise(req) {
+export function reqAsPromise<T>(req: IDBRequest<T>): Promise<T> {
     return new Promise((resolve, reject) => {
         req.addEventListener("success", event => {
-            resolve(event.target.result);
+            resolve((event.target as IDBRequest<T>).result);
+            // @ts-ignore
             needsSyncPromise && Promise._flush && Promise._flush();
         });
         req.addEventListener("error", event => {
-            const error = new IDBRequestError(event.target);
+            const error = new IDBRequestError(event.target as IDBRequest<T>);
             reject(error);
+            // @ts-ignore
             needsSyncPromise && Promise._flush && Promise._flush();
         });
     });
 }
 
-export function txnAsPromise(txn) {
+export function txnAsPromise(txn): Promise<void> {
     let error;
     return new Promise((resolve, reject) => {
         txn.addEventListener("complete", () => {
             resolve();
+            // @ts-ignore
             needsSyncPromise && Promise._flush && Promise._flush();
         });
         txn.addEventListener("error", event => {
@@ -112,33 +121,41 @@ export function txnAsPromise(txn) {
                 error = new StorageError(`Transaction on ${dbName} with stores ${storeNames} was aborted.`);
             }
             reject(error);
+            // @ts-ignore
             needsSyncPromise && Promise._flush && Promise._flush();
         });
     });
 }
 
-export function iterateCursor(cursorRequest, processValue) {
+type CursorIterator<T, I extends IDBCursor> = I extends IDBCursorWithValue ?
+    (value: T, key: IDBValidKey, cursor: IDBCursorWithValue) => { done: boolean, jumpTo?: IDBValidKey } :
+    (value: undefined, key: IDBValidKey, cursor: IDBCursor) => { done: boolean, jumpTo?: IDBValidKey }
+
+export function iterateCursor<T, I extends IDBCursor = IDBCursorWithValue>(cursorRequest: IDBRequest<I | null>, processValue: CursorIterator<T, I>): Promise<boolean> {
     // TODO: does cursor already have a value here??
-    return new Promise((resolve, reject) => {
+    return new Promise<boolean>((resolve, reject) => {
         cursorRequest.onerror = () => {
             reject(new IDBRequestError(cursorRequest));
+            // @ts-ignore
             needsSyncPromise && Promise._flush && Promise._flush();
         };
         // collect results
         cursorRequest.onsuccess = (event) => {
-            const cursor = event.target.result;
+            const cursor = (event.target as IDBRequest<I>).result;
             if (!cursor) {
                 resolve(false);
+                // @ts-ignore
                 needsSyncPromise && Promise._flush && Promise._flush();
                 return; // end of results
             }
-            const result = processValue(cursor.value, cursor.key, cursor);
+            const result = processValue(cursor["value"], cursor.key, cursor);
             // TODO: don't use object for result and assume it's jumpTo when not === true/false or undefined
             const done = result?.done;
             const jumpTo = result?.jumpTo;
 
             if (done) {
                 resolve(true);
+                // @ts-ignore
                 needsSyncPromise && Promise._flush && Promise._flush();
             } else if(jumpTo) {
                 cursor.continue(jumpTo);
@@ -151,16 +168,20 @@ export function iterateCursor(cursorRequest, processValue) {
     });
 }
 
-export async function fetchResults(cursor, isDone) {
-    const results = [];
-    await iterateCursor(cursor, (value) => {
+type Pred<T> = (value: T) => boolean
+
+export async function fetchResults<T>(cursor: IDBRequest, isDone: Pred<T[]>): Promise<T[]> {
+    const results: T[] = [];
+    await iterateCursor<T>(cursor, (value) => {
         results.push(value);
         return {done: isDone(results)};
     });
     return results;
 }
 
-export async function select(db, storeName, toCursor, isDone) {
+type ToCursor = (store: IDBObjectStore) => IDBRequest
+
+export async function select<T>(db: IDBDatabase, storeName: string, toCursor: ToCursor, isDone: Pred<T[]>): Promise<T[]> {
     if (!isDone) {
         isDone = () => false;
     }
@@ -173,7 +194,7 @@ export async function select(db, storeName, toCursor, isDone) {
     return await fetchResults(cursor, isDone);
 }
 
-export async function findStoreValue(db, storeName, toCursor, matchesValue) {
+export async function findStoreValue<T>(db: IDBDatabase, storeName: string, toCursor: ToCursor, matchesValue: Pred<T>): Promise<T> {
     if (!matchesValue) {
         matchesValue = () => true;
     }
@@ -185,7 +206,8 @@ export async function findStoreValue(db, storeName, toCursor, matchesValue) {
     const store = tx.objectStore(storeName);
     const cursor = await reqAsPromise(toCursor(store));
     let match;
-    const matched = await iterateCursor(cursor, (value) => {
+    // @ts-ignore
+    const matched = await iterateCursor<T>(cursor, (value) => {
         if (matchesValue(value)) {
             match = value;
             return true;

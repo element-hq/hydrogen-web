@@ -16,7 +16,7 @@ limitations under the License.
 
 import {EventKey} from "../../../room/timeline/EventKey.js";
 import { StorageError } from "../../common";
-import { encodeUint32 } from "../utils.js";
+import { encodeUint32 } from "../utils";
 import {KeyLimits} from "../../common";
 
 function encodeKey(roomId, fragmentId, eventIndex) {
