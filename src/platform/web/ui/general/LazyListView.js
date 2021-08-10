@@ -42,6 +42,8 @@ class ItemRange {
     }
 
     containsIndex(idx) {
+        // TODO: Replace by lastIndex
+        // TODO: Should idx be <= since lastIndex is not rendered?
         return idx >= this.topCount && idx <= (this.topCount + this.renderCount);
     }
 
@@ -169,7 +171,7 @@ export class LazyListView extends ListView {
         if (this._height === 0) { console.error("LazyListView could not calculate parent height."); }
         const initialRange = this._getVisibleRange();
         const initialRenderRange = initialRange.expand(this._overflowItems);
-        this._renderRange = new ItemRange(0, 0, 0);
+        this._renderRange = new ItemRange(0, 0, initialRange.bottomCount + 1);
         this._renderElementsInRange(initialRenderRange);
     }
 
@@ -218,7 +220,6 @@ export class LazyListView extends ListView {
         const diff = this._renderRange.diff(range);
         const renderedItems = this._itemsFromList(diff.toAdd);
         this._adjustPadding(range);
-
         const {start, end} = diff.toRemove;
         const normalizedStart = this._renderRange.normalize(start);
         this._childInstances.splice(normalizedStart, end - start + 1).forEach(child => this._removeChild(child));
@@ -264,9 +265,27 @@ export class LazyListView extends ListView {
         child.unmount();
     }
 
-    // If size of the list changes, re-render
-    onAdd() {
-        this._renderIfNeeded(true);
+    onAdd(idx, value) {
+        const {topCount, renderCount, bottomCount} = this._renderRange;
+        if (this._renderRange.containsIndex(idx)) {
+            const normalizedIdx = this._renderRange.normalize(idx);
+            if (bottomCount === 0) {
+                // We're completely scrolled; so the extra element needs to be removed from top
+                this._removeChild(this._childInstances.shift());
+                this._renderRange = new ItemRange(topCount + 1, renderCount, bottomCount);
+            }
+            else {
+                // Remove the last element, render the new element
+                this._removeChild(this._childInstances.pop());
+                this._renderRange = new ItemRange(topCount, renderCount, bottomCount + 1);
+            }
+            super.onAdd(normalizedIdx, value);
+        }
+        else {
+            this._renderRange = idx < topCount ? new ItemRange(topCount + 1, renderCount, bottomCount):
+                                                 new ItemRange(topCount, renderCount, bottomCount + 1);
+        }
+        this._adjustPadding(this._renderRange);
     }
 
     onRemove() {
