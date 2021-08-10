@@ -206,12 +206,12 @@ export async function findStoreValue<T>(db: IDBDatabase, storeName: string, toCu
     const store = tx.objectStore(storeName);
     const cursor = await reqAsPromise(toCursor(store));
     let match;
-    // @ts-ignore
     const matched = await iterateCursor<T>(cursor, (value) => {
         if (matchesValue(value)) {
             match = value;
-            return true;
+            return DONE;
         }
+        return NOT_DONE;
     });
     if (!matched) {
         throw new StorageError("Value not found");
