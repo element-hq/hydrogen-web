@@ -288,8 +288,29 @@ export class LazyListView extends ListView {
         this._adjustPadding(this._renderRange);
     }
 
-    onRemove() {
-        this._renderIfNeeded(true);
+    onRemove(idx, value) {
+        const {topCount, renderCount, bottomCount} = this._renderRange;
+        if (this._renderRange.containsIndex(idx)) {
+            const normalizedIdx = this._renderRange.normalize(idx);
+            super.onRemove(normalizedIdx, value);
+            if (bottomCount === 0) {
+                const child = this._childCreator(this._itemAtIndex(topCount - 1));
+                this._childInstances.unshift(child);
+                this._root.insertBefore(mountView(child, this._mountArgs), this._root.firstChild);
+                this._renderRange = new ItemRange(topCount - 1, renderCount, bottomCount);
+            }
+            else {
+                const child = this._childCreator(this._itemAtIndex(this._renderRange.lastIndex - 1));
+                this._childInstances.push(child);
+                this._root.appendChild(mountView(child, this._mountArgs));
+                this._renderRange = new ItemRange(topCount, renderCount, bottomCount - 1);
+            }
+        }
+        else {
+            this._renderRange = idx < topCount ? new ItemRange(topCount - 1, renderCount, bottomCount):
+                                                 new ItemRange(topCount, renderCount, bottomCount - 1);
+        }
+        this._adjustPadding(this._renderRange);
     }
 
     onUpdate(idx, value, params) {
