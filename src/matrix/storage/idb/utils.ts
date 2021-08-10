@@ -124,7 +124,7 @@ export function txnAsPromise(txn): Promise<void> {
     });
 }
 
-type CursorIterator<T> = (value: T, key?: IDBValidKey, cursor?: IDBCursorWithValue) => { done: boolean, jumpTo?: IDBValidKey }
+type CursorIterator<T> = (value: T, key: IDBValidKey, cursor: IDBCursorWithValue) => { done: boolean, jumpTo?: IDBValidKey }
 
 export function iterateCursor<T>(cursorRequest: IDBRequest<IDBCursorWithValue>, processValue: CursorIterator<T>): Promise<boolean> {
     // TODO: does cursor already have a value here??
