@@ -1,7 +1,7 @@
 import {iterateCursor, reqAsPromise} from "./utils";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/RoomMember.js";
 import {RoomMemberStore} from "./stores/RoomMemberStore.js";
-import {SessionStore} from "./stores/SessionStore.js";
+import {SessionStore} from "./stores/SessionStore";
 import {encodeScopeTypeKey} from "./stores/OperationStore.js";
 
 // FUNCTIONS SHOULD ONLY BE APPENDED!!
