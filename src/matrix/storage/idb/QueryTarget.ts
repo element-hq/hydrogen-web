@@ -20,15 +20,15 @@ type Reducer<A,B> = (acc: B, val: A) => B
 
 interface QueryTargetInterface<T> {
     openCursor: (range?: IDBKeyRange | null , direction?: IDBCursorDirection) => IDBRequest<IDBCursorWithValue | null>
-    openKeyCursor: (range: IDBKeyRange, direction: IDBCursorDirection) => IDBRequest<IDBCursor | null>
+    openKeyCursor: (range?: IDBKeyRange, direction?: IDBCursorDirection) => IDBRequest<IDBCursor | null>
     supports: (method: string) => boolean
-    keyPath: string
+    keyPath: string | string[]
     get: (key: IDBValidKey) => IDBRequest<T | null>
     getKey: (key: IDBValidKey) => IDBRequest<IDBValidKey | undefined>
 }
 
 export class QueryTarget<T> {
-    private _target: QueryTargetInterface<T>
+    protected _target: QueryTargetInterface<T>
 
     constructor(target: QueryTargetInterface<T>) {
         this._target = target;
@@ -60,7 +60,11 @@ export class QueryTarget<T> {
         } else {
             return reqAsPromise(this._target.get(key)).then(value => {
                 if (value) {
-                    return value[this._target.keyPath];
+                    let keyPath = this._target.keyPath;
+                    if (typeof keyPath === "string") {
+                        keyPath = [keyPath];
+                    }
+                    return keyPath.reduce((obj, key) => obj[key], value);
                 }
             });
         }
