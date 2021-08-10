@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {QueryTarget} from "./QueryTarget.js";
+import {QueryTarget} from "./QueryTarget";
 import {IDBRequestAttemptError} from "./error";
 
 const LOG_REQUESTS = false;
