@@ -15,14 +15,22 @@ limitations under the License.
 */
 
 import {iterateCursor, reqAsPromise} from "./utils";
-import {QueryTargetWrapper} from "./Store.js"
 
 type Reducer<A,B> = (acc: B, val: A) => B
 
-export class QueryTarget<T> {
-    private _target: QueryTargetWrapper
+interface QueryTargetWrapper<T> {
+    openCursor: (range?: IDBKeyRange | null , direction?: IDBCursorDirection) => IDBRequest<IDBCursorWithValue>
+    openKeyCursor: (range: IDBKeyRange, direction: IDBCursorDirection) => IDBRequest<IDBCursor>
+    supports: (method: string) => boolean
+    keyPath: string
+    get: (key: IDBValidKey) => IDBRequest<T>
+    getKey: (key: IDBValidKey) => IDBRequest<IDBValidKey>
+}
 
-    constructor(target: QueryTargetWrapper) {
+export class QueryTarget<T> {
+    private _target: QueryTargetWrapper<T>
+
+    constructor(target: QueryTargetWrapper<T>) {
         this._target = target;
     }
 
@@ -111,7 +119,7 @@ export class QueryTarget<T> {
     async findMaxKey(range: IDBKeyRange): Promise<IDBValidKey | undefined> {
         const cursor = this._target.openKeyCursor(range, "prev");
         let maxKey;
-        await iterateCursor(cursor, (_, key) => {
+        await iterateCursor(cursor, (value, key) => {
             maxKey = key;
             return {done: true};
         });
@@ -126,7 +134,7 @@ export class QueryTarget<T> {
         });
     }
 
-    async iterateKeys(range: IDBKeyRange, callback: (key: IDBValidKey, cur: IDBCursorWithValue) => boolean) {
+    async iterateKeys(range: IDBKeyRange, callback: (key: IDBValidKey, cur: IDBCursor) => boolean) {
         const cursor = this._target.openKeyCursor(range, "next");
         await iterateCursor(cursor, (_, key, cur) => {
             return {done: callback(key, cur)};

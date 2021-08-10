@@ -124,9 +124,11 @@ export function txnAsPromise(txn): Promise<void> {
     });
 }
 
-type CursorIterator<T> = (value: T, key: IDBValidKey, cursor: IDBCursorWithValue) => { done: boolean, jumpTo?: IDBValidKey }
+type CursorIterator<T, I extends IDBCursor> = I extends IDBCursorWithValue ?
+    (value: T, key: IDBValidKey, cursor: IDBCursorWithValue) => { done: boolean, jumpTo?: IDBValidKey } :
+    (value: undefined, key: IDBValidKey, cursor: IDBCursor) => { done: boolean, jumpTo?: IDBValidKey }
 
-export function iterateCursor<T>(cursorRequest: IDBRequest<IDBCursorWithValue>, processValue: CursorIterator<T>): Promise<boolean> {
+export function iterateCursor<T, I extends IDBCursor = IDBCursorWithValue>(cursorRequest: IDBRequest<I>, processValue: CursorIterator<T, I>): Promise<boolean> {
     // TODO: does cursor already have a value here??
     return new Promise<boolean>((resolve, reject) => {
         cursorRequest.onerror = () => {
@@ -136,14 +138,14 @@ export function iterateCursor<T>(cursorRequest: IDBRequest<IDBCursorWithValue>, 
         };
         // collect results
         cursorRequest.onsuccess = (event) => {
-            const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+            const cursor = (event.target as IDBRequest<I>).result;
             if (!cursor) {
                 resolve(false);
                 // @ts-ignore
                 needsSyncPromise && Promise._flush && Promise._flush();
                 return; // end of results
             }
-            const result = processValue(cursor.value, cursor.key, cursor);
+            const result = processValue(cursor["value"], cursor.key, cursor);
             // TODO: don't use object for result and assume it's jumpTo when not === true/false or undefined
             const done = result?.done;
             const jumpTo = result?.jumpTo;
