@@ -18,19 +18,19 @@ import {iterateCursor, reqAsPromise} from "./utils";
 
 type Reducer<A,B> = (acc: B, val: A) => B
 
-interface QueryTargetWrapper<T> {
-    openCursor: (range?: IDBKeyRange | null , direction?: IDBCursorDirection) => IDBRequest<IDBCursorWithValue>
-    openKeyCursor: (range: IDBKeyRange, direction: IDBCursorDirection) => IDBRequest<IDBCursor>
+interface QueryTargetInterface<T> {
+    openCursor: (range?: IDBKeyRange | null , direction?: IDBCursorDirection) => IDBRequest<IDBCursorWithValue | null>
+    openKeyCursor: (range: IDBKeyRange, direction: IDBCursorDirection) => IDBRequest<IDBCursor | null>
     supports: (method: string) => boolean
     keyPath: string
-    get: (key: IDBValidKey) => IDBRequest<T>
-    getKey: (key: IDBValidKey) => IDBRequest<IDBValidKey>
+    get: (key: IDBValidKey) => IDBRequest<T | null>
+    getKey: (key: IDBValidKey) => IDBRequest<IDBValidKey | undefined>
 }
 
 export class QueryTarget<T> {
-    private _target: QueryTargetWrapper<T>
+    private _target: QueryTargetInterface<T>
 
-    constructor(target: QueryTargetWrapper<T>) {
+    constructor(target: QueryTargetInterface<T>) {
         this._target = target;
     }
 
@@ -50,7 +50,7 @@ export class QueryTarget<T> {
         return this._target.supports(methodName);
     }
 
-    get(key: IDBValidKey): Promise<T> {
+    get(key: IDBValidKey): Promise<T | null> {
         return reqAsPromise(this._target.get(key));
     }
 
@@ -58,7 +58,7 @@ export class QueryTarget<T> {
         if (this._target.supports("getKey")) {
             return reqAsPromise(this._target.getKey(key));
         } else {
-            return reqAsPromise<T>(this._target.get(key)).then(value => {
+            return reqAsPromise(this._target.get(key)).then(value => {
                 if (value) {
                     return value[this._target.keyPath];
                 }
@@ -119,7 +119,7 @@ export class QueryTarget<T> {
     async findMaxKey(range: IDBKeyRange): Promise<IDBValidKey | undefined> {
         const cursor = this._target.openKeyCursor(range, "prev");
         let maxKey;
-        await iterateCursor(cursor, (value, key) => {
+        await iterateCursor(cursor, (_, key) => {
             maxKey = key;
             return {done: true};
         });

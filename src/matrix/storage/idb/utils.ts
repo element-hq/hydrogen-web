@@ -128,7 +128,7 @@ type CursorIterator<T, I extends IDBCursor> = I extends IDBCursorWithValue ?
     (value: T, key: IDBValidKey, cursor: IDBCursorWithValue) => { done: boolean, jumpTo?: IDBValidKey } :
     (value: undefined, key: IDBValidKey, cursor: IDBCursor) => { done: boolean, jumpTo?: IDBValidKey }
 
-export function iterateCursor<T, I extends IDBCursor = IDBCursorWithValue>(cursorRequest: IDBRequest<I>, processValue: CursorIterator<T, I>): Promise<boolean> {
+export function iterateCursor<T, I extends IDBCursor = IDBCursorWithValue>(cursorRequest: IDBRequest<I | null>, processValue: CursorIterator<T, I>): Promise<boolean> {
     // TODO: does cursor already have a value here??
     return new Promise<boolean>((resolve, reject) => {
         cursorRequest.onerror = () => {
