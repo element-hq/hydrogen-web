@@ -22,7 +22,7 @@ export class SessionStore {
         this._sessionStore = sessionStore;
     }
 
-    async get(key: IDBValidKey) {
+    async get(key: IDBValidKey): Promise<any> {
         const entry = await this._sessionStore.get(key);
         if (entry) {
             return entry.value;

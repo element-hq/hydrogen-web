@@ -89,7 +89,7 @@ class QueryTargetWrapper<T> {
         }
     }
 
-    get(key: IDBValidKey): IDBRequest<T> {
+    get(key: IDBValidKey): IDBRequest<T | null> {
         try {
             LOG_REQUESTS && logRequest("get", [key], this._qt);
             return this._qt.get(key);

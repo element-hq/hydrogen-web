@@ -38,24 +38,24 @@ export class RoomSummaryStore {
         this._summaryStore = summaryStore;
     }
 
-    getAll() {
+    getAll(): Promise<SummaryData[]> {
         return this._summaryStore.selectAll();
     }
 
-    set(summary: SummaryData) {
+    set(summary: SummaryData): void {
         return this._summaryStore.put(summary);
     }
 
-    get(roomId: string) {
+    get(roomId: string): Promise<SummaryData | null> {
         return this._summaryStore.get(roomId);
     }
 
-    async has(roomId: string) {
+    async has(roomId: string): Promise<boolean> {
         const fetchedKey = await this._summaryStore.getKey(roomId);
         return roomId === fetchedKey;
     }
 
-    remove(roomId: string) {
+    remove(roomId: string): void {
         return this._summaryStore.delete(roomId);
     }
 }
