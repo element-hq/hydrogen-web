@@ -94,7 +94,7 @@ export class QueryTarget<T> {
         return this._selectWhile(range, predicate, "prev");
     }
 
-    async selectAll(range: IDBKeyRange, direction: IDBCursorDirection): Promise<T[]> {
+    async selectAll(range?: IDBKeyRange, direction?: IDBCursorDirection): Promise<T[]> {
         const cursor = this._openCursor(range, direction);
         const results: T[] = [];
         await iterateCursor<T>(cursor, (value) => {

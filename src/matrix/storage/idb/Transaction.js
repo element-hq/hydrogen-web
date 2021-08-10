@@ -18,7 +18,7 @@ import {txnAsPromise} from "./utils";
 import {StorageError} from "../common";
 import {Store} from "./Store";
 import {SessionStore} from "./stores/SessionStore";
-import {RoomSummaryStore} from "./stores/RoomSummaryStore.js";
+import {RoomSummaryStore} from "./stores/RoomSummaryStore";
 import {InviteStore} from "./stores/InviteStore.js";
 import {TimelineEventStore} from "./stores/TimelineEventStore.js";
 import {TimelineRelationStore} from "./stores/TimelineRelationStore.js";
