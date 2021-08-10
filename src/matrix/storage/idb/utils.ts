@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { IDBRequestError } from "./error.js";
+import { IDBRequestError } from "./error";
 import { StorageError } from "../common";
 
 let needsSyncPromise = false;
