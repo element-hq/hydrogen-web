@@ -13,21 +13,30 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import {Store} from "../Store";
+
+interface UserIdentity {
+    userId: string;
+    roomIds: string[];
+    deviceTrackingStatus: number;
+}
 
 export class UserIdentityStore {
-    constructor(store) {
+    private _store: Store<UserIdentity>;
+
+    constructor(store: Store<UserIdentity>) {
         this._store = store;
     }
 
-    get(userId) {
+    get(userId: string): Promise<UserIdentity | null> {
         return this._store.get(userId);
     }
 
-    set(userIdentity) {
-        this._store.put(userIdentity);
+    set(userIdentity: UserIdentity): Promise<IDBValidKey> {
+        return this._store.put(userIdentity);
     }
 
-    remove(userId) {
+    remove(userId: string): Promise<undefined> {
         return this._store.delete(userId);
     }
 }

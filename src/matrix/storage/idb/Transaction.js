@@ -26,7 +26,7 @@ import {RoomStateStore} from "./stores/RoomStateStore";
 import {RoomMemberStore} from "./stores/RoomMemberStore";
 import {TimelineFragmentStore} from "./stores/TimelineFragmentStore";
 import {PendingEventStore} from "./stores/PendingEventStore";
-import {UserIdentityStore} from "./stores/UserIdentityStore.js";
+import {UserIdentityStore} from "./stores/UserIdentityStore";
 import {DeviceIdentityStore} from "./stores/DeviceIdentityStore.js";
 import {OlmSessionStore} from "./stores/OlmSessionStore.js";
 import {InboundGroupSessionStore} from "./stores/InboundGroupSessionStore.js";
