@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {Store} from "../Store"
+import {MemberData} from "./RoomMemberStore"
 
 // TODO: Move to Invite when that's TypeScript.
-interface InviteData {
+export interface InviteData {
     roomId: string
     isEncrypted: boolean
     isDirectMessage: boolean
@@ -27,15 +28,6 @@ interface InviteData {
     timestamp: number
     joinRule: string
     inviter?: MemberData
-}
-
-// TODO: Move to RoomMember when that's TypeScript.
-interface MemberData {
-    roomId: string
-    userId: string
-    avatarUrl: string
-    displayName: string
-    membership: "join" | "leave" | "invite" | "ban"
 }
 
 export class InviteStore {
