@@ -16,6 +16,7 @@ limitations under the License.
 
 import {QueryTarget} from "./QueryTarget";
 import {IDBRequestAttemptError} from "./error";
+import {reqAsPromise} from "./utils"
 
 const LOG_REQUESTS = false;
 
@@ -147,7 +148,7 @@ export class Store<T> extends QueryTarget<T> {
         return new QueryTarget<T>(new QueryTargetWrapper<T>(this._idbStore.index(indexName)));
     }
 
-    put(value: T) {
+    put(value: T): Promise<IDBValidKey> {
         // If this request fails, the error will bubble up to the transaction and abort it,
         // which is the behaviour we want. Therefore, it is ok to not create a promise for this
         // request and await it.
@@ -158,16 +159,16 @@ export class Store<T> extends QueryTarget<T> {
         // 
         // Note that this can still throw synchronously, like it does for TransactionInactiveError,
         // see https://www.w3.org/TR/IndexedDB-2/#transaction-lifetime-concept
-        this._idbStore.put(value);
+        return reqAsPromise(this._idbStore.put(value));
     }
 
-    add(value: T) {
+    add(value: T): Promise<IDBValidKey> {
         // ok to not monitor result of request, see comment in `put`.
-        this._idbStore.add(value);
+        return reqAsPromise(this._idbStore.add(value));
     }
 
-    delete(keyOrKeyRange: IDBValidKey | IDBKeyRange) {
+    delete(keyOrKeyRange: IDBValidKey | IDBKeyRange): Promise<undefined> {
         // ok to not monitor result of request, see comment in `put`.
-        this._idbStore.delete(keyOrKeyRange);
+        return reqAsPromise(this._idbStore.delete(keyOrKeyRange));
     }
 }
