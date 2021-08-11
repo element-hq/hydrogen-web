@@ -23,7 +23,7 @@ import {InviteStore} from "./stores/InviteStore";
 import {TimelineEventStore} from "./stores/TimelineEventStore";
 import {TimelineRelationStore} from "./stores/TimelineRelationStore";
 import {RoomStateStore} from "./stores/RoomStateStore";
-import {RoomMemberStore} from "./stores/RoomMemberStore.js";
+import {RoomMemberStore} from "./stores/RoomMemberStore";
 import {TimelineFragmentStore} from "./stores/TimelineFragmentStore.js";
 import {PendingEventStore} from "./stores/PendingEventStore.js";
 import {UserIdentityStore} from "./stores/UserIdentityStore.js";
