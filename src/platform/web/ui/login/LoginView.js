@@ -68,7 +68,7 @@ export class LoginView extends TemplateView {
                         }, vm.i18n`Log In`),
                     ]),
                 ]),
-                t.if(vm => vm.supportsSSOLogin, () => t.p(t.a({className:"SSO", href:"#"}, "Login with SSO"))),
+                t.if(vm => vm.supportsSSOLogin, () => t.button({className: "SSO"}, "Login with SSO")),
                 // use t.mapView rather than t.if to create a new view when the view model changes too
                 t.p(hydrogenGithubLink(t))
             ])
