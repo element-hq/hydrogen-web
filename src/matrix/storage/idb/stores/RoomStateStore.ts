@@ -16,31 +16,40 @@ limitations under the License.
 */
 
 import {MAX_UNICODE} from "./common";
+import {Store} from "../Store";
 
-function encodeKey(roomId, eventType, stateKey) {
+function encodeKey(roomId: string, eventType: string, stateKey: string) {
      return `${roomId}|${eventType}|${stateKey}`;
 }
 
+interface RoomStateEntry {
+    roomId: string,
+    event: any
+    key: string
+}
+
 export class RoomStateStore {
-    constructor(idbStore) {
+    private _roomStateStore: Store<RoomStateEntry>
+
+    constructor(idbStore: Store<RoomStateEntry>) {
         this._roomStateStore = idbStore;
     }
 
-    get(roomId, type, stateKey) {
+    get(roomId: string, type: string, stateKey: string): Promise<RoomStateEntry | null> {
         const key = encodeKey(roomId, type, stateKey);
         return this._roomStateStore.get(key);
     }
 
-    set(roomId, event) {
+    set(roomId: string, event: any): Promise<IDBValidKey> {
         const key = encodeKey(roomId, event.type, event.state_key);
         const entry = {roomId, event, key};
         return this._roomStateStore.put(entry);
     }
 
-    removeAllForRoom(roomId) {
+    removeAllForRoom(roomId: string): Promise<undefined> {
         // exclude both keys as they are theoretical min and max,
         // but we should't have a match for just the room id, or room id with max
         const range = this._roomStateStore.IDBKeyRange.bound(roomId, `${roomId}|${MAX_UNICODE}`, true, true);
-        this._roomStateStore.delete(range);
+        return this._roomStateStore.delete(range);
     }
 }
