@@ -16,43 +16,58 @@ limitations under the License.
 */
 
 import {MAX_UNICODE} from "./common";
+import {Store} from "../Store";
 
-function encodeKey(roomId, userId) {
+function encodeKey(roomId: string, userId: string) {
     return `${roomId}|${userId}`;
 }
 
-function decodeKey(key) {
+function decodeKey(key: string): { roomId: string, userId: string } {
     const [roomId, userId] = key.split("|");
     return {roomId, userId};
 }
 
+// TODO: Move to RoomMember when that's TypeScript.
+export interface MemberData {
+    roomId: string;
+    userId: string;
+    avatarUrl: string;
+    displayName: string;
+    membership: "join" | "leave" | "invite" | "ban";
+}
+
+type MemberStorageEntry = MemberData & { key: string }
+
 // no historical members
 export class RoomMemberStore {
-    constructor(roomMembersStore) {
+    private _roomMembersStore: Store<MemberStorageEntry>;
+
+    constructor(roomMembersStore: Store<MemberStorageEntry>) {
         this._roomMembersStore = roomMembersStore;
     }
 
-	get(roomId, userId) {
+    get(roomId: string, userId: string): Promise<MemberStorageEntry | null> {
         return this._roomMembersStore.get(encodeKey(roomId, userId));
-	}
+    }
 
-	async set(member) {
-        member.key = encodeKey(member.roomId, member.userId);
-        return this._roomMembersStore.put(member);
-	}
+    async set(member: MemberData): Promise<IDBValidKey> {
+        // Object.assign would be more typesafe, but small objects 
+        (member as any).key = encodeKey(member.roomId, member.userId);
+        return this._roomMembersStore.put(member as MemberStorageEntry);
+    }
 
-    getAll(roomId) {
+    getAll(roomId: string): Promise<MemberData[]> {
         const range = this._roomMembersStore.IDBKeyRange.lowerBound(encodeKey(roomId, ""));
         return this._roomMembersStore.selectWhile(range, member => {
             return member.roomId === roomId;
         });
     }
 
-    async getAllUserIds(roomId) {
-        const userIds = [];
+    async getAllUserIds(roomId: string): Promise<string[]> {
+        const userIds: string[] = [];
         const range = this._roomMembersStore.IDBKeyRange.lowerBound(encodeKey(roomId, ""));
         await this._roomMembersStore.iterateKeys(range, key => {
-            const decodedKey = decodeKey(key);
+            const decodedKey = decodeKey(key as string);
             // prevent running into the next room
             if (decodedKey.roomId === roomId) {
                 userIds.push(decodedKey.userId);
@@ -63,10 +78,10 @@ export class RoomMemberStore {
         return userIds;
     }
 
-    removeAllForRoom(roomId) {
+    removeAllForRoom(roomId: string): Promise<undefined> {
         // exclude both keys as they are theoretical min and max,
         // but we should't have a match for just the room id, or room id with max
         const range = this._roomMembersStore.IDBKeyRange.bound(roomId, `${roomId}|${MAX_UNICODE}`, true, true);
-        this._roomMembersStore.delete(range);
+        return this._roomMembersStore.delete(range);
     }
 }
