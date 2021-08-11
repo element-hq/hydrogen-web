@@ -42,7 +42,7 @@ export class RoomSummaryStore {
         return this._summaryStore.selectAll();
     }
 
-    set(summary: SummaryData): void {
+    set(summary: SummaryData): Promise<IDBValidKey> {
         return this._summaryStore.put(summary);
     }
 
@@ -55,7 +55,7 @@ export class RoomSummaryStore {
         return roomId === fetchedKey;
     }
 
-    remove(roomId: string): void {
+    remove(roomId: string): Promise<undefined> {
         return this._summaryStore.delete(roomId);
     }
 }

@@ -47,7 +47,7 @@ export class InviteStore {
         return this._inviteStore.selectAll();
     }
 
-    set(invite: InviteData): void {
+    set(invite: InviteData): Promise<IDBValidKey> {
         return this._inviteStore.put(invite);
     }
 
