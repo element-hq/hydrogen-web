@@ -87,7 +87,7 @@ class ItemRange {
      * Check if this range intersects with another range 
      * @param {ItemRange} range The range to check against
      * @param {ScrollDirection} scrollDirection
-     * @returns {Boolean}
+     * @returns {boolean}
      */
     intersects(range) {
         return !!Math.max(0, Math.min(this.lastIndex, range.lastIndex) - Math.max(this.topCount, range.topCount));
