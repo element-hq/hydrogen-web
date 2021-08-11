@@ -20,7 +20,7 @@ import {Store} from "./Store";
 import {SessionStore} from "./stores/SessionStore";
 import {RoomSummaryStore} from "./stores/RoomSummaryStore";
 import {InviteStore} from "./stores/InviteStore";
-import {TimelineEventStore} from "./stores/TimelineEventStore.js";
+import {TimelineEventStore} from "./stores/TimelineEventStore";
 import {TimelineRelationStore} from "./stores/TimelineRelationStore.js";
 import {RoomStateStore} from "./stores/RoomStateStore.js";
 import {RoomMemberStore} from "./stores/RoomMemberStore.js";
