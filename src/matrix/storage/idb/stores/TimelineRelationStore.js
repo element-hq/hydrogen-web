@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {MIN_UNICODE, MAX_UNICODE} from "./common.js";
+import {MIN_UNICODE, MAX_UNICODE} from "./common";
 
 function encodeKey(roomId, targetEventId, relType, sourceEventId) {
     return `${roomId}|${targetEventId}|${relType}|${sourceEventId}`;

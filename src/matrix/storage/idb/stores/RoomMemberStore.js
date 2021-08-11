@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {MAX_UNICODE} from "./common.js";
+import {MAX_UNICODE} from "./common";
 
 function encodeKey(roomId, userId) {
     return `${roomId}|${userId}`;
