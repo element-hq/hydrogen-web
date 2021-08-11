@@ -13,21 +13,39 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import {Store} from "../Store";
+import {MemberData} from "./RoomMemberStore";
+
+// TODO: Move to Invite when that's TypeScript.
+export interface InviteData {
+    roomId: string;
+    isEncrypted: boolean;
+    isDirectMessage: boolean;
+    name?: string;
+    avatarUrl?: string;
+    avatarColorId: number;
+    canonicalAlias?: string;
+    timestamp: number;
+    joinRule: string;
+    inviter?: MemberData;
+}
 
 export class InviteStore {
-    constructor(inviteStore) {
+    private _inviteStore: Store<InviteData>;
+
+    constructor(inviteStore: Store<InviteData>) {
         this._inviteStore = inviteStore;
     }
 
-    getAll() {
+    getAll(): Promise<InviteData[]> {
         return this._inviteStore.selectAll();
     }
 
-    set(invite) {
+    set(invite: InviteData): Promise<IDBValidKey> {
         return this._inviteStore.put(invite);
     }
 
-    remove(roomId) {
+    remove(roomId: string): void {
         this._inviteStore.delete(roomId);
     }
 }

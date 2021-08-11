@@ -19,7 +19,7 @@ import {StorageError} from "../common";
 import {Store} from "./Store";
 import {SessionStore} from "./stores/SessionStore";
 import {RoomSummaryStore} from "./stores/RoomSummaryStore";
-import {InviteStore} from "./stores/InviteStore.js";
+import {InviteStore} from "./stores/InviteStore";
 import {TimelineEventStore} from "./stores/TimelineEventStore.js";
 import {TimelineRelationStore} from "./stores/TimelineRelationStore.js";
 import {RoomStateStore} from "./stores/RoomStateStore.js";
