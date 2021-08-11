@@ -17,17 +17,31 @@ limitations under the License.
 import { StorageError } from "../../common";
 import {KeyLimits} from "../../common";
 import { encodeUint32 } from "../utils";
+import {Store} from "../Store";
 
-function encodeKey(roomId, fragmentId) {
+interface Fragment {
+    roomId: string;
+    id: number;
+    previousId: number | null;
+    nextId: number | null;
+    previousToken: string | null;
+    nextToken: string | null;
+}
+
+type FragmentEntry = Fragment & { key: string }
+
+function encodeKey(roomId: string, fragmentId: number): string {
     return `${roomId}|${encodeUint32(fragmentId)}`;
 }
 
 export class TimelineFragmentStore {
-    constructor(store) {
+    private _store: Store<FragmentEntry>;
+
+    constructor(store: Store<FragmentEntry>) {
         this._store = store;
     }
 
-    _allRange(roomId) {
+    _allRange(roomId: string): IDBKeyRange {
         try {
             return this._store.IDBKeyRange.bound(
                 encodeKey(roomId, KeyLimits.minStorageKey),
@@ -38,13 +52,13 @@ export class TimelineFragmentStore {
         }
     }
 
-    all(roomId) {
+    all(roomId: string): Promise<FragmentEntry[]> {
         return this._store.selectAll(this._allRange(roomId));
     }
 
     /** Returns the fragment without a nextToken and without nextId,
     if any, with the largest id if there are multiple (which should not happen) */
-    liveFragment(roomId) {
+    liveFragment(roomId: string): Promise<FragmentEntry | undefined> {
         // why do we need this?
         // Ok, take the case where you've got a /context fragment and a /sync fragment
         // They are not connected. So, upon loading the persister, which one do we take? We can't sort them ...
@@ -60,20 +74,20 @@ export class TimelineFragmentStore {
     // should generate an id an return it?
     // depends if we want to do anything smart with fragment ids,
     // like give them meaning depending on range. not for now probably ...
-    add(fragment) {
-        fragment.key = encodeKey(fragment.roomId, fragment.id);
-        this._store.add(fragment);
+    add(fragment: Fragment): Promise<IDBValidKey> {
+        (fragment as any).key = encodeKey(fragment.roomId, fragment.id);
+        return this._store.add(fragment as FragmentEntry);
     }
 
-    update(fragment) {
-        this._store.put(fragment);
+    update(fragment: FragmentEntry): Promise<IDBValidKey> {
+        return this._store.put(fragment);
     }
 
-    get(roomId, fragmentId) {
+    get(roomId: string, fragmentId: number): Promise<FragmentEntry | null> {
         return this._store.get(encodeKey(roomId, fragmentId));
     }
 
-    removeAllForRoom(roomId) {
-        this._store.delete(this._allRange(roomId));
+    removeAllForRoom(roomId: string): Promise<undefined> {
+        return this._store.delete(this._allRange(roomId));
     }
 }
