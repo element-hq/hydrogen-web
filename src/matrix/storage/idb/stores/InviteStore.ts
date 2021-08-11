@@ -33,6 +33,8 @@ interface InviteData {
 interface MemberData {
     roomId: string
     userId: string
+    avatarUrl: string
+    displayName: string
     membership: "join" | "leave" | "invite" | "ban"
 }
 
