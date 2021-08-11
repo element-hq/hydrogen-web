@@ -21,7 +21,7 @@ import {SessionStore} from "./stores/SessionStore";
 import {RoomSummaryStore} from "./stores/RoomSummaryStore";
 import {InviteStore} from "./stores/InviteStore";
 import {TimelineEventStore} from "./stores/TimelineEventStore";
-import {TimelineRelationStore} from "./stores/TimelineRelationStore.js";
+import {TimelineRelationStore} from "./stores/TimelineRelationStore";
 import {RoomStateStore} from "./stores/RoomStateStore.js";
 import {RoomMemberStore} from "./stores/RoomMemberStore";
 import {TimelineFragmentStore} from "./stores/TimelineFragmentStore.js";
