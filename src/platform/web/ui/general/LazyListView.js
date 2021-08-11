@@ -42,9 +42,7 @@ class ItemRange {
     }
 
     containsIndex(idx) {
-        // TODO: Replace by lastIndex
-        // TODO: Should idx be <= since lastIndex is not rendered?
-        return idx >= this.topCount && idx <= (this.topCount + this.renderCount);
+        return idx >= this.topCount && idx < this.lastIndex;
     }
 
     expand(amount) {
