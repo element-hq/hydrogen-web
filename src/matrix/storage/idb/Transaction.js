@@ -31,7 +31,7 @@ import {DeviceIdentityStore} from "./stores/DeviceIdentityStore.js";
 import {OlmSessionStore} from "./stores/OlmSessionStore.js";
 import {InboundGroupSessionStore} from "./stores/InboundGroupSessionStore.js";
 import {OutboundGroupSessionStore} from "./stores/OutboundGroupSessionStore";
-import {GroupSessionDecryptionStore} from "./stores/GroupSessionDecryptionStore.js";
+import {GroupSessionDecryptionStore} from "./stores/GroupSessionDecryptionStore";
 import {OperationStore} from "./stores/OperationStore.js";
 import {AccountDataStore} from "./stores/AccountDataStore.js";
 
