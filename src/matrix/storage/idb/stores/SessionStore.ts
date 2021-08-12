@@ -15,10 +15,15 @@ limitations under the License.
 */
 import {Store} from "../Store"
 
-export class SessionStore {
-    private _sessionStore: Store<any>
+export interface SessionEntry {
+    key: string
+    value: any
+}
 
-    constructor(sessionStore: Store<any>) {
+export class SessionStore {
+    private _sessionStore: Store<SessionEntry>
+
+    constructor(sessionStore: Store<SessionEntry>) {
         this._sessionStore = sessionStore;
     }
 
@@ -29,11 +34,11 @@ export class SessionStore {
         }
     }
 
-    set(key: IDBValidKey, value: any) {
+    set(key: string, value: any) {
         this._sessionStore.put({key, value});
     }
 
-    add(key: IDBValidKey, value: any) {
+    add(key: string, value: any) {
         this._sessionStore.add({key, value});
     }
 
