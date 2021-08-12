@@ -17,7 +17,7 @@ limitations under the License.
 import {Storage} from "./Storage";
 import { openDatabase, reqAsPromise } from "./utils";
 import { exportSession, importSession } from "./export.js";
-import { schema } from "./schema.js";
+import { schema } from "./schema";
 import { detectWebkitEarlyCloseTxnBug } from "./quirks.js";
 
 const sessionName = sessionId => `hydrogen_session_${sessionId}`;
