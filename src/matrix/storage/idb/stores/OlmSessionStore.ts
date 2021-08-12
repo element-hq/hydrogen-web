@@ -13,26 +13,37 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import {Store} from "../Store";
 
-function encodeKey(senderKey, sessionId) {
+function encodeKey(senderKey: string, sessionId: string): string {
     return `${senderKey}|${sessionId}`;
 }
 
-function decodeKey(key) {
+function decodeKey(key: string): { senderKey: string, sessionId: string } {
     const [senderKey, sessionId] = key.split("|");
     return {senderKey, sessionId};
 }
 
+interface OlmSession {
+    session: string;
+    sessionId: string;
+    senderKey: string;
+    lastUsed: number;
+    key: string;
+}
+
 export class OlmSessionStore {
-    constructor(store) {
+    private _store: Store<OlmSession>;
+
+    constructor(store: Store<OlmSession>) {
         this._store = store;
     }
 
-    async getSessionIds(senderKey) {
-        const sessionIds = [];
+    async getSessionIds(senderKey: string): Promise<string[]> {
+        const sessionIds: string[] = [];
         const range = this._store.IDBKeyRange.lowerBound(encodeKey(senderKey, ""));
         await this._store.iterateKeys(range, key => {
-            const decodedKey = decodeKey(key);
+            const decodedKey = decodeKey(key as string);
             // prevent running into the next room
             if (decodedKey.senderKey === senderKey) {
                 sessionIds.push(decodedKey.sessionId);
@@ -43,23 +54,23 @@ export class OlmSessionStore {
         return sessionIds;
     }
 
-    getAll(senderKey) {
+    getAll(senderKey: string): Promise<OlmSession[]> {
         const range = this._store.IDBKeyRange.lowerBound(encodeKey(senderKey, ""));
         return this._store.selectWhile(range, session => {
             return session.senderKey === senderKey;
         });
     }
 
-    get(senderKey, sessionId) {
+    get(senderKey: string, sessionId: string): Promise<OlmSession | null> {
         return this._store.get(encodeKey(senderKey, sessionId));
     }
 
-    set(session) {
+    set(session: OlmSession): Promise<IDBValidKey> {
         session.key = encodeKey(session.senderKey, session.sessionId);
         return this._store.put(session);
     }
 
-    remove(senderKey, sessionId) {
+    remove(senderKey: string, sessionId: string): Promise<undefined> {
         return this._store.delete(encodeKey(senderKey, sessionId));
     }
 }
