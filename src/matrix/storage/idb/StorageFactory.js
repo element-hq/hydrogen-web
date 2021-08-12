@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {Storage} from "./Storage.js";
+import {Storage} from "./Storage";
 import { openDatabase, reqAsPromise } from "./utils";
 import { exportSession, importSession } from "./export.js";
 import { schema } from "./schema.js";
