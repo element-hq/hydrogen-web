@@ -32,7 +32,7 @@ import {OlmSessionStore} from "./stores/OlmSessionStore.js";
 import {InboundGroupSessionStore} from "./stores/InboundGroupSessionStore.js";
 import {OutboundGroupSessionStore} from "./stores/OutboundGroupSessionStore";
 import {GroupSessionDecryptionStore} from "./stores/GroupSessionDecryptionStore";
-import {OperationStore} from "./stores/OperationStore.js";
+import {OperationStore} from "./stores/OperationStore";
 import {AccountDataStore} from "./stores/AccountDataStore.js";
 
 export class Transaction {

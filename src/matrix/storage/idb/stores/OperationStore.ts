@@ -14,23 +14,43 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {MIN_UNICODE, MAX_UNICODE} from "./common";
+import {Store} from "../Store";
 
-export function encodeScopeTypeKey(scope, type) {
+export function encodeScopeTypeKey(scope: string, type: string): string {
     return `${scope}|${type}`;
 }
 
+interface Operation {
+    id: string;
+    type: string;
+    scope: string;
+    userIds: string[];
+    scopeTypeKey: string;
+    roomKeyMessage: RoomKeyMessage;
+}
+
+interface RoomKeyMessage {
+    room_id: string;
+    session_id: string;
+    session_key: string;
+    algorithm: string;
+    chain_index: number;
+}
+
 export class OperationStore {
-    constructor(store) {
+    private _store: Store<Operation>;
+
+    constructor(store: Store<Operation>) {
         this._store = store;
     }
 
-    getAll() {
+    getAll(): Promise<Operation[]> {
         return this._store.selectAll();
     }
 
-    async getAllByTypeAndScope(type, scope) {
+    async getAllByTypeAndScope(type: string, scope: string): Promise<Operation[]> {
         const key = encodeScopeTypeKey(scope, type);
-        const results = [];
+        const results: Operation[] = [];
         await this._store.index("byScopeAndType").iterateWhile(key, value => {
             if (value.scopeTypeKey !== key) {
                 return false;
@@ -41,20 +61,20 @@ export class OperationStore {
         return results;
     }
 
-    add(operation) {
+    add(operation: Operation): Promise<IDBValidKey> {
         operation.scopeTypeKey = encodeScopeTypeKey(operation.scope, operation.type);
-        this._store.add(operation);
+        return this._store.add(operation);
     }
 
-    update(operation) {
-        this._store.put(operation);
+    update(operation: Operation): Promise<IDBValidKey> {
+        return this._store.put(operation);
     }
 
-    remove(id) {
-        this._store.delete(id);
+    remove(id: string): Promise<undefined> {
+        return this._store.delete(id);
     }
 
-    async removeAllForScope(scope) {
+    async removeAllForScope(scope: string): Promise<undefined> {
         const range = this._store.IDBKeyRange.bound(
             encodeScopeTypeKey(scope, MIN_UNICODE),
             encodeScopeTypeKey(scope, MAX_UNICODE)
@@ -64,5 +84,6 @@ export class OperationStore {
             cur.delete();
             return true;
         });
+        return;
     }
 }
