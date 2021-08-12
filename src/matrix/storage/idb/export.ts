@@ -14,17 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { iterateCursor, txnAsPromise } from "./utils";
+import { iterateCursor, NOT_DONE, txnAsPromise } from "./utils";
 import { STORE_NAMES } from "../common";
 
-export async function exportSession(db) {
-    const NOT_DONE = {done: false};
+export async function exportSession(db: IDBDatabase): Promise<{ [storeName : string] : any }> {
     const txn = db.transaction(STORE_NAMES, "readonly");
     const data = {};
     await Promise.all(STORE_NAMES.map(async name => {
-        const results = data[name] = [];  // initialize in deterministic order
+        const results: any[] = data[name] = [];  // initialize in deterministic order
         const store = txn.objectStore(name);
-        await iterateCursor(store.openCursor(), (value) => {
+        await iterateCursor<any>(store.openCursor(), (value) => {
             results.push(value);
             return NOT_DONE;
         });
@@ -32,7 +31,7 @@ export async function exportSession(db) {
     return data;
 }
 
-export async function importSession(db, data) {
+export async function importSession(db: IDBDatabase, data: { [storeName: string]: any }): Promise<void> {
     const txn = db.transaction(STORE_NAMES, "readwrite");
     for (const name of STORE_NAMES) {
         const store = txn.objectStore(name);
