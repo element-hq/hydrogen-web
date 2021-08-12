@@ -36,14 +36,19 @@ import {OperationStore} from "./stores/OperationStore";
 import {AccountDataStore} from "./stores/AccountDataStore";
 
 export class Transaction {
-    constructor(txn, allowedStoreNames, IDBKeyRange) {
+    private _txn: IDBTransaction
+    private _allowedStoreNames: string[]
+    private _stores: { [storeName : string] : any }
+
+    constructor(txn: IDBTransaction, allowedStoreNames: string[], IDBKeyRange) {
         this._txn = txn;
         this._allowedStoreNames = allowedStoreNames;
         this._stores = {};
+        // @ts-ignore
         this.IDBKeyRange = IDBKeyRange;
     }
 
-    _idbStore(name) {
+    _idbStore(name: string): Store<any> {
         if (!this._allowedStoreNames.includes(name)) {
             // more specific error? this is a bug, so maybe not ...
             throw new StorageError(`Invalid store for transaction: ${name}, only ${this._allowedStoreNames.join(", ")} are allowed.`);
@@ -51,7 +56,7 @@ export class Transaction {
         return new Store(this._txn.objectStore(name), this);
     }
 
-    _store(name, mapStore) {
+    _store<R>(name: string, mapStore: (idbStore: Store<any>) => R): R {
         if (!this._stores[name]) {
             const idbStore = this._idbStore(name);
             this._stores[name] = mapStore(idbStore);
@@ -59,75 +64,75 @@ export class Transaction {
         return this._stores[name];
     }
 
-    get session() {
+    get session(): SessionStore {
         return this._store("session", idbStore => new SessionStore(idbStore));
     }
 
-    get roomSummary() {
+    get roomSummary(): RoomSummaryStore {
         return this._store("roomSummary", idbStore => new RoomSummaryStore(idbStore));
     }
     
-    get archivedRoomSummary() {
+    get archivedRoomSummary(): RoomSummaryStore {
         return this._store("archivedRoomSummary", idbStore => new RoomSummaryStore(idbStore));
     }
 
-    get invites() {
+    get invites(): InviteStore {
         return this._store("invites", idbStore => new InviteStore(idbStore));
     }
 
-    get timelineFragments() {
+    get timelineFragments(): TimelineFragmentStore {
         return this._store("timelineFragments", idbStore => new TimelineFragmentStore(idbStore));
     }
 
-    get timelineEvents() {
+    get timelineEvents(): TimelineEventStore {
         return this._store("timelineEvents", idbStore => new TimelineEventStore(idbStore));
     }
 
-    get timelineRelations() {
+    get timelineRelations(): TimelineRelationStore {
         return this._store("timelineRelations", idbStore => new TimelineRelationStore(idbStore));
     }
 
-    get roomState() {
+    get roomState(): RoomStateStore {
         return this._store("roomState", idbStore => new RoomStateStore(idbStore));
     }
 
-    get roomMembers() {
+    get roomMembers(): RoomMemberStore {
         return this._store("roomMembers", idbStore => new RoomMemberStore(idbStore));
     }
 
-    get pendingEvents() {
+    get pendingEvents(): PendingEventStore {
         return this._store("pendingEvents", idbStore => new PendingEventStore(idbStore));
     }
 
-    get userIdentities() {
+    get userIdentities(): UserIdentityStore {
         return this._store("userIdentities", idbStore => new UserIdentityStore(idbStore));
     }
 
-    get deviceIdentities() {
+    get deviceIdentities(): DeviceIdentityStore {
         return this._store("deviceIdentities", idbStore => new DeviceIdentityStore(idbStore));
     }
     
-    get olmSessions() {
+    get olmSessions(): OlmSessionStore {
         return this._store("olmSessions", idbStore => new OlmSessionStore(idbStore));
     }
     
-    get inboundGroupSessions() {
+    get inboundGroupSessions(): InboundGroupSessionStore {
         return this._store("inboundGroupSessions", idbStore => new InboundGroupSessionStore(idbStore));
     }
     
-    get outboundGroupSessions() {
+    get outboundGroupSessions(): OutboundGroupSessionStore {
         return this._store("outboundGroupSessions", idbStore => new OutboundGroupSessionStore(idbStore));
     }
 
-    get groupSessionDecryptions() {
+    get groupSessionDecryptions(): GroupSessionDecryptionStore {
         return this._store("groupSessionDecryptions", idbStore => new GroupSessionDecryptionStore(idbStore));
     }
 
-    get operations() {
+    get operations(): OperationStore {
         return this._store("operations", idbStore => new OperationStore(idbStore));
     }
 
-    get accountData() {
+    get accountData(): AccountDataStore {
         return this._store("accountData", idbStore => new AccountDataStore(idbStore));
     }
 
