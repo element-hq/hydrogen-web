@@ -28,7 +28,7 @@ import {TimelineFragmentStore} from "./stores/TimelineFragmentStore";
 import {PendingEventStore} from "./stores/PendingEventStore";
 import {UserIdentityStore} from "./stores/UserIdentityStore";
 import {DeviceIdentityStore} from "./stores/DeviceIdentityStore";
-import {OlmSessionStore} from "./stores/OlmSessionStore.js";
+import {OlmSessionStore} from "./stores/OlmSessionStore";
 import {InboundGroupSessionStore} from "./stores/InboundGroupSessionStore.js";
 import {OutboundGroupSessionStore} from "./stores/OutboundGroupSessionStore.js";
 import {GroupSessionDecryptionStore} from "./stores/GroupSessionDecryptionStore.js";
