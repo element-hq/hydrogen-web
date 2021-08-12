@@ -30,7 +30,7 @@ import {UserIdentityStore} from "./stores/UserIdentityStore";
 import {DeviceIdentityStore} from "./stores/DeviceIdentityStore";
 import {OlmSessionStore} from "./stores/OlmSessionStore";
 import {InboundGroupSessionStore} from "./stores/InboundGroupSessionStore";
-import {OutboundGroupSessionStore} from "./stores/OutboundGroupSessionStore.js";
+import {OutboundGroupSessionStore} from "./stores/OutboundGroupSessionStore";
 import {GroupSessionDecryptionStore} from "./stores/GroupSessionDecryptionStore.js";
 import {OperationStore} from "./stores/OperationStore.js";
 import {AccountDataStore} from "./stores/AccountDataStore.js";
