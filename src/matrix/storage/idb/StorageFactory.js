@@ -16,7 +16,7 @@ limitations under the License.
 
 import {Storage} from "./Storage";
 import { openDatabase, reqAsPromise } from "./utils";
-import { exportSession, importSession } from "./export.js";
+import { exportSession, importSession } from "./export";
 import { schema } from "./schema.js";
 import { detectWebkitEarlyCloseTxnBug } from "./quirks.js";
 
