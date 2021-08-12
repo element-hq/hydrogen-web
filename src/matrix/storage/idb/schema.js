@@ -2,7 +2,7 @@ import {iterateCursor, reqAsPromise} from "./utils";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/RoomMember.js";
 import {RoomMemberStore} from "./stores/RoomMemberStore";
 import {SessionStore} from "./stores/SessionStore";
-import {encodeScopeTypeKey} from "./stores/OperationStore.js";
+import {encodeScopeTypeKey} from "./stores/OperationStore";
 
 // FUNCTIONS SHOULD ONLY BE APPENDED!!
 // the index in the array is the database version
