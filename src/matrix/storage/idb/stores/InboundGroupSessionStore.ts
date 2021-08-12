@@ -15,36 +15,49 @@ limitations under the License.
 */
 
 import {MIN_UNICODE, MAX_UNICODE} from "./common";
+import {Store} from "../Store"
 
-function encodeKey(roomId, senderKey, sessionId) {
+interface InboundGroupSession {
+    roomId: string
+    senderKey: string
+    sessionId: string
+    session?: string
+    claimedKeys?: { [algorithm : string] : string }
+    eventIds?: string[]
+    key: string
+}
+
+function encodeKey(roomId: string, senderKey: string, sessionId: string) {
     return `${roomId}|${senderKey}|${sessionId}`;
 }
 
 export class InboundGroupSessionStore {
-    constructor(store) {
+    private _store: Store<InboundGroupSession>
+
+    constructor(store: Store<InboundGroupSession>) {
         this._store = store;
     }
 
-    async has(roomId, senderKey, sessionId) {
+    async has(roomId: string, senderKey: string, sessionId: string): Promise<boolean> {
         const key = encodeKey(roomId, senderKey, sessionId);
         const fetchedKey = await this._store.getKey(key);
         return key === fetchedKey;
     }
 
-    get(roomId, senderKey, sessionId) {
+    get(roomId: string, senderKey: string, sessionId: string): Promise<InboundGroupSession | null> {
         return this._store.get(encodeKey(roomId, senderKey, sessionId));
     }
 
-    set(session) {
+    set(session: InboundGroupSession): Promise<IDBValidKey> {
         session.key = encodeKey(session.roomId, session.senderKey, session.sessionId);
-        this._store.put(session);
+        return this._store.put(session);
     }
 
-    removeAllForRoom(roomId) {
+    removeAllForRoom(roomId: string): Promise<undefined> {
         const range = this._store.IDBKeyRange.bound(
             encodeKey(roomId, MIN_UNICODE, MIN_UNICODE),
             encodeKey(roomId, MAX_UNICODE, MAX_UNICODE)
         );
-        this._store.delete(range);
+        return this._store.delete(range);
     }
 }
