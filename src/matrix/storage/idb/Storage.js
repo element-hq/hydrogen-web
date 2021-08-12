@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {Transaction} from "./Transaction.js";
+import {Transaction} from "./Transaction";
 import { STORE_NAMES, StoreNames, StorageError } from "../common";
 import { reqAsPromise } from "./utils";
 
