@@ -33,7 +33,7 @@ import {InboundGroupSessionStore} from "./stores/InboundGroupSessionStore.js";
 import {OutboundGroupSessionStore} from "./stores/OutboundGroupSessionStore";
 import {GroupSessionDecryptionStore} from "./stores/GroupSessionDecryptionStore";
 import {OperationStore} from "./stores/OperationStore";
-import {AccountDataStore} from "./stores/AccountDataStore.js";
+import {AccountDataStore} from "./stores/AccountDataStore";
 
 export class Transaction {
     constructor(txn, allowedStoreNames, IDBKeyRange) {
