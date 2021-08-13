@@ -1,6 +1,7 @@
 import {iterateCursor, reqAsPromise} from "./utils";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/RoomMember.js";
 import {RoomMemberStore} from "./stores/RoomMemberStore";
+import {RoomStateEntry} from "./stores/RoomStateStore";
 import {SessionStore} from "./stores/SessionStore";
 import {encodeScopeTypeKey} from "./stores/OperationStore";
 
@@ -20,10 +21,14 @@ export const schema = [
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
+const NOT_DONE = {done:false};
+
+// TypeScript note: for now, do not bother introducing interfaces / alias
+// for old schemas. Just take them as `any`. 
 
 // how do we deal with schema updates vs existing data migration in a way that 
 //v1
-function createInitialStores(db) {
+function createInitialStores(db: IDBDatabase): void {
     db.createObjectStore("session", {keyPath: "key"});
     // any way to make keys unique here? (just use put?)
     db.createObjectStore("roomSummary", {keyPath: "roomId"});
@@ -40,11 +45,12 @@ function createInitialStores(db) {
     db.createObjectStore("pendingEvents", {keyPath: "key"});
 }
 //v2
-async function createMemberStore(db, txn) {
-    const roomMembers = new RoomMemberStore(db.createObjectStore("roomMembers", {keyPath: "key"}));
+async function createMemberStore(db: IDBDatabase, txn: IDBTransaction): Promise<void> {
+    // Cast ok here because only "set" is used
+    const roomMembers = new RoomMemberStore(db.createObjectStore("roomMembers", {keyPath: "key"}) as any);
     // migrate existing member state events over
     const roomState = txn.objectStore("roomState");
-    await iterateCursor(roomState.openCursor(), entry => {
+    await iterateCursor<RoomStateEntry>(roomState.openCursor(), entry => {
         if (entry.event.type === MEMBER_EVENT_TYPE) {
             roomState.delete(entry.key);
             const member = RoomMember.fromMemberEvent(entry.roomId, entry.event);
@@ -52,10 +58,11 @@ async function createMemberStore(db, txn) {
                 roomMembers.set(member.serialize());
             }
         }
+        return NOT_DONE;
     });
 }
 //v3
-async function migrateSession(db, txn) {
+async function migrateSession(db: IDBDatabase, txn: IDBTransaction): Promise<void> {
     const session = txn.objectStore("session");
     try {
         const PRE_MIGRATION_KEY = 1;
@@ -63,7 +70,8 @@ async function migrateSession(db, txn) {
         if (entry) {
             session.delete(PRE_MIGRATION_KEY);
             const {syncToken, syncFilterId, serverVersions} = entry.value;
-            const store = new SessionStore(session);
+            // Cast ok here because only "set" is used and we don't look into return
+            const store = new SessionStore(session as any);
             store.set("sync", {token: syncToken, filterId: syncFilterId});
             store.set("serverVersions", serverVersions);
         }
@@ -73,7 +81,7 @@ async function migrateSession(db, txn) {
     }
 }
 //v4
-function createE2EEStores(db) {
+function createE2EEStores(db: IDBDatabase): void {
     db.createObjectStore("userIdentities", {keyPath: "userId"});
     const deviceIdentities = db.createObjectStore("deviceIdentities", {keyPath: "key"});
     deviceIdentities.createIndex("byCurve25519Key", "curve25519Key", {unique: true});
@@ -86,13 +94,14 @@ function createE2EEStores(db) {
 }
 
 // v5
-async function migrateEncryptionFlag(db, txn) {
+async function migrateEncryptionFlag(db: IDBDatabase, txn: IDBTransaction): Promise<void> {
     // migrate room summary isEncrypted -> encryption prop
     const roomSummary = txn.objectStore("roomSummary");
     const roomState = txn.objectStore("roomState");
-    const summaries = [];
-    await iterateCursor(roomSummary.openCursor(), summary => {
+    const summaries: any[] = [];
+    await iterateCursor<any>(roomSummary.openCursor(), summary => {
         summaries.push(summary);
+        return NOT_DONE;
     });
     for (const summary of summaries) {
         const encryptionEntry = await reqAsPromise(roomState.get(`${summary.roomId}|m.room.encryption|`));
@@ -105,31 +114,32 @@ async function migrateEncryptionFlag(db, txn) {
 }
 
 // v6
-function createAccountDataStore(db) {
+function createAccountDataStore(db: IDBDatabase): void {
     db.createObjectStore("accountData", {keyPath: "type"});
 }
 
 // v7
-function createInviteStore(db) {
+function createInviteStore(db: IDBDatabase): void {
     db.createObjectStore("invites", {keyPath: "roomId"});
 }
 
 // v8
-function createArchivedRoomSummaryStore(db) {
+function createArchivedRoomSummaryStore(db: IDBDatabase): void {
     db.createObjectStore("archivedRoomSummary", {keyPath: "summary.roomId"});
 }
 
 // v9
-async function migrateOperationScopeIndex(db, txn) {
+async function migrateOperationScopeIndex(db: IDBDatabase, txn: IDBTransaction): Promise<void> {
     try {
         const operations = txn.objectStore("operations");
         operations.deleteIndex("byTypeAndScope");
-        await iterateCursor(operations.openCursor(), (op, key, cur) => {
+        await iterateCursor<any>(operations.openCursor(), (op, key, cur) => {
             const {typeScopeKey} = op;
             delete op.typeScopeKey;
             const [type, scope] = typeScopeKey.split("|");
             op.scopeTypeKey = encodeScopeTypeKey(scope, type);
             cur.update(op);
+            return NOT_DONE;
         });
         operations.createIndex("byScopeAndType", "scopeTypeKey", {unique: false});
     } catch (err) {
@@ -139,6 +149,6 @@ async function migrateOperationScopeIndex(db, txn) {
 }
 
 //v10
-function createTimelineRelationsStore(db) {
+function createTimelineRelationsStore(db: IDBDatabase) : void {
     db.createObjectStore("timelineRelations", {keyPath: "key"});
 }

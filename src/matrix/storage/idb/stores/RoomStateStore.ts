@@ -22,7 +22,7 @@ function encodeKey(roomId: string, eventType: string, stateKey: string) {
      return `${roomId}|${eventType}|${stateKey}`;
 }
 
-interface RoomStateEntry {
+export interface RoomStateEntry {
     roomId: string,
     event: any
     key: string
