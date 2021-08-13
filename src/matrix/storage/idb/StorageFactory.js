@@ -18,7 +18,7 @@ import {Storage} from "./Storage";
 import { openDatabase, reqAsPromise } from "./utils";
 import { exportSession, importSession } from "./export";
 import { schema } from "./schema";
-import { detectWebkitEarlyCloseTxnBug } from "./quirks.js";
+import { detectWebkitEarlyCloseTxnBug } from "./quirks";
 
 const sessionName = sessionId => `hydrogen_session_${sessionId}`;
 const openDatabaseWithSessionId = function(sessionId, idbFactory) {
