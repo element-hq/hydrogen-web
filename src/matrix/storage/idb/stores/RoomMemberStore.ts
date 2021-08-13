@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 import {MAX_UNICODE} from "./common";
-import {Store} from "../Store"
+import {Store} from "../Store";
 
 function encodeKey(roomId: string, userId: string) {
     return `${roomId}|${userId}`;
@@ -29,18 +29,18 @@ function decodeKey(key: string): { roomId: string, userId: string } {
 
 // TODO: Move to RoomMember when that's TypeScript.
 export interface MemberData {
-    roomId: string
-    userId: string
-    avatarUrl: string
-    displayName: string
-    membership: "join" | "leave" | "invite" | "ban"
+    roomId: string;
+    userId: string;
+    avatarUrl: string;
+    displayName: string;
+    membership: "join" | "leave" | "invite" | "ban";
 }
 
 type MemberStorageEntry = MemberData & { key: string }
 
 // no historical members
 export class RoomMemberStore {
-    private _roomMembersStore: Store<MemberStorageEntry>
+    private _roomMembersStore: Store<MemberStorageEntry>;
 
     constructor(roomMembersStore: Store<MemberStorageEntry>) {
         this._roomMembersStore = roomMembersStore;

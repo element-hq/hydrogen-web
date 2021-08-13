@@ -15,16 +15,16 @@ limitations under the License.
 */
 
 import {MIN_UNICODE, MAX_UNICODE} from "./common";
-import {Store} from "../Store"
+import {Store} from "../Store";
 
 interface InboundGroupSession {
-    roomId: string
-    senderKey: string
-    sessionId: string
-    session?: string
-    claimedKeys?: { [algorithm : string] : string }
-    eventIds?: string[]
-    key: string
+    roomId: string;
+    senderKey: string;
+    sessionId: string;
+    session?: string;
+    claimedKeys?: { [algorithm : string] : string };
+    eventIds?: string[];
+    key: string;
 }
 
 function encodeKey(roomId: string, senderKey: string, sessionId: string) {
@@ -32,7 +32,7 @@ function encodeKey(roomId: string, senderKey: string, sessionId: string) {
 }
 
 export class InboundGroupSessionStore {
-    private _store: Store<InboundGroupSession>
+    private _store: Store<InboundGroupSession>;
 
     constructor(store: Store<InboundGroupSession>) {
         this._store = store;

@@ -13,16 +13,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {Store} from "../Store"
+import {Store} from "../Store";
 
 interface UserIdentity {
-    userId: string
-    roomIds: string[]
-    deviceTrackingStatus: number
+    userId: string;
+    roomIds: string[];
+    deviceTrackingStatus: number;
 }
 
 export class UserIdentityStore {
-    private _store: Store<UserIdentity>
+    private _store: Store<UserIdentity>;
 
     constructor(store: Store<UserIdentity>) {
         this._store = store;

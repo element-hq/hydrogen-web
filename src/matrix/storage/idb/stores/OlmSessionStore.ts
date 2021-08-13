@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {Store} from "../Store"
+import {Store} from "../Store";
 
 function encodeKey(senderKey: string, sessionId: string): string {
     return `${senderKey}|${sessionId}`;
@@ -25,15 +25,15 @@ function decodeKey(key: string): { senderKey: string, sessionId: string } {
 }
 
 interface OlmSession {
-    session: string
-    sessionId: string
-    senderKey: string
-    lastUsed: number
-    key: string
+    session: string;
+    sessionId: string;
+    senderKey: string;
+    lastUsed: number;
+    key: string;
 }
 
 export class OlmSessionStore {
-    private _store: Store<OlmSession>
+    private _store: Store<OlmSession>;
 
     constructor(store: Store<OlmSession>) {
         this._store = store;

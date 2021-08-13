@@ -22,21 +22,21 @@ import {Store} from "../Store";
 import {RoomEvent, StateEvent} from "../../types";
 
 interface Annotation {
-    count: number
-    me: boolean
-    firstTimestamp: number
+    count: number;
+    me: boolean;
+    firstTimestamp: number;
 }
 
 interface StorageEntry {
-    roomId: string
-    fragmentId: number
-    eventIndex: number
-    event: RoomEvent | StateEvent
-    displayName?: string
-    avatarUrl?: string
-    annotations?: { [key : string]: Annotation }
-    key: string
-    eventIdKey: string
+    roomId: string;
+    fragmentId: number;
+    eventIndex: number;
+    event: RoomEvent | StateEvent;
+    displayName?: string;
+    avatarUrl?: string;
+    annotations?: { [key : string]: Annotation };
+    key: string;
+    eventIdKey: string;
 }
 
 function encodeKey(roomId: string, fragmentId: number, eventIndex: number): string {
@@ -53,12 +53,12 @@ function decodeEventIdKey(eventIdKey: string): { roomId: string, eventId: string
 }
 
 class Range {
-    private _IDBKeyRange: any // TODO what's the appropriate representation here?
-    private _only?: EventKey
-    private _lower?: EventKey
-    private _upper?: EventKey
-    private _lowerOpen: boolean
-    private _upperOpen: boolean
+    private _IDBKeyRange: any; // TODO what's the appropriate representation here?
+    private _only?: EventKey;
+    private _lower?: EventKey;
+    private _upper?: EventKey;
+    private _lowerOpen: boolean;
+    private _upperOpen: boolean;
 
     constructor(IDBKeyRange: any, only?: EventKey, lower?: EventKey, upper?: EventKey, lowerOpen: boolean = false, upperOpen: boolean = false) {
         this._IDBKeyRange = IDBKeyRange;
@@ -126,7 +126,7 @@ class Range {
  * @property  {?Gap} gap if a gap entry, the gap
 */
 export class TimelineEventStore {
-    private _timelineStore: Store<StorageEntry>
+    private _timelineStore: Store<StorageEntry>;
 
     constructor(timelineStore: Store<StorageEntry>) {
         this._timelineStore = timelineStore;

@@ -14,31 +14,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {MIN_UNICODE, MAX_UNICODE} from "./common";
-import {Store} from "../Store"
+import {Store} from "../Store";
 
 export function encodeScopeTypeKey(scope: string, type: string): string {
     return `${scope}|${type}`;
 }
 
 interface Operation {
-    id: string
-    type: string
-    scope: string
-    userIds: string[]
-    scopeTypeKey: string
-    roomKeyMessage: RoomKeyMessage
+    id: string;
+    type: string;
+    scope: string;
+    userIds: string[];
+    scopeTypeKey: string;
+    roomKeyMessage: RoomKeyMessage;
 }
 
 interface RoomKeyMessage {
-    room_id: string
-    session_id: string
-    session_key: string
-    algorithm: string
-    chain_index: number
+    room_id: string;
+    session_id: string;
+    session_key: string;
+    algorithm: string;
+    chain_index: number;
 }
 
 export class OperationStore {
-    private _store: Store<Operation>
+    private _store: Store<Operation>;
 
     constructor(store: Store<Operation>) {
         this._store = store;

@@ -21,9 +21,9 @@ import { reqAsPromise } from "./utils";
 const WEBKITEARLYCLOSETXNBUG_BOGUS_KEY = "782rh281re38-boguskey";
 
 export class Storage {
-    private _db: IDBDatabase
-    private _hasWebkitEarlyCloseTxnBug: boolean
-    storeNames: { [ name : string] : string }
+    private _db: IDBDatabase;
+    private _hasWebkitEarlyCloseTxnBug: boolean;
+    storeNames: { [ name : string] : string };
 
     constructor(idbDatabase: IDBDatabase, IDBKeyRange, hasWebkitEarlyCloseTxnBug: boolean) {
         this._db = idbDatabase;

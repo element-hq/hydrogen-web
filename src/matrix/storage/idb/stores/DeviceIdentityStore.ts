@@ -15,16 +15,16 @@ limitations under the License.
 */
 
 import {MAX_UNICODE, MIN_UNICODE} from "./common";
-import {Store} from "../Store"
+import {Store} from "../Store";
 
 interface DeviceIdentity {
-    userId: string
-    deviceId: string
-    ed25519Key: string
-    curve25519Key: string
-    algorithms: string[]
-    displayName: string
-    key: string
+    userId: string;
+    deviceId: string;
+    ed25519Key: string;
+    curve25519Key: string;
+    algorithms: string[];
+    displayName: string;
+    key: string;
 }
 
 function encodeKey(userId: string, deviceId: string): string {
@@ -37,7 +37,7 @@ function decodeKey(key: string): { userId: string, deviceId: string } {
 }
 
 export class DeviceIdentityStore {
-    private _store: Store<DeviceIdentity>
+    private _store: Store<DeviceIdentity>;
     
     constructor(store: Store<DeviceIdentity>) {
         this._store = store;

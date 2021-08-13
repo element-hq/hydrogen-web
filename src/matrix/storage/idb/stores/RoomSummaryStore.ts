@@ -27,12 +27,12 @@ store contains:
 	inviteCount
 	joinCount
 */
-import {Store} from "../Store"
-import {SummaryData} from "../../../room/RoomSummary"
+import {Store} from "../Store";
+import {SummaryData} from "../../../room/RoomSummary";
 
 /** Used for both roomSummary and archivedRoomSummary stores */
 export class RoomSummaryStore {
-    private _summaryStore: Store<SummaryData>
+    private _summaryStore: Store<SummaryData>;
 
     constructor(summaryStore: Store<SummaryData>) {
         this._summaryStore = summaryStore;

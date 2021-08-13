@@ -36,9 +36,9 @@ import {OperationStore} from "./stores/OperationStore";
 import {AccountDataStore} from "./stores/AccountDataStore";
 
 export class Transaction {
-    private _txn: IDBTransaction
-    private _allowedStoreNames: string[]
-    private _stores: { [storeName : string] : any }
+    private _txn: IDBTransaction;
+    private _allowedStoreNames: string[];
+    private _stores: { [storeName : string] : any };
 
     constructor(txn: IDBTransaction, allowedStoreNames: string[], IDBKeyRange) {
         this._txn = txn;

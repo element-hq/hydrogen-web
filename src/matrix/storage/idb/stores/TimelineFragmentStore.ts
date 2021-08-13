@@ -20,12 +20,12 @@ import { encodeUint32 } from "../utils";
 import {Store} from "../Store";
 
 interface Fragment {
-    roomId: string
-    id: number
-    previousId: number | null
-    nextId: number | null
-    previousToken: string | null
-    nextToken: string | null
+    roomId: string;
+    id: number;
+    previousId: number | null;
+    nextId: number | null;
+    previousToken: string | null;
+    nextToken: string | null;
 }
 
 type FragmentEntry = Fragment & { key: string }
@@ -35,7 +35,7 @@ function encodeKey(roomId: string, fragmentId: number): string {
 }
 
 export class TimelineFragmentStore {
-    private _store: Store<FragmentEntry>
+    private _store: Store<FragmentEntry>;
 
     constructor(store: Store<FragmentEntry>) {
         this._store = store;

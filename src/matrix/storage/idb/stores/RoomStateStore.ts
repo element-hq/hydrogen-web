@@ -24,13 +24,13 @@ function encodeKey(roomId: string, eventType: string, stateKey: string) {
 }
 
 export interface RoomStateEntry {
-    roomId: string,
-    event: StateEvent
-    key: string
+    roomId: string;
+    event: StateEvent;
+    key: string;
 }
 
 export class RoomStateStore {
-    private _roomStateStore: Store<RoomStateEntry>
+    private _roomStateStore: Store<RoomStateEntry>;
 
     constructor(idbStore: Store<RoomStateEntry>) {
         this._roomStateStore = idbStore;

@@ -13,16 +13,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {Store} from "../Store"
+import {Store} from "../Store";
 import {Content} from "../../types";
 
 interface AccountDataEntry {
-    type: string
-    content: Content
+    type: string;
+    content: Content;
 }
 
 export class AccountDataStore {
-    private _store: Store<AccountDataEntry>
+    private _store: Store<AccountDataEntry>;
 
     constructor(store: Store<AccountDataEntry>) {
         this._store = store;

@@ -13,11 +13,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {Store} from "../Store"
+import {Store} from "../Store";
 
 export interface SessionEntry {
-    key: string
-    value: any
+    key: string;
+    value: any;
 }
 
 export class SessionStore {

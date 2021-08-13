@@ -16,20 +16,20 @@ limitations under the License.
 
 import { encodeUint32, decodeUint32 } from "../utils";
 import {KeyLimits} from "../../common";
-import {Store} from "../Store"
+import {Store} from "../Store";
 import {Content} from "../../types";
 
 interface PendingEntry {
-    roomId: string
-    queueIndex: number
-    eventType: string
-    content: Content
-    relatexTxnId: string | null
-    relatedEventId: string | null
-    txnId?: string
-    needsEncryption: boolean
-    needsUpload: boolean
-    key: string
+    roomId: string;
+    queueIndex: number;
+    eventType: string;
+    content: Content;
+    relatexTxnId: string | null;
+    relatedEventId: string | null;
+    txnId?: string;
+    needsEncryption: boolean;
+    needsUpload: boolean;
+    key: string;
 }
 
 function encodeKey(roomId: string, queueIndex: number): string {
@@ -43,7 +43,7 @@ function decodeKey(key: string): { roomId: string, queueIndex: number } {
 }
 
 export class PendingEventStore {
-    private _eventStore: Store<PendingEntry>
+    private _eventStore: Store<PendingEntry>;
 
     constructor(eventStore: Store<PendingEntry>) {
         this._eventStore = eventStore;

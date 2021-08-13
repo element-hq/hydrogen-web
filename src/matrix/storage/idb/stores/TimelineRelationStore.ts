@@ -14,17 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {MIN_UNICODE, MAX_UNICODE} from "./common";
-import {Store} from "../Store"
+import {Store} from "../Store";
 
 function encodeKey(roomId: string, targetEventId: string, relType: string, sourceEventId: string): string {
     return `${roomId}|${targetEventId}|${relType}|${sourceEventId}`;
 }
 
 interface RelationEntry {
-    roomId: string
-    targetEventId: string
-    sourceEventId: string
-    relType: string
+    roomId: string;
+    targetEventId: string;
+    sourceEventId: string;
+    relType: string;
 }
 
 function decodeKey(key: string): RelationEntry {
@@ -33,7 +33,7 @@ function decodeKey(key: string): RelationEntry {
 }
 
 export class TimelineRelationStore {
-    private _store: Store<{ key: string }>
+    private _store: Store<{ key: string }>;
 
     constructor(store: Store<{ key: string }>) {
         this._store = store;

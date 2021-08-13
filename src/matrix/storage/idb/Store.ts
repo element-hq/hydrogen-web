@@ -16,8 +16,8 @@ limitations under the License.
 
 import {QueryTarget} from "./QueryTarget";
 import {IDBRequestAttemptError} from "./error";
-import {reqAsPromise} from "./utils"
-import {Transaction} from "./Transaction"
+import {reqAsPromise} from "./utils";
+import {Transaction} from "./Transaction";
 
 const LOG_REQUESTS = false;
 
@@ -28,7 +28,7 @@ function logRequest(method: string, params: any[], source: any) {
 }
 
 class QueryTargetWrapper<T> {
-    private _qt: IDBIndex | IDBObjectStore
+    private _qt: IDBIndex | IDBObjectStore;
 
     constructor(qt: IDBIndex | IDBObjectStore) {
         this._qt = qt;
@@ -129,7 +129,7 @@ class QueryTargetWrapper<T> {
 }
 
 export class Store<T> extends QueryTarget<T> {
-    private _transaction: Transaction
+    private _transaction: Transaction;
 
     constructor(idbStore: IDBObjectStore, transaction: Transaction) {
         super(new QueryTargetWrapper<T>(idbStore));

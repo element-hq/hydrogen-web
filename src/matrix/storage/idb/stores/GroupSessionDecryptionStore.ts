@@ -15,20 +15,20 @@ limitations under the License.
 */
 
 import {MIN_UNICODE, MAX_UNICODE} from "./common";
-import {Store} from "../Store"
+import {Store} from "../Store";
 
 function encodeKey(roomId: string, sessionId: string, messageIndex: number | string): string {
     return `${roomId}|${sessionId}|${messageIndex}`;
 }
 
 interface GroupSessionDecryption {
-    eventId: string
-    timestamp: number
-    key: string
+    eventId: string;
+    timestamp: number;
+    key: string;
 }
 
 export class GroupSessionDecryptionStore {
-    private _store: Store<GroupSessionDecryption>
+    private _store: Store<GroupSessionDecryption>;
 
     constructor(store: Store<GroupSessionDecryption>) {
         this._store = store;

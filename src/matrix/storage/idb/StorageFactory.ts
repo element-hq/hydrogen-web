@@ -26,7 +26,7 @@ const openDatabaseWithSessionId = function(sessionId: string, idbFactory: IDBFac
 }
 
 interface ServiceWorkerHandler {
-    preventConcurrentSessionAccess: (sessionId: string) => Promise<void>
+    preventConcurrentSessionAccess: (sessionId: string) => Promise<void>;
 }
 
 async function requestPersistedStorage(): Promise<boolean> {
@@ -47,8 +47,8 @@ async function requestPersistedStorage(): Promise<boolean> {
 }
 
 export class StorageFactory {
-    private _serviceWorkerHandler: ServiceWorkerHandler
-    private _idbFactory: IDBFactory
+    private _serviceWorkerHandler: ServiceWorkerHandler;
+    private _idbFactory: IDBFactory;
 
     constructor(serviceWorkerHandler: ServiceWorkerHandler, idbFactory: IDBFactory = window.indexedDB, IDBKeyRange = window.IDBKeyRange) {
         this._serviceWorkerHandler = serviceWorkerHandler;

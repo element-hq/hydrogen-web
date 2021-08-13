@@ -13,16 +13,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {Store} from "../Store"
+import {Store} from "../Store";
 
 interface OutboundSession {
-    roomId: string
-    session: string
-    createdAt: number
+    roomId: string;
+    session: string;
+    createdAt: number;
 }
 
 export class OutboundGroupSessionStore {
-    private _store: Store<OutboundSession>
+    private _store: Store<OutboundSession>;
 
     constructor(store: Store<OutboundSession>) {
         this._store = store;
