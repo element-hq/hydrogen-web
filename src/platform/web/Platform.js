@@ -16,7 +16,7 @@ limitations under the License.
 
 import {createFetchRequest} from "./dom/request/fetch.js";
 import {xhrRequest} from "./dom/request/xhr.js";
-import {StorageFactory} from "../../matrix/storage/idb/StorageFactory.js";
+import {StorageFactory} from "../../matrix/storage/idb/StorageFactory";
 import {SessionInfoStorage} from "../../matrix/sessioninfo/localstorage/SessionInfoStorage.js";
 import {SettingsStorage} from "./dom/SettingsStorage.js";
 import {Encoding} from "./utils/Encoding.js";
