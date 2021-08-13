@@ -17,12 +17,13 @@ limitations under the License.
 import { encodeUint32, decodeUint32 } from "../utils";
 import {KeyLimits} from "../../common";
 import {Store} from "../Store"
+import {Content} from "../../types";
 
 interface PendingEntry {
     roomId: string
     queueIndex: number
     eventType: string
-    content: any
+    content: Content
     relatexTxnId: string | null
     relatedEventId: string | null
     txnId?: string

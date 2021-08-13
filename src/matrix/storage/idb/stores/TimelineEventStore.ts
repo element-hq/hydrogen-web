@@ -19,19 +19,7 @@ import { StorageError } from "../../common";
 import { encodeUint32 } from "../utils";
 import {KeyLimits} from "../../common";
 import {Store} from "../Store";
-
-type Content = { [key: string]: any }
-
-interface RoomEvent {
-    content: Content
-    type: string
-    event_id: string
-    sender: string
-    origin_server_ts: number
-    unsigned?: Content
-}
-
-type StateEvent = RoomEvent & { prev_content?: Content, state_key: string }
+import {RoomEvent, StateEvent} from "../../types";
 
 interface Annotation {
     count: number
@@ -43,7 +31,7 @@ interface StorageEntry {
     roomId: string
     fragmentId: number
     eventIndex: number
-    event: Event | StateEvent
+    event: RoomEvent | StateEvent
     displayName?: string
     avatarUrl?: string
     annotations?: { [key : string]: Annotation }

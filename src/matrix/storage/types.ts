@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,26 +13,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {Store} from "../Store"
-import {Content} from "../../types";
 
-interface AccountDataEntry {
-    type: string
+export type Content = { [key: string]: any }
+
+export interface RoomEvent {
     content: Content
+    type: string
+    event_id: string
+    sender: string
+    origin_server_ts: number
+    unsigned?: Content
 }
 
-export class AccountDataStore {
-    private _store: Store<AccountDataEntry>
-
-    constructor(store: Store<AccountDataEntry>) {
-        this._store = store;
-    }
-
-    async get(type: string): Promise<AccountDataEntry | null> {
-        return await this._store.get(type);
-    }
-
-    set(event: AccountDataEntry): Promise<IDBValidKey> {
-        return this._store.put(event);
-    }
-}
+export type StateEvent = RoomEvent & { prev_content?: Content, state_key: string }
