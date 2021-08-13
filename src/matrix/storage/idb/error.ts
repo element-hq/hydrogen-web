@@ -18,8 +18,8 @@ limitations under the License.
 import { StorageError } from "../common";
 
 export class IDBError extends StorageError {
-    storeName: string
-    databaseName: string
+    storeName: string;
+    databaseName: string;
 
     constructor(message: string, source, cause: DOMException | null) {
         const storeName = source?.name || "<unknown store>";

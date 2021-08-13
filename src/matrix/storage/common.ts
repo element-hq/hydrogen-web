@@ -41,8 +41,8 @@ export const STORE_MAP: Readonly<{ [name : string]: string }> = Object.freeze(ST
 }, {}));
 
 export class StorageError extends Error {
-    errcode?: string
-    cause?: Error
+    errcode?: string;
+    cause?: Error;
 
     constructor(message: string, cause?: Error) {
         super(message);

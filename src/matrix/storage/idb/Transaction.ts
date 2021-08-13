@@ -136,11 +136,11 @@ export class Transaction {
         return this._store("accountData", idbStore => new AccountDataStore(idbStore));
     }
 
-    complete() {
+    complete(): Promise<void> {
         return txnAsPromise(this._txn);
     }
 
-    abort() {
+    abort(): void {
         // TODO: should we wrap the exception in a StorageError?
         this._txn.abort();
     }

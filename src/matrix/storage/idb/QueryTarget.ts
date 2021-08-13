@@ -36,7 +36,7 @@ export class QueryTarget<T> {
         this._target = target;
     }
 
-    _openCursor(range?: IDBQuery, direction?: IDBCursorDirection) {
+    _openCursor(range?: IDBQuery, direction?: IDBCursorDirection): IDBRequest<IDBCursorWithValue | null> {
         if (range && direction) {
             return this._target.openCursor(range, direction);
         } else if (range) {
@@ -124,7 +124,7 @@ export class QueryTarget<T> {
 
     async findMaxKey(range: IDBQuery): Promise<IDBValidKey | undefined> {
         const cursor = this._target.openKeyCursor(range, "prev");
-        let maxKey;
+        let maxKey: IDBValidKey | undefined;
         await iterateCursor(cursor, (_, key) => {
             maxKey = key;
             return {done: true};
@@ -133,14 +133,14 @@ export class QueryTarget<T> {
     }
 
 
-    async iterateValues(range: IDBQuery, callback: (val: T, key: IDBValidKey, cur: IDBCursorWithValue) => boolean)  {
+    async iterateValues(range: IDBQuery, callback: (val: T, key: IDBValidKey, cur: IDBCursorWithValue) => boolean): Promise<void>  {
         const cursor = this._target.openCursor(range, "next");
         await iterateCursor<T>(cursor, (value, key, cur) => {
             return {done: callback(value, key, cur)};
         });
     }
 
-    async iterateKeys(range: IDBQuery, callback: (key: IDBValidKey, cur: IDBCursor) => boolean) {
+    async iterateKeys(range: IDBQuery, callback: (key: IDBValidKey, cur: IDBCursor) => boolean): Promise<void> {
         const cursor = this._target.openKeyCursor(range, "next");
         await iterateCursor(cursor, (_, key, cur) => {
             return {done: callback(key, cur)};
@@ -153,7 +153,7 @@ export class QueryTarget<T> {
      * If the callback returns true, the search is halted and callback won't be called again.
      * `callback` is called with the same instances of the key as given in `keys`, so direct comparison can be used.
      */
-    async findExistingKeys(keys: IDBValidKey[], backwards: boolean, callback: (key: IDBValidKey, found: boolean) => boolean) {
+    async findExistingKeys(keys: IDBValidKey[], backwards: boolean, callback: (key: IDBValidKey, found: boolean) => boolean): Promise<void> {
         const direction = backwards ? "prev" : "next";
         const compareKeys = (a, b) => backwards ? -indexedDB.cmp(a, b) : indexedDB.cmp(a, b);
         const sortedKeys = keys.slice().sort(compareKeys);
@@ -225,7 +225,7 @@ export class QueryTarget<T> {
         return results;
     }
 
-    async iterateWhile(range: IDBQuery, predicate: (v: T) => boolean) {
+    async iterateWhile(range: IDBQuery, predicate: (v: T) => boolean): Promise<void> {
         const cursor = this._openCursor(range, "next");
         await iterateCursor<T>(cursor, (value) => {
             const passesPredicate = predicate(value);

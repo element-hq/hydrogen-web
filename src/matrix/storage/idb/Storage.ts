@@ -37,7 +37,7 @@ export class Storage {
         this.storeNames = Object.freeze(nameMap);
     }
 
-    _validateStoreNames(storeNames: string[]) {
+    _validateStoreNames(storeNames: string[]): void {
         const idx = storeNames.findIndex(name => !STORE_NAMES.includes(name));
         if (idx !== -1) {
             throw new StorageError(`Tried top, a transaction unknown store ${storeNames[idx]}`);
@@ -76,7 +76,7 @@ export class Storage {
         }
     }
 
-    close() {
+    close(): void {
         this._db.close();
     }
 }

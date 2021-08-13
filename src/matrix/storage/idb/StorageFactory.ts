@@ -57,7 +57,7 @@ export class StorageFactory {
         this._IDBKeyRange = IDBKeyRange;
     }
 
-    async create(sessionId: string) {
+    async create(sessionId: string): Promise<Storage> {
         await this._serviceWorkerHandler?.preventConcurrentSessionAccess(sessionId);
         requestPersistedStorage().then(persisted => {
             // Firefox lies here though, and returns true even if the user denied the request

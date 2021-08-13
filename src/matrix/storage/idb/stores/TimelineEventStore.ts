@@ -69,7 +69,7 @@ class Range {
         this._upperOpen = upperOpen;
     }
 
-    asIDBKeyRange(roomId: string) {
+    asIDBKeyRange(roomId: string): IDBKeyRange | undefined {
         try {
             // only
             if (this._only) {
@@ -240,7 +240,7 @@ export class TimelineEventStore {
         let firstFoundKey: string | undefined;
 
         // find first result that is found and has no undefined results before it
-        function firstFoundAndPrecedingResolved() {
+        function firstFoundAndPrecedingResolved(): string | undefined {
             for(let i = 0; i < results.length; ++i) {
                 if (results[i] === undefined) {
                     return;

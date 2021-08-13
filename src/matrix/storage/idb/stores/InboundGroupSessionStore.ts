@@ -27,7 +27,7 @@ interface InboundGroupSession {
     key: string;
 }
 
-function encodeKey(roomId: string, senderKey: string, sessionId: string) {
+function encodeKey(roomId: string, senderKey: string, sessionId: string): string {
     return `${roomId}|${senderKey}|${sessionId}`;
 }
 

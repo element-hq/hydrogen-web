@@ -21,7 +21,7 @@ import {Transaction} from "./Transaction";
 
 const LOG_REQUESTS = false;
 
-function logRequest(method: string, params: any[], source: any) {
+function logRequest(method: string, params: any[], source: any): void {
     const storeName = source?.name;
     const databaseName = source?.transaction?.db?.name;
     console.info(`${databaseName}.${storeName}.${method}(${params.map(p => JSON.stringify(p)).join(", ")})`);

@@ -74,13 +74,13 @@ export class TimelineFragmentStore {
     // should generate an id an return it?
     // depends if we want to do anything smart with fragment ids,
     // like give them meaning depending on range. not for now probably ...
-    add(fragment: Fragment) {
+    add(fragment: Fragment): Promise<IDBValidKey> {
         (fragment as any).key = encodeKey(fragment.roomId, fragment.id);
-        this._store.add(fragment as FragmentEntry);
+        return this._store.add(fragment as FragmentEntry);
     }
 
-    update(fragment: FragmentEntry) {
-        this._store.put(fragment);
+    update(fragment: FragmentEntry): Promise<IDBValidKey> {
+        return this._store.put(fragment);
     }
 
     get(roomId: string, fragmentId: number): Promise<FragmentEntry | null> {
