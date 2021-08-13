@@ -18,7 +18,7 @@ import {iterateCursor, reqAsPromise} from "./utils";
 
 type Reducer<A,B> = (acc: B, val: A) => B
 
-type IDBQuery = IDBValidKey | IDBKeyRange
+type IDBQuery = IDBValidKey | IDBKeyRange | undefined
 
 interface QueryTargetInterface<T> {
     openCursor: (range?: IDBQuery | null , direction?: IDBCursorDirection) => IDBRequest<IDBCursorWithValue | null>;
