@@ -114,15 +114,15 @@ export class SessionLoadViewModel extends ViewModel {
                 case LoadStatus.NotLoading:
                     return `Preparing…`;
                 case LoadStatus.Login:
-                    return `Checking your login and password…`;
+                    return `Checking your credentials…`;
                 case LoadStatus.LoginFailed:
                     switch (sc.loginFailure) {
                         case LoginFailure.LoginFailure:
-                            return `Your username and/or password don't seem to be correct.`;
+                            return `Your credentials don't seem to be correct.`;
                         case LoginFailure.Connection:
                             return `Can't connect to ${this._homeserver}.`;
                         case LoginFailure.Unknown:
-                            return `Something went wrong while checking your login and password.`;
+                            return `Something went wrong while checking your credentials.`;
                     }
                     break;
                 case LoadStatus.SessionSetup:
