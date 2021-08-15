@@ -36,7 +36,7 @@ limitations under the License.
     align-items: center;
 }
 
-.SessionPickerView .session-info > :not(:first-child) {
+.SessionPickerView .session-info> :not(:first-child) {
     margin-left: 8px;
 }
 
@@ -58,7 +58,7 @@ limitations under the License.
     display: flex;
 }
 
-.SessionLoadStatusView > :not(:first-child) {
+.SessionLoadStatusView> :not(:first-child) {
     margin-left: 12px;
 }
 
@@ -85,4 +85,9 @@ limitations under the License.
     justify-content: center;
     display: flex;
     margin: 8px;
+}
+
+.CompleteSSOView_title {
+    display: flex;
+    justify-content: center;
 }

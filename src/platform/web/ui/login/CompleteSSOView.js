@@ -21,7 +21,7 @@ export class CompleteSSOView extends TemplateView {
     render(t) {
         return t.div({ className: "CompleteSSOView" },
             [
-                "Finishing up SSO Login ...",
+                t.p({ className: "CompleteSSOView_title" }, "Finishing up your SSO Login"),
                 t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadStatusView(loadViewModel) : null)
             ]
         );
