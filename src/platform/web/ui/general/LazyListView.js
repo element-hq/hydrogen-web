@@ -161,6 +161,7 @@ export class LazyListView extends ListView {
     onAdd(idx, value) {
         const {topCount, renderCount, bottomCount} = this._renderRange;
         if (this._renderRange.containsIndex(idx)) {
+            this.onBeforeListChanged();
             const normalizedIdx = this._renderRange.normalize(idx);
             if (bottomCount === 0) {
                 /*
@@ -178,7 +179,8 @@ export class LazyListView extends ListView {
                 this._removeChild(this._childInstances.pop());
                 this._renderRange = new ItemRange(topCount, renderCount, bottomCount + 1);
             }
-            super.onAdd(normalizedIdx, value);
+            super.onAdd(normalizedIdx, value, true);
+            this.onListChanged();
         }
         else {
             this._renderRange = idx < topCount ? new ItemRange(topCount + 1, renderCount, bottomCount):
@@ -190,8 +192,9 @@ export class LazyListView extends ListView {
     onRemove(idx, value) {
         const {topCount, renderCount, bottomCount} = this._renderRange;
         if (this._renderRange.containsIndex(idx)) {
+            this.onBeforeListChanged();
             const normalizedIdx = this._renderRange.normalize(idx);
-            super.onRemove(normalizedIdx, value);
+            super.onRemove(normalizedIdx, value, true);
             if (bottomCount === 0) {
                 // See onAdd for explanation
                 this._renderRange = new ItemRange(topCount, renderCount - 1, bottomCount);
@@ -202,6 +205,7 @@ export class LazyListView extends ListView {
                 this._root.appendChild(mountView(child, this._mountArgs));
                 this._renderRange = new ItemRange(topCount, renderCount, bottomCount - 1);
             }
+            this.onListChanged();
         }
         else {
             this._renderRange = idx < topCount ? new ItemRange(topCount - 1, renderCount, bottomCount):

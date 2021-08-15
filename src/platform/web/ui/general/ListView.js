@@ -113,20 +113,20 @@ export class ListView {
         this._root.appendChild(fragment);
     }
 
-    onAdd(idx, value) {
-        this.onBeforeListChanged();
+    onAdd(idx, value, silent = false) {
+        if (!silent) { this.onBeforeListChanged(); }
         const child = this._childCreator(value);
         this._childInstances.splice(idx, 0, child);
         insertAt(this._root, idx, mountView(child, this._mountArgs));
-        this.onListChanged();
+        if (!silent) { this.onListChanged(); }
     }
 
-    onRemove(idx, _value) {
-        this.onBeforeListChanged();
+    onRemove(idx, _value, silent = false) {
+        if (!silent) { this.onBeforeListChanged(); }
         const [child] = this._childInstances.splice(idx, 1);
         child.root().remove();
         child.unmount();
-        this.onListChanged();
+        if (!silent) { this.onListChanged(); }
     }
 
     onMove(fromIdx, toIdx, value) {
