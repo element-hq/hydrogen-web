@@ -150,6 +150,18 @@ export class HomeServerApi {
         }, options);
     }
 
+    tokenLogin(loginToken, txnId, initialDeviceDisplayName, options = null) {
+        return this._unauthedRequest("POST", this._url("/login"), null, {
+          "type": "m.login.token",
+          "identifier": {
+            "type": "m.id.user",
+          },
+          "token": loginToken,
+          "txn_id": txnId,
+          "initial_device_display_name": initialDeviceDisplayName
+        }, options);
+    }
+
     createFilter(userId, filter, options = null) {
         return this._post(`/user/${encodeURIComponent(userId)}/filter`, null, filter, options);
     }
