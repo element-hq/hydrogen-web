@@ -24,6 +24,7 @@ import {RequestScheduler} from "./net/RequestScheduler.js";
 import {Sync, SyncStatus} from "./Sync.js";
 import {Session} from "./Session.js";
 import {PasswordLoginMethod} from "./login/PasswordLoginMethod.js";
+import {TokenLoginMethod} from "./login/TokenLoginMethod.js";
 
 export const LoadStatus = createEnum(
     "NotLoading",
@@ -91,7 +92,8 @@ export class SessionContainer {
     }
 
     parseLoginOptions(options, homeServer) {
-        /* Take server response and return new object which has two props password and sso which
+        /*
+        Take server response and return new object which has two props password and sso which
         implements LoginMethod
         */
         const flows = options.flows;
@@ -99,6 +101,12 @@ export class SessionContainer {
         for (const flow of flows) {
             if (flow.type === "m.login.password") {
                 result.password = (username, password) => new PasswordLoginMethod({homeServer, username, password});
+            }
+            else if (flow.type === "m.login.sso" && flows.find(flow => flow.type === "m.login.token")) {
+                result.sso = loginToken => new TokenLoginMethod({homeServer, loginToken});
+            }
+            else if (flow.type === "m.login.token") {
+                result.token = loginToken => new TokenLoginMethod({homeServer, loginToken});
             }
         }
         return result;
