@@ -124,4 +124,10 @@ export class URLRouter {
     createSSOCallbackURL() {
         return window.location.origin;
     }
+
+    normalizeUrl() {
+        // Remove any queryParameters from the URL
+        // Gets rid of the loginToken after SSO
+        this._history.replaceUrlSilently(`${window.location.origin}/${window.location.hash}`);
+    }
 }
