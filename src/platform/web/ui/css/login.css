@@ -70,3 +70,19 @@ limitations under the License.
 .SessionLoadStatusView .spinner {
     --size: 20px;
 }
+
+.SSOLoginView {
+    display: flex;
+    flex-direction: column;
+}
+
+.SSOLoginView_button {
+    flex: 1;
+    margin-top: 10px;
+}
+
+.SSOLoginView_separator {
+    justify-content: center;
+    display: flex;
+    margin: 8px;
+}
