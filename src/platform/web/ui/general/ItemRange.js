@@ -14,10 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export class ScrollDirection {
-    static get downwards() { return 1; }
-    static get upwards() { return -1; }
-}
+import {createEnum} from "../../../../utils/enum.js";
+
+export const ScrollDirection = createEnum("upwards", "downwards");
 
 export class ItemRange {
     constructor(topCount, renderCount, bottomCount) {
