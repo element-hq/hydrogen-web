@@ -41,6 +41,11 @@ export class LoginView extends TemplateView {
 
 class SSOLoginView extends TemplateView {
     render(t, vm) {
-        return t.button({className: "SSO", type: "button", onClick: () => vm.startSSOLogin()}, "Login with SSO");
+        return t.div({ className: "SSOLoginView" },
+            [
+                t.p({ className: "SSOLoginView_separator" }, "or"),
+                t.button({ className: "SSOLoginView_button button-action secondary", type: "button", onClick: () => vm.startSSOLogin() }, "Log in with SSO")
+            ]
+        );
     }
 }
