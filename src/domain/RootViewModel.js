@@ -16,7 +16,7 @@ limitations under the License.
 
 import {SessionViewModel} from "./session/SessionViewModel.js";
 import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
-import {LoginViewModel} from "./LoginViewModel.js";
+import {LoginViewModel} from "./login/LoginViewModel.js";
 import {SessionPickerViewModel} from "./SessionPickerViewModel.js";
 import {ViewModel} from "./ViewModel.js";
 
@@ -42,7 +42,8 @@ export class RootViewModel extends ViewModel {
     async _applyNavigation(shouldRestoreLastUrl) {
         const isLogin = this.navigation.observe("login").get();
         const sessionId = this.navigation.observe("session").get();
-        const SSOSegment = this.navigation.path.get("sso");
+        // TODO: why not observe?
+        const ssoSegment = this.navigation.path.get("sso");
         if (isLogin) {
             if (this.activeSection !== "login") {
                 this._showLogin();
@@ -67,8 +68,11 @@ export class RootViewModel extends ViewModel {
                     this._showSessionLoader(sessionId);
                 }
             }
-        } else if (SSOSegment) {
-            this._setSection(() => this.showCompletionView = true);
+        } else if (ssoSegment) {
+            this.urlCreator.normalizeUrl();
+            if (this.activeSection !== "login") {
+                this._showLogin({loginToken: ssoSegment.value});
+            }
         }
         else {
             try {
@@ -99,7 +103,7 @@ export class RootViewModel extends ViewModel {
         }
     }
 
-    _showLogin() {
+    _showLogin(options) {
         this._setSection(() => {
             this._loginViewModel = new LoginViewModel(this.childOptions({
                 defaultHomeServer: this.platform.config["defaultHomeServer"],
@@ -116,6 +120,7 @@ export class RootViewModel extends ViewModel {
                     this._pendingSessionContainer = sessionContainer;
                     this.navigation.push("session", sessionContainer.sessionId);
                 },
+                ...options
             }));
         });
     }
@@ -152,8 +157,6 @@ export class RootViewModel extends ViewModel {
             return "picker";
         } else if (this._sessionLoadViewModel) {
             return "loading";
-        } else if (this.showCompletionView) {
-            return "sso";
         } else {
             return "redirecting";
         }

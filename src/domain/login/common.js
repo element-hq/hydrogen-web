@@ -14,16 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../general/TemplateView.js";
-import {SessionLoadStatusView} from "./SessionLoadStatusView.js";
-
-export class CompleteSSOView extends TemplateView {
-    render(t) {
-        return t.div({ className: "CompleteSSOView" },
-            [
-                "Finishing up SSO Login ...",
-                t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadStatusView(loadViewModel) : null)
-            ]
-        );
+export function normalizeHomeserver(homeServer) {
+    try {
+        return new URL(homeServer).origin;
+    } catch (err) {
+        return new URL(`https://${homeServer}`).origin;
     }
 }
