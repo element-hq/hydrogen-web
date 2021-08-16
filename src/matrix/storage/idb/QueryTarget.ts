@@ -18,15 +18,15 @@ import {iterateCursor, reqAsPromise} from "./utils";
 
 type Reducer<A,B> = (acc: B, val: A) => B
 
-type IDBQuery = IDBValidKey | IDBKeyRange | undefined
+export type IDBQuery = IDBValidKey | IDBKeyRange | undefined | null
 
 interface QueryTargetInterface<T> {
-    openCursor: (range?: IDBQuery | null , direction?: IDBCursorDirection) => IDBRequest<IDBCursorWithValue | null>;
-    openKeyCursor: (range?: IDBQuery, direction?: IDBCursorDirection) => IDBRequest<IDBCursor | null>;
+    openCursor: (range?: IDBQuery, direction?: IDBCursorDirection | undefined) => IDBRequest<IDBCursorWithValue | null>;
+    openKeyCursor: (range?: IDBQuery, direction?: IDBCursorDirection | undefined) => IDBRequest<IDBCursor | null>;
     supports: (method: string) => boolean;
     keyPath: string | string[];
-    get: (key: IDBQuery) => IDBRequest<T | null>;
-    getKey: (key: IDBQuery) => IDBRequest<IDBValidKey | undefined>;
+    get: (key: IDBValidKey | IDBKeyRange) => IDBRequest<T | null>;
+    getKey: (key: IDBValidKey | IDBKeyRange) => IDBRequest<IDBValidKey | undefined>;
 }
 
 export class QueryTarget<T> {
@@ -52,11 +52,11 @@ export class QueryTarget<T> {
         return this._target.supports(methodName);
     }
 
-    get(key: IDBQuery): Promise<T | null> {
+    get(key: IDBValidKey | IDBKeyRange): Promise<T | null> {
         return reqAsPromise(this._target.get(key));
     }
 
-    getKey(key: IDBQuery): Promise<IDBValidKey | undefined> {
+    getKey(key: IDBValidKey | IDBKeyRange): Promise<IDBValidKey | undefined> {
         if (this._target.supports("getKey")) {
             return reqAsPromise(this._target.getKey(key));
         } else {

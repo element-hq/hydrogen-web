@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {QueryTarget} from "./QueryTarget";
+import {QueryTarget, IDBQuery} from "./QueryTarget";
 import {IDBRequestAttemptError} from "./error";
 import {reqAsPromise} from "./utils";
 import {Transaction} from "./Transaction";
@@ -50,7 +50,7 @@ class QueryTargetWrapper<T> {
         return !!this._qt[methodName];
     }
     
-    openKeyCursor(range?: IDBKeyRange, direction?: IDBCursorDirection): IDBRequest<IDBCursor | null> {
+    openKeyCursor(range?: IDBQuery, direction?: IDBCursorDirection | undefined): IDBRequest<IDBCursor | null> {
         try {
             // not supported on Edge 15
             if (!this._qt.openKeyCursor) {
@@ -64,7 +64,7 @@ class QueryTargetWrapper<T> {
         }
     }
     
-    openCursor(range?: IDBKeyRange, direction?: IDBCursorDirection): IDBRequest<IDBCursorWithValue | null> {
+    openCursor(range?: IDBQuery, direction?: IDBCursorDirection | undefined): IDBRequest<IDBCursorWithValue | null> {
         try {
             LOG_REQUESTS && logRequest("openCursor", [], this._qt);
             return this._qt.openCursor(range, direction)
@@ -73,7 +73,7 @@ class QueryTargetWrapper<T> {
         }
     }
 
-    put(item: T, key?: IDBValidKey): IDBRequest<IDBValidKey> {
+    put(item: T, key?: IDBValidKey | undefined): IDBRequest<IDBValidKey> {
         try {
             LOG_REQUESTS && logRequest("put", [item, key], this._qt);
             return this._qtStore.put(item, key);
@@ -82,7 +82,7 @@ class QueryTargetWrapper<T> {
         }
     }
 
-    add(item: T, key?: IDBValidKey): IDBRequest<IDBValidKey> {
+    add(item: T, key?: IDBValidKey | undefined): IDBRequest<IDBValidKey> {
         try {
             LOG_REQUESTS && logRequest("add", [item, key], this._qt);
             return this._qtStore.add(item, key);
@@ -91,7 +91,7 @@ class QueryTargetWrapper<T> {
         }
     }
 
-    get(key: IDBValidKey): IDBRequest<T | null> {
+    get(key: IDBValidKey | IDBKeyRange): IDBRequest<T | null> {
         try {
             LOG_REQUESTS && logRequest("get", [key], this._qt);
             return this._qt.get(key);
@@ -100,7 +100,7 @@ class QueryTargetWrapper<T> {
         }
     }
     
-    getKey(key: IDBValidKey): IDBRequest<IDBValidKey | undefined> {
+    getKey(key: IDBValidKey | IDBKeyRange): IDBRequest<IDBValidKey | undefined> {
         try {
             LOG_REQUESTS && logRequest("getKey", [key], this._qt);
             return this._qt.getKey(key)
