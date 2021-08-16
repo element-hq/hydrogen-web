@@ -73,7 +73,7 @@ export class LazyListView extends ListView {
         const array = [];
         let i = 0;
         for (const item of this._list) {
-            if (i >= start && i < end) {
+            if (i >= start && i <= end) {
                 array.push(item);
             }
             i = i + 1;
@@ -201,7 +201,7 @@ export class LazyListView extends ListView {
                 this._renderRange = new ItemRange(topCount, renderCount - 1, bottomCount);
             }
             else {
-                const child = this._childCreator(this._itemAtIndex(this._renderRange.lastIndex - 1));
+                const child = this._childCreator(this._itemAtIndex(this._renderRange.lastIndex));
                 this._childInstances.push(child);
                 this._root.appendChild(mountView(child, this._mountArgs));
                 this._renderRange = new ItemRange(topCount, renderCount, bottomCount - 1);
