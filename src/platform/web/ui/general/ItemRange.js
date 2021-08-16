@@ -37,7 +37,7 @@ export class ItemRange {
     }
 
     containsIndex(idx) {
-        return idx >= this.topCount && idx < this.lastIndex;
+        return idx >= this.topCount && idx <= this.lastIndex;
     }
 
     expand(amount) {
@@ -56,7 +56,7 @@ export class ItemRange {
     }
 
     get lastIndex() {
-        return this.topCount + this.renderCount;
+        return this.topCount + this.renderCount - 1;
     }
 
     totalSize() {
@@ -105,7 +105,7 @@ export class ItemRange {
             return {toRemove, toAdd, scrollDirection};
         }
         const bisection1 = {start: Math.min(this.topCount, range.topCount), end: Math.max(this.topCount, range.topCount) - 1};
-        const bisection2 = {start: Math.min(this.lastIndex, range.lastIndex), end: Math.max(this.lastIndex, range.lastIndex)};
+        const bisection2 = {start: Math.min(this.lastIndex, range.lastIndex) + 1, end: Math.max(this.lastIndex, range.lastIndex)};
         // When scrolling down, bisection1 needs to be removed and bisection2 needs to be added
         // When scrolling up, vice versa
         const toRemove = scrollDirection === ScrollDirection.downwards ? bisection1 : bisection2;
