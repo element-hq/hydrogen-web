@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {iterateCursor, reqAsPromise} from "./utils";
+import {iterateCursor, DONE, NOT_DONE, reqAsPromise} from "./utils";
 
 type Reducer<A,B> = (acc: B, val: A) => B
 
@@ -101,7 +101,7 @@ export class QueryTarget<T> {
         const results: T[] = [];
         await iterateCursor<T>(cursor, (value) => {
             results.push(value);
-            return {done: false};
+            return NOT_DONE;
         });
         return results;
     }
@@ -127,7 +127,7 @@ export class QueryTarget<T> {
         let maxKey: IDBValidKey | undefined;
         await iterateCursor(cursor, (_, key) => {
             maxKey = key;
-            return {done: true};
+            return DONE;
         });
         return maxKey;
     }
@@ -191,7 +191,7 @@ export class QueryTarget<T> {
         const cursor = this._openCursor(range, direction);
         return iterateCursor<T>(cursor, (value) => {
             reducedValue = reducer(reducedValue, value);
-            return {done: false};
+            return NOT_DONE;
         });
     }
 

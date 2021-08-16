@@ -1,4 +1,4 @@
-import {iterateCursor, reqAsPromise} from "./utils";
+import {iterateCursor, NOT_DONE, reqAsPromise} from "./utils";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/RoomMember.js";
 import {RoomMemberStore} from "./stores/RoomMemberStore";
 import {RoomStateEntry} from "./stores/RoomStateStore";
@@ -20,8 +20,6 @@ export const schema = [
     createTimelineRelationsStore,
 ];
 // TODO: how to deal with git merge conflicts of this array?
-
-const NOT_DONE = {done:false};
 
 // TypeScript note: for now, do not bother introducing interfaces / alias
 // for old schemas. Just take them as `any`. 

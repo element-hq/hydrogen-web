@@ -14,11 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { iterateCursor, txnAsPromise } from "./utils";
+import { iterateCursor, NOT_DONE, txnAsPromise } from "./utils";
 import { STORE_NAMES } from "../common";
 
 export async function exportSession(db: IDBDatabase): Promise<{ [storeName : string] : any }> {
-    const NOT_DONE = {done: false};
     const txn = db.transaction(STORE_NAMES, "readonly");
     const data = {};
     await Promise.all(STORE_NAMES.map(async name => {

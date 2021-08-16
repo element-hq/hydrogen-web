@@ -18,6 +18,9 @@ limitations under the License.
 import { IDBRequestError } from "./error";
 import { StorageError } from "../common";
 
+export const NOT_DONE = { done: false };
+export const DONE = { done: true };
+
 let needsSyncPromise = false;
 
 /* should be called on legacy platforms to see
