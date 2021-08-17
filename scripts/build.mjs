@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {build as snowpackBuild, loadConfiguration} from "snowpack"
 import cheerio from "cheerio";
 import fsRoot from "fs";
 const fs = fsRoot.promises;
@@ -45,8 +46,11 @@ import flexbugsFixes from "postcss-flexbugs-fixes";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectDir = path.join(__dirname, "../");
+const snowpackOutPath = path.join(projectDir, "snowpack-build-output");
 const cssSrcDir = path.join(projectDir, "src/platform/web/ui/css/");
-const srcDir = path.join(projectDir, "src/");
+const snowpackConfig = await loadConfiguration({buildOptions: {out: snowpackOutPath}}, "snowpack.config.js");
+const snowpackOutDir = snowpackConfig.buildOptions.out.substring(projectDir.length);
+const srcDir = path.join(projectDir, `${snowpackOutDir}/src/`);
 const isPathInSrcDir = path => path.startsWith(srcDir);
 
 const parameters = new commander.Command();
@@ -56,14 +60,27 @@ parameters
     .option("--override-css <main css file>", "pass in an alternative main css file")
 parameters.parse(process.argv);
 
+/**
+ * We use Snowpack to handle the translation of TypeScript
+ * into JavaScript. We thus can't bundle files straight from
+ * the src directory, since some of them are TypeScript, and since
+ * they may import Node modules. We thus bundle files after they
+ * have been processed by Snowpack. This function returns paths
+ * to the files that have already been pre-processed in this manner.
+ */
+function srcPath(src) {
+    return path.join(snowpackOutDir, 'src', src);
+}
+
 async function build({modernOnly, overrideImports, overrideCss}) {
+    await snowpackBuild({config: snowpackConfig});
     // get version number
     const version = JSON.parse(await fs.readFile(path.join(projectDir, "package.json"), "utf8")).version;
     let importOverridesMap;
     if (overrideImports) {
         importOverridesMap = await readImportOverrides(overrideImports);
     }
-    const devHtml = await fs.readFile(path.join(projectDir, "index.html"), "utf8");
+    const devHtml = await fs.readFile(path.join(snowpackOutPath, "index.html"), "utf8");
     const doc = cheerio.load(devHtml);
     const themes = [];
     findThemes(doc, themeName => {
@@ -77,13 +94,13 @@ async function build({modernOnly, overrideImports, overrideCss}) {
     // copy olm assets
     const olmAssets = await copyFolder(path.join(projectDir, "lib/olm/"), assets.directory);
     assets.addSubMap(olmAssets);
-    await assets.write(`hydrogen.js`, await buildJs("src/main.js", ["src/platform/web/Platform.js"], importOverridesMap));
+    await assets.write(`hydrogen.js`, await buildJs(srcPath("main.js"), [srcPath("platform/web/Platform.js")], importOverridesMap));
     if (!modernOnly) {
-        await assets.write(`hydrogen-legacy.js`, await buildJsLegacy("src/main.js", [
-            'src/platform/web/legacy-polyfill.js',
-            'src/platform/web/LegacyPlatform.js'
+        await assets.write(`hydrogen-legacy.js`, await buildJsLegacy(srcPath("main.js"), [
+            srcPath('platform/web/legacy-polyfill.js'),
+            srcPath('platform/web/LegacyPlatform.js')
         ], importOverridesMap));
-        await assets.write(`worker.js`, await buildJsLegacy("src/platform/web/worker/main.js", ['src/platform/web/worker/polyfill.js']));
+        await assets.write(`worker.js`, await buildJsLegacy(srcPath("platform/web/worker/main.js"), [srcPath('platform/web/worker/polyfill.js')]));
     }
     // copy over non-theme assets
     const baseConfig = JSON.parse(await fs.readFile(path.join(projectDir, "assets/config.json"), {encoding: "utf8"}));
@@ -97,13 +114,14 @@ async function build({modernOnly, overrideImports, overrideCss}) {
     await buildManifest(assets);
     // all assets have been added, create a hash from all assets name to cache unhashed files like index.html
     assets.addToHashForAll("index.html", devHtml);
-    let swSource = await fs.readFile(path.join(projectDir, "src/platform/web/service-worker.js"), "utf8");
-    assets.addToHashForAll("sw.js", swSource);
+    let swSource = await fs.readFile(path.join(snowpackOutPath, "service-worker.js"), "utf8");
+    assets.addToHashForAll("service-worker.js", swSource);
     
     const globalHash = assets.hashForAll();
 
     await buildServiceWorker(swSource, version, globalHash, assets);
     await buildHtml(doc, version, baseConfig, globalHash, modernOnly, assets);
+    await removeDirIfExists(snowpackOutPath);
     console.log(`built hydrogen ${version} (${globalHash}) successfully with ${assets.size} files`);
 }
 
@@ -156,7 +174,7 @@ async function buildHtml(doc, version, baseConfig, globalHash, modernOnly, asset
     const configJSON = JSON.stringify(Object.assign({}, baseConfig, {
         worker: assets.has("worker.js") ? assets.resolve(`worker.js`) : null,
         downloadSandbox: assets.resolve("download-sandbox.html"),
-        serviceWorker: "sw.js",
+        serviceWorker: "service-worker.js",
         olm: {
             wasm: assets.resolve("olm.wasm"),
             legacyBundle: assets.resolve("olm_legacy.js"),
@@ -324,7 +342,7 @@ async function buildServiceWorker(swSource, version, globalHash, assets) {
     swSource = replaceStringInSource("NOTIFICATION_BADGE_ICON", assets.resolve("icon.png"));
 
     // service worker should not have a hashed name as it is polled by the browser for updates
-    await assets.writeUnhashed("sw.js", swSource);
+    await assets.writeUnhashed("service-worker.js", swSource);
 }
 
 async function buildCssBundles(buildFn, themes, assets, mainCssFile = null) {
