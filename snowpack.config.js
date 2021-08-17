@@ -13,7 +13,13 @@ module.exports = {
   },
   exclude: [
     /* Avoid scanning scripts which use dev-dependencies and pull in babel, rollup, etc. */
-    '**/node_modules/**/*', '**/scripts/**', '**/target/**', '**/prototypes/**', '**/src/matrix/storage/memory/**'
+    '**/node_modules/**/*',
+    '**/scripts/**',
+    '**/target/**',
+    '**/prototypes/**',
+    '**/src/matrix/storage/memory/**',
+    '**/src/platform/web/legacy-polyfill.js',
+    '**/src/platform/web/worker/polyfill.js'
   ],
   plugins: [
     /* ... */
