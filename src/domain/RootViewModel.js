@@ -103,7 +103,7 @@ export class RootViewModel extends ViewModel {
         }
     }
 
-    _showLogin(options) {
+    _showLogin(loginToken) {
         this._setSection(() => {
             this._loginViewModel = new LoginViewModel(this.childOptions({
                 defaultHomeServer: this.platform.config["defaultHomeServer"],
@@ -120,7 +120,7 @@ export class RootViewModel extends ViewModel {
                     this._pendingSessionContainer = sessionContainer;
                     this.navigation.push("session", sessionContainer.sessionId);
                 },
-                ...options
+                ...loginToken
             }));
         });
     }
