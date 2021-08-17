@@ -45,7 +45,7 @@ export class SSOLoginViewModel extends ViewModel{
         if (!this._loginToken) {
             return;
         }
-        const homeserver = await this.platform.settingsStorage.getString("homeserver");
+        const homeserver = await this.platform.settingsStorage.getString("sso_ongoing_login_homeserver");
         const loginOptions = await this._sessionContainer.queryLogin(homeserver);
         this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
         if (this._loadViewModel) {
@@ -72,7 +72,7 @@ export class SSOLoginViewModel extends ViewModel{
     }
 
     async startSSOLogin() {
-        await this.platform.settingsStorage.setString("homeserver", this._homeserver);
+        await this.platform.settingsStorage.setString("sso_ongoing_login_homeserver", this._homeserver);
         const link = `${this._homeserver}/_matrix/client/r0/login/sso/redirect?redirectUrl=${this.urlCreator.createSSOCallbackURL()}`;
         this.platform.openUrl(link);
     }
