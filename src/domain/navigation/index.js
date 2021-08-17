@@ -234,7 +234,7 @@ export function tests() {
             assert.equal(urlPath, "/session/1/rooms/a,b,c/1/details");
         },
         "Parse loginToken query parameter into SSO segment": assert => {
-            const segments = parseUrlPath("/?loginToken=a1232aSD123");
+            const segments = parseUrlPath("?loginToken=a1232aSD123");
             assert.equal(segments.length, 1);
             assert.equal(segments[0].type, "sso");
             assert.equal(segments[0].value, "a1232aSD123");
