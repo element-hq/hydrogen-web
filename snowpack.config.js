@@ -23,6 +23,7 @@ module.exports = {
   },
   devOptions: {
     open: "none",
+    hmr: false,
     /* ... */
   },
   buildOptions: {
