@@ -17,7 +17,6 @@ limitations under the License.
 import {ViewModel} from "../ViewModel.js";
 import {PasswordLoginViewModel} from "./PasswordLoginViewModel.js";
 import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel.js";
-import {normalizeHomeserver} from "./common.js";
 import {CompleteSSOLoginViewModel} from "./CompleteSSOLoginViewModel.js";
 
 export class LoginViewModel extends ViewModel {
@@ -46,10 +45,9 @@ export class LoginViewModel extends ViewModel {
             this.emitChange("completeSSOLoginViewModel");
         }
         else {
-            const defaultHomeServer = normalizeHomeserver(this._defaultHomeServer);
-            await this.queryLogin(defaultHomeServer);
+            await this.queryLogin(this._defaultHomeServer);
             this._showPasswordLogin();
-            this._showSSOLogin(defaultHomeServer);
+            this._showSSOLogin(this._defaultHomeServer);
         }
     }
 
@@ -80,9 +78,8 @@ export class LoginViewModel extends ViewModel {
     }
 
     async _onHomeServerChange(homeserver) {
-        const normalizedHS = normalizeHomeserver(homeserver);
-        await this.queryLogin(normalizedHS);
-        this._showSSOLogin(normalizedHS);
+        await this.queryLogin(homeserver);
+        this._showSSOLogin(homeserver);
     }
 
     childOptions(options) {

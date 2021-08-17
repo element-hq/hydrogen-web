@@ -17,7 +17,6 @@ limitations under the License.
 import {ViewModel} from "../ViewModel.js";
 import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
 import {ObservableValue} from "../../observable/ObservableValue.js";
-import {normalizeHomeserver} from "./common.js";
 
 export class PasswordLoginViewModel extends ViewModel {
     constructor(options) {
@@ -50,7 +49,6 @@ export class PasswordLoginViewModel extends ViewModel {
     }
 
     async login(username, password, homeserver) {
-        homeserver = normalizeHomeserver(homeserver);
         this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
         if (this._loadViewModel) {
             this._loadViewModel = this.disposeTracked(this._loadViewModel);

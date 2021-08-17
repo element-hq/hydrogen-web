@@ -27,6 +27,14 @@ import {PasswordLoginMethod} from "./login/PasswordLoginMethod.js";
 import {TokenLoginMethod} from "./login/TokenLoginMethod.js";
 import {SSOLoginHelper} from "./login/SSOLoginHelper.js";
 
+function normalizeHomeserver(homeServer) {
+    try {
+        return new URL(homeServer).origin;
+    } catch (err) {
+        return new URL(`https://${homeServer}`).origin;
+    }
+}
+
 export const LoadStatus = createEnum(
     "NotLoading",
     "Login",
@@ -114,9 +122,10 @@ export class SessionContainer {
     }
 
     async queryLogin(homeServer) {
-        const hsApi = new HomeServerApi({homeServer, request: this._platform.request});
+        const normalizedHS = normalizeHomeserver(homeServer);
+        const hsApi = new HomeServerApi({homeServer: normalizedHS, request: this._platform.request});
         const response = await hsApi.queryLogin().response();
-        return this.parseLoginOptions(response, homeServer);
+        return this.parseLoginOptions(response, normalizedHS);
     }
 
     async startWithLogin(loginMethod) {
