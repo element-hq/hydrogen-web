@@ -4,10 +4,10 @@
 /** @type {import("snowpack").SnowpackUserConfig } */
 module.exports = {
   mount: {
+    // More specific paths before less specific paths (if they overlap)
+    "src/platform/web/docroot": "/",
     "src": "/src",
-    "public": "/",
     "lib": {url: "/lib", static: true },
-    "src/platform/web/ui/css/themes": "/themes",
     "assets": "/assets",
     /* ... */
   },

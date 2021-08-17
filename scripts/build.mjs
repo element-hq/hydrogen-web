@@ -72,7 +72,7 @@ async function build({modernOnly, overrideImports, overrideCss}) {
     if (overrideImports) {
         importOverridesMap = await readImportOverrides(overrideImports);
     }
-    const devHtml = await fs.readFile(path.join(projectDir, "public/index.html"), "utf8");
+    const devHtml = await fs.readFile(path.join(snowpackOutPath, "index.html"), "utf8");
     const doc = cheerio.load(devHtml);
     const themes = [];
     findThemes(doc, themeName => {
@@ -105,9 +105,9 @@ async function build({modernOnly, overrideImports, overrideCss}) {
     await buildCssBundles(buildCssLegacy, themes, assets, overrideCss);
     await buildManifest(assets);
     // all assets have been added, create a hash from all assets name to cache unhashed files like index.html
-    assets.addToHashForAll("public/index.html", devHtml);
-    let swSource = await fs.readFile(path.join(projectDir, srcPath("platform/web/service-worker.js")), "utf8");
-    assets.addToHashForAll("sw.js", swSource);
+    assets.addToHashForAll("index.html", devHtml);
+    let swSource = await fs.readFile(path.join(snowpackOutPath, "service-worker.js"), "utf8");
+    assets.addToHashForAll("service-worker.js", swSource);
     
     const globalHash = assets.hashForAll();
 
@@ -166,7 +166,7 @@ async function buildHtml(doc, version, baseConfig, globalHash, modernOnly, asset
     const configJSON = JSON.stringify(Object.assign({}, baseConfig, {
         worker: assets.has("worker.js") ? assets.resolve(`worker.js`) : null,
         downloadSandbox: assets.resolve("download-sandbox.html"),
-        serviceWorker: "sw.js",
+        serviceWorker: "service-worker.js",
         olm: {
             wasm: assets.resolve("olm.wasm"),
             legacyBundle: assets.resolve("olm_legacy.js"),
@@ -334,7 +334,7 @@ async function buildServiceWorker(swSource, version, globalHash, assets) {
     swSource = replaceStringInSource("NOTIFICATION_BADGE_ICON", assets.resolve("icon.png"));
 
     // service worker should not have a hashed name as it is polled by the browser for updates
-    await assets.writeUnhashed("sw.js", swSource);
+    await assets.writeUnhashed("service-worker.js", swSource);
 }
 
 async function buildCssBundles(buildFn, themes, assets, mainCssFile = null) {
