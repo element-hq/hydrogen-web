@@ -46,8 +46,9 @@ import flexbugsFixes from "postcss-flexbugs-fixes";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectDir = path.join(__dirname, "../");
+const snowpackOutPath = path.join(projectDir, "snowpack-build-output");
 const cssSrcDir = path.join(projectDir, "src/platform/web/ui/css/");
-const snowpackConfig = await loadConfiguration({}, "snowpack.config.js");
+const snowpackConfig = await loadConfiguration({buildOptions: {out: snowpackOutPath}}, "snowpack.config.js");
 const snowpackOutDir = snowpackConfig.buildOptions.out.substring(projectDir.length);
 const srcDir = path.join(projectDir, `${snowpackOutDir}/src/`);
 const isPathInSrcDir = path => path.startsWith(srcDir);
@@ -112,6 +113,7 @@ async function build({modernOnly, overrideImports, overrideCss}) {
 
     await buildServiceWorker(swSource, version, globalHash, assets);
     await buildHtml(doc, version, baseConfig, globalHash, modernOnly, assets);
+    await removeDirIfExists(snowpackOutPath);
     console.log(`built hydrogen ${version} (${globalHash}) successfully with ${assets.size} files`);
 }
 
