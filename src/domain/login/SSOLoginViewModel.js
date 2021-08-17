@@ -54,7 +54,7 @@ export class SSOLoginViewModel extends ViewModel{
         this._loadViewModel = this.track(new SessionLoadViewModel(this.childOptions({
             createAndStartSessionContainer: async () => {
                 if (loginOptions.sso) {
-                    this._sessionContainer.startWithLogin(loginOptions.sso(this._loginToken));
+                    this._sessionContainer.startWithLogin(loginOptions.token(this._loginToken));
                 }
                 return this._sessionContainer;
             },
@@ -73,7 +73,7 @@ export class SSOLoginViewModel extends ViewModel{
 
     async startSSOLogin() {
         await this.platform.settingsStorage.setString("sso_ongoing_login_homeserver", this._homeserver);
-        const link = `${this._homeserver}/_matrix/client/r0/login/sso/redirect?redirectUrl=${this.urlCreator.createSSOCallbackURL()}`;
+        const link = this._loginOptions.sso.ssoEndpointLink(this.urlCreator.createSSOCallbackURL());
         this.platform.openUrl(link);
     }
 }

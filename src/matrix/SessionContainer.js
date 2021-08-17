@@ -25,6 +25,7 @@ import {Sync, SyncStatus} from "./Sync.js";
 import {Session} from "./Session.js";
 import {PasswordLoginMethod} from "./login/PasswordLoginMethod.js";
 import {TokenLoginMethod} from "./login/TokenLoginMethod.js";
+import {SSOLoginHelper} from "./login/SSOLoginHelper.js";
 
 export const LoadStatus = createEnum(
     "NotLoading",
@@ -103,7 +104,7 @@ export class SessionContainer {
                 result.password = (username, password) => new PasswordLoginMethod({homeServer, username, password});
             }
             else if (flow.type === "m.login.sso" && flows.find(flow => flow.type === "m.login.token")) {
-                result.sso = loginToken => new TokenLoginMethod({homeServer, loginToken});
+                result.sso = new SSOLoginHelper(homeServer);
             }
             else if (flow.type === "m.login.token") {
                 result.token = loginToken => new TokenLoginMethod({homeServer, loginToken});
