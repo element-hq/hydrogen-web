@@ -17,29 +17,23 @@ limitations under the License.
 import {ViewModel} from "../ViewModel.js";
 import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
 
-export class SSOLoginViewModel extends ViewModel{
+export class CompleteSSOLoginViewModel extends ViewModel {
     constructor(options) {
         super(options);
         const {
             loginToken,
             sessionContainer,
-            loginOptions,
             ready,
-            homeserver
         } = options;
         this._loginToken = loginToken;
         this._ready = ready;
         this._sessionContainer = sessionContainer;
-        this._homeserver = homeserver;
         this._loadViewModelSubscription = null;
         this._loadViewModel = null;
-        this._loginOptions = loginOptions;
         this.performSSOLoginCompletion();
     }
 
     get loadViewModel() { return this._loadViewModel; }
-    get supportsSSOLogin() { return this._supportsSSOLogin; }
-    get isSSOCompletion() { return !!this._loginToken; }
 
     async performSSOLoginCompletion() {
         if (!this._loginToken) {
@@ -69,11 +63,5 @@ export class SSOLoginViewModel extends ViewModel{
             }
             this.emitChange("isBusy");
         }));
-    }
-
-    async startSSOLogin() {
-        await this.platform.settingsStorage.setString("sso_ongoing_login_homeserver", this._homeserver);
-        const link = this._loginOptions.sso.ssoEndpointLink(this.urlCreator.createSSOCallbackURL());
-        this.platform.openUrl(link);
     }
 }

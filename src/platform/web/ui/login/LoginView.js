@@ -23,28 +23,21 @@ export class LoginView extends TemplateView {
     render(t) {
         return t.div({ className: "PreSessionScreen" }, [
             t.div({ className: "logo" }),
+            t.mapView(vm => vm.completeSSOLoginViewModel, vm => vm? new CompleteSSOView(vm): null),
             t.mapView(vm => vm.passwordLoginViewModel, vm => vm? new PasswordLoginView(vm): null),
-            t.mapView(vm => vm.ssoLoginViewModel, vm => {
-                if (vm?.isSSOCompletion) {
-                    return new CompleteSSOView(vm);
-                }
-                else if (vm) {
-                    return new SSOLoginView(vm);
-                }
-                return null;
-            } ),
+            t.mapView(vm => vm.startSSOLoginViewModel, vm => vm? new StartSSOLoginView(vm): null),
             // use t.mapView rather than t.if to create a new view when the view model changes too
             t.p(hydrogenGithubLink(t))
         ]);
     }
 }
 
-class SSOLoginView extends TemplateView {
+class StartSSOLoginView extends TemplateView {
     render(t, vm) {
-        return t.div({ className: "SSOLoginView" },
+        return t.div({ className: "StartSSOLoginView" },
             [
-                t.p({ className: "SSOLoginView_separator" }, "or"),
-                t.button({ className: "SSOLoginView_button button-action secondary", type: "button", onClick: () => vm.startSSOLogin() }, "Log in with SSO")
+                t.p({ className: "StartSSOLoginView_separator" }, "or"),
+                t.button({ className: "StartSSOLoginView_button button-action secondary", type: "button", onClick: () => vm.startSSOLogin() }, "Log in with SSO")
             ]
         );
     }

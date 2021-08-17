@@ -16,8 +16,9 @@ limitations under the License.
 
 import {ViewModel} from "../ViewModel.js";
 import {PasswordLoginViewModel} from "./PasswordLoginViewModel.js";
-import {SSOLoginViewModel} from "./SSOLoginViewModel.js";
+import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel.js";
 import {normalizeHomeserver} from "./common.js";
+import {CompleteSSOLoginViewModel} from "./CompleteSSOLoginViewModel.js";
 
 export class LoginViewModel extends ViewModel {
     constructor(options) {
@@ -29,17 +30,20 @@ export class LoginViewModel extends ViewModel {
         this._loginToken = loginToken;
         this._sessionContainer = this._createSessionContainer();
         this._loginOptions = null;
+        this._passwordLoginViewModel = null;
+        this._startSSOLoginViewModel = null;
+        this._completeSSOLoginViewModel = null;
         this._start();
     }
 
     get passwordLoginViewModel() { return this._passwordLoginViewModel; }
-    get ssoLoginViewModel() { return this._ssoLoginViewModel; }
-    get loadViewModel() {return this._loadViewModel; }
+    get startSSOLoginViewModel() { return this._startSSOLoginViewModel; }
+    get completeSSOLoginViewModel(){ return this._completeSSOLoginViewModel; }
 
     async _start() {
         if (this._loginToken) {
-            this._ssoLoginViewModel = this.track(new SSOLoginViewModel(this.childOptions({loginToken: this._loginToken})));
-            this.emitChange("ssoLoginViewModel");
+            this._completeSSOLoginViewModel = this.track(new CompleteSSOLoginViewModel(this.childOptions({loginToken: this._loginToken})));
+            this.emitChange("completeSSOLoginViewModel");
         }
         else {
             const defaultHomeServer = normalizeHomeserver(this._defaultHomeServer);
@@ -57,11 +61,11 @@ export class LoginViewModel extends ViewModel {
     }
 
     _showSSOLogin(homeserver) {
-        this._ssoLoginViewModel = this.disposeTracked(this._ssoLoginViewModel);
-        this.emitChange("ssoLoginViewModel");
+        this._startSSOLoginViewModel = this.disposeTracked(this._ssoLoginViewModel);
+        this.emitChange("startSSOLoginViewModel");
         if (this._loginOptions?.sso && !this._loginToken) {
-            this._ssoLoginViewModel = this.track(new SSOLoginViewModel(this.childOptions({homeserver})));
-            this.emitChange("ssoLoginViewModel");
+            this._startSSOLoginViewModel = this.track(new StartSSOLoginViewModel(this.childOptions({homeserver})));
+            this.emitChange("startSSOLoginViewModel");
         }
     }
 

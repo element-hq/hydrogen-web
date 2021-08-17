@@ -71,17 +71,17 @@ limitations under the License.
     --size: 20px;
 }
 
-.SSOLoginView {
+.StartSSOLoginView {
     display: flex;
     flex-direction: column;
 }
 
-.SSOLoginView_button {
+.StartSSOLoginView_button {
     flex: 1;
     margin-top: 10px;
 }
 
-.SSOLoginView_separator {
+.StartSSOLoginView_separator {
     justify-content: center;
     display: flex;
     margin: 8px;

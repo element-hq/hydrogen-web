@@ -223,12 +223,12 @@ a.button-action {
     padding-top: 16px;
 }
 
-.SSOLoginView_button {
+.StartSSOLoginView_button {
     border: 1px solid #03B381;
     border-radius: 8px;
 }
 
-.SSOLoginView_separator {
+.StartSSOLoginView_separator {
     font-weight: 500;
     font-size: 1.5rem;
 }
