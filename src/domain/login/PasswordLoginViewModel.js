@@ -49,15 +49,18 @@ export class PasswordLoginViewModel extends ViewModel {
     }
 
     async login(username, password, homeserver) {
+        if (!this._loginOptions.password) {
+            const path = this.navigation.pathFrom([this.navigation.segment("session")]);
+            this.navigation.applyPath(path);
+            return;
+        }
         this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
         if (this._loadViewModel) {
             this._loadViewModel = this.disposeTracked(this._loadViewModel);
         }
         this._loadViewModel = this.track(new SessionLoadViewModel(this.childOptions({
             createAndStartSessionContainer: async () => {
-                if (this._loginOptions.password) {
-                    this._sessionContainer.startWithLogin(this._loginOptions.password(username, password));
-                }
+                this._sessionContainer.startWithLogin(this._loginOptions.password(username, password));
                 return this._sessionContainer;
             },
             ready: this._ready,

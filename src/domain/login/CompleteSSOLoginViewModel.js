@@ -41,15 +41,18 @@ export class CompleteSSOLoginViewModel extends ViewModel {
         }
         const homeserver = await this.platform.settingsStorage.getString("sso_ongoing_login_homeserver");
         const loginOptions = await this._sessionContainer.queryLogin(homeserver);
+        if (!loginOptions.token) {
+            const path = this.navigation.pathFrom([this.navigation.segment("session")]);
+            this.navigation.applyPath(path);
+            return;
+        }
         this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
         if (this._loadViewModel) {
             this._loadViewModel = this.disposeTracked(this._loadViewModel);
         }
         this._loadViewModel = this.track(new SessionLoadViewModel(this.childOptions({
             createAndStartSessionContainer: async () => {
-                if (loginOptions.sso) {
-                    this._sessionContainer.startWithLogin(loginOptions.token(this._loginToken));
-                }
+                this._sessionContainer.startWithLogin(loginOptions.token(this._loginToken));
                 return this._sessionContainer;
             },
             ready: this._ready,
