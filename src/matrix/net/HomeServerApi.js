@@ -134,7 +134,7 @@ export class HomeServerApi {
         return this._get(`/rooms/${encodeURIComponent(roomId)}/state/${encodeURIComponent(eventType)}/${encodeURIComponent(stateKey)}`, {}, null, options);
     }
 
-    queryLogin() {
+    getLoginFlows() {
         return this._unauthedRequest("GET", this._url("/login"), null, null, null);
     }
 

@@ -124,7 +124,7 @@ export class SessionContainer {
     async queryLogin(homeServer) {
         const normalizedHS = normalizeHomeserver(homeServer);
         const hsApi = new HomeServerApi({homeServer: normalizedHS, request: this._platform.request});
-        const response = await hsApi.queryLogin().response();
+        const response = await hsApi.getLoginFlows().response();
         return this.parseLoginOptions(response, normalizedHS);
     }
 
