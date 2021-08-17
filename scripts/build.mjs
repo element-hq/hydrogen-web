@@ -60,6 +60,14 @@ parameters
     .option("--override-css <main css file>", "pass in an alternative main css file")
 parameters.parse(process.argv);
 
+/**
+ * We use Snowpack to handle the translation of TypeScript
+ * into JavaScript. We thus can't bundle files straight from
+ * the src directory, since some of them are TypeScript, and since
+ * they may import Node modules. We thus bundle files after they
+ * have been processed by Snowpack. This function returns paths
+ * to the files that have already been pre-processed in this manner.
+ */
 function srcPath(src) {
     return path.join(snowpackOutDir, 'src', src);
 }
