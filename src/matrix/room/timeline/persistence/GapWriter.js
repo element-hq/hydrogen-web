@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {EventKey} from "../EventKey.js";
+import {EventKey} from "../EventKey";
 import {EventEntry} from "../entries/EventEntry.js";
 import {createEventEntry, directionalAppend} from "./common.js";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";

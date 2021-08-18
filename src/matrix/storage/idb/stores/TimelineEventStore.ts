@@ -14,12 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+<<<<<<< HEAD:src/matrix/storage/idb/stores/TimelineEventStore.ts
 import {EventKey} from "../../../room/timeline/EventKey.js";
 import { StorageError } from "../../common";
 import { encodeUint32 } from "../utils";
 import {KeyLimits} from "../../common";
 import {Store} from "../Store";
 import {TimelineEvent, StateEvent} from "../../types";
+=======
+import {EventKey} from "../../../room/timeline/EventKey";
+import { StorageError } from "../../common.js";
+import { encodeUint32 } from "../utils.js";
+import {KeyLimits} from "../../common.js";
+>>>>>>> b01c3283 (convert EventKey to ts):src/matrix/storage/idb/stores/TimelineEventStore.js
 
 interface Annotation {
     count: number;
