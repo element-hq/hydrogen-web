@@ -33,7 +33,6 @@ export class EventEntry extends BaseEventEntry {
     }
 
     updateFrom(other) {
-        super.updateFrom(other);
         if (other._decryptionResult && !this._decryptionResult) {
             this._decryptionResult = other._decryptionResult;
         }
