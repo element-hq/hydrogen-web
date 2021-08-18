@@ -36,7 +36,7 @@ export class RightPanelViewModel extends ViewModel {
         }
         const room = this._room;
         const powerLevelsObservable = await this._room.observePowerLevels();
-        return {members: this._members, powerLevelsObservable, mediaRepository: room.mediaRepository};
+        return {members: this._members, powerLevelsObservable, mediaRepository: room.mediaRepository, roomId: this._room.id};
     }
 
     async _getMemberDetailsArguments() {
