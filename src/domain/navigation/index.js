@@ -132,11 +132,14 @@ export function parseUrlPath(urlPath, currentNavPath, defaultSessionId) {
                 segments.push(roomsSegmentWithRoom(rooms, roomId, currentNavPath));
             }
             segments.push(new Segment("room", roomId));
-            // Add right-panel segments from previous path
-            const previousSegments = currentNavPath.segments;
-            const i = previousSegments.findIndex(s => s.type === "right-panel");
-            if (i !== -1) {
-                segments.push(...previousSegments.slice(i));
+            if (!urlPath.includes("/member/")) {
+                // Add right-panel segments from previous path if /member is not in url
+                // fixes memberlist -> member details closing/opening grid view
+                const previousSegments = currentNavPath.segments;
+                const i = previousSegments.findIndex(s => s.type === "right-panel");
+                if (i !== -1) {
+                    segments.push(...previousSegments.slice(i));
+                }
             }
         } else if (type === "last-session") {
             let sessionSegment = currentNavPath.get("session");
