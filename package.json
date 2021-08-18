@@ -10,7 +10,7 @@
     "lint": "eslint --cache src/",
     "lint-ci": "eslint src/",
     "test": "impunity --entry-point src/main.js --force-esm-dirs lib/ src/",
-    "start": "node scripts/serve-local.js",
+    "start": "snowpack dev --port 3000",
     "build": "node --experimental-modules scripts/build.mjs",
     "postinstall": "node ./scripts/post-install.js"
   },
@@ -39,7 +39,7 @@
     "eslint": "^7.25.0",
     "fake-indexeddb": "^3.1.2",
     "finalhandler": "^1.1.1",
-    "impunity": "^1.0.0",
+    "impunity": "^1.0.1",
     "mdn-polyfills": "^5.20.0",
     "node-html-parser": "^4.0.0",
     "postcss": "^8.1.1",
@@ -51,6 +51,8 @@
     "rollup": "^2.26.4",
     "rollup-plugin-cleanup": "^3.1.1",
     "serve-static": "^1.13.2",
+    "snowpack": "^3.8.3",
+    "typescript": "^4.3.5",
     "xxhashjs": "^0.2.2"
   },
   "dependencies": {

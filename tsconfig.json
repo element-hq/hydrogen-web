@@ -1,0 +1,8 @@
+{
+    "compilerOptions": {
+        "strictNullChecks": true,
+        "noEmit": true,
+        "target": "es6"
+    },
+    "include": ["src/**/*"],
+}
