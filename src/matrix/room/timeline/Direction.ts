@@ -15,34 +15,29 @@ limitations under the License.
 */
 
 export class Direction {
-    constructor(isForward) {
-        this._isForward = isForward;
+    constructor(public readonly isForward: boolean) {
     }
 
-    get isForward() {
-        return this._isForward;
-    }
-
-    get isBackward() {
+    get isBackward(): boolean {
         return !this.isForward;
     }
 
-    asApiString() {
+    asApiString(): string {
         return this.isForward ? "f" : "b";
     }
 
-    reverse() {
+    reverse(): Direction {
         return this.isForward ? Direction.Backward : Direction.Forward
     }
 
-    static get Forward() {
+    static get Forward(): Direction {
         return _forward;
     }
 
-    static get Backward() {
+    static get Backward(): Direction {
         return _backward;
     }
 }
 
-const _forward = Object.freeze(new Direction(true));
-const _backward = Object.freeze(new Direction(false));
+const _forward = new Direction(true);
+const _backward = new Direction(false);

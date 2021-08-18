@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {directionalConcat, directionalAppend} from "./common.js";
-import {Direction} from "../Direction.js";
+import {Direction} from "../Direction";
 import {EventEntry} from "../entries/EventEntry.js";
 import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
 
