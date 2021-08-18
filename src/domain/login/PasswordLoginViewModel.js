@@ -16,29 +16,21 @@ limitations under the License.
 
 import {ViewModel} from "../ViewModel.js";
 import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
-import {ObservableValue} from "../../observable/ObservableValue.js";
 
 export class PasswordLoginViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {ready, defaultHomeServer, loginOptions, sessionContainer} = options;
+        const {ready, loginOptions, sessionContainer, homeserver} = options;
         this._ready = ready;
-        this._defaultHomeServer = defaultHomeServer;
         this._sessionContainer = sessionContainer;
         this._loadViewModel = null;
         this._loadViewModelSubscription = null;
         this._loginOptions = loginOptions;
-        this._homeserverObservable = new ObservableValue(this._defaultHomeServer);
+        this._homeserver = homeserver;
     }
 
-    get defaultHomeServer() { return this._defaultHomeServer; }
     get loadViewModel() {return this._loadViewModel; }
-    get homeserverObservable() { return this._homeserverObservable; }
     get cancelUrl() { return this.urlCreator.urlForSegment("session"); }
-
-    updateHomeServer(homeserver) {
-        this._homeserverObservable.set(homeserver);
-    }
 
     get isBusy() {
         if (!this._loadViewModel) {
@@ -48,7 +40,8 @@ export class PasswordLoginViewModel extends ViewModel {
         }
     }
 
-    async login(username, password, homeserver) {
+    async login(username, password) {
+        const homeserver = this._homeserver;
         if (!this._loginOptions.password) {
             const path = this.navigation.pathFrom([this.navigation.segment("session")]);
             this.navigation.applyPath(path);

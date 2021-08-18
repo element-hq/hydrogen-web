@@ -32,39 +32,51 @@ export class LoginViewModel extends ViewModel {
         this._passwordLoginViewModel = null;
         this._startSSOLoginViewModel = null;
         this._completeSSOLoginViewModel = null;
-        this._start();
+        this._homeserver = null;
+        this._errorMessage = "";
+        this._start(this._defaultHomeServer);
     }
 
     get passwordLoginViewModel() { return this._passwordLoginViewModel; }
     get startSSOLoginViewModel() { return this._startSSOLoginViewModel; }
     get completeSSOLoginViewModel(){ return this._completeSSOLoginViewModel; }
+    get defaultHomeServer() { return this._defaultHomeServer; }
+    get errorMessage() { return this._errorMessage; }
 
-    async _start() {
+    async _start(homeserver) {
         if (this._loginToken) {
             this._completeSSOLoginViewModel = this.track(new CompleteSSOLoginViewModel(this.childOptions({loginToken: this._loginToken})));
             this.emitChange("completeSSOLoginViewModel");
         }
         else {
-            await this.queryLogin(this._defaultHomeServer);
-            this._showPasswordLogin();
-            this._showSSOLogin(this._defaultHomeServer);
+            this._errorMessage = "";
+            await this.queryLogin(homeserver);
+            if (this._loginOptions) {
+                if (this._loginOptions.sso) { this._showSSOLogin(); }
+                if (this._loginOptions.password) { this._showPasswordLogin(); }
+                if (!this._loginOptions.sso && !this._loginOptions.password) {
+                    this._showError("This homeserver neither supports SSO nor Password based login flows");
+                } 
+            }
+            else {
+                this._showError("Could not query login methods supported by the homeserver");
+            }
         }
     }
 
     _showPasswordLogin() {
-        this._passwordLoginViewModel = new PasswordLoginViewModel(this.childOptions({defaultHomeServer: this._defaultHomeServer}));
-        const observable = this._passwordLoginViewModel.homeserverObservable;
-        this.track(observable.subscribe(newHomeServer => this._onHomeServerChange(newHomeServer)));
+        this._passwordLoginViewModel = this.track(new PasswordLoginViewModel(this.childOptions()));
         this.emitChange("passwordLoginViewModel");
     }
 
-    _showSSOLogin(homeserver) {
-        this._startSSOLoginViewModel = this.disposeTracked(this._ssoLoginViewModel);
+    _showSSOLogin() {
+        this._startSSOLoginViewModel = this.track(new StartSSOLoginViewModel(this.childOptions()));
         this.emitChange("startSSOLoginViewModel");
-        if (this._loginOptions?.sso && !this._loginToken) {
-            this._startSSOLoginViewModel = this.track(new StartSSOLoginViewModel(this.childOptions({homeserver})));
-            this.emitChange("startSSOLoginViewModel");
-        }
+    }
+
+    _showError(message) {
+        this._errorMessage = message;
+        this.emitChange("errorMessage");
     }
 
     async queryLogin(homeserver) {
@@ -73,16 +85,22 @@ export class LoginViewModel extends ViewModel {
         }
         catch (e) {
             this._loginOptions = null;
-            console.error("Could not query login methods supported by the homeserver");
         }
     }
 
-    async _onHomeServerChange(homeserver) {
-        await this.queryLogin(homeserver);
-        this._showSSOLogin(homeserver);
+    _disposeViewModels() {
+        this._startSSOLoginViewModel = this.disposeTracked(this._ssoLoginViewModel);
+        this._passwordLoginViewModel = this.disposeTracked(this._passwordLoginViewModel);
+        this.emitChange("disposeViewModels");
     }
 
-    childOptions(options) {
+    updateHomeServer(newHomeserver) {
+        this._homeserver = newHomeserver;
+        this._disposeViewModels();
+        this._start(newHomeserver);
+    }
+
+    childOptions(options = {}) {
         return {
             ...super.childOptions(options),
             ready: sessionContainer => {
@@ -91,7 +109,8 @@ export class LoginViewModel extends ViewModel {
                 this._ready(sessionContainer);
             },
             sessionContainer: this._sessionContainer,
-            loginOptions: this._loginOptions
+            loginOptions: this._loginOptions,
+            homeserver: this._homeserver ?? this._defaultHomeServer
         }
     }
 

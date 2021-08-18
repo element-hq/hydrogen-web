@@ -50,8 +50,8 @@ limitations under the License.
     margin: 0 20px;
 }
 
-.LoginView {
-    padding: 0.4em;
+.PasswordLoginView {
+    padding: 0 0.4em 0.4em;
 }
 
 .SessionLoadStatusView {
@@ -81,7 +81,7 @@ limitations under the License.
     margin-top: 10px;
 }
 
-.StartSSOLoginView_separator {
+.LoginView_separator {
     justify-content: center;
     display: flex;
     margin: 8px;
@@ -90,4 +90,12 @@ limitations under the License.
 .CompleteSSOView_title {
     display: flex;
     justify-content: center;
+}
+
+.LoginView_sso {
+    padding: 0.4em 0.4em 0;
+}
+
+.LoginView_error {
+    padding: 0.4em
 }

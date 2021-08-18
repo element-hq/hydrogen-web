@@ -20,12 +20,25 @@ import {PasswordLoginView} from "./PasswordLoginView.js";
 import {CompleteSSOView} from "./CompleteSSOView.js";
 
 export class LoginView extends TemplateView {
-    render(t) {
-        return t.div({ className: "PreSessionScreen" }, [
-            t.div({ className: "logo" }),
-            t.mapView(vm => vm.completeSSOLoginViewModel, vm => vm? new CompleteSSOView(vm): null),
-            t.mapView(vm => vm.passwordLoginViewModel, vm => vm? new PasswordLoginView(vm): null),
-            t.mapView(vm => vm.startSSOLoginViewModel, vm => vm? new StartSSOLoginView(vm): null),
+    render(t, vm) {
+        const homeserver = t.input({
+                id: "homeserver",
+                type: "text",
+                placeholder: vm.i18n`Your matrix homeserver`,
+                value: vm.defaultHomeServer,
+                onChange: () => vm.updateHomeServer(homeserver.value),
+            });
+
+        return t.div({className: "PreSessionScreen"}, [
+            t.div({className: "logo"}),
+            t.h1([vm.i18n`Sign In`]),
+            t.mapView(vm => vm.completeSSOLoginViewModel, vm => vm ? new CompleteSSOView(vm) : null),
+            t.if(vm => !vm.completeSSOLoginViewModel,
+                (t, vm) => t.div({ className: "LoginView_sso form form-row" }, [t.label({ for: "homeserver" }, vm.i18n`Homeserver`), homeserver])),
+            t.mapView(vm => vm.passwordLoginViewModel, vm => vm ? new PasswordLoginView(vm): null),
+            t.if(vm => vm.passwordLoginViewModel && vm.startSSOLoginViewModel, t => t.p({className: "LoginView_separator"}, vm.i18n`or`)),
+            t.mapView(vm => vm.startSSOLoginViewModel, vm => vm ? new StartSSOLoginView(vm) : null),
+            t.if(vm => vm.errorMessage, (t, vm) => t.h5({className: "LoginView_error"}, vm.i18n(vm.errorMessage))),
             // use t.mapView rather than t.if to create a new view when the view model changes too
             t.p(hydrogenGithubLink(t))
         ]);
@@ -35,10 +48,11 @@ export class LoginView extends TemplateView {
 class StartSSOLoginView extends TemplateView {
     render(t, vm) {
         return t.div({ className: "StartSSOLoginView" },
-            [
-                t.p({ className: "StartSSOLoginView_separator" }, "or"),
-                t.button({ className: "StartSSOLoginView_button button-action secondary", type: "button", onClick: () => vm.startSSOLogin() }, "Log in with SSO")
-            ]
+            t.button({
+                className: "StartSSOLoginView_button button-action secondary",
+                type: "button",
+                onClick: () => vm.startSSOLogin()
+            }, vm.i18n`Log in with SSO`)
         );
     }
 }

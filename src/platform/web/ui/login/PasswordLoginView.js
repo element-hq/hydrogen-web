@@ -32,27 +32,17 @@ export class PasswordLoginView extends TemplateView {
             placeholder: vm.i18n`Password`,
             disabled
         });
-        const homeserver = t.input({
-            id: "homeserver",
-            type: "text",
-            placeholder: vm.i18n`Your matrix homeserver`,
-            value: vm.defaultHomeServer,
-            onChange: () => vm.updateHomeServer(homeserver.value),
-            disabled
-        });
         
-        return t.div({className: "LoginView form"}, [
-            t.h1([vm.i18n`Sign In`]),
+        return t.div({className: "PasswordLoginView form"}, [
             t.if(vm => vm.error, t => t.div({ className: "error" }, vm => vm.error)),
             t.form({
                 onSubmit: evnt => {
                     evnt.preventDefault();
-                    vm.login(username.value, password.value, homeserver.value);
+                    vm.login(username.value, password.value);
                 }
             }, [
                 t.div({ className: "form-row" }, [t.label({ for: "username" }, vm.i18n`Username`), username]),
                 t.div({ className: "form-row" }, [t.label({ for: "password" }, vm.i18n`Password`), password]),
-                t.div({ className: "form-row" }, [t.label({ for: "homeserver" }, vm.i18n`Homeserver`), homeserver]),
                 t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadStatusView(loadViewModel) : null),
                 t.div({ className: "button-row" }, [
                     t.a({
