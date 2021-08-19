@@ -49,7 +49,12 @@ export class LoginViewModel extends ViewModel {
         }
         else {
             this._errorMessage = "";
-            await this.queryLogin(homeserver);
+            try {
+                this._loginOptions = await this._sessionContainer.queryLogin(homeserver);
+            }
+            catch (e) {
+                this._loginOptions = null;
+            }
             if (this._loginOptions) {
                 if (this._loginOptions.sso) { this._showSSOLogin(); }
                 if (this._loginOptions.password) { this._showPasswordLogin(); }
@@ -76,15 +81,6 @@ export class LoginViewModel extends ViewModel {
     _showError(message) {
         this._errorMessage = message;
         this.emitChange("errorMessage");
-    }
-
-    async queryLogin(homeserver) {
-        try {
-            this._loginOptions = await this._sessionContainer.queryLogin(homeserver);
-        }
-        catch (e) {
-            this._loginOptions = null;
-        }
     }
 
     _disposeViewModels() {
