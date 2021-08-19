@@ -21,21 +21,23 @@ import {CompleteSSOView} from "./CompleteSSOView.js";
 
 export class LoginView extends TemplateView {
     render(t, vm) {
-        const homeserver = t.input({
-                id: "homeserver",
-                type: "text",
-                placeholder: vm.i18n`Your matrix homeserver`,
-                value: vm.defaultHomeServer,
-                onChange: () => vm.updateHomeServer(homeserver.value),
-            });
-
         return t.div({className: "PreSessionScreen"}, [
             t.a({className: "button-utility LoginView_back", href: vm.cancelUrl}),
             t.div({className: "logo"}),
             t.h1([vm.i18n`Sign In`]),
             t.mapView(vm => vm.completeSSOLoginViewModel, vm => vm ? new CompleteSSOView(vm) : null),
-            t.if(vm => vm.showHomeserver,
-                (t, vm) => t.div({ className: "LoginView_sso form form-row" }, [t.label({ for: "homeserver" }, vm.i18n`Homeserver`), homeserver])),
+            t.if(vm => vm.showHomeserver, (t, vm) => t.div({ className: "LoginView_sso form form-row" },
+                [
+                    t.label({for: "homeserver"}, vm.i18n`Homeserver`),
+                    t.input({
+                        id: "homeserver",
+                        type: "text",
+                        placeholder: vm.i18n`Your matrix homeserver`,
+                        value: vm.defaultHomeServer,
+                        onChange: event => vm.updateHomeServer(event.target.value),
+                    })
+                ]
+            )),
             t.mapView(vm => vm.passwordLoginViewModel, vm => vm ? new PasswordLoginView(vm): null),
             t.if(vm => vm.passwordLoginViewModel && vm.startSSOLoginViewModel, t => t.p({className: "LoginView_separator"}, vm.i18n`or`)),
             t.mapView(vm => vm.startSSOLoginViewModel, vm => vm ? new StartSSOLoginView(vm) : null),
