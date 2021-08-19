@@ -19,7 +19,7 @@ export class SSOLoginHelper{
         this._homeserver = homeserver;
     }
 
-    ssoEndpointLink(redirectURL) {
-        return `${this._homeserver}/_matrix/client/r0/login/sso/redirect?redirectUrl=${redirectURL}`;
+    createSSORedirectURL(returnURL) {
+        return `${this._homeserver}/_matrix/client/r0/login/sso/redirect?redirectUrl=${returnURL}`;
     }
 }

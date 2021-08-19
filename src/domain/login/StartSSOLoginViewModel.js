@@ -26,7 +26,7 @@ export class StartSSOLoginViewModel extends ViewModel{
 
     async startSSOLogin() {
         await this.platform.settingsStorage.setString("sso_ongoing_login_homeserver", this._homeserver);
-        const link = this._sso.ssoEndpointLink(this.urlCreator.createSSOCallbackURL());
+        const link = this._sso.createSSORedirectURL(this.urlCreator.createSSOCallbackURL());
         this.platform.openUrl(link);
     }
 }
