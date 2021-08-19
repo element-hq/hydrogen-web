@@ -21,12 +21,12 @@ type Reducer<A,B> = (acc: B, val: A) => B
 export type IDBQuery = IDBValidKey | IDBKeyRange | undefined | null
 
 interface QueryTargetInterface<T> {
-    openCursor: (range?: IDBQuery, direction?: IDBCursorDirection | undefined) => IDBRequest<IDBCursorWithValue | null>;
-    openKeyCursor: (range?: IDBQuery, direction?: IDBCursorDirection | undefined) => IDBRequest<IDBCursor | null>;
-    supports: (method: string) => boolean;
+    openCursor(range?: IDBQuery, direction?: IDBCursorDirection | undefined): IDBRequest<IDBCursorWithValue | null>;
+    openKeyCursor(range?: IDBQuery, direction?: IDBCursorDirection | undefined): IDBRequest<IDBCursor | null>;
+    supports(method: string): boolean;
     keyPath: string | string[];
-    get: (key: IDBValidKey | IDBKeyRange) => IDBRequest<T | null>;
-    getKey: (key: IDBValidKey | IDBKeyRange) => IDBRequest<IDBValidKey | undefined>;
+    get(key: IDBValidKey | IDBKeyRange): IDBRequest<T | null>;
+    getKey(key: IDBValidKey | IDBKeyRange): IDBRequest<IDBValidKey | undefined>;
 }
 
 export class QueryTarget<T> {
