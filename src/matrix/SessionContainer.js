@@ -100,7 +100,7 @@ export class SessionContainer {
         });
     }
 
-    parseLoginOptions(options, homeServer) {
+    _parseLoginOptions(options, homeServer) {
         /*
         Take server response and return new object which has two props password and sso which
         implements LoginMethod
@@ -125,7 +125,7 @@ export class SessionContainer {
         const normalizedHS = normalizeHomeserver(homeServer);
         const hsApi = new HomeServerApi({homeServer: normalizedHS, request: this._platform.request});
         const response = await hsApi.getLoginFlows().response();
-        return this.parseLoginOptions(response, normalizedHS);
+        return this._parseLoginOptions(response, normalizedHS);
     }
 
     async startWithLogin(loginMethod) {
