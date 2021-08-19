@@ -42,11 +42,6 @@ export class PasswordLoginViewModel extends ViewModel {
 
     async login(username, password) {
         const homeserver = this._homeserver;
-        if (!this._loginOptions.password) {
-            const path = this.navigation.pathFrom([this.navigation.segment("session")]);
-            this.navigation.applyPath(path);
-            return;
-        }
         this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
         if (this._loadViewModel) {
             this._loadViewModel = this.disposeTracked(this._loadViewModel);
