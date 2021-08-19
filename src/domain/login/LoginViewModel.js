@@ -42,6 +42,7 @@ export class LoginViewModel extends ViewModel {
     get defaultHomeServer() { return this._homeserver; }
     get errorMessage() { return this._errorMessage; }
     get showHomeserver() { return !this._completeSSOLoginViewModel; }
+    get cancelUrl() { return this.urlCreator.urlForSegment("session"); }
 
     async _createViewModels(homeserver) {
         if (this._loginToken) {

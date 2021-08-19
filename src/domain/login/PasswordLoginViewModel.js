@@ -30,7 +30,6 @@ export class PasswordLoginViewModel extends ViewModel {
     }
 
     get loadViewModel() {return this._loadViewModel; }
-    get cancelUrl() { return this.urlCreator.urlForSegment("session"); }
 
     get isBusy() {
         if (!this._loadViewModel) {

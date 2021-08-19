@@ -228,6 +228,11 @@ a.button-action {
     border-radius: 8px;
 }
 
+.LoginView_back {
+    background-image: url("./icons/chevron-left.svg");
+    background-color: transparent;
+}
+
 .LoginView_separator {
     font-weight: 500;
     font-size: 1.5rem;

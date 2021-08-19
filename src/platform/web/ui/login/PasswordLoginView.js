@@ -45,10 +45,6 @@ export class PasswordLoginView extends TemplateView {
                 t.div({ className: "form-row" }, [t.label({ for: "password" }, vm.i18n`Password`), password]),
                 t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadStatusView(loadViewModel) : null),
                 t.div({ className: "button-row" }, [
-                    t.a({
-                        className: "button-action secondary",
-                        href: vm.cancelUrl
-                    }, [vm.i18n`Go Back`]),
                     t.button({
                         className: "button-action primary",
                         type: "submit"

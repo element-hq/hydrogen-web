@@ -30,6 +30,7 @@ export class LoginView extends TemplateView {
             });
 
         return t.div({className: "PreSessionScreen"}, [
+            t.a({className: "button-utility LoginView_back", href: vm.cancelUrl}),
             t.div({className: "logo"}),
             t.h1([vm.i18n`Sign In`]),
             t.mapView(vm => vm.completeSSOLoginViewModel, vm => vm ? new CompleteSSOView(vm) : null),

@@ -74,11 +74,12 @@ limitations under the License.
 .StartSSOLoginView {
     display: flex;
     flex-direction: column;
+    padding: 0 0.4em 0;
 }
 
 .StartSSOLoginView_button {
     flex: 1;
-    margin-top: 10px;
+    margin-top: 12px;
 }
 
 .LoginView_separator {
