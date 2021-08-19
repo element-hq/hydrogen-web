@@ -33,7 +33,7 @@ export class LoginViewModel extends ViewModel {
         this._completeSSOLoginViewModel = null;
         this._homeserver = defaultHomeServer;
         this._errorMessage = "";
-        this._start(this._homeserver);
+        this._createViewModels(this._homeserver);
     }
 
     get passwordLoginViewModel() { return this._passwordLoginViewModel; }
@@ -42,7 +42,7 @@ export class LoginViewModel extends ViewModel {
     get defaultHomeServer() { return this._homeserver; }
     get errorMessage() { return this._errorMessage; }
 
-    async _start(homeserver) {
+    async _createViewModels(homeserver) {
         if (this._loginToken) {
             this._completeSSOLoginViewModel = this.track(new CompleteSSOLoginViewModel(this.childOptions({loginToken: this._loginToken})));
             this.emitChange("completeSSOLoginViewModel");
@@ -96,7 +96,7 @@ export class LoginViewModel extends ViewModel {
     updateHomeServer(newHomeserver) {
         this._homeserver = newHomeserver;
         this._disposeViewModels();
-        this._start(newHomeserver);
+        this._createViewModels(newHomeserver);
     }
 
     childOptions(options = {}) {
