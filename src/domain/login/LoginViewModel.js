@@ -41,6 +41,7 @@ export class LoginViewModel extends ViewModel {
     get completeSSOLoginViewModel(){ return this._completeSSOLoginViewModel; }
     get defaultHomeServer() { return this._homeserver; }
     get errorMessage() { return this._errorMessage; }
+    get showHomeserver() { return !this._completeSSOLoginViewModel; }
 
     async _createViewModels(homeserver) {
         if (this._loginToken) {
