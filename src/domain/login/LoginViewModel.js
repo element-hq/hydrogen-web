@@ -25,22 +25,21 @@ export class LoginViewModel extends ViewModel {
         const {ready, defaultHomeServer, createSessionContainer, loginToken} = options;
         this._createSessionContainer = createSessionContainer;
         this._ready = ready;
-        this._defaultHomeServer = defaultHomeServer;
         this._loginToken = loginToken;
         this._sessionContainer = this._createSessionContainer();
         this._loginOptions = null;
         this._passwordLoginViewModel = null;
         this._startSSOLoginViewModel = null;
         this._completeSSOLoginViewModel = null;
-        this._homeserver = null;
+        this._homeserver = defaultHomeServer;
         this._errorMessage = "";
-        this._start(this._defaultHomeServer);
+        this._start(this._homeserver);
     }
 
     get passwordLoginViewModel() { return this._passwordLoginViewModel; }
     get startSSOLoginViewModel() { return this._startSSOLoginViewModel; }
     get completeSSOLoginViewModel(){ return this._completeSSOLoginViewModel; }
-    get defaultHomeServer() { return this._defaultHomeServer; }
+    get defaultHomeServer() { return this._homeserver; }
     get errorMessage() { return this._errorMessage; }
 
     async _start(homeserver) {
@@ -110,7 +109,7 @@ export class LoginViewModel extends ViewModel {
             },
             sessionContainer: this._sessionContainer,
             loginOptions: this._loginOptions,
-            homeserver: this._homeserver ?? this._defaultHomeServer
+            homeserver: this._homeserver
         }
     }
 
