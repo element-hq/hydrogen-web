@@ -134,6 +134,7 @@ export class LoginViewModel extends ViewModel {
             return this._sessionContainer.loginFailure;
         }
         this._hideHomeserver = true;
+        this.emitChange("hideHomeserver");
         this._disposeViewModels();
         this._createLoadViewModel();
         return null;
