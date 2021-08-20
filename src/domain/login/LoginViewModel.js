@@ -155,7 +155,7 @@ export class LoginViewModel extends ViewModel {
                 if (!this._loadViewModel.loading) {
                     this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
                 }
-                this.emitChange("isBusy");
+                this._toggleBusy(false);
             })
         );
     }
