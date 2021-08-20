@@ -40,10 +40,9 @@ export class RootViewModel extends ViewModel {
     }
 
     async _applyNavigation(shouldRestoreLastUrl) {
-        const isLogin = this.navigation.observe("login").get();
-        const sessionId = this.navigation.observe("session").get();
-        // TODO: why not observe?
-        const ssoSegment = this.navigation.path.get("sso");
+        const isLogin = this.navigation.path.get("login")
+        const sessionId = this.navigation.path.get("session")?.value;
+        const loginToken = this.navigation.path.get("sso")?.value;
         if (isLogin) {
             if (this.activeSection !== "login") {
                 this._showLogin();
@@ -68,10 +67,10 @@ export class RootViewModel extends ViewModel {
                     this._showSessionLoader(sessionId);
                 }
             }
-        } else if (ssoSegment) {
+        } else if (loginToken) {
             this.urlCreator.normalizeUrl();
             if (this.activeSection !== "login") {
-                this._showLogin({loginToken: ssoSegment.value});
+                this._showLogin(loginToken);
             }
         }
         else {
@@ -120,7 +119,7 @@ export class RootViewModel extends ViewModel {
                     this._pendingSessionContainer = sessionContainer;
                     this.navigation.push("session", sessionContainer.sessionId);
                 },
-                ...loginToken
+                loginToken
             }));
         });
     }
