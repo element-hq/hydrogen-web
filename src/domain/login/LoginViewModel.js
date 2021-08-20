@@ -60,7 +60,6 @@ export class LoginViewModel extends ViewModel {
                     {
                         sessionContainer: this._sessionContainer,
                         attemptLogin: loginMethod => this.attemptLogin(loginMethod),
-                        showError: message => this.showError(message),
                         loginToken: this._loginToken
                     })));
             this.emitChange("completeSSOLoginViewModel");
@@ -77,11 +76,11 @@ export class LoginViewModel extends ViewModel {
                 if (this._loginOptions.sso) { this._showSSOLogin(); }
                 if (this._loginOptions.password) { this._showPasswordLogin(); }
                 if (!this._loginOptions.sso && !this._loginOptions.password) {
-                    this.showError("This homeserver neither supports SSO nor Password based login flows");
+                    this._showError("This homeserver neither supports SSO nor Password based login flows");
                 } 
             }
             else {
-                this.showError("Could not query login methods supported by the homeserver");
+                this._showError("Could not query login methods supported by the homeserver");
             }
         }
     }
@@ -92,7 +91,6 @@ export class LoginViewModel extends ViewModel {
                 loginOptions: this._loginOptions,
                 homeserver: this._homeserver,
                 attemptLogin: loginMethod => this.attemptLogin(loginMethod),
-                showError: message => this.showError(message)
         })));
         this.emitChange("passwordLoginViewModel");
     }
@@ -104,7 +102,7 @@ export class LoginViewModel extends ViewModel {
         this.emitChange("startSSOLoginViewModel");
     }
 
-    showError(message) {
+    _showError(message) {
         this._errorMessage = message;
         this.emitChange("errorMessage");
         this._errorMessage = "";
