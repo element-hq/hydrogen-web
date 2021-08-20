@@ -129,9 +129,11 @@ export class SessionContainer {
     }
 
     async startWithLogin(loginMethod) {
-        if (this._status.get() !== LoadStatus.NotLoading) {
+        const currentStatus = this._status.get();
+        if (currentStatus !== LoadStatus.LoginFailed && currentStatus !== LoadStatus.NotLoading) {
             return;
         }
+        this._resetStatus();
         await this._platform.logger.run("login", async log => {
             this._status.set(LoadStatus.Login);
             const clock = this._platform.clock;
@@ -354,7 +356,7 @@ export class SessionContainer {
         }
     }
 
-    resetStatus() {
+    _resetStatus() {
         this._status.set(LoadStatus.NotLoading);
         this._error = null;
         this._loginFailure = null;

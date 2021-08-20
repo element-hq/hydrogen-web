@@ -89,7 +89,6 @@ export class LoginViewModel extends ViewModel {
     _showPasswordLogin() {
         this._passwordLoginViewModel = this.track(new PasswordLoginViewModel(
             this.childOptions({
-                sessionContainer: this._sessionContainer,
                 loginOptions: this._loginOptions,
                 homeserver: this._homeserver,
                 attemptLogin: loginMethod => this.attemptLogin(loginMethod),

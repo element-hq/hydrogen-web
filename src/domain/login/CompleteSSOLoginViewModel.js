@@ -59,7 +59,6 @@ export class CompleteSSOLoginViewModel extends ViewModel {
         }
         if (error) {
             this._showError(error);
-            this._sessionContainer.resetStatus();
         }
     }
 }

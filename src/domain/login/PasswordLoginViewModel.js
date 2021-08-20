@@ -20,8 +20,7 @@ import {LoginFailure} from "../../matrix/SessionContainer.js";
 export class PasswordLoginViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {loginOptions, sessionContainer, homeserver, attemptLogin, showError} = options;
-        this._sessionContainer = sessionContainer;
+        const {loginOptions, homeserver, attemptLogin, showError} = options;
         this._loginOptions = loginOptions;
         this._attemptLogin = attemptLogin;
         this._showError = showError;
@@ -54,7 +53,6 @@ export class PasswordLoginViewModel extends ViewModel {
         }
         if (error) {
             this._showError(error);
-            this._sessionContainer.resetStatus();
         }
     }
 }
