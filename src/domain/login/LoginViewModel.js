@@ -134,9 +134,7 @@ export class LoginViewModel extends ViewModel {
 
     _createLoadViewModel() {
         this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
-        if (this._loadViewModel) {
-            this._loadViewModel = this.disposeTracked(this._loadViewModel);
-        }
+        this._loadViewModel = this.disposeTracked(this._loadViewModel);
         this._loadViewModel = this.track(
             new SessionLoadViewModel(
                 this.childOptions({
