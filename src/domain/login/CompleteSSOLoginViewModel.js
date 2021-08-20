@@ -48,13 +48,13 @@ export class CompleteSSOLoginViewModel extends ViewModel {
         let error = "";
         switch (status) {
             case LoginFailure.Credentials:
-                error = `Your login-token is invalid.`;
+                error = this.i18n`Your logintoken is invalid.`;
                 break;
             case LoginFailure.Connection:
-                error = `Can't connect to ${homeserver}.`;
+                error = this.i18n`Can't connect to ${homeserver}.`;
                 break;
             case LoginFailure.Unknown:
-                error = `Something went wrong while checking your login-token.`;
+                error = this.i18n`Something went wrong while checking your logintoken.`;
                 break;
         }
         if (error) {
