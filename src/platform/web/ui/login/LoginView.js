@@ -57,7 +57,8 @@ class StartSSOLoginView extends TemplateView {
             t.button({
                 className: "StartSSOLoginView_button button-action secondary",
                 type: "button",
-                onClick: () => vm.startSSOLogin()
+                onClick: () => vm.startSSOLogin(),
+                disabled: vm => vm.isBusy
             }, vm.i18n`Log in with SSO`)
         );
     }

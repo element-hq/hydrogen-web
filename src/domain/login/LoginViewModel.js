@@ -117,11 +117,15 @@ export class LoginViewModel extends ViewModel {
 
     async attemptLogin(loginMethod) {
         this._toggleBusy(true);
+        this._passwordLoginViewModel?.toggleBusy(true);
+        this._startSSOLoginViewModel?.toggleBusy(true);
         this._sessionContainer.startWithLogin(loginMethod);
         const loadStatus = this._sessionContainer.loadStatus;
         const handle = loadStatus.waitFor(status => status !== LoadStatus.Login);
         await handle.promise;
         this._toggleBusy(false);
+        this._passwordLoginViewModel?.toggleBusy(false);
+        this._startSSOLoginViewModel?.toggleBusy(false);
         const status = loadStatus.get();
         if (status === LoadStatus.LoginFailed) {
             return this._sessionContainer.loginFailure;

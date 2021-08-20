@@ -20,6 +20,14 @@ export class StartSSOLoginViewModel extends ViewModel{
     constructor(options) {
         super(options);
         this._sso = options.loginOptions.sso;
+        this._isBusy = false;
+    }
+   
+    get isBusy() { return this._isBusy; }
+    
+    toggleBusy(state) {
+        this._isBusy = state;
+        this.emitChange("isBusy");
     }
 
     async startSSOLogin() {

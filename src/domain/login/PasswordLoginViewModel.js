@@ -30,15 +30,13 @@ export class PasswordLoginViewModel extends ViewModel {
 
     get isBusy() { return this._isBusy; }
 
-    _toggleBusy(state) {
+    toggleBusy(state) {
         this._isBusy = state;
         this.emitChange("isBusy");
     }
 
     async login(username, password) {
-        this._toggleBusy(true);
         const status = await this._attemptLogin(this._loginOptions.password(username, password));
-        this._toggleBusy(false);
         let error = "";
         switch (status) {
             case LoginFailure.Credentials:
