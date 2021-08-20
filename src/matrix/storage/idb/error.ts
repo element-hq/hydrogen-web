@@ -21,7 +21,7 @@ export class IDBError extends StorageError {
     storeName: string;
     databaseName: string;
 
-    constructor(message: string, source, cause: DOMException | null) {
+    constructor(message: string, source, cause: DOMException | null = null) {
         const storeName = source?.name || "<unknown store>";
         const databaseName = source?.transaction?.db?.name || "<unknown db>";
         let fullMessage = `${message} on ${databaseName}.${storeName}`;
@@ -37,7 +37,7 @@ export class IDBError extends StorageError {
         if (cause) {
             fullMessage += cause.message;
         }
-        super(fullMessage, cause || undefined);
+        super(fullMessage, cause);
         this.storeName = storeName;
         this.databaseName = databaseName;
     }
