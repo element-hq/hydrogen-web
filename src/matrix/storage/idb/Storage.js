@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {Transaction} from "./Transaction.js";
-import { STORE_NAMES, StorageError } from "../common";
+import { STORE_NAMES, StoreNames, StorageError } from "../common";
 import { reqAsPromise } from "./utils";
 
 const WEBKITEARLYCLOSETXNBUG_BOGUS_KEY = "782rh281re38-boguskey";
@@ -25,11 +25,7 @@ export class Storage {
         this._db = idbDatabase;
         this._IDBKeyRange = IDBKeyRange;
         this._hasWebkitEarlyCloseTxnBug = hasWebkitEarlyCloseTxnBug;
-        const nameMap = STORE_NAMES.reduce((nameMap, name) => {
-            nameMap[name] = name;
-            return nameMap;
-        }, {});
-        this.storeNames = Object.freeze(nameMap);
+        this.storeNames = StoreNames;
     }
 
     _validateStoreNames(storeNames) {
