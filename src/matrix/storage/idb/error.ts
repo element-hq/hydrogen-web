@@ -15,10 +15,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { StorageError } from "../common.js";
+import { StorageError } from "../common";
 
 export class IDBError extends StorageError {
-    constructor(message, source, cause) {
+    storeName: string;
+    databaseName: string;
+
+    constructor(message: string, source, cause: DOMException | null = null) {
         const storeName = source?.name || "<unknown store>";
         const databaseName = source?.transaction?.db?.name || "<unknown db>";
         let fullMessage = `${message} on ${databaseName}.${storeName}`;
@@ -41,7 +44,7 @@ export class IDBError extends StorageError {
 }
 
 export class IDBRequestError extends IDBError {
-    constructor(request, message = "IDBRequest failed") {
+    constructor(request: IDBRequest, message: string = "IDBRequest failed") {
         const source = request.source;
         const cause = request.error;
         super(message, source, cause);
@@ -49,7 +52,7 @@ export class IDBRequestError extends IDBError {
 }
 
 export class IDBRequestAttemptError extends IDBError {
-    constructor(method, source, cause, params) {
+    constructor(method: string, source, cause: DOMException, params: any[]) {
         super(`${method}(${params.map(p => JSON.stringify(p)).join(", ")}) failed`, source, cause);
     }
 }

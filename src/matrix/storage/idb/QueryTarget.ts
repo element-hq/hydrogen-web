@@ -14,14 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {iterateCursor, reqAsPromise} from "./utils.js";
+import {iterateCursor, DONE, NOT_DONE, reqAsPromise} from "./utils";
 
-export class QueryTarget {
-    constructor(target) {
+type Reducer<A,B> = (acc: B, val: A) => B
+
+export type IDBQuery = IDBValidKey | IDBKeyRange | undefined | null
+
+interface QueryTargetInterface<T> {
+    openCursor(range?: IDBQuery, direction?: IDBCursorDirection | undefined): IDBRequest<IDBCursorWithValue | null>;
+    openKeyCursor(range?: IDBQuery, direction?: IDBCursorDirection | undefined): IDBRequest<IDBCursor | null>;
+    supports(method: string): boolean;
+    keyPath: string | string[];
+    get(key: IDBValidKey | IDBKeyRange): IDBRequest<T | null>;
+    getKey(key: IDBValidKey | IDBKeyRange): IDBRequest<IDBValidKey | undefined>;
+}
+
+export class QueryTarget<T> {
+    protected _target: QueryTargetInterface<T>;
+
+    constructor(target: QueryTargetInterface<T>) {
         this._target = target;
     }
 
-    _openCursor(range, direction) {
+    _openCursor(range?: IDBQuery, direction?: IDBCursorDirection): IDBRequest<IDBCursorWithValue | null> {
         if (range && direction) {
             return this._target.openCursor(range, direction);
         } else if (range) {
@@ -33,95 +48,99 @@ export class QueryTarget {
         }
     }
 
-    supports(methodName) {
+    supports(methodName: string): boolean {
         return this._target.supports(methodName);
     }
 
-    get(key) {
+    get(key: IDBValidKey | IDBKeyRange): Promise<T | null> {
         return reqAsPromise(this._target.get(key));
     }
 
-    getKey(key) {
+    getKey(key: IDBValidKey | IDBKeyRange): Promise<IDBValidKey | undefined> {
         if (this._target.supports("getKey")) {
             return reqAsPromise(this._target.getKey(key));
         } else {
             return reqAsPromise(this._target.get(key)).then(value => {
                 if (value) {
-                    return value[this._target.keyPath];
+                    let keyPath = this._target.keyPath;
+                    if (typeof keyPath === "string") {
+                        keyPath = [keyPath];
+                    }
+                    return keyPath.reduce((obj, key) => obj[key], value);
                 }
             });
         }
     }
 
-    reduce(range, reducer, initialValue) {
+    reduce<B>(range: IDBQuery, reducer: Reducer<T,B>, initialValue: B): Promise<boolean> {
         return this._reduce(range, reducer, initialValue, "next");
     }
 
-    reduceReverse(range, reducer, initialValue) {
+    reduceReverse<B>(range: IDBQuery, reducer: Reducer<T,B>, initialValue: B): Promise<boolean> {
         return this._reduce(range, reducer, initialValue, "prev");
     }
     
-    selectLimit(range, amount) {
+    selectLimit(range: IDBQuery, amount: number): Promise<T[]> {
         return this._selectLimit(range, amount, "next");
     }
 
-    selectLimitReverse(range, amount) {
+    selectLimitReverse(range: IDBQuery, amount: number): Promise<T[]> {
         return this._selectLimit(range, amount, "prev");
     }
 
-    selectWhile(range, predicate) {
+    selectWhile(range: IDBQuery, predicate: (v: T) => boolean): Promise<T[]> {
         return this._selectWhile(range, predicate, "next");
     }
 
-    selectWhileReverse(range, predicate) {
+    selectWhileReverse(range: IDBQuery, predicate: (v: T) => boolean): Promise<T[]> {
         return this._selectWhile(range, predicate, "prev");
     }
 
-    async selectAll(range, direction) {
+    async selectAll(range?: IDBQuery, direction?: IDBCursorDirection): Promise<T[]> {
         const cursor = this._openCursor(range, direction);
-        const results = [];
-        await iterateCursor(cursor, (value) => {
+        const results: T[] = [];
+        await iterateCursor<T>(cursor, (value) => {
             results.push(value);
-            return {done: false};
+            return NOT_DONE;
         });
         return results;
     }
 
-    selectFirst(range) {
+    selectFirst(range: IDBQuery): Promise<T | undefined> {
         return this._find(range, () => true, "next");
     }
 
-    selectLast(range) {
+    selectLast(range: IDBQuery): Promise<T | undefined> {
         return this._find(range, () => true, "prev");
     }
 
-    find(range, predicate) {
+    find(range: IDBQuery, predicate: (v: T) => boolean): Promise<T | undefined> {
         return this._find(range, predicate, "next");
     }
 
-    findReverse(range, predicate) {
+    findReverse(range: IDBQuery, predicate: (v : T) => boolean): Promise<T | undefined> {
         return this._find(range, predicate, "prev");
     }
 
-    async findMaxKey(range) {
+    async findMaxKey(range: IDBQuery): Promise<IDBValidKey | undefined> {
         const cursor = this._target.openKeyCursor(range, "prev");
         let maxKey;
         await iterateCursor(cursor, (_, key) => {
             maxKey = key;
-            return {done: true};
+            return DONE;
         });
         return maxKey;
     }
 
 
-    async iterateValues(range, callback) {
+    async iterateValues(range: IDBQuery, callback: (val: T, key: IDBValidKey, cur: IDBCursorWithValue) => boolean): Promise<void>  {
         const cursor = this._target.openCursor(range, "next");
-        await iterateCursor(cursor, (value, key, cur) => {
+        await iterateCursor<T>(cursor, (value, key, cur) => {
             return {done: callback(value, key, cur)};
         });
     }
 
-    async iterateKeys(range, callback) {
+    async iterateKeys(range: IDBQuery, callback: (key: IDBValidKey, cur: IDBCursor) => boolean): Promise<void> {
         const cursor = this._target.openKeyCursor(range, "next");
         await iterateCursor(cursor, (_, key, cur) => {
             return {done: callback(key, cur)};
@@ -134,7 +153,7 @@ export class QueryTarget {
      * If the callback returns true, the search is halted and callback won't be called again.
      * `callback` is called with the same instances of the key as given in `keys`, so direct comparison can be used.
      */
-    async findExistingKeys(keys, backwards, callback) {
+    async findExistingKeys(keys: IDBValidKey[], backwards: boolean, callback: (key: IDBValidKey, found: boolean) => boolean): Promise<void> {
         const direction = backwards ? "prev" : "next";
         const compareKeys = (a, b) => backwards ? -indexedDB.cmp(a, b) : indexedDB.cmp(a, b);
         const sortedKeys = keys.slice().sort(compareKeys);
@@ -154,7 +173,10 @@ export class QueryTarget {
                 ++i;
             }
             const done = consumerDone || i >= sortedKeys.length;
-            const jumpTo = !done && sortedKeys[i];
+            let jumpTo;
+            if (!done) {
+                jumpTo = sortedKeys[i];
+            }
             return {done, jumpTo};
         });
         // report null for keys we didn't to at the end
@@ -164,25 +186,25 @@ export class QueryTarget {
         }
     }
 
-    _reduce(range, reducer, initialValue, direction) {
+    _reduce<B>(range: IDBQuery, reducer: (reduced: B, value: T) => B, initialValue: B, direction: IDBCursorDirection): Promise<boolean> {
         let reducedValue = initialValue;
         const cursor = this._openCursor(range, direction);
-        return iterateCursor(cursor, (value) => {
+        return iterateCursor<T>(cursor, (value) => {
             reducedValue = reducer(reducedValue, value);
-            return {done: false};
+            return NOT_DONE;
         });
     }
 
-    _selectLimit(range, amount, direction) {
+    _selectLimit(range: IDBQuery, amount: number, direction: IDBCursorDirection): Promise<T[]> {
         return this._selectUntil(range, (results) => {
             return results.length === amount;
         }, direction);
     }
 
-    async _selectUntil(range, predicate, direction) {
+    async _selectUntil(range: IDBQuery, predicate: (vs: T[], v: T) => boolean, direction: IDBCursorDirection): Promise<T[]> {
         const cursor = this._openCursor(range, direction);
-        const results = [];
-        await iterateCursor(cursor, (value) => {
+        const results: T[] = [];
+        await iterateCursor<T>(cursor, (value) => {
             results.push(value);
             return {done: predicate(results, value)};
         });
@@ -190,10 +212,10 @@ export class QueryTarget {
     }
 
     // allows you to fetch one too much that won't get added when the predicate fails
-    async _selectWhile(range, predicate, direction) {
+    async _selectWhile(range: IDBQuery, predicate: (v: T) => boolean, direction: IDBCursorDirection): Promise<T[]> {
         const cursor = this._openCursor(range, direction);
-        const results = [];
-        await iterateCursor(cursor, (value) => {
+        const results: T[] = [];
+        await iterateCursor<T>(cursor, (value) => {
             const passesPredicate = predicate(value);
             if (passesPredicate) {
                 results.push(value);
@@ -203,18 +225,18 @@ export class QueryTarget {
         return results;
     }
 
-    async iterateWhile(range, predicate) {
+    async iterateWhile(range: IDBQuery, predicate: (v: T) => boolean): Promise<void> {
         const cursor = this._openCursor(range, "next");
-        await iterateCursor(cursor, (value) => {
+        await iterateCursor<T>(cursor, (value) => {
             const passesPredicate = predicate(value);
             return {done: !passesPredicate};
         });
     }
 
-    async _find(range, predicate, direction) {
+    async _find(range: IDBQuery, predicate: (v: T) => boolean, direction: IDBCursorDirection): Promise<T | undefined> {
         const cursor = this._openCursor(range, direction);
         let result;
-        const found = await iterateCursor(cursor, (value) => {
+        const found = await iterateCursor<T>(cursor, (value) => {
             const found = predicate(value);
             if (found) {
                 result = value;

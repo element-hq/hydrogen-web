@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 
-import {openDatabase, txnAsPromise, reqAsPromise} from "./utils.js";
+import {openDatabase, txnAsPromise, reqAsPromise} from "./utils";
 
 // filed as https://bugs.webkit.org/show_bug.cgi?id=222746
 export async function detectWebkitEarlyCloseTxnBug(idbFactory) {
