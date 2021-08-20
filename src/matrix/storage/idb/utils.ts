@@ -127,6 +127,23 @@ export function txnAsPromise(txn): Promise<void> {
     });
 }
 
+/**
+ * This type is rather complicated, but I hope that this is for a good reason. There
+ * are currently two uses for `iterateCursor`: iterating a regular cursor, and iterating
+ * a key-only cursor, which does not have values. These two uses are distinct, and iteration
+ * never stops or starts having a value halfway through.
+ *
+ * Each of the argument functions currently either assumes the value will be there, or that it won't. We thus can't
+ * just accept a function argument `(T | undefined) => { done: boolean }`, since this messes with
+ * the type safety in both cases: the former case will have to check for `undefined`, and
+ * the latter would have an argument that can be `T`, even though it never will.
+ *
+ * So the approach here is to let TypeScript infer and accept (via generics) the type of
+ * the cursor, which is either `IDBCursorWithValue` or `IDBCursor`. Since the type is accepted
+ * via generics, we can actually vary the types of the actual function arguments depending on it.
+ * Thus, when a value is available (an `IDBCursorWithValue` is given), we require a function `(T) => ...`, and when it is not, we require
+ * a function `(undefined) => ...`.
+ */
 type CursorIterator<T, I extends IDBCursor> = I extends IDBCursorWithValue ?
     (value: T, key: IDBValidKey, cursor: IDBCursorWithValue) => { done: boolean, jumpTo?: IDBValidKey } :
     (value: undefined, key: IDBValidKey, cursor: IDBCursor) => { done: boolean, jumpTo?: IDBValidKey }
