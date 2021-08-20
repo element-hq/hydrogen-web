@@ -22,7 +22,8 @@ export class CompleteSSOView extends TemplateView {
         return t.div({ className: "CompleteSSOView" },
             [
                 t.p({ className: "CompleteSSOView_title" }, "Finishing up your SSO Login"),
-                t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadStatusView(loadViewModel) : null)
+                t.if(vm => vm.errorMessage, (t, vm) => t.p({className: "CompleteSSOView_error"}, vm.i18n(vm.errorMessage))),
+                t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadStatusView(loadViewModel) : null),
             ]
         );
     }

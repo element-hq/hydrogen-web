@@ -20,19 +20,26 @@ import {LoginFailure} from "../../matrix/SessionContainer.js";
 export class PasswordLoginViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {loginOptions, homeserver, attemptLogin, showError} = options;
+        const {loginOptions, homeserver, attemptLogin} = options;
         this._loginOptions = loginOptions;
         this._attemptLogin = attemptLogin;
-        this._showError = showError;
         this._homeserver = homeserver;
         this._isBusy = false;
+        this._errorMessage = "";
     }
 
     get isBusy() { return this._isBusy; }
+    get errorMessage() { return this._errorMessage; }
 
     toggleBusy(state) {
         this._isBusy = state;
         this.emitChange("isBusy");
+    }
+
+    _showError(message) {
+        this._errorMessage = message;
+        this.emitChange("errorMessage");
+        this._errorMessage = "";
     }
 
     async login(username, password) {

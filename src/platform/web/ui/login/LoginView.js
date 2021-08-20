@@ -29,6 +29,7 @@ export class LoginView extends TemplateView {
             t.mapView(vm => vm.completeSSOLoginViewModel, vm => vm ? new CompleteSSOView(vm) : null),
             t.if(vm => vm.showHomeserver, (t, vm) => t.div({ className: "LoginView_sso form form-row" },
                 [
+                    t.if(vm => vm.errorMessage, (t, vm) => t.p({className: "LoginView_error"}, vm.i18n(vm.errorMessage))),
                     t.label({for: "homeserver"}, vm.i18n`Homeserver`),
                     t.input({
                         id: "homeserver",
@@ -43,7 +44,6 @@ export class LoginView extends TemplateView {
             t.mapView(vm => vm.passwordLoginViewModel, vm => vm ? new PasswordLoginView(vm): null),
             t.if(vm => vm.passwordLoginViewModel && vm.startSSOLoginViewModel, t => t.p({className: "LoginView_separator"}, vm.i18n`or`)),
             t.mapView(vm => vm.startSSOLoginViewModel, vm => vm ? new StartSSOLoginView(vm) : null),
-            t.if(vm => vm.errorMessage, (t, vm) => t.p({className: "LoginView_error"}, vm.i18n(vm.errorMessage))),
             t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadStatusView(loadViewModel) : null),
             // use t.mapView rather than t.if to create a new view when the view model changes too
             t.p(hydrogenGithubLink(t))

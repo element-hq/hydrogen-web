@@ -24,13 +24,20 @@ export class CompleteSSOLoginViewModel extends ViewModel {
             loginToken,
             sessionContainer,
             attemptLogin,
-            showError,
         } = options;
         this._loginToken = loginToken;
         this._sessionContainer = sessionContainer;
         this._attemptLogin = attemptLogin;
-        this._showError = showError;
+        this._errorMessage = "";
         this.performSSOLoginCompletion();
+    }
+
+    get errorMessage() { return this._errorMessage; }
+
+    _showError(message) {
+        this._errorMessage = message;
+        this.emitChange("errorMessage");
+        this._errorMessage = "";
     }
 
     async performSSOLoginCompletion() {
