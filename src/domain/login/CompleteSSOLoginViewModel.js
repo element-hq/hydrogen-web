@@ -23,12 +23,10 @@ export class CompleteSSOLoginViewModel extends ViewModel {
         const {
             loginToken,
             sessionContainer,
-            ready,
             attemptLogin,
             showError,
         } = options;
         this._loginToken = loginToken;
-        this._ready = ready;
         this._sessionContainer = sessionContainer;
         this._attemptLogin = attemptLogin;
         this._showError = showError;
@@ -53,7 +51,7 @@ export class CompleteSSOLoginViewModel extends ViewModel {
                 error = `Your login-token is invalid.`;
                 break;
             case LoginFailure.Connection:
-                error = `Can't connect to ${this._homeserver}.`;
+                error = `Can't connect to ${homeserver}.`;
                 break;
             case LoginFailure.Unknown:
                 error = `Something went wrong while checking your login-token.`;

@@ -55,7 +55,14 @@ export class LoginViewModel extends ViewModel {
     async _createViewModels(homeserver) {
         if (this._loginToken) {
             this._hideHomeserver = true;
-            this._completeSSOLoginViewModel = this.track(new CompleteSSOLoginViewModel(this.childOptions({loginToken: this._loginToken})));
+            this._completeSSOLoginViewModel = this.track(new CompleteSSOLoginViewModel(
+                this.childOptions(
+                    {
+                        sessionContainer: this._sessionContainer,
+                        attemptLogin: loginMethod => this.attemptLogin(loginMethod),
+                        showError: message => this.showError(message),
+                        loginToken: this._loginToken
+                    })));
             this.emitChange("completeSSOLoginViewModel");
         }
         else {
@@ -80,12 +87,23 @@ export class LoginViewModel extends ViewModel {
     }
 
     _showPasswordLogin() {
-        this._passwordLoginViewModel = this.track(new PasswordLoginViewModel(this.childOptions()));
+        this._passwordLoginViewModel = this.track(new PasswordLoginViewModel(
+            this.childOptions({
+                sessionContainer: this._sessionContainer,
+                loginOptions: this._loginOptions,
+                homeserver: this._homeserver,
+                attemptLogin: loginMethod => this.attemptLogin(loginMethod),
+                showError: message => this.showError(message)
+        })));
         this.emitChange("passwordLoginViewModel");
     }
 
     _showSSOLogin() {
-        this._startSSOLoginViewModel = this.track(new StartSSOLoginViewModel(this.childOptions()));
+        this._startSSOLoginViewModel = this.track(
+            new StartSSOLoginViewModel(
+                this.childOptions({ loginOptions: this._loginOptions, homeserver: this._homeserver })
+            )
+        );
         this.emitChange("startSSOLoginViewModel");
     }
 
@@ -122,7 +140,19 @@ export class LoginViewModel extends ViewModel {
         if (this._loadViewModel) {
             this._loadViewModel = this.disposeTracked(this._loadViewModel);
         }
-        this._loadViewModel = this.track(new SessionLoadViewModel(this.childOptions()));
+        this._loadViewModel = this.track(
+            new SessionLoadViewModel(
+                this.childOptions({
+                    ready: (sessionContainer) => {
+                        // make sure we don't delete the session in dispose when navigating away
+                        this._sessionContainer = null;
+                        this._ready(sessionContainer);
+                    },
+                    sessionContainer: this._sessionContainer,
+                    homeserver: this._homeserver
+                })
+            )
+        );
         this._loadViewModel.start();
         this.emitChange("loadViewModel");
         this._loadViewModelSubscription = this.track(
@@ -146,22 +176,6 @@ export class LoginViewModel extends ViewModel {
         this._homeserver = newHomeserver;
         this._disposeViewModels();
         this._createViewModels(newHomeserver);
-    }
-
-    childOptions(options = {}) {
-        return {
-            ...super.childOptions(options),
-            ready: sessionContainer => {
-                // make sure we don't delete the session in dispose when navigating away
-                this._sessionContainer = null;
-                this._ready(sessionContainer);
-            },
-            sessionContainer: this._sessionContainer,
-            loginOptions: this._loginOptions,
-            homeserver: this._homeserver,
-            attemptLogin: loginMethod => this.attemptLogin(loginMethod),
-            showError: message => this.showError(message)
-        }
     }
 
     dispose() {
