@@ -39,6 +39,7 @@ export class LoginViewModel extends ViewModel {
         this._errorMessage = "";
         this._hideHomeserver = false;
         this._isBusy = false;
+        this._isFetchingLoginOptions = false;
         this._createViewModels(this._homeserver);
     }
 
@@ -51,6 +52,7 @@ export class LoginViewModel extends ViewModel {
     get cancelUrl() { return this.urlCreator.urlForSegment("session"); }
     get loadViewModel() {return this._loadViewModel; }
     get isBusy() { return this._isBusy; }
+    get isFetchingLoginOptions() { return this._isFetchingLoginOptions; }
 
     async _createViewModels(homeserver) {
         if (this._loginToken) {
@@ -67,11 +69,15 @@ export class LoginViewModel extends ViewModel {
         else {
             this._errorMessage = "";
             try {
+                this._isFetchingLoginOptions = true;
+                this.emitChange("isFetchingLoginOptions");
                 this._loginOptions = await this._sessionContainer.queryLogin(homeserver);
             }
             catch (e) {
                 this._loginOptions = null;
             }
+            this._isFetchingLoginOptions = false;
+            this.emitChange("isFetchingLoginOptions");
             if (this._loginOptions) {
                 if (this._loginOptions.sso) { this._showSSOLogin(); }
                 if (this._loginOptions.password) { this._showPasswordLogin(); }

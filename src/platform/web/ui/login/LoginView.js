@@ -19,6 +19,7 @@ import {hydrogenGithubLink} from "./common.js";
 import {PasswordLoginView} from "./PasswordLoginView.js";
 import {CompleteSSOView} from "./CompleteSSOView.js";
 import {SessionLoadStatusView} from "./SessionLoadStatusView.js";
+import {spinner} from "../common.js";
 
 export class LoginView extends TemplateView {
     render(t, vm) {
@@ -41,6 +42,7 @@ export class LoginView extends TemplateView {
                     })
                 ]
             )),
+            t.if(vm => vm.isFetchingLoginOptions, t => t.div({className: "LoginView_query-spinner"}, [spinner(t), t.p("Fetching available login options...")])),
             t.mapView(vm => vm.passwordLoginViewModel, vm => vm ? new PasswordLoginView(vm): null),
             t.if(vm => vm.passwordLoginViewModel && vm.startSSOLoginViewModel, t => t.p({className: "LoginView_separator"}, vm.i18n`or`)),
             t.mapView(vm => vm.startSSOLoginViewModel, vm => vm ? new StartSSOLoginView(vm) : null),
