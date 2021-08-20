@@ -108,6 +108,7 @@ export class SessionLoadViewModel extends ViewModel {
             return `Something went wrong: ${error && error.message}.`;
         }
 
+        // Statuses related to login are handled by respective login view models
         if (sc) {
             switch (sc.loadStatus.get()) {
                 case LoadStatus.SessionSetup:
