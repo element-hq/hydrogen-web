@@ -14,15 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {LoadStatus, LoginFailure} from "../matrix/SessionContainer.js";
+import {LoadStatus} from "../matrix/SessionContainer.js";
 import {SyncStatus} from "../matrix/Sync.js";
 import {ViewModel} from "./ViewModel.js";
 
 export class SessionLoadViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {createAndStartSessionContainer, ready, homeserver, deleteSessionOnCancel} = options;
-        this._createAndStartSessionContainer = createAndStartSessionContainer;
+        const {sessionContainer, ready, homeserver, deleteSessionOnCancel} = options;
+        this._sessionContainer = sessionContainer;
         this._ready = ready;
         this._homeserver = homeserver;
         this._deleteSessionOnCancel = deleteSessionOnCancel;
@@ -38,7 +38,6 @@ export class SessionLoadViewModel extends ViewModel {
         try {
             this._loading = true;
             this.emitChange("loading");
-            this._sessionContainer = await this._createAndStartSessionContainer();
             this._waitHandle = this._sessionContainer.loadStatus.waitFor(s => {
                 this.emitChange("loadLabel");
                 // wait for initial sync, but not catchup sync
@@ -111,20 +110,6 @@ export class SessionLoadViewModel extends ViewModel {
 
         if (sc) {
             switch (sc.loadStatus.get()) {
-                case LoadStatus.NotLoading:
-                    return `Preparing…`;
-                case LoadStatus.Login:
-                    return `Checking your credentials…`;
-                case LoadStatus.LoginFailed:
-                    switch (sc.loginFailure) {
-                        case LoginFailure.LoginFailure:
-                            return `Your credentials don't seem to be correct.`;
-                        case LoginFailure.Connection:
-                            return `Can't connect to ${this._homeserver}.`;
-                        case LoginFailure.Unknown:
-                            return `Something went wrong while checking your credentials.`;
-                    }
-                    break;
                 case LoadStatus.SessionSetup:
                     return `Setting up your encryption keys…`;
                 case LoadStatus.Loading:

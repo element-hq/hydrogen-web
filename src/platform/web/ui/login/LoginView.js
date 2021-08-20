@@ -18,6 +18,7 @@ import {TemplateView} from "../general/TemplateView.js";
 import {hydrogenGithubLink} from "./common.js";
 import {PasswordLoginView} from "./PasswordLoginView.js";
 import {CompleteSSOView} from "./CompleteSSOView.js";
+import {SessionLoadStatusView} from "./SessionLoadStatusView.js";
 
 export class LoginView extends TemplateView {
     render(t, vm) {
@@ -34,6 +35,7 @@ export class LoginView extends TemplateView {
                         type: "text",
                         placeholder: vm.i18n`Your matrix homeserver`,
                         value: vm.defaultHomeServer,
+                        disabled: vm => vm.isBusy,
                         onChange: event => vm.updateHomeServer(event.target.value),
                     })
                 ]
@@ -41,7 +43,8 @@ export class LoginView extends TemplateView {
             t.mapView(vm => vm.passwordLoginViewModel, vm => vm ? new PasswordLoginView(vm): null),
             t.if(vm => vm.passwordLoginViewModel && vm.startSSOLoginViewModel, t => t.p({className: "LoginView_separator"}, vm.i18n`or`)),
             t.mapView(vm => vm.startSSOLoginViewModel, vm => vm ? new StartSSOLoginView(vm) : null),
-            t.if(vm => vm.errorMessage, (t, vm) => t.h5({className: "LoginView_error"}, vm.i18n(vm.errorMessage))),
+            t.if(vm => vm.errorMessage, (t, vm) => t.p({className: "LoginView_error"}, vm.i18n(vm.errorMessage))),
+            t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadStatusView(loadViewModel) : null),
             // use t.mapView rather than t.if to create a new view when the view model changes too
             t.p(hydrogenGithubLink(t))
         ]);

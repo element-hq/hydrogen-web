@@ -15,7 +15,6 @@ limitations under the License.
 */
 
 import {TemplateView} from "../general/TemplateView.js";
-import {SessionLoadStatusView} from "./SessionLoadStatusView.js";
 
 export class PasswordLoginView extends TemplateView {
     render(t, vm) {
@@ -43,11 +42,11 @@ export class PasswordLoginView extends TemplateView {
             }, [
                 t.div({ className: "form-row" }, [t.label({ for: "username" }, vm.i18n`Username`), username]),
                 t.div({ className: "form-row" }, [t.label({ for: "password" }, vm.i18n`Password`), password]),
-                t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadStatusView(loadViewModel) : null),
                 t.div({ className: "button-row" }, [
                     t.button({
                         className: "button-action primary",
-                        type: "submit"
+                        type: "submit",
+                        disabled
                     }, vm.i18n`Log In`),
                 ]),
             ])

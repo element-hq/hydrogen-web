@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {ViewModel} from "../ViewModel.js";
-import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
+import {LoginFailure} from "../../matrix/SessionContainer.js";
 
 export class CompleteSSOLoginViewModel extends ViewModel {
     constructor(options) {
@@ -24,16 +24,16 @@ export class CompleteSSOLoginViewModel extends ViewModel {
             loginToken,
             sessionContainer,
             ready,
+            attemptLogin,
+            showError,
         } = options;
         this._loginToken = loginToken;
         this._ready = ready;
         this._sessionContainer = sessionContainer;
-        this._loadViewModelSubscription = null;
-        this._loadViewModel = null;
+        this._attemptLogin = attemptLogin;
+        this._showError = showError;
         this.performSSOLoginCompletion();
     }
-
-    get loadViewModel() { return this._loadViewModel; }
 
     async performSSOLoginCompletion() {
         if (!this._loginToken) {
@@ -46,25 +46,22 @@ export class CompleteSSOLoginViewModel extends ViewModel {
             this.navigation.applyPath(path);
             return;
         }
-        this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
-        if (this._loadViewModel) {
-            this._loadViewModel = this.disposeTracked(this._loadViewModel);
+        const status = await this._attemptLogin(loginOptions.token(this._loginToken));
+        let error = "";
+        switch (status) {
+            case LoginFailure.Credentials:
+                error = `Your login-token is invalid.`;
+                break;
+            case LoginFailure.Connection:
+                error = `Can't connect to ${this._homeserver}.`;
+                break;
+            case LoginFailure.Unknown:
+                error = `Something went wrong while checking your login-token.`;
+                break;
         }
-        this._loadViewModel = this.track(new SessionLoadViewModel(this.childOptions({
-            createAndStartSessionContainer: async () => {
-                this._sessionContainer.startWithLogin(loginOptions.token(this._loginToken));
-                return this._sessionContainer;
-            },
-            ready: this._ready,
-            homeserver,
-        })));
-        this._loadViewModel.start();
-        this.emitChange("loadViewModel");
-        this._loadViewModelSubscription = this.track(this._loadViewModel.disposableOn("change", () => {
-            if (!this._loadViewModel.loading) {
-                this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
-            }
-            this.emitChange("isBusy");
-        }));
+        if (error) {
+            this._showError(error);
+            this._sessionContainer.resetStatus();
+        }
     }
 }

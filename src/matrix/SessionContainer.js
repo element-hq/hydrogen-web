@@ -300,6 +300,10 @@ export class SessionContainer {
         return this._error;
     }
 
+    get loginFailure() {
+        return this._loginFailure;
+    }
+
     /** only set at loadStatus InitialSync, CatchupSync or Ready */
     get sync() {
         return this._sync;
@@ -348,5 +352,11 @@ export class SessionContainer {
             ]);
             this._sessionId = null;
         }
+    }
+
+    resetStatus() {
+        this._status.set(LoadStatus.NotLoading);
+        this._error = null;
+        this._loginFailure = null;
     }
 }

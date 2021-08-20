@@ -15,51 +15,47 @@ limitations under the License.
 */
 
 import {ViewModel} from "../ViewModel.js";
-import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
+import {LoginFailure} from "../../matrix/SessionContainer.js";
 
 export class PasswordLoginViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {ready, loginOptions, sessionContainer, homeserver} = options;
+        const {ready, loginOptions, sessionContainer, homeserver, attemptLogin, showError} = options;
         this._ready = ready;
         this._sessionContainer = sessionContainer;
-        this._loadViewModel = null;
-        this._loadViewModelSubscription = null;
         this._loginOptions = loginOptions;
+        this._attemptLogin = attemptLogin;
+        this._showError = showError;
         this._homeserver = homeserver;
+        this._isBusy = false;
     }
 
-    get loadViewModel() {return this._loadViewModel; }
+    get isBusy() { return this._isBusy; }
 
-    get isBusy() {
-        if (!this._loadViewModel) {
-            return false;
-        } else {
-            return this._loadViewModel.loading;
-        }
+    _toggleBusy(state) {
+        this._isBusy = state;
+        this.emitChange("isBusy");
     }
 
     async login(username, password) {
-        const homeserver = this._homeserver;
-        this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
-        if (this._loadViewModel) {
-            this._loadViewModel = this.disposeTracked(this._loadViewModel);
+        this._toggleBusy(true);
+        const status = await this._attemptLogin(this._loginOptions.password(username, password));
+        this._toggleBusy(false);
+        let error = "";
+        switch (status) {
+            case LoginFailure.Credentials:
+                error = `Your credentials don't seem to be correct.`;
+                break;
+            case LoginFailure.Connection:
+                error = `Can't connect to ${this._homeserver}.`;
+                break;
+            case LoginFailure.Unknown:
+                error = `Something went wrong while checking your credentials.`;
+                break;
         }
-        this._loadViewModel = this.track(new SessionLoadViewModel(this.childOptions({
-            createAndStartSessionContainer: async () => {
-                this._sessionContainer.startWithLogin(this._loginOptions.password(username, password));
-                return this._sessionContainer;
-            },
-            ready: this._ready,
-            homeserver,
-        })));
-        this._loadViewModel.start();
-        this.emitChange("loadViewModel");
-        this._loadViewModelSubscription = this.track(this._loadViewModel.disposableOn("change", () => {
-            if (!this._loadViewModel.loading) {
-                this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
-            }
-            this.emitChange("isBusy");
-        }));
+        if (error) {
+            this._showError(error);
+            this._sessionContainer.resetStatus();
+        }
     }
 }
