@@ -19,13 +19,11 @@ import {ViewModel} from "../ViewModel.js";
 export class StartSSOLoginViewModel extends ViewModel{
     constructor(options) {
         super(options);
-        const {loginOptions, homeserver} = options;
-        this._sso = loginOptions.sso;
-        this._homeserver = homeserver;
+        this._sso = options.loginOptions.sso;
     }
 
     async startSSOLogin() {
-        await this.platform.settingsStorage.setString("sso_ongoing_login_homeserver", this._homeserver);
+        await this.platform.settingsStorage.setString("sso_ongoing_login_homeserver", this._sso.homeserver);
         const link = this._sso.createSSORedirectURL(this.urlCreator.createSSOCallbackURL());
         this.platform.openUrl(link);
     }

@@ -19,6 +19,8 @@ export class SSOLoginHelper{
         this._homeserver = homeserver;
     }
 
+    get homeserver() { return this._homeserver; }
+
     createSSORedirectURL(returnURL) {
         return `${this._homeserver}/_matrix/client/r0/login/sso/redirect?redirectUrl=${returnURL}`;
     }

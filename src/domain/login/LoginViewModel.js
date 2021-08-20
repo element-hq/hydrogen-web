@@ -100,9 +100,7 @@ export class LoginViewModel extends ViewModel {
 
     _showSSOLogin() {
         this._startSSOLoginViewModel = this.track(
-            new StartSSOLoginViewModel(
-                this.childOptions({ loginOptions: this._loginOptions, homeserver: this._homeserver })
-            )
+            new StartSSOLoginViewModel(this.childOptions({loginOptions: this._loginOptions}))
         );
         this.emitChange("startSSOLoginViewModel");
     }
