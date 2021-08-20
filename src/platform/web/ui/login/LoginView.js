@@ -23,8 +23,14 @@ import {spinner} from "../common.js";
 
 export class LoginView extends TemplateView {
     render(t, vm) {
+        const disabled = vm => vm.isBusy;
+
         return t.div({className: "PreSessionScreen"}, [
-            t.a({className: "button-utility LoginView_back", href: vm.cancelUrl}),
+            t.button({
+                className: "button-utility LoginView_back",
+                onClick: () => vm.goBack(),
+                disabled
+            }),
             t.div({className: "logo"}),
             t.h1([vm.i18n`Sign In`]),
             t.mapView(vm => vm.completeSSOLoginViewModel, vm => vm ? new CompleteSSOView(vm) : null),
@@ -37,7 +43,7 @@ export class LoginView extends TemplateView {
                         type: "text",
                         placeholder: vm.i18n`Your matrix homeserver`,
                         value: vm.homeserver,
-                        disabled: vm => vm.isBusy,
+                        disabled,
                         onChange: event => vm.updateHomeServer(event.target.value),
                     })
                 ]

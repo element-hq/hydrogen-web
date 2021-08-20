@@ -49,10 +49,14 @@ export class LoginViewModel extends ViewModel {
     get homeserver() { return this._homeserver; }
     get errorMessage() { return this._errorMessage; }
     get showHomeserver() { return !this._hideHomeserver; }
-    get cancelUrl() { return this.urlCreator.urlForSegment("session"); }
     get loadViewModel() {return this._loadViewModel; }
     get isBusy() { return this._isBusy; }
     get isFetchingLoginOptions() { return this._isFetchingLoginOptions; }
+
+    goBack() {
+        const path = this.navigation.pathFrom([this.navigation.segment("session")]);
+        this.navigation.applyPath(path);
+    }
 
     async _createViewModels(homeserver) {
         if (this._loginToken) {
