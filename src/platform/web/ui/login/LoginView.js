@@ -34,7 +34,7 @@ export class LoginView extends TemplateView {
                         id: "homeserver",
                         type: "text",
                         placeholder: vm.i18n`Your matrix homeserver`,
-                        value: vm.defaultHomeServer,
+                        value: vm.homeserver,
                         disabled: vm => vm.isBusy,
                         onChange: event => vm.updateHomeServer(event.target.value),
                     })
