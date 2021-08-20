@@ -20,10 +20,9 @@ import {LoginFailure} from "../../matrix/SessionContainer.js";
 export class PasswordLoginViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {loginOptions, homeserver, attemptLogin} = options;
+        const {loginOptions, attemptLogin} = options;
         this._loginOptions = loginOptions;
         this._attemptLogin = attemptLogin;
-        this._homeserver = homeserver;
         this._isBusy = false;
         this._errorMessage = "";
     }
@@ -43,14 +42,15 @@ export class PasswordLoginViewModel extends ViewModel {
     }
 
     async login(username, password) {
-        const status = await this._attemptLogin(this._loginOptions.password(username, password));
+        const loginMethod = this._loginOptions.password(username, password);
+        const status = await this._attemptLogin(loginMethod);
         let error = "";
         switch (status) {
             case LoginFailure.Credentials:
                 error = this.i18n`Your username and/or password don't seem to be correct.`;
                 break;
             case LoginFailure.Connection:
-                error = this.i18n`Can't connect to ${this._homeserver}.`;
+                error = this.i18n`Can't connect to ${loginMethod.homeServer}.`;
                 break;
             case LoginFailure.Unknown:
                 error = this.i18n`Something went wrong while checking your login and password.`;

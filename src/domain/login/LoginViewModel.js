@@ -95,8 +95,7 @@ export class LoginViewModel extends ViewModel {
         this._passwordLoginViewModel = this.track(new PasswordLoginViewModel(
             this.childOptions({
                 loginOptions: this._loginOptions,
-                homeserver: this._homeserver,
-                attemptLogin: loginMethod => this.attemptLogin(loginMethod),
+                attemptLogin: loginMethod => this.attemptLogin(loginMethod)
         })));
         this.emitChange("passwordLoginViewModel");
     }
