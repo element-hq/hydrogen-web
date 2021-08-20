@@ -40,13 +40,13 @@ export class PasswordLoginViewModel extends ViewModel {
         let error = "";
         switch (status) {
             case LoginFailure.Credentials:
-                error = `Your credentials don't seem to be correct.`;
+                error = this.i18n`Your username and/or password don't seem to be correct.`;
                 break;
             case LoginFailure.Connection:
-                error = `Can't connect to ${this._homeserver}.`;
+                error = this.i18n`Can't connect to ${this._homeserver}.`;
                 break;
             case LoginFailure.Unknown:
-                error = `Something went wrong while checking your credentials.`;
+                error = this.i18n`Something went wrong while checking your login and password.`;
                 break;
         }
         if (error) {
