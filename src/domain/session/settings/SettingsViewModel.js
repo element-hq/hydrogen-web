@@ -151,7 +151,7 @@ export class SettingsViewModel extends ViewModel {
         this.pushNotifications.enabledOnServer = null;
         this.pushNotifications.serverError = null;
         try {
-            this.pushNotifications.enabledOnServer = await this._session.checkPusherEnabledOnHomeServer();
+            this.pushNotifications.enabledOnServer = await this._session.checkPusherEnabledOnHomeserver();
             this.emitChange("pushNotifications.enabledOnServer");
         } catch (err) {
             this.pushNotifications.serverError = err;

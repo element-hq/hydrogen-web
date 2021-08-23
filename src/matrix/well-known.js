@@ -14,16 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-function normalizeHomeserver(homeServer) {
+function normalizeHomeserver(homeserver) {
     try {
-        return new URL(homeServer).origin;
+        return new URL(homeserver).origin;
     } catch (err) {
-        return new URL(`https://${homeServer}`).origin;
+        return new URL(`https://${homeserver}`).origin;
     }
 }
 
-function getRetryHomeServer(homeServer) {
-    const url = new URL(homeServer);
+function getRetryHomeserver(homeserver) {
+    const url = new URL(homeserver);
     const {host} = url;
     const dotCount = host.split(".").length - 1;
     if (dotCount === 1) {
@@ -32,33 +32,33 @@ function getRetryHomeServer(homeServer) {
     }
 }
 
-export async function lookupHomeServer(homeServer, request) {
-        homeServer = normalizeHomeserver(homeServer);
-        const requestOptions = {format: "json", timeout: 30000, method: "GET"};
-        let wellKnownResponse = null;
-        while (!wellKnownResponse) {
-            try {
-                const wellKnownUrl = `${homeServer}/.well-known/matrix/client`;
-                wellKnownResponse = await request(wellKnownUrl, requestOptions).response();
-            } catch (err) {
-                if (err.name === "ConnectionError") {
-                    const retryHS = getRetryHomeServer(homeServer);
-                    if (retryHS) {
-                        homeServer = retryHS;
-                    } else {
-                        throw err;
-                    }
+export async function lookupHomeserver(homeserver, request) {
+    homeserver = normalizeHomeserver(homeserver);
+    const requestOptions = {format: "json", timeout: 30000, method: "GET"};
+    let wellKnownResponse = null;
+    while (!wellKnownResponse) {
+        try {
+            const wellKnownUrl = `${homeserver}/.well-known/matrix/client`;
+            wellKnownResponse = await request(wellKnownUrl, requestOptions).response();
+        } catch (err) {
+            if (err.name === "ConnectionError") {
+                const retryHS = getRetryHomeserver(homeserver);
+                if (retryHS) {
+                    homeserver = retryHS;
                 } else {
                     throw err;
                 }
+            } else {
+                throw err;
             }
         }
-        if (wellKnownResponse.status === 200) {
-            const {body} = wellKnownResponse;
-            const wellKnownHomeServer = body["m.homeserver"]?.["base_url"];
-            if (typeof wellKnownHomeServer === "string") {
-                homeServer = normalizeHomeserver(wellKnownHomeServer);
-            }
+    }
+    if (wellKnownResponse.status === 200) {
+        const {body} = wellKnownResponse;
+        const wellKnownHomeserver = body["m.homeserver"]?.["base_url"];
+        if (typeof wellKnownHomeserver === "string") {
+            homeserver = normalizeHomeserver(wellKnownHomeserver);
         }
-        return homeServer
+    }
+    return homeserver;
 }

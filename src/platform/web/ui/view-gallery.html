@@ -43,7 +43,7 @@
         <script id="main" type="module">
             import {LoginView} from "./login/LoginView.js";
             const view = new LoginView(vm({
-                defaultHomeServer: "https://hs.tld",
+                defaultHomeserver: "https://hs.tld",
                 login: () => alert("Logging in!"),
                 cancelUrl: "#/session"
             }));
@@ -60,7 +60,7 @@
                     loading: true,
                 }),
                 cancelUrl: "#/session",
-                defaultHomeServer: "https://hs.tld",
+                defaultHomeserver: "https://hs.tld",
             }));
             document.getElementById("login-loading").appendChild(view.mount());
 		</script>

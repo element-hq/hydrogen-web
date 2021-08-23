@@ -18,8 +18,8 @@ import {encodeQueryParams} from "./common.js";
 import {decryptAttachment} from "../e2ee/attachment.js";
 
 export class MediaRepository {
-    constructor({homeServer, platform}) {
-        this._homeServer = homeServer;
+    constructor({homeserver, platform}) {
+        this._homeserver = homeserver;
         this._platform = platform;
     }
 
@@ -27,7 +27,7 @@ export class MediaRepository {
         const parts = this._parseMxcUrl(url);
         if (parts) {
             const [serverName, mediaId] = parts;
-            const httpUrl = `${this._homeServer}/_matrix/media/r0/thumbnail/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`;
+            const httpUrl = `${this._homeserver}/_matrix/media/r0/thumbnail/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`;
             return httpUrl + "?" + encodeQueryParams({width: Math.round(width), height: Math.round(height), method});
         }
         return null;
@@ -37,7 +37,7 @@ export class MediaRepository {
         const parts = this._parseMxcUrl(url);
         if (parts) {
             const [serverName, mediaId] = parts;
-            return `${this._homeServer}/_matrix/media/r0/download/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`;
+            return `${this._homeserver}/_matrix/media/r0/download/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`;
         } else {
             return null;
         }

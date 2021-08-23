@@ -43,15 +43,14 @@ export class PasswordLoginViewModel extends ViewModel {
     async login(username, password) {
         this._errorMessage = "";
         this.emitChange("errorMessage");
-        const loginMethod = this._loginOptions.password(username, password);
-        const status = await this._attemptLogin(loginMethod);
+        const status = await this._attemptLogin(this._loginOptions.password(username, password));
         let error = "";
         switch (status) {
             case LoginFailure.Credentials:
                 error = this.i18n`Your username and/or password don't seem to be correct.`;
                 break;
             case LoginFailure.Connection:
-                error = this.i18n`Can't connect to ${loginMethod.homeServer}.`;
+                error = this.i18n`Can't connect to ${this._loginOptions.homeserver}.`;
                 break;
             case LoginFailure.Unknown:
                 error = this.i18n`Something went wrong while checking your login and password.`;

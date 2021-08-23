@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 export class LoginMethod {
-    constructor({homeServer}) {
-        this.homeServer = homeServer;
+    constructor({homeserver}) {
+        this.homeserver = homeserver;
     }
 
     // eslint-disable-next-line no-unused-vars

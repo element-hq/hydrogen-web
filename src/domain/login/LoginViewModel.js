@@ -24,7 +24,7 @@ import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
 export class LoginViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {ready, defaultHomeServer, createSessionContainer, loginToken} = options;
+        const {ready, defaultHomeserver, createSessionContainer, loginToken} = options;
         this._createSessionContainer = createSessionContainer;
         this._ready = ready;
         this._loginToken = loginToken;
@@ -35,7 +35,7 @@ export class LoginViewModel extends ViewModel {
         this._completeSSOLoginViewModel = null;
         this._loadViewModel = null;
         this._loadViewModelSubscription = null;
-        this._homeserver = defaultHomeServer;
+        this._homeserver = defaultHomeserver;
         this._errorMessage = "";
         this._hideHomeserver = false;
         this._isBusy = false;
@@ -71,7 +71,7 @@ export class LoginViewModel extends ViewModel {
             this.emitChange("completeSSOLoginViewModel");
         }
         else {
-            await this.queryHomeServer();
+            await this.queryHomeserver();
         }
     }
 
@@ -156,7 +156,7 @@ export class LoginViewModel extends ViewModel {
         this.emitChange("disposeViewModels");
     }
 
-    async setHomeServer(newHomeserver) {
+    async setHomeserver(newHomeserver) {
         this._homeserver = newHomeserver;
         // abort ongoing query, if any
         this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
@@ -174,13 +174,13 @@ export class LoginViewModel extends ViewModel {
             }
         }
         this._abortHomeserverQueryTimeout = this.disposeTracked(this._abortHomeserverQueryTimeout);
-        this.queryHomeServer();
+        this.queryHomeserver();
     }
     
-    async queryHomeServer() {
         this._errorMessage = "";
         this.emitChange("errorMessage");
         // if query is called before the typing timeout hits (e.g. field lost focus), cancel the timeout so we don't query again.
+    async queryHomeserver() {
         this._abortHomeserverQueryTimeout = this.disposeTracked(this._abortHomeserverQueryTimeout);
         // cancel ongoing query operation, if any
         this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
