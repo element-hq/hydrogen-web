@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020, 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,6 +16,7 @@ limitations under the License.
 */
 
 import {createEnum} from "../utils/enum.js";
+import {lookupHomeServer} from "./well-known.js";
 import {AbortableOperation} from "../utils/AbortableOperation";
 import {ObservableValue} from "../observable/ObservableValue.js";
 import {HomeServerApi} from "./net/HomeServerApi.js";
@@ -33,6 +35,16 @@ function normalizeHomeserver(homeServer) {
         return new URL(homeServer).origin;
     } catch (err) {
         return new URL(`https://${homeServer}`).origin;
+    }
+}
+
+function getRetryHomeServer(homeServer) {
+    const url = new URL(homeServer);
+    const {host} = url;
+    const dotCount = host.split(".").length - 1;
+    if (dotCount === 1) {
+        url.host = `www.${host}`;
+        return url.origin;
     }
 }
 
@@ -108,7 +120,7 @@ export class SessionContainer {
         implements LoginMethod
         */
         const flows = options.flows;
-        const result = {};
+        const result = {homeServer};
         for (const flow of flows) {
             if (flow.type === "m.login.password") {
                 result.password = (username, password) => new PasswordLoginMethod({homeServer, username, password});
@@ -124,11 +136,13 @@ export class SessionContainer {
     }
 
     queryLogin(homeServer) {
-        const normalizedHS = normalizeHomeserver(homeServer);
-        const hsApi = new HomeServerApi({homeServer: normalizedHS, request: this._platform.request});
         return new AbortableOperation(async setAbortable => {
+            homeServer = await lookupHomeServer(homeServer, (url, options) => {
+                return setAbortable(this._platform.request(url, options));
+            });
+            const hsApi = new HomeServerApi({homeServer, request: this._platform.request});
             const response = await setAbortable(hsApi.getLoginFlows()).response();
-            return this._parseLoginOptions(response, normalizedHS);
+            return this._parseLoginOptions(response, homeServer);
         });
     }
 
