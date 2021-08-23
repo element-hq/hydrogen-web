@@ -180,6 +180,9 @@ export class LoginViewModel extends ViewModel {
     async queryHomeServer() {
         this._errorMessage = "";
         this.emitChange("errorMessage");
+        // if query is called before the typing timeout hits (e.g. field lost focus), cancel the timeout so we don't query again.
+        this._abortHomeserverQueryTimeout = this.disposeTracked(this._abortHomeserverQueryTimeout);
+        // cancel ongoing query operation, if any
         this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
         this._disposeViewModels();
         try {
