@@ -46,7 +46,7 @@ export class CompleteSSOLoginViewModel extends ViewModel {
         const homeserver = await this.platform.settingsStorage.getString("sso_ongoing_login_homeserver");
         let loginOptions;
         try {
-            loginOptions = await this._sessionContainer.queryLogin(homeserver);
+            loginOptions = await this._sessionContainer.queryLogin(homeserver).result;
         }
         catch (err) {
             this._showError(err.message);
