@@ -36,6 +36,7 @@ export class LoginViewModel extends ViewModel {
         this._loadViewModel = null;
         this._loadViewModelSubscription = null;
         this._homeserver = defaultHomeserver;
+        this._queriedHomeserver = null;
         this._errorMessage = "";
         this._hideHomeserver = false;
         this._isBusy = false;
@@ -183,6 +184,11 @@ export class LoginViewModel extends ViewModel {
     }
     
     async queryHomeserver() {
+        // don't repeat a query we've just done
+        if (this._homeserver === this._queriedHomeserver || this._homeserver === "") {
+            return;
+        }
+        this._queriedHomeserver = this._homeserver;
         // given that setHomeserver already clears everything set here,
         // and that is the only way to change the homeserver,
         // we don't need to reset things again here.
