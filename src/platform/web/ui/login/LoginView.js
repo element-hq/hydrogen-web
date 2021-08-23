@@ -36,7 +36,6 @@ export class LoginView extends TemplateView {
             t.mapView(vm => vm.completeSSOLoginViewModel, vm => vm ? new CompleteSSOView(vm) : null),
             t.if(vm => vm.showHomeserver, (t, vm) => t.div({ className: "LoginView_sso form form-row" },
                 [
-                    t.if(vm => vm.errorMessage, (t, vm) => t.p({className: "error"}, vm.i18n(vm.errorMessage))),
                     t.label({for: "homeserver"}, vm.i18n`Homeserver`),
                     t.input({
                         id: "homeserver",
@@ -44,8 +43,10 @@ export class LoginView extends TemplateView {
                         placeholder: vm.i18n`Your matrix homeserver`,
                         value: vm.homeserver,
                         disabled,
-                        onChange: event => vm.updateHomeServer(event.target.value),
-                    })
+                        onInput: () => vm.setHomeServer(event.target.value),
+                        onChange: event => vm.queryHomeServer(),
+                    }),
+                    t.if(vm => vm.errorMessage, (t, vm) => t.p({className: "error"}, vm.i18n(vm.errorMessage))),
                 ]
             )),
             t.if(vm => vm.isFetchingLoginOptions, t => t.div({className: "LoginView_query-spinner"}, [spinner(t), t.p("Fetching available login options...")])),

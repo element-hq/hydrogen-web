@@ -39,8 +39,9 @@ export class LoginViewModel extends ViewModel {
         this._errorMessage = "";
         this._hideHomeserver = false;
         this._isBusy = false;
-        this._isFetchingLoginOptions = false;
-        this._createViewModels(this._homeserver);
+        this._abortHomeserverQueryTimeout = null;
+        this._abortQueryOperation = null;
+        this._initViewModels();
     }
 
     get passwordLoginViewModel() { return this._passwordLoginViewModel; }
@@ -51,13 +52,13 @@ export class LoginViewModel extends ViewModel {
     get showHomeserver() { return !this._hideHomeserver; }
     get loadViewModel() {return this._loadViewModel; }
     get isBusy() { return this._isBusy; }
-    get isFetchingLoginOptions() { return this._isFetchingLoginOptions; }
+    get isFetchingLoginOptions() { return !!this._abortQueryOperation; }
 
     goBack() {
         this.navigation.push("session");
     }
 
-    async _createViewModels(homeserver) {
+    async _initViewModels() {
         if (this._loginToken) {
             this._hideHomeserver = true;
             this._completeSSOLoginViewModel = this.track(new CompleteSSOLoginViewModel(
@@ -70,27 +71,7 @@ export class LoginViewModel extends ViewModel {
             this.emitChange("completeSSOLoginViewModel");
         }
         else {
-            this._errorMessage = "";
-            try {
-                this._isFetchingLoginOptions = true;
-                this.emitChange("isFetchingLoginOptions");
-                this._loginOptions = await this._sessionContainer.queryLogin(homeserver);
-            }
-            catch (e) {
-                this._loginOptions = null;
-            }
-            this._isFetchingLoginOptions = false;
-            this.emitChange("isFetchingLoginOptions");
-            if (this._loginOptions) {
-                if (this._loginOptions.sso) { this._showSSOLogin(); }
-                if (this._loginOptions.password) { this._showPasswordLogin(); }
-                if (!this._loginOptions.sso && !this._loginOptions.password) {
-                    this._showError("This homeserver neither supports SSO nor Password based login flows");
-                } 
-            }
-            else {
-                this._showError("Could not query login methods supported by the homeserver");
-            }
+            await this.queryHomeServer();
         }
     }
 
@@ -175,12 +156,61 @@ export class LoginViewModel extends ViewModel {
         this.emitChange("disposeViewModels");
     }
 
-    updateHomeServer(newHomeserver) {
+    async setHomeServer(newHomeserver) {
+        this._homeserver = newHomeserver;
+        // abort ongoing query, if any
+        this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
+        this.emitChange("isFetchingLoginOptions");
+        this.disposeTracked(this._abortHomeserverQueryTimeout);
+        const timeout = this.clock.createTimeout(2000);
+        this._abortHomeserverQueryTimeout = this.track(() => timeout.abort());
+        try {
+            await timeout.elapsed();
+        } catch (err) {
+            if (err.name === "AbortError") {
+                return; // still typing, don't query
+            } else {
+                throw err;
+            }
+        }
+        this._abortHomeserverQueryTimeout = this.disposeTracked(this._abortHomeserverQueryTimeout);
+        this.queryHomeServer();
+    }
+    
+    async queryHomeServer() {
         this._errorMessage = "";
         this.emitChange("errorMessage");
-        this._homeserver = newHomeserver;
+        // if query is called before the typing timeout hits (e.g. field lost focus), cancel the timeout so we don't query again.
+        this._abortHomeserverQueryTimeout = this.disposeTracked(this._abortHomeserverQueryTimeout);
+        // cancel ongoing query operation, if any
+        this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
         this._disposeViewModels();
-        this._createViewModels(newHomeserver);
+        try {
+            const queryOperation = this._sessionContainer.queryLogin(this._homeserver);
+            this._abortQueryOperation = this.track(() => queryOperation.abort());
+            this.emitChange("isFetchingLoginOptions");
+            this._loginOptions = await queryOperation.result;
+        }
+        catch (e) {
+            if (e.name === "AbortError") {
+                return; //aborted, bail out
+            } else {
+                this._loginOptions = null;
+            }
+        } finally {
+            this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
+            this.emitChange("isFetchingLoginOptions");
+        }
+        if (this._loginOptions) {
+            if (this._loginOptions.sso) { this._showSSOLogin(); }
+            if (this._loginOptions.password) { this._showPasswordLogin(); }
+            if (!this._loginOptions.sso && !this._loginOptions.password) {
+                this._showError("This homeserver supports neither SSO nor password based login flows");
+            } 
+        }
+        else {
+            this._showError("Could not query login methods supported by the homeserver");
+        }
     }
 
     dispose() {

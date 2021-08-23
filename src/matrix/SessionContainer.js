@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {createEnum} from "../utils/enum.js";
+import {AbortableOperation} from "../utils/AbortableOperation";
 import {ObservableValue} from "../observable/ObservableValue.js";
 import {HomeServerApi} from "./net/HomeServerApi.js";
 import {Reconnector, ConnectionStatus} from "./net/Reconnector.js";
@@ -52,6 +53,7 @@ export const LoginFailure = createEnum(
     "Credentials",
     "Unknown",
 );
+
 
 export class SessionContainer {
     constructor({platform, olmPromise, workerPromise}) {
@@ -121,11 +123,13 @@ export class SessionContainer {
         return result;
     }
 
-    async queryLogin(homeServer) {
+    queryLogin(homeServer) {
         const normalizedHS = normalizeHomeserver(homeServer);
         const hsApi = new HomeServerApi({homeServer: normalizedHS, request: this._platform.request});
-        const response = await hsApi.getLoginFlows().response();
-        return this._parseLoginOptions(response, normalizedHS);
+        return new AbortableOperation(async setAbortable => {
+            const response = await setAbortable(hsApi.getLoginFlows()).response();
+            return this._parseLoginOptions(response, normalizedHS);
+        });
     }
 
     async startWithLogin(loginMethod) {
