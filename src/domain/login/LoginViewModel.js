@@ -192,7 +192,6 @@ export class LoginViewModel extends ViewModel {
             this._loginOptions = await queryOperation.result;
         }
         catch (e) {
-            console.log("error", e);
             if (e.name === "AbortError") {
                 return; //aborted, bail out
             } else {
