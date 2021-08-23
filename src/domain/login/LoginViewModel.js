@@ -158,9 +158,14 @@ export class LoginViewModel extends ViewModel {
 
     async setHomeserver(newHomeserver) {
         this._homeserver = newHomeserver;
-        // abort ongoing query, if any
+        // clear everything set by queryHomeserver
+        this._loginOptions = null;
+        this._queriedHomeserver = null;
+        this._showError("");
+        this._disposeViewModels();
         this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
-        this.emitChange("isFetchingLoginOptions");
+        this.emitChange(); // multiple fields changing
+        // also clear the timeout if it is still running
         this.disposeTracked(this._abortHomeserverQueryTimeout);
         const timeout = this.clock.createTimeout(1000);
         this._abortHomeserverQueryTimeout = this.track(() => timeout.abort());
@@ -177,14 +182,16 @@ export class LoginViewModel extends ViewModel {
         this.queryHomeserver();
     }
     
-        this._errorMessage = "";
-        this.emitChange("errorMessage");
-        // if query is called before the typing timeout hits (e.g. field lost focus), cancel the timeout so we don't query again.
     async queryHomeserver() {
+        // given that setHomeserver already clears everything set here,
+        // and that is the only way to change the homeserver,
+        // we don't need to reset things again here.
+        // However, clear things set by setHomeserver:
+        // if query is called before the typing timeout hits (e.g. field lost focus),
+        // cancel the timeout so we don't query again.
         this._abortHomeserverQueryTimeout = this.disposeTracked(this._abortHomeserverQueryTimeout);
         // cancel ongoing query operation, if any
         this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
-        this._disposeViewModels();
         try {
             const queryOperation = this._sessionContainer.queryLogin(this._homeserver);
             this._abortQueryOperation = this.track(() => queryOperation.abort());
@@ -209,7 +216,7 @@ export class LoginViewModel extends ViewModel {
             } 
         }
         else {
-            this._showError("Could not query login methods supported by the homeserver");
+            this._showError(`Could not query login methods supported by ${this.homeserver}`);
         }
     }
 
