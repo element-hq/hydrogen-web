@@ -114,7 +114,6 @@ export class LoginViewModel extends ViewModel {
     _showError(message) {
         this._errorMessage = message;
         this.emitChange("errorMessage");
-        this._errorMessage = "";
     }
 
     _toggleBusy(status) {
@@ -180,6 +179,8 @@ export class LoginViewModel extends ViewModel {
     }
 
     updateHomeServer(newHomeserver) {
+        this._errorMessage = "";
+        this.emitChange("errorMessage");
         this._homeserver = newHomeserver;
         this._disposeViewModels();
         this._createViewModels(newHomeserver);

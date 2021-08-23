@@ -37,7 +37,6 @@ export class CompleteSSOLoginViewModel extends ViewModel {
     _showError(message) {
         this._errorMessage = message;
         this.emitChange("errorMessage");
-        this._errorMessage = "";
     }
 
     async performSSOLoginCompletion() {

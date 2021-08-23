@@ -38,10 +38,11 @@ export class PasswordLoginViewModel extends ViewModel {
     _showError(message) {
         this._errorMessage = message;
         this.emitChange("errorMessage");
-        this._errorMessage = "";
     }
 
     async login(username, password) {
+        this._errorMessage = "";
+        this.emitChange("errorMessage");
         const loginMethod = this._loginOptions.password(username, password);
         const status = await this._attemptLogin(loginMethod);
         let error = "";
