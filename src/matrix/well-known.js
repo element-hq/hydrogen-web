@@ -32,28 +32,35 @@ function getRetryHomeserver(homeserver) {
     }
 }
 
-export async function lookupHomeserver(homeserver, request) {
-    homeserver = normalizeHomeserver(homeserver);
+async function getWellKnownResponse(homeserver, request) {
     const requestOptions = {format: "json", timeout: 30000, method: "GET"};
     let wellKnownResponse = null;
     while (!wellKnownResponse) {
         try {
             const wellKnownUrl = `${homeserver}/.well-known/matrix/client`;
-            wellKnownResponse = await request(wellKnownUrl, requestOptions).response();
+            return await request(wellKnownUrl, requestOptions).response();
         } catch (err) {
             if (err.name === "ConnectionError") {
                 const retryHS = getRetryHomeserver(homeserver);
                 if (retryHS) {
                     homeserver = retryHS;
                 } else {
-                    throw err;
+                    // don't fail lookup on a ConnectionError,
+                    // there might be a missing CORS header on a 404 response or something,
+                    // which won't be a problem necessarily with homeserver requests later on ...
+                    return null;
                 }
             } else {
                 throw err;
             }
         }
     }
-    if (wellKnownResponse.status === 200) {
+}
+
+export async function lookupHomeserver(homeserver, request) {
+    homeserver = normalizeHomeserver(homeserver);
+    const wellKnownResponse = await getWellKnownResponse(homeserver, request);
+    if (wellKnownResponse && wellKnownResponse.status === 200) {
         const {body} = wellKnownResponse;
         const wellKnownHomeserver = body["m.homeserver"]?.["base_url"];
         if (typeof wellKnownHomeserver === "string") {
