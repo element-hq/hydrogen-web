@@ -49,7 +49,7 @@ export class LoginView extends TemplateView {
                     t.p({className: {
                         LoginView_forwardInfo: true,
                         hidden: vm => !vm.forwardedHomeserver
-                    }}, vm => vm.i18n`${vm.homeserver} forwards to ${vm.forwardedHomeserver}.`),
+                    }}, vm => vm.i18n`You will connect to ${vm.forwardedHomeserver}.`),
                     t.if(vm => vm.errorMessage, (t, vm) => t.p({className: "error"}, vm.i18n(vm.errorMessage))),
                 ]
             )),
