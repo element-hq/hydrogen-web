@@ -25,8 +25,8 @@ export class StartSSOLoginViewModel extends ViewModel{
    
     get isBusy() { return this._isBusy; }
     
-    toggleBusy(state) {
-        this._isBusy = state;
+    toggleBusy() {
+        this._isBusy = !this._isBusy;
         this.emitChange("isBusy");
     }
 
