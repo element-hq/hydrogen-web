@@ -162,7 +162,7 @@ export class LoginViewModel extends ViewModel {
         this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
         this.emitChange("isFetchingLoginOptions");
         this.disposeTracked(this._abortHomeserverQueryTimeout);
-        const timeout = this.clock.createTimeout(2000);
+        const timeout = this.clock.createTimeout(1000);
         this._abortHomeserverQueryTimeout = this.track(() => timeout.abort());
         try {
             await timeout.elapsed();
