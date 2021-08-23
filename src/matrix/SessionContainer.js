@@ -130,7 +130,9 @@ export class SessionContainer {
 
     async startWithLogin(loginMethod) {
         const currentStatus = this._status.get();
-        if (currentStatus !== LoadStatus.LoginFailed && currentStatus !== LoadStatus.NotLoading) {
+        if (currentStatus !== LoadStatus.LoginFailed &&
+            currentStatus !== LoadStatus.NotLoading &&
+            currentStatus !== LoadStatus.Error) {
             return;
         }
         this._resetStatus();
