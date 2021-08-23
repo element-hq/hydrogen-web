@@ -19,10 +19,10 @@ import {encodeQueryParams, encodeBody} from "./common.js";
 import {HomeServerRequest} from "./HomeServerRequest.js";
 
 export class HomeServerApi {
-    constructor({homeServer, accessToken, request, reconnector}) {
+    constructor({homeserver, accessToken, request, reconnector}) {
         // store these both in a closure somehow so it's harder to get at in case of XSS?
         // one could change the homeserver as well so the token gets sent there, so both must be protected from read/write
-        this._homeserver = homeServer;
+        this._homeserver = homeserver;
         this._accessToken = accessToken;
         this._requestFn = request;
         this._reconnector = reconnector;
@@ -234,7 +234,7 @@ export function tests() {
         "superficial happy path for GET": async assert => {
             const hsApi = new HomeServerApi({
                 request: () => new MockRequest().respond(200, 42),
-                homeServer: "https://hs.tld"
+                homeserver: "https://hs.tld"
             });
             const result = await hsApi._get("foo", null, null, null).response();
             assert.strictEqual(result, 42);

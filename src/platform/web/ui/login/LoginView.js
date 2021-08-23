@@ -43,9 +43,13 @@ export class LoginView extends TemplateView {
                         placeholder: vm.i18n`Your matrix homeserver`,
                         value: vm.homeserver,
                         disabled,
-                        onInput: () => vm.setHomeServer(event.target.value),
-                        onChange: event => vm.queryHomeServer(),
+                        onInput: event => vm.setHomeserver(event.target.value),
+                        onChange: () => vm.queryHomeserver(),
                     }),
+                    t.p({className: {
+                        LoginView_forwardInfo: true,
+                        hidden: vm => !vm.resolvedHomeserver
+                    }}, vm => vm.i18n`You will connect to ${vm.resolvedHomeserver}.`),
                     t.if(vm => vm.errorMessage, (t, vm) => t.p({className: "error"}, vm.i18n(vm.errorMessage))),
                 ]
             )),

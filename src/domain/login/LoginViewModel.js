@@ -24,7 +24,7 @@ import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
 export class LoginViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {ready, defaultHomeServer, createSessionContainer, loginToken} = options;
+        const {ready, defaultHomeserver, createSessionContainer, loginToken} = options;
         this._createSessionContainer = createSessionContainer;
         this._ready = ready;
         this._loginToken = loginToken;
@@ -35,7 +35,8 @@ export class LoginViewModel extends ViewModel {
         this._completeSSOLoginViewModel = null;
         this._loadViewModel = null;
         this._loadViewModelSubscription = null;
-        this._homeserver = defaultHomeServer;
+        this._homeserver = defaultHomeserver;
+        this._queriedHomeserver = null;
         this._errorMessage = "";
         this._hideHomeserver = false;
         this._isBusy = false;
@@ -48,6 +49,7 @@ export class LoginViewModel extends ViewModel {
     get startSSOLoginViewModel() { return this._startSSOLoginViewModel; }
     get completeSSOLoginViewModel(){ return this._completeSSOLoginViewModel; }
     get homeserver() { return this._homeserver; }
+    get resolvedHomeserver() { return this._loginOptions?.homeserver; }
     get errorMessage() { return this._errorMessage; }
     get showHomeserver() { return !this._hideHomeserver; }
     get loadViewModel() {return this._loadViewModel; }
@@ -71,7 +73,7 @@ export class LoginViewModel extends ViewModel {
             this.emitChange("completeSSOLoginViewModel");
         }
         else {
-            await this.queryHomeServer();
+            await this.queryHomeserver();
         }
     }
 
@@ -156,13 +158,18 @@ export class LoginViewModel extends ViewModel {
         this.emitChange("disposeViewModels");
     }
 
-    async setHomeServer(newHomeserver) {
+    async setHomeserver(newHomeserver) {
         this._homeserver = newHomeserver;
-        // abort ongoing query, if any
+        // clear everything set by queryHomeserver
+        this._loginOptions = null;
+        this._queriedHomeserver = null;
+        this._showError("");
+        this._disposeViewModels();
         this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
-        this.emitChange("isFetchingLoginOptions");
+        this.emitChange(); // multiple fields changing
+        // also clear the timeout if it is still running
         this.disposeTracked(this._abortHomeserverQueryTimeout);
-        const timeout = this.clock.createTimeout(2000);
+        const timeout = this.clock.createTimeout(1000);
         this._abortHomeserverQueryTimeout = this.track(() => timeout.abort());
         try {
             await timeout.elapsed();
@@ -174,22 +181,30 @@ export class LoginViewModel extends ViewModel {
             }
         }
         this._abortHomeserverQueryTimeout = this.disposeTracked(this._abortHomeserverQueryTimeout);
-        this.queryHomeServer();
+        this.queryHomeserver();
     }
     
-    async queryHomeServer() {
-        this._errorMessage = "";
-        this.emitChange("errorMessage");
-        // if query is called before the typing timeout hits (e.g. field lost focus), cancel the timeout so we don't query again.
+    async queryHomeserver() {
+        // don't repeat a query we've just done
+        if (this._homeserver === this._queriedHomeserver || this._homeserver === "") {
+            return;
+        }
+        this._queriedHomeserver = this._homeserver;
+        // given that setHomeserver already clears everything set here,
+        // and that is the only way to change the homeserver,
+        // we don't need to reset things again here.
+        // However, clear things set by setHomeserver:
+        // if query is called before the typing timeout hits (e.g. field lost focus),
+        // cancel the timeout so we don't query again.
         this._abortHomeserverQueryTimeout = this.disposeTracked(this._abortHomeserverQueryTimeout);
         // cancel ongoing query operation, if any
         this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
-        this._disposeViewModels();
         try {
             const queryOperation = this._sessionContainer.queryLogin(this._homeserver);
             this._abortQueryOperation = this.track(() => queryOperation.abort());
             this.emitChange("isFetchingLoginOptions");
             this._loginOptions = await queryOperation.result;
+            this.emitChange("resolvedHomeserver");
         }
         catch (e) {
             if (e.name === "AbortError") {
@@ -209,7 +224,7 @@ export class LoginViewModel extends ViewModel {
             } 
         }
         else {
-            this._showError("Could not query login methods supported by the homeserver");
+            this._showError(`Could not query login methods supported by ${this.homeserver}`);
         }
     }
 

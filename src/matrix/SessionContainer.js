@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020, 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,6 +16,7 @@ limitations under the License.
 */
 
 import {createEnum} from "../utils/enum.js";
+import {lookupHomeserver} from "./well-known.js";
 import {AbortableOperation} from "../utils/AbortableOperation";
 import {ObservableValue} from "../observable/ObservableValue.js";
 import {HomeServerApi} from "./net/HomeServerApi.js";
@@ -27,14 +29,6 @@ import {Session} from "./Session.js";
 import {PasswordLoginMethod} from "./login/PasswordLoginMethod.js";
 import {TokenLoginMethod} from "./login/TokenLoginMethod.js";
 import {SSOLoginHelper} from "./login/SSOLoginHelper.js";
-
-function normalizeHomeserver(homeServer) {
-    try {
-        return new URL(homeServer).origin;
-    } catch (err) {
-        return new URL(`https://${homeServer}`).origin;
-    }
-}
 
 export const LoadStatus = createEnum(
     "NotLoading",
@@ -53,7 +47,6 @@ export const LoginFailure = createEnum(
     "Credentials",
     "Unknown",
 );
-
 
 export class SessionContainer {
     constructor({platform, olmPromise, workerPromise}) {
@@ -102,33 +95,35 @@ export class SessionContainer {
         });
     }
 
-    _parseLoginOptions(options, homeServer) {
+    _parseLoginOptions(options, homeserver) {
         /*
         Take server response and return new object which has two props password and sso which
         implements LoginMethod
         */
         const flows = options.flows;
-        const result = {};
+        const result = {homeserver};
         for (const flow of flows) {
             if (flow.type === "m.login.password") {
-                result.password = (username, password) => new PasswordLoginMethod({homeServer, username, password});
+                result.password = (username, password) => new PasswordLoginMethod({homeserver, username, password});
             }
             else if (flow.type === "m.login.sso" && flows.find(flow => flow.type === "m.login.token")) {
-                result.sso = new SSOLoginHelper(homeServer);
+                result.sso = new SSOLoginHelper(homeserver);
             }
             else if (flow.type === "m.login.token") {
-                result.token = loginToken => new TokenLoginMethod({homeServer, loginToken});
+                result.token = loginToken => new TokenLoginMethod({homeserver, loginToken});
             }
         }
         return result;
     }
 
-    queryLogin(homeServer) {
-        const normalizedHS = normalizeHomeserver(homeServer);
-        const hsApi = new HomeServerApi({homeServer: normalizedHS, request: this._platform.request});
+    queryLogin(homeserver) {
         return new AbortableOperation(async setAbortable => {
+            homeserver = await lookupHomeserver(homeserver, (url, options) => {
+                return setAbortable(this._platform.request(url, options));
+            });
+            const hsApi = new HomeServerApi({homeserver, request: this._platform.request});
             const response = await setAbortable(hsApi.getLoginFlows()).response();
-            return this._parseLoginOptions(response, normalizedHS);
+            return this._parseLoginOptions(response, homeserver);
         });
     }
 
@@ -146,14 +141,15 @@ export class SessionContainer {
             let sessionInfo;
             try {
                 const request = this._platform.request;
-                const hsApi = new HomeServerApi({homeServer: loginMethod.homeServer, request});
+                const hsApi = new HomeServerApi({homeserver: loginMethod.homeserver, request});
                 const loginData = await loginMethod.login(hsApi, "Hydrogen", log);
                 const sessionId = this.createNewSessionId();
                 sessionInfo = {
                     id: sessionId,
                     deviceId: loginData.device_id,
                     userId: loginData.user_id,
-                    homeServer: loginMethod.homeServer,
+                    homeServer: loginMethod.homeserver, // deprecate this over time
+                    homeserver: loginMethod.homeserver,
                     accessToken: loginData.access_token,
                     lastUsed: clock.now()
                 };
@@ -202,7 +198,7 @@ export class SessionContainer {
             createMeasure: clock.createMeasure
         });
         const hsApi = new HomeServerApi({
-            homeServer: sessionInfo.homeServer,
+            homeserver: sessionInfo.homeServer,
             accessToken: sessionInfo.accessToken,
             request: this._platform.request,
             reconnector: this._reconnector,
@@ -214,7 +210,7 @@ export class SessionContainer {
             id: sessionInfo.id,
             deviceId: sessionInfo.deviceId,
             userId: sessionInfo.userId,
-            homeServer: sessionInfo.homeServer,
+            homeserver: sessionInfo.homeServer,
         };
         const olm = await this._olmPromise;
         let olmWorker = null;
@@ -224,7 +220,7 @@ export class SessionContainer {
         this._requestScheduler = new RequestScheduler({hsApi, clock});
         this._requestScheduler.start();
         const mediaRepository = new MediaRepository({
-            homeServer: sessionInfo.homeServer,
+            homeserver: sessionInfo.homeServer,
             platform: this._platform,
         });
         this._session = new Session({

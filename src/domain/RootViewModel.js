@@ -105,7 +105,7 @@ export class RootViewModel extends ViewModel {
     _showLogin(loginToken) {
         this._setSection(() => {
             this._loginViewModel = new LoginViewModel(this.childOptions({
-                defaultHomeServer: this.platform.config["defaultHomeServer"],
+                defaultHomeserver: this.platform.config["defaultHomeServer"],
                 createSessionContainer: this._createSessionContainer,
                 ready: sessionContainer => {
                     // we don't want to load the session container again,
