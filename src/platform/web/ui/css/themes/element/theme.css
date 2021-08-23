@@ -161,11 +161,6 @@ a.button-action {
     background-image: url('icons/disable-grid.svg');
 }
 
-.error {
-    color: #f00;
-    font-weight: 600;
-}
-
 .FilterField {
     background-image: url('icons/search.svg');
     background-repeat: no-repeat;
