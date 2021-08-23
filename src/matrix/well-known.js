@@ -22,37 +22,19 @@ function normalizeHomeserver(homeserver) {
     }
 }
 
-function getRetryHomeserver(homeserver) {
-    const url = new URL(homeserver);
-    const {host} = url;
-    const dotCount = host.split(".").length - 1;
-    if (dotCount === 1) {
-        url.host = `www.${host}`;
-        return url.origin;
-    }
-}
-
 async function getWellKnownResponse(homeserver, request) {
     const requestOptions = {format: "json", timeout: 30000, method: "GET"};
-    let wellKnownResponse = null;
-    while (!wellKnownResponse) {
-        try {
-            const wellKnownUrl = `${homeserver}/.well-known/matrix/client`;
-            return await request(wellKnownUrl, requestOptions).response();
-        } catch (err) {
-            if (err.name === "ConnectionError") {
-                const retryHS = getRetryHomeserver(homeserver);
-                if (retryHS) {
-                    homeserver = retryHS;
-                } else {
-                    // don't fail lookup on a ConnectionError,
-                    // there might be a missing CORS header on a 404 response or something,
-                    // which won't be a problem necessarily with homeserver requests later on ...
-                    return null;
-                }
-            } else {
-                throw err;
-            }
+    try {
+        const wellKnownUrl = `${homeserver}/.well-known/matrix/client`;
+        return await request(wellKnownUrl, requestOptions).response();
+    } catch (err) {
+        if (err.name === "ConnectionError") {
+            // don't fail lookup on a ConnectionError,
+            // there might be a missing CORS header on a 404 response or something,
+            // which won't be a problem necessarily with homeserver requests later on ...
+            return null;
+        } else {
+            throw err;
         }
     }
 }
