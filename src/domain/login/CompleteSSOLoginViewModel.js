@@ -44,7 +44,14 @@ export class CompleteSSOLoginViewModel extends ViewModel {
             return;
         }
         const homeserver = await this.platform.settingsStorage.getString("sso_ongoing_login_homeserver");
-        const loginOptions = await this._sessionContainer.queryLogin(homeserver);
+        let loginOptions;
+        try {
+            loginOptions = await this._sessionContainer.queryLogin(homeserver);
+        }
+        catch (err) {
+            this._showError(err.message);
+            return;
+        }
         if (!loginOptions.token) {
             const path = this.navigation.pathFrom([this.navigation.segment("session")]);
             this.navigation.applyPath(path);
