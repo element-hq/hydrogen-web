@@ -156,7 +156,7 @@ export class LoginViewModel extends ViewModel {
         this.emitChange("disposeViewModels");
     }
 
-    async setHomeServerInput(newHomeserver) {
+    async setHomeServer(newHomeserver) {
         this._homeserver = newHomeserver;
         // abort ongoing query, if any
         this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
