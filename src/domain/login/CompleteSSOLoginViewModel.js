@@ -53,8 +53,7 @@ export class CompleteSSOLoginViewModel extends ViewModel {
             return;
         }
         if (!loginOptions.token) {
-            const path = this.navigation.pathFrom([this.navigation.segment("session")]);
-            this.navigation.applyPath(path);
+            this.navigation.push("session");
             return;
         }
         const status = await this._attemptLogin(loginOptions.token(this._loginToken));
