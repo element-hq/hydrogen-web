@@ -23,6 +23,17 @@ import {MediaRepository} from "./net/MediaRepository.js";
 import {RequestScheduler} from "./net/RequestScheduler.js";
 import {Sync, SyncStatus} from "./Sync.js";
 import {Session} from "./Session.js";
+import {PasswordLoginMethod} from "./login/PasswordLoginMethod.js";
+import {TokenLoginMethod} from "./login/TokenLoginMethod.js";
+import {SSOLoginHelper} from "./login/SSOLoginHelper.js";
+
+function normalizeHomeserver(homeServer) {
+    try {
+        return new URL(homeServer).origin;
+    } catch (err) {
+        return new URL(`https://${homeServer}`).origin;
+    }
+}
 
 export const LoadStatus = createEnum(
     "NotLoading",
@@ -41,14 +52,6 @@ export const LoginFailure = createEnum(
     "Credentials",
     "Unknown",
 );
-
-function normalizeHomeserver(homeServer) {
-    try {
-        return new URL(homeServer).origin;
-    } catch (err) {
-        return new URL(`https://${homeServer}`).origin;
-    }
-}
 
 export class SessionContainer {
     constructor({platform, olmPromise, workerPromise}) {
@@ -97,25 +100,56 @@ export class SessionContainer {
         });
     }
 
-    async startWithLogin(homeServer, username, password) {
-        if (this._status.get() !== LoadStatus.NotLoading) {
+    _parseLoginOptions(options, homeServer) {
+        /*
+        Take server response and return new object which has two props password and sso which
+        implements LoginMethod
+        */
+        const flows = options.flows;
+        const result = {};
+        for (const flow of flows) {
+            if (flow.type === "m.login.password") {
+                result.password = (username, password) => new PasswordLoginMethod({homeServer, username, password});
+            }
+            else if (flow.type === "m.login.sso" && flows.find(flow => flow.type === "m.login.token")) {
+                result.sso = new SSOLoginHelper(homeServer);
+            }
+            else if (flow.type === "m.login.token") {
+                result.token = loginToken => new TokenLoginMethod({homeServer, loginToken});
+            }
+        }
+        return result;
+    }
+
+    async queryLogin(homeServer) {
+        const normalizedHS = normalizeHomeserver(homeServer);
+        const hsApi = new HomeServerApi({homeServer: normalizedHS, request: this._platform.request});
+        const response = await hsApi.getLoginFlows().response();
+        return this._parseLoginOptions(response, normalizedHS);
+    }
+
+    async startWithLogin(loginMethod) {
+        const currentStatus = this._status.get();
+        if (currentStatus !== LoadStatus.LoginFailed &&
+            currentStatus !== LoadStatus.NotLoading &&
+            currentStatus !== LoadStatus.Error) {
             return;
         }
+        this._resetStatus();
         await this._platform.logger.run("login", async log => {
             this._status.set(LoadStatus.Login);
-            homeServer = normalizeHomeserver(homeServer);
             const clock = this._platform.clock;
             let sessionInfo;
             try {
                 const request = this._platform.request;
-                const hsApi = new HomeServerApi({homeServer, request});
-                const loginData = await hsApi.passwordLogin(username, password, "Hydrogen", {log}).response();
+                const hsApi = new HomeServerApi({homeServer: loginMethod.homeServer, request});
+                const loginData = await loginMethod.login(hsApi, "Hydrogen", log);
                 const sessionId = this.createNewSessionId();
                 sessionInfo = {
                     id: sessionId,
                     deviceId: loginData.device_id,
                     userId: loginData.user_id,
-                    homeServer: homeServer,
+                    homeServer: loginMethod.homeServer,
                     accessToken: loginData.access_token,
                     lastUsed: clock.now()
                 };
@@ -270,6 +304,10 @@ export class SessionContainer {
         return this._error;
     }
 
+    get loginFailure() {
+        return this._loginFailure;
+    }
+
     /** only set at loadStatus InitialSync, CatchupSync or Ready */
     get sync() {
         return this._sync;
@@ -318,5 +356,11 @@ export class SessionContainer {
             ]);
             this._sessionId = null;
         }
+    }
+
+    _resetStatus() {
+        this._status.set(LoadStatus.NotLoading);
+        this._error = null;
+        this._loginFailure = null;
     }
 }

@@ -134,6 +134,10 @@ export class HomeServerApi {
         return this._get(`/rooms/${encodeURIComponent(roomId)}/state/${encodeURIComponent(eventType)}/${encodeURIComponent(stateKey)}`, {}, null, options);
     }
 
+    getLoginFlows() {
+        return this._unauthedRequest("GET", this._url("/login"), null, null, null);
+    }
+
     passwordLogin(username, password, initialDeviceDisplayName, options = null) {
         return this._unauthedRequest("POST", this._url("/login"), null, {
           "type": "m.login.password",
@@ -142,6 +146,18 @@ export class HomeServerApi {
             "user": username
           },
           "password": password,
+          "initial_device_display_name": initialDeviceDisplayName
+        }, options);
+    }
+
+    tokenLogin(loginToken, txnId, initialDeviceDisplayName, options = null) {
+        return this._unauthedRequest("POST", this._url("/login"), null, {
+          "type": "m.login.token",
+          "identifier": {
+            "type": "m.id.user",
+          },
+          "token": loginToken,
+          "txn_id": txnId,
           "initial_device_display_name": initialDeviceDisplayName
         }, options);
     }

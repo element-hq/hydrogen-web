@@ -240,6 +240,10 @@ export class Platform {
         return promise;
     }
 
+    openUrl(url) {
+        location.href = url;
+    }
+
     parseHTML(html) {
         return parseHTML(html);
     }

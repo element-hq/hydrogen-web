@@ -25,6 +25,14 @@ export class History extends BaseObservableValue {
     }
 
     get() {
+        /*
+        All URLS in Hydrogen will use <root>/#/segment/value/...
+        But for SSO, we need to handle <root>/?loginToken=<TOKEN>
+        Handle that as a special case for now.
+        */
+        if (document.location.search.includes("loginToken")) {
+            return document.location.search;
+        }
         return document.location.hash;
     }
 
