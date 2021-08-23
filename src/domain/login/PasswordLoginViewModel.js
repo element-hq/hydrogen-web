@@ -30,8 +30,8 @@ export class PasswordLoginViewModel extends ViewModel {
     get isBusy() { return this._isBusy; }
     get errorMessage() { return this._errorMessage; }
 
-    toggleBusy() {
-        this._isBusy = !this._isBusy;
+    setBusy(status) {
+        this._isBusy = status;
         this.emitChange("isBusy");
     }
 

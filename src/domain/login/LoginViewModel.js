@@ -115,20 +115,20 @@ export class LoginViewModel extends ViewModel {
         this.emitChange("errorMessage");
     }
 
-    _toggleBusy() {
-        this._isBusy = !this._isBusy;
-        this._passwordLoginViewModel?.toggleBusy();
-        this._startSSOLoginViewModel?.toggleBusy();
+    _setBusy(status) {
+        this._isBusy = status;
+        this._passwordLoginViewModel?.setBusy(status);
+        this._startSSOLoginViewModel?.setBusy(status);
         this.emitChange("isBusy");
     }
 
     async attemptLogin(loginMethod) {
-        this._toggleBusy();
+        this._setBusy(true);
         this._sessionContainer.startWithLogin(loginMethod);
         const loadStatus = this._sessionContainer.loadStatus;
         const handle = loadStatus.waitFor(status => status !== LoadStatus.Login);
         await handle.promise;
-        this._toggleBusy();
+        this._setBusy(false);
         const status = loadStatus.get();
         if (status === LoadStatus.LoginFailed) {
             return this._sessionContainer.loginFailure;
@@ -163,7 +163,7 @@ export class LoginViewModel extends ViewModel {
                 if (!this._loadViewModel.loading) {
                     this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
                 }
-                this._toggleBusy(false);
+                this._setBusy(false);
             })
         );
     }
