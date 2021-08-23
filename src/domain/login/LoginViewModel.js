@@ -49,6 +49,7 @@ export class LoginViewModel extends ViewModel {
     get startSSOLoginViewModel() { return this._startSSOLoginViewModel; }
     get completeSSOLoginViewModel(){ return this._completeSSOLoginViewModel; }
     get homeserver() { return this._homeserver; }
+    get forwardedHomeserver() { return this._loginOptions?.homeserver; }
     get errorMessage() { return this._errorMessage; }
     get showHomeserver() { return !this._hideHomeserver; }
     get loadViewModel() {return this._loadViewModel; }
@@ -203,6 +204,7 @@ export class LoginViewModel extends ViewModel {
             this._abortQueryOperation = this.track(() => queryOperation.abort());
             this.emitChange("isFetchingLoginOptions");
             this._loginOptions = await queryOperation.result;
+            this.emitChange("forwardedHomeserver");
         }
         catch (e) {
             if (e.name === "AbortError") {

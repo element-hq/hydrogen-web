@@ -238,6 +238,12 @@ a.button-action {
     font-size: 1.5rem;
 }
 
+.LoginView_forwardInfo {
+    font-size: 0.9em;
+    margin-left: 1em;
+    color: #777;
+}
+
 .CompleteSSOView_title {
     font-weight: 500;
 }
