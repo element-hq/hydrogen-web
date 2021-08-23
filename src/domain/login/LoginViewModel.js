@@ -54,8 +54,7 @@ export class LoginViewModel extends ViewModel {
     get isFetchingLoginOptions() { return this._isFetchingLoginOptions; }
 
     goBack() {
-        const path = this.navigation.pathFrom([this.navigation.segment("session")]);
-        this.navigation.applyPath(path);
+        this.navigation.push("session");
     }
 
     async _createViewModels(homeserver) {
