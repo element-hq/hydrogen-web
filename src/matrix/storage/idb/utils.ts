@@ -144,9 +144,7 @@ export function txnAsPromise(txn): Promise<void> {
  * Thus, when a value is available (an `IDBCursorWithValue` is given), we require a function `(T) => ...`, and when it is not, we require
  * a function `(undefined) => ...`.
  */
-type CursorIterator<T, I extends IDBCursor> = I extends IDBCursorWithValue ?
-    (value: T, key: IDBValidKey, cursor: IDBCursorWithValue) => { done: boolean, jumpTo?: IDBValidKey } :
-    (value: undefined, key: IDBValidKey, cursor: IDBCursor) => { done: boolean, jumpTo?: IDBValidKey }
+type CursorIterator<T, I extends IDBCursor> = (value: I extends IDBCursorWithValue ? T : undefined, key: IDBValidKey, cursor: I) => { done: boolean, jumpTo?: IDBValidKey }
 
 export function iterateCursor<T, I extends IDBCursor = IDBCursorWithValue>(cursorRequest: IDBRequest<I | null>, processValue: CursorIterator<T, I>): Promise<boolean> {
     // TODO: does cursor already have a value here??
