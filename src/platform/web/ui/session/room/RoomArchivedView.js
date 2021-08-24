@@ -17,7 +17,7 @@ limitations under the License.
 import {TemplateView} from "../../general/TemplateView.js";
 
 export class RoomArchivedView extends TemplateView {
-    render(t, vm) {
+    render(t) {
         return t.div({className: "RoomArchivedView"}, t.h3(vm => vm.description));
     }
 }

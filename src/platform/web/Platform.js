@@ -221,7 +221,7 @@ export class Platform {
         if (mimeType) {
             input.setAttribute("accept", mimeType);
         }
-        const promise = new Promise((resolve, reject) => {
+        const promise = new Promise(resolve => {
             const checkFile = () => {
                 input.removeEventListener("change", checkFile, true);
                 const file = input.files[0];

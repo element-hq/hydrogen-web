@@ -17,7 +17,6 @@ limitations under the License.
 import {TemplateView} from "../../general/TemplateView.js";
 import {Popup} from "../../general/Popup.js";
 import {Menu} from "../../general/Menu.js";
-import {TextMessageView} from "./timeline/TextMessageView.js";
 import {viewClassForEntry} from "./TimelineList.js"
 
 export class MessageComposer extends TemplateView {

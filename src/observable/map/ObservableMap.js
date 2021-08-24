@@ -156,7 +156,7 @@ export function tests() {
                     assert.equal(key, 1);
                     assert.deepEqual(value, {value: 5}); 
                 },
-                onUpdate(key, value, params) {
+                onUpdate(key, value/*, params*/) {
                     update_fired += 1;
                     assert.equal(key, 1);
                     assert.deepEqual(value, {value: 7}); 

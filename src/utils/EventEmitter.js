@@ -55,9 +55,9 @@ export class EventEmitter {
         }
     }
 
-    onFirstSubscriptionAdded(name) {}
+    onFirstSubscriptionAdded(/* name */) {}
 
-    onLastSubscriptionRemoved(name) {}
+    onLastSubscriptionRemoved(/* name */) {}
 }
 
 export function tests() {

@@ -121,7 +121,7 @@ export class ListView {
         this.onListChanged();
     }
 
-    onRemove(idx, _value) {
+    onRemove(idx/*, _value*/) {
         this.onBeforeListChanged();
         const [child] = this._childInstances.splice(idx, 1);
         child.root().remove();
@@ -129,7 +129,7 @@ export class ListView {
         this.onListChanged();
     }
 
-    onMove(fromIdx, toIdx, value) {
+    onMove(fromIdx, toIdx/*, value*/) {
         this.onBeforeListChanged();
         const [child] = this._childInstances.splice(fromIdx, 1);
         this._childInstances.splice(toIdx, 0, child);
