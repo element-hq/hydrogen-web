@@ -42,7 +42,7 @@ export class MappedMap extends BaseObservableMap {
         this.emitAdd(key, mappedValue);
     }
 
-    onRemove(key, _value) {
+    onRemove(key/*, _value*/) {
         const mappedValue = this._mappedValues.get(key);
         if (this._mappedValues.delete(key)) {
             this.emitRemove(key, mappedValue);
