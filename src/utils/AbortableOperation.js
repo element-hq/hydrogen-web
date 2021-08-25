@@ -14,17 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-interface IAbortable {
-    abort();
-}
-
-type RunFn<T> = (setAbortable: (a: IAbortable) => typeof a) => T;
-
-export class AbortableOperation<T> {
-    public readonly result: T;
-    private _abortable: IAbortable | null;
-
-    constructor(run: RunFn<T>) {
+export class AbortableOperation {
+    constructor(run) {
         this._abortable = null;
         const setAbortable = abortable => {
             this._abortable = abortable;

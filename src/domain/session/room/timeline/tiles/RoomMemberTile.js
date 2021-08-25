@@ -36,7 +36,7 @@ export class RoomMemberTile extends SimpleTile {
                 if (!content.displayname) {
                     return `${stateKey} removed their name (${prevContent.displayname})`;
                 }
-                return `${prevContent.displayname ?? stateKey} changed their name to ${content.displayname}`; 
+                return `${prevContent.displayname ? prevContent.displayname : stateKey} changed their name to ${content.displayname}`; 
             }
         } else if (membership === "join") {
             return `${targetName} joined the room`;

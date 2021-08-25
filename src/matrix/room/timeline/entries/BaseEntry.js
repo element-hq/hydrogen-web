@@ -18,21 +18,9 @@ limitations under the License.
 import {EventKey} from "../EventKey.js";
 export const PENDING_FRAGMENT_ID = Number.MAX_SAFE_INTEGER;
 
-interface FragmentIdComparer {
-    compare: (a: number, b: number) => number
-}
+export class BaseEntry {
 
-export abstract class BaseEntry {
-    constructor(
-        protected readonly _fragmentIdComparer: FragmentIdComparer
-    ) {
-    }
-
-    abstract get fragmentId(): number;
-    abstract get entryIndex(): number;
-    abstract updateFrom(other: BaseEntry): void;
-
-    compare(otherEntry: BaseEntry): number {
+    compare(otherEntry) {
         if (this.fragmentId === otherEntry.fragmentId) {
             return this.entryIndex - otherEntry.entryIndex;
         } else if (this.fragmentId === PENDING_FRAGMENT_ID) {
@@ -45,7 +33,7 @@ export abstract class BaseEntry {
         }
     }
 
-    asEventKey(): EventKey {
+    asEventKey() {
         return new EventKey(this.fragmentId, this.entryIndex);
     }
 }
