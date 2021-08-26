@@ -243,6 +243,17 @@ export function tests() {
             assert.equal(change.member.membership, "join");
             assert.equal(txn.members.get(alice).displayName, "Alice");
         },
+        "new join through both timeline and state": async assert => {
+            const writer = new MemberWriter(roomId);
+            const txn = createStorage();
+            const aliceJoin = createMemberEvent("join", alice, "Alice");
+            const change = await writer.writeStateMemberEvent(aliceJoin, false, txn);
+            assert(!change.hasJoined);
+            assert(!change.hasLeft);
+            const timelineChange = await writer.writeTimelineMemberEvent(aliceJoin, txn);
+            assert(change.hasJoined);
+            assert(!change.hasLeft);
+        },
         "newly joined member causes a change with lookup done first": async assert => {
             const event = createMemberEvent("join", alice, "Alice");
             const writer = new MemberWriter(roomId);
