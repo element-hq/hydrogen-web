@@ -1,8 +1,10 @@
 import {iterateCursor, reqAsPromise} from "./utils.js";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/RoomMember.js";
+import {addRoomToIdentity} from "../../e2ee/DeviceTracker.js";
 import {RoomMemberStore} from "./stores/RoomMemberStore.js";
 import {SessionStore} from "./stores/SessionStore.js";
 import {encodeScopeTypeKey} from "./stores/OperationStore.js";
+import {MAX_UNICODE} from "./stores/common.js";
 
 // FUNCTIONS SHOULD ONLY BE APPENDED!!
 // the index in the array is the database version
@@ -17,6 +19,7 @@ export const schema = [
     createArchivedRoomSummaryStore,
     migrateOperationScopeIndex,
     createTimelineRelationsStore,
+    fixMissingRoomsInUserIdentities
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -141,4 +144,48 @@ async function migrateOperationScopeIndex(db, txn) {
 //v10
 function createTimelineRelationsStore(db) {
     db.createObjectStore("timelineRelations", {keyPath: "key"});
+}
+
+//v11 doesn't change the schema, but ensures all userIdentities have all the roomIds they should (see #470)
+async function fixMissingRoomsInUserIdentities(db, txn, log) {
+    const roomSummaryStore = txn.objectStore("roomSummary");
+    const trackedRoomIds = [];
+    await iterateCursor(roomSummaryStore.openCursor(), roomSummary => {
+        if (roomSummary.isTrackingMembers) {
+            trackedRoomIds.push(roomSummary.roomId);
+        }
+    });
+    const outboundGroupSessionsStore = txn.objectStore("outboundGroupSessions");
+    const userIdentitiesStore = txn.objectStore("userIdentities");
+    const roomMemberStore = txn.objectStore("roomMembers");
+    for (const roomId of trackedRoomIds) {
+        let foundMissing = false;
+        const joinedUserIds = [];
+        const memberRange = IDBKeyRange.bound(roomId, `${roomId}|${MAX_UNICODE}`, true, true);
+        await log.wrap({l: "room", id: roomId}, async log => {
+            await iterateCursor(roomMemberStore.openCursor(memberRange), member => {
+                if (member.membership === "join") {
+                    joinedUserIds.push(member.userId);
+                }
+            });
+            log.set("joinedUserIds", joinedUserIds.length);
+            for (const userId of joinedUserIds) {
+                const identity = await reqAsPromise(userIdentitiesStore.get(userId));
+                const originalRoomCount = identity?.roomIds?.length;
+                const updatedIdentity = addRoomToIdentity(identity, userId, roomId);
+                if (updatedIdentity) {
+                    log.log({l: `fixing up`, id: userId,
+                        roomsBefore: originalRoomCount, roomsAfter: updatedIdentity.roomIds.length});
+                    userIdentitiesStore.put(updatedIdentity);
+                    foundMissing = true;
+                }
+            }
+            log.set("foundMissing", foundMissing);
+            if (foundMissing) {
+                // clear outbound megolm session,
+                // so we'll create a new one on the next message that will be properly shared
+                outboundGroupSessionsStore.delete(roomId);
+            }
+        });
+    }
 }
