@@ -29,7 +29,7 @@ import { linkify } from "./linkify/linkify.js";
  */
 const basicInline = ["EM", "STRONG", "CODE", "DEL", "SPAN" ];
 const basicBlock = ["DIV", "BLOCKQUOTE"];
-const safeSchemas = ["https", "http", "ftp", "mailto", "magnet"].map(name => `${name}://`);
+const safeSchemas = ["matrix", "https", "http", "ftp", "mailto", "magnet"].map(name => `${name}:`);
 const baseUrl = 'https://matrix.to';
 const linkPrefix = `${baseUrl}/#/`;
 
