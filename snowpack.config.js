@@ -17,7 +17,6 @@ module.exports = {
     '**/scripts/**',
     '**/target/**',
     '**/prototypes/**',
-    '**/src/matrix/storage/memory/**',
     '**/src/platform/web/legacy-polyfill.js',
     '**/src/platform/web/worker/polyfill.js'
   ],

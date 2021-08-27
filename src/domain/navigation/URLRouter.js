@@ -120,4 +120,14 @@ export class URLRouter {
         const urlPath = `${this._stringifyPath(this._navigation.path.until("session"))}/open-room/${roomId}`;
         return this._history.pathAsUrl(urlPath);
     }
+
+    createSSOCallbackURL() {
+        return window.location.origin;
+    }
+
+    normalizeUrl() {
+        // Remove any queryParameters from the URL
+        // Gets rid of the loginToken after SSO
+        this._history.replaceUrlSilently(`${window.location.origin}/${window.location.hash}`);
+    }
 }

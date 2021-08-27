@@ -16,7 +16,7 @@ limitations under the License.
 
 import {SessionViewModel} from "./session/SessionViewModel.js";
 import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
-import {LoginViewModel} from "./LoginViewModel.js";
+import {LoginViewModel} from "./login/LoginViewModel.js";
 import {SessionPickerViewModel} from "./SessionPickerViewModel.js";
 import {ViewModel} from "./ViewModel.js";
 
@@ -35,12 +35,14 @@ export class RootViewModel extends ViewModel {
     async load() {
         this.track(this.navigation.observe("login").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("session").subscribe(() => this._applyNavigation()));
+        this.track(this.navigation.observe("sso").subscribe(() => this._applyNavigation()));
         this._applyNavigation(true);
     }
 
     async _applyNavigation(shouldRestoreLastUrl) {
-        const isLogin = this.navigation.observe("login").get();
-        const sessionId = this.navigation.observe("session").get();
+        const isLogin = this.navigation.path.get("login")
+        const sessionId = this.navigation.path.get("session")?.value;
+        const loginToken = this.navigation.path.get("sso")?.value;
         if (isLogin) {
             if (this.activeSection !== "login") {
                 this._showLogin();
@@ -65,7 +67,13 @@ export class RootViewModel extends ViewModel {
                     this._showSessionLoader(sessionId);
                 }
             }
-        } else {
+        } else if (loginToken) {
+            this.urlCreator.normalizeUrl();
+            if (this.activeSection !== "login") {
+                this._showLogin(loginToken);
+            }
+        }
+        else {
             try {
                 if (!(shouldRestoreLastUrl && this.urlCreator.tryRestoreLastUrl())) {
                     const sessionInfos = await this.platform.sessionInfoStorage.getAll();
@@ -94,10 +102,10 @@ export class RootViewModel extends ViewModel {
         }
     }
 
-    _showLogin() {
+    _showLogin(loginToken) {
         this._setSection(() => {
             this._loginViewModel = new LoginViewModel(this.childOptions({
-                defaultHomeServer: this.platform.config["defaultHomeServer"],
+                defaultHomeserver: this.platform.config["defaultHomeServer"],
                 createSessionContainer: this._createSessionContainer,
                 ready: sessionContainer => {
                     // we don't want to load the session container again,
@@ -111,6 +119,7 @@ export class RootViewModel extends ViewModel {
                     this._pendingSessionContainer = sessionContainer;
                     this.navigation.push("session", sessionContainer.sessionId);
                 },
+                loginToken
             }));
         });
     }
@@ -123,13 +132,11 @@ export class RootViewModel extends ViewModel {
     }
 
     _showSessionLoader(sessionId) {
+        const sessionContainer = this._createSessionContainer();
+        sessionContainer.startWithExistingSession(sessionId);
         this._setSection(() => {
             this._sessionLoadViewModel = new SessionLoadViewModel(this.childOptions({
-                createAndStartSessionContainer: () => {
-                    const sessionContainer = this._createSessionContainer();
-                    sessionContainer.startWithExistingSession(sessionId);
-                    return sessionContainer;
-                },
+                sessionContainer,
                 ready: sessionContainer => this._showSession(sessionContainer)
             }));
             this._sessionLoadViewModel.start();

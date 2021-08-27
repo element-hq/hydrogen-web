@@ -223,6 +223,31 @@ a.button-action {
     padding-top: 16px;
 }
 
+.StartSSOLoginView_button {
+    border: 1px solid #03B381;
+    border-radius: 8px;
+}
+
+.LoginView_back {
+    background-image: url("./icons/chevron-left.svg");
+    background-color: transparent;
+}
+
+.LoginView_separator {
+    font-weight: 500;
+    font-size: 1.5rem;
+}
+
+.LoginView_forwardInfo {
+    font-size: 0.9em;
+    margin-left: 1em;
+    color: #777;
+}
+
+.CompleteSSOView_title {
+    font-weight: 500;
+}
+
 @media screen and (min-width: 600px) {
     .PreSessionScreen {
         box-shadow: 0px 6px 32px rgba(0, 0, 0, 0.1);

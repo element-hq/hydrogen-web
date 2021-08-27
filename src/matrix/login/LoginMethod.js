@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,10 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../general/TemplateView.js";
+export class LoginMethod {
+    constructor({homeserver}) {
+        this.homeserver = homeserver;
+    }
 
-export class RoomArchivedView extends TemplateView {
-    render(t) {
-        return t.div({className: "RoomArchivedView"}, t.h3(vm => vm.description));
+    // eslint-disable-next-line no-unused-vars
+    async login(hsApi, deviceName, log) {
+        /*
+        Regardless of the login method, SessionContainer.startWithLogin()
+        can do SomeLoginMethod.login()
+        */
+        throw("Not Implemented");
     }
 }

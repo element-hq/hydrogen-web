@@ -43,6 +43,14 @@ export class SettingsStorage {
         return defaultValue;
     }
 
+    async setString(key, value) {
+        this._set(key, value);
+    }
+
+    async getString(key) {
+        return window.localStorage.getItem(`${this._prefix}${key}`);
+    }
+
     async remove(key) {
         window.localStorage.removeItem(`${this._prefix}${key}`);
     }

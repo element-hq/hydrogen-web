@@ -30,7 +30,7 @@ function allowsChild(parent, child) {
     switch (parent?.type) {
         case undefined:
             // allowed root segments
-            return type === "login"  || type === "session";
+            return type === "login"  || type === "session" || type === "sso";
         case "session":
             return type === "room" || type === "rooms" || type === "settings";
         case "rooms":
@@ -152,6 +152,10 @@ export function parseUrlPath(urlPath, currentNavPath, defaultSessionId) {
             const userId = iterator.next().value;
             if (!userId) { break; }
             pushRightPanelSegment(segments, type, userId);
+        } else if (type.includes("loginToken")) {
+            // Special case for SSO-login with query parameter loginToken=<token>
+            const loginToken = type.split("=").pop();
+            segments.push(new Segment("sso", loginToken));
         } else {
             // might be undefined, which will be turned into true by Segment 
             const value = iterator.next().value;
@@ -181,7 +185,8 @@ export function stringifyPath(path) {
                 }
                 break;
             case "right-panel":
-                // Ignore right-panel in url
+            case "sso":
+                // Do not put these segments in URL
                 continue;
             default:
                 urlPath += `/${segment.type}`;
@@ -227,6 +232,12 @@ export function tests() {
             ]);
             const urlPath = stringifyPath(path);
             assert.equal(urlPath, "/session/1/rooms/a,b,c/1/details");
+        },
+        "Parse loginToken query parameter into SSO segment": assert => {
+            const segments = parseUrlPath("?loginToken=a1232aSD123");
+            assert.equal(segments.length, 1);
+            assert.equal(segments[0].type, "sso");
+            assert.equal(segments[0].value, "a1232aSD123");
         },
         "parse grid url path with focused empty tile": assert => {
             const segments = parseUrlPath("/session/1/rooms/a,b,c/3");

@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,10 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../general/TemplateView.js";
+export class SSOLoginHelper{
+    constructor(homeserver) {
+        this._homeserver = homeserver;
+    }
 
-export class RoomArchivedView extends TemplateView {
-    render(t) {
-        return t.div({className: "RoomArchivedView"}, t.h3(vm => vm.description));
+    get homeserver() { return this._homeserver; }
+
+    createSSORedirectURL(returnURL) {
+        return `${this._homeserver}/_matrix/client/r0/login/sso/redirect?redirectUrl=${returnURL}`;
     }
 }

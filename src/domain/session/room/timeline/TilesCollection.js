@@ -219,7 +219,7 @@ export class TilesCollection extends BaseObservableList {
         }
     }
 
-    onMove(fromIdx, toIdx, value) {
+    onMove(/*fromIdx, toIdx, value*/) {
         // this ... cannot happen in the timeline?
         // perhaps we can use this event to support a local echo (in a different fragment)
         // to be moved to the key of the remote echo, so we don't loose state ... ?

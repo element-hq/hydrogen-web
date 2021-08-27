@@ -97,7 +97,7 @@ const formatFunction = {
     link: linkPart => tag.a({href: linkPart.url, className: "link", target: "_blank", rel: "noopener" }, renderParts(linkPart.inlines)),
     pill: renderPill,
     format: formatPart => tag[formatPart.format](renderParts(formatPart.children)),
-    rule: rulePart => tag.hr(),
+    rule: () => tag.hr(),
     list: renderList,
     image: renderImage,
     newline: () => tag.br()

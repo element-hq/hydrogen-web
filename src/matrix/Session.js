@@ -46,7 +46,7 @@ const PICKLE_KEY = "DEFAULT_KEY";
 const PUSHER_KEY = "pusher";
 
 export class Session {
-    // sessionInfo contains deviceId, userId and homeServer
+    // sessionInfo contains deviceId, userId and homeserver
     constructor({storage, hsApi, sessionInfo, olm, olmWorker, platform, mediaRepository}) {
         this._platform = platform;
         this._storage = storage;
@@ -636,7 +636,7 @@ export class Session {
         return !!pusherData;
     }
 
-    async checkPusherEnabledOnHomeServer() {
+    async checkPusherEnabledOnHomeserver() {
         const readTxn = await this._storage.readTxn([this._storage.storeNames.session]);
         const pusherData = await readTxn.session.get(PUSHER_KEY);
         if (!pusherData) {

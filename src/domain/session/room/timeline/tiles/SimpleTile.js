@@ -101,7 +101,7 @@ export class SimpleTile extends ViewModel {
 
     // return whether the tile should be removed
     // as SimpleTile only has one entry, the tile should be removed
-    removeEntry(entry) {
+    removeEntry(/*entry*/) {
         return true;
     }
 
@@ -110,12 +110,12 @@ export class SimpleTile extends ViewModel {
         return false;
     }
     // let item know it has a new sibling
-    updatePreviousSibling(prev) {
+    updatePreviousSibling(/*prev*/) {
 
     }
 
     // let item know it has a new sibling
-    updateNextSibling(next) {
+    updateNextSibling(/*next*/) {
     
     }
 
