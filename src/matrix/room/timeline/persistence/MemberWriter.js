@@ -61,7 +61,10 @@ class MemberSync {
         this._memberWriter = memberWriter;
         this._timelineEvents = timelineEvents;
         this._hasFetchedMembers = hasFetchedMembers;
-        this._newStateMembers = stateEvents && this._stateEventsToMembers(stateEvents);
+        this._newStateMembers = null;
+        if (stateEvents) {
+            this._newStateMembers = this._stateEventsToMembers(stateEvents);
+        }
     }
 
     get _roomId() {
@@ -84,11 +87,11 @@ class MemberSync {
         return members;
     }
 
-    _timelineEventsToMembers() {
+    _timelineEventsToMembers(timelineEvents) {
         let members;
         // iterate backwards to only add the last member in the timeline
-        for (let i = this._timelineEvents.length - 1; i >= 0; i--) {
-            const e = this._timelineEvents[i];
+        for (let i = timelineEvents.length - 1; i >= 0; i--) {
+            const e = timelineEvents[i];
             const userId = e.state_key;
             if (e.type === MEMBER_EVENT_TYPE && !members?.has(userId)) {
                 const member = RoomMember.fromMemberEvent(this._roomId, e);
@@ -104,9 +107,12 @@ class MemberSync {
     }
 
     async lookupMemberAtEvent(userId, event, txn) {
-        let member = this._findPrecedingMemberEventInTimeline(userId, event);
-        if (member) {
-            return member;
+        let member;
+        if (this._timelineEvents) {
+            member = this._findPrecedingMemberEventInTimeline(userId, event);
+            if (member) {
+                return member;
+            }
         }
         member = this._newStateMembers?.get(userId);
         if (member) {
@@ -117,7 +123,10 @@ class MemberSync {
 
     async write(txn) {
         const memberChanges = new Map();
-        const newTimelineMembers = this._timelineEventsToMembers();
+        let newTimelineMembers;
+        if (this._timelineEvents) {
+            newTimelineMembers = this._timelineEventsToMembers(this._timelineEvents);
+        }
         if (this._newStateMembers) {
             for (const member of this._newStateMembers.values()) {
                 if (!newTimelineMembers?.has(member.userId)) {
@@ -216,14 +225,6 @@ export function tests() {
     const roomId = "abc";
     const alice = "@alice:hs.tld";
     const avatar = "mxc://hs.tld/def";
-
-/*
-    join without previous membership
-    join during gap with hasFetchedMembers=false
-    join during gap with hasFetchedMembers=true
-    join after invite
-
-*/
 
     return {
         "new join": async assert => {
@@ -408,6 +409,13 @@ export function tests() {
             assert.equal(changes.size, 1);
             const change = changes.get(alice);
             assert(change.hasJoined);
+        },
+        "write works without event arrays": async assert => {
+            const writer = new MemberWriter(roomId);
+            const txn = createStorage();
+            const memberSync = await writer.prepareMemberSync(undefined, undefined, false);
+            const changes = await memberSync.write(txn);
+            assert.equal(changes.size, 0);
         },
     };
 }
