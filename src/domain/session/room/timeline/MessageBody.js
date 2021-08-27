@@ -1,5 +1,6 @@
 import { linkify } from "./linkify/linkify.js";
 import { getIdentifierColorNumber, avatarInitials } from "../../../avatar.js";
+import { MatrixURL } from "matrix-uri-parser";
 
 /**
  * Parse text into parts such as newline, links and text.
@@ -124,6 +125,11 @@ export class LinkPart {
     constructor(url, inlines) {
         this.url = url;
         this.inlines = inlines;
+        if (url.startsWith("matrix:")) {
+            this.matrixUrl = new MatrixURL(url);
+        } else {
+            this.matrixUrl = null;
+        }
     }
 
     get type() { return "link"; }
