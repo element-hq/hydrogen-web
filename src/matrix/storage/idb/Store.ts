@@ -36,7 +36,7 @@ class QueryTargetWrapper<T> {
 
     get keyPath(): string | string[] {
         if ("objectStore" in this._qt) {
-            return (this._qt as IDBIndex).objectStore.keyPath;
+            return this._qt.objectStore.keyPath;
         } else {
             return this._qt.keyPath;
         }

@@ -17,13 +17,31 @@ limitations under the License.
 
 import { StorageError } from "../common";
 
+function _sourceName(source: IDBIndex | IDBObjectStore): string {
+    return "objectStore" in source ?
+        `${source.objectStore.name}.${source.name}` :
+        source.name;
+}
+
+function _sourceDatabase(source: IDBIndex | IDBObjectStore): string {
+    return "objectStore" in source ?
+        source.objectStore.transaction.db.name :
+        source.transaction.db.name;
+}
+
 export class IDBError extends StorageError {
     storeName: string;
     databaseName: string;
 
-    constructor(message: string, source, cause: DOMException | null = null) {
-        const storeName = source?.name || "<unknown store>";
-        const databaseName = source?.transaction?.db?.name || "<unknown db>";
+    constructor(message: string, source: IDBIndex | IDBCursor | IDBObjectStore, cause: DOMException | null = null) {
+        let storeName: string, databaseName: string;
+        if (source instanceof IDBCursor) {
+            storeName = _sourceName(source.source);
+            databaseName = _sourceDatabase(source.source);
+        } else {
+            storeName = _sourceName(source);
+            databaseName = _sourceDatabase(source);
+        }
         let fullMessage = `${message} on ${databaseName}.${storeName}`;
         if (cause) {
             fullMessage += ": ";
@@ -52,7 +70,7 @@ export class IDBRequestError extends IDBError {
 }
 
 export class IDBRequestAttemptError extends IDBError {
-    constructor(method: string, source, cause: DOMException, params: any[]) {
+    constructor(method: string, source: IDBIndex | IDBObjectStore, cause: DOMException, params: any[]) {
         super(`${method}(${params.map(p => JSON.stringify(p)).join(", ")}) failed`, source, cause);
     }
 }
