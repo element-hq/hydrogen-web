@@ -35,15 +35,14 @@ class QueryTargetWrapper<T> {
     }
 
     get keyPath(): string | string[] {
-        if ("objectStore" in this._qt) {
-            return this._qt.objectStore.keyPath;
-        } else {
-            return this._qt.keyPath;
-        }
+        return this._qtStore.keyPath;
     }
 
     get _qtStore(): IDBObjectStore {
-        return this._qt as IDBObjectStore;
+        if ("objectStore" in this._qt) {
+            return this._qt.objectStore;
+        }
+        return this._qt;
     }
 
     supports(methodName: string): boolean {
