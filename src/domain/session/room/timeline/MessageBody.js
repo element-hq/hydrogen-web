@@ -122,14 +122,10 @@ export class PillPart {
 }
 
 export class LinkPart {
-    constructor(url, inlines) {
+    constructor(url, inlines, internal = false) {
         this.url = url;
         this.inlines = inlines;
-        if (url.startsWith("matrix:")) {
-            this.matrixUrl = new MatrixURL(url);
-        } else {
-            this.matrixUrl = null;
-        }
+        this.internal = internal;
     }
 
     get type() { return "link"; }
