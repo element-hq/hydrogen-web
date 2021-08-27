@@ -149,35 +149,37 @@ export class SyncWriter {
         const entries = [];
         const updatedEntries = [];
         // only create a fragment when we will really write an event
-        currentKey = await this._ensureLiveFragment(currentKey, entries, timeline, txn, log);
-        log.set("timelineEvents", timelineEvents.length);
-        let timelineStateEventCount = 0;
-        for(const event of timelineEvents) {
-            // store event in timeline
-            currentKey = currentKey.nextKey();
-            const storageEntry = createEventEntry(currentKey, this._roomId, event);
-            let member = await memberSync.lookupMemberAtEvent(event.sender, event, txn);
-            if (member) {
-                storageEntry.displayName = member.displayName;
-                storageEntry.avatarUrl = member.avatarUrl;
+        if (timelineEvents?.length) {
+            currentKey = await this._ensureLiveFragment(currentKey, entries, timeline, txn, log);
+            log.set("timelineEvents", timelineEvents.length);
+            let timelineStateEventCount = 0;
+            for(const event of timelineEvents) {
+                // store event in timeline
+                currentKey = currentKey.nextKey();
+                const storageEntry = createEventEntry(currentKey, this._roomId, event);
+                let member = await memberSync.lookupMemberAtEvent(event.sender, event, txn);
+                if (member) {
+                    storageEntry.displayName = member.displayName;
+                    storageEntry.avatarUrl = member.avatarUrl;
+                }
+                txn.timelineEvents.insert(storageEntry);
+                const entry = new EventEntry(storageEntry, this._fragmentIdComparer);
+                entries.push(entry);
+                const updatedRelationTargetEntries = await this._relationWriter.writeRelation(entry, txn, log);
+                if (updatedRelationTargetEntries) {
+                    updatedEntries.push(...updatedRelationTargetEntries);
+                }
+                // update state events after writing event, so for a member event,
+                // we only update the member info after having written the member event
+                // to the timeline, as we want that event to have the old profile info.
+                // member events are written prior by MemberWriter.
+                if (typeof event.state_key === "string" && event.type !== MEMBER_EVENT_TYPE) {
+                    timelineStateEventCount += 1;
+                    txn.roomState.set(this._roomId, event);
+                }
             }
-            txn.timelineEvents.insert(storageEntry);
-            const entry = new EventEntry(storageEntry, this._fragmentIdComparer);
-            entries.push(entry);
-            const updatedRelationTargetEntries = await this._relationWriter.writeRelation(entry, txn, log);
-            if (updatedRelationTargetEntries) {
-                updatedEntries.push(...updatedRelationTargetEntries);
-            }
-            // update state events after writing event, so for a member event,
-            // we only update the member info after having written the member event
-            // to the timeline, as we want that event to have the old profile info.
-            // member events are written prior by MemberWriter.
-            if (typeof event.state_key === "string" && event.type !== MEMBER_EVENT_TYPE) {
-                timelineStateEventCount += 1;
-                txn.roomState.set(this._roomId, event);
-            }
+            log.set("timelineStateEventCount", timelineStateEventCount);
         }
-        log.set("timelineStateEventCount", timelineStateEventCount);
         return {currentKey, entries, updatedEntries};
     }
 
@@ -236,10 +238,8 @@ export class SyncWriter {
         if (stateEvents) {
             await this._writeStateEvents(roomResponse, txn, log);
         }
-        if (timelineEvents?.length) {
-            const {currentKey, entries, updatedEntries} =
-                await this._writeTimeline(timelineEvents, timeline, memberSync, this._lastLiveKey, txn, log);
-        }
+        const {currentKey, entries, updatedEntries} =
+            await this._writeTimeline(timelineEvents, timeline, memberSync, this._lastLiveKey, txn, log);
         const memberChanges = await memberSync.write(txn);
         return {entries, updatedEntries, newLiveKey: currentKey, memberChanges};
     }

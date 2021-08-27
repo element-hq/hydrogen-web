@@ -191,32 +191,6 @@ export function tests() {
         };
     }
 
-    function createRoomResponse(stateEvents, timelineEvents) {
-        if (!Array.isArray(timelineEvents)) {
-            timelineEvents = [timelineEvents];
-        }
-        if (!Array.isArray(stateEvents)) {
-            stateEvents = [stateEvents];
-        }
-        return {
-            timeline: {
-                limited: false,
-                events: timelineEvents,
-            },
-            state: {
-                events: stateEvents
-            }
-        };
-    }
-
-    function createTimelineResponse(timelineEvents) {
-        return createRoomResponse([], timelineEvents)
-    }
-
-    function createStateReponse(stateEvents) {
-        return createRoomResponse(stateEvents, []);
-    }
-
     function createStorage(initialMembers = []) {
         const members = new Map();
         for (const m of initialMembers) {
