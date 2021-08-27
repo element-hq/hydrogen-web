@@ -36,7 +36,7 @@ limitations under the License.
     align-items: center;
 }
 
-.SessionPickerView .session-info > :not(:first-child) {
+.SessionPickerView .session-info> :not(:first-child) {
     margin-left: 8px;
 }
 
@@ -50,23 +50,49 @@ limitations under the License.
     margin: 0 20px;
 }
 
-.LoginView {
-    padding: 0.4em;
+.PasswordLoginView {
+    padding: 0 0.4em 0.4em;
 }
 
-.SessionLoadStatusView {
+.SessionLoadStatusView, .LoginView_query-spinner {
     display: flex;
 }
 
-.SessionLoadStatusView > :not(:first-child) {
+.SessionLoadStatusView> :not(:first-child), .LoginView_query-spinner> :not(:first-child) {
     margin-left: 12px;
 }
 
-.SessionLoadStatusView p {
+.SessionLoadStatusView p, .LoginView_query-spinner p {
     flex: 1;
     margin: 0;
 }
 
 .SessionLoadStatusView .spinner {
     --size: 20px;
+}
+
+.StartSSOLoginView {
+    display: flex;
+    flex-direction: column;
+    padding: 0 0.4em 0;
+}
+
+.StartSSOLoginView_button {
+    flex: 1;
+    margin-top: 12px;
+}
+
+.LoginView_separator {
+    justify-content: center;
+    display: flex;
+    margin: 8px;
+}
+
+.CompleteSSOView_title {
+    display: flex;
+    justify-content: center;
+}
+
+.LoginView_sso {
+    padding: 0.4em 0.4em 0;
 }

@@ -59,7 +59,7 @@ export class TimelineViewModel extends ViewModel {
         }
     }
 
-    unloadAtTop(tileAmount) {
+    unloadAtTop(/*tileAmount*/) {
         // get lowerSortKey for tile at index tileAmount - 1
         // tell timeline to unload till there (included given key)
     }
@@ -68,7 +68,7 @@ export class TimelineViewModel extends ViewModel {
 
     }
 
-    unloadAtBottom(tileAmount) {
+    unloadAtBottom(/*tileAmount*/) {
         // get upperSortKey for tile at index tiles.length - tileAmount
         // tell timeline to unload till there (included given key)
     }

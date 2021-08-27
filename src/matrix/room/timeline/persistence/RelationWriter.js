@@ -147,7 +147,7 @@ export class RelationWriter {
         return true;
     }
 
-    _aggregateAnnotation(annotationEvent, targetStorageEntry, log) {
+    _aggregateAnnotation(annotationEvent, targetStorageEntry/*, log*/) {
         // TODO: do we want to verify it is a m.reaction event somehow?
         const relation = getRelation(annotationEvent);
         if (!relation) {

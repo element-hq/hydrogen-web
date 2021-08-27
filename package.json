@@ -1,6 +1,6 @@
 {
   "name": "hydrogen-web",
-  "version": "0.2.5",
+  "version": "0.2.7",
   "description": "A javascript matrix client prototype, trying to minize RAM usage by offloading as much as possible to IndexedDB",
   "main": "index.js",
   "directories": {
@@ -8,6 +8,7 @@
   },
   "scripts": {
     "lint": "eslint --cache src/",
+    "lint-ts": "eslint src/ -c .ts-eslintrc.js --ext .ts",
     "lint-ci": "eslint src/",
     "test": "impunity --entry-point src/main.js --force-esm-dirs lib/ src/",
     "start": "snowpack dev --port 3000",
@@ -32,11 +33,13 @@
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-multi-entry": "^4.0.0",
     "@rollup/plugin-node-resolve": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "^4.29.2",
+    "@typescript-eslint/parser": "^4.29.2",
     "autoprefixer": "^10.2.6",
     "cheerio": "^1.0.0-rc.3",
     "commander": "^6.0.0",
     "core-js": "^3.6.5",
-    "eslint": "^7.25.0",
+    "eslint": "^7.32.0",
     "fake-indexeddb": "^3.1.2",
     "finalhandler": "^1.1.1",
     "impunity": "^1.0.1",

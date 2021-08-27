@@ -22,20 +22,15 @@ interface FragmentIdComparer {
     compare: (a: number, b: number) => number
 }
 
-export class BaseEntry {
-    protected _fragmentIdComparer: FragmentIdComparer
-
-    constructor(fragmentIdComparer: FragmentIdComparer) {
-        this._fragmentIdComparer = fragmentIdComparer;
+export abstract class BaseEntry {
+    constructor(
+        protected readonly _fragmentIdComparer: FragmentIdComparer
+    ) {
     }
 
-    get fragmentId(): number {
-        throw new Error("unimplemented");
-    }
-
-    get entryIndex(): number {
-        throw new Error("unimplemented");
-    }
+    abstract get fragmentId(): number;
+    abstract get entryIndex(): number;
+    abstract updateFrom(other: BaseEntry): void;
 
     compare(otherEntry: BaseEntry): number {
         if (this.fragmentId === otherEntry.fragmentId) {
@@ -53,6 +48,4 @@ export class BaseEntry {
     asEventKey(): EventKey {
         return new EventKey(this.fragmentId, this.entryIndex);
     }
-
-    updateFrom(other: BaseEntry) {}
 }

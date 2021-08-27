@@ -16,61 +16,63 @@ limitations under the License.
 
 import {TemplateView} from "../general/TemplateView.js";
 import {hydrogenGithubLink} from "./common.js";
+import {PasswordLoginView} from "./PasswordLoginView.js";
+import {CompleteSSOView} from "./CompleteSSOView.js";
 import {SessionLoadStatusView} from "./SessionLoadStatusView.js";
+import {spinner} from "../common.js";
 
 export class LoginView extends TemplateView {
     render(t, vm) {
-        const disabled = vm => !!vm.isBusy;
-        const username = t.input({
-            id: "username",
-            type: "text",
-            placeholder: vm.i18n`Username`,
-            disabled
-        });
-        const password = t.input({
-            id: "password",
-            type: "password",
-            placeholder: vm.i18n`Password`,
-            disabled
-        });
-        const homeserver = t.input({
-            id: "homeserver",
-            type: "text",
-            placeholder: vm.i18n`Your matrix homeserver`,
-            value: vm.defaultHomeServer, 
-            disabled
-        });
-        
+        const disabled = vm => vm.isBusy;
+
         return t.div({className: "PreSessionScreen"}, [
+            t.button({
+                className: "button-utility LoginView_back",
+                onClick: () => vm.goBack(),
+                disabled
+            }),
             t.div({className: "logo"}),
-            t.div({className: "LoginView form"}, [
-                t.h1([vm.i18n`Sign In`]),
-                t.if(vm => vm.error, t => t.div({className: "error"}, vm => vm.error)),
-                t.form({
-                    onSubmit: evnt => {
-                        evnt.preventDefault();
-                        vm.login(username.value, password.value, homeserver.value);
-                    }
-                }, [
-                    t.div({className: "form-row"}, [t.label({for: "username"}, vm.i18n`Username`), username]),
-                    t.div({className: "form-row"}, [t.label({for: "password"}, vm.i18n`Password`), password]),
-                    t.div({className: "form-row"}, [t.label({for: "homeserver"}, vm.i18n`Homeserver`), homeserver]),
-                    t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadStatusView(loadViewModel) : null),
-                    t.div({className: "button-row"}, [
-                        t.a({
-                            className: "button-action secondary",
-                            href: vm.cancelUrl
-                        }, [vm.i18n`Go Back`]),
-                        t.button({
-                            className: "button-action primary",
-                            type: "submit"
-                        }, vm.i18n`Log In`),
-                    ]),
-                ]),
-                // use t.mapView rather than t.if to create a new view when the view model changes too
-                t.p(hydrogenGithubLink(t))
-            ])
+            t.h1([vm.i18n`Sign In`]),
+            t.mapView(vm => vm.completeSSOLoginViewModel, vm => vm ? new CompleteSSOView(vm) : null),
+            t.if(vm => vm.showHomeserver, (t, vm) => t.div({ className: "LoginView_sso form form-row" },
+                [
+                    t.label({for: "homeserver"}, vm.i18n`Homeserver`),
+                    t.input({
+                        id: "homeserver",
+                        type: "text",
+                        placeholder: vm.i18n`Your matrix homeserver`,
+                        value: vm.homeserver,
+                        disabled,
+                        onInput: event => vm.setHomeserver(event.target.value),
+                        onChange: () => vm.queryHomeserver(),
+                    }),
+                    t.p({className: {
+                        LoginView_forwardInfo: true,
+                        hidden: vm => !vm.resolvedHomeserver
+                    }}, vm => vm.i18n`You will connect to ${vm.resolvedHomeserver}.`),
+                    t.if(vm => vm.errorMessage, (t, vm) => t.p({className: "error"}, vm.i18n(vm.errorMessage))),
+                ]
+            )),
+            t.if(vm => vm.isFetchingLoginOptions, t => t.div({className: "LoginView_query-spinner"}, [spinner(t), t.p("Fetching available login options...")])),
+            t.mapView(vm => vm.passwordLoginViewModel, vm => vm ? new PasswordLoginView(vm): null),
+            t.if(vm => vm.passwordLoginViewModel && vm.startSSOLoginViewModel, t => t.p({className: "LoginView_separator"}, vm.i18n`or`)),
+            t.mapView(vm => vm.startSSOLoginViewModel, vm => vm ? new StartSSOLoginView(vm) : null),
+            t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadStatusView(loadViewModel) : null),
+            // use t.mapView rather than t.if to create a new view when the view model changes too
+            t.p(hydrogenGithubLink(t))
         ]);
     }
 }
 
+class StartSSOLoginView extends TemplateView {
+    render(t, vm) {
+        return t.div({ className: "StartSSOLoginView" },
+            t.button({
+                className: "StartSSOLoginView_button button-action secondary",
+                type: "button",
+                onClick: () => vm.startSSOLogin(),
+                disabled: vm => vm.isBusy
+            }, vm.i18n`Log in with SSO`)
+        );
+    }
+}

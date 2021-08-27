@@ -221,7 +221,7 @@ export class Platform {
         if (mimeType) {
             input.setAttribute("accept", mimeType);
         }
-        const promise = new Promise((resolve, reject) => {
+        const promise = new Promise(resolve => {
             const checkFile = () => {
                 input.removeEventListener("change", checkFile, true);
                 const file = input.files[0];
@@ -238,6 +238,10 @@ export class Platform {
         this._container.appendChild(input);
         input.click();
         return promise;
+    }
+
+    openUrl(url) {
+        location.href = url;
     }
 
     parseHTML(html) {
