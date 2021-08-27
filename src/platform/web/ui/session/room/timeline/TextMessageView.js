@@ -94,7 +94,7 @@ const formatFunction = {
     table: tableBlock => renderTable(tableBlock),
     code: codePart => tag.code(text(codePart.text)),
     text: textPart => text(textPart.text),
-    link: linkPart => tag.a({href: linkPart.url, className: "link", target: "_blank", rel: "noopener" }, renderParts(linkPart.inlines)),
+    link: linkPart => tag.a({href: linkPart.url, className: "link", target: linkPart.internal ? "_self" : "_blank", rel: "noopener" }, renderParts(linkPart.inlines)),
     pill: renderPill,
     format: formatPart => tag[formatPart.format](renderParts(formatPart.children)),
     rule: () => tag.hr(),
