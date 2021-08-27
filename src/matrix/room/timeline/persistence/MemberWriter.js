@@ -24,17 +24,16 @@ export class MemberWriter {
     }
 
     writeTimelineMemberEvent(event, txn) {
-        return this._writeMemberEvent(event, false, txn);
+        const maybeLazyLoadMemberEvent = false;
+        return this._writeMemberEvent(event, maybeLazyLoadMemberEvent, txn);
     }
 
-    writeStateMemberEvent(event, isLimited, txn) {
-        // member events in the state section when the room response
-        // is not limited must always be lazy loaded members.
-        // If they are not, they will be repeated in the timeline anyway.
-        return this._writeMemberEvent(event, !isLimited, txn);
+    writeStateMemberEvent(event, hasFetchedMembers, txn) {
+        const maybeLazyLoadMemberEvent = !hasFetchedMembers;
+        return this._writeMemberEvent(event, maybeLazyLoadMemberEvent, txn);
     }
 
-    async _writeMemberEvent(event, isLazyLoadingMember, txn) {
+    async _writeMemberEvent(event, maybeLazyLoadMemberEvent, txn) {
         const userId = event.state_key;
         if (!userId) {
             return;
@@ -56,17 +55,14 @@ export class MemberWriter {
         if (!existingMember || !existingMember.equals(member)) {
             txn.roomMembers.set(member.serialize());
             this._cache.set(member);
-            // we also return a member change for lazy loading members if something changed,
-            // so when the dupe timeline event comes and it doesn't see a diff
-            // with the cache, we already returned the event here.
-            // 
-            // it's just important that we don't consider the first LL event
-            // for a user we see as a membership change, or we'll share keys with
-            // them, etc...
-            if (isLazyLoadingMember && !existingMember) {
-                // we don't have a previous member, but we know this is not a
-                // membership change as it's a lazy loaded
-                // member so take the membership from the member
+            // if the member event appeared only in the state section,
+            // AND we haven't heard about it AND we haven't fetched all members yet (to avoid #470),
+            // this may be a lazy loading member (if it's not in a gap, we are certain
+            // it is a ll member, in a gap, we can't tell), so we pass in our own membership as
+            // as the previous one so we won't consider it a join to not have
+            // false positives to avoid #192.
+            // see also MemberChange.hasJoined
+            if (!existingMember && maybeLazyLoadMemberEvent) {
                 return new MemberChange(member, member.membership);
             }
             return new MemberChange(member, existingMember?.membership);

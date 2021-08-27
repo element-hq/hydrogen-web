@@ -133,14 +133,14 @@ export class SyncWriter {
         return currentKey;
     }
 
-    async _writeStateEvents(roomResponse, memberChanges, isLimited, txn, log) {
+    async _writeStateEvents(roomResponse, memberChanges, hasFetchedMembers, txn, log) {
         // persist state
         const {state} = roomResponse;
         if (Array.isArray(state?.events)) {
             log.set("stateEvents", state.events.length);
             for (const event of state.events) {
                 if (event.type === MEMBER_EVENT_TYPE) {
-                    const memberChange = await this._memberWriter.writeStateMemberEvent(event, isLimited, txn);
+                    const memberChange = await this._memberWriter.writeStateMemberEvent(event, hasFetchedMembers, txn);
                     if (memberChange) {
                         memberChanges.set(memberChange.userId, memberChange);
                     }
@@ -231,7 +231,7 @@ export class SyncWriter {
      * @param  {Transaction}  txn     
      * @return {SyncWriterResult}
      */
-    async writeSync(roomResponse, isRejoin, txn, log) {
+    async writeSync(roomResponse, isRejoin, hasFetchedMembers, txn, log) {
         let {timeline} = roomResponse;
         // we have rejoined the room after having synced it before,
         // check for overlap with the last synced event
@@ -242,7 +242,7 @@ export class SyncWriter {
         const memberChanges = new Map();
         // important this happens before _writeTimeline so
         // members are available in the transaction
-        await this._writeStateEvents(roomResponse, memberChanges, timeline?.limited, txn, log);
+        await this._writeStateEvents(roomResponse, memberChanges, hasFetchedMembers, txn, log);
         const {currentKey, entries, updatedEntries} =
             await this._writeTimeline(timeline, this._lastLiveKey, memberChanges, txn, log);
         log.set("memberChanges", memberChanges.size);
