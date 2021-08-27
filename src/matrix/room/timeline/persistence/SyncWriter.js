@@ -236,7 +236,7 @@ export class SyncWriter {
         }
         const memberSync = this._memberWriter.prepareMemberSync(stateEvents, timelineEvents, hasFetchedMembers);
         if (stateEvents) {
-            await this._writeStateEvents(roomResponse, txn, log);
+            await this._writeStateEvents(stateEvents, txn, log);
         }
         const {currentKey, entries, updatedEntries} =
             await this._writeTimeline(timelineEvents, timeline, memberSync, this._lastLiveKey, txn, log);
