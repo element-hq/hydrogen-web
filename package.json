@@ -66,6 +66,7 @@
     "bs58": "^4.0.1",
     "dompurify": "^2.3.0",
     "es6-promise": "https://github.com/bwindels/es6-promise.git#bwindels/expose-flush",
-    "text-encoding": "^0.7.0"
+    "text-encoding": "^0.7.0",
+    "matrix-uri-parser": "git+ssh://git@github.com:matrix-org/matrix-uri-parser-js.git"
   }
 }

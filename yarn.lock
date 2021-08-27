@@ -3498,6 +3498,10 @@ matched@^5.0.0:
     glob "^7.1.6"
     picomatch "^2.2.1"
 
+"matrix-uri-parser@git+ssh://git@github.com:matrix-org/matrix-uri-parser-js.git":
+  version "0.1.0"
+  resolved "git+ssh://git@github.com:matrix-org/matrix-uri-parser-js.git#2fe013b1cd9e2a335d68e98f7a84e3782f8d40c4"
+
 mdn-polyfills@^5.20.0:
   version "5.20.0"
   resolved "https://registry.yarnpkg.com/mdn-polyfills/-/mdn-polyfills-5.20.0.tgz#ca8247edf20a4f60dec6804372229812b348260b"
