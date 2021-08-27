@@ -16,6 +16,7 @@ limitations under the License.
 
 import { MessageBody, HeaderBlock, TableBlock, ListBlock, CodeBlock, PillPart, FormatPart, NewLinePart, RulePart, TextPart, LinkPart, ImagePart } from "./MessageBody.js"
 import { linkify } from "./linkify/linkify.js";
+import {MatrixURL} from "matrix-uri-parser";
 
 /* At the time of writing (Jul 1 2021), Matrix Spec recommends
  * allowing the following HTML tags:
@@ -34,10 +35,11 @@ const baseUrl = 'https://matrix.to';
 const linkPrefix = `${baseUrl}/#/`;
 
 class Deserializer {
-    constructor(result, mediaRepository, allowReplies) {
+    constructor(result, mediaRepository, allowReplies, linkHandler) {
         this.allowReplies = allowReplies;
         this.result = result;
         this.mediaRepository = mediaRepository;
+        this.linkHandler = linkHandler;
     }
 
     parsePillLink(link) {
@@ -51,6 +53,13 @@ class Deserializer {
         return null;
     }
 
+    parseMatrixLink(link) {
+        if (!link.startsWith("matrix:")) {
+            return null;
+        }
+        return new MatrixURL(link);
+    }
+
     parseLink(node, children) {
         const href = this.result.getAttributeValue(node, "href");
         const lcUrl = href?.toLowerCase();
@@ -58,8 +67,12 @@ class Deserializer {
         if (!lcUrl || !safeSchemas.some(schema => lcUrl.startsWith(schema))) {
             return new FormatPart("span", children);
         }
+        const matrixUrl = this.parseMatrixLink(href);
         const pillId = this.parsePillLink(href);
-        if (pillId) {
+        let replaceHref = null;
+        if (matrixUrl && (replaceHref = this.linkHandler(matrixUrl))) {
+            return new LinkPart(replaceHref, children, true);
+        } else if (pillId) {
             return new PillPart(pillId, href, children);
         }
         return new LinkPart(href, children);
@@ -345,9 +358,9 @@ class Deserializer {
     }
 }
 
-export function parseHTMLBody(platform, mediaRepository, allowReplies, html) {
+export function parseHTMLBody(platform, mediaRepository, allowReplies, linkHandler, html) {
     const parseResult = platform.parseHTML(html);
-    const deserializer = new Deserializer(parseResult, mediaRepository, allowReplies);
+    const deserializer = new Deserializer(parseResult, mediaRepository, allowReplies, linkHandler);
     const parts = deserializer.parseAnyNodes(parseResult.rootNodes);
     return new MessageBody(html, parts);
 }

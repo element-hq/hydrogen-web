@@ -17,6 +17,7 @@ limitations under the License.
 import {BaseTextTile, BodyFormat} from "./BaseTextTile.js";
 import {parsePlainBody} from "../MessageBody.js";
 import {parseHTMLBody} from "../deserialize.js";
+import {EntityType} from "matrix-uri-parser";
 
 export class TextTile extends BaseTextTile {
     _getContentString(key) {
@@ -47,10 +48,17 @@ export class TextTile extends BaseTextTile {
         }
     }
 
+    _customMatrixUrl(url) {
+        if (url.kind === EntityType.RoomId) {
+            return this.urlCreator.openRoomActionUrl("!" + url.id);
+        }
+        return null;
+    }
+
     _parseBody(body, format) {
         let messageBody;
         if (format === BodyFormat.Html) {
-            messageBody = parseHTMLBody(this.platform, this._mediaRepository, this._entry.isReply, body);
+            messageBody = parseHTMLBody(this.platform, this._mediaRepository, this._entry.isReply, this._customMatrixUrl.bind(this), body);
         } else {
             messageBody = parsePlainBody(body);
         }
