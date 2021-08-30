@@ -88,5 +88,4 @@ async function createStores(db, txn, oldVersion, version, log) {
             await log.wrap(`v${i + 1}`, log => schema[i](db, txn, log));
         }
     });
-
 }
