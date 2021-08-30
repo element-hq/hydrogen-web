@@ -123,17 +123,9 @@ export class DeviceTracker {
     async _writeMember(member, txn) {
         const {userIdentities} = txn;
         const identity = await userIdentities.get(member.userId);
-        if (!identity) {
-            userIdentities.set({
-                userId: member.userId,
-                roomIds: [member.roomId],
-                deviceTrackingStatus: TRACKING_STATUS_OUTDATED,
-            });
-        } else {
-            if (!identity.roomIds.includes(member.roomId)) {
-                identity.roomIds.push(member.roomId);
-                userIdentities.set(identity);
-            }
+        const updatedIdentity = addRoomToIdentity(identity, member.userId, member.roomId);
+        if (updatedIdentity) {
+            userIdentities.set(updatedIdentity);
         }
     }
 
