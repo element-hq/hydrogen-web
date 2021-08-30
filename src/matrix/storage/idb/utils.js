@@ -73,10 +73,10 @@ export function openDatabase(name, createObjectStore, version, idbFactory = wind
         try {
             await createObjectStore(db, txn, oldVersion, version);
         } catch (err) {
-            console.error("Aborting upgrade transaction because migration threw error");
-            console.log(err.message);
-            console.log(err.stack);
-            txn.abort();
+            // try aborting on error, if that hasn't been done already
+            try {
+                txn.abort();
+            } catch (err) {}
         }
     }; 
     return reqAsPromise(req);
