@@ -30,6 +30,7 @@ const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 export class Room extends BaseRoom {
     constructor(options) {
         super(options);
+        // TODO: pass pendingEvents to start like pendingOperations?
         const {pendingEvents} = options;
         const relationWriter = new RelationWriter({
             roomId: this.id,
@@ -120,7 +121,8 @@ export class Room extends BaseRoom {
             txn.roomMembers.removeAllForRoom(this.id);
         }
         const {entries: newEntries, updatedEntries, newLiveKey, memberChanges} =
-            await log.wrap("syncWriter", log => this._syncWriter.writeSync(roomResponse, isRejoin, txn, log), log.level.Detail);
+            await log.wrap("syncWriter", log => this._syncWriter.writeSync(
+                roomResponse, isRejoin, summaryChanges.hasFetchedMembers, txn, log), log.level.Detail);
         if (decryptChanges) {
             const decryption = await log.wrap("decryptChanges", log => decryptChanges.write(txn, log));
             log.set("decryptionResults", decryption.results.size);

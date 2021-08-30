@@ -66,11 +66,18 @@ export function decodeUint32(str) {
 
 export function openDatabase(name, createObjectStore, version, idbFactory = window.indexedDB) {
     const req = idbFactory.open(name, version);
-    req.onupgradeneeded = (ev) => {
+    req.onupgradeneeded = async (ev) => {
         const db = ev.target.result;
         const txn = ev.target.transaction;
         const oldVersion = ev.oldVersion;
-        createObjectStore(db, txn, oldVersion, version);
+        try {
+            await createObjectStore(db, txn, oldVersion, version);
+        } catch (err) {
+            // try aborting on error, if that hasn't been done already
+            try {
+                txn.abort();
+            } catch (err) {}
+        }
     }; 
     return reqAsPromise(req);
 }

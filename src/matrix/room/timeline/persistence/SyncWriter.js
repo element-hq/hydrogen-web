@@ -133,38 +133,31 @@ export class SyncWriter {
         return currentKey;
     }
 
-    async _writeStateEvents(roomResponse, memberChanges, isLimited, txn, log) {
-        // persist state
-        const {state} = roomResponse;
-        if (Array.isArray(state?.events)) {
-            log.set("stateEvents", state.events.length);
-            for (const event of state.events) {
-                if (event.type === MEMBER_EVENT_TYPE) {
-                    const memberChange = await this._memberWriter.writeStateMemberEvent(event, isLimited, txn);
-                    if (memberChange) {
-                        memberChanges.set(memberChange.userId, memberChange);
-                    }
-                } else {
-                    txn.roomState.set(this._roomId, event);
-                }
+    async _writeStateEvents(stateEvents, txn, log) {
+        let nonMemberStateEvents = 0;
+        for (const event of stateEvents) {
+            // member events are written prior by MemberWriter
+            if (event.type !== MEMBER_EVENT_TYPE) {
+                txn.roomState.set(this._roomId, event);
+                nonMemberStateEvents += 1;
             }
         }
+        log.set("stateEvents", nonMemberStateEvents);
     }
 
-    async _writeTimeline(timeline, currentKey, memberChanges, txn, log) {
+    async _writeTimeline(timelineEvents, timeline, memberSync, currentKey, txn, log) {
         const entries = [];
         const updatedEntries = [];
-        if (Array.isArray(timeline?.events) && timeline.events.length) {
+        if (timelineEvents?.length) {
             // only create a fragment when we will really write an event
             currentKey = await this._ensureLiveFragment(currentKey, entries, timeline, txn, log);
-            const events = deduplicateEvents(timeline.events);
-            log.set("timelineEvents", events.length);
+            log.set("timelineEvents", timelineEvents.length);
             let timelineStateEventCount = 0;
-            for(const event of events) {
+            for(const event of timelineEvents) {
                 // store event in timeline
                 currentKey = currentKey.nextKey();
                 const storageEntry = createEventEntry(currentKey, this._roomId, event);
-                let member = await this._memberWriter.lookupMember(event.sender, event, events, txn);
+                let member = await memberSync.lookupMemberAtEvent(event.sender, event, txn);
                 if (member) {
                     storageEntry.displayName = member.displayName;
                     storageEntry.avatarUrl = member.avatarUrl;
@@ -178,17 +171,11 @@ export class SyncWriter {
                 }
                 // update state events after writing event, so for a member event,
                 // we only update the member info after having written the member event
-                // to the timeline, as we want that event to have the old profile info
-                if (typeof event.state_key === "string") {
+                // to the timeline, as we want that event to have the old profile info.
+                // member events are written prior by MemberWriter.
+                if (typeof event.state_key === "string" && event.type !== MEMBER_EVENT_TYPE) {
                     timelineStateEventCount += 1;
-                    if (event.type === MEMBER_EVENT_TYPE) {
-                        const memberChange = await this._memberWriter.writeTimelineMemberEvent(event, txn);
-                        if (memberChange) {
-                            memberChanges.set(memberChange.userId, memberChange);
-                        }
-                    } else {
-                        txn.roomState.set(this._roomId, event);
-                    }
+                    txn.roomState.set(this._roomId, event);
                 }
             }
             log.set("timelineStateEventCount", timelineStateEventCount);
@@ -224,14 +211,13 @@ export class SyncWriter {
      * @type {SyncWriterResult}
      * @property {Array<BaseEntry>} entries new timeline entries written
      * @property {EventKey} newLiveKey the advanced key to write events at
-     * @property {Map<string, MemberChange>} memberChanges member changes in the processed sync ny user id
      * 
      * @param  {Object}  roomResponse [description]
      * @param  {boolean}  isRejoin whether the room was rejoined in the sync being processed
      * @param  {Transaction}  txn     
      * @return {SyncWriterResult}
      */
-    async writeSync(roomResponse, isRejoin, txn, log) {
+    async writeSync(roomResponse, isRejoin, hasFetchedMembers, txn, log) {
         let {timeline} = roomResponse;
         // we have rejoined the room after having synced it before,
         // check for overlap with the last synced event
@@ -239,13 +225,22 @@ export class SyncWriter {
         if (isRejoin) {
             timeline = await this._handleRejoinOverlap(timeline, txn, log);
         }
-        const memberChanges = new Map();
-        // important this happens before _writeTimeline so
-        // members are available in the transaction
-        await this._writeStateEvents(roomResponse, memberChanges, timeline?.limited, txn, log);
+        let timelineEvents;
+        if (Array.isArray(timeline?.events)) {
+            timelineEvents = deduplicateEvents(timeline.events);
+        }
+        const {state} = roomResponse;
+        let stateEvents;
+        if (Array.isArray(state?.events)) {
+            stateEvents = state.events;
+        }
+        const memberSync = this._memberWriter.prepareMemberSync(stateEvents, timelineEvents, hasFetchedMembers);
+        if (stateEvents) {
+            await this._writeStateEvents(stateEvents, txn, log);
+        }
         const {currentKey, entries, updatedEntries} =
-            await this._writeTimeline(timeline, this._lastLiveKey, memberChanges, txn, log);
-        log.set("memberChanges", memberChanges.size);
+            await this._writeTimeline(timelineEvents, timeline, memberSync, this._lastLiveKey, txn, log);
+        const memberChanges = await memberSync.write(txn);
         return {entries, updatedEntries, newLiveKey: currentKey, memberChanges};
     }
 

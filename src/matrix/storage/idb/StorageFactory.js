@@ -21,8 +21,9 @@ import { schema } from "./schema.js";
 import { detectWebkitEarlyCloseTxnBug } from "./quirks.js";
 
 const sessionName = sessionId => `hydrogen_session_${sessionId}`;
-const openDatabaseWithSessionId = function(sessionId, idbFactory) {
-    return openDatabase(sessionName(sessionId), createStores, schema.length, idbFactory);
+const openDatabaseWithSessionId = function(sessionId, idbFactory, log) {
+    const create = (db, txn, oldVersion, version) => createStores(db, txn, oldVersion, version, log);
+    return openDatabase(sessionName(sessionId), create, schema.length, idbFactory);
 }
 
 async function requestPersistedStorage() {
@@ -49,7 +50,7 @@ export class StorageFactory {
         this._IDBKeyRange = IDBKeyRange;
     }
 
-    async create(sessionId) {
+    async create(sessionId, log) {
         await this._serviceWorkerHandler?.preventConcurrentSessionAccess(sessionId);
         requestPersistedStorage().then(persisted => {
             // Firefox lies here though, and returns true even if the user denied the request
@@ -59,7 +60,7 @@ export class StorageFactory {
         });
 
         const hasWebkitEarlyCloseTxnBug = await detectWebkitEarlyCloseTxnBug(this._idbFactory);
-        const db = await openDatabaseWithSessionId(sessionId, this._idbFactory);
+        const db = await openDatabaseWithSessionId(sessionId, this._idbFactory, log);
         return new Storage(db, this._IDBKeyRange, hasWebkitEarlyCloseTxnBug);
     }
 
@@ -80,10 +81,11 @@ export class StorageFactory {
     }
 }
 
-async function createStores(db, txn, oldVersion, version) {
+async function createStores(db, txn, oldVersion, version, log) {
     const startIdx = oldVersion || 0;
-
-    for(let i = startIdx; i < version; ++i) {
-        await schema[i](db, txn);
-    }
+    return log.wrap({l: "storage migration", oldVersion, version}, async log => {
+        for(let i = startIdx; i < version; ++i) {
+            await log.wrap(`v${i + 1}`, log => schema[i](db, txn, log));
+        }
+    });
 }
