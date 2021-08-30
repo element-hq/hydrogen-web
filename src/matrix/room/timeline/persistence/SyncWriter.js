@@ -148,8 +148,8 @@ export class SyncWriter {
     async _writeTimeline(timelineEvents, timeline, memberSync, currentKey, txn, log) {
         const entries = [];
         const updatedEntries = [];
-        // only create a fragment when we will really write an event
         if (timelineEvents?.length) {
+            // only create a fragment when we will really write an event
             currentKey = await this._ensureLiveFragment(currentKey, entries, timeline, txn, log);
             log.set("timelineEvents", timelineEvents.length);
             let timelineStateEventCount = 0;
