@@ -19,7 +19,7 @@ import { StorageError } from "../../common";
 import { encodeUint32 } from "../utils";
 import {KeyLimits} from "../../common";
 import {Store} from "../Store";
-import {RoomEvent, StateEvent} from "../../types";
+import {TimelineEvent, StateEvent} from "../../types";
 
 interface Annotation {
     count: number;
@@ -31,7 +31,7 @@ interface StorageEntry {
     roomId: string;
     fragmentId: number;
     eventIndex: number;
-    event: RoomEvent | StateEvent;
+    event: TimelineEvent | StateEvent;
     displayName?: string;
     avatarUrl?: string;
     annotations?: { [key : string]: Annotation };

@@ -16,7 +16,7 @@ limitations under the License.
 
 export type Content = { [key: string]: any }
 
-export interface RoomEvent {
+export interface TimelineEvent {
     content: Content;
     type: string;
     event_id: string;
@@ -25,4 +25,4 @@ export interface RoomEvent {
     unsigned?: Content;
 }
 
-export type StateEvent = RoomEvent & { prev_content?: Content, state_key: string }
+export type StateEvent = TimelineEvent & { prev_content?: Content, state_key: string }
