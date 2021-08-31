@@ -53,15 +53,15 @@ function decodeEventIdKey(eventIdKey: string): { roomId: string, eventId: string
 }
 
 class Range {
-    private _IDBKeyRange: any; // TODO what's the appropriate representation here?
+    private _IDBKeyRange: typeof IDBKeyRange;
     private _only?: EventKey;
     private _lower?: EventKey;
     private _upper?: EventKey;
     private _lowerOpen: boolean;
     private _upperOpen: boolean;
 
-    constructor(IDBKeyRange: any, only?: EventKey, lower?: EventKey, upper?: EventKey, lowerOpen: boolean = false, upperOpen: boolean = false) {
-        this._IDBKeyRange = IDBKeyRange;
+    constructor(_IDBKeyRange: any, only?: EventKey, lower?: EventKey, upper?: EventKey, lowerOpen: boolean = false, upperOpen: boolean = false) {
+        this._IDBKeyRange = _IDBKeyRange;
         this._only = only;
         this._lower = lower;
         this._upper = upper;
