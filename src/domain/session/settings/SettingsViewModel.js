@@ -28,9 +28,6 @@ class PushNotificationStatus {
 }
 
 function formatKey(key) {
-    if (!key) {
-        return null;
-    }
     const partLength = 4;
     const partCount = Math.ceil(key.length / partLength);
     let formattedKey = "";
@@ -80,7 +77,11 @@ export class SettingsViewModel extends ViewModel {
     }
 
     get fingerprintKey() {
-        return formatKey(this._session.fingerprintKey);
+        const key = this._session.fingerprintKey;
+        if (!key) {
+            return null;
+        }
+        return formatKey(key);
     }
 
     get deviceId() {
