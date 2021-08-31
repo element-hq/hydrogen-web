@@ -28,6 +28,9 @@ class PushNotificationStatus {
 }
 
 function formatKey(key) {
+    if (!key) {
+        return null;
+    }
     const partLength = 4;
     const partCount = Math.ceil(key.length / partLength);
     let formattedKey = "";
