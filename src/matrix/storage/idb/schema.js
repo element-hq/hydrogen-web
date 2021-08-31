@@ -1,4 +1,4 @@
-import {iterateCursor, reqAsPromise} from "./utils.js";
+import {iterateCursor, reqAsPromise} from "./utils";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/RoomMember.js";
 import {addRoomToIdentity} from "../../e2ee/DeviceTracker.js";
 import {RoomMemberStore} from "./stores/RoomMemberStore.js";

@@ -15,12 +15,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { StorageError } from "../common.js";
+import { StorageError } from "../common";
+
+function _sourceName(source: IDBIndex | IDBObjectStore): string {
+    return "objectStore" in source ?
+        `${source.objectStore.name}.${source.name}` :
+        source.name;
+}
+
+function _sourceDatabase(source: IDBIndex | IDBObjectStore): string {
+    return "objectStore" in source ?
+        source.objectStore?.transaction?.db?.name :
+        source.transaction?.db?.name;
+}
 
 export class IDBError extends StorageError {
-    constructor(message, source, cause) {
-        const storeName = source?.name || "<unknown store>";
-        const databaseName = source?.transaction?.db?.name || "<unknown db>";
+    storeName: string;
+    databaseName: string;
+
+    constructor(message: string, sourceOrCursor: IDBIndex | IDBCursor | IDBObjectStore, cause: DOMException | null = null) {
+        const source = "source" in sourceOrCursor ? sourceOrCursor.source : sourceOrCursor;
+        const storeName = _sourceName(source);
+        const databaseName = _sourceDatabase(source);
         let fullMessage = `${message} on ${databaseName}.${storeName}`;
         if (cause) {
             fullMessage += ": ";
@@ -41,7 +57,7 @@ export class IDBError extends StorageError {
 }
 
 export class IDBRequestError extends IDBError {
-    constructor(request, message = "IDBRequest failed") {
+    constructor(request: IDBRequest, message: string = "IDBRequest failed") {
         const source = request.source;
         const cause = request.error;
         super(message, source, cause);
@@ -49,7 +65,7 @@ export class IDBRequestError extends IDBError {
 }
 
 export class IDBRequestAttemptError extends IDBError {
-    constructor(method, source, cause, params) {
+    constructor(method: string, source: IDBIndex | IDBObjectStore, cause: DOMException, params: any[]) {
         super(`${method}(${params.map(p => JSON.stringify(p)).join(", ")}) failed`, source, cause);
     }
 }

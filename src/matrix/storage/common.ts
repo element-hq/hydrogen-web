@@ -14,34 +14,34 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export const STORE_NAMES = Object.freeze([
-    "session",
-    "roomState",
-    "roomSummary",
-    "archivedRoomSummary",
-    "invites",
-    "roomMembers",
-    "timelineEvents",
-    "timelineRelations",
-    "timelineFragments",
-    "pendingEvents",
-    "userIdentities",
-    "deviceIdentities",
-    "olmSessions",
-    "inboundGroupSessions",
-    "outboundGroupSessions",
-    "groupSessionDecryptions",
-    "operations",
-    "accountData",
-]);
+export enum StoreNames {
+    session = "session",
+    roomState = "roomState",
+    roomSummary = "roomSummary",
+    archivedRoomSummary = "archivedRoomSummary",
+    invites = "invites",
+    roomMembers = "roomMembers",
+    timelineEvents = "timelineEvents",
+    timelineRelations = "timelineRelations",
+    timelineFragments = "timelineFragments",
+    pendingEvents = "pendingEvents",
+    userIdentities = "userIdentities",
+    deviceIdentities = "deviceIdentities",
+    olmSessions = "olmSessions",
+    inboundGroupSessions = "inboundGroupSessions",
+    outboundGroupSessions = "outboundGroupSessions",
+    groupSessionDecryptions = "groupSessionDecryptions",
+    operations = "operations",
+    accountData = "accountData",
+}
 
-export const STORE_MAP = Object.freeze(STORE_NAMES.reduce((nameMap, name) => {
-    nameMap[name] = name;
-    return nameMap;
-}, {}));
+export const STORE_NAMES: Readonly<StoreNames[]> = Object.values(StoreNames);
 
 export class StorageError extends Error {
-    constructor(message, cause) {
+    errcode?: string;
+    cause: Error | null;
+
+    constructor(message: string, cause: Error | null = null) {
         super(message);
         if (cause) {
             this.errcode = cause.name;
@@ -49,23 +49,23 @@ export class StorageError extends Error {
         this.cause = cause;
     }
 
-    get name() {
+    get name(): string {
         return "StorageError";
     }
 }
 
 export const KeyLimits = {
-    get minStorageKey() {
+    get minStorageKey(): number {
         // for indexeddb, we use unsigned 32 bit integers as keys
         return 0;
     },
     
-    get middleStorageKey() {
+    get middleStorageKey(): number {
         // for indexeddb, we use unsigned 32 bit integers as keys
         return 0x7FFFFFFF;
     },
 
-    get maxStorageKey() {
+    get maxStorageKey(): number {
         // for indexeddb, we use unsigned 32 bit integers as keys
         return 0xFFFFFFFF;
     }
