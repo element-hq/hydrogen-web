@@ -74,7 +74,7 @@ export function openDatabase(name: string, createObjectStore: CreateObjectStore,
     req.onupgradeneeded = async (ev : IDBVersionChangeEvent) => {
         const req = ev.target as IDBRequest<IDBDatabase>;
         const db = req.result;
-        const txn = req.transaction;
+        const txn = req.transaction!;
         const oldVersion = ev.oldVersion;
         try {
             await createObjectStore(db, txn, oldVersion, version);
