@@ -34,15 +34,15 @@ export class SessionStore {
         }
     }
 
-    set(key: string, value: any): Promise<IDBValidKey> {
-        return this._sessionStore.put({key, value});
+    set(key: string, value: any): void {
+        this._sessionStore.put({key, value});
     }
 
-    add(key: string, value: any): Promise<IDBValidKey> {
-        return this._sessionStore.add({key, value});
+    add(key: string, value: any): void {
+        this._sessionStore.add({key, value});
     }
 
-    remove(key: IDBValidKey): Promise<undefined> {
-        return this._sessionStore.delete(key);
+    remove(key: IDBValidKey): void {
+        this._sessionStore.delete(key);
     }
 }

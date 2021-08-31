@@ -262,23 +262,23 @@ export class TimelineEventStore {
 
     /** Inserts a new entry into the store. The combination of roomId and eventKey should not exist yet, or an error is thrown.
      *  @param entry the entry to insert
-     *  @return a promise resolving to undefined if the operation was successful, or a StorageError if not.
+     *  @return nothing. To wait for the operation to finish, await the transaction it's part of.
      *  @throws {StorageError} ...
      */
-    insert(entry: StorageEntry): Promise<IDBValidKey> {
+    insert(entry: StorageEntry): void {
         entry.key = encodeKey(entry.roomId, entry.fragmentId, entry.eventIndex);
         entry.eventIdKey = encodeEventIdKey(entry.roomId, entry.event.event_id);
         // TODO: map error? or in idb/store?
-        return this._timelineStore.add(entry);
+        this._timelineStore.add(entry);
     }
 
     /** Updates the entry into the store with the given [roomId, eventKey] combination.
      *  If not yet present, will insert. Might be slower than add.
      *  @param entry the entry to update.
-     *  @return a promise resolving to undefined if the operation was successful, or a StorageError if not.
+     *  @return nothing. To wait for the operation to finish, await the transaction it's part of.
      */
-    update(entry: StorageEntry): Promise<IDBValidKey> {
-        return this._timelineStore.put(entry);
+    update(entry: StorageEntry): void {
+        this._timelineStore.put(entry);
     }
 
     get(roomId: string, eventKey: EventKey): Promise<StorageEntry | null> {
@@ -289,10 +289,10 @@ export class TimelineEventStore {
         return this._timelineStore.index("byEventId").get(encodeEventIdKey(roomId, eventId));
     }
 
-    removeAllForRoom(roomId: string): Promise<undefined> {
+    removeAllForRoom(roomId: string): void {
         const minKey = encodeKey(roomId, KeyLimits.minStorageKey, KeyLimits.minStorageKey);
         const maxKey = encodeKey(roomId, KeyLimits.maxStorageKey, KeyLimits.maxStorageKey);
         const range = this._timelineStore.IDBKeyRange.bound(minKey, maxKey);
-        return this._timelineStore.delete(range);
+        this._timelineStore.delete(range);
     }
 }
