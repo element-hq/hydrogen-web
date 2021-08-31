@@ -1,7 +1,8 @@
 import {iterateCursor, NOT_DONE, reqAsPromise} from "./utils";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/RoomMember.js";
 import {addRoomToIdentity} from "../../e2ee/DeviceTracker.js";
-import {RoomMemberStore} from "./stores/RoomMemberStore";
+import {SummaryData} from "../../room/RoomSummary";
+import {RoomMemberStore, MemberData} from "./stores/RoomMemberStore";
 import {RoomStateEntry} from "./stores/RoomStateStore";
 import {SessionStore} from "./stores/SessionStore";
 import {encodeScopeTypeKey} from "./stores/OperationStore";
@@ -157,24 +158,26 @@ function createTimelineRelationsStore(db: IDBDatabase) : void {
 //v11 doesn't change the schema, but ensures all userIdentities have all the roomIds they should (see #470)
 async function fixMissingRoomsInUserIdentities(db, txn, log) {
     const roomSummaryStore = txn.objectStore("roomSummary");
-    const trackedRoomIds = [];
-    await iterateCursor(roomSummaryStore.openCursor(), roomSummary => {
+    const trackedRoomIds: string[] = [];
+    await iterateCursor<SummaryData>(roomSummaryStore.openCursor(), roomSummary => {
         if (roomSummary.isTrackingMembers) {
             trackedRoomIds.push(roomSummary.roomId);
         }
+        return NOT_DONE;
     });
     const outboundGroupSessionsStore = txn.objectStore("outboundGroupSessions");
-    const userIdentitiesStore = txn.objectStore("userIdentities");
+    const userIdentitiesStore: IDBObjectStore = txn.objectStore("userIdentities");
     const roomMemberStore = txn.objectStore("roomMembers");
     for (const roomId of trackedRoomIds) {
         let foundMissing = false;
-        const joinedUserIds = [];
+        const joinedUserIds: string[] = [];
         const memberRange = IDBKeyRange.bound(roomId, `${roomId}|${MAX_UNICODE}`, true, true);
         await log.wrap({l: "room", id: roomId}, async log => {
-            await iterateCursor(roomMemberStore.openCursor(memberRange), member => {
+            await iterateCursor<MemberData>(roomMemberStore.openCursor(memberRange), member => {
                 if (member.membership === "join") {
                     joinedUserIds.push(member.userId);
                 }
+                return NOT_DONE;
             });
             log.set("joinedUserIds", joinedUserIds.length);
             for (const userId of joinedUserIds) {
