@@ -23,12 +23,12 @@ const WEBKITEARLYCLOSETXNBUG_BOGUS_KEY = "782rh281re38-boguskey";
 export class Storage {
     private _db: IDBDatabase;
     private _hasWebkitEarlyCloseTxnBug: boolean;
+    private _IDBKeyRange: typeof IDBKeyRange
     storeNames: typeof StoreNames;
 
-    constructor(idbDatabase: IDBDatabase, IDBKeyRange, hasWebkitEarlyCloseTxnBug: boolean) {
+    constructor(idbDatabase: IDBDatabase, _IDBKeyRange: typeof IDBKeyRange, hasWebkitEarlyCloseTxnBug: boolean) {
         this._db = idbDatabase;
-        // @ts-ignore
-        this._IDBKeyRange = IDBKeyRange;
+        this._IDBKeyRange = _IDBKeyRange;
         this._hasWebkitEarlyCloseTxnBug = hasWebkitEarlyCloseTxnBug;
         this.storeNames = StoreNames;
     }
@@ -49,7 +49,6 @@ export class Storage {
             if (this._hasWebkitEarlyCloseTxnBug) {
                 await reqAsPromise(txn.objectStore(storeNames[0]).get(WEBKITEARLYCLOSETXNBUG_BOGUS_KEY));
             }
-            // @ts-ignore
             return new Transaction(txn, storeNames, this._IDBKeyRange);
         } catch(err) {
             throw new StorageError("readTxn failed", err);
@@ -65,7 +64,6 @@ export class Storage {
             if (this._hasWebkitEarlyCloseTxnBug) {
                 await reqAsPromise(txn.objectStore(storeNames[0]).get(WEBKITEARLYCLOSETXNBUG_BOGUS_KEY));
             }
-            // @ts-ignore
             return new Transaction(txn, storeNames, this._IDBKeyRange);
         } catch(err) {
             throw new StorageError("readWriteTxn failed", err);
