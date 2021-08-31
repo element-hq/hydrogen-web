@@ -4,7 +4,7 @@ import {addRoomToIdentity} from "../../e2ee/DeviceTracker.js";
 import {RoomMemberStore} from "./stores/RoomMemberStore";
 import {SessionStore} from "./stores/SessionStore";
 import {encodeScopeTypeKey} from "./stores/OperationStore.js";
-import {MAX_UNICODE} from "./stores/common.js";
+import {MAX_UNICODE} from "./stores/common";
 
 // FUNCTIONS SHOULD ONLY BE APPENDED!!
 // the index in the array is the database version

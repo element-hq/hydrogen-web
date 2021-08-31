@@ -27,7 +27,7 @@ export class SessionStore {
         this._sessionStore = sessionStore;
     }
 
-    async get(key: IDBValidKey): Promise<any> {
+    async get(key: string): Promise<any> {
         const entry = await this._sessionStore.get(key);
         if (entry) {
             return entry.value;
@@ -42,7 +42,7 @@ export class SessionStore {
         this._sessionStore.add({key, value});
     }
 
-    remove(key: IDBValidKey): void {
+    remove(key: string): void {
         this._sessionStore.delete(key);
     }
 }

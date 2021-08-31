@@ -50,10 +50,10 @@ export class RoomMemberStore {
         return this._roomMembersStore.get(encodeKey(roomId, userId));
     }
 
-    async set(member: MemberData): Promise<IDBValidKey> {
+    set(member: MemberData): void {
         // Object.assign would be more typesafe, but small objects 
         (member as any).key = encodeKey(member.roomId, member.userId);
-        return this._roomMembersStore.put(member as MemberStorageEntry);
+        this._roomMembersStore.put(member as MemberStorageEntry);
     }
 
     getAll(roomId: string): Promise<MemberData[]> {
