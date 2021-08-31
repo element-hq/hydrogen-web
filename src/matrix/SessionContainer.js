@@ -204,7 +204,7 @@ export class SessionContainer {
             reconnector: this._reconnector,
         });
         this._sessionId = sessionInfo.id;
-        this._storage = await this._platform.storageFactory.create(sessionInfo.id);
+        this._storage = await this._platform.storageFactory.create(sessionInfo.id, log);
         // no need to pass access token to session
         const filteredSessionInfo = {
             id: sessionInfo.id,

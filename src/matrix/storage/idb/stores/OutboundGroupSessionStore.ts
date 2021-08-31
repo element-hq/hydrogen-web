@@ -36,7 +36,7 @@ export class OutboundGroupSessionStore {
         return this._store.get(roomId);
     }
 
-    set(session: OutboundSession): Promise<IDBValidKey> {
-        return this._store.put(session);
+    set(session: OutboundSession): void {
+        this._store.put(session);
     }
 }

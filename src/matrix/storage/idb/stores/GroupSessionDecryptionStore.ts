@@ -38,9 +38,9 @@ export class GroupSessionDecryptionStore {
         return this._store.get(encodeKey(roomId, sessionId, messageIndex));
     }
 
-    set(roomId: string, sessionId: string, messageIndex: number, decryption: GroupSessionDecryption): Promise<IDBValidKey> {
+    set(roomId: string, sessionId: string, messageIndex: number, decryption: GroupSessionDecryption): void {
         decryption.key = encodeKey(roomId, sessionId, messageIndex);
-        return this._store.put(decryption);
+        this._store.put(decryption);
     }
     
     removeAllForRoom(roomId: string): Promise<undefined> {

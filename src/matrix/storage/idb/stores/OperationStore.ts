@@ -61,13 +61,13 @@ export class OperationStore {
         return results;
     }
 
-    add(operation: Operation): Promise<IDBValidKey> {
+    add(operation: Operation): void {
         operation.scopeTypeKey = encodeScopeTypeKey(operation.scope, operation.type);
-        return this._store.add(operation);
+        this._store.add(operation);
     }
 
-    update(operation: Operation): Promise<IDBValidKey> {
-        return this._store.put(operation);
+    update(operation: Operation): void {
+        this._store.put(operation);
     }
 
     remove(id: string): Promise<undefined> {

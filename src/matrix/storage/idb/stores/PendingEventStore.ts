@@ -73,13 +73,13 @@ export class PendingEventStore {
         return !!key;
     }
     
-    add(pendingEvent: PendingEntry): Promise<IDBValidKey> {
+    add(pendingEvent: PendingEntry): void {
         pendingEvent.key = encodeKey(pendingEvent.roomId, pendingEvent.queueIndex);
-        return this._eventStore.add(pendingEvent);
+        this._eventStore.add(pendingEvent);
     }
 
-    update(pendingEvent: PendingEntry): Promise<IDBValidKey> {
-        return this._eventStore.put(pendingEvent);
+    update(pendingEvent: PendingEntry): void {
+        this._eventStore.put(pendingEvent);
     }
 
     getAll(): Promise<PendingEntry[]> {

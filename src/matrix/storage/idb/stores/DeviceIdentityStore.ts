@@ -69,9 +69,9 @@ export class DeviceIdentityStore {
         return this._store.get(encodeKey(userId, deviceId));
     }
 
-    set(deviceIdentity: DeviceIdentity): Promise<IDBValidKey> {
+    set(deviceIdentity: DeviceIdentity): void {
         deviceIdentity.key = encodeKey(deviceIdentity.userId, deviceIdentity.deviceId);
-        return this._store.put(deviceIdentity);
+        this._store.put(deviceIdentity);
     }
 
     getByCurve25519Key(curve25519Key: string): Promise<DeviceIdentity | null> {

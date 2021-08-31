@@ -32,7 +32,7 @@ export class AccountDataStore {
         return await this._store.get(type);
     }
 
-    set(event: AccountDataEntry): Promise<IDBValidKey> {
-        return this._store.put(event);
+    set(event: AccountDataEntry): void {
+        this._store.put(event);
     }
 }
