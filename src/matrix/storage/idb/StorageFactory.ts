@@ -16,7 +16,7 @@ limitations under the License.
 
 import {Storage} from "./Storage";
 import { openDatabase, reqAsPromise } from "./utils";
-import { exportSession, importSession } from "./export";
+import { exportSession, importSession, Export } from "./export";
 import { schema } from "./schema";
 import { detectWebkitEarlyCloseTxnBug } from "./quirks";
 
@@ -80,12 +80,12 @@ export class StorageFactory {
         return reqAsPromise(req);
     }
 
-    async export(sessionId: string): Promise<{ [storeName: string]: any }> {
+    async export(sessionId: string): Promise<Export> {
         const db = await openDatabaseWithSessionId(sessionId, this._idbFactory);
         return await exportSession(db);
     }
 
-    async import(sessionId: string, data: { [storeName: string]: any }): Promise<void> {
+    async import(sessionId: string, data: Export): Promise<void> {
         const db = await openDatabaseWithSessionId(sessionId, this._idbFactory);
         return await importSession(db, data);
     }

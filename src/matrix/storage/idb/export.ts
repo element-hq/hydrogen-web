@@ -15,9 +15,11 @@ limitations under the License.
 */
 
 import { iterateCursor, NOT_DONE, txnAsPromise } from "./utils";
-import { STORE_NAMES } from "../common";
+import { STORE_NAMES, StoreNames } from "../common";
 
-export async function exportSession(db: IDBDatabase): Promise<{ [storeName : string] : any }> {
+export type Export = { [storeName in StoreNames] : any[] }
+
+export async function exportSession(db: IDBDatabase): Promise<Export> {
     const txn = db.transaction(STORE_NAMES, "readonly");
     const data = {};
     await Promise.all(STORE_NAMES.map(async name => {
@@ -28,10 +30,10 @@ export async function exportSession(db: IDBDatabase): Promise<{ [storeName : str
             return NOT_DONE;
         });
     }));
-    return data;
+    return data as Export;
 }
 
-export async function importSession(db: IDBDatabase, data: { [storeName: string]: any }): Promise<void> {
+export async function importSession(db: IDBDatabase, data: Export): Promise<void> {
     const txn = db.transaction(STORE_NAMES, "readwrite");
     for (const name of STORE_NAMES) {
         const store = txn.objectStore(name);
