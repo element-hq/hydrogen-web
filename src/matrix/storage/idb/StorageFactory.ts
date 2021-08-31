@@ -19,11 +19,10 @@ import { openDatabase, reqAsPromise } from "./utils";
 import { exportSession, importSession, Export } from "./export";
 import { schema } from "./schema";
 import { detectWebkitEarlyCloseTxnBug } from "./quirks";
-
-type LogType = any
+import { BaseLogger } from "../../../logging/BaseLogger.js";
 
 const sessionName = (sessionId: string) => `hydrogen_session_${sessionId}`;
-const openDatabaseWithSessionId = function(sessionId: string, idbFactory: IDBFactory, log?: LogType) {
+const openDatabaseWithSessionId = function(sessionId: string, idbFactory: IDBFactory, log?: BaseLogger) {
     const create = (db, txn, oldVersion, version) => createStores(db, txn, oldVersion, version, log);
     return openDatabase(sessionName(sessionId), create, schema.length, idbFactory);
 }
@@ -60,7 +59,7 @@ export class StorageFactory {
         this._IDBKeyRange = _IDBKeyRange;
     }
 
-    async create(sessionId: string, log?: LogType): Promise<Storage> {
+    async create(sessionId: string, log?: BaseLogger): Promise<Storage> {
         await this._serviceWorkerHandler?.preventConcurrentSessionAccess(sessionId);
         requestPersistedStorage().then(persisted => {
             // Firefox lies here though, and returns true even if the user denied the request
@@ -91,7 +90,7 @@ export class StorageFactory {
     }
 }
 
-async function createStores(db: IDBDatabase, txn: IDBTransaction, oldVersion: number | null, version: number, log?: LogType): Promise<void> {
+async function createStores(db: IDBDatabase, txn: IDBTransaction, oldVersion: number | null, version: number, log?: BaseLogger): Promise<void> {
     const startIdx = oldVersion || 0;
     return log.wrap({l: "storage migration", oldVersion, version}, async log => {
         for(let i = startIdx; i < version; ++i) {
