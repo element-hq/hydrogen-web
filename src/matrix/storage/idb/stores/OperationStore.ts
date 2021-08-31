@@ -20,14 +20,17 @@ export function encodeScopeTypeKey(scope: string, type: string): string {
     return `${scope}|${type}`;
 }
 
-interface Operation {
+interface BaseOperation {
     id: string;
-    type: string;
     scope: string;
     userIds: string[];
-    scopeTypeKey: string;
-    roomKeyMessage: RoomKeyMessage;
 }
+
+type OperationType = { type: "share_room_key"; roomKeyMessage: RoomKeyMessage; }
+
+type Operation = BaseOperation & OperationType
+
+type OperationEntry = Operation & { scopeTypeKey: string; }
 
 interface RoomKeyMessage {
     room_id: string;
@@ -38,9 +41,9 @@ interface RoomKeyMessage {
 }
 
 export class OperationStore {
-    private _store: Store<Operation>;
+    private _store: Store<OperationEntry>;
 
-    constructor(store: Store<Operation>) {
+    constructor(store: Store<OperationEntry>) {
         this._store = store;
     }
 
@@ -61,13 +64,13 @@ export class OperationStore {
         return results;
     }
 
-    add(operation: Operation): Promise<IDBValidKey> {
-        operation.scopeTypeKey = encodeScopeTypeKey(operation.scope, operation.type);
-        return this._store.add(operation);
+    add(operation: Operation): void {
+        (operation as OperationEntry).scopeTypeKey = encodeScopeTypeKey(operation.scope, operation.type);
+        this._store.add(operation as OperationEntry);
     }
 
-    update(operation: Operation): Promise<IDBValidKey> {
-        return this._store.put(operation);
+    update(operation: Operation): void {
+        this._store.put(operation as OperationEntry);
     }
 
     remove(id: string): Promise<undefined> {

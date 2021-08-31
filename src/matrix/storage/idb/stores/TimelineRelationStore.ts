@@ -39,8 +39,8 @@ export class TimelineRelationStore {
         this._store = store;
     }
 
-    add(roomId: string, targetEventId: string, relType: string, sourceEventId: string): Promise<IDBValidKey> {
-        return this._store.add({key: encodeKey(roomId, targetEventId, relType, sourceEventId)});
+    add(roomId: string, targetEventId: string, relType: string, sourceEventId: string): void {
+        this._store.add({key: encodeKey(roomId, targetEventId, relType, sourceEventId)});
     }
 
     remove(roomId: string, targetEventId: string, relType: string, sourceEventId: string): Promise<undefined> {

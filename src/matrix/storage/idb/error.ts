@@ -25,23 +25,18 @@ function _sourceName(source: IDBIndex | IDBObjectStore): string {
 
 function _sourceDatabase(source: IDBIndex | IDBObjectStore): string {
     return "objectStore" in source ?
-        source.objectStore.transaction.db.name :
-        source.transaction.db.name;
+        source.objectStore?.transaction?.db?.name :
+        source.transaction?.db?.name;
 }
 
 export class IDBError extends StorageError {
     storeName: string;
     databaseName: string;
 
-    constructor(message: string, source: IDBIndex | IDBCursor | IDBObjectStore, cause: DOMException | null = null) {
-        let storeName: string, databaseName: string;
-        if (source instanceof IDBCursor) {
-            storeName = _sourceName(source.source);
-            databaseName = _sourceDatabase(source.source);
-        } else {
-            storeName = _sourceName(source);
-            databaseName = _sourceDatabase(source);
-        }
+    constructor(message: string, sourceOrCursor: IDBIndex | IDBCursor | IDBObjectStore, cause: DOMException | null = null) {
+        const source = "source" in sourceOrCursor ? sourceOrCursor.source : sourceOrCursor;
+        const storeName = _sourceName(source);
+        const databaseName = _sourceDatabase(source);
         let fullMessage = `${message} on ${databaseName}.${storeName}`;
         if (cause) {
             fullMessage += ": ";

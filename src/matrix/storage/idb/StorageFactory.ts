@@ -20,9 +20,12 @@ import { exportSession, importSession } from "./export";
 import { schema } from "./schema";
 import { detectWebkitEarlyCloseTxnBug } from "./quirks";
 
+type LogType = any
+
 const sessionName = (sessionId: string) => `hydrogen_session_${sessionId}`;
-const openDatabaseWithSessionId = function(sessionId: string, idbFactory: IDBFactory): Promise<IDBDatabase> {
-    return openDatabase(sessionName(sessionId), createStores, schema.length, idbFactory);
+const openDatabaseWithSessionId = function(sessionId: string, idbFactory: IDBFactory, log?: LogType) {
+    const create = (db, txn, oldVersion, version) => createStores(db, txn, oldVersion, version, log);
+    return openDatabase(sessionName(sessionId), create, schema.length, idbFactory);
 }
 
 interface ServiceWorkerHandler {
@@ -49,15 +52,15 @@ async function requestPersistedStorage(): Promise<boolean> {
 export class StorageFactory {
     private _serviceWorkerHandler: ServiceWorkerHandler;
     private _idbFactory: IDBFactory;
+    private _IDBKeyRange: typeof IDBKeyRange
 
-    constructor(serviceWorkerHandler: ServiceWorkerHandler, idbFactory: IDBFactory = window.indexedDB, IDBKeyRange = window.IDBKeyRange) {
+    constructor(serviceWorkerHandler: ServiceWorkerHandler, idbFactory: IDBFactory = window.indexedDB, _IDBKeyRange = window.IDBKeyRange) {
         this._serviceWorkerHandler = serviceWorkerHandler;
         this._idbFactory = idbFactory;
-        // @ts-ignore
-        this._IDBKeyRange = IDBKeyRange;
+        this._IDBKeyRange = _IDBKeyRange;
     }
 
-    async create(sessionId: string): Promise<Storage> {
+    async create(sessionId: string, log?: LogType): Promise<Storage> {
         await this._serviceWorkerHandler?.preventConcurrentSessionAccess(sessionId);
         requestPersistedStorage().then(persisted => {
             // Firefox lies here though, and returns true even if the user denied the request
@@ -67,8 +70,7 @@ export class StorageFactory {
         });
 
         const hasWebkitEarlyCloseTxnBug = await detectWebkitEarlyCloseTxnBug(this._idbFactory);
-        const db = await openDatabaseWithSessionId(sessionId, this._idbFactory);
-        // @ts-ignore
+        const db = await openDatabaseWithSessionId(sessionId, this._idbFactory, log);
         return new Storage(db, this._IDBKeyRange, hasWebkitEarlyCloseTxnBug);
     }
 
@@ -89,10 +91,11 @@ export class StorageFactory {
     }
 }
 
-async function createStores(db: IDBDatabase, txn: IDBTransaction, oldVersion: number | null, version: number): Promise<void> {
+async function createStores(db: IDBDatabase, txn: IDBTransaction, oldVersion: number | null, version: number, log?: LogType): Promise<void> {
     const startIdx = oldVersion || 0;
-
-    for(let i = startIdx; i < version; ++i) {
-        await schema[i](db, txn);
-    }
+    return log.wrap({l: "storage migration", oldVersion, version}, async log => {
+        for(let i = startIdx; i < version; ++i) {
+            await log.wrap(`v${i + 1}`, log => schema[i](db, txn, log));
+        }
+    });
 }

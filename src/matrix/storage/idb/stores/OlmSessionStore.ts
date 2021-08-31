@@ -65,9 +65,9 @@ export class OlmSessionStore {
         return this._store.get(encodeKey(senderKey, sessionId));
     }
 
-    set(session: OlmSession): Promise<IDBValidKey> {
+    set(session: OlmSession): void {
         session.key = encodeKey(session.senderKey, session.sessionId);
-        return this._store.put(session);
+        this._store.put(session);
     }
 
     remove(senderKey: string, sessionId: string): Promise<undefined> {

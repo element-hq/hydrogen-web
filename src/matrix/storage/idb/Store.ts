@@ -148,7 +148,7 @@ export class Store<T> extends QueryTarget<T> {
         return new QueryTarget<T>(new QueryTargetWrapper<T>(this._idbStore.index(indexName)));
     }
 
-    put(value: T): Promise<IDBValidKey> {
+    put(value: T): void {
         // If this request fails, the error will bubble up to the transaction and abort it,
         // which is the behaviour we want. Therefore, it is ok to not create a promise for this
         // request and await it.
@@ -159,12 +159,12 @@ export class Store<T> extends QueryTarget<T> {
         // 
         // Note that this can still throw synchronously, like it does for TransactionInactiveError,
         // see https://www.w3.org/TR/IndexedDB-2/#transaction-lifetime-concept
-        return reqAsPromise(this._idbStore.put(value));
+        this._idbStore.put(value);
     }
 
-    add(value: T): Promise<IDBValidKey> {
+    add(value: T): void {
         // ok to not monitor result of request, see comment in `put`.
-        return reqAsPromise(this._idbStore.add(value));
+        this._idbStore.add(value);
     }
 
     delete(keyOrKeyRange: IDBValidKey | IDBKeyRange): Promise<undefined> {

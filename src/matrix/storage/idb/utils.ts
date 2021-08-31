@@ -71,12 +71,19 @@ type CreateObjectStore = (db : IDBDatabase, txn: IDBTransaction | null, oldVersi
 
 export function openDatabase(name: string, createObjectStore: CreateObjectStore, version: number, idbFactory: IDBFactory = window.indexedDB): Promise<IDBDatabase> {
     const req = idbFactory.open(name, version);
-    req.onupgradeneeded = (ev : IDBVersionChangeEvent) => {
+    req.onupgradeneeded = async (ev : IDBVersionChangeEvent) => {
         const req = ev.target as IDBRequest<IDBDatabase>;
         const db = req.result;
-        const txn = req.transaction;
+        const txn = req.transaction!;
         const oldVersion = ev.oldVersion;
-        createObjectStore(db, txn, oldVersion, version);
+        try {
+            await createObjectStore(db, txn, oldVersion, version);
+        } catch (err) {
+            // try aborting on error, if that hasn't been done already
+            try {
+                txn.abort();
+            } catch (err) {}
+        }
     }; 
     return reqAsPromise(req);
 }

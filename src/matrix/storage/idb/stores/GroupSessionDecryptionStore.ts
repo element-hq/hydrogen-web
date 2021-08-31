@@ -24,13 +24,14 @@ function encodeKey(roomId: string, sessionId: string, messageIndex: number | str
 interface GroupSessionDecryption {
     eventId: string;
     timestamp: number;
-    key: string;
 }
 
-export class GroupSessionDecryptionStore {
-    private _store: Store<GroupSessionDecryption>;
+type GroupSessionEntry = GroupSessionDecryption & { key: string }
 
-    constructor(store: Store<GroupSessionDecryption>) {
+export class GroupSessionDecryptionStore {
+    private _store: Store<GroupSessionEntry>;
+
+    constructor(store: Store<GroupSessionEntry>) {
         this._store = store;
     }
 
@@ -38,9 +39,9 @@ export class GroupSessionDecryptionStore {
         return this._store.get(encodeKey(roomId, sessionId, messageIndex));
     }
 
-    set(roomId: string, sessionId: string, messageIndex: number, decryption: GroupSessionDecryption): Promise<IDBValidKey> {
-        decryption.key = encodeKey(roomId, sessionId, messageIndex);
-        return this._store.put(decryption);
+    set(roomId: string, sessionId: string, messageIndex: number, decryption: GroupSessionDecryption): void {
+        (decryption as GroupSessionEntry).key = encodeKey(roomId, sessionId, messageIndex);
+        this._store.put(decryption as GroupSessionEntry);
     }
     
     removeAllForRoom(roomId: string): Promise<undefined> {

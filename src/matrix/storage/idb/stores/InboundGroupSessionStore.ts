@@ -48,9 +48,9 @@ export class InboundGroupSessionStore {
         return this._store.get(encodeKey(roomId, senderKey, sessionId));
     }
 
-    set(session: InboundGroupSession): Promise<IDBValidKey> {
+    set(session: InboundGroupSession): void {
         session.key = encodeKey(session.roomId, session.senderKey, session.sessionId);
-        return this._store.put(session);
+        this._store.put(session);
     }
 
     removeAllForRoom(roomId: string): Promise<undefined> {

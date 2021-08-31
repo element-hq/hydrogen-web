@@ -41,10 +41,10 @@ export class RoomStateStore {
         return this._roomStateStore.get(key);
     }
 
-    set(roomId: string, event: StateEvent): Promise<IDBValidKey> {
+    set(roomId: string, event: StateEvent): void {
         const key = encodeKey(roomId, event.type, event.state_key);
         const entry = {roomId, event, key};
-        return this._roomStateStore.put(entry);
+        this._roomStateStore.put(entry);
     }
 
     removeAllForRoom(roomId: string): Promise<undefined> {

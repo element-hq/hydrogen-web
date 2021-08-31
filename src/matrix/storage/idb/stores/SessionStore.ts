@@ -27,22 +27,22 @@ export class SessionStore {
         this._sessionStore = sessionStore;
     }
 
-    async get(key: IDBValidKey): Promise<any> {
+    async get(key: string): Promise<any> {
         const entry = await this._sessionStore.get(key);
         if (entry) {
             return entry.value;
         }
     }
 
-    set(key: string, value: any): Promise<IDBValidKey> {
-        return this._sessionStore.put({key, value});
+    set(key: string, value: any): void {
+        this._sessionStore.put({key, value});
     }
 
-    add(key: string, value: any): Promise<IDBValidKey> {
-        return this._sessionStore.add({key, value});
+    add(key: string, value: any): void {
+        this._sessionStore.add({key, value});
     }
 
-    remove(key: IDBValidKey): Promise<undefined> {
-        return this._sessionStore.delete(key);
+    remove(key: string): void {
+        this._sessionStore.delete(key);
     }
 }

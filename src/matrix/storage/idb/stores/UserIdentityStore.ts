@@ -32,8 +32,8 @@ export class UserIdentityStore {
         return this._store.get(userId);
     }
 
-    set(userIdentity: UserIdentity): Promise<IDBValidKey> {
-        return this._store.put(userIdentity);
+    set(userIdentity: UserIdentity): void {
+        this._store.put(userIdentity);
     }
 
     remove(userId: string): Promise<undefined> {

@@ -50,10 +50,10 @@ export class RoomMemberStore {
         return this._roomMembersStore.get(encodeKey(roomId, userId));
     }
 
-    async set(member: MemberData): Promise<IDBValidKey> {
+    set(member: MemberData): void {
         // Object.assign would be more typesafe, but small objects 
-        (member as any).key = encodeKey(member.roomId, member.userId);
-        return this._roomMembersStore.put(member as MemberStorageEntry);
+        (member as MemberStorageEntry).key = encodeKey(member.roomId, member.userId);
+        this._roomMembersStore.put(member as MemberStorageEntry);
     }
 
     getAll(roomId: string): Promise<MemberData[]> {
@@ -78,10 +78,10 @@ export class RoomMemberStore {
         return userIds;
     }
 
-    removeAllForRoom(roomId: string): Promise<undefined> {
+    removeAllForRoom(roomId: string): void {
         // exclude both keys as they are theoretical min and max,
         // but we should't have a match for just the room id, or room id with max
         const range = this._roomMembersStore.IDBKeyRange.bound(roomId, `${roomId}|${MAX_UNICODE}`, true, true);
-        return this._roomMembersStore.delete(range);
+        this._roomMembersStore.delete(range);
     }
 }

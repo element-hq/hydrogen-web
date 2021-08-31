@@ -42,8 +42,8 @@ export class RoomSummaryStore {
         return this._summaryStore.selectAll();
     }
 
-    set(summary: SummaryData): Promise<IDBValidKey> {
-        return this._summaryStore.put(summary);
+    set(summary: SummaryData): void {
+        this._summaryStore.put(summary);
     }
 
     get(roomId: string): Promise<SummaryData | null> {
