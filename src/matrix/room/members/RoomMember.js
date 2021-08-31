@@ -141,6 +141,16 @@ export class MemberChange {
         return this.previousMembership === "join" && this.membership !== "join";
     }
 
+    /** The result can be a false negative when all of these apply:
+     *  - the complete set of room members hasn't been fetched yet.
+     *  - the member event for this change was received in the
+     *    state section and wasn't present in the timeline section.
+     *  - the room response was limited, e.g. there was a gap.
+     * 
+     * This is because during sync, in this case it is not possible
+     * to distinguish between a new member that joined the room
+     * during a gap and a lazy-loading member.
+     * */
     get hasJoined() {
         return this.previousMembership !== "join" && this.membership === "join";
     }

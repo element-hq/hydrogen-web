@@ -19,6 +19,22 @@ import {verifyEd25519Signature, SIGNATURE_ALGORITHM} from "./common.js";
 const TRACKING_STATUS_OUTDATED = 0;
 const TRACKING_STATUS_UPTODATE = 1;
 
+export function addRoomToIdentity(identity, userId, roomId) {
+    if (!identity) {
+        identity = {
+            userId: userId,
+            roomIds: [roomId],
+            deviceTrackingStatus: TRACKING_STATUS_OUTDATED,
+        };
+        return identity;
+    } else {
+        if (!identity.roomIds.includes(roomId)) {
+            identity.roomIds.push(roomId);
+            return identity;
+        }
+    }
+}
+
 // map 1 device from /keys/query response to DeviceIdentity
 function deviceKeysAsDeviceIdentity(deviceSection) {
     const deviceId = deviceSection["device_id"];
@@ -107,17 +123,9 @@ export class DeviceTracker {
     async _writeMember(member, txn) {
         const {userIdentities} = txn;
         const identity = await userIdentities.get(member.userId);
-        if (!identity) {
-            userIdentities.set({
-                userId: member.userId,
-                roomIds: [member.roomId],
-                deviceTrackingStatus: TRACKING_STATUS_OUTDATED,
-            });
-        } else {
-            if (!identity.roomIds.includes(member.roomId)) {
-                identity.roomIds.push(member.roomId);
-                userIdentities.set(identity);
-            }
+        const updatedIdentity = addRoomToIdentity(identity, member.userId, member.roomId);
+        if (updatedIdentity) {
+            userIdentities.set(updatedIdentity);
         }
     }
 
