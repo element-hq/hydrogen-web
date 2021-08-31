@@ -75,7 +75,7 @@ export class TimelineFragmentStore {
     // depends if we want to do anything smart with fragment ids,
     // like give them meaning depending on range. not for now probably ...
     add(fragment: Fragment): void {
-        (fragment as any).key = encodeKey(fragment.roomId, fragment.id);
+        (fragment as FragmentEntry).key = encodeKey(fragment.roomId, fragment.id);
         this._store.add(fragment as FragmentEntry);
     }
 
