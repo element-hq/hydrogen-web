@@ -25,8 +25,8 @@ function _sourceName(source: IDBIndex | IDBObjectStore): string {
 
 function _sourceDatabase(source: IDBIndex | IDBObjectStore): string {
     return "objectStore" in source ?
-        source.objectStore.transaction.db.name :
-        source.transaction.db.name;
+        source.objectStore?.transaction?.db?.name :
+        source.transaction?.db?.name;
 }
 
 export class IDBError extends StorageError {
