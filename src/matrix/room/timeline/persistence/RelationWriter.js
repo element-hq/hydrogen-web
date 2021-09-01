@@ -191,7 +191,7 @@ export class RelationWriter {
 
     async _reaggregateAnnotation(targetId, key, txn, log) {
         const target = await txn.timelineEvents.getByEventId(this._roomId, targetId);
-        if (!target) {
+        if (!target || !target.annotations) { // unknown or redacted event
             return null;
         }
         log.set("id", targetId);
