@@ -77,7 +77,11 @@ export class SettingsViewModel extends ViewModel {
     }
 
     get fingerprintKey() {
-        return formatKey(this._session.fingerprintKey);
+        const key = this._session.fingerprintKey;
+        if (!key) {
+            return null;
+        }
+        return formatKey(key);
     }
 
     get deviceId() {
