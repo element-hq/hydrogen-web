@@ -40,7 +40,7 @@ export function viewClassForEntry(entry) {
     }
 }
 
-export class TimelineList extends ListView {
+export class TimelineView extends ListView {
     constructor(viewModel) {
         const options = {
             className: "Timeline bottom-aligned-scroll",
@@ -94,7 +94,8 @@ export class TimelineList extends ListView {
             this._loadAtTopWhile(() => {
                 const contentHeight = root.scrollHeight;
                 const amountGrown = contentHeight - beforeContentHeight;
-                root.scrollTop = root.scrollTop + (contentHeight - lastContentHeight);
+                const topDiff = contentHeight - lastContentHeight;
+                root.scrollBy(0, topDiff);
                 lastContentHeight = contentHeight;
                 return amountGrown < PAGINATE_OFFSET;
             });

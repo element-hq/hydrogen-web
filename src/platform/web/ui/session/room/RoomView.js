@@ -18,7 +18,7 @@ limitations under the License.
 import {TemplateView} from "../../general/TemplateView.js";
 import {Popup} from "../../general/Popup.js";
 import {Menu} from "../../general/Menu.js";
-import {TimelineList} from "./TimelineList.js";
+import {TimelineView} from "./TimelineView.js";
 import {TimelineLoadingView} from "./TimelineLoadingView.js";
 import {MessageComposer} from "./MessageComposer.js";
 import {RoomArchivedView} from "./RoomArchivedView.js";
@@ -54,7 +54,7 @@ export class RoomView extends TemplateView {
                 t.div({className: "RoomView_error"}, vm => vm.error),
                 t.mapView(vm => vm.timelineViewModel, timelineViewModel => {
                     return timelineViewModel ?
-                        new TimelineList(timelineViewModel) :
+                        new TimelineView(timelineViewModel) :
                         new TimelineLoadingView(vm);    // vm is just needed for i18n
                 }),
                 t.view(bottomView),
