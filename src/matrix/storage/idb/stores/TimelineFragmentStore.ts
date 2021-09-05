@@ -16,7 +16,7 @@ limitations under the License.
 
 import { StorageError } from "../../common";
 import {KeyLimits} from "../../common";
-import { encodeUint32 } from "../utils";
+import { encodeUint32, decodeUint32 } from "../utils";
 import {Store} from "../Store";
 
 interface Fragment {
@@ -32,6 +32,11 @@ type FragmentEntry = Fragment & { key: string }
 
 function encodeKey(roomId: string, fragmentId: number): string {
     return `${roomId}|${encodeUint32(fragmentId)}`;
+}
+
+function decodeKey(key) {
+    const [roomId, fragmentId] = key.split("|");
+    return { roomId, fragmentId: decodeUint32(fragmentId) };
 }
 
 export class TimelineFragmentStore {
@@ -69,6 +74,14 @@ export class TimelineFragmentStore {
         return this._store.findReverse(this._allRange(roomId), fragment => {
             return typeof fragment.nextId !== "number" && typeof fragment.nextToken !== "string";
         });
+    }
+
+    async getMaxFragmentId(roomId) {
+        const maxKey = await this._store.findMaxKey(this._allRange(roomId));
+        if (!maxKey) {
+            return null;
+        }
+        return decodeKey(maxKey).fragmentId;
     }
 
     // should generate an id an return it?

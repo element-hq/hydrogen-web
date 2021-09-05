@@ -205,6 +205,59 @@ export class GapWriter {
         return changedFragments;
     }
 
+    async _storeAndUpdate(fragmentEntry, events, key, end, state, txn, log) {
+        const {
+            nonOverlappingEvents,
+            neighbourFragmentEntry
+        } = await this._findOverlappingEvents(fragmentEntry, events, txn, log);
+        const {entries, updatedEntries} = await this._storeEvents(nonOverlappingEvents, key, fragmentEntry.direction, state, txn, log);
+        const fragments = await this._updateFragments(fragmentEntry, neighbourFragmentEntry, end, entries, txn);
+        return {entries, updatedEntries, fragments};
+    }
+
+    async writeContext(response, txn, log) {
+        const {
+            events_before: eventsBefore,
+            events_after: eventsAfter,
+            event, state, start, end
+        } = response;
+
+        if (!Array.isArray(eventsBefore) || !Array.isArray(eventsAfter)) {
+            throw new Error("Invalid chunks in response");
+        }
+
+        const eventEntry = await txn.timelineEvents.getByEventId(this._roomId, event.event_id);
+        if (eventEntry) {
+            // If we have the current event, eary return.
+            return { entries: [], updatedEntries: [], fragments: [] }
+        }
+
+        const maxFragmentKey = await tnx.timelineFragments.getMaxFragmentId(this._roomId);
+        const newFragment = {
+            roomId: this._roomId,
+            id: maxFragmentKey + 1,
+            previousId: null,
+            nextId: null,
+            previousToken: null,
+            nextToken: null
+        };
+        const eventKey = EventKey.defaultFragmentKey(newFragment.id);
+
+        const startEntry = FragmentBoundaryEntry.start(newFragment, this._fragmentIdComparer);
+        const startFill = this._storeAndUpdate(startEntry, eventsBefore, eventKey, start, state, txn, log);
+
+        eventsAfter.unshift(event);
+        const endEntry = FragmentBoundaryEntry.end(newFragment, this._fragmentIdComparer);
+        const endFill = this._storeAndUpdate(endEntry, eventsAfter, eventKey, end, state, txn, log);
+
+        // Both startFill and endFill are throwaway objects, so we
+        // may as well modify one of them in-place instead of returning a third.
+        startFill.entries.push(...endFill.entries);
+        startFill.updatedEntries.push(...endFill.updatedEntries);
+        startFill.fragments.push(...endFill.fragments);
+        return startFill;
+    }
+
     async writeFragmentFill(fragmentEntry, response, txn, log) {
         const {fragmentId, direction} = fragmentEntry;
         // chunk is in reverse-chronological order when backwards
