@@ -132,9 +132,9 @@ export function parseUrlPath(urlPath, currentNavPath, defaultSessionId) {
                 segments.push(roomsSegmentWithRoom(rooms, roomId, currentNavPath));
             }
             segments.push(new Segment("room", roomId));
-            const partIndex = parts.findIndex(part => part === "open-room");
-            const partsAfterRoom = parts.slice(partIndex + 1);
-            if (partsAfterRoom.length === 1) {
+            const openRoomPartIndex = parts.findIndex(part => part === "open-room");
+            const hasOnlyRoomIdAfterPart = openRoomPartIndex >= parts.length - 2;
+            if (hasOnlyRoomIdAfterPart) {
                 // Copy right-panel segments from previous path only if there are no other parts after open-room
                 // fixes memberlist -> member details closing/opening grid view
                 const previousSegments = currentNavPath.segments;
