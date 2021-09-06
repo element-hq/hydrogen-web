@@ -14,19 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {Storage} from "./Storage.js";
+import {Storage} from "./Storage";
 import { openDatabase, reqAsPromise } from "./utils";
-import { exportSession, importSession } from "./export.js";
-import { schema } from "./schema.js";
-import { detectWebkitEarlyCloseTxnBug } from "./quirks.js";
+import { exportSession, importSession, Export } from "./export";
+import { schema } from "./schema";
+import { detectWebkitEarlyCloseTxnBug } from "./quirks";
+import { BaseLogger } from "../../../logging/BaseLogger.js";
 
-const sessionName = sessionId => `hydrogen_session_${sessionId}`;
-const openDatabaseWithSessionId = function(sessionId, idbFactory, log) {
+const sessionName = (sessionId: string) => `hydrogen_session_${sessionId}`;
+const openDatabaseWithSessionId = function(sessionId: string, idbFactory: IDBFactory, log?: BaseLogger) {
     const create = (db, txn, oldVersion, version) => createStores(db, txn, oldVersion, version, log);
     return openDatabase(sessionName(sessionId), create, schema.length, idbFactory);
 }
 
-async function requestPersistedStorage() {
+interface ServiceWorkerHandler {
+    preventConcurrentSessionAccess: (sessionId: string) => Promise<void>;
+}
+
+async function requestPersistedStorage(): Promise<boolean> {
     // don't assume browser so we can run in node with fake-idb
     const glob = this;
     if (glob?.navigator?.storage?.persist) {
@@ -44,13 +49,17 @@ async function requestPersistedStorage() {
 }
 
 export class StorageFactory {
-    constructor(serviceWorkerHandler, idbFactory = window.indexedDB, IDBKeyRange = window.IDBKeyRange) {
+    private _serviceWorkerHandler: ServiceWorkerHandler;
+    private _idbFactory: IDBFactory;
+    private _IDBKeyRange: typeof IDBKeyRange
+
+    constructor(serviceWorkerHandler: ServiceWorkerHandler, idbFactory: IDBFactory = window.indexedDB, _IDBKeyRange = window.IDBKeyRange) {
         this._serviceWorkerHandler = serviceWorkerHandler;
         this._idbFactory = idbFactory;
-        this._IDBKeyRange = IDBKeyRange;
+        this._IDBKeyRange = _IDBKeyRange;
     }
 
-    async create(sessionId, log) {
+    async create(sessionId: string, log?: BaseLogger): Promise<Storage> {
         await this._serviceWorkerHandler?.preventConcurrentSessionAccess(sessionId);
         requestPersistedStorage().then(persisted => {
             // Firefox lies here though, and returns true even if the user denied the request
@@ -64,24 +73,24 @@ export class StorageFactory {
         return new Storage(db, this._IDBKeyRange, hasWebkitEarlyCloseTxnBug);
     }
 
-    delete(sessionId) {
+    delete(sessionId: string): Promise<IDBDatabase> {
         const databaseName = sessionName(sessionId);
         const req = this._idbFactory.deleteDatabase(databaseName);
         return reqAsPromise(req);
     }
 
-    async export(sessionId) {
+    async export(sessionId: string): Promise<Export> {
         const db = await openDatabaseWithSessionId(sessionId, this._idbFactory);
         return await exportSession(db);
     }
 
-    async import(sessionId, data) {
+    async import(sessionId: string, data: Export): Promise<void> {
         const db = await openDatabaseWithSessionId(sessionId, this._idbFactory);
         return await importSession(db, data);
     }
 }
 
-async function createStores(db, txn, oldVersion, version, log) {
+async function createStores(db: IDBDatabase, txn: IDBTransaction, oldVersion: number | null, version: number, log?: BaseLogger): Promise<void> {
     const startIdx = oldVersion || 0;
     return log.wrap({l: "storage migration", oldVersion, version}, async log => {
         for(let i = startIdx; i < version; ++i) {

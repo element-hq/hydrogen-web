@@ -18,7 +18,7 @@ limitations under the License.
 import {openDatabase, txnAsPromise, reqAsPromise} from "./utils";
 
 // filed as https://bugs.webkit.org/show_bug.cgi?id=222746
-export async function detectWebkitEarlyCloseTxnBug(idbFactory) {
+export async function detectWebkitEarlyCloseTxnBug(idbFactory: IDBFactory): Promise<boolean> {
     const dbName = "hydrogen_webkit_test_inactive_txn_bug";
     try {
         const db = await openDatabase(dbName, db => {
