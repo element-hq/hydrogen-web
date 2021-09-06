@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ListView} from "../../general/ListView.js";
+import {ListView} from "../../general/ListView";
 import {GapView} from "./timeline/GapView.js";
 import {TextMessageView} from "./timeline/TextMessageView.js";
 import {ImageView} from "./timeline/ImageView.js";

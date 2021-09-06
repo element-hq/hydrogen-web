@@ -17,7 +17,7 @@ limitations under the License.
 
 import {renderStaticAvatar} from "../../../avatar.js";
 import {tag} from "../../../general/html.js";
-import {mountView} from "../../../general/utils.js";
+import {mountView} from "../../../general/utils";
 import {TemplateView} from "../../../general/TemplateView.js";
 import {Popup} from "../../../general/Popup.js";
 import {Menu} from "../../../general/Menu.js";

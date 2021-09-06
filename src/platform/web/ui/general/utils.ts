@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,11 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {UIView, IMountArgs} from "./types";
 import {tag} from "./html.js";
 
-export function errorToDOM(error) {
+export function mountView(view: UIView, mountArgs: IMountArgs): HTMLElement {
+    let node;
+    try {
+        node = view.mount(mountArgs);
+    } catch (err) {
+        node = errorToDOM(err);
+    }
+    return node;
+}
+
+export function errorToDOM(error: Error): HTMLElement {
     const stack = new Error().stack;
-    let callee = null;
+    let callee: string | null = null;
     if (stack) {
         callee = stack.split("\n")[1];
     }
@@ -28,4 +39,14 @@ export function errorToDOM(error) {
         tag.p(`This occurred while running ${callee}.`),
         tag.pre(error.stack),
     ]);
+}
+
+export function insertAt(parentNode: HTMLElement, idx: number, childNode: HTMLElement): void {
+    const isLast = idx === parentNode.childElementCount;
+    if (isLast) {
+        parentNode.appendChild(childNode);
+    } else {
+        const nextDomNode = parentNode.children[idx];
+        parentNode.insertBefore(childNode, nextDomNode);
+    }
 }
