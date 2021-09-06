@@ -27,31 +27,35 @@ store contains:
 	inviteCount
 	joinCount
 */
+import {Store} from "../Store";
+import {SummaryData} from "../../../room/RoomSummary";
 
 /** Used for both roomSummary and archivedRoomSummary stores */
 export class RoomSummaryStore {
-	constructor(summaryStore) {
-		this._summaryStore = summaryStore;
-	}
+    private _summaryStore: Store<SummaryData>;
 
-	getAll() {
-		return this._summaryStore.selectAll();
-	}
+    constructor(summaryStore: Store<SummaryData>) {
+        this._summaryStore = summaryStore;
+    }
 
-	set(summary) {
-		return this._summaryStore.put(summary);
-	}
+    getAll(): Promise<SummaryData[]> {
+        return this._summaryStore.selectAll();
+    }
 
-	get(roomId) {
-		return this._summaryStore.get(roomId);
-	}
+    set(summary: SummaryData): void {
+        this._summaryStore.put(summary);
+    }
 
-	async has(roomId) {
+    get(roomId: string): Promise<SummaryData | null> {
+        return this._summaryStore.get(roomId);
+    }
+
+    async has(roomId: string): Promise<boolean> {
         const fetchedKey = await this._summaryStore.getKey(roomId);
         return roomId === fetchedKey;
-	}
+    }
 
-	remove(roomId) {
-		return this._summaryStore.delete(roomId);
-	}
+    remove(roomId: string): Promise<undefined> {
+        return this._summaryStore.delete(roomId);
+    }
 }

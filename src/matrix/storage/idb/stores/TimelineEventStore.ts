@@ -18,23 +18,50 @@ import {EventKey} from "../../../room/timeline/EventKey.js";
 import { StorageError } from "../../common";
 import { encodeUint32 } from "../utils";
 import {KeyLimits} from "../../common";
+import {Store} from "../Store";
+import {TimelineEvent, StateEvent} from "../../types";
 
-function encodeKey(roomId, fragmentId, eventIndex) {
+interface Annotation {
+    count: number;
+    me: boolean;
+    firstTimestamp: number;
+}
+
+interface StorageEntry {
+    roomId: string;
+    fragmentId: number;
+    eventIndex: number;
+    event: TimelineEvent | StateEvent;
+    displayName?: string;
+    avatarUrl?: string;
+    annotations?: { [key : string]: Annotation };
+    key: string;
+    eventIdKey: string;
+}
+
+function encodeKey(roomId: string, fragmentId: number, eventIndex: number): string {
     return `${roomId}|${encodeUint32(fragmentId)}|${encodeUint32(eventIndex)}`;
 }
 
-function encodeEventIdKey(roomId, eventId) {
+function encodeEventIdKey(roomId: string, eventId: string): string {
     return `${roomId}|${eventId}`;
 }
 
-function decodeEventIdKey(eventIdKey) {
+function decodeEventIdKey(eventIdKey: string): { roomId: string, eventId: string } {
     const [roomId, eventId] = eventIdKey.split("|");
     return {roomId, eventId};
 }
 
 class Range {
-    constructor(IDBKeyRange, only, lower, upper, lowerOpen, upperOpen) {
-        this._IDBKeyRange = IDBKeyRange;
+    private _IDBKeyRange: typeof IDBKeyRange;
+    private _only?: EventKey;
+    private _lower?: EventKey;
+    private _upper?: EventKey;
+    private _lowerOpen: boolean;
+    private _upperOpen: boolean;
+
+    constructor(_IDBKeyRange: any, only?: EventKey, lower?: EventKey, upper?: EventKey, lowerOpen: boolean = false, upperOpen: boolean = false) {
+        this._IDBKeyRange = _IDBKeyRange;
         this._only = only;
         this._lower = lower;
         this._upper = upper;
@@ -42,7 +69,7 @@ class Range {
         this._upperOpen = upperOpen;
     }
 
-    asIDBKeyRange(roomId) {
+    asIDBKeyRange(roomId: string): IDBKeyRange | undefined {
         try {
             // only
             if (this._only) {
@@ -99,66 +126,68 @@ class Range {
  * @property  {?Gap} gap if a gap entry, the gap
 */
 export class TimelineEventStore {
-    constructor(timelineStore) {
+    private _timelineStore: Store<StorageEntry>;
+
+    constructor(timelineStore: Store<StorageEntry>) {
         this._timelineStore = timelineStore;
     }
 
     /** Creates a range that only includes the given key
-     *  @param {EventKey} eventKey the key
-     *  @return {Range} the created range
+     *  @param eventKey the key
+     *  @return the created range
      */
-    onlyRange(eventKey) {
+    onlyRange(eventKey: EventKey): Range {
         return new Range(this._timelineStore.IDBKeyRange, eventKey);
     }
 
     /** Creates a range that includes all keys before eventKey, and optionally also the key itself.
-     *  @param {EventKey} eventKey the key
-     *  @param {boolean} [open=false] whether the key is included (false) or excluded (true) from the range at the upper end.
-     *  @return {Range} the created range
+     *  @param eventKey the key
+     *  @param [open=false] whether the key is included (false) or excluded (true) from the range at the upper end.
+     *  @return the created range
      */
-    upperBoundRange(eventKey, open=false) {
+    upperBoundRange(eventKey: EventKey, open=false): Range {
         return new Range(this._timelineStore.IDBKeyRange, undefined, undefined, eventKey, undefined, open);
     }
 
     /** Creates a range that includes all keys after eventKey, and optionally also the key itself.
-     *  @param {EventKey} eventKey the key
-     *  @param {boolean} [open=false] whether the key is included (false) or excluded (true) from the range at the lower end.
-     *  @return {Range} the created range
+     *  @param eventKey the key
+     *  @param [open=false] whether the key is included (false) or excluded (true) from the range at the lower end.
+     *  @return the created range
      */
-    lowerBoundRange(eventKey, open=false) {
+    lowerBoundRange(eventKey: EventKey, open=false): Range {
         return new Range(this._timelineStore.IDBKeyRange, undefined, eventKey, undefined, open);
     }
 
     /** Creates a range that includes all keys between `lower` and `upper`, and optionally the given keys as well.
-     *  @param {EventKey} lower the lower key
-     *  @param {EventKey} upper the upper key
-     *  @param {boolean} [lowerOpen=false] whether the lower key is included (false) or excluded (true) from the range.
-     *  @param {boolean} [upperOpen=false] whether the upper key is included (false) or excluded (true) from the range.
-     *  @return {Range} the created range
+     *  @param lower the lower key
+     *  @param upper the upper key
+     *  @param [lowerOpen=false] whether the lower key is included (false) or excluded (true) from the range.
+     *  @param [upperOpen=false] whether the upper key is included (false) or excluded (true) from the range.
+     *  @return the created range
      */
-    boundRange(lower, upper, lowerOpen=false, upperOpen=false) {
+    boundRange(lower: EventKey, upper: EventKey, lowerOpen=false, upperOpen=false): Range {
         return new Range(this._timelineStore.IDBKeyRange, undefined, lower, upper, lowerOpen, upperOpen);
     }
 
     /** Looks up the last `amount` entries in the timeline for `roomId`.
-     *  @param  {string} roomId
-     *  @param  {number} fragmentId
-     *  @param  {number} amount
-     *  @return {Promise<Entry[]>} a promise resolving to an array with 0 or more entries, in ascending order.
+     *  @param roomId
+     *  @param fragmentId
+     *  @param amount
+     *  @return a promise resolving to an array with 0 or more entries, in ascending order.
      */
-    async lastEvents(roomId, fragmentId, amount) {
+    async lastEvents(roomId: string, fragmentId: number, amount: number): Promise<StorageEntry[]> {
         const eventKey = EventKey.maxKey;
         eventKey.fragmentId = fragmentId;
         return this.eventsBefore(roomId, eventKey, amount);
     }
 
     /** Looks up the first `amount` entries in the timeline for `roomId`.
-     *  @param  {string} roomId
-     *  @param  {number} fragmentId
-     *  @param  {number} amount
-     *  @return {Promise<Entry[]>} a promise resolving to an array with 0 or more entries, in ascending order.
+     *  @param roomId
+     *  @param fragmentId
+     *  @param amount
+     *  @return a promise resolving to an array with 0 or more entries, in ascending order.
      */
-    async firstEvents(roomId, fragmentId, amount) {
+    async firstEvents(roomId: string, fragmentId: number, amount: number): Promise<StorageEntry[]> {
         const eventKey = EventKey.minKey;
         eventKey.fragmentId = fragmentId;
         return this.eventsAfter(roomId, eventKey, amount);
@@ -166,24 +195,24 @@ export class TimelineEventStore {
 
     /** Looks up `amount` entries after `eventKey` in the timeline for `roomId` within the same fragment.
      *  The entry for `eventKey` is not included.
-     *  @param  {string} roomId
-     *  @param  {EventKey} eventKey
-     *  @param  {number} amount
-     *  @return {Promise<Entry[]>} a promise resolving to an array with 0 or more entries, in ascending order.
+     *  @param roomId
+     *  @param eventKey
+     *  @param amount
+     *  @return a promise resolving to an array with 0 or more entries, in ascending order.
      */
-    eventsAfter(roomId, eventKey, amount) {
+    eventsAfter(roomId: string, eventKey: EventKey, amount: number): Promise<StorageEntry[]> {
         const idbRange = this.lowerBoundRange(eventKey, true).asIDBKeyRange(roomId);
         return this._timelineStore.selectLimit(idbRange, amount);
     }
 
     /** Looks up `amount` entries before `eventKey` in the timeline for `roomId` within the same fragment.
      *  The entry for `eventKey` is not included.
-     *  @param  {string} roomId
-     *  @param  {EventKey} eventKey
-     *  @param  {number} amount
-     *  @return {Promise<Entry[]>} a promise resolving to an array with 0 or more entries, in ascending order.
+     *  @param roomId
+     *  @param eventKey
+     *  @param amount
+     *  @return a promise resolving to an array with 0 or more entries, in ascending order.
      */
-    async eventsBefore(roomId, eventKey, amount) {
+    async eventsBefore(roomId: string, eventKey: EventKey, amount: number): Promise<StorageEntry[]> {
         const range = this.upperBoundRange(eventKey, true).asIDBKeyRange(roomId);
         const events = await this._timelineStore.selectLimitReverse(range, amount);
         events.reverse(); // because we fetched them backwards
@@ -195,23 +224,23 @@ export class TimelineEventStore {
      *
      *  The order in which results are returned might be different than `eventIds`.
      *  Call the return value to obtain the next {id, event} pair.
-     *  @param  {string} roomId
-     *  @param  {string[]} eventIds
-     *  @return {Function<Promise>}
+     *  @param roomId
+     *  @param eventIds
+     *  @return
      */
     // performance comment from above refers to the fact that there *might*
     // be a correlation between event_id sorting order and chronology.
     // In that case we could avoid running over all eventIds, as the reported order by findExistingKeys
     // would match the order of eventIds. That's why findLast is also passed as backwards to keysExist.
     // also passing them in chronological order makes sense as that's how we'll receive them almost always.
-    async findFirstOccurringEventId(roomId, eventIds) {
+    async findFirstOccurringEventId(roomId: string, eventIds: string[]): Promise<string | undefined> {
         const byEventId = this._timelineStore.index("byEventId");
         const keys = eventIds.map(eventId => encodeEventIdKey(roomId, eventId));
         const results = new Array(keys.length);
-        let firstFoundKey;
+        let firstFoundKey: string | undefined;
 
         // find first result that is found and has no undefined results before it
-        function firstFoundAndPrecedingResolved() {
+        function firstFoundAndPrecedingResolved(): string | undefined {
             for(let i = 0; i < results.length; ++i) {
                 if (results[i] === undefined) {
                     return;
@@ -222,7 +251,8 @@ export class TimelineEventStore {
         }
 
         await byEventId.findExistingKeys(keys, false, (key, found) => {
-            const index = keys.indexOf(key);
+            // T[].search(T, number), but we want T[].search(R, number), so cast
+            const index = (keys as IDBValidKey[]).indexOf(key);
             results[index] = found;
             firstFoundKey = firstFoundAndPrecedingResolved();
             return !!firstFoundKey;
@@ -231,11 +261,11 @@ export class TimelineEventStore {
     }
 
     /** Inserts a new entry into the store. The combination of roomId and eventKey should not exist yet, or an error is thrown.
-     *  @param  {Entry} entry the entry to insert
-     *  @return {Promise<>} a promise resolving to undefined if the operation was successful, or a StorageError if not.
+     *  @param entry the entry to insert
+     *  @return nothing. To wait for the operation to finish, await the transaction it's part of.
      *  @throws {StorageError} ...
      */
-    insert(entry) {
+    insert(entry: StorageEntry): void {
         entry.key = encodeKey(entry.roomId, entry.fragmentId, entry.eventIndex);
         entry.eventIdKey = encodeEventIdKey(entry.roomId, entry.event.event_id);
         // TODO: map error? or in idb/store?
@@ -244,22 +274,22 @@ export class TimelineEventStore {
 
     /** Updates the entry into the store with the given [roomId, eventKey] combination.
      *  If not yet present, will insert. Might be slower than add.
-     *  @param  {Entry} entry the entry to update.
-     *  @return {Promise<>} a promise resolving to undefined if the operation was successful, or a StorageError if not.
+     *  @param entry the entry to update.
+     *  @return nothing. To wait for the operation to finish, await the transaction it's part of.
      */
-    update(entry) {
+    update(entry: StorageEntry): void {
         this._timelineStore.put(entry);
     }
 
-    get(roomId, eventKey) {
+    get(roomId: string, eventKey: EventKey): Promise<StorageEntry | null> {
         return this._timelineStore.get(encodeKey(roomId, eventKey.fragmentId, eventKey.eventIndex));
     }
 
-    getByEventId(roomId, eventId) {
+    getByEventId(roomId: string, eventId: string): Promise<StorageEntry | null> {
         return this._timelineStore.index("byEventId").get(encodeEventIdKey(roomId, eventId));
     }
 
-    removeAllForRoom(roomId) {
+    removeAllForRoom(roomId: string): void {
         const minKey = encodeKey(roomId, KeyLimits.minStorageKey, KeyLimits.minStorageKey);
         const maxKey = encodeKey(roomId, KeyLimits.maxStorageKey, KeyLimits.maxStorageKey);
         const range = this._timelineStore.IDBKeyRange.bound(minKey, maxKey);

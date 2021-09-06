@@ -13,28 +13,36 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import {Store} from "../Store";
+
+export interface SessionEntry {
+    key: string;
+    value: any;
+}
 
 export class SessionStore {
-	constructor(sessionStore) {
-		this._sessionStore = sessionStore;
-	}
+    private _sessionStore: Store<SessionEntry>
 
-	async get(key) {
-		const entry = await this._sessionStore.get(key);
-		if (entry) {
-			return entry.value;
-		}
-	}
+    constructor(sessionStore: Store<SessionEntry>) {
+        this._sessionStore = sessionStore;
+    }
 
-	set(key, value) {
-		this._sessionStore.put({key, value});
-	}
+    async get(key: string): Promise<any> {
+        const entry = await this._sessionStore.get(key);
+        if (entry) {
+            return entry.value;
+        }
+    }
 
-    add(key, value) {
+    set(key: string, value: any): void {
+        this._sessionStore.put({key, value});
+    }
+
+    add(key: string, value: any): void {
         this._sessionStore.add({key, value});
     }
 
-    remove(key) {
+    remove(key: string): void {
         this._sessionStore.delete(key);
     }
 }

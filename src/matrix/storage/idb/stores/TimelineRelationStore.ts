@@ -13,31 +13,41 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {MIN_UNICODE, MAX_UNICODE} from "./common.js";
+import {MIN_UNICODE, MAX_UNICODE} from "./common";
+import {Store} from "../Store";
 
-function encodeKey(roomId, targetEventId, relType, sourceEventId) {
+function encodeKey(roomId: string, targetEventId: string, relType: string, sourceEventId: string): string {
     return `${roomId}|${targetEventId}|${relType}|${sourceEventId}`;
 }
 
-function decodeKey(key) {
+interface RelationEntry {
+    roomId: string;
+    targetEventId: string;
+    sourceEventId: string;
+    relType: string;
+}
+
+function decodeKey(key: string): RelationEntry {
     const [roomId, targetEventId, relType, sourceEventId] = key.split("|");
     return {roomId, targetEventId, relType, sourceEventId};
 }
 
 export class TimelineRelationStore {
-    constructor(store) {
+    private _store: Store<{ key: string }>;
+
+    constructor(store: Store<{ key: string }>) {
         this._store = store;
     }
 
-    add(roomId, targetEventId, relType, sourceEventId) {
-        return this._store.add({key: encodeKey(roomId, targetEventId, relType, sourceEventId)});
+    add(roomId: string, targetEventId: string, relType: string, sourceEventId: string): void {
+        this._store.add({key: encodeKey(roomId, targetEventId, relType, sourceEventId)});
     }
 
-    remove(roomId, targetEventId, relType, sourceEventId) {
+    remove(roomId: string, targetEventId: string, relType: string, sourceEventId: string): Promise<undefined> {
         return this._store.delete(encodeKey(roomId, targetEventId, relType, sourceEventId));
     }
 
-    removeAllForTarget(roomId, targetId) {
+    removeAllForTarget(roomId: string, targetId: string): Promise<undefined> {
         const range = this._store.IDBKeyRange.bound(
             encodeKey(roomId, targetId, MIN_UNICODE, MIN_UNICODE),
             encodeKey(roomId, targetId, MAX_UNICODE, MAX_UNICODE),
@@ -47,7 +57,7 @@ export class TimelineRelationStore {
         return this._store.delete(range);
     }
 
-    async getForTargetAndType(roomId, targetId, relType) {
+    async getForTargetAndType(roomId: string, targetId: string, relType: string): Promise<RelationEntry[]> {
         // exclude both keys as they are theoretical min and max,
         // but we should't have a match for just the room id, or room id with max
         const range = this._store.IDBKeyRange.bound(
@@ -60,7 +70,7 @@ export class TimelineRelationStore {
         return items.map(i => decodeKey(i.key));
     }
 
-    async getAllForTarget(roomId, targetId) {
+    async getAllForTarget(roomId: string, targetId: string): Promise<RelationEntry[]> {
         // exclude both keys as they are theoretical min and max,
         // but we should't have a match for just the room id, or room id with max
         const range = this._store.IDBKeyRange.bound(
