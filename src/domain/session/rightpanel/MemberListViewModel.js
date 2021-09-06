@@ -23,7 +23,6 @@ export class MemberListViewModel extends ViewModel {
     constructor(options) {
         super(options);
         const list = options.members;
-        this._roomId = options.roomId;
 
         const powerLevelsObservable = options.powerLevelsObservable;
         this.track(powerLevelsObservable.subscribe(() => { /*resort based on new power levels here*/ }));
@@ -44,7 +43,7 @@ export class MemberListViewModel extends ViewModel {
     _mapTileViewModels(members) {
         const mapper = (member, emitChange) => {
             const mediaRepository = this.mediaRepository;
-            const vm = new MemberTileViewModel(this.childOptions({member, emitChange, mediaRepository, roomId: this._roomId}));
+            const vm = new MemberTileViewModel(this.childOptions({member, emitChange, mediaRepository}));
             this.nameDisambiguator.disambiguate(vm);
             return vm;
         }

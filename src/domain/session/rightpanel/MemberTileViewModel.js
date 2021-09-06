@@ -24,7 +24,6 @@ export class MemberTileViewModel extends ViewModel {
         this._mediaRepository = options.mediaRepository
         this._previousName = null;
         this._nameChanged = true;
-        this._roomId = options.roomId;
     }
 
     get name() {
@@ -48,7 +47,8 @@ export class MemberTileViewModel extends ViewModel {
     }
 
     get detailsUrl() {
-        return `${this.urlCreator.openRoomActionUrl(this._roomId)}/member/${this._member.userId}`;
+        const roomId = this.navigation.path.get("room").value;
+        return `${this.urlCreator.openRoomActionUrl(roomId)}/member/${this._member.userId}`;
     }
 
     _updatePreviousName(newName) {
