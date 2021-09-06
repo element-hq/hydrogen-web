@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {EventKey} from "../EventKey.js";
+import {EventKey} from "../EventKey";
 import {EventEntry} from "../entries/EventEntry.js";
 import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
 import {createEventEntry} from "./common.js";

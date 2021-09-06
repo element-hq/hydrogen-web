@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 //entries can be sorted, first by fragment, then by entry index.
-import {EventKey} from "../EventKey.js";
+import {EventKey} from "../EventKey";
 export const PENDING_FRAGMENT_ID = Number.MAX_SAFE_INTEGER;
 
 interface FragmentIdComparer {
