@@ -27,7 +27,7 @@ interface Annotation {
     firstTimestamp: number;
 }
 
-interface StorageEntry {
+interface TimelineEventEntry {
     roomId: string;
     fragmentId: number;
     eventIndex: number;
@@ -35,9 +35,9 @@ interface StorageEntry {
     displayName?: string;
     avatarUrl?: string;
     annotations?: { [key : string]: Annotation };
-    key: string;
-    eventIdKey: string;
 }
+
+type TimelineEventStorageEntry = TimelineEventEntry & { key: string, eventIdKey: string };
 
 function encodeKey(roomId: string, fragmentId: number, eventIndex: number): string {
     return `${roomId}|${encodeUint32(fragmentId)}|${encodeUint32(eventIndex)}`;
@@ -126,9 +126,9 @@ class Range {
  * @property  {?Gap} gap if a gap entry, the gap
 */
 export class TimelineEventStore {
-    private _timelineStore: Store<StorageEntry>;
+    private _timelineStore: Store<TimelineEventStorageEntry>;
 
-    constructor(timelineStore: Store<StorageEntry>) {
+    constructor(timelineStore: Store<TimelineEventStorageEntry>) {
         this._timelineStore = timelineStore;
     }
 
@@ -175,7 +175,7 @@ export class TimelineEventStore {
      *  @param amount
      *  @return a promise resolving to an array with 0 or more entries, in ascending order.
      */
-    async lastEvents(roomId: string, fragmentId: number, amount: number): Promise<StorageEntry[]> {
+    async lastEvents(roomId: string, fragmentId: number, amount: number): Promise<TimelineEventEntry[]> {
         const eventKey = EventKey.maxKey;
         eventKey.fragmentId = fragmentId;
         return this.eventsBefore(roomId, eventKey, amount);
@@ -187,7 +187,7 @@ export class TimelineEventStore {
      *  @param amount
      *  @return a promise resolving to an array with 0 or more entries, in ascending order.
      */
-    async firstEvents(roomId: string, fragmentId: number, amount: number): Promise<StorageEntry[]> {
+    async firstEvents(roomId: string, fragmentId: number, amount: number): Promise<TimelineEventEntry[]> {
         const eventKey = EventKey.minKey;
         eventKey.fragmentId = fragmentId;
         return this.eventsAfter(roomId, eventKey, amount);
@@ -200,7 +200,7 @@ export class TimelineEventStore {
      *  @param amount
      *  @return a promise resolving to an array with 0 or more entries, in ascending order.
      */
-    eventsAfter(roomId: string, eventKey: EventKey, amount: number): Promise<StorageEntry[]> {
+    eventsAfter(roomId: string, eventKey: EventKey, amount: number): Promise<TimelineEventEntry[]> {
         const idbRange = this.lowerBoundRange(eventKey, true).asIDBKeyRange(roomId);
         return this._timelineStore.selectLimit(idbRange, amount);
     }
@@ -212,7 +212,7 @@ export class TimelineEventStore {
      *  @param amount
      *  @return a promise resolving to an array with 0 or more entries, in ascending order.
      */
-    async eventsBefore(roomId: string, eventKey: EventKey, amount: number): Promise<StorageEntry[]> {
+    async eventsBefore(roomId: string, eventKey: EventKey, amount: number): Promise<TimelineEventEntry[]> {
         const range = this.upperBoundRange(eventKey, true).asIDBKeyRange(roomId);
         const events = await this._timelineStore.selectLimitReverse(range, amount);
         events.reverse(); // because we fetched them backwards
@@ -265,11 +265,11 @@ export class TimelineEventStore {
      *  @return nothing. To wait for the operation to finish, await the transaction it's part of.
      *  @throws {StorageError} ...
      */
-    insert(entry: StorageEntry): void {
-        entry.key = encodeKey(entry.roomId, entry.fragmentId, entry.eventIndex);
-        entry.eventIdKey = encodeEventIdKey(entry.roomId, entry.event.event_id);
+    insert(entry: TimelineEventEntry): void {
+        (entry as TimelineEventStorageEntry).key = encodeKey(entry.roomId, entry.fragmentId, entry.eventIndex);
+        (entry as TimelineEventStorageEntry).eventIdKey = encodeEventIdKey(entry.roomId, entry.event.event_id);
         // TODO: map error? or in idb/store?
-        this._timelineStore.add(entry);
+        this._timelineStore.add(entry as TimelineEventStorageEntry);
     }
 
     /** Updates the entry into the store with the given [roomId, eventKey] combination.
@@ -277,15 +277,15 @@ export class TimelineEventStore {
      *  @param entry the entry to update.
      *  @return nothing. To wait for the operation to finish, await the transaction it's part of.
      */
-    update(entry: StorageEntry): void {
-        this._timelineStore.put(entry);
+    update(entry: TimelineEventEntry): void {
+        this._timelineStore.put(entry as TimelineEventStorageEntry);
     }
 
-    get(roomId: string, eventKey: EventKey): Promise<StorageEntry | null> {
+    get(roomId: string, eventKey: EventKey): Promise<TimelineEventEntry | null> {
         return this._timelineStore.get(encodeKey(roomId, eventKey.fragmentId, eventKey.eventIndex));
     }
 
-    getByEventId(roomId: string, eventId: string): Promise<StorageEntry | null> {
+    getByEventId(roomId: string, eventId: string): Promise<TimelineEventEntry | null> {
         return this._timelineStore.index("byEventId").get(encodeEventIdKey(roomId, eventId));
     }
 
