@@ -3,7 +3,7 @@ import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/Ro
 import {addRoomToIdentity} from "../../e2ee/DeviceTracker.js";
 import {RoomMemberStore} from "./stores/RoomMemberStore";
 import {SessionStore} from "./stores/SessionStore";
-import {encodeScopeTypeKey} from "./stores/OperationStore.js";
+import {encodeScopeTypeKey} from "./stores/OperationStore";
 import {MAX_UNICODE} from "./stores/common";
 
 // FUNCTIONS SHOULD ONLY BE APPENDED!!

@@ -13,21 +13,30 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import {Store} from "../Store";
+
+interface OutboundSession {
+    roomId: string;
+    session: string;
+    createdAt: number;
+}
 
 export class OutboundGroupSessionStore {
-    constructor(store) {
+    private _store: Store<OutboundSession>;
+
+    constructor(store: Store<OutboundSession>) {
         this._store = store;
     }
 
-    remove(roomId) {
-        this._store.delete(roomId);
+    remove(roomId: string): Promise<undefined> {
+        return this._store.delete(roomId);
     }
 
-    get(roomId) {
+    get(roomId: string): Promise<OutboundSession | null> {
         return this._store.get(roomId);
     }
 
-    set(session) {
+    set(session: OutboundSession): void {
         this._store.put(session);
     }
 }

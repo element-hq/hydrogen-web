@@ -13,17 +13,26 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import {Store} from "../Store";
+import {Content} from "../../types";
+
+interface AccountDataEntry {
+    type: string;
+    content: Content;
+}
 
 export class AccountDataStore {
-	constructor(store) {
-		this._store = store;
-	}
+    private _store: Store<AccountDataEntry>;
 
-	async get(type) {
-		return await this._store.get(type);
-	}
+    constructor(store: Store<AccountDataEntry>) {
+        this._store = store;
+    }
 
-	set(event) {
-		return this._store.put(event);
-	}
+    async get(type: string): Promise<AccountDataEntry | null> {
+        return await this._store.get(type);
+    }
+
+    set(event: AccountDataEntry): void {
+        this._store.put(event);
+    }
 }

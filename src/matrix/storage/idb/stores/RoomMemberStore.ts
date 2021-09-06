@@ -52,7 +52,7 @@ export class RoomMemberStore {
 
     set(member: MemberData): void {
         // Object.assign would be more typesafe, but small objects 
-        (member as any).key = encodeKey(member.roomId, member.userId);
+        (member as MemberStorageEntry).key = encodeKey(member.roomId, member.userId);
         this._roomMembersStore.put(member as MemberStorageEntry);
     }
 

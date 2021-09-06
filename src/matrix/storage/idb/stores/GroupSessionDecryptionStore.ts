@@ -15,30 +15,40 @@ limitations under the License.
 */
 
 import {MIN_UNICODE, MAX_UNICODE} from "./common";
+import {Store} from "../Store";
 
-function encodeKey(roomId, sessionId, messageIndex) {
+function encodeKey(roomId: string, sessionId: string, messageIndex: number | string): string {
     return `${roomId}|${sessionId}|${messageIndex}`;
 }
 
+interface GroupSessionDecryption {
+    eventId: string;
+    timestamp: number;
+}
+
+type GroupSessionEntry = GroupSessionDecryption & { key: string }
+
 export class GroupSessionDecryptionStore {
-    constructor(store) {
+    private _store: Store<GroupSessionEntry>;
+
+    constructor(store: Store<GroupSessionEntry>) {
         this._store = store;
     }
 
-    get(roomId, sessionId, messageIndex) {
+    get(roomId: string, sessionId: string, messageIndex: number): Promise<GroupSessionDecryption | null> {
         return this._store.get(encodeKey(roomId, sessionId, messageIndex));
     }
 
-    set(roomId, sessionId, messageIndex, decryption) {
-        decryption.key = encodeKey(roomId, sessionId, messageIndex);
-        this._store.put(decryption);
+    set(roomId: string, sessionId: string, messageIndex: number, decryption: GroupSessionDecryption): void {
+        (decryption as GroupSessionEntry).key = encodeKey(roomId, sessionId, messageIndex);
+        this._store.put(decryption as GroupSessionEntry);
     }
     
-    removeAllForRoom(roomId) {
+    removeAllForRoom(roomId: string): Promise<undefined> {
         const range = this._store.IDBKeyRange.bound(
             encodeKey(roomId, MIN_UNICODE, MIN_UNICODE),
             encodeKey(roomId, MAX_UNICODE, MAX_UNICODE)
         );
-        this._store.delete(range);
+        return this._store.delete(range);
     }
 }
