@@ -18,7 +18,7 @@ limitations under the License.
 import {TemplateView} from "../../general/TemplateView.js";
 import {Popup} from "../../general/Popup.js";
 import {Menu} from "../../general/Menu.js";
-import {TimelineView} from "./TimelineView.js";
+import {TimelineView} from "./TimelineView";
 import {TimelineLoadingView} from "./TimelineLoadingView.js";
 import {MessageComposer} from "./MessageComposer.js";
 import {RoomArchivedView} from "./RoomArchivedView.js";

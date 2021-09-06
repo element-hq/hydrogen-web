@@ -23,8 +23,14 @@ import {FileView} from "./timeline/FileView.js";
 import {MissingAttachmentView} from "./timeline/MissingAttachmentView.js";
 import {AnnouncementView} from "./timeline/AnnouncementView.js";
 import {RedactedView} from "./timeline/RedactedView.js";
+import {SimpleTile} from "../../../../../domain/session/room/timeline/tiles/SimpleTile.js";
+import {TimelineViewModel} from "../../../../../domain/session/room/timeline/TimelineViewModel.js";
 
-export function viewClassForEntry(entry) {
+type TileView = GapView | AnnouncementView | TextMessageView |
+    ImageView | VideoView | FileView | MissingAttachmentView | RedactedView;
+type TileViewConstructor = (this: TileView, SimpleTile) => void;
+
+export function viewClassForEntry(entry: SimpleTile): TileViewConstructor | undefined {
     switch (entry.shape) {
         case "gap": return GapView;
         case "announcement": return AnnouncementView;
@@ -40,13 +46,18 @@ export function viewClassForEntry(entry) {
     }
 }
 
-export class TimelineView extends ListView {
-    constructor(viewModel) {
+export class TimelineView extends ListView<SimpleTile, TileView> {
+
+    private _atBottom: boolean;
+    private _topLoadingPromise?: Promise<boolean>;
+    private _viewModel: TimelineViewModel;
+
+    constructor(viewModel: TimelineViewModel) {
         const options = {
             className: "Timeline bottom-aligned-scroll",
             list: viewModel.tiles,
             onItemClick: (tileView, evt) => tileView.onClick(evt),
-        }
+        };
         super(options, entry => {
             const View = viewClassForEntry(entry);
             if (View) {
@@ -54,12 +65,19 @@ export class TimelineView extends ListView {
             }
         });
         this._atBottom = false;
-        this._onScroll = this._onScroll.bind(this);
-        this._topLoadingPromise = null;
+        this._topLoadingPromise = undefined;
         this._viewModel = viewModel;
     }
 
-    async _loadAtTopWhile(predicate) {
+    override handleEvent(evt: Event) {
+        if (evt.type === "scroll") {
+            this._handleScroll(evt);
+        } else {
+            super.handleEvent(evt);
+        }
+    }
+
+    async _loadAtTopWhile(predicate: () => boolean) {
         if (this._topLoadingPromise) {
             return;
         }
@@ -78,11 +96,11 @@ export class TimelineView extends ListView {
             //ignore error, as it is handled in the VM
         }
         finally {
-            this._topLoadingPromise = null;
+            this._topLoadingPromise = undefined;
         }
     }
 
-    async _onScroll() {
+    async _handleScroll(evt: Event) {
         const PAGINATE_OFFSET = 100;
         const root = this.root();
         if (root.scrollTop < PAGINATE_OFFSET && !this._topLoadingPromise && this._viewModel) {
@@ -102,18 +120,18 @@ export class TimelineView extends ListView {
         }
     }
 
-    mount() {
+    override mount() {
         const root = super.mount();
-        root.addEventListener("scroll", this._onScroll);
+        root.addEventListener("scroll", this);
         return root;
     }
 
-    unmount() {
-        this.root().removeEventListener("scroll", this._onScroll);
+    override unmount() {
+        this.root().removeEventListener("scroll", this);
         super.unmount();
     }
 
-    async loadList() {
+    override async loadList() {
         super.loadList();
         const root = this.root();
         // yield so the browser can render the list
@@ -130,7 +148,7 @@ export class TimelineView extends ListView {
         });
     }
 
-    onBeforeListChanged() {
+    override onBeforeListChanged() {
         const fromBottom = this._distanceFromBottom();
         this._atBottom = fromBottom < 1;
     }
@@ -140,25 +158,23 @@ export class TimelineView extends ListView {
         return root.scrollHeight - root.scrollTop - root.clientHeight;
     }
 
-    onListChanged() {
+    override onListChanged() {
         const root = this.root();
         if (this._atBottom) {
             root.scrollTop = root.scrollHeight;
         }
     }
 
-    onUpdate(index, value, param) {
+    override onUpdate(index: number, value: SimpleTile, param: any) {
         if (param === "shape") {
-            if (this._childInstances) {
-                const ExpectedClass = viewClassForEntry(value);
-                const child = this._childInstances[index];
-                if (!ExpectedClass || !(child instanceof ExpectedClass)) {
-                    // shape was updated, so we need to recreate the tile view,
-                    // the shape parameter is set in EncryptedEventTile.updateEntry
-                    // (and perhaps elsewhere by the time you read this)
-                    super.recreateItem(index, value);
-                    return;
-                }
+            const ExpectedClass = viewClassForEntry(value);
+            const child = this.getChildInstanceByIndex(index);
+            if (!ExpectedClass || !(child instanceof ExpectedClass)) {
+                // shape was updated, so we need to recreate the tile view,
+                // the shape parameter is set in EncryptedEventTile.updateEntry
+                // (and perhaps elsewhere by the time you read this)
+                super.recreateItem(index, value);
+                return;
             }
         }
         super.onUpdate(index, value, param);

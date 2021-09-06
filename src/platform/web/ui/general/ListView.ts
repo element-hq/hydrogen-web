@@ -24,7 +24,7 @@ interface IOptions<T, V> {
     onItemClick?: (childView: V, evt: UIEvent) => void,
     className?: string,
     tagName?: string,
-    parentProvidesUpdates: boolean
+    parentProvidesUpdates?: boolean
 }
 
 type SubscriptionHandle = () => undefined;
@@ -122,7 +122,7 @@ export class ListView<T, V extends UIView> implements UIView {
         this._childInstances = undefined;
     }
 
-    private loadList() {
+    protected loadList() {
         if (!this._list) {
             return;
         }
@@ -184,4 +184,8 @@ export class ListView<T, V extends UIView> implements UIView {
 
     protected onBeforeListChanged() {}
     protected onListChanged() {}
+
+    protected getChildInstanceByIndex(idx: number): V | undefined {
+        return this._childInstances?.[idx];
+    }
 }
