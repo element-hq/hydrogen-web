@@ -29,13 +29,14 @@ interface OlmSession {
     sessionId: string;
     senderKey: string;
     lastUsed: number;
-    key: string;
 }
 
-export class OlmSessionStore {
-    private _store: Store<OlmSession>;
+type OlmSessionEntry = OlmSession & { key: string };
 
-    constructor(store: Store<OlmSession>) {
+export class OlmSessionStore {
+    private _store: Store<OlmSessionEntry>;
+
+    constructor(store: Store<OlmSessionEntry>) {
         this._store = store;
     }
 
@@ -66,8 +67,8 @@ export class OlmSessionStore {
     }
 
     set(session: OlmSession): void {
-        session.key = encodeKey(session.senderKey, session.sessionId);
-        this._store.put(session);
+        (session as OlmSessionEntry).key = encodeKey(session.senderKey, session.sessionId);
+        this._store.put(session as OlmSessionEntry);
     }
 
     remove(senderKey: string, sessionId: string): Promise<undefined> {
