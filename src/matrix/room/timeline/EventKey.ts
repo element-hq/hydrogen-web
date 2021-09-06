@@ -20,8 +20,8 @@ import {Direction} from "./Direction";
 // key for events in the timelineEvents store
 export class EventKey {
     constructor(
-        public readonly fragmentId: number,
-        public readonly eventIndex: number
+        public fragmentId: number,
+        public eventIndex: number
     ) {
     }
 
