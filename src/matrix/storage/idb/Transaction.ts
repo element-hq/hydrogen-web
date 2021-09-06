@@ -57,7 +57,7 @@ export class Transaction {
         return new Store(this._txn.objectStore(name), this);
     }
 
-    _store(name: StoreNames, mapStore: (idbStore: Store<any>) => any): any {
+    _store<T>(name: StoreNames, mapStore: (idbStore: Store<any>) => T): T {
         if (!this._stores[name]) {
             const idbStore = this._idbStore(name);
             this._stores[name] = mapStore(idbStore);
