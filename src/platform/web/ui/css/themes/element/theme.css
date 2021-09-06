@@ -726,6 +726,9 @@ button.link {
     list-style: none;
     margin: 0;
     width: calc(100% - 48px);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
 }
 
 .menu li{
@@ -737,7 +740,7 @@ button.link {
     border: none;
     background-color: transparent;
     text-align: left;
-    padding: 8px 32px 8px 8px;
+    padding: 8px;
     font-size: 1.5rem;
     height: 24px;
     cursor: pointer;
@@ -749,8 +752,9 @@ button.link {
 
 .menu .quick-reactions {
     display: flex;
-    padding: 8px;
+    padding: 8px 8px 0;
     flex-wrap: wrap;
+    flex-basis: 100%;
 }
 
 .menu .quick-reactions button {
