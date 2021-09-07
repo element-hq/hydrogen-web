@@ -16,6 +16,7 @@ limitations under the License.
 
 import {EventKey} from "../EventKey";
 import {EventEntry} from "../entries/EventEntry.js";
+import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
 import {createEventEntry, directionalAppend} from "./common.js";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";
 
@@ -232,7 +233,7 @@ export class GapWriter {
             return { entries: [], updatedEntries: [], fragments: [] }
         }
 
-        const maxFragmentKey = await tnx.timelineFragments.getMaxFragmentId(this._roomId);
+        const maxFragmentKey = await txn.timelineFragments.getMaxFragmentId(this._roomId);
         const newFragment = {
             roomId: this._roomId,
             id: maxFragmentKey + 1,
@@ -244,11 +245,11 @@ export class GapWriter {
         const eventKey = EventKey.defaultFragmentKey(newFragment.id);
 
         const startEntry = FragmentBoundaryEntry.start(newFragment, this._fragmentIdComparer);
-        const startFill = this._storeAndUpdate(startEntry, eventsBefore, eventKey, start, state, txn, log);
+        const startFill = await this._storeAndUpdate(startEntry, eventsBefore, eventKey, start, state, txn, log);
 
         eventsAfter.unshift(event);
         const endEntry = FragmentBoundaryEntry.end(newFragment, this._fragmentIdComparer);
-        const endFill = this._storeAndUpdate(endEntry, eventsAfter, eventKey, end, state, txn, log);
+        const endFill = await this._storeAndUpdate(endEntry, eventsAfter, eventKey, end, state, txn, log);
 
         // Both startFill and endFill are throwaway objects, so we
         // may as well modify one of them in-place instead of returning a third.
