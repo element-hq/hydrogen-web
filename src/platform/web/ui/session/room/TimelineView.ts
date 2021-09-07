@@ -119,7 +119,6 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
             const viewportBottom = scrollTop + clientHeight;
             const anchoredNodeIndex = findFirstNodeIndexAtOrBelow(tiles, viewportBottom);
             this.anchoredNode = tiles.childNodes[anchoredNodeIndex] as HTMLElement;
-            this.anchoredNode.classList.add("pinned");
             this.anchoredBottom = bottom(this.anchoredNode!);
             bottomNodeIndex = anchoredNodeIndex;
         }
@@ -131,7 +130,7 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
         const firstVisibleChild = this.tilesView!.getChildInstanceByIndex(startIndex);
         const lastVisibleChild = this.tilesView!.getChildInstanceByIndex(endIndex);
         if (firstVisibleChild && lastVisibleChild) {
-            this.value.setVisibleTileRange(firstVisibleChild.id, lastVisibleChild.id);
+            this.value.setVisibleTileRange(firstVisibleChild.value, lastVisibleChild.value);
         }
     }
 }

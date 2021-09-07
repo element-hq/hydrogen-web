@@ -85,9 +85,6 @@ export class BaseMessageView extends TemplateView {
             this._toggleMenu(evt.target);
         }
     }
-    
-    /** Used by TimelineView to get the id of a tile when setting the visible range */
-    get id() { return this.value.id; }
 
     _toggleMenu(button) {
         if (this._menuPopup && this._menuPopup.isOpen) {

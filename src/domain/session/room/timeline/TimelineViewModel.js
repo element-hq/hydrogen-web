@@ -45,8 +45,7 @@ export class TimelineViewModel extends ViewModel {
         this._timeline.loadAtTop(50);
     }
 
-    setVisibleTileRange(startId, endId) {
-        console.log("setVisibleTileRange", startId, endId);
+    setVisibleTileRange(startTile, endTile) {
     }
 
     get tiles() {
