@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {ListView} from "../../general/ListView";
+import {TemplateView, TemplateBuilder} from "../../general/TemplateView.js";
 import {GapView} from "./timeline/GapView.js";
 import {TextMessageView} from "./timeline/TextMessageView.js";
 import {ImageView} from "./timeline/ImageView.js";
@@ -25,6 +26,7 @@ import {AnnouncementView} from "./timeline/AnnouncementView.js";
 import {RedactedView} from "./timeline/RedactedView.js";
 import {SimpleTile} from "../../../../../domain/session/room/timeline/tiles/SimpleTile.js";
 import {TimelineViewModel} from "../../../../../domain/session/room/timeline/TimelineViewModel.js";
+import {BaseObservableList as ObservableList} from "../../../../../../observable/list/BaseObservableList.js";
 
 type TileView = GapView | AnnouncementView | TextMessageView |
     ImageView | VideoView | FileView | MissingAttachmentView | RedactedView;
@@ -46,16 +48,86 @@ export function viewClassForEntry(entry: SimpleTile): TileViewConstructor | unde
     }
 }
 
-export class TimelineView extends ListView<SimpleTile, TileView> {
+function bottom(node: HTMLElement): number {
+    return node.offsetTop + node.clientHeight;
+}
 
-    private _atBottom: boolean;
-    private _topLoadingPromise?: Promise<boolean>;
-    private _viewModel: TimelineViewModel;
+function findFirstNodeIndexAtOrBelow(tiles: HTMLElement, top: number, startIndex: number = (tiles.children.length - 1)): number {
+    for (var i = startIndex; i >= 0; i--) {
+        const node = tiles.children[i] as HTMLElement;
+        if (node.offsetTop < top) {
+            return i;
+        }
+    }
+    return -1;
+}
 
-    constructor(viewModel: TimelineViewModel) {
+export class TimelineView extends TemplateView<TimelineViewModel> {
+
+    private anchoredNode?: HTMLElement;
+    private anchoredBottom: number = 0;
+    private stickToBottom: boolean = true;
+
+    render(t: TemplateBuilder, vm: TimelineViewModel) {
+        return t.div({className: "Timeline bottom-aligned-scroll", onScroll: () => this.onScroll()}, [
+            t.view(new TilesListView(vm.tiles, () => this._restoreScrollPosition()))
+        ]);
+    }
+
+    private _restoreScrollPosition() {
+        const timeline = this.root() as HTMLElement;
+        const tiles = timeline.firstElementChild as HTMLElement;
+
+        const missingTilesHeight = timeline.clientHeight - tiles.clientHeight;
+        if (missingTilesHeight > 0) {
+            tiles.style.setProperty("margin-top", `${missingTilesHeight}px`);
+        } else {
+            tiles.style.removeProperty("margin-top");
+            if (this.stickToBottom) {
+                timeline.scrollTop = timeline.scrollHeight;
+            } else if (this.anchoredNode) {
+                const newAnchoredBottom = bottom(this.anchoredNode!);
+                if (newAnchoredBottom !== this.anchoredBottom) {
+                    const bottomDiff = newAnchoredBottom - this.anchoredBottom;
+                    console.log(`restore: scroll by ${bottomDiff} as height changed`);
+                    timeline.scrollBy(0, bottomDiff);
+                    this.anchoredBottom = newAnchoredBottom;
+                } else {
+                    console.log("restore: bottom didn't change, must be below viewport");
+                }
+            }
+        }
+    }
+
+    private onScroll(): void {
+        const timeline = this.root() as HTMLElement;
+        const {scrollHeight, scrollTop, clientHeight} = timeline;
+        const tiles = timeline.firstElementChild as HTMLElement;
+
+        this.stickToBottom = Math.abs(scrollHeight - (scrollTop + clientHeight)) < 5;
+        if (!this.stickToBottom) {
+            // save bottom node position
+            const viewportBottom = scrollTop + clientHeight;
+            const anchoredNodeIndex = findFirstNodeIndexAtOrBelow(tiles, viewportBottom);
+            let topNodeIndex = findFirstNodeIndexAtOrBelow(tiles, scrollTop, anchoredNodeIndex);
+            if (topNodeIndex === -1) {
+                topNodeIndex = 0;
+            }
+            this.anchoredNode = tiles.childNodes[anchoredNodeIndex] as HTMLElement;
+            this.anchoredNode.classList.add("pinned");
+            this.anchoredBottom = bottom(this.anchoredNode!);
+            this.value.setVisibleTileRange(topNodeIndex, anchoredNodeIndex - topNodeIndex);
+        }
+    }
+}
+
+class TilesListView extends ListView<SimpleTile, TileView> {
+
+    private onChanged: () => void;
+
+    constructor(tiles: ObservableList<SimpleTile>, onChanged: () => void) {
         const options = {
-            className: "Timeline bottom-aligned-scroll",
-            list: viewModel.tiles,
+            list: tiles,
             onItemClick: (tileView, evt) => tileView.onClick(evt),
         };
         super(options, entry => {
@@ -64,108 +136,10 @@ export class TimelineView extends ListView<SimpleTile, TileView> {
                 return new View(entry);
             }
         });
-        this._atBottom = false;
-        this._topLoadingPromise = undefined;
-        this._viewModel = viewModel;
+        this.onChanged = onChanged;
     }
 
-    override handleEvent(evt: Event) {
-        if (evt.type === "scroll") {
-            this._handleScroll(evt);
-        } else {
-            super.handleEvent(evt);
-        }
-    }
-
-    async _loadAtTopWhile(predicate: () => boolean) {
-        if (this._topLoadingPromise) {
-            return;
-        }
-        try {
-            while (predicate()) {
-                // fill, not enough content to fill timeline
-                this._topLoadingPromise = this._viewModel.loadAtTop();
-                const shouldStop = await this._topLoadingPromise;
-                if (shouldStop) {
-                    break;
-                }
-            }
-        }
-        catch (err) {
-            console.error(err);
-            //ignore error, as it is handled in the VM
-        }
-        finally {
-            this._topLoadingPromise = undefined;
-        }
-    }
-
-    async _handleScroll(evt: Event) {
-        const PAGINATE_OFFSET = 100;
-        const root = this.root();
-        if (root.scrollTop < PAGINATE_OFFSET && !this._topLoadingPromise && this._viewModel) {
-            // to calculate total amountGrown to check when we stop loading
-            let beforeContentHeight = root.scrollHeight;
-            // to adjust scrollTop every time
-            let lastContentHeight = beforeContentHeight;
-            // load until pagination offset is reached again
-            this._loadAtTopWhile(() => {
-                const contentHeight = root.scrollHeight;
-                const amountGrown = contentHeight - beforeContentHeight;
-                const topDiff = contentHeight - lastContentHeight;
-                root.scrollBy(0, topDiff);
-                lastContentHeight = contentHeight;
-                return amountGrown < PAGINATE_OFFSET;
-            });
-        }
-    }
-
-    override mount() {
-        const root = super.mount();
-        root.addEventListener("scroll", this);
-        return root;
-    }
-
-    override unmount() {
-        this.root().removeEventListener("scroll", this);
-        super.unmount();
-    }
-
-    override async loadList() {
-        super.loadList();
-        const root = this.root();
-        // yield so the browser can render the list
-        // and we can measure the content below
-        await Promise.resolve();
-        const {scrollHeight, clientHeight} = root;
-        if (scrollHeight > clientHeight) {
-            root.scrollTop = root.scrollHeight;
-        }
-        // load while viewport is not filled
-        this._loadAtTopWhile(() => {
-            const {scrollHeight, clientHeight} = root;
-            return scrollHeight <= clientHeight;
-        });
-    }
-
-    override onBeforeListChanged() {
-        const fromBottom = this._distanceFromBottom();
-        this._atBottom = fromBottom < 1;
-    }
-
-    _distanceFromBottom() {
-        const root = this.root();
-        return root.scrollHeight - root.scrollTop - root.clientHeight;
-    }
-
-    override onListChanged() {
-        const root = this.root();
-        if (this._atBottom) {
-            root.scrollTop = root.scrollHeight;
-        }
-    }
-
-    override onUpdate(index: number, value: SimpleTile, param: any) {
+    protected onUpdate(index: number, value: SimpleTile, param: any) {
         if (param === "shape") {
             const ExpectedClass = viewClassForEntry(value);
             const child = this.getChildInstanceByIndex(index);
@@ -178,5 +152,21 @@ export class TimelineView extends ListView<SimpleTile, TileView> {
             }
         }
         super.onUpdate(index, value, param);
+        this.onChanged();
+    }
+
+    protected onAdd(idx: number, value: SimpleTile) {
+        super.onAdd(idx, value);
+        this.onChanged();
+    }
+
+    protected onRemove(idx: number, value: SimpleTile) {
+        super.onRemove(idx, value);
+        this.onChanged();
+    }
+
+    protected onMove(fromIdx: number, toIdx: number, value: SimpleTile) {
+        super.onMove(fromIdx, toIdx, value);
+        this.onChanged();
     }
 }

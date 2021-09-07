@@ -40,37 +40,14 @@ export class TimelineViewModel extends ViewModel {
         const {timeline, tilesCreator} = options;
         this._timeline = this.track(timeline);
         this._tiles = new TilesCollection(timeline.entries, tilesCreator);
+        this._timeline.loadAtTop(50);
     }
 
-    /**
-     * @return {bool} startReached if the start of the timeline was reached
-     */
-    async loadAtTop() {
-        if (this.isDisposed) {
-            // stop loading more, we switched room
-            return true;
+    setVisibleTileRange(idx, len) {
+        console.log("setVisibleTileRange", idx, len);
+        if (idx < 5) {
+            this._timeline.loadAtTop(10);
         }
-        const firstTile = this._tiles.getFirst();
-        if (firstTile?.shape === "gap") {
-            return await firstTile.fill();
-        } else {
-            const topReached = await this._timeline.loadAtTop(10);
-            return topReached;
-        }
-    }
-
-    unloadAtTop(/*tileAmount*/) {
-        // get lowerSortKey for tile at index tileAmount - 1
-        // tell timeline to unload till there (included given key)
-    }
-
-    loadAtBottom() {
-
-    }
-
-    unloadAtBottom(/*tileAmount*/) {
-        // get upperSortKey for tile at index tiles.length - tileAmount
-        // tell timeline to unload till there (included given key)
     }
 
     get tiles() {

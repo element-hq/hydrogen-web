@@ -138,28 +138,22 @@ export class ListView<T, V extends UIView> implements UIView {
     }
 
     protected onAdd(idx: number, value: T) {
-        this.onBeforeListChanged();
         const child = this._childCreator(value);
         this._childInstances!.splice(idx, 0, child);
         insertAt(this._root!, idx, mountView(child, this._mountArgs));
-        this.onListChanged();
     }
 
     protected onRemove(idx: number, value: T) {
-        this.onBeforeListChanged();
         const [child] = this._childInstances!.splice(idx, 1);
         child.root().remove();
         child.unmount();
-        this.onListChanged();
     }
 
     protected onMove(fromIdx: number, toIdx: number, value: T) {
-        this.onBeforeListChanged();
         const [child] = this._childInstances!.splice(fromIdx, 1);
         this._childInstances!.splice(toIdx, 0, child);
         child.root().remove();
         insertAt(this._root!, toIdx, child.root());
-        this.onListChanged();
     }
 
     protected onUpdate(i: number, value: T, params: any) {
@@ -181,9 +175,6 @@ export class ListView<T, V extends UIView> implements UIView {
             }
         }
     }
-
-    protected onBeforeListChanged() {}
-    protected onListChanged() {}
 
     protected getChildInstanceByIndex(idx: number): V | undefined {
         return this._childInstances?.[idx];
