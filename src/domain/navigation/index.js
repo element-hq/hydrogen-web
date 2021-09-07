@@ -132,11 +132,16 @@ export function parseUrlPath(urlPath, currentNavPath, defaultSessionId) {
                 segments.push(roomsSegmentWithRoom(rooms, roomId, currentNavPath));
             }
             segments.push(new Segment("room", roomId));
-            // Add right-panel segments from previous path
-            const previousSegments = currentNavPath.segments;
-            const i = previousSegments.findIndex(s => s.type === "right-panel");
-            if (i !== -1) {
-                segments.push(...previousSegments.slice(i));
+            const openRoomPartIndex = parts.findIndex(part => part === "open-room");
+            const hasOnlyRoomIdAfterPart = openRoomPartIndex >= parts.length - 2;
+            if (hasOnlyRoomIdAfterPart) {
+                // Copy right-panel segments from previous path only if there are no other parts after open-room
+                // fixes memberlist -> member details closing/opening grid view
+                const previousSegments = currentNavPath.segments;
+                const i = previousSegments.findIndex(s => s.type === "right-panel");
+                if (i !== -1) {
+                    segments.push(...previousSegments.slice(i));
+                }
             }
         } else if (type === "last-session") {
             let sessionSegment = currentNavPath.get("session");
@@ -332,6 +337,28 @@ export function tests() {
             assert.equal(segments[3].value, true);
             assert.equal(segments[4].type, "details");
             assert.equal(segments[4].value, true);
+        },
+        "open-room action should only copy over previous segments if there are no parts after open-room": assert => {
+            const nav = new Navigation(allowsChild);
+            const path = nav.pathFrom([
+                new Segment("session", 1),
+                new Segment("rooms", ["a", "b", "c"]),
+                new Segment("room", "b"),
+                new Segment("right-panel", true),
+                new Segment("members", true)
+            ]);
+            const segments = parseUrlPath("/session/1/open-room/a/member/foo", path);
+            assert.equal(segments.length, 5);
+            assert.equal(segments[0].type, "session");
+            assert.equal(segments[0].value, "1");
+            assert.equal(segments[1].type, "rooms");
+            assert.deepEqual(segments[1].value, ["a", "b", "c"]);
+            assert.equal(segments[2].type, "room");
+            assert.equal(segments[2].value, "a");
+            assert.equal(segments[3].type, "right-panel");
+            assert.equal(segments[3].value, true);
+            assert.equal(segments[4].type, "member");
+            assert.equal(segments[4].value, "foo");
         },
         "parse open-room action setting a room in an empty tile": assert => {
             const nav = new Navigation(allowsChild);
