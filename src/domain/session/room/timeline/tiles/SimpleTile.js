@@ -40,8 +40,8 @@ export class SimpleTile extends ViewModel {
         return false;
     }
 
-    get internalId() {
-        return this._entry.asEventKey().toString();
+    get id() {
+        return this._entry.asEventKey();
     }
 
     get isPending() {

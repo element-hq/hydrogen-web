@@ -176,7 +176,7 @@ export class ListView<T, V extends UIView> implements UIView {
         }
     }
 
-    protected getChildInstanceByIndex(idx: number): V | undefined {
+    public getChildInstanceByIndex(idx: number): V | undefined {
         return this._childInstances?.[idx];
     }
 }

@@ -29,4 +29,10 @@ export class GapView extends TemplateView {
             t.if(vm => vm.error, t => t.strong(vm => vm.error))
         ]);
     }
+
+    /* This is called by the parent ListView, which just has 1 listener for the whole list */
+    onClick() {}
+
+    /** Used by TimelineView to get the id of a tile when setting the visible range */
+    get id() { return this.value.id; }
 }

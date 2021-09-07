@@ -26,7 +26,7 @@ import {AnnouncementView} from "./timeline/AnnouncementView.js";
 import {RedactedView} from "./timeline/RedactedView.js";
 import {SimpleTile} from "../../../../../domain/session/room/timeline/tiles/SimpleTile.js";
 import {TimelineViewModel} from "../../../../../domain/session/room/timeline/TimelineViewModel.js";
-import {BaseObservableList as ObservableList} from "../../../../../../observable/list/BaseObservableList.js";
+import {BaseObservableList as ObservableList} from "../../../../../observable/list/BaseObservableList.js";
 
 type TileView = GapView | AnnouncementView | TextMessageView |
     ImageView | VideoView | FileView | MissingAttachmentView | RedactedView;
@@ -59,7 +59,8 @@ function findFirstNodeIndexAtOrBelow(tiles: HTMLElement, top: number, startIndex
             return i;
         }
     }
-    return -1;
+    // return first item if nothing matched before
+    return 0;
 }
 
 export class TimelineView extends TemplateView<TimelineViewModel> {
@@ -67,20 +68,25 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
     private anchoredNode?: HTMLElement;
     private anchoredBottom: number = 0;
     private stickToBottom: boolean = true;
+    private tilesView?: TilesListView;
 
     render(t: TemplateBuilder, vm: TimelineViewModel) {
+        this.tilesView = new TilesListView(vm.tiles, () => this.restoreScrollPosition());
         return t.div({className: "Timeline bottom-aligned-scroll", onScroll: () => this.onScroll()}, [
-            t.view(new TilesListView(vm.tiles, () => this._restoreScrollPosition()))
+            t.view(this.tilesView)
         ]);
     }
 
-    private _restoreScrollPosition() {
+    private restoreScrollPosition() {
         const timeline = this.root() as HTMLElement;
-        const tiles = timeline.firstElementChild as HTMLElement;
+        const tiles = this.tilesView!.root() as HTMLElement;
 
         const missingTilesHeight = timeline.clientHeight - tiles.clientHeight;
         if (missingTilesHeight > 0) {
             tiles.style.setProperty("margin-top", `${missingTilesHeight}px`);
+            // we don't have enough tiles to fill the viewport, so set all as visible
+            const len = this.value.tiles.length;
+            this.updateVisibleRange(0, len - 1);
         } else {
             tiles.style.removeProperty("margin-top");
             if (this.stickToBottom) {
@@ -102,21 +108,30 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
     private onScroll(): void {
         const timeline = this.root() as HTMLElement;
         const {scrollHeight, scrollTop, clientHeight} = timeline;
-        const tiles = timeline.firstElementChild as HTMLElement;
+        const tiles = this.tilesView!.root() as HTMLElement;
 
+        let bottomNodeIndex;
         this.stickToBottom = Math.abs(scrollHeight - (scrollTop + clientHeight)) < 5;
-        if (!this.stickToBottom) {
-            // save bottom node position
+        if (this.stickToBottom) {
+            const len = this.value.tiles.length;
+            bottomNodeIndex = len - 1;
+        } else {
             const viewportBottom = scrollTop + clientHeight;
             const anchoredNodeIndex = findFirstNodeIndexAtOrBelow(tiles, viewportBottom);
-            let topNodeIndex = findFirstNodeIndexAtOrBelow(tiles, scrollTop, anchoredNodeIndex);
-            if (topNodeIndex === -1) {
-                topNodeIndex = 0;
-            }
             this.anchoredNode = tiles.childNodes[anchoredNodeIndex] as HTMLElement;
             this.anchoredNode.classList.add("pinned");
             this.anchoredBottom = bottom(this.anchoredNode!);
-            this.value.setVisibleTileRange(topNodeIndex, anchoredNodeIndex - topNodeIndex);
+            bottomNodeIndex = anchoredNodeIndex;
+        }
+        let topNodeIndex = findFirstNodeIndexAtOrBelow(tiles, scrollTop, bottomNodeIndex);
+        this.updateVisibleRange(topNodeIndex, bottomNodeIndex);
+    }
+
+    private updateVisibleRange(startIndex: number, endIndex: number) {
+        const firstVisibleChild = this.tilesView!.getChildInstanceByIndex(startIndex);
+        const lastVisibleChild = this.tilesView!.getChildInstanceByIndex(endIndex);
+        if (firstVisibleChild && lastVisibleChild) {
+            this.value.setVisibleTileRange(firstVisibleChild.id, lastVisibleChild.id);
         }
     }
 }

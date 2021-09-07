@@ -34,6 +34,8 @@ when loading, it just reads events from a sortkey backwards or forwards...
 import {TilesCollection} from "./TilesCollection.js";
 import {ViewModel} from "../../../ViewModel.js";
 
+
+
 export class TimelineViewModel extends ViewModel {
     constructor(options) {
         super(options);
@@ -43,11 +45,8 @@ export class TimelineViewModel extends ViewModel {
         this._timeline.loadAtTop(50);
     }
 
-    setVisibleTileRange(idx, len) {
-        console.log("setVisibleTileRange", idx, len);
-        if (idx < 5) {
-            this._timeline.loadAtTop(10);
-        }
+    setVisibleTileRange(startId, endId) {
+        console.log("setVisibleTileRange", startId, endId);
     }
 
     get tiles() {
