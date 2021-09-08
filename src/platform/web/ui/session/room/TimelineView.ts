@@ -71,6 +71,11 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
     private tilesView?: TilesListView;
 
     render(t: TemplateBuilder, vm: TimelineViewModel) {
+        // assume this view will be mounted in the parent DOM straight away
+        requestAnimationFrame(() => {
+            // do initial scroll positioning
+            this.restoreScrollPosition();
+        });
         this.tilesView = new TilesListView(vm.tiles, () => this.restoreScrollPosition());
         return t.div({className: "Timeline bottom-aligned-scroll", onScroll: () => this.onScroll()}, [
             t.view(this.tilesView)
