@@ -86,7 +86,7 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
             tiles.style.setProperty("margin-top", `${missingTilesHeight}px`);
             // we don't have enough tiles to fill the viewport, so set all as visible
             const len = this.value.tiles.length;
-            this.updateVisibleRange(0, len - 1);
+            this.updateVisibleRange(0, len - 1, false);
         } else {
             tiles.style.removeProperty("margin-top");
             if (this.stickToBottom) {
@@ -123,14 +123,14 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
             bottomNodeIndex = anchoredNodeIndex;
         }
         let topNodeIndex = findFirstNodeIndexAtOrBelow(tiles, scrollTop, bottomNodeIndex);
-        this.updateVisibleRange(topNodeIndex, bottomNodeIndex);
+        this.updateVisibleRange(topNodeIndex, bottomNodeIndex, true);
     }
 
-    private updateVisibleRange(startIndex: number, endIndex: number) {
+    private updateVisibleRange(startIndex: number, endIndex: number, isViewportFilled: boolean) {
         const firstVisibleChild = this.tilesView!.getChildInstanceByIndex(startIndex);
         const lastVisibleChild = this.tilesView!.getChildInstanceByIndex(endIndex);
         if (firstVisibleChild && lastVisibleChild) {
-            this.value.setVisibleTileRange(firstVisibleChild.value, lastVisibleChild.value);
+            this.value.setVisibleTileRange(firstVisibleChild.value, lastVisibleChild.value, isViewportFilled);
         }
     }
 }

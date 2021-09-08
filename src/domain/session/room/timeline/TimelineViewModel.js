@@ -42,10 +42,41 @@ export class TimelineViewModel extends ViewModel {
         const {timeline, tilesCreator} = options;
         this._timeline = this.track(timeline);
         this._tiles = new TilesCollection(timeline.entries, tilesCreator);
-        this._timeline.loadAtTop(50);
+        this._startTile = null;
+        this._endTile = null;
+        this._topLoadingPromise = null;
+        this._bottomLoadingPromise = null;
     }
 
-    setVisibleTileRange(startTile, endTile) {
+    setVisibleTileRange(startTile, endTile, isViewportFilled) {
+        // we should async batch things here?
+
+        // this will prevent a (small) inserted tile from being marked visible, won't it?
+        if (this._startTile === startTile && this._endTile === endTile) {
+            return;
+        }
+
+        // old tiles could have been removed from tilescollection once we support unloading
+        const oldStartIndex = this._startTile ? this._tiles.getTileIndex(this._startTile) : Number.MAX_SAFE_INTEGER;
+        const oldEndIndex = this._endTile ? this._tiles.getTileIndex(this._endTile) : Number.MIN_SAFE_INTEGER;
+        const newStartIndex = this._tiles.getTileIndex(startTile);
+        const newEndIndex = this._tiles.getTileIndex(endTile);
+
+        const minIndex = Math.min(oldStartIndex, newStartIndex);
+        const maxIndex = Math.max(oldEndIndex, newEndIndex);
+
+        let index = minIndex;
+        for (const tile of this._tiles.sliceIterator(minIndex, maxIndex)) {
+            const isVisible = index >= newStartIndex && index <= newEndIndex;
+            tile.setVisible(isVisible);
+            index += 1;
+        }
+
+        if (!isViewportFilled || (newStartIndex < 5 && !this._topLoadingPromise)) {
+            this._topLoadingPromise = this._timeline.loadAtTop(10).then(() => {
+                this._topLoadingPromise = null;
+            });
+        }
     }
 
     get tiles() {

@@ -83,6 +83,10 @@ export class SimpleTile extends ViewModel {
         return this._entry;
     }
 
+    compare(tile) {
+        return this.upperEntry.compare(tile.upperEntry);
+    }
+
     compareEntry(entry) {
         return this._entry.compare(entry);
     }
@@ -117,6 +121,10 @@ export class SimpleTile extends ViewModel {
     // let item know it has a new sibling
     updateNextSibling(/*next*/) {
     
+    }
+
+    setVisible(isVisible) {
+
     }
 
     dispose() {
