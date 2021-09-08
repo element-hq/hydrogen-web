@@ -242,6 +242,7 @@ export class GapWriter {
             previousToken: null,
             nextToken: null
         };
+        txn.timelineFragments.add(newFragment);
         const eventKey = EventKey.defaultFragmentKey(newFragment.id);
 
         const startEntry = FragmentBoundaryEntry.start(newFragment, this._fragmentIdComparer);
