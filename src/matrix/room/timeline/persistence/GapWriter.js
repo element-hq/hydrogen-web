@@ -257,6 +257,10 @@ export class GapWriter {
         startFill.entries.push(...endFill.entries);
         startFill.updatedEntries.push(...endFill.updatedEntries);
         startFill.fragments.push(...endFill.fragments);
+        if (!startFill.fragments.includes(newFragment)) {
+            // We created the fragment so it is updated.
+            startFill.fragments.push(newFragment);
+        }
         return startFill;
     }
 
