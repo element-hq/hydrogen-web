@@ -22,6 +22,7 @@ export class GapTile extends SimpleTile {
         super(options);
         this._loading = false;
         this._error = null;
+        this._visible = false;
     }
 
     async fill() {
@@ -45,6 +46,13 @@ export class GapTile extends SimpleTile {
         }
         // edgeReached will have been updated by fillGap
         return this._entry.edgeReached;
+    }
+
+    setVisible(isVisible) {
+        this._visible = isVisible;
+        if (this._visible && !this.isLoading) {
+            this.fill();
+        }
     }
 
     updateEntry(entry, params) {

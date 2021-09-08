@@ -54,13 +54,8 @@ limitations under the License.
 }
 
 .GapView {
-    visibility: hidden;
     display: flex;
     padding: 10px 20px;
-}
-
-.GapView.isLoading {
-    visibility: visible;
 }
 
 .GapView > :nth-child(2) {
