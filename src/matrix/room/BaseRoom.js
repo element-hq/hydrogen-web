@@ -300,9 +300,7 @@ export class BaseRoom extends EventEmitter {
             await decryptRequest.complete();
         }
         // once txn is committed, update in-memory state & emit events
-        for (const fragment of gapResult.fragments) {
-            this._fragmentIdComparer.add(fragment);
-        }
+        this._fragmentIdComparer.add(...gapResult.fragments);
         if (extraGapFillChanges) {
             this._applyGapFill(extraGapFillChanges);
         }

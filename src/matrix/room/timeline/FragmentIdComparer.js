@@ -171,9 +171,11 @@ export class FragmentIdComparer {
     }
 
     /** use for fragments coming out of persistence, not newly created ones, or also fragments for a new island (like for a permalink) */
-    add(fragment) {
-        const copy = new Fragment(fragment.id, fragment.previousId, fragment.nextId);
-        this._fragmentsById.set(fragment.id, copy);
+    add(...fragments) {
+        for (const fragment of fragments) {
+            const copy = new Fragment(fragment.id, fragment.previousId, fragment.nextId);
+            this._fragmentsById.set(fragment.id, copy);
+        }
         this.rebuild(this._fragmentsById.values());
     }
 
