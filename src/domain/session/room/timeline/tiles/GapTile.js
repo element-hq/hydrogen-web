@@ -22,12 +22,10 @@ export class GapTile extends SimpleTile {
         super(options);
         this._loading = false;
         this._error = null;
-        this._visible = false;
     }
 
     async fill() {
-        // prevent doing this twice
-        if (!this._loading) {
+        if (!this._loading && !this._entry.edgeReached) {
             this._loading = true;
             this.emitChange("isLoading");
             try {
@@ -44,13 +42,10 @@ export class GapTile extends SimpleTile {
                 this.emitChange("isLoading");
             }
         }
-        // edgeReached will have been updated by fillGap
-        return this._entry.edgeReached;
     }
 
     setVisible(isVisible) {
-        this._visible = isVisible;
-        if (this._visible && !this.isLoading) {
+        if (isVisible) {
             this.fill();
         }
     }
