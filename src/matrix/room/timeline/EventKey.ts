@@ -25,11 +25,6 @@ export class EventKey {
     ) {
     }
 
-    nextFragmentKey(): EventKey {
-        // could take MIN_EVENT_INDEX here if it can't be paged back
-        return new EventKey(this.fragmentId + 1, KeyLimits.middleStorageKey);
-    }
-
     nextKeyForDirection(direction: Direction): EventKey {
         if (direction.isForward) {
             return this.nextKey();

@@ -124,7 +124,8 @@ export class SyncWriter {
         } else if (timeline.limited) {
             // replace live fragment for limited sync, *only* if we had a live fragment already
             const oldFragmentId = currentKey.fragmentId;
-            currentKey = currentKey.nextFragmentKey();
+            const maxFragmentId = await txn.timelineFragments.getMaxFragmentId(this._roomId);
+            currentKey = EventKey.defaultFragmentKey(maxFragmentId + 1);
             const {oldFragment, newFragment} = await this._replaceLiveFragment(oldFragmentId, currentKey.fragmentId, timeline.prev_batch, txn);
             entries.push(FragmentBoundaryEntry.end(oldFragment, this._fragmentIdComparer));
             entries.push(FragmentBoundaryEntry.start(newFragment, this._fragmentIdComparer));
