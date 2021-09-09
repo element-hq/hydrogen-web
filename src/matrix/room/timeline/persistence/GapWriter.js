@@ -16,6 +16,7 @@ limitations under the License.
 
 import {EventKey} from "../EventKey";
 import {EventEntry} from "../entries/EventEntry.js";
+import {Direction} from "../Direction";
 import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
 import {createEventEntry, directionalAppend} from "./common.js";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";
@@ -211,14 +212,46 @@ export class GapWriter {
         return changedFragments;
     }
 
-    async _storeAndUpdate(fragmentEntry, events, key, end, state, txn, log) {
-        const {
-            nonOverlappingEvents,
-            neighbourFragmentEntry
-        } = await this._findOverlappingEvents(fragmentEntry, events, txn, log);
-        const {entries, updatedEntries} = await this._storeEvents(nonOverlappingEvents, key, fragmentEntry.direction, state, txn, log);
-        const fragments = await this._updateFragments(fragmentEntry, neighbourFragmentEntry, end, entries, txn);
-        return {entries, updatedEntries, fragments};
+    /* If searching for overlapping entries in two directions, 
+     * combine the results of the two searches.
+     *
+     * @param mainOverlap the result of a search that located an existing fragment.
+     * @param otherOverlap the result of a search in the opposite direction to mainOverlap.
+     * @param event the event from which the two-directional search occured.
+     * @param token the new pagination token for mainOverlap.
+     */
+    async _linkOverlapping(mainOverlap, otherOverlap, event, token, state, txn, log) {
+        const fragmentEntry = mainOverlap.neighbourFragmentEntry;
+        const otherEntry = otherOverlap.neighbourFragmentEntry;
+
+        // We're filling the entry from the opposite direction that the search occured
+        // (e.g. searched up, filling down). Thus, the events need to be added in the opposite
+        // order.
+        const allEvents = mainOverlap.nonOverlappingEvents.reverse();
+        allEvents.push(event, ...otherOverlap.nonOverlappingEvents);
+
+        // TODO Very important: can the 'up' and 'down' entries be the same? If that's
+        // the case, we can end up with a self-link (and thus infinite loop).
+
+        let lastKey = await this._findFragmentEdgeEventKey(fragmentEntry, txn);
+        const {entries, updatedEntries} = await this._storeEvents(allEvents, lastKey, fragmentEntry.direction, state, txn, log);
+        const fragments = await this._updateFragments(fragmentEntry, otherEntry, token, entries, txn);
+        const contextEvent = entries.find(e => e.id === event.event_id) || null;
+        return { entries, updatedEntries, fragments, contextEvent };
+    }
+
+    async _createNewFragment(txn) {
+        const maxFragmentKey = await txn.timelineFragments.getMaxFragmentId(this._roomId);
+        const newFragment = {
+            roomId: this._roomId,
+            id: maxFragmentKey + 1,
+            previousId: null,
+            nextId: null,
+            previousToken: null,
+            nextToken: null
+        };
+        txn.timelineFragments.add(newFragment);
+        return newFragment;
     }
 
     async writeContext(response, txn, log) {
@@ -238,36 +271,20 @@ export class GapWriter {
             return { entries: [], updatedEntries: [], fragments: [], contextEvent: new EventEntry(eventEntry, this._fragmentIdComparer) }
         }
 
-        const maxFragmentKey = await txn.timelineFragments.getMaxFragmentId(this._roomId);
-        const newFragment = {
-            roomId: this._roomId,
-            id: maxFragmentKey + 1,
-            previousId: null,
-            nextId: null,
-            previousToken: null,
-            nextToken: null
-        };
-        txn.timelineFragments.add(newFragment);
-        const eventKey = EventKey.defaultFragmentKey(newFragment.id);
-
-        const startEntry = FragmentBoundaryEntry.start(newFragment, this._fragmentIdComparer);
-        const startFill = await this._storeAndUpdate(startEntry, eventsBefore, eventKey, start, state, txn, log);
-
-        eventsAfter.unshift(event);
-        const endEntry = FragmentBoundaryEntry.end(newFragment, this._fragmentIdComparer);
-        const endFill = await this._storeAndUpdate(endEntry, eventsAfter, eventKey, end, state, txn, log);
-
-        // Both startFill and endFill are throwaway objects, so we
-        // may as well modify one of them in-place instead of returning a third.
-        startFill.entries.push(...endFill.entries);
-        startFill.updatedEntries.push(...endFill.updatedEntries);
-        startFill.contextEvent = startFill.entries.find(e => e.id === event.event_id);
-        startFill.fragments.push(...endFill.fragments);
-        if (!startFill.fragments.includes(newFragment)) {
-            // We created the fragment so it is updated.
-            startFill.fragments.push(newFragment);
+        const overlapUp = await this._findOverlappingEventsFor(null, null, Direction.Backward, eventsBefore, txn, log);
+        const overlapDown = await this._findOverlappingEventsFor(null, null, Direction.Forward, eventsAfter, txn, log);
+        if (overlapUp.neighbourFragmentEntry) {
+            return this._linkOverlapping(overlapUp, overlapDown, event, end, state, txn, log);
+        } else if (overlapDown.neighbourFragmentEntry) {
+            return this._linkOverlapping(overlapDown, overlapUp, event, start, state, txn, log);
         }
-        return startFill;
+
+        // No overlapping fragments found.
+        const newFragment = await this._createNewFragment(txn);
+        // Pretend that we did find an overlapping entry above, and that this entry is for the new fragment.
+        const newEntry = FragmentBoundaryEntry.end(newFragment, this._fragmentIdComparer);
+        overlapUp.neighbourFragmentEntry = newEntry;
+        return this._linkOverlapping(overlapUp, overlapDown, event, end, state, txn, log);
     }
 
     async writeFragmentFill(fragmentEntry, response, txn, log) {
