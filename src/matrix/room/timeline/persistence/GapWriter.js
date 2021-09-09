@@ -287,10 +287,13 @@ export class GapWriter {
         const newFragment = await this._createNewFragment(txn);
         newFragment.nextToken = end;
         newFragment.previousToken = start;
+
         // Pretend that we did find an overlapping entry above, and that this entry is for the new fragment.
         const newEntry = FragmentBoundaryEntry.end(newFragment, this._fragmentIdComparer);
         overlapUp.neighbourFragmentEntry = newEntry;
-        return this._linkOverlapping(overlapUp, overlapDown, event, end, state, txn, log);
+        const linkResult = await this._linkOverlapping(overlapUp, overlapDown, event, end, state, txn, log);
+        linkResult.fragments.push(newFragment);
+        return linkResult;
     }
 
     async writeFragmentFill(fragmentEntry, response, txn, log) {
