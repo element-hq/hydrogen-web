@@ -555,8 +555,13 @@ export class BaseRoom extends EventEmitter {
         const observable = this._observedEvents.observe(eventId, entry);
         if (!entry) {
             // update in the background
-            this._readEventById(eventId).then(entry => {
-                observable.update(entry);
+            this._readEventById(eventId).then(async entry => {
+                if (entry) {
+                    observable.update(entry);
+                } else {
+                    const fectchedEntry = await this._fetchContext(eventId);
+                    observable.update(fectchedEntry);
+                }
             }).catch(err => {
                 console.warn(`could not load event ${eventId} from storage`, err);
             });
