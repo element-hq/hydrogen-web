@@ -230,7 +230,7 @@ export class GapWriter {
         const eventEntry = await txn.timelineEvents.getByEventId(this._roomId, event.event_id);
         if (eventEntry) {
             // If we have the current event, eary return.
-            return { entries: [], updatedEntries: [], fragments: [] }
+            return { entries: [], updatedEntries: [], fragments: [], contextEvent: new EventEntry(eventEntry, this._fragmentIdComparer) }
         }
 
         const maxFragmentKey = await txn.timelineFragments.getMaxFragmentId(this._roomId);
@@ -256,6 +256,7 @@ export class GapWriter {
         // may as well modify one of them in-place instead of returning a third.
         startFill.entries.push(...endFill.entries);
         startFill.updatedEntries.push(...endFill.updatedEntries);
+        startFill.contextEvent = startFill.entries.find(e => e.id === event.event_id);
         startFill.fragments.push(...endFill.fragments);
         if (!startFill.fragments.includes(newFragment)) {
             // We created the fragment so it is updated.
