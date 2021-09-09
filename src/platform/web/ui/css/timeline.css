@@ -55,7 +55,7 @@ limitations under the License.
 
 .GapView {
     display: flex;
-    padding: 10px 20px;
+    padding: 52px 20px 12px 20px;
 }
 
 .GapView > :nth-child(2) {
