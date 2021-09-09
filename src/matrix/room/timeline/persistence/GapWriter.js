@@ -28,10 +28,10 @@ export class GapWriter {
         this._relationWriter = relationWriter;
     }
     // events is in reverse-chronological order (last event comes at index 0) if backwards
-    async _findOverlappingEvents(fragmentEntry, events, txn, log) {
+    async _findOverlappingEventsFor(currentFragmentId, linkedFragmentId, direction, events, txn, log) {
         let expectedOverlappingEventId;
-        if (fragmentEntry.hasLinkedFragment) {
-            expectedOverlappingEventId = await this._findExpectedOverlappingEventId(fragmentEntry, txn);
+        if (linkedFragmentId !== null) {
+            expectedOverlappingEventId = await this._findExpectedOverlappingEventId(linkedFragmentId, direction, txn);
         }
         let remainingEvents = events;
         let nonOverlappingEvents = [];
@@ -55,7 +55,7 @@ export class GapWriter {
                         // get neighbour fragment to link it up later on
                         const neighbourEvent = await txn.timelineEvents.getByEventId(this._roomId, duplicateEventId);
                         const neighbourFragment = await txn.timelineFragments.get(this._roomId, neighbourEvent.fragmentId);
-                        neighbourFragmentEntry = fragmentEntry.createNeighbourEntry(neighbourFragment);
+                        neighbourFragmentEntry = new FragmentBoundaryEntry(neighbourFragment, direction.isForward, this._fragmentIdComparer);
                     }
                 } 
                 // If more events remain, or if this wasn't the expected overlapping event,
@@ -68,18 +68,23 @@ export class GapWriter {
                 remainingEvents = null;
             }
         }
-        if (neighbourFragmentEntry?.fragmentId === fragmentEntry.fragmentId) {
+        if (neighbourFragmentEntry?.fragmentId === currentFragmentId) {
             log.log("hit #160, prevent fragment linking to itself", log.level.Warn);
             neighbourFragmentEntry = null;
         } 
         return {nonOverlappingEvents, neighbourFragmentEntry};
     }
 
-    async _findExpectedOverlappingEventId(fragmentEntry, txn) {
+    async _findOverlappingEvents(fragmentEntry, events, txn, log) {
+        const linkedFragmentId = fragmentEntry.hasLinkedFragment ? fragmentEntry.linkedFragmentId : null;
+        return this._findOverlappingEventsFor(fragmentEntry.fragmentId, linkedFragmentId, fragmentEntry.direction, events, txn, log);
+    }
+
+    async _findExpectedOverlappingEventId(linkedFragmentId, direction, txn) {
         const eventEntry = await this._findFragmentEdgeEvent(
-            fragmentEntry.linkedFragmentId,
+            linkedFragmentId,
             // reverse because it's the oppose edge of the linked fragment
-            fragmentEntry.direction.reverse(),
+            direction.reverse(),
             txn);
         if (eventEntry) {
             return eventEntry.event.event_id;
@@ -318,7 +323,6 @@ export class GapWriter {
 import {FragmentIdComparer} from "../FragmentIdComparer.js";
 import {RelationWriter} from "./RelationWriter.js";
 import {createMockStorage} from "../../../../mocks/Storage.js";
-import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
 import {NullLogItem} from "../../../../logging/NullLogger.js";
 import {TimelineMock, eventIds, eventId} from "../../../../mocks/TimelineMock.ts";
 import {SyncWriter} from "./SyncWriter.js";
