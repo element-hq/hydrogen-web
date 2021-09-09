@@ -44,10 +44,8 @@ export class GapTile extends SimpleTile {
         }
     }
 
-    setVisible(isVisible) {
-        if (isVisible) {
-            this.fill();
-        }
+    notifyVisible() {
+        this.fill();
     }
 
     updateEntry(entry, params) {

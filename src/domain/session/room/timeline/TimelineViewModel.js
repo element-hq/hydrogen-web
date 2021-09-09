@@ -46,36 +46,51 @@ export class TimelineViewModel extends ViewModel {
         this._endTile = null;
         this._topLoadingPromise = null;
         this._bottomLoadingPromise = null;
+        this._requestedStartTile = null;
+        this._requestedEndTile = null;
+        this._requestScheduled = false;
     }
 
-    setVisibleTileRange(startTile, endTile, isViewportFilled) {
-        // we should async batch things here?
+    /** if this.tiles is empty, call this with undefined for both startTile and endTile */
+    setVisibleTileRange(startTile, endTile) {
+        this._requestedStartTile = startTile;
+        this._requestedEndTile = endTile;
+        if (!this._requestScheduled) {
+            Promise.resolve().then(() => {
+                this._setVisibleTileRange(this._requestedStartTile, this._requestedEndTile);
+                this._requestScheduled = false;
+            });
+            this._requestScheduled = true;
+        }
+    }
 
-        // this will prevent a (small) inserted tile from being marked visible, won't it?
-        if (this._startTile === startTile && this._endTile === endTile) {
-            return;
+    /** if this.tiles is empty, call this with undefined for both startTile and endTile */
+    _setVisibleTileRange(startTile, endTile) {
+        let loadTop;
+        if (startTile && endTile) {
+            // old tiles could have been removed from tilescollection once we support unloading
+            this._startTile = startTile;
+            this._endTile = endTile;
+            const startIndex = this._tiles.getTileIndex(this._startTile);
+            const endIndex = this._tiles.getTileIndex(this._endTile);
+            for (const tile of this._tiles.sliceIterator(startIndex, endIndex)) {
+                tile.notifyVisible();
+            }
+            loadTop = startIndex < 5;
+            console.log("got tiles", startIndex, endIndex, loadTop);
+        } else {
+            loadTop = true;
+            console.log("no tiles, load more at top");
         }
 
-        // old tiles could have been removed from tilescollection once we support unloading
-        const oldStartIndex = this._startTile ? this._tiles.getTileIndex(this._startTile) : Number.MAX_SAFE_INTEGER;
-        const oldEndIndex = this._endTile ? this._tiles.getTileIndex(this._endTile) : Number.MIN_SAFE_INTEGER;
-        const newStartIndex = this._tiles.getTileIndex(startTile);
-        const newEndIndex = this._tiles.getTileIndex(endTile);
-
-        const minIndex = Math.min(oldStartIndex, newStartIndex);
-        const maxIndex = Math.max(oldEndIndex, newEndIndex);
-
-        let index = minIndex;
-        for (const tile of this._tiles.sliceIterator(minIndex, maxIndex)) {
-            const isVisible = index >= newStartIndex && index <= newEndIndex;
-            tile.setVisible(isVisible);
-            index += 1;
-        }
-
-        if (!isViewportFilled || (newStartIndex < 5 && !this._topLoadingPromise)) {
+        if (loadTop && !this._topLoadingPromise) {
             this._topLoadingPromise = this._timeline.loadAtTop(10).then(() => {
                 this._topLoadingPromise = null;
+                // check if more items need to be loaded by recursing
+                this.setVisibleTileRange(this._startTile, this._endTile);
             });
+        } else if (loadTop) {
+            console.log("loadTop is true but already loading");
         }
     }
 

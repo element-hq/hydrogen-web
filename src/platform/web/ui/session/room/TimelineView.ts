@@ -132,11 +132,12 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
     }
 
     private updateVisibleRange(startIndex: number, endIndex: number, isViewportFilled: boolean) {
+        // can be undefined, meaning the tiles collection is still empty
         const firstVisibleChild = this.tilesView!.getChildInstanceByIndex(startIndex);
         const lastVisibleChild = this.tilesView!.getChildInstanceByIndex(endIndex);
-        if (firstVisibleChild && lastVisibleChild) {
-            this.value.setVisibleTileRange(firstVisibleChild.value, lastVisibleChild.value, isViewportFilled);
-        }
+        //if (firstVisibleChild && lastVisibleChild) {
+        this.value.setVisibleTileRange(firstVisibleChild?.value, lastVisibleChild?.value, isViewportFilled);
+        //}
     }
 }
 

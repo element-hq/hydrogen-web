@@ -123,9 +123,7 @@ export class SimpleTile extends ViewModel {
     
     }
 
-    setVisible(isVisible) {
-
-    }
+    notifyVisible() {}
 
     dispose() {
         this.setUpdateEmit(null);
