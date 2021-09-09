@@ -265,6 +265,10 @@ export class GapWriter {
             throw new Error("Invalid chunks in response");
         }
 
+        if (!start || !end) {
+            throw new Error("Context call did not receive start and end tokens");
+        }
+
         const eventEntry = await txn.timelineEvents.getByEventId(this._roomId, event.event_id);
         if (eventEntry) {
             // If we have the current event, eary return.
@@ -281,6 +285,8 @@ export class GapWriter {
 
         // No overlapping fragments found.
         const newFragment = await this._createNewFragment(txn);
+        newFragment.nextToken = end;
+        newFragment.previousToken = start;
         // Pretend that we did find an overlapping entry above, and that this entry is for the new fragment.
         const newEntry = FragmentBoundaryEntry.end(newFragment, this._fragmentIdComparer);
         overlapUp.neighbourFragmentEntry = newEntry;
