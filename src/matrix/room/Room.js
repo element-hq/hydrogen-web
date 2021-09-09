@@ -110,22 +110,6 @@ export class Room extends BaseRoom {
         }
     }
 
-    async _fetchContext(eventId, log = null) {
-        const response = await this._hsApi.context(this._roomId, eventId, {}, {log}).response();
-        let contextEvent = null;
-        await this._fetchEvents(async (txn, gapWriter) => {
-            // Just in case we somehow receive remote echoes during event fetch
-            // Keep events in order just in case.
-            const allEvents = response.events_before.slice().reverse();
-            allEvents.push(response.event, ...response.events_after);
-            const extraGapFillChanges = await this._writeGapFill(allEvents, txn, log);
-            const gapResult = await gapWriter.writeContext(response, txn, log);
-            contextEvent = gapResult.contextEvent;
-            return { extraGapFillChanges, gapResult };
-        }, log);
-        return contextEvent;
-    }
-
     /** @package */
     async writeSync(roomResponse, isInitialSync, {summaryChanges, decryptChanges, roomEncryption, retryEntries}, txn, log) {
         log.set("id", this.id);
