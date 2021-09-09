@@ -64,7 +64,6 @@ export class TimelineViewModel extends ViewModel {
         }
     }
 
-    /** if this.tiles is empty, call this with undefined for both startTile and endTile */
     _setVisibleTileRange(startTile, endTile) {
         let loadTop;
         if (startTile && endTile) {
