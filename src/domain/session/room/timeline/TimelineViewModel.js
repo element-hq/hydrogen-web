@@ -83,10 +83,12 @@ export class TimelineViewModel extends ViewModel {
         }
 
         if (loadTop && !this._topLoadingPromise) {
-            this._topLoadingPromise = this._timeline.loadAtTop(10).then(() => {
+            this._topLoadingPromise = this._timeline.loadAtTop(10).then(hasReachedEnd => {
                 this._topLoadingPromise = null;
-                // check if more items need to be loaded by recursing
-                this.setVisibleTileRange(this._startTile, this._endTile);
+                if (!hasReachedEnd) {
+                    // check if more items need to be loaded by recursing
+                    this.setVisibleTileRange(this._startTile, this._endTile);
+                }
             });
         } else if (loadTop) {
             console.log("loadTop is true but already loading");
