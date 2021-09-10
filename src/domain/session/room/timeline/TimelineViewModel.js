@@ -50,6 +50,8 @@ export class TimelineViewModel extends ViewModel {
 
     /** if this.tiles is empty, call this with undefined for both startTile and endTile */
     setVisibleTileRange(startTile, endTile) {
+        // don't clear these once done as they are used to check
+        // for more tiles once loadAtTop finishes
         this._requestedStartTile = startTile;
         this._requestedEndTile = endTile;
         if (!this._requestScheduled) {
@@ -85,7 +87,9 @@ export class TimelineViewModel extends ViewModel {
                 this._topLoadingPromise = null;
                 if (!hasReachedEnd) {
                     // check if more items need to be loaded by recursing
-                    this.setVisibleTileRange(this._startTile, this._endTile);
+                    // use the requested start / end tile,
+                    // so we don't end up overwriting a newly requested visible range here
+                    this.setVisibleTileRange(this._requestedStartTile, this._requestedEndTile);
                 }
             });
         } else if (loadTop) {
