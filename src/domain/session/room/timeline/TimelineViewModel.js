@@ -34,8 +34,6 @@ when loading, it just reads events from a sortkey backwards or forwards...
 import {TilesCollection} from "./TilesCollection.js";
 import {ViewModel} from "../../../ViewModel.js";
 
-
-
 export class TimelineViewModel extends ViewModel {
     constructor(options) {
         super(options);
@@ -45,7 +43,6 @@ export class TimelineViewModel extends ViewModel {
         this._startTile = null;
         this._endTile = null;
         this._topLoadingPromise = null;
-        this._bottomLoadingPromise = null;
         this._requestedStartTile = null;
         this._requestedEndTile = null;
         this._requestScheduled = false;
@@ -56,7 +53,7 @@ export class TimelineViewModel extends ViewModel {
         this._requestedStartTile = startTile;
         this._requestedEndTile = endTile;
         if (!this._requestScheduled) {
-            Promise.resolve().then(() => {
+            requestIdleCallback(() => {
                 this._setVisibleTileRange(this._requestedStartTile, this._requestedEndTile);
                 this._requestScheduled = false;
             });
@@ -72,14 +69,15 @@ export class TimelineViewModel extends ViewModel {
             this._endTile = endTile;
             const startIndex = this._tiles.getTileIndex(this._startTile);
             const endIndex = this._tiles.getTileIndex(this._endTile);
-            for (const tile of this._tiles.sliceIterator(startIndex, endIndex)) {
+            for (const tile of this._tiles.sliceIterator(startIndex, endIndex + 1)) {
                 tile.notifyVisible();
             }
-            loadTop = startIndex < 5;
-            console.log("got tiles", startIndex, endIndex, loadTop);
+            loadTop = startIndex < 10;
+            // console.log("got tiles", startIndex, endIndex, loadTop);
         } else {
+            // tiles collection is empty, load more at top
             loadTop = true;
-            console.log("no tiles, load more at top");
+            // console.log("no tiles, load more at top");
         }
 
         if (loadTop && !this._topLoadingPromise) {
@@ -91,7 +89,7 @@ export class TimelineViewModel extends ViewModel {
                 }
             });
         } else if (loadTop) {
-            console.log("loadTop is true but already loading");
+            // console.log("loadTop is true but already loading");
         }
     }
 

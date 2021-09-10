@@ -20,6 +20,8 @@ limitations under the License.
     overscroll-behavior: contain;
     padding: 0;
     margin: 0;
+    /* need to read the offsetTop of tiles relative to this element in TimelineView  */
+    position: relative;
 }
 
 .RoomView_body > .Timeline > ul {

@@ -91,7 +91,7 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
             tiles.style.setProperty("margin-top", `${missingTilesHeight}px`);
             // we don't have enough tiles to fill the viewport, so set all as visible
             const len = this.value.tiles.length;
-            this.updateVisibleRange(0, len - 1, false);
+            this.updateVisibleRange(0, len - 1);
         } else {
             tiles.style.removeProperty("margin-top");
             if (this.stickToBottom) {
@@ -104,7 +104,7 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
                     timeline.scrollBy(0, bottomDiff);
                     this.anchoredBottom = newAnchoredBottom;
                 } else {
-                    console.log("restore: bottom didn't change, must be below viewport");
+                    // console.log("restore: bottom didn't change, must be below viewport");
                 }
             }
         }
@@ -122,22 +122,21 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
             bottomNodeIndex = len - 1;
         } else {
             const viewportBottom = scrollTop + clientHeight;
+            // console.log(`viewportBottom: ${viewportBottom} (${scrollTop} + ${clientHeight})`);
             const anchoredNodeIndex = findFirstNodeIndexAtOrBelow(tiles, viewportBottom);
             this.anchoredNode = tiles.childNodes[anchoredNodeIndex] as HTMLElement;
             this.anchoredBottom = bottom(this.anchoredNode!);
             bottomNodeIndex = anchoredNodeIndex;
         }
         let topNodeIndex = findFirstNodeIndexAtOrBelow(tiles, scrollTop, bottomNodeIndex);
-        this.updateVisibleRange(topNodeIndex, bottomNodeIndex, true);
+        this.updateVisibleRange(topNodeIndex, bottomNodeIndex);
     }
 
-    private updateVisibleRange(startIndex: number, endIndex: number, isViewportFilled: boolean) {
+    private updateVisibleRange(startIndex: number, endIndex: number) {
         // can be undefined, meaning the tiles collection is still empty
         const firstVisibleChild = this.tilesView!.getChildInstanceByIndex(startIndex);
         const lastVisibleChild = this.tilesView!.getChildInstanceByIndex(endIndex);
-        //if (firstVisibleChild && lastVisibleChild) {
-        this.value.setVisibleTileRange(firstVisibleChild?.value, lastVisibleChild?.value, isViewportFilled);
-        //}
+        this.value.setVisibleTileRange(firstVisibleChild?.value, lastVisibleChild?.value);
     }
 }
 
