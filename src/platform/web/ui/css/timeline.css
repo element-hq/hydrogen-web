@@ -27,7 +27,10 @@ limitations under the License.
 
 .RoomView_body > .Timeline > ul {
     list-style: none;
-    padding: 0;
+    /* use small horizontal padding so first/last children margin isn't collapsed
+    at the edge and a scrollbar shows up when setting margin-top to bottom-align
+    content when there are not yet enough tiles to fill the viewport */
+    padding: 1px 0;
     margin: 0;
 }
 
