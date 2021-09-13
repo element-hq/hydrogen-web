@@ -16,7 +16,7 @@ limitations under the License.
 
 
 .RoomView_body > .Timeline {
-    overflow-y: auto;
+    overflow-y: scroll;
     overscroll-behavior-y: contain;
     overflow-anchor: none;
     padding: 0;
