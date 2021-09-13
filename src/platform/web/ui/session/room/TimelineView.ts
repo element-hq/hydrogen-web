@@ -101,7 +101,11 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
                 if (newAnchoredBottom !== this.anchoredBottom) {
                     const bottomDiff = newAnchoredBottom - this.anchoredBottom;
                     console.log(`restore: scroll by ${bottomDiff} as height changed`);
-                    timeline.scrollBy(0, bottomDiff);
+                    if (typeof timeline.scrollBy === "function") {
+                        timeline.scrollBy(0, bottomDiff);
+                    } else {
+                        timeline.scrollTop = timeline.scrollTop + bottomDiff;
+                    }
                     this.anchoredBottom = newAnchoredBottom;
                 } else {
                     // console.log("restore: bottom didn't change, must be below viewport");
