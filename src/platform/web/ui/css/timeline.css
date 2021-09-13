@@ -17,7 +17,8 @@ limitations under the License.
 
 .RoomView_body > .Timeline {
     overflow-y: auto;
-    overscroll-behavior: contain;
+    overscroll-behavior-y: contain;
+    overflow-anchor: none;
     padding: 0;
     margin: 0;
     /* need to read the offsetTop of tiles relative to this element in TimelineView  */
