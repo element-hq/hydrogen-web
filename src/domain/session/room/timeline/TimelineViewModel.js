@@ -55,7 +55,7 @@ export class TimelineViewModel extends ViewModel {
         this._requestedStartTile = startTile;
         this._requestedEndTile = endTile;
         if (!this._requestScheduled) {
-            requestIdleCallback(() => {
+            Promise.resolve().then(() => {
                 this._setVisibleTileRange(this._requestedStartTile, this._requestedEndTile);
                 this._requestScheduled = false;
             });
