@@ -40,13 +40,15 @@ export class Transaction {
     private _txn: IDBTransaction;
     private _allowedStoreNames: StoreNames[];
     private _stores: { [storeName in StoreNames]?: any };
+    idbFactory: IDBFactory
+    IDBKeyRange: typeof IDBKeyRange
 
-    constructor(txn: IDBTransaction, allowedStoreNames: StoreNames[], IDBKeyRange) {
+    constructor(txn: IDBTransaction, allowedStoreNames: StoreNames[], _idbFactory: IDBFactory, _IDBKeyRange: typeof IDBKeyRange) {
         this._txn = txn;
         this._allowedStoreNames = allowedStoreNames;
         this._stores = {};
-        // @ts-ignore
-        this.IDBKeyRange = IDBKeyRange;
+        this.idbFactory = _idbFactory;
+        this.IDBKeyRange = _IDBKeyRange;
     }
 
     _idbStore(name: StoreNames): Store<any> {
@@ -54,7 +56,7 @@ export class Transaction {
             // more specific error? this is a bug, so maybe not ...
             throw new StorageError(`Invalid store for transaction: ${name}, only ${this._allowedStoreNames.join(", ")} are allowed.`);
         }
-        return new Store(this._txn.objectStore(name), this);
+        return new Store(this._txn.objectStore(name), this, this.idbFactory);
     }
 
     _store<T>(name: StoreNames, mapStore: (idbStore: Store<any>) => T): T {

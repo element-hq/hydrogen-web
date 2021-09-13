@@ -31,9 +31,11 @@ interface QueryTargetInterface<T> {
 
 export class QueryTarget<T> {
     protected _target: QueryTargetInterface<T>;
+    protected _idbFactory: IDBFactory
 
-    constructor(target: QueryTargetInterface<T>) {
+    constructor(target: QueryTargetInterface<T>, idbFactory: IDBFactory) {
         this._target = target;
+        this._idbFactory = idbFactory;
     }
 
     _openCursor(range?: IDBQuery, direction?: IDBCursorDirection): IDBRequest<IDBCursorWithValue | null> {
@@ -155,7 +157,7 @@ export class QueryTarget<T> {
      */
     async findExistingKeys(keys: IDBValidKey[], backwards: boolean, callback: (key: IDBValidKey, found: boolean) => boolean): Promise<void> {
         const direction = backwards ? "prev" : "next";
-        const compareKeys = (a, b) => backwards ? -indexedDB.cmp(a, b) : indexedDB.cmp(a, b);
+        const compareKeys = (a, b) => backwards ? -this._idbFactory.cmp(a, b) : this._idbFactory.cmp(a, b);
         const sortedKeys = keys.slice().sort(compareKeys);
         const firstKey = backwards ? sortedKeys[sortedKeys.length - 1] : sortedKeys[0];
         const lastKey = backwards ? sortedKeys[0] : sortedKeys[sortedKeys.length - 1];

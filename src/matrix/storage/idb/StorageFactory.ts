@@ -70,7 +70,7 @@ export class StorageFactory {
 
         const hasWebkitEarlyCloseTxnBug = await detectWebkitEarlyCloseTxnBug(this._idbFactory);
         const db = await openDatabaseWithSessionId(sessionId, this._idbFactory, log);
-        return new Storage(db, this._IDBKeyRange, hasWebkitEarlyCloseTxnBug);
+        return new Storage(db, this._idbFactory, this._IDBKeyRange, hasWebkitEarlyCloseTxnBug);
     }
 
     delete(sessionId: string): Promise<IDBDatabase> {
