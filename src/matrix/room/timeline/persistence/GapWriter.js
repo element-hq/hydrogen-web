@@ -372,7 +372,7 @@ export function tests() {
 
             const allEvents = await txn.timelineEvents.eventsAfter(roomId, EventKey.minKey, 100 /* fetch all */);
             for (let i = 0; i < response.chunk.length; i++) {
-                const responseEvent = response.chunk.at(-i - 1);
+                const responseEvent = response.chunk[response.chunk.length -i - 1];
                 const storedEvent = allEvents[i];
                 assert.deepEqual(responseEvent, storedEvent.event);
             }
@@ -391,7 +391,7 @@ export function tests() {
             const allEvents = await txn.timelineEvents.eventsAfter(roomId, EventKey.minKey, 100 /* fetch all */);
             let i = 0;
             for (; i < response.chunk.length; i++) {
-                const responseEvent = response.chunk.at(-i - 1);
+                const responseEvent = response.chunk[response.chunk.length -i - 1];
                 const storedEvent = allEvents[i];
                 assert.deepEqual(responseEvent, storedEvent.event);
             }
@@ -410,7 +410,7 @@ export function tests() {
 
             const initialEntries = await prefillFragment(txn, eventCreator, existingFragment, 10);
             const response = eventCreator.createMessagesResponse();
-            response.chunk.push(initialEntries.at(-1)); /* Expect overlap */
+            response.chunk.push(initialEntries[initialEntries.length-1]); /* Expect overlap */
             await gapWriter.writeFragmentFill(newEntry, response, txn, null);
 
             const allEvents = await txn.timelineEvents._timelineStore.selectAll();
@@ -420,7 +420,7 @@ export function tests() {
                 assert.deepEqual(initialEntry, storedEvent.event);
             }
             for (let j = 0; j < response.chunk.length - 1; j++) {
-                const responseEvent = response.chunk.at(-j - 2);
+                const responseEvent = response.chunk[response.chunk.length -j - 2];
                 const storedEvent = allEvents[i + j];
                 assert.deepEqual(responseEvent, storedEvent.event);
             }
@@ -443,7 +443,7 @@ export function tests() {
                 assert.deepEqual(initialEntry, storedEvent.event);
             }
             for (let j = 0; j < response.chunk.length - 1; j++) {
-                const responseEvent = response.chunk.at(-j - 1);
+                const responseEvent = response.chunk[response.chunk.length - j - 1];
                 const storedEvent = allEvents[i + j];
                 assert.deepEqual(responseEvent, storedEvent.event);
             }
@@ -457,7 +457,7 @@ export function tests() {
 
             const initialEntries = await prefillFragment(txn, eventCreator, existingFragment, 10);
             const response = eventCreator.createMessagesResponse();
-            response.chunk.push(initialEntries.at(-1)); /* Fake overlap */
+            response.chunk.push(initialEntries[initialEntries.length-1]); /* Fake overlap */
             await gapWriter.writeFragmentFill(newEntry, response, txn, null);
 
             const allEvents = await txn.timelineEvents._timelineStore.selectAll();
@@ -467,7 +467,7 @@ export function tests() {
                 assert.deepEqual(initialEntry, storedEvent.event);
             }
             for (let j = 0; j < response.chunk.length - 1; j++) {
-                const responseEvent = response.chunk.at(-j - 2);
+                const responseEvent = response.chunk[response.chunk.length -j - 2];
                 const storedEvent = allEvents[i + j];
                 assert.deepEqual(responseEvent, storedEvent.event);
             }
