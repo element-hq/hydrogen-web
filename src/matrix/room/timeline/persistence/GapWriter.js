@@ -330,6 +330,25 @@ export function tests() {
         return newFragment;
     }
 
+    function prefillFragment(txn, eventCreator, fragment, n) {
+        let initialKey = EventKey.defaultFragmentKey(fragment.id);
+        const initialEntries = eventCreator.nextEvents(n);
+        initialEntries.forEach(e => {
+            txn.timelineEvents.insert(createEventEntry(initialKey, roomId, e))
+            initialKey = initialKey.nextKey();
+        });
+        return initialEntries;
+    }
+
+    async function assertTightLink(assert, txn, fragmentId1, fragmentId2) {
+        const fragment1 = await txn.timelineFragments.get(roomId, fragmentId1);
+        const fragment2 = await txn.timelineFragments.get(roomId, fragmentId2);
+        assert.equal(fragment1.nextId, fragment2.id);
+        assert.equal(fragment2.previousId, fragment1.id);
+        assert.equal(fragment2.previousToken, null);
+        assert.equal(fragment2.nextToken, null);
+    }
+
     return {
         "Backfilling an empty fragment": async assert => {
             const { txn, fragmentIdComparer, gapWriter, eventCreator } = await setup();
@@ -341,7 +360,7 @@ export function tests() {
 
             const allEvents = await txn.timelineEvents.eventsAfter(roomId, EventKey.minKey, 100 /* fetch all */);
             for (let i = 0; i < response.chunk.length; i++) {
-                const responseEvent = response.chunk[response.chunk.length - 1 - i];
+                const responseEvent = response.chunk.at(-i - 1);
                 const storedEvent = allEvents[i];
                 assert.deepEqual(responseEvent, storedEvent.event);
             }
@@ -349,15 +368,10 @@ export function tests() {
         },
         "Backfilling a fragment with existing entries": async assert => {
             const { txn, fragmentIdComparer, gapWriter, eventCreator } = await setup();
-            const emptyFragment = await createFragment(0, txn, fragmentIdComparer, { previousToken: startToken });
-            const newEntry = FragmentBoundaryEntry.start(emptyFragment, fragmentIdComparer);
+            const liveFragment = await createFragment(0, txn, fragmentIdComparer, { previousToken: startToken });
+            const newEntry = FragmentBoundaryEntry.start(liveFragment, fragmentIdComparer);
 
-            let initialKey = EventKey.defaultFragmentKey(0);
-            const initialEntries = eventCreator.nextEvents(10);
-            initialEntries.forEach(e => {
-                txn.timelineEvents.insert(createEventEntry(initialKey, roomId, e))
-                initialKey = initialKey.nextKey();
-            });
+            const initialEntries = await prefillFragment(txn, eventCreator, liveFragment, 10);
 
             const response = eventCreator.createMessagesResponse();
             await gapWriter.writeFragmentFill(newEntry, response, txn, null);
@@ -365,7 +379,7 @@ export function tests() {
             const allEvents = await txn.timelineEvents.eventsAfter(roomId, EventKey.minKey, 100 /* fetch all */);
             let i = 0;
             for (; i < response.chunk.length; i++) {
-                const responseEvent = response.chunk[response.chunk.length - 1 - i];
+                const responseEvent = response.chunk.at(-i - 1);
                 const storedEvent = allEvents[i];
                 assert.deepEqual(responseEvent, storedEvent.event);
             }
@@ -375,6 +389,54 @@ export function tests() {
             }
 
             await txn.complete()
+        },
+        "Backfilling a fragment that is expected to link up": async assert => {
+            const { txn, fragmentIdComparer, gapWriter, eventCreator } = await setup();
+            const existingFragment = await createFragment(0, txn, fragmentIdComparer, { nextId: 1, nextToken: startToken });
+            const liveFragment = await createFragment(1, txn, fragmentIdComparer, { previousId: 0, previousToken: startToken });
+            const newEntry = FragmentBoundaryEntry.start(liveFragment, fragmentIdComparer);
+
+            const initialEntries = await prefillFragment(txn, eventCreator, existingFragment, 10);
+            const response = eventCreator.createMessagesResponse();
+            response.chunk.push(initialEntries.at(-1)); /* Expect overlap */
+            await gapWriter.writeFragmentFill(newEntry, response, txn, null);
+
+            const allEvents = await txn.timelineEvents._timelineStore.selectAll();
+            let i = 0;
+            for (const initialEntry of initialEntries) {
+                const storedEvent = allEvents[i++];
+                assert.deepEqual(initialEntry, storedEvent.event);
+            }
+            for (let j = 0; j < response.chunk.length - 1; j++) {
+                const responseEvent = response.chunk.at(-j - 2);
+                const storedEvent = allEvents[i + j];
+                assert.deepEqual(responseEvent, storedEvent.event);
+            }
+            await assertTightLink(assert, txn, 0, 1);
+        },
+        "Backfilling a fragment that is not expected to link up": async assert => {
+            const { txn, fragmentIdComparer, gapWriter, eventCreator } = await setup();
+            const existingFragment = await createFragment(0, txn, fragmentIdComparer, { nextToken: startToken });
+            const liveFragment = await createFragment(1, txn, fragmentIdComparer, { previousToken: startToken });
+            const newEntry = FragmentBoundaryEntry.start(liveFragment, fragmentIdComparer);
+
+            const initialEntries = await prefillFragment(txn, eventCreator, existingFragment, 10);
+            const response = eventCreator.createMessagesResponse();
+            response.chunk.push(initialEntries.at(-1)); /* Fake overlap */
+            await gapWriter.writeFragmentFill(newEntry, response, txn, null);
+
+            const allEvents = await txn.timelineEvents._timelineStore.selectAll();
+            let i = 0;
+            for (const initialEntry of initialEntries) {
+                const storedEvent = allEvents[i++];
+                assert.deepEqual(initialEntry, storedEvent.event);
+            }
+            for (let j = 0; j < response.chunk.length - 1; j++) {
+                const responseEvent = response.chunk.at(-j - 2);
+                const storedEvent = allEvents[i + j];
+                assert.deepEqual(responseEvent, storedEvent.event);
+            }
+            await assertTightLink(assert, txn, 0, 1);
         }
     }
 }
