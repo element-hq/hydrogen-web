@@ -130,8 +130,8 @@ class QueryTargetWrapper<T> {
 export class Store<T> extends QueryTarget<T> {
     private _transaction: Transaction;
 
-    constructor(idbStore: IDBObjectStore, transaction: Transaction, idbFactory: IDBFactory) {
-        super(new QueryTargetWrapper<T>(idbStore), idbFactory);
+    constructor(idbStore: IDBObjectStore, transaction: Transaction) {
+        super(new QueryTargetWrapper<T>(idbStore), transaction.idbFactory, transaction.IDBKeyRange);
         this._transaction = transaction;
     }
 
@@ -145,7 +145,7 @@ export class Store<T> extends QueryTarget<T> {
     }
 
     index(indexName: string): QueryTarget<T> {
-        return new QueryTarget<T>(new QueryTargetWrapper<T>(this._idbStore.index(indexName)), this._idbFactory);
+        return new QueryTarget<T>(new QueryTargetWrapper<T>(this._idbStore.index(indexName)), this._idbFactory, this._IDBKeyRange);
     }
 
     put(value: T): void {

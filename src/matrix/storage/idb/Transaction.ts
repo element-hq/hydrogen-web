@@ -56,7 +56,7 @@ export class Transaction {
             // more specific error? this is a bug, so maybe not ...
             throw new StorageError(`Invalid store for transaction: ${name}, only ${this._allowedStoreNames.join(", ")} are allowed.`);
         }
-        return new Store(this._txn.objectStore(name), this, this.idbFactory);
+        return new Store(this._txn.objectStore(name), this);
     }
 
     _store<T>(name: StoreNames, mapStore: (idbStore: Store<any>) => T): T {

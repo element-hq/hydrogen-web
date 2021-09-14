@@ -32,10 +32,12 @@ interface QueryTargetInterface<T> {
 export class QueryTarget<T> {
     protected _target: QueryTargetInterface<T>;
     protected _idbFactory: IDBFactory
+    protected _IDBKeyRange: typeof IDBKeyRange
 
-    constructor(target: QueryTargetInterface<T>, idbFactory: IDBFactory) {
+    constructor(target: QueryTargetInterface<T>, idbFactory: IDBFactory, _IDBKeyRange: typeof IDBKeyRange) {
         this._target = target;
         this._idbFactory = idbFactory;
+        this._IDBKeyRange = _IDBKeyRange;
     }
 
     _openCursor(range?: IDBQuery, direction?: IDBCursorDirection): IDBRequest<IDBCursorWithValue | null> {
@@ -161,7 +163,7 @@ export class QueryTarget<T> {
         const sortedKeys = keys.slice().sort(compareKeys);
         const firstKey = backwards ? sortedKeys[sortedKeys.length - 1] : sortedKeys[0];
         const lastKey = backwards ? sortedKeys[0] : sortedKeys[sortedKeys.length - 1];
-        const cursor = this._target.openKeyCursor(IDBKeyRange.bound(firstKey, lastKey), direction);
+        const cursor = this._target.openKeyCursor(this._IDBKeyRange.bound(firstKey, lastKey), direction);
         let i = 0;
         let consumerDone = false;
         await iterateCursor(cursor, (value, key) => {
