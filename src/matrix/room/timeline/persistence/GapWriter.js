@@ -258,6 +258,7 @@ import {RelationWriter} from "./RelationWriter.js";
 import {createMockStorage} from "../../../../mocks/Storage.js";
 import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
 import {createEvent, withTextBody, withContent, withSender} from "../../../../mocks/event.js";
+import {NullLogger} from "../../../../logging/NullLogger.js";
 
 export function tests() {
     const alice = "alice@hs.tdl";
@@ -346,7 +347,16 @@ export function tests() {
         assert.equal(fragment1.nextId, fragment2.id);
         assert.equal(fragment2.previousId, fragment1.id);
         assert.equal(fragment2.previousToken, null);
-        assert.equal(fragment2.nextToken, null);
+        assert.equal(fragment1.nextToken, null);
+    }
+
+    async function assertWeakLink(assert, txn, fragmentId1, fragmentId2) {
+        const fragment1 = await txn.timelineFragments.get(roomId, fragmentId1);
+        const fragment2 = await txn.timelineFragments.get(roomId, fragmentId2);
+        assert.equal(fragment1.nextId, fragment2.id);
+        assert.equal(fragment2.previousId, fragment1.id);
+        assert.notEqual(fragment2.previousToken, null);
+        assert.notEqual(fragment1.nextToken, null);
     }
 
     return {
@@ -390,7 +400,7 @@ export function tests() {
 
             await txn.complete()
         },
-        "Backfilling a fragment that is expected to link up": async assert => {
+        "Backfilling a fragment that is expected to link up, and does": async assert => {
             const { txn, fragmentIdComparer, gapWriter, eventCreator } = await setup();
             const existingFragment = await createFragment(0, txn, fragmentIdComparer, { nextId: 1, nextToken: startToken });
             const liveFragment = await createFragment(1, txn, fragmentIdComparer, { previousId: 0, previousToken: startToken });
@@ -413,6 +423,29 @@ export function tests() {
                 assert.deepEqual(responseEvent, storedEvent.event);
             }
             await assertTightLink(assert, txn, 0, 1);
+        },
+        "Backfilling a fragment that is expected to link up, but doesn't yet": async assert => {
+            const { txn, fragmentIdComparer, gapWriter, eventCreator } = await setup();
+            const existingFragment = await createFragment(0, txn, fragmentIdComparer, { nextId: 1, nextToken: endToken });
+            const liveFragment = await createFragment(1, txn, fragmentIdComparer, { previousId: 0, previousToken: startToken });
+            const newEntry = FragmentBoundaryEntry.start(liveFragment, fragmentIdComparer);
+
+            const initialEntries = await prefillFragment(txn, eventCreator, existingFragment, 10);
+            const response = eventCreator.createMessagesResponse();
+            await gapWriter.writeFragmentFill(newEntry, response, txn, null);
+
+            const allEvents = await txn.timelineEvents._timelineStore.selectAll();
+            let i = 0;
+            for (const initialEntry of initialEntries) {
+                const storedEvent = allEvents[i++];
+                assert.deepEqual(initialEntry, storedEvent.event);
+            }
+            for (let j = 0; j < response.chunk.length - 1; j++) {
+                const responseEvent = response.chunk.at(-j - 1);
+                const storedEvent = allEvents[i + j];
+                assert.deepEqual(responseEvent, storedEvent.event);
+            }
+            await assertWeakLink(assert, txn, 0, 1);
         },
         "Backfilling a fragment that is not expected to link up": async assert => {
             const { txn, fragmentIdComparer, gapWriter, eventCreator } = await setup();
@@ -437,6 +470,50 @@ export function tests() {
                 assert.deepEqual(responseEvent, storedEvent.event);
             }
             await assertTightLink(assert, txn, 0, 1);
-        }
+        },
+        "Receiving a sync with the same events as the current fragment does not create infinite link": async assert => {
+            const { txn, fragmentIdComparer, gapWriter, eventCreator } = await setup();
+            const liveFragment = await createFragment(0, txn, fragmentIdComparer, { previousToken: startToken });
+            const newEntry = FragmentBoundaryEntry.start(liveFragment, fragmentIdComparer);
+
+            const initialEntries = await prefillFragment(txn, eventCreator, liveFragment, 10);
+            const response = { start: startToken, end: endToken, chunk: initialEntries.slice().reverse(), state: [] };
+            await gapWriter.writeFragmentFill(newEntry, response, txn, new NullLogger());
+
+            const updatedLiveFragment = txn.timelineFragments.get(roomId, 0);
+            assert.equal(updatedLiveFragment.previousId, null);
+            const allEvents = await txn.timelineEvents._timelineStore.selectAll();
+            let i = 0;
+            for (const initialEntry of initialEntries) {
+                assert.deepEqual(allEvents[i++].event, initialEntry);
+            }
+            assert.equal(allEvents.length, 10);
+        },
+        "An event received by sync does not interrupt backfilling": async assert => {
+            const { txn, fragmentIdComparer, gapWriter, eventCreator } = await setup();
+            const existingFragment = await createFragment(0, txn, fragmentIdComparer, { nextId: 1, nextToken: endToken });
+            const liveFragment = await createFragment(1, txn, fragmentIdComparer, { previousId: 0, previousToken: startToken });
+            const anotherFragment = await createFragment(2, txn, fragmentIdComparer);
+            const newEntry = FragmentBoundaryEntry.start(liveFragment, fragmentIdComparer);
+
+            const initialEntries = await prefillFragment(txn, eventCreator, existingFragment, 10);
+            const [strayEntry] = await prefillFragment(txn, eventCreator, anotherFragment, 1);
+            const response = eventCreator.createMessagesResponse();
+            const originalEntries = response.chunk.slice();
+            response.chunk.splice(response.chunk.length - 3, 0, initialEntries[5], strayEntry);
+            await gapWriter.writeFragmentFill(newEntry, response, txn, null);
+
+            const allEvents = await txn.timelineEvents._timelineStore.selectAll();
+            let i = 0;
+            for (const initialEntry of initialEntries) {
+                const storedEvent = allEvents[i++];
+                assert.deepEqual(initialEntry, storedEvent.event);
+            }
+            for (const originalEntry of originalEntries.reverse()) {
+                const storedEvent = allEvents[i++];
+                assert.deepEqual(originalEntry, storedEvent.event);
+            }
+            await assertWeakLink(assert, txn, 0, 1);
+        },
     }
 }
