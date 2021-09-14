@@ -332,10 +332,49 @@ export function tests() {
 
     return {
         "Backfilling an empty fragment": async assert => {
-            const { storage, txn, fragmentIdComparer, gapWriter, eventCreator } = await setup();
+            const { txn, fragmentIdComparer, gapWriter, eventCreator } = await setup();
             const emptyFragment = await createFragment(0, txn, fragmentIdComparer, { previousToken: startToken });
             const newEntry = FragmentBoundaryEntry.start(emptyFragment, fragmentIdComparer);
-            await gapWriter.writeFragmentFill(newEntry, eventCreator.createMessagesResponse(), txn, null);
+
+            const response = eventCreator.createMessagesResponse();
+            await gapWriter.writeFragmentFill(newEntry, response, txn, null);
+
+            const allEvents = await txn.timelineEvents.eventsAfter(roomId, EventKey.minKey, 100 /* fetch all */);
+            for (let i = 0; i < response.chunk.length; i++) {
+                const responseEvent = response.chunk[response.chunk.length - 1 - i];
+                const storedEvent = allEvents[i];
+                assert.deepEqual(responseEvent, storedEvent.event);
+            }
+            await txn.complete();
+        },
+        "Backfilling a fragment with existing entries": async assert => {
+            const { txn, fragmentIdComparer, gapWriter, eventCreator } = await setup();
+            const emptyFragment = await createFragment(0, txn, fragmentIdComparer, { previousToken: startToken });
+            const newEntry = FragmentBoundaryEntry.start(emptyFragment, fragmentIdComparer);
+
+            let initialKey = EventKey.defaultFragmentKey(0);
+            const initialEntries = eventCreator.nextEvents(10);
+            initialEntries.forEach(e => {
+                txn.timelineEvents.insert(createEventEntry(initialKey, roomId, e))
+                initialKey = initialKey.nextKey();
+            });
+
+            const response = eventCreator.createMessagesResponse();
+            await gapWriter.writeFragmentFill(newEntry, response, txn, null);
+
+            const allEvents = await txn.timelineEvents.eventsAfter(roomId, EventKey.minKey, 100 /* fetch all */);
+            let i = 0;
+            for (; i < response.chunk.length; i++) {
+                const responseEvent = response.chunk[response.chunk.length - 1 - i];
+                const storedEvent = allEvents[i];
+                assert.deepEqual(responseEvent, storedEvent.event);
+            }
+            for (const initialEntry of initialEntries) {
+                const storedEvent = allEvents[i++];
+                assert.deepEqual(initialEntry, storedEvent.event);
+            }
+
+            await txn.complete()
         }
     }
 }
