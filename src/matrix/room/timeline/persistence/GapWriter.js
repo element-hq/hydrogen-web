@@ -252,3 +252,90 @@ export class GapWriter {
         return {entries, updatedEntries, fragments};
     }
 }
+
+import {FragmentIdComparer} from "../FragmentIdComparer.js";
+import {RelationWriter} from "./RelationWriter.js";
+import {createMockStorage} from "../../../../mocks/Storage.js";
+import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
+import {createEvent, withTextBody, withContent, withSender} from "../../../../mocks/event.js";
+
+export function tests() {
+    const alice = "alice@hs.tdl";
+    const bob = "bob@hs.tdl";
+    const roomId = "!room:hs.tdl";
+    const startToken = "begin_token";
+    const endToken = "end_token";
+
+    class EventCreator {
+        constructor() {
+            this.counter = 0;
+        }
+
+        nextEvent() {
+            const event = withTextBody(`This is event ${this.counter}`, withSender(bob, createEvent("m.room.message", `!event${this.counter}`)));
+            this.counter++;
+            return event;
+        }
+
+        nextEvents(n) {
+            const events = [];
+            for (let i = 0; i < n; i++) {
+                events.push(this.nextEvent());
+            }
+            return events;
+        }
+
+        createMessagesResponse() {
+            return { 
+                start: startToken,
+                end: endToken,
+                chunk: this.nextEvents(5),
+                state: []
+            }
+        }
+    }
+
+    async function createGapFillTxn(storage) {
+        return storage.readWriteTxn([
+            storage.storeNames.pendingEvents,
+            storage.storeNames.timelineEvents,
+            storage.storeNames.timelineRelations,
+            storage.storeNames.timelineFragments,
+        ]);
+    }
+
+    async function setup() {
+        const storage = await createMockStorage();
+        const txn = await createGapFillTxn(storage);
+        const fragmentIdComparer = new FragmentIdComparer([]);
+        const relationWriter = new RelationWriter({
+            roomId, fragmentIdComparer, ownUserId: alice,
+        });
+        const gapWriter = new GapWriter({
+            roomId, storage, fragmentIdComparer, relationWriter
+        });
+        return { storage, txn, fragmentIdComparer, gapWriter, eventCreator: new EventCreator() };
+    }
+
+    async function createFragment(id, txn, fragmentIdComparer, overrides = {}) {
+        const newFragment = Object.assign({
+            roomId, id,
+            previousId: null,
+            nextId: null,
+            nextToken: null,
+            previousToken: null
+        }, overrides);
+        await txn.timelineFragments.add(newFragment);
+        fragmentIdComparer.add(newFragment);
+        return newFragment;
+    }
+
+    return {
+        "Backfilling an empty fragment": async assert => {
+            const { storage, txn, fragmentIdComparer, gapWriter, eventCreator } = await setup();
+            const emptyFragment = await createFragment(0, txn, fragmentIdComparer, { previousToken: startToken });
+            const newEntry = FragmentBoundaryEntry.start(emptyFragment, fragmentIdComparer);
+            await gapWriter.writeFragmentFill(newEntry, eventCreator.createMessagesResponse(), txn, null);
+        }
+    }
+}
