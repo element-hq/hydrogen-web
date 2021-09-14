@@ -101,6 +101,9 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
                 if (newAnchoredBottom !== this.anchoredBottom) {
                     const bottomDiff = newAnchoredBottom - this.anchoredBottom;
                     console.log(`restore: scroll by ${bottomDiff} as height changed`);
+                    // scrollBy tends to create less scroll jumps than reassigning scrollTop as it does
+                    // not depend on reading scrollTop, which might be out of date as some platforms
+                    // run scrolling off the main thread.
                     if (typeof timeline.scrollBy === "function") {
                         timeline.scrollBy(0, bottomDiff);
                     } else {
@@ -111,6 +114,8 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
                     // console.log("restore: bottom didn't change, must be below viewport");
                 }
             }
+            // TODO: should we be updating the visible range here as well as the range might have changed even though
+            // we restored the bottom tile
         }
     }
 
