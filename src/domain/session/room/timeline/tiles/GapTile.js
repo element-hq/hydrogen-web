@@ -22,6 +22,7 @@ export class GapTile extends SimpleTile {
         super(options);
         this._loading = false;
         this._error = null;
+        this._isAtTop = true;
     }
 
     async fill() {
@@ -46,6 +47,21 @@ export class GapTile extends SimpleTile {
 
     notifyVisible() {
         this.fill();
+    }
+
+    get isAtTop() {
+        return this._isAtTop;
+    }
+
+    updatePreviousSibling(prev) {
+        console.log("GapTile.updatePreviousSibling", prev);
+        super.updatePreviousSibling(prev);
+        const isAtTop = !prev;
+        if (this._isAtTop !== isAtTop) {
+            this._isAtTop = isAtTop;
+            console.log("isAtTop", this._isAtTop);
+            this.emitChange("isAtTop");
+        }
     }
 
     updateEntry(entry, params) {

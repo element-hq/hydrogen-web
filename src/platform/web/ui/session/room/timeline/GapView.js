@@ -21,7 +21,8 @@ export class GapView extends TemplateView {
     render(t, vm) {
         const className = {
             GapView: true,
-            isLoading: vm => vm.isLoading
+            isLoading: vm => vm.isLoading,
+            isAtTop: vm => vm.isAtTop,
         };
         return t.li({className}, [
             spinner(t),

@@ -362,3 +362,11 @@ only loads when the top comes into view*/
 .GapView > :not(:first-child) {
     margin-left: 12px;
 }
+
+.GapView {
+    padding: 52px 20px;
+}
+
+.GapView.isAtTop {
+    padding: 52px 20px 12px 20px;
+}
