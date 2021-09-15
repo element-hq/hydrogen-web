@@ -143,7 +143,7 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
         const tiles = this.tilesView!.root() as HTMLElement;
 
         let bottomNodeIndex;
-        this.stickToBottom = Math.abs(scrollHeight - (scrollTop + clientHeight)) < 5;
+        this.stickToBottom = Math.abs(scrollHeight - (scrollTop + clientHeight)) < 1;
         if (this.stickToBottom) {
             const len = this.value.tiles.length;
             bottomNodeIndex = len - 1;
