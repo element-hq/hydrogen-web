@@ -69,6 +69,7 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
     private anchoredBottom: number = 0;
     private stickToBottom: boolean = true;
     private tilesView?: TilesListView;
+    private resizeObserver?: ResizeObserver;
 
     render(t: TemplateBuilder, vm: TimelineViewModel) {
         // assume this view will be mounted in the parent DOM straight away
@@ -77,9 +78,26 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
             this.restoreScrollPosition();
         });
         this.tilesView = new TilesListView(vm.tiles, () => this.restoreScrollPosition());
-        return t.div({className: "Timeline bottom-aligned-scroll", onScroll: () => this.onScroll()}, [
+        const root = t.div({className: "Timeline bottom-aligned-scroll", onScroll: () => this.onScroll()}, [
             t.view(this.tilesView)
         ]);
+
+        if (typeof ResizeObserver === "function") {
+            this.resizeObserver = new ResizeObserver(() => {
+                this.restoreScrollPosition();
+            });
+            this.resizeObserver.observe(root);
+        }
+
+        return root;
+    }
+
+    public unmount() {
+        super.unmount();
+        if (this.resizeObserver) {
+            this.resizeObserver.unobserve(this.root());
+            this.resizeObserver = null;
+        }
     }
 
     private restoreScrollPosition() {
