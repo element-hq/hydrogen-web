@@ -46,6 +46,7 @@ export class TimelineViewModel extends ViewModel {
         this._requestedStartTile = null;
         this._requestedEndTile = null;
         this._requestScheduled = false;
+        this._showJumpDown = false;
     }
 
     /** if this.tiles is empty, call this with undefined for both startTile and endTile */
@@ -75,10 +76,12 @@ export class TimelineViewModel extends ViewModel {
                 tile.notifyVisible();
             }
             loadTop = startIndex < 10;
+            this._setShowJumpDown(endIndex < (this._tiles.length - 1));
             // console.log("got tiles", startIndex, endIndex, loadTop);
         } else {
             // tiles collection is empty, load more at top
             loadTop = true;
+            this._setShowJumpDown(false);
             // console.log("no tiles, load more at top");
         }
 
@@ -99,5 +102,16 @@ export class TimelineViewModel extends ViewModel {
 
     get tiles() {
         return this._tiles;
+    }
+
+    _setShowJumpDown(show) {
+        if (this._showJumpDown !== show) {
+            this._showJumpDown = show;
+            this.emitChange("showJumpDown");
+        }
+    }
+
+    get showJumpDown() {
+        return this._showJumpDown;
     }
 }

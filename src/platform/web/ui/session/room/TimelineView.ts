@@ -78,8 +78,19 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
             this.restoreScrollPosition();
         });
         this.tilesView = new TilesListView(vm.tiles, () => this.restoreScrollPosition());
-        const root = t.div({className: "Timeline bottom-aligned-scroll", onScroll: () => this.onScroll()}, [
-            t.view(this.tilesView)
+        const root = t.div({className: "Timeline"}, [
+            t.div({
+                className: "Timeline_scroller bottom-aligned-scroll",
+                onScroll: () => this.onScroll()
+            }, t.view(this.tilesView)),
+            t.button({
+                className: {
+                    "Timeline_jumpDown": true,
+                    hidden: vm => !vm.showJumpDown
+                },
+                title: "Jump down",
+                onClick: () => this.jumpDown()
+            })
         ]);
 
         if (typeof ResizeObserver === "function") {
@@ -92,6 +103,16 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
         return root;
     }
 
+    private get scroller() {
+        return this.root().firstElementChild as HTMLElement;
+    }
+
+    private jumpDown() {
+        const {scroller} = this;
+        this.stickToBottom = true;
+        scroller.scrollTop = scroller.scrollHeight;
+    }
+
     public unmount() {
         super.unmount();
         if (this.resizeObserver) {
@@ -101,10 +122,10 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
     }
 
     private restoreScrollPosition() {
-        const timeline = this.root() as HTMLElement;
+        const {scroller} = this;
         const tiles = this.tilesView!.root() as HTMLElement;
 
-        const missingTilesHeight = timeline.clientHeight - tiles.clientHeight;
+        const missingTilesHeight = scroller.clientHeight - tiles.clientHeight;
         if (missingTilesHeight > 0) {
             tiles.style.setProperty("margin-top", `${missingTilesHeight}px`);
             // we don't have enough tiles to fill the viewport, so set all as visible
@@ -113,23 +134,20 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
         } else {
             tiles.style.removeProperty("margin-top");
             if (this.stickToBottom) {
-                timeline.scrollTop = timeline.scrollHeight;
+                scroller.scrollTop = scroller.scrollHeight;
             } else if (this.anchoredNode) {
                 const newAnchoredBottom = bottom(this.anchoredNode!);
                 if (newAnchoredBottom !== this.anchoredBottom) {
                     const bottomDiff = newAnchoredBottom - this.anchoredBottom;
-                    console.log(`restore: scroll by ${bottomDiff} as height changed`);
                     // scrollBy tends to create less scroll jumps than reassigning scrollTop as it does
                     // not depend on reading scrollTop, which might be out of date as some platforms
                     // run scrolling off the main thread.
-                    if (typeof timeline.scrollBy === "function") {
-                        timeline.scrollBy(0, bottomDiff);
+                    if (typeof scroller.scrollBy === "function") {
+                        scroller.scrollBy(0, bottomDiff);
                     } else {
-                        timeline.scrollTop = timeline.scrollTop + bottomDiff;
+                        scroller.scrollTop = scroller.scrollTop + bottomDiff;
                     }
                     this.anchoredBottom = newAnchoredBottom;
-                } else {
-                    // console.log("restore: bottom didn't change, must be below viewport");
                 }
             }
             // TODO: should we be updating the visible range here as well as the range might have changed even though
@@ -138,8 +156,8 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
     }
 
     private onScroll(): void {
-        const timeline = this.root() as HTMLElement;
-        const {scrollHeight, scrollTop, clientHeight} = timeline;
+        const {scroller} = this;
+        const {scrollHeight, scrollTop, clientHeight} = scroller;
         const tiles = this.tilesView!.root() as HTMLElement;
 
         let bottomNodeIndex;

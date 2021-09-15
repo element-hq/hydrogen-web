@@ -14,8 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+.Timeline {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
 
-.RoomView_body > .Timeline {
+.Timeline_jumpDown {
+    position: absolute;
+}
+
+.Timeline_scroller {
     overflow-y: scroll;
     overscroll-behavior-y: contain;
     overflow-anchor: none;
@@ -23,9 +32,11 @@ limitations under the License.
     margin: 0;
     /* need to read the offsetTop of tiles relative to this element in TimelineView  */
     position: relative;
+    min-height: 0;
+    flex: 1 0 0;
 }
 
-.RoomView_body > .Timeline > ul {
+.Timeline_scroller > ul {
     list-style: none;
     /* use small horizontal padding so first/last children margin isn't collapsed
     at the edge and a scrollbar shows up when setting margin-top to bottom-align
