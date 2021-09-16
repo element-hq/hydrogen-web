@@ -79,12 +79,12 @@ export class ListView<T, V extends UIView> implements UIView {
         if (this._className) {
             attr.className = this._className;
         }
-        this._root = el(this._tagName, attr);
+        const root = this._root = el(this._tagName, attr);
         this.loadList();
         if (this._onItemClick) {
-            this._root!.addEventListener("click", this);
+            root.addEventListener("click", this);
         }
-        return this._root!;
+        return root;
     }
 
     handleEvent(evt: Event) {
