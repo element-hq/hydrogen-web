@@ -16,7 +16,7 @@ limitations under the License.
 
 import {RoomView} from "./room/RoomView.js";
 import {InviteView} from "./room/InviteView.js";
-import {TemplateView} from "../general/TemplateView.js";
+import {TemplateView} from "../general/TemplateView";
 import {StaticView} from "../general/StaticView.js";
 
 export class RoomGridView extends TemplateView {

@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {ListView} from "../general/ListView";
-import {TemplateView} from "../general/TemplateView.js";
+import {TemplateView} from "../general/TemplateView";
 import {hydrogenGithubLink} from "./common.js";
 import {SessionLoadStatusView} from "./SessionLoadStatusView.js";
 
