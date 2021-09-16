@@ -18,6 +18,7 @@ limitations under the License.
     display: flex;
     flex-direction: column;
     position: relative;
+    min-height: 0;
 }
 
 .Timeline_jumpDown {
