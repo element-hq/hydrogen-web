@@ -77,12 +77,10 @@ export class TimelineViewModel extends ViewModel {
             }
             loadTop = startIndex < 10;
             this._setShowJumpDown(endIndex < (this._tiles.length - 1));
-            // console.log("got tiles", startIndex, endIndex, loadTop);
         } else {
             // tiles collection is empty, load more at top
             loadTop = true;
             this._setShowJumpDown(false);
-            // console.log("no tiles, load more at top");
         }
 
         if (loadTop && !this._topLoadingPromise) {
@@ -95,8 +93,6 @@ export class TimelineViewModel extends ViewModel {
                     this.setVisibleTileRange(this._requestedStartTile, this._requestedEndTile);
                 }
             });
-        } else if (loadTop) {
-            // console.log("loadTop is true but already loading");
         }
     }
 
