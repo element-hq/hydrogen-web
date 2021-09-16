@@ -33,6 +33,10 @@ export class BaseMessageView extends TemplateView {
     }
 
     render(t, vm) {
+        const children = [this.renderMessageBody(t, vm)];
+        if (this._interactive) {
+            children.push(t.button({className: "Timeline_messageOptions"}, "⋯"));
+        }
         const li = t.el(this._tagName, {className: {
             "Timeline_message": true,
             own: vm.isOwn,
@@ -40,13 +44,8 @@ export class BaseMessageView extends TemplateView {
             unverified: vm.isUnverified,
             disabled: !this._interactive,
             continuation: vm => vm.isContinuation,
-        }}, [
-            // dynamically added and removed nodes are handled below
-            this.renderMessageBody(t, vm),
-            // should be after body as it is overlayed on top
-            this._interactive ? t.button({className: "Timeline_messageOptions"}, "⋯") : [],
-        ]);
         const avatar = t.a({href: vm.memberPanelLink, className: "Timeline_messageAvatar"}, [renderStaticAvatar(vm, 30)]);
+        }}, children);
         // given that there can be many tiles, we don't add
         // unneeded DOM nodes in case of a continuation, and we add it
         // with a side-effect binding to not have to create sub views,
