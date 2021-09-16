@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {UIView, IMountArgs} from "./types";
+import {UIView, IMountArgs, ViewNode} from "./types";
 import {tag} from "./html";
 
-export function mountView(view: UIView, mountArgs?: IMountArgs): HTMLElement {
+export function mountView(view: UIView, mountArgs?: IMountArgs): ViewNode {
     let node;
     try {
         node = view.mount(mountArgs);
@@ -27,7 +27,7 @@ export function mountView(view: UIView, mountArgs?: IMountArgs): HTMLElement {
     return node;
 }
 
-export function errorToDOM(error: Error): HTMLElement {
+export function errorToDOM(error: Error): Element {
     const stack = new Error().stack;
     let callee: string | null = null;
     if (stack) {
@@ -38,10 +38,10 @@ export function errorToDOM(error: Error): HTMLElement {
         tag.h3(error.message),
         tag.p(`This occurred while running ${callee}.`),
         tag.pre(error.stack),
-    ]) as HTMLElement;
+    ]);
 }
 
-export function insertAt(parentNode: Element, idx: number, childNode: Element): void {
+export function insertAt(parentNode: Element, idx: number, childNode: Node): void {
     const isLast = idx === parentNode.childElementCount;
     if (isLast) {
         parentNode.appendChild(childNode);
