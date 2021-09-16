@@ -18,7 +18,7 @@ import {TemplateView} from "../../../general/TemplateView";
 import {spinner} from "../../../common.js";
 
 export class GapView extends TemplateView {
-    render(t, vm) {
+    render(t) {
         const className = {
             GapView: true,
             isLoading: vm => vm.isLoading,
