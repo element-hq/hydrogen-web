@@ -15,7 +15,8 @@ limitations under the License.
 */
 
 import {ListView} from "../../general/ListView";
-import {TemplateView, TemplateBuilder} from "../../general/TemplateView.js";
+import {TemplateView, Builder} from "../../general/TemplateView";
+import {IObservableValue} from "../../general/BaseUpdateView";
 import {GapView} from "./timeline/GapView.js";
 import {TextMessageView} from "./timeline/TextMessageView.js";
 import {ImageView} from "./timeline/ImageView.js";
@@ -25,8 +26,14 @@ import {MissingAttachmentView} from "./timeline/MissingAttachmentView.js";
 import {AnnouncementView} from "./timeline/AnnouncementView.js";
 import {RedactedView} from "./timeline/RedactedView.js";
 import {SimpleTile} from "../../../../../domain/session/room/timeline/tiles/SimpleTile.js";
-import {TimelineViewModel} from "../../../../../domain/session/room/timeline/TimelineViewModel.js";
 import {BaseObservableList as ObservableList} from "../../../../../observable/list/BaseObservableList.js";
+
+//import {TimelineViewModel} from "../../../../../domain/session/room/timeline/TimelineViewModel.js";
+interface TimelineViewModel extends IObservableValue {
+    showJumpDown: boolean;
+    tiles: ObservableList<SimpleTile>;
+    setVisibleTileRange(start?: SimpleTile, end?: SimpleTile);
+}
 
 type TileView = GapView | AnnouncementView | TextMessageView |
     ImageView | VideoView | FileView | MissingAttachmentView | RedactedView;
@@ -71,7 +78,7 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
     private tilesView?: TilesListView;
     private resizeObserver?: ResizeObserver;
 
-    render(t: TemplateBuilder, vm: TimelineViewModel) {
+    render(t: Builder<TimelineViewModel>, vm: TimelineViewModel) {
         // assume this view will be mounted in the parent DOM straight away
         requestAnimationFrame(() => {
             // do initial scroll positioning
@@ -103,38 +110,41 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
         return root;
     }
 
-    private get scroller() {
-        return this.root().firstElementChild as HTMLElement;
+    private get scrollNode(): HTMLElement {
+        return (this.root()! as HTMLElement).firstElementChild! as HTMLElement;
+    }
+
+    private get tilesNode(): HTMLElement {
+        return this.tilesView!.root()! as HTMLElement;
     }
 
     private jumpDown() {
-        const {scroller} = this;
+        const {scrollNode} = this;
         this.stickToBottom = true;
-        scroller.scrollTop = scroller.scrollHeight;
+        scrollNode.scrollTop = scrollNode.scrollHeight;
     }
 
     public unmount() {
         super.unmount();
         if (this.resizeObserver) {
-            this.resizeObserver.unobserve(this.root());
-            this.resizeObserver = null;
+            this.resizeObserver.unobserve(this.root()! as Element);
+            this.resizeObserver = undefined;
         }
     }
 
     private restoreScrollPosition() {
-        const {scroller} = this;
-        const tiles = this.tilesView!.root() as HTMLElement;
+        const {scrollNode, tilesNode} = this;
 
-        const missingTilesHeight = scroller.clientHeight - tiles.clientHeight;
+        const missingTilesHeight = scrollNode.clientHeight - tilesNode.clientHeight;
         if (missingTilesHeight > 0) {
-            tiles.style.setProperty("margin-top", `${missingTilesHeight}px`);
+            tilesNode.style.setProperty("margin-top", `${missingTilesHeight}px`);
             // we don't have enough tiles to fill the viewport, so set all as visible
             const len = this.value.tiles.length;
             this.updateVisibleRange(0, len - 1);
         } else {
-            tiles.style.removeProperty("margin-top");
+            tilesNode.style.removeProperty("margin-top");
             if (this.stickToBottom) {
-                scroller.scrollTop = scroller.scrollHeight;
+                scrollNode.scrollTop = scrollNode.scrollHeight;
             } else if (this.anchoredNode) {
                 const newAnchoredBottom = bottom(this.anchoredNode!);
                 if (newAnchoredBottom !== this.anchoredBottom) {
@@ -142,10 +152,10 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
                     // scrollBy tends to create less scroll jumps than reassigning scrollTop as it does
                     // not depend on reading scrollTop, which might be out of date as some platforms
                     // run scrolling off the main thread.
-                    if (typeof scroller.scrollBy === "function") {
-                        scroller.scrollBy(0, bottomDiff);
+                    if (typeof scrollNode.scrollBy === "function") {
+                        scrollNode.scrollBy(0, bottomDiff);
                     } else {
-                        scroller.scrollTop = scroller.scrollTop + bottomDiff;
+                        scrollNode.scrollTop = scrollNode.scrollTop + bottomDiff;
                     }
                     this.anchoredBottom = newAnchoredBottom;
                 }
@@ -156,9 +166,8 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
     }
 
     private onScroll(): void {
-        const {scroller} = this;
-        const {scrollHeight, scrollTop, clientHeight} = scroller;
-        const tiles = this.tilesView!.root() as HTMLElement;
+        const {scrollNode, tilesNode} = this;
+        const {scrollHeight, scrollTop, clientHeight} = scrollNode;
 
         let bottomNodeIndex;
         this.stickToBottom = Math.abs(scrollHeight - (scrollTop + clientHeight)) < 1;
@@ -168,12 +177,12 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
         } else {
             const viewportBottom = scrollTop + clientHeight;
             // console.log(`viewportBottom: ${viewportBottom} (${scrollTop} + ${clientHeight})`);
-            const anchoredNodeIndex = findFirstNodeIndexAtOrBelow(tiles, viewportBottom);
-            this.anchoredNode = tiles.childNodes[anchoredNodeIndex] as HTMLElement;
+            const anchoredNodeIndex = findFirstNodeIndexAtOrBelow(tilesNode, viewportBottom);
+            this.anchoredNode = tilesNode.childNodes[anchoredNodeIndex] as HTMLElement;
             this.anchoredBottom = bottom(this.anchoredNode!);
             bottomNodeIndex = anchoredNodeIndex;
         }
-        let topNodeIndex = findFirstNodeIndexAtOrBelow(tiles, scrollTop, bottomNodeIndex);
+        let topNodeIndex = findFirstNodeIndexAtOrBelow(tilesNode, scrollTop, bottomNodeIndex);
         this.updateVisibleRange(topNodeIndex, bottomNodeIndex);
     }
 
