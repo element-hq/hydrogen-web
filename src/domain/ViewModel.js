@@ -18,7 +18,7 @@ limitations under the License.
 // as in some cases it would really be more convenient to have multiple events (like telling the timeline to scroll down)
 // we do need to return a disposable from EventEmitter.on, or at least have a method here to easily track a subscription to an EventEmitter
 
-import {EventEmitter} from "../utils/EventEmitter.js";
+import {EventEmitter} from "../utils/EventEmitter";
 import {Disposables} from "../utils/Disposables.js";
 
 export class ViewModel extends EventEmitter {
