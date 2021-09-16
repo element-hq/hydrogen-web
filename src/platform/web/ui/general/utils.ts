@@ -17,7 +17,7 @@ limitations under the License.
 import {UIView, IMountArgs} from "./types";
 import {tag} from "./html";
 
-export function mountView(view: UIView, mountArgs: IMountArgs): HTMLElement {
+export function mountView(view: UIView, mountArgs?: IMountArgs): HTMLElement {
     let node;
     try {
         node = view.mount(mountArgs);
