@@ -176,7 +176,6 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
             bottomNodeIndex = len - 1;
         } else {
             const viewportBottom = scrollTop + clientHeight;
-            // console.log(`viewportBottom: ${viewportBottom} (${scrollTop} + ${clientHeight})`);
             const anchoredNodeIndex = findFirstNodeIndexAtOrBelow(tilesNode, viewportBottom);
             this.anchoredNode = tilesNode.childNodes[anchoredNodeIndex] as HTMLElement;
             this.anchoredBottom = bottom(this.anchoredNode!);

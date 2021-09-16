@@ -25,7 +25,7 @@ export class ComposerViewModel extends ViewModel {
     }
 
     setReplyingTo(entry) {
-        const changed = this._replyVM?.id?.equals(entry?.asEventKey());
+        const changed = new Boolean(entry) !== new Boolean(this._replyVM) || !this._replyVM?.id.equals(entry.asEventKey());
         if (changed) {
             this._replyVM = this.disposeTracked(this._replyVM);
             if (entry) {
