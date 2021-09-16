@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2021 Daniel Fedorin <danila.fedorin@gmail.com>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,11 +15,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { setAttribute, text, isChildren, classNames, TAG_NAMES, HTML_NS } from "./html.js";
+import { setAttribute, text, isChildren, classNames, TAG_NAMES, HTML_NS, ClassNames, Child} from "./html";
 import {mountView} from "./utils";
-import {BaseUpdateView} from "./BaseUpdateView.js";
+import {BaseUpdateView, IObservableValue} from "./BaseUpdateView";
+import {IMountArgs, ViewNode, IView} from "./types";
 
-function objHasFns(obj) {
+function objHasFns(obj: ClassNames<unknown>): obj is { [className: string]: boolean } {
     for(const value of Object.values(obj)) {
         if (typeof value === "function") {
             return true;
@@ -26,6 +28,17 @@ function objHasFns(obj) {
     }
     return false;
 }
+
+
+export type RenderFn<T> = (t: Builder<T>, vm: T) => ViewNode;
+type EventHandler = ((event: Event) => void);
+type AttributeStaticValue = string | boolean;
+type AttributeBinding<T> = (value: T) => AttributeStaticValue;
+export type AttrValue<T> = AttributeStaticValue | AttributeBinding<T> | EventHandler | ClassNames<T>;
+export type Attributes<T> = { [attribute: string]: AttrValue<T> };
+type ElementFn<T> = (attributes?: Attributes<T> | Child | Child[], children?: Child | Child[]) => Element;
+export type Builder<T> = TemplateBuilder<T> & { [tagName in typeof TAG_NAMES[string][number]]: ElementFn<T> };
+
 /**
     Bindable template. Renders once, and allows bindings for given nodes. If you need
     to change the structure on a condition, use a subtemplate (if)
@@ -39,18 +52,21 @@ function objHasFns(obj) {
         - add subviews inside the template
 */
 // TODO: should we rename this to BoundView or something? As opposed to StaticView ...
-export class TemplateView extends BaseUpdateView {
-    constructor(value, render = undefined) {
+export class TemplateView<T extends IObservableValue> extends BaseUpdateView<T> {
+    private _render?: RenderFn<T>;
+    private _eventListeners?: { node: Element, name: string, fn: EventHandler, useCapture: boolean }[] = undefined;
+    private _bindings?: (() => void)[] = undefined;
+    private _root?: ViewNode = undefined;
+    // public because used by TemplateBuilder
+    _subViews?: IView[] = undefined;
+
+    constructor(value: T, render?: RenderFn<T>) {
         super(value);
         // TODO: can avoid this if we have a separate class for inline templates vs class template views
         this._render = render;
-        this._eventListeners = null;
-        this._bindings = null;
-        this._subViews = null;
-        this._root = null;
     }
 
-    _attach() {
+    _attach(): void {
         if (this._eventListeners) {
             for (let {node, name, fn, useCapture} of this._eventListeners) {
                 node.addEventListener(name, fn, useCapture);
@@ -58,7 +74,7 @@ export class TemplateView extends BaseUpdateView {
         }
     }
 
-    _detach() {
+    _detach(): void {
         if (this._eventListeners) {
             for (let {node, name, fn, useCapture} of this._eventListeners) {
                 node.removeEventListener(name, fn, useCapture);
@@ -66,13 +82,13 @@ export class TemplateView extends BaseUpdateView {
         }
     }
 
-    mount(options) {
-        const builder = new TemplateBuilder(this);
+    mount(options?: IMountArgs): ViewNode {
+        const builder = new TemplateBuilder(this) as Builder<T>;
         try {
             if (this._render) {
                 this._root = this._render(builder, this._value);
-            } else if (this.render) {   // overriden in subclass
-                this._root = this.render(builder, this._value);
+            } else if (this["render"]) {   // overriden in subclass
+                this._root = this["render"](builder, this._value);
             } else {
                 throw new Error("no render function passed in, or overriden in subclass");
             }
@@ -80,12 +96,12 @@ export class TemplateView extends BaseUpdateView {
             builder.close();
         }
         // takes care of update being called when needed
-        super.mount(options);
+        this.subscribeOnMount(options);
         this._attach();
-        return this._root;
+        return this._root!;
     }
 
-    unmount() {
+    unmount(): void {
         this._detach();
         super.unmount();
         if (this._subViews) {
@@ -95,11 +111,11 @@ export class TemplateView extends BaseUpdateView {
         }
     }
 
-    root() {
+    root(): ViewNode | undefined {
         return this._root;
     }
 
-    update(value) {
+    update(value: T, props?: string[]): void {
         this._value = value;
         if (this._bindings) {
             for (const binding of this._bindings) {
@@ -108,35 +124,36 @@ export class TemplateView extends BaseUpdateView {
         }
     }
 
-    _addEventListener(node, name, fn, useCapture = false) {
+    _addEventListener(node: Element, name: string, fn: (event: Event) => void, useCapture: boolean = false): void {
         if (!this._eventListeners) {
             this._eventListeners = [];
         }
         this._eventListeners.push({node, name, fn, useCapture});
     }
 
-    _addBinding(bindingFn) {
+    _addBinding(bindingFn: () => void): void {
         if (!this._bindings) {
             this._bindings = [];
         }
         this._bindings.push(bindingFn);
     }
 
-    addSubView(view) {
+    addSubView(view: IView): void {
         if (!this._subViews) {
             this._subViews = [];
         }
         this._subViews.push(view);
     }
 
-    removeSubView(view) {
+    removeSubView(view: IView): void {
+        if (!this._subViews) { return; }
         const idx = this._subViews.indexOf(view);
         if (idx !== -1) {
             this._subViews.splice(idx, 1);
         }
     }
 
-    updateSubViews(value, props) {
+    updateSubViews(value: IObservableValue, props: string[]) {
         if (this._subViews) {
             for (const v of this._subViews) {
                 v.update(value, props);
@@ -146,33 +163,35 @@ export class TemplateView extends BaseUpdateView {
 }
 
 // what is passed to render
-class TemplateBuilder {
-    constructor(templateView) {
+export class TemplateBuilder<T extends IObservableValue> {
+    private _templateView: TemplateView<T>;
+    private _closed: boolean = false;
+
+    constructor(templateView: TemplateView<T>) {
         this._templateView = templateView;
-        this._closed = false;
     }
 
-    close() {
+    close(): void {
         this._closed = true;
     }
 
-    _addBinding(fn) {
+    _addBinding(fn: () => void): void {
         if (this._closed) {
             console.trace("Adding a binding after render will likely cause memory leaks");
         }
         this._templateView._addBinding(fn);
     }
 
-    get _value() {
-        return this._templateView._value;
+    get _value(): T {
+        return this._templateView.value;
     }
 
-    addEventListener(node, name, fn, useCapture = false) {
+    addEventListener(node: Element, name: string, fn: (event: Event) => void, useCapture: boolean = false): void {
         this._templateView._addEventListener(node, name, fn, useCapture);
     }
 
-    _addAttributeBinding(node, name, fn) {
-        let prevValue = undefined;
+    _addAttributeBinding(node: Element, name: string, fn: (value: T) => boolean | string): void {
+        let prevValue: string | boolean | undefined = undefined;
         const binding = () => {
             const newValue = fn(this._value);
             if (prevValue !== newValue) {
@@ -184,11 +203,11 @@ class TemplateBuilder {
         binding();
     }
 
-    _addClassNamesBinding(node, obj) {
+    _addClassNamesBinding(node: Element, obj: ClassNames<T>): void {
         this._addAttributeBinding(node, "className", value => classNames(obj, value));
     }
 
-    _addTextBinding(fn) {
+    _addTextBinding(fn: (value: T) => string): Text {
         const initialValue = fn(this._value);
         const node = text(initialValue);
         let prevValue = initialValue;
@@ -204,21 +223,30 @@ class TemplateBuilder {
         return node;
     }
 
-    _setNodeAttributes(node, attributes) {
+    _isEventHandler(key: string, value: AttrValue<T>): value is (event: Event) => void {
+        // This isn't actually safe, but it's incorrect to feed event handlers to
+        // non-on* attributes.
+        return key.startsWith("on") && key.length > 2 && typeof value === "function";
+    }
+
+    _setNodeAttributes(node: Element, attributes: Attributes<T>): void {
         for(let [key, value] of Object.entries(attributes)) {
-            const isFn = typeof value === "function";
             // binding for className as object of className => enabled
-            if (key === "className" && typeof value === "object" && value !== null) {
+            if (typeof value === "object") {
+                if (key !== "className" || value === null) {
+                    // Ignore non-className objects.
+                    continue;
+                }
                 if (objHasFns(value)) {
                     this._addClassNamesBinding(node, value);
                 } else {
-                    setAttribute(node, key, classNames(value));
+                    setAttribute(node, key, classNames(value, this._value));
                 }
-            } else if (key.startsWith("on") && key.length > 2 && isFn) {
+            } else if (this._isEventHandler(key, value)) {
                 const eventName = key.substr(2, 1).toLowerCase() + key.substr(3);
                 const handler = value;
                 this._templateView._addEventListener(node, eventName, handler);
-            } else if (isFn) {
+            } else if (typeof value === "function") {
                 this._addAttributeBinding(node, key, value);
             } else {
                 setAttribute(node, key, value);
@@ -226,14 +254,14 @@ class TemplateBuilder {
         }
     }
 
-    _setNodeChildren(node, children) {
+    _setNodeChildren(node: Element, children: Child | Child[]): void{
         if (!Array.isArray(children)) {
             children = [children];
         }
         for (let child of children) {
             if (typeof child === "function") {
                 child = this._addTextBinding(child);
-            } else if (!child.nodeType) {
+            } else if (typeof child === "string") {
                 // not a DOM node, turn into text
                 child = text(child);
             }
@@ -241,7 +269,7 @@ class TemplateBuilder {
         }
     }
     
-    _addReplaceNodeBinding(fn, renderNode) {
+    _addReplaceNodeBinding<R>(fn: (value: T) => R, renderNode: (old: ViewNode | null) => ViewNode): ViewNode {
         let prevValue = fn(this._value);
         let node = renderNode(null);
 
@@ -260,14 +288,14 @@ class TemplateBuilder {
         return node;
     }
 
-    el(name, attributes, children) {
+    el(name: string, attributes?: Attributes<T> | Child | Child[], children?: Child | Child[]): ViewNode {
         return this.elNS(HTML_NS, name, attributes, children);
     }
 
-    elNS(ns, name, attributes, children) {
-        if (attributes && isChildren(attributes)) {
+    elNS(ns: string, name: string, attributes?: Attributes<T> | Child | Child[], children?: Child | Child[]): ViewNode {
+        if (attributes !== undefined && isChildren(attributes)) {
             children = attributes;
-            attributes = null;
+            attributes = undefined;
         }
 
         const node = document.createElementNS(ns, name);
@@ -284,20 +312,22 @@ class TemplateBuilder {
 
     // this inserts a view, and is not a view factory for `if`, so returns the root element to insert in the template
     // you should not call t.view() and not use the result (e.g. attach the result to the template DOM tree).
-    view(view, mountOptions = undefined) {
+    view(view: IView, mountOptions?: IMountArgs): ViewNode {
         this._templateView.addSubView(view);
         return mountView(view, mountOptions);
     }
 
     // map a value to a view, every time the value changes
-    mapView(mapFn, viewCreator) {
+    mapView<R>(mapFn: (value: T) => R, viewCreator: (mapped: R) => IView | null): ViewNode {
         return this._addReplaceNodeBinding(mapFn, (prevNode) => {
             if (prevNode && prevNode.nodeType !== Node.COMMENT_NODE) {
                 const subViews = this._templateView._subViews;
-                const viewIdx = subViews.findIndex(v => v.root() === prevNode);
-                if (viewIdx !== -1) {
-                    const [view] = subViews.splice(viewIdx, 1);
-                    view.unmount();
+                if (subViews) {
+                    const viewIdx = subViews.findIndex(v => v.root() === prevNode);
+                    if (viewIdx !== -1) {
+                        const [view] = subViews.splice(viewIdx, 1);
+                        view.unmount();
+                    }
                 }
             }
             const view = viewCreator(mapFn(this._value));
@@ -312,7 +342,7 @@ class TemplateBuilder {
     // Special case of mapView for a TemplateView.
     // Always creates a TemplateView, if this is optional depending
     // on mappedValue, use `if` or `mapView`
-    map(mapFn, renderFn) {
+    map<R>(mapFn: (value: T) => R, renderFn: (mapped: R, t: Builder<T>, vm: T) => ViewNode): ViewNode {
         return this.mapView(mapFn, mappedValue => {
             return new TemplateView(this._value, (t, vm) => {
                 const rootNode = renderFn(mappedValue, t, vm);
@@ -326,7 +356,7 @@ class TemplateBuilder {
         });
     }
 
-    ifView(predicate, viewCreator) {
+    ifView(predicate: (value: T) => boolean, viewCreator: (value: T) => IView): ViewNode {
         return this.mapView(
             value => !!predicate(value),
             enabled => enabled ? viewCreator(this._value) : null
@@ -335,7 +365,7 @@ class TemplateBuilder {
 
     // creates a conditional subtemplate
     // use mapView if you need to map to a different view class
-    if(predicate, renderFn) {
+    if(predicate: (value: T) => boolean, renderFn: (t: Builder<T>, vm: T) => ViewNode) {
         return this.ifView(predicate, vm => new TemplateView(vm, renderFn));
     }
 
@@ -345,8 +375,8 @@ class TemplateBuilder {
     This should only be used if the side-effect won't add any bindings,
     event handlers, ...
     You should not call the TemplateBuilder (e.g. `t.xxx()`) at all from the side effect,
-    instead use tags from html.js to help you construct any DOM you need. */
-    mapSideEffect(mapFn, sideEffect) {
+    instead use tags from html.ts to help you construct any DOM you need. */
+    mapSideEffect<R>(mapFn: (value: T) => R, sideEffect: (newV: R, oldV: R | undefined) => void) {
         let prevValue = mapFn(this._value);
         const binding = () => {
             const newValue = mapFn(this._value);

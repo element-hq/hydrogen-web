@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../general/TemplateView.js";
+import {TemplateView} from "../general/TemplateView";
 import {spinner} from "../common.js";
 
 /** a view used both in the login view and the loading screen

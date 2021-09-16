@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {el} from "./html.js";
+import {el} from "./html";
 import {mountView, insertAt} from "./utils";
 import {BaseObservableList as ObservableList} from "../../../../observable/list/BaseObservableList.js";
-import {UIView, IMountArgs} from "./types";
+import {IView, IMountArgs} from "./types";
 
 interface IOptions<T, V> {
     list: ObservableList<T>,
@@ -29,13 +29,13 @@ interface IOptions<T, V> {
 
 type SubscriptionHandle = () => undefined;
 
-export class ListView<T, V extends UIView> implements UIView {
+export class ListView<T, V extends IView> implements IView {
 
     private _onItemClick?: (childView: V, evt: UIEvent) => void;
     private _list: ObservableList<T>;
     private _className?: string;
     private _tagName: string;
-    private _root?: HTMLElement;
+    private _root?: Element;
     private _subscription?: SubscriptionHandle;
     private _childCreator: (value: T) => V;
     private _childInstances?: V[];
@@ -56,9 +56,9 @@ export class ListView<T, V extends UIView> implements UIView {
         this._mountArgs = {parentProvidesUpdates};
     }
 
-    root(): HTMLElement {
+    root(): Element | undefined {
         // won't be undefined when called between mount and unmount
-        return this._root!;
+        return this._root;
     }
 
     update(attributes: IOptions<T, V>) {
@@ -74,17 +74,17 @@ export class ListView<T, V extends UIView> implements UIView {
         }
     }
 
-    mount(): HTMLElement {
+    mount(): Element {
         const attr: {[name: string]: any} = {};
         if (this._className) {
             attr.className = this._className;
         }
-        this._root = el(this._tagName, attr);
+        const root = this._root = el(this._tagName, attr);
         this.loadList();
         if (this._onItemClick) {
-            this._root!.addEventListener("click", this);
+            root.addEventListener("click", this);
         }
-        return this._root!;
+        return root;
     }
 
     handleEvent(evt: Event) {
@@ -138,28 +138,22 @@ export class ListView<T, V extends UIView> implements UIView {
     }
 
     protected onAdd(idx: number, value: T) {
-        this.onBeforeListChanged();
         const child = this._childCreator(value);
         this._childInstances!.splice(idx, 0, child);
         insertAt(this._root!, idx, mountView(child, this._mountArgs));
-        this.onListChanged();
     }
 
     protected onRemove(idx: number, value: T) {
-        this.onBeforeListChanged();
         const [child] = this._childInstances!.splice(idx, 1);
-        child.root().remove();
+        child.root()!.remove();
         child.unmount();
-        this.onListChanged();
     }
 
     protected onMove(fromIdx: number, toIdx: number, value: T) {
-        this.onBeforeListChanged();
         const [child] = this._childInstances!.splice(fromIdx, 1);
         this._childInstances!.splice(toIdx, 0, child);
-        child.root().remove();
-        insertAt(this._root!, toIdx, child.root());
-        this.onListChanged();
+        child.root()!.remove();
+        insertAt(this._root!, toIdx, child.root()! as Element);
     }
 
     protected onUpdate(i: number, value: T, params: any) {
@@ -176,16 +170,13 @@ export class ListView<T, V extends UIView> implements UIView {
                 this.onRemove(index, value);
             } else {
                 const [oldChild] = this._childInstances!.splice(index, 1, child);
-                this._root!.replaceChild(child.mount(this._mountArgs), oldChild.root());
+                this._root!.replaceChild(child.mount(this._mountArgs), oldChild.root()!);
                 oldChild.unmount();
             }
         }
     }
 
-    protected onBeforeListChanged() {}
-    protected onListChanged() {}
-
-    protected getChildInstanceByIndex(idx: number): V | undefined {
+    public getChildInstanceByIndex(idx: number): V | undefined {
         return this._childInstances?.[idx];
     }
 }

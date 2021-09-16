@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {ListView} from "../../../general/ListView";
-import {TemplateView} from "../../../general/TemplateView.js";
+import {TemplateView} from "../../../general/TemplateView";
 
 export class ReactionsView extends ListView {
     constructor(reactionsViewModel) {

@@ -40,40 +40,74 @@ export class TimelineViewModel extends ViewModel {
         const {timeline, tilesCreator} = options;
         this._timeline = this.track(timeline);
         this._tiles = new TilesCollection(timeline.entries, tilesCreator);
+        this._startTile = null;
+        this._endTile = null;
+        this._topLoadingPromise = null;
+        this._requestedStartTile = null;
+        this._requestedEndTile = null;
+        this._requestScheduled = false;
+        this._showJumpDown = false;
     }
 
-    /**
-     * @return {bool} startReached if the start of the timeline was reached
-     */
-    async loadAtTop() {
-        if (this.isDisposed) {
-            // stop loading more, we switched room
-            return true;
+    /** if this.tiles is empty, call this with undefined for both startTile and endTile */
+    setVisibleTileRange(startTile, endTile) {
+        // don't clear these once done as they are used to check
+        // for more tiles once loadAtTop finishes
+        this._requestedStartTile = startTile;
+        this._requestedEndTile = endTile;
+        if (!this._requestScheduled) {
+            Promise.resolve().then(() => {
+                this._setVisibleTileRange(this._requestedStartTile, this._requestedEndTile);
+                this._requestScheduled = false;
+            });
+            this._requestScheduled = true;
         }
-        const firstTile = this._tiles.getFirst();
-        if (firstTile?.shape === "gap") {
-            return await firstTile.fill();
+    }
+
+    _setVisibleTileRange(startTile, endTile) {
+        let loadTop;
+        if (startTile && endTile) {
+            // old tiles could have been removed from tilescollection once we support unloading
+            this._startTile = startTile;
+            this._endTile = endTile;
+            const startIndex = this._tiles.getTileIndex(this._startTile);
+            const endIndex = this._tiles.getTileIndex(this._endTile);
+            for (const tile of this._tiles.sliceIterator(startIndex, endIndex + 1)) {
+                tile.notifyVisible();
+            }
+            loadTop = startIndex < 10;
+            this._setShowJumpDown(endIndex < (this._tiles.length - 1));
         } else {
-            const topReached = await this._timeline.loadAtTop(10);
-            return topReached;
+            // tiles collection is empty, load more at top
+            loadTop = true;
+            this._setShowJumpDown(false);
         }
-    }
 
-    unloadAtTop(/*tileAmount*/) {
-        // get lowerSortKey for tile at index tileAmount - 1
-        // tell timeline to unload till there (included given key)
-    }
-
-    loadAtBottom() {
-
-    }
-
-    unloadAtBottom(/*tileAmount*/) {
-        // get upperSortKey for tile at index tiles.length - tileAmount
-        // tell timeline to unload till there (included given key)
+        if (loadTop && !this._topLoadingPromise) {
+            this._topLoadingPromise = this._timeline.loadAtTop(10).then(hasReachedEnd => {
+                this._topLoadingPromise = null;
+                if (!hasReachedEnd) {
+                    // check if more items need to be loaded by recursing
+                    // use the requested start / end tile,
+                    // so we don't end up overwriting a newly requested visible range here
+                    this.setVisibleTileRange(this._requestedStartTile, this._requestedEndTile);
+                }
+            });
+        }
     }
 
     get tiles() {
         return this._tiles;
+    }
+
+    _setShowJumpDown(show) {
+        if (this._showJumpDown !== show) {
+            this._showJumpDown = show;
+            this.emitChange("showJumpDown");
+        }
+    }
+
+    get showJumpDown() {
+        return this._showJumpDown;
     }
 }

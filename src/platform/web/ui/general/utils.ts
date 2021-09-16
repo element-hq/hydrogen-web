@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {UIView, IMountArgs} from "./types";
-import {tag} from "./html.js";
+import {IView, IMountArgs, ViewNode} from "./types";
+import {tag} from "./html";
 
-export function mountView(view: UIView, mountArgs: IMountArgs): HTMLElement {
+export function mountView(view: IView, mountArgs?: IMountArgs): ViewNode {
     let node;
     try {
         node = view.mount(mountArgs);
@@ -27,7 +27,7 @@ export function mountView(view: UIView, mountArgs: IMountArgs): HTMLElement {
     return node;
 }
 
-export function errorToDOM(error: Error): HTMLElement {
+export function errorToDOM(error: Error): Element {
     const stack = new Error().stack;
     let callee: string | null = null;
     if (stack) {
@@ -41,7 +41,7 @@ export function errorToDOM(error: Error): HTMLElement {
     ]);
 }
 
-export function insertAt(parentNode: HTMLElement, idx: number, childNode: HTMLElement): void {
+export function insertAt(parentNode: Element, idx: number, childNode: Node): void {
     const isLast = idx === parentNode.childElementCount;
     if (isLast) {
         parentNode.appendChild(childNode);
