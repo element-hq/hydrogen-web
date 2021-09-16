@@ -17,7 +17,7 @@ limitations under the License.
 
 // DOM helper functions
 
-export type ClassNames<T> = { [className: string]: boolean | ((value?: T) => boolean) }
+export type ClassNames<T> = { [className: string]: boolean | ((value: T) => boolean) }
 export type BasicAttributes<T> = { [attribute: string]: ClassNames<T> | boolean | string }
 export type Child = string | Text | Element
 
@@ -26,7 +26,7 @@ export function isChildren(children: object | Child | Child[]): children is Chil
     return typeof children !== "object" || "nodeType" in children || Array.isArray(children);
 }
 
-export function classNames<T>(obj: ClassNames<T>, value?: T): string {
+export function classNames<T>(obj: ClassNames<T>, value: T): string {
     return Object.entries(obj).reduce((cn, [name, enabled]) => {
         if (typeof enabled === "function") {
             enabled = enabled(value);
@@ -70,7 +70,7 @@ export function elNS(ns: string, elementName: string, attributes?: BasicAttribut
             if (typeof value === "object") {
                 // Only className should ever be an object; be careful
                 // here anyway and ignore object-valued non-className attributes.
-                value = (value !== null && name === "className") ? classNames(value) : false;
+                value = (value !== null && name === "className") ? classNames(value, undefined) : false;
             }
             setAttribute(e, name, value);
         }
