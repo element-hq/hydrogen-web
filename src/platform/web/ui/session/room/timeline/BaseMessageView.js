@@ -44,7 +44,6 @@ export class BaseMessageView extends TemplateView {
             unverified: vm.isUnverified,
             disabled: !this._interactive,
             continuation: vm => vm.isContinuation,
-        const avatar = t.a({href: vm.memberPanelLink, className: "Timeline_messageAvatar"}, [renderStaticAvatar(vm, 30)]);
         }}, children);
         // given that there can be many tiles, we don't add
         // unneeded DOM nodes in case of a continuation, and we add it
@@ -56,8 +55,10 @@ export class BaseMessageView extends TemplateView {
                 li.removeChild(li.querySelector(".Timeline_messageAvatar"));
                 li.removeChild(li.querySelector(".Timeline_messageSender"));
             } else if (!isContinuation) {
+                const avatar = tag.a({href: vm.memberPanelLink, className: "Timeline_messageAvatar"}, [renderStaticAvatar(vm, 30)]);
+                const sender = tag.div({className: `Timeline_messageSender usercolor${vm.avatarColorNumber}`}, vm.displayName);
                 li.insertBefore(avatar, li.firstChild);
-                li.insertBefore(tag.div({className: `Timeline_messageSender usercolor${vm.avatarColorNumber}`}, vm.displayName), li.firstChild);
+                li.insertBefore(sender, li.firstChild);
             }
         });
         // similarly, we could do this with a simple ifView,
