@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2021 Daniel Fedorin <danila.fedorin@gmail.com>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,12 +17,16 @@ limitations under the License.
 
 // DOM helper functions
 
-export function isChildren(children) {
+export type ClassNames<T> = { [className: string]: boolean | ((value?: T) => boolean) }
+export type BasicAttributes<T> = { [attribute: string]: ClassNames<T> | boolean | string }
+export type Child = string | Text | Element
+
+export function isChildren(children: object | Child | Child[]): children is Child | Child[] {
     // children should be an not-object (that's the attributes), or a domnode, or an array
-    return typeof children !== "object" || !!children.nodeType || Array.isArray(children);
+    return typeof children !== "object" || "nodeType" in children || Array.isArray(children);
 }
 
-export function classNames(obj, value) {
+export function classNames<T>(obj: ClassNames<T>, value?: T): string {
     return Object.entries(obj).reduce((cn, [name, enabled]) => {
         if (typeof enabled === "function") {
             enabled = enabled(value);
@@ -34,7 +39,7 @@ export function classNames(obj, value) {
     }, "");
 }
 
-export function setAttribute(el, name, value) {
+export function setAttribute(el: Element, name: string, value: string | boolean): void {
     if (name === "className") {
         name = "class";
     }
@@ -48,22 +53,24 @@ export function setAttribute(el, name, value) {
     }
 }
 
-export function el(elementName, attributes, children) {
+export function el(elementName: string, attributes?: BasicAttributes<never> | Child | Child[], children?: Child | Child[]): Element {
     return elNS(HTML_NS, elementName, attributes, children);
 }
 
-export function elNS(ns, elementName, attributes, children) {
+export function elNS(ns: string, elementName: string, attributes?: BasicAttributes<never> | Child | Child[], children?: Child | Child[]): Element {
     if (attributes && isChildren(attributes)) {
         children = attributes;
-        attributes = null;
+        attributes = undefined;
     }
 
     const e = document.createElementNS(ns, elementName);
 
     if (attributes) {
         for (let [name, value] of Object.entries(attributes)) {
-            if (name === "className" && typeof value === "object" && value !== null) {
-                value = classNames(value);
+            if (typeof value === "object") {
+                // Only className should ever be an object; be careful
+                // here anyway and ignore object-valued non-className attributes.
+                value = (value !== null && name === "className") ? classNames(value) : false;
             }
             setAttribute(e, name, value);
         }
@@ -74,7 +81,7 @@ export function elNS(ns, elementName, attributes, children) {
             children = [children];
         }
         for (let c of children) {
-            if (!c.nodeType) {
+            if (typeof c === "string") {
                 c = text(c);
             }
             e.appendChild(c);
@@ -83,12 +90,12 @@ export function elNS(ns, elementName, attributes, children) {
     return e;
 }
 
-export function text(str) {
+export function text(str: string): Text {
     return document.createTextNode(str);
 }
 
-export const HTML_NS = "http://www.w3.org/1999/xhtml";
-export const SVG_NS = "http://www.w3.org/2000/svg";
+export const HTML_NS: string = "http://www.w3.org/1999/xhtml";
+export const SVG_NS: string = "http://www.w3.org/2000/svg";
 
 export const TAG_NAMES = {
     [HTML_NS]: [
@@ -97,10 +104,9 @@ export const TAG_NAMES = {
         "table", "thead", "tbody", "tr", "th", "td", "hr",
         "pre", "code", "button", "time", "input", "textarea", "label", "form", "progress", "output", "video"],
     [SVG_NS]: ["svg", "circle"]
-};
+} as const;
 
-export const tag = {};
-
+export const tag: { [tagName in typeof TAG_NAMES[string][number]]: (attributes?: BasicAttributes<never> | Child | Child[], children?: Child | Child[]) => Element } = {} as any;
 
 for (const [ns, tags] of Object.entries(TAG_NAMES)) {
     for (const tagName of tags) {

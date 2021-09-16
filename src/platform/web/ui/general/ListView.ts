@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {el} from "./html.js";
+import {el} from "./html";
 import {mountView, insertAt} from "./utils";
 import {BaseObservableList as ObservableList} from "../../../../observable/list/BaseObservableList.js";
 import {UIView, IMountArgs} from "./types";
@@ -79,7 +79,7 @@ export class ListView<T, V extends UIView> implements UIView {
         if (this._className) {
             attr.className = this._className;
         }
-        this._root = el(this._tagName, attr);
+        this._root = el(this._tagName, attr) as HTMLElement;
         this.loadList();
         if (this._onItemClick) {
             this._root!.addEventListener("click", this);

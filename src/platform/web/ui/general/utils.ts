@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {UIView, IMountArgs} from "./types";
-import {tag} from "./html.js";
+import {tag} from "./html";
 
 export function mountView(view: UIView, mountArgs: IMountArgs): HTMLElement {
     let node;
@@ -38,7 +38,7 @@ export function errorToDOM(error: Error): HTMLElement {
         tag.h3(error.message),
         tag.p(`This occurred while running ${callee}.`),
         tag.pre(error.stack),
-    ]);
+    ]) as HTMLElement;
 }
 
 export function insertAt(parentNode: HTMLElement, idx: number, childNode: HTMLElement): void {
