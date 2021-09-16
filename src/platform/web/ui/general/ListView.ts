@@ -35,7 +35,7 @@ export class ListView<T, V extends UIView> implements UIView {
     private _list: ObservableList<T>;
     private _className?: string;
     private _tagName: string;
-    private _root?: HTMLElement;
+    private _root?: Element;
     private _subscription?: SubscriptionHandle;
     private _childCreator: (value: T) => V;
     private _childInstances?: V[];
@@ -56,9 +56,9 @@ export class ListView<T, V extends UIView> implements UIView {
         this._mountArgs = {parentProvidesUpdates};
     }
 
-    root(): HTMLElement {
+    root(): Element | undefined {
         // won't be undefined when called between mount and unmount
-        return this._root!;
+        return this._root;
     }
 
     update(attributes: IOptions<T, V>) {
@@ -74,12 +74,12 @@ export class ListView<T, V extends UIView> implements UIView {
         }
     }
 
-    mount(): HTMLElement {
+    mount(): Element {
         const attr: {[name: string]: any} = {};
         if (this._className) {
             attr.className = this._className;
         }
-        this._root = el(this._tagName, attr) as HTMLElement;
+        this._root = el(this._tagName, attr);
         this.loadList();
         if (this._onItemClick) {
             this._root!.addEventListener("click", this);
@@ -145,15 +145,15 @@ export class ListView<T, V extends UIView> implements UIView {
 
     protected onRemove(idx: number, value: T) {
         const [child] = this._childInstances!.splice(idx, 1);
-        child.root().remove();
+        child.root()!.remove();
         child.unmount();
     }
 
     protected onMove(fromIdx: number, toIdx: number, value: T) {
         const [child] = this._childInstances!.splice(fromIdx, 1);
         this._childInstances!.splice(toIdx, 0, child);
-        child.root().remove();
-        insertAt(this._root!, toIdx, child.root());
+        child.root()!.remove();
+        insertAt(this._root!, toIdx, child.root()! as Element);
     }
 
     protected onUpdate(i: number, value: T, params: any) {
@@ -170,7 +170,7 @@ export class ListView<T, V extends UIView> implements UIView {
                 this.onRemove(index, value);
             } else {
                 const [oldChild] = this._childInstances!.splice(index, 1, child);
-                this._root!.replaceChild(child.mount(this._mountArgs), oldChild.root());
+                this._root!.replaceChild(child.mount(this._mountArgs), oldChild.root()!);
                 oldChild.unmount();
             }
         }

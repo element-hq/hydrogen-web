@@ -41,7 +41,7 @@ export function errorToDOM(error: Error): HTMLElement {
     ]) as HTMLElement;
 }
 
-export function insertAt(parentNode: HTMLElement, idx: number, childNode: HTMLElement): void {
+export function insertAt(parentNode: Element, idx: number, childNode: Element): void {
     const isLast = idx === parentNode.childElementCount;
     if (isLast) {
         parentNode.appendChild(childNode);

@@ -1,5 +1,6 @@
 /*
 Copyright 2021 The Matrix.org Foundation C.I.C.
+Copyright 2021 Daniel Fedorin <danila.fedorin@gmail.com>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,12 +16,15 @@ limitations under the License.
 */
 export interface IMountArgs {
     // if true, the parent will call update() rather than the view updating itself by binding to a data source.
-    parentProvidesUpdates: boolean
+    parentProvidesUpdates?: boolean
 };
 
+// Comment nodes can be used as temporary placeholders for Elements, like TemplateView does.
+export type ViewNode = Element | Comment;
+
 export interface UIView {
-    mount(args?: IMountArgs): HTMLElement;
-    root(): HTMLElement; // should only be called between mount() and unmount()
+    mount(args?: IMountArgs): ViewNode;
+    root(): ViewNode | undefined; // should only be called between mount() and unmount()
     unmount(): void;
     update(...any); // this isn't really standarized yet
 }

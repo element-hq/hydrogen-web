@@ -16,7 +16,7 @@ limitations under the License.
 
 import { setAttribute, text, isChildren, classNames, TAG_NAMES, HTML_NS } from "./html";
 import {mountView} from "./utils";
-import {BaseUpdateView} from "./BaseUpdateView.js";
+import {BaseUpdateView} from "./BaseUpdateView";
 
 function objHasFns(obj) {
     for(const value of Object.values(obj)) {
@@ -80,7 +80,7 @@ export class TemplateView extends BaseUpdateView {
             builder.close();
         }
         // takes care of update being called when needed
-        super.mount(options);
+        this.subscribeOnMount(options);
         this._attach();
         return this._root;
     }
