@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import { setAttribute, text, isChildren, classNames, TAG_NAMES, HTML_NS } from "./html.js";
-import {mountView} from "./utils.js";
+import {mountView} from "./utils";
 import {BaseUpdateView} from "./BaseUpdateView.js";
 
 function objHasFns(obj) {

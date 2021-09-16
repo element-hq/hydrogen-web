@@ -15,8 +15,9 @@ limitations under the License.
 */
 
 import {el} from "./html.js";
-import {mountView} from "./utils.js";
-import {insertAt, ListView} from "./ListView.js";
+import {mountView} from "./utils";
+import {ListView} from "./ListView";
+import {insertAt} from "./utils";
 
 class ItemRange {
     constructor(topCount, renderCount, bottomCount) {
