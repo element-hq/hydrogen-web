@@ -15,14 +15,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {IMountArgs, ViewNode, UIView} from "./types";
+import {IMountArgs, ViewNode, IView} from "./types";
 
 export interface IObservableValue {
     on?(event: "change", handler: (props?: string[]) => void): void;
     off?(event: "change", handler: (props?: string[]) => void): void;
 }
 
-export abstract class BaseUpdateView<T extends IObservableValue> implements UIView {
+export abstract class BaseUpdateView<T extends IObservableValue> implements IView {
     protected _value: T
     protected _boundUpdateFromValue: ((props?: string[]) => void) | null
 

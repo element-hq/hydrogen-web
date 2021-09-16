@@ -18,7 +18,7 @@ limitations under the License.
 import { setAttribute, text, isChildren, classNames, TAG_NAMES, HTML_NS, ClassNames, Child} from "./html";
 import {mountView} from "./utils";
 import {BaseUpdateView, IObservableValue} from "./BaseUpdateView";
-import {IMountArgs, ViewNode, UIView} from "./types";
+import {IMountArgs, ViewNode, IView} from "./types";
 
 function objHasFns(obj: ClassNames<unknown>): obj is { [className: string]: boolean } {
     for(const value of Object.values(obj)) {
@@ -58,7 +58,7 @@ export class TemplateView<T extends IObservableValue> extends BaseUpdateView<T> 
     private _bindings?: (() => void)[] = undefined;
     private _root?: ViewNode = undefined;
     // public because used by TemplateBuilder
-    _subViews?: UIView[] = undefined;
+    _subViews?: IView[] = undefined;
 
     constructor(value: T, render?: RenderFn<T>) {
         super(value);
@@ -138,14 +138,14 @@ export class TemplateView<T extends IObservableValue> extends BaseUpdateView<T> 
         this._bindings.push(bindingFn);
     }
 
-    addSubView(view: UIView): void {
+    addSubView(view: IView): void {
         if (!this._subViews) {
             this._subViews = [];
         }
         this._subViews.push(view);
     }
 
-    removeSubView(view: UIView): void {
+    removeSubView(view: IView): void {
         if (!this._subViews) { return; }
         const idx = this._subViews.indexOf(view);
         if (idx !== -1) {
@@ -312,13 +312,13 @@ export class TemplateBuilder<T extends IObservableValue> {
 
     // this inserts a view, and is not a view factory for `if`, so returns the root element to insert in the template
     // you should not call t.view() and not use the result (e.g. attach the result to the template DOM tree).
-    view(view: UIView, mountOptions?: IMountArgs): ViewNode {
+    view(view: IView, mountOptions?: IMountArgs): ViewNode {
         this._templateView.addSubView(view);
         return mountView(view, mountOptions);
     }
 
     // map a value to a view, every time the value changes
-    mapView<R>(mapFn: (value: T) => R, viewCreator: (mapped: R) => UIView | null): ViewNode {
+    mapView<R>(mapFn: (value: T) => R, viewCreator: (mapped: R) => IView | null): ViewNode {
         return this._addReplaceNodeBinding(mapFn, (prevNode) => {
             if (prevNode && prevNode.nodeType !== Node.COMMENT_NODE) {
                 const subViews = this._templateView._subViews;
@@ -356,7 +356,7 @@ export class TemplateBuilder<T extends IObservableValue> {
         });
     }
 
-    ifView(predicate: (value: T) => boolean, viewCreator: (value: T) => UIView): ViewNode {
+    ifView(predicate: (value: T) => boolean, viewCreator: (value: T) => IView): ViewNode {
         return this.mapView(
             value => !!predicate(value),
             enabled => enabled ? viewCreator(this._value) : null

@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {UIView, IMountArgs, ViewNode} from "./types";
+import {IView, IMountArgs, ViewNode} from "./types";
 import {tag} from "./html";
 
-export function mountView(view: UIView, mountArgs?: IMountArgs): ViewNode {
+export function mountView(view: IView, mountArgs?: IMountArgs): ViewNode {
     let node;
     try {
         node = view.mount(mountArgs);

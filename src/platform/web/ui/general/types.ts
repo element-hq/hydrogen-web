@@ -22,7 +22,7 @@ export interface IMountArgs {
 // Comment nodes can be used as temporary placeholders for Elements, like TemplateView does.
 export type ViewNode = Element | Comment;
 
-export interface UIView {
+export interface IView {
     mount(args?: IMountArgs): ViewNode;
     root(): ViewNode | undefined; // should only be called between mount() and unmount()
     unmount(): void;

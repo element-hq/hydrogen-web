@@ -169,7 +169,7 @@ export class Popup {
         return true;
     }
 
-    /* fake UIView api, so it can be tracked by a template view as a subview */
+    /* fake IView api, so it can be tracked by a template view as a subview */
     root() {
         return this._fakeRoot;
     }

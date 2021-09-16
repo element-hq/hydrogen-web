@@ -17,7 +17,7 @@ limitations under the License.
 import {el} from "./html";
 import {mountView, insertAt} from "./utils";
 import {BaseObservableList as ObservableList} from "../../../../observable/list/BaseObservableList.js";
-import {UIView, IMountArgs} from "./types";
+import {IView, IMountArgs} from "./types";
 
 interface IOptions<T, V> {
     list: ObservableList<T>,
@@ -29,7 +29,7 @@ interface IOptions<T, V> {
 
 type SubscriptionHandle = () => undefined;
 
-export class ListView<T, V extends UIView> implements UIView {
+export class ListView<T, V extends IView> implements IView {
 
     private _onItemClick?: (childView: V, evt: UIEvent) => void;
     private _list: ObservableList<T>;
