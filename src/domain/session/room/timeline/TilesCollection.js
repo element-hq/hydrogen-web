@@ -239,7 +239,6 @@ export class TilesCollection extends BaseObservableList {
 
     getTileIndex(searchTile) {
         const idx = sortedIndex(this._tiles, searchTile, (searchTile, tile) => {
-            // negate result because we're switching the order of the params
             return searchTile.compare(tile);
         });
         const foundTile = this._tiles[idx];
