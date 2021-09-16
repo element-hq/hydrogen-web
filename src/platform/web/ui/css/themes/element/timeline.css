@@ -22,7 +22,7 @@ limitations under the License.
     right: 32px;
     border-radius: 100%;
     border: 1px solid #8d99a5;
-    background-image: url(icons/chevron-down.svg);
+    background-image: url("./icons/chevron-down.svg");
     background-position: center;
     background-color: white;
     background-repeat: no-repeat;
