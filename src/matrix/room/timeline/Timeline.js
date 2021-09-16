@@ -75,7 +75,7 @@ export class Timeline {
         // choose good amount here between showing messages initially and
         // not spending too much time decrypting messages before showing the timeline.
         // more messages should be loaded automatically until the viewport is full by the view if needed.
-        const readerRequest = this._disposables.track(this._timelineReader.readFromEnd(5, txn, log));
+        const readerRequest = this._disposables.track(this._timelineReader.readFromEnd(20, txn, log));
         try {
             const entries = await readerRequest.complete();
             this._setupEntries(entries);
