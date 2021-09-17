@@ -35,18 +35,28 @@ import {OutboundGroupSessionStore} from "./stores/OutboundGroupSessionStore";
 import {GroupSessionDecryptionStore} from "./stores/GroupSessionDecryptionStore";
 import {OperationStore} from "./stores/OperationStore";
 import {AccountDataStore} from "./stores/AccountDataStore";
+import {BaseLogger} from "../../../logging/BaseLogger.js";
 
 export class Transaction {
     private _txn: IDBTransaction;
     private _allowedStoreNames: StoreNames[];
     private _stores: { [storeName in StoreNames]?: any };
+    private _storage: Storage;
 
-    constructor(txn: IDBTransaction, allowedStoreNames: StoreNames[], IDBKeyRange) {
+    constructor(txn: IDBTransaction, allowedStoreNames: StoreNames[], storage: Storage) {
         this._txn = txn;
         this._allowedStoreNames = allowedStoreNames;
         this._stores = {};
-        // @ts-ignore
-        this.IDBKeyRange = IDBKeyRange;
+        this._storage = storage;
+        this._writeErrors = [];
+    }
+
+    get IDBKeyRange(): typeof IDBKeyRange {
+        return this._storage.IDBKeyRange;
+    }
+
+    get logger(): BaseLogger {
+        return this._storage.logger;
     }
 
     _idbStore(name: StoreNames): Store<any> {

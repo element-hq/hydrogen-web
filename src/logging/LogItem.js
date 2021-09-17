@@ -231,4 +231,8 @@ export class LogItem {
         this._children.push(item);
         return item;
     }
+
+    get logger() {
+        return this._logger;
+    }
 }

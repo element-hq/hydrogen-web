@@ -20,9 +20,10 @@ import { exportSession, importSession, Export } from "./export";
 import { schema } from "./schema";
 import { detectWebkitEarlyCloseTxnBug } from "./quirks";
 import { BaseLogger } from "../../../logging/BaseLogger.js";
+import { LogItem } from "../../../logging/LogItem.js";
 
 const sessionName = (sessionId: string) => `hydrogen_session_${sessionId}`;
-const openDatabaseWithSessionId = function(sessionId: string, idbFactory: IDBFactory, log?: BaseLogger) {
+const openDatabaseWithSessionId = function(sessionId: string, idbFactory: IDBFactory, log: LogItem) {
     const create = (db, txn, oldVersion, version) => createStores(db, txn, oldVersion, version, log);
     return openDatabase(sessionName(sessionId), create, schema.length, idbFactory);
 }
@@ -59,7 +60,7 @@ export class StorageFactory {
         this._IDBKeyRange = _IDBKeyRange;
     }
 
-    async create(sessionId: string, log?: BaseLogger): Promise<Storage> {
+    async create(sessionId: string, log: LogItem): Promise<Storage> {
         await this._serviceWorkerHandler?.preventConcurrentSessionAccess(sessionId);
         requestPersistedStorage().then(persisted => {
             // Firefox lies here though, and returns true even if the user denied the request
@@ -70,7 +71,7 @@ export class StorageFactory {
 
         const hasWebkitEarlyCloseTxnBug = await detectWebkitEarlyCloseTxnBug(this._idbFactory);
         const db = await openDatabaseWithSessionId(sessionId, this._idbFactory, log);
-        return new Storage(db, this._IDBKeyRange, hasWebkitEarlyCloseTxnBug);
+        return new Storage(db, this._IDBKeyRange, hasWebkitEarlyCloseTxnBug, log.logger);
     }
 
     delete(sessionId: string): Promise<IDBDatabase> {
@@ -79,18 +80,18 @@ export class StorageFactory {
         return reqAsPromise(req);
     }
 
-    async export(sessionId: string): Promise<Export> {
-        const db = await openDatabaseWithSessionId(sessionId, this._idbFactory);
+    async export(sessionId: string, log: LogItem): Promise<Export> {
+        const db = await openDatabaseWithSessionId(sessionId, this._idbFactory, log);
         return await exportSession(db);
     }
 
-    async import(sessionId: string, data: Export): Promise<void> {
-        const db = await openDatabaseWithSessionId(sessionId, this._idbFactory);
+    async import(sessionId: string, data: Export, log: LogItem): Promise<void> {
+        const db = await openDatabaseWithSessionId(sessionId, this._idbFactory, log);
         return await importSession(db, data);
     }
 }
 
-async function createStores(db: IDBDatabase, txn: IDBTransaction, oldVersion: number | null, version: number, log?: BaseLogger): Promise<void> {
+async function createStores(db: IDBDatabase, txn: IDBTransaction, oldVersion: number | null, version: number, log: LogItem): Promise<void> {
     const startIdx = oldVersion || 0;
     return log.wrap({l: "storage migration", oldVersion, version}, async log => {
         for(let i = startIdx; i < version; ++i) {
