@@ -3,6 +3,10 @@ import {TimelineEvent} from "../matrix/storage/types";
 
 export const TIMELINE_START_TOKEN = "timeline_start";
 
+export function eventId(i: number): string {
+    return `$event${i}`;
+}
+
 export class TimelineMock {
     private _counter: number;
     private _dagOrder: TimelineEvent[];
@@ -21,7 +25,7 @@ export class TimelineMock {
     }
 
     _createEvent(func?: (eventId: string) => TimelineEvent): TimelineEvent {
-        const id = `$event${this._counter++}`;
+        const id = eventId(this._counter++);
         return func ? func(id) : this._defaultEvent(id);
     }
 
@@ -145,10 +149,6 @@ export class TimelineMock {
 
 export function tests() {
     const SENDER = "@alice:hs.tdl";
-
-    function eventId(i: number): string {
-        return `$event${i}`;
-    }
 
     function eventIds(from: number, to: number): string[] {
         return [...Array(to-from).keys()].map(i => eventId(i + from));
