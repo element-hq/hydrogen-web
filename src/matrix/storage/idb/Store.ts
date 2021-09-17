@@ -18,6 +18,7 @@ import {QueryTarget, IDBQuery} from "./QueryTarget";
 import {IDBRequestAttemptError} from "./error";
 import {reqAsPromise} from "./utils";
 import {Transaction} from "./Transaction";
+import {LogItem} from "../../../logging/LogItem.js";
 
 const LOG_REQUESTS = false;
 
@@ -148,7 +149,7 @@ export class Store<T> extends QueryTarget<T> {
         return new QueryTarget<T>(new QueryTargetWrapper<T>(this._idbStore.index(indexName)));
     }
 
-    put(value: T): void {
+    put(value: T, log?: LogItem): void {
         // If this request fails, the error will bubble up to the transaction and abort it,
         // which is the behaviour we want. Therefore, it is ok to not create a promise for this
         // request and await it.
@@ -159,16 +160,52 @@ export class Store<T> extends QueryTarget<T> {
         // 
         // Note that this can still throw synchronously, like it does for TransactionInactiveError,
         // see https://www.w3.org/TR/IndexedDB-2/#transaction-lifetime-concept
-        this._idbStore.put(value);
+        const request = this._idbStore.put(value);
+        this._prepareErrorLog(request, log, "put", undefined, value);
     }
 
-    add(value: T): void {
+    add(value: T, log?: LogItem): void {
         // ok to not monitor result of request, see comment in `put`.
-        this._idbStore.add(value);
+        const request = this._idbStore.add(value);
+        this._prepareErrorLog(request, log, "add", undefined, value);
     }
 
-    delete(keyOrKeyRange: IDBValidKey | IDBKeyRange): Promise<undefined> {
+    delete(keyOrKeyRange: IDBValidKey | IDBKeyRange, log?: LogItem): void {
         // ok to not monitor result of request, see comment in `put`.
-        return reqAsPromise(this._idbStore.delete(keyOrKeyRange));
+        const request = this._idbStore.delete(keyOrKeyRange);
+        this._prepareErrorLog(request, log, "delete", keyOrKeyRange, undefined);
+    }
+
+    private _prepareErrorLog(request: IDBRequest, log: LogItem | undefined, operationName: string, key: IDBValidKey | IDBKeyRange | undefined, value: T | undefined) {
+        if (log) {
+            log.ensureRefId();
+        }
+        reqAsPromise(request).catch(err => {
+            try {
+                if (!key && value) {
+                    key = this._getKey(value);
+                }
+            } catch {
+                key = "getKey failed";
+            }
+            this._transaction.addWriteError(err, log, operationName, key);
+        });
+    }
+
+    private _getKey(value: T): IDBValidKey {
+        const {keyPath} = this._idbStore;
+        if (Array.isArray(keyPath)) {
+            let field: any = value;
+            for (const part of keyPath) {
+                if (typeof field === "object") {
+                    field = field[part];
+                } else {
+                    break;
+                }
+            }
+            return field as IDBValidKey;
+        } else {
+            return value[keyPath] as IDBValidKey;
+        }        
     }
 }
