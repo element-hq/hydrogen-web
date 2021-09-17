@@ -7,6 +7,10 @@ export function eventId(i: number): string {
     return `$event${i}`;
 }
 
+export function eventIds(from: number, to: number): string[] {
+    return [...Array(to-from).keys()].map(i => eventId(i + from));
+}
+
 export class TimelineMock {
     private _counter: number;
     private _dagOrder: TimelineEvent[];
@@ -140,9 +144,11 @@ export class TimelineMock {
         }
         return {
             next_batch: events[events.length - 1]?.event_id || since || TIMELINE_START_TOKEN,
-            prev_batch: events[0]?.event_id || since || TIMELINE_START_TOKEN,
-            events,
-            limited
+            timeline: {
+                prev_batch: events[0]?.event_id || since || TIMELINE_START_TOKEN,
+                events,
+                limited
+            }
         }
     }
 }
@@ -150,26 +156,22 @@ export class TimelineMock {
 export function tests() {
     const SENDER = "@alice:hs.tdl";
 
-    function eventIds(from: number, to: number): string[] {
-        return [...Array(to-from).keys()].map(i => eventId(i + from));
-    }
-
     return {
         "Append events are returned via sync": assert => {
             const timeline = new TimelineMock(SENDER);
             timeline.append(10);
             const syncResponse = timeline.sync();
-            const events = syncResponse.events.map(e => e.event_id);
+            const events = syncResponse.timeline.events.map(e => e.event_id);
             assert.deepEqual(events, eventIds(0, 10));
-            assert.equal(syncResponse.limited, false);
+            assert.equal(syncResponse.timeline.limited, false);
         },
         "Limiting a sync properly limits the returned events": assert => {
             const timeline = new TimelineMock(SENDER);
             timeline.append(20);
             const syncResponse = timeline.sync(undefined, 10);
-            const events = syncResponse.events.map(e => e.event_id);
+            const events = syncResponse.timeline.events.map(e => e.event_id);
             assert.deepEqual(events, eventIds(10, 20));
-            assert.equal(syncResponse.limited, true);
+            assert.equal(syncResponse.timeline.limited, true);
         },
         "The context endpoint returns messages in DAG order around an event": assert => {
             const timeline = new TimelineMock(SENDER);
@@ -195,7 +197,7 @@ export function tests() {
             const timeline = new TimelineMock(SENDER);
             timeline.append(20);
             const sync = timeline.sync(undefined, 10);
-            const messages = timeline.messages(sync.prev_batch, undefined, "b");
+            const messages = timeline.messages(sync.timeline.prev_batch, undefined, "b");
             const events = messages.chunk.map(e => e.event_id).reverse();
             assert.deepEqual(events, eventIds(0, 10));
         },
@@ -203,7 +205,7 @@ export function tests() {
             const timeline = new TimelineMock(SENDER);
             timeline.append(30);
             const sync = timeline.sync(undefined, 10);
-            const messages1 = timeline.messages(sync.prev_batch, undefined, "b");
+            const messages1 = timeline.messages(sync.timeline.prev_batch, undefined, "b");
             const events1 = messages1.chunk.map(e => e.event_id).reverse();
             const messages2 = timeline.messages(messages1.end, undefined, "b");
             const events2 = messages2.chunk.map(e => e.event_id).reverse();
@@ -235,20 +237,20 @@ export function tests() {
             timeline.append(30);
             const sync1 = timeline.sync(undefined, 10);
             const sync2 = timeline.sync(sync1.next_batch, 10)
-            assert.deepEqual(sync2.events, []);
-            assert.equal(sync2.limited, false);
+            assert.deepEqual(sync2.timeline.events, []);
+            assert.equal(sync2.timeline.limited, false);
             timeline.insertAfter(TIMELINE_START_TOKEN, 1);
             const sync3 = timeline.sync(sync2.next_batch, 10)
-            const events = sync3.events.map(e => e.event_id);
+            const events = sync3.timeline.events.map(e => e.event_id);
             assert.deepEqual(events, eventIds(30, 31));
         },
         "An event inserted in the midle does not show up in a message fetch": assert => {
             const timeline = new TimelineMock(SENDER);
             timeline.append(30);
             const sync1 = timeline.sync(undefined, 10);
-            const messages1 = timeline.messages(sync1.prev_batch, undefined, "f", 10);
+            const messages1 = timeline.messages(sync1.timeline.prev_batch, undefined, "f", 10);
             timeline.insertAfter(TIMELINE_START_TOKEN, 1);
-            const messages2 = timeline.messages(sync1.prev_batch, undefined, "f", 10);
+            const messages2 = timeline.messages(sync1.timeline.prev_batch, undefined, "f", 10);
             assert.deepEqual(messages1.chunk, messages2.chunk);
         },
     }
