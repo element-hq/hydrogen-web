@@ -410,6 +410,12 @@ export function tests() {
         await gapWriter.writeFragmentFill(fragmentEntry, messageResponse, txn, logger);
     }
 
+    async function contextAndWrite(mocks, eventId) {
+        const {txn, timelineMock, gapWriter} = mocks;
+        const contextResponse = timelineMock.context(eventId);
+        return await gapWriter.writeContext(contextResponse, txn, logger);
+    }
+
     async function allFragmentEvents(mocks, fragmentId) {
         const {txn} = mocks;
         const entries = await txn.timelineEvents.eventsAfter(roomId, new EventKey(fragmentId, KeyLimits.minStorageKey));
@@ -509,6 +515,64 @@ export function tests() {
             const firstFragment = await fetchFragment(mocks, firstFragmentEntry.fragmentId);
             const secondFragment = await fetchFragment(mocks, secondFragmentEntry.fragmentId);
             assertDeepLink(assert, firstFragment, secondFragment)
-        }
+        },
+        "Context sync before anything else just creates a new fragment": async assert => {
+            const mocks = await setup();
+            const { timelineMock } = mocks;
+            timelineMock.append(10);
+            const {fragments} = await contextAndWrite(mocks, eventId(5));
+
+            assert.equal(fragments.length, 1);
+            const events = await allFragmentEvents(mocks, fragments[0].id);
+            assert.deepEqual(events.map(e => e.event_id), eventIds(0, 10));
+        },
+        "Context sync after a single live frament just creates a new fragment.": async assert => {
+            const mocks = await setup();
+            const { timelineMock } = mocks;
+            timelineMock.append(20);
+            const {fragmentEntry} = await syncAndWrite(mocks);
+            const {fragments} = await contextAndWrite(mocks, eventId(5));
+
+            assert.equal(fragments.length, 1);
+            const contextEvents = await allFragmentEvents(mocks, fragments[0].id);
+            assert.deepEqual(contextEvents.map(e => e.event_id), eventIds(0, 10));
+            const syncEvents = await allFragmentEvents(mocks, fragmentEntry.fragmentId);
+            assert.deepEqual(syncEvents.map(e => e.event_id), eventIds(10, 20));
+
+            const contextFragment = await fetchFragment(mocks, fragments[0].id);
+            const syncFragment = await fetchFragment(mocks, fragmentEntry.fragmentId);
+            assert.equal(contextFragment.nextId, null);
+            assert.equal(syncFragment.previousId, null);
+        },
+        "Context sync near another fragment appends to that fragment.": async assert => {
+            const mocks = await setup();
+            const { timelineMock } = mocks;
+            timelineMock.append(20);
+            const {fragments: firstFragments} = await contextAndWrite(mocks, eventId(5));
+            const {fragments: secondFragments} = await contextAndWrite(mocks, eventId(11));
+
+            assert.equal(firstFragments.length, 1);
+            assert.equal(secondFragments.length, 0);
+            const events = await allFragmentEvents(mocks, firstFragments[0].id);
+            assert.deepEqual(events.map(e => e.event_id), eventIds(0, 16));
+        },
+        "Context sync between two fragments links the two fragments, and fills one of them.": async assert => {
+            const mocks = await setup();
+            const { timelineMock } = mocks;
+            timelineMock.append(30);
+            // [0][(1)][2][3][4][5][6][7][8][9] | [10][(11)][12] | [13][14][15][16][17][(18)][19][20][21][22]
+            const {fragments: firstFragments} = await contextAndWrite(mocks, eventId(1));
+            const {fragments: secondFragments} = await contextAndWrite(mocks, eventId(18));
+            const {fragments: thirdFragments} = await contextAndWrite(mocks, eventId(11));
+
+            assert.equal(firstFragments.length, 1);
+            assert.equal(secondFragments.length, 1);
+            assert.equal(thirdFragments.length, 2); // Linked fragments
+
+            const firstEvents = await allFragmentEvents(mocks, firstFragments[0].id);
+            assert.deepEqual(firstEvents.map(e => e.event_id), eventIds(0, 13));
+            const secondEvents = await allFragmentEvents(mocks, secondFragments[0].id);
+            assert.deepEqual(secondEvents.map(e => e.event_id), eventIds(13,23));
+        },
     }
 }
