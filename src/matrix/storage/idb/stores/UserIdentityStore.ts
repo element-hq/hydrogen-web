@@ -36,7 +36,7 @@ export class UserIdentityStore {
         this._store.put(userIdentity);
     }
 
-    remove(userId: string): Promise<undefined> {
-        return this._store.delete(userId);
+    remove(userId: string): void {
+        this._store.delete(userId);
     }
 }

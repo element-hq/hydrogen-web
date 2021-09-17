@@ -62,9 +62,9 @@ export class PendingEventStore {
         }
     }
 
-    remove(roomId: string, queueIndex: number): Promise<undefined> {
+    remove(roomId: string, queueIndex: number) {
         const keyRange = this._eventStore.IDBKeyRange.only(encodeKey(roomId, queueIndex));
-        return this._eventStore.delete(keyRange);
+        this._eventStore.delete(keyRange);
     }
 
     async exists(roomId: string, queueIndex: number): Promise<boolean> {
@@ -86,10 +86,10 @@ export class PendingEventStore {
         return this._eventStore.selectAll();
     }
 
-    removeAllForRoom(roomId: string): Promise<undefined> {
+    removeAllForRoom(roomId: string): void {
         const minKey = encodeKey(roomId, KeyLimits.minStorageKey);
         const maxKey = encodeKey(roomId, KeyLimits.maxStorageKey);
         const range = this._eventStore.IDBKeyRange.bound(minKey, maxKey);
-        return this._eventStore.delete(range);
+        this._eventStore.delete(range);
     }
 }
