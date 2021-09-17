@@ -21,7 +21,7 @@ import {
     reqAsPromise,
     iterateCursor,
     fetchResults,
-} from "../matrix/storage/idb/utils.js";
+} from "../matrix/storage/idb/utils";
 import {BaseLogger} from "./BaseLogger.js";
 
 export class IDBLogger extends BaseLogger {
