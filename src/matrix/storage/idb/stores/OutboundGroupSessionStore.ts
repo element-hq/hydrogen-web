@@ -28,8 +28,8 @@ export class OutboundGroupSessionStore {
         this._store = store;
     }
 
-    remove(roomId: string): Promise<undefined> {
-        return this._store.delete(roomId);
+    remove(roomId: string): void {
+        this._store.delete(roomId);
     }
 
     get(roomId: string): Promise<OutboundSession | null> {

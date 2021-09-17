@@ -14,12 +14,35 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+.Timeline {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    min-height: 0;
+}
 
-.RoomView_body > ul {
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    list-style: none;
+.Timeline_jumpDown {
+    position: absolute;
+}
+
+.Timeline_scroller {
+    overflow-y: scroll;
+    overscroll-behavior-y: contain;
+    overflow-anchor: none;
     padding: 0;
+    margin: 0;
+    /* need to read the offsetTop of tiles relative to this element in TimelineView  */
+    position: relative;
+    min-height: 0;
+    flex: 1 0 0;
+}
+
+.Timeline_scroller > ul {
+    list-style: none;
+    /* use small horizontal padding so first/last children margin isn't collapsed
+    at the edge and a scrollbar shows up when setting margin-top to bottom-align
+    content when there are not yet enough tiles to fill the viewport */
+    padding: 1px 0;
     margin: 0;
 }
 
@@ -49,13 +72,7 @@ limitations under the License.
 }
 
 .GapView {
-    visibility: hidden;
     display: flex;
-    padding: 10px 20px;
-}
-
-.GapView.isLoading {
-    visibility: visible;
 }
 
 .GapView > :nth-child(2) {

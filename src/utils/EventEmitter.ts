@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2021 Daniel Fedorin <danila.fedorin@gmail.com>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,28 +15,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export class EventEmitter {
+type Handler<T> = (value?: T) => void;
+
+export class EventEmitter<T> {
+    private _handlersByName: { [event in keyof T]?: Set<Handler<T[event]>> }
+
     constructor() {
         this._handlersByName = {};
     }
 
-    emit(name, ...values) {
+    emit<K extends keyof T>(name: K, value?: T[K]): void {
         const handlers = this._handlersByName[name];
         if (handlers) {
-            for(const h of handlers) {
-                h(...values);
-            }
+            handlers.forEach(h => h(value));
         }
     }
 
-    disposableOn(name, callback) {
+    disposableOn<K extends keyof T>(name: K, callback: Handler<T[K]>): () => void {
         this.on(name, callback);
         return () => {
             this.off(name, callback);
         }
     }
 
-    on(name, callback) {
+    on<K extends keyof T>(name: K, callback: Handler<T[K]>): void {
         let handlers = this._handlersByName[name];
         if (!handlers) {
             this.onFirstSubscriptionAdded(name);
@@ -44,27 +47,27 @@ export class EventEmitter {
         handlers.add(callback);
     }
 
-    off(name, callback) {
+    off<K extends keyof T>(name: K, callback: Handler<T[K]>): void {
         const handlers = this._handlersByName[name];
         if (handlers) {
             handlers.delete(callback);
-            if (handlers.length === 0) {
+            if (handlers.size === 0) {
                 delete this._handlersByName[name];
                 this.onLastSubscriptionRemoved(name);
             }
         }
     }
 
-    onFirstSubscriptionAdded(/* name */) {}
+    onFirstSubscriptionAdded<K extends keyof T>(name: K): void {}
 
-    onLastSubscriptionRemoved(/* name */) {}
+    onLastSubscriptionRemoved<K extends keyof T>(name: K): void {}
 }
 
 export function tests() {
     return {
         test_on_off(assert) {
             let counter = 0;
-            const e = new EventEmitter();
+            const e = new EventEmitter<{ change: never }>();
             const callback = () => counter += 1;
             e.on("change", callback);
             e.emit("change");
@@ -75,7 +78,7 @@ export function tests() {
 
         test_emit_value(assert) {
             let value = 0;
-            const e = new EventEmitter();
+            const e = new EventEmitter<{ change: number }>();
             const callback = (v) => value = v;
             e.on("change", callback);
             e.emit("change", 5);
@@ -85,7 +88,7 @@ export function tests() {
 
         test_double_on(assert) {
             let counter = 0;
-            const e = new EventEmitter();
+            const e = new EventEmitter<{ change: never }>();
             const callback = () => counter += 1;
             e.on("change", callback);
             e.on("change", callback);

@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../general/TemplateView.js";
+import {TemplateView} from "../../general/TemplateView";
 import {Popup} from "../../general/Popup.js";
 import {Menu} from "../../general/Menu.js";
-import {viewClassForEntry} from "./TimelineList.js"
+import {viewClassForEntry} from "./TimelineView"
 
 export class MessageComposer extends TemplateView {
     constructor(viewModel) {

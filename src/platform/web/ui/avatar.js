@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {tag, text, classNames, setAttribute} from "./general/html.js";
+import {tag, text, classNames, setAttribute} from "./general/html";
 /**
  * @param  {Object} vm   view model with {avatarUrl, avatarColorNumber, avatarTitle, avatarLetter}
  * @param  {Number} size

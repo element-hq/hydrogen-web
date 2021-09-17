@@ -236,6 +236,21 @@ export class TilesCollection extends BaseObservableList {
     getFirst() {
         return this._tiles[0];
     }
+
+    getTileIndex(searchTile) {
+        const idx = sortedIndex(this._tiles, searchTile, (searchTile, tile) => {
+            return searchTile.compare(tile);
+        });
+        const foundTile = this._tiles[idx];
+        if (foundTile?.compare(searchTile) === 0) {
+            return idx;
+        }
+        return -1;
+    }
+
+    sliceIterator(start, end) {
+        return this._tiles.slice(start, end)[Symbol.iterator]();
+    }
 }
 
 import {ObservableArray} from "../../../../observable/list/ObservableArray.js";

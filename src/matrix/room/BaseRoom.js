@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {EventEmitter} from "../../utils/EventEmitter.js";
+import {EventEmitter} from "../../utils/EventEmitter";
 import {RoomSummary} from "./RoomSummary.js";
 import {GapWriter} from "./timeline/persistence/GapWriter.js";
 import {RelationWriter} from "./timeline/persistence/RelationWriter.js";

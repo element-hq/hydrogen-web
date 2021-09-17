@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {EventEmitter} from "../../utils/EventEmitter.js";
+import {EventEmitter} from "../../utils/EventEmitter";
 import {SummaryData, processStateEvent} from "./RoomSummary.js";
 import {Heroes} from "./members/Heroes.js";
 import {MemberChange, RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "./members/RoomMember.js";

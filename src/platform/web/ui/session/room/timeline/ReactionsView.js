@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ListView} from "../../../general/ListView.js";
-import {TemplateView} from "../../../general/TemplateView.js";
+import {ListView} from "../../../general/ListView";
+import {TemplateView} from "../../../general/TemplateView";
 
 export class ReactionsView extends ListView {
     constructor(reactionsViewModel) {

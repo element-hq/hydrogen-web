@@ -18,7 +18,7 @@ import {SessionView} from "./session/SessionView.js";
 import {LoginView} from "./login/LoginView.js";
 import {SessionLoadView} from "./login/SessionLoadView.js";
 import {SessionPickerView} from "./login/SessionPickerView.js";
-import {TemplateView} from "./general/TemplateView.js";
+import {TemplateView} from "./general/TemplateView";
 import {StaticView} from "./general/StaticView.js";
 
 export class RootView extends TemplateView {

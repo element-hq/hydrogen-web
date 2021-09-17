@@ -15,6 +15,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+.Timeline_jumpDown {
+    width: 40px;
+    height: 40px;
+    bottom: 16px;
+    right: 32px;
+    border-radius: 100%;
+    border: 1px solid #8d99a5;
+    background-image: url("./icons/chevron-down.svg");
+    background-position: center;
+    background-color: white;
+    background-repeat: no-repeat;
+    cursor: pointer;
+}
+
 .Timeline_message {
     display: grid;
     grid-template:
@@ -361,4 +375,12 @@ only loads when the top comes into view*/
 
 .GapView > :not(:first-child) {
     margin-left: 12px;
+}
+
+.GapView {
+    padding: 52px 20px;
+}
+
+.GapView.isAtTop {
+    padding: 52px 20px 12px 20px;
 }

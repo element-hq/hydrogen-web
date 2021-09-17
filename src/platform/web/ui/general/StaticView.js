@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {tag} from "../general/html.js";
+import {tag} from "../general/html";
 
 export class StaticView {
     constructor(value, render = undefined) {

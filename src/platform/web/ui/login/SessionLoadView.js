@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../general/TemplateView.js";
+import {TemplateView} from "../general/TemplateView";
 import {SessionLoadStatusView} from "./SessionLoadStatusView.js";
 
 export class SessionLoadView extends TemplateView {
