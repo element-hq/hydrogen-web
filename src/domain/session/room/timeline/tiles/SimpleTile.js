@@ -40,8 +40,8 @@ export class SimpleTile extends ViewModel {
         return false;
     }
 
-    get internalId() {
-        return this._entry.asEventKey().toString();
+    get id() {
+        return this._entry.asEventKey();
     }
 
     get isPending() {
@@ -83,6 +83,10 @@ export class SimpleTile extends ViewModel {
         return this._entry;
     }
 
+    compare(tile) {
+        return this.upperEntry.compare(tile.upperEntry);
+    }
+
     compareEntry(entry) {
         return this._entry.compare(entry);
     }
@@ -118,6 +122,8 @@ export class SimpleTile extends ViewModel {
     updateNextSibling(/*next*/) {
     
     }
+
+    notifyVisible() {}
 
     dispose() {
         this.setUpdateEmit(null);

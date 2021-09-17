@@ -55,7 +55,7 @@ export class RoomSummaryStore {
         return roomId === fetchedKey;
     }
 
-    remove(roomId: string): Promise<undefined> {
-        return this._summaryStore.delete(roomId);
+    remove(roomId: string): void {
+        this._summaryStore.delete(roomId);
     }
 }

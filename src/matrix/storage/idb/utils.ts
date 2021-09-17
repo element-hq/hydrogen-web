@@ -17,6 +17,7 @@ limitations under the License.
 
 import { IDBRequestError } from "./error";
 import { StorageError } from "../common";
+import { AbortError } from "../../../utils/error.js";
 
 let needsSyncPromise = false;
 
@@ -112,22 +113,8 @@ export function txnAsPromise(txn): Promise<void> {
             // @ts-ignore
             needsSyncPromise && Promise._flush && Promise._flush();
         });
-        txn.addEventListener("error", event => {
-            const request = event.target;
-            // catch first error here, but don't reject yet,
-            // as we don't have access to the failed request in the abort event handler
-            if (!error && request) {
-                error = new IDBRequestError(request);
-            }
-        });
         txn.addEventListener("abort", event => {
-            if (!error) {
-                const txn = event.target;
-                const dbName = txn.db.name;
-                const storeNames = Array.from(txn.objectStoreNames).join(", ")
-                error = new StorageError(`Transaction on ${dbName} with stores ${storeNames} was aborted.`);
-            }
-            reject(error);
+            reject(new AbortError());
             // @ts-ignore
             needsSyncPromise && Promise._flush && Promise._flush();
         });

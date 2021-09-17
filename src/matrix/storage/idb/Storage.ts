@@ -17,22 +17,26 @@ limitations under the License.
 import {Transaction} from "./Transaction";
 import { STORE_NAMES, StoreNames, StorageError } from "../common";
 import { reqAsPromise } from "./utils";
+import { BaseLogger } from "../../../logging/BaseLogger.js";
 
 const WEBKITEARLYCLOSETXNBUG_BOGUS_KEY = "782rh281re38-boguskey";
 
 export class Storage {
     private _db: IDBDatabase;
     private _hasWebkitEarlyCloseTxnBug: boolean;
-    private _idbFactory: IDBFactory
-    private _IDBKeyRange: typeof IDBKeyRange
-    storeNames: typeof StoreNames;
 
-    constructor(idbDatabase: IDBDatabase, idbFactory: IDBFactory, _IDBKeyRange: typeof IDBKeyRange, hasWebkitEarlyCloseTxnBug: boolean) {
+    readonly logger: BaseLogger;
+    readonly idbFactory: IDBFactory
+    readonly IDBKeyRange: typeof IDBKeyRange;
+    readonly storeNames: typeof StoreNames;
+
+    constructor(idbDatabase: IDBDatabase, idbFactory: IDBFactory, _IDBKeyRange: typeof IDBKeyRange, hasWebkitEarlyCloseTxnBug: boolean, logger: BaseLogger) {
         this._db = idbDatabase;
-        this._idbFactory = idbFactory;
-        this._IDBKeyRange = _IDBKeyRange;
+        this.idbFactory = idbFactory;
+        this.IDBKeyRange = _IDBKeyRange;
         this._hasWebkitEarlyCloseTxnBug = hasWebkitEarlyCloseTxnBug;
         this.storeNames = StoreNames;
+        this.logger = logger;
     }
 
     _validateStoreNames(storeNames: StoreNames[]): void {
@@ -51,7 +55,7 @@ export class Storage {
             if (this._hasWebkitEarlyCloseTxnBug) {
                 await reqAsPromise(txn.objectStore(storeNames[0]).get(WEBKITEARLYCLOSETXNBUG_BOGUS_KEY));
             }
-            return new Transaction(txn, storeNames, this._idbFactory, this._IDBKeyRange);
+            return new Transaction(txn, storeNames, this);
         } catch(err) {
             throw new StorageError("readTxn failed", err);
         }
@@ -66,7 +70,7 @@ export class Storage {
             if (this._hasWebkitEarlyCloseTxnBug) {
                 await reqAsPromise(txn.objectStore(storeNames[0]).get(WEBKITEARLYCLOSETXNBUG_BOGUS_KEY));
             }
-            return new Transaction(txn, storeNames, this._idbFactory, this._IDBKeyRange);
+            return new Transaction(txn, storeNames, this);
         } catch(err) {
             throw new StorageError("readWriteTxn failed", err);
         }

@@ -43,10 +43,14 @@ export class LogItem {
     /** logs a reference to a different log item, usually obtained from runDetached.
     This is useful if the referenced operation can't be awaited. */
     refDetached(logItem, logLevel = null) {
-        if (!logItem._values.refId) {
-            logItem.set("refId", this._logger._createRefId());
-        }
+        logItem.ensureRefId();
         return this.log({ref: logItem._values.refId}, logLevel);
+    }
+
+    ensureRefId() {
+        if (!this._values.refId) {
+            this.set("refId", this._logger._createRefId());
+        }
     }
 
     /**
@@ -230,5 +234,9 @@ export class LogItem {
         }
         this._children.push(item);
         return item;
+    }
+
+    get logger() {
+        return this._logger;
     }
 }

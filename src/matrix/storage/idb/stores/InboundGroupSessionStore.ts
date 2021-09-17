@@ -53,11 +53,11 @@ export class InboundGroupSessionStore {
         this._store.put(session);
     }
 
-    removeAllForRoom(roomId: string): Promise<undefined> {
+    removeAllForRoom(roomId: string) {
         const range = this._store.IDBKeyRange.bound(
             encodeKey(roomId, MIN_UNICODE, MIN_UNICODE),
             encodeKey(roomId, MAX_UNICODE, MAX_UNICODE)
         );
-        return this._store.delete(range);
+        this._store.delete(range);
     }
 }

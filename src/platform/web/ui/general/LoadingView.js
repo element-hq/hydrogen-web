@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "./TemplateView.js";
+import {TemplateView} from "./TemplateView";
 import {spinner} from "../common.js";
 
 export class LoadingView extends TemplateView {

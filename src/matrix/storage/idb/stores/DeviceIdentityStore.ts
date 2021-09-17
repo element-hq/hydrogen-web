@@ -78,14 +78,14 @@ export class DeviceIdentityStore {
         return this._store.index("byCurve25519Key").get(curve25519Key);
     }
 
-    remove(userId: string, deviceId: string): Promise<undefined> {
-        return this._store.delete(encodeKey(userId, deviceId));
+    remove(userId: string, deviceId: string): void {
+        this._store.delete(encodeKey(userId, deviceId));
     }
 
-    removeAllForUser(userId: string): Promise<undefined> {
+    removeAllForUser(userId: string): void {
         // exclude both keys as they are theoretical min and max,
         // but we should't have a match for just the room id, or room id with max
         const range = this._store.IDBKeyRange.bound(encodeKey(userId, MIN_UNICODE), encodeKey(userId, MAX_UNICODE), true, true);
-        return this._store.delete(range);
+        this._store.delete(range);
     }
 }

@@ -71,7 +71,7 @@ export class OlmSessionStore {
         this._store.put(session as OlmSessionEntry);
     }
 
-    remove(senderKey: string, sessionId: string): Promise<undefined> {
-        return this._store.delete(encodeKey(senderKey, sessionId));
+    remove(senderKey: string, sessionId: string): void {
+        this._store.delete(encodeKey(senderKey, sessionId));
     }
 }

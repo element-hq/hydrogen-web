@@ -71,6 +71,8 @@ export class NullLogItem {
 
     refDetached() {}
 
+    ensureRefId() {}
+
     get level() {
         return LogLevel;
     }

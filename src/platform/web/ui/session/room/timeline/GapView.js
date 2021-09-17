@@ -14,19 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../../general/TemplateView.js";
+import {TemplateView} from "../../../general/TemplateView";
 import {spinner} from "../../../common.js";
 
 export class GapView extends TemplateView {
-    render(t, vm) {
+    render(t) {
         const className = {
             GapView: true,
-            isLoading: vm => vm.isLoading
+            isLoading: vm => vm.isLoading,
+            isAtTop: vm => vm.isAtTop,
         };
         return t.li({className}, [
             spinner(t),
-            t.div(vm.i18n`Loading more messages …`),
+            t.div(vm => vm.isLoading ? vm.i18n`Loading more messages …` : vm.i18n`Not loading!`),
             t.if(vm => vm.error, t => t.strong(vm => vm.error))
         ]);
     }
+
+    /* This is called by the parent ListView, which just has 1 listener for the whole list */
+    onClick() {}
 }

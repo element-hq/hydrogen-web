@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="17"
+   height="9"
+   viewBox="0 0 17 9"
+   fill="none"
+   version="1.1"
+   id="svg839"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <g
+     clip-path="url(#clip0)"
+     id="g832"
+     transform="rotate(-90,4.3001277,4.8826258)">
+    <path
+       fill-rule="evenodd"
+       clip-rule="evenodd"
+       d="M 8.20723,2.70711 C 8.59775,3.09763 8.59878,3.73182 8.20952,4.1236 L 3.27581,9.08934 8.22556,14.0391 c 0.39052,0.3905 0.39155,1.0247 0.00229,1.4165 -0.38926,0.3918 -1.0214,0.3928 -1.41192,0.0023 L 1.15907,9.80101 C 0.768549,9.41049 0.767523,8.7763 1.15678,8.38452 L 6.79531,2.70939 C 7.18457,2.31761 7.8167,2.31658 8.20723,2.70711 Z"
+       fill="#8d99a5"
+       id="path830" />
+  </g>
+  <defs
+     id="defs837">
+    <clipPath
+       id="clip0">
+      <rect
+         width="8"
+         height="17"
+         fill="#ffffff"
+         transform="rotate(180,4.25,8.5)"
+         id="rect834"
+         x="0"
+         y="0" />
+    </clipPath>
+  </defs>
+</svg>

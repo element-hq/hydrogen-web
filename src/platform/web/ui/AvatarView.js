@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseUpdateView} from "./general/BaseUpdateView.js";
+import {BaseUpdateView} from "./general/BaseUpdateView";
 import {renderStaticAvatar, renderImg} from "./avatar.js";
 
 /*
@@ -66,7 +66,7 @@ export class AvatarView extends BaseUpdateView {
         this._avatarTitleChanged();
         this._root = renderStaticAvatar(this.value, this._size);
         // takes care of update being called when needed
-        super.mount(options);
+        this.subscribeOnMount(options);
         return this._root;
     }
 

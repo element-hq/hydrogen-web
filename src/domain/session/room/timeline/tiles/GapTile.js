@@ -22,11 +22,11 @@ export class GapTile extends SimpleTile {
         super(options);
         this._loading = false;
         this._error = null;
+        this._isAtTop = true;
     }
 
     async fill() {
-        // prevent doing this twice
-        if (!this._loading) {
+        if (!this._loading && !this._entry.edgeReached) {
             this._loading = true;
             this.emitChange("isLoading");
             try {
@@ -43,8 +43,25 @@ export class GapTile extends SimpleTile {
                 this.emitChange("isLoading");
             }
         }
-        // edgeReached will have been updated by fillGap
-        return this._entry.edgeReached;
+    }
+
+    notifyVisible() {
+        this.fill();
+    }
+
+    get isAtTop() {
+        return this._isAtTop;
+    }
+
+    updatePreviousSibling(prev) {
+        console.log("GapTile.updatePreviousSibling", prev);
+        super.updatePreviousSibling(prev);
+        const isAtTop = !prev;
+        if (this._isAtTop !== isAtTop) {
+            this._isAtTop = isAtTop;
+            console.log("isAtTop", this._isAtTop);
+            this.emitChange("isAtTop");
+        }
     }
 
     updateEntry(entry, params) {

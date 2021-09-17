@@ -47,10 +47,10 @@ export class RoomStateStore {
         this._roomStateStore.put(entry);
     }
 
-    removeAllForRoom(roomId: string): Promise<undefined> {
+    removeAllForRoom(roomId: string): void {
         // exclude both keys as they are theoretical min and max,
         // but we should't have a match for just the room id, or room id with max
         const range = this._roomStateStore.IDBKeyRange.bound(roomId, `${roomId}|${MAX_UNICODE}`, true, true);
-        return this._roomStateStore.delete(range);
+        this._roomStateStore.delete(range);
     }
 }

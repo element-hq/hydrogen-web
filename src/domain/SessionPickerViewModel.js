@@ -150,7 +150,9 @@ export class SessionPickerViewModel extends ViewModel {
 
     async _exportData(id) {
         const sessionInfo = await this.platform.sessionInfoStorage.get(id);
-        const stores = await this.platform.storageFactory.export(id);
+        const stores = await this.logger.run("export", log => {
+            return this.platform.storageFactory.export(id, log);
+        });
         const data = {sessionInfo, stores};
         return data;
     }
@@ -161,7 +163,9 @@ export class SessionPickerViewModel extends ViewModel {
             const {sessionInfo} = data;
             sessionInfo.comment = `Imported on ${new Date().toLocaleString()} from id ${sessionInfo.id}.`;
             sessionInfo.id = this._createSessionContainer().createNewSessionId();
-            await this.platform.storageFactory.import(sessionInfo.id, data.stores);
+            await this.logger.run("import", log => {
+                return this.platform.storageFactory.import(sessionInfo.id, data.stores, log);
+            });
             await this.platform.sessionInfoStorage.add(sessionInfo);
             this._sessions.set(new SessionItemViewModel(sessionInfo, this));
         } catch (err) {

@@ -43,18 +43,18 @@ export class TimelineRelationStore {
         this._store.add({key: encodeKey(roomId, targetEventId, relType, sourceEventId)});
     }
 
-    remove(roomId: string, targetEventId: string, relType: string, sourceEventId: string): Promise<undefined> {
-        return this._store.delete(encodeKey(roomId, targetEventId, relType, sourceEventId));
+    remove(roomId: string, targetEventId: string, relType: string, sourceEventId: string): void {
+        this._store.delete(encodeKey(roomId, targetEventId, relType, sourceEventId));
     }
 
-    removeAllForTarget(roomId: string, targetId: string): Promise<undefined> {
+    removeAllForTarget(roomId: string, targetId: string): void {
         const range = this._store.IDBKeyRange.bound(
             encodeKey(roomId, targetId, MIN_UNICODE, MIN_UNICODE),
             encodeKey(roomId, targetId, MAX_UNICODE, MAX_UNICODE),
             true,
             true
         );
-        return this._store.delete(range);
+        this._store.delete(range);
     }
 
     async getForTargetAndType(roomId: string, targetId: string, relType: string): Promise<RelationEntry[]> {
