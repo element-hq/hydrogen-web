@@ -20,6 +20,7 @@ import { encodeUint32 } from "../utils";
 import {KeyLimits} from "../../common";
 import {Store} from "../Store";
 import {TimelineEvent, StateEvent} from "../../types";
+import {LogItem} from "../../../../logging/LogItem.js";
 
 interface Annotation {
     count: number;
@@ -265,11 +266,10 @@ export class TimelineEventStore {
      *  @return nothing. To wait for the operation to finish, await the transaction it's part of.
      *  @throws {StorageError} ...
      */
-    insert(entry: TimelineEventEntry): void {
+    insert(entry: TimelineEventEntry, log: LogItem): void {
         (entry as TimelineEventStorageEntry).key = encodeKey(entry.roomId, entry.fragmentId, entry.eventIndex);
         (entry as TimelineEventStorageEntry).eventIdKey = encodeEventIdKey(entry.roomId, entry.event.event_id);
-        // TODO: map error? or in idb/store?
-        this._timelineStore.add(entry as TimelineEventStorageEntry);
+        this._timelineStore.add(entry as TimelineEventStorageEntry, log);
     }
 
     /** Updates the entry into the store with the given [roomId, eventKey] combination.
