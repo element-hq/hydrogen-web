@@ -159,13 +159,39 @@ export class Transaction {
         return this._store(StoreNames.accountData, idbStore => new AccountDataStore(idbStore));
     }
 
-    complete(): Promise<void> {
-        return txnAsPromise(this._txn);
+    async complete(log?: LogItem): Promise<void> {
+        try {
+            await txnAsPromise(this._txn);
+        } catch (err) {
+            if (this._writeErrors.length) {
+                this._logWriteErrors(log);
+                throw this._writeErrors[0].error;
+            }
+            throw err;
+        }
     }
 
-    abort(): void {
+    getCause(error: Error) {
+        if (error instanceof StorageError) {
+            if (error.errcode === "AbortError" && this._writeErrors.length) {
+                return this._writeErrors[0].error;
+            }
+        }
+        return error;
+    }
+
+    abort(log?: LogItem): void {
         // TODO: should we wrap the exception in a StorageError?
-        this._txn.abort();
+        try {
+            this._txn.abort();
+        } catch (abortErr) {
+            log?.set("couldNotAbortTxn", true);
+        }
+        if (this._writeErrors.length) {
+            this._logWriteErrors(log);
+        }
+    }
+
     addWriteError(error: StorageError, refItem: LogItem | undefined, operationName: string, key: IDBValidKey | IDBKeyRange | undefined) {
         // don't log subsequent `AbortError`s
         if (error.errcode !== "AbortError" || this._writeErrors.length === 0) {
