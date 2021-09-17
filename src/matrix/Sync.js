@@ -296,14 +296,10 @@ export class Sync {
             // avoid corrupting state by only
             // storing the sync up till the point
             // the exception occurred
-            try {
-                syncTxn.abort();
-            } catch (abortErr) {
-                log.set("couldNotAbortTxn", true);
-            }
-            throw err;
+            syncTxn.abort(log);
+            throw syncTxn.getCause(err);
         }
-        await syncTxn.complete();
+        await syncTxn.complete(log);
     }
 
     _afterSync(sessionState, inviteStates, roomStates, archivedRoomStates, log) {

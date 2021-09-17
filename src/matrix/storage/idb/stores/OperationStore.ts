@@ -73,8 +73,8 @@ export class OperationStore {
         this._store.put(operation as OperationEntry);
     }
 
-    remove(id: string): Promise<undefined> {
-        return this._store.delete(id);
+    remove(id: string): void {
+        this._store.delete(id);
     }
 
     async removeAllForScope(scope: string): Promise<undefined> {

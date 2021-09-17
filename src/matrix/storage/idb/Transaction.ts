@@ -18,6 +18,7 @@ import {StoreNames} from "../common";
 import {txnAsPromise} from "./utils";
 import {StorageError} from "../common";
 import {Store} from "./Store";
+import {Storage} from "./Storage";
 import {SessionStore} from "./stores/SessionStore";
 import {RoomSummaryStore} from "./stores/RoomSummaryStore";
 import {InviteStore} from "./stores/InviteStore";
@@ -35,18 +36,39 @@ import {OutboundGroupSessionStore} from "./stores/OutboundGroupSessionStore";
 import {GroupSessionDecryptionStore} from "./stores/GroupSessionDecryptionStore";
 import {OperationStore} from "./stores/OperationStore";
 import {AccountDataStore} from "./stores/AccountDataStore";
+import {LogItem} from "../../../logging/LogItem.js";
+import {BaseLogger} from "../../../logging/BaseLogger.js";
+
+class WriteErrorInfo {
+    constructor(
+        public readonly error: StorageError,
+        public readonly refItem: LogItem | undefined,
+        public readonly operationName: string,
+        public readonly key: IDBValidKey | IDBKeyRange | undefined,
+    ) {}
+}
 
 export class Transaction {
     private _txn: IDBTransaction;
     private _allowedStoreNames: StoreNames[];
     private _stores: { [storeName in StoreNames]?: any };
+    private _storage: Storage;
+    private _writeErrors: WriteErrorInfo[];
 
-    constructor(txn: IDBTransaction, allowedStoreNames: StoreNames[], IDBKeyRange) {
+    constructor(txn: IDBTransaction, allowedStoreNames: StoreNames[], storage: Storage) {
         this._txn = txn;
         this._allowedStoreNames = allowedStoreNames;
         this._stores = {};
-        // @ts-ignore
-        this.IDBKeyRange = IDBKeyRange;
+        this._storage = storage;
+        this._writeErrors = [];
+    }
+
+    get IDBKeyRange(): typeof IDBKeyRange {
+        return this._storage.IDBKeyRange;
+    }
+
+    get logger(): BaseLogger {
+        return this._storage.logger;
     }
 
     _idbStore(name: StoreNames): Store<any> {
@@ -137,12 +159,66 @@ export class Transaction {
         return this._store(StoreNames.accountData, idbStore => new AccountDataStore(idbStore));
     }
 
-    complete(): Promise<void> {
-        return txnAsPromise(this._txn);
+    async complete(log?: LogItem): Promise<void> {
+        try {
+            await txnAsPromise(this._txn);
+        } catch (err) {
+            if (this._writeErrors.length) {
+                this._logWriteErrors(log);
+                throw this._writeErrors[0].error;
+            }
+            throw err;
+        }
     }
 
-    abort(): void {
+    getCause(error: Error) {
+        if (error instanceof StorageError) {
+            if (error.errcode === "AbortError" && this._writeErrors.length) {
+                return this._writeErrors[0].error;
+            }
+        }
+        return error;
+    }
+
+    abort(log?: LogItem): void {
         // TODO: should we wrap the exception in a StorageError?
-        this._txn.abort();
+        try {
+            this._txn.abort();
+        } catch (abortErr) {
+            log?.set("couldNotAbortTxn", true);
+        }
+        if (this._writeErrors.length) {
+            this._logWriteErrors(log);
+        }
+    }
+
+    addWriteError(error: StorageError, refItem: LogItem | undefined, operationName: string, key: IDBValidKey | IDBKeyRange | undefined) {
+        // don't log subsequent `AbortError`s
+        if (error.errcode !== "AbortError" || this._writeErrors.length === 0) {
+            this._writeErrors.push(new WriteErrorInfo(error, refItem, operationName, key));
+        }
+    }
+
+    private _logWriteErrors(parentItem: LogItem | undefined) {
+        const callback = errorGroupItem => {
+            // we don't have context when there is no parentItem, so at least log stores
+            if (!parentItem) {
+                errorGroupItem.set("allowedStoreNames", this._allowedStoreNames);
+            }
+            for (const info of this._writeErrors) {
+                errorGroupItem.wrap({l: info.operationName, id: info.key}, item => {
+                    if (info.refItem) {
+                        item.refDetached(info.refItem);
+                    }
+                    item.catch(info.error);
+                });
+            }
+        };
+        const label = `${this._writeErrors.length} storage write operation(s) failed`;
+        if (parentItem) {
+            parentItem.wrap(label, callback);
+        } else {
+            this.logger.run(label, callback);
+        }
     }
 }
