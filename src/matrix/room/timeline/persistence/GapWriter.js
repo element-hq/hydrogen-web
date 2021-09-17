@@ -544,12 +544,24 @@ export function tests() {
             assert.equal(contextFragment.nextId, null);
             assert.equal(syncFragment.previousId, null);
         },
-        "Context sync near another fragment appends to that fragment.": async assert => {
+        "Context sync after another fragment appends to that fragment.": async assert => {
             const mocks = await setup();
             const { timelineMock } = mocks;
             timelineMock.append(20);
             const {fragments: firstFragments} = await contextAndWrite(mocks, eventId(5));
             const {fragments: secondFragments} = await contextAndWrite(mocks, eventId(11));
+
+            assert.equal(firstFragments.length, 1);
+            assert.equal(secondFragments.length, 0);
+            const events = await allFragmentEvents(mocks, firstFragments[0].id);
+            assert.deepEqual(events.map(e => e.event_id), eventIds(0, 16));
+        },
+        "Context sync before another fragment prepends to that fragment.": async assert => {
+            const mocks = await setup();
+            const { timelineMock } = mocks;
+            timelineMock.append(20);
+            const {fragments: firstFragments} = await contextAndWrite(mocks, eventId(11));
+            const {fragments: secondFragments} = await contextAndWrite(mocks, eventId(5));
 
             assert.equal(firstFragments.length, 1);
             assert.equal(secondFragments.length, 0);
