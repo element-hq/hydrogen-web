@@ -47,30 +47,28 @@ export class GapWriter {
                 }
                 nonOverlappingEvents.push(...remainingEvents.slice(0, duplicateEventIndex));
                 if (!expectedOverlappingEventId || duplicateEventId === expectedOverlappingEventId) {
-                    // Only link fragment if this is the first overlapping fragment we discover.
-                    // TODO is this sufficient? Might we get "out of order" fragments from events?
-                    if (!neighbourFragmentEntry) {
-                        // TODO: check here that the neighbourEvent is at the correct edge of it's fragment
-                        // get neighbour fragment to link it up later on
-                        const neighbourEvent = await txn.timelineEvents.getByEventId(this._roomId, duplicateEventId);
+                    // TODO: check here that the neighbourEvent is at the correct edge of it's fragment
+                    // get neighbour fragment to link it up later on
+                    const neighbourEvent = await txn.timelineEvents.getByEventId(this._roomId, duplicateEventId);
+                    if (neighbourEvent.fragmentId === fragmentEntry.fragmentId) {
+                        log.log("hit #160, prevent fragment linking to itself", log.level.Warn);
+                    } else {
                         const neighbourFragment = await txn.timelineFragments.get(this._roomId, neighbourEvent.fragmentId);
                         neighbourFragmentEntry = fragmentEntry.createNeighbourEntry(neighbourFragment);
                     }
-                } 
-                // If more events remain, or if this wasn't the expected overlapping event,
-                // we've hit https://github.com/matrix-org/synapse/issues/7164, 
-                // e.g. the event id we found is already in our store but it is not
-                // the adjacent fragment id. Ignore the event, but keep processing the ones after.
-                remainingEvents = remainingEvents.slice(duplicateEventIndex + 1);
+                    // trim overlapping events
+                    remainingEvents = null;
+                } else {
+                    // we've hit https://github.com/matrix-org/synapse/issues/7164, 
+                    // e.g. the event id we found is already in our store but it is not
+                    // the adjacent fragment id. Ignore the event, but keep processing the ones after.
+                    remainingEvents = remainingEvents.slice(duplicateEventIndex + 1);
+                }
             } else {
                 nonOverlappingEvents.push(...remainingEvents);
                 remainingEvents = null;
             }
         }
-        if (neighbourFragmentEntry?.fragmentId === fragmentEntry.fragmentId) {
-            log.log("hit #160, prevent fragment linking to itself", log.level.Warn);
-            neighbourFragmentEntry = null;
-        } 
         return {nonOverlappingEvents, neighbourFragmentEntry};
     }
 
