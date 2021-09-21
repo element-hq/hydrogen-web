@@ -234,31 +234,25 @@ export class TimelineEventStore {
     // In that case we could avoid running over all eventIds, as the reported order by findExistingKeys
     // would match the order of eventIds. That's why findLast is also passed as backwards to keysExist.
     // also passing them in chronological order makes sense as that's how we'll receive them almost always.
-    async findFirstOccurringEventId(roomId: string, eventIds: string[]): Promise<string | undefined> {
+    async findOccurringEventIds(roomId: string, eventIds: string[]): Promise<string[]> {
         const byEventId = this._timelineStore.index("byEventId");
         const keys = eventIds.map(eventId => encodeEventIdKey(roomId, eventId));
         const results = new Array(keys.length);
-        let firstFoundKey: string | undefined;
-
-        // find first result that is found and has no undefined results before it
-        function firstFoundAndPrecedingResolved(): string | undefined {
-            for(let i = 0; i < results.length; ++i) {
-                if (results[i] === undefined) {
-                    return;
-                } else if(results[i] === true) {
-                    return keys[i];
-                }
-            }
-        }
+        const occuringEventIds: string[] = [];
 
         await byEventId.findExistingKeys(keys, false, (key, found) => {
             // T[].search(T, number), but we want T[].search(R, number), so cast
             const index = (keys as IDBValidKey[]).indexOf(key);
             results[index] = found;
-            firstFoundKey = firstFoundAndPrecedingResolved();
-            return !!firstFoundKey;
+            return false;
         });
-        return firstFoundKey && decodeEventIdKey(firstFoundKey).eventId;
+        for(let i = 0; i < results.length; ++i) {
+            console.log(i, eventIds[i], results[i]);
+            if (!results[i]) continue;
+            occuringEventIds.push(eventIds[i]);
+        }
+        console.log(occuringEventIds);
+        return occuringEventIds;
     }
 
     /** Inserts a new entry into the store. The combination of roomId and eventKey should not exist yet, or an error is thrown.
