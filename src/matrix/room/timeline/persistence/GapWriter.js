@@ -310,6 +310,10 @@ export function tests() {
         return txn.timelineFragments.get(roomId, fragmentId);
     }
 
+    async function updatedFragmentEntry(mock, fragmentEntry) {
+        return fragmentEntry.withUpdatedFragment(await fetchFragment(mock, fragmentEntry.fragmentId));
+    }
+
     function assertFilledLink(assert, fragment1, fragment2) {
         assert.equal(fragment1.nextId, fragment2.id);
         assert.equal(fragment2.previousId, fragment1.id);
@@ -341,7 +345,9 @@ export function tests() {
             const {syncResponse, fragmentEntry: firstFragmentEntry} = await syncAndWrite(mocks, { limit: 10 });
             timelineMock.append(15);
             const {fragmentEntry: secondFragmentEntry} = await syncAndWrite(mocks, { previous: syncResponse, limit: 10 });
+            // Only the second backfill (in which all events overlap) fills the gap.
             await backfillAndWrite(mocks, secondFragmentEntry);
+            await backfillAndWrite(mocks, await updatedFragmentEntry(mocks, secondFragmentEntry));
 
             const firstFragment = await fetchFragment(mocks, firstFragmentEntry.fragmentId);
             const secondFragment = await fetchFragment(mocks, secondFragmentEntry.fragmentId);
@@ -393,7 +399,9 @@ export function tests() {
             timelineMock.append(11);
             const {fragmentEntry: secondFragmentEntry} = await syncAndWrite(mocks, { previous: syncResponse, limit: 10 });
             timelineMock.insertAfter(eventId(9), 5);
+            // Only the second backfill (in which all events overlap) fills the gap.
             await backfillAndWrite(mocks, secondFragmentEntry);
+            await backfillAndWrite(mocks, await updatedFragmentEntry(mocks, secondFragmentEntry));
 
             const firstEvents = await allFragmentEvents(mocks, firstFragmentEntry.fragmentId);
             assert.deepEqual(firstEvents.map(e => e.event_id), eventIds(0, 10));
