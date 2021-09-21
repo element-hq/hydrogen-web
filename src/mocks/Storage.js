@@ -16,8 +16,8 @@ limitations under the License.
 
 import {FDBFactory, FDBKeyRange} from "../../lib/fake-indexeddb/index.js";
 import {StorageFactory} from "../matrix/storage/idb/StorageFactory";
-import {NullLogItem} from "../logging/NullLogger.js";
+import {Instance as nullLogger} from "../logging/NullLogger.js";
 
 export function createMockStorage() {
-    return new StorageFactory(null, new FDBFactory(), FDBKeyRange).create(1, new NullLogItem());
+    return new StorageFactory(null, new FDBFactory(), FDBKeyRange).create(1, nullLogger.item);
 }
