@@ -59,9 +59,6 @@ export class Transaction {
         this._txn = txn;
         this._allowedStoreNames = allowedStoreNames;
         this._stores = {};
-        this._txn = txn;
-        this._allowedStoreNames = allowedStoreNames;
-        this._stores = {};
         this._storage = storage;
         this._writeErrors = [];
     }
