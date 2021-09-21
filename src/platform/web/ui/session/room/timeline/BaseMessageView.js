@@ -66,7 +66,7 @@ export class BaseMessageView extends TemplateView {
         let reactionsView = null;
         t.mapSideEffect(vm => vm.reactions, reactions => {
             if (reactions && this._interactive && !reactionsView) {
-                reactionsView = new ReactionsView(vm.reactions);
+                reactionsView = new ReactionsView(reactions);
                 this.addSubView(reactionsView);
                 li.appendChild(mountView(reactionsView));
             } else if (!reactions && reactionsView) {
