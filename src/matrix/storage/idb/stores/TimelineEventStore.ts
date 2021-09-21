@@ -247,11 +247,9 @@ export class TimelineEventStore {
             return false;
         });
         for(let i = 0; i < results.length; ++i) {
-            console.log(i, eventIds[i], results[i]);
             if (!results[i]) continue;
             occuringEventIds.push(eventIds[i]);
         }
-        console.log(occuringEventIds);
         return occuringEventIds;
     }
 
