@@ -162,7 +162,11 @@ export class SyncWriter {
                     storageEntry.displayName = member.displayName;
                     storageEntry.avatarUrl = member.avatarUrl;
                 }
-                txn.timelineEvents.insert(storageEntry, log);
+                const couldInsert = await txn.timelineEvents.tryInsert(storageEntry, log);
+                if (!couldInsert) {
+                    log.log({l: `could not write event, likely #504`, id: event.event_id}, log.level.Warn);
+                    continue;
+                }
                 const entry = new EventEntry(storageEntry, this._fragmentIdComparer);
                 entries.push(entry);
                 const updatedRelationTargetEntries = await this._relationWriter.writeRelation(entry, txn, log);

@@ -447,7 +447,7 @@ export function tests() {
             // 1. put event and reaction into storage
             const storage = await createMockStorage();
             const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
-            txn.timelineEvents.insert({
+            txn.timelineEvents.tryInsert({
                 event: withContent(createAnnotation(messageId, "👋"), createEvent("m.reaction", reactionId, bob)),
                 fragmentId: 1, eventIndex: 1, roomId
             });
@@ -543,7 +543,7 @@ export function tests() {
             // 1. put reaction in storage
             const storage = await createMockStorage();
             const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
-            txn.timelineEvents.insert({
+            txn.timelineEvents.tryInsert({
                 event: withContent(createAnnotation(messageId, "👋"), createEvent("m.reaction", reactionId, bob)),
                 fragmentId: 1, eventIndex: 3, roomId
             });
