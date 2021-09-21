@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {QueryTarget, IDBQuery} from "./QueryTarget";
-import {IDBRequestAttemptError} from "./error";
+import {IDBRequestError, IDBRequestAttemptError} from "./error";
 import {reqAsPromise} from "./utils";
 import {Transaction} from "./Transaction";
 import {LogItem} from "../../../logging/LogItem.js";
@@ -168,6 +168,19 @@ export class Store<T> extends QueryTarget<T> {
         // ok to not monitor result of request, see comment in `put`.
         const request = this._idbStore.add(value);
         this._prepareErrorLog(request, log, "add", undefined, value);
+    }
+    
+    async tryAdd(value: T, log: LogItem): Promise<boolean> {
+        try {
+            await reqAsPromise(this._idbStore.add(value));
+            return true;
+        } catch (err) {
+            if (err instanceof IDBRequestError) {
+                log.log({l: "could not write", id: this._getKey(value), e: err}, log.level.Warn);
+                err.preventTransactionAbort();
+            }
+            return false;
+        }
     }
 
     delete(keyOrKeyRange: IDBValidKey | IDBKeyRange, log?: LogItem): void {
