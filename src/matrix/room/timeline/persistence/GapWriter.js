@@ -298,9 +298,9 @@ export function tests() {
         return { storage, txn, fragmentIdComparer, gapWriter, syncWriter, timelineMock: new TimelineMock() };
     }
 
-    async function syncAndWrite(mocks, previousResponse) {
+    async function syncAndWrite(mocks, { previous, limit } = {}) {
         const {txn, timelineMock, syncWriter, fragmentIdComparer} = mocks;
-        const syncResponse = timelineMock.sync(previousResponse?.next_batch);
+        const syncResponse = timelineMock.sync(previous?.next_batch, limit);
         const {newLiveKey} = await syncWriter.writeSync(syncResponse, false, false, txn, logger);
         syncWriter.afterSync(newLiveKey);
         return {
@@ -329,14 +329,14 @@ export function tests() {
         return txn.timelineFragments.get(roomId, fragmentId);
     }
 
-    function assertDeepLink(assert, fragment1, fragment2) {
+    function assertFilledLink(assert, fragment1, fragment2) {
         assert.equal(fragment1.nextId, fragment2.id);
         assert.equal(fragment2.previousId, fragment1.id);
         assert.equal(fragment1.nextToken, null);
         assert.equal(fragment2.previousToken, null);
     }
 
-    function assertShallowLink(assert, fragment1, fragment2) {
+    function assertGapLink(assert, fragment1, fragment2) {
         assert.equal(fragment1.nextId, fragment2.id);
         assert.equal(fragment2.previousId, fragment1.id);
         assert.notEqual(fragment2.previousToken, null);
@@ -351,46 +351,49 @@ export function tests() {
             await backfillAndWrite(mocks, fragmentEntry);
             const events = await allFragmentEvents(mocks, fragmentEntry.fragmentId);
             assert.deepEqual(events.map(e => e.event_id), eventIds(10, 30));
+            await mocks.txn.complete();
         },
-        "Backfilling a fragment that is expected to link up, and does": async assert => {
+        "Backfilling a fragment that is expected to close a gap, and does": async assert => {
             const mocks = await setup();
             const { timelineMock } = mocks;
             timelineMock.append(10);
-            const {syncResponse, fragmentEntry: firstFragmentEntry} = await syncAndWrite(mocks);
+            const {syncResponse, fragmentEntry: firstFragmentEntry} = await syncAndWrite(mocks, { limit: 10 });
             timelineMock.append(15);
-            const {fragmentEntry: secondFragmentEntry} = await syncAndWrite(mocks, syncResponse);
+            const {fragmentEntry: secondFragmentEntry} = await syncAndWrite(mocks, { previous: syncResponse, limit: 10 });
             await backfillAndWrite(mocks, secondFragmentEntry);
 
             const firstFragment = await fetchFragment(mocks, firstFragmentEntry.fragmentId);
             const secondFragment = await fetchFragment(mocks, secondFragmentEntry.fragmentId);
-            assertDeepLink(assert, firstFragment, secondFragment)
+            assertFilledLink(assert, firstFragment, secondFragment)
             const firstEvents = await allFragmentEvents(mocks, firstFragmentEntry.fragmentId);
             assert.deepEqual(firstEvents.map(e => e.event_id), eventIds(0, 10));
             const secondEvents = await allFragmentEvents(mocks, secondFragmentEntry.fragmentId);
             assert.deepEqual(secondEvents.map(e => e.event_id), eventIds(10, 25));
+            await mocks.txn.complete();
         },
-        "Backfilling a fragment that is expected to link up, but doesn't yet": async assert => {
+        "Backfilling a fragment that is expected to close a gap, but doesn't yet": async assert => {
             const mocks = await setup();
             const { timelineMock } = mocks;
             timelineMock.append(10);
-            const {syncResponse, fragmentEntry: firstFragmentEntry} = await syncAndWrite(mocks);
+            const {syncResponse, fragmentEntry: firstFragmentEntry} = await syncAndWrite(mocks, { limit: 10 });
             timelineMock.append(20);
-            const {fragmentEntry: secondFragmentEntry} = await syncAndWrite(mocks, syncResponse);
+            const {fragmentEntry: secondFragmentEntry} = await syncAndWrite(mocks, { previous: syncResponse, limit: 10 });
             await backfillAndWrite(mocks, secondFragmentEntry);
 
             const firstFragment = await fetchFragment(mocks, firstFragmentEntry.fragmentId);
             const secondFragment = await fetchFragment(mocks, secondFragmentEntry.fragmentId);
-            assertShallowLink(assert, firstFragment, secondFragment)
+            assertGapLink(assert, firstFragment, secondFragment)
             const firstEvents = await allFragmentEvents(mocks, firstFragmentEntry.fragmentId);
             assert.deepEqual(firstEvents.map(e => e.event_id), eventIds(0, 10));
             const secondEvents = await allFragmentEvents(mocks, secondFragmentEntry.fragmentId);
             assert.deepEqual(secondEvents.map(e => e.event_id), eventIds(10, 30));
+            await mocks.txn.complete();
         },
         "Receiving a sync with the same events as the current fragment does not create infinite link": async assert => {
             const mocks = await setup();
             const { txn, timelineMock } = mocks;
             timelineMock.append(10);
-            const {syncResponse, fragmentEntry: fragmentEntry} = await syncAndWrite(mocks);
+            const {syncResponse, fragmentEntry: fragmentEntry} = await syncAndWrite(mocks, { limit: 10 });
             // Mess with the saved token to receive old events in backfill
             fragmentEntry.token = syncResponse.next_batch;
             txn.timelineFragments.update(fragmentEntry.fragment);
@@ -399,14 +402,15 @@ export function tests() {
             const fragment = await fetchFragment(mocks, fragmentEntry.fragmentId);
             assert.notEqual(fragment.nextId, fragment.id);
             assert.notEqual(fragment.previousId, fragment.id);
+            await mocks.txn.complete();
         },
         "An event received by sync does not interrupt backfilling": async assert => {
             const mocks = await setup();
             const { timelineMock } = mocks;
             timelineMock.append(10);
-            const {syncResponse, fragmentEntry: firstFragmentEntry} = await syncAndWrite(mocks);
+            const {syncResponse, fragmentEntry: firstFragmentEntry} = await syncAndWrite(mocks, { limit: 10 });
             timelineMock.append(11);
-            const {fragmentEntry: secondFragmentEntry} = await syncAndWrite(mocks, syncResponse);
+            const {fragmentEntry: secondFragmentEntry} = await syncAndWrite(mocks, { previous: syncResponse, limit: 10 });
             timelineMock.insertAfter(eventId(9), 5);
             await backfillAndWrite(mocks, secondFragmentEntry);
 
@@ -416,7 +420,8 @@ export function tests() {
             assert.deepEqual(secondEvents.map(e => e.event_id), [...eventIds(21,26), ...eventIds(10, 21)]);
             const firstFragment = await fetchFragment(mocks, firstFragmentEntry.fragmentId);
             const secondFragment = await fetchFragment(mocks, secondFragmentEntry.fragmentId);
-            assertDeepLink(assert, firstFragment, secondFragment)
+            assertFilledLink(assert, firstFragment, secondFragment)
+            await mocks.txn.complete();
         }
     }
 }

@@ -109,7 +109,6 @@ export class TimelineMock {
             throw new Error("Fetching context for unknown event");
         }
         const event = this._dagOrder[eventIndex];
-        limit -= 1;
         let offset = 1;
         const eventsBefore: TimelineEvent[] = [];
         const eventsAfter: TimelineEvent[] = [];
@@ -179,18 +178,18 @@ export function tests() {
             const context = timeline.context(eventId(15));
             assert.equal(context.event.event_id, eventId(15));
             assert.deepEqual(context.events_before.map(e => e.event_id).reverse(), eventIds(10, 15));
-            assert.deepEqual(context.events_after.map(e => e.event_id), eventIds(16, 20));
+            assert.deepEqual(context.events_after.map(e => e.event_id), eventIds(16, 21));
         },
         "The context endpoint returns the proper number of messages": assert => {
             const timeline = new TimelineMock(SENDER);
             timeline.append(30);
             for (const i of new Array(29).keys()) {
                 const middleFetch = timeline.context(eventId(15), i + 1);
-                assert.equal(middleFetch.events_before.length + middleFetch.events_after.length + 1, i + 1);
+                assert.equal(middleFetch.events_before.length + middleFetch.events_after.length, i + 1);
                 const startFetch = timeline.context(eventId(1), i + 1);
-                assert.equal(startFetch.events_before.length + startFetch.events_after.length + 1, i + 1);
+                assert.equal(startFetch.events_before.length + startFetch.events_after.length, i + 1);
                 const endFetch = timeline.context(eventId(28), i + 1);
-                assert.equal(endFetch.events_before.length + endFetch.events_after.length + 1, i + 1);
+                assert.equal(endFetch.events_before.length + endFetch.events_after.length, i + 1);
             }
         },
         "The previous batch from a sync returns the previous events": assert => {
@@ -204,23 +203,27 @@ export function tests() {
         "Two consecutive message fetches are continuous if no new events are inserted": assert => {
             const timeline = new TimelineMock(SENDER);
             timeline.append(30);
+
             const sync = timeline.sync(undefined, 10);
             const messages1 = timeline.messages(sync.timeline.prev_batch, undefined, "b");
             const events1 = messages1.chunk.map(e => e.event_id).reverse();
+            assert.deepEqual(events1, eventIds(10, 20));
+
             const messages2 = timeline.messages(messages1.end, undefined, "b");
             const events2 = messages2.chunk.map(e => e.event_id).reverse();
-            assert.deepEqual(events1, eventIds(10, 20));
             assert.deepEqual(events2, eventIds(0, 10));
         },
         "Two consecutive message fetches detect newly inserted event": assert => {
             const timeline = new TimelineMock(SENDER);
             timeline.append(30);
+
             const messages1 = timeline.messages(eventId(20), undefined, "b", 10);
             const events1 = messages1.chunk.map(e => e.event_id).reverse();
+            assert.deepEqual(events1, eventIds(10, 20));
             timeline.insertAfter(eventId(9), 1);
+
             const messages2 = timeline.messages(eventId(10), undefined, "b", 10);
             const events2 = messages2.chunk.map(e => e.event_id).reverse();
-            assert.deepEqual(events1, eventIds(10, 20));
             const expectedEvents2 = eventIds(1, 10);
             expectedEvents2.push(eventId(30));
             assert.deepEqual(events2, expectedEvents2);
@@ -232,23 +235,25 @@ export function tests() {
             const sync2 = timeline.sync(sync1.next_batch);
             assert.equal(sync1.next_batch, sync2.next_batch);
         }, 
-        "An event inserted in the midle still shows up in a sync": assert => {
+        "An event inserted at the staart still shows up in a sync": assert => {
             const timeline = new TimelineMock(SENDER);
             timeline.append(30);
             const sync1 = timeline.sync(undefined, 10);
             const sync2 = timeline.sync(sync1.next_batch, 10)
             assert.deepEqual(sync2.timeline.events, []);
             assert.equal(sync2.timeline.limited, false);
+
             timeline.insertAfter(TIMELINE_START_TOKEN, 1);
             const sync3 = timeline.sync(sync2.next_batch, 10)
             const events = sync3.timeline.events.map(e => e.event_id);
-            assert.deepEqual(events, eventIds(30, 31));
+            assert.deepEqual(events, [eventId(30)]);
         },
-        "An event inserted in the midle does not show up in a message fetch": assert => {
+        "An event inserted at the start does not show up in a non-overlapping message fetch": assert => {
             const timeline = new TimelineMock(SENDER);
             timeline.append(30);
             const sync1 = timeline.sync(undefined, 10);
             const messages1 = timeline.messages(sync1.timeline.prev_batch, undefined, "f", 10);
+
             timeline.insertAfter(TIMELINE_START_TOKEN, 1);
             const messages2 = timeline.messages(sync1.timeline.prev_batch, undefined, "f", 10);
             assert.deepEqual(messages1.chunk, messages2.chunk);
