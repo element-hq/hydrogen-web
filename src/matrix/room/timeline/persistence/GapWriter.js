@@ -124,7 +124,7 @@ export class GapWriter {
             if (updatedRelationTargetEntries) {
                 updatedEntries.push(...updatedRelationTargetEntries);
             }
-            if (await txn.timelineEvents.tryInsert(eventStorageEntry)) {
+            if (await txn.timelineEvents.tryInsert(eventStorageEntry, log)) {
                 const eventEntry = new EventEntry(eventStorageEntry, this._fragmentIdComparer);
                 directionalAppend(entries, eventEntry, direction);
             }

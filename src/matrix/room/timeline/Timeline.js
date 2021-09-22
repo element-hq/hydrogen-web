@@ -450,7 +450,7 @@ export function tests() {
             txn.timelineEvents.tryInsert({
                 event: withContent(createAnnotation(messageId, "👋"), createEvent("m.reaction", reactionId, bob)),
                 fragmentId: 1, eventIndex: 1, roomId
-            });
+            }, new NullLogItem());
             txn.timelineRelations.add(roomId, messageId, ANNOTATION_RELATION_TYPE, reactionId);
             await txn.complete();
             // 2. setup the timeline
@@ -546,7 +546,7 @@ export function tests() {
             txn.timelineEvents.tryInsert({
                 event: withContent(createAnnotation(messageId, "👋"), createEvent("m.reaction", reactionId, bob)),
                 fragmentId: 1, eventIndex: 3, roomId
-            });
+            }, new NullLogItem());
             await txn.complete();
             // 2. setup timeline
             const pendingEvents = new ObservableArray();
