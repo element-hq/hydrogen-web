@@ -20,7 +20,7 @@ function noop () {}
 
 export class NullLogger {
     constructor() {
-        this.item = new NullLogItem();
+        this.item = new NullLogItem(this);
     }
 
     log() {}
@@ -51,6 +51,10 @@ export class NullLogger {
 }
 
 export class NullLogItem {
+    constructor(logger) {
+        this.logger = logger;
+    }
+
     wrap(_, callback) {
         return callback(this);
     }

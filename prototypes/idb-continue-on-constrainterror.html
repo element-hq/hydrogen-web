@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <script type="text/javascript">
+        class IDBError extends Error {
+            constructor(errorEvent) {
+                const request = errorEvent.target;
+                const {error} = request;
+                super(error.message);
+                this.name = error.name;
+                this.errorEvent = errorEvent;
+            }
+
+            preventAbort() {
+                this.errorEvent.preventDefault();
+            }
+        }
+
+        class AbortError extends Error {
+            get name() { return "AbortError"; }
+        }
+
+        function reqAsPromise(req) {
+            return new Promise(function (resolve, reject) {
+                req.onsuccess = function(e) {
+                    resolve(e.target.result);
+                };
+                req.onerror = function(e) {
+                    reject(new IDBError(e));
+                };
+            });
+        }
+
+        function txnAsPromise(txn) {
+            return new Promise((resolve, reject) => {
+                txn.addEventListener("complete", () => resolve());
+                txn.addEventListener("abort", event => {
+                    reject(new AbortError());
+                });
+            });
+        }
+
+        function Storage(databaseName) {
+            this._databaseName = databaseName;
+            this._database = null;
+        }
+
+        Storage.prototype = {
+            open: function() {
+                const req = window.indexedDB.open(this._databaseName);
+                const self = this;
+                req.onupgradeneeded = function(ev) {
+                    const db = ev.target.result;
+                    const oldVersion = ev.oldVersion;
+                    self._createStores(db, oldVersion);
+                }; 
+                return reqAsPromise(req).then(function() {
+                    self._database = req.result;
+                });
+            },
+            readWriteTxn: function(storeName) {
+                return this._database.transaction([storeName], "readwrite");
+            },
+            readTxn: function(storeName) {
+                return this._database.transaction([storeName], "readonly");
+            },
+            _createStores: function(db) {
+                db.createObjectStore("foos", {keyPath: "id"});
+            }
+        };
+
+        async function main() {
+            const storage = new Storage("idb-continue-on-constrainterror");
+            await storage.open();
+            const txn1 = storage.readWriteTxn("foos");
+            const store = txn1.objectStore("foos");
+            await reqAsPromise(store.clear());
+            console.log("first foo read back", await reqAsPromise(store.get(5)));
+            await reqAsPromise(store.add({id: 5, name: "Mr Foo"}));
+            try {
+                await reqAsPromise(store.add({id: 5, name: "bar"}));
+            } catch (err) {
+                console.log("we did get an error", err.name);
+                err.preventAbort();
+            }
+            await txnAsPromise(txn1);
+
+            const txn2 = storage.readTxn("foos");
+            const store2 = txn2.objectStore("foos");
+            console.log("got name from second txn", await reqAsPromise(store2.get(5)));
+        }
+        main().catch(err => console.error(err));
+    </script>
+</body>
+</html>
+ 

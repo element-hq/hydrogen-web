@@ -97,7 +97,7 @@ export function reqAsPromise<T>(req: IDBRequest<T>): Promise<T> {
             needsSyncPromise && Promise._flush && Promise._flush();
         });
         req.addEventListener("error", event => {
-            const error = new IDBRequestError(event.target as IDBRequest<T>);
+            const error = new IDBRequestError(event);
             reject(error);
             // @ts-ignore
             needsSyncPromise && Promise._flush && Promise._flush();
@@ -143,8 +143,8 @@ type CursorIterator<T, I extends IDBCursor> = (value: I extends IDBCursorWithVal
 export function iterateCursor<T, I extends IDBCursor = IDBCursorWithValue>(cursorRequest: IDBRequest<I | null>, processValue: CursorIterator<T, I>): Promise<boolean> {
     // TODO: does cursor already have a value here??
     return new Promise<boolean>((resolve, reject) => {
-        cursorRequest.onerror = () => {
-            reject(new IDBRequestError(cursorRequest));
+        cursorRequest.onerror = event => {
+            reject(new IDBRequestError(event));
             // @ts-ignore
             needsSyncPromise && Promise._flush && Promise._flush();
         };

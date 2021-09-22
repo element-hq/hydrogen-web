@@ -447,10 +447,10 @@ export function tests() {
             // 1. put event and reaction into storage
             const storage = await createMockStorage();
             const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
-            txn.timelineEvents.insert({
+            txn.timelineEvents.tryInsert({
                 event: withContent(createAnnotation(messageId, "👋"), createEvent("m.reaction", reactionId, bob)),
                 fragmentId: 1, eventIndex: 1, roomId
-            });
+            }, new NullLogItem());
             txn.timelineRelations.add(roomId, messageId, ANNOTATION_RELATION_TYPE, reactionId);
             await txn.complete();
             // 2. setup the timeline
@@ -543,10 +543,10 @@ export function tests() {
             // 1. put reaction in storage
             const storage = await createMockStorage();
             const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
-            txn.timelineEvents.insert({
+            txn.timelineEvents.tryInsert({
                 event: withContent(createAnnotation(messageId, "👋"), createEvent("m.reaction", reactionId, bob)),
                 fragmentId: 1, eventIndex: 3, roomId
-            });
+            }, new NullLogItem());
             await txn.complete();
             // 2. setup timeline
             const pendingEvents = new ObservableArray();

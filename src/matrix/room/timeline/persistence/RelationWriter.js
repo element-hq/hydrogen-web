@@ -275,7 +275,7 @@ export function tests() {
 
             const storage = await createMockStorage();
             const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
-            txn.timelineEvents.insert({fragmentId: 1, eventIndex: 2, event, roomId});
+            txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 2, event, roomId}, new NullLogItem());
             const updatedEntries = await relationWriter.writeRelation(redactionEntry, txn, new NullLogItem());
             await txn.complete();
 
@@ -300,7 +300,7 @@ export function tests() {
 
             const storage = await createMockStorage();
             const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
-            txn.timelineEvents.insert({fragmentId: 1, eventIndex: 2, event, roomId});
+            txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 2, event, roomId}, new NullLogItem());
             const updatedEntries = await relationWriter.writeRelation(reactionEntry, txn, new NullLogItem());
             await txn.complete();
 
@@ -329,7 +329,7 @@ export function tests() {
 
             const storage = await createMockStorage();
             const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
-            txn.timelineEvents.insert({fragmentId: 1, eventIndex: 2, event, roomId});
+            txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 2, event, roomId}, new NullLogItem());
             await relationWriter.writeRelation(reaction1Entry, txn, new NullLogItem());
             const updatedEntries = await relationWriter.writeRelation(reaction2Entry, txn, new NullLogItem());
             await txn.complete();
@@ -358,10 +358,10 @@ export function tests() {
 
             const storage = await createMockStorage();
             const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
-            txn.timelineEvents.insert({fragmentId: 1, eventIndex: 2, event, roomId});
-            txn.timelineEvents.insert({fragmentId: 1, eventIndex: 3, event: myReaction, roomId});
+            txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 2, event, roomId}, new NullLogItem());
+            txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 3, event: myReaction, roomId}, new NullLogItem());
             await relationWriter.writeRelation(myReactionEntry, txn, new NullLogItem());
-            txn.timelineEvents.insert({fragmentId: 1, eventIndex: 4, event: bobReaction, roomId});
+            txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 4, event: bobReaction, roomId}, new NullLogItem());
             await relationWriter.writeRelation(bobReactionEntry, txn, new NullLogItem());
             const updatedEntries = await relationWriter.writeRelation(myReactionRedactionEntry, txn, new NullLogItem());
             await txn.complete();

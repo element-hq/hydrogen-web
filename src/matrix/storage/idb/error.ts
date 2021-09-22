@@ -57,10 +57,18 @@ export class IDBError extends StorageError {
 }
 
 export class IDBRequestError extends IDBError {
-    constructor(request: IDBRequest, message: string = "IDBRequest failed") {
+    private errorEvent: Event;
+
+    constructor(errorEvent: Event) {
+        const request = errorEvent.target as IDBRequest;
         const source = request.source;
         const cause = request.error;
-        super(message, source, cause);
+        super("IDBRequest failed", source, cause);
+        this.errorEvent = errorEvent;
+    }
+
+    preventTransactionAbort() {
+        this.errorEvent.preventDefault();
     }
 }
 
