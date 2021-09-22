@@ -164,7 +164,6 @@ export class SyncWriter {
                 }
                 const couldInsert = await txn.timelineEvents.tryInsert(storageEntry, log);
                 if (!couldInsert) {
-                    log.log({l: `could not write event, likely #504`, id: event.event_id}, log.level.Warn);
                     continue;
                 }
                 const entry = new EventEntry(storageEntry, this._fragmentIdComparer);

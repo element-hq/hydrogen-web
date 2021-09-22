@@ -127,8 +127,6 @@ export class GapWriter {
             if (await txn.timelineEvents.tryInsert(eventStorageEntry)) {
                 const eventEntry = new EventEntry(eventStorageEntry, this._fragmentIdComparer);
                 directionalAppend(entries, eventEntry, direction);
-            } else {
-                log.log({l: `could not write event`, id: event.event_id}, log.level.Warn);
             }
         }
         return {entries, updatedEntries};
