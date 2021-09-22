@@ -169,7 +169,7 @@ export class Store<T> extends QueryTarget<T> {
         const request = this._idbStore.add(value);
         this._prepareErrorLog(request, log, "add", undefined, value);
     }
-    
+
     async tryAdd(value: T, log: LogItem): Promise<boolean> {
         try {
             await reqAsPromise(this._idbStore.add(value));
@@ -178,8 +178,10 @@ export class Store<T> extends QueryTarget<T> {
             if (err instanceof IDBRequestError) {
                 log.log({l: "could not write", id: this._getKey(value), e: err}, log.level.Warn);
                 err.preventTransactionAbort();
+                return false;
+            } else {
+                throw err;
             }
-            return false;
         }
     }
 
