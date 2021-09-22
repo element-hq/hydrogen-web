@@ -201,14 +201,10 @@ export class Store<T> extends QueryTarget<T> {
         }
         reqAsPromise(request).catch(err => {
             let keys : IDBKey[] | undefined = undefined;
-            try {
-                if (value) {
-                    keys = this._getKeys(value);
-                } else if (key) {
-                    keys = [key];
-                }
-            } catch (err) {
-                console.error("_getKeys failed", err);
+            if (value) {
+                keys = this._getKeys(value);
+            } else if (key) {
+                keys = [key];
             }
             this._transaction.addWriteError(err, log, operationName, keys);
         });
