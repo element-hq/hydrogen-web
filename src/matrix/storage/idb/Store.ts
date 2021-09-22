@@ -17,7 +17,7 @@ limitations under the License.
 import {QueryTarget, IDBQuery} from "./QueryTarget";
 import {IDBRequestError, IDBRequestAttemptError} from "./error";
 import {reqAsPromise} from "./utils";
-import {Transaction} from "./Transaction";
+import {Transaction, IDBKey} from "./Transaction";
 import {LogItem} from "../../../logging/LogItem.js";
 
 const LOG_REQUESTS = false;
@@ -126,6 +126,10 @@ class QueryTargetWrapper<T> {
             throw new IDBRequestAttemptError("index", this._qt, err, [name]);
         }
     }
+
+    get indexNames(): string[] {
+        return Array.from(this._qtStore.indexNames);
+    }
 }
 
 export class Store<T> extends QueryTarget<T> {
@@ -176,7 +180,7 @@ export class Store<T> extends QueryTarget<T> {
             return true;
         } catch (err) {
             if (err instanceof IDBRequestError) {
-                log.log({l: "could not write", id: this._getKey(value), e: err}, log.level.Warn);
+                log.log({l: "could not write", id: this._getKeys(value), e: err}, log.level.Warn);
                 err.preventTransactionAbort();
                 return false;
             } else {
@@ -191,24 +195,45 @@ export class Store<T> extends QueryTarget<T> {
         this._prepareErrorLog(request, log, "delete", keyOrKeyRange, undefined);
     }
 
-    private _prepareErrorLog(request: IDBRequest, log: LogItem | undefined, operationName: string, key: IDBValidKey | IDBKeyRange | undefined, value: T | undefined) {
+    private _prepareErrorLog(request: IDBRequest, log: LogItem | undefined, operationName: string, key: IDBKey | undefined, value: T | undefined) {
         if (log) {
             log.ensureRefId();
         }
         reqAsPromise(request).catch(err => {
+            let keys : IDBKey[] | undefined = undefined;
             try {
-                if (!key && value) {
-                    key = this._getKey(value);
+                if (value) {
+                    keys = this._getKeys(value);
+                } else if (key) {
+                    keys = [key];
                 }
-            } catch {
-                key = "getKey failed";
+            } catch (err) {
+                console.error("_getKeys failed", err);
             }
-            this._transaction.addWriteError(err, log, operationName, key);
+            this._transaction.addWriteError(err, log, operationName, keys);
         });
     }
 
-    private _getKey(value: T): IDBValidKey {
+    private _getKeys(value: T): IDBValidKey[] {
+        const keys: IDBValidKey[] = [];
         const {keyPath} = this._idbStore;
+        try {
+            keys.push(this._readKeyPath(value, keyPath));
+        } catch (err) {
+            console.warn("could not read keyPath", keyPath);
+        }
+        for (const indexName of this._idbStore.indexNames) {
+            try {
+                const index = this._idbStore.index(indexName);
+                keys.push(this._readKeyPath(value, index.keyPath));
+            } catch (err) {
+                console.warn("could not read index", indexName);
+            }
+        }
+        return keys;
+    }
+
+    private _readKeyPath(value: T, keyPath: string[] | string): IDBValidKey {
         if (Array.isArray(keyPath)) {
             let field: any = value;
             for (const part of keyPath) {
@@ -221,6 +246,6 @@ export class Store<T> extends QueryTarget<T> {
             return field as IDBValidKey;
         } else {
             return value[keyPath] as IDBValidKey;
-        }        
+        }
     }
 }
