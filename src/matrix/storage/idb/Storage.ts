@@ -24,12 +24,15 @@ const WEBKITEARLYCLOSETXNBUG_BOGUS_KEY = "782rh281re38-boguskey";
 export class Storage {
     private _db: IDBDatabase;
     private _hasWebkitEarlyCloseTxnBug: boolean;
+
     readonly logger: BaseLogger;
+    readonly idbFactory: IDBFactory
     readonly IDBKeyRange: typeof IDBKeyRange;
     readonly storeNames: typeof StoreNames;
 
-    constructor(idbDatabase: IDBDatabase, _IDBKeyRange: typeof IDBKeyRange, hasWebkitEarlyCloseTxnBug: boolean, logger: BaseLogger) {
+    constructor(idbDatabase: IDBDatabase, idbFactory: IDBFactory, _IDBKeyRange: typeof IDBKeyRange, hasWebkitEarlyCloseTxnBug: boolean, logger: BaseLogger) {
         this._db = idbDatabase;
+        this.idbFactory = idbFactory;
         this.IDBKeyRange = _IDBKeyRange;
         this._hasWebkitEarlyCloseTxnBug = hasWebkitEarlyCloseTxnBug;
         this.storeNames = StoreNames;

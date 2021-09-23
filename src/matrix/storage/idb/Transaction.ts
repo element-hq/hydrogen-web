@@ -65,6 +65,10 @@ export class Transaction {
         this._writeErrors = [];
     }
 
+    get idbFactory(): IDBFactory {
+        return this._storage.idbFactory;
+    }
+
     get IDBKeyRange(): typeof IDBKeyRange {
         return this._storage.IDBKeyRange;
     }

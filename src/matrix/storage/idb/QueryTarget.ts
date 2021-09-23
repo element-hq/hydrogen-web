@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {iterateCursor, DONE, NOT_DONE, reqAsPromise} from "./utils";
+import {Transaction} from "./Transaction";
 
 type Reducer<A,B> = (acc: B, val: A) => B
 
@@ -31,9 +32,19 @@ interface QueryTargetInterface<T> {
 
 export class QueryTarget<T> {
     protected _target: QueryTargetInterface<T>;
+    protected _transaction: Transaction;
 
-    constructor(target: QueryTargetInterface<T>) {
+    constructor(target: QueryTargetInterface<T>, transaction: Transaction) {
         this._target = target;
+        this._transaction = transaction;
+    }
+
+    get idbFactory(): IDBFactory {
+        return this._transaction.idbFactory;
+    }
+
+    get IDBKeyRange(): typeof IDBKeyRange {
+        return this._transaction.IDBKeyRange;
     }
 
     _openCursor(range?: IDBQuery, direction?: IDBCursorDirection): IDBRequest<IDBCursorWithValue | null> {
@@ -155,11 +166,11 @@ export class QueryTarget<T> {
      */
     async findExistingKeys(keys: IDBValidKey[], backwards: boolean, callback: (key: IDBValidKey, found: boolean) => boolean): Promise<void> {
         const direction = backwards ? "prev" : "next";
-        const compareKeys = (a, b) => backwards ? -indexedDB.cmp(a, b) : indexedDB.cmp(a, b);
+        const compareKeys = (a, b) => backwards ? -this.idbFactory.cmp(a, b) : this.idbFactory.cmp(a, b);
         const sortedKeys = keys.slice().sort(compareKeys);
         const firstKey = backwards ? sortedKeys[sortedKeys.length - 1] : sortedKeys[0];
         const lastKey = backwards ? sortedKeys[0] : sortedKeys[sortedKeys.length - 1];
-        const cursor = this._target.openKeyCursor(IDBKeyRange.bound(firstKey, lastKey), direction);
+        const cursor = this._target.openKeyCursor(this.IDBKeyRange.bound(firstKey, lastKey), direction);
         let i = 0;
         let consumerDone = false;
         await iterateCursor(cursor, (value, key) => {
