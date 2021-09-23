@@ -105,9 +105,10 @@ export class GapWriter {
             if (updatedRelationTargetEntries) {
                 updatedEntries.push(...updatedRelationTargetEntries);
             }
-            txn.timelineEvents.insert(eventStorageEntry);
-            const eventEntry = new EventEntry(eventStorageEntry, this._fragmentIdComparer);
-            directionalAppend(entries, eventEntry, direction);
+            if (await txn.timelineEvents.tryInsert(eventStorageEntry, log)) {
+                const eventEntry = new EventEntry(eventStorageEntry, this._fragmentIdComparer);
+                directionalAppend(entries, eventEntry, direction);
+            }
         }
         return {entries, updatedEntries};
     }
@@ -293,9 +294,9 @@ export function tests() {
         };
     }
 
-    async function backfillAndWrite(mocks, fragmentEntry) {
+    async function backfillAndWrite(mocks, fragmentEntry, limit) {
         const {txn, timelineMock, gapWriter} = mocks;
-        const messageResponse = timelineMock.messages(fragmentEntry.token, undefined, fragmentEntry.direction.asApiString());
+        const messageResponse = timelineMock.messages(fragmentEntry.token, undefined, fragmentEntry.direction.asApiString(), limit);
         await gapWriter.writeFragmentFill(fragmentEntry, messageResponse, txn, logger);
     }
 
@@ -333,7 +334,7 @@ export function tests() {
             const { timelineMock } = mocks;
             timelineMock.append(30);
             const {fragmentEntry} = await syncAndWrite(mocks);
-            await backfillAndWrite(mocks, fragmentEntry);
+            await backfillAndWrite(mocks, fragmentEntry, 10);
             const events = await allFragmentEvents(mocks, fragmentEntry.fragmentId);
             assert.deepEqual(events.map(e => e.event_id), eventIds(10, 30));
             await mocks.txn.complete();
@@ -346,8 +347,8 @@ export function tests() {
             timelineMock.append(15);
             const {fragmentEntry: secondFragmentEntry} = await syncAndWrite(mocks, { previous: syncResponse, limit: 10 });
             // Only the second backfill (in which all events overlap) fills the gap.
-            await backfillAndWrite(mocks, secondFragmentEntry);
-            await backfillAndWrite(mocks, await updatedFragmentEntry(mocks, secondFragmentEntry));
+            await backfillAndWrite(mocks, secondFragmentEntry, 10);
+            await backfillAndWrite(mocks, await updatedFragmentEntry(mocks, secondFragmentEntry), 10);
 
             const firstFragment = await fetchFragment(mocks, firstFragmentEntry.fragmentId);
             const secondFragment = await fetchFragment(mocks, secondFragmentEntry.fragmentId);
@@ -365,7 +366,7 @@ export function tests() {
             const {syncResponse, fragmentEntry: firstFragmentEntry} = await syncAndWrite(mocks, { limit: 10 });
             timelineMock.append(20);
             const {fragmentEntry: secondFragmentEntry} = await syncAndWrite(mocks, { previous: syncResponse, limit: 10 });
-            await backfillAndWrite(mocks, secondFragmentEntry);
+            await backfillAndWrite(mocks, secondFragmentEntry, 10);
 
             const firstFragment = await fetchFragment(mocks, firstFragmentEntry.fragmentId);
             const secondFragment = await fetchFragment(mocks, secondFragmentEntry.fragmentId);
@@ -384,7 +385,7 @@ export function tests() {
             // Mess with the saved token to receive old events in backfill
             fragmentEntry.token = syncResponse.next_batch;
             txn.timelineFragments.update(fragmentEntry.fragment);
-            await backfillAndWrite(mocks, fragmentEntry);
+            await backfillAndWrite(mocks, fragmentEntry, 10);
 
             const fragment = await fetchFragment(mocks, fragmentEntry.fragmentId);
             assert.notEqual(fragment.nextId, fragment.id);
@@ -400,8 +401,8 @@ export function tests() {
             const {fragmentEntry: secondFragmentEntry} = await syncAndWrite(mocks, { previous: syncResponse, limit: 10 });
             timelineMock.insertAfter(eventId(9), 5);
             // Only the second backfill (in which all events overlap) fills the gap.
-            await backfillAndWrite(mocks, secondFragmentEntry);
-            await backfillAndWrite(mocks, await updatedFragmentEntry(mocks, secondFragmentEntry));
+            await backfillAndWrite(mocks, secondFragmentEntry, 10);
+            await backfillAndWrite(mocks, await updatedFragmentEntry(mocks, secondFragmentEntry), 10);
 
             const firstEvents = await allFragmentEvents(mocks, firstFragmentEntry.fragmentId);
             assert.deepEqual(firstEvents.map(e => e.event_id), eventIds(0, 10));

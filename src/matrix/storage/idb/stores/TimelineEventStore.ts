@@ -253,15 +253,17 @@ export class TimelineEventStore {
         return occuringEventIds;
     }
 
-    /** Inserts a new entry into the store. The combination of roomId and eventKey should not exist yet, or an error is thrown.
-     *  @param entry the entry to insert
-     *  @return nothing. To wait for the operation to finish, await the transaction it's part of.
-     *  @throws {StorageError} ...
+    /** Inserts a new entry into the store.
+     * 
+     * If the event already exists in the store (either the eventKey or the event id
+     * are already known for the given roomId), this operation has no effect.
+     * 
+     * Returns if the event was not yet known and the entry was written.
      */
-    insert(entry: TimelineEventEntry, log: LogItem): void {
+    tryInsert(entry: TimelineEventEntry, log: LogItem): Promise<boolean> {
         (entry as TimelineEventStorageEntry).key = encodeKey(entry.roomId, entry.fragmentId, entry.eventIndex);
         (entry as TimelineEventStorageEntry).eventIdKey = encodeEventIdKey(entry.roomId, entry.event.event_id);
-        this._timelineStore.add(entry as TimelineEventStorageEntry, log);
+        return this._timelineStore.tryAdd(entry as TimelineEventStorageEntry, log);
     }
 
     /** Updates the entry into the store with the given [roomId, eventKey] combination.

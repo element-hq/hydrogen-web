@@ -247,8 +247,8 @@ export function tests() {
                 storage.storeNames.timelineFragments
             ]);
             txn.timelineFragments.add({id: 1, roomId});
-            txn.timelineEvents.insert({fragmentId: 1, eventIndex: 2, event: messageEvent, roomId});
-            txn.timelineEvents.insert({fragmentId: 1, eventIndex: 3, event: myReactionEvent, roomId});
+            txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 2, event: messageEvent, roomId}, new NullLogItem());
+            txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 3, event: myReactionEvent, roomId}, new NullLogItem());
             await relationWriter.writeRelation(myReactionEntry, txn, new NullLogItem());
             await txn.complete();
             // 2. setup queue & timeline
@@ -309,7 +309,7 @@ export function tests() {
                 storage.storeNames.timelineFragments
             ]);
             txn.timelineFragments.add({id: 1, roomId});
-            txn.timelineEvents.insert({fragmentId: 1, eventIndex: 2, event: messageEvent, roomId});
+            txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 2, event: messageEvent, roomId}, new NullLogItem());
             await txn.complete();
             // 2. setup queue & timeline
             const queue = new SendQueue({roomId, storage, hsApi: new MockHomeServer().api});

@@ -7,6 +7,7 @@ export function eventId(i: number): string {
     return `$event${i}`;
 }
 
+/** `from` is included, `to` is excluded */
 export function eventIds(from: number, to: number): string[] {
     return [...Array(to-from).keys()].map(i => eventId(i + from));
 }

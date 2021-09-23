@@ -39,12 +39,14 @@ import {AccountDataStore} from "./stores/AccountDataStore";
 import {LogItem} from "../../../logging/LogItem.js";
 import {BaseLogger} from "../../../logging/BaseLogger.js";
 
+export type IDBKey = IDBValidKey | IDBKeyRange;
+
 class WriteErrorInfo {
     constructor(
         public readonly error: StorageError,
         public readonly refItem: LogItem | undefined,
         public readonly operationName: string,
-        public readonly key: IDBValidKey | IDBKeyRange | undefined,
+        public readonly keys: IDBKey[] | undefined,
     ) {}
 }
 
@@ -196,10 +198,10 @@ export class Transaction {
         }
     }
 
-    addWriteError(error: StorageError, refItem: LogItem | undefined, operationName: string, key: IDBValidKey | IDBKeyRange | undefined) {
+    addWriteError(error: StorageError, refItem: LogItem | undefined, operationName: string, keys: IDBKey[] | undefined) {
         // don't log subsequent `AbortError`s
         if (error.errcode !== "AbortError" || this._writeErrors.length === 0) {
-            this._writeErrors.push(new WriteErrorInfo(error, refItem, operationName, key));
+            this._writeErrors.push(new WriteErrorInfo(error, refItem, operationName, keys));
         }
     }
 
@@ -210,7 +212,7 @@ export class Transaction {
                 errorGroupItem.set("allowedStoreNames", this._allowedStoreNames);
             }
             for (const info of this._writeErrors) {
-                errorGroupItem.wrap({l: info.operationName, id: info.key}, item => {
+                errorGroupItem.wrap({l: info.operationName, id: info.keys}, item => {
                     if (info.refItem) {
                         item.refDetached(info.refItem);
                     }

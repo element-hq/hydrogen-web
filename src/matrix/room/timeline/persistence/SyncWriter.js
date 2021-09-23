@@ -162,7 +162,10 @@ export class SyncWriter {
                     storageEntry.displayName = member.displayName;
                     storageEntry.avatarUrl = member.avatarUrl;
                 }
-                txn.timelineEvents.insert(storageEntry, log);
+                const couldInsert = await txn.timelineEvents.tryInsert(storageEntry, log);
+                if (!couldInsert) {
+                    continue;
+                }
                 const entry = new EventEntry(storageEntry, this._fragmentIdComparer);
                 entries.push(entry);
                 const updatedRelationTargetEntries = await this._relationWriter.writeRelation(entry, txn, log);
@@ -250,5 +253,37 @@ export class SyncWriter {
 
     get lastMessageKey() {
         return this._lastLiveKey;
+    }
+}
+
+import {createMockStorage} from "../../../../mocks/Storage.js";
+import {createEvent, withTextBody} from "../../../../mocks/event.js";
+import {Instance as nullLogger} from "../../../../logging/NullLogger.js";
+export function tests() {
+    const roomId = "!abc:hs.tld";
+    return {
+        "calling timelineEvents.tryInsert with the same event id a second time fails": async assert => {
+            const storage = await createMockStorage();
+            const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents]);
+            const event = withTextBody("hello!", createEvent("m.room.message", "$abc", "@alice:hs.tld"));
+            const entry1 = createEventEntry(EventKey.defaultLiveKey, roomId, event);
+            assert.equal(await txn.timelineEvents.tryInsert(entry1, nullLogger.item), true);
+            const entry2 = createEventEntry(EventKey.defaultLiveKey.nextKey(), roomId, event);
+            assert.equal(await txn.timelineEvents.tryInsert(entry2, nullLogger.item), false);
+            // fake-indexeddb still aborts the transaction when preventDefault is called by tryInsert, so don't await as it will abort
+            // await txn.complete();
+        },
+        "calling timelineEvents.tryInsert with the same event key a second time fails": async assert => {
+            const storage = await createMockStorage();
+            const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents]);
+            const event1 = withTextBody("hello!", createEvent("m.room.message", "$abc", "@alice:hs.tld"));
+            const entry1 = createEventEntry(EventKey.defaultLiveKey, roomId, event1);
+            assert.equal(await txn.timelineEvents.tryInsert(entry1, nullLogger.item), true);
+            const event2 = withTextBody("hello!", createEvent("m.room.message", "$def", "@alice:hs.tld"));
+            const entry2 = createEventEntry(EventKey.defaultLiveKey, roomId, event2);
+            assert.equal(await txn.timelineEvents.tryInsert(entry2, nullLogger.item), false);
+            // fake-indexeddb still aborts the transaction when preventDefault is called by tryInsert, so don't await as it will abort
+            // await txn.complete();
+        },
     }
 }
