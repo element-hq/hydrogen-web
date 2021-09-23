@@ -26,8 +26,9 @@ export class GapWriter {
         this._fragmentIdComparer = fragmentIdComparer;
         this._relationWriter = relationWriter;
     }
-    // events is in reverse-chronological order (last event comes at index 0) if backwards
-    async _findOverlappingEvents(fragmentEntry, events, txn, log) {
+
+    async _findOverlappingEvents(fragmentEntry, events, txn) {
+        const eventIds = events.map(e => e.event_id);
         const existingEventKeyMap = await txn.timelineEvents.getEventKeysForIds(this._roomId, eventIds);
         const nonOverlappingEvents = events.filter(e => !existingEventKeyMap.has(e.event_id));
         let neighbourFragmentEntry;
@@ -185,7 +186,7 @@ export class GapWriter {
         const {
             nonOverlappingEvents,
             neighbourFragmentEntry
-        } = await this._findOverlappingEvents(fragmentEntry, chunk, txn, log);
+        } = await this._findOverlappingEvents(fragmentEntry, chunk, txn);
         // create entries for all events in chunk, add them to entries
         const {entries, updatedEntries} = await this._storeEvents(nonOverlappingEvents, lastKey, direction, state, txn, log);
         const fragments = await this._updateFragments(fragmentEntry, neighbourFragmentEntry, end, entries, txn);
