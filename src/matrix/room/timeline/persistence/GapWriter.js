@@ -28,59 +28,19 @@ export class GapWriter {
     }
     // events is in reverse-chronological order (last event comes at index 0) if backwards
     async _findOverlappingEvents(fragmentEntry, events, txn, log) {
-        let expectedOverlappingEventId;
-        if (fragmentEntry.hasLinkedFragment) {
-            expectedOverlappingEventId = await this._findExpectedOverlappingEventId(fragmentEntry, txn);
-        }
-        let remainingEvents = events;
-        let nonOverlappingEvents = [];
+        const existingEventKeyMap = await txn.timelineEvents.getEventKeysForIds(this._roomId, eventIds);
+        const nonOverlappingEvents = events.filter(e => !existingEventKeyMap.has(e.event_id));
         let neighbourFragmentEntry;
-        while (remainingEvents && remainingEvents.length) {
-            const eventIds = remainingEvents.map(e => e.event_id);
-            const duplicateEventId = await txn.timelineEvents.findFirstOccurringEventId(this._roomId, eventIds);
-            if (duplicateEventId) {
-                const duplicateEventIndex = remainingEvents.findIndex(e => e.event_id === duplicateEventId);
-                // should never happen, just being defensive as this *can't* go wrong
-                if (duplicateEventIndex === -1) {
-                    throw new Error(`findFirstOccurringEventId returned ${duplicateEventIndex} which wasn't ` +
-                        `in [${eventIds.join(",")}] in ${this._roomId}`);
+        if (fragmentEntry.hasLinkedFragment) {
+            for (const eventKey of existingEventKeyMap.values()) {
+                if (eventKey.fragmentId === fragmentEntry.linkedFragmentId) {
+                    const neighbourFragment = await txn.timelineFragments.get(this._roomId, fragmentEntry.linkedFragmentId);
+                    neighbourFragmentEntry = fragmentEntry.createNeighbourEntry(neighbourFragment);
+                    break;
                 }
-                nonOverlappingEvents.push(...remainingEvents.slice(0, duplicateEventIndex));
-                if (!expectedOverlappingEventId || duplicateEventId === expectedOverlappingEventId) {
-                    // TODO: check here that the neighbourEvent is at the correct edge of it's fragment
-                    // get neighbour fragment to link it up later on
-                    const neighbourEvent = await txn.timelineEvents.getByEventId(this._roomId, duplicateEventId);
-                    if (neighbourEvent.fragmentId === fragmentEntry.fragmentId) {
-                        log.log("hit #160, prevent fragment linking to itself", log.level.Warn);
-                    } else {
-                        const neighbourFragment = await txn.timelineFragments.get(this._roomId, neighbourEvent.fragmentId);
-                        neighbourFragmentEntry = fragmentEntry.createNeighbourEntry(neighbourFragment);
-                    }
-                    // trim overlapping events
-                    remainingEvents = null;
-                } else {
-                    // we've hit https://github.com/matrix-org/synapse/issues/7164, 
-                    // e.g. the event id we found is already in our store but it is not
-                    // the adjacent fragment id. Ignore the event, but keep processing the ones after.
-                    remainingEvents = remainingEvents.slice(duplicateEventIndex + 1);
-                }
-            } else {
-                nonOverlappingEvents.push(...remainingEvents);
-                remainingEvents = null;
             }
         }
         return {nonOverlappingEvents, neighbourFragmentEntry};
-    }
-
-    async _findExpectedOverlappingEventId(fragmentEntry, txn) {
-        const eventEntry = await this._findFragmentEdgeEvent(
-            fragmentEntry.linkedFragmentId,
-            // reverse because it's the oppose edge of the linked fragment
-            fragmentEntry.direction.reverse(),
-            txn);
-        if (eventEntry) {
-            return eventEntry.event.event_id;
-        }
     }
 
     async _findFragmentEdgeEventKey(fragmentEntry, txn) {
@@ -168,22 +128,6 @@ export class GapWriter {
         directionalAppend(entries, fragmentEntry, direction);
         // set `end` as token, and if we found an event in the step before, link up the fragments in the fragment entry
         if (neighbourFragmentEntry) {
-            // the throws here should never happen and are only here to detect client or unhandled server bugs
-            // and a last measure to prevent corrupting fragment links
-            if (!fragmentEntry.hasLinkedFragment) {
-                fragmentEntry.linkedFragmentId = neighbourFragmentEntry.fragmentId;
-            } else if (fragmentEntry.linkedFragmentId !== neighbourFragmentEntry.fragmentId) {
-                throw new Error(`Prevented changing fragment ${fragmentEntry.fragmentId} ` +
-                    `${fragmentEntry.direction.asApiString()} link from ${fragmentEntry.linkedFragmentId} ` +
-                    `to ${neighbourFragmentEntry.fragmentId} in ${this._roomId}`);
-            }
-            if (!neighbourFragmentEntry.hasLinkedFragment) {
-                neighbourFragmentEntry.linkedFragmentId = fragmentEntry.fragmentId;
-            } else if (neighbourFragmentEntry.linkedFragmentId !== fragmentEntry.fragmentId) {
-                throw new Error(`Prevented changing fragment ${neighbourFragmentEntry.fragmentId} ` +
-                    `${neighbourFragmentEntry.direction.asApiString()} link from ${neighbourFragmentEntry.linkedFragmentId} ` +
-                    `to ${fragmentEntry.fragmentId} in ${this._roomId}`);
-            }
             // if neighbourFragmentEntry was found, it means the events were overlapping,
             // so no pagination should happen anymore.
             neighbourFragmentEntry.token = null;
@@ -242,10 +186,6 @@ export class GapWriter {
             nonOverlappingEvents,
             neighbourFragmentEntry
         } = await this._findOverlappingEvents(fragmentEntry, chunk, txn, log);
-        if (!neighbourFragmentEntry && nonOverlappingEvents.length === 0 && typeof end === "string") {
-            log.log("hit #160, clearing token", log.level.Warn);
-            end = null;
-        }
         // create entries for all events in chunk, add them to entries
         const {entries, updatedEntries} = await this._storeEvents(nonOverlappingEvents, lastKey, direction, state, txn, log);
         const fragments = await this._updateFragments(fragmentEntry, neighbourFragmentEntry, end, entries, txn);

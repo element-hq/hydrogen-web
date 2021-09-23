@@ -44,6 +44,11 @@ function encodeKey(roomId: string, fragmentId: number, eventIndex: number): stri
     return `${roomId}|${encodeUint32(fragmentId)}|${encodeUint32(eventIndex)}`;
 }
 
+function decodeKey(key: string): { roomId: string, fragmentId: number, eventIndex: number } {
+    const [roomId, fragmentId, eventIndex] = key.split("|");
+    return {roomId, fragmentId: parseInt(fragmentId, 10), eventIndex: parseInt(eventIndex, 10)};
+}
+
 function encodeEventIdKey(roomId: string, eventId: string): string {
     return `${roomId}|${eventId}`;
 }
@@ -218,6 +223,19 @@ export class TimelineEventStore {
         const events = await this._timelineStore.selectLimitReverse(range, amount);
         events.reverse(); // because we fetched them backwards
         return events;
+    }
+
+    async getEventKeysForIds(roomId: string, eventIds: string[]): Promise<Map<string, EventKey>> {
+        const byEventId = this._timelineStore.index("byEventId");
+        const keys = eventIds.map(eventId => encodeEventIdKey(roomId, eventId));
+        const results = new Map();
+        await byEventId.findExistingKeys(keys, false, (indexKey, pk) => {
+            const {eventId} = decodeEventIdKey(indexKey as string);
+            const {fragmentId, eventIndex} = decodeKey(pk as string);
+            results.set(eventId, new EventKey(fragmentId, eventIndex));
+            return false;
+        });
+        return results;
     }
 
     /** Finds the first eventId that occurs in the store, if any.
