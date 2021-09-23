@@ -123,7 +123,7 @@ export class GapWriter {
         }
     }
 
-    async _updateFragments(fragmentEntry, neighbourFragmentEntry, end, entries, txn) {
+    async _updateFragments(fragmentEntry, neighbourFragmentEntry, end, entries, txn, log) {
         const {direction} = fragmentEntry;
         const changedFragments = [];
         directionalAppend(entries, fragmentEntry, direction);
@@ -131,6 +131,7 @@ export class GapWriter {
         if (neighbourFragmentEntry) {
             // if neighbourFragmentEntry was found, it means the events were overlapping,
             // so no pagination should happen anymore.
+            log.set("closedGapWith", neighbourFragmentEntry.fragmentId);
             neighbourFragmentEntry.token = null;
             fragmentEntry.token = null;
 
@@ -189,7 +190,7 @@ export class GapWriter {
         } = await this._findOverlappingEvents(fragmentEntry, chunk, txn);
         // create entries for all events in chunk, add them to entries
         const {entries, updatedEntries} = await this._storeEvents(nonOverlappingEvents, lastKey, direction, state, txn, log);
-        const fragments = await this._updateFragments(fragmentEntry, neighbourFragmentEntry, end, entries, txn);
+        const fragments = await this._updateFragments(fragmentEntry, neighbourFragmentEntry, end, entries, txn, log);
     
         return {entries, updatedEntries, fragments};
     }
