@@ -118,8 +118,6 @@ the layout viewport up without resizing it when the keyboard shows */
     width: 100%;
     /* otherwise we don't get scrollbars and the content grows as large as it can */
     min-height: 0;
-    /* make popups relative to this element so changing the left panel width doesn't affect their position */
-    position: relative;
 }
 
 .middle {

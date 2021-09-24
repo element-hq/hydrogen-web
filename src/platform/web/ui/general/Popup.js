@@ -14,20 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-const HorizontalAxis = {
-    scrollOffset(el) {return el.scrollLeft;},
-    size(el) {return el.offsetWidth;},
-    offsetStart(el) {return el.offsetLeft;},
-    setStart(el, value) {el.style.left = `${value}px`;}, 
-    setEnd(el, value) {el.style.right = `${value}px`;},
-};
-const VerticalAxis = {
-    scrollOffset(el) {return el.scrollTop;},
-    size(el) {return el.offsetHeight;},
-    offsetStart(el) {return el.offsetTop;},
-    setStart(el, value) {el.style.top = `${value}px`;}, 
-    setEnd(el, value) {el.style.bottom = `${value}px`;},
-};
+import {tag} from "./html";
 
 export class Popup {
     constructor(view, closeCallback = null) {
@@ -40,27 +27,28 @@ export class Popup {
         this._closeCallback = closeCallback;
     }
 
+    _getPopupContainer() {
+        const appContainer = this._target.closest(".hydrogen");
+        let popupContainer = appContainer.querySelector(".popupContainer");
+        if (!popupContainer) {
+            popupContainer = tag.div({className: "popupContainer"});
+            appContainer.appendChild(popupContainer);
+        }
+        return popupContainer;
+    }
+
     trackInTemplateView(templateView) {
         this._trackingTemplateView = templateView;
         this._trackingTemplateView.addSubView(this);
     }
 
-    /**
-    @param {DOMElement}
-    @param {string} arrangement.relativeTo: whether top/left or bottom/right is used to position
-    @param {string} arrangement.align: how much of the popup axis size (start: 0, end: width or center: width/2)
-           is taken into account when positioning relative to the target
-    @param {number} arrangement.before extra padding to shift the final positioning with
-    @param {number} arrangement.after extra padding to shift the final positioning with
-    */
-    showRelativeTo(target, arrangement) {
+    showRelativeTo(target, verticalPadding = 0) {
         this._target = target;
-        this._arrangement = arrangement;
+        this._verticalPadding = verticalPadding;
         this._scroller = findScrollParent(this._target);
         this._view.mount();
-        this._target.offsetParent.appendChild(this._popup);
-        this._applyArrangementAxis(HorizontalAxis, this._arrangement.horizontal);
-        this._applyArrangementAxis(VerticalAxis, this._arrangement.vertical);
+        this._getPopupContainer().appendChild(this._popup);
+        this._position();
         if (this._scroller) {
             document.body.addEventListener("scroll", this, true);
         }
@@ -95,18 +83,11 @@ export class Popup {
 
     handleEvent(evt) {
         if (evt.type === "scroll") {
-            this._onScroll();
+            if(!this._position()) {
+                this.close();
+            }
         } else if (evt.type === "click") {
             this._onClick(evt);
-        }
-    }
-
-    _onScroll() {
-        if (this._scroller && !this._isVisibleInScrollParent(VerticalAxis)) {
-            this.close();
-        } else {
-            this._applyArrangementAxis(HorizontalAxis, this._arrangement.horizontal);
-            this._applyArrangementAxis(VerticalAxis, this._arrangement.vertical);
         }
     }
 
@@ -114,56 +95,36 @@ export class Popup {
         this.close();
     }
 
-    _applyArrangementAxis(axis, {relativeTo, align, before, after}) {
-        // TODO: using {relativeTo: "end", align: "start"} to align the right edge of the popup
-        // with the right side of the target doens't make sense here, we'd expect align: "right"?
-        // see RoomView
-        if (relativeTo === "end") {
-            let end = axis.size(this._target.offsetParent) - axis.offsetStart(this._target);
-            if (align === "end") {
-                end -= axis.size(this._popup);
-            } else if (align === "center") {
-                end -= ((axis.size(this._popup) / 2) - (axis.size(this._target) / 2));
-            }
-            if (typeof before === "number") {
-                end += before;
-            } else if (typeof after === "number") {
-                end -= (axis.size(this._target) + after);
-            }
-            axis.setEnd(this._popup, end);
-        } else if (relativeTo === "start") {
-            let scrollOffset = this._scroller ? axis.scrollOffset(this._scroller) : 0;
-            let start = axis.offsetStart(this._target) - scrollOffset;
-            if (align === "start") {
-                start -= axis.size(this._popup);
-            } else if (align === "center") {
-                start -= ((axis.size(this._popup) / 2) - (axis.size(this._target) / 2));
-            }
-            if (typeof before === "number") {
-                start -= before;
-            } else if (typeof after === "number") {
-                start += (axis.size(this._target) + after);
-            }
-            axis.setStart(this._popup, start);
-        } else {
-            throw new Error("unknown relativeTo: " + relativeTo);
-        }
-    }
+    _position() {
+        const targetPosition = this._target.getBoundingClientRect();
+        const popupWidth = this._popup.clientWidth;
+        const popupHeight = this._popup.clientHeight;
+        const viewport = (this._scroller ? this._scroller : document.documentElement).getBoundingClientRect();
 
-    _isVisibleInScrollParent(axis) {
-        // clipped at start?
-        if ((axis.offsetStart(this._target) + axis.size(this._target)) < (
-            axis.offsetStart(this._scroller) + 
-            axis.scrollOffset(this._scroller)
-        )) {
+        if (
+            targetPosition.top > viewport.bottom ||
+            targetPosition.left > viewport.right ||
+            targetPosition.bottom < viewport.top ||
+            targetPosition.right < viewport.left
+        ) {
             return false;
         }
-        // clipped at end?
-        if (axis.offsetStart(this._target) > (
-            axis.offsetStart(this._scroller) + 
-            axis.size(this._scroller) + 
-            axis.scrollOffset(this._scroller)
-        )) {
+        if (viewport.bottom >= targetPosition.bottom + popupHeight) {
+            // show below
+            this._popup.style.top = `${targetPosition.bottom + this._verticalPadding}px`;
+        } else if (viewport.top <= targetPosition.top - popupHeight) {
+            // show top
+            this._popup.style.top = `${targetPosition.top - popupHeight - this._verticalPadding}px`;
+        } else {
+            return false;
+        }
+        if (viewport.right >= targetPosition.right + popupWidth) {
+            // show right
+            this._popup.style.left = `${targetPosition.left}px`;
+        } else if (viewport.left <= targetPosition.left - popupWidth) {
+            // show left
+            this._popup.style.left = `${targetPosition.right - popupWidth}px`;
+        } else {
             return false;
         }
         return true;
@@ -196,10 +157,10 @@ function findScrollParent(el) {
             // can cause the scrollHeight to be larger than the clientHeight in the parent
             // see button.link class
             const style = window.getComputedStyle(parent);
-            const {overflow} = style;
-            if (overflow === "auto" || overflow === "scroll") {
+            const overflowY = style.getPropertyValue("overflow-y");
+            if (overflowY === "auto" || overflowY === "scroll") {
                 return parent;
             }
         }
-    } while (parent !== el.offsetParent);
+    } while (parent !== document.body);
 }
