@@ -47,26 +47,6 @@ limitations under the License.
     margin: 0;
 }
 
-.message-container {
-    flex: 0 1 auto;
-    /* first try break-all, then break-word, which isn't supported everywhere */
-    word-break: break-all;  
-    word-break: break-word;
-}
-
-.message-container .sender {
-    margin: 5px 0;
-}
-
-.message-container .media {
-    display: block;
-}
-
-.message-container .media > img,
-.message-container .media > video {
-    display: block;
-}
-
 .AnnouncementView {
     display: flex;
     align-items: center;
