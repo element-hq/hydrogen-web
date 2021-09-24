@@ -90,6 +90,9 @@ limitations under the License.
 .Timeline_messageSender, .Timeline_messageBody {
     /* reset body margin */
     margin: 0;
+    /* first try break-all, then break-word, which isn't supported everywhere */
+    word-break: break-all;  
+    word-break: break-word;
 }
 
 .Timeline_message:not(.continuation) .Timeline_messageSender,
