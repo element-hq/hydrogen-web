@@ -16,6 +16,7 @@ limitations under the License.
 */
 @import url('font.css');
 @import url('layout.css');
+@import url('popup.css');
 @import url('login.css');
 @import url('left-panel.css');
 @import url('right-panel.css');

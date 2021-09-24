@@ -83,18 +83,7 @@ export class RoomView extends TemplateView {
             }
             this._optionsPopup = new Popup(new Menu(options));
             this._optionsPopup.trackInTemplateView(this);
-            this._optionsPopup.showRelativeTo(evt.target, {
-                horizontal: {
-                    relativeTo: "end",
-                    align: "start",
-                    after: 0
-                },
-                vertical: {
-                    relativeTo: "start",
-                    align: "end",
-                    before: -32 - 4
-                }
-            });
+            this._optionsPopup.showRelativeTo(evt.target, 10);
         }
     }
 

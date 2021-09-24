@@ -98,18 +98,7 @@ export class BaseMessageView extends TemplateView {
             const onClose = () => this.root().classList.remove("menuOpen");
             this._menuPopup = new Popup(new Menu(options), onClose);
             this._menuPopup.trackInTemplateView(this);
-            this._menuPopup.showRelativeTo(button, {
-                horizontal: {
-                    relativeTo: "end",
-                    align: "start",
-                    after: 0
-                },
-                vertical: {
-                    relativeTo: "start",
-                    align: "end",
-                    before: -24
-                }
-            });
+            this._menuPopup.showRelativeTo(button, 2);
         }
     }
 

@@ -17,6 +17,7 @@ limitations under the License.
 .Timeline {
     display: flex;
     flex-direction: column;
+    /* needed to position the jump to bottom button */
     position: relative;
     min-height: 0;
 }

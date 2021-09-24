@@ -102,18 +102,7 @@ export class MessageComposer extends TemplateView {
                 Menu.option(vm.i18n`Send file`, () => vm.sendFile()).setIcon("file"),
             ]));
             this._attachmentPopup.trackInTemplateView(this);
-            this._attachmentPopup.showRelativeTo(evt.target, {
-                horizontal: {
-                    relativeTo: "end",
-                    align: "start",
-                    after: 0
-                },
-                vertical: {
-                    relativeTo: "end",
-                    align: "start",
-                    before: 8,
-                }
-            });
+            this._attachmentPopup.showRelativeTo(evt.target, 12);
         }
     }
 }
