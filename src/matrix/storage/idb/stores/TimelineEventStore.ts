@@ -44,9 +44,9 @@ function encodeKey(roomId: string, fragmentId: number, eventIndex: number): stri
     return `${roomId}|${encodeUint32(fragmentId)}|${encodeUint32(eventIndex)}`;
 }
 
-function decodeKey(key: string): { roomId: string, fragmentId: number, eventIndex: number } {
+function decodeKey(key: string): { roomId: string, eventKey: EventKey } {
     const [roomId, fragmentId, eventIndex] = key.split("|");
-    return {roomId, fragmentId: parseInt(fragmentId, 10), eventIndex: parseInt(eventIndex, 10)};
+    return {roomId, eventKey: new EventKey(parseInt(fragmentId, 10), parseInt(eventIndex, 10))};
 }
 
 function encodeEventIdKey(roomId: string, eventId: string): string {
@@ -231,8 +231,8 @@ export class TimelineEventStore {
         const results = new Map();
         await byEventId.findExistingKeys(keys, false, (indexKey, pk) => {
             const {eventId} = decodeEventIdKey(indexKey as string);
-            const {fragmentId, eventIndex} = decodeKey(pk as string);
-            results.set(eventId, new EventKey(fragmentId, eventIndex));
+            const {eventKey} = decodeKey(pk as string);
+            results.set(eventId, eventKey);
             return false;
         });
         return results;
