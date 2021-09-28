@@ -256,7 +256,7 @@ export class SyncWriter {
     }
 }
 
-import {createMockStorage} from "../../../../mocks/Storage.js";
+import {createMockStorage} from "../../../../mocks/Storage";
 import {createEvent, withTextBody} from "../../../../mocks/event.js";
 import {Instance as nullLogger} from "../../../../logging/NullLogger.js";
 export function tests() {

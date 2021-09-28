@@ -16,7 +16,7 @@ limitations under the License.
 
 import {EventKey} from "../../../room/timeline/EventKey";
 import { StorageError } from "../../common";
-import { encodeUint32 } from "../utils";
+import { encodeUint32, decodeUint32 } from "../utils";
 import {KeyLimits} from "../../common";
 import {Store} from "../Store";
 import {TimelineEvent, StateEvent} from "../../types";
@@ -46,7 +46,7 @@ function encodeKey(roomId: string, fragmentId: number, eventIndex: number): stri
 
 function decodeKey(key: string): { roomId: string, eventKey: EventKey } {
     const [roomId, fragmentId, eventIndex] = key.split("|");
-    return {roomId, eventKey: new EventKey(parseInt(fragmentId, 10), parseInt(eventIndex, 10))};
+    return {roomId, eventKey: new EventKey(decodeUint32(fragmentId), decodeUint32(eventIndex))};
 }
 
 function encodeEventIdKey(roomId: string, eventId: string): string {
@@ -314,5 +314,71 @@ export class TimelineEventStore {
         const maxKey = encodeKey(roomId, KeyLimits.maxStorageKey, KeyLimits.maxStorageKey);
         const range = this._timelineStore.IDBKeyRange.bound(minKey, maxKey);
         this._timelineStore.delete(range);
+    }
+}
+
+import {createMockStorage} from "../../../../mocks/Storage";
+import {createEvent, withTextBody} from "../../../../mocks/event.js";
+import {createEventEntry} from "../../../room/timeline/persistence/common.js";
+import {Instance as logItem} from "../../../../logging/NullLogger.js";
+
+export function tests() {
+
+    const sortedIds = [
+        "$2wZy1W-QdcwaAwz68nfz1oc-3SsZKVDy8d86ERP1Pm0",
+        "$4RWaZ5142grUgTnQyr_5qiPTOwzAOimt5MsXg6m1diM",
+        "$4izqHE2Wf5US_-e_za942pZ10CDNJjDncUMmhqBUVQw",
+        "$Oil2Afq2cBLqMAeJTAHjA3Is9T5Wmaa2ogVRlFJ_gzE",
+        "$Wyl-7u-YqnPJElkPufIRXRFTYP-eFxQ4iD-SmLQo2Rw",
+        "$b-eWaZtp22vL9mp0h7odbpphOZQ-rnp54qjyTQPARgo",
+        "$sS9rTv8u2m9o4RaMI2jGOnpMtb9t8_0euiQLhNFW380",
+        "$uZLkB9rzTKvJAK2QrQNX-prwQ2Niajdi0fvvRnyCtz8",
+        "$vGecIBZFex9_vlQf1E1LjtQXE3q5GwERIHMiy4mOWv0",
+        "$vdLgAnwjHj0cicU3MA4ynLHUBGOIFhvvksY3loqzjF",
+    ];
+
+    const insertedIds = [
+        sortedIds[5],
+        sortedIds[3],
+        sortedIds[9],
+        sortedIds[7],
+        sortedIds[1],
+    ];
+
+    const checkedIds = [
+        sortedIds[2],
+        sortedIds[4],
+        sortedIds[3],
+        sortedIds[0],
+        sortedIds[8],
+        sortedIds[9],
+        sortedIds[6],
+    ];
+
+    const roomId = "!fjsdf423423jksdfdsf:hs.tld";
+
+    function createEventWithId(id) {
+        return withTextBody("hello", createEvent("m.room.message", id, "@alice:hs.tld"));
+    }
+
+    return {
+        "getEventKeysForIds": async assert => {
+            const storage = await createMockStorage();
+            const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents]);
+            let eventKey = EventKey.defaultFragmentKey(109);
+            for (const insertedId of insertedIds) {
+                const entry = createEventEntry(eventKey.nextKey(), roomId, createEventWithId(insertedId));
+                assert(await txn.timelineEvents.tryInsert(entry, logItem));
+                eventKey = eventKey.nextKey();
+            }
+            const eventKeyMap = await txn.timelineEvents.getEventKeysForIds(roomId, checkedIds);
+            assert.equal(eventKeyMap.size, 2);
+            const eventKey1 = eventKeyMap.get("$Oil2Afq2cBLqMAeJTAHjA3Is9T5Wmaa2ogVRlFJ_gzE")!;
+            assert.equal(eventKey1.fragmentId, 109);
+            assert.equal(eventKey1.eventIndex, 0x80000001);
+            const eventKey2 = eventKeyMap.get("$vdLgAnwjHj0cicU3MA4ynLHUBGOIFhvvksY3loqzjF")!;
+            assert.equal(eventKey2.fragmentId, 109);
+            assert.equal(eventKey2.eventIndex, 0x80000002);
+        }
     }
 }

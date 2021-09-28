@@ -27,14 +27,18 @@ export class GapWriter {
         this._relationWriter = relationWriter;
     }
 
-    async _findOverlappingEvents(fragmentEntry, events, txn) {
+    async _findOverlappingEvents(fragmentEntry, events, txn, log) {
         const eventIds = events.map(e => e.event_id);
         const existingEventKeyMap = await txn.timelineEvents.getEventKeysForIds(this._roomId, eventIds);
+        log.set("existingEvents", existingEventKeyMap.size);
         const nonOverlappingEvents = events.filter(e => !existingEventKeyMap.has(e.event_id));
+        log.set("nonOverlappingEvents", nonOverlappingEvents.length);
         let neighbourFragmentEntry;
         if (fragmentEntry.hasLinkedFragment) {
+            log.set("linkedFragmentId", fragmentEntry.linkedFragmentId);
             for (const eventKey of existingEventKeyMap.values()) {
                 if (eventKey.fragmentId === fragmentEntry.linkedFragmentId) {
+                    log.set("foundLinkedFragment", true);
                     const neighbourFragment = await txn.timelineFragments.get(this._roomId, fragmentEntry.linkedFragmentId);
                     neighbourFragmentEntry = fragmentEntry.createNeighbourEntry(neighbourFragment);
                     break;
@@ -183,11 +187,12 @@ export class GapWriter {
 
         // find last event in fragment so we get the eventIndex to begin creating keys at
         let lastKey = await this._findFragmentEdgeEventKey(fragmentEntry, txn);
+        log.set("lastKey", lastKey.toString());
         // find out if any event in chunk is already present using findFirstOrLastOccurringEventId
         const {
             nonOverlappingEvents,
             neighbourFragmentEntry
-        } = await this._findOverlappingEvents(fragmentEntry, chunk, txn);
+        } = await this._findOverlappingEvents(fragmentEntry, chunk, txn, log);
         // create entries for all events in chunk, add them to entries
         const {entries, updatedEntries} = await this._storeEvents(nonOverlappingEvents, lastKey, direction, state, txn, log);
         const fragments = await this._updateFragments(fragmentEntry, neighbourFragmentEntry, end, entries, txn, log);
@@ -198,7 +203,7 @@ export class GapWriter {
 
 import {FragmentIdComparer} from "../FragmentIdComparer.js";
 import {RelationWriter} from "./RelationWriter.js";
-import {createMockStorage} from "../../../../mocks/Storage.js";
+import {createMockStorage} from "../../../../mocks/Storage";
 import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
 import {NullLogItem} from "../../../../logging/NullLogger.js";
 import {TimelineMock, eventIds, eventId} from "../../../../mocks/TimelineMock.ts";

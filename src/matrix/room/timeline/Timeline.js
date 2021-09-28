@@ -343,7 +343,7 @@ export class Timeline {
 import {FragmentIdComparer} from "./FragmentIdComparer.js";
 import {poll} from "../../../mocks/poll.js";
 import {Clock as MockClock} from "../../../mocks/Clock.js";
-import {createMockStorage} from "../../../mocks/Storage.js";
+import {createMockStorage} from "../../../mocks/Storage";
 import {ListObserver} from "../../../mocks/ListObserver.js";
 import {createEvent, withTextBody, withContent, withSender} from "../../../mocks/event.js";
 import {NullLogItem} from "../../../logging/NullLogger.js";

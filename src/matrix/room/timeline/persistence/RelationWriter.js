@@ -253,7 +253,7 @@ const _REDACT_KEEP_CONTENT_MAP = {
 };
 // end of matrix-js-sdk code
 
-import {createMockStorage} from "../../../../mocks/Storage.js";
+import {createMockStorage} from "../../../../mocks/Storage";
 import {createEvent, withTextBody, withRedacts, withContent} from "../../../../mocks/event.js";
 import {createAnnotation} from "../relations.js";
 import {FragmentIdComparer} from "../FragmentIdComparer.js";

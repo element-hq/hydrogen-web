@@ -16,8 +16,26 @@ limitations under the License.
 
 import {FDBFactory, FDBKeyRange} from "../../lib/fake-indexeddb/index.js";
 import {StorageFactory} from "../matrix/storage/idb/StorageFactory";
+import {Storage} from "../matrix/storage/idb/Storage";
 import {Instance as nullLogger} from "../logging/NullLogger.js";
+import {openDatabase, CreateObjectStore} from "../matrix/storage/idb/utils";
 
-export function createMockStorage() {
-    return new StorageFactory(null, new FDBFactory(), FDBKeyRange).create(1, nullLogger.item);
+export function createMockStorage(): Promise<Storage> {
+    return new StorageFactory(null as any, new FDBFactory(), FDBKeyRange).create("1", nullLogger.item);
+}
+
+export function createMockDatabase(name: string, createObjectStore: CreateObjectStore, impl: MockIDBImpl): Promise<IDBDatabase> {
+    return openDatabase(name, createObjectStore, 1, impl.idbFactory);
+}
+
+export class MockIDBImpl {
+    idbFactory: FDBFactory;
+
+    constructor() {
+        this.idbFactory = new FDBFactory();
+    }
+
+    get IDBKeyRange(): typeof IDBKeyRange {
+        return FDBKeyRange;
+    }
 }

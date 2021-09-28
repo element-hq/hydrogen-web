@@ -68,7 +68,7 @@ export function decodeUint32(str: string): number {
     return parseInt(str, 16);
 }
 
-type CreateObjectStore = (db : IDBDatabase, txn: IDBTransaction | null, oldVersion: number, version: number) => any
+export type CreateObjectStore = (db : IDBDatabase, txn: IDBTransaction | null, oldVersion: number, version: number) => any
 
 export function openDatabase(name: string, createObjectStore: CreateObjectStore, version: number, idbFactory: IDBFactory = window.indexedDB): Promise<IDBDatabase> {
     const req = idbFactory.open(name, version);
