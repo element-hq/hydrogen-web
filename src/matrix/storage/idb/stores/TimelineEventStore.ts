@@ -320,6 +320,7 @@ export class TimelineEventStore {
 import {createMockStorage} from "../../../../mocks/Storage";
 import {createEvent, withTextBody} from "../../../../mocks/event.js";
 import {createEventEntry} from "../../../room/timeline/persistence/common.js";
+import {Instance as logItem} from "../../../../logging/NullLogger.js";
 
 export function tests() {
 
@@ -366,15 +367,16 @@ export function tests() {
             const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents]);
             let eventKey = EventKey.defaultFragmentKey(109);
             for (const insertedId of insertedIds) {
-                assert(await txn.timelineEvents.tryInsert(createEventEntry(eventKey.nextKey(), roomId, createEventWithId(insertedId))));
+                const entry = createEventEntry(eventKey.nextKey(), roomId, createEventWithId(insertedId));
+                assert(await txn.timelineEvents.tryInsert(entry, logItem));
                 eventKey = eventKey.nextKey();
             }
             const eventKeyMap = await txn.timelineEvents.getEventKeysForIds(roomId, checkedIds);
             assert.equal(eventKeyMap.size, 2);
-            const eventKey1 = eventKeyMap.get("$Oil2Afq2cBLqMAeJTAHjA3Is9T5Wmaa2ogVRlFJ_gzE");
+            const eventKey1 = eventKeyMap.get("$Oil2Afq2cBLqMAeJTAHjA3Is9T5Wmaa2ogVRlFJ_gzE")!;
             assert.equal(eventKey1.fragmentId, 109);
             assert.equal(eventKey1.eventIndex, 0x80000001);
-            const eventKey2 = eventKeyMap.get("$vdLgAnwjHj0cicU3MA4ynLHUBGOIFhvvksY3loqzjF");
+            const eventKey2 = eventKeyMap.get("$vdLgAnwjHj0cicU3MA4ynLHUBGOIFhvvksY3loqzjF")!;
             assert.equal(eventKey2.fragmentId, 109);
             assert.equal(eventKey2.eventIndex, 0x80000002);
         }
