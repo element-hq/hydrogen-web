@@ -203,7 +203,7 @@ export class GapWriter {
 
 import {FragmentIdComparer} from "../FragmentIdComparer.js";
 import {RelationWriter} from "./RelationWriter.js";
-import {createMockStorage} from "../../../../mocks/Storage.js";
+import {createMockStorage} from "../../../../mocks/Storage";
 import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
 import {NullLogItem} from "../../../../logging/NullLogger.js";
 import {TimelineMock, eventIds, eventId} from "../../../../mocks/TimelineMock.ts";

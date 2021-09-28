@@ -317,7 +317,7 @@ export class TimelineEventStore {
     }
 }
 
-import {createMockStorage} from "../../../../mocks/Storage.js";
+import {createMockStorage} from "../../../../mocks/Storage";
 import {createEvent, withTextBody} from "../../../../mocks/event.js";
 import {createEventEntry} from "../../../room/timeline/persistence/common.js";
 

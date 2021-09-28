@@ -181,7 +181,7 @@ import {FragmentIdComparer} from "../../../../matrix/room/timeline/FragmentIdCom
 import {createAnnotation} from "../../../../matrix/room/timeline/relations.js";
 // mocks
 import {Clock as MockClock} from "../../../../mocks/Clock.js";
-import {createMockStorage} from "../../../../mocks/Storage.js";
+import {createMockStorage} from "../../../../mocks/Storage";
 import {ListObserver} from "../../../../mocks/ListObserver.js";
 import {createEvent, withTextBody, withContent} from "../../../../mocks/event.js";
 import {NullLogItem, NullLogger} from "../../../../logging/NullLogger.js";
