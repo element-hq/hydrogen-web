@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {QueryTarget, IDBQuery} from "./QueryTarget";
+import {QueryTarget, IDBQuery, ITransaction} from "./QueryTarget";
 import {IDBRequestError, IDBRequestAttemptError} from "./error";
 import {reqAsPromise} from "./utils";
 import {Transaction, IDBKey} from "./Transaction";
@@ -28,7 +28,7 @@ function logRequest(method: string, params: any[], source: any): void {
     console.info(`${databaseName}.${storeName}.${method}(${params.map(p => JSON.stringify(p)).join(", ")})`);
 }
 
-class QueryTargetWrapper<T> {
+export class QueryTargetWrapper<T> {
     private _qt: IDBIndex | IDBObjectStore;
 
     constructor(qt: IDBIndex | IDBObjectStore) {
@@ -133,7 +133,7 @@ class QueryTargetWrapper<T> {
 }
 
 export class Store<T> extends QueryTarget<T> {
-    constructor(idbStore: IDBObjectStore, transaction: Transaction) {
+    constructor(idbStore: IDBObjectStore, transaction: ITransaction) {
         super(new QueryTargetWrapper<T>(idbStore), transaction);
     }
 
