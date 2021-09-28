@@ -16,7 +16,7 @@ limitations under the License.
 
 import {EventKey} from "../../../room/timeline/EventKey";
 import { StorageError } from "../../common";
-import { encodeUint32 } from "../utils";
+import { encodeUint32, decodeUint32 } from "../utils";
 import {KeyLimits} from "../../common";
 import {Store} from "../Store";
 import {TimelineEvent, StateEvent} from "../../types";
@@ -46,7 +46,7 @@ function encodeKey(roomId: string, fragmentId: number, eventIndex: number): stri
 
 function decodeKey(key: string): { roomId: string, eventKey: EventKey } {
     const [roomId, fragmentId, eventIndex] = key.split("|");
-    return {roomId, eventKey: new EventKey(parseInt(fragmentId, 10), parseInt(eventIndex, 10))};
+    return {roomId, eventKey: new EventKey(decodeUint32(fragmentId), decodeUint32(eventIndex))};
 }
 
 function encodeEventIdKey(roomId: string, eventId: string): string {
@@ -364,7 +364,7 @@ export function tests() {
         "getEventKeysForIds": async assert => {
             const storage = await createMockStorage();
             const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents]);
-            let eventKey = EventKey.defaultLiveKey;
+            let eventKey = EventKey.defaultFragmentKey(109);
             for (const insertedId of insertedIds) {
                 assert(await txn.timelineEvents.tryInsert(createEventEntry(eventKey.nextKey(), roomId, createEventWithId(insertedId))));
                 eventKey = eventKey.nextKey();
@@ -372,11 +372,11 @@ export function tests() {
             const eventKeyMap = await txn.timelineEvents.getEventKeysForIds(roomId, checkedIds);
             assert.equal(eventKeyMap.size, 2);
             const eventKey1 = eventKeyMap.get("$Oil2Afq2cBLqMAeJTAHjA3Is9T5Wmaa2ogVRlFJ_gzE");
-            assert.equal(eventKey1.fragmentId, 0);
-            assert.equal(eventKey1.eventIndex, 80000001);
+            assert.equal(eventKey1.fragmentId, 109);
+            assert.equal(eventKey1.eventIndex, 0x80000001);
             const eventKey2 = eventKeyMap.get("$vdLgAnwjHj0cicU3MA4ynLHUBGOIFhvvksY3loqzjF");
-            assert.equal(eventKey2.fragmentId, 0);
-            assert.equal(eventKey2.eventIndex, 80000002);
+            assert.equal(eventKey2.fragmentId, 109);
+            assert.equal(eventKey2.eventIndex, 0x80000002);
         }
     }
 }
