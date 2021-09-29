@@ -29,7 +29,7 @@ import {SimpleTile} from "../../../../../domain/session/room/timeline/tiles/Simp
 import {BaseObservableList as ObservableList} from "../../../../../observable/list/BaseObservableList.js";
 
 //import {TimelineViewModel} from "../../../../../domain/session/room/timeline/TimelineViewModel.js";
-interface TimelineViewModel extends IObservableValue {
+export interface TimelineViewModel extends IObservableValue {
     showJumpDown: boolean;
     tiles: ObservableList<SimpleTile>;
     setVisibleTileRange(start?: SimpleTile, end?: SimpleTile);
