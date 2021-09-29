@@ -19,6 +19,8 @@ import {StorageError} from "../common";
 import {LogItem} from "../../../logging/LogItem.js";
 import {IDBKey} from "./Transaction";
 
+// this is the part of the Transaction class API that is used here and in the Store subclass,
+// to make it easier to replace it with alternative implementations in schema.ts and unit tests
 export interface ITransaction {
     idbFactory: IDBFactory;
     IDBKeyRange: typeof IDBKeyRange;

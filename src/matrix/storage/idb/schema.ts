@@ -1,4 +1,5 @@
 import {IDOMStorage} from "./types";
+import {ITransaction} from "./QueryTarget";
 import {iterateCursor, NOT_DONE, reqAsPromise} from "./utils";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/RoomMember.js";
 import {addRoomToIdentity} from "../../e2ee/DeviceTracker.js";
@@ -7,6 +8,7 @@ import {SummaryData} from "../../room/RoomSummary";
 import {RoomMemberStore, MemberData} from "./stores/RoomMemberStore";
 import {RoomStateEntry} from "./stores/RoomStateStore";
 import {SessionStore} from "./stores/SessionStore";
+import {Store} from "./Store";
 import {encodeScopeTypeKey} from "./stores/OperationStore";
 import {MAX_UNICODE} from "./stores/common";
 import {LogItem} from "../../../logging/LogItem.js";
@@ -28,6 +30,7 @@ export const schema: MigrationFunc[] = [
     createTimelineRelationsStore,
     fixMissingRoomsInUserIdentities,
     changeSSSSKeyPrefix,
+    backupAndRestoreE2EEAccountToLocalStorage
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -214,4 +217,29 @@ async function changeSSSSKeyPrefix(db: IDBDatabase, txn: IDBTransaction) {
     if (ssssKey) {
         session.put({key: `${SESSION_E2EE_KEY_PREFIX}ssssKey`, value: ssssKey});
     }
+}
+// v13
+async function backupAndRestoreE2EEAccountToLocalStorage(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: LogItem) {
+    const session = txn.objectStore("session");
+    // the Store object gets passed in several things through the Transaction class (a wrapper around IDBTransaction),
+    // the only thing we should need here is the databaseName though, so we mock it out.
+    // ideally we should have an easier way to go from the idb primitive layer to the specific store classes where
+    // we implement logic, but for now we need this.
+    const databaseNameHelper: ITransaction = {
+        databaseName: db.name,
+        get idbFactory(): IDBFactory { throw new Error("unused");},
+        get IDBKeyRange(): typeof IDBKeyRange { throw new Error("unused");},
+        addWriteError() {},
+    };
+    const sessionStore = new SessionStore(new Store(session, databaseNameHelper), localStorage);
+    // if we already have an e2ee identity, write a backup to local storage.
+    // further updates to e2ee keys in the session store will also write to local storage from 0.2.15 on,
+    // but here we make sure a backup is immediately created after installing the update and we don't wait until
+    // the olm account needs to change
+    sessionStore.writeE2EEIdentityToLocalStorage();
+    // and if we already have a backup, restore it now for any missing key in idb.
+    // this will restore the backup every time the idb database is dropped as it will
+    // run through all the migration steps when recreating it.
+    const restored = await sessionStore.tryRestoreE2EEIdentityFromLocalStorage(log);
+    log.set("restored", restored);
 }
