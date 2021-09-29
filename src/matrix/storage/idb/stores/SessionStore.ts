@@ -16,6 +16,8 @@ limitations under the License.
 import {Store} from "../Store";
 import {IDOMStorage} from "../types";
 import {SESSION_E2EE_KEY_PREFIX} from "../../../e2ee/common.js";
+import {LogItem} from "../../../../logging/LogItem.js";
+import {parse, stringify} from "../../../../utils/typedJSON";
 
 export interface SessionEntry {
     key: string;
@@ -42,33 +44,38 @@ export class SessionStore {
         // we backup to localStorage so when idb gets cleared for some reason, we don't lose our e2ee identity
         try {
             const lsKey = `${this._sessionStore.databaseName}.session.${key}`;
-            const lsValue = JSON.stringify(value);
+            const lsValue = stringify(value);
             this._localStorage.setItem(lsKey, lsValue);
         } catch (err) {
             console.error("could not write to localStorage", err);
         }
     }
 
-    writeToLocalStorage() {
-        this._sessionStore.iterateValues(undefined, (value: any, key: string) => {
+    writeE2EEIdentityToLocalStorage() {
+        this._sessionStore.iterateValues(undefined, (entry: SessionEntry, key: string) => {
             if (key.startsWith(SESSION_E2EE_KEY_PREFIX)) {
-                this._writeKeyToLocalStorage(key, value);
+                this._writeKeyToLocalStorage(key, entry.value);
             }
             return false;
         });
     }
 
-    tryRestoreFromLocalStorage(): boolean {
+    async tryRestoreE2EEIdentityFromLocalStorage(log: LogItem): Promise<boolean> {
         let success = false;
         const lsPrefix = `${this._sessionStore.databaseName}.session.`;
         const prefix = `${lsPrefix}${SESSION_E2EE_KEY_PREFIX}`;
         for(let i = 0; i < this._localStorage.length; i += 1) {
             const lsKey = this._localStorage.key(i)!;
             if (lsKey.startsWith(prefix)) {
-                const value = JSON.parse(this._localStorage.getItem(lsKey)!);
+                const value = parse(this._localStorage.getItem(lsKey)!);
                 const key = lsKey.substr(lsPrefix.length);
-                this._sessionStore.put({key, value});
-                success = true;
+                // we check if we don't have this key already, as we don't want to override anything
+                const hasKey = (await this._sessionStore.getKey(key)) === key;
+                log.set(key, !hasKey);
+                if (!hasKey) {
+                    this._sessionStore.put({key, value});
+                    success = true;
+                }
             }
         }
         return success;

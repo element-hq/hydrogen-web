@@ -2,6 +2,7 @@ import {IDOMStorage} from "./types";
 import {iterateCursor, NOT_DONE, reqAsPromise} from "./utils";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/RoomMember.js";
 import {addRoomToIdentity} from "../../e2ee/DeviceTracker.js";
+import {SESSION_E2EE_KEY_PREFIX} from "../../e2ee/common.js";
 import {SummaryData} from "../../room/RoomSummary";
 import {RoomMemberStore, MemberData} from "./stores/RoomMemberStore";
 import {RoomStateEntry} from "./stores/RoomStateStore";
@@ -25,7 +26,8 @@ export const schema: MigrationFunc[] = [
     createArchivedRoomSummaryStore,
     migrateOperationScopeIndex,
     createTimelineRelationsStore,
-    fixMissingRoomsInUserIdentities
+    fixMissingRoomsInUserIdentities,
+    changeSSSSKeyPrefix,
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -202,5 +204,14 @@ async function fixMissingRoomsInUserIdentities(db: IDBDatabase, txn: IDBTransact
                 outboundGroupSessionsStore.delete(roomId);
             }
         });
+    }
+}
+
+// v12 move ssssKey to e2ee:ssssKey so it will get backed up in the next step
+async function changeSSSSKeyPrefix(db: IDBDatabase, txn: IDBTransaction) {
+    const session = txn.objectStore("session");
+    const ssssKey = await reqAsPromise(session.get("ssssKey"));
+    if (ssssKey) {
+        session.put({key: `${SESSION_E2EE_KEY_PREFIX}ssssKey`, value: ssssKey});
     }
 }

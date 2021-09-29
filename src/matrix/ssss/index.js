@@ -17,6 +17,9 @@ limitations under the License.
 import {KeyDescription, Key} from "./common.js";
 import {keyFromPassphrase} from "./passphrase.js";
 import {keyFromRecoveryKey} from "./recoveryKey.js";
+import {SESSION_E2EE_KEY_PREFIX} from "../e2ee/common.js";
+
+const SSSS_KEY = `${SESSION_E2EE_KEY_PREFIX}ssssKey`;
 
 async function readDefaultKeyDescription(storage) {
     const txn = await storage.readTxn([
@@ -35,11 +38,11 @@ async function readDefaultKeyDescription(storage) {
 }
 
 export async function writeKey(key, txn) {
-    txn.session.set("ssssKey", {id: key.id, binaryKey: key.binaryKey});
+    txn.session.set(SSSS_KEY, {id: key.id, binaryKey: key.binaryKey});
 }
 
 export async function readKey(txn) {
-    const keyData = await txn.session.get("ssssKey");
+    const keyData = await txn.session.get(SSSS_KEY);
     if (!keyData) {
         return;
     }
