@@ -73,6 +73,10 @@ export class Transaction {
         return this._storage.IDBKeyRange;
     }
 
+    get databaseName(): string {
+        return this._storage.databaseName;
+    }
+
     get logger(): BaseLogger {
         return this._storage.logger;
     }
@@ -94,7 +98,7 @@ export class Transaction {
     }
 
     get session(): SessionStore {
-        return this._store(StoreNames.session, idbStore => new SessionStore(idbStore));
+        return this._store(StoreNames.session, idbStore => new SessionStore(idbStore, this._storage.localStorage));
     }
 
     get roomSummary(): RoomSummaryStore {

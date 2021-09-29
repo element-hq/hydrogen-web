@@ -22,6 +22,7 @@ import {IDBKey} from "./Transaction";
 export interface ITransaction {
     idbFactory: IDBFactory;
     IDBKeyRange: typeof IDBKeyRange;
+    databaseName: string;
     addWriteError(error: StorageError, refItem: LogItem | undefined, operationName: string, keys: IDBKey[] | undefined);
 }
 
@@ -53,6 +54,10 @@ export class QueryTarget<T> {
 
     get IDBKeyRange(): typeof IDBKeyRange {
         return this._transaction.IDBKeyRange;
+    }
+
+    get databaseName(): string {
+        return this._transaction.databaseName;
     }
 
     _openCursor(range?: IDBQuery, direction?: IDBCursorDirection): IDBRequest<IDBCursorWithValue | null> {
@@ -269,6 +274,7 @@ import {QueryTargetWrapper, Store} from "./Store";
 export function tests() {
 
     class MockTransaction extends MockIDBImpl {
+        get databaseName(): string { return "mockdb"; }
         addWriteError(error: StorageError, refItem: LogItem | undefined, operationName: string, keys: IDBKey[] | undefined) {}
     }
 

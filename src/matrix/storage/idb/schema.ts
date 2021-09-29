@@ -1,3 +1,4 @@
+import {IDOMStorage} from "./types";
 import {iterateCursor, NOT_DONE, reqAsPromise} from "./utils";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/RoomMember.js";
 import {addRoomToIdentity} from "../../e2ee/DeviceTracker.js";
@@ -7,10 +8,13 @@ import {RoomStateEntry} from "./stores/RoomStateStore";
 import {SessionStore} from "./stores/SessionStore";
 import {encodeScopeTypeKey} from "./stores/OperationStore";
 import {MAX_UNICODE} from "./stores/common";
+import {LogItem} from "../../../logging/LogItem.js";
 
+
+export type MigrationFunc = (db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: LogItem) => Promise<void> | void;
 // FUNCTIONS SHOULD ONLY BE APPENDED!!
 // the index in the array is the database version
-export const schema = [
+export const schema: MigrationFunc[] = [
     createInitialStores,
     createMemberStore,
     migrateSession,
@@ -64,7 +68,7 @@ async function createMemberStore(db: IDBDatabase, txn: IDBTransaction): Promise<
     });
 }
 //v3
-async function migrateSession(db: IDBDatabase, txn: IDBTransaction): Promise<void> {
+async function migrateSession(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage): Promise<void> {
     const session = txn.objectStore("session");
     try {
         const PRE_MIGRATION_KEY = 1;
@@ -73,7 +77,7 @@ async function migrateSession(db: IDBDatabase, txn: IDBTransaction): Promise<voi
             session.delete(PRE_MIGRATION_KEY);
             const {syncToken, syncFilterId, serverVersions} = entry.value;
             // Cast ok here because only "set" is used and we don't look into return
-            const store = new SessionStore(session as any);
+            const store = new SessionStore(session as any, localStorage);
             store.set("sync", {token: syncToken, filterId: syncFilterId});
             store.set("serverVersions", serverVersions);
         }
@@ -156,7 +160,7 @@ function createTimelineRelationsStore(db: IDBDatabase) : void {
 }
 
 //v11 doesn't change the schema, but ensures all userIdentities have all the roomIds they should (see #470)
-async function fixMissingRoomsInUserIdentities(db, txn, log) {
+async function fixMissingRoomsInUserIdentities(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: LogItem) {
     const roomSummaryStore = txn.objectStore("roomSummary");
     const trackedRoomIds: string[] = [];
     await iterateCursor<SummaryData>(roomSummaryStore.openCursor(), roomSummary => {
