@@ -237,6 +237,10 @@ export class Session {
         return this._sessionBackup;
     }
 
+    get hasIdentity() {
+        return !!this._e2eeAccount;
+    }
+
     /** @internal */
     async createIdentity(log) {
         if (this._olm) {

@@ -233,8 +233,7 @@ export class SessionContainer {
             platform: this._platform,
         });
         await this._session.load(log);
-        // TODO: check instead storage doesn't have an identity
-        if (isNewLogin) {
+        if (!this._session.hasIdentity) {
             this._status.set(LoadStatus.SessionSetup);
             await log.wrap("createIdentity", log => this._session.createIdentity(log));
         }
