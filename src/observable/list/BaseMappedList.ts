@@ -25,11 +25,11 @@ export class BaseMappedList<F,T,R = T> extends BaseObservableList<T> {
     protected _sourceList: BaseObservableList<F>;
     protected _sourceUnsubscribe: (() => void) | null = null;
     _mapper: Mapper<F,R>;
-    _updater: Updater<F,T>;
+    _updater?: Updater<F,T>;
     _removeCallback?: (value: T) => void;
     _mappedValues: T[] | null = null;
 
-    constructor(sourceList: BaseObservableList<F>, mapper: Mapper<F,R>, updater: Updater<F,T>, removeCallback?: (value: T) => void) {
+    constructor(sourceList: BaseObservableList<F>, mapper: Mapper<F,R>, updater?: Updater<F,T>, removeCallback?: (value: T) => void) {
         super();
         this._sourceList = sourceList;
         this._mapper = mapper;
