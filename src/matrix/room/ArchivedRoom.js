@@ -138,6 +138,7 @@ export class ArchivedRoom extends BaseRoom {
                 storeNames.roomMembers,
                 storeNames.timelineEvents,
                 storeNames.timelineFragments,
+                storeNames.timelineRelations,
                 storeNames.pendingEvents,
                 storeNames.inboundGroupSessions,
                 storeNames.groupSessionDecryptions,
@@ -149,6 +150,7 @@ export class ArchivedRoom extends BaseRoom {
             txn.roomMembers.removeAllForRoom(this.id);
             txn.timelineEvents.removeAllForRoom(this.id);
             txn.timelineFragments.removeAllForRoom(this.id);
+            txn.timelineRelations.removeAllForRoom(this.id);
             txn.pendingEvents.removeAllForRoom(this.id);
             txn.inboundGroupSessions.removeAllForRoom(this.id);
             txn.groupSessionDecryptions.removeAllForRoom(this.id);
