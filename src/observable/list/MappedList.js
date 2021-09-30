@@ -57,7 +57,7 @@ export class MappedList extends BaseMappedList {
 }
 
 import {ObservableArray} from "./ObservableArray.js";
-import {BaseObservableList} from "./BaseObservableList.js";
+import {BaseObservableList} from "./BaseObservableList";
 
 export async function tests() {
     class MockList extends BaseObservableList {

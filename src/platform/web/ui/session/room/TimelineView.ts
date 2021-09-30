@@ -26,7 +26,7 @@ import {MissingAttachmentView} from "./timeline/MissingAttachmentView.js";
 import {AnnouncementView} from "./timeline/AnnouncementView.js";
 import {RedactedView} from "./timeline/RedactedView.js";
 import {SimpleTile} from "../../../../../domain/session/room/timeline/tiles/SimpleTile.js";
-import {BaseObservableList as ObservableList} from "../../../../../observable/list/BaseObservableList.js";
+import {BaseObservableList as ObservableList} from "../../../../../observable/list/BaseObservableList";
 
 //import {TimelineViewModel} from "../../../../../domain/session/room/timeline/TimelineViewModel.js";
 export interface TimelineViewModel extends IObservableValue {

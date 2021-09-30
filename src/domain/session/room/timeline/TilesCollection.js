@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableList} from "../../../../observable/list/BaseObservableList.js";
+import {BaseObservableList} from "../../../../observable/list/BaseObservableList";
 import {sortedIndex} from "../../../../utils/sortedIndex.js";
 
 // maps 1..n entries to 0..1 tile. Entries are what is stored in the timeline, either an event or fragmentboundary

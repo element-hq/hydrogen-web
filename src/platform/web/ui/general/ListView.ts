@@ -16,7 +16,7 @@ limitations under the License.
 
 import {el} from "./html";
 import {mountView, insertAt} from "./utils";
-import {BaseObservableList as ObservableList} from "../../../../observable/list/BaseObservableList.js";
+import {BaseObservableList as ObservableList} from "../../../../observable/list/BaseObservableList";
 import {IView, IMountArgs} from "./types";
 
 interface IOptions<T, V> {
