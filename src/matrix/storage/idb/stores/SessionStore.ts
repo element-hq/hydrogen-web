@@ -33,6 +33,10 @@ export class SessionStore {
         this._localStorage = localStorage;
     }
 
+    private get _localStorageKeyPrefix(): string {
+        return `${this._sessionStore.databaseName}.session.`;
+    }
+
     async get(key: string): Promise<any> {
         const entry = await this._sessionStore.get(key);
         if (entry) {
@@ -43,7 +47,7 @@ export class SessionStore {
     _writeKeyToLocalStorage(key: string, value: any) {
         // we backup to localStorage so when idb gets cleared for some reason, we don't lose our e2ee identity
         try {
-            const lsKey = `${this._sessionStore.databaseName}.session.${key}`;
+            const lsKey = this._localStorageKeyPrefix + key;
             const lsValue = stringify(value);
             this._localStorage.setItem(lsKey, lsValue);
         } catch (err) {
@@ -62,8 +66,8 @@ export class SessionStore {
 
     async tryRestoreE2EEIdentityFromLocalStorage(log: LogItem): Promise<boolean> {
         let success = false;
-        const lsPrefix = `${this._sessionStore.databaseName}.session.`;
-        const prefix = `${lsPrefix}${SESSION_E2EE_KEY_PREFIX}`;
+        const lsPrefix = this._localStorageKeyPrefix;
+        const prefix = lsPrefix + SESSION_E2EE_KEY_PREFIX;
         for(let i = 0; i < this._localStorage.length; i += 1) {
             const lsKey = this._localStorage.key(i)!;
             if (lsKey.startsWith(prefix)) {
@@ -97,7 +101,7 @@ export class SessionStore {
 
     remove(key: string): void {
         if (key.startsWith(SESSION_E2EE_KEY_PREFIX)) {
-            this._localStorage.removeItem(this._sessionStore.databaseName + key);
+            this._localStorage.removeItem(this._localStorageKeyPrefix + key);
         }
         this._sessionStore.delete(key);
     }
