@@ -1,5 +1,5 @@
 FROM docker.io/node:alpine
-RUN apk add --no-cache git
+RUN apk add --no-cache git python3 build-base
 COPY . /code
 WORKDIR /code
 RUN yarn install
