@@ -24,7 +24,7 @@ export { ObservableArray } from "./list/ObservableArray";
 export { SortedArray } from "./list/SortedArray.js";
 export { MappedList } from "./list/MappedList.js";
 export { AsyncMappedList } from "./list/AsyncMappedList";
-export { ConcatList } from "./list/ConcatList.js";
+export { ConcatList } from "./list/ConcatList";
 export { ObservableMap } from "./map/ObservableMap.js";
 
 // avoid circular dependency between these classes
