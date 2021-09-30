@@ -30,7 +30,8 @@ export const schema: MigrationFunc[] = [
     createTimelineRelationsStore,
     fixMissingRoomsInUserIdentities,
     changeSSSSKeyPrefix,
-    backupAndRestoreE2EEAccountToLocalStorage
+    backupAndRestoreE2EEAccountToLocalStorage,
+    clearAllStores
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -242,4 +243,30 @@ async function backupAndRestoreE2EEAccountToLocalStorage(db: IDBDatabase, txn: I
     // run through all the migration steps when recreating it.
     const restored = await sessionStore.tryRestoreE2EEIdentityFromLocalStorage(log);
     log.set("restored", restored);
+}
+// v14 clear all stores apart from e2ee keys because of possible timeline corruption in #515, will trigger initial sync
+async function clearAllStores(db: IDBDatabase, txn: IDBTransaction) {
+    for (const storeName of db.objectStoreNames) {
+        const store = txn.objectStore(storeName);
+        switch (storeName) {
+            case "inboundGroupSessions":
+            case "outboundGroupSessions":
+            case "olmSessions":
+            case "operations":
+                continue;
+            case "session": {
+                await iterateCursor(store.openCursor(), (value, key, cursor) => {
+                    if (!(key as string).startsWith(SESSION_E2EE_KEY_PREFIX)) {
+                        cursor.delete();
+                    }
+                    return NOT_DONE;
+                })
+                break;
+            }
+            default: {
+                store.clear();
+                break;
+            }
+        }
+    }
 }
