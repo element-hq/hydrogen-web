@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 import {BaseObservableList} from "./BaseObservableList";
-import {findAndUpdateInArray} from "./common.js";
+import {findAndUpdateInArray} from "./common";
 
 export class BaseMappedList extends BaseObservableList {
     constructor(sourceList, mapper, updater, removeCallback) {

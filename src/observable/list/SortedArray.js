@@ -16,7 +16,7 @@ limitations under the License.
 
 import {BaseObservableList} from "./BaseObservableList";
 import {sortedIndex} from "../../utils/sortedIndex.js";
-import {findAndUpdateInArray} from "./common.js";
+import {findAndUpdateInArray} from "./common";
 
 export class SortedArray extends BaseObservableList {
     constructor(comparator) {
