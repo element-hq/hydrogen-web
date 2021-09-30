@@ -127,11 +127,14 @@ export class LeftPanelViewModel extends ViewModel {
         query = query.trim();
         if (query.length === 0) {
             this.clearFilter();
+            return false;
         } else {
+            const startFiltering = !this._tileViewModelsFilterMap.hasApply();
             const filter = new RoomFilter(query);
             this._tileViewModelsFilterMap.setApply((roomId, vm) => {
                 vm.hidden = !filter.matches(vm);
             });
+            return startFiltering;
         }
     }
 }

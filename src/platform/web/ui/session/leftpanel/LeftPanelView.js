@@ -58,6 +58,19 @@ export class LeftPanelView extends TemplateView {
                 vm.i18n`Show single room` :
                 vm.i18n`Enable grid layout`;
         };
+        const roomList = t.view(new ListView(
+            {
+                className: "RoomList",
+                list: vm.tileViewModels,
+            },
+            tileVM => {
+                if (tileVM.kind === "invite") {
+                    return new InviteTileView(tileVM);
+                } else {
+                    return new RoomTileView(tileVM);
+                }
+            }
+        ));
         const utilitiesRow = t.div({className: "utilities"}, [
             t.a({className: "button-utility close-session", href: vm.closeUrl, "aria-label": vm.i18n`Back to account list`, title: vm.i18n`Back to account list`}),
             t.view(new FilterField({
@@ -65,7 +78,12 @@ export class LeftPanelView extends TemplateView {
                 label: vm.i18n`Filter rooms…`,
                 name: "room-filter",
                 autocomplete: true,
-                set: query => vm.setFilter(query),
+                set: query => {
+                    // scroll up if we just started filtering
+                    if (vm.setFilter(query)) {
+                        roomList.scrollTop = 0;
+                    }
+                },
                 clear: () => vm.clearFilter()
             })),
             t.button({
@@ -83,19 +101,7 @@ export class LeftPanelView extends TemplateView {
 
         return t.div({className: "LeftPanel"}, [
             utilitiesRow,
-            t.view(new ListView(
-                {
-                    className: "RoomList",
-                    list: vm.tileViewModels,
-                },
-                tileVM => {
-                    if (tileVM.kind === "invite") {
-                        return new InviteTileView(tileVM);
-                    } else {
-                        return new RoomTileView(tileVM);
-                    }
-                }
-            ))
+            roomList
         ]);
     }
 }

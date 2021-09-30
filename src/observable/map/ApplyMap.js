@@ -24,6 +24,10 @@ export class ApplyMap extends BaseObservableMap {
         this._subscription = null;
     }
 
+    hasApply() {
+        return !!this._apply;
+    }
+
     setApply(apply) {
         this._apply = apply;
         if (apply) {
