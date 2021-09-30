@@ -22,63 +22,52 @@ export function parse(value: string): any {
     return decodeValue(JSON.parse(value));
 }
 
-
 function encodeValue(value: any): any {
-    switch (typeof value) {
-        case "object": {
-            if (value === null || Array.isArray(value)) {
-                return value;
-            }
-            // TypedArray
-            if (value.byteLength) {
-                return {_type: value.constructor.name, value: Array.from(value)};
-            }
-            let newObj = {};
-            for (const prop in value) {
-                if (value.hasOwnProperty(prop)) {
-                    newObj[prop] = encodeValue(value[prop]);
-                }
-            }
-            return newObj;
+    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+        // TypedArray
+        if (value.byteLength) {
+            return {_type: value.constructor.name, value: Array.from(value)};
         }
-        default:
-            return value;
+        let newObj = {};
+        for (const prop in value) {
+            if (value.hasOwnProperty(prop)) {
+                newObj[prop] = encodeValue(value[prop]);
+            }
+        }
+        return newObj;
+    } else {
+        return value;
     }
 }
 
 function decodeValue(value: any): any {
-    switch (typeof value) {
-        case "object": {
-            if (value === null || Array.isArray(value)) {
-                return value;
+    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+        if (typeof value._type === "string") {
+            switch (value._type) {
+                case "Int8Array": return Int8Array.from(value.value);
+                case "Uint8Array": return Uint8Array.from(value.value);
+                case "Uint8ClampedArray": return Uint8ClampedArray.from(value.value);
+                case "Int16Array": return Int16Array.from(value.value);
+                case "Uint16Array": return Uint16Array.from(value.value);
+                case "Int32Array": return Int32Array.from(value.value);
+                case "Uint32Array": return Uint32Array.from(value.value);
+                case "Float32Array": return Float32Array.from(value.value);
+                case "Float64Array": return Float64Array.from(value.value);
+                case "BigInt64Array": return BigInt64Array.from(value.value);
+                case "BigUint64Array": return BigUint64Array.from(value.value);
+                default:
+                    return value.value;
             }
-            if (typeof value._type === "string") {
-                switch (value._type) {
-                    case "Int8Array": return Int8Array.from(value.value);
-                    case "Uint8Array": return Uint8Array.from(value.value);
-                    case "Uint8ClampedArray": return Uint8ClampedArray.from(value.value);
-                    case "Int16Array": return Int16Array.from(value.value);
-                    case "Uint16Array": return Uint16Array.from(value.value);
-                    case "Int32Array": return Int32Array.from(value.value);
-                    case "Uint32Array": return Uint32Array.from(value.value);
-                    case "Float32Array": return Float32Array.from(value.value);
-                    case "Float64Array": return Float64Array.from(value.value);
-                    case "BigInt64Array": return BigInt64Array.from(value.value);
-                    case "BigUint64Array": return BigUint64Array.from(value.value);
-                    default:
-                        return value.value;
-                }
-            }
-            let newObj = {};
-            for (const prop in value) {
-                if (value.hasOwnProperty(prop)) {
-                    newObj[prop] = decodeValue(value[prop]);
-                }
-            }
-            return newObj;
         }
-        default:
-            return value;
+        let newObj = {};
+        for (const prop in value) {
+            if (value.hasOwnProperty(prop)) {
+                newObj[prop] = decodeValue(value[prop]);
+            }
+        }
+        return newObj;
+    } else {
+        return value;
     }
 }
 
