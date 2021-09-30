@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {AbortError} from "../utils/error.js";
-import {BaseObservable} from "./BaseObservable.js";
+import {BaseObservable} from "./BaseObservable";
 
 // like an EventEmitter, but doesn't have an event type
 export class BaseObservableValue extends BaseObservable {
