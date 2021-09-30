@@ -211,7 +211,12 @@ class TilesListView extends ListView<SimpleTile, TileView> {
         this.onChanged = onChanged;
     }
 
-    protected onUpdate(index: number, value: SimpleTile, param: any) {
+    onReset() {
+        super.onReset();
+        this.onChanged();
+    }
+
+    onUpdate(index: number, value: SimpleTile, param: any) {
         if (param === "shape") {
             const ExpectedClass = viewClassForEntry(value);
             const child = this.getChildInstanceByIndex(index);
@@ -227,17 +232,17 @@ class TilesListView extends ListView<SimpleTile, TileView> {
         this.onChanged();
     }
 
-    protected onAdd(idx: number, value: SimpleTile) {
+    onAdd(idx: number, value: SimpleTile) {
         super.onAdd(idx, value);
         this.onChanged();
     }
 
-    protected onRemove(idx: number, value: SimpleTile) {
+    onRemove(idx: number, value: SimpleTile) {
         super.onRemove(idx, value);
         this.onChanged();
     }
 
-    protected onMove(fromIdx: number, toIdx: number, value: SimpleTile) {
+    onMove(fromIdx: number, toIdx: number, value: SimpleTile) {
         super.onMove(fromIdx, toIdx, value);
         this.onChanged();
     }
