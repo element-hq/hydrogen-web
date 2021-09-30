@@ -57,6 +57,16 @@ export class TimelineRelationStore {
         this._store.delete(range);
     }
 
+    removeAllForRoom(roomId: string) {
+        const range = this._store.IDBKeyRange.bound(
+            encodeKey(roomId, MIN_UNICODE, MIN_UNICODE, MIN_UNICODE),
+            encodeKey(roomId, MAX_UNICODE, MAX_UNICODE, MAX_UNICODE),
+            true,
+            true
+        );
+        this._store.delete(range);
+    }
+
     async getForTargetAndType(roomId: string, targetId: string, relType: string): Promise<RelationEntry[]> {
         // exclude both keys as they are theoretical min and max,
         // but we should't have a match for just the room id, or room id with max
