@@ -104,7 +104,7 @@ export class ConcatList extends BaseObservableList {
     }
 }
 
-import {ObservableArray} from "./ObservableArray.js";
+import {ObservableArray} from "./ObservableArray";
 export async function tests() {
     return {
         test_length(assert) {

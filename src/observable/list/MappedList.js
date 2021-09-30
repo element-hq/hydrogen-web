@@ -56,7 +56,7 @@ export class MappedList extends BaseMappedList {
     }
 }
 
-import {ObservableArray} from "./ObservableArray.js";
+import {ObservableArray} from "./ObservableArray";
 import {BaseObservableList} from "./BaseObservableList";
 
 export async function tests() {

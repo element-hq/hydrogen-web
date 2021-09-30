@@ -143,7 +143,7 @@ class ResetEvent {
     }
 }
 
-import {ObservableArray} from "./ObservableArray.js";
+import {ObservableArray} from "./ObservableArray";
 import {ListObserver} from "../../mocks/ListObserver.js";
 
 export function tests() {

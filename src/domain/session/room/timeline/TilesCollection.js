@@ -253,7 +253,7 @@ export class TilesCollection extends BaseObservableList {
     }
 }
 
-import {ObservableArray} from "../../../../observable/list/ObservableArray.js";
+import {ObservableArray} from "../../../../observable/list/ObservableArray";
 import {UpdateAction} from "./UpdateAction.js";
 
 export function tests() {
