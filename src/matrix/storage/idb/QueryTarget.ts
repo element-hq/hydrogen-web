@@ -19,9 +19,12 @@ import {StorageError} from "../common";
 import {LogItem} from "../../../logging/LogItem.js";
 import {IDBKey} from "./Transaction";
 
+// this is the part of the Transaction class API that is used here and in the Store subclass,
+// to make it easier to replace it with alternative implementations in schema.ts and unit tests
 export interface ITransaction {
     idbFactory: IDBFactory;
     IDBKeyRange: typeof IDBKeyRange;
+    databaseName: string;
     addWriteError(error: StorageError, refItem: LogItem | undefined, operationName: string, keys: IDBKey[] | undefined);
 }
 
@@ -53,6 +56,10 @@ export class QueryTarget<T> {
 
     get IDBKeyRange(): typeof IDBKeyRange {
         return this._transaction.IDBKeyRange;
+    }
+
+    get databaseName(): string {
+        return this._transaction.databaseName;
     }
 
     _openCursor(range?: IDBQuery, direction?: IDBCursorDirection): IDBRequest<IDBCursorWithValue | null> {
@@ -269,6 +276,7 @@ import {QueryTargetWrapper, Store} from "./Store";
 export function tests() {
 
     class MockTransaction extends MockIDBImpl {
+        get databaseName(): string { return "mockdb"; }
         addWriteError(error: StorageError, refItem: LogItem | undefined, operationName: string, keys: IDBKey[] | undefined) {}
     }
 

@@ -33,10 +33,10 @@ export class IDBError extends StorageError {
     storeName: string;
     databaseName: string;
 
-    constructor(message: string, sourceOrCursor: IDBIndex | IDBCursor | IDBObjectStore, cause: DOMException | null = null) {
-        const source = "source" in sourceOrCursor ? sourceOrCursor.source : sourceOrCursor;
-        const storeName = _sourceName(source);
-        const databaseName = _sourceDatabase(source);
+    constructor(message: string, sourceOrCursor: IDBIndex | IDBCursor | IDBObjectStore | null, cause: DOMException | null = null) {
+        const source = (sourceOrCursor && "source" in sourceOrCursor) ? sourceOrCursor.source : sourceOrCursor;
+        const storeName = source ? _sourceName(source) : "";
+        const databaseName = source ? _sourceDatabase(source) : "";
         let fullMessage = `${message} on ${databaseName}.${storeName}`;
         if (cause) {
             fullMessage += ": ";

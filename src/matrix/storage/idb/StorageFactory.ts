@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {IDOMStorage} from "./types";
 import {Storage} from "./Storage";
 import { openDatabase, reqAsPromise } from "./utils";
 import { exportSession, importSession, Export } from "./export";
@@ -23,8 +24,8 @@ import { BaseLogger } from "../../../logging/BaseLogger.js";
 import { LogItem } from "../../../logging/LogItem.js";
 
 const sessionName = (sessionId: string) => `hydrogen_session_${sessionId}`;
-const openDatabaseWithSessionId = function(sessionId: string, idbFactory: IDBFactory, log: LogItem) {
-    const create = (db, txn, oldVersion, version) => createStores(db, txn, oldVersion, version, log);
+const openDatabaseWithSessionId = function(sessionId: string, idbFactory: IDBFactory, localStorage: IDOMStorage, log: LogItem) {
+    const create = (db, txn, oldVersion, version) => createStores(db, txn, oldVersion, version, localStorage, log);
     return openDatabase(sessionName(sessionId), create, schema.length, idbFactory);
 }
 
@@ -52,12 +53,14 @@ async function requestPersistedStorage(): Promise<boolean> {
 export class StorageFactory {
     private _serviceWorkerHandler: ServiceWorkerHandler;
     private _idbFactory: IDBFactory;
-    private _IDBKeyRange: typeof IDBKeyRange
+    private _IDBKeyRange: typeof IDBKeyRange;
+    private _localStorage: IDOMStorage;
 
-    constructor(serviceWorkerHandler: ServiceWorkerHandler, idbFactory: IDBFactory = window.indexedDB, _IDBKeyRange = window.IDBKeyRange) {
+    constructor(serviceWorkerHandler: ServiceWorkerHandler, idbFactory: IDBFactory = window.indexedDB, _IDBKeyRange = window.IDBKeyRange, localStorage: IDOMStorage = window.localStorage) {
         this._serviceWorkerHandler = serviceWorkerHandler;
         this._idbFactory = idbFactory;
         this._IDBKeyRange = _IDBKeyRange;
+        this._localStorage = localStorage;
     }
 
     async create(sessionId: string, log: LogItem): Promise<Storage> {
@@ -70,8 +73,8 @@ export class StorageFactory {
         });
 
         const hasWebkitEarlyCloseTxnBug = await detectWebkitEarlyCloseTxnBug(this._idbFactory);
-        const db = await openDatabaseWithSessionId(sessionId, this._idbFactory, log);
-        return new Storage(db, this._idbFactory, this._IDBKeyRange, hasWebkitEarlyCloseTxnBug, log.logger);
+        const db = await openDatabaseWithSessionId(sessionId, this._idbFactory, this._localStorage, log);
+        return new Storage(db, this._idbFactory, this._IDBKeyRange, hasWebkitEarlyCloseTxnBug, this._localStorage, log.logger);
     }
 
     delete(sessionId: string): Promise<IDBDatabase> {
@@ -81,21 +84,22 @@ export class StorageFactory {
     }
 
     async export(sessionId: string, log: LogItem): Promise<Export> {
-        const db = await openDatabaseWithSessionId(sessionId, this._idbFactory, log);
+        const db = await openDatabaseWithSessionId(sessionId, this._idbFactory, this._localStorage, log);
         return await exportSession(db);
     }
 
     async import(sessionId: string, data: Export, log: LogItem): Promise<void> {
-        const db = await openDatabaseWithSessionId(sessionId, this._idbFactory, log);
+        const db = await openDatabaseWithSessionId(sessionId, this._idbFactory, this._localStorage, log);
         return await importSession(db, data);
     }
 }
 
-async function createStores(db: IDBDatabase, txn: IDBTransaction, oldVersion: number | null, version: number, log: LogItem): Promise<void> {
+async function createStores(db: IDBDatabase, txn: IDBTransaction, oldVersion: number | null, version: number, localStorage: IDOMStorage, log: LogItem): Promise<void> {
     const startIdx = oldVersion || 0;
     return log.wrap({l: "storage migration", oldVersion, version}, async log => {
         for(let i = startIdx; i < version; ++i) {
-            await log.wrap(`v${i + 1}`, log => schema[i](db, txn, log));
+            const migrationFunc = schema[i];
+            await log.wrap(`v${i + 1}`, log => migrationFunc(db, txn, localStorage, log));
         }
     });
 }

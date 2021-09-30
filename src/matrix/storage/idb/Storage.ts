@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {IDOMStorage} from "./types";
 import {Transaction} from "./Transaction";
 import { STORE_NAMES, StoreNames, StorageError } from "../common";
 import { reqAsPromise } from "./utils";
@@ -29,13 +30,15 @@ export class Storage {
     readonly idbFactory: IDBFactory
     readonly IDBKeyRange: typeof IDBKeyRange;
     readonly storeNames: typeof StoreNames;
+    readonly localStorage: IDOMStorage;
 
-    constructor(idbDatabase: IDBDatabase, idbFactory: IDBFactory, _IDBKeyRange: typeof IDBKeyRange, hasWebkitEarlyCloseTxnBug: boolean, logger: BaseLogger) {
+    constructor(idbDatabase: IDBDatabase, idbFactory: IDBFactory, _IDBKeyRange: typeof IDBKeyRange, hasWebkitEarlyCloseTxnBug: boolean, localStorage: IDOMStorage, logger: BaseLogger) {
         this._db = idbDatabase;
         this.idbFactory = idbFactory;
         this.IDBKeyRange = _IDBKeyRange;
         this._hasWebkitEarlyCloseTxnBug = hasWebkitEarlyCloseTxnBug;
         this.storeNames = StoreNames;
+        this.localStorage = localStorage;
         this.logger = logger;
     }
 
@@ -78,5 +81,9 @@ export class Storage {
 
     close(): void {
         this._db.close();
+    }
+
+    get databaseName(): string {
+        return this._db.name;
     }
 }
