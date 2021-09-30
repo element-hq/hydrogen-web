@@ -18,60 +18,68 @@ limitations under the License.
 import {BaseObservableList} from "./BaseObservableList";
 import {findAndUpdateInArray} from "./common";
 
-export class BaseMappedList extends BaseObservableList {
-    constructor(sourceList, mapper, updater, removeCallback) {
+export type Mapper<F,T> = (value: F) => T
+export type Updater<F,T> = (mappedValue: T, params: any, value: F) => void;
+
+export class BaseMappedList<F,T> extends BaseObservableList<T> {
+    protected _sourceList: BaseObservableList<F>;
+    protected _sourceUnsubscribe: (() => void) | null = null;
+    _mapper: Mapper<F,T>;
+    _updater: Updater<F,T>;
+    _removeCallback: ((value: T) => void) | null;
+    _mappedValues: T[] | null = null;
+
+    constructor(sourceList: BaseObservableList<F>, mapper: Mapper<F,T>, updater: Updater<F,T>, removeCallback: ((value: T) => void) | null = null) {
         super();
         this._sourceList = sourceList;
         this._mapper = mapper;
         this._updater = updater;
         this._removeCallback = removeCallback;
-        this._mappedValues = null;
-        this._sourceUnsubscribe = null;
     }
 
-    findAndUpdate(predicate, updater) {
-        return findAndUpdateInArray(predicate, this._mappedValues, this, updater);
+    findAndUpdate(predicate: (value: T) => boolean, updater: (value: T) => any | false) {
+        return findAndUpdateInArray(predicate, this._mappedValues!, this, updater);
     }
 
     get length() {
-        return this._mappedValues.length;
+        return this._mappedValues!.length;
     }
 
     [Symbol.iterator]() {
-        return this._mappedValues.values();
+        return this._mappedValues!.values();
     }
 }
 
-export function runAdd(list, index, mappedValue) {
-    list._mappedValues.splice(index, 0, mappedValue);
+export function runAdd<F,T>(list: BaseMappedList<F,T>, index: number, mappedValue: T): void {
+    list._mappedValues!.splice(index, 0, mappedValue);
     list.emitAdd(index, mappedValue);
 }
 
-export function runUpdate(list, index, value, params) {
-    const mappedValue = list._mappedValues[index];
+export function runUpdate<F,T>(list: BaseMappedList<F,T>, index: number, value: F, params: any): void {
+    const mappedValue = list._mappedValues![index];
     if (list._updater) {
         list._updater(mappedValue, params, value);
     }
     list.emitUpdate(index, mappedValue, params);
 }
 
-export function runRemove(list, index) {
-    const mappedValue = list._mappedValues[index];
-    list._mappedValues.splice(index, 1);
+export function runRemove<F,T>(list: BaseMappedList<F,T>, index: number): void {
+    const mappedValue = list._mappedValues![index];
+    list._mappedValues!.splice(index, 1);
     if (list._removeCallback) {
         list._removeCallback(mappedValue);
     }
     list.emitRemove(index, mappedValue);
 }
 
-export function runMove(list, fromIdx, toIdx) {
-    const mappedValue = list._mappedValues[fromIdx];
-    list._mappedValues.splice(fromIdx, 1);
-    list._mappedValues.splice(toIdx, 0, mappedValue);
+export function runMove<F,T>(list: BaseMappedList<F,T>, fromIdx: number, toIdx: number): void {
+    const mappedValue = list._mappedValues![fromIdx];
+    list._mappedValues!.splice(fromIdx, 1);
+    list._mappedValues!.splice(toIdx, 0, mappedValue);
     list.emitMove(fromIdx, toIdx, mappedValue);
 }
 
-export function runReset(list) {
+export function runReset<F,T>(list: BaseMappedList<F,T>): void {
     list._mappedValues = [];
     list.emitReset();
 }
