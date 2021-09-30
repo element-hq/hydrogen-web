@@ -15,9 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {IListObserver} from "./BaseObservableList";
 import {BaseMappedList, runAdd, runUpdate, runRemove, runMove, runReset} from "./BaseMappedList";
 
-export class MappedList extends BaseMappedList {
+export class MappedList<F,T> extends BaseMappedList<F,T> implements IListObserver<F> {
     onSubscribeFirst() {
         this._sourceUnsubscribe = this._sourceList.subscribe(this);
         this._mappedValues = [];
@@ -26,16 +27,16 @@ export class MappedList extends BaseMappedList {
         }
     }
 
-    onReset() {
+    onReset(): void {
         runReset(this);
     }
 
-    onAdd(index, value) {
+    onAdd(index: number, value: F): void {
         const mappedValue = this._mapper(value);
         runAdd(this, index, mappedValue);
     }
 
-    onUpdate(index, value, params) {
+    onUpdate(index: number, value: F, params: any): void {
         // if an update is emitted while calling source.subscribe() from onSubscribeFirst, ignore it
         if (!this._mappedValues) {
             return;
@@ -43,24 +44,25 @@ export class MappedList extends BaseMappedList {
         runUpdate(this, index, value, params);
     }
 
-    onRemove(index) {
+    onRemove(index: number): void {
         runRemove(this, index);
     }
 
-    onMove(fromIdx, toIdx) {
+    onMove(fromIdx: number, toIdx: number): void {
         runMove(this, fromIdx, toIdx);
     }
 
-    onUnsubscribeLast() {
-        this._sourceUnsubscribe();
+    onUnsubscribeLast(): void {
+        this._sourceUnsubscribe!();
     }
 }
 
 import {ObservableArray} from "./ObservableArray";
 import {BaseObservableList} from "./BaseObservableList";
+import {defaultObserverWith} from "./BaseObservableList";
 
 export async function tests() {
-    class MockList extends BaseObservableList {
+    class MockList extends BaseObservableList<number> {
         get length() {
             return 0;
         }
@@ -74,26 +76,26 @@ export async function tests() {
             const source = new MockList();
             const mapped = new MappedList(source, n => {return {n: n*n};});
             let fired = false;
-            const unsubscribe = mapped.subscribe({
+            const unsubscribe = mapped.subscribe(defaultObserverWith({
                 onAdd(idx, value) {
                     fired = true;
                     assert.equal(idx, 0);
                     assert.equal(value.n, 36);
                 }
-            });
+            }));
             source.emitAdd(0, 6);
             assert(fired);
             unsubscribe();
         },
         test_update(assert) {
             const source = new MockList();
-            const mapped = new MappedList(
+            const mapped = new MappedList<number, { n: number, m?: number }>(
                 source,
                 n => {return {n: n*n};},
                 (o, p, n) => o.m = n*n
             );
             let fired = false;
-            const unsubscribe = mapped.subscribe({
+            const unsubscribe = mapped.subscribe(defaultObserverWith({
                 onAdd() {},
                 onUpdate(idx, value) {
                     fired = true;
@@ -101,7 +103,7 @@ export async function tests() {
                     assert.equal(value.n, 36);
                     assert.equal(value.m, 49);
                 }
-            });
+            }));
             source.emitAdd(0, 6);
             source.emitUpdate(0, 7);
             assert(fired);
@@ -113,9 +115,9 @@ export async function tests() {
                 source,
                 n => {return n*n;}
             );
-            mapped.subscribe({
+            mapped.subscribe(defaultObserverWith({
                 onUpdate() { assert.fail(); }
-            });
+            }));
             assert.equal(mapped.findAndUpdate(
                 n => n === 100,
                 () => assert.fail()
@@ -127,9 +129,9 @@ export async function tests() {
                 source,
                 n => {return n*n;}
             );
-            mapped.subscribe({
+            mapped.subscribe(defaultObserverWith({
                 onUpdate() { assert.fail(); }
-            });
+            }));
             let fired = false;
             assert.equal(mapped.findAndUpdate(
                 n => n === 9,
@@ -148,14 +150,14 @@ export async function tests() {
                 n => {return n*n;}
             );
             let fired = false;
-            mapped.subscribe({
+            mapped.subscribe(defaultObserverWith({
                 onUpdate(idx, n, params) {
                     assert.equal(idx, 1);
                     assert.equal(n, 9);
                     assert.equal(params, "param");
                     fired = true;
                 }
-            });
+            }));
             assert.equal(mapped.findAndUpdate(n => n === 9, () => "param"), true);
             assert.equal(fired, true);
         },
