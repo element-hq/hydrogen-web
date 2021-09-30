@@ -216,7 +216,7 @@ async function changeSSSSKeyPrefix(db: IDBDatabase, txn: IDBTransaction) {
     const session = txn.objectStore("session");
     const ssssKey = await reqAsPromise(session.get("ssssKey"));
     if (ssssKey) {
-        session.put({key: `${SESSION_E2EE_KEY_PREFIX}ssssKey`, value: ssssKey});
+        session.put({key: `${SESSION_E2EE_KEY_PREFIX}ssssKey`, value: ssssKey.value});
     }
 }
 // v13
