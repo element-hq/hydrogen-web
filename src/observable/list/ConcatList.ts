@@ -14,16 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableList} from "./BaseObservableList";
+import {BaseObservableList, IListObserver} from "./BaseObservableList";
 
-export class ConcatList extends BaseObservableList {
-    constructor(...sourceLists) {
+export class ConcatList<T> extends BaseObservableList<T> implements IListObserver<T> {
+    protected _sourceLists: BaseObservableList<T>[];
+    protected _sourceUnsubscribes: (() => void)[] | null = null;
+
+    constructor(...sourceLists: BaseObservableList<T>[]) {
         super();
         this._sourceLists = sourceLists;
-        this._sourceUnsubscribes = null;
     }
 
-    _offsetForSource(sourceList) {
+    _offsetForSource(sourceList: BaseObservableList<T>): number {
         const listIdx = this._sourceLists.indexOf(sourceList);
         let offset = 0;
         for (let i = 0; i < listIdx; ++i) {
@@ -32,17 +34,17 @@ export class ConcatList extends BaseObservableList {
         return offset;
     }
 
-    onSubscribeFirst() {
+    onSubscribeFirst(): void {
         this._sourceUnsubscribes = this._sourceLists.map(sourceList => sourceList.subscribe(this));
     }
 
-    onUnsubscribeLast() {
-        for (const sourceUnsubscribe of this._sourceUnsubscribes) {
+    onUnsubscribeLast(): void {
+        for (const sourceUnsubscribe of this._sourceUnsubscribes!) {
             sourceUnsubscribe();
         }
     }
 
-    onReset() {
+    onReset(): void {
         // TODO: not ideal if other source lists are large
         // but working impl for now
         // reset, and 
@@ -54,11 +56,11 @@ export class ConcatList extends BaseObservableList {
         }
     }
 
-    onAdd(index, value, sourceList) {
+    onAdd(index: number, value: T, sourceList: BaseObservableList<T>): void {
         this.emitAdd(this._offsetForSource(sourceList) + index, value);
     }
 
-    onUpdate(index, value, params, sourceList) {
+    onUpdate(index: number, value: T, params: any, sourceList: BaseObservableList<T>): void {
         // if an update is emitted while calling source.subscribe() from onSubscribeFirst, ignore it
         // as we are not supposed to call `length` on any uninitialized list
         if (!this._sourceUnsubscribes) {
@@ -67,16 +69,16 @@ export class ConcatList extends BaseObservableList {
         this.emitUpdate(this._offsetForSource(sourceList) + index, value, params);
     }
 
-    onRemove(index, value, sourceList) {
+    onRemove(index: number, value: T, sourceList: BaseObservableList<T>): void {
         this.emitRemove(this._offsetForSource(sourceList) + index, value);
     }
 
-    onMove(fromIdx, toIdx, value, sourceList) {
+    onMove(fromIdx: number, toIdx: number, value: T, sourceList: BaseObservableList<T>): void {
         const offset = this._offsetForSource(sourceList);
         this.emitMove(offset + fromIdx, offset + toIdx, value);
     }
 
-    get length() {
+    get length(): number {
         let len = 0;
         for (let i = 0; i < this._sourceLists.length; ++i) {
             len += this._sourceLists[i].length;
@@ -105,6 +107,7 @@ export class ConcatList extends BaseObservableList {
 }
 
 import {ObservableArray} from "./ObservableArray";
+import {defaultObserverWith} from "./BaseObservableList";
 export async function tests() {
     return {
         test_length(assert) {
@@ -133,13 +136,13 @@ export async function tests() {
             const list2 = new ObservableArray([11, 12, 13]);
             const all = new ConcatList(list1, list2);
             let fired = false;
-            all.subscribe({
+            all.subscribe(defaultObserverWith({
                 onAdd(index, value) {
                     fired = true;
                     assert.equal(index, 4);
                     assert.equal(value, 11.5);
                 }
-            });
+            }));
             list2.insert(1, 11.5);
             assert(fired);
         },
@@ -148,13 +151,13 @@ export async function tests() {
             const list2 = new ObservableArray([11, 12, 13]);
             const all = new ConcatList(list1, list2);
             let fired = false;
-            all.subscribe({
+            all.subscribe(defaultObserverWith({
                 onUpdate(index, value) {
                     fired = true;
                     assert.equal(index, 4);
                     assert.equal(value, 10);
                 }
-            });
+            }));
             list2.emitUpdate(1, 10);
             assert(fired);
         },
