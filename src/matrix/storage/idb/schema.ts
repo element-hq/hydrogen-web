@@ -257,7 +257,6 @@ async function clearAllStores(db: IDBDatabase, txn: IDBTransaction) {
             case "session": {
                 await iterateCursor(store.openCursor(), (value, key, cursor) => {
                     if (!(key as string).startsWith(SESSION_E2EE_KEY_PREFIX)) {
-                        console.log("deleting", key);
                         cursor.delete();
                     }
                     return NOT_DONE;
