@@ -32,10 +32,4 @@ There are no published builds at this point. You need to checkout the version yo
 
 ## I want to embed Hydrogen in my website, how should I do that?
 
-There are no npm modules yet published for Hydrogen. The easiest is probably to setup your website project, do yarn/npm init if you haven't yet, then add the hydrogen repo as a git http dependency, and import the files/classes you want to use from Hydrogen.
-
-For example, for a single room chat, you could create an instance of `Platform`, you create a new `SessionContainer` with it, call `startWithLogin` on it, observe `sessionContainer.loadStatus` to know when initial sync is done, then do `sessionContainer.session.rooms.get('roomid')` and you create a `RoomViewModel` with it and pass that to a `RoomView`. Then you call `document.appendChild(roomView.mount())` and you should see a syncing room.
-
-Feel free to ask for pointers in #hydrogen:matrix.org as the documentation is still lacking considerably. Note that at this early, pre 1.0 stage of the project, there is no promise of API stability yet.
-
-Also, to make end-to-end encryption work, you'll likely need some tweaks to your build system, see [this issue](https://github.com/vector-im/hydrogen-web/issues/467).
+Hydrogen aims to be usable as an SDK, and while it is still early days, you can find some documentation how to do that in [SDK.md](SDK.md).

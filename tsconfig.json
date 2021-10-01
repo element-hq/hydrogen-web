@@ -4,5 +4,8 @@
         "noEmit": true,
         "target": "ES2020"
     },
+    "exclude": [
+        "src/sdk/paths/*"
+    ],
     "include": ["src/**/*"],
 }
