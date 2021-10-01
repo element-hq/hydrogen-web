@@ -48,7 +48,7 @@ const sessionContainer = new SessionContainer({
 
 // wait for login and first sync to finish
 const loginOptions = await sessionContainer.queryLogin("matrix.org").result;
-sessionContainer.startWithLogin(loginOptions.password("bruno4", "testtest"));
+sessionContainer.startWithLogin(loginOptions.password("user", "password"));
 await sessionContainer.loadStatus.waitFor((status: string) => {
     return status === LoadStatus.Ready ||
         status === LoadStatus.Error ||
@@ -62,6 +62,7 @@ if (sessionContainer.loginFailure) {
 } else {
     // we're logged in, we can access the room now
     const {session} = sessionContainer;
+    // room id for #element-dev:matrix.org
     const room = session.rooms.get("!bEWtlqtDwCLFIAKAcv:matrix.org");
     const vm = new RoomViewModel({
         room,
