@@ -16,6 +16,7 @@ limitations under the License.
 
 import {el} from "./html";
 import {mountView, insertAt} from "./utils";
+import {SubscriptionHandle} from "../../../../observable/BaseObservable";
 import {BaseObservableList as ObservableList} from "../../../../observable/list/BaseObservableList";
 import {IView, IMountArgs} from "./types";
 
@@ -26,8 +27,6 @@ interface IOptions<T, V> {
     tagName?: string,
     parentProvidesUpdates?: boolean
 }
-
-type SubscriptionHandle = () => void;
 
 export class ListView<T, V extends IView> implements IView {
 
@@ -115,8 +114,7 @@ export class ListView<T, V extends IView> implements IView {
     }
 
     private _unloadList() {
-        this._subscription!()
-        this._subscription = undefined;
+        this._subscription = this._subscription!();
         for (let child of this._childInstances!) {
             child.unmount();
         }

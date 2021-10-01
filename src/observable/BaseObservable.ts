@@ -14,6 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// we return undefined so you can reassign any member
+// that uses `member?: T` syntax in one statement.
+export type SubscriptionHandle = () => undefined;
+
 export abstract class BaseObservable<T> {
     protected _handlers: Set<T> = new Set<T>();
 
@@ -25,7 +29,7 @@ export abstract class BaseObservable<T> {
 
     }
 
-    subscribe(handler: T): () => void {
+    subscribe(handler: T): SubscriptionHandle {
         this._handlers.add(handler);
         if (this._handlers.size === 1) {
             this.onSubscribeFirst();
@@ -35,15 +39,14 @@ export abstract class BaseObservable<T> {
         };
     }
 
-    unsubscribe(handler: T | null): null {
+    unsubscribe(handler?: T): undefined {
         if (handler) {
             this._handlers.delete(handler);
             if (this._handlers.size === 0) {
                 this.onUnsubscribeLast();
             }
-            handler = null;
         }
-        return null;
+        return undefined;
     }
 
     unsubscribeAll(): void {
