@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 // types need to bootstrap a SessionContainer
-export {SessionContainer} from "./matrix/SessionContainer.js";
+export {SessionContainer, LoadStatus} from "./matrix/SessionContainer.js";
 export {Session} from "./matrix/Session.js";
 export {Sync} from "./matrix/Sync.js";
 export {Room} from "./matrix/room/Room.js";
