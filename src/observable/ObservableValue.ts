@@ -15,21 +15,19 @@ limitations under the License.
 */
 
 import {AbortError} from "../utils/error.js";
-import {BaseObservable} from "./BaseObservable.js";
+import {BaseObservable} from "./BaseObservable";
 
 // like an EventEmitter, but doesn't have an event type
-export class BaseObservableValue extends BaseObservable {
-    emit(argument) {
+export abstract class BaseObservableValue<T> extends BaseObservable<(value: T) => void> {
+    emit(argument: T) {
         for (const h of this._handlers) {
             h(argument);
         }
     }
 
-    get() {
-        throw new Error("unimplemented");
-    }
+    abstract get(): T;
 
-    waitFor(predicate) {
+    waitFor(predicate: (value: T) => boolean): IWaitHandle<T> {
         if (predicate(this.get())) {
             return new ResolvedWaitForHandle(Promise.resolve(this.get()));
         } else {
@@ -38,8 +36,17 @@ export class BaseObservableValue extends BaseObservable {
     }
 }
 
-class WaitForHandle {
-    constructor(observable, predicate) {
+interface IWaitHandle<T> {
+    promise: Promise<T>;
+    dispose(): void;
+}
+
+class WaitForHandle<T> implements IWaitHandle<T> {
+    private _promise: Promise<T>
+    private _reject: ((reason?: any) => void) | null;
+    private _subscription: (() => void) | null;
+
+    constructor(observable: BaseObservableValue<T>, predicate: (value: T) => boolean) {
         this._promise = new Promise((resolve, reject) => {
             this._reject = reject;
             this._subscription = observable.subscribe(v => {
@@ -52,7 +59,7 @@ class WaitForHandle {
         });
     }
 
-    get promise() {
+    get promise(): Promise<T> {
         return this._promise;
     }
 
@@ -68,25 +75,24 @@ class WaitForHandle {
     }
 }
 
-class ResolvedWaitForHandle {
-    constructor(promise) {
-        this.promise = promise;
-    }
-
+class ResolvedWaitForHandle<T> implements IWaitHandle<T> {
+    constructor(public promise: Promise<T>) {}
     dispose() {}
 }
 
-export class ObservableValue extends BaseObservableValue {
-    constructor(initialValue) {
+export class ObservableValue<T> extends BaseObservableValue<T> {
+    private _value: T;
+
+    constructor(initialValue: T) {
         super();
         this._value = initialValue;
     }
 
-    get() {
+    get(): T {
         return this._value;
     }
 
-    set(value) {
+    set(value: T): void {
         if (value !== this._value) {
             this._value = value;
             this.emit(this._value);
@@ -94,8 +100,10 @@ export class ObservableValue extends BaseObservableValue {
     }
 }
 
-export class RetainedObservableValue extends ObservableValue {
-    constructor(initialValue, freeCallback) {
+export class RetainedObservableValue<T> extends ObservableValue<T> {
+    private _freeCallback: () => void;
+
+    constructor(initialValue: T, freeCallback: () => void) {
         super(initialValue);
         this._freeCallback = freeCallback;
     }
@@ -109,7 +117,7 @@ export class RetainedObservableValue extends ObservableValue {
 export function tests() {
     return {
         "set emits an update": assert => {
-            const a = new ObservableValue();
+            const a = new ObservableValue<number>(0);
             let fired = false;
             const subscription = a.subscribe(v => {
                 fired = true;
@@ -140,7 +148,7 @@ export function tests() {
             assert.strictEqual(a.get(), 6);
         },
         "waitFor promise rejects when disposed": async assert => {
-            const a = new ObservableValue();
+            const a = new ObservableValue<number>(0);
             const handle = a.waitFor(() => false);
             Promise.resolve().then(() => {
                 handle.dispose();

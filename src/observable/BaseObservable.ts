@@ -14,20 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export class BaseObservable {
-    constructor() {
-        this._handlers = new Set();
-    }
+// we return undefined so you can reassign any member
+// that uses `member?: T` syntax in one statement.
+export type SubscriptionHandle = () => undefined;
 
-    onSubscribeFirst() {
+export abstract class BaseObservable<T> {
+    protected _handlers: Set<T> = new Set<T>();
 
-    }
-
-    onUnsubscribeLast() {
+    onSubscribeFirst(): void {
 
     }
 
-    subscribe(handler) {
+    onUnsubscribeLast(): void {
+
+    }
+
+    subscribe(handler: T): SubscriptionHandle {
         this._handlers.add(handler);
         if (this._handlers.size === 1) {
             this.onSubscribeFirst();
@@ -37,25 +39,24 @@ export class BaseObservable {
         };
     }
 
-    unsubscribe(handler) {
+    unsubscribe(handler?: T): undefined {
         if (handler) {
             this._handlers.delete(handler);
             if (this._handlers.size === 0) {
                 this.onUnsubscribeLast();
             }
-            handler = null;
         }
-        return null;
+        return undefined;
     }
 
-    unsubscribeAll() {
+    unsubscribeAll(): void {
         if (this._handlers.size !== 0) {
             this._handlers.clear();
             this.onUnsubscribeLast();
         }
     }
 
-    get hasSubscriptions() {
+    get hasSubscriptions(): boolean {
         return this._handlers.size !== 0;
     }
 
@@ -63,13 +64,11 @@ export class BaseObservable {
 }
 
 export function tests() {
-    class Collection extends BaseObservable {
-        constructor() {
-            super();
-            this.firstSubscribeCalls = 0;
-            this.firstUnsubscribeCalls = 0;
-        }
-        onSubscribeFirst() {  this.firstSubscribeCalls += 1; }
+    class Collection extends BaseObservable<{}> {
+        firstSubscribeCalls: number = 0;
+        firstUnsubscribeCalls: number = 0;
+
+        onSubscribeFirst() { this.firstSubscribeCalls += 1; }
         onUnsubscribeLast() { this.firstUnsubscribeCalls += 1; }
     }
 
