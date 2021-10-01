@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, user-scalable=no">
+        <meta name="application-name" content="Hydrogen Chat"/>
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black">
+        <meta name="apple-mobile-web-app-title" content="Hydrogen Chat">
+        <meta name="description" content="A matrix chat application">
+        <link rel="apple-touch-icon" href="assets/icon-maskable.png">
+        <link rel="stylesheet" type="text/css" href="src/ui/css/main.css">
+        <link rel="stylesheet" type="text/css" href="src/ui/css/themes/element/theme.css">
+    </head>
+    <body class="hydrogen">
+        <script id="version" type="disabled">
+            window.HYDROGEN_VERSION = "%%VERSION%%";
+            window.HYDROGEN_GLOBAL_HASH = "%%GLOBAL_HASH%%";
+        </script>
+        <script id="main" type="module">
+            import {main} from "./src/main.js";
+            import {Platform} from "./src/Platform.js";
+            import {olmPaths, downloadSandboxPath} from "./src/paths/vite";
+            main(new Platform(document.body, {
+                worker: "src/worker.js",
+                downloadSandbox: downloadSandboxPath,
+                defaultHomeServer: "matrix.org",
+                // NOTE: uncomment this if you want the service worker for local development
+                // serviceWorker: "sw.js",
+                // NOTE: provide push config if you want push notifs for local development
+                //       see assets/config.json for what the config looks like
+                // push: {...},
+                olm: olmPaths
+            }, null, {development: true}));
+        </script>
+    </body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "hydrogen-domain",
+  "version": "0.0.1",
+  "main": "src/lib.ts",
+  "homepage": "https://github.com/vector-im/hydrogen-web/#readme",
+  "devDependencies": {
+    "vite": "^2.6.2",
+    "typescript": "^4.3.5"
+  },
+  "dependencies": {
+    "hydrogen-common": "0.0.1",
+    "hydrogen-matrix": "0.0.1"
+  }
+}
