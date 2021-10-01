@@ -65,7 +65,7 @@ export abstract class BaseObservable<T> {
 
 export function tests() {
     class Collection extends BaseObservable<{}> {
-        firstSubscribeCalls: number= 0;
+        firstSubscribeCalls: number = 0;
         firstUnsubscribeCalls: number = 0;
 
         onSubscribeFirst() { this.firstSubscribeCalls += 1; }
