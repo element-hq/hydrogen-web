@@ -14,9 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservable} from "../BaseObservable.js";
+import {BaseObservable} from "../BaseObservable";
 
-export class BaseObservableList extends BaseObservable {
+export interface IListObserver<T> {
+    onReset(list: BaseObservableList<T>): void;
+    onAdd(index: number, value:T, list: BaseObservableList<T>): void;
+    onUpdate(index: number, value: T, params: any, list: BaseObservableList<T>): void;
+    onRemove(index: number, value: T, list: BaseObservableList<T>): void
+    onMove(from: number, to: number, value: T, list: BaseObservableList<T>): void
+}
+
+export abstract class BaseObservableList<T> extends BaseObservable<IListObserver<T>> {
     emitReset() {
         for(let h of this._handlers) {
             h.onReset(this);
@@ -24,19 +32,19 @@ export class BaseObservableList extends BaseObservable {
     }
     // we need batch events, mostly on index based collection though?
     // maybe we should get started without?
-    emitAdd(index, value) {
+    emitAdd(index: number, value: T): void {
         for(let h of this._handlers) {
             h.onAdd(index, value, this);
         }
     }
 
-    emitUpdate(index, value, params) {
+    emitUpdate(index: number, value: T, params: any): void {
         for(let h of this._handlers) {
             h.onUpdate(index, value, params, this);
         }
     }
 
-    emitRemove(index, value) {
+    emitRemove(index: number, value: T): void {
         for(let h of this._handlers) {
             h.onRemove(index, value, this);
         }
@@ -44,17 +52,12 @@ export class BaseObservableList extends BaseObservable {
 
     // toIdx assumes the item has already
     // been removed from its fromIdx
-    emitMove(fromIdx, toIdx, value) {
+    emitMove(fromIdx: number, toIdx: number, value: T): void {
         for(let h of this._handlers) {
             h.onMove(fromIdx, toIdx, value, this);
         }
     }
 
-    [Symbol.iterator]() {
-        throw new Error("unimplemented");
-    }
-
-    get length() {
-        throw new Error("unimplemented");
-    }
+    abstract [Symbol.iterator](): IterableIterator<T>;
+    abstract get length(): number;
 }

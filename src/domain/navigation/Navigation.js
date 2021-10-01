@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableValue, ObservableValue} from "../../observable/ObservableValue.js";
+import {BaseObservableValue, ObservableValue} from "../../observable/ObservableValue";
 
 export class Navigation {
     constructor(allowsChild) {

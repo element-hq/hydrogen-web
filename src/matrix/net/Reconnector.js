@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {createEnum} from "../../utils/enum.js";
-import {ObservableValue} from "../../observable/ObservableValue.js";
+import {ObservableValue} from "../../observable/ObservableValue";
 
 export const ConnectionStatus = createEnum(
     "Waiting",

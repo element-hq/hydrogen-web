@@ -26,7 +26,7 @@ import {MissingAttachmentView} from "./timeline/MissingAttachmentView.js";
 import {AnnouncementView} from "./timeline/AnnouncementView.js";
 import {RedactedView} from "./timeline/RedactedView.js";
 import {SimpleTile} from "../../../../../domain/session/room/timeline/tiles/SimpleTile.js";
-import {BaseObservableList as ObservableList} from "../../../../../observable/list/BaseObservableList.js";
+import {BaseObservableList as ObservableList} from "../../../../../observable/list/BaseObservableList";
 
 //import {TimelineViewModel} from "../../../../../domain/session/room/timeline/TimelineViewModel.js";
 export interface TimelineViewModel extends IObservableValue {
@@ -211,7 +211,12 @@ class TilesListView extends ListView<SimpleTile, TileView> {
         this.onChanged = onChanged;
     }
 
-    protected onUpdate(index: number, value: SimpleTile, param: any) {
+    onReset() {
+        super.onReset();
+        this.onChanged();
+    }
+
+    onUpdate(index: number, value: SimpleTile, param: any) {
         if (param === "shape") {
             const ExpectedClass = viewClassForEntry(value);
             const child = this.getChildInstanceByIndex(index);
@@ -227,17 +232,17 @@ class TilesListView extends ListView<SimpleTile, TileView> {
         this.onChanged();
     }
 
-    protected onAdd(idx: number, value: SimpleTile) {
+    onAdd(idx: number, value: SimpleTile) {
         super.onAdd(idx, value);
         this.onChanged();
     }
 
-    protected onRemove(idx: number, value: SimpleTile) {
+    onRemove(idx: number, value: SimpleTile) {
         super.onRemove(idx, value);
         this.onChanged();
     }
 
-    protected onMove(fromIdx: number, toIdx: number, value: SimpleTile) {
+    onMove(fromIdx: number, toIdx: number, value: SimpleTile) {
         super.onMove(fromIdx, toIdx, value);
         this.onChanged();
     }

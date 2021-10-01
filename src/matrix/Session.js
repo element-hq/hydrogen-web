@@ -40,7 +40,7 @@ import {
     writeKey as ssssWriteKey,
 } from "./ssss/index.js";
 import {SecretStorage} from "./ssss/SecretStorage.js";
-import {ObservableValue, RetainedObservableValue} from "../observable/ObservableValue.js";
+import {ObservableValue, RetainedObservableValue} from "../observable/ObservableValue";
 
 const PICKLE_KEY = "DEFAULT_KEY";
 const PUSHER_KEY = "pusher";

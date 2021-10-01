@@ -16,7 +16,7 @@ limitations under the License.
 
 import {el} from "./html";
 import {mountView, insertAt} from "./utils";
-import {BaseObservableList as ObservableList} from "../../../../observable/list/BaseObservableList.js";
+import {BaseObservableList as ObservableList} from "../../../../observable/list/BaseObservableList";
 import {IView, IMountArgs} from "./types";
 
 interface IOptions<T, V> {
@@ -27,7 +27,7 @@ interface IOptions<T, V> {
     parentProvidesUpdates?: boolean
 }
 
-type SubscriptionHandle = () => undefined;
+type SubscriptionHandle = () => void;
 
 export class ListView<T, V extends IView> implements IView {
 
@@ -115,7 +115,8 @@ export class ListView<T, V extends IView> implements IView {
     }
 
     private _unloadList() {
-        this._subscription = this._subscription!();
+        this._subscription!()
+        this._subscription = undefined;
         for (let child of this._childInstances!) {
             child.unmount();
         }
@@ -137,26 +138,34 @@ export class ListView<T, V extends IView> implements IView {
         this._root!.appendChild(fragment);
     }
 
-    protected onAdd(idx: number, value: T) {
+    onReset() {
+        for (const child of this._childInstances!) {
+            child.root()!.remove();
+            child.unmount();
+        }
+        this._childInstances!.length = 0;
+    }
+
+    onAdd(idx: number, value: T) {
         const child = this._childCreator(value);
         this._childInstances!.splice(idx, 0, child);
         insertAt(this._root!, idx, mountView(child, this._mountArgs));
     }
 
-    protected onRemove(idx: number, value: T) {
+    onRemove(idx: number, value: T) {
         const [child] = this._childInstances!.splice(idx, 1);
         child.root()!.remove();
         child.unmount();
     }
 
-    protected onMove(fromIdx: number, toIdx: number, value: T) {
+    onMove(fromIdx: number, toIdx: number, value: T) {
         const [child] = this._childInstances!.splice(fromIdx, 1);
         this._childInstances!.splice(toIdx, 0, child);
         child.root()!.remove();
         insertAt(this._root!, toIdx, child.root()! as Element);
     }
 
-    protected onUpdate(i: number, value: T, params: any) {
+    onUpdate(i: number, value: T, params: any) {
         if (this._childInstances) {
             const instance = this._childInstances![i];
             instance && instance.update(value, params);

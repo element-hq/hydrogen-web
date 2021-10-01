@@ -14,20 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export class BaseObservable {
-    constructor() {
-        this._handlers = new Set();
-    }
+export abstract class BaseObservable<T> {
+    protected _handlers: Set<T> = new Set<T>();
 
-    onSubscribeFirst() {
+    onSubscribeFirst(): void {
 
     }
 
-    onUnsubscribeLast() {
+    onUnsubscribeLast(): void {
 
     }
 
-    subscribe(handler) {
+    subscribe(handler: T): () => void {
         this._handlers.add(handler);
         if (this._handlers.size === 1) {
             this.onSubscribeFirst();
@@ -37,7 +35,7 @@ export class BaseObservable {
         };
     }
 
-    unsubscribe(handler) {
+    unsubscribe(handler: T | null): null {
         if (handler) {
             this._handlers.delete(handler);
             if (this._handlers.size === 0) {
@@ -48,14 +46,14 @@ export class BaseObservable {
         return null;
     }
 
-    unsubscribeAll() {
+    unsubscribeAll(): void {
         if (this._handlers.size !== 0) {
             this._handlers.clear();
             this.onUnsubscribeLast();
         }
     }
 
-    get hasSubscriptions() {
+    get hasSubscriptions(): boolean {
         return this._handlers.size !== 0;
     }
 
@@ -63,13 +61,11 @@ export class BaseObservable {
 }
 
 export function tests() {
-    class Collection extends BaseObservable {
-        constructor() {
-            super();
-            this.firstSubscribeCalls = 0;
-            this.firstUnsubscribeCalls = 0;
-        }
-        onSubscribeFirst() {  this.firstSubscribeCalls += 1; }
+    class Collection extends BaseObservable<{}> {
+        firstSubscribeCalls: number= 0;
+        firstUnsubscribeCalls: number = 0;
+
+        onSubscribeFirst() { this.firstSubscribeCalls += 1; }
         onUnsubscribeLast() { this.firstUnsubscribeCalls += 1; }
     }
 
