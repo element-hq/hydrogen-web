@@ -9,11 +9,11 @@
         <meta name="apple-mobile-web-app-status-bar-style" content="black">
         <meta name="apple-mobile-web-app-title" content="Hydrogen Chat">
         <meta name="description" content="A matrix chat application">
-        <link rel="apple-touch-icon" href="assets/icon-maskable.png">
+        <link rel="apple-touch-icon" href="./assets/icon-maskable.png">
         <link rel="icon" type="image/png" href="assets/icon-maskable.png">
-        <link rel="stylesheet" type="text/css" href="src/platform/web/ui/css/main.css">
-        <link rel="stylesheet" type="text/css" href="src/platform/web/ui/css/themes/element/theme.css" title="Element Theme">
-        <link rel="alternate stylesheet" type="text/css" href="src/platform/web/ui/css/themes/bubbles/theme.css" title="Bubbles Theme">
+        <link rel="stylesheet" type="text/css" href="./ui/css/main.css">
+        <link rel="stylesheet" type="text/css" href="./ui/css/themes/element/theme.css" title="Element Theme">
+        <link rel="alternate stylesheet" type="text/css" href="./ui/css/themes/bubbles/theme.css" title="Bubbles Theme">
     </head>
     <body class="hydrogen">
         <script id="version" type="disabled">
@@ -21,22 +21,19 @@
             window.HYDROGEN_GLOBAL_HASH = "%%GLOBAL_HASH%%";
         </script>
         <script id="main" type="module">
-            import {main} from "./src/main.js";
-            import {Platform} from "./src/platform/web/Platform.js";
+            import {main} from "./main";
+            import {Platform} from "./Platform";
+            import {olmPaths, downloadSandboxPath, workerPath} from "./sdk/paths/vite";
             main(new Platform(document.body, {
-                worker: "src/worker.js",
-                downloadSandbox: "assets/download-sandbox.html",
+                worker: workerPath,
+                olm: olmPaths,
+                downloadSandbox: downloadSandboxPath,
                 defaultHomeServer: "matrix.org",
                 // NOTE: uncomment this if you want the service worker for local development
                 // serviceWorker: "sw.js",
                 // NOTE: provide push config if you want push notifs for local development
                 //       see assets/config.json for what the config looks like
                 // push: {...},
-                olm: {
-                    wasm: "lib/olm/olm.wasm",
-                    legacyBundle: "lib/olm/olm_legacy.js",
-                    wasmBundle: "lib/olm/olm.js",
-                }
             }, null, {development: true}));
         </script>
     </body>

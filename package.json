@@ -10,7 +10,7 @@
     "lint": "eslint --cache src/",
     "lint-ts": "eslint src/ -c .ts-eslintrc.js --ext .ts",
     "lint-ci": "eslint src/",
-    "test": "impunity --entry-point src/main.js --force-esm-dirs lib/ src/",
+    "test": "impunity --entry-point src/platform/web/main.js --force-esm-dirs lib/ src/",
     "start": "snowpack dev --port 3000",
     "build": "node --experimental-modules scripts/build.mjs",
     "postinstall": "node ./scripts/post-install.js"
@@ -66,6 +66,7 @@
     "dompurify": "^2.3.0",
     "es6-promise": "https://github.com/bwindels/es6-promise.git#bwindels/expose-flush",
     "rollup": "^2.26.4",
-    "text-encoding": "^0.7.0"
+    "text-encoding": "^0.7.0",
+    "vite": "^2.6.3"
   }
 }
