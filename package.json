@@ -10,10 +10,9 @@
     "lint": "eslint --cache src/",
     "lint-ts": "eslint src/ -c .ts-eslintrc.js --ext .ts",
     "lint-ci": "eslint src/",
-    "test": "impunity --entry-point src/platform/web/main.js --force-esm-dirs lib/ src/",
+    "test": "impunity --entry-point src/platform/web/main.js --force-esm-dirs src/",
     "start": "snowpack dev --port 3000",
-    "build": "node --experimental-modules scripts/build.mjs",
-    "postinstall": "node ./scripts/post-install.js"
+    "build": "node --experimental-modules scripts/build.mjs"
   },
   "repository": {
     "type": "git",

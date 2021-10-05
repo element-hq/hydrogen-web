@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {FDBFactory, FDBKeyRange} from "../../lib/fake-indexeddb/index.js";
+import {FDBFactory} from "fake-indexeddb/lib/FDBFactory.js";
+import {FDBKeyRange} from "fake-indexeddb/lib/FDBKeyRange.js";
 import {StorageFactory} from "../matrix/storage/idb/StorageFactory";
 import {IDOMStorage} from "../matrix/storage/idb/types";
 import {Storage} from "../matrix/storage/idb/Storage";
