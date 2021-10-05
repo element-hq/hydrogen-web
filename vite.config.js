@@ -9,5 +9,9 @@ export default {
             "safe-buffer": "./scripts/package-overrides/safe-buffer/index.js",
             "buffer": "./scripts/package-overrides/buffer/index.js"
         }
+    },
+    build: {
+        outDir: "../../../target",
+        minify: false
     }
 };
