@@ -10,9 +10,9 @@
     "lint": "eslint --cache src/",
     "lint-ts": "eslint src/ -c .ts-eslintrc.js --ext .ts",
     "lint-ci": "eslint src/",
-    "test": "impunity --entry-point src/platform/web/main.js --force-esm-dirs src/",
-    "start": "snowpack dev --port 3000",
     "test": "impunity --entry-point src/platform/web/main.js --force-esm-dirs src/ --root-dir src/",
+    "start": "vite --port 3000",
+    "build": "vite build"
   },
   "repository": {
     "type": "git",
