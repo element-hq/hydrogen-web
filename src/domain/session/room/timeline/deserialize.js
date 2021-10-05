@@ -352,7 +352,8 @@ export function parseHTMLBody(platform, mediaRepository, allowReplies, html) {
     return new MessageBody(html, parts);
 }
 
-import parse from "node-html-parser";
+import nodeHtmlParser from "node-html-parser";
+const {parse} = nodeHtmlParser;
 
 export function tests() {
     class HTMLParseResult {
