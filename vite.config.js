@@ -1,3 +1,6 @@
+const injectWebManifest = require("./scripts/build-plugins/manifest");
+const injectServiceWorker = require("./scripts/build-plugins/service-worker");
+
 export default {
     public: false,
     root: "src/platform/web",
@@ -12,6 +15,12 @@ export default {
     },
     build: {
         outDir: "../../../target",
-        minify: false
-    }
+        emptyOutDir: true,
+        minify: true,
+        sourcemap: true
+    },
+    plugins: [
+        injectWebManifest("assets/manifest.json"),
+        injectServiceWorker("sw.js")
+    ]
 };
