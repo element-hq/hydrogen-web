@@ -33,6 +33,9 @@ module.exports = function injectServiceWorker(swFile) {
             const globalHash = getBuildHash(cachedFileNames, uncachedFileContentMap);
             swSource = await buildServiceWorker(swSource, version, globalHash, assets);
             const outputName = path.basename(absoluteSwFile);
+            // TODO: do normal build transformations for service worker too,
+            // I think if we emit it as a chunk rather than an asset it would
+            // but we can't emit chunks anymore in generateBundle I think ...
             this.emitFile({
                 type: "asset",
                 fileName: outputName,
