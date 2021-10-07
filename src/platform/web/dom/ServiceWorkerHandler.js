@@ -181,7 +181,7 @@ export class ServiceWorkerHandler {
     }
 
     get version() {
-        return window.HYDROGEN_VERSION;
+        return HYDROGEN_VERSION;
     }
 
     get buildHash() {

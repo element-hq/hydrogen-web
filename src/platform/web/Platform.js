@@ -265,7 +265,7 @@ export class Platform {
     }
 
     get version() {
-        return window.HYDROGEN_VERSION;
+        return HYDROGEN_VERSION;
     }
 
     dispose() {

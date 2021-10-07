@@ -10,6 +10,7 @@ function contentHash(str) {
 
 module.exports = function injectServiceWorker(swFile) {
     let root;
+    let version;
     let manifestHref;
     return {
         name: "injectServiceWorker",
@@ -17,11 +18,11 @@ module.exports = function injectServiceWorker(swFile) {
         enforce: "post",
         configResolved: config => {
             root = config.root;
+            version = JSON.parse(config.define.HYDROGEN_VERSION); // unquote
         },
         generateBundle: async function(_, bundle) {
             const absoluteSwFile = path.resolve(root, swFile);
             const packageManifest = path.resolve(path.join(__dirname, "../../package.json"));
-            const version = JSON.parse(await fs.readFile(packageManifest, "utf8")).version;
             let swSource = await fs.readFile(absoluteSwFile, {encoding: "utf8"});
             const assets = Object.values(bundle).filter(a => a.type === "asset");
             const cachedFileNames = assets.map(o => o.fileName).filter(fileName => fileName !== "index.html");
