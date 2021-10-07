@@ -14,7 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// @ts-ignore
 import FDBFactory from "fake-indexeddb/lib/FDBFactory.js";
+// @ts-ignore
 import FDBKeyRange from "fake-indexeddb/lib/FDBKeyRange.js";
 import {StorageFactory} from "../matrix/storage/idb/StorageFactory";
 import {IDOMStorage} from "../matrix/storage/idb/types";
