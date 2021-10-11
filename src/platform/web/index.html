@@ -19,19 +19,21 @@
         <script id="main" type="module">
             import {main} from "./main";
             import {Platform} from "./Platform";
+            import configJSON from "./assets/config.json?raw";
             import {olmPaths, downloadSandboxPath, workerPath} from "./sdk/paths/vite";
-            main(new Platform(document.body, {
-                worker: workerPath,
+            const paths = {
                 olm: olmPaths,
                 downloadSandbox: downloadSandboxPath,
-                defaultHomeServer: "matrix.org",
-                // NOTE: uncomment this if you want the service worker for local development
-                // and adjust apply in the service-worker build plugin
-                // serviceWorker: "sw.js",
-                // NOTE: provide push config if you want push notifs for local development
-                //       see assets/config.json for what the config looks like
-                // push: {...},
-            }, null, {development: true}));
+                worker: workerPath,
+                config: JSON.parse(configJSON)
+            };
+            const platform = new Platform(
+                document.body,
+                paths,
+                null,
+                {development: true}
+            );
+            main(platform);
         </script>
     </body>
 </html>

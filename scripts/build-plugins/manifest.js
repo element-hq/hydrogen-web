@@ -5,7 +5,7 @@ module.exports = function injectWebManifest(manifestFile) {
     let root;
     let manifestHref;
     return {
-        name: "injectWebManifest",
+        name: "hydrogen:injectWebManifest",
         apply: "build",
         configResolved: config => {
             root = config.root;

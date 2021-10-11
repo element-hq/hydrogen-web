@@ -13,7 +13,7 @@ module.exports = function injectServiceWorker(swFile) {
     let version;
     let manifestHref;
     return {
-        name: "injectServiceWorker",
+        name: "hydrogen:injectServiceWorker",
         apply: "build",
         enforce: "post",
         configResolved: config => {
@@ -26,8 +26,13 @@ module.exports = function injectServiceWorker(swFile) {
             let swSource = await fs.readFile(absoluteSwFile, {encoding: "utf8"});
             const assets = Object.values(bundle).filter(a => a.type === "asset");
             const cachedFileNames = assets.map(o => o.fileName).filter(fileName => fileName !== "index.html");
+            const r = Object.entries(bundle).find(([key, asset]) => key.includes("index.html"));
+            const index = assets.find(o => o.fileName === "index.html");
+            if (!index) {
+                console.log("index not found", index, r);
+            }
             const uncachedFileContentMap = {
-                "index.html": assets.find(o => o.fileName === "index.html").source,
+                "index.html": index.source,
                 "sw.js": swSource
             };
             const globalHash = getBuildHash(cachedFileNames, uncachedFileContentMap);
@@ -55,7 +60,7 @@ function getBuildHash(cachedFileNames, uncachedFileContentMap) {
 }
 
 const NON_PRECACHED_JS = [
-    "hydrogen-legacy.js",
+    "hydrogen-legacy",
     "olm_legacy.js",
      // most environments don't need the worker
     "main.js"
