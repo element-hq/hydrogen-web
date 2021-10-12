@@ -92,6 +92,7 @@ async function buildLegacyChunk(root, chunkName, code) {
             ]
         ]
     });
+    babelPlugin.enforce = "post";
     const bundle = await build({
         root,
         configFile: false,
