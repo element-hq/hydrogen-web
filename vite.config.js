@@ -26,7 +26,7 @@ export default {
     build: {
         outDir: "../../../target",
         emptyOutDir: true,
-        minify: false,
+        minify: true,
         sourcemap: false,
         assetsInlineLimit: 0,
         polyfillModulePreload: false,

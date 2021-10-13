@@ -26,7 +26,9 @@
   "homepage": "https://github.com/vector-im/hydrogen-web/#readme",
   "devDependencies": {
     "@babel/core": "^7.11.1",
+    "@babel/plugin-transform-runtime": "^7.15.8",
     "@babel/preset-env": "^7.11.0",
+    "@babel/standalone": "^7.15.8",
     "@rollup/plugin-babel": "^5.1.0",
     "@rollup/plugin-multi-entry": "^4.0.0",
     "@typescript-eslint/eslint-plugin": "^4.29.2",
