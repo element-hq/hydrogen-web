@@ -2,6 +2,8 @@
 
 If you want to use end-to-end encryption, it is recommended to use a [supported build system](../src/sdk/paths/) (currently only vite) to be able to locate the olm library files.
 
+**NOTE**: For now, these instructions will only work at development time, support when building (e.g. `vite build`) is being worked on and tracked in [#529](https://github.com/vector-im/hydrogen-web/issues/529).
+
 You can create a project using the following commands
 
 ```sh
