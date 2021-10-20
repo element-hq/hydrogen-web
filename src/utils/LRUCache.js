@@ -54,6 +54,16 @@ export class BaseLRUCache {
         }
     }
 
+    find(callback) {
+        // iterate backwards so least recently used items are found first
+        for (let i = this._entries.length - 1; i >= 0; i -= 1) {
+            const entry = this._entries[i];
+            if (callback(entry)) {
+                return entry;
+            }
+        }
+    }
+
     _onEvictEntry() {}
 }
 

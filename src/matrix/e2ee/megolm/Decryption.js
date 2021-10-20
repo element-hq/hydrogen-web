@@ -118,6 +118,7 @@ export class Decryption {
         // look only in the cache after looking into newKeys as it may contains that are better
         if (!sessionInfo) {
             sessionInfo = sessionCache.get(roomId, senderKey, sessionId);
+            // TODO: shouldn't we retain here?
         }
         if (!sessionInfo) {
             const sessionEntry = await txn.inboundGroupSessions.get(roomId, senderKey, sessionId);

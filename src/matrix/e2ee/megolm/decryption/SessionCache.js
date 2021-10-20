@@ -33,11 +33,13 @@ export class SessionCache extends BaseLRUCache {
      * @return {SessionInfo?}
      */
     get(roomId, senderKey, sessionId) {
-        return this._get(s => {
+        const sessionInfo = this._get(s => {
             return s.roomId === roomId &&
                 s.senderKey === senderKey &&
                 sessionId === s.sessionId;
         });
+        sessionInfo?.retain();
+        return sessionInfo;
     }
 
     add(sessionInfo) {

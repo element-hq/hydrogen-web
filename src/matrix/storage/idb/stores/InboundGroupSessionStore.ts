@@ -17,7 +17,7 @@ limitations under the License.
 import {MIN_UNICODE, MAX_UNICODE} from "./common";
 import {Store} from "../Store";
 
-interface InboundGroupSession {
+export interface InboundGroupSession {
     roomId: string;
     senderKey: string;
     sessionId: string;
