@@ -24,6 +24,9 @@ export class BaseLRUCache {
         this._entries = [];
     }
 
+    get size() { return this._entries.length; }
+    get limit() { return this._limit; }
+
     _get(findEntryFn) {
         const idx = this._entries.findIndex(findEntryFn);
         if (idx !== -1) {

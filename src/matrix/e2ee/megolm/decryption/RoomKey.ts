@@ -14,22 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type {InboundGroupSession} from "../../../storage/idb/stores/InboundGroupSessionStore";
+import type {InboundGroupSessionEntry} from "../../../storage/idb/stores/InboundGroupSessionStore";
 import type {Transaction} from "../../../storage/idb/Transaction";
 import type {DecryptionResult} from "../../DecryptionResult";
-
-declare class OlmInboundGroupSession {
-    constructor();
-    free(): void;
-    pickle(key: string | Uint8Array): string;
-    unpickle(key: string | Uint8Array, pickle: string);
-    create(session_key: string): string;
-    import_session(session_key: string): string;
-    decrypt(message: string): object;
-    session_id(): string;
-    first_known_index(): number;
-    export_session(message_index: number): string;
-}
+import type {KeyLoader, OlmInboundGroupSession} from "./KeyLoader";
+import {SessionCache} from "./SessionCache";
 
 export interface IRoomKey {
     get roomId(): string;
@@ -37,24 +26,24 @@ export interface IRoomKey {
     get sessionId(): string;
     get claimedEd25519Key(): string;
     get eventIds(): string[] | undefined;
-    deserializeInto(session: OlmInboundGroupSession, pickleKey: string): void;
+    loadInto(session: OlmInboundGroupSession, pickleKey: string): void;
 }
 
 export interface IIncomingRoomKey extends IRoomKey {
     get isBetter(): boolean | undefined;
-    checkIsBetterThanStorage(keyDeserialization: KeyDeserialization, txn: Transaction): Promise<boolean>;
-    write(keyDeserialization: KeyDeserialization, txn: Transaction): Promise<boolean>;
+    checkBetterKeyInStorage(loader: KeyLoader, txn: Transaction): Promise<boolean>;
+    write(loader: KeyLoader, txn: Transaction): Promise<boolean>;
 }
 
 abstract class BaseIncomingRoomKey implements IIncomingRoomKey {
     private _eventIds?: string[];
     private _isBetter?: boolean;
     
-    checkBetterKeyInStorage(keyDeserialization: KeyDeserialization, txn: Transaction): Promise<boolean> {
-        return this._checkBetterKeyInStorage(keyDeserialization, undefined, txn);
+    checkBetterKeyInStorage(loader: KeyLoader, txn: Transaction): Promise<boolean> {
+        return this._checkBetterKeyInStorage(loader, undefined, txn);
     }
 
-    async write(keyDeserialization: KeyDeserialization, pickleKey: string, txn: Transaction): Promise<boolean> {
+    async write(loader: KeyLoader, txn: Transaction): Promise<boolean> {
         // we checked already and we had a better session in storage, so don't write
         let pickledSession;
         if (this._isBetter === undefined) {
@@ -62,23 +51,23 @@ abstract class BaseIncomingRoomKey implements IIncomingRoomKey {
             // we haven't checked if this is the best key yet,
             // so do that now to not overwrite a better key.
             // while we have the key deserialized, also pickle it to store it later on here.
-            await this._checkBetterKeyInStorage(keyDeserialization, session => {
+            await this._checkBetterKeyInStorage(loader, (session, pickleKey) => {
                 pickledSession = session.pickle(pickleKey);
             }, txn);
         }
         if (this._isBetter === false) {
             return false;
         }
-        // before calling write in parallel, we need to check keyDeserialization.running is false so we are sure our transaction will not be closed
+        // before calling write in parallel, we need to check loader.running is false so we are sure our transaction will not be closed
         if (!pickledSession) {
-            pickledSession = await keyDeserialization.useKey(this, session => session.pickle(pickleKey));
+            pickledSession = await loader.useKey(this, (session, pickleKey) => session.pickle(pickleKey));
         }
         const sessionEntry = {
             roomId: this.roomId,
             senderKey: this.senderKey,
             sessionId: this.sessionId,
             session: pickledSession,
-            claimedKeys: this._sessionInfo.claimedKeys,
+            claimedKeys: {"ed25519": this.claimedEd25519Key},
         };
         txn.inboundGroupSessions.set(sessionEntry);
         return true;
@@ -87,11 +76,11 @@ abstract class BaseIncomingRoomKey implements IIncomingRoomKey {
     get eventIds() { return this._eventIds; }
     get isBetter() { return this._isBetter; }
 
-    private async _checkBetterKeyInStorage(keyDeserialization: KeyDeserialization, callback?: (session: OlmInboundGroupSession) => void, txn: Transaction): Promise<boolean> {
+    private async _checkBetterKeyInStorage(loader: KeyLoader, callback: (((session: OlmInboundGroupSession, pickleKey: string) => void) | undefined), txn: Transaction): Promise<boolean> {
         if (this._isBetter !== undefined) {
             return this._isBetter;
         }
-        let existingKey = keyDeserialization.cache.get(this.roomId, this.senderKey, this.sessionId);
+        let existingKey = loader.cache.get(this.roomId, this.senderKey, this.sessionId);
         if (!existingKey) {
             const storageKey = await fromStorage(this.roomId, this.senderKey, this.sessionId, txn);
             // store the event ids that can be decrypted with this key
@@ -105,11 +94,11 @@ abstract class BaseIncomingRoomKey implements IIncomingRoomKey {
             }
         }
         if (existingKey) {
-            this._isBetter = await keyDeserialization.useKey(key, newSession => {
-                return keyDeserialization.useKey(existingKey, existingSession => {
+            this._isBetter = await loader.useKey(this, newSession => {
+                return loader.useKey(existingKey, (existingSession, pickleKey) => {
                     const isBetter = newSession.first_known_index() < existingSession.first_known_index();
                     if (isBetter && callback) {
-                        callback(newSession);
+                        callback(newSession, pickleKey);
                     }
                     return isBetter;
                 });
@@ -120,9 +109,15 @@ abstract class BaseIncomingRoomKey implements IIncomingRoomKey {
         }
         return this._isBetter;
     }
+
+    abstract get roomId(): string;
+    abstract get senderKey(): string;
+    abstract get sessionId(): string;
+    abstract get claimedEd25519Key(): string;
+    abstract loadInto(session: OlmInboundGroupSession, pickleKey: string): void;
 }
 
-class DeviceMessageRoomKey extends BaseIncomingRoomKey implements IIncomingRoomKey {
+class DeviceMessageRoomKey extends BaseIncomingRoomKey {
     private _decryptionResult: DecryptionResult;
 
     constructor(decryptionResult: DecryptionResult) {
@@ -135,13 +130,13 @@ class DeviceMessageRoomKey extends BaseIncomingRoomKey implements IIncomingRoomK
     get sessionId() { return this._decryptionResult.event.content?.["session_id"]; }
     get claimedEd25519Key() { return this._decryptionResult.claimedEd25519Key; }
 
-    deserializeInto(session) {
+    loadInto(session) {
         const sessionKey = this._decryptionResult.event.content?.["session_key"];
         session.create(sessionKey);
     }
 }
 
-class BackupRoomKey extends BaseIncomingRoomKey implements IIncomingRoomKey {
+class BackupRoomKey extends BaseIncomingRoomKey {
     private _roomId: string;
     private _sessionId: string;
     private _backupInfo: string;
@@ -158,16 +153,16 @@ class BackupRoomKey extends BaseIncomingRoomKey implements IIncomingRoomKey {
     get sessionId() { return this._sessionId; }
     get claimedEd25519Key() { return this._backupInfo["sender_claimed_keys"]?.["ed25519"]; }
 
-    deserializeInto(session) {
+    loadInto(session) {
         const sessionKey = this._backupInfo["session_key"];
         session.import_session(sessionKey);
     }
 }
 
 class StoredRoomKey implements IRoomKey {
-    private storageEntry: InboundGroupSession;
+    private storageEntry: InboundGroupSessionEntry;
 
-    constructor(storageEntry: InboundGroupSession) {
+    constructor(storageEntry: InboundGroupSessionEntry) {
         this.storageEntry = storageEntry;
     }
 
@@ -177,7 +172,7 @@ class StoredRoomKey implements IRoomKey {
     get claimedEd25519Key() { return this.storageEntry.claimedKeys!["ed25519"]; }
     get eventIds() { return this.storageEntry.eventIds; }
 
-    deserializeInto(session, pickleKey) {
+    loadInto(session, pickleKey) {
         session.unpickle(pickleKey, this.storageEntry.session);
     }
 
@@ -189,17 +184,16 @@ class StoredRoomKey implements IRoomKey {
     }
 }
 
-export function fromDeviceMessage(dr) {
-    const roomId = dr.event.content?.["room_id"];
-    const sessionId = dr.event.content?.["session_id"];
+export function fromDeviceMessage(dr: DecryptionResult): DeviceMessageRoomKey | undefined {
     const sessionKey = dr.event.content?.["session_key"];
+    const key = new DeviceMessageRoomKey(dr);
     if (
-        typeof roomId === "string" || 
-        typeof sessionId === "string" || 
-        typeof senderKey === "string" ||
+        typeof key.roomId === "string" && 
+        typeof key.sessionId === "string" && 
+        typeof key.senderKey === "string" &&
         typeof sessionKey === "string"
     ) {
-        return new DeviceMessageRoomKey(dr);
+        return key;
     }
 }
 
@@ -211,11 +205,11 @@ sessionInfo is a response from key backup and has the following keys:
     sender_key
     session_key
  */
-export function fromBackup(roomId, sessionId, sessionInfo) {
-    const sessionKey = sessionInfo["session_key"];
-    const senderKey = sessionInfo["sender_key"];
+export function fromBackup(roomId, sessionId, backupInfo): BackupRoomKey | undefined {
+    const sessionKey = backupInfo["session_key"];
+    const senderKey = backupInfo["sender_key"];
     // TODO: can we just trust this?
-    const claimedEd25519Key = sessionInfo["sender_claimed_keys"]?.["ed25519"];
+    const claimedEd25519Key = backupInfo["sender_claimed_keys"]?.["ed25519"];
 
     if (
         typeof roomId === "string" && 
@@ -224,7 +218,7 @@ export function fromBackup(roomId, sessionId, sessionInfo) {
         typeof sessionKey === "string" &&
         typeof claimedEd25519Key === "string"
     ) {
-        return new BackupRoomKey(roomId, sessionId, sessionInfo);
+        return new BackupRoomKey(roomId, sessionId, backupInfo);
     }
 }
 
@@ -234,83 +228,4 @@ export async function fromStorage(roomId: string, senderKey: string, sessionId: 
         return new StoredRoomKey(existingSessionEntry);
     }
     return;
-}
-/*
-Because Olm only has very limited memory available when compiled to wasm,
-we limit the amount of sessions held in memory.
-*/
-class KeyDeserialization {
-
-    public readonly cache: SessionCache;
-    private pickleKey: string;
-    private olm: any;
-    private resolveUnusedEntry?: () => void;
-    private entryBecomesUnusedPromise?: Promise<void>;
-
-    constructor({olm, pickleKey, limit}) {
-        this.cache = new SessionCache(limit);
-        this.pickleKey = pickleKey;
-        this.olm = olm;
-    }
-
-    async useKey<T>(key: IRoomKey, callback: (session: OlmInboundGroupSession) => Promise<T> | T): Promise<T> {
-        const cacheEntry = await this.allocateEntry(key);
-        try {
-            const {session} = cacheEntry;
-            key.deserializeInto(session, this.pickleKey);
-            return await callback(session);
-        } finally {
-            this.freeEntry(cacheEntry);
-        }
-    }
-
-    get running() {
-        return !!this.cache.find(entry => entry.inUse);
-    }
-
-    private async allocateEntry(key): CacheEntry {
-        let entry;
-        if (this.cache.size >= MAX) {
-            while(!(entry = this.cache.find(entry => !entry.inUse))) {
-                await this.entryBecomesUnused();
-            }
-            entry.inUse = true;
-            entry.key = key;
-        } else {
-            const session: OlmInboundGroupSession = new this.olm.InboundGroupSession();
-            const entry = new CacheEntry(key, session);
-            this.cache.add(entry);
-        }
-        return entry;
-    }
-
-    private freeEntry(entry) {
-        entry.inUse = false;
-        if (this.resolveUnusedEntry) {
-            this.resolveUnusedEntry();
-            // promise is resolved now, we'll need a new one for next await so clear
-            this.entryBecomesUnusedPromise = this.resolveUnusedEntry = undefined;
-        }
-    }
-
-    private entryBecomesUnused(): Promise<void> {
-        if (!this.entryBecomesUnusedPromise) {
-            this.entryBecomesUnusedPromise = new Promise(resolve => {
-                this.resolveUnusedEntry = resolve;
-            });
-        }
-        return this.entryBecomesUnusedPromise;
-    }
-}
-
-class CacheEntry {
-    inUse: boolean;
-    session: OlmInboundGroupSession;
-    key: IRoomKey;
-
-    constructor(key, session) {
-        this.key = key;
-        this.session = session;
-        this.inUse = true;
-    }
 }
