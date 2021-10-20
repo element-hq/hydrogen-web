@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {DecryptionError} from "../common.js";
-import * as RoomKey from "./decryption/RoomKey.js";
+import * as RoomKey from "./decryption/RoomKey";
 import {SessionInfo} from "./decryption/SessionInfo.js";
 import {DecryptionPreparation} from "./decryption/DecryptionPreparation.js";
 import {SessionDecryption} from "./decryption/SessionDecryption.js";
