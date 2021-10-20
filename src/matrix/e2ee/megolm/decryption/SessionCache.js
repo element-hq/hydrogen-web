@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseLRUCache} from "../../../../utils/LRUCache.js";
+import {BaseLRUCache} from "../../../../utils/LRUCache";
 const DEFAULT_CACHE_SIZE = 10;
 
 /**

@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {MemberChange, RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";
-import {LRUCache} from "../../../../utils/LRUCache.js";
+import {LRUCache} from "../../../../utils/LRUCache";
 
 export class MemberWriter {
     constructor(roomId) {

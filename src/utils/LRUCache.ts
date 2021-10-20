@@ -18,8 +18,12 @@ limitations under the License.
  * Very simple least-recently-used cache implementation
  * that should be fast enough for very small cache sizes
  */
-export class BaseLRUCache {
-    constructor(limit) {
+export class BaseLRUCache<T> {
+
+    private _limit: number;
+    private _entries: T[];
+
+    constructor(limit: number) {
         this._limit = limit;
         this._entries = [];
     }
@@ -27,7 +31,7 @@ export class BaseLRUCache {
     get size() { return this._entries.length; }
     get limit() { return this._limit; }
 
-    _get(findEntryFn) {
+    _get(findEntryFn: (T) => boolean) {
         const idx = this._entries.findIndex(findEntryFn);
         if (idx !== -1) {
             const entry = this._entries[idx];
@@ -40,7 +44,7 @@ export class BaseLRUCache {
         }
     }
 
-    _set(value, findEntryFn) {
+    _set(value: T, findEntryFn: (T) => boolean) {
         let indexToRemove = this._entries.findIndex(findEntryFn);
         this._entries.unshift(value);
         if (indexToRemove === -1) {
@@ -57,7 +61,7 @@ export class BaseLRUCache {
         }
     }
 
-    find(callback) {
+    find(callback: (T) => boolean) {
         // iterate backwards so least recently used items are found first
         for (let i = this._entries.length - 1; i >= 0; i -= 1) {
             const entry = this._entries[i];
@@ -67,69 +71,76 @@ export class BaseLRUCache {
         }
     }
 
-    _onEvictEntry() {}
+    _onEvictEntry(entry: T) {}
 }
 
-export class LRUCache extends BaseLRUCache {
-    constructor(limit, keyFn) {
+export class LRUCache<T, K> extends BaseLRUCache<T> {
+    private _keyFn: (T) => K;
+
+    constructor(limit, keyFn: (T) => K) {
         super(limit);
         this._keyFn = keyFn;
     }
 
-    get(key) {
+    get(key: K): T | undefined {
         return this._get(e => this._keyFn(e) === key);
     }
 
-    set(value) {
+    set(value: T) {
         const key = this._keyFn(value);
         this._set(value, e => this._keyFn(e) === key);
     }
 }
 
 export function tests() {
+    interface NameTuple {
+        id: number;
+        name: string;
+    }
+
     return {
         "can retrieve added entries": assert => {
-            const cache = new LRUCache(2, e => e.id);
+            const cache = new LRUCache<NameTuple, number>(2, e => e.id);
             cache.set({id: 1, name: "Alice"});
             cache.set({id: 2, name: "Bob"});
-            assert.equal(cache.get(1).name, "Alice");
-            assert.equal(cache.get(2).name, "Bob");
+            assert.equal(cache.get(1)!.name, "Alice");
+            assert.equal(cache.get(2)!.name, "Bob");
         },
         "first entry is evicted first": assert => {
-            const cache = new LRUCache(2, e => e.id);
+            const cache = new LRUCache<NameTuple, number>(2, e => e.id);
             cache.set({id: 1, name: "Alice"});
             cache.set({id: 2, name: "Bob"});
             cache.set({id: 3, name: "Charly"});
             assert.equal(cache.get(1), undefined);
-            assert.equal(cache.get(2).name, "Bob");
-            assert.equal(cache.get(3).name, "Charly");
-            assert.equal(cache._entries.length, 2);
+            assert.equal(cache.get(2)!.name, "Bob");
+            assert.equal(cache.get(3)!.name, "Charly");
+            assert.equal(cache.size, 2);
         },
         "second entry is evicted if first is requested": assert => {
-            const cache = new LRUCache(2, e => e.id);
+            const cache = new LRUCache<NameTuple, number>(2, e => e.id);
             cache.set({id: 1, name: "Alice"});
             cache.set({id: 2, name: "Bob"});
             cache.get(1);
             cache.set({id: 3, name: "Charly"});
-            assert.equal(cache.get(1).name, "Alice");
+            assert.equal(cache.get(1)!.name, "Alice");
             assert.equal(cache.get(2), undefined);
-            assert.equal(cache.get(3).name, "Charly");
-            assert.equal(cache._entries.length, 2);
+            assert.equal(cache.get(3)!.name, "Charly");
+            assert.equal(cache.size, 2);
         },
         "setting an entry twice removes the first": assert => {
-            const cache = new LRUCache(2, e => e.id);
+            const cache = new LRUCache<NameTuple, number>(2, e => e.id);
             cache.set({id: 1, name: "Alice"});
             cache.set({id: 2, name: "Bob"});
             cache.set({id: 1, name: "Al Ice"});
             cache.set({id: 3, name: "Charly"});
-            assert.equal(cache.get(1).name, "Al Ice");
+            assert.equal(cache.get(1)!.name, "Al Ice");
             assert.equal(cache.get(2), undefined);
-            assert.equal(cache.get(3).name, "Charly");
-            assert.equal(cache._entries.length, 2);
+            assert.equal(cache.get(3)!.name, "Charly");
+            assert.equal(cache.size, 2);
         },
         "evict callback is called": assert => {
             let evictions = 0;
-            class CustomCache extends LRUCache {
+            class CustomCache extends LRUCache<NameTuple, number> {
                 _onEvictEntry(entry) {
                     assert.equal(entry.name, "Alice");
                     evictions += 1;
@@ -143,7 +154,7 @@ export function tests() {
         },
         "evict callback is called when replacing entry with same identity": assert => {
             let evictions = 0;
-            class CustomCache extends LRUCache {
+            class CustomCache extends LRUCache<NameTuple, number> {
                 _onEvictEntry(entry) {
                     assert.equal(entry.name, "Alice");
                     evictions += 1;
