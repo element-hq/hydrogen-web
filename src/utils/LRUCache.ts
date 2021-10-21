@@ -14,25 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+
+type FindCallback<T> = (value: T) => boolean;
 /**
  * Very simple least-recently-used cache implementation
  * that should be fast enough for very small cache sizes
  */
 export class BaseLRUCache<T> {
 
-    private _limit: number;
-    private _entries: T[];
+    public readonly limit: number;
+    protected _entries: T[];
 
     constructor(limit: number) {
-        this._limit = limit;
+        this.limit = limit;
         this._entries = [];
     }
 
     get size() { return this._entries.length; }
-    get limit() { return this._limit; }
 
-    _get(findEntryFn: (T) => boolean) {
-        const idx = this._entries.findIndex(findEntryFn);
+    protected _get(findEntryFn: FindCallback<T>) {
+        return this._getByIndexAndMoveUp(this._entries.findIndex(findEntryFn));
+    }
+
+    protected _getByIndexAndMoveUp(idx: number) {
         if (idx !== -1) {
             const entry = this._entries[idx];
             // move to top
@@ -44,11 +48,11 @@ export class BaseLRUCache<T> {
         }
     }
 
-    _set(value: T, findEntryFn: (T) => boolean) {
-        let indexToRemove = this._entries.findIndex(findEntryFn);
+    protected _set(value: T, findEntryFn?: FindCallback<T>) {
+        let indexToRemove = findEntryFn ? this._entries.findIndex(findEntryFn) : -1;
         this._entries.unshift(value);
         if (indexToRemove === -1) {
-            if (this._entries.length > this._limit) {
+            if (this._entries.length > this.limit) {
                 indexToRemove = this._entries.length - 1;
             }
         } else {
@@ -56,22 +60,12 @@ export class BaseLRUCache<T> {
             indexToRemove += 1;
         }
         if (indexToRemove !== -1) {
-            this._onEvictEntry(this._entries[indexToRemove]);
+            this.onEvictEntry(this._entries[indexToRemove]);
             this._entries.splice(indexToRemove, 1);
         }
     }
 
-    find(callback: (T) => boolean) {
-        // iterate backwards so least recently used items are found first
-        for (let i = this._entries.length - 1; i >= 0; i -= 1) {
-            const entry = this._entries[i];
-            if (callback(entry)) {
-                return entry;
-            }
-        }
-    }
-
-    _onEvictEntry(entry: T) {}
+    protected onEvictEntry(entry: T) {}
 }
 
 export class LRUCache<T, K> extends BaseLRUCache<T> {

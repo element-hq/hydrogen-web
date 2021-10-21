@@ -18,20 +18,25 @@ import type {InboundGroupSessionEntry} from "../../../storage/idb/stores/Inbound
 import type {Transaction} from "../../../storage/idb/Transaction";
 import type {DecryptionResult} from "../../DecryptionResult";
 import type {KeyLoader, OlmInboundGroupSession} from "./KeyLoader";
-import {SessionCache} from "./SessionCache";
 
 export interface IRoomKey {
     get roomId(): string;
     get senderKey(): string;
     get sessionId(): string;
     get claimedEd25519Key(): string;
+    get serializationKey(): string;
+    get serializationType(): string;
     get eventIds(): string[] | undefined;
     loadInto(session: OlmInboundGroupSession, pickleKey: string): void;
 }
 
+export function isBetterThan(newSession: OlmInboundGroupSession, existingSession: OlmInboundGroupSession) {
+     return newSession.first_known_index() < existingSession.first_known_index();
+}
+
 export interface IIncomingRoomKey extends IRoomKey {
     get isBetter(): boolean | undefined;
-    checkBetterKeyInStorage(loader: KeyLoader, txn: Transaction): Promise<boolean>;
+    checkBetterThanKeyInStorage(loader: KeyLoader, txn: Transaction): Promise<boolean>;
     write(loader: KeyLoader, txn: Transaction): Promise<boolean>;
 }
 
@@ -39,8 +44,8 @@ abstract class BaseIncomingRoomKey implements IIncomingRoomKey {
     private _eventIds?: string[];
     private _isBetter?: boolean;
     
-    checkBetterKeyInStorage(loader: KeyLoader, txn: Transaction): Promise<boolean> {
-        return this._checkBetterKeyInStorage(loader, undefined, txn);
+    checkBetterThanKeyInStorage(loader: KeyLoader, txn: Transaction): Promise<boolean> {
+        return this._checkBetterThanKeyInStorage(loader, undefined, txn);
     }
 
     async write(loader: KeyLoader, txn: Transaction): Promise<boolean> {
@@ -51,7 +56,7 @@ abstract class BaseIncomingRoomKey implements IIncomingRoomKey {
             // we haven't checked if this is the best key yet,
             // so do that now to not overwrite a better key.
             // while we have the key deserialized, also pickle it to store it later on here.
-            await this._checkBetterKeyInStorage(loader, (session, pickleKey) => {
+            await this._checkBetterThanKeyInStorage(loader, (session, pickleKey) => {
                 pickledSession = session.pickle(pickleKey);
             }, txn);
         }
@@ -76,7 +81,7 @@ abstract class BaseIncomingRoomKey implements IIncomingRoomKey {
     get eventIds() { return this._eventIds; }
     get isBetter() { return this._isBetter; }
 
-    private async _checkBetterKeyInStorage(loader: KeyLoader, callback: (((session: OlmInboundGroupSession, pickleKey: string) => void) | undefined), txn: Transaction): Promise<boolean> {
+    private async _checkBetterThanKeyInStorage(loader: KeyLoader, callback: (((session: OlmInboundGroupSession, pickleKey: string) => void) | undefined), txn: Transaction): Promise<boolean> {
         if (this._isBetter !== undefined) {
             return this._isBetter;
         }
@@ -96,7 +101,7 @@ abstract class BaseIncomingRoomKey implements IIncomingRoomKey {
         if (existingKey) {
             this._isBetter = await loader.useKey(this, newSession => {
                 return loader.useKey(existingKey, (existingSession, pickleKey) => {
-                    const isBetter = newSession.first_known_index() < existingSession.first_known_index();
+                    const isBetter = isBetterThan(newSession, existingSession);
                     if (isBetter && callback) {
                         callback(newSession, pickleKey);
                     }
@@ -114,6 +119,8 @@ abstract class BaseIncomingRoomKey implements IIncomingRoomKey {
     abstract get senderKey(): string;
     abstract get sessionId(): string;
     abstract get claimedEd25519Key(): string;
+    abstract get serializationKey(): string;
+    abstract get serializationType(): string;
     abstract loadInto(session: OlmInboundGroupSession, pickleKey: string): void;
 }
 
@@ -129,10 +136,11 @@ class DeviceMessageRoomKey extends BaseIncomingRoomKey {
     get senderKey() { return this._decryptionResult.senderCurve25519Key; }
     get sessionId() { return this._decryptionResult.event.content?.["session_id"]; }
     get claimedEd25519Key() { return this._decryptionResult.claimedEd25519Key; }
+    get serializationKey(): string { return this._decryptionResult.event.content?.["session_key"]; }
+    get serializationType(): string { return "create"; }
 
     loadInto(session) {
-        const sessionKey = this._decryptionResult.event.content?.["session_key"];
-        session.create(sessionKey);
+        session.create(this.serializationKey);
     }
 }
 
@@ -152,10 +160,11 @@ class BackupRoomKey extends BaseIncomingRoomKey {
     get senderKey() { return this._backupInfo["sender_key"]; }
     get sessionId() { return this._sessionId; }
     get claimedEd25519Key() { return this._backupInfo["sender_claimed_keys"]?.["ed25519"]; }
-
+    get serializationKey(): string { return this._backupInfo["session_key"]; }
+    get serializationType(): string { return "import_session"; }
+    
     loadInto(session) {
-        const sessionKey = this._backupInfo["session_key"];
-        session.import_session(sessionKey);
+        session.import_session(this.serializationKey);
     }
 }
 
@@ -171,9 +180,11 @@ class StoredRoomKey implements IRoomKey {
     get sessionId() { return this.storageEntry.sessionId; }
     get claimedEd25519Key() { return this.storageEntry.claimedKeys!["ed25519"]; }
     get eventIds() { return this.storageEntry.eventIds; }
-
+    get serializationKey(): string { return this.storageEntry.session || ""; }
+    get serializationType(): string { return "unpickle"; }
+    
     loadInto(session, pickleKey) {
-        session.unpickle(pickleKey, this.storageEntry.session);
+        session.unpickle(pickleKey, this.serializationKey);
     }
 
     get hasSession() {

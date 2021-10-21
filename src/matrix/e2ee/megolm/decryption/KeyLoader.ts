@@ -15,7 +15,8 @@ limitations under the License.
 */
 
 import {SessionCache} from "./SessionCache";
-import {IRoomKey} from "./RoomKey";
+import {IRoomKey, isBetterThan} from "./RoomKey";
+import {BaseLRUCache} from "../../../../utils/LRUCache";
 
 export declare class OlmInboundGroupSession {
     constructor();
@@ -30,82 +31,193 @@ export declare class OlmInboundGroupSession {
     export_session(message_index: number): string;
 }
 
+// this is what cache.get(...) should return
+function findIndexBestForSession(ops: KeyOperation[], roomId: string, senderKey: string, sessionId: string): number {
+    return ops.reduce((bestIdx, op, i, arr) => {
+        const bestOp = bestIdx === -1 ? undefined : arr[bestIdx];
+        if (op.isForSameSession(roomId, senderKey, sessionId)) {
+            if (!bestOp || op.isBetter(bestOp)) {
+                return i;
+            }
+        }
+        return bestIdx;
+    }, -1);
+}
+
+
 /*
 Because Olm only has very limited memory available when compiled to wasm,
 we limit the amount of sessions held in memory.
 */
-export class KeyLoader {
+export class KeyLoader extends BaseLRUCache<KeyOperation> {
 
-    public readonly cache: SessionCache;
+    private runningOps: Set<KeyOperation>;
+    private unusedOps: Set<KeyOperation>;
     private pickleKey: string;
     private olm: any;
-    private resolveUnusedEntry?: () => void;
-    private entryBecomesUnusedPromise?: Promise<void>;
+    private resolveUnusedOperation?: () => void;
+    private operationBecomesUnusedPromise?: Promise<void>;
 
     constructor(olm: any, pickleKey: string, limit: number) {
-        this.cache = new SessionCache(limit);
+        super(limit);
         this.pickleKey = pickleKey;
         this.olm = olm;
     }
 
+    getCachedKey(roomId: string, senderKey: string, sessionId: string): IRoomKey | undefined {
+        const idx = this.findIndexBestForSession(roomId, senderKey, sessionId);
+        if (idx !== -1) {
+            return this._getByIndexAndMoveUp(idx)!.key;
+        }
+    }
+
     async useKey<T>(key: IRoomKey, callback: (session: OlmInboundGroupSession, pickleKey: string) => Promise<T> | T): Promise<T> {
-        const cacheEntry = await this.allocateEntry(key);
+        const keyOp = await this.allocateOperation(key);
         try {
-            const {session} = cacheEntry;
-            key.loadInto(session, this.pickleKey);
-            return await callback(session, this.pickleKey);
+            return await callback(keyOp.session, this.pickleKey);
         } finally {
-            this.freeEntry(cacheEntry);
+            this.releaseOperation(keyOp);
         }
     }
 
     get running() {
-        return !!this.cache.find(entry => entry.inUse);
+        return this._entries.some(op => op.refCount !== 0);
     }
 
-    private async allocateEntry(key: IRoomKey): Promise<CacheEntry> {
-        let entry;
-        if (this.cache.size >= this.cache.limit) {
-            while(!(entry = this.cache.find(entry => !entry.inUse))) {
-                await this.entryBecomesUnused();
+    dispose() {
+        for (let i = 0; i < this._entries.length; i += 1) {
+            this._entries[i].dispose();
+        }
+        // remove all entries
+        this._entries.splice(0, this._entries.length);
+    }
+
+    private async allocateOperation(key: IRoomKey): Promise<KeyOperation> {
+        let idx;
+        while((idx = this.findIndexForAllocation(key)) === -1) {
+            await this.operationBecomesUnused();
+        }
+        if (idx < this.size) {
+            const op = this._getByIndexAndMoveUp(idx)!;
+            // cache hit
+            if (op.isForKey(key)) {
+                op.refCount += 1;
+                return op;
+            } else {
+                // refCount should be 0 here
+                op.refCount = 1;
+                op.key = key;
+                key.loadInto(op.session, this.pickleKey);
             }
-            entry.inUse = true;
-            entry.key = key;
+            return op;
         } else {
-            const session: OlmInboundGroupSession = new this.olm.InboundGroupSession();
-            const entry = new CacheEntry(key, session);
-            this.cache.add(entry);
+            // create new operation
+            const session = new this.olm.InboundGroupSession();
+            key.loadInto(session, this.pickleKey);
+            const op = new KeyOperation(key, session);
+            this._set(op);
+            return op;
         }
-        return entry;
     }
 
-    private freeEntry(entry: CacheEntry) {
-        entry.inUse = false;
-        if (this.resolveUnusedEntry) {
-            this.resolveUnusedEntry();
+    private releaseOperation(op: KeyOperation) {
+        op.refCount -= 1;
+        if (op.refCount <= 0 && this.resolveUnusedOperation) {
+            this.resolveUnusedOperation();
             // promise is resolved now, we'll need a new one for next await so clear
-            this.entryBecomesUnusedPromise = this.resolveUnusedEntry = undefined;
+            this.operationBecomesUnusedPromise = this.resolveUnusedOperation = undefined;
         }
     }
 
-    private entryBecomesUnused(): Promise<void> {
-        if (!this.entryBecomesUnusedPromise) {
-            this.entryBecomesUnusedPromise = new Promise(resolve => {
-                this.resolveUnusedEntry = resolve;
+    private operationBecomesUnused(): Promise<void> {
+        if (!this.operationBecomesUnusedPromise) {
+            this.operationBecomesUnusedPromise = new Promise(resolve => {
+                this.resolveUnusedOperation = resolve;
             });
         }
-        return this.entryBecomesUnusedPromise;
+        return this.operationBecomesUnusedPromise;
+    }
+
+    private findIndexForAllocation(key: IRoomKey) {
+        let idx = this.findIndexSameKey(key); // cache hit
+        if (idx === -1) {
+            idx = this.findIndexSameSessionUnused(key);
+            if (idx === -1) {
+                if (this.size < this.limit) {
+                    idx = this.size;
+                } else {
+                    idx = this.findIndexOldestUnused();
+                }
+            }
+        }
+        return idx;
+    }
+
+    private findIndexBestForSession(roomId: string, senderKey: string, sessionId: string): number {
+        return this._entries.reduce((bestIdx, op, i, arr) => {
+            const bestOp = bestIdx === -1 ? undefined : arr[bestIdx];
+            if (op.isForSameSession(roomId, senderKey, sessionId)) {
+                if (!bestOp || op.isBetter(bestOp)) {
+                    return i;
+                }
+            }
+            return bestIdx;
+        }, -1);
+    }
+
+    private findIndexSameKey(key: IRoomKey): number {
+        return this._entries.findIndex(op => {
+            return op.isForKey(key);
+        });
+    }
+
+    private findIndexSameSessionUnused(key: IRoomKey): number {
+        for (let i = this._entries.length - 1; i >= 0; i -= 1) {
+            const op = this._entries[i];
+            if (op.refCount === 0 && op.isForSameSession(key.roomId, key.senderKey, key.sessionId)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private findIndexOldestUnused(): number {
+        for (let i = this._entries.length - 1; i >= 0; i -= 1) {
+            const op = this._entries[i];
+            if (op.refCount === 0) {
+                return i;
+            }
+        }
+        return -1;
     }
 }
 
-class CacheEntry {
-    inUse: boolean;
+class KeyOperation {
     session: OlmInboundGroupSession;
     key: IRoomKey;
+    refCount: number;
 
-    constructor(key, session) {
+    constructor(key: IRoomKey, session: OlmInboundGroupSession) {
         this.key = key;
         this.session = session;
-        this.inUse = true;
+        this.refCount = 1;
+    }
+
+    isForSameSession(roomId: string, senderKey: string, sessionId: string): boolean {
+        return this.key.roomId === roomId && this.key.senderKey === senderKey && this.key.sessionId === sessionId;
+    }
+
+    // assumes isForSameSession is true
+    isBetter(other: KeyOperation) {
+        return isBetterThan(this.session, other.session);
+    }
+
+    isForKey(key: IRoomKey) {
+        return this.key.serializationKey === key.serializationKey &&
+            this.key.serializationType === key.serializationType;
+    }
+
+    dispose() {
+        this.session.free();
     }
 }
