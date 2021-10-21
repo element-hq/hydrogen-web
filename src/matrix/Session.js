@@ -33,7 +33,7 @@ import {MEGOLM_ALGORITHM} from "./e2ee/common.js";
 import {RoomEncryption} from "./e2ee/RoomEncryption.js";
 import {DeviceTracker} from "./e2ee/DeviceTracker.js";
 import {LockMap} from "../utils/LockMap.js";
-import {groupBy} from "../utils/groupBy.js";
+import {groupBy} from "../utils/groupBy";
 import {
     keyFromCredential as ssssKeyFromCredential,
     readKey as ssssReadKey,

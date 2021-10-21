@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {OLM_ALGORITHM} from "./e2ee/common.js";
-import {countBy, groupBy} from "../utils/groupBy.js";
+import {countBy, groupBy} from "../utils/groupBy";
 
 export class DeviceMessageHandler {
     constructor({storage}) {
