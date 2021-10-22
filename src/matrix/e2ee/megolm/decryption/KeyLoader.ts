@@ -210,3 +210,70 @@ class KeyOperation {
         this.session.free();
     }
 }
+
+export function tests() {
+    let instances = 0;
+    let idCounter = 0;
+
+    class MockRoomKey implements IRoomKey {
+        private _roomId: string;
+        private _senderKey: string;
+        private _sessionId: string;
+        private _firstKnownIndex: number;
+
+        constructor(roomId: string, senderKey: string, sessionId: string, firstKnownIndex: number) {
+            this._roomId = roomId;
+            this._senderKey = senderKey;
+            this._sessionId = sessionId;
+            this._firstKnownIndex = firstKnownIndex;
+        }
+
+        get roomId(): string { return this._roomId; }
+        get senderKey(): string { return this._senderKey; }
+        get sessionId(): string { return this._sessionId; }
+        get claimedEd25519Key(): string { return "claimedEd25519Key"; }
+        get serializationKey(): string { return "key"; }
+        get serializationType(): string { return "type"; }
+        get eventIds(): string[] | undefined { return undefined; }
+        loadInto(session: OlmInboundGroupSession) {
+            const mockSession = session as MockInboundSession;
+            mockSession.sessionId = this.sessionId;
+            mockSession.firstKnownIndex = this._firstKnownIndex;
+        }
+    }
+
+    class MockInboundSession {
+        public sessionId: string = "";
+        public firstKnownIndex: number = 0;
+
+        free(): void { instances -= 1; }
+        pickle(key: string | Uint8Array): string { return `${this.sessionId}-pickled-session`; }
+        unpickle(key: string | Uint8Array, pickle: string) {}
+        create(session_key: string): string { return `${this.sessionId}-created-session`; }
+        import_session(session_key: string): string { return ""; }
+        decrypt(message: string): OlmDecryptionResult { return {} as OlmDecryptionResult; }
+        session_id(): string { return this.sessionId; }
+        first_known_index(): number { return this.firstKnownIndex; }
+        export_session(message_index: number): string { return `${this.sessionId}-exported-session`; }
+    }
+
+    const PICKLE_KEY = "🥒🔑";
+    const olm = {InboundGroupSession: MockInboundSession};
+    const roomId = "!abc:hs.tld";
+    const aliceSenderKey = "abc";
+    const bobSenderKey = "def";
+    const sessionId = "s123";
+    
+    return {
+        "load key gives correct session": async assert => {
+            const loader = new KeyLoader(olm, PICKLE_KEY, 5);
+            let callbackCalled = false;
+            await loader.useKey(new MockRoomKey(roomId, aliceSenderKey, sessionId, 1), session => {
+                callbackCalled = true;
+                assert.equal(session.session_id(), sessionId);
+                assert.equal(session.first_known_index(), 1);
+            });
+            assert(callbackCalled);
+        },
+    }
+}
