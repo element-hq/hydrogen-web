@@ -29,10 +29,10 @@ limitations under the License.
 
 
 export class DecryptionResult {
-    constructor(event, senderCurve25519Key, claimedKeys) {
+    constructor(event, senderCurve25519Key, claimedEd25519Key) {
         this.event = event;
         this.senderCurve25519Key = senderCurve25519Key;
-        this.claimedEd25519Key = claimedKeys.ed25519;
+        this.claimedEd25519Key = claimedEd25519Key;
         this._device = null;
         this._roomTracked = true;
     }
