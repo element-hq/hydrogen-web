@@ -137,7 +137,7 @@ export class Decryption {
      * The key won't be persisted yet, you need to call RoomKey.write for that.
      */
     roomKeysFromDeviceMessages(decryptionResults: DecryptionResult[], log: LogItem): IIncomingRoomKey[] {
-        let keys: IIncomingRoomKey[] = [];
+        const keys: IIncomingRoomKey[] = [];
         for (const dr of decryptionResults) {
             if (dr.event?.type !== "m.room_key" || dr.event.content?.algorithm !== MEGOLM_ALGORITHM) {
                 continue;
