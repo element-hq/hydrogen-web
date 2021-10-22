@@ -67,12 +67,4 @@ class SyncPreparation {
         this.newRoomKeys = newRoomKeys;
         this.newKeysByRoom = groupBy(newRoomKeys, r => r.roomId);
     }
-
-    dispose() {
-        if (this.newRoomKeys) {
-            for (const k of this.newRoomKeys) {
-                k.dispose();
-            }
-        }
-    }
 }
