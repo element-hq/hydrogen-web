@@ -85,9 +85,9 @@ abstract class BaseIncomingRoomKey implements IIncomingRoomKey {
         if (this._isBetter !== undefined) {
             return this._isBetter;
         }
-        let existingKey = loader.cache.get(this.roomId, this.senderKey, this.sessionId);
+        let existingKey = loader.getCachedKey(this.roomId, this.senderKey, this.sessionId);
         if (!existingKey) {
-            const storageKey = await fromStorage(this.roomId, this.senderKey, this.sessionId, txn);
+            const storageKey = await keyFromStorage(this.roomId, this.senderKey, this.sessionId, txn);
             // store the event ids that can be decrypted with this key
             // before we overwrite them if called from `write`.
             if (storageKey) {
@@ -99,8 +99,9 @@ abstract class BaseIncomingRoomKey implements IIncomingRoomKey {
             }
         }
         if (existingKey) {
+            const key = existingKey;
             this._isBetter = await loader.useKey(this, newSession => {
-                return loader.useKey(existingKey, (existingSession, pickleKey) => {
+                return loader.useKey(key, (existingSession, pickleKey) => {
                     const isBetter = isBetterThan(newSession, existingSession);
                     if (isBetter && callback) {
                         callback(newSession, pickleKey);
@@ -112,7 +113,7 @@ abstract class BaseIncomingRoomKey implements IIncomingRoomKey {
             // no previous key, so we're the best \o/
             this._isBetter = true;
         }
-        return this._isBetter;
+        return this._isBetter!;
     }
 
     abstract get roomId(): string;
@@ -195,7 +196,7 @@ class StoredRoomKey implements IRoomKey {
     }
 }
 
-export function fromDeviceMessage(dr: DecryptionResult): DeviceMessageRoomKey | undefined {
+export function keyFromDeviceMessage(dr: DecryptionResult): DeviceMessageRoomKey | undefined {
     const sessionKey = dr.event.content?.["session_key"];
     const key = new DeviceMessageRoomKey(dr);
     if (
@@ -216,7 +217,7 @@ sessionInfo is a response from key backup and has the following keys:
     sender_key
     session_key
  */
-export function fromBackup(roomId, sessionId, backupInfo): BackupRoomKey | undefined {
+export function keyFromBackup(roomId, sessionId, backupInfo): BackupRoomKey | undefined {
     const sessionKey = backupInfo["session_key"];
     const senderKey = backupInfo["sender_key"];
     // TODO: can we just trust this?
@@ -233,7 +234,7 @@ export function fromBackup(roomId, sessionId, backupInfo): BackupRoomKey | undef
     }
 }
 
-export async function fromStorage(roomId: string, senderKey: string, sessionId: string, txn: Transaction): Promise<StoredRoomKey | undefined> {
+export async function keyFromStorage(roomId: string, senderKey: string, sessionId: string, txn: Transaction): Promise<StoredRoomKey | undefined> {
     const existingSessionEntry = await txn.inboundGroupSessions.get(roomId, senderKey, sessionId);
     if (existingSessionEntry) {
         return new StoredRoomKey(existingSessionEntry);
