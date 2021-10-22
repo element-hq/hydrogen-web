@@ -135,7 +135,7 @@ export function tests() {
         "evict callback is called": assert => {
             let evictions = 0;
             class CustomCache extends LRUCache<NameTuple, number> {
-                _onEvictEntry(entry) {
+                onEvictEntry(entry) {
                     assert.equal(entry.name, "Alice");
                     evictions += 1;
                 }
@@ -149,7 +149,7 @@ export function tests() {
         "evict callback is called when replacing entry with same identity": assert => {
             let evictions = 0;
             class CustomCache extends LRUCache<NameTuple, number> {
-                _onEvictEntry(entry) {
+                onEvictEntry(entry) {
                     assert.equal(entry.name, "Alice");
                     evictions += 1;
                 }
