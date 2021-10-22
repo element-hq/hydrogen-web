@@ -14,9 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {SessionCache} from "./SessionCache";
 import {IRoomKey, isBetterThan} from "./RoomKey";
 import {BaseLRUCache} from "../../../../utils/LRUCache";
+
+
+export declare class OlmDecryptionResult {
+    readonly plaintext: string;
+    readonly message_index: number;
+}
 
 export declare class OlmInboundGroupSession {
     constructor();
@@ -25,25 +30,11 @@ export declare class OlmInboundGroupSession {
     unpickle(key: string | Uint8Array, pickle: string);
     create(session_key: string): string;
     import_session(session_key: string): string;
-    decrypt(message: string): object;
+    decrypt(message: string): OlmDecryptionResult;
     session_id(): string;
     first_known_index(): number;
     export_session(message_index: number): string;
 }
-
-// this is what cache.get(...) should return
-function findIndexBestForSession(ops: KeyOperation[], roomId: string, senderKey: string, sessionId: string): number {
-    return ops.reduce((bestIdx, op, i, arr) => {
-        const bestOp = bestIdx === -1 ? undefined : arr[bestIdx];
-        if (op.isForSameSession(roomId, senderKey, sessionId)) {
-            if (!bestOp || op.isBetter(bestOp)) {
-                return i;
-            }
-        }
-        return bestIdx;
-    }, -1);
-}
-
 
 /*
 Because Olm only has very limited memory available when compiled to wasm,
@@ -51,8 +42,6 @@ we limit the amount of sessions held in memory.
 */
 export class KeyLoader extends BaseLRUCache<KeyOperation> {
 
-    private runningOps: Set<KeyOperation>;
-    private unusedOps: Set<KeyOperation>;
     private pickleKey: string;
     private olm: any;
     private resolveUnusedOperation?: () => void;
