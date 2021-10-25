@@ -33,44 +33,6 @@ class SessionItemViewModel extends ViewModel {
         return this._error && this._error.message;
     }
 
-    async delete() {
-        this._isDeleting = true;
-        this.emitChange("isDeleting");
-        try {
-            await this._pickerVM.delete(this.id);
-        } catch(err) {
-            this._error = err;
-            console.error(err);
-            this.emitChange("error");
-        } finally {
-            this._isDeleting = false;
-            this.emitChange("isDeleting");
-        }
-    }
-
-    async clear() {
-        this._isClearing = true;
-        this.emitChange();
-        try {
-            await this._pickerVM.clear(this.id);
-        } catch(err) {
-            this._error = err;
-            console.error(err);
-            this.emitChange("error");
-        } finally {
-            this._isClearing = false;
-            this.emitChange("isClearing");
-        }
-    }
-
-    get isDeleting() {
-        return this._isDeleting;
-    }
-
-    get isClearing() {
-        return this._isClearing;
-    }
-
     get id() {
         return this._sessionInfo.id;
     }
@@ -94,27 +56,6 @@ class SessionItemViewModel extends ViewModel {
 
     get exportDataUrl() {
         return this._exportDataUrl;
-    }
-
-    async export() {
-        try {
-            const data = await this._pickerVM._exportData(this._sessionInfo.id);
-            const json = JSON.stringify(data, undefined, 2);
-            const blob = new Blob([json], {type: "application/json"});
-            this._exportDataUrl = URL.createObjectURL(blob);
-            this.emitChange("exportDataUrl");
-        } catch (err) {
-            alert(err.message);
-            console.error(err);
-        }
-    }
-
-    clearExport() {
-        if (this._exportDataUrl) {
-            URL.revokeObjectURL(this._exportDataUrl);
-            this._exportDataUrl = null;
-            this.emitChange("exportDataUrl");
-        }
     }
 
     get avatarColorNumber() {
@@ -146,43 +87,6 @@ export class SessionPickerViewModel extends ViewModel {
     // for the loading of 1 picked session
     get loadViewModel() {
         return this._loadViewModel;
-    }
-
-    async _exportData(id) {
-        const sessionInfo = await this.platform.sessionInfoStorage.get(id);
-        const stores = await this.logger.run("export", log => {
-            return this.platform.storageFactory.export(id, log);
-        });
-        const data = {sessionInfo, stores};
-        return data;
-    }
-
-    async import(json) {
-        try {
-            const data = JSON.parse(json);
-            const {sessionInfo} = data;
-            sessionInfo.comment = `Imported on ${new Date().toLocaleString()} from id ${sessionInfo.id}.`;
-            sessionInfo.id = this._createSessionContainer().createNewSessionId();
-            await this.logger.run("import", log => {
-                return this.platform.storageFactory.import(sessionInfo.id, data.stores, log);
-            });
-            await this.platform.sessionInfoStorage.add(sessionInfo);
-            this._sessions.set(new SessionItemViewModel(sessionInfo, this));
-        } catch (err) {
-            alert(err.message);
-            console.error(err);
-        }
-    }
-
-    async delete(id) {
-        const idx = this._sessions.array.findIndex(s => s.id === id);
-        await this.platform.sessionInfoStorage.delete(id);
-        await this.platform.storageFactory.delete(id);
-        this._sessions.remove(idx);
-    }
-
-    async clear(id) {
-        await this.platform.storageFactory.delete(id);
     }
 
     get sessions() {
