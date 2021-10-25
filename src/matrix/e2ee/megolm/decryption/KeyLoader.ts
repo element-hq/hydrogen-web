@@ -368,6 +368,17 @@ export function tests() {
             await loader.useKey(cachedKey, async session => { invocations += 1; });
             assert.equal(loader.size, 1);
             assert.equal(invocations, 2);
+        },
+        "dispose calls free on all sessions": async assert => {
+            instances = 0;
+            const loader = new KeyLoader(olm, PICKLE_KEY, 2);
+            await loader.useKey(new MockRoomKey(roomId, aliceSenderKey, sessionId1, 1), async session => {});
+            await loader.useKey(new MockRoomKey(roomId, aliceSenderKey, sessionId2, 1), async session => {});
+            assert.equal(instances, 2);
+            assert.equal(loader.size, 2);
+            loader.dispose();
+            assert.strictEqual(instances, 0, "instances");
+            assert.strictEqual(loader.size, 0, "loader.size");
         }
     }
 }
