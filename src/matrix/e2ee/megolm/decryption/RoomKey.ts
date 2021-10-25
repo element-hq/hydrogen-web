@@ -19,30 +19,33 @@ import type {Transaction} from "../../../storage/idb/Transaction";
 import type {DecryptionResult} from "../../DecryptionResult";
 import type {KeyLoader, OlmInboundGroupSession} from "./KeyLoader";
 
-export interface IRoomKey {
-    get roomId(): string;
-    get senderKey(): string;
-    get sessionId(): string;
-    get claimedEd25519Key(): string;
-    get serializationKey(): string;
-    get serializationType(): string;
-    get eventIds(): string[] | undefined;
-    loadInto(session: OlmInboundGroupSession, pickleKey: string): void;
+export abstract class RoomKey {
+    private _isBetter: boolean | undefined;
+
+    abstract get roomId(): string;
+    abstract get senderKey(): string;
+    abstract get sessionId(): string;
+    abstract get claimedEd25519Key(): string;
+    abstract get serializationKey(): string;
+    abstract get serializationType(): string;
+    abstract get eventIds(): string[] | undefined;
+    abstract loadInto(session: OlmInboundGroupSession, pickleKey: string): void;
+    /* Whether the key has been checked against storage (or is from storage)
+     * to be the better key for a given session. Given that all keys are checked to be better
+     * as part of writing, we can trust that when this returns true, it really is the best key
+     * available between storage and cached keys in memory. This is why keys with this field set to
+     * true are used by the key loader to return cached keys. Also see KeyOperation.isBest there. */
+    get isBetter(): boolean | undefined { return this._isBetter; }
+    // should only be set in key.checkBetterThanKeyInStorage
+    set isBetter(value: boolean | undefined) { this._isBetter = value; }
 }
 
 export function isBetterThan(newSession: OlmInboundGroupSession, existingSession: OlmInboundGroupSession) {
      return newSession.first_known_index() < existingSession.first_known_index();
 }
 
-export interface IIncomingRoomKey extends IRoomKey {
-    get isBetter(): boolean | undefined;
-    checkBetterThanKeyInStorage(loader: KeyLoader, txn: Transaction): Promise<boolean>;
-    write(loader: KeyLoader, txn: Transaction): Promise<boolean>;
-}
-
-abstract class BaseIncomingRoomKey implements IIncomingRoomKey {
+export abstract class IncomingRoomKey extends RoomKey {
     private _eventIds?: string[];
-    private _isBetter?: boolean;
     
     checkBetterThanKeyInStorage(loader: KeyLoader, txn: Transaction): Promise<boolean> {
         return this._checkBetterThanKeyInStorage(loader, undefined, txn);
@@ -51,7 +54,7 @@ abstract class BaseIncomingRoomKey implements IIncomingRoomKey {
     async write(loader: KeyLoader, txn: Transaction): Promise<boolean> {
         // we checked already and we had a better session in storage, so don't write
         let pickledSession;
-        if (this._isBetter === undefined) {
+        if (this.isBetter === undefined) {
             // if this key wasn't used to decrypt any messages in the same sync,
             // we haven't checked if this is the best key yet,
             // so do that now to not overwrite a better key.
@@ -60,7 +63,7 @@ abstract class BaseIncomingRoomKey implements IIncomingRoomKey {
                 pickledSession = session.pickle(pickleKey);
             }, txn);
         }
-        if (this._isBetter === false) {
+        if (this.isBetter === false) {
             return false;
         }
         // before calling write in parallel, we need to check loader.running is false so we are sure our transaction will not be closed
@@ -79,11 +82,10 @@ abstract class BaseIncomingRoomKey implements IIncomingRoomKey {
     }
 
     get eventIds() { return this._eventIds; }
-    get isBetter() { return this._isBetter; }
 
     private async _checkBetterThanKeyInStorage(loader: KeyLoader, callback: (((session: OlmInboundGroupSession, pickleKey: string) => void) | undefined), txn: Transaction): Promise<boolean> {
-        if (this._isBetter !== undefined) {
-            return this._isBetter;
+        if (this.isBetter !== undefined) {
+            return this.isBetter;
         }
         let existingKey = loader.getCachedKey(this.roomId, this.senderKey, this.sessionId);
         if (!existingKey) {
@@ -100,32 +102,26 @@ abstract class BaseIncomingRoomKey implements IIncomingRoomKey {
         }
         if (existingKey) {
             const key = existingKey;
-            this._isBetter = await loader.useKey(this, newSession => {
-                return loader.useKey(key, (existingSession, pickleKey) => {
-                    const isBetter = isBetterThan(newSession, existingSession);
-                    if (isBetter && callback) {
+            await loader.useKey(this, async newSession => {
+                await loader.useKey(key, (existingSession, pickleKey) => {
+                    // set isBetter as soon as possible, on both keys compared, 
+                    // as it is is used to determine whether a key can be used for the cache
+                    this.isBetter = isBetterThan(newSession, existingSession);
+                    key.isBetter = !this.isBetter;
+                    if (this.isBetter && callback) {
                         callback(newSession, pickleKey);
                     }
-                    return isBetter;
                 });
             });
         } else {
             // no previous key, so we're the best \o/
-            this._isBetter = true;
+            this.isBetter = true;
         }
-        return this._isBetter!;
+        return this.isBetter!;
     }
-
-    abstract get roomId(): string;
-    abstract get senderKey(): string;
-    abstract get sessionId(): string;
-    abstract get claimedEd25519Key(): string;
-    abstract get serializationKey(): string;
-    abstract get serializationType(): string;
-    abstract loadInto(session: OlmInboundGroupSession, pickleKey: string): void;
 }
 
-class DeviceMessageRoomKey extends BaseIncomingRoomKey {
+class DeviceMessageRoomKey extends IncomingRoomKey {
     private _decryptionResult: DecryptionResult;
 
     constructor(decryptionResult: DecryptionResult) {
@@ -145,7 +141,7 @@ class DeviceMessageRoomKey extends BaseIncomingRoomKey {
     }
 }
 
-class BackupRoomKey extends BaseIncomingRoomKey {
+class BackupRoomKey extends IncomingRoomKey {
     private _roomId: string;
     private _sessionId: string;
     private _backupInfo: string;
@@ -169,10 +165,12 @@ class BackupRoomKey extends BaseIncomingRoomKey {
     }
 }
 
-class StoredRoomKey implements IRoomKey {
+class StoredRoomKey extends RoomKey {
     private storageEntry: InboundGroupSessionEntry;
 
     constructor(storageEntry: InboundGroupSessionEntry) {
+        super();
+        this.isBetter = true; // usually the key in storage is the best until checks prove otherwise
         this.storageEntry = storageEntry;
     }
 
@@ -192,7 +190,7 @@ class StoredRoomKey implements IRoomKey {
         // sessions are stored before they are received
         // to keep track of events that need it to be decrypted.
         // This is used to retry decryption of those events once the session is received.
-        return !!this.storageEntry.session;
+        return !!this.serializationKey;
     }
 }
 

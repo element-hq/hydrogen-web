@@ -20,7 +20,7 @@ import {SessionDecryption} from "./decryption/SessionDecryption";
 import {MEGOLM_ALGORITHM} from "../common.js";
 import {validateEvent, groupEventsBySession} from "./decryption/utils";
 import {keyFromStorage, keyFromDeviceMessage, keyFromBackup} from "./decryption/RoomKey";
-import type {IRoomKey, IIncomingRoomKey} from "./decryption/RoomKey";
+import type {RoomKey, IncomingRoomKey} from "./decryption/RoomKey";
 import type {KeyLoader} from "./decryption/KeyLoader";
 import type {OlmWorker} from "../OlmWorker";
 import type {Transaction} from "../../storage/idb/Transaction";
@@ -78,7 +78,7 @@ export class Decryption {
      * @param  {[type]} txn          [description]
      * @return {DecryptionPreparation}
      */
-    async prepareDecryptAll(roomId: string, events: TimelineEvent[], newKeys: IIncomingRoomKey[] | undefined, txn: Transaction) {
+    async prepareDecryptAll(roomId: string, events: TimelineEvent[], newKeys: IncomingRoomKey[] | undefined, txn: Transaction) {
         const errors = new Map();
         const validEvents: TimelineEvent[] = [];
 
@@ -107,7 +107,7 @@ export class Decryption {
         return new DecryptionPreparation(roomId, sessionDecryptions, errors);
     }
 
-    private async getRoomKey(roomId: string, senderKey: string, sessionId: string, newKeys: IIncomingRoomKey[] | undefined, txn: Transaction): Promise<IRoomKey | undefined> {
+    private async getRoomKey(roomId: string, senderKey: string, sessionId: string, newKeys: IncomingRoomKey[] | undefined, txn: Transaction): Promise<RoomKey | undefined> {
         if (newKeys) {
             const key = newKeys.find(k => k.roomId === roomId && k.senderKey === senderKey && k.sessionId === sessionId);
             if (key && await key.checkBetterThanKeyInStorage(this.keyLoader, txn)) {
@@ -128,7 +128,7 @@ export class Decryption {
     /**
      * Writes the key as an inbound group session if there is not already a better key in the store
      */
-    writeRoomKey(key: IIncomingRoomKey, txn: Transaction): Promise<boolean> {
+    writeRoomKey(key: IncomingRoomKey, txn: Transaction): Promise<boolean> {
         return key.write(this.keyLoader, txn);
     }
 
@@ -136,8 +136,8 @@ export class Decryption {
      * Extracts room keys from decrypted device messages.
      * The key won't be persisted yet, you need to call RoomKey.write for that.
      */
-    roomKeysFromDeviceMessages(decryptionResults: DecryptionResult[], log: LogItem): IIncomingRoomKey[] {
-        const keys: IIncomingRoomKey[] = [];
+    roomKeysFromDeviceMessages(decryptionResults: DecryptionResult[], log: LogItem): IncomingRoomKey[] {
+        const keys: IncomingRoomKey[] = [];
         for (const dr of decryptionResults) {
             if (dr.event?.type !== "m.room_key" || dr.event.content?.algorithm !== MEGOLM_ALGORITHM) {
                 continue;
@@ -157,7 +157,7 @@ export class Decryption {
         return keys;
     }
 
-    roomKeyFromBackup(roomId: string, sessionId: string, sessionInfo: string): IIncomingRoomKey | undefined {
+    roomKeyFromBackup(roomId: string, sessionId: string, sessionInfo: string): IncomingRoomKey | undefined {
         return keyFromBackup(roomId, sessionId, sessionInfo);
     }
 

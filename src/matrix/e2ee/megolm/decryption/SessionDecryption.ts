@@ -17,7 +17,7 @@ limitations under the License.
 import {DecryptionResult} from "../../DecryptionResult.js";
 import {DecryptionError} from "../../common.js";
 import {ReplayDetectionEntry} from "./ReplayDetectionEntry";
-import type {IRoomKey} from "./RoomKey.js";
+import type {RoomKey} from "./RoomKey.js";
 import type {KeyLoader, OlmDecryptionResult} from "./KeyLoader";
 import type {OlmWorker} from "../../OlmWorker";
 import type {TimelineEvent} from "../../../storage/types";
@@ -31,13 +31,13 @@ interface DecryptAllResult {
  * Does the actual decryption of all events for a given megolm session in a batch
  */
 export class SessionDecryption {
-    private key: IRoomKey;
+    private key: RoomKey;
     private events: TimelineEvent[];
     private keyLoader: KeyLoader;
     private olmWorker?: OlmWorker;
     private decryptionRequests?: any[];
 
-    constructor(key: IRoomKey, events: TimelineEvent[], olmWorker: OlmWorker | undefined, keyLoader: KeyLoader) {
+    constructor(key: RoomKey, events: TimelineEvent[], olmWorker: OlmWorker | undefined, keyLoader: KeyLoader) {
         this.key = key;
         this.events = events;
         this.olmWorker = olmWorker;

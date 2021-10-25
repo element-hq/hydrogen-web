@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {IRoomKey, isBetterThan} from "./RoomKey";
+import {isBetterThan, IncomingRoomKey} from "./RoomKey";
 import {BaseLRUCache} from "../../../../utils/LRUCache";
-
+import type {RoomKey} from "./RoomKey";
 
 export declare class OlmDecryptionResult {
     readonly plaintext: string;
@@ -53,14 +53,14 @@ export class KeyLoader extends BaseLRUCache<KeyOperation> {
         this.olm = olm;
     }
 
-    getCachedKey(roomId: string, senderKey: string, sessionId: string): IRoomKey | undefined {
-        const idx = this.findIndexBestForSession(roomId, senderKey, sessionId);
+    getCachedKey(roomId: string, senderKey: string, sessionId: string): RoomKey | undefined {
+        const idx = this.findCachedKeyIndex(roomId, senderKey, sessionId);
         if (idx !== -1) {
             return this._getByIndexAndMoveUp(idx)!.key;
         }
     }
 
-    async useKey<T>(key: IRoomKey, callback: (session: OlmInboundGroupSession, pickleKey: string) => Promise<T> | T): Promise<T> {
+    async useKey<T>(key: RoomKey, callback: (session: OlmInboundGroupSession, pickleKey: string) => Promise<T> | T): Promise<T> {
         const keyOp = await this.allocateOperation(key);
         try {
             return await callback(keyOp.session, this.pickleKey);
@@ -81,7 +81,7 @@ export class KeyLoader extends BaseLRUCache<KeyOperation> {
         this._entries.splice(0, this._entries.length);
     }
 
-    private async allocateOperation(key: IRoomKey): Promise<KeyOperation> {
+    private async allocateOperation(key: RoomKey): Promise<KeyOperation> {
         let idx;
         while((idx = this.findIndexForAllocation(key)) === -1) {
             await this.operationBecomesUnused();
@@ -127,14 +127,14 @@ export class KeyLoader extends BaseLRUCache<KeyOperation> {
         return this.operationBecomesUnusedPromise;
     }
 
-    private findIndexForAllocation(key: IRoomKey) {
+    private findIndexForAllocation(key: RoomKey) {
         let idx = this.findIndexSameKey(key); // cache hit
         if (idx === -1) {
-            idx = this.findIndexSameSessionUnused(key);
-            if (idx === -1) {
-                if (this.size < this.limit) {
-                    idx = this.size;
-                } else {
+            if (this.size < this.limit) {
+                idx = this.size;
+            } else {
+                idx = this.findIndexSameSessionUnused(key);
+                if (idx === -1) {
                     idx = this.findIndexOldestUnused();
                 }
             }
@@ -142,10 +142,11 @@ export class KeyLoader extends BaseLRUCache<KeyOperation> {
         return idx;
     }
 
-    private findIndexBestForSession(roomId: string, senderKey: string, sessionId: string): number {
+    private findCachedKeyIndex(roomId: string, senderKey: string, sessionId: string): number {
         return this._entries.reduce((bestIdx, op, i, arr) => {
             const bestOp = bestIdx === -1 ? undefined : arr[bestIdx];
-            if (op.isForSameSession(roomId, senderKey, sessionId)) {
+            // only operations that are the "best" for their session can be used, see comment on isBest
+            if (op.isBest === true && op.isForSameSession(roomId, senderKey, sessionId)) {
                 if (!bestOp || op.isBetter(bestOp)) {
                     return i;
                 }
@@ -154,20 +155,23 @@ export class KeyLoader extends BaseLRUCache<KeyOperation> {
         }, -1);
     }
 
-    private findIndexSameKey(key: IRoomKey): number {
+    private findIndexSameKey(key: RoomKey): number {
         return this._entries.findIndex(op => {
             return op.isForSameSession(key.roomId, key.senderKey, key.sessionId) && op.isForKey(key);
         });
     }
 
-    private findIndexSameSessionUnused(key: IRoomKey): number {
-        for (let i = this._entries.length - 1; i >= 0; i -= 1) {
-            const op = this._entries[i];
+    private findIndexSameSessionUnused(key: RoomKey): number {
+        return this._entries.reduce((worstIdx, op, i, arr) => {
+            const worst = worstIdx === -1 ? undefined : arr[worstIdx];
+            // we try to pick the worst operation to overwrite, so the best one stays in the cache
             if (op.refCount === 0 && op.isForSameSession(key.roomId, key.senderKey, key.sessionId)) {
-                return i;
+                if (!worst || !op.isBetter(worst)) {
+                    return i;
+                }
             }
-        }
-        return -1;
+            return worstIdx;
+        }, -1);
     }
 
     private findIndexOldestUnused(): number {
@@ -183,10 +187,10 @@ export class KeyLoader extends BaseLRUCache<KeyOperation> {
 
 class KeyOperation {
     session: OlmInboundGroupSession;
-    key: IRoomKey;
+    key: RoomKey;
     refCount: number;
 
-    constructor(key: IRoomKey, session: OlmInboundGroupSession) {
+    constructor(key: RoomKey, session: OlmInboundGroupSession) {
         this.key = key;
         this.session = session;
         this.refCount = 1;
@@ -201,7 +205,7 @@ class KeyOperation {
         return isBetterThan(this.session, other.session);
     }
 
-    isForKey(key: IRoomKey) {
+    isForKey(key: RoomKey) {
         return this.key.serializationKey === key.serializationKey &&
             this.key.serializationType === key.serializationType;
     }
@@ -209,18 +213,27 @@ class KeyOperation {
     dispose() {
         this.session.free();
     }
+
+    /** returns whether the key for this operation has been checked at some point against storage
+     * and was determined to be the better key, undefined if it hasn't been checked yet.
+     * Only keys that are the best keys can be returned by getCachedKey as returning a cache hit
+     * will usually not check for a better session in storage. Also see RoomKey.isBetter. */
+    get isBest(): boolean | undefined {
+        return this.key.isBetter;
+    }
 }
 
 export function tests() {
     let instances = 0;
 
-    class MockRoomKey implements IRoomKey {
+    class MockRoomKey extends IncomingRoomKey {
         private _roomId: string;
         private _senderKey: string;
         private _sessionId: string;
         private _firstKnownIndex: number;
 
         constructor(roomId: string, senderKey: string, sessionId: string, firstKnownIndex: number) {
+            super();
             this._roomId = roomId;
             this._senderKey = senderKey;
             this._sessionId = sessionId;
@@ -267,7 +280,6 @@ export function tests() {
     const bobSenderKey = "def";
     const sessionId1 = "s123";
     const sessionId2 = "s456";
-    const sessionId3 = "s789";
     
     return {
         "load key gives correct session": async assert => {
@@ -362,6 +374,7 @@ export function tests() {
             let resolve1, resolve2, invocations = 0;
             const key1 = new MockRoomKey(roomId, aliceSenderKey, sessionId1, 1);
             await loader.useKey(key1, async session => { invocations += 1; });
+            key1.isBetter = true;
             assert.equal(loader.size, 1);
             const cachedKey = loader.getCachedKey(roomId, aliceSenderKey, sessionId1)!;
             assert.equal(cachedKey, key1);
@@ -379,6 +392,42 @@ export function tests() {
             loader.dispose();
             assert.strictEqual(instances, 0, "instances");
             assert.strictEqual(loader.size, 0, "loader.size");
-        }
+        },
+        "checkBetterThanKeyInStorage false with cache": async assert => {
+            const loader = new KeyLoader(olm, PICKLE_KEY, 2);
+            const key1 = new MockRoomKey(roomId, aliceSenderKey, sessionId1, 2);
+            await loader.useKey(key1, async session => {});
+            // fake we've checked with storage that this is the best key,
+            // and as long is it remains the best key with newly added keys,
+            // it will be returned from getCachedKey (as called from checkBetterThanKeyInStorage)
+            key1.isBetter = true;
+            const key2 = new MockRoomKey(roomId, aliceSenderKey, sessionId1, 3);
+            // this will hit cache of key 1 so we pass in null as txn
+            const isBetter = await key2.checkBetterThanKeyInStorage(loader, null as any);
+            assert.strictEqual(isBetter, false);
+            assert.strictEqual(key2.isBetter, false);
+        },
+        "checkBetterThanKeyInStorage true with cache": async assert => {
+            const loader = new KeyLoader(olm, PICKLE_KEY, 2);
+            const key1 = new MockRoomKey(roomId, aliceSenderKey, sessionId1, 2);
+            key1.isBetter = true; // fake we've check with storage so far (not including key2) this is the best key
+            await loader.useKey(key1, async session => {});
+            const key2 = new MockRoomKey(roomId, aliceSenderKey, sessionId1, 1);
+            // this will hit cache of key 1 so we pass in null as txn
+            const isBetter = await key2.checkBetterThanKeyInStorage(loader, null as any);
+            assert.strictEqual(isBetter, true);
+            assert.strictEqual(key2.isBetter, true);
+        },
+        "prefer to remove worst key for a session from cache": async assert => {
+            const loader = new KeyLoader(olm, PICKLE_KEY, 2);
+            const key1 = new MockRoomKey(roomId, aliceSenderKey, sessionId1, 2);
+            await loader.useKey(key1, async session => {});
+            key1.isBetter = true; // set to true just so it gets returned from getCachedKey
+            const key2 = new MockRoomKey(roomId, aliceSenderKey, sessionId1, 4);
+            await loader.useKey(key2, async session => {});
+            const key3 = new MockRoomKey(roomId, aliceSenderKey, sessionId1, 3);
+            await loader.useKey(key3, async session => {});
+            assert.strictEqual(loader.getCachedKey(roomId, aliceSenderKey, sessionId1), key1);
+        },
     }
 }
