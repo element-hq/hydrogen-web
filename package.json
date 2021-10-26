@@ -1,6 +1,6 @@
 {
   "name": "hydrogen-web",
-  "version": "0.2.17",
+  "version": "0.2.18",
   "description": "A javascript matrix client prototype, trying to minize RAM usage by offloading as much as possible to IndexedDB",
   "main": "src/lib.ts",
   "directories": {
