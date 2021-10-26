@@ -464,7 +464,6 @@ class SessionSyncProcessState {
 
     dispose() {
         this.lock?.release();
-        this.preparation?.dispose();
     }
 }
 

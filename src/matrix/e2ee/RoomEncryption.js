@@ -15,9 +15,9 @@ limitations under the License.
 */
 
 import {MEGOLM_ALGORITHM, DecryptionSource} from "./common.js";
-import {groupEventsBySession} from "./megolm/decryption/utils.js";
+import {groupEventsBySession} from "./megolm/decryption/utils";
 import {mergeMap} from "../../utils/mergeMap.js";
-import {groupBy} from "../../utils/groupBy.js";
+import {groupBy} from "../../utils/groupBy";
 import {makeTxnId} from "../common.js";
 
 const ENCRYPTED_TYPE = "m.room.encrypted";
@@ -36,8 +36,6 @@ export class RoomEncryption {
         this._megolmDecryption = megolmDecryption;
         // content of the m.room.encryption event
         this._encryptionParams = encryptionParams;
-        this._megolmBackfillCache = this._megolmDecryption.createSessionCache();
-        this._megolmSyncCache = this._megolmDecryption.createSessionCache(1);
         // caches devices to verify events
         this._senderDeviceCache = new Map();
         this._storage = storage;
@@ -76,9 +74,6 @@ export class RoomEncryption {
     }
 
     notifyTimelineClosed() {
-        // empty the backfill cache when closing the timeline
-        this._megolmBackfillCache.dispose();
-        this._megolmBackfillCache = this._megolmDecryption.createSessionCache();
         this._senderDeviceCache = new Map();    // purge the sender device cache
     }
 
@@ -112,27 +107,8 @@ export class RoomEncryption {
             }
             validEvents.push(event);
         }
-        let customCache;
-        let sessionCache;
-        // we have different caches so we can keep them small but still
-        // have backfill and sync not invalidate each other
-        if (source === DecryptionSource.Sync) {
-            sessionCache = this._megolmSyncCache;
-        } else if (source === DecryptionSource.Timeline) {
-            sessionCache = this._megolmBackfillCache;
-        } else if (source === DecryptionSource.Retry) {
-            // when retrying, we could have mixed events from at the bottom of the timeline (sync)
-            // and somewhere else, so create a custom cache we use just for this operation.
-            customCache = this._megolmDecryption.createSessionCache();
-            sessionCache = customCache;
-        } else {
-            throw new Error("Unknown source: " + source);
-        }
         const preparation = await this._megolmDecryption.prepareDecryptAll(
-            this._room.id, validEvents, newKeys, sessionCache, txn);
-        if (customCache) {
-            customCache.dispose();
-        }
+            this._room.id, validEvents, newKeys, txn);
         return new DecryptionPreparation(preparation, errors, source, this, events);
     }
 
@@ -204,37 +180,31 @@ export class RoomEncryption {
             return;
         }
         log.set("id", sessionId);
-        log.set("senderKey", senderKey);           
+        log.set("senderKey", senderKey);
         try {
             const session = await this._sessionBackup.getSession(this._room.id, sessionId, log);
             if (session?.algorithm === MEGOLM_ALGORITHM) {
-                if (session["sender_key"] !== senderKey) {
-                    log.set("wrong_sender_key", session["sender_key"]);
-                    log.logLevel = log.level.Warn;
-                    return;
-                }
                 let roomKey = this._megolmDecryption.roomKeyFromBackup(this._room.id, sessionId, session);
                 if (roomKey) {
+                    if (roomKey.senderKey !== senderKey) {
+                        log.set("wrong_sender_key", roomKey.senderKey);
+                        log.logLevel = log.level.Warn;
+                        return;
+                    }
                     let keyIsBestOne = false;
                     let retryEventIds;
+                    const txn = await this._storage.readWriteTxn([this._storage.storeNames.inboundGroupSessions]);
                     try {
-                        const txn = await this._storage.readWriteTxn([this._storage.storeNames.inboundGroupSessions]);
-                        try {
-                            keyIsBestOne = await this._megolmDecryption.writeRoomKey(roomKey, txn);
-                            log.set("isBetter", keyIsBestOne);
-                            if (keyIsBestOne) {
-                                retryEventIds = roomKey.eventIds;
-                            }
-                        } catch (err) {
-                            txn.abort();
-                            throw err;
+                        keyIsBestOne = await this._megolmDecryption.writeRoomKey(roomKey, txn);
+                        log.set("isBetter", keyIsBestOne);
+                        if (keyIsBestOne) {
+                            retryEventIds = roomKey.eventIds;
                         }
-                        await txn.complete();
-                    } finally {
-                        // can still access properties on it afterwards
-                        // this is just clearing the internal sessionInfo
-                        roomKey.dispose();
+                    } catch (err) {
+                        txn.abort();
+                        throw err;
                     }
+                    await txn.complete();
                     if (keyIsBestOne) {
                         await log.wrap("retryDecryption", log => this._room.notifyRoomKey(roomKey, retryEventIds || [], log));
                     }
@@ -466,8 +436,6 @@ export class RoomEncryption {
 
     dispose() {
         this._disposed = true;
-        this._megolmBackfillCache.dispose();
-        this._megolmSyncCache.dispose();
     }
 }
 

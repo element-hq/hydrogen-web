@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {groupByWithCreator} from "../../../utils/groupBy.js";
+import {groupByWithCreator} from "../../../utils/groupBy";
 import {verifyEd25519Signature, OLM_ALGORITHM} from "../common.js";
 import {createSessionEntry} from "./Session.js";
 

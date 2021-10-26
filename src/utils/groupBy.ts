@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export function groupBy(array, groupFn) {
-    return groupByWithCreator(array, groupFn,
+export function groupBy<K, V>(array: V[], groupFn: (V) => K): Map<K, V[]> {
+    return groupByWithCreator<K, V, V[]>(array, groupFn,
         () => {return [];},
         (array, value) => array.push(value)
     );
 }
 
-export function groupByWithCreator(array, groupFn, createCollectionFn, addCollectionFn) {
+export function groupByWithCreator<K, V, C>(array: V[], groupFn: (V) => K, createCollectionFn: () => C, addCollectionFn: (C, V) => void): Map<K, C> {
     return array.reduce((map, value) => {
         const key = groupFn(value);
         let collection = map.get(key);
@@ -31,10 +31,10 @@ export function groupByWithCreator(array, groupFn, createCollectionFn, addCollec
         }
         addCollectionFn(collection, value);
         return map;
-    }, new Map());
+    }, new Map<K, C>());
 }
 
-export function countBy(events, mapper) {
+export function countBy<V>(events: V[], mapper: (V) => string | number): { [key: string]: number } {
     return events.reduce((counts, event) => {
         const mappedValue = mapper(event);
         if (!counts[mappedValue]) {

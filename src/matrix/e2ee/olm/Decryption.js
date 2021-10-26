@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {DecryptionError} from "../common.js";
-import {groupBy} from "../../../utils/groupBy.js";
+import {groupBy} from "../../../utils/groupBy";
 import {MultiLock} from "../../../utils/Lock.js";
 import {Session} from "./Session.js";
 import {DecryptionResult} from "../DecryptionResult.js";
@@ -150,7 +150,7 @@ export class Decryption {
                 throw new DecryptionError("PLAINTEXT_NOT_JSON", event, {plaintext, error});
             }
             this._validatePayload(payload, event);
-            return new DecryptionResult(payload, senderKey, payload.keys);
+            return new DecryptionResult(payload, senderKey, payload.keys.ed25519);
         } else {
             throw new DecryptionError("OLM_NO_MATCHING_SESSION", event,
                 {knownSessionIds: senderKeyDecryption.sessions.map(s => s.id)});

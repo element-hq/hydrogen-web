@@ -14,44 +14,46 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {groupByWithCreator} from "../../../../utils/groupBy.js";
+import {groupByWithCreator} from "../../../../utils/groupBy";
+import type {TimelineEvent} from "../../../storage/types";
 
-function getSenderKey(event) {
+function getSenderKey(event: TimelineEvent): string | undefined {
     return event.content?.["sender_key"];
 }
 
-function getSessionId(event) {
+function getSessionId(event: TimelineEvent): string | undefined {
     return event.content?.["session_id"];
 }
 
-function getCiphertext(event) {
+function getCiphertext(event: TimelineEvent): string | undefined {
     return event.content?.ciphertext;
 }
 
-export function validateEvent(event) {
+export function validateEvent(event: TimelineEvent) {
     return typeof getSenderKey(event) === "string" &&
            typeof getSessionId(event) === "string" &&
            typeof getCiphertext(event) === "string";
 }
 
-class SessionKeyGroup {
+export class SessionKeyGroup {
+    public readonly events: TimelineEvent[];
     constructor() {
         this.events = [];
     }
 
-    get senderKey() {
-        return getSenderKey(this.events[0]);
+    get senderKey(): string | undefined {
+        return getSenderKey(this.events[0]!);
     }
 
-    get sessionId() {
-        return getSessionId(this.events[0]);
+    get sessionId(): string | undefined {
+        return getSessionId(this.events[0]!);
     }
 }
 
-export function groupEventsBySession(events) {
-    return groupByWithCreator(events,
-        event => `${getSenderKey(event)}|${getSessionId(event)}`,
+export function groupEventsBySession(events: TimelineEvent[]): Map<string, SessionKeyGroup> {
+    return groupByWithCreator<string, TimelineEvent, SessionKeyGroup>(events,
+        (event: TimelineEvent) => `${getSenderKey(event)}|${getSessionId(event)}`,
         () => new SessionKeyGroup(),
-        (group, event) => group.events.push(event)
+        (group: SessionKeyGroup, event: TimelineEvent) => group.events.push(event)
     );
 }

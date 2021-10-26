@@ -14,18 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+
+type FindCallback<T> = (value: T) => boolean;
 /**
  * Very simple least-recently-used cache implementation
  * that should be fast enough for very small cache sizes
  */
-export class BaseLRUCache {
-    constructor(limit) {
-        this._limit = limit;
+export class BaseLRUCache<T> {
+
+    public readonly limit: number;
+    protected _entries: T[];
+
+    constructor(limit: number) {
+        this.limit = limit;
         this._entries = [];
     }
 
-    _get(findEntryFn) {
-        const idx = this._entries.findIndex(findEntryFn);
+    get size() { return this._entries.length; }
+
+    protected _get(findEntryFn: FindCallback<T>) {
+        return this._getByIndexAndMoveUp(this._entries.findIndex(findEntryFn));
+    }
+
+    protected _getByIndexAndMoveUp(idx: number) {
         if (idx !== -1) {
             const entry = this._entries[idx];
             // move to top
@@ -37,11 +48,11 @@ export class BaseLRUCache {
         }
     }
 
-    _set(value, findEntryFn) {
-        let indexToRemove = this._entries.findIndex(findEntryFn);
+    protected _set(value: T, findEntryFn?: FindCallback<T>) {
+        let indexToRemove = findEntryFn ? this._entries.findIndex(findEntryFn) : -1;
         this._entries.unshift(value);
         if (indexToRemove === -1) {
-            if (this._entries.length > this._limit) {
+            if (this._entries.length > this.limit) {
                 indexToRemove = this._entries.length - 1;
             }
         } else {
@@ -49,75 +60,82 @@ export class BaseLRUCache {
             indexToRemove += 1;
         }
         if (indexToRemove !== -1) {
-            this._onEvictEntry(this._entries[indexToRemove]);
+            this.onEvictEntry(this._entries[indexToRemove]);
             this._entries.splice(indexToRemove, 1);
         }
     }
 
-    _onEvictEntry() {}
+    protected onEvictEntry(entry: T) {}
 }
 
-export class LRUCache extends BaseLRUCache {
-    constructor(limit, keyFn) {
+export class LRUCache<T, K> extends BaseLRUCache<T> {
+    private _keyFn: (T) => K;
+
+    constructor(limit, keyFn: (T) => K) {
         super(limit);
         this._keyFn = keyFn;
     }
 
-    get(key) {
+    get(key: K): T | undefined {
         return this._get(e => this._keyFn(e) === key);
     }
 
-    set(value) {
+    set(value: T) {
         const key = this._keyFn(value);
         this._set(value, e => this._keyFn(e) === key);
     }
 }
 
 export function tests() {
+    interface NameTuple {
+        id: number;
+        name: string;
+    }
+
     return {
         "can retrieve added entries": assert => {
-            const cache = new LRUCache(2, e => e.id);
+            const cache = new LRUCache<NameTuple, number>(2, e => e.id);
             cache.set({id: 1, name: "Alice"});
             cache.set({id: 2, name: "Bob"});
-            assert.equal(cache.get(1).name, "Alice");
-            assert.equal(cache.get(2).name, "Bob");
+            assert.equal(cache.get(1)!.name, "Alice");
+            assert.equal(cache.get(2)!.name, "Bob");
         },
         "first entry is evicted first": assert => {
-            const cache = new LRUCache(2, e => e.id);
+            const cache = new LRUCache<NameTuple, number>(2, e => e.id);
             cache.set({id: 1, name: "Alice"});
             cache.set({id: 2, name: "Bob"});
             cache.set({id: 3, name: "Charly"});
             assert.equal(cache.get(1), undefined);
-            assert.equal(cache.get(2).name, "Bob");
-            assert.equal(cache.get(3).name, "Charly");
-            assert.equal(cache._entries.length, 2);
+            assert.equal(cache.get(2)!.name, "Bob");
+            assert.equal(cache.get(3)!.name, "Charly");
+            assert.equal(cache.size, 2);
         },
         "second entry is evicted if first is requested": assert => {
-            const cache = new LRUCache(2, e => e.id);
+            const cache = new LRUCache<NameTuple, number>(2, e => e.id);
             cache.set({id: 1, name: "Alice"});
             cache.set({id: 2, name: "Bob"});
             cache.get(1);
             cache.set({id: 3, name: "Charly"});
-            assert.equal(cache.get(1).name, "Alice");
+            assert.equal(cache.get(1)!.name, "Alice");
             assert.equal(cache.get(2), undefined);
-            assert.equal(cache.get(3).name, "Charly");
-            assert.equal(cache._entries.length, 2);
+            assert.equal(cache.get(3)!.name, "Charly");
+            assert.equal(cache.size, 2);
         },
         "setting an entry twice removes the first": assert => {
-            const cache = new LRUCache(2, e => e.id);
+            const cache = new LRUCache<NameTuple, number>(2, e => e.id);
             cache.set({id: 1, name: "Alice"});
             cache.set({id: 2, name: "Bob"});
             cache.set({id: 1, name: "Al Ice"});
             cache.set({id: 3, name: "Charly"});
-            assert.equal(cache.get(1).name, "Al Ice");
+            assert.equal(cache.get(1)!.name, "Al Ice");
             assert.equal(cache.get(2), undefined);
-            assert.equal(cache.get(3).name, "Charly");
-            assert.equal(cache._entries.length, 2);
+            assert.equal(cache.get(3)!.name, "Charly");
+            assert.equal(cache.size, 2);
         },
         "evict callback is called": assert => {
             let evictions = 0;
-            class CustomCache extends LRUCache {
-                _onEvictEntry(entry) {
+            class CustomCache extends LRUCache<NameTuple, number> {
+                onEvictEntry(entry) {
                     assert.equal(entry.name, "Alice");
                     evictions += 1;
                 }
@@ -130,8 +148,8 @@ export function tests() {
         },
         "evict callback is called when replacing entry with same identity": assert => {
             let evictions = 0;
-            class CustomCache extends LRUCache {
-                _onEvictEntry(entry) {
+            class CustomCache extends LRUCache<NameTuple, number> {
+                onEvictEntry(entry) {
                     assert.equal(entry.name, "Alice");
                     evictions += 1;
                 }

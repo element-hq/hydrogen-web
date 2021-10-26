@@ -17,24 +17,26 @@ limitations under the License.
 import {MIN_UNICODE, MAX_UNICODE} from "./common";
 import {Store} from "../Store";
 
-interface InboundGroupSession {
+export interface InboundGroupSessionEntry {
     roomId: string;
     senderKey: string;
     sessionId: string;
     session?: string;
     claimedKeys?: { [algorithm : string] : string };
     eventIds?: string[];
-    key: string;
 }
+
+type InboundGroupSessionStorageEntry = InboundGroupSessionEntry & { key: string };
+
 
 function encodeKey(roomId: string, senderKey: string, sessionId: string): string {
     return `${roomId}|${senderKey}|${sessionId}`;
 }
 
 export class InboundGroupSessionStore {
-    private _store: Store<InboundGroupSession>;
+    private _store: Store<InboundGroupSessionStorageEntry>;
 
-    constructor(store: Store<InboundGroupSession>) {
+    constructor(store: Store<InboundGroupSessionStorageEntry>) {
         this._store = store;
     }
 
@@ -44,13 +46,14 @@ export class InboundGroupSessionStore {
         return key === fetchedKey;
     }
 
-    get(roomId: string, senderKey: string, sessionId: string): Promise<InboundGroupSession | null> {
+    get(roomId: string, senderKey: string, sessionId: string): Promise<InboundGroupSessionEntry | null> {
         return this._store.get(encodeKey(roomId, senderKey, sessionId));
     }
 
-    set(session: InboundGroupSession): void {
-        session.key = encodeKey(session.roomId, session.senderKey, session.sessionId);
-        this._store.put(session);
+    set(session: InboundGroupSessionEntry): void {
+        const storageEntry = session as InboundGroupSessionStorageEntry;
+        storageEntry.key = encodeKey(session.roomId, session.senderKey, session.sessionId);
+        this._store.put(storageEntry);
     }
 
     removeAllForRoom(roomId: string) {

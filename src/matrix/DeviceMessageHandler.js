@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {OLM_ALGORITHM} from "./e2ee/common.js";
-import {countBy, groupBy} from "../utils/groupBy.js";
+import {countBy, groupBy} from "../utils/groupBy";
 
 export class DeviceMessageHandler {
     constructor({storage}) {
@@ -66,13 +66,5 @@ class SyncPreparation {
         this.olmDecryptChanges = olmDecryptChanges;
         this.newRoomKeys = newRoomKeys;
         this.newKeysByRoom = groupBy(newRoomKeys, r => r.roomId);
-    }
-
-    dispose() {
-        if (this.newRoomKeys) {
-            for (const k of this.newRoomKeys) {
-                k.dispose();
-            }
-        }
     }
 }
