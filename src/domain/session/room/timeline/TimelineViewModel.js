@@ -49,6 +49,30 @@ export class TimelineViewModel extends ViewModel {
         this._showJumpDown = false;
     }
 
+    async watchForGapFill(gapPromise, tileRange, gapTile) {
+        console.log("watchForGapFill called");
+        let hasSeenUpdate = false;
+        const func = (idx, tile) => {
+            if (tile.shape !== "gap") {
+                hasSeenUpdate = true;
+            }
+        }
+        const subscription = {
+            onAdd: (idx, tile) => func(idx, tile),
+            onUpdate: (idx, tile) => func(idx, tile),
+            onRemove: (idx, tile) => func(idx, tile)
+        };
+        this.tiles.subscribe(subscription);
+        await gapPromise;
+        this.tiles.unsubscribe(subscription);
+        console.log("hasSeenUpdate is ", hasSeenUpdate);
+        if (!hasSeenUpdate) {
+            // this.watchForGapFill(gapTile.notifyVisible(), undefined, gapTile);
+            const { startTile, endTile } = tileRange;
+            this.setVisibleTileRange(startTile, endTile);
+        }
+    }
+
     /** if this.tiles is empty, call this with undefined for both startTile and endTile */
     setVisibleTileRange(startTile, endTile) {
         // don't clear these once done as they are used to check
@@ -73,7 +97,11 @@ export class TimelineViewModel extends ViewModel {
             const startIndex = this._tiles.getTileIndex(this._startTile);
             const endIndex = this._tiles.getTileIndex(this._endTile);
             for (const tile of this._tiles.sliceIterator(startIndex, endIndex + 1)) {
-                tile.notifyVisible();
+                const ret = tile.notifyVisible();
+                if (ret && !tile.isAtTop) {
+                    console.log("ret is", ret);
+                    this.watchForGapFill(ret, { startTile, endTile }, tile);
+                }
             }
             loadTop = startIndex < 10;
             this._setShowJumpDown(endIndex < (this._tiles.length - 1));

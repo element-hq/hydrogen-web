@@ -43,10 +43,13 @@ export class GapTile extends SimpleTile {
                 this.emitChange("isLoading");
             }
         }
+        else {
+            console.log("Not entering fill() logic");
+        }
     }
 
     notifyVisible() {
-        this.fill();
+        return this.fill();
     }
 
     get isAtTop() {
