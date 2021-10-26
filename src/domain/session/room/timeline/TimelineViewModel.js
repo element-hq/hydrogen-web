@@ -49,8 +49,7 @@ export class TimelineViewModel extends ViewModel {
         this._showJumpDown = false;
     }
 
-    async watchForGapFill(gapPromise, tileRange, gapTile) {
-        console.log("watchForGapFill called");
+    async watchForGapFill(gapPromise, gapTile) {
         let hasSeenUpdate = false;
         const func = (idx, tile) => {
             if (tile.shape !== "gap") {
@@ -63,13 +62,13 @@ export class TimelineViewModel extends ViewModel {
             onRemove: (idx, tile) => func(idx, tile)
         };
         this.tiles.subscribe(subscription);
-        await gapPromise;
+        const gapResult = await gapPromise;
+        if (!gapResult) {
+            return;
+        }
         this.tiles.unsubscribe(subscription);
-        console.log("hasSeenUpdate is ", hasSeenUpdate);
         if (!hasSeenUpdate) {
-            // this.watchForGapFill(gapTile.notifyVisible(), undefined, gapTile);
-            const { startTile, endTile } = tileRange;
-            this.setVisibleTileRange(startTile, endTile);
+            this.watchForGapFill(gapTile.notifyVisible(), gapTile);
         }
     }
 
@@ -99,8 +98,7 @@ export class TimelineViewModel extends ViewModel {
             for (const tile of this._tiles.sliceIterator(startIndex, endIndex + 1)) {
                 const ret = tile.notifyVisible();
                 if (ret && !tile.isAtTop) {
-                    console.log("ret is", ret);
-                    this.watchForGapFill(ret, { startTile, endTile }, tile);
+                    this.watchForGapFill(ret, tile);
                 }
             }
             loadTop = startIndex < 10;
