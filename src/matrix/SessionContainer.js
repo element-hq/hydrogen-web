@@ -252,7 +252,9 @@ export class SessionContainer {
             }
         });
         await log.wrap("wait first sync", () => this._waitForFirstSync());
-
+        if (this._isDisposed) {
+            return;
+        }
         this._status.set(LoadStatus.Ready);
 
         // if the sync failed, and then the reconnector
@@ -261,6 +263,9 @@ export class SessionContainer {
         // to prevent an extra /versions request
         if (!this._sessionStartedByReconnector) {
             const lastVersionsResponse = await hsApi.versions({timeout: 10000, log}).response();
+            if (this._isDisposed) {
+                return;
+            }
             // log as ref as we don't want to await it
             await log.wrap("session start", log => this._session.start(lastVersionsResponse, log));
         }
@@ -322,11 +327,16 @@ export class SessionContainer {
         return this._reconnector;
     }
 
+    get _isDisposed() {
+        return !this._reconnector;
+    }
+
     dispose() {
         if (this._reconnectSubscription) {
             this._reconnectSubscription();
             this._reconnectSubscription = null;
         }
+        this._reconnector = null;
         if (this._requestScheduler) {
             this._requestScheduler.stop();
         }
@@ -346,13 +356,17 @@ export class SessionContainer {
         }
     }
 
-    async deleteSession() {
+    async deleteSession(log) {
         if (this._sessionId) {
+            // need to dispose first, so the storage is closed,
+            // and also first sync finishing won't call Session.start anymore,
+            // which assumes that the storage works.
+            this.dispose();
             // if one fails, don't block the other from trying
             // also, run in parallel
             await Promise.all([
-                this._platform.storageFactory.delete(this._sessionId),
-                this._platform.sessionInfoStorage.delete(this._sessionId),
+                log.wrap("storageFactory", () => this._platform.storageFactory.delete(this._sessionId)),
+                log.wrap("sessionInfoStorage", () => this._platform.sessionInfoStorage.delete(this._sessionId)),
             ]);
             this._sessionId = null;
         }

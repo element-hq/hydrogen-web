@@ -225,6 +225,10 @@ export class HomeServerApi {
     forget(roomId, options = null) {
         return this._post(`/rooms/${encodeURIComponent(roomId)}/forget`, null, null, options);
     }
+
+    logout(options = null) {
+        return this._post(`/logout`, null, null, options);
+    }
 }
 
 import {Request as MockRequest} from "../../mocks/Request.js";
