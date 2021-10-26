@@ -22,9 +22,14 @@ to show the current state of loading the session.
 Just a spinner and a label, meant to be used as a paragraph */
 export class SessionLoadStatusView extends TemplateView {
     render(t) {
+        const exportLogsButtonIfFailed = t.if(vm => vm.hasError, (t, vm) => {
+            return t.button({
+                onClick: () => vm.exportLogs()
+            }, vm.i18n`Export logs`);
+        });
         return t.div({className: "SessionLoadStatusView"}, [
             spinner(t, {hiddenWithLayout: vm => !vm.loading}),
-            t.p(vm => vm.loadLabel)
+            t.p([vm => vm.loadLabel, exportLogsButtonIfFailed])
         ]);
     }
 }

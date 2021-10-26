@@ -102,8 +102,7 @@ export class SessionLoadViewModel extends ViewModel {
 
     get loadLabel() {
         const sc = this._sessionContainer;
-        const error = this._error || (sc && sc.loadError);
-
+        const error = this._getError();
         if (error || (sc && sc.loadStatus.get() === LoadStatus.Error)) {
             return `Something went wrong: ${error && error.message}.`;
         }
@@ -123,5 +122,18 @@ export class SessionLoadViewModel extends ViewModel {
         }
 
         return `Preparing…`;
+    }
+
+    _getError() {
+        return this._error || this._sessionContainer?.loadError; 
+    }
+
+    get hasError() {
+        return !!this._getError();
+    }
+
+    async exportLogs() {
+        const logExport = await this.logger.export();
+        this.platform.saveFileAs(logExport.asBlob(), `hydrogen-logs-${this.platform.clock.now()}.json`);
     }
 }
