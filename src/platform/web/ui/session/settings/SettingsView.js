@@ -42,9 +42,13 @@ export class SettingsView extends TemplateView {
             row(t, vm.i18n`Session ID`, vm.deviceId, "code"),
             row(t, vm.i18n`Session key`, vm.fingerprintKey, "code"),
             row(t, "", t.button({
-                onClick: () => vm.logout(),
+                onClick: () => {
+                    if (confirm(vm.i18n`Are you sure you want to log out?`)) {
+                        vm.logout();
+                    }
+                },
                 disabled: vm => vm.isLoggingOut
-            }, "Logout"))
+            }, vm.i18n`Log out`))
         );
         settingNodes.push(
             t.h3("Session Backup"),
