@@ -109,7 +109,7 @@ export class Decryption {
 
     private async getRoomKey(roomId: string, senderKey: string, sessionId: string, newKeys: IncomingRoomKey[] | undefined, txn: Transaction): Promise<RoomKey | undefined> {
         if (newKeys) {
-            const key = newKeys.find(k => k.roomId === roomId && k.senderKey === senderKey && k.sessionId === sessionId);
+            const key = newKeys.find(k => k.isForSession(roomId, senderKey, sessionId));
             if (key && await key.checkBetterThanKeyInStorage(this.keyLoader, txn)) {
                 return key;
             }

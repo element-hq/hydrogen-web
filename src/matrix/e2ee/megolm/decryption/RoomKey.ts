@@ -22,6 +22,10 @@ import type {KeyLoader, OlmInboundGroupSession} from "./KeyLoader";
 export abstract class RoomKey {
     private _isBetter: boolean | undefined;
 
+    isForSession(roomId: string, senderKey: string, sessionId: string) {
+        return this.roomId === roomId && this.senderKey === senderKey && this.sessionId === sessionId;
+    }
+
     abstract get roomId(): string;
     abstract get senderKey(): string;
     abstract get sessionId(): string;
