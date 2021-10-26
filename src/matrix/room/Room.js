@@ -240,7 +240,7 @@ export class Room extends BaseRoom {
         }
         if (this._heroes && heroChanges) {
             const oldName = this.name;
-            this._heroes.applyChanges(heroChanges, this._summary.data);
+            this._heroes.applyChanges(heroChanges, this._summary.data, log);
             if (oldName !== this.name) {
                 emitChange = true;
             }
