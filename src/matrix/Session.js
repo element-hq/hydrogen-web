@@ -106,6 +106,11 @@ export class Session {
         return this._sessionInfo.userId;
     }
 
+    async logout(log = undefined) {
+        const response = await this._hsApi.logout({log}).response();
+        console.log("logout", response);
+    }
+
     // called once this._e2eeAccount is assigned
     _setupEncryption() {
         // TODO: this should all go in a wrapper in e2ee/ that is bootstrapped by passing in the account

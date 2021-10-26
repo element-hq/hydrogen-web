@@ -230,7 +230,7 @@ export class SessionViewModel extends ViewModel {
         }
         if (settingsOpen) {
             this._settingsViewModel = this.track(new SettingsViewModel(this.childOptions({
-                session: this._sessionContainer.session,
+                sessionContainer: this._sessionContainer,
             })));
             this._settingsViewModel.load();
         }
