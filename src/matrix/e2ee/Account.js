@@ -22,6 +22,24 @@ const ACCOUNT_SESSION_KEY = SESSION_E2EE_KEY_PREFIX + "olmAccount";
 const DEVICE_KEY_FLAG_SESSION_KEY = SESSION_E2EE_KEY_PREFIX + "areDeviceKeysUploaded";
 const SERVER_OTK_COUNT_SESSION_KEY = SESSION_E2EE_KEY_PREFIX + "serverOTKCount";
 
+async function initiallyStoreAccount(account, pickleKey, areDeviceKeysUploaded, serverOTKCount, storage) {
+    const pickledAccount = account.pickle(pickleKey);
+    const txn = await storage.readWriteTxn([
+        storage.storeNames.session
+    ]);
+    try {
+        // add will throw if the key already exists
+        // we would not want to overwrite olmAccount here
+        txn.session.add(ACCOUNT_SESSION_KEY, pickledAccount);
+        txn.session.add(DEVICE_KEY_FLAG_SESSION_KEY, areDeviceKeysUploaded);
+        txn.session.add(SERVER_OTK_COUNT_SESSION_KEY, serverOTKCount);
+    } catch (err) {
+        txn.abort();
+        throw err;
+    }
+    await txn.complete();
+}
+
 export class Account {
     static async load({olm, pickleKey, hsApi, userId, deviceId, olmWorker, txn}) {
         const pickledAccount = await txn.session.get(ACCOUNT_SESSION_KEY);
@@ -34,6 +52,21 @@ export class Account {
                 deviceId, areDeviceKeysUploaded, serverOTKCount, olm, olmWorker});
         }
     }
+    
+    static async adoptDehydratedDevice({olm, dehydratedDevice, pickleKey, hsApi, userId, olmWorker, storage}) {
+        const account = dehydratedDevice.adoptUnpickledOlmAccount();
+        const areDeviceKeysUploaded = true;
+        const oneTimeKeys = JSON.parse(this._account.one_time_keys());
+        // only one algorithm supported by olm atm, so hardcode its name
+        const oneTimeKeysEntries = Object.entries(oneTimeKeys.curve25519);
+        const serverOTKCount = oneTimeKeysEntries.length;
+        await initiallyStoreAccount(account, pickleKey, areDeviceKeysUploaded, serverOTKCount, storage);
+        return new Account({
+            pickleKey, hsApi, account, userId,
+            deviceId: dehydratedDevice.deviceId,
+            areDeviceKeysUploaded, serverOTKCount, olm, olmWorker
+        });
+    }
 
     static async create({olm, pickleKey, hsApi, userId, deviceId, olmWorker, storage}) {
         const account = new olm.Account();
@@ -43,22 +76,9 @@ export class Account {
             account.create();
             account.generate_one_time_keys(account.max_number_of_one_time_keys());
         }
-        const pickledAccount = account.pickle(pickleKey);
-        const areDeviceKeysUploaded = false;
-        const txn = await storage.readWriteTxn([
-            storage.storeNames.session
-        ]);
-        try {
-            // add will throw if the key already exists
-            // we would not want to overwrite olmAccount here
-            txn.session.add(ACCOUNT_SESSION_KEY, pickledAccount);
-            txn.session.add(DEVICE_KEY_FLAG_SESSION_KEY, areDeviceKeysUploaded);
-            txn.session.add(SERVER_OTK_COUNT_SESSION_KEY, 0);
-        } catch (err) {
-            txn.abort();
-            throw err;
+        if (storage) {
+            await initiallyStoreAccount(account, pickleKey, false, 0, storage);
         }
-        await txn.complete();
         return new Account({pickleKey, hsApi, account, userId,
             deviceId, areDeviceKeysUploaded, serverOTKCount: 0, olm, olmWorker});
     }
@@ -80,7 +100,7 @@ export class Account {
         return this._identityKeys;
     }
 
-    async uploadKeys(storage, log) {
+    async uploadKeys(storage, dehydratedDeviceId, log) {
         const oneTimeKeys = JSON.parse(this._account.one_time_keys());
         // only one algorithm supported by olm atm, so hardcode its name
         const oneTimeKeysEntries = Object.entries(oneTimeKeys.curve25519);
@@ -95,7 +115,7 @@ export class Account {
                 log.set("otks", true);
                 payload.one_time_keys = this._oneTimeKeysPayload(oneTimeKeysEntries);
             }
-            const response = await this._hsApi.uploadKeys(payload, {log}).response();
+            const response = await this._hsApi.uploadKeys(dehydratedDeviceId, payload, {log}).response();
             this._serverOTKCount = response?.one_time_key_counts?.signed_curve25519;
             log.set("serverOTKCount", this._serverOTKCount);
             // TODO: should we not modify this in the txn like we do elsewhere?
@@ -105,12 +125,12 @@ export class Account {
             await this._updateSessionStorage(storage, sessionStore => {
                 if (oneTimeKeysEntries.length) {
                     this._account.mark_keys_as_published();
-                    sessionStore.set(ACCOUNT_SESSION_KEY, this._account.pickle(this._pickleKey));
-                    sessionStore.set(SERVER_OTK_COUNT_SESSION_KEY, this._serverOTKCount);
+                    sessionStore?.set(ACCOUNT_SESSION_KEY, this._account.pickle(this._pickleKey));
+                    sessionStore?.set(SERVER_OTK_COUNT_SESSION_KEY, this._serverOTKCount);
                 }
                 if (!this._areDeviceKeysUploaded) {
                     this._areDeviceKeysUploaded = true;
-                    sessionStore.set(DEVICE_KEY_FLAG_SESSION_KEY, this._areDeviceKeysUploaded);
+                    sessionStore?.set(DEVICE_KEY_FLAG_SESSION_KEY, this._areDeviceKeysUploaded);
                 }
             });
         }
@@ -246,16 +266,20 @@ export class Account {
     }
 
     async _updateSessionStorage(storage, callback) {
-        const txn = await storage.readWriteTxn([
-            storage.storeNames.session
-        ]);
-        try {
-            await callback(txn.session);
-        } catch (err) {
-            txn.abort();
-            throw err;
+        if (storage) {
+            const txn = await storage.readWriteTxn([
+                storage.storeNames.session
+            ]);
+            try {
+                await callback(txn.session);
+            } catch (err) {
+                txn.abort();
+                throw err;
+            }
+            await txn.complete();
+        } else {
+            await callback(undefined);
         }
-        await txn.complete();
     }
 
     signObject(obj) {
@@ -272,5 +296,13 @@ export class Account {
         if (unsigned !== undefined) {
             obj.unsigned = unsigned;
         }
+    }
+
+    pickleWithKey(key) {
+        return this._account.pickle(key);
+    }
+
+    dispose() {
+        this._account.free();
     }
 }

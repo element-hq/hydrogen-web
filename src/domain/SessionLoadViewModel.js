@@ -29,6 +29,7 @@ export class SessionLoadViewModel extends ViewModel {
         this._loading = false;
         this._error = null;
         this.backUrl = this.urlCreator.urlForSegment("session", true);
+        this._dehydratedDevice = undefined;
     }
 
     async start() {
@@ -110,6 +111,10 @@ export class SessionLoadViewModel extends ViewModel {
         // Statuses related to login are handled by respective login view models
         if (sc) {
             switch (sc.loadStatus.get()) {
+                case LoadStatus.QueryAccount:
+                    return `Querying account encryption setup…`;
+                case LoadStatus.SetupAccount:
+                    return `Please enter your password to restore your encryption setup`;
                 case LoadStatus.SessionSetup:
                     return `Setting up your encryption keys…`;
                 case LoadStatus.Loading:
@@ -135,5 +140,28 @@ export class SessionLoadViewModel extends ViewModel {
     async exportLogs() {
         const logExport = await this.logger.export();
         this.platform.saveFileAs(logExport.asBlob(), `hydrogen-logs-${this.platform.clock.now()}.json`);
+    }
+
+    get canSetupAccount() {
+        return this._sessionContainer.loadStatus === LoadStatus.SetupAccount;
+    }
+
+    get canDehydrateDevice() {
+        return this.canSetupAccount && !!this._sessionContainer.accountSetup.encryptedDehydratedDevice;
+    }
+
+    tryDecryptDehydratedDevice(password) {
+        const {encryptedDehydratedDevice} = this._sessionContainer.accountSetup;
+        if (encryptedDehydratedDevice) {
+            this._dehydratedDevice = encryptedDehydratedDevice.decrypt(password);
+            return !!this._dehydratedDevice;
+        }
+        return false;
+    }
+
+    finishAccountSetup() {
+        const dehydratedDevice = this._dehydratedDevice;
+        this._dehydratedDevice = undefined;
+        this._sessionContainer.accountSetup.finish(dehydratedDevice);
     }
 }

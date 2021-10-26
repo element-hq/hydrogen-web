@@ -248,21 +248,75 @@ export class Session {
     async createIdentity(log) {
         if (this._olm) {
             if (!this._e2eeAccount) {
-                this._e2eeAccount = await E2EEAccount.create({
-                    hsApi: this._hsApi,
-                    olm: this._olm,
-                    pickleKey: PICKLE_KEY,
-                    userId: this._sessionInfo.userId,
-                    deviceId: this._sessionInfo.deviceId,
-                    olmWorker: this._olmWorker,
-                    storage: this._storage,
-                });
+                this._e2eeAccount = this._createNewAccount(this._sessionInfo.deviceId, this._storage);
                 log.set("keys", this._e2eeAccount.identityKeys);
                 this._setupEncryption();
             }
             await this._e2eeAccount.generateOTKsIfNeeded(this._storage, log);
-            await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, log));
+            await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, undefined, log));
         }
+    }
+
+    /** @internal */
+    dehydrateIdentity(dehydratedDevice, log = null) {
+        this._platform.logger.wrapOrRun(log, "dehydrateIdentity", async log => {
+            log.set("deviceId", dehydratedDevice.deviceId);
+            if (!this._olm) {
+                log.set("no_olm", true);
+                return false;
+            }
+            if (dehydratedDevice.deviceId !== this.deviceId) {
+                log.set("wrong_device", true);
+                return false;
+            }
+            if (this._e2eeAccount) {
+                log.set("account_already_setup", true);
+                return false;
+            }
+            if (!await dehydratedDevice.claim(this._hsApi, log)) {
+                log.set("already_claimed", true);
+                return false;
+            }
+            this._e2eeAccount = await E2EEAccount.adoptDehydratedDevice({
+                dehydratedDevice,
+                hsApi: this._hsApi,
+                olm: this._olm,
+                pickleKey: PICKLE_KEY,
+                userId: this._sessionInfo.userId,
+                olmWorker: this._olmWorker,
+                deviceId,
+                storage,
+            });
+            log.set("keys", this._e2eeAccount.identityKeys);
+            this._setupEncryption();
+            return true;
+        });
+    }
+
+    _createNewAccount(deviceId, storage = undefined) {
+        // storage is optional and if omitted the account won't be persisted (useful for dehydrating devices)
+        return E2EEAccount.create({
+            hsApi: this._hsApi,
+            olm: this._olm,
+            pickleKey: PICKLE_KEY,
+            userId: this._sessionInfo.userId,
+            olmWorker: this._olmWorker,
+            deviceId,
+            storage,
+        });
+    }
+
+    setupDehydratedDevice(key, log = null) {
+        return this._platform.logger.wrapOrRun(log, "setupDehydratedDevice", async log => {
+            const dehydrationAccount = await this._createNewAccount("temp-device-id");
+            try {
+                const deviceId = await uploadAccountAsDehydratedDevice(
+                    dehydrationAccount, this._hsApi, key, "Dehydrated device", log);
+                return deviceId;
+            } finally {
+                dehydrationAccount.dispose();
+            }
+        });
     }
 
     /** @internal */
@@ -323,6 +377,7 @@ export class Session {
         this._olmWorker?.dispose();
         this._sessionBackup?.dispose();
         this._megolmDecryption.dispose();
+        this._e2eeAccount?.dispose();
         for (const room of this._rooms.values()) {
             room.dispose();
         }
@@ -517,7 +572,7 @@ export class Session {
         if (!isCatchupSync) {
             const needsToUploadOTKs = await this._e2eeAccount.generateOTKsIfNeeded(this._storage, log);
             if (needsToUploadOTKs) {
-                await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, log));
+                await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, undefined, log));
             }
         }
     }
