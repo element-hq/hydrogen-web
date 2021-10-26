@@ -208,7 +208,7 @@ export class BaseRoom extends EventEmitter {
             if (this._summary.data.needsHeroes) {
                 this._heroes = new Heroes(this._roomId);
                 const changes = await this._heroes.calculateChanges(this._summary.data.heroes, [], txn);
-                this._heroes.applyChanges(changes, this._summary.data);
+                this._heroes.applyChanges(changes, this._summary.data, log);
             }
         } catch (err) {
             throw new WrappedError(`Could not load room ${this._roomId}`, err);

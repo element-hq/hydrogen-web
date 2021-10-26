@@ -16,7 +16,7 @@ limitations under the License.
 
 import {RoomMember} from "./RoomMember.js";
 
-function calculateRoomName(sortedMembers, summaryData) {
+function calculateRoomName(sortedMembers, summaryData, log) {
     const countWithoutMe = summaryData.joinCount + summaryData.inviteCount - 1;
     if (sortedMembers.length >= countWithoutMe) {
         if (sortedMembers.length > 1) {
@@ -24,7 +24,13 @@ function calculateRoomName(sortedMembers, summaryData) {
             const firstMembers = sortedMembers.slice(0, sortedMembers.length - 1);
             return firstMembers.map(m => m.name).join(", ") + " and " + lastMember.name;
         } else {
-            return sortedMembers[0].name;
+            const otherMember = sortedMembers[0];
+            if (otherMember) {
+                return otherMember.name;
+            } else {
+                log.log({l: "could get get other member name", length: sortedMembers.length, otherMember: !!otherMember, otherMemberMembership: otherMember?.membership});
+                return "Unknown DM Name";
+            }
         }
     } else if (sortedMembers.length < countWithoutMe) {
         return sortedMembers.map(m => m.name).join(", ") + ` and ${countWithoutMe} others`;
@@ -74,7 +80,7 @@ export class Heroes {
         return {updatedHeroMembers: updatedHeroMembers.values(), removedUserIds};
     }
 
-    applyChanges({updatedHeroMembers, removedUserIds}, summaryData) {
+    applyChanges({updatedHeroMembers, removedUserIds}, summaryData, log) {
         for (const userId of removedUserIds) {
             this._members.delete(userId);
         }
@@ -82,7 +88,7 @@ export class Heroes {
             this._members.set(member.userId, member);
         }
         const sortedMembers = Array.from(this._members.values()).sort((a, b) => a.name.localeCompare(b.name));
-        this._roomName = calculateRoomName(sortedMembers, summaryData);
+        this._roomName = calculateRoomName(sortedMembers, summaryData, log);
     }
 
     get roomName() {

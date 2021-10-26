@@ -139,7 +139,7 @@ export class Invite extends EventEmitter {
             const summaryData = this._createSummaryData(inviteState);
             let heroes;
             if (!summaryData.name && !summaryData.canonicalAlias) {
-                heroes = await this._createHeroes(inviteState);
+                heroes = await this._createHeroes(inviteState, log);
             }
             const myInvite = this._getMyInvite(inviteState);
             if (!myInvite) {
@@ -204,7 +204,7 @@ export class Invite extends EventEmitter {
         return inviteState.reduce(processStateEvent, new SummaryData(null, this.id));
     }
 
-    async _createHeroes(inviteState) {
+    async _createHeroes(inviteState, log) {
         const members = inviteState.filter(e => e.type === MEMBER_EVENT_TYPE);
         const otherMembers = members.filter(e => e.state_key !== this._user.id);
         const memberChanges = otherMembers.reduce((map, e) => {
@@ -220,7 +220,7 @@ export class Invite extends EventEmitter {
         const countSummary = new SummaryData(null, this.id);
         countSummary.joinCount = members.reduce((sum, e) => sum + (e.content?.membership === "join" ? 1 : 0), 0);
         countSummary.inviteCount = members.reduce((sum, e) => sum + (e.content?.membership === "invite" ? 1 : 0), 0);
-        heroes.applyChanges(changes, countSummary);
+        heroes.applyChanges(changes, countSummary, log);
         return heroes;
     }
 
