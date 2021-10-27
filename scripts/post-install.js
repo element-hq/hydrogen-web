@@ -29,7 +29,7 @@ const projectDir = path.join(__dirname, "../");
 
 async function removeDirIfExists(targetDir) {
     try {
-        await fs.rmdir(targetDir, {recursive: true});
+        await fs.rm(targetDir, {recursive: true});
     } catch (err) {
         if (err.code !== "ENOENT") {
             throw err;

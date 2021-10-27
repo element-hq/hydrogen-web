@@ -8,3 +8,5 @@ target
 lib
 *.tar.gz
 .eslintcache
+snowpack-build-output
+.idea
