@@ -69,6 +69,10 @@ export class SettingsViewModel extends ViewModel {
         });
     }
 
+    setupDehydratedDevice(key) {
+        return this._session.setupDehydratedDevice(key);
+    }
+
     get isLoggingOut() { return this._isLoggingOut; }
 
     setSentImageSizeLimit(size) {

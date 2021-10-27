@@ -111,7 +111,7 @@ export class Account {
             if (!this._areDeviceKeysUploaded) {
                 log.set("identity", true);
                 const identityKeys = JSON.parse(this._account.identity_keys());
-                payload.device_keys = this._deviceKeysPayload(identityKeys);
+                payload.device_keys = this._deviceKeysPayload(identityKeys, dehydratedDeviceId || this._deviceId);
             }
             if (oneTimeKeysEntries.length) {
                 log.set("otks", true);
@@ -241,10 +241,10 @@ export class Account {
         }
     }
 
-    _deviceKeysPayload(identityKeys) {
+    _deviceKeysPayload(identityKeys, deviceId) {
         const obj = {
             user_id: this._userId,
-            device_id: this._deviceId,
+            device_id: deviceId,
             algorithms: [OLM_ALGORITHM, MEGOLM_ALGORITHM],
             keys: {}
         };

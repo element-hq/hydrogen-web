@@ -108,8 +108,7 @@ export class Session {
     }
 
     async logout(log = undefined) {
-        const response = await this._hsApi.logout({log}).response();
-        console.log("logout", response);
+        await this._hsApi.logout({log}).response();
     }
 
     // called once this._e2eeAccount is assigned
@@ -249,7 +248,7 @@ export class Session {
     async createIdentity(log) {
         if (this._olm) {
             if (!this._e2eeAccount) {
-                this._e2eeAccount = this._createNewAccount(this._sessionInfo.deviceId, this._storage);
+                this._e2eeAccount = await this._createNewAccount(this._sessionInfo.deviceId, this._storage);
                 log.set("keys", this._e2eeAccount.identityKeys);
                 this._setupEncryption();
             }
@@ -259,39 +258,37 @@ export class Session {
     }
 
     /** @internal */
-    dehydrateIdentity(dehydratedDevice, log = null) {
-        this._platform.logger.wrapOrRun(log, "dehydrateIdentity", async log => {
-            log.set("deviceId", dehydratedDevice.deviceId);
-            if (!this._olm) {
-                log.set("no_olm", true);
-                return false;
-            }
-            if (dehydratedDevice.deviceId !== this.deviceId) {
-                log.set("wrong_device", true);
-                return false;
-            }
-            if (this._e2eeAccount) {
-                log.set("account_already_setup", true);
-                return false;
-            }
-            if (!await dehydratedDevice.claim(this._hsApi, log)) {
-                log.set("already_claimed", true);
-                return false;
-            }
-            this._e2eeAccount = await E2EEAccount.adoptDehydratedDevice({
-                dehydratedDevice,
-                hsApi: this._hsApi,
-                olm: this._olm,
-                pickleKey: PICKLE_KEY,
-                userId: this._sessionInfo.userId,
-                olmWorker: this._olmWorker,
-                deviceId: this.deviceId,
-                storage: this._storage,
-            });
-            log.set("keys", this._e2eeAccount.identityKeys);
-            this._setupEncryption();
-            return true;
+    async dehydrateIdentity(dehydratedDevice, log) {
+        log.set("deviceId", dehydratedDevice.deviceId);
+        if (!this._olm) {
+            log.set("no_olm", true);
+            return false;
+        }
+        if (dehydratedDevice.deviceId !== this.deviceId) {
+            log.set("wrong_device", true);
+            return false;
+        }
+        if (this._e2eeAccount) {
+            log.set("account_already_setup", true);
+            return false;
+        }
+        if (!await dehydratedDevice.claim(this._hsApi, log)) {
+            log.set("already_claimed", true);
+            return false;
+        }
+        this._e2eeAccount = await E2EEAccount.adoptDehydratedDevice({
+            dehydratedDevice,
+            hsApi: this._hsApi,
+            olm: this._olm,
+            pickleKey: PICKLE_KEY,
+            userId: this._sessionInfo.userId,
+            olmWorker: this._olmWorker,
+            deviceId: this.deviceId,
+            storage: this._storage,
         });
+        log.set("keys", this._e2eeAccount.identityKeys);
+        this._setupEncryption();
+        return true;
     }
 
     _createNewAccount(deviceId, storage = undefined) {

@@ -36,7 +36,7 @@ export const LoadStatus = createEnum(
     "Login",
     "LoginFailed",
     "QueryAccount", // check for dehydrated device after login
-    "SetupAccount", // asked to restore from dehydrated device if present, call sc.accountSetup.finish() to progress to the next stage
+    "AccountSetup", // asked to restore from dehydrated device if present, call sc.accountSetup.finish() to progress to the next stage
     "Loading",
     "SessionSetup", // upload e2ee keys, ...
     "Migrating",    // not used atm, but would fit here
@@ -66,6 +66,7 @@ export class SessionContainer {
         this._requestScheduler = null;
         this._olmPromise = olmPromise;
         this._workerPromise = workerPromise;
+        this._accountSetup = undefined;
     }
 
     createNewSessionId() {
@@ -323,7 +324,7 @@ export class SessionContainer {
                 let resolveStageFinish;
                 const promiseStageFinish = new Promise(r => resolveStageFinish = r);
                 this._accountSetup = new AccountSetup(encryptedDehydratedDevice, resolveStageFinish);
-                this._status.set(LoadStatus.SetupAccount);
+                this._status.set(LoadStatus.AccountSetup);
                 await promiseStageFinish;
                 const dehydratedDevice = this._accountSetup?._dehydratedDevice;
                 this._accountSetup = null;

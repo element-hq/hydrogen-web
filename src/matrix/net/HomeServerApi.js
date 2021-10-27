@@ -19,7 +19,7 @@ import {encodeQueryParams, encodeBody} from "./common.js";
 import {HomeServerRequest} from "./HomeServerRequest.js";
 
 const CS_R0_PREFIX = "/_matrix/client/r0";
-const DEHYDRATION_PREFIX = "/unstable/org.matrix.msc2697.v2";
+const DEHYDRATION_PREFIX = "/_matrix/client/unstable/org.matrix.msc2697.v2";
 
 export class HomeServerApi {
     constructor({homeserver, accessToken, request, reconnector}) {
@@ -31,7 +31,7 @@ export class HomeServerApi {
         this._reconnector = reconnector;
     }
 
-    _url(csPath, prefix) {
+    _url(csPath, prefix = CS_R0_PREFIX) {
         return this._homeserver + prefix + csPath;
     }
 

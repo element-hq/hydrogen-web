@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {AccountSetupViewModel} from "./AccountSetupViewModel.js";
 import {LoadStatus} from "../matrix/SessionContainer.js";
 import {SyncStatus} from "../matrix/Sync.js";
 import {ViewModel} from "./ViewModel.js";
@@ -29,7 +30,8 @@ export class SessionLoadViewModel extends ViewModel {
         this._loading = false;
         this._error = null;
         this.backUrl = this.urlCreator.urlForSegment("session", true);
-        this._dehydratedDevice = undefined;
+        this._accountSetupViewModel = undefined;
+
     }
 
     async start() {
@@ -40,6 +42,11 @@ export class SessionLoadViewModel extends ViewModel {
             this._loading = true;
             this.emitChange("loading");
             this._waitHandle = this._sessionContainer.loadStatus.waitFor(s => {
+                if (s === LoadStatus.AccountSetup) {
+                    this._accountSetupViewModel = new AccountSetupViewModel(this._sessionContainer.accountSetup);
+                } else {
+                    this._accountSetupViewModel = undefined;
+                }
                 this.emitChange("loadLabel");
                 // wait for initial sync, but not catchup sync
                 const isCatchupSync = s === LoadStatus.FirstSync &&
@@ -98,6 +105,10 @@ export class SessionLoadViewModel extends ViewModel {
 
     // to show a spinner or not
     get loading() {
+        const sc = this._sessionContainer;
+        if (sc && sc.loadStatus.get() === LoadStatus.AccountSetup) {
+            return false;
+        }
         return this._loading;
     }
 
@@ -113,8 +124,8 @@ export class SessionLoadViewModel extends ViewModel {
             switch (sc.loadStatus.get()) {
                 case LoadStatus.QueryAccount:
                     return `Querying account encryption setup…`;
-                case LoadStatus.SetupAccount:
-                    return `Please enter your password to restore your encryption setup`;
+                case LoadStatus.AccountSetup:
+                    return `Do you want to restore this dehydrated device?`;
                 case LoadStatus.SessionSetup:
                     return `Setting up your encryption keys…`;
                 case LoadStatus.Loading:
@@ -142,26 +153,7 @@ export class SessionLoadViewModel extends ViewModel {
         this.platform.saveFileAs(logExport.asBlob(), `hydrogen-logs-${this.platform.clock.now()}.json`);
     }
 
-    get canSetupAccount() {
-        return this._sessionContainer.loadStatus === LoadStatus.SetupAccount;
-    }
-
-    get canDehydrateDevice() {
-        return this.canSetupAccount && !!this._sessionContainer.accountSetup.encryptedDehydratedDevice;
-    }
-
-    tryDecryptDehydratedDevice(password) {
-        const {encryptedDehydratedDevice} = this._sessionContainer.accountSetup;
-        if (encryptedDehydratedDevice) {
-            this._dehydratedDevice = encryptedDehydratedDevice.decrypt(password);
-            return !!this._dehydratedDevice;
-        }
-        return false;
-    }
-
-    finishAccountSetup() {
-        const dehydratedDevice = this._dehydratedDevice;
-        this._dehydratedDevice = undefined;
-        this._sessionContainer.accountSetup.finish(dehydratedDevice);
+    get accountSetupViewModel() {
+        return this._accountSetupViewModel;
     }
 }

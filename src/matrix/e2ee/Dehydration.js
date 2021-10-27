@@ -54,12 +54,20 @@ class EncryptedDehydratedDevice {
         const account = new this._olm.Account();
         try {
             const pickledAccount = this._dehydratedDevice.device_data.account;
-            account.unpickle(key, pickledAccount);
+            account.unpickle(new Uint8Array(key), pickledAccount);
             return new DehydratedDevice(this._dehydratedDevice, account);
         } catch (err) {
             account.free();
-            return null;
+            if (err.message === "OLM.BAD_ACCOUNT_KEY") {
+                return undefined;
+            } else {
+                throw err;
+            }
         }
+    }
+
+    get deviceId() {
+        return this._dehydratedDevice.device_id;
     }
 }
 
