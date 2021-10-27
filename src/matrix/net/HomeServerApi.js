@@ -242,12 +242,12 @@ export class HomeServerApi {
         return this._get(`/dehydrated_device`, null, null, options);
     }
 
-    createDehydratedDevice(payload, options = null) {
+    createDehydratedDevice(payload, options = {}) {
         options.prefix = DEHYDRATION_PREFIX;
         return this._put(`/dehydrated_device`, null, payload, options);
     }
 
-    claimDehydratedDevice(deviceId) {
+    claimDehydratedDevice(deviceId, options = {}) {
         options.prefix = DEHYDRATION_PREFIX;
         return this._post(`/dehydrated_device/claim`, null, {device_id: deviceId}, options);
     }

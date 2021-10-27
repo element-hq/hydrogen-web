@@ -14,20 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export const DEHYDRATION_LIBOLM_PICKLE_ALGORITHM = "org.matrix.msc2697.v1.olm.libolm_pickle"; 
+const DEHYDRATION_LIBOLM_PICKLE_ALGORITHM = "org.matrix.msc2697.v1.olm.libolm_pickle"; 
 
-async function getDehydratedDevice(hsApi, olm) {
-    const response = await hsApi.getDehydratedDevice().response();
-    if (response.device_data.algorithm === DEHYDRATION_LIBOLM_PICKLE_ALGORITHM) {
-        return new DehydratedDevice(response, olm);
+export async function getDehydratedDevice(hsApi, olm, log) {
+    try {
+        const response = await hsApi.getDehydratedDevice({log}).response();
+        if (response.device_data.algorithm === DEHYDRATION_LIBOLM_PICKLE_ALGORITHM) {
+            return new EncryptedDehydratedDevice(response, olm);
+        }
+    } catch (err) {
+        if (err.name !== "HomeServerError") {
+            log.error = err;
+        }
+        return undefined;
     }
 }
 
-async function hasRemainingDevice(ownUserId, ownDeviceId, storage) {
-
-}
-
-async function uploadAccountAsDehydratedDevice(account, hsApi, key, deviceDisplayName, log) {
+export async function uploadAccountAsDehydratedDevice(account, hsApi, key, deviceDisplayName, log) {
     const response = await hsApi.createDehydratedDevice({
         device_data: {
             algorithm: DEHYDRATION_LIBOLM_PICKLE_ALGORITHM,
@@ -66,7 +69,7 @@ class DehydratedDevice {
         this._account = account;
     }
 
-    claim(hsApi, log) {
+    async claim(hsApi, log) {
         try {
             const response = await hsApi.claimDehydratedDevice(this.deviceId, {log}).response();
             return response.success;
@@ -83,6 +86,6 @@ class DehydratedDevice {
     }
 
     get deviceId() {
-        this._dehydratedDevice.device_id;
+        return this._dehydratedDevice.device_id;
     }
 }

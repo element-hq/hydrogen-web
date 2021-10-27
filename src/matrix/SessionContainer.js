@@ -29,6 +29,7 @@ import {Session} from "./Session.js";
 import {PasswordLoginMethod} from "./login/PasswordLoginMethod.js";
 import {TokenLoginMethod} from "./login/TokenLoginMethod.js";
 import {SSOLoginHelper} from "./login/SSOLoginHelper.js";
+import {getDehydratedDevice} from "./e2ee/Dehydration.js";
 
 export const LoadStatus = createEnum(
     "NotLoading",
@@ -38,7 +39,7 @@ export const LoadStatus = createEnum(
     "SetupAccount", // asked to restore from dehydrated device if present, call sc.accountSetup.finish() to progress to the next stage
     "Loading",
     "SessionSetup", // upload e2ee keys, ...
-    "Migrating",    //not used atm, but would fit here
+    "Migrating",    // not used atm, but would fit here
     "FirstSync",
     "Error",
     "Ready",
@@ -174,7 +175,7 @@ export class SessionContainer {
                 }
                 return;
             }
-            const dehydratedDevice = await this._inspectAccountAfterLogin(sessionInfo);
+            const dehydratedDevice = await this._inspectAccountAfterLogin(sessionInfo, log);
             if (dehydratedDevice) {
                 sessionInfo.deviceId = dehydratedDevice.deviceId;
             }
@@ -240,7 +241,7 @@ export class SessionContainer {
         });
         await this._session.load(log);
         if (dehydratedDevice) {
-            await log.wrap("dehydrateIdentity", log => await this._session.dehydrateIdentity(dehydratedDevice, log));
+            await log.wrap("dehydrateIdentity", log => this._session.dehydrateIdentity(dehydratedDevice, log));
         } else if (!this._session.hasIdentity) {
             this._status.set(LoadStatus.SessionSetup);
             await log.wrap("createIdentity", log => this._session.createIdentity(log));
@@ -308,25 +309,27 @@ export class SessionContainer {
         }
     }
 
-    async _inspectAccountAfterLogin(sessionInfo) {
-        this._status.set(LoadStatus.QueryAccount);
-        const hsApi = new HomeServerApi({
-            homeserver: sessionInfo.homeServer,
-            accessToken: sessionInfo.accessToken,
-            request: this._platform.request,
+    _inspectAccountAfterLogin(sessionInfo, log) {
+        return log.wrap("inspectAccount", async log => {
+            this._status.set(LoadStatus.QueryAccount);
+            const hsApi = new HomeServerApi({
+                homeserver: sessionInfo.homeServer,
+                accessToken: sessionInfo.accessToken,
+                request: this._platform.request,
+            });
+            const olm = await this._olmPromise;
+            const encryptedDehydratedDevice = await getDehydratedDevice(hsApi, olm, log);
+            if (encryptedDehydratedDevice) {
+                let resolveStageFinish;
+                const promiseStageFinish = new Promise(r => resolveStageFinish = r);
+                this._accountSetup = new AccountSetup(encryptedDehydratedDevice, resolveStageFinish);
+                this._status.set(LoadStatus.SetupAccount);
+                await promiseStageFinish;
+                const dehydratedDevice = this._accountSetup?._dehydratedDevice;
+                this._accountSetup = null;
+                return dehydratedDevice;
+            }
         });
-        const olm = await this._olmPromise;
-        const encryptedDehydratedDevice = await getDehydratedDevice(hsApi, olm);
-        if (encryptedDehydratedDevice) {
-            let resolveStageFinish;
-            const promiseStageFinish = new Promise(r => resolveStageFinish = r);
-            this._accountSetup = new AccountSetup(encryptedDehydratedDevice, resolveStageFinish);
-            this._status.set(LoadStatus.SetupAccount);
-            await promiseStageFinish;
-            const dehydratedDevice = this._accountSetup?._dehydratedDevice;
-            this._accountSetup = null;
-            return dehydratedDevice;
-        }
     }
 
     get accountSetup() {

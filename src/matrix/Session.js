@@ -24,6 +24,7 @@ import { ObservableMap } from "../observable/index.js";
 import {User} from "./User.js";
 import {DeviceMessageHandler} from "./DeviceMessageHandler.js";
 import {Account as E2EEAccount} from "./e2ee/Account.js";
+import {uploadAccountAsDehydratedDevice} from "./e2ee/Dehydration.js";
 import {Decryption as OlmDecryption} from "./e2ee/olm/Decryption.js";
 import {Encryption as OlmEncryption} from "./e2ee/olm/Encryption.js";
 import {Decryption as MegOlmDecryption} from "./e2ee/megolm/Decryption";
@@ -284,8 +285,8 @@ export class Session {
                 pickleKey: PICKLE_KEY,
                 userId: this._sessionInfo.userId,
                 olmWorker: this._olmWorker,
-                deviceId,
-                storage,
+                deviceId: this.deviceId,
+                storage: this._storage,
             });
             log.set("keys", this._e2eeAccount.identityKeys);
             this._setupEncryption();

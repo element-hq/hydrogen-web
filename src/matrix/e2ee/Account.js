@@ -52,14 +52,14 @@ export class Account {
                 deviceId, areDeviceKeysUploaded, serverOTKCount, olm, olmWorker});
         }
     }
-    
+
     static async adoptDehydratedDevice({olm, dehydratedDevice, pickleKey, hsApi, userId, olmWorker, storage}) {
         const account = dehydratedDevice.adoptUnpickledOlmAccount();
-        const areDeviceKeysUploaded = true;
-        const oneTimeKeys = JSON.parse(this._account.one_time_keys());
+        const oneTimeKeys = JSON.parse(account.one_time_keys());
         // only one algorithm supported by olm atm, so hardcode its name
         const oneTimeKeysEntries = Object.entries(oneTimeKeys.curve25519);
         const serverOTKCount = oneTimeKeysEntries.length;
+        const areDeviceKeysUploaded = true;
         await initiallyStoreAccount(account, pickleKey, areDeviceKeysUploaded, serverOTKCount, storage);
         return new Account({
             pickleKey, hsApi, account, userId,
@@ -76,11 +76,13 @@ export class Account {
             account.create();
             account.generate_one_time_keys(account.max_number_of_one_time_keys());
         }
+        const areDeviceKeysUploaded = false;
+        const serverOTKCount = 0;
         if (storage) {
-            await initiallyStoreAccount(account, pickleKey, false, 0, storage);
+            await initiallyStoreAccount(account, pickleKey, areDeviceKeysUploaded, serverOTKCount, storage);
         }
         return new Account({pickleKey, hsApi, account, userId,
-            deviceId, areDeviceKeysUploaded, serverOTKCount: 0, olm, olmWorker});
+            deviceId, areDeviceKeysUploaded, serverOTKCount, olm, olmWorker});
     }
 
     constructor({pickleKey, hsApi, account, userId, deviceId, areDeviceKeysUploaded, serverOTKCount, olm, olmWorker}) {
