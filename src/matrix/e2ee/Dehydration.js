@@ -40,7 +40,8 @@ export async function uploadAccountAsDehydratedDevice(account, hsApi, key, devic
         initial_device_display_name: deviceDisplayName
     }).response();
     const deviceId = response.device_id;
-    await account.uploadKeys(undefined, deviceId, log);
+    account.setDeviceId(deviceId);
+    await account.uploadKeys(undefined, true, log);
     return deviceId;
 }
 

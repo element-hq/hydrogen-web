@@ -253,7 +253,7 @@ export class Session {
                 this._setupEncryption();
             }
             await this._e2eeAccount.generateOTKsIfNeeded(this._storage, log);
-            await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, undefined, log));
+            await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, false, log));
         }
     }
 
@@ -570,7 +570,7 @@ export class Session {
         if (!isCatchupSync) {
             const needsToUploadOTKs = await this._e2eeAccount.generateOTKsIfNeeded(this._storage, log);
             if (needsToUploadOTKs) {
-                await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, undefined, log));
+                await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, false, log));
             }
         }
     }

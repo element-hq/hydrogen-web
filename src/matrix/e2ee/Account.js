@@ -102,7 +102,11 @@ export class Account {
         return this._identityKeys;
     }
 
-    async uploadKeys(storage, dehydratedDeviceId, log) {
+    setDeviceId(deviceId) {
+        this._deviceId = deviceId;
+    }
+
+    async uploadKeys(storage, isDehydratedDevice, log) {
         const oneTimeKeys = JSON.parse(this._account.one_time_keys());
         // only one algorithm supported by olm atm, so hardcode its name
         const oneTimeKeysEntries = Object.entries(oneTimeKeys.curve25519);
@@ -111,12 +115,13 @@ export class Account {
             if (!this._areDeviceKeysUploaded) {
                 log.set("identity", true);
                 const identityKeys = JSON.parse(this._account.identity_keys());
-                payload.device_keys = this._deviceKeysPayload(identityKeys, dehydratedDeviceId || this._deviceId);
+                payload.device_keys = this._deviceKeysPayload(identityKeys);
             }
             if (oneTimeKeysEntries.length) {
                 log.set("otks", true);
                 payload.one_time_keys = this._oneTimeKeysPayload(oneTimeKeysEntries);
             }
+            const dehydratedDeviceId = isDehydratedDevice ? this._deviceId : undefined;
             const response = await this._hsApi.uploadKeys(dehydratedDeviceId, payload, {log}).response();
             this._serverOTKCount = response?.one_time_key_counts?.signed_curve25519;
             log.set("serverOTKCount", this._serverOTKCount);
@@ -241,10 +246,10 @@ export class Account {
         }
     }
 
-    _deviceKeysPayload(identityKeys, deviceId) {
+    _deviceKeysPayload(identityKeys) {
         const obj = {
             user_id: this._userId,
-            device_id: deviceId,
+            device_id: this._deviceId,
             algorithms: [OLM_ALGORITHM, MEGOLM_ALGORITHM],
             keys: {}
         };
