@@ -96,9 +96,9 @@ export class TimelineViewModel extends ViewModel {
             const startIndex = this._tiles.getTileIndex(this._startTile);
             const endIndex = this._tiles.getTileIndex(this._endTile);
             for (const tile of this._tiles.sliceIterator(startIndex, endIndex + 1)) {
-                const ret = tile.notifyVisible();
-                if (ret) {
-                    this.watchForGapFill(ret, tile);
+                const gapPromise = tile.notifyVisible();
+                if (gapPromise) {
+                    this.watchForGapFill(gapPromise, tile);
                 }
             }
             loadTop = startIndex < 10;
