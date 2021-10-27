@@ -51,15 +51,15 @@ export class TimelineViewModel extends ViewModel {
 
     async watchForGapFill(gapPromise, gapTile) {
         let hasSeenUpdate = false;
-        const func = (idx, tile) => {
+        const checkForUpdate = (idx, tile) => {
             if (tile.shape !== "gap") {
                 hasSeenUpdate = true;
             }
         }
         const subscription = {
-            onAdd: (idx, tile) => func(idx, tile),
-            onUpdate: (idx, tile) => func(idx, tile),
-            onRemove: (idx, tile) => func(idx, tile)
+            onAdd: (idx, tile) => checkForUpdate(idx, tile),
+            onUpdate: (idx, tile) => checkForUpdate(idx, tile),
+            onRemove: (idx, tile) => checkForUpdate(idx, tile)
         };
         this.tiles.subscribe(subscription);
         const gapResult = await gapPromise;
