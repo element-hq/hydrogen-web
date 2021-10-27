@@ -63,10 +63,10 @@ export class TimelineViewModel extends ViewModel {
         };
         this.tiles.subscribe(subscription);
         const gapResult = await gapPromise;
+        this.tiles.unsubscribe(subscription);
         if (!gapResult) {
             return;
         }
-        this.tiles.unsubscribe(subscription);
         if (!hasSeenUpdate) {
             this.watchForGapFill(gapTile.notifyVisible(), gapTile);
         }
