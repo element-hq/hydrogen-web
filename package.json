@@ -12,6 +12,7 @@
     "lint-ci": "eslint src/",
     "test": "impunity --entry-point src/main.js --force-esm-dirs lib/ src/",
     "start": "snowpack dev --port 3000",
+    "localStart": "node ./scripts/serve-local.js",
     "build": "node --experimental-modules scripts/build.mjs",
     "postinstall": "node ./scripts/post-install.js"
   },
@@ -55,7 +56,7 @@
     "xxhashjs": "^0.2.2"
   },
   "dependencies": {
-    "@matrix-org/olm": "https://gitlab.matrix.org/api/v4/projects/27/packages/npm/@matrix-org/olm/-/@matrix-org/olm-3.2.3.tgz",
+    "@matrix-org/olm": "https://gitlab.matrix.org/api/v4/projects/27/packages/npm/@matrix-org/olm/-/@matrix-org/olm-3.2.6.tgz",
     "@rollup/plugin-commonjs": "^15.0.0",
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^9.0.0",

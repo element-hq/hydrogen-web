@@ -46,7 +46,7 @@ import flexbugsFixes from "postcss-flexbugs-fixes";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectDir = path.join(__dirname, "../");
-const snowpackOutPath = path.join(projectDir, "snowpack-build-output");
+const snowpackOutPath = normalizePath(path.join(projectDir, "snowpack-build-output"));
 const cssSrcDir = path.join(projectDir, "src/platform/web/ui/css/");
 const snowpackConfig = await loadConfiguration({buildOptions: {out: snowpackOutPath}}, "snowpack.config.js");
 const snowpackOutDir = snowpackConfig.buildOptions.out.substring(projectDir.length);
@@ -116,7 +116,7 @@ async function build({modernOnly, overrideImports, overrideCss}) {
     assets.addToHashForAll("index.html", devHtml);
     let swSource = await fs.readFile(path.join(snowpackOutPath, "sw.js"), "utf8");
     assets.addToHashForAll("sw.js", swSource);
-    
+
     const globalHash = assets.hashForAll();
 
     await buildServiceWorker(swSource, version, globalHash, assets);
@@ -167,6 +167,7 @@ async function buildHtml(doc, version, baseConfig, globalHash, modernOnly, asset
     doc("link[rel=stylesheet]:not([title])").attr("href", assets.resolve(`hydrogen.css`));
     // adjust file name of icon on iOS
     doc("link[rel=apple-touch-icon]").attr("href", assets.resolve(`icon-maskable.png`));
+    doc("link[rel=icon]").attr("href", assets.resolve(`icon-maskable.png`));
     // change paths to all theme stylesheets
     findThemes(doc, (themeName, theme) => {
         theme.attr("href", assets.resolve(`themes/${themeName}/bundle.css`));
@@ -239,7 +240,7 @@ async function buildJsLegacy(mainFile, extraFiles, importOverrides) {
                     targets: "IE 11",
                     // we provide our own promise polyfill (es6-promise)
                     // with support for synchronous flushing of
-                    // the queue for idb where needed 
+                    // the queue for idb where needed
                     exclude: ["es.promise", "es.promise.all-settled", "es.promise.finally"]
                 }
             ]
@@ -359,13 +360,13 @@ async function buildCssBundles(buildFn, themes, assets, mainCssFile = null) {
                 throw new Error("resource is out of theme directory: " + absolutePath);
             }
             const relPath = absolutePath.substr(themeRoot.length);
-            const hashedDstPath = assets.resolve(path.join(themeRelPath, relPath));
+            const hashedDstPath = assets.resolve(normalizePath(path.join(themeRelPath, relPath)));
             if (hashedDstPath) {
                 return hashedDstPath.substr(themeRelPath.length);
             }
         };
         const themeCss = await buildFn(path.join(themeRoot, `theme.css`), assetUrlMapper);
-        await assets.write(path.join(themeRelPath, `bundle.css`), themeCss);
+        await assets.write(normalizePath(path.join(themeRelPath, `bundle.css`)), themeCss);
     }
 }
 
@@ -402,7 +403,7 @@ async function buildCssLegacy(entryPath, urlMapper = null) {
 
 async function removeDirIfExists(targetDir) {
     try {
-        await fs.rmdir(targetDir, {recursive: true});
+        await fs.rm(targetDir, {recursive: true});
     } catch (err) {
         if (err.code !== "ENOENT") {
             throw err;
@@ -436,13 +437,14 @@ function contentHash(str) {
 class AssetMap {
     constructor(targetDir) {
         // remove last / if any, so substr in create works well
-        this._targetDir = path.resolve(targetDir);
+        this._targetDir = normalizePath(path.resolve(targetDir));
         this._assets = new Map();
         // hashes for unhashed resources so changes in these resources also contribute to the hashForAll
         this._unhashedHashes = [];
     }
 
     _toRelPath(resourcePath) {
+        resourcePath = normalizePath(resourcePath);
         let relPath = resourcePath;
         if (path.isAbsolute(resourcePath)) {
             if (!resourcePath.startsWith(this._targetDir)) {
@@ -459,7 +461,7 @@ class AssetMap {
         const dir = path.dirname(relPath);
         const extname = path.extname(relPath);
         const basename = path.basename(relPath, extname);
-        const dstRelPath = path.join(dir, `${basename}-${hash}${extname}`);
+        const dstRelPath = normalizePath(path.join(dir, `${basename}-${hash}${extname}`));
         this._assets.set(relPath, dstRelPath);
         return dstRelPath;
     }
@@ -506,7 +508,7 @@ class AssetMap {
         }
         const relSubRoot = assetMap.directory.substr(this.directory.length + 1);
         for (const [key, value] of assetMap._assets.entries()) {
-            this._assets.set(path.join(relSubRoot, key), path.join(relSubRoot, value));
+            this._assets.set(normalizePath(path.join(relSubRoot, key)), normalizePath(path.join(relSubRoot, value)));
         }
     }
 
@@ -544,9 +546,13 @@ class AssetMap {
 
 async function readImportOverrides(filename) {
     const json = await fs.readFile(filename, "utf8");
-    const mapping = new Map(Object.entries(JSON.parse(json)));
+    const mappingJson = Object.entries(JSON.parse(json));
+    const mapping = new Map();
+    for (let [key, value] of mappingJson) {
+        mapping.set(normalizePath(key), normalizePath(value));
+    }
     return {
-        basedir: path.dirname(path.resolve(filename))+path.sep,
+        basedir: snowpackOutPath + "/",
         mapping
     };
 }
@@ -555,12 +561,13 @@ function overridesAsRollupPlugin(importOverrides) {
     const {mapping, basedir} = importOverrides;
     return {
         name: "rewrite-imports",
-        resolveId (source, importer) {
+        resolveId(source, importer) {
+            let normalizedSource = normalizePath(source);
             let file;
-            if (source.startsWith(path.sep)) {
-                file = source;
+            if (normalizedSource.startsWith("/")) {
+                file = normalizedSource;
             } else {
-                file = path.join(path.dirname(importer), source);
+                file = normalizePath(path.join(path.dirname(importer), normalizedSource));
             }
             if (file.startsWith(basedir)) {
                 const searchPath = file.substr(basedir.length);
@@ -573,6 +580,10 @@ function overridesAsRollupPlugin(importOverrides) {
             return null;
         }
     };
+}
+
+function normalizePath(path) {
+    return path.replace(/\\/g, "/")
 }
 
 build(parameters).catch(err => console.error(err));
