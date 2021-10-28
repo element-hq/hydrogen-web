@@ -59,7 +59,9 @@ export class TimelineViewModel extends ViewModel {
         const subscription = {
             onAdd: (idx, tile) => checkForUpdate(idx, tile),
             onUpdate: (idx, tile) => checkForUpdate(idx, tile),
-            onRemove: (idx, tile) => checkForUpdate(idx, tile)
+            onRemove: (idx, tile) => checkForUpdate(idx, tile),
+            onMove: (idx, tile) => checkForUpdate(idx, tile),
+            onReset: (idx, tile) => checkForUpdate(idx, tile)
         };
         this.tiles.subscribe(subscription);
         const gapResult = await gapPromise;
