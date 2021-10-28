@@ -90,11 +90,16 @@ class DehydratedDevice {
     // make it clear that ownership is transfered upon calling this
     adoptUnpickledOlmAccount() {
         const account = this._account;
-        this._account = null;
+        this._account = undefined;
         return account;
     }
 
     get deviceId() {
         return this._dehydratedDevice.device_id;
+    }
+
+    dispose() {
+        this._account?.free();
+        this._account = undefined;
     }
 }

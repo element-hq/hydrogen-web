@@ -189,6 +189,8 @@ export class SessionContainer {
                 log.set("status", this._status.get());
             } catch (err) {
                 log.catch(err);
+                // free olm Account that might be contained
+                dehydratedDevice?.dispose();
                 this._error = err;
                 this._status.set(LoadStatus.Error);
             }
