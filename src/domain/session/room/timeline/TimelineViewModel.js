@@ -78,6 +78,10 @@ export class TimelineViewModel extends ViewModel {
             this.tiles.unsubscribe(subscription);
         }
         if (!gapResult) {
+            /*
+            If gapResult resolves to false, then the gap is already being filled
+            and is thus being tracked for updates by a previous invocation of this method
+            */
             return;
         }
         if (!hasSeenUpdate) {
