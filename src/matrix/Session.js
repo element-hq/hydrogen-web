@@ -377,7 +377,7 @@ export class Session {
         this._olmWorker = undefined;
         this._sessionBackup?.dispose();
         this._sessionBackup = undefined;
-        this._megolmDecryption.dispose();
+        this._megolmDecryption?.dispose();
         this._megolmDecryption = undefined;
         this._e2eeAccount?.dispose();
         this._e2eeAccount = undefined;
