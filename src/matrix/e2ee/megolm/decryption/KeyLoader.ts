@@ -212,6 +212,7 @@ class KeyOperation {
 
     dispose() {
         this.session.free();
+        this.session = undefined as any;
     }
 
     /** returns whether the key for this operation has been checked at some point against storage

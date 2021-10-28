@@ -384,12 +384,15 @@ export class SessionContainer {
         this._reconnector = null;
         if (this._requestScheduler) {
             this._requestScheduler.stop();
+            this._requestScheduler = null;
         }
         if (this._sync) {
             this._sync.stop();
+            this._sync = null;
         }
         if (this._session) {
             this._session.dispose();
+            this._session = null;
         }
         if (this._waitForFirstSyncHandle) {
             this._waitForFirstSyncHandle.dispose();

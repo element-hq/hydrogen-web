@@ -374,12 +374,17 @@ export class Session {
 
     dispose() {
         this._olmWorker?.dispose();
+        this._olmWorker = undefined;
         this._sessionBackup?.dispose();
+        this._sessionBackup = undefined;
         this._megolmDecryption.dispose();
+        this._megolmDecryption = undefined;
         this._e2eeAccount?.dispose();
+        this._e2eeAccount = undefined;
         for (const room of this._rooms.values()) {
             room.dispose();
         }
+        this._rooms = undefined;
     }
 
     /**

@@ -311,5 +311,6 @@ export class Account {
 
     dispose() {
         this._account.free();
+        this._account = undefined;
     }
 }
