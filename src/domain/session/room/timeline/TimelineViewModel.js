@@ -70,8 +70,13 @@ export class TimelineViewModel extends ViewModel {
             onReset: (idx, tile) => checkForUpdate(idx, tile)
         };
         this.tiles.subscribe(subscription);
-        const gapResult = await gapPromise;
-        this.tiles.unsubscribe(subscription);
+        let gapResult;
+        try {
+            gapResult = await gapPromise;
+        }
+        finally {
+            this.tiles.unsubscribe(subscription);
+        }
         if (!gapResult) {
             return;
         }
