@@ -49,7 +49,11 @@ export class TimelineViewModel extends ViewModel {
         this._showJumpDown = false;
     }
 
-    async watchForGapFill(gapPromise, gapTile) {
+    async watchForGapFill(gapPromise, gapTile, depth = 0) {
+        if (depth >= 10) {
+            console.error("watchForGapFill exceeded a recursive depth of 10");
+            return;
+        }
         let hasSeenUpdate = false;
         const checkForUpdate = (idx, tile) => {
             if (tile.shape !== "gap") {
@@ -85,7 +89,7 @@ export class TimelineViewModel extends ViewModel {
             return;
         }
         if (!hasSeenUpdate) {
-            this.watchForGapFill(gapTile.notifyVisible(), gapTile);
+            this.watchForGapFill(gapTile.notifyVisible(), gapTile, depth + 1);
         }
     }
 
