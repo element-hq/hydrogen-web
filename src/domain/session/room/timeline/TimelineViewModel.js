@@ -53,6 +53,12 @@ export class TimelineViewModel extends ViewModel {
         let hasSeenUpdate = false;
         const checkForUpdate = (idx, tile) => {
             if (tile.shape !== "gap") {
+                /*
+                It's possible that this method executes before the GapTile has been rendered,
+                so don't count the GapTile as an update.
+                Usually happens when onScroll() is triggered by a non-timeline UI change,
+                eg: SessionStatusView being rendered
+                 */
                 hasSeenUpdate = true;
             }
         }
