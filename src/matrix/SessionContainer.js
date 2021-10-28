@@ -367,6 +367,15 @@ export class SessionContainer {
         return !this._reconnector;
     }
 
+    logout() {
+        return this._platform.logger.run("logout", async log => {
+            try {
+                await this._session?.logout(log);
+            } catch (err) {}
+            await this.deleteSession(log);
+        });
+    }
+
     dispose() {
         if (this._reconnectSubscription) {
             this._reconnectSubscription();

@@ -153,6 +153,11 @@ export class SessionLoadViewModel extends ViewModel {
         this.platform.saveFileAs(logExport.asBlob(), `hydrogen-logs-${this.platform.clock.now()}.json`);
     }
 
+    async logout() {
+        await this._sessionContainer.logout();
+        this.navigation.push("session", true);
+    }
+
     get accountSetupViewModel() {
         return this._accountSetupViewModel;
     }

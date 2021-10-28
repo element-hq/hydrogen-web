@@ -28,11 +28,17 @@ export class SessionLoadStatusView extends TemplateView {
                 onClick: () => vm.exportLogs()
             }, vm.i18n`Export logs`);
         });
+        const logoutButtonIfFailed = t.if(vm => vm.hasError, (t, vm) => {
+            return t.button({
+                onClick: () => vm.logout()
+            }, vm.i18n`Log out`);
+        });
         return t.div({className: "SessionLoadStatusView"}, [
             t.p({className: "status"}, [
                 spinner(t, {hidden: vm => !vm.loading}),
                 t.p(vm => vm.loadLabel),
-                exportLogsButtonIfFailed
+                exportLogsButtonIfFailed,
+                logoutButtonIfFailed
             ]),
             t.ifView(vm => vm.accountSetupViewModel, vm => new AccountSetupView(vm.accountSetupViewModel)),
         ]);
