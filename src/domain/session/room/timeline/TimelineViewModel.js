@@ -56,12 +56,13 @@ export class TimelineViewModel extends ViewModel {
         }
         let hasSeenUpdate = false;
         const checkForUpdate = (idx, tile) => {
-            if (tile.shape !== "gap") {
+            if (tile.shape !== "gap" && !tile.isOwn) {
                 /*
                 It's possible that this method executes before the GapTile has been rendered,
                 so don't count the GapTile as an update.
                 Usually happens when onScroll() is triggered by a non-timeline UI change,
                 eg: SessionStatusView being rendered
+                Also don't count updates from the user as these may update without triggering onScroll.
                  */
                 hasSeenUpdate = true;
             }
@@ -70,8 +71,8 @@ export class TimelineViewModel extends ViewModel {
             onAdd: (idx, tile) => checkForUpdate(idx, tile),
             onUpdate: (idx, tile) => checkForUpdate(idx, tile),
             onRemove: (idx, tile) => checkForUpdate(idx, tile),
-            onMove: (idx, tile) => checkForUpdate(idx, tile),
-            onReset: (idx, tile) => checkForUpdate(idx, tile)
+            onMove: () => { /* shouldn't be called */ },
+            onReset: () => { /* shouldn't be called */ }
         };
         this.tiles.subscribe(subscription);
         let gapResult;
