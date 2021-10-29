@@ -40,7 +40,8 @@ import {
     keyFromCredential as ssssKeyFromCredential,
     readKey as ssssReadKey,
     writeKey as ssssWriteKey,
-    removeKey as ssssRemoveKey
+    removeKey as ssssRemoveKey,
+    keyFromDehydratedDeviceKey as createSSSSKeyFromDehydratedDeviceKey
 } from "./ssss/index.js";
 import {SecretStorage} from "./ssss/SecretStorage.js";
 import {ObservableValue, RetainedObservableValue} from "../observable/ObservableValue";
@@ -205,6 +206,12 @@ export class Session {
             this._storage.storeNames.accountData,
         ]);
         await this._createSessionBackup(key, readTxn);
+        this._writeSSSSKey(key);
+        this._hasSecretStorageKey.set(true);
+        return key;
+    }
+
+    async _writeSSSSKey(key) {
         // only after having read a secret, write the key
         // as we only find out if it was good if the MAC verification succeeds
         const writeTxn = await this._storage.readWriteTxn([
@@ -217,8 +224,6 @@ export class Session {
             throw err;
         }
         await writeTxn.complete();
-        this._hasSecretStorageKey.set(true);
-        return key;
     }
 
     async disableSecretStorage() {
@@ -419,7 +424,7 @@ export class Session {
      *                                      and useful to store so we can later tell what capabilities
      *                                      our homeserver has.
      */
-    async start(lastVersionResponse, log) {
+    async start(lastVersionResponse, dehydratedDevice, log) {
         if (lastVersionResponse) {
             // store /versions response
             const txn = await this._storage.readWriteTxn([
@@ -431,6 +436,12 @@ export class Session {
         }
         // enable session backup, this requests the latest backup version
         if (!this._sessionBackup) {
+            if (dehydratedDevice) {
+                const ssssKey = await createSSSSKeyFromDehydratedDeviceKey(dehydratedDevice.key, this._storage);
+                if (ssssKey) {
+                    this._writeSSSSKey(ssssKey);
+                }
+            }
             const txn = await this._storage.readTxn([
                 this._storage.storeNames.session,
                 this._storage.storeNames.accountData,

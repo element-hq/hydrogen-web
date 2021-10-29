@@ -61,7 +61,7 @@ class EncryptedDehydratedDevice {
         try {
             const pickledAccount = this._dehydratedDevice.device_data.account;
             account.unpickle(key.binaryKey, pickledAccount);
-            return new DehydratedDevice(this._dehydratedDevice, account, keyType, key);
+            return new DehydratedDevice(this._dehydratedDevice, account, key);
         } catch (err) {
             account.free();
             if (err.message === "OLM.BAD_ACCOUNT_KEY") {
@@ -78,10 +78,9 @@ class EncryptedDehydratedDevice {
 }
 
 class DehydratedDevice {
-    constructor(dehydratedDevice, account, keyType, key) {
+    constructor(dehydratedDevice, account, key) {
         this._dehydratedDevice = dehydratedDevice;
         this._account = account;
-        this._keyType = keyType;
         this._key = key;
     }
 
@@ -107,10 +106,6 @@ class DehydratedDevice {
 
     get key() {
         return this._key;
-    }
-
-    get keyType() {
-        return this._keyType;
     }
 
     dispose() {

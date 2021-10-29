@@ -31,12 +31,38 @@ export class KeyDescription {
     get algorithm() {
         return this._keyDescription?.algorithm;
     }
+
+    isCompatible(d) {
+        const kd = this._keyDescription;
+        const kdOther = d._keyDescription;
+        if (kd.algorithm === "m.secret_storage.v1.aes-hmac-sha2") {
+            if (kdOther.algorithm !== kd.algorithm) {
+                return false;
+            }
+            if (kd.passphrase) {
+                if (!kdOther.passphrase) {
+                    return false;
+                }
+                return kd.passphrase.algorithm === kdOther.passphrase.algorithm && 
+                    kd.passphrase.iterations === kdOther.passphrase.iterations && 
+                    kd.passphrase.salt === kdOther.passphrase.salt;
+            } else {
+                return !!kd.iv && kd.iv === kdOther.iv && 
+                    !!kd.mac && kd.mac === kdOther.mac;
+            }
+        }
+        return false;
+    }
 }
 
 export class Key {
     constructor(keyDescription, binaryKey) {
         this._keyDescription = keyDescription;
         this._binaryKey = binaryKey;
+    }
+
+    withDescription(description) {
+        return new Key(description, this._binaryKey);
     }
 
     get description() {

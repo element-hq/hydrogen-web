@@ -50,7 +50,9 @@ export async function readKey(txn) {
         return;
     }
     const keyAccountData = await txn.accountData.get(`m.secret_storage.key.${keyData.id}`);
-    return new Key(new KeyDescription(keyData.id, keyAccountData.content), keyData.binaryKey);
+    if (keyAccountData) {
+        return new Key(new KeyDescription(keyData.id, keyAccountData.content), keyData.binaryKey);
+    }
 }
 
 
@@ -76,4 +78,11 @@ export async function keyFromCredentialAndDescription(type, credential, keyDescr
         throw new Error(`Invalid type: ${type}`);
     }
     return key;
+}
+
+export async function keyFromDehydratedDeviceKey(key, storage) {
+    const keyDescription = await readDefaultKeyDescription(storage);
+    if (key.description.isCompatible(keyDescription)) {
+        return key.withDescription(keyDescription);
+    }
 }

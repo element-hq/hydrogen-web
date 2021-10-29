@@ -259,7 +259,9 @@ export class SessionContainer {
                     this._requestScheduler.start();
                     this._sync.start();
                     this._sessionStartedByReconnector = true;
-                    await log.wrap("session start", log => this._session.start(this._reconnector.lastVersionsResponse, log));
+                    const d = dehydratedDevice;
+                    dehydratedDevice = undefined;
+                    await log.wrap("session start", log => this._session.start(this._reconnector.lastVersionsResponse, d, log));
                 });
             }
         });
@@ -278,8 +280,10 @@ export class SessionContainer {
             if (this._isDisposed) {
                 return;
             }
+            const d = dehydratedDevice;
+            dehydratedDevice = undefined;
             // log as ref as we don't want to await it
-            await log.wrap("session start", log => this._session.start(lastVersionsResponse, log));
+            await log.wrap("session start", log => this._session.start(lastVersionsResponse, d, log));
         }
     }
 
