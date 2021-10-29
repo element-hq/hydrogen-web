@@ -49,19 +49,6 @@ export class SettingsView extends TemplateView {
                 },
                 disabled: vm => vm.isLoggingOut
             }, vm.i18n`Log out`)),
-            row(t, "", t.button({
-                onClick: async () => {
-                    const key = prompt(vm.i18n`Enter the key to encrypt the dehydrated device`);
-                    if (key) {
-                        try {
-                            const deviceId = await vm.setupDehydratedDevice(key);
-                            alert(`Successfully set up dehydrated device with id ${deviceId}`);
-                        } catch (err) {
-                            alert(`Failed to set up dehydrated device: ${err.message}`);
-                        }
-                    }
-                },
-            }, vm.i18n`Set up dehydrated device`))
         );
         settingNodes.push(
             t.h3("Session Backup"),

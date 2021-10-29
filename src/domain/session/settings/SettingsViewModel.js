@@ -64,10 +64,6 @@ export class SettingsViewModel extends ViewModel {
         this.navigation.push("session", true);
     }
 
-    setupDehydratedDevice(key) {
-        return this._session.setupDehydratedDevice(key);
-    }
-
     get isLoggingOut() { return this._isLoggingOut; }
 
     setSentImageSizeLimit(size) {
