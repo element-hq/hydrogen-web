@@ -321,7 +321,7 @@ export class SessionContainer {
                 request: this._platform.request,
             });
             const olm = await this._olmPromise;
-            const encryptedDehydratedDevice = await getDehydratedDevice(hsApi, olm, log);
+            const encryptedDehydratedDevice = await getDehydratedDevice(hsApi, olm, this._platform, log);
             if (encryptedDehydratedDevice) {
                 let resolveStageFinish;
                 const promiseStageFinish = new Promise(r => resolveStageFinish = r);

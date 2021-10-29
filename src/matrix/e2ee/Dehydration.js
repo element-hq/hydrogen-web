@@ -15,12 +15,14 @@ limitations under the License.
 */
 
 const DEHYDRATION_LIBOLM_PICKLE_ALGORITHM = "org.matrix.msc2697.v1.olm.libolm_pickle"; 
+import {KeyDescription} from "../ssss/common.js";
+import {keyFromCredentialAndDescription} from "../ssss/index.js";
 
-export async function getDehydratedDevice(hsApi, olm, log) {
+export async function getDehydratedDevice(hsApi, olm, platform, log) {
     try {
         const response = await hsApi.getDehydratedDevice({log}).response();
         if (response.device_data.algorithm === DEHYDRATION_LIBOLM_PICKLE_ALGORITHM) {
-            return new EncryptedDehydratedDevice(response, olm);
+            return new EncryptedDehydratedDevice(response, olm, platform);
         }
     } catch (err) {
         if (err.name !== "HomeServerError") {
@@ -34,8 +36,8 @@ export async function uploadAccountAsDehydratedDevice(account, hsApi, key, devic
     const response = await hsApi.createDehydratedDevice({
         device_data: {
             algorithm: DEHYDRATION_LIBOLM_PICKLE_ALGORITHM,
-            account: account.pickleWithKey(new Uint8Array(key)),
-            passphrase: {}
+            account: account.pickleWithKey(key.binaryKey),
+            passphrase: key.description?.passphraseParams || {},
         },
         initial_device_display_name: deviceDisplayName
     }).response();
@@ -46,17 +48,20 @@ export async function uploadAccountAsDehydratedDevice(account, hsApi, key, devic
 }
 
 class EncryptedDehydratedDevice {
-    constructor(dehydratedDevice, olm) {
+    constructor(dehydratedDevice, olm, platform) {
         this._dehydratedDevice = dehydratedDevice;
         this._olm = olm;
+        this._platform = platform;
     }
 
-    decrypt(key) {
+    async decrypt(keyType, credential) {
+        const keyDescription = new KeyDescription("dehydrated_device", this._dehydratedDevice.device_data.passphrase);
+        const key = await keyFromCredentialAndDescription(keyType, credential, keyDescription, this._platform, this._olm);
         const account = new this._olm.Account();
         try {
             const pickledAccount = this._dehydratedDevice.device_data.account;
-            account.unpickle(new Uint8Array(key), pickledAccount);
-            return new DehydratedDevice(this._dehydratedDevice, account);
+            account.unpickle(key.binaryKey, pickledAccount);
+            return new DehydratedDevice(this._dehydratedDevice, account, keyType, key);
         } catch (err) {
             account.free();
             if (err.message === "OLM.BAD_ACCOUNT_KEY") {
@@ -73,9 +78,11 @@ class EncryptedDehydratedDevice {
 }
 
 class DehydratedDevice {
-    constructor(dehydratedDevice, account) {
+    constructor(dehydratedDevice, account, keyType, key) {
         this._dehydratedDevice = dehydratedDevice;
         this._account = account;
+        this._keyType = keyType;
+        this._key = key;
     }
 
     async claim(hsApi, log) {
@@ -96,6 +103,14 @@ class DehydratedDevice {
 
     get deviceId() {
         return this._dehydratedDevice.device_id;
+    }
+
+    get key() {
+        return this._key;
+    }
+
+    get keyType() {
+        return this._keyType;
     }
 
     dispose() {

@@ -40,6 +40,7 @@ import {
     keyFromCredential as ssssKeyFromCredential,
     readKey as ssssReadKey,
     writeKey as ssssWriteKey,
+    removeKey as ssssRemoveKey
 } from "./ssss/index.js";
 import {SecretStorage} from "./ssss/SecretStorage.js";
 import {ObservableValue, RetainedObservableValue} from "../observable/ObservableValue";
@@ -217,6 +218,30 @@ export class Session {
         }
         await writeTxn.complete();
         this._hasSecretStorageKey.set(true);
+        return key;
+    }
+
+    async disableSecretStorage() {
+        const writeTxn = await this._storage.readWriteTxn([
+            this._storage.storeNames.session,
+        ]);
+        try {
+            ssssRemoveKey(writeTxn);
+        } catch (err) {
+            writeTxn.abort();
+            throw err;
+        }
+        await writeTxn.complete();
+        if (this._sessionBackup) {
+            for (const room of this._rooms.values()) {
+                if (room.isEncrypted) {
+                    room.enableSessionBackup(undefined);
+                }
+            }
+            this._sessionBackup?.dispose();
+            this._sessionBackup = undefined;
+        }
+        this._hasSecretStorageKey.set(false);
     }
 
     async _createSessionBackup(ssssKey, txn) {
@@ -311,6 +336,7 @@ export class Session {
             try {
                 const deviceId = await uploadAccountAsDehydratedDevice(
                     dehydrationAccount, this._hsApi, key, "Dehydrated device", log);
+                log.set("deviceId", deviceId);
                 return deviceId;
             } finally {
                 dehydrationAccount.dispose();

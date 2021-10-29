@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {ViewModel} from "./ViewModel.js";
+import {KeyType} from "../matrix/ssss/index.js";
 
 export class AccountSetupViewModel extends ViewModel {
     constructor(accountSetup) {
@@ -35,10 +36,10 @@ export class AccountSetupViewModel extends ViewModel {
         return this._accountSetup.encryptedDehydratedDevice.deviceId;
     }
 
-    tryDecryptDehydratedDevice(password) {
+    async tryDecryptDehydratedDevice(password) {
         const {encryptedDehydratedDevice} = this._accountSetup;
         if (encryptedDehydratedDevice) {
-            this._dehydratedDevice = encryptedDehydratedDevice.decrypt(password);
+            this._dehydratedDevice = await encryptedDehydratedDevice.decrypt(KeyType.RecoveryKey, password);
             this.emitChange("deviceDecrypted");
         }
     }

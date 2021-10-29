@@ -15,9 +15,9 @@ limitations under the License.
 */
 
 export class KeyDescription {
-    constructor(id, keyAccountData) {
+    constructor(id, keyDescription) {
         this._id = id;
-        this._keyAccountData = keyAccountData;
+        this._keyDescription = keyDescription;
     }
 
     get id() {
@@ -25,11 +25,11 @@ export class KeyDescription {
     }
 
     get passphraseParams() {
-        return this._keyAccountData?.content?.passphrase;
+        return this._keyDescription?.passphrase;
     }
 
     get algorithm() {
-        return this._keyAccountData?.content?.algorithm;
+        return this._keyDescription?.algorithm;
     }
 }
 
@@ -37,6 +37,10 @@ export class Key {
     constructor(keyDescription, binaryKey) {
         this._keyDescription = keyDescription;
         this._binaryKey = binaryKey;
+    }
+
+    get description() {
+        return this._keyDescription;
     }
 
     get id() {
