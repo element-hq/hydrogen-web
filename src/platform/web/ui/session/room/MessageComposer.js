@@ -28,11 +28,11 @@ export class MessageComposer extends TemplateView {
     }
 
     render(t, vm) {
-        this._input = t.input({
-            placeholder: vm.isEncrypted ? "Send an encrypted message…" : "Send a message…",
+        this._input = t.textarea({
             enterkeyhint: 'send',
             onKeydown: e => this._onKeyDown(e),
             onInput: () => vm.setInput(this._input.value),
+            placeholder: vm.isEncrypted ? "Send an encrypted message…" : "Send a message…"
         });
         this._focusInput = () => this._input.focus();
         this.value.on("focus", this._focusInput);
@@ -86,7 +86,7 @@ export class MessageComposer extends TemplateView {
     }
 
     _onKeyDown(event) {
-        if (event.key === "Enter") {
+        if (event.key === "Enter" && !event.shiftKey) {
             this._trySend();
         }
     }
