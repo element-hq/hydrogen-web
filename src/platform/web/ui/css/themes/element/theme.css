@@ -537,7 +537,6 @@ a {
 }
 
 .MessageComposer_input > textarea {
-    padding: 0 16px;
     border: none;
     border-radius: 24px;
     background: #F6F6F6;
@@ -548,6 +547,8 @@ a {
     flex: 1;
     padding: 14px;
     box-sizing: border-box;
+    overflow: hidden;
+    max-height: 113px;
 }
 
 .MessageComposer_input > button.send {

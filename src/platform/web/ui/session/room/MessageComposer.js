@@ -31,8 +31,12 @@ export class MessageComposer extends TemplateView {
         this._input = t.textarea({
             enterkeyhint: 'send',
             onKeydown: e => this._onKeyDown(e),
-            onInput: () => vm.setInput(this._input.value),
-            placeholder: vm.isEncrypted ? "Send an encrypted message…" : "Send a message…"
+            onInput: () => {
+                vm.setInput(this._input.value);
+                this._adjustHeight();
+            },
+            placeholder: vm.isEncrypted ? "Send an encrypted message…" : "Send a message…",
+            rows: "1"
         });
         this._focusInput = () => this._input.focus();
         this.value.on("focus", this._focusInput);
@@ -82,6 +86,7 @@ export class MessageComposer extends TemplateView {
         this._input.focus();
         if (await this.value.sendMessage(this._input.value)) {
             this._input.value = "";
+            this._adjustHeight();
         }
     }
 
@@ -105,4 +110,13 @@ export class MessageComposer extends TemplateView {
             this._attachmentPopup.showRelativeTo(evt.target, 12);
         }
     }
+
+    _adjustHeight() {
+        window.requestAnimationFrame(() => {
+            this._input.style.height = "auto";
+            const scrollHeight = this._input.scrollHeight;
+            this._input.style.height = `${scrollHeight}px`;
+        });
+    }
+
 }
