@@ -104,7 +104,7 @@ export class SettingsView extends TemplateView {
                     }),
                     t.map(vm => vm.pushNotifications.serverError, (err, t) => {
                         if (err) {
-                            return t.p("Couln't not check on server: " + err.message);
+                            return t.p("Couldn't not check on server: " + err.message);
                         }
                     })
                 ]);
