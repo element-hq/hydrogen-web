@@ -125,7 +125,7 @@ export class SessionLoadViewModel extends ViewModel {
                 case LoadStatus.QueryAccount:
                     return `Querying account encryption setup…`;
                 case LoadStatus.AccountSetup:
-                    return `Do you want to restore this dehydrated device?`;
+                    return ""; // we'll show a header ing AccountSetupView
                 case LoadStatus.SessionSetup:
                     return `Setting up your encryption keys…`;
                 case LoadStatus.Loading:

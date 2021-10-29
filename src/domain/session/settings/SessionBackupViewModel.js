@@ -18,7 +18,7 @@ import {ViewModel} from "../../ViewModel.js";
 import {KeyType} from "../../../matrix/ssss/index.js";
 import {createEnum} from "../../../utils/enum.js";
 
-const Status = createEnum("Enabled", "SetupKey", "SetupPhrase", "Pending"); 
+export const Status = createEnum("Enabled", "SetupKey", "SetupPhrase", "Pending"); 
 
 export class SessionBackupViewModel extends ViewModel {
     constructor(options) {
@@ -56,6 +56,10 @@ export class SessionBackupViewModel extends ViewModel {
 
     get decryptAction() {
         return this.i18n`Set up`;
+    }
+
+    get purpose() {
+        return this.i18n`set up session backup`;
     }
 
     offerDehydratedDeviceSetup() {
