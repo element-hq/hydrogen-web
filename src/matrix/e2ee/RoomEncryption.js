@@ -49,7 +49,7 @@ export class RoomEncryption {
     }
 
     enableSessionBackup(sessionBackup) {
-        if (this._sessionBackup) {
+        if (this._sessionBackup && !!sessionBackup) {
             return;
         }
         this._sessionBackup = sessionBackup;

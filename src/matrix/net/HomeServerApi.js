@@ -18,6 +18,9 @@ limitations under the License.
 import {encodeQueryParams, encodeBody} from "./common.js";
 import {HomeServerRequest} from "./HomeServerRequest.js";
 
+const CS_R0_PREFIX = "/_matrix/client/r0";
+const DEHYDRATION_PREFIX = "/_matrix/client/unstable/org.matrix.msc2697.v2";
+
 export class HomeServerApi {
     constructor({homeserver, accessToken, request, reconnector}) {
         // store these both in a closure somehow so it's harder to get at in case of XSS?
@@ -28,8 +31,8 @@ export class HomeServerApi {
         this._reconnector = reconnector;
     }
 
-    _url(csPath) {
-        return `${this._homeserver}/_matrix/client/r0${csPath}`;
+    _url(csPath, prefix = CS_R0_PREFIX) {
+        return this._homeserver + prefix + csPath;
     }
 
     _baseRequest(method, url, queryParams, body, options, accessToken) {
@@ -92,15 +95,15 @@ export class HomeServerApi {
     }
 
     _post(csPath, queryParams, body, options) {
-        return this._authedRequest("POST", this._url(csPath), queryParams, body, options);
+        return this._authedRequest("POST", this._url(csPath, options?.prefix || CS_R0_PREFIX), queryParams, body, options);
     }
 
     _put(csPath, queryParams, body, options) {
-        return this._authedRequest("PUT", this._url(csPath), queryParams, body, options);
+        return this._authedRequest("PUT", this._url(csPath, options?.prefix || CS_R0_PREFIX), queryParams, body, options);
     }
 
     _get(csPath, queryParams, body, options) {
-        return this._authedRequest("GET", this._url(csPath), queryParams, body, options);
+        return this._authedRequest("GET", this._url(csPath, options?.prefix || CS_R0_PREFIX), queryParams, body, options);
     }
 
     sync(since, filter, timeout, options = null) {
@@ -170,8 +173,12 @@ export class HomeServerApi {
         return this._unauthedRequest("GET", `${this._homeserver}/_matrix/client/versions`, null, null, options);
     }
 
-    uploadKeys(payload, options = null) {
-        return this._post("/keys/upload", null, payload, options);
+    uploadKeys(dehydratedDeviceId, payload, options = null) {
+        let path = "/keys/upload";
+        if (dehydratedDeviceId) {
+            path = path + `/${encodeURIComponent(dehydratedDeviceId)}`;
+        }
+        return this._post(path, null, payload, options);
     }
 
     queryKeys(queryRequest, options = null) {
@@ -228,6 +235,21 @@ export class HomeServerApi {
 
     logout(options = null) {
         return this._post(`/logout`, null, null, options);
+    }
+
+    getDehydratedDevice(options = {}) {
+        options.prefix = DEHYDRATION_PREFIX;
+        return this._get(`/dehydrated_device`, null, null, options);
+    }
+
+    createDehydratedDevice(payload, options = {}) {
+        options.prefix = DEHYDRATION_PREFIX;
+        return this._put(`/dehydrated_device`, null, payload, options);
+    }
+
+    claimDehydratedDevice(deviceId, options = {}) {
+        options.prefix = DEHYDRATION_PREFIX;
+        return this._post(`/dehydrated_device/claim`, null, {device_id: deviceId}, options);
     }
 }
 

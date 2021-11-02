@@ -107,7 +107,7 @@ export class LoginViewModel extends ViewModel {
 
     async attemptLogin(loginMethod) {
         this._setBusy(true);
-        this._sessionContainer.startWithLogin(loginMethod);
+        this._sessionContainer.startWithLogin(loginMethod, {inspectAccountSetup: true});
         const loadStatus = this._sessionContainer.loadStatus;
         const handle = loadStatus.waitFor(status => status !== LoadStatus.Login);
         await handle.promise;

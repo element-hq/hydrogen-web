@@ -629,6 +629,19 @@ a {
 
 .Settings .row .label {
     flex: 0 0 200px;
+    align-self: flex-start;
+}
+
+.Settings .row .content p {
+    margin: 8px 0;
+}
+
+.Settings .row .content p:first-child {
+    margin-top: 0;
+}
+
+.Settings .row .content p:last-child {
+    margin-bottom: 0;
 }
 
 .error {

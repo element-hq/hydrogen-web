@@ -29,14 +29,17 @@ import {Session} from "./Session.js";
 import {PasswordLoginMethod} from "./login/PasswordLoginMethod.js";
 import {TokenLoginMethod} from "./login/TokenLoginMethod.js";
 import {SSOLoginHelper} from "./login/SSOLoginHelper.js";
+import {getDehydratedDevice} from "./e2ee/Dehydration.js";
 
 export const LoadStatus = createEnum(
     "NotLoading",
     "Login",
     "LoginFailed",
+    "QueryAccount", // check for dehydrated device after login
+    "AccountSetup", // asked to restore from dehydrated device if present, call sc.accountSetup.finish() to progress to the next stage
     "Loading",
     "SessionSetup", // upload e2ee keys, ...
-    "Migrating",    //not used atm, but would fit here
+    "Migrating",    // not used atm, but would fit here
     "FirstSync",
     "Error",
     "Ready",
@@ -63,6 +66,7 @@ export class SessionContainer {
         this._requestScheduler = null;
         this._olmPromise = olmPromise;
         this._workerPromise = workerPromise;
+        this._accountSetup = undefined;
     }
 
     createNewSessionId() {
@@ -85,7 +89,7 @@ export class SessionContainer {
                 if (!sessionInfo) {
                     throw new Error("Invalid session id: " + sessionId);
                 }
-                await this._loadSessionInfo(sessionInfo, false, log);
+                await this._loadSessionInfo(sessionInfo, null, log);
                 log.set("status", this._status.get());
             } catch (err) {
                 log.catch(err);
@@ -127,7 +131,7 @@ export class SessionContainer {
         });
     }
 
-    async startWithLogin(loginMethod) {
+    async startWithLogin(loginMethod, {inspectAccountSetup} = {}) {
         const currentStatus = this._status.get();
         if (currentStatus !== LoadStatus.LoginFailed &&
             currentStatus !== LoadStatus.NotLoading &&
@@ -154,7 +158,6 @@ export class SessionContainer {
                     lastUsed: clock.now()
                 };
                 log.set("id", sessionId);
-                await this._platform.sessionInfoStorage.add(sessionInfo);            
             } catch (err) {
                 this._error = err;
                 if (err.name === "HomeServerError") {
@@ -173,21 +176,31 @@ export class SessionContainer {
                 }
                 return;
             }
+            let dehydratedDevice;
+            if (inspectAccountSetup) {
+                dehydratedDevice = await this._inspectAccountAfterLogin(sessionInfo, log);
+                if (dehydratedDevice) {
+                    sessionInfo.deviceId = dehydratedDevice.deviceId;
+                }
+            }
+            await this._platform.sessionInfoStorage.add(sessionInfo);            
             // loading the session can only lead to
             // LoadStatus.Error in case of an error,
             // so separate try/catch
             try {
-                await this._loadSessionInfo(sessionInfo, true, log);
+                await this._loadSessionInfo(sessionInfo, dehydratedDevice, log);
                 log.set("status", this._status.get());
             } catch (err) {
                 log.catch(err);
+                // free olm Account that might be contained
+                dehydratedDevice?.dispose();
                 this._error = err;
                 this._status.set(LoadStatus.Error);
             }
         });
     }
 
-    async _loadSessionInfo(sessionInfo, isNewLogin, log) {
+    async _loadSessionInfo(sessionInfo, dehydratedDevice, log) {
         log.set("appVersion", this._platform.version);
         const clock = this._platform.clock;
         this._sessionStartedByReconnector = false;
@@ -233,7 +246,9 @@ export class SessionContainer {
             platform: this._platform,
         });
         await this._session.load(log);
-        if (!this._session.hasIdentity) {
+        if (dehydratedDevice) {
+            await log.wrap("dehydrateIdentity", log => this._session.dehydrateIdentity(dehydratedDevice, log));
+        } else if (!this._session.hasIdentity) {
             this._status.set(LoadStatus.SessionSetup);
             await log.wrap("createIdentity", log => this._session.createIdentity(log));
         }
@@ -247,7 +262,9 @@ export class SessionContainer {
                     this._requestScheduler.start();
                     this._sync.start();
                     this._sessionStartedByReconnector = true;
-                    await log.wrap("session start", log => this._session.start(this._reconnector.lastVersionsResponse, log));
+                    const d = dehydratedDevice;
+                    dehydratedDevice = undefined;
+                    await log.wrap("session start", log => this._session.start(this._reconnector.lastVersionsResponse, d, log));
                 });
             }
         });
@@ -266,8 +283,10 @@ export class SessionContainer {
             if (this._isDisposed) {
                 return;
             }
+            const d = dehydratedDevice;
+            dehydratedDevice = undefined;
             // log as ref as we don't want to await it
-            await log.wrap("session start", log => this._session.start(lastVersionsResponse, log));
+            await log.wrap("session start", log => this._session.start(lastVersionsResponse, d, log));
         }
     }
 
@@ -300,6 +319,32 @@ export class SessionContainer {
         }
     }
 
+    _inspectAccountAfterLogin(sessionInfo, log) {
+        return log.wrap("inspectAccount", async log => {
+            this._status.set(LoadStatus.QueryAccount);
+            const hsApi = new HomeServerApi({
+                homeserver: sessionInfo.homeServer,
+                accessToken: sessionInfo.accessToken,
+                request: this._platform.request,
+            });
+            const olm = await this._olmPromise;
+            const encryptedDehydratedDevice = await getDehydratedDevice(hsApi, olm, this._platform, log);
+            if (encryptedDehydratedDevice) {
+                let resolveStageFinish;
+                const promiseStageFinish = new Promise(r => resolveStageFinish = r);
+                this._accountSetup = new AccountSetup(encryptedDehydratedDevice, resolveStageFinish);
+                this._status.set(LoadStatus.AccountSetup);
+                await promiseStageFinish;
+                const dehydratedDevice = this._accountSetup?._dehydratedDevice;
+                this._accountSetup = null;
+                return dehydratedDevice;
+            }
+        });
+    }
+
+    get accountSetup() {
+        return this._accountSetup;
+    }
 
     get loadStatus() {
         return this._status;
@@ -331,6 +376,15 @@ export class SessionContainer {
         return !this._reconnector;
     }
 
+    logout() {
+        return this._platform.logger.run("logout", async log => {
+            try {
+                await this._session?.logout(log);
+            } catch (err) {}
+            await this.deleteSession(log);
+        });
+    }
+
     dispose() {
         if (this._reconnectSubscription) {
             this._reconnectSubscription();
@@ -339,12 +393,15 @@ export class SessionContainer {
         this._reconnector = null;
         if (this._requestScheduler) {
             this._requestScheduler.stop();
+            this._requestScheduler = null;
         }
         if (this._sync) {
             this._sync.stop();
+            this._sync = null;
         }
         if (this._session) {
             this._session.dispose();
+            this._session = null;
         }
         if (this._waitForFirstSyncHandle) {
             this._waitForFirstSyncHandle.dispose();
@@ -376,5 +433,22 @@ export class SessionContainer {
         this._status.set(LoadStatus.NotLoading);
         this._error = null;
         this._loginFailure = null;
+    }
+}
+
+class AccountSetup {
+    constructor(encryptedDehydratedDevice, finishStage) {
+        this._encryptedDehydratedDevice = encryptedDehydratedDevice;
+        this._dehydratedDevice = undefined;
+        this._finishStage = finishStage;
+    }
+
+    get encryptedDehydratedDevice() {
+        return this._encryptedDehydratedDevice;
+    }
+
+    finish(dehydratedDevice) {
+        this._dehydratedDevice = dehydratedDevice;
+        this._finishStage();
     }
 }

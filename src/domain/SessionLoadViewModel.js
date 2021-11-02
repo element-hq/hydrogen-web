@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {AccountSetupViewModel} from "./AccountSetupViewModel.js";
 import {LoadStatus} from "../matrix/SessionContainer.js";
 import {SyncStatus} from "../matrix/Sync.js";
 import {ViewModel} from "./ViewModel.js";
@@ -29,6 +30,8 @@ export class SessionLoadViewModel extends ViewModel {
         this._loading = false;
         this._error = null;
         this.backUrl = this.urlCreator.urlForSegment("session", true);
+        this._accountSetupViewModel = undefined;
+
     }
 
     async start() {
@@ -39,6 +42,11 @@ export class SessionLoadViewModel extends ViewModel {
             this._loading = true;
             this.emitChange("loading");
             this._waitHandle = this._sessionContainer.loadStatus.waitFor(s => {
+                if (s === LoadStatus.AccountSetup) {
+                    this._accountSetupViewModel = new AccountSetupViewModel(this._sessionContainer.accountSetup);
+                } else {
+                    this._accountSetupViewModel = undefined;
+                }
                 this.emitChange("loadLabel");
                 // wait for initial sync, but not catchup sync
                 const isCatchupSync = s === LoadStatus.FirstSync &&
@@ -97,6 +105,10 @@ export class SessionLoadViewModel extends ViewModel {
 
     // to show a spinner or not
     get loading() {
+        const sc = this._sessionContainer;
+        if (sc && sc.loadStatus.get() === LoadStatus.AccountSetup) {
+            return false;
+        }
         return this._loading;
     }
 
@@ -110,6 +122,10 @@ export class SessionLoadViewModel extends ViewModel {
         // Statuses related to login are handled by respective login view models
         if (sc) {
             switch (sc.loadStatus.get()) {
+                case LoadStatus.QueryAccount:
+                    return `Querying account encryption setup…`;
+                case LoadStatus.AccountSetup:
+                    return ""; // we'll show a header ing AccountSetupView
                 case LoadStatus.SessionSetup:
                     return `Setting up your encryption keys…`;
                 case LoadStatus.Loading:
@@ -135,5 +151,14 @@ export class SessionLoadViewModel extends ViewModel {
     async exportLogs() {
         const logExport = await this.logger.export();
         this.platform.saveFileAs(logExport.asBlob(), `hydrogen-logs-${this.platform.clock.now()}.json`);
+    }
+
+    async logout() {
+        await this._sessionContainer.logout();
+        this.navigation.push("session", true);
+    }
+
+    get accountSetupViewModel() {
+        return this._accountSetupViewModel;
     }
 }

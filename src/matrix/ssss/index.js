@@ -18,8 +18,11 @@ import {KeyDescription, Key} from "./common.js";
 import {keyFromPassphrase} from "./passphrase.js";
 import {keyFromRecoveryKey} from "./recoveryKey.js";
 import {SESSION_E2EE_KEY_PREFIX} from "../e2ee/common.js";
+import {createEnum} from "../../utils/enum.js";
 
 const SSSS_KEY = `${SESSION_E2EE_KEY_PREFIX}ssssKey`;
+
+export const KeyType = createEnum("RecoveryKey", "Passphrase");
 
 async function readDefaultKeyDescription(storage) {
     const txn = await storage.readTxn([
@@ -34,7 +37,7 @@ async function readDefaultKeyDescription(storage) {
     if (!keyAccountData) {
         return;
     }
-    return new KeyDescription(id, keyAccountData);
+    return new KeyDescription(id, keyAccountData.content);
 }
 
 export async function writeKey(key, txn) {
@@ -47,7 +50,14 @@ export async function readKey(txn) {
         return;
     }
     const keyAccountData = await txn.accountData.get(`m.secret_storage.key.${keyData.id}`);
-    return new Key(new KeyDescription(keyData.id, keyAccountData), keyData.binaryKey);
+    if (keyAccountData) {
+        return new Key(new KeyDescription(keyData.id, keyAccountData.content), keyData.binaryKey);
+    }
+}
+
+
+export async function removeKey(txn) {
+    await txn.session.remove(SSSS_KEY);
 }
 
 export async function keyFromCredential(type, credential, storage, platform, olm) {
@@ -55,13 +65,24 @@ export async function keyFromCredential(type, credential, storage, platform, olm
     if (!keyDescription) {
         throw new Error("Could not find a default secret storage key in account data");
     }
+    return await keyFromCredentialAndDescription(type, credential, keyDescription, platform, olm);
+}
+
+export async function keyFromCredentialAndDescription(type, credential, keyDescription, platform, olm) {
     let key;
-    if (type === "phrase") {
+    if (type === KeyType.Passphrase) {
         key = await keyFromPassphrase(keyDescription, credential, platform);
-    } else if (type === "key") {
+    } else if (type === KeyType.RecoveryKey) {
         key = keyFromRecoveryKey(keyDescription, credential, olm, platform);
     } else {
         throw new Error(`Invalid type: ${type}`);
     }
     return key;
+}
+
+export async function keyFromDehydratedDeviceKey(key, storage, platform) {
+    const keyDescription = await readDefaultKeyDescription(storage);
+    if (await keyDescription.isCompatible(key, platform)) {
+        return key.withDescription(keyDescription);
+    }
 }

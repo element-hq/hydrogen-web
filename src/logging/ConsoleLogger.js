@@ -21,7 +21,6 @@ export class ConsoleLogger extends BaseLogger {
     }
 }
 
-
 const excludedKeysFromTable = ["l", "id"];
 function filterValues(values) {
     if (!values) {
@@ -79,7 +78,7 @@ function itemCaption(item) {
     } else if (item._values.l && item.error) {
         return `${item._values.l} failed`;
     } else if (typeof item._values.ref !== "undefined") {
-        return `ref ${item._values.ref}`
+        return `ref ${item._values.ref}`;
     } else {
         return item._values.l || item._values.type;
     }

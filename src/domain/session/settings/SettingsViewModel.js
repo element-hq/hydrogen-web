@@ -57,16 +57,11 @@ export class SettingsViewModel extends ViewModel {
         return this._sessionContainer.session;
     }
 
-    logout() {
-        return this.logger.run("logout", async log => {
-            this._isLoggingOut = true;
-            this.emitChange("isLoggingOut");
-            try {
-                await this._session.logout(log);
-            } catch (err) {}
-            await this._sessionContainer.deleteSession(log);
-            this.navigation.push("session", true);
-        });
+    async logout() {
+        this._isLoggingOut = true;
+        await this._sessionContainer.logout();
+        this.emitChange("isLoggingOut");
+        this.navigation.push("session", true);
     }
 
     get isLoggingOut() { return this._isLoggingOut; }

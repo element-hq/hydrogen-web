@@ -15,9 +15,9 @@ limitations under the License.
 */
 
 export class KeyDescription {
-    constructor(id, keyAccountData) {
+    constructor(id, keyDescription) {
         this._id = id;
-        this._keyAccountData = keyAccountData;
+        this._keyDescription = keyDescription;
     }
 
     get id() {
@@ -25,11 +25,30 @@ export class KeyDescription {
     }
 
     get passphraseParams() {
-        return this._keyAccountData?.content?.passphrase;
+        return this._keyDescription?.passphrase;
     }
 
     get algorithm() {
-        return this._keyAccountData?.content?.algorithm;
+        return this._keyDescription?.algorithm;
+    }
+
+    async isCompatible(key, platform) {
+        if (this.algorithm === "m.secret_storage.v1.aes-hmac-sha2") {
+            const kd = this._keyDescription;
+            if (kd.mac) {
+                const otherMac = await calculateKeyMac(key.binaryKey, kd.iv, platform);
+                return kd.mac === otherMac;
+            } else if (kd.passphrase) {
+                const kdOther = key.description._keyDescription;
+                if (!kdOther.passphrase) {
+                    return false;
+                }
+                return kd.passphrase.algorithm === kdOther.passphrase.algorithm && 
+                    kd.passphrase.iterations === kdOther.passphrase.iterations && 
+                    kd.passphrase.salt === kdOther.passphrase.salt;
+            }
+        }
+        return false;
     }
 }
 
@@ -37,6 +56,14 @@ export class Key {
     constructor(keyDescription, binaryKey) {
         this._keyDescription = keyDescription;
         this._binaryKey = binaryKey;
+    }
+
+    withDescription(description) {
+        return new Key(description, this._binaryKey);
+    }
+
+    get description() {
+        return this._keyDescription;
     }
 
     get id() {
@@ -50,4 +77,25 @@ export class Key {
     get algorithm() {
         return this._keyDescription.algorithm;
     }
+}
+
+async function calculateKeyMac(key, ivStr, platform) {
+    const {crypto, encoding} = platform;
+    const {utf8, base64} = encoding;
+    const {derive, aes, hmac} = crypto;
+
+    const iv = base64.decode(ivStr);
+
+    // salt for HKDF, with 8 bytes of zeros
+    const zerosalt = new Uint8Array(8);
+    const ZERO_STR = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+    
+    const info = utf8.encode("");
+    const keybits = await derive.hkdf(key, zerosalt, info, "SHA-256", 512);
+    const aesKey = keybits.slice(0, 32);
+    const hmacKey = keybits.slice(32);
+    const ciphertext = await aes.encryptCTR({key: aesKey, iv, data: utf8.encode(ZERO_STR)});
+    const mac = await hmac.compute(hmacKey, ciphertext, "SHA-256");
+
+    return base64.encode(mac);
 }

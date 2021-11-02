@@ -19,30 +19,6 @@ import {TemplateView} from "../general/TemplateView";
 import {hydrogenGithubLink} from "./common.js";
 import {SessionLoadStatusView} from "./SessionLoadStatusView.js";
 
-function selectFileAsText(mimeType) {
-    const input = document.createElement("input");
-    input.setAttribute("type", "file");
-    if (mimeType) {
-        input.setAttribute("accept", mimeType);
-    }
-    const promise = new Promise((resolve, reject) => {
-        const checkFile = () => {
-            input.removeEventListener("change", checkFile, true);
-            const file = input.files[0];
-            if (file) {
-                resolve(file.text());
-            } else {
-                reject(new Error("No file selected"));
-            }
-        }
-        input.addEventListener("change", checkFile, true);
-    });
-    input.click();
-    return promise;
-}
-
-
-
 class SessionPickerItemView extends TemplateView {
     _onDeleteClick() {
         if (confirm("Are you sure?")) {
@@ -81,10 +57,6 @@ export class SessionPickerView extends TemplateView {
                 t.h1(["Continue as …"]),
                 t.view(sessionList),
                 t.div({className: "button-row"}, [
-                    t.button({
-                        className: "button-action secondary",
-                        onClick: async () => vm.import(await selectFileAsText("application/json"))
-                    }, vm.i18n`Import a session`),
                     t.a({
                         className: "button-action primary",
                         href: vm.cancelUrl

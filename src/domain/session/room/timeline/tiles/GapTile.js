@@ -54,12 +54,10 @@ export class GapTile extends SimpleTile {
     }
 
     updatePreviousSibling(prev) {
-        console.log("GapTile.updatePreviousSibling", prev);
         super.updatePreviousSibling(prev);
         const isAtTop = !prev;
         if (this._isAtTop !== isAtTop) {
             this._isAtTop = isAtTop;
-            console.log("isAtTop", this._isAtTop);
             this.emitChange("isAtTop");
         }
     }
