@@ -37,6 +37,11 @@ class RequestResult {
 
 function createXhr(url, {method, headers, timeout, format, uploadProgress}) {
     const xhr = new XMLHttpRequest();
+
+    if (uploadProgress) {
+        xhr.upload.addEventListener("progress", evt => uploadProgress(evt.loaded));
+    }
+
     xhr.open(method, url);
     
     if (format === "buffer") {
@@ -54,10 +59,6 @@ function createXhr(url, {method, headers, timeout, format, uploadProgress}) {
     }
     if (timeout) {
         xhr.timeout = timeout;
-    }
-
-    if (uploadProgress) {
-        xhr.upload.addEventListener("progress", evt => uploadProgress(evt.loaded));
     }
 
     return xhr;
