@@ -64,7 +64,6 @@ export class TimelineViewModel extends ViewModel {
                 so don't count the GapTile as an update.
                 Usually happens when onScroll() is triggered by a non-timeline UI change,
                 eg: SessionStatusView being rendered
-                Also don't count updates from the user as these may update without triggering onScroll.
                  */
                 hasSeenUpdate = true;
             }
@@ -92,7 +91,12 @@ export class TimelineViewModel extends ViewModel {
             this._watchMap.set(gapTile, false);
             return;
         }
-        if (!hasSeenUpdate || !this._watchMap.get(gapTile)) {
+        /*
+        We may have seen an update, but did the corresponding call to watchForGapFill from
+        that update already return?
+        */
+        const hasNextInvocationReturned = !this._watchMap.get(gapTile);
+        if (!hasSeenUpdate || hasNextInvocationReturned) {
             this.watchForGapFill(gapTile.notifyVisible(), gapTile, depth + 1);
         }
     }
