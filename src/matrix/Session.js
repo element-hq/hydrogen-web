@@ -437,7 +437,7 @@ export class Session {
         // enable session backup, this requests the latest backup version
         if (!this._sessionBackup) {
             if (dehydratedDevice) {
-                const ssssKey = await createSSSSKeyFromDehydratedDeviceKey(dehydratedDevice.key, this._storage);
+                const ssssKey = await createSSSSKeyFromDehydratedDeviceKey(dehydratedDevice.key, this._storage, this._platform);
                 if (ssssKey) {
                     this._writeSSSSKey(ssssKey);
                 }

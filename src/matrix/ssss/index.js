@@ -80,9 +80,9 @@ export async function keyFromCredentialAndDescription(type, credential, keyDescr
     return key;
 }
 
-export async function keyFromDehydratedDeviceKey(key, storage) {
+export async function keyFromDehydratedDeviceKey(key, storage, platform) {
     const keyDescription = await readDefaultKeyDescription(storage);
-    if (key.description.isCompatible(keyDescription)) {
+    if (await keyDescription.isCompatible(key, platform)) {
         return key.withDescription(keyDescription);
     }
 }
