@@ -437,10 +437,13 @@ export class Session {
         // enable session backup, this requests the latest backup version
         if (!this._sessionBackup) {
             if (dehydratedDevice) {
-                const ssssKey = await createSSSSKeyFromDehydratedDeviceKey(dehydratedDevice.key, this._storage, this._platform);
-                if (ssssKey) {
-                    this._writeSSSSKey(ssssKey);
-                }
+                await log.wrap("SSSSKeyFromDehydratedDeviceKey", async log => {
+                    const ssssKey = await createSSSSKeyFromDehydratedDeviceKey(dehydratedDevice.key, this._storage, this._platform);
+                    if (ssssKey) {
+                        log.set("success", true);
+                        this._writeSSSSKey(ssssKey);
+                    }
+                })
             }
             const txn = await this._storage.readTxn([
                 this._storage.storeNames.session,
