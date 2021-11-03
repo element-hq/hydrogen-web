@@ -47,9 +47,11 @@ export class TimelineViewModel extends ViewModel {
         this._requestedEndTile = null;
         this._requestScheduled = false;
         this._showJumpDown = false;
+        this._watchMap = new WeakMap();
     }
 
     async watchForGapFill(gapPromise, gapTile, depth = 0) {
+        this._watchMap.set(gapTile, true);
         if (depth >= 10) {
             console.error("watchForGapFill exceeded a recursive depth of 10");
             return;
@@ -69,8 +71,8 @@ export class TimelineViewModel extends ViewModel {
         }
         const subscription = {
             onAdd: (idx, tile) => checkForUpdate(idx, tile),
-            onUpdate: () => {/*checkForUpdate(idx, tile)*/},
             onRemove: (idx, tile) => checkForUpdate(idx, tile),
+            onUpdate: () => { /* shouldn't be called */ },
             onMove: () => { /* shouldn't be called */ },
             onReset: () => { /* shouldn't be called */ }
         };
@@ -87,9 +89,10 @@ export class TimelineViewModel extends ViewModel {
             If gapResult resolves to false, then the gap is already being filled
             and is thus being tracked for updates by a previous invocation of this method
             */
+            this._watchMap.set(gapTile, false);
             return;
         }
-        if (!hasSeenUpdate) {
+        if (!hasSeenUpdate || !this._watchMap.get(gapTile)) {
             this.watchForGapFill(gapTile.notifyVisible(), gapTile, depth + 1);
         }
     }
