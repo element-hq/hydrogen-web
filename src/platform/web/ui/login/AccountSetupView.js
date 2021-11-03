@@ -19,12 +19,6 @@ import {SessionBackupSettingsView} from "../session/settings/SessionBackupSettin
 
 export class AccountSetupView extends TemplateView {
     render(t, vm) {
-        const keyLabel = vm => `Dehydration key for device ${vm.dehydratedDeviceId}`;
-        const password = t.input({
-            id: "dehydrated_device_key",
-            type: "password",
-            placeholder: keyLabel,
-        });
         return t.div({className: "Settings" /* hack for now to get the layout right*/}, [
             t.h3(vm.i18n`Restore your encrypted history?`),
             t.ifView(vm => vm.decryptDehydratedDeviceViewModel, vm => new SessionBackupSettingsView(vm.decryptDehydratedDeviceViewModel)),
