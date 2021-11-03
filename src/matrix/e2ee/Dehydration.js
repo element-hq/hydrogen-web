@@ -60,7 +60,7 @@ class EncryptedDehydratedDevice {
         const account = new this._olm.Account();
         try {
             const pickledAccount = this._dehydratedDevice.device_data.account;
-            account.unpickle(key.binaryKey, pickledAccount);
+            account.unpickle(key.binaryKey.slice(), pickledAccount);
             return new DehydratedDevice(this._dehydratedDevice, account, key);
         } catch (err) {
             account.free();
