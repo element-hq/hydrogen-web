@@ -65,6 +65,9 @@ export function tilesCreator(baseOptions) {
                 case "m.room.member":
                     return new RoomMemberTile(options);
                 case "m.room.encrypted":
+                    if (entry.isRedacted) {
+                        return new RedactedTile(options);
+                    }
                     return new EncryptedEventTile(options);
                 case "m.room.encryption":
                     return new EncryptionEnabledTile(options);
