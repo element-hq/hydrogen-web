@@ -206,7 +206,7 @@ export class Session {
             this._storage.storeNames.accountData,
         ]);
         await this._createSessionBackup(key, readTxn);
-        this._writeSSSSKey(key);
+        await this._writeSSSSKey(key);
         this._hasSecretStorageKey.set(true);
         return key;
     }
@@ -441,7 +441,7 @@ export class Session {
                     const ssssKey = await createSSSSKeyFromDehydratedDeviceKey(dehydratedDevice.key, this._storage, this._platform);
                     if (ssssKey) {
                         log.set("success", true);
-                        this._writeSSSSKey(ssssKey);
+                        await this._writeSSSSKey(ssssKey);
                     }
                 })
             }
