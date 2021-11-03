@@ -131,7 +131,7 @@ export class SessionContainer {
         });
     }
 
-    async startWithLogin(loginMethod) {
+    async startWithLogin(loginMethod, {inspectAccountSetup} = {}) {
         const currentStatus = this._status.get();
         if (currentStatus !== LoadStatus.LoginFailed &&
             currentStatus !== LoadStatus.NotLoading &&
@@ -176,9 +176,12 @@ export class SessionContainer {
                 }
                 return;
             }
-            const dehydratedDevice = await this._inspectAccountAfterLogin(sessionInfo, log);
-            if (dehydratedDevice) {
-                sessionInfo.deviceId = dehydratedDevice.deviceId;
+            let dehydratedDevice;
+            if (inspectAccountSetup) {
+                dehydratedDevice = await this._inspectAccountAfterLogin(sessionInfo, log);
+                if (dehydratedDevice) {
+                    sessionInfo.deviceId = dehydratedDevice.deviceId;
+                }
             }
             await this._platform.sessionInfoStorage.add(sessionInfo);            
             // loading the session can only lead to
