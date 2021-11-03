@@ -25,7 +25,6 @@ export class AccountSetupView extends TemplateView {
             type: "password",
             placeholder: keyLabel,
         });
-        const status = t.output({for: password.id}, vm => vm.deviceDecrypted ? "Key matches, good to go!" : "");
         return t.div({className: "Settings" /* hack for now to get the layout right*/}, [
             t.h3(vm.i18n`Restore your encrypted history?`),
             t.ifView(vm => vm.decryptDehydratedDeviceViewModel, vm => new SessionBackupSettingsView(vm.decryptDehydratedDeviceViewModel)),
