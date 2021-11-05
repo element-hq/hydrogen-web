@@ -502,7 +502,7 @@ a {
 }
 
 .MessageComposer_input, .MessageComposer_replyPreview {
-    padding: 8px 16px;
+    padding: 8px;
 }
 
 .MessageComposer_replyPreview > .replying {
@@ -547,7 +547,7 @@ a {
     padding: 14px;
     box-sizing: border-box;
     overflow: hidden;
-    max-height: 113px;
+    max-height: 113px; /* 5 lines */
 }
 
 .MessageComposer_input > button.send {
@@ -563,6 +563,8 @@ a {
     background-image: url('icons/send.svg');
     background-repeat: no-repeat;
     background-position: center;
+    align-self: end;
+    margin-bottom: 8px;
 }
 
 .MessageComposer_input > button.sendFile {
@@ -579,8 +581,12 @@ a {
     background-position: center;
 }
 
-.MessageComposer_input > button.send:disabled {
-    background-color: #E3E8F0;
+.MessageComposer.MessageComposer_canSend button.sendFile {
+    display: none;
+}
+
+.MessageComposer:not(.MessageComposer_canSend) button.send {
+    display: none;
 }
 
 .SettingsBody {
