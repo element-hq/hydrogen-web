@@ -34,7 +34,11 @@ export class MessageComposer extends TemplateView {
             onKeydown: e => this._onKeyDown(e),
             onInput: () => {
                 vm.setInput(this._input.value);
-                this._adjustHeight();
+                if (this._input.value) {
+                    this._adjustHeight();
+                } else {
+                    this._clearHeight();
+                }
             },
             placeholder: vm.isEncrypted ? "Send an encrypted message…" : "Send a message…",
             rows: "1"
@@ -85,14 +89,31 @@ export class MessageComposer extends TemplateView {
 
     async _trySend() {
         this._input.focus();
-        if (await this.value.sendMessage(this._input.value)) {
-            this._input.value = "";
+        // we clear the composer while enqueuing
+        // and restore it when that didn't work somehow
+        // to prevent the user from sending the message
+        // every time they hit enter while it's still enqueuing.
+        const {value} = this._input;
+        const restoreValue = () => {
+            this._input.value = value;
             this._adjustHeight();
+        };
+        this._input.value = "";
+        this._clearHeight();
+        try {
+            if (!await this.value.sendMessage(value)) {
+                restoreValue();
+            }
+        } catch (err) {
+            restoreValue();
+            console.error(err);
         }
     }
 
     _onKeyDown(event) {
         if (event.key === "Enter" && !event.shiftKey) {
+            // don't insert newline into composer
+            event.preventDefault();
             this._trySend();
         }
     }
@@ -121,6 +142,10 @@ export class MessageComposer extends TemplateView {
             this._input.style.height = `${scrollHeight}px`;
             this._rafResizeHandle = undefined;
         });
+    }
+
+    _clearHeight() {
+        this._input.style.removeProperty("height");
     }
 
 }
