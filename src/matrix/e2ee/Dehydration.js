@@ -36,7 +36,7 @@ export async function uploadAccountAsDehydratedDevice(account, hsApi, key, devic
     const response = await hsApi.createDehydratedDevice({
         device_data: {
             algorithm: DEHYDRATION_LIBOLM_PICKLE_ALGORITHM,
-            account: account.pickleWithKey(key.binaryKey),
+            account: account.pickleWithKey(key.binaryKey.slice()),
             passphrase: key.description?.passphraseParams || {},
         },
         initial_device_display_name: deviceDisplayName
