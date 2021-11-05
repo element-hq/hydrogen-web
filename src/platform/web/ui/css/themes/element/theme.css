@@ -502,7 +502,7 @@ a {
 }
 
 .MessageComposer_input, .MessageComposer_replyPreview {
-    padding: 8px 16px;
+    padding: 8px;
 }
 
 .MessageComposer_replyPreview > .replying {
@@ -563,6 +563,8 @@ a {
     background-image: url('icons/send.svg');
     background-repeat: no-repeat;
     background-position: center;
+    align-self: end;
+    margin-bottom: 8px;
 }
 
 .MessageComposer_input > button.sendFile {
