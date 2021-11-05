@@ -93,6 +93,8 @@ export class MessageComposer extends TemplateView {
 
     _onKeyDown(event) {
         if (event.key === "Enter" && !event.shiftKey) {
+            // don't insert newline into composer
+            event.preventDefault();
             this._trySend();
         }
     }
