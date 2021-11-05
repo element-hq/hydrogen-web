@@ -25,6 +25,7 @@ export class MessageComposer extends TemplateView {
         this._input = null;
         this._attachmentPopup = null;
         this._focusInput = null;
+        this._rafResizeHandle = undefined;
     }
 
     render(t, vm) {
@@ -112,10 +113,14 @@ export class MessageComposer extends TemplateView {
     }
 
     _adjustHeight() {
-        window.requestAnimationFrame(() => {
+        if (this._rafResizeHandle) {
+            return;
+        }
+        this._rafResizeHandle = window.requestAnimationFrame(() => {
             this._input.style.height = "auto";
             const scrollHeight = this._input.scrollHeight;
             this._input.style.height = `${scrollHeight}px`;
+            this._rafResizeHandle = undefined;
         });
     }
 
