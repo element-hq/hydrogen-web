@@ -25,14 +25,19 @@ export class MessageComposer extends TemplateView {
         this._input = null;
         this._attachmentPopup = null;
         this._focusInput = null;
+        this._rafResizeHandle = undefined;
     }
 
     render(t, vm) {
-        this._input = t.input({
-            placeholder: vm.isEncrypted ? "Send an encrypted message…" : "Send a message…",
+        this._input = t.textarea({
             enterkeyhint: 'send',
             onKeydown: e => this._onKeyDown(e),
-            onInput: () => vm.setInput(this._input.value),
+            onInput: () => {
+                vm.setInput(this._input.value);
+                this._adjustHeight();
+            },
+            placeholder: vm.isEncrypted ? "Send an encrypted message…" : "Send a message…",
+            rows: "1"
         });
         this._focusInput = () => this._input.focus();
         this.value.on("focus", this._focusInput);
@@ -82,11 +87,12 @@ export class MessageComposer extends TemplateView {
         this._input.focus();
         if (await this.value.sendMessage(this._input.value)) {
             this._input.value = "";
+            this._adjustHeight();
         }
     }
 
     _onKeyDown(event) {
-        if (event.key === "Enter") {
+        if (event.key === "Enter" && !event.shiftKey) {
             this._trySend();
         }
     }
@@ -105,4 +111,16 @@ export class MessageComposer extends TemplateView {
             this._attachmentPopup.showRelativeTo(evt.target, 12);
         }
     }
+
+    _adjustHeight() {
+        if (this._rafResizeHandle) {
+            return;
+        }
+        this._rafResizeHandle = window.requestAnimationFrame(() => {
+            const scrollHeight = this._input.scrollHeight;
+            this._input.style.height = `${scrollHeight}px`;
+            this._rafResizeHandle = undefined;
+        });
+    }
+
 }
