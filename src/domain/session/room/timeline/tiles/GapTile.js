@@ -49,13 +49,15 @@ export class GapTile extends SimpleTile {
     }
 
     async notifyVisible() {
+        // we do (up to 10) backfills while no new tiles have been added to the timeline
+        // because notifyVisible won't be called again until something gets added to the timeline
         let depth = 0;
-        let result;
-        do {
-            result = await this.fill();
-            depth = depth + 1;
-        } while (depth < 10 && !this._siblingChanged && result && !this.isDisposed)
+        let canFillMore;
         this._siblingChanged = false;
+        do {
+            canFillMore = await this.fill();
+            depth = depth + 1;
+        } while (depth < 10 && !this._siblingChanged && canFillMore && !this.isDisposed);
     }
 
     get isAtTop() {
@@ -73,6 +75,9 @@ export class GapTile extends SimpleTile {
     }
 
     updateNextSibling() {
+        // if the sibling of the gap changed while calling room.fill(),
+        // we intepret this as at least one new tile has been added to
+        // the timeline. See notifyVisible why this is important.
         this._siblingChanged = true;
     }
 
