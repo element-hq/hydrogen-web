@@ -65,11 +65,13 @@ export class MessageComposer extends TemplateView {
             t.button({
                 className: "send",
                 title: vm.i18n`Send`,
-                disabled: vm => !vm.canSend,
                 onClick: () => this._trySend(),
             }, vm.i18n`Send`),
         ]);
-        return t.div({ className: "MessageComposer" }, [replyPreview, input]);
+        return t.div({ className: {
+            MessageComposer: true,
+            MessageComposer_canSend: vm => vm.canSend
+        } }, [replyPreview, input]);
     }
 
     unmount() {

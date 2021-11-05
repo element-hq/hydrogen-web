@@ -579,8 +579,12 @@ a {
     background-position: center;
 }
 
-.MessageComposer_input > button.send:disabled {
-    background-color: #E3E8F0;
+.MessageComposer.MessageComposer_canSend button.sendFile {
+    display: none;
+}
+
+.MessageComposer:not(.MessageComposer_canSend) button.send {
+    display: none;
 }
 
 .SettingsBody {
