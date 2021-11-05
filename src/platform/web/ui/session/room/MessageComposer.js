@@ -117,7 +117,6 @@ export class MessageComposer extends TemplateView {
             return;
         }
         this._rafResizeHandle = window.requestAnimationFrame(() => {
-            this._input.style.height = "auto";
             const scrollHeight = this._input.scrollHeight;
             this._input.style.height = `${scrollHeight}px`;
             this._rafResizeHandle = undefined;
