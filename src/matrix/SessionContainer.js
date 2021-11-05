@@ -248,6 +248,7 @@ export class SessionContainer {
         await this._session.load(log);
         if (dehydratedDevice) {
             await log.wrap("dehydrateIdentity", log => this._session.dehydrateIdentity(dehydratedDevice, log));
+            await this._session.setupDehydratedDevice(dehydratedDevice.key, log);
         } else if (!this._session.hasIdentity) {
             this._status.set(LoadStatus.SessionSetup);
             await log.wrap("createIdentity", log => this._session.createIdentity(log));
