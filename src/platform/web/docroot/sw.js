@@ -68,7 +68,7 @@ async function purgeOldCaches() {
     }
 }
 
-self.addEventListener('fetch', async (event) => {
+self.addEventListener('fetch', (event) => {
     if (event.request.method === "GET") {
         event.respondWith(handleRequest(event.request));
     }
