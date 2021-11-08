@@ -69,6 +69,9 @@ async function purgeOldCaches() {
 }
 
 self.addEventListener('fetch', (event) => {
+    if (event.request.url.indexOf("upload") !== -1) {
+        return;
+    }
     event.respondWith(handleRequest(event.request));
 });
 
