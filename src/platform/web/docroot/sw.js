@@ -69,12 +69,9 @@ async function purgeOldCaches() {
 }
 
 self.addEventListener('fetch', async (event) => {
-    if (event.request.method === "POST" &&
-        (await event.request.blob()).type !== "application/json" &&
-        event.request.body) {
-        return;
+    if (event.request.method === "GET") {
+        event.respondWith(handleRequest(event.request));
     }
-    event.respondWith(handleRequest(event.request));
 });
 
 function isCacheableThumbnail(url) {
