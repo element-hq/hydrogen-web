@@ -17,8 +17,12 @@ limitations under the License.
 
 import {LogItem} from "./LogItem.js";
 import {LogLevel, LogFilter} from "./LogFilter.js";
+import {Platform} from "../platform/web/Platform.js";
 
 export class BaseLogger {
+    protected _openItems: Set<LogItem>;
+    protected _platform: Platform;
+
     constructor({platform}) {
         this._openItems = new Set();
         this._platform = platform;
