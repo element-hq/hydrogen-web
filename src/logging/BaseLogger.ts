@@ -19,6 +19,9 @@ import {LogItem} from "./LogItem.js";
 import {LogLevel, LogFilter} from "./LogFilter.js";
 import {Platform} from "../platform/web/Platform.js";
 
+// todo: move this to LogItem?
+type LabelOrValues = string | {l: string; [key: string]: any};
+
 export abstract class BaseLogger {
     protected _openItems: Set<LogItem>;
     protected _platform: Platform;
@@ -28,14 +31,14 @@ export abstract class BaseLogger {
         this._platform = platform;
     }
 
-    log(labelOrValues, logLevel = LogLevel.Info) {
+    log(labelOrValues: LabelOrValues, logLevel: number = LogLevel.Info) {
         const item = new LogItem(labelOrValues, logLevel, null, this);
         item._end = item._start;
         this._persistItem(item, null, false);
     }
 
     /** if item is a log item, wrap the callback in a child of it, otherwise start a new root log item. */
-    wrapOrRun(item, labelOrValues, callback, logLevel = null, filterCreator = null) {
+    wrapOrRun(item, labelOrValues: LabelOrValues, callback, logLevel = null, filterCreator = null) {
         if (item) {
             return item.wrap(labelOrValues, callback, logLevel, filterCreator);
         } else {
@@ -48,7 +51,7 @@ export abstract class BaseLogger {
     Useful to pair with LogItem.refDetached.
 
     @return {LogItem} the log item added, useful to pass to LogItem.refDetached */
-    runDetached(labelOrValues, callback, logLevel = null, filterCreator = null) {
+    runDetached(labelOrValues: LabelOrValues, callback, logLevel = null, filterCreator = null) {
         if (logLevel === null) {
             logLevel = LogLevel.Info;
         }
@@ -60,7 +63,7 @@ export abstract class BaseLogger {
     /** run a callback wrapped in a log operation.
     Errors and duration are transparently logged, also for async operations.
     Whatever the callback returns is returned here. */
-    run(labelOrValues, callback, logLevel = null, filterCreator = null) {
+    run(labelOrValues: LabelOrValues, callback, logLevel = null, filterCreator = null) {
         if (logLevel === null) {
             logLevel = LogLevel.Info;
         }
