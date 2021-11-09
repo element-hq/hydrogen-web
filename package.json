@@ -31,6 +31,7 @@
     "@babel/standalone": "^7.15.8",
     "@rollup/plugin-babel": "^5.1.0",
     "@rollup/plugin-multi-entry": "^4.0.0",
+    "@rollup/pluginutils": "^4.1.1",
     "@typescript-eslint/eslint-plugin": "^4.29.2",
     "@typescript-eslint/parser": "^4.29.2",
     "@vitejs/plugin-legacy": "^1.6.1",

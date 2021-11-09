@@ -1,7 +1,10 @@
-const { build } = require("vite");
 const path = require("path");
-let babel; // big import, only do so when used below
+const {build} = require("vite");
+const {babel} = require('@rollup/plugin-babel');
+const {createFilter} = require("@rollup/pluginutils");
+
 const VIRTUAL_ENTRY = "hydrogen:legacy-entry";
+const NODE_MODULES_NEEDING_TRANSPILATION = ["es6-promise"];
 
 module.exports = function legacyBuild(entryModuleId, entryImportReplacements, chunkName, extraImports) {
     let parentRoot;
@@ -26,7 +29,7 @@ module.exports = function legacyBuild(entryModuleId, entryImportReplacements, ch
             for (const [importSource, newImportSource] of Object.entries(entryImportReplacements)) {
                 code = replaceImport(this, code, importSource, newImportSource);
             }
-            code = addExtraImports(code, extraImports);
+            code = prependExtraImports(code, extraImports);
             const bundleCode = await buildLegacyChunk(parentRoot, chunkName, code);
             legacyBundleRef = this.emitFile({
                 type: "asset",
@@ -55,7 +58,10 @@ module.exports = function legacyBuild(entryModuleId, entryImportReplacements, ch
     }
 }
 
-
+/** we replace the imports ourselves instead of relying on rollup-alias or similar, because
+ * we only want to replace imports in the entry module, not anywhere in the import tree.
+ * This allows to create sub classes for the legacy build that can still import
+ * the non-legacy class as a base class, like LegacyPlatform does with Platform.*/
 function replaceImport(pluginCtx, code, importSource, newImportSource) {
     const ast = pluginCtx.parse(code);
     for (const node of ast.body) {
@@ -70,31 +76,66 @@ function replaceImport(pluginCtx, code, importSource, newImportSource) {
     throw new Error(`Could not find import ${JSON.stringify(importSource)} to replace`);
 }
 
-function addExtraImports(code, extraImports) {
+function prependExtraImports(code, extraImports) {
     return extraImports.map(i => `import ${JSON.stringify(i)};`).join("\n") + code;
 }
 
 async function buildLegacyChunk(root, chunkName, code) {
-    // // compile down to whatever IE 11 needs
-    // const babelPlugin = babel.getBabelOutputPlugin({
-    //     // babelHelpers: 'bundled',
-    //     exclude: 'node_modules/**',
-    //     presets: [
-    //         [
-    //             "@babel/preset-env",
-    //             {
-    //                 useBuiltIns: "entry",
-    //                 corejs: "3.4",
-    //                 targets: "IE 11",
-    //                 // we provide our own promise polyfill (es6-promise)
-    //                 // with support for synchronous flushing of
-    //                 // the queue for idb where needed 
-    //                 exclude: ["es.promise", "es.promise.all-settled", "es.promise.finally"]
-    //             }
-    //         ]
-    //     ]
-    // });
-    // babelPlugin.enforce = "post";
+    const projectRootDir = path.resolve(path.join(root, "../../.."));
+    const nodeModulesDir = path.join(projectRootDir, "node_modules");
+    const defaultFilter = createFilter([], [], {resolve: projectRootDir});
+    const transpiledModuleDirs = NODE_MODULES_NEEDING_TRANSPILATION.map(m => {
+        return path.join(nodeModulesDir, m);
+    });
+
+    const filterModule = id => {
+        if (!defaultFilter(id)) {
+            return false;
+        }
+        if (transpiledModuleDirs.some(d => id.startsWith(d))) {
+            return true;
+        }
+        if (id.startsWith(nodeModulesDir)) {
+            return false;
+        }
+        return true;
+    };
+    // compile down to whatever IE 11 needs
+    const babelPlugin = babel({
+        babelrc: false,
+        filter: filterModule,
+        //exclude: 'node_modules/**',
+        babelHelpers: 'bundled',
+        presets: [
+            [
+                "@babel/preset-env",
+                {
+                    useBuiltIns: "entry",
+                    corejs: "3.4",
+                    targets: "IE 11",
+                    // we provide our own promise polyfill (es6-promise)
+                    // with support for synchronous flushing of
+                    // the queue for idb where needed 
+                    exclude: ["es.promise", "es.promise.all-settled", "es.promise.finally"]
+                }
+            ]
+        ]
+    });
+    const resolveEntryPlugin = {
+        name: "hydrogen:resolve-legacy-entry",
+        resolveId(id, importer) {
+            if (id === VIRTUAL_ENTRY) {
+                return id;
+            } else if (importer === VIRTUAL_ENTRY && id.startsWith("./")) {
+                return this.resolve(path.join(root, id));
+            }
+        },
+        load(id) {
+            if (id === VIRTUAL_ENTRY) {
+                return code;
+            }
+        },
+    };
     const bundle = await build({
         root,
         configFile: false,
@@ -116,48 +157,11 @@ async function buildLegacyChunk(root, chunkName, code) {
             },
         },
         plugins: [
-            {
-                name: "hydrogen:resolve-legacy-entry",
-                resolveId(id, importer) {
-                    if (id === VIRTUAL_ENTRY) {
-                        return id;
-                    } else if (importer === VIRTUAL_ENTRY && id.startsWith("./")) {
-                        return this.resolve(path.join(root, id));
-                    }
-                },
-                load(id) {
-                    if (id === VIRTUAL_ENTRY) {
-                        return code;
-                    }
-                },
-            }
+            resolveEntryPlugin,
+            babelPlugin
         ]
     });
     const assets = Array.isArray(bundle.output) ? bundle.output : [bundle.output];
     const mainChunk = assets.find(a => a.name === chunkName);
-    
-    if (!babel) {
-        babel = require('@babel/standalone');
-    }
-    const {code: babelCode} = babel.transform(mainChunk.code, {
-        babelrc: false,
-        configFile: false,
-        presets: [
-            [
-                "env",
-                {
-                    useBuiltIns: "usage",
-                    modules: false,
-                    corejs: "3.4",
-                    targets: "IE 11",
-                    // we provide our own promise polyfill (es6-promise)
-                    // with support for synchronous flushing of
-                    // the queue for idb where needed 
-                    exclude: ["es.promise", "es.promise.all-settled", "es.promise.finally"]
-                }
-            ]
-        ]
-    });
-    console.log("code", babelCode.length);
-    return babelCode;
+    return mainChunk.code;
 }
