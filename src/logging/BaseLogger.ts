@@ -23,11 +23,10 @@ import {Platform} from "../platform/web/Platform.js";
 type LabelOrValues = string | {l: string; [key: string]: unknown};
 
 export abstract class BaseLogger {
-    protected _openItems: Set<LogItem>;
+    protected _openItems: Set<LogItem> = new Set();
     protected _platform: Platform;
 
     constructor({platform}) {
-        this._openItems = new Set();
         this._platform = platform;
     }
 
