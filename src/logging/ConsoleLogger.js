@@ -19,6 +19,10 @@ export class ConsoleLogger extends BaseLogger {
     _persistItem(item) {
         printToConsole(item);
     }
+
+    export() {
+        throw new Error("Cannot export from ConsoleLogger");
+    }
 }
 
 const excludedKeysFromTable = ["l", "id"];
