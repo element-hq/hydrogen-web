@@ -20,7 +20,7 @@ import {LogLevel, LogFilter} from "./LogFilter.js";
 import {Platform} from "../platform/web/Platform.js";
 
 // todo: move this to LogItem?
-type LabelOrValues = string | {l: string; [key: string]: any};
+type LabelOrValues = string | {l: string; [key: string]: unknown};
 
 export abstract class BaseLogger {
     protected _openItems: Set<LogItem>;
