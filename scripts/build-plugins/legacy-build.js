@@ -103,14 +103,14 @@ async function buildLegacyChunk(root, chunkName, code) {
     // compile down to whatever IE 11 needs
     const babelPlugin = babel({
         babelrc: false,
-        filter: filterModule,
         extensions: [".js", ".ts"],
         babelHelpers: 'bundled',
         presets: [
             [
                 "@babel/preset-env",
                 {
-                    useBuiltIns: "entry",
+                    modules: false,
+                    useBuiltIns: "usage",
                     corejs: "3.4",
                     targets: "IE 11",
                     // we provide our own promise polyfill (es6-promise)
@@ -147,11 +147,12 @@ async function buildLegacyChunk(root, chunkName, code) {
             assetsInlineLimit: 0,
             polyfillModulePreload: false,
             rollupOptions: {
+                external: id => !filterModule(id),
                 input: {
                     [chunkName]: VIRTUAL_ENTRY
                 },
                 output: {
-                    format: "iife",
+                    format: "es",
                     manualChunks: undefined
                 }
             },
