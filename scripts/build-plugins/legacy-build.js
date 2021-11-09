@@ -104,7 +104,7 @@ async function buildLegacyChunk(root, chunkName, code) {
     const babelPlugin = babel({
         babelrc: false,
         filter: filterModule,
-        //exclude: 'node_modules/**',
+        extensions: [".js", ".ts"],
         babelHelpers: 'bundled',
         presets: [
             [
