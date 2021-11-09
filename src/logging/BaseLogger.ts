@@ -15,16 +15,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {LogItem} from "./LogItem.js";
+import {LogItem, LabelOrValues, FilterCreator} from "./LogItem";
 import {LogLevel, LogFilter} from "./LogFilter.js";
 import {Platform} from "../platform/web/Platform.js";
 
-// todo: move this to LogItem?
-type LabelOrValues = string | {l: string; [key: string]: unknown};
 type LogCallback = (item: LogItem) => Promise<unknown> | undefined;
-// todo: this should be an enum
-type LogLevel = number | null;
-type FilterCreator = ((filter: LogFilter, item: LogItem) => LogFilter) | null;
 
 export abstract class BaseLogger {
     protected _openItems: Set<LogItem> = new Set();
@@ -36,7 +31,7 @@ export abstract class BaseLogger {
 
     log(labelOrValues: LabelOrValues, logLevel: number = LogLevel.Info) {
         const item = new LogItem(labelOrValues, logLevel, null, this);
-        item._end = item._start;
+        item.end = item.start;
         this._persistItem(item, null, false);
     }
 
@@ -146,7 +141,7 @@ export abstract class BaseLogger {
         return LogLevel;
     }
 
-    _now() {
+    _now(): number {
         return this._platform.clock.now();
     }
 
