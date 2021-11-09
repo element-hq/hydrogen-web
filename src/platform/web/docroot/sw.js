@@ -69,6 +69,11 @@ async function purgeOldCaches() {
 }
 
 self.addEventListener('fetch', (event) => {
+    /*
+    service worker shouldn't handle xhr uploads because otherwise
+    the progress events won't fire.
+    This has to do with xhr not being supported in service workers.
+    */
     if (event.request.method === "GET") {
         event.respondWith(handleRequest(event.request));
     }
