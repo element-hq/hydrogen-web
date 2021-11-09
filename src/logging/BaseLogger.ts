@@ -19,7 +19,7 @@ import {LogItem} from "./LogItem.js";
 import {LogLevel, LogFilter} from "./LogFilter.js";
 import {Platform} from "../platform/web/Platform.js";
 
-export class BaseLogger {
+export abstract class BaseLogger {
     protected _openItems: Set<LogItem>;
     protected _platform: Platform;
 
@@ -131,13 +131,9 @@ export class BaseLogger {
         this._openItems.clear();
     }
 
-    _persistItem() {
-        throw new Error("not implemented");
-    }
+    abstract _persistItem(item: LogItem, filter?: LogFilter, forced?: boolean): void;
 
-    async export() {
-        throw new Error("not implemented");
-    }
+    abstract export(): void;
 
     // expose log level without needing 
     get level() {
