@@ -39,7 +39,7 @@ type LogItemValues = LogItemWithLabel | LogItemNetwork | LogItemRef;
 
 export type LabelOrValues = string | LogItemValues;
 export type FilterCreator = ((filter: LogFilter, item: LogItem) => LogFilter) | null;
-export type LogCallback = (item: LogItem) => Promise<unknown> | undefined;
+export type LogCallback = (item: LogItem) => unknown;
 
 export class LogItem {
     public start: number;
