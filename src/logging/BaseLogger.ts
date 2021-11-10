@@ -68,7 +68,7 @@ export abstract class BaseLogger {
         return this._run(item, callback, logLevel!, filterCreator, true);
     }
 
-    _run(item: LogItem, callback: LogCallback, logLevel: number, filterCreator: FilterCreator, shouldThrow: boolean) {
+    _run(item: LogItem, callback: LogCallback, logLevel: LogLevel, filterCreator: FilterCreator, shouldThrow: boolean) {
         this._openItems.add(item);
 
         const finishItem = () => {
