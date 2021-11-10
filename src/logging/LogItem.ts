@@ -18,7 +18,25 @@ limitations under the License.
 import {BaseLogger} from "./BaseLogger";
 import {LogLevel, LogFilter} from "./LogFilter";
 
-type LogItemValues = {l: string; [key: string]: unknown};
+type LogItemWithLabel = {
+    l: string;
+    [key: string]: unknown;
+};
+
+type LogItemNetwork = {
+    t: "network";
+    method: string;
+    url: string;
+    [key: string]: unknown;
+}
+
+type LogItemRef = {
+    ref: number;
+    [key: string]: unknown;
+}
+
+type LogItemValues = LogItemWithLabel | LogItemNetwork | LogItemRef;
+
 export type LabelOrValues = string | LogItemValues;
 export type FilterCreator = ((filter: LogFilter, item: LogItem) => LogFilter) | null;
 export type LogCallback = (item: LogItem) => Promise<unknown> | undefined;
@@ -59,7 +77,7 @@ export class LogItem {
     This is useful if the referenced operation can't be awaited. */
     refDetached(logItem: LogItem, logLevel: LogLevel | null = null) {
         logItem.ensureRefId();
-        return this.log({ref: logItem._values.refId}, logLevel);
+        return this.log({ref: logItem._values.refId as number}, logLevel);
     }
 
     ensureRefId() {
@@ -114,7 +132,7 @@ export class LogItem {
         item.end = item.start;
     }
 
-    set(key, value) {
+    set(key: string | object, value: unknown) {
         if(typeof key === "object") {
             const values = key;
             Object.assign(this._values, values);
