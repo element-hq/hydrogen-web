@@ -1,7 +1,10 @@
 const path = require("path");
 const {build} = require("vite");
-const {babel} = require('@rollup/plugin-babel');
+const {babel, getBabelOutputPlugin} = require('@rollup/plugin-babel');
 const {createFilter} = require("@rollup/pluginutils");
+const { rollup } = require('rollup');
+const { nodeResolve } = require('@rollup/plugin-node-resolve');
+const commonjs = require('@rollup/plugin-commonjs');
 
 const VIRTUAL_ENTRY = "hydrogen:legacy-entry";
 const NODE_MODULES_NEEDING_TRANSPILATION = ["es6-promise"];
@@ -92,6 +95,10 @@ async function buildLegacyChunk(root, chunkName, code) {
         if (!defaultFilter(id)) {
             return false;
         }
+        if (id.endsWith("?url") || id.endsWith("?raw")) {
+            // TODO is this needed
+            return true;
+        }
         if (transpiledModuleDirs.some(d => id.startsWith(d))) {
             return true;
         }
@@ -101,10 +108,11 @@ async function buildLegacyChunk(root, chunkName, code) {
         return true;
     };
     // compile down to whatever IE 11 needs
-    const babelPlugin = babel({
+    const babelPlugin = getBabelOutputPlugin({
         babelrc: false,
+        compact: false,
         extensions: [".js", ".ts"],
-        babelHelpers: 'bundled',
+        // babelHelpers: 'bundled',
         presets: [
             [
                 "@babel/preset-env",
@@ -121,21 +129,6 @@ async function buildLegacyChunk(root, chunkName, code) {
             ]
         ]
     });
-    const resolveEntryPlugin = {
-        name: "hydrogen:resolve-legacy-entry",
-        resolveId(id, importer) {
-            if (id === VIRTUAL_ENTRY) {
-                return id;
-            } else if (importer === VIRTUAL_ENTRY && id.startsWith("./")) {
-                return this.resolve(path.join(root, id));
-            }
-        },
-        load(id) {
-            if (id === VIRTUAL_ENTRY) {
-                return code;
-            }
-        },
-    };
     const bundle = await build({
         root,
         configFile: false,
@@ -152,17 +145,69 @@ async function buildLegacyChunk(root, chunkName, code) {
                     [chunkName]: VIRTUAL_ENTRY
                 },
                 output: {
-                    format: "es",
+                    format: "esm",
                     manualChunks: undefined
-                }
+                },
+                makeAbsoluteExternalsRelative: false,
             },
         },
         plugins: [
-            resolveEntryPlugin,
+            memoryBabelInputPlugin(VIRTUAL_ENTRY, root, code),
             babelPlugin
         ]
     });
     const assets = Array.isArray(bundle.output) ? bundle.output : [bundle.output];
     const mainChunk = assets.find(a => a.name === chunkName);
-    return mainChunk.code;
+    const babelCode = mainChunk.code;
+    const bundle2 = await rollup({
+        plugins: [
+            memoryBabelInputPlugin(VIRTUAL_ENTRY, root, babelCode),
+            overridesAsRollupPlugin(new Map(
+                [["safe-buffer", "./scripts/package-overrides/safe-buffer/index.js"],
+                ["buffer", "./scripts/package-overrides/buffer/index.js"]]), projectRootDir),
+            commonjs(),
+            nodeResolve(),
+        ],
+        input: {
+            [chunkName]: VIRTUAL_ENTRY
+        }
+    });
+    const {output} = await bundle2.generate({
+        format: 'iife',
+        name: `hydrogen`
+    });
+    const bundledCode = output[0].code;
+    return bundledCode;
+}
+
+function memoryBabelInputPlugin(entryName, dir, code) {
+    return {
+        name: "hydrogen:resolve-legacy-entry",
+        resolveId(id, importer) {
+            if (id === entryName) {
+                return id;
+            } else if (importer === entryName && id.startsWith("./")) {
+                return this.resolve(path.join(dir, id));
+            }
+        },
+        load(id) {
+            if (id === entryName) {
+                return code;
+            }
+        },
+    }
+}
+
+function overridesAsRollupPlugin(mapping, basedir) {
+    return {
+        name: "rewrite-imports",
+        async resolveId (source, importer) {
+            const target = mapping.get(source);
+            if (target) {
+                const resolvedTarget = await this.resolve(path.join(basedir, target));
+                console.log("resolving", source, resolvedTarget);
+                return resolvedTarget;
+            }
+        }
+    };
 }
