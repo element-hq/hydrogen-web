@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 import {LogItem, LabelOrValues, FilterCreator, LogCallback} from "./LogItem";
-import {LogLevel, LogFilter} from "./LogFilter";
+import {LogLevel, LogFilter, LogLevelOrNull} from "./LogFilter";
 import {Platform} from "../platform/web/Platform.js";
 
 
@@ -28,14 +28,14 @@ export abstract class BaseLogger {
         this._platform = platform;
     }
 
-    log(labelOrValues: LabelOrValues, logLevel: number = LogLevel.Info) {
+    log(labelOrValues: LabelOrValues, logLevel: LogLevel = LogLevel.Info) {
         const item = new LogItem(labelOrValues, logLevel, null, this);
         item.end = item.start;
         this._persistItem(item, null, false);
     }
 
     /** if item is a log item, wrap the callback in a child of it, otherwise start a new root log item. */
-    wrapOrRun(item: LogItem, labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevel = null, filterCreator: FilterCreator = null) {
+    wrapOrRun(item: LogItem, labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator: FilterCreator = null) {
         if (item) {
             return item.wrap(labelOrValues, callback, logLevel, filterCreator);
         } else {
@@ -48,7 +48,7 @@ export abstract class BaseLogger {
     Useful to pair with LogItem.refDetached.
 
     @return {LogItem} the log item added, useful to pass to LogItem.refDetached */
-    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevel = null, filterCreator: FilterCreator = null) {
+    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator: FilterCreator = null) {
         if (logLevel === null) {
             logLevel = LogLevel.Info;
         }
@@ -60,7 +60,7 @@ export abstract class BaseLogger {
     /** run a callback wrapped in a log operation.
     Errors and duration are transparently logged, also for async operations.
     Whatever the callback returns is returned here. */
-    run(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevel = null, filterCreator: FilterCreator = null) {
+    run(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator: FilterCreator = null) {
         if (logLevel === null) {
             logLevel = LogLevel.Info;
         }
@@ -131,7 +131,7 @@ export abstract class BaseLogger {
         this._openItems.clear();
     }
 
-    abstract _persistItem(item: LogItem, filter?: LogFilter, forced?: boolean): void;
+    abstract _persistItem(item: LogItem, filter?: LogFilter | null, forced?: boolean): void;
 
     abstract export(): void;
 

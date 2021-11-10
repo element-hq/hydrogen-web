@@ -26,6 +26,8 @@ export enum LogLevel {
     Off
 }
 
+export type LogLevelOrNull = LogLevel | null;
+
 export class LogFilter {
     constructor(parentFilter) {
         this._parentFilter = parentFilter;

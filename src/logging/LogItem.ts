@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 import {BaseLogger} from "./BaseLogger";
-import {LogLevel, LogFilter} from "./LogFilter";
+import {LogLevel, LogLevelOrNull, LogFilter} from "./LogFilter";
 
 type LogItemWithLabel = {
     l: string;
@@ -64,18 +64,18 @@ export class LogItem {
     }
 
     /** start a new root log item and run it detached mode, see BaseLogger.runDetached */
-    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevel, filterCreator: FilterCreator) {
+    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull, filterCreator: FilterCreator) {
         return this._logger.runDetached(labelOrValues, callback, logLevel, filterCreator);
     }
 
     /** start a new detached root log item and log a reference to it from this item */
-    wrapDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevel, filterCreator: FilterCreator) {
+    wrapDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull, filterCreator: FilterCreator) {
         this.refDetached(this.runDetached(labelOrValues, callback, logLevel, filterCreator));
     }
 
     /** logs a reference to a different log item, usually obtained from runDetached.
     This is useful if the referenced operation can't be awaited. */
-    refDetached(logItem: LogItem, logLevel: LogLevel | null = null) {
+    refDetached(logItem: LogItem, logLevel: LogLevelOrNull = null) {
         logItem.ensureRefId();
         return this.log({ref: logItem._values.refId as number}, logLevel);
     }
@@ -89,7 +89,7 @@ export class LogItem {
     /**
      * Creates a new child item and runs it in `callback`.
      */
-    wrap(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevel | null = null, filterCreator: FilterCreator = null) {
+    wrap(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator: FilterCreator = null) {
         const item = this.child(labelOrValues, logLevel, filterCreator);
         return item.run(callback);
     }
@@ -127,7 +127,7 @@ export class LogItem {
      * 
      * Hence, the child item is not returned.
      */
-    log(labelOrValues: LabelOrValues, logLevel: LogLevel | null = null) {
+    log(labelOrValues: LabelOrValues, logLevel: LogLevelOrNull = null) {
         const item = this.child(labelOrValues, logLevel, null);
         item.end = item.start;
     }
@@ -270,7 +270,7 @@ export class LogItem {
         return err;
     }
 
-    child(labelOrValues: LabelOrValues, logLevel: LogLevel | null, filterCreator: FilterCreator) {
+    child(labelOrValues: LabelOrValues, logLevel: LogLevelOrNull, filterCreator: FilterCreator) {
         if (this.end !== null) {
             console.trace("log item is finished, additional logs will likely not be recorded");
         }
