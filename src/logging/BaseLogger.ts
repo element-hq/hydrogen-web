@@ -15,9 +15,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {LogItem, LabelOrValues, FilterCreator, LogCallback} from "./LogItem";
-import {LogLevel, LogFilter, LogLevelOrNull} from "./LogFilter";
-import {Platform} from "../platform/web/Platform.js";
+import {LogItem} from "./LogItem";
+import {LogLevel, LogFilter} from "./LogFilter";
+import type {FilterCreator, LabelOrValues, LogCallback} from "./LogItem";
+import type {LogLevelOrNull} from "./LogFilter";
+// todo: should this import be here just for getting the type? should it instead be done when Platform.js --> Platform.ts?
+import type {Platform} from "../platform/web/Platform.js";
 
 
 export abstract class BaseLogger {

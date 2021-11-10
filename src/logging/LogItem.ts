@@ -15,8 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseLogger} from "./BaseLogger";
-import {LogLevel, LogLevelOrNull, LogFilter} from "./LogFilter";
+import {LogLevel, LogFilter} from "./LogFilter";
+import type {LogLevelOrNull} from "./LogFilter";
+import type {BaseLogger} from "./BaseLogger";
 
 type LogItemWithLabel = {
     l: string;

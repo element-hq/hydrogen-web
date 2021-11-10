@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {LogItem} from "./LogItem";
+import type {LogItem} from "./LogItem";
 
 export enum LogLevel {
     All = 1,
