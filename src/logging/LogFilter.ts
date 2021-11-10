@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {LogItem} from "./LogItem";
 
 export enum LogLevel {
     All = 1,
@@ -29,12 +30,14 @@ export enum LogLevel {
 export type LogLevelOrNull = LogLevel | null;
 
 export class LogFilter {
-    constructor(parentFilter) {
+    private _min: LogLevelOrNull = null;
+    private _parentFilter?: LogFilter;
+
+    constructor(parentFilter?: LogFilter) {
         this._parentFilter = parentFilter;
-        this._min = null;
     }
 
-    filter(item, children) {
+    filter(item: LogItem, children: Array<unknown> | null) {
         if (this._parentFilter) {
             if (!this._parentFilter.filter(item, children)) {
                 return false;
@@ -49,7 +52,7 @@ export class LogFilter {
     }
 
     /* methods to build the filter */
-    minLevel(logLevel) {
+    minLevel(logLevel: LogLevel) {
         this._min = logLevel;
         return this;
     }
