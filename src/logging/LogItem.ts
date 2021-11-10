@@ -43,7 +43,7 @@ export type FilterCreator = ((filter: LogFilter, item: LogItem) => LogFilter) | 
 export type LogCallback = (item: LogItem) => unknown;
 
 export class LogItem {
-    public start: number;
+    public readonly start: number;
     public logLevel: LogLevel;
     public error: Error | null;
     public end: number | null;
