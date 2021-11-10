@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 import {LogItem, LabelOrValues, FilterCreator, LogCallback} from "./LogItem";
-import {LogLevel, LogFilter} from "./LogFilter.js";
+import {LogLevel, LogFilter} from "./LogFilter";
 import {Platform} from "../platform/web/Platform.js";
 
 

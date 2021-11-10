@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 import {BaseLogger} from "./BaseLogger";
-import {LogLevel, LogFilter} from "./LogFilter.js";
+import {LogLevel, LogFilter} from "./LogFilter";
 
 type LogItemValues = {l: string; [key: string]: unknown};
 export type LabelOrValues = string | LogItemValues;
@@ -84,14 +84,14 @@ export class LogItem {
         }
     }
 
-    durationWithoutType(type) {
+    durationWithoutType(type: string) {
         if (this.duration) {
             return this.duration - this.durationOfType(type);
         }
         return null;
     }
 
-    durationOfType(type) {
+    durationOfType(type: string) {
         if (this._values.t === type) {
             return this.duration;
         } else if (this._children) {

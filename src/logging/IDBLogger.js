@@ -22,7 +22,7 @@ import {
     iterateCursor,
     fetchResults,
 } from "../matrix/storage/idb/utils";
-import {BaseLogger} from "./BaseLogger.js";
+import {BaseLogger} from "./BaseLogger";
 
 export class IDBLogger extends BaseLogger {
     constructor(options) {
