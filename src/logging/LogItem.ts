@@ -38,6 +38,20 @@ type LogItemRef = {
 
 type LogItemValues = LogItemWithLabel | LogItemNetwork | LogItemRef;
 
+interface ISerializedItem {
+    s: number;
+    d: number | null;
+    v: LogItemValues;
+    l: LogLevel;
+    e?: {
+        stack?: string;
+        name: string;
+        message: string;
+    };
+    f?: boolean;
+    c?: Array<ISerializedItem>;
+};
+
 export type LabelOrValues = string | LogItemValues;
 export type FilterCreator = ((filter: LogFilter, item: LogItem) => LogFilter) | null;
 export type LogCallback = (item: LogItem) => unknown;
@@ -150,22 +164,9 @@ export class LogItem {
                 console.error("Error creating log filter", err);
             }
         }
-        interface Item {
-            s: number;
-            d: number | null;
-            v: LogItemValues;
-            l: LogLevel;
-            e?: {
-                stack: string | undefined;
-                name: string;
-                message: string;
-            };
-            f?: boolean;
-            c?: Array<Item>;
-        };
-        let children: Array<Item> | null = null;
+        let children: Array<ISerializedItem> | null = null;
         if (this._children !== null) {
-            children = this._children.reduce((array: Array<Item>, c) => {
+            children = this._children.reduce((array: Array<ISerializedItem>, c) => {
                 const s = c.serialize(filter, this.start, false);
                 if (s) {
                     if (array === null) {
@@ -180,7 +181,7 @@ export class LogItem {
             return null;
         }
         // in (v)alues, (l)abel and (t)ype are also reserved.
-        const item: Item = {
+        const item: ISerializedItem = {
             // (s)tart
             s: parentStartTime === null ? this.start : this.start - parentStartTime,
             // (d)uration
