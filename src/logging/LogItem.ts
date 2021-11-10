@@ -85,7 +85,10 @@ export class LogItem {
     }
 
     durationWithoutType(type) {
-        return this.duration - this.durationOfType(type);
+        if (this.duration) {
+            return this.duration - this.durationOfType(type);
+        }
+        return null;
     }
 
     durationOfType(type) {
