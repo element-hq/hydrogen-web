@@ -15,11 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {LogItem, LabelOrValues, FilterCreator} from "./LogItem";
+import {LogItem, LabelOrValues, FilterCreator, LogCallback} from "./LogItem";
 import {LogLevel, LogFilter} from "./LogFilter.js";
 import {Platform} from "../platform/web/Platform.js";
 
-type LogCallback = (item: LogItem) => Promise<unknown> | undefined;
 
 export abstract class BaseLogger {
     protected _openItems: Set<LogItem> = new Set();
