@@ -34,7 +34,7 @@ export abstract class BaseLogger {
     log(labelOrValues: LabelOrValues, logLevel: LogLevel = LogLevel.Info) {
         const item = new LogItem(labelOrValues, logLevel, null, this);
         item.end = item.start;
-        this._persistItem(item, null, false);
+        this._persistItem(item, undefined, false);
     }
 
     /** if item is a log item, wrap the callback in a child of it, otherwise start a new root log item. */
@@ -134,7 +134,7 @@ export abstract class BaseLogger {
         this._openItems.clear();
     }
 
-    abstract _persistItem(item: LogItem, filter?: LogFilter | null, forced?: boolean): void;
+    abstract _persistItem(item: LogItem, filter?: LogFilter, forced?: boolean): void;
 
     abstract export(): void;
 
