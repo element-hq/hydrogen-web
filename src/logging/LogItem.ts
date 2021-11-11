@@ -19,25 +19,6 @@ import {LogLevel, LogFilter} from "./LogFilter";
 import type {LogLevelOrNull} from "./LogFilter";
 import type {BaseLogger} from "./BaseLogger";
 
-type LogItemWithLabel = {
-    l: string;
-    [key: string]: unknown;
-};
-
-type LogItemNetwork = {
-    t: "network";
-    method: string;
-    url: string;
-    [key: string]: unknown;
-}
-
-type LogItemRef = {
-    ref: number;
-    [key: string]: unknown;
-}
-
-type LogItemValues = LogItemWithLabel | LogItemNetwork | LogItemRef;
-
 interface ISerializedItem {
     s: number;
     d: number | null;
@@ -51,6 +32,16 @@ interface ISerializedItem {
     f?: boolean;
     c?: Array<ISerializedItem>;
 };
+
+type LogItemValues = {
+    l?: string;
+    t?: string;
+    id?: unknown;
+    status?: string | number;
+    refId?: number;
+    ref?: number;
+    [key: string]: any
+}
 
 export type LabelOrValues = string | LogItemValues;
 export type FilterCreator = ((filter: LogFilter, item: LogItem) => LogFilter) | null;
