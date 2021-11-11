@@ -156,7 +156,7 @@ export class LogItem {
         }
     }
 
-    serialize(filter: LogFilter, parentStartTime: number | null = null, forced: boolean) {
+    serialize(filter: LogFilter, parentStartTime: number | null = null, forced: boolean): ISerializedItem | null {
         if (this._filterCreator) {
             try {
                 filter = this._filterCreator(new LogFilter(filter), this);
