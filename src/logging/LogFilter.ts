@@ -37,7 +37,7 @@ export class LogFilter {
         this._parentFilter = parentFilter;
     }
 
-    filter(item: LogItem, children: Array<unknown> | null) {
+    filter(item: LogItem, children: Array<unknown> | null): boolean {
         if (this._parentFilter) {
             if (!this._parentFilter.filter(item, children)) {
                 return false;
@@ -52,7 +52,7 @@ export class LogFilter {
     }
 
     /* methods to build the filter */
-    minLevel(logLevel: LogLevel) {
+    minLevel(logLevel: LogLevel): LogFilter {
         this._min = logLevel;
         return this;
     }
