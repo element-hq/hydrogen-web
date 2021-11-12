@@ -23,8 +23,21 @@ import {
     fetchResults,
 } from "../matrix/storage/idb/utils";
 import {BaseLogger} from "./BaseLogger";
+import type {Interval} from "../platform/web/dom/Clock";
+import type {Platform} from "../platform/web/Platform.js";
+import type {BlobHandle} from "../platform/web/dom/BlobHandle.js";
+
+type QueuedItem = {
+    json: string;
+    id?: number;
+}
 
 export class IDBLogger extends BaseLogger {
+    private readonly _name: string;
+    private readonly _limit: number;
+    private readonly _flushInterval: Interval;
+    private _queuedItems: QueuedItem[];
+
     constructor(options) {
         super(options);
         const {name, flushInterval = 60 * 1000, limit = 3000} = options;
@@ -121,7 +134,7 @@ export class IDBLogger extends BaseLogger {
         try {
             const txn = db.transaction(["logs"], "readonly");
             const logs = txn.objectStore("logs");
-            const storedItems = await fetchResults(logs.openCursor(), () => false);
+            const storedItems: QueuedItem[] = await fetchResults(logs.openCursor(), () => false);
             const allItems = storedItems.concat(this._queuedItems);
             return new IDBLogExport(allItems, this, this._platform);
         } finally {
@@ -154,7 +167,11 @@ export class IDBLogger extends BaseLogger {
 }
 
 class IDBLogExport {
-    constructor(items, logger, platform) {
+    private readonly _items: QueuedItem[];
+    private readonly _logger: IDBLogger;
+    private readonly _platform: Platform;
+
+    constructor(items: QueuedItem[], logger: IDBLogger, platform: Platform) {
         this._items = items;
         this._logger = logger;
         this._platform = platform;
@@ -171,7 +188,7 @@ class IDBLogExport {
         return this._logger._removeItems(this._items);
     }
 
-    asBlob() {
+    asBlob(): BlobHandle {
         const log = {
             formatVersion: 1,
             appVersion: this._platform.updateService?.version,
@@ -179,7 +196,7 @@ class IDBLogExport {
         };
         const json = JSON.stringify(log);
         const buffer = this._platform.encoding.utf8.encode(json);
-        const blob = this._platform.createBlob(buffer, "application/json");
+        const blob: BlobHandle = this._platform.createBlob(buffer, "application/json");
         return blob;
     }
 }

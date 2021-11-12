@@ -21,7 +21,7 @@ import {SessionInfoStorage} from "../../matrix/sessioninfo/localstorage/SessionI
 import {SettingsStorage} from "./dom/SettingsStorage.js";
 import {Encoding} from "./utils/Encoding.js";
 import {OlmWorker} from "../../matrix/e2ee/OlmWorker.js";
-import {IDBLogger} from "../../logging/IDBLogger.js";
+import {IDBLogger} from "../../logging/IDBLogger";
 import {ConsoleLogger} from "../../logging/ConsoleLogger.js";
 import {RootView} from "./ui/RootView.js";
 import {Clock} from "./dom/Clock.js";
