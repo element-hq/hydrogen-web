@@ -50,7 +50,7 @@ export type LogCallback = (item: LogItem) => unknown;
 export class LogItem {
     public readonly start: number;
     public logLevel: LogLevel;
-    private _error: Error | null;
+    public error: Error | null;
     public end: number | null;
     private _values: LogItemValues;
     private _logger: BaseLogger;
@@ -63,7 +63,7 @@ export class LogItem {
         this.end = null;
         // (l)abel
         this._values = typeof labelOrValues === "string" ? {l: labelOrValues} : labelOrValues;
-        this._error = null;
+        this.error = null;
         this.logLevel = logLevel;
         this._children = null;
         this._filterCreator = filterCreator;
@@ -182,12 +182,12 @@ export class LogItem {
             // (l)evel
             l: this.logLevel
         };
-        if (this._error) {
+        if (this.error) {
             // (e)rror
             item.e = {
-                stack: this._error.stack,
-                name: this._error.name,
-                message: this._error.message.split("\n")[0]
+                stack: this.error.stack,
+                name: this.error.name,
+                message: this.error.message.split("\n")[0]
             };
         }
         if (forced) {
@@ -257,7 +257,7 @@ export class LogItem {
     }
 
     catch(err: Error) {
-        this._error = err;
+        this.error = err;
         this.logLevel = LogLevel.Error;
         this.finish();
         return err;
@@ -280,9 +280,5 @@ export class LogItem {
 
     get logger() {
         return this._logger;
-    }
-
-    get error() {
-        return this._error;
     }
 }
