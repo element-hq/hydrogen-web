@@ -38,7 +38,7 @@ export abstract class BaseLogger {
     }
 
     /** if item is a log item, wrap the callback in a child of it, otherwise start a new root log item. */
-    wrapOrRun(item: LogItem, labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator: FilterCreator = null) {
+    wrapOrRun(item: LogItem, labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator: FilterCreator = null): unknown {
         if (item) {
             return item.wrap(labelOrValues, callback, logLevel, filterCreator);
         } else {
@@ -51,7 +51,8 @@ export abstract class BaseLogger {
     Useful to pair with LogItem.refDetached.
 
     @return {LogItem} the log item added, useful to pass to LogItem.refDetached */
-    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator: FilterCreator = null) {
+    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator: FilterCreator = null): LogItem {
+        // todo: Remove jsdoc type?
         if (logLevel === null) {
             logLevel = LogLevel.Info;
         }
@@ -63,7 +64,7 @@ export abstract class BaseLogger {
     /** run a callback wrapped in a log operation.
     Errors and duration are transparently logged, also for async operations.
     Whatever the callback returns is returned here. */
-    run(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator: FilterCreator = null) {
+    run(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator: FilterCreator = null): unknown {
         if (logLevel === null) {
             logLevel = LogLevel.Info;
         }
@@ -71,7 +72,7 @@ export abstract class BaseLogger {
         return this._run(item, callback, logLevel!, filterCreator, true);
     }
 
-    _run(item: LogItem, callback: LogCallback, logLevel: LogLevel, filterCreator: FilterCreator, shouldThrow: boolean) {
+    _run(item: LogItem, callback: LogCallback, logLevel: LogLevel, filterCreator: FilterCreator, shouldThrow: boolean): unknown {
         this._openItems.add(item);
 
         const finishItem = () => {
@@ -139,7 +140,7 @@ export abstract class BaseLogger {
     abstract export(): void;
 
     // expose log level without needing 
-    get level() {
+    get level(): typeof LogLevel {
         return LogLevel;
     }
 
@@ -147,7 +148,7 @@ export abstract class BaseLogger {
         return this._platform.clock.now();
     }
 
-    _createRefId() {
+    _createRefId(): number {
         return Math.round(this._platform.random() * Number.MAX_SAFE_INTEGER);
     }
 }
