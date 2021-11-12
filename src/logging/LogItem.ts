@@ -21,7 +21,7 @@ import type {BaseLogger} from "./BaseLogger";
 
 interface ISerializedItem {
     s: number;
-    d: number | null;
+    d?: number;
     v: LogItemValues;
     l: LogLevel;
     e?: {
@@ -70,7 +70,7 @@ export class LogItem {
     }
 
     /** start a new root log item and run it detached mode, see BaseLogger.runDetached */
-    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull, filterCreator: FilterCreator) {
+    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull, filterCreator: FilterCreator): LogItem {
         return this._logger.runDetached(labelOrValues, callback, logLevel, filterCreator);
     }
 
@@ -83,7 +83,7 @@ export class LogItem {
     This is useful if the referenced operation can't be awaited. */
     refDetached(logItem: LogItem, logLevel: LogLevelOrNull = null) {
         logItem.ensureRefId();
-        return this.log({ref: logItem._values.refId as number}, logLevel);
+        this.log({ref: logItem._values.refId as number}, logLevel);
     }
 
     ensureRefId() {
@@ -100,27 +100,30 @@ export class LogItem {
         return item.run(callback);
     }
 
-    get duration() {
+    get duration(): number | undefined{
         if (this.end) {
             return this.end - this.start;
         } else {
-            return null;
+            return undefined;
         }
     }
 
-    durationWithoutType(type: string) {
-        if (this.duration) {
-            return this.duration - this.durationOfType(type);
+    durationWithoutType(type: string): number | undefined{
+        const durationOfType = this.durationOfType(type);
+        if (this.duration && durationOfType) {
+            return this.duration - durationOfType;
         }
-        return null;
     }
 
-    durationOfType(type: string) {
+    durationOfType(type: string): number | undefined {
         if (this._values.t === type) {
             return this.duration;
         } else if (this._children) {
             return this._children.reduce((sum, c) => {
-                return sum + c.durationOfType(type);
+                const duration = c.durationOfType(type);
+                if (duration) {
+                    return sum + duration;
+                }
             }, 0);
         } else {
             return 0;
@@ -213,11 +216,11 @@ export class LogItem {
      * @param  {Function} callback [description]
      * @return {[type]}            [description]
      */
-    run(callback: LogCallback) {
+    run(callback: LogCallback): unknown {
         if (this.end !== null) {
             console.trace("log item is finished, additional logs will likely not be recorded");
         }
-        let result;
+        let result: unknown;
         try {
             result = callback(this);
             if (result instanceof Promise) {
@@ -252,18 +255,18 @@ export class LogItem {
     }
 
     // expose log level without needing import everywhere
-    get level() {
+    get level(): typeof LogLevel {
         return LogLevel;
     }
 
-    catch(err: Error) {
+    catch(err: Error): Error {
         this.error = err;
         this.logLevel = LogLevel.Error;
         this.finish();
         return err;
     }
 
-    child(labelOrValues: LabelOrValues, logLevel: LogLevelOrNull, filterCreator: FilterCreator) {
+    child(labelOrValues: LabelOrValues, logLevel: LogLevelOrNull, filterCreator: FilterCreator): LogItem {
         if (this.end !== null) {
             console.trace("log item is finished, additional logs will likely not be recorded");
         }
