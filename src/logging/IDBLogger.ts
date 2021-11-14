@@ -154,7 +154,8 @@ export class IDBLogger extends BaseLogger {
             for (const item of items) {
                 const queuedIdx = this._queuedItems.findIndex(i => i.id === item.id);
                 if (queuedIdx === -1) {
-                    logs.delete(item.id);
+                    // todo: isn't id optional? do we need further checks here
+                    logs.delete(item.id!); // resolve questionable use of non-null assertion operator?
                 } else {
                     this._queuedItems.splice(queuedIdx, 1);
                 }
