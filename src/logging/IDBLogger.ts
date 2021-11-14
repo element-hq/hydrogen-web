@@ -51,18 +51,18 @@ export class IDBLogger extends BaseLogger {
         this._flushInterval = this._platform.clock.createInterval(() => this._tryFlush(), flushInterval);
     }
 
-    dispose() {
+    dispose(): void {
         window.removeEventListener("pagehide", this, false);
         this._flushInterval.dispose();
     }
 
-    handleEvent(evt: Event) {
+    handleEvent(evt: Event): void {
         if (evt.type === "pagehide") {
             this._finishAllAndFlush();
         }
     }
 
-    async _tryFlush() {
+    async _tryFlush(): Promise<void> {
         const db = await this._openDB();
         try {
             const txn = db.transaction(["logs"], "readwrite");
@@ -92,7 +92,7 @@ export class IDBLogger extends BaseLogger {
         }
     }
 
-    _finishAllAndFlush() {
+    _finishAllAndFlush(): void {
         this._finishOpenItems();
         this.log({l: "pagehide, closing logs", t: "navigation"});
         this._persistQueuedItems(this._queuedItems);
@@ -116,14 +116,14 @@ export class IDBLogger extends BaseLogger {
         return openDatabase(this._name, db => db.createObjectStore("logs", {keyPath: "id", autoIncrement: true}), 1);
     }
     
-    _persistItem(logItem: LogItem, filter: LogFilter, forced: boolean) {
+    _persistItem(logItem: LogItem, filter: LogFilter, forced: boolean): void {
         const serializedItem = logItem.serialize(filter, undefined, forced);
         this._queuedItems.push({
             json: JSON.stringify(serializedItem)
         });
     }
 
-    _persistQueuedItems(items: QueuedItem[]) {
+    _persistQueuedItems(items: QueuedItem[]): void {
         try {
             window.localStorage.setItem(`${this._name}_queuedItems`, JSON.stringify(items));
         } catch (e) {
@@ -146,7 +146,7 @@ export class IDBLogger extends BaseLogger {
         }
     }
 
-    async _removeItems(items: QueuedItem[]) {
+    async _removeItems(items: QueuedItem[]): Promise<void> {
         const db = await this._openDB();
         try {
             const txn = db.transaction(["logs"], "readwrite");
@@ -186,7 +186,7 @@ class IDBLogExport {
     /**
      * @return {Promise}
      */
-    removeFromStore() {
+    removeFromStore(): Promise<void> {
         return this._logger._removeItems(this._items);
     }
 

@@ -75,18 +75,18 @@ export class LogItem {
     }
 
     /** start a new detached root log item and log a reference to it from this item */
-    wrapDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull, filterCreator: FilterCreator) {
+    wrapDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull, filterCreator: FilterCreator): void {
         this.refDetached(this.runDetached(labelOrValues, callback, logLevel, filterCreator));
     }
 
     /** logs a reference to a different log item, usually obtained from runDetached.
     This is useful if the referenced operation can't be awaited. */
-    refDetached(logItem: LogItem, logLevel: LogLevelOrNull = null) {
+    refDetached(logItem: LogItem, logLevel: LogLevelOrNull = null): void {
         logItem.ensureRefId();
         this.log({ref: logItem._values.refId as number}, logLevel);
     }
 
-    ensureRefId() {
+    ensureRefId(): void {
         if (!this._values.refId) {
             this.set("refId", this._logger._createRefId());
         }
@@ -95,7 +95,7 @@ export class LogItem {
     /**
      * Creates a new child item and runs it in `callback`.
      */
-    wrap(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator: FilterCreator = null) {
+    wrap(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator: FilterCreator = null): unknown {
         const item = this.child(labelOrValues, logLevel, filterCreator);
         return item.run(callback);
     }
@@ -136,12 +136,12 @@ export class LogItem {
      * 
      * Hence, the child item is not returned.
      */
-    log(labelOrValues: LabelOrValues, logLevel: LogLevelOrNull = null) {
+    log(labelOrValues: LabelOrValues, logLevel: LogLevelOrNull = null): void {
         const item = this.child(labelOrValues, logLevel, null);
         item.end = item.start;
     }
 
-    set(key: string | object, value: unknown) {
+    set(key: string | object, value: unknown): void {
         if(typeof key === "object") {
             const values = key;
             Object.assign(this._values, values);
@@ -150,6 +150,7 @@ export class LogItem {
         }
     }
 
+    // todo: null or undefined here?
     serialize(filter: LogFilter, parentStartTime: number | null = null, forced: boolean): ISerializedItem | null {
         if (this._filterCreator) {
             try {
@@ -243,7 +244,7 @@ export class LogItem {
      * finished the item, recording the end time. After finishing, an item can't be modified anymore as it will be persisted.
      * @internal shouldn't typically be called by hand. allows to force finish if a promise is still running when closing the app
      */
-    finish() {
+    finish(): void {
         if (this.end === null) {
             if (this._children !== null) {
                 for(const c of this._children) {
@@ -281,7 +282,7 @@ export class LogItem {
         return item;
     }
 
-    get logger() {
+    get logger(): BaseLogger {
         return this._logger;
     }
 }
