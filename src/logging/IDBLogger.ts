@@ -26,6 +26,8 @@ import {BaseLogger} from "./BaseLogger";
 import type {Interval} from "../platform/web/dom/Clock";
 import type {Platform} from "../platform/web/Platform.js";
 import type {BlobHandle} from "../platform/web/dom/BlobHandle.js";
+import type {LogItem} from "./LogItem";
+import type {LogFilter} from "./LogFilter";
 
 type QueuedItem = {
     json: string;
@@ -54,7 +56,7 @@ export class IDBLogger extends BaseLogger {
         this._flushInterval.dispose();
     }
 
-    handleEvent(evt) {
+    handleEvent(evt: Event) {
         if (evt.type === "pagehide") {
             this._finishAllAndFlush();
         }
@@ -96,7 +98,7 @@ export class IDBLogger extends BaseLogger {
         this._persistQueuedItems(this._queuedItems);
     }
 
-    _loadQueuedItems() {
+    _loadQueuedItems(): QueuedItem[] {
         const key = `${this._name}_queuedItems`;
         try {
             const json = window.localStorage.getItem(key);
@@ -110,18 +112,18 @@ export class IDBLogger extends BaseLogger {
         return [];
     }
 
-    _openDB() {
+    _openDB(): Promise<IDBDatabase> {
         return openDatabase(this._name, db => db.createObjectStore("logs", {keyPath: "id", autoIncrement: true}), 1);
     }
     
-    _persistItem(logItem, filter, forced) {
-        const serializedItem = logItem.serialize(filter, forced);
+    _persistItem(logItem: LogItem, filter: LogFilter, forced: boolean) {
+        const serializedItem = logItem.serialize(filter, undefined, forced);
         this._queuedItems.push({
             json: JSON.stringify(serializedItem)
         });
     }
 
-    _persistQueuedItems(items) {
+    _persistQueuedItems(items: QueuedItem[]) {
         try {
             window.localStorage.setItem(`${this._name}_queuedItems`, JSON.stringify(items));
         } catch (e) {
@@ -129,7 +131,7 @@ export class IDBLogger extends BaseLogger {
         }
     }
 
-    async export() {
+    async export(): Promise<IDBLogExport> {
         const db = await this._openDB();
         try {
             const txn = db.transaction(["logs"], "readonly");
@@ -144,7 +146,7 @@ export class IDBLogger extends BaseLogger {
         }
     }
 
-    async _removeItems(items) {
+    async _removeItems(items: QueuedItem[]) {
         const db = await this._openDB();
         try {
             const txn = db.transaction(["logs"], "readwrite");
@@ -177,7 +179,7 @@ class IDBLogExport {
         this._platform = platform;
     }
     
-    get count() {
+    get count(): number {
         return this._items.length;
     }
 
@@ -195,7 +197,7 @@ class IDBLogExport {
             items: this._items.map(i => JSON.parse(i.json))
         };
         const json = JSON.stringify(log);
-        const buffer = this._platform.encoding.utf8.encode(json);
+        const buffer: Uint8Array = this._platform.encoding.utf8.encode(json);
         const blob: BlobHandle = this._platform.createBlob(buffer, "application/json");
         return blob;
     }
