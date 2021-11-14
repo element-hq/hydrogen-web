@@ -33,7 +33,7 @@ interface ISerializedItem {
     c?: Array<ISerializedItem>;
 };
 
-type LogItemValues = {
+export type LogItemValues = {
     l?: string;
     t?: string;
     id?: unknown;
@@ -284,5 +284,13 @@ export class LogItem {
 
     get logger(): BaseLogger {
         return this._logger;
+    }
+
+    get values(): LogItemValues {
+        return this._values;
+    }
+
+    get children(): Array<LogItem> | null {
+        return this._children;
     }
 }
