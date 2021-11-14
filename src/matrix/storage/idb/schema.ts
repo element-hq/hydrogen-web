@@ -11,7 +11,7 @@ import {SessionStore} from "./stores/SessionStore";
 import {Store} from "./Store";
 import {encodeScopeTypeKey} from "./stores/OperationStore";
 import {MAX_UNICODE} from "./stores/common";
-import {LogItem} from "../../../logging/LogItem.js";
+import {LogItem} from "../../../logging/LogItem";
 
 
 export type MigrationFunc = (db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: LogItem) => Promise<void> | void;

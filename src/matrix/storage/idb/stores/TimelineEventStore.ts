@@ -20,7 +20,7 @@ import { encodeUint32, decodeUint32 } from "../utils";
 import {KeyLimits} from "../../common";
 import {Store} from "../Store";
 import {TimelineEvent, StateEvent} from "../../types";
-import {LogItem} from "../../../../logging/LogItem.js";
+import {LogItem} from "../../../../logging/LogItem";
 
 interface Annotation {
     count: number;

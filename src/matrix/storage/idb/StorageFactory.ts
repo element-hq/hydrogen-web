@@ -20,8 +20,8 @@ import { openDatabase, reqAsPromise } from "./utils";
 import { exportSession, importSession, Export } from "./export";
 import { schema } from "./schema";
 import { detectWebkitEarlyCloseTxnBug } from "./quirks";
-import { BaseLogger } from "../../../logging/BaseLogger.js";
-import { LogItem } from "../../../logging/LogItem.js";
+import { BaseLogger } from "../../../logging/BaseLogger";
+import { LogItem } from "../../../logging/LogItem";
 
 const sessionName = (sessionId: string) => `hydrogen_session_${sessionId}`;
 const openDatabaseWithSessionId = function(sessionId: string, idbFactory: IDBFactory, localStorage: IDOMStorage, log: LogItem) {

@@ -16,7 +16,7 @@ limitations under the License.
 
 import {iterateCursor, DONE, NOT_DONE, reqAsPromise} from "./utils";
 import {StorageError} from "../common";
-import {LogItem} from "../../../logging/LogItem.js";
+import {LogItem} from "../../../logging/LogItem";
 import {IDBKey} from "./Transaction";
 
 // this is the part of the Transaction class API that is used here and in the Store subclass,

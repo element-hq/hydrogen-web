@@ -18,7 +18,7 @@ import {QueryTarget, IDBQuery, ITransaction} from "./QueryTarget";
 import {IDBRequestError, IDBRequestAttemptError} from "./error";
 import {reqAsPromise} from "./utils";
 import {Transaction, IDBKey} from "./Transaction";
-import {LogItem} from "../../../logging/LogItem.js";
+import {LogItem} from "../../../logging/LogItem";
 
 const LOG_REQUESTS = false;
 

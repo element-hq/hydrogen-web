@@ -18,7 +18,7 @@ import {IDOMStorage} from "./types";
 import {Transaction} from "./Transaction";
 import { STORE_NAMES, StoreNames, StorageError } from "../common";
 import { reqAsPromise } from "./utils";
-import { BaseLogger } from "../../../logging/BaseLogger.js";
+import { BaseLogger } from "../../../logging/BaseLogger";
 
 const WEBKITEARLYCLOSETXNBUG_BOGUS_KEY = "782rh281re38-boguskey";
 

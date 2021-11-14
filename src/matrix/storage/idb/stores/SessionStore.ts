@@ -16,7 +16,7 @@ limitations under the License.
 import {Store} from "../Store";
 import {IDOMStorage} from "../types";
 import {SESSION_E2EE_KEY_PREFIX} from "../../../e2ee/common.js";
-import {LogItem} from "../../../../logging/LogItem.js";
+import {LogItem} from "../../../../logging/LogItem";
 import {parse, stringify} from "../../../../utils/typedJSON";
 
 export interface SessionEntry {

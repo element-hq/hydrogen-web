@@ -36,8 +36,8 @@ import {OutboundGroupSessionStore} from "./stores/OutboundGroupSessionStore";
 import {GroupSessionDecryptionStore} from "./stores/GroupSessionDecryptionStore";
 import {OperationStore} from "./stores/OperationStore";
 import {AccountDataStore} from "./stores/AccountDataStore";
-import {LogItem} from "../../../logging/LogItem.js";
-import {BaseLogger} from "../../../logging/BaseLogger.js";
+import {LogItem} from "../../../logging/LogItem";
+import {BaseLogger} from "../../../logging/BaseLogger";
 
 export type IDBKey = IDBValidKey | IDBKeyRange;
 
