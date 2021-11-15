@@ -94,6 +94,7 @@ export class LogItem {
     log(labelOrValues, logLevel = null) {
         const item = this.child(labelOrValues, logLevel, null);
         item._end = item._start;
+        return item;
     }
 
     set(key, value) {
