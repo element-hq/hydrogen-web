@@ -42,12 +42,12 @@ export interface ILogItem {
     children?: Array<ILogItem>;
     values: LogItemValues;
     error?: Error;
-    wrap(labelOrValues: LabelOrValues, callback: LogCallback, logLevel?: LogLevel, filterCreator?: FilterCreator): unknown;
+    wrap<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T | Promise<T>;
     log(labelOrValues: LabelOrValues, logLevel?: LogLevel): void;
     set(key: string | object, value: unknown): void;
-    run(callback: LogCallback): unknown;
-    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem;
-    wrapDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel?: LogLevel, filterCreator?: FilterCreator): void;
+    run<T>(callback: LogCallback<T>): T | Promise<T>;
+    runDetached(labelOrValues: LabelOrValues, callback: LogCallback<unknown>, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem;
+    wrapDetached(labelOrValues: LabelOrValues, callback: LogCallback<unknown>, logLevel?: LogLevel, filterCreator?: FilterCreator): void;
     refDetached(logItem: ILogItem, logLevel?: LogLevel): void;
     ensureRefId(): void;
     catch(err: Error): Error;
@@ -68,7 +68,7 @@ export type LogItemValues = {
 
 export type LabelOrValues = string | LogItemValues;
 export type FilterCreator = ((filter: LogFilter, item: ILogItem) => LogFilter);
-export type LogCallback = (item: ILogItem) => unknown;
+export type LogCallback<T> = (item: ILogItem) => T;
 
 export class LogItem implements ILogItem {
     public readonly start: number;
@@ -90,12 +90,12 @@ export class LogItem implements ILogItem {
     }
 
     /** start a new root log item and run it detached mode, see BaseLogger.runDetached */
-    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem {
+    runDetached(labelOrValues: LabelOrValues, callback: LogCallback<unknown>, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem {
         return this._logger.runDetached(labelOrValues, callback, logLevel, filterCreator);
     }
 
     /** start a new detached root log item and log a reference to it from this item */
-    wrapDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel?: LogLevel, filterCreator?: FilterCreator): void {
+    wrapDetached(labelOrValues: LabelOrValues, callback: LogCallback<unknown>, logLevel?: LogLevel, filterCreator?: FilterCreator): void {
         this.refDetached(this.runDetached(labelOrValues, callback, logLevel, filterCreator));
     }
 
@@ -115,7 +115,7 @@ export class LogItem implements ILogItem {
     /**
      * Creates a new child item and runs it in `callback`.
      */
-    wrap(labelOrValues: LabelOrValues, callback: LogCallback, logLevel?: LogLevel, filterCreator?: FilterCreator): unknown {
+    wrap<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T | Promise<T> {
         const item = this.child(labelOrValues, logLevel, filterCreator);
         return item.run(callback);
     }
@@ -237,11 +237,11 @@ export class LogItem implements ILogItem {
      * @param  {Function} callback [description]
      * @return {[type]}            [description]
      */
-    run(callback: LogCallback): unknown {
+    run<T>(callback: LogCallback<T>): T | Promise<T> {
         if (this.end) {
             console.trace("log item is finished, additional logs will likely not be recorded");
         }
-        let result: unknown;
+        let result: T | Promise<T>;
         try {
             result = callback(this);
             if (result instanceof Promise) {

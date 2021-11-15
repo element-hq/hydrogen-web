@@ -21,6 +21,7 @@ import type {FilterCreator, LabelOrValues, LogCallback, ILogItem} from "./LogIte
 // todo: should this import be here just for getting the type? should it instead be done when Platform.js --> Platform.ts?
 import type {Platform} from "../platform/web/Platform.js";
 
+type RunResult<T> = T | void | Promise<T | void>;
 
 export abstract class BaseLogger {
     protected _openItems: Set<ILogItem> = new Set();
@@ -37,7 +38,7 @@ export abstract class BaseLogger {
     }
 
     /** if item is a log item, wrap the callback in a child of it, otherwise start a new root log item. */
-    wrapOrRun(item: ILogItem, labelOrValues: LabelOrValues, callback: LogCallback, logLevel?: LogLevel, filterCreator?: FilterCreator): unknown {
+    wrapOrRun<T>(item: ILogItem, labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): RunResult<T> {
         if (item) {
             return item.wrap(labelOrValues, callback, logLevel, filterCreator);
         } else {
@@ -50,7 +51,7 @@ export abstract class BaseLogger {
     Useful to pair with LogItem.refDetached.
 
     @return {LogItem} the log item added, useful to pass to LogItem.refDetached */
-    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem {
+    runDetached(labelOrValues: LabelOrValues, callback: LogCallback<unknown>, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem {
         // todo: Remove jsdoc type?
         if (!logLevel) {
             logLevel = LogLevel.Info;
@@ -63,7 +64,7 @@ export abstract class BaseLogger {
     /** run a callback wrapped in a log operation.
     Errors and duration are transparently logged, also for async operations.
     Whatever the callback returns is returned here. */
-    run(labelOrValues: LabelOrValues, callback: LogCallback, logLevel?: LogLevel, filterCreator?: FilterCreator): unknown {
+    run<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): RunResult<T> {
         if (!logLevel) {
             logLevel = LogLevel.Info;
         }
@@ -71,7 +72,7 @@ export abstract class BaseLogger {
         return this._run(item, callback, logLevel!, true, filterCreator);
     }
 
-    _run(item: ILogItem, callback: LogCallback, logLevel: LogLevel, shouldThrow: boolean, filterCreator?: FilterCreator): unknown {
+    _run<T>(item: ILogItem, callback: LogCallback<T>, logLevel: LogLevel, shouldThrow: boolean, filterCreator?: FilterCreator): RunResult<T> {
         this._openItems.add(item);
 
         const finishItem = () => {

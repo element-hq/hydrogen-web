@@ -60,22 +60,22 @@ export class NullLogItem implements ILogItem {
         this.logger = logger;
     }
 
-    wrap(_: LabelOrValues, callback: LogCallback): unknown {
+    wrap<T>(_: LabelOrValues, callback: LogCallback<T>): T | Promise<T> {
         return callback(this);
     }
     log(): void {}
     set(): void {}
 
-    runDetached(_: LabelOrValues, callback: LogCallback): ILogItem {
+    runDetached(_: LabelOrValues, callback: LogCallback<unknown>): ILogItem {
         new Promise(r => r(callback(this))).then(noop, noop);
         return this;
     }
 
-    wrapDetached(_: LabelOrValues, _callback: LogCallback): void {
+    wrapDetached(_: LabelOrValues, _callback: LogCallback<unknown>): void {
         return this.refDetached();
     }
 
-    run(callback: LogCallback): unknown {
+    run<T>(callback: LogCallback<T>): T | Promise<T> {
         return callback(this);
     }
 
