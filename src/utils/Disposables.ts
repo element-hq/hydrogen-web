@@ -14,7 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-function disposeValue(value) {
+type func = () => void;
+type Disposable = { dispose: func; [key: string]: any } | func;
+
+function disposeValue(value: Disposable): void {
     if (typeof value === "function") {
         value();
     } else {
@@ -27,9 +30,7 @@ function isDisposable(value) {
 }
 
 export class Disposables {
-    constructor() {
-        this._disposables = [];
-    }
+    private readonly _disposables = [];
 
     track(disposable) {
         if (!isDisposable(disposable)) {
