@@ -16,7 +16,6 @@ limitations under the License.
 */
 
 import {LogLevel, LogFilter} from "./LogFilter";
-import type {LogLevelOrNull} from "./LogFilter";
 import type {BaseLogger} from "./BaseLogger";
 
 interface ISerializedItem {
@@ -43,17 +42,17 @@ export interface ILogItem {
     children: Array<ILogItem> | null;
     values: LogItemValues;
     error: Error | null;
-    wrap(labelOrValues: LabelOrValues, callback: LogCallback, level: LogLevelOrNull, filterCreator?: FilterCreator): unknown;
-    log(labelOrValues: LabelOrValues, logLevel: LogLevelOrNull): void;
+    wrap(labelOrValues: LabelOrValues, callback: LogCallback, logLevel?: LogLevel, filterCreator?: FilterCreator): unknown;
+    log(labelOrValues: LabelOrValues, logLevel?: LogLevel): void;
     set(key: string | object, value: unknown): void;
     run(callback: LogCallback): unknown;
-    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull, filterCreator: FilterCreator): ILogItem;
-    wrapDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull, filterCreator: FilterCreator): void;
-    refDetached(logItem: ILogItem, logLevel: LogLevelOrNull): void;
+    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem;
+    wrapDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel?: LogLevel, filterCreator?: FilterCreator): void;
+    refDetached(logItem: ILogItem, logLevel?: LogLevel): void;
     ensureRefId(): void;
     catch(err: Error): Error;
     finish(): void;
-    child(labelOrValues: LabelOrValues, logLevel: LogLevelOrNull, filterCreator: FilterCreator): ILogItem;
+    child(labelOrValues: LabelOrValues, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem;
     serialize(filter: LogFilter, parentStartTime: number | null, forced: boolean): ISerializedItem | null;
 }
 
@@ -94,18 +93,18 @@ export class LogItem implements ILogItem {
     }
 
     /** start a new root log item and run it detached mode, see BaseLogger.runDetached */
-    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull, filterCreator: FilterCreator): ILogItem {
+    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem {
         return this._logger.runDetached(labelOrValues, callback, logLevel, filterCreator);
     }
 
     /** start a new detached root log item and log a reference to it from this item */
-    wrapDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull, filterCreator: FilterCreator): void {
+    wrapDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel?: LogLevel, filterCreator?: FilterCreator): void {
         this.refDetached(this.runDetached(labelOrValues, callback, logLevel, filterCreator));
     }
 
     /** logs a reference to a different log item, usually obtained from runDetached.
     This is useful if the referenced operation can't be awaited. */
-    refDetached(logItem: ILogItem, logLevel: LogLevelOrNull = null): void {
+    refDetached(logItem: ILogItem, logLevel?: LogLevel): void {
         logItem.ensureRefId();
         this.log({ref: (logItem as LogItem)._values.refId}, logLevel);
     }
@@ -119,7 +118,7 @@ export class LogItem implements ILogItem {
     /**
      * Creates a new child item and runs it in `callback`.
      */
-    wrap(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator?: FilterCreator): unknown {
+    wrap(labelOrValues: LabelOrValues, callback: LogCallback, logLevel?: LogLevel, filterCreator?: FilterCreator): unknown {
         const item = this.child(labelOrValues, logLevel, filterCreator);
         return item.run(callback);
     }
@@ -160,7 +159,7 @@ export class LogItem implements ILogItem {
      * 
      * Hence, the child item is not returned.
      */
-    log(labelOrValues: LabelOrValues, logLevel: LogLevelOrNull = null): void {
+    log(labelOrValues: LabelOrValues, logLevel?: LogLevel): void {
         const item = this.child(labelOrValues, logLevel);
         item.end = item.start;
     }
@@ -291,7 +290,7 @@ export class LogItem implements ILogItem {
         return err;
     }
 
-    child(labelOrValues: LabelOrValues, logLevel: LogLevelOrNull, filterCreator?: FilterCreator): ILogItem {
+    child(labelOrValues: LabelOrValues, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem {
         if (this.end !== null) {
             console.trace("log item is finished, additional logs will likely not be recorded");
         }

@@ -27,8 +27,6 @@ export enum LogLevel {
     Off
 }
 
-export type LogLevelOrNull = LogLevel | null;
-
 export class LogFilter {
     private _min?: LogLevel;
     private _parentFilter?: LogFilter;

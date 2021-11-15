@@ -18,7 +18,6 @@ limitations under the License.
 import {LogItem} from "./LogItem";
 import {LogLevel, LogFilter} from "./LogFilter";
 import type {FilterCreator, LabelOrValues, LogCallback, ILogItem} from "./LogItem";
-import type {LogLevelOrNull} from "./LogFilter";
 // todo: should this import be here just for getting the type? should it instead be done when Platform.js --> Platform.ts?
 import type {Platform} from "../platform/web/Platform.js";
 
@@ -38,7 +37,7 @@ export abstract class BaseLogger {
     }
 
     /** if item is a log item, wrap the callback in a child of it, otherwise start a new root log item. */
-    wrapOrRun(item: ILogItem, labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator?: FilterCreator): unknown {
+    wrapOrRun(item: ILogItem, labelOrValues: LabelOrValues, callback: LogCallback, logLevel?: LogLevel, filterCreator?: FilterCreator): unknown {
         if (item) {
             return item.wrap(labelOrValues, callback, logLevel, filterCreator);
         } else {
@@ -51,9 +50,9 @@ export abstract class BaseLogger {
     Useful to pair with LogItem.refDetached.
 
     @return {LogItem} the log item added, useful to pass to LogItem.refDetached */
-    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator?: FilterCreator): ILogItem {
+    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem {
         // todo: Remove jsdoc type?
-        if (logLevel === null) {
+        if (!logLevel) {
             logLevel = LogLevel.Info;
         }
         const item = new LogItem(labelOrValues, logLevel, this);
@@ -64,8 +63,8 @@ export abstract class BaseLogger {
     /** run a callback wrapped in a log operation.
     Errors and duration are transparently logged, also for async operations.
     Whatever the callback returns is returned here. */
-    run(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator?: FilterCreator): unknown {
-        if (logLevel === null) {
+    run(labelOrValues: LabelOrValues, callback: LogCallback, logLevel?: LogLevel, filterCreator?: FilterCreator): unknown {
+        if (!logLevel) {
             logLevel = LogLevel.Info;
         }
         const item = new LogItem(labelOrValues, logLevel, this);

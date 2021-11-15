@@ -40,6 +40,7 @@ export class IDBLogger extends BaseLogger {
     private readonly _flushInterval: Interval;
     private _queuedItems: QueuedItem[];
 
+    // todo: type constructor
     constructor(options) {
         super(options);
         const {name, flushInterval = 60 * 1000, limit = 3000} = options;

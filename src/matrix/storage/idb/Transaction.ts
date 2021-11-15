@@ -226,7 +226,7 @@ export class Transaction {
         };
         const label = `${this._writeErrors.length} storage write operation(s) failed`;
         if (parentItem) {
-            parentItem.wrap(label, callback, null);
+            parentItem.wrap(label, callback);
         } else {
             this.logger.run(label, callback);
         }

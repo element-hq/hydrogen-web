@@ -196,7 +196,7 @@ async function fixMissingRoomsInUserIdentities(db: IDBDatabase, txn: IDBTransact
                 const updatedIdentity = addRoomToIdentity(identity, userId, roomId);
                 if (updatedIdentity) {
                     log.log({l: `fixing up`, id: userId,
-                        roomsBefore: originalRoomCount, roomsAfter: updatedIdentity.roomIds.length}, null);
+                        roomsBefore: originalRoomCount, roomsAfter: updatedIdentity.roomIds.length});
                     userIdentitiesStore.put(updatedIdentity);
                     foundMissing = true;
                 }
@@ -207,7 +207,7 @@ async function fixMissingRoomsInUserIdentities(db: IDBDatabase, txn: IDBTransact
                 // so we'll create a new one on the next message that will be properly shared
                 outboundGroupSessionsStore.delete(roomId);
             }
-        }, null);
+        });
     }
 }
 
