@@ -36,12 +36,12 @@ export interface ILogItem {
     logger: any;
     level: typeof LogLevel;
     duration?: number;
-    end?: number | null;
+    end?: number;
     start?: number;
     logLevel: LogLevel;
-    children: Array<ILogItem> | null;
+    children?: Array<ILogItem>;
     values: LogItemValues;
-    error: Error | null;
+    error?: Error;
     wrap(labelOrValues: LabelOrValues, callback: LogCallback, logLevel?: LogLevel, filterCreator?: FilterCreator): unknown;
     log(labelOrValues: LabelOrValues, logLevel?: LogLevel): void;
     set(key: string | object, value: unknown): void;
@@ -73,22 +73,19 @@ export type LogCallback = (item: ILogItem) => unknown;
 export class LogItem implements ILogItem {
     public readonly start: number;
     public logLevel: LogLevel;
-    public error: Error | null;
-    public end: number | null;
+    public error?: Error;
+    public end?: number;
     private _values: LogItemValues;
     private _logger: BaseLogger;
     private _filterCreator?: FilterCreator;
-    private _children: Array<LogItem> | null;
+    private _children?: Array<LogItem>;
 
     constructor(labelOrValues: LabelOrValues, logLevel: LogLevel, logger: BaseLogger, filterCreator?: FilterCreator) {
         this._logger = logger;
         this.start = logger._now();
-        this.end = null;
         // (l)abel
         this._values = typeof labelOrValues === "string" ? {l: labelOrValues} : labelOrValues;
-        this.error = null;
         this.logLevel = logLevel;
-        this._children = null;
         this._filterCreator = filterCreator;
     }
 
@@ -183,7 +180,7 @@ export class LogItem implements ILogItem {
             }
         }
         let children: Array<ISerializedItem> | null = null;
-        if (this._children !== null) {
+        if (this._children) {
             children = this._children.reduce((array: Array<ISerializedItem>, c) => {
                 const s = c.serialize(filter, this.start, false);
                 if (s) {
@@ -241,7 +238,7 @@ export class LogItem implements ILogItem {
      * @return {[type]}            [description]
      */
     run(callback: LogCallback): unknown {
-        if (this.end !== null) {
+        if (this.end) {
             console.trace("log item is finished, additional logs will likely not be recorded");
         }
         let result: unknown;
@@ -268,8 +265,8 @@ export class LogItem implements ILogItem {
      * @internal shouldn't typically be called by hand. allows to force finish if a promise is still running when closing the app
      */
     finish(): void {
-        if (this.end === null) {
-            if (this._children !== null) {
+        if (!this.end) {
+            if (this._children) {
                 for(const c of this._children) {
                     c.finish();
                 }
@@ -291,14 +288,14 @@ export class LogItem implements ILogItem {
     }
 
     child(labelOrValues: LabelOrValues, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem {
-        if (this.end !== null) {
+        if (this.end) {
             console.trace("log item is finished, additional logs will likely not be recorded");
         }
         if (!logLevel) {
             logLevel = this.logLevel || LogLevel.Info;
         }
         const item = new LogItem(labelOrValues, logLevel, this._logger, filterCreator);
-        if (this._children === null) {
+        if (!this._children) {
             this._children = [];
         }
         this._children.push(item);
@@ -313,7 +310,7 @@ export class LogItem implements ILogItem {
         return this._values;
     }
 
-    get children(): Array<LogItem> | null {
+    get children(): Array<LogItem> | undefined {
         return this._children;
     }
 }

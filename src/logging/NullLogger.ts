@@ -52,9 +52,9 @@ export class NullLogger {
 export class NullLogItem implements ILogItem {
     public readonly logger: NullLogger;
     public readonly logLevel: LogLevel;
-    public children: Array<ILogItem> | null = null;
+    public children?: Array<ILogItem>;
     public values: LogItemValues;
-    public error: Error | null = null;
+    public error?: Error;
 
     constructor(logger: NullLogger) {
         this.logger = logger;
