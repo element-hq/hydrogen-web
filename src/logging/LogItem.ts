@@ -53,7 +53,7 @@ export interface ILogItem {
     catch(err: Error): Error;
     finish(): void;
     child(labelOrValues: LabelOrValues, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem;
-    serialize(filter: LogFilter, parentStartTime: number | null, forced: boolean): ISerializedItem | null;
+    serialize(filter: LogFilter, parentStartTime: number | undefined, forced: boolean): ISerializedItem | undefined;
 }
 
 export type LogItemValues = {
@@ -171,7 +171,7 @@ export class LogItem implements ILogItem {
     }
 
     // todo: null or undefined here?
-    serialize(filter: LogFilter, parentStartTime: number | null = null, forced: boolean): ISerializedItem | null {
+    serialize(filter: LogFilter, parentStartTime: number | undefined, forced: boolean): ISerializedItem | undefined {
         if (this._filterCreator) {
             try {
                 filter = this._filterCreator(new LogFilter(filter), this);
@@ -193,12 +193,12 @@ export class LogItem implements ILogItem {
             }, null);
         }
         if (filter && !filter.filter(this, children)) {
-            return null;
+            return;
         }
         // in (v)alues, (l)abel and (t)ype are also reserved.
         const item: ISerializedItem = {
             // (s)tart
-            s: parentStartTime === null ? this.start : this.start - parentStartTime,
+            s: parentStartTime? this.start - parentStartTime : this.start,
             // (d)uration
             d: this.duration,
             // (v)alues

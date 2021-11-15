@@ -102,7 +102,7 @@ export class NullLogItem implements ILogItem {
     finish(): void {}
 
     serialize() {
-        return null;
+        return undefined;
     }
 }
 

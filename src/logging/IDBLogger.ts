@@ -118,7 +118,7 @@ export class IDBLogger extends BaseLogger {
     }
     
     _persistItem(logItem: ILogItem, filter: LogFilter, forced: boolean): void {
-        const serializedItem = logItem.serialize(filter, null, forced);
+        const serializedItem = logItem.serialize(filter, undefined, forced);
         this._queuedItems.push({
             json: JSON.stringify(serializedItem)
         });
