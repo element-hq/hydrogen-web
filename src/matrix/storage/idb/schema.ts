@@ -207,7 +207,7 @@ async function fixMissingRoomsInUserIdentities(db: IDBDatabase, txn: IDBTransact
                 // so we'll create a new one on the next message that will be properly shared
                 outboundGroupSessionsStore.delete(roomId);
             }
-        }, null, null);
+        }, null);
     }
 }
 

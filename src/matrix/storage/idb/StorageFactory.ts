@@ -101,12 +101,8 @@ async function createStores(db: IDBDatabase, txn: IDBTransaction, oldVersion: nu
         async (log) => {
             for (let i = startIdx; i < version; ++i) {
                 const migrationFunc = schema[i];
-                await log.wrap(`v${i + 1}`, (log) =>
-                    migrationFunc(db, txn, localStorage, log), null, null
-                );
+                await log.wrap(`v${i + 1}`, (log) => migrationFunc(db, txn, localStorage, log), null);
             }
         },
-        null,
-        null
-    ) as Promise<void>;
+        null) as Promise<void>;
 }

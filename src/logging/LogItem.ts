@@ -43,7 +43,7 @@ export interface ILogItem {
     children: Array<ILogItem> | null;
     values: LogItemValues;
     error: Error | null;
-    wrap(labelOrValues: LabelOrValues, callback: LogCallback, level: LogLevelOrNull, filterCreator: FilterCreator): unknown;
+    wrap(labelOrValues: LabelOrValues, callback: LogCallback, level: LogLevelOrNull, filterCreator?: FilterCreator): unknown;
     log(labelOrValues: LabelOrValues, logLevel: LogLevelOrNull): void;
     set(key: string | object, value: unknown): void;
     run(callback: LogCallback): unknown;
@@ -68,7 +68,7 @@ export type LogItemValues = {
 }
 
 export type LabelOrValues = string | LogItemValues;
-export type FilterCreator = ((filter: LogFilter, item: ILogItem) => LogFilter) | null;
+export type FilterCreator = ((filter: LogFilter, item: ILogItem) => LogFilter);
 export type LogCallback = (item: ILogItem) => unknown;
 
 export class LogItem implements ILogItem {
@@ -78,10 +78,10 @@ export class LogItem implements ILogItem {
     public end: number | null;
     private _values: LogItemValues;
     private _logger: BaseLogger;
-    private _filterCreator: FilterCreator;
+    private _filterCreator?: FilterCreator;
     private _children: Array<LogItem> | null;
 
-    constructor(labelOrValues: LabelOrValues, logLevel: LogLevel, filterCreator: FilterCreator, logger: BaseLogger) {
+    constructor(labelOrValues: LabelOrValues, logLevel: LogLevel, logger: BaseLogger, filterCreator?: FilterCreator) {
         this._logger = logger;
         this.start = logger._now();
         this.end = null;
@@ -119,7 +119,7 @@ export class LogItem implements ILogItem {
     /**
      * Creates a new child item and runs it in `callback`.
      */
-    wrap(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator: FilterCreator = null): unknown {
+    wrap(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator?: FilterCreator): unknown {
         const item = this.child(labelOrValues, logLevel, filterCreator);
         return item.run(callback);
     }
@@ -161,7 +161,7 @@ export class LogItem implements ILogItem {
      * Hence, the child item is not returned.
      */
     log(labelOrValues: LabelOrValues, logLevel: LogLevelOrNull = null): void {
-        const item = this.child(labelOrValues, logLevel, null);
+        const item = this.child(labelOrValues, logLevel);
         item.end = item.start;
     }
 
@@ -291,14 +291,14 @@ export class LogItem implements ILogItem {
         return err;
     }
 
-    child(labelOrValues: LabelOrValues, logLevel: LogLevelOrNull, filterCreator: FilterCreator): ILogItem {
+    child(labelOrValues: LabelOrValues, logLevel: LogLevelOrNull, filterCreator?: FilterCreator): ILogItem {
         if (this.end !== null) {
             console.trace("log item is finished, additional logs will likely not be recorded");
         }
         if (!logLevel) {
             logLevel = this.logLevel || LogLevel.Info;
         }
-        const item = new LogItem(labelOrValues, logLevel, filterCreator, this._logger);
+        const item = new LogItem(labelOrValues, logLevel, this._logger, filterCreator);
         if (this._children === null) {
             this._children = [];
         }

@@ -152,7 +152,7 @@ export class Decryption {
                     log.logLevel = log.level.Warn;
                     log.set("invalid", true);
                 }
-            }, log.level.Detail, null);
+            }, log.level.Detail);
         }
         return keys;
     }

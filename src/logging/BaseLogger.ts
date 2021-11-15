@@ -32,13 +32,13 @@ export abstract class BaseLogger {
     }
 
     log(labelOrValues: LabelOrValues, logLevel: LogLevel = LogLevel.Info) {
-        const item = new LogItem(labelOrValues, logLevel, null, this);
+        const item = new LogItem(labelOrValues, logLevel, this);
         item.end = item.start;
         this._persistItem(item, undefined, false);
     }
 
     /** if item is a log item, wrap the callback in a child of it, otherwise start a new root log item. */
-    wrapOrRun(item: ILogItem, labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator: FilterCreator = null): unknown {
+    wrapOrRun(item: ILogItem, labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator?: FilterCreator): unknown {
         if (item) {
             return item.wrap(labelOrValues, callback, logLevel, filterCreator);
         } else {
@@ -51,28 +51,28 @@ export abstract class BaseLogger {
     Useful to pair with LogItem.refDetached.
 
     @return {LogItem} the log item added, useful to pass to LogItem.refDetached */
-    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator: FilterCreator = null): ILogItem {
+    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator?: FilterCreator): ILogItem {
         // todo: Remove jsdoc type?
         if (logLevel === null) {
             logLevel = LogLevel.Info;
         }
-        const item = new LogItem(labelOrValues, logLevel, null, this);
-        this._run(item, callback, logLevel!, filterCreator, false /* don't throw, nobody is awaiting */);
+        const item = new LogItem(labelOrValues, logLevel, this);
+        this._run(item, callback, logLevel!, false /* don't throw, nobody is awaiting */, filterCreator);
         return item;
     }
 
     /** run a callback wrapped in a log operation.
     Errors and duration are transparently logged, also for async operations.
     Whatever the callback returns is returned here. */
-    run(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator: FilterCreator = null): unknown {
+    run(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator?: FilterCreator): unknown {
         if (logLevel === null) {
             logLevel = LogLevel.Info;
         }
-        const item = new LogItem(labelOrValues, logLevel, null, this);
-        return this._run(item, callback, logLevel!, filterCreator, true);
+        const item = new LogItem(labelOrValues, logLevel, this);
+        return this._run(item, callback, logLevel!, true, filterCreator);
     }
 
-    _run(item: ILogItem, callback: LogCallback, logLevel: LogLevel, filterCreator: FilterCreator, shouldThrow: boolean): unknown {
+    _run(item: ILogItem, callback: LogCallback, logLevel: LogLevel, shouldThrow: boolean, filterCreator?: FilterCreator): unknown {
         this._openItems.add(item);
 
         const finishItem = () => {
