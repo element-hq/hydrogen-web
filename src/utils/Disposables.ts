@@ -25,14 +25,15 @@ function disposeValue(value: Disposable): void {
     }
 }
 
-function isDisposable(value) {
+function isDisposable(value: Disposable): boolean {
+    // todo: value can be undefined I think?
     return value && (typeof value === "function" || typeof value.dispose === "function");
 }
 
 export class Disposables {
-    private readonly _disposables = [];
+    private _disposables: Disposable[] | null = [];
 
-    track(disposable) {
+    track(disposable: Disposable): Disposable {
         if (!isDisposable(disposable)) {
             throw new Error("Not a disposable");
         }
@@ -41,19 +42,23 @@ export class Disposables {
             disposeValue(disposable);
             return disposable;
         }
-        this._disposables.push(disposable);
+        this._disposables!.push(disposable);
         return disposable;
     }
 
-    untrack(disposable) {
-        const idx = this._disposables.indexOf(disposable);
+    untrack(disposable: Disposable) {
+        if (this.isDisposed) {
+            console.warn("Disposables already disposed, cannot untrack");
+            return;
+        }
+        const idx = this._disposables!.indexOf(disposable);
         if (idx >= 0) {
-            this._disposables.splice(idx, 1);
+            this._disposables!.splice(idx, 1);
         }
         return null;
     }
 
-    dispose() {
+    dispose(): void {
         if (this._disposables) {
             for (const d of this._disposables) {
                 disposeValue(d);
@@ -62,17 +67,17 @@ export class Disposables {
         }
     }
 
-    get isDisposed() {
+    get isDisposed(): boolean {
         return this._disposables === null;
     }
 
-    disposeTracked(value) {
+    disposeTracked(value: Disposable): null {
         if (value === undefined || value === null || this.isDisposed) {
             return null;
         }
-        const idx = this._disposables.indexOf(value);
+        const idx = this._disposables!.indexOf(value);
         if (idx !== -1) {
-            const [foundValue] = this._disposables.splice(idx, 1);
+            const [foundValue] = this._disposables!.splice(idx, 1);
             disposeValue(foundValue);
         } else {
             console.warn("disposable not found, did it leak?", value);
