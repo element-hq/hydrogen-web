@@ -11,10 +11,10 @@ import {SessionStore} from "./stores/SessionStore";
 import {Store} from "./Store";
 import {encodeScopeTypeKey} from "./stores/OperationStore";
 import {MAX_UNICODE} from "./stores/common";
-import {LogItem} from "../../../logging/LogItem";
+import {ILogItem} from "../../../logging/LogItem";
 
 
-export type MigrationFunc = (db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: LogItem) => Promise<void> | void;
+export type MigrationFunc = (db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem) => Promise<void> | void;
 // FUNCTIONS SHOULD ONLY BE APPENDED!!
 // the index in the array is the database version
 export const schema: MigrationFunc[] = [
@@ -166,7 +166,7 @@ function createTimelineRelationsStore(db: IDBDatabase) : void {
 }
 
 //v11 doesn't change the schema, but ensures all userIdentities have all the roomIds they should (see #470)
-async function fixMissingRoomsInUserIdentities(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: LogItem) {
+async function fixMissingRoomsInUserIdentities(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem) {
     const roomSummaryStore = txn.objectStore("roomSummary");
     const trackedRoomIds: string[] = [];
     await iterateCursor<SummaryData>(roomSummaryStore.openCursor(), roomSummary => {
@@ -196,7 +196,7 @@ async function fixMissingRoomsInUserIdentities(db: IDBDatabase, txn: IDBTransact
                 const updatedIdentity = addRoomToIdentity(identity, userId, roomId);
                 if (updatedIdentity) {
                     log.log({l: `fixing up`, id: userId,
-                        roomsBefore: originalRoomCount, roomsAfter: updatedIdentity.roomIds.length});
+                        roomsBefore: originalRoomCount, roomsAfter: updatedIdentity.roomIds.length}, null);
                     userIdentitiesStore.put(updatedIdentity);
                     foundMissing = true;
                 }
@@ -207,7 +207,7 @@ async function fixMissingRoomsInUserIdentities(db: IDBDatabase, txn: IDBTransact
                 // so we'll create a new one on the next message that will be properly shared
                 outboundGroupSessionsStore.delete(roomId);
             }
-        });
+        }, null, null);
     }
 }
 
@@ -220,7 +220,7 @@ async function changeSSSSKeyPrefix(db: IDBDatabase, txn: IDBTransaction) {
     }
 }
 // v13
-async function backupAndRestoreE2EEAccountToLocalStorage(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: LogItem) {
+async function backupAndRestoreE2EEAccountToLocalStorage(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem) {
     const session = txn.objectStore("session");
     // the Store object gets passed in several things through the Transaction class (a wrapper around IDBTransaction),
     // the only thing we should need here is the databaseName though, so we mock it out.

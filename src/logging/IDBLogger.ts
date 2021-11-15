@@ -26,7 +26,7 @@ import {BaseLogger} from "./BaseLogger";
 import type {Interval} from "../platform/web/dom/Clock";
 import type {Platform} from "../platform/web/Platform.js";
 import type {BlobHandle} from "../platform/web/dom/BlobHandle.js";
-import type {LogItem} from "./LogItem";
+import type {ILogItem} from "./LogItem";
 import type {LogFilter} from "./LogFilter";
 
 type QueuedItem = {
@@ -116,8 +116,8 @@ export class IDBLogger extends BaseLogger {
         return openDatabase(this._name, db => db.createObjectStore("logs", {keyPath: "id", autoIncrement: true}), 1);
     }
     
-    _persistItem(logItem: LogItem, filter: LogFilter, forced: boolean): void {
-        const serializedItem = logItem.serialize(filter, undefined, forced);
+    _persistItem(logItem: ILogItem, filter: LogFilter, forced: boolean): void {
+        const serializedItem = logItem.serialize(filter, null, forced);
         this._queuedItems.push({
             json: JSON.stringify(serializedItem)
         });

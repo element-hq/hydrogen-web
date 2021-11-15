@@ -346,7 +346,7 @@ import {Clock as MockClock} from "../../../mocks/Clock.js";
 import {createMockStorage} from "../../../mocks/Storage";
 import {ListObserver} from "../../../mocks/ListObserver.js";
 import {createEvent, withTextBody, withContent, withSender} from "../../../mocks/event.js";
-import {NullLogItem} from "../../../logging/NullLogger.js";
+import {NullLogItem} from "../../../logging/NullLogger";
 import {EventEntry} from "./entries/EventEntry.js";
 import {User} from "../../User.js";
 import {PendingEvent} from "../sending/PendingEvent.js";

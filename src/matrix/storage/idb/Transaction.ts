@@ -36,7 +36,7 @@ import {OutboundGroupSessionStore} from "./stores/OutboundGroupSessionStore";
 import {GroupSessionDecryptionStore} from "./stores/GroupSessionDecryptionStore";
 import {OperationStore} from "./stores/OperationStore";
 import {AccountDataStore} from "./stores/AccountDataStore";
-import {LogItem} from "../../../logging/LogItem";
+import {ILogItem} from "../../../logging/LogItem";
 import {BaseLogger} from "../../../logging/BaseLogger";
 
 export type IDBKey = IDBValidKey | IDBKeyRange;
@@ -44,7 +44,7 @@ export type IDBKey = IDBValidKey | IDBKeyRange;
 class WriteErrorInfo {
     constructor(
         public readonly error: StorageError,
-        public readonly refItem: LogItem | undefined,
+        public readonly refItem: ILogItem | undefined,
         public readonly operationName: string,
         public readonly keys: IDBKey[] | undefined,
     ) {}
@@ -169,7 +169,7 @@ export class Transaction {
         return this._store(StoreNames.accountData, idbStore => new AccountDataStore(idbStore));
     }
 
-    async complete(log?: LogItem): Promise<void> {
+    async complete(log?: ILogItem): Promise<void> {
         try {
             await txnAsPromise(this._txn);
         } catch (err) {
@@ -190,7 +190,7 @@ export class Transaction {
         return error;
     }
 
-    abort(log?: LogItem): void {
+    abort(log?: ILogItem): void {
         // TODO: should we wrap the exception in a StorageError?
         try {
             this._txn.abort();
@@ -202,14 +202,14 @@ export class Transaction {
         }
     }
 
-    addWriteError(error: StorageError, refItem: LogItem | undefined, operationName: string, keys: IDBKey[] | undefined) {
+    addWriteError(error: StorageError, refItem: ILogItem | undefined, operationName: string, keys: IDBKey[] | undefined) {
         // don't log subsequent `AbortError`s
         if (error.errcode !== "AbortError" || this._writeErrors.length === 0) {
             this._writeErrors.push(new WriteErrorInfo(error, refItem, operationName, keys));
         }
     }
 
-    private _logWriteErrors(parentItem: LogItem | undefined) {
+    private _logWriteErrors(parentItem: ILogItem | undefined) {
         const callback = errorGroupItem => {
             // we don't have context when there is no parentItem, so at least log stores
             if (!parentItem) {
@@ -226,7 +226,7 @@ export class Transaction {
         };
         const label = `${this._writeErrors.length} storage write operation(s) failed`;
         if (parentItem) {
-            parentItem.wrap(label, callback);
+            parentItem.wrap(label, callback, null, null);
         } else {
             this.logger.run(label, callback);
         }

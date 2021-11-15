@@ -14,18 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {LogLevel} from "./LogFilter";
+import type {ILogItem, LabelOrValues, LogCallback, LogItemValues} from "./LogItem";
 
-function noop () {}
+function noop (): void {}
 
 
 export class NullLogger {
-    constructor() {
-        this.item = new NullLogItem(this);
-    }
+    public readonly item: ILogItem = new NullLogItem(this);
 
-    log() {}
+    log(): void {}
 
-    run(_, callback) {
+    run(_: null, callback) {
         return callback(this.item);    
     }
 
@@ -50,50 +49,61 @@ export class NullLogger {
     }
 }
 
-export class NullLogItem {
-    constructor(logger) {
+export class NullLogItem implements ILogItem {
+    public readonly logger: NullLogger;
+    public readonly logLevel: LogLevel;
+    public children: Array<ILogItem> | null = null;
+    public values: LogItemValues;
+    public error: Error | null = null;
+
+    constructor(logger: NullLogger) {
         this.logger = logger;
     }
 
-    wrap(_, callback) {
+    wrap(_: LabelOrValues, callback: LogCallback): unknown {
         return callback(this);
     }
-    log() {}
-    set() {}
+    log(): void {}
+    set(): void {}
 
-    runDetached(_, callback) {
+    runDetached(_: LabelOrValues, callback: LogCallback): ILogItem {
         new Promise(r => r(callback(this))).then(noop, noop);
-    }
-
-    wrapDetached(_, callback) {
-        return this.refDetached(null, callback);
-    }
-
-    run(callback) {
-        return callback(this);
-    }
-
-    refDetached() {}
-
-    ensureRefId() {}
-
-    get level() {
-        return LogLevel;
-    }
-
-    get duration() {
-        return 0;
-    }
-
-    catch(err) {
-        return err;
-    }
-
-    child() {
         return this;
     }
 
-    finish() {}
+    wrapDetached(_: LabelOrValues, _callback: LogCallback): void {
+        return this.refDetached();
+    }
+
+    run(callback: LogCallback): unknown {
+        return callback(this);
+    }
+
+    refDetached(): void {}
+
+    ensureRefId(): void {}
+
+    get level(): typeof LogLevel {
+        return LogLevel;
+    }
+
+    get duration(): 0 {
+        return 0;
+    }
+
+    catch(err: Error): Error {
+        return err;
+    }
+
+    child()  {
+        return this;
+    }
+
+    finish(): void {}
+
+    serialize() {
+        return null;
+    }
 }
 
 export const Instance = new NullLogger(); 

@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {BaseLogger} from "./BaseLogger";
-import type {LogItem, LogItemValues} from "./LogItem";
+import type {ILogItem, LogItemValues} from "./LogItem";
 
 export class ConsoleLogger extends BaseLogger {
-    _persistItem(item: LogItem): void {
+    _persistItem(item: ILogItem): void {
         printToConsole(item);
     }
 
@@ -41,7 +41,7 @@ function filterValues(values: LogItemValues): LogItemValues | null {
         }, null);
 }
 
-function printToConsole(item: LogItem): void {
+function printToConsole(item: ILogItem): void {
     const label = `${itemCaption(item)} (${item.duration}ms)`;
     const filteredValues = filterValues(item.values);
     const shouldGroup = item.children || filteredValues;
@@ -74,7 +74,7 @@ function printToConsole(item: LogItem): void {
     }
 }
 
-function itemCaption(item: LogItem): string {
+function itemCaption(item: ILogItem): string {
     if (item.values.t === "network") {
         return `${item.values.method} ${item.values.url}`;
     } else if (item.values.l && typeof item.values.id !== "undefined") {

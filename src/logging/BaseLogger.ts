@@ -17,14 +17,14 @@ limitations under the License.
 
 import {LogItem} from "./LogItem";
 import {LogLevel, LogFilter} from "./LogFilter";
-import type {FilterCreator, LabelOrValues, LogCallback} from "./LogItem";
+import type {FilterCreator, LabelOrValues, LogCallback, ILogItem} from "./LogItem";
 import type {LogLevelOrNull} from "./LogFilter";
 // todo: should this import be here just for getting the type? should it instead be done when Platform.js --> Platform.ts?
 import type {Platform} from "../platform/web/Platform.js";
 
 
 export abstract class BaseLogger {
-    protected _openItems: Set<LogItem> = new Set();
+    protected _openItems: Set<ILogItem> = new Set();
     protected _platform: Platform;
 
     constructor({platform}) {
@@ -38,7 +38,7 @@ export abstract class BaseLogger {
     }
 
     /** if item is a log item, wrap the callback in a child of it, otherwise start a new root log item. */
-    wrapOrRun(item: LogItem, labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator: FilterCreator = null): unknown {
+    wrapOrRun(item: ILogItem, labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator: FilterCreator = null): unknown {
         if (item) {
             return item.wrap(labelOrValues, callback, logLevel, filterCreator);
         } else {
@@ -51,7 +51,7 @@ export abstract class BaseLogger {
     Useful to pair with LogItem.refDetached.
 
     @return {LogItem} the log item added, useful to pass to LogItem.refDetached */
-    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator: FilterCreator = null): LogItem {
+    runDetached(labelOrValues: LabelOrValues, callback: LogCallback, logLevel: LogLevelOrNull = null, filterCreator: FilterCreator = null): ILogItem {
         // todo: Remove jsdoc type?
         if (logLevel === null) {
             logLevel = LogLevel.Info;
@@ -72,7 +72,7 @@ export abstract class BaseLogger {
         return this._run(item, callback, logLevel!, filterCreator, true);
     }
 
-    _run(item: LogItem, callback: LogCallback, logLevel: LogLevel, filterCreator: FilterCreator, shouldThrow: boolean): unknown {
+    _run(item: ILogItem, callback: LogCallback, logLevel: LogLevel, filterCreator: FilterCreator, shouldThrow: boolean): unknown {
         this._openItems.add(item);
 
         const finishItem = () => {
@@ -135,7 +135,7 @@ export abstract class BaseLogger {
         this._openItems.clear();
     }
 
-    abstract _persistItem(item: LogItem, filter?: LogFilter, forced?: boolean): void;
+    abstract _persistItem(item: ILogItem, filter?: LogFilter, forced?: boolean): void;
 
     abstract export(): void;
 

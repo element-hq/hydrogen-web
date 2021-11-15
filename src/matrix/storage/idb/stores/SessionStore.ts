@@ -16,7 +16,7 @@ limitations under the License.
 import {Store} from "../Store";
 import {IDOMStorage} from "../types";
 import {SESSION_E2EE_KEY_PREFIX} from "../../../e2ee/common.js";
-import {LogItem} from "../../../../logging/LogItem";
+import {ILogItem} from "../../../../logging/LogItem";
 import {parse, stringify} from "../../../../utils/typedJSON";
 
 export interface SessionEntry {
@@ -64,7 +64,7 @@ export class SessionStore {
         });
     }
 
-    async tryRestoreE2EEIdentityFromLocalStorage(log: LogItem): Promise<boolean> {
+    async tryRestoreE2EEIdentityFromLocalStorage(log: ILogItem): Promise<boolean> {
         let success = false;
         const lsPrefix = this._localStorageKeyPrefix;
         const prefix = lsPrefix + SESSION_E2EE_KEY_PREFIX;
