@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 import {SortedArray, AsyncMappedList, ConcatList, ObservableArray} from "../../../observable/index.js";
-import {Disposables} from "../../../utils/Disposables.js";
+import {Disposables} from "../../../utils/Disposables";
 import {Direction} from "./Direction";
 import {TimelineReader} from "./persistence/TimelineReader.js";
 import {PendingEventEntry} from "./entries/PendingEventEntry.js";
