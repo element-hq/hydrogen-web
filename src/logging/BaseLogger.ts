@@ -18,7 +18,6 @@ limitations under the License.
 import {LogItem} from "./LogItem";
 import {LogLevel, LogFilter} from "./LogFilter";
 import type {FilterCreator, LabelOrValues, LogCallback, ILogItem} from "./LogItem";
-// todo: should this import be here just for getting the type? should it instead be done when Platform.js --> Platform.ts?
 import type {Platform} from "../platform/web/Platform.js";
 
 type RunResult<T> = T | void | Promise<T | void>;
