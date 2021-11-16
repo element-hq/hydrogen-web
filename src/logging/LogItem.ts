@@ -141,9 +141,7 @@ export class LogItem implements ILogItem {
         } else if (this._children) {
             return this._children.reduce((sum, c) => {
                 const duration = c.durationOfType(type);
-                if (duration) {
-                    return sum + duration;
-                }
+                return sum + (duration ?? 0);
             }, 0);
         } else {
             return 0;
