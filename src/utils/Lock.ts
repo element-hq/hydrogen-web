@@ -15,12 +15,10 @@ limitations under the License.
 */
 
 export class Lock {
-    constructor() {
-        this._promise = null;
-        this._resolve = null;
-    }
+    private _promise: Promise<void> | null = null;
+    private _resolve: (() => void) | null = null;
 
-    tryTake() {
+    tryTake(): boolean {
         if (!this._promise) {
             this._promise = new Promise(resolve => {
                 this._resolve = resolve;
@@ -30,17 +28,17 @@ export class Lock {
         return false;
     }
 
-    async take() {
+    async take(): Promise<void> {
         while(!this.tryTake()) {
             await this.released();
         }
     }
 
-    get isTaken() {
+    get isTaken(): boolean {
         return !!this._promise;
     }
 
-    release() {
+    release(): void {
         if (this._resolve) {
             this._promise = null;
             const resolve = this._resolve;
@@ -49,17 +47,17 @@ export class Lock {
         }
     }
 
-    released() {
+    released(): Promise<void> | null {
         return this._promise;
     }
 }
 
 export class MultiLock {
-    constructor(locks) {
-        this.locks = locks;
+
+    constructor(public readonly locks: Lock[]) {
     }
 
-    release() {
+    release(): void {
         for (const lock of this.locks) {
             lock.release();
         }
@@ -86,9 +84,9 @@ export function tests() {
             lock.tryTake();
 
             let first;
-            lock.released().then(() => first = lock.tryTake());
+            lock.released()!.then(() => first = lock.tryTake());
             let second;
-            lock.released().then(() => second = lock.tryTake());
+            lock.released()!.then(() => second = lock.tryTake());
             const promise = lock.released();
             lock.release();
             await promise;

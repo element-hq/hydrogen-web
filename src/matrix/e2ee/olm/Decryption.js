@@ -16,7 +16,7 @@ limitations under the License.
 
 import {DecryptionError} from "../common.js";
 import {groupBy} from "../../../utils/groupBy";
-import {MultiLock} from "../../../utils/Lock.js";
+import {MultiLock} from "../../../utils/Lock";
 import {Session} from "./Session.js";
 import {DecryptionResult} from "../DecryptionResult.js";
 
