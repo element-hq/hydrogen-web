@@ -15,16 +15,18 @@ limitations under the License.
 */
 
 export class RetainedValue {
-    constructor(freeCallback) {
+    private readonly _freeCallback: () => void;
+    private _retentionCount: number = 1;
+
+    constructor(freeCallback: () => void) {
         this._freeCallback = freeCallback;
-        this._retentionCount = 1;
     }
 
-    retain() {
+    retain(): void {
         this._retentionCount += 1;
     }
 
-    release() {
+    release(): void {
         this._retentionCount -= 1;
         if (this._retentionCount === 0) {
             this._freeCallback();
