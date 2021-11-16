@@ -50,9 +50,8 @@ export abstract class BaseLogger {
     where the (async) result or errors are not propagated but still logged.
     Useful to pair with LogItem.refDetached.
 
-    @return {LogItem} the log item added, useful to pass to LogItem.refDetached */
+    @return {ILogItem} the log item added, useful to pass to LogItem.refDetached */
     runDetached(labelOrValues: LabelOrValues, callback: LogCallback<unknown>, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem {
-        // todo: Remove jsdoc type?
         if (!logLevel) {
             logLevel = LogLevel.Info;
         }
