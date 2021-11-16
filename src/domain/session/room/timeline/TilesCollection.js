@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {BaseObservableList} from "../../../../observable/list/BaseObservableList";
-import {sortedIndex} from "../../../../utils/sortedIndex.js";
+import {sortedIndex} from "../../../../utils/sortedIndex";
 
 // maps 1..n entries to 0..1 tile. Entries are what is stored in the timeline, either an event or fragmentboundary
 // for now, tileCreator should be stable in whether it returns a tile or not.
