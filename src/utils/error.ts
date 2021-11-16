@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 export class AbortError extends Error {
-    get name() {
+    get name(): string {
         return "AbortError";
     }
 }
