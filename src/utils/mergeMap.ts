@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export function mergeMap(src, dst) {
+export function mergeMap<K, V>(src: Map<K, V> | undefined, dst: Map<K, V>) {
     if (src) {
         for (const [key, value] of src.entries()) {
             dst.set(key, value);
