@@ -26,7 +26,6 @@ function disposeValue(value: Disposable): void {
 }
 
 function isDisposable(value: Disposable): boolean {
-    // todo: value can be undefined I think?
     return value && (typeof value === "function" || typeof value.dispose === "function");
 }
 
@@ -46,10 +45,10 @@ export class Disposables {
         return disposable;
     }
 
-    untrack(disposable: Disposable) {
+    untrack(disposable: Disposable): null {
         if (this.isDisposed) {
             console.warn("Disposables already disposed, cannot untrack");
-            return;
+            return null;
         }
         const idx = this._disposables!.indexOf(disposable);
         if (idx >= 0) {
