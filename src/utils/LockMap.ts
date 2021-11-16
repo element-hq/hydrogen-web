@@ -17,11 +17,9 @@ limitations under the License.
 import {Lock} from "./Lock";
 
 export class LockMap {
-    constructor() {
-        this._map = new Map();
-    }
+    private readonly _map: Map<unknown, Lock> = new Map();
 
-    async takeLock(key) {
+    async takeLock(key: unknown): Promise<Lock> {
         let lock = this._map.get(key);
         if (lock) {
             await lock.take();
@@ -31,10 +29,10 @@ export class LockMap {
             this._map.set(key, lock);
         }
         // don't leave old locks lying around
-        lock.released().then(() => {
+        lock.released()!.then(() => {
             // give others a chance to take the lock first
             Promise.resolve().then(() => {
-                if (!lock.isTaken) {
+                if (!lock!.isTaken) {
                     this._map.delete(key);
                 }
             });
@@ -67,6 +65,7 @@ export function tests() {
                 ranSecond = true;
                 assert.equal(returnedLock.isTaken, true);
                 // peek into internals, naughty
+                // @ts-ignore
                 assert.equal(lockMap._map.get("foo"), returnedLock);
             });
             lock.release();
@@ -84,6 +83,7 @@ export function tests() {
             // double delay to make sure cleanup logic ran
             await Promise.resolve();
             await Promise.resolve();
+            // @ts-ignore
             assert.equal(lockMap._map.has("foo"), false);
         },
         
