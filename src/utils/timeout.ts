@@ -16,9 +16,13 @@ limitations under the License.
 */
 
 import {ConnectionError} from "../matrix/error.js";
+import type {Timeout} from "../platform/web/dom/Clock.js"
 
+type TimeoutCreator = (ms: number) => Timeout;
+// ts-todo: export type RequestResult from fetch.js? we'll need to wait until it's typescript though.
+type Abortable = { abort(): void; [key: string]: any };
 
-export function abortOnTimeout(createTimeout, timeoutAmount, requestResult, responsePromise) {
+export function abortOnTimeout(createTimeout: TimeoutCreator, timeoutAmount: number, requestResult: Abortable, responsePromise: Promise<Response>) {
     const timeout = createTimeout(timeoutAmount);
     // abort request if timeout finishes first
     let timedOut = false;
