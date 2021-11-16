@@ -18,21 +18,20 @@ import type {ILogItem, LabelOrValues, LogCallback, LogItemValues} from "./LogIte
 
 function noop (): void {}
 
-
 export class NullLogger {
     public readonly item: ILogItem = new NullLogItem(this);
 
     log(): void {}
 
-    run(_: null, callback) {
+    run<T>(_, callback: LogCallback<T>): T | Promise<T> {
         return callback(this.item);    
     }
 
-    wrapOrRun(item, _, callback) {
+    wrapOrRun<T>(item: ILogItem, _, callback: LogCallback<T>): T | Promise<T> {
         if (item) {
-            return item.wrap(null, callback);
+            return item.wrap(_, callback);
         } else {
-            return this.run(null, callback);
+            return this.run(_, callback);
         }
     }
 
@@ -40,11 +39,11 @@ export class NullLogger {
         new Promise(r => r(callback(this.item))).then(noop, noop);
     }
 
-    async export() {
+    async export(): Promise<null> {
         return null;
     }
 
-    get level() {
+    get level(): typeof LogLevel {
         return LogLevel;
     }
 }
@@ -63,6 +62,7 @@ export class NullLogItem implements ILogItem {
     wrap<T>(_: LabelOrValues, callback: LogCallback<T>): T | Promise<T> {
         return callback(this);
     }
+
     log(): void {}
     set(): void {}
 
@@ -95,13 +95,13 @@ export class NullLogItem implements ILogItem {
         return err;
     }
 
-    child()  {
+    child(): ILogItem  {
         return this;
     }
 
     finish(): void {}
 
-    serialize() {
+    serialize(): undefined {
         return undefined;
     }
 }
