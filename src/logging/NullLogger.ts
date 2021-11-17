@@ -76,10 +76,6 @@ export class NullLogItem implements ILogItem {
         return this.refDetached();
     }
 
-    run<T>(callback: LogCallback<T>): T {
-        return callback(this);
-    }
-
     refDetached(): void {}
 
     ensureRefId(): void {}
