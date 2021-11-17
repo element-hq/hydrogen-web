@@ -152,12 +152,14 @@ export class IDBLogger extends BaseLogger {
             const txn = db.transaction(["logs"], "readwrite");
             const logs = txn.objectStore("logs");
             for (const item of items) {
-                const queuedIdx = this._queuedItems.findIndex(i => i.id === item.id);
-                if (queuedIdx === -1) {
-                    // todo: isn't id optional? do we need further checks here
-                    logs.delete(item.id!); // resolve questionable use of non-null assertion operator?
+                if (typeof item.id === "number") {
+                    logs.delete(item.id);
                 } else {
-                    this._queuedItems.splice(queuedIdx, 1);
+                    // assume the (non-persisted) object in each array will be the same
+                    const queuedIdx = this._queuedItems.indexOf(item);
+                    if (queuedIdx === -1) {
+                        this._queuedItems.splice(queuedIdx, 1);
+                    }
                 }
             }
             await txnAsPromise(txn);
