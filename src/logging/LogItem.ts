@@ -42,10 +42,10 @@ export interface ILogItem {
     children?: Array<ILogItem>;
     values: LogItemValues;
     error?: Error;
-    wrap<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T | Promise<T>;
+    wrap<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T;
     log(labelOrValues: LabelOrValues, logLevel?: LogLevel): void;
     set(key: string | object, value: unknown): void;
-    run<T>(callback: LogCallback<T>): T | Promise<T>;
+    run<T>(callback: LogCallback<T>): T;
     runDetached(labelOrValues: LabelOrValues, callback: LogCallback<unknown>, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem;
     wrapDetached(labelOrValues: LabelOrValues, callback: LogCallback<unknown>, logLevel?: LogLevel, filterCreator?: FilterCreator): void;
     refDetached(logItem: ILogItem, logLevel?: LogLevel): void;
@@ -115,7 +115,7 @@ export class LogItem implements ILogItem {
     /**
      * Creates a new child item and runs it in `callback`.
      */
-    wrap<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T | Promise<T> {
+    wrap<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T {
         const item = this.child(labelOrValues, logLevel, filterCreator);
         return item.run(callback);
     }
@@ -235,7 +235,7 @@ export class LogItem implements ILogItem {
      * @param  {Function} callback [description]
      * @return {[type]}            [description]
      */
-    run<T>(callback: LogCallback<T>): T | Promise<T> {
+    run<T>(callback: LogCallback<T>): T {
         if (this.end) {
             console.trace("log item is finished, additional logs will likely not be recorded");
         }
@@ -248,7 +248,7 @@ export class LogItem implements ILogItem {
                     return promiseResult;
                 }, err => {
                     throw this.catch(err);
-                });
+                }) as unknown as T;
             } else {
                 this.finish();
                 return result;

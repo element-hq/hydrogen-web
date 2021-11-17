@@ -59,7 +59,7 @@ export class NullLogItem implements ILogItem {
         this.logger = logger;
     }
 
-    wrap<T>(_: LabelOrValues, callback: LogCallback<T>): T | Promise<T> {
+    wrap<T>(_: LabelOrValues, callback: LogCallback<T>): T {
         return callback(this);
     }
 
@@ -75,7 +75,7 @@ export class NullLogItem implements ILogItem {
         return this.refDetached();
     }
 
-    run<T>(callback: LogCallback<T>): T | Promise<T> {
+    run<T>(callback: LogCallback<T>): T {
         return callback(this);
     }
 
