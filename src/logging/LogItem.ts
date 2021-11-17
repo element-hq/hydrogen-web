@@ -187,9 +187,8 @@ export class LogItem implements ILogItem {
         if (this.end) {
             console.trace("log item is finished, additional logs will likely not be recorded");
         }
-        let result: T | Promise<T>;
         try {
-            result = callback(this);
+            const result = callback(this);
             if (result instanceof Promise) {
                 return result.then(promiseResult => {
                     this.finish();
