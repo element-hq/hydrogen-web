@@ -168,7 +168,6 @@ export class LogItem implements ILogItem {
         }
     }
 
-    // todo: null or undefined here?
     serialize(filter: LogFilter, parentStartTime: number | undefined, forced: boolean): ISerializedItem | undefined {
         if (this._filterCreator) {
             try {
