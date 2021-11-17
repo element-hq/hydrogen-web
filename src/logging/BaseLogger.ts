@@ -48,7 +48,7 @@ export abstract class BaseLogger {
     Useful to pair with LogItem.refDetached.
 
     @return {ILogItem} the log item added, useful to pass to LogItem.refDetached */
-    runDetached(labelOrValues: LabelOrValues, callback: LogCallback<unknown>, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem {
+    runDetached<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem {
         if (!logLevel) {
             logLevel = LogLevel.Info;
         }
