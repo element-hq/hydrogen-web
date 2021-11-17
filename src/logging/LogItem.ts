@@ -159,7 +159,7 @@ export class LogItem implements ILogItem {
         item.end = item.start;
     }
 
-    set(key: string | object, value: unknown): void {
+    set(key: string | object, value?: unknown): void {
         if(typeof key === "object") {
             const values = key;
             Object.assign(this._values, values);
