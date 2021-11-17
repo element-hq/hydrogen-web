@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-type func = () => void;
-type Disposable = { dispose: func; [key: string]: any } | func;
+type Func = () => void;
+type Disposable = { dispose: Func; [key: string]: any } | Func;
 
 function disposeValue(value: Disposable): void {
     if (typeof value === "function") {
