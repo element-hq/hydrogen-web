@@ -22,7 +22,7 @@
         </script>
         <script id="main" type="module">
             import {main} from "./src/main.js";
-            import {Platform} from "./src/platform/web/Platform.js";
+            import {Platform} from "./src/platform/web/Platform";
             main(new Platform(document.body, {
                 worker: "src/worker.js",
                 downloadSandbox: "assets/download-sandbox.html",
