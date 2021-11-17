@@ -120,7 +120,7 @@ export class LogItem implements ILogItem {
         return item.run(callback);
     }
 
-    get duration(): number | undefined{
+    get duration(): number | undefined {
         if (this.end) {
             return this.end - this.start;
         } else {
@@ -128,7 +128,7 @@ export class LogItem implements ILogItem {
         }
     }
 
-    durationWithoutType(type: string): number | undefined{
+    durationWithoutType(type: string): number | undefined {
         const durationOfType = this.durationOfType(type);
         if (this.duration && durationOfType) {
             return this.duration - durationOfType;
