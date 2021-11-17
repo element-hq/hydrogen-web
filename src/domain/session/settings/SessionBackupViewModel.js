@@ -16,7 +16,7 @@ limitations under the License.
 
 import {ViewModel} from "../../ViewModel.js";
 import {KeyType} from "../../../matrix/ssss/index.js";
-import {createEnum} from "../../../utils/enum.js";
+import {createEnum} from "../../../utils/enum";
 
 export const Status = createEnum("Enabled", "SetupKey", "SetupPhrase", "Pending"); 
 
