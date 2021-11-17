@@ -69,6 +69,7 @@ export abstract class BaseLogger {
     }
 
     _run<T>(item: ILogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: true, filterCreator?: FilterCreator): T;
+    // we don't return if we don't throw, as we don't have anything to return when an error is caught but swallowed for the fire-and-forget case.
     _run<T>(item: ILogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: false, filterCreator?: FilterCreator): void;
     _run<T>(item: ILogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: boolean, filterCreator?: FilterCreator): T | void {
         this._openItems.add(item);
@@ -108,10 +109,11 @@ export abstract class BaseLogger {
                 if (wantResult) {
                     return result;
                 }
-            }
-            if(wantResult) {
+            } else {
                 finishItem();
-                return result;
+                if(wantResult) {
+                    return result;
+                }
             }
         } catch (err) {
             finishItem();
