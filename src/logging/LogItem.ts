@@ -184,7 +184,7 @@ export class LogItem implements ILogItem {
      * @return {[type]}            [description]
      */
     run<T>(callback: LogCallback<T>): T {
-        if (this.end) {
+        if (this.end !== undefined) {
             console.trace("log item is finished, additional logs will likely not be recorded");
         }
         try {
