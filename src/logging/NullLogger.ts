@@ -14,20 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {LogLevel} from "./LogFilter";
-import type {ILogItem, LabelOrValues, LogCallback, LogItemValues} from "./LogItem";
+import type {ILogger, ILogExport, ILogItem, LabelOrValues, LogCallback, LogItemValues} from "./types";
 
 function noop (): void {}
 
-export class NullLogger {
+export class NullLogger implements ILogger {
     public readonly item: ILogItem = new NullLogItem(this);
 
     log(): void {}
 
-    run<T>(_, callback: LogCallback<T>): T | Promise<T> {
+    run<T>(_, callback: LogCallback<T>): T {
         return callback(this.item);    
     }
 
-    wrapOrRun<T>(item: ILogItem, _, callback: LogCallback<T>): T | Promise<T> {
+    wrapOrRun<T>(item: ILogItem | undefined, _, callback: LogCallback<T>): T {
         if (item) {
             return item.wrap(_, callback);
         } else {
@@ -35,12 +35,13 @@ export class NullLogger {
         }
     }
 
-    runDetached(_, callback) {
+    runDetached(_, callback): ILogItem {
         new Promise(r => r(callback(this.item))).then(noop, noop);
+        return this.item;
     }
 
-    async export(): Promise<null> {
-        return null;
+    async export(): Promise<ILogExport | undefined> {
+        return undefined;
     }
 
     get level(): typeof LogLevel {

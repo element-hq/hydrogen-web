@@ -17,58 +17,7 @@ limitations under the License.
 
 import {LogLevel, LogFilter} from "./LogFilter";
 import type {BaseLogger} from "./BaseLogger";
-
-export interface ISerializedItem {
-    s: number;
-    d?: number;
-    v: LogItemValues;
-    l: LogLevel;
-    e?: {
-        stack?: string;
-        name: string;
-        message: string;
-    };
-    f?: boolean;
-    c?: Array<ISerializedItem>;
-};
-
-export interface ILogItem {
-    logger: any;
-    level: typeof LogLevel;
-    duration?: number;
-    end?: number;
-    start?: number;
-    logLevel: LogLevel;
-    children?: Array<ILogItem>;
-    values: LogItemValues;
-    error?: Error;
-    wrap<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T;
-    log(labelOrValues: LabelOrValues, logLevel?: LogLevel): void;
-    set(key: string | object, value: unknown): void;
-    run<T>(callback: LogCallback<T>): T;
-    runDetached(labelOrValues: LabelOrValues, callback: LogCallback<unknown>, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem;
-    wrapDetached(labelOrValues: LabelOrValues, callback: LogCallback<unknown>, logLevel?: LogLevel, filterCreator?: FilterCreator): void;
-    refDetached(logItem: ILogItem, logLevel?: LogLevel): void;
-    ensureRefId(): void;
-    catch(err: Error): Error;
-    finish(): void;
-    child(labelOrValues: LabelOrValues, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem;
-    serialize(filter: LogFilter, parentStartTime: number | undefined, forced: boolean): ISerializedItem | undefined;
-}
-
-export type LogItemValues = {
-    l?: string;
-    t?: string;
-    id?: unknown;
-    status?: string | number;
-    refId?: number;
-    ref?: number;
-    [key: string]: any
-}
-
-export type LabelOrValues = string | LogItemValues;
-export type FilterCreator = ((filter: LogFilter, item: ILogItem) => LogFilter);
-export type LogCallback<T> = (item: ILogItem) => T;
+import type {ISerializedItem, ILogItem, LogItemValues, LabelOrValues, FilterCreator, LogCallback} from "./types";
 
 export class LogItem implements ILogItem {
     public readonly start: number;

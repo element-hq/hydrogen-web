@@ -17,10 +17,10 @@ limitations under the License.
 
 import {LogItem} from "./LogItem";
 import {LogLevel, LogFilter} from "./LogFilter";
-import type {FilterCreator, LabelOrValues, LogCallback, ILogItem} from "./LogItem";
+import type {ILogger, ILogExport, FilterCreator, LabelOrValues, LogCallback, ILogItem} from "./types";
 import type {Platform} from "../platform/web/Platform.js";
 
-export abstract class BaseLogger {
+export abstract class BaseLogger implements ILogger {
     protected _openItems: Set<ILogItem> = new Set();
     protected _platform: Platform;
 
@@ -141,7 +141,7 @@ export abstract class BaseLogger {
 
     abstract _persistItem(item: ILogItem, filter?: LogFilter, forced?: boolean): void;
 
-    abstract export(): void;
+    abstract export(): Promise<ILogExport | undefined>;
 
     // expose log level without needing 
     get level(): typeof LogLevel {

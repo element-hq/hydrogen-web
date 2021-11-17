@@ -26,7 +26,7 @@ import type {OlmWorker} from "../OlmWorker";
 import type {Transaction} from "../../storage/idb/Transaction";
 import type {TimelineEvent} from "../../storage/types";
 import type {DecryptionResult} from "../DecryptionResult";
-import type {ILogItem} from "../../../logging/LogItem";
+import type {ILogItem} from "../../../logging/types";
 
 export class Decryption {
     private keyLoader: KeyLoader;

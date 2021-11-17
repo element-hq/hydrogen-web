@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type {ILogItem, ISerializedItem} from "./LogItem";
+import type {ILogItem, ISerializedItem} from "./types";
 
 export enum LogLevel {
     All = 1,

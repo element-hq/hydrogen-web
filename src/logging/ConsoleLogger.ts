@@ -14,15 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {BaseLogger} from "./BaseLogger";
-import type {ILogItem, LogItemValues} from "./LogItem";
+import type {ILogItem, LogItemValues, ILogExport} from "./types";
 
 export class ConsoleLogger extends BaseLogger {
     _persistItem(item: ILogItem): void {
         printToConsole(item);
     }
 
-    export(): void {
-        throw new Error("Cannot export from ConsoleLogger");
+    async export(): Promise<ILogExport | undefined> {
+        return undefined;
     }
 }
 

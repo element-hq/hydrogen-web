@@ -36,8 +36,7 @@ import {OutboundGroupSessionStore} from "./stores/OutboundGroupSessionStore";
 import {GroupSessionDecryptionStore} from "./stores/GroupSessionDecryptionStore";
 import {OperationStore} from "./stores/OperationStore";
 import {AccountDataStore} from "./stores/AccountDataStore";
-import {ILogItem} from "../../../logging/LogItem";
-import {BaseLogger} from "../../../logging/BaseLogger";
+import type {ILogger, ILogItem} from "../../../logging/types";
 
 export type IDBKey = IDBValidKey | IDBKeyRange;
 
@@ -77,7 +76,7 @@ export class Transaction {
         return this._storage.databaseName;
     }
 
-    get logger(): BaseLogger {
+    get logger(): ILogger {
         return this._storage.logger;
     }
 

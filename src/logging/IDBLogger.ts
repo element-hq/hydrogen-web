@@ -26,7 +26,7 @@ import {BaseLogger} from "./BaseLogger";
 import type {Interval} from "../platform/web/dom/Clock";
 import type {Platform} from "../platform/web/Platform.js";
 import type {BlobHandle} from "../platform/web/dom/BlobHandle.js";
-import type {ILogItem} from "./LogItem";
+import type {ILogItem, ILogExport} from "./types";
 import type {LogFilter} from "./LogFilter";
 
 type QueuedItem = {
@@ -131,7 +131,7 @@ export class IDBLogger extends BaseLogger {
         }
     }
 
-    async export(): Promise<IDBLogExport> {
+    async export(): Promise<ILogExport> {
         const db = await this._openDB();
         try {
             const txn = db.transaction(["logs"], "readonly");
@@ -171,7 +171,7 @@ export class IDBLogger extends BaseLogger {
     }
 }
 
-class IDBLogExport {
+class IDBLogExport implements ILogExport {
     private readonly _items: QueuedItem[];
     private readonly _logger: IDBLogger;
     private readonly _platform: Platform;
