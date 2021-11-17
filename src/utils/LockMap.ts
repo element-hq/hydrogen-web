@@ -16,10 +16,10 @@ limitations under the License.
 
 import {Lock} from "./Lock";
 
-export class LockMap {
-    private readonly _map: Map<unknown, Lock> = new Map();
+export class LockMap<T> {
+    private readonly _map: Map<T, Lock> = new Map();
 
-    async takeLock(key: unknown): Promise<Lock> {
+    async takeLock(key: T): Promise<Lock> {
         let lock = this._map.get(key);
         if (lock) {
             await lock.take();
