@@ -28,10 +28,6 @@ export class ConsoleLogger extends BaseLogger {
 
 const excludedKeysFromTable = ["l", "id"];
 function filterValues(values: LogItemValues): LogItemValues | null {
-    if (!values) {
-        // todo: is this check here unnecessary because LogItem will always have values?
-        return null;
-    }
     return Object.entries(values)
         .filter(([key]) => !excludedKeysFromTable.includes(key))
         .reduce((obj: LogItemValues, [key, value]) => {
