@@ -15,7 +15,11 @@ limitations under the License.
 */
 
 type Func = () => void;
-type Disposable = { dispose: Func; [key: string]: any } | Func;
+export interface IDisposable {
+    dispose(): void;
+}
+
+type Disposable = IDisposable | (() => void);
 
 function disposeValue(value: Disposable): void {
     if (typeof value === "function") {
