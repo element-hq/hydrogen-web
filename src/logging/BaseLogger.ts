@@ -21,7 +21,7 @@ import type {ILogger, ILogExport, FilterCreator, LabelOrValues, LogCallback, ILo
 import type {Platform} from "../platform/web/Platform.js";
 
 export abstract class BaseLogger implements ILogger {
-    protected _openItems: Set<ILogItem> = new Set();
+    protected _openItems: Set<LogItem> = new Set();
     protected _platform: Platform;
 
     constructor({platform}) {
@@ -68,10 +68,10 @@ export abstract class BaseLogger implements ILogger {
         return this._run(item, callback, logLevel, true, filterCreator);
     }
 
-    _run<T>(item: ILogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: true, filterCreator?: FilterCreator): T;
+    _run<T>(item: LogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: true, filterCreator?: FilterCreator): T;
     // we don't return if we don't throw, as we don't have anything to return when an error is caught but swallowed for the fire-and-forget case.
-    _run<T>(item: ILogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: false, filterCreator?: FilterCreator): void;
-    _run<T>(item: ILogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: boolean, filterCreator?: FilterCreator): T | void {
+    _run<T>(item: LogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: false, filterCreator?: FilterCreator): void;
+    _run<T>(item: LogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: boolean, filterCreator?: FilterCreator): T | void {
         this._openItems.add(item);
 
         const finishItem = () => {

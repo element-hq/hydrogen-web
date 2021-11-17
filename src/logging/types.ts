@@ -51,8 +51,6 @@ export interface ILogItem {
     refDetached(logItem: ILogItem, logLevel?: LogLevel): void;
     ensureRefId(): void;
     catch(err: Error): Error;
-    finish(): void;
-    child(labelOrValues: LabelOrValues, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem;
     serialize(filter: LogFilter, parentStartTime: number | undefined, forced: boolean): ISerializedItem | undefined;
 }
 

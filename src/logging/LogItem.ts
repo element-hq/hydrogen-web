@@ -233,7 +233,7 @@ export class LogItem implements ILogItem {
         return err;
     }
 
-    child(labelOrValues: LabelOrValues, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem {
+    child(labelOrValues: LabelOrValues, logLevel?: LogLevel, filterCreator?: FilterCreator): LogItem {
         if (this.end) {
             console.trace("log item is finished, additional logs will likely not be recorded");
         }
