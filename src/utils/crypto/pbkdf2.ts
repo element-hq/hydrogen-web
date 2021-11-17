@@ -6,17 +6,19 @@
  * Based on https://github.com/junkurihara/jscu/blob/develop/packages/js-crypto-pbkdf/src/pbkdf.ts
  */
 
+import type {Crypto} from "../../platform/web/dom/Crypto.js";
+
 // not used atm, but might in the future
 // forked this code to make it use the cryptoDriver for HMAC that is more backwards-compatible
 
 
-const nwbo = (num, len) => {
+const nwbo = (num: number, len: number): Uint8Array => {
   const arr = new Uint8Array(len);
   for(let i=0; i<len; i++) arr[i] = 0xFF && (num >> ((len - i - 1)*8));
   return arr;
 };
 
-export async function pbkdf2(cryptoDriver, password, iterations, salt, hash, length) {
+export async function pbkdf2(cryptoDriver: Crypto, password: Uint8Array, iterations: number, salt: Uint8Array, hash: string, length: number): Promise<Uint8Array> {
     const dkLen = length / 8;
     if (iterations <= 0) {
         throw new Error('InvalidIterationCount');
@@ -30,7 +32,7 @@ export async function pbkdf2(cryptoDriver, password, iterations, salt, hash, len
     const l = Math.ceil(dkLen/hLen);
     const r = dkLen - (l-1)*hLen;
 
-    const funcF = async (i) => {
+    const funcF = async (i: number) => {
         const seed = new Uint8Array(salt.length + 4);
         seed.set(salt);
         seed.set(nwbo(i+1, 4), salt.length);
@@ -46,7 +48,7 @@ export async function pbkdf2(cryptoDriver, password, iterations, salt, hash, len
         return {index: i, value: outputF};
     };
 
-    const Tis = [];
+    const Tis: Promise<{index: number, value: Uint8Array}>[] = [];
     const DK = new Uint8Array(dkLen);
     for(let i = 0; i < l; i++) {
         Tis.push(funcF(i));
