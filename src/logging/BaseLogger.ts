@@ -55,7 +55,7 @@ export abstract class BaseLogger {
             logLevel = LogLevel.Info;
         }
         const item = new LogItem(labelOrValues, logLevel, this);
-        this._run(item, callback, logLevel!, false /* don't throw, nobody is awaiting */, filterCreator);
+        this._run(item, callback, logLevel, false /* don't throw, nobody is awaiting */, filterCreator);
         return item;
     }
 
