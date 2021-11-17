@@ -28,7 +28,7 @@ export abstract class BaseLogger implements ILogger {
         this._platform = platform;
     }
 
-    log(labelOrValues: LabelOrValues, logLevel: LogLevel = LogLevel.Info) {
+    log(labelOrValues: LabelOrValues, logLevel: LogLevel = LogLevel.Info): void {
         const item = new LogItem(labelOrValues, logLevel, this);
         item.end = item.start;
         this._persistItem(item, undefined, false);
