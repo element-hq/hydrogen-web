@@ -6,8 +6,10 @@
  * Based on https://github.com/junkurihara/jscu/blob/develop/packages/js-crypto-hkdf/src/hkdf.ts
  */
 
+import type {Crypto} from "../../platform/web/dom/Crypto.js";
+
 // forked this code to make it use the cryptoDriver for HMAC that is more backwards-compatible
-export async function hkdf(cryptoDriver, key, salt, info, hash, length) {
+export async function hkdf(cryptoDriver: Crypto, key: Uint8Array, salt: Uint8Array, info: Uint8Array, hash: string, length: number): Promise<Uint8Array> {
     length = length / 8;
     const len = cryptoDriver.digestSize(hash);
 
