@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type {ILogItem} from "./LogItem";
+import type {ILogItem, ISerializedItem} from "./LogItem";
 
 export enum LogLevel {
     All = 1,
@@ -35,7 +35,7 @@ export class LogFilter {
         this._parentFilter = parentFilter;
     }
 
-    filter(item: ILogItem, children: Array<unknown> | null): boolean {
+    filter(item: ILogItem, children: ISerializedItem[] | null): boolean {
         if (this._parentFilter) {
             if (!this._parentFilter.filter(item, children)) {
                 return false;

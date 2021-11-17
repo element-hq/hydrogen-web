@@ -18,7 +18,7 @@ limitations under the License.
 import {LogLevel, LogFilter} from "./LogFilter";
 import type {BaseLogger} from "./BaseLogger";
 
-interface ISerializedItem {
+export interface ISerializedItem {
     s: number;
     d?: number;
     v: LogItemValues;
