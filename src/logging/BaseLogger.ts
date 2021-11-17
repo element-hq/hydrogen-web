@@ -61,11 +61,11 @@ export abstract class BaseLogger implements ILogger {
     Errors and duration are transparently logged, also for async operations.
     Whatever the callback returns is returned here. */
     run<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T {
-        if (!logLevel) {
+        if (logLevel === undefined) {
             logLevel = LogLevel.Info;
         }
         const item = new LogItem(labelOrValues, logLevel, this);
-        return this._run(item, callback, logLevel!, true, filterCreator);
+        return this._run(item, callback, logLevel, true, filterCreator);
     }
 
     _run<T>(item: ILogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: true, filterCreator?: FilterCreator): T;
