@@ -38,6 +38,7 @@ import {downloadInIframe} from "./dom/download.js";
 import {Disposables} from "../../utils/Disposables.js";
 import {parseHTML} from "./parsehtml.js";
 import {handleAvatarError} from "./ui/avatar.js";
+import {IPlatformConfig} from "../types/Platform";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -125,7 +126,9 @@ function adaptUIOnVisualViewportResize(container) {
 }
 
 export class Platform {
-    constructor(container, config, cryptoExtras = null, options = null) {
+    private readonly _config: IPlatformConfig;
+
+    constructor(container, config: IPlatformConfig, cryptoExtras = null, options = null) {
         this._config = config;
         this._container = container;
         this.settingsStorage = new SettingsStorage("hydrogen_setting_v1_");
