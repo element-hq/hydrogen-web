@@ -144,7 +144,7 @@ export class LogItem implements ILogItem {
         // in (v)alues, (l)abel and (t)ype are also reserved.
         const item: ISerializedItem = {
             // (s)tart
-            s: parentStartTime? this.start - parentStartTime : this.start,
+            s: typeof parentStartTime === "number" ? this.start - parentStartTime : this.start,
             // (d)uration
             d: this.duration,
             // (v)alues
