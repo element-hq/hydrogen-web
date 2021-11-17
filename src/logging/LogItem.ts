@@ -210,7 +210,7 @@ export class LogItem implements ILogItem {
      * @internal shouldn't typically be called by hand. allows to force finish if a promise is still running when closing the app
      */
     finish(): void {
-        if (!this.end) {
+        if (this.end === undefined) {
             if (this._children) {
                 for(const c of this._children) {
                     c.finish();
