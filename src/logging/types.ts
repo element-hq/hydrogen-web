@@ -34,15 +34,13 @@ export interface ISerializedItem {
 };
 
 export interface ILogItem {
-    logger: any;
-    level: typeof LogLevel;
-    duration?: number;
-    end?: number;
-    start?: number;
     logLevel: LogLevel;
-    children?: Array<ILogItem>;
-    values: LogItemValues;
     error?: Error;
+    readonly logger: ILogger;
+    readonly level: typeof LogLevel;
+    readonly end?: number;
+    readonly start?: number;
+    readonly values: LogItemValues;
     wrap<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T;
     log(labelOrValues: LabelOrValues, logLevel?: LogLevel): void;
     set(key: string | object, value: unknown): void;

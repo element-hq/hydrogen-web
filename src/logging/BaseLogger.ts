@@ -139,7 +139,7 @@ export abstract class BaseLogger implements ILogger {
         this._openItems.clear();
     }
 
-    abstract _persistItem(item: ILogItem, filter?: LogFilter, forced?: boolean): void;
+    abstract _persistItem(item: LogItem, filter?: LogFilter, forced?: boolean): void;
 
     abstract export(): Promise<ILogExport | undefined>;
 
