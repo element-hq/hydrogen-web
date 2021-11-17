@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 export class Lock {
-    private _promise: Promise<void> | null = null;
-    private _resolve: (() => void) | null = null;
+    private _promise?: Promise<void>;
+    private _resolve?: (() => void);
 
     tryTake(): boolean {
         if (!this._promise) {
@@ -40,14 +40,14 @@ export class Lock {
 
     release(): void {
         if (this._resolve) {
-            this._promise = null;
+            this._promise = undefined;
             const resolve = this._resolve;
-            this._resolve = null;
+            this._resolve = undefined;
             resolve();
         }
     }
 
-    released(): Promise<void> | null {
+    released(): Promise<void> | undefined {
         return this._promise;
     }
 }
