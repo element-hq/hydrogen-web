@@ -15,39 +15,47 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {LogLevel, LogFilter} from "./LogFilter.js";
+import {LogLevel, LogFilter} from "./LogFilter";
+import type {BaseLogger} from "./BaseLogger";
+import type {ISerializedItem, ILogItem, LogItemValues, LabelOrValues, FilterCreator, LogCallback} from "./types";
 
-export class LogItem {
-    constructor(labelOrValues, logLevel, filterCreator, logger) {
+export class LogItem implements ILogItem {
+    public readonly start: number;
+    public logLevel: LogLevel;
+    public error?: Error;
+    public end?: number;
+    private _values: LogItemValues;
+    private _logger: BaseLogger;
+    private _filterCreator?: FilterCreator;
+    private _children?: Array<LogItem>;
+
+    constructor(labelOrValues: LabelOrValues, logLevel: LogLevel, logger: BaseLogger, filterCreator?: FilterCreator) {
         this._logger = logger;
-        this._start = logger._now();
-        this._end = null;
+        this.start = logger._now();
         // (l)abel
         this._values = typeof labelOrValues === "string" ? {l: labelOrValues} : labelOrValues;
-        this.error = null;
         this.logLevel = logLevel;
-        this._children = null;
         this._filterCreator = filterCreator;
     }
 
     /** start a new root log item and run it detached mode, see BaseLogger.runDetached */
-    runDetached(labelOrValues, callback, logLevel, filterCreator) {
+    runDetached(labelOrValues: LabelOrValues, callback: LogCallback<unknown>, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem {
         return this._logger.runDetached(labelOrValues, callback, logLevel, filterCreator);
     }
 
     /** start a new detached root log item and log a reference to it from this item */
-    wrapDetached(labelOrValues, callback, logLevel, filterCreator) {
+    wrapDetached(labelOrValues: LabelOrValues, callback: LogCallback<unknown>, logLevel?: LogLevel, filterCreator?: FilterCreator): void {
         this.refDetached(this.runDetached(labelOrValues, callback, logLevel, filterCreator));
     }
 
     /** logs a reference to a different log item, usually obtained from runDetached.
     This is useful if the referenced operation can't be awaited. */
-    refDetached(logItem, logLevel = null) {
+    refDetached(logItem: ILogItem, logLevel?: LogLevel): void {
         logItem.ensureRefId();
-        return this.log({ref: logItem._values.refId}, logLevel);
+        this.log({ref: logItem.values.refId}, logLevel);
     }
 
-    ensureRefId() {
+    ensureRefId(): void {
         if (!this._values.refId) {
             this.set("refId", this._logger._createRefId());
         }
@@ -56,29 +64,33 @@ export class LogItem {
     /**
      * Creates a new child item and runs it in `callback`.
      */
-    wrap(labelOrValues, callback, logLevel = null, filterCreator = null) {
+    wrap<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T {
         const item = this.child(labelOrValues, logLevel, filterCreator);
         return item.run(callback);
     }
 
-    get duration() {
-        if (this._end) {
-            return this._end - this._start;
+    get duration(): number | undefined {
+        if (this.end) {
+            return this.end - this.start;
         } else {
-            return null;
+            return undefined;
         }
     }
 
-    durationWithoutType(type) {
-        return this.duration - this.durationOfType(type);
+    durationWithoutType(type: string): number | undefined {
+        const durationOfType = this.durationOfType(type);
+        if (this.duration && durationOfType) {
+            return this.duration - durationOfType;
+        }
     }
 
-    durationOfType(type) {
+    durationOfType(type: string): number | undefined {
         if (this._values.t === type) {
             return this.duration;
         } else if (this._children) {
             return this._children.reduce((sum, c) => {
-                return sum + c.durationOfType(type);
+                const duration = c.durationOfType(type);
+                return sum + (duration ?? 0);
             }, 0);
         } else {
             return 0;
@@ -91,12 +103,12 @@ export class LogItem {
      * 
      * Hence, the child item is not returned.
      */
-    log(labelOrValues, logLevel = null) {
-        const item = this.child(labelOrValues, logLevel, null);
-        item._end = item._start;
+    log(labelOrValues: LabelOrValues, logLevel?: LogLevel): void {
+        const item = this.child(labelOrValues, logLevel);
+        item.end = item.start;
     }
 
-    set(key, value) {
+    set(key: string | object, value?: unknown): void {
         if(typeof key === "object") {
             const values = key;
             Object.assign(this._values, values);
@@ -105,7 +117,7 @@ export class LogItem {
         }
     }
 
-    serialize(filter, parentStartTime = null, forced) {
+    serialize(filter: LogFilter, parentStartTime: number | undefined, forced: boolean): ISerializedItem | undefined {
         if (this._filterCreator) {
             try {
                 filter = this._filterCreator(new LogFilter(filter), this);
@@ -113,10 +125,10 @@ export class LogItem {
                 console.error("Error creating log filter", err);
             }
         }
-        let children;
-        if (this._children !== null) {
-            children = this._children.reduce((array, c) => {
-                const s = c.serialize(filter, this._start, false);
+        let children: Array<ISerializedItem> | null = null;
+        if (this._children) {
+            children = this._children.reduce((array: Array<ISerializedItem>, c) => {
+                const s = c.serialize(filter, this.start, false);
                 if (s) {
                     if (array === null) {
                         array = [];
@@ -127,12 +139,12 @@ export class LogItem {
             }, null);
         }
         if (filter && !filter.filter(this, children)) {
-            return null;
+            return;
         }
         // in (v)alues, (l)abel and (t)ype are also reserved.
-        const item = {
+        const item: ISerializedItem = {
             // (s)tart
-            s: parentStartTime === null ? this._start : this._start - parentStartTime,
+            s: typeof parentStartTime === "number" ? this.start - parentStartTime : this.start,
             // (d)uration
             d: this.duration,
             // (v)alues
@@ -171,20 +183,19 @@ export class LogItem {
      * @param  {Function} callback [description]
      * @return {[type]}            [description]
      */
-    run(callback) {
-        if (this._end !== null) {
+    run<T>(callback: LogCallback<T>): T {
+        if (this.end !== undefined) {
             console.trace("log item is finished, additional logs will likely not be recorded");
         }
-        let result;
         try {
-            result = callback(this);
+            const result = callback(this);
             if (result instanceof Promise) {
                 return result.then(promiseResult => {
                     this.finish();
                     return promiseResult;
                 }, err => {
                     throw this.catch(err);
-                });
+                }) as unknown as T;
             } else {
                 this.finish();
                 return result;
@@ -198,45 +209,53 @@ export class LogItem {
      * finished the item, recording the end time. After finishing, an item can't be modified anymore as it will be persisted.
      * @internal shouldn't typically be called by hand. allows to force finish if a promise is still running when closing the app
      */
-    finish() {
-        if (this._end === null) {
-            if (this._children !== null) {
+    finish(): void {
+        if (this.end === undefined) {
+            if (this._children) {
                 for(const c of this._children) {
                     c.finish();
                 }
             }
-            this._end = this._logger._now();
+            this.end = this._logger._now();
         }
     }
 
     // expose log level without needing import everywhere
-    get level() {
+    get level(): typeof LogLevel {
         return LogLevel;
     }
 
-    catch(err) {
+    catch(err: Error): Error {
         this.error = err;
         this.logLevel = LogLevel.Error;
         this.finish();
         return err;
     }
 
-    child(labelOrValues, logLevel, filterCreator) {
-        if (this._end !== null) {
+    child(labelOrValues: LabelOrValues, logLevel?: LogLevel, filterCreator?: FilterCreator): LogItem {
+        if (this.end) {
             console.trace("log item is finished, additional logs will likely not be recorded");
         }
         if (!logLevel) {
             logLevel = this.logLevel || LogLevel.Info;
         }
-        const item = new LogItem(labelOrValues, logLevel, filterCreator, this._logger);
-        if (this._children === null) {
+        const item = new LogItem(labelOrValues, logLevel, this._logger, filterCreator);
+        if (!this._children) {
             this._children = [];
         }
         this._children.push(item);
         return item;
     }
 
-    get logger() {
+    get logger(): BaseLogger {
         return this._logger;
+    }
+
+    get values(): LogItemValues {
+        return this._values;
+    }
+
+    get children(): Array<LogItem> | undefined {
+        return this._children;
     }
 }

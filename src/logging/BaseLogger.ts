@@ -15,23 +15,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {LogItem} from "./LogItem.js";
-import {LogLevel, LogFilter} from "./LogFilter.js";
+import {LogItem} from "./LogItem";
+import {LogLevel, LogFilter} from "./LogFilter";
+import type {ILogger, ILogExport, FilterCreator, LabelOrValues, LogCallback, ILogItem} from "./types";
+import type {Platform} from "../platform/web/Platform.js";
 
-export class BaseLogger {
+export abstract class BaseLogger implements ILogger {
+    protected _openItems: Set<LogItem> = new Set();
+    protected _platform: Platform;
+
     constructor({platform}) {
-        this._openItems = new Set();
         this._platform = platform;
     }
 
-    log(labelOrValues, logLevel = LogLevel.Info) {
-        const item = new LogItem(labelOrValues, logLevel, null, this);
-        item._end = item._start;
-        this._persistItem(item, null, false);
+    log(labelOrValues: LabelOrValues, logLevel: LogLevel = LogLevel.Info): void {
+        const item = new LogItem(labelOrValues, logLevel, this);
+        item.end = item.start;
+        this._persistItem(item, undefined, false);
     }
 
     /** if item is a log item, wrap the callback in a child of it, otherwise start a new root log item. */
-    wrapOrRun(item, labelOrValues, callback, logLevel = null, filterCreator = null) {
+    wrapOrRun<T>(item: ILogItem | undefined, labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T {
         if (item) {
             return item.wrap(labelOrValues, callback, logLevel, filterCreator);
         } else {
@@ -43,28 +47,31 @@ export class BaseLogger {
     where the (async) result or errors are not propagated but still logged.
     Useful to pair with LogItem.refDetached.
 
-    @return {LogItem} the log item added, useful to pass to LogItem.refDetached */
-    runDetached(labelOrValues, callback, logLevel = null, filterCreator = null) {
-        if (logLevel === null) {
+    @return {ILogItem} the log item added, useful to pass to LogItem.refDetached */
+    runDetached<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem {
+        if (!logLevel) {
             logLevel = LogLevel.Info;
         }
-        const item = new LogItem(labelOrValues, logLevel, null, this);
-        this._run(item, callback, logLevel, filterCreator, false /* don't throw, nobody is awaiting */);
+        const item = new LogItem(labelOrValues, logLevel, this);
+        this._run(item, callback, logLevel, false /* don't throw, nobody is awaiting */, filterCreator);
         return item;
     }
 
     /** run a callback wrapped in a log operation.
     Errors and duration are transparently logged, also for async operations.
     Whatever the callback returns is returned here. */
-    run(labelOrValues, callback, logLevel = null, filterCreator = null) {
-        if (logLevel === null) {
+    run<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T {
+        if (logLevel === undefined) {
             logLevel = LogLevel.Info;
         }
-        const item = new LogItem(labelOrValues, logLevel, null, this);
-        return this._run(item, callback, logLevel, filterCreator, true);
+        const item = new LogItem(labelOrValues, logLevel, this);
+        return this._run(item, callback, logLevel, true, filterCreator);
     }
 
-    _run(item, callback, logLevel, filterCreator, shouldThrow) {
+    _run<T>(item: LogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: true, filterCreator?: FilterCreator): T;
+    // we don't return if we don't throw, as we don't have anything to return when an error is caught but swallowed for the fire-and-forget case.
+    _run<T>(item: LogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: false, filterCreator?: FilterCreator): void;
+    _run<T>(item: LogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: boolean, filterCreator?: FilterCreator): T | void {
         this._openItems.add(item);
 
         const finishItem = () => {
@@ -88,24 +95,29 @@ export class BaseLogger {
         };
 
         try {
-            const result = item.run(callback);
+            let result = item.run(callback);
             if (result instanceof Promise) {
-                return result.then(promiseResult => {
+                result =  result.then(promiseResult => {
                     finishItem();
                     return promiseResult;
                 }, err => {
                     finishItem();
-                    if (shouldThrow) {
+                    if (wantResult) {
                         throw err;
                     }
-                });
+                }) as unknown as T;
+                if (wantResult) {
+                    return result;
+                }
             } else {
                 finishItem();
-                return result;
+                if(wantResult) {
+                    return result;
+                }
             }
         } catch (err) {
             finishItem();
-            if (shouldThrow) {
+            if (wantResult) {
                 throw err;
             }
         }
@@ -127,24 +139,20 @@ export class BaseLogger {
         this._openItems.clear();
     }
 
-    _persistItem() {
-        throw new Error("not implemented");
-    }
+    abstract _persistItem(item: LogItem, filter?: LogFilter, forced?: boolean): void;
 
-    async export() {
-        throw new Error("not implemented");
-    }
+    abstract export(): Promise<ILogExport | undefined>;
 
     // expose log level without needing 
-    get level() {
+    get level(): typeof LogLevel {
         return LogLevel;
     }
 
-    _now() {
+    _now(): number {
         return this._platform.clock.now();
     }
 
-    _createRefId() {
+    _createRefId(): number {
         return Math.round(this._platform.random() * Number.MAX_SAFE_INTEGER);
     }
 }

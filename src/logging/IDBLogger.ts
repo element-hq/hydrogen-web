@@ -22,10 +22,25 @@ import {
     iterateCursor,
     fetchResults,
 } from "../matrix/storage/idb/utils";
-import {BaseLogger} from "./BaseLogger.js";
+import {BaseLogger} from "./BaseLogger";
+import type {Interval} from "../platform/web/dom/Clock";
+import type {Platform} from "../platform/web/Platform.js";
+import type {BlobHandle} from "../platform/web/dom/BlobHandle.js";
+import type {ILogItem, ILogExport} from "./types";
+import type {LogFilter} from "./LogFilter";
+
+type QueuedItem = {
+    json: string;
+    id?: number;
+}
 
 export class IDBLogger extends BaseLogger {
-    constructor(options) {
+    private readonly _name: string;
+    private readonly _limit: number;
+    private readonly _flushInterval: Interval;
+    private _queuedItems: QueuedItem[];
+
+    constructor(options: {name: string, flushInterval?: number, limit?: number, platform: Platform}) {
         super(options);
         const {name, flushInterval = 60 * 1000, limit = 3000} = options;
         this._name = name;
@@ -36,18 +51,19 @@ export class IDBLogger extends BaseLogger {
         this._flushInterval = this._platform.clock.createInterval(() => this._tryFlush(), flushInterval);
     }
 
-    dispose() {
+    // TODO: move dispose to ILogger, listen to pagehide elsewhere and call dispose from there, which calls _finishAllAndFlush
+    dispose(): void {
         window.removeEventListener("pagehide", this, false);
         this._flushInterval.dispose();
     }
 
-    handleEvent(evt) {
+    handleEvent(evt: Event): void {
         if (evt.type === "pagehide") {
             this._finishAllAndFlush();
         }
     }
 
-    async _tryFlush() {
+    async _tryFlush(): Promise<void> {
         const db = await this._openDB();
         try {
             const txn = db.transaction(["logs"], "readwrite");
@@ -77,13 +93,13 @@ export class IDBLogger extends BaseLogger {
         }
     }
 
-    _finishAllAndFlush() {
+    _finishAllAndFlush(): void {
         this._finishOpenItems();
         this.log({l: "pagehide, closing logs", t: "navigation"});
         this._persistQueuedItems(this._queuedItems);
     }
 
-    _loadQueuedItems() {
+    _loadQueuedItems(): QueuedItem[] {
         const key = `${this._name}_queuedItems`;
         try {
             const json = window.localStorage.getItem(key);
@@ -97,18 +113,18 @@ export class IDBLogger extends BaseLogger {
         return [];
     }
 
-    _openDB() {
+    _openDB(): Promise<IDBDatabase> {
         return openDatabase(this._name, db => db.createObjectStore("logs", {keyPath: "id", autoIncrement: true}), 1);
     }
     
-    _persistItem(logItem, filter, forced) {
-        const serializedItem = logItem.serialize(filter, forced);
+    _persistItem(logItem: ILogItem, filter: LogFilter, forced: boolean): void {
+        const serializedItem = logItem.serialize(filter, undefined, forced);
         this._queuedItems.push({
             json: JSON.stringify(serializedItem)
         });
     }
 
-    _persistQueuedItems(items) {
+    _persistQueuedItems(items: QueuedItem[]): void {
         try {
             window.localStorage.setItem(`${this._name}_queuedItems`, JSON.stringify(items));
         } catch (e) {
@@ -116,12 +132,12 @@ export class IDBLogger extends BaseLogger {
         }
     }
 
-    async export() {
+    async export(): Promise<ILogExport> {
         const db = await this._openDB();
         try {
             const txn = db.transaction(["logs"], "readonly");
             const logs = txn.objectStore("logs");
-            const storedItems = await fetchResults(logs.openCursor(), () => false);
+            const storedItems: QueuedItem[] = await fetchResults(logs.openCursor(), () => false);
             const allItems = storedItems.concat(this._queuedItems);
             return new IDBLogExport(allItems, this, this._platform);
         } finally {
@@ -131,17 +147,20 @@ export class IDBLogger extends BaseLogger {
         }
     }
 
-    async _removeItems(items) {
+    async _removeItems(items: QueuedItem[]): Promise<void> {
         const db = await this._openDB();
         try {
             const txn = db.transaction(["logs"], "readwrite");
             const logs = txn.objectStore("logs");
             for (const item of items) {
-                const queuedIdx = this._queuedItems.findIndex(i => i.id === item.id);
-                if (queuedIdx === -1) {
+                if (typeof item.id === "number") {
                     logs.delete(item.id);
                 } else {
-                    this._queuedItems.splice(queuedIdx, 1);
+                    // assume the (non-persisted) object in each array will be the same
+                    const queuedIdx = this._queuedItems.indexOf(item);
+                    if (queuedIdx === -1) {
+                        this._queuedItems.splice(queuedIdx, 1);
+                    }
                 }
             }
             await txnAsPromise(txn);
@@ -153,33 +172,37 @@ export class IDBLogger extends BaseLogger {
     }
 }
 
-class IDBLogExport {
-    constructor(items, logger, platform) {
+class IDBLogExport implements ILogExport {
+    private readonly _items: QueuedItem[];
+    private readonly _logger: IDBLogger;
+    private readonly _platform: Platform;
+
+    constructor(items: QueuedItem[], logger: IDBLogger, platform: Platform) {
         this._items = items;
         this._logger = logger;
         this._platform = platform;
     }
     
-    get count() {
+    get count(): number {
         return this._items.length;
     }
 
     /**
      * @return {Promise}
      */
-    removeFromStore() {
+    removeFromStore(): Promise<void> {
         return this._logger._removeItems(this._items);
     }
 
-    asBlob() {
+    asBlob(): BlobHandle {
         const log = {
             formatVersion: 1,
             appVersion: this._platform.updateService?.version,
             items: this._items.map(i => JSON.parse(i.json))
         };
         const json = JSON.stringify(log);
-        const buffer = this._platform.encoding.utf8.encode(json);
-        const blob = this._platform.createBlob(buffer, "application/json");
+        const buffer: Uint8Array = this._platform.encoding.utf8.encode(json);
+        const blob: BlobHandle = this._platform.createBlob(buffer, "application/json");
         return blob;
     }
 }

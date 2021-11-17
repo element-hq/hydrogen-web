@@ -205,7 +205,7 @@ import {FragmentIdComparer} from "../FragmentIdComparer.js";
 import {RelationWriter} from "./RelationWriter.js";
 import {createMockStorage} from "../../../../mocks/Storage";
 import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
-import {NullLogItem} from "../../../../logging/NullLogger.js";
+import {NullLogItem} from "../../../../logging/NullLogger";
 import {TimelineMock, eventIds, eventId} from "../../../../mocks/TimelineMock.ts";
 import {SyncWriter} from "./SyncWriter.js";
 import {MemberWriter} from "./MemberWriter.js";

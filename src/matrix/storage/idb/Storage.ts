@@ -18,7 +18,7 @@ import {IDOMStorage} from "./types";
 import {Transaction} from "./Transaction";
 import { STORE_NAMES, StoreNames, StorageError } from "../common";
 import { reqAsPromise } from "./utils";
-import { BaseLogger } from "../../../logging/BaseLogger.js";
+import { ILogger } from "../../../logging/types";
 
 const WEBKITEARLYCLOSETXNBUG_BOGUS_KEY = "782rh281re38-boguskey";
 
@@ -26,13 +26,13 @@ export class Storage {
     private _db: IDBDatabase;
     private _hasWebkitEarlyCloseTxnBug: boolean;
 
-    readonly logger: BaseLogger;
+    readonly logger: ILogger;
     readonly idbFactory: IDBFactory
     readonly IDBKeyRange: typeof IDBKeyRange;
     readonly storeNames: typeof StoreNames;
     readonly localStorage: IDOMStorage;
 
-    constructor(idbDatabase: IDBDatabase, idbFactory: IDBFactory, _IDBKeyRange: typeof IDBKeyRange, hasWebkitEarlyCloseTxnBug: boolean, localStorage: IDOMStorage, logger: BaseLogger) {
+    constructor(idbDatabase: IDBDatabase, idbFactory: IDBFactory, _IDBKeyRange: typeof IDBKeyRange, hasWebkitEarlyCloseTxnBug: boolean, localStorage: IDOMStorage, logger: ILogger) {
         this._db = idbDatabase;
         this.idbFactory = idbFactory;
         this.IDBKeyRange = _IDBKeyRange;

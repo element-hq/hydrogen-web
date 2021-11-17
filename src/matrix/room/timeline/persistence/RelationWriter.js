@@ -257,7 +257,7 @@ import {createMockStorage} from "../../../../mocks/Storage";
 import {createEvent, withTextBody, withRedacts, withContent} from "../../../../mocks/event.js";
 import {createAnnotation} from "../relations.js";
 import {FragmentIdComparer} from "../FragmentIdComparer.js";
-import {NullLogItem} from "../../../../logging/NullLogger.js";
+import {NullLogItem} from "../../../../logging/NullLogger";
 
 export function tests() {
     const fragmentIdComparer = new FragmentIdComparer([]);
