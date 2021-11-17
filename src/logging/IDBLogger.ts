@@ -51,6 +51,7 @@ export class IDBLogger extends BaseLogger {
         this._flushInterval = this._platform.clock.createInterval(() => this._tryFlush(), flushInterval);
     }
 
+    // TODO: move dispose to ILogger, listen to pagehide elsewhere and call dispose from there, which calls _finishAllAndFlush
     dispose(): void {
         window.removeEventListener("pagehide", this, false);
         this._flushInterval.dispose();
