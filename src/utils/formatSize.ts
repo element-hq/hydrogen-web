@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 
-export function formatSize(size: number, decimals: number = 2): string | undefined {
+export function formatSize(size: number, decimals: number = 2): string {
     if (Number.isSafeInteger(size)) {
         const base = Math.min(3, Math.floor(Math.log(size) / Math.log(1024)));
         const formattedSize = Math.round(size / Math.pow(1024, base)).toFixed(decimals);
@@ -26,4 +26,5 @@ export function formatSize(size: number, decimals: number = 2): string | undefin
             case 3: return `${formattedSize} GB`;
         }
     }
+    return "";
 }
