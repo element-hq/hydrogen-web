@@ -9,7 +9,7 @@
 import type {Crypto} from "../../platform/web/dom/Crypto.js";
 
 // forked this code to make it use the cryptoDriver for HMAC that is more backwards-compatible
-export async function hkdf(cryptoDriver: Crypto, key: Uint8Array, salt: Uint8Array, info: Uint8Array, hash: string, length: number): Promise<Uint8Array> {
+export async function hkdf(cryptoDriver: Crypto, key: Uint8Array, salt: Uint8Array, info: Uint8Array, hash: "SHA-256" | "SHA-512", length: number): Promise<Uint8Array> {
     length = length / 8;
     const len = cryptoDriver.digestSize(hash);
 

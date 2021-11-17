@@ -18,7 +18,7 @@ const nwbo = (num: number, len: number): Uint8Array => {
   return arr;
 };
 
-export async function pbkdf2(cryptoDriver: Crypto, password: Uint8Array, iterations: number, salt: Uint8Array, hash: string, length: number): Promise<Uint8Array> {
+export async function pbkdf2(cryptoDriver: Crypto, password: Uint8Array, iterations: number, salt: Uint8Array, hash: "SHA-256" | "SHA-512", length: number): Promise<Uint8Array> {
     const dkLen = length / 8;
     if (iterations <= 0) {
         throw new Error('InvalidIterationCount');
