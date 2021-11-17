@@ -52,7 +52,7 @@ export class LogItem implements ILogItem {
     This is useful if the referenced operation can't be awaited. */
     refDetached(logItem: ILogItem, logLevel?: LogLevel): void {
         logItem.ensureRefId();
-        this.log({ref: (logItem as LogItem)._values.refId}, logLevel);
+        this.log({ref: logItem.values.refId}, logLevel);
     }
 
     ensureRefId(): void {
