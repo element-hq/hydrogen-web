@@ -127,8 +127,9 @@ function adaptUIOnVisualViewportResize(container) {
 
 export class Platform {
     private readonly _config: IPlatformConfig;
+    private readonly _container: HTMLElement;
 
-    constructor(container, config: IPlatformConfig, cryptoExtras = null, options = null) {
+    constructor(container: HTMLElement, config: IPlatformConfig, cryptoExtras = null, options = null) {
         this._config = config;
         this._container = container;
         this.settingsStorage = new SettingsStorage("hydrogen_setting_v1_");
