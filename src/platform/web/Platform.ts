@@ -136,6 +136,7 @@ export class Platform implements IPlatform {
     public readonly onlineStatus: OnlineStatus = new OnlineStatus();
     private readonly _config: IPlatformConfig;
     private readonly _container: HTMLElement;
+    private readonly _serviceWorkerHandler?: ServiceWorkerHandler;
 
     constructor(container: HTMLElement, config: IPlatformConfig, cryptoExtras = null, options?: IPlatformOptions) {
         this._config = config;
@@ -145,7 +146,6 @@ export class Platform implements IPlatform {
         } else {
             this.logger = new IDBLogger({name: "hydrogen_logs", platform: this});
         }
-        this._serviceWorkerHandler = null;
         if (config.serviceWorker && "serviceWorker" in navigator) {
             this._serviceWorkerHandler = new ServiceWorkerHandler();
             this._serviceWorkerHandler.registerAndStart(config.serviceWorker);

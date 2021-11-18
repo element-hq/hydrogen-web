@@ -19,6 +19,7 @@ import type {SettingsStorage} from "../web/dom/SettingsStorage.js";
 import type {Clock} from "../web/dom/Clock.js";
 import type {History} from "../web/dom/History.js";
 import type {OnlineStatus} from "../web/dom/OnlineStatus.js";
+import type {ServiceWorkerHandler} from "../web/dom/ServiceWorkerHandler.js";
 import type {Encoding} from "../web/utils/Encoding.js";
 
 export interface IPlatformConfig {
@@ -30,6 +31,9 @@ export interface IPlatformConfig {
         wasm: string;
         legacyBundle: string;
         wasmBundle: string;
+    };
+    push: {
+        
     }
 }
 
@@ -50,4 +54,5 @@ export interface IPlatform {
     readonly random: () => number;
     readonly history: History;
     readonly onlineStatus: OnlineStatus;
+    readonly updateService?: ServiceWorkerHandler;
 }
