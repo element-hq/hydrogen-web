@@ -41,7 +41,6 @@
     "finalhandler": "^1.1.1",
     "impunity": "^1.0.1",
     "mdn-polyfills": "^5.20.0",
-    "node-html-parser": "^4.0.0",
     "postcss": "^8.1.1",
     "postcss-css-variables": "^0.17.0",
     "postcss-flexbugs-fixes": "^4.2.1",
@@ -55,6 +54,7 @@
     "xxhashjs": "^0.2.2"
   },
   "dependencies": {
+    "node-html-parser": "^4.0.0",
     "@matrix-org/olm": "https://gitlab.matrix.org/api/v4/projects/27/packages/npm/@matrix-org/olm/-/@matrix-org/olm-3.2.3.tgz",
     "@rollup/plugin-commonjs": "^15.0.0",
     "@rollup/plugin-json": "^4.1.0",
