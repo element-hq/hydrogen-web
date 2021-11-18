@@ -38,7 +38,8 @@ import {downloadInIframe} from "./dom/download.js";
 import {Disposables} from "../../utils/Disposables.js";
 import {parseHTML} from "./parsehtml.js";
 import {handleAvatarError} from "./ui/avatar.js";
-import {IPlatformConfig} from "../types/Platform";
+import {IPlatform, IPlatformConfig, IPlatformOptions} from "../types/Platform";
+import type {BaseLogger} from "../../logging/BaseLogger.js";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -125,24 +126,25 @@ function adaptUIOnVisualViewportResize(container) {
     };
 }
 
-export class Platform {
+export class Platform implements IPlatform {
+    public readonly logger: BaseLogger;
+    public readonly settingsStorage: SettingsStorage = new SettingsStorage("hydrogen_setting_v1_");
+    public readonly clock: Clock = new Clock();
+    public readonly encoding: Encoding = new Encoding();
+    public readonly random: () => number = Math.random;
+    public readonly history: History = new History();
+    public readonly onlineStatus: OnlineStatus = new OnlineStatus();
     private readonly _config: IPlatformConfig;
     private readonly _container: HTMLElement;
 
-    constructor(container: HTMLElement, config: IPlatformConfig, cryptoExtras = null, options = null) {
+    constructor(container: HTMLElement, config: IPlatformConfig, cryptoExtras = null, options?: IPlatformOptions) {
         this._config = config;
         this._container = container;
-        this.settingsStorage = new SettingsStorage("hydrogen_setting_v1_");
-        this.clock = new Clock();
-        this.encoding = new Encoding();
-        this.random = Math.random;
         if (options?.development) {
             this.logger = new ConsoleLogger({platform: this});
         } else {
             this.logger = new IDBLogger({name: "hydrogen_logs", platform: this});
         }
-        this.history = new History();
-        this.onlineStatus = new OnlineStatus();
         this._serviceWorkerHandler = null;
         if (config.serviceWorker && "serviceWorker" in navigator) {
             this._serviceWorkerHandler = new ServiceWorkerHandler();

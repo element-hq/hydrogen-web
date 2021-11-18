@@ -14,6 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import type {BaseLogger} from "../../logging/BaseLogger";
+import type {SettingsStorage} from "../web/dom/SettingsStorage.js";
+import type {Clock} from "../web/dom/Clock.js";
+import type {History} from "../web/dom/History.js";
+import type {OnlineStatus} from "../web/dom/OnlineStatus.js";
+import type {Encoding} from "../web/utils/Encoding.js";
+
 export interface IPlatformConfig {
     worker: string;
     downloadSandbox: string;
@@ -26,6 +33,21 @@ export interface IPlatformConfig {
     }
 }
 
+export interface IPlatformOptions {
+    development?: boolean;
+}
+
 export interface CryptoExtras {
     aesjs?: any;
+    hkdf?: any;
+}
+
+export interface IPlatform {
+    readonly logger: BaseLogger;
+    readonly settingsStorage: SettingsStorage;
+    readonly clock: Clock;
+    readonly encoding: Encoding;
+    readonly random: () => number;
+    readonly history: History;
+    readonly onlineStatus: OnlineStatus;
 }
