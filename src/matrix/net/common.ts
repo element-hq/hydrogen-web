@@ -15,6 +15,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import type {BlobHandle} from "../../platform/web/dom/BlobHandle.js";
+
+export interface BlobBody {
+    mimeType: string;
+    body: BlobHandle;
+    length: number;
+}
+
 export function encodeQueryParams(queryParams) {
     return Object.entries(queryParams || {})
         .filter(([, value]) => value !== undefined)

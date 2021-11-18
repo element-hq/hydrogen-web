@@ -15,14 +15,7 @@ limitations under the License.
 */
 
 import type {RequestResult} from "../web/dom/request/fetch.js";
-import type {BlobHandle} from "../web/dom/BlobHandle.js";
-
-//ts-todo: This should go somewhere else?
-interface BlobBody {
-    mimeType: string;
-    body: BlobHandle;
-    length: number;
-}
+import type {BlobBody} from "../../matrix/net/common";
 
 interface IRequestOptions {
     uploadProgress?: (loadedBytes: number) => void;
