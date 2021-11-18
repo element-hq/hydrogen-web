@@ -25,3 +25,7 @@ export interface IPlatformConfig {
         wasmBundle: string;
     }
 }
+
+export interface CryptoExtras {
+    aesjs?: any;
+}
