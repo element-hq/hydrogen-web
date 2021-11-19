@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {LazyListView} from "../../general/LazyListView.js";
+import {LazyListView} from "../../general/LazyListView";
 import {MemberTileView} from "./MemberTileView.js";
 
 export class MemberListView extends LazyListView{
