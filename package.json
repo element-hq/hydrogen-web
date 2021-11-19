@@ -10,7 +10,7 @@
     "lint": "eslint --cache src/",
     "lint-ts": "eslint src/ -c .ts-eslintrc.js --ext .ts",
     "lint-ci": "eslint src/",
-    "test": "impunity --entry-point src/main.js --force-esm-dirs lib/ src/",
+    "test": "impunity --entry-point src/main.js src/platform/web/Platform.js --force-esm-dirs lib/ src/",
     "start": "snowpack dev --port 3000",
     "build": "node --experimental-modules scripts/build.mjs",
     "postinstall": "node ./scripts/post-install.js"
@@ -39,7 +39,7 @@
     "eslint": "^7.32.0",
     "fake-indexeddb": "^3.1.2",
     "finalhandler": "^1.1.1",
-    "impunity": "^1.0.1",
+    "impunity": "^1.0.3",
     "mdn-polyfills": "^5.20.0",
     "postcss": "^8.1.1",
     "postcss-css-variables": "^0.17.0",
