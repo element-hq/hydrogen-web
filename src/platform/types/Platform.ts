@@ -15,12 +15,12 @@ limitations under the License.
 */
 
 import type {RequestResult} from "../web/dom/request/fetch.js";
-import type {BlobBody} from "../../matrix/net/common";
+import type {IEncodedBody} from "../../matrix/net/common";
 
 interface IRequestOptions {
     uploadProgress?: (loadedBytes: number) => void;
     timeout?: number;
-    body?: string | BlobBody;
+    body?: IEncodedBody;
     headers?: { [key: string]: number | string };
     cache?: boolean;
     method: string;

@@ -15,15 +15,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type {BlobHandle} from "../../platform/web/dom/BlobHandle.js";
+import {BlobHandle} from "../../platform/web/dom/BlobHandle.js";
 
-export interface BlobBody {
+export interface IEncodedBody {
     mimeType: string;
-    body: BlobHandle;
+    body: BlobHandle | string;
     length: number;
 }
 
-export function encodeQueryParams(queryParams) {
+export function encodeQueryParams(queryParams: object): string {
     return Object.entries(queryParams || {})
         .filter(([, value]) => value !== undefined)
         .map(([name, value]) => {
@@ -35,9 +35,10 @@ export function encodeQueryParams(queryParams) {
         .join("&");
 }
 
-export function encodeBody(body) {
-    if (body.nativeBlob && body.mimeType) {
-        const blob = body;
+export function encodeBody(body: {}): IEncodedBody {
+    // todo: code change here
+    if (body instanceof BlobHandle) {
+        const blob = body as BlobHandle;
         return {
             mimeType: blob.mimeType,
             body: blob, // will be unwrapped in request fn
@@ -48,8 +49,9 @@ export function encodeBody(body) {
         return {
             mimeType: "application/json",
             body: json,
-            length: body.length
-        };
+            // todo: code change here; body.length is a mistake?
+            length: json.length
+        }
     } else {
         throw new Error("Unknown body type: " + body);
     }
