@@ -18,7 +18,7 @@ limitations under the License.
 import {AbortError} from "../../utils/error";
 import {HomeServerError} from "../error.js";
 import {HomeServerApi} from "./HomeServerApi.js";
-import {ExponentialRetryDelay} from "./ExponentialRetryDelay.js";
+import {ExponentialRetryDelay} from "./ExponentialRetryDelay";
 
 class Request {
     constructor(methodName, args) {

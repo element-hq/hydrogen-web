@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// todo: this file should be called something else?
+
 import type {RequestResult} from "../web/dom/request/fetch.js";
 import type {IEncodedBody} from "../../matrix/net/common";
 

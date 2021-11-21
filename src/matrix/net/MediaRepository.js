@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {encodeQueryParams} from "./common.js";
+import {encodeQueryParams} from "./common";
 import {decryptAttachment} from "../e2ee/attachment.js";
 
 export class MediaRepository {

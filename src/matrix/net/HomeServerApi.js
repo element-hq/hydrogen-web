@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {encodeQueryParams, encodeBody} from "./common.js";
+import {encodeQueryParams, encodeBody} from "./common";
 import {HomeServerRequest} from "./HomeServerRequest.js";
 
 const CS_R0_PREFIX = "/_matrix/client/r0";
