@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 import {encodeQueryParams, encodeBody} from "./common";
-import {HomeServerRequest} from "./HomeServerRequest.js";
+import {HomeServerRequest} from "./HomeServerRequest";
 
 const CS_R0_PREFIX = "/_matrix/client/r0";
 const DEHYDRATION_PREFIX = "/_matrix/client/unstable/org.matrix.msc2697.v2";

@@ -16,9 +16,16 @@ limitations under the License.
 */
 
 import {HomeServerError, ConnectionError} from "../error.js";
+import type {RequestResult} from "../../platform/web/dom/request/fetch.js";
+import type {LogItem} from "../../logging/LogItem";
 
 export class HomeServerRequest {
-    constructor(method, url, sourceRequest, log) {
+    // todo: Shouldn't log be of type ILogItem; but ILogItem does not have finish method
+    private readonly _log?: LogItem;
+    private _sourceRequest?: RequestResult;
+    private readonly _promise: Promise<Request>;
+
+    constructor(method:string, url:string, sourceRequest:RequestResult, log?: LogItem) {
         this._log = log;
         this._sourceRequest = sourceRequest;
         this._promise = sourceRequest.response().then(response => {
@@ -80,16 +87,16 @@ export class HomeServerRequest {
         });
     }
 
-    abort() {
+    abort(): void {
         if (this._sourceRequest) {
             this._log?.set("aborted", true);
             this._sourceRequest.abort();
             // to mark that it was on purpose in above rejection handler
-            this._sourceRequest = null;
+            this._sourceRequest = undefined;
         }
     }
 
-    response() {
+    response(): Promise<Request> {
         return this._promise;
     }
 }
