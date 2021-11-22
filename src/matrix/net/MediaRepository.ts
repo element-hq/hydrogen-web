@@ -16,14 +16,20 @@ limitations under the License.
 
 import {encodeQueryParams} from "./common";
 import {decryptAttachment} from "../e2ee/attachment.js";
+import {Platform} from "../../platform/web/Platform.js";
+import {BlobHandle} from "../../platform/web/dom/BlobHandle.js";
+import type {IAttachment, IEncryptedFile} from "./types/response";
 
 export class MediaRepository {
-    constructor({homeserver, platform}) {
+    private readonly _homeserver: string;
+    private readonly _platform: Platform;
+
+    constructor({homeserver, platform}: {homeserver:string, platform: Platform}) {
         this._homeserver = homeserver;
         this._platform = platform;
     }
 
-    mxcUrlThumbnail(url, width, height, method) {
+    mxcUrlThumbnail(url: string, width: number, height: number, method: "crop" | "scale"): string | null {
         const parts = this._parseMxcUrl(url);
         if (parts) {
             const [serverName, mediaId] = parts;
@@ -33,7 +39,7 @@ export class MediaRepository {
         return null;
     }
 
-    mxcUrl(url) {
+    mxcUrl(url: string): string | null {
         const parts = this._parseMxcUrl(url);
         if (parts) {
             const [serverName, mediaId] = parts;
@@ -43,7 +49,7 @@ export class MediaRepository {
         }
     }
 
-    _parseMxcUrl(url) {
+    _parseMxcUrl(url: string): string[] | null {
         const prefix = "mxc://";
         if (url.startsWith(prefix)) {
             return url.substr(prefix.length).split("/", 2);
@@ -52,24 +58,24 @@ export class MediaRepository {
         }
     }
 
-    async downloadEncryptedFile(fileEntry, cache = false) {
+    async downloadEncryptedFile(fileEntry: IEncryptedFile, cache: boolean = false): Promise<BlobHandle> {
         const url = this.mxcUrl(fileEntry.url);
         const {body: encryptedBuffer} = await this._platform.request(url, {method: "GET", format: "buffer", cache}).response();
         const decryptedBuffer = await decryptAttachment(this._platform, encryptedBuffer, fileEntry);
         return this._platform.createBlob(decryptedBuffer, fileEntry.mimetype);
     }
 
-    async downloadPlaintextFile(mxcUrl, mimetype, cache = false) {
+    async downloadPlaintextFile(mxcUrl: string, mimetype: string, cache: boolean = false): Promise<BlobHandle> {
         const url = this.mxcUrl(mxcUrl);
         const {body: buffer} = await this._platform.request(url, {method: "GET", format: "buffer", cache}).response();
         return this._platform.createBlob(buffer, mimetype);
     }
 
-    async downloadAttachment(content, cache = false) {
+    async downloadAttachment(content: IAttachment, cache: boolean = false): Promise<BlobHandle> {
         if (content.file) {
             return this.downloadEncryptedFile(content.file, cache);
         } else {
-            return this.downloadPlaintextFile(content.url, content.info?.mimetype, cache);
+            return this.downloadPlaintextFile(content.url!, content.info?.mimetype, cache);
         }
     }
 }

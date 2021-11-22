@@ -22,7 +22,7 @@ import {ObservableValue} from "../observable/ObservableValue";
 import {HomeServerApi} from "./net/HomeServerApi.js";
 import {Reconnector, ConnectionStatus} from "./net/Reconnector.js";
 import {ExponentialRetryDelay} from "./net/ExponentialRetryDelay";
-import {MediaRepository} from "./net/MediaRepository.js";
+import {MediaRepository} from "./net/MediaRepository";
 import {RequestScheduler} from "./net/RequestScheduler.js";
 import {Sync, SyncStatus} from "./Sync.js";
 import {Session} from "./Session.js";
