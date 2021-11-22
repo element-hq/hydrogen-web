@@ -16,7 +16,7 @@ limitations under the License.
 
 import {tag} from "./html";
 import {removeChildren, mountView} from "./utils";
-import {ItemRange} from "./ItemRange";
+import {ListRange, ResultType, AddRemoveResult} from "./ListRange";
 import {ListView, IOptions as IParentOptions} from "./ListView";
 import {IView} from "./types";
 
@@ -27,11 +27,11 @@ export interface IOptions<T, V> extends IParentOptions<T, V> {
 }
 
 export class LazyListView<T, V extends IView> extends ListView<T, V> {
-    private renderRange?: ItemRange;
+    private renderRange?: ListRange;
     private height?: number;
     private itemHeight: number;
     private overflowItems: number;
-    private scrollContainer?: Element;
+    private scrollContainer?: HTMLElement;
 
     constructor(
         {itemHeight, overflowMargin = 5, overflowItems = 20,...options}: IOptions<T, V>, 
@@ -87,10 +87,10 @@ export class LazyListView<T, V extends IView> extends ListView<T, V> {
         if (clientHeight === 0) {
             throw new Error("LazyListView height is 0");
         }
-        return ItemRange.fromViewport(this._list.length, this.itemHeight, clientHeight, scrollTop);
+        return ListRange.fromViewport(this._list.length, this.itemHeight, clientHeight, scrollTop);
     }
 
-    private reRenderFullRange(range: ItemRange) {
+    private reRenderFullRange(range: ListRange) {
         removeChildren(this._listElement!);
         const fragment = document.createDocumentFragment();
         const it = this._list[Symbol.iterator]();
@@ -104,20 +104,22 @@ export class LazyListView<T, V extends IView> extends ListView<T, V> {
         this.adjustPadding(range);
     }
 
-    private renderUpdate(prevRange: ItemRange, newRange: ItemRange) {
+    private renderUpdate(prevRange: ListRange, newRange: ListRange) {
         if (newRange.intersects(prevRange)) {
-            for (const idxInList of prevRange) {
-                // TODO: we need to make sure we keep childInstances in order so the indices lign up.
-                // Perhaps we should join both ranges and see in which range it appears and either add or remove?
+            // remove children in reverse order so child index isn't affected by previous removals
+            for (const idxInList of prevRange.reverseIterable()) {
                 if (!newRange.containsIndex(idxInList)) {
                     const localIdx = idxInList - prevRange.start;
                     this.removeChild(localIdx);
                 }
             }
-            const addedRange = newRange.missingFrom(prevRange);
-            addedRange.forEachInIterator(this._list[Symbol.iterator](), (item, idxInList) => {
-                const localIdx = idxInList - newRange.start;
-                this.addChild(localIdx, item);
+            // use forEachInIterator instead of for loop as we need to advance
+            // the list iterator to the start of the range first
+            newRange.forEachInIterator(this._list[Symbol.iterator](), (item, idxInList) => {
+                if (!prevRange.containsIndex(idxInList)) {
+                    const localIdx = idxInList - newRange.start;
+                    this.addChild(localIdx, item);
+                }
             });
             this.adjustPadding(newRange);
         } else {
@@ -125,7 +127,7 @@ export class LazyListView<T, V extends IView> extends ListView<T, V> {
         }
     }
 
-    private adjustPadding(range: ItemRange) {
+    private adjustPadding(range: ListRange) {
         const paddingTop = range.start * this.itemHeight;
         const paddingBottom = (range.totalLength - range.end) * this.itemHeight;
         const style = this.scrollContainer!.style;
@@ -135,11 +137,7 @@ export class LazyListView<T, V extends IView> extends ListView<T, V> {
 
     mount() {
         const listElement = super.mount();
-        this.scrollContainer = tag.div({className: "LazyListParent"}, listElement);
-        /*
-        Hooking to scroll events can be expensive.
-        Do we need to do more (like event throttling)?
-        */
+        this.scrollContainer = tag.div({className: "LazyListParent"}, listElement) as HTMLElement;
         this.scrollContainer.addEventListener("scroll", this);
         return this.scrollContainer;
     }
@@ -159,42 +157,46 @@ export class LazyListView<T, V extends IView> extends ListView<T, V> {
     }
 
     onAdd(idx: number, value: T) {
-        // TODO: update totalLength in renderRange
-        const result = this.renderRange!.queryAdd(idx);
-        if (result.addIdx !== -1) {
-            this.addChild(result.addIdx, value);
-        }
-        if (result.removeIdx !== -1) {
-            this.removeChild(result.removeIdx);
-        }
+        const result = this.renderRange!.queryAdd(idx, value, this._list);
+        this.applyRemoveAddResult(result);
     }
 
     onRemove(idx: number, value: T) {
-        // TODO: update totalLength in renderRange
-        const result = this.renderRange!.queryRemove(idx);
-        if (result.removeIdx !== -1) {
-            this.removeChild(result.removeIdx);
-        }
-        if (result.addIdx !== -1) {
-            this.addChild(result.addIdx, value);
-        }
+        const result = this.renderRange!.queryRemove(idx, this._list);
+        this.applyRemoveAddResult(result);
     }
 
     onMove(fromIdx: number, toIdx: number, value: T) {
-        const result = this.renderRange!.queryMove(fromIdx, toIdx);
-        if (result.moveFromIdx !== -1 && result.moveToIdx !== -1) {
-            this.moveChild(result.moveFromIdx, result.moveToIdx);
-        } else if (result.removeIdx !== -1) {
-            this.removeChild(result.removeIdx);
-        } else if (result.addIdx !== -1) {
-            this.addChild(result.addIdx, value);
+        const result = this.renderRange!.queryMove(fromIdx, toIdx, value, this._list);
+        if (result) {
+            if (result.type === ResultType.Move) {
+                this.moveChild(
+                    this.renderRange!.toLocalIndex(result.fromIdx),
+                    this.renderRange!.toLocalIndex(result.toIdx)
+                );
+            } else {
+                this.applyRemoveAddResult(result);
+            }
         }
     }
 
     onUpdate(i: number, value: T, params: any) {
-        const updateIdx = this.renderRange!.queryUpdate(i);
-        if (updateIdx !== -1) {
-            this.updateChild(updateIdx, value, params);
+        if (this.renderRange!.containsIndex(i)) {
+            this.updateChild(this.renderRange!.toLocalIndex(i), value, params);
+        }
+    }
+
+    private applyRemoveAddResult(result: AddRemoveResult<T>) {
+        // order is important here, the new range can have a different start
+        if (result.type === ResultType.Remove || result.type === ResultType.RemoveAndAdd) {
+            this.removeChild(this.renderRange!.toLocalIndex(result.removeIdx));
+        }
+        if (result.newRange) {
+            this.renderRange = result.newRange;
+            this.adjustPadding(this.renderRange)
+        }
+        if (result.type === ResultType.Add || result.type === ResultType.RemoveAndAdd) {
+            this.addChild(this.renderRange!.toLocalIndex(result.addIdx), result.value);
         }
     }
 }

@@ -17,7 +17,7 @@ limitations under the License.
 // start is included in the range,
 // end is excluded,
 // so [2, 2[ means an empty range
-class Range {
+export class Range {
     constructor(
         public readonly start: number,
         public readonly end: number
@@ -35,14 +35,12 @@ class Range {
         return idx >= this.start && idx < this.end;
     }
 
-    intersects(range: Range): boolean {
-        return range.start < this.end && this.start < range.end;
+    toLocalIndex(idx: number) {
+        return idx - this.start;
     }
 
-    forEach(callback: ((i: number) => void)) {
-        for (let i = this.start; i < this.end; i += 1) {
-            callback(i);
-        }
+    intersects(range: Range): boolean {
+        return range.start < this.end && this.start < range.end;
     }
 
     forEachInIterator<T>(it: IterableIterator<T>, callback: ((T, i: number) => void)) {
@@ -63,6 +61,30 @@ class Range {
     [Symbol.iterator](): Iterator<number> {
         return new RangeIterator(this);
     }
+
+    reverseIterable(): Iterable<number> {
+        return new ReverseRangeIterator(this);
+    }
+
+    clampIndex(idx: number, end = this.end - 1) {
+        return Math.min(Math.max(this.start, idx), end);
+    }
+
+    getIndexZone(idx): RangeZone {
+        if (idx < this.start) {
+            return RangeZone.Before;
+        } else if (idx < this.end) {
+            return RangeZone.Inside;
+        } else {
+            return RangeZone.After;
+        }
+    }
+}
+
+export enum RangeZone {
+    Before = 1,
+    Inside,
+    After
 }
 
 class RangeIterator implements Iterator<number> {
@@ -81,6 +103,26 @@ class RangeIterator implements Iterator<number> {
     }
 }
 
+class ReverseRangeIterator implements Iterable<number>, Iterator<number> {
+    private idx: number;
+    constructor(private readonly range: Range) {
+        this.idx = range.end;
+    }
+
+    [Symbol.iterator]() {
+        return this;
+    }
+
+    next(): IteratorResult<number> {
+        if (this.idx > this.range.start) {
+            this.idx -= 1;
+            return {value: this.idx, done: false};
+        } else {
+            return {value: undefined, done: true};
+        }
+    }
+}
+
 export function tests() {
     return {
         "length": assert => {
@@ -89,6 +131,9 @@ export function tests() {
         },
         "iterator": assert => {
             assert.deepEqual(Array.from(new Range(2, 5)), [2, 3, 4]);
+        },
+        "reverseIterable": assert => {
+            assert.deepEqual(Array.from(new Range(2, 5).reverseIterable()), [4, 3, 2]);
         },
         "containsIndex": assert => {
             const a = new Range(2, 5);
@@ -168,43 +213,13 @@ export function tests() {
                 {v: "c", i: 2},
             ]);
         },
-    };
-}
-
-export class ItemRange extends Range {
-    constructor(
-        start: number,
-        end: number,
-        public readonly totalLength: number
-    ) {
-        super(start, end);
-    }
-
-
-    expand(amount: number): ItemRange {
-        // don't expand ranges that won't render anything
-        if (this.length === 0) {
-            return this;
+        "clampIndex": assert => {
+            assert.equal(new Range(2, 5).clampIndex(0), 2);
+            assert.equal(new Range(2, 5).clampIndex(2), 2);
+            assert.equal(new Range(2, 5).clampIndex(3), 3);
+            assert.equal(new Range(2, 5).clampIndex(4), 4);
+            assert.equal(new Range(2, 5).clampIndex(5), 4);
+            assert.equal(new Range(2, 5).clampIndex(10), 4);
         }
-
-        const topGrow = Math.min(amount, this.start);
-        const bottomGrow = Math.min(amount, this.totalLength - this.end);
-        return new ItemRange(
-            this.start - topGrow,
-            this.end + topGrow + bottomGrow,
-            this.totalLength,
-        );
-    }
-
-    static fromViewport(listLength: number, itemHeight: number, listHeight: number, scrollTop: number) {
-        const topCount = Math.min(Math.max(0, Math.floor(scrollTop / itemHeight)), listLength);
-        const itemsAfterTop = listLength - topCount;
-        const visibleItems = listHeight !== 0 ? Math.ceil(listHeight / itemHeight) : 0;
-        const renderCount = Math.min(visibleItems, itemsAfterTop);
-        return new ItemRange(topCount, topCount + renderCount, listLength);
-    }
-
-    missingFrom() {
-
-    }
+    };
 }
