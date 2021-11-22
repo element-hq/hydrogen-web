@@ -14,10 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ListView} from "../../general/ListView";
+import {LazyListView} from "../../general/LazyListView";
 import {TemplateView} from "../../general/TemplateView";
 import {RoomTileView} from "./RoomTileView.js";
 import {InviteTileView} from "./InviteTileView.js";
+import { PlaceholderRoomTileView } from "./PlaceholderRoomTileView";
 
 class FilterField extends TemplateView {
     render(t, options) {
@@ -58,14 +59,17 @@ export class LeftPanelView extends TemplateView {
                 vm.i18n`Show single room` :
                 vm.i18n`Enable grid layout`;
         };
-        const roomList = t.view(new ListView(
+        const roomList = t.view(new LazyListView(
             {
                 className: "RoomList",
+                itemHeight: 44,
                 list: vm.tileViewModels,
             },
             tileVM => {
                 if (tileVM.kind === "invite") {
                     return new InviteTileView(tileVM);
+                } if (tileVM.kind === "placeholder") {
+                    return new PlaceholderRoomTileView(tileVM);
                 } else {
                     return new RoomTileView(tileVM);
                 }

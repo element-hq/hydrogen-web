@@ -401,6 +401,9 @@ export class Session {
                 room.setInvite(invite);
             }
         }
+        const room = this.createRoom("!temp:localhost");
+        room.isPlaceholder = true;
+        this._rooms.add(room.id, room);
     }
 
     dispose() {

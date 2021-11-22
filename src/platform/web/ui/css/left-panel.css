@@ -45,6 +45,19 @@ limitations under the License.
     align-items: center;
 }
 
+.RoomList > .placeholder {
+    display: flex;
+    align-items: center;
+}
+
+.RoomList > .placeholder > .phdescription {
+    /* the avatar icon doesn't pad right because the placeholder lacks an <a> tag, so pad left to get the equiv layout */
+    margin-left: 8px;
+    /* make grey rectangles where the description should be */
+    background: rgb(236,237,238);
+    color: rgb(236,237,238);
+}
+
 .RoomList .description {
     margin: 0;
     flex: 1 1 0;

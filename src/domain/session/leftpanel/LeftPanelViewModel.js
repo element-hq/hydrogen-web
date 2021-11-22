@@ -21,6 +21,7 @@ import {InviteTileViewModel} from "./InviteTileViewModel.js";
 import {RoomFilter} from "./RoomFilter.js";
 import {ApplyMap} from "../../../observable/map/ApplyMap.js";
 import {addPanelIfNeeded} from "../../navigation/index.js";
+import { PlaceholderRoomTileViewModel } from "./PlaceholderRoomTileViewModel.js";
 
 export class LeftPanelViewModel extends ViewModel {
     constructor(options) {
@@ -41,6 +42,8 @@ export class LeftPanelViewModel extends ViewModel {
             let vm;
             if (roomOrInvite.isInvite) {
                 vm = new InviteTileViewModel(this.childOptions({invite: roomOrInvite, emitChange}));
+            } else if (roomOrInvite.isPlaceholder) {
+                vm = new PlaceholderRoomTileViewModel(this.childOptions({emitChange}));
             } else {
                 vm = new RoomTileViewModel(this.childOptions({room: roomOrInvite, emitChange}));
             }
