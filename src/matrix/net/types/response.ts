@@ -52,3 +52,8 @@ interface IThumbnailInfo {
     mimetype: string;
     size: number;
 }
+
+export interface IVersionResponse {
+    versions: string[];
+    unstable_features?: Record<string, boolean>;
+}
