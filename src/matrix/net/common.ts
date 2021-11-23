@@ -23,7 +23,7 @@ export interface IEncodedBody {
     length: number;
 }
 
-export function encodeQueryParams(queryParams?: object): string {
+export function encodeQueryParams(queryParams?: Record<string, any>): string {
     return Object.entries(queryParams || {})
         .filter(([, value]) => value !== undefined)
         .map(([name, value]) => {
@@ -35,7 +35,7 @@ export function encodeQueryParams(queryParams?: object): string {
         .join("&");
 }
 
-export function encodeBody(body: {}): IEncodedBody {
+export function encodeBody(body: Record<string, any>): IEncodedBody {
     // todo: code change here
     if (body instanceof BlobHandle) {
         const blob = body as BlobHandle;
