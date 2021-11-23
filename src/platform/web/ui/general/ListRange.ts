@@ -550,6 +550,7 @@ export function tests() {
             list.move(0, 4); // move "a" to after "e"
             assert(moved);
         },
-        
+        // would be good to test here what multiple mutations look like with executing the result of queryXXX
+        // on an array, much like we do in the view.
     };
 }
