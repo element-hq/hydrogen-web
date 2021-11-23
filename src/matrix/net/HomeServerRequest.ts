@@ -25,7 +25,7 @@ export class HomeServerRequest {
     private _sourceRequest?: RequestResult;
     private readonly _promise: Promise<Request>;
 
-    constructor(method:string, url:string, sourceRequest:RequestResult, log?: LogItem) {
+    constructor(method: string, url: string, sourceRequest: RequestResult, log?: LogItem) {
         this._log = log;
         this._sourceRequest = sourceRequest;
         this._promise = sourceRequest.response().then(response => {
