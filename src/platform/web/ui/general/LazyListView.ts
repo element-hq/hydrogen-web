@@ -63,7 +63,8 @@ export class LazyListView<T, V extends IView> extends ListView<T, V> {
         }
     }
     
-    override async loadList() {
+    // override
+    async loadList() {
         /*
         Wait two frames for the return from mount() to be inserted into DOM.
         This should be enough, but if this gives us trouble we can always use
