@@ -19,7 +19,7 @@ import {encodeQueryParams, encodeBody} from "./common";
 import {HomeServerRequest} from "./HomeServerRequest";
 import type {Reconnector} from "./Reconnector";
 import type {IEncodedBody} from "./common";
-import type {IRequestOptions, RequestFunction} from "../../platform/types/Platform";
+import type {IRequestOptions, RequestFunction} from "../../platform/types/types";
 import type {LogItem} from "../../logging/LogItem";
 
 type RequestMethod = "POST" | "GET" | "PUT";
