@@ -454,8 +454,101 @@ export function tests() {
             list.move(2, 3);
             assert(moved);
         },
+        "queryMove with move from before to inside range": assert => {
+            const list = new ObservableArray(["a", "b", "c", "d", "e"]);
+            const range = new ListRange(2, 5, list.length);
+            let moved = false;
+            list.subscribe({
+                onMove(fromIdx, toIdx, value) {
+                    moved = true;
+                    const result = range.queryMove(fromIdx, toIdx, value, list);
+                    assert.deepEqual(result, {
+                        type: ResultType.RemoveAndAdd,
+                        removeIdx: 2,
+                        addIdx: 3,
+                        value: "a"
+                    });
+                }
+            });
+            list.move(0, 3); // move "a" to after "d"
+            assert(moved);
+        },
+        "queryMove with move from after to inside range": assert => {
+            const list = new ObservableArray(["a", "b", "c", "d", "e"]);
+            const range = new ListRange(0, 3, list.length);
+            let moved = false;
+            list.subscribe({
+                onMove(fromIdx, toIdx, value) {
+                    moved = true;
+                    const result = range.queryMove(fromIdx, toIdx, value, list);
+                    assert.deepEqual(result, {
+                        type: ResultType.RemoveAndAdd,
+                        removeIdx: 2,
+                        addIdx: 1,
+                        value: "e"
+                    });
+                }
+            });
+            list.move(4, 1); // move "e" to before "b"
+            assert(moved);
+        },
+        "queryMove with move inside range to after": assert => {
+            const list = new ObservableArray(["a", "b", "c", "d", "e"]);
+            const range = new ListRange(0, 3, list.length);
+            let moved = false;
+            list.subscribe({
+                onMove(fromIdx, toIdx, value) {
+                    moved = true;
+                    const result = range.queryMove(fromIdx, toIdx, value, list);
+                    assert.deepEqual(result, {
+                        type: ResultType.RemoveAndAdd,
+                        removeIdx: 1,
+                        addIdx: 2,
+                        value: "d"
+                    });
+                }
+            });
+            list.move(1, 3); // move "b" to after "d"
+            assert(moved);
+        },
+        "queryMove with move inside range to before": assert => {
+            const list = new ObservableArray(["a", "b", "c", "d", "e"]);
+            const range = new ListRange(2, 5, list.length);
+            let moved = false;
+            list.subscribe({
+                onMove(fromIdx, toIdx, value) {
+                    moved = true;
+                    const result = range.queryMove(fromIdx, toIdx, value, list);
+                    assert.deepEqual(result, {
+                        type: ResultType.RemoveAndAdd,
+                        removeIdx: 3,
+                        addIdx: 2,
+                        value: "b"
+                    });
+                }
+            });
+            list.move(3, 0); // move "d" to before "a"
+            assert(moved);
+        },
+        "queryMove with move from before range to after": assert => {
+            const list = new ObservableArray(["a", "b", "c", "d", "e"]);
+            const range = new ListRange(1, 4, list.length);
+            let moved = false;
+            list.subscribe({
+                onMove(fromIdx, toIdx, value) {
+                    moved = true;
+                    const result = range.queryMove(fromIdx, toIdx, value, list);
+                    assert.deepEqual(result, {
+                        type: ResultType.RemoveAndAdd,
+                        removeIdx: 1,
+                        addIdx: 3,
+                        value: "e"
+                    });
+                }
+            });
+            list.move(0, 4); // move "a" to after "e"
+            assert(moved);
+        },
         
     };
 }
-
-// TODO: test with view larger than space needed by list
