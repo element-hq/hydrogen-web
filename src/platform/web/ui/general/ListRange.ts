@@ -131,12 +131,12 @@ export class ListRange extends Range {
         if (idx <= maxAddIdx) {
             // use maxAddIdx to allow to grow the range by one at a time
             // if the viewport isn't filled yet
-            const addIdx = this.clampIndex(idx, this.maxAddIdx);
+            const addIdx = this.clampIndex(idx, maxAddIdx);
             const addValue = addIdx === idx ? value : getIteratorValueAtIdx(list[Symbol.iterator](), addIdx)!;
             return this.createAddResult<T>(addIdx, addValue);
         } else {
             // if the add happened after the range, we only update the range with the new length
-            return {type: ResultType.UpdateRange, newRange: this.derive(1, 0)};
+            return {type: ResultType.UpdateRange, newRange: this.deriveRange(1, 0)};
         }
     }
 
@@ -145,7 +145,7 @@ export class ListRange extends Range {
             const removeIdx = this.clampIndex(idx);
             return this.createRemoveResult(removeIdx, list);
         } else {
-            return {type: ResultType.UpdateRange, newRange: this.derive(-1, 0)};
+            return {type: ResultType.UpdateRange, newRange: this.deriveRange(-1, 0)};
         }
     }
 
@@ -170,10 +170,10 @@ export class ListRange extends Range {
     private createAddResult<T>(addIdx: number, value: T): AddRemoveResult<T> {
         // if the view port isn't filled yet, we don't remove
         if (this.viewportItemCount > this.length) {
-            return {type: ResultType.Add, addIdx, value, newRange: this.derive(1, 1)};
+            return {type: ResultType.Add, addIdx, value, newRange: this.deriveRange(1, 1)};
         } else {
             const removeIdx = this.clampIndex(Number.MAX_SAFE_INTEGER);
-            return {type: ResultType.RemoveAndAdd, removeIdx, addIdx, value, newRange: this.derive(1, 0)};
+            return {type: ResultType.RemoveAndAdd, removeIdx, addIdx, value, newRange: this.deriveRange(1, 0)};
         }
     }
 
@@ -184,10 +184,10 @@ export class ListRange extends Range {
             // we assume the value has already been removed from the list,
             // so we can just look up the next value which is already at the same idx
             const value = getIteratorValueAtIdx(list[Symbol.iterator](), addIdx)!;
-            return {type: ResultType.RemoveAndAdd, removeIdx, value, addIdx, newRange: this.derive(-1, 0)};
+            return {type: ResultType.RemoveAndAdd, removeIdx, value, addIdx, newRange: this.deriveRange(-1, 0)};
         } else if (this.start !== 0) {
             // move the range 1 item up so we still display a viewport full of items
-            const newRange = this.derive(-1, 0, 1);
+            const newRange = this.deriveRange(-1, 0, 1);
             const addIdx = newRange.start;
             // we assume the value has already been removed from the list,
             // so we can just look up the next value which is already at the same idx
@@ -195,15 +195,19 @@ export class ListRange extends Range {
             return {type: ResultType.RemoveAndAdd, removeIdx, value, addIdx, newRange};
         } else {
             // we can't add at the bottom nor top, already constrained
-            return {type: ResultType.Remove, removeIdx, newRange: this.derive(-1, 0)};
+            return {type: ResultType.Remove, removeIdx, newRange: this.deriveRange(-1, 0)};
         }
     }
 
-    private derive(totalLengthInc: number, viewportItemCountDecr: number, startDecr: number = 0): ListRange {
+    private deriveRange(totalLengthInc: number, viewportItemCountDecr: number, startDecr: number = 0): ListRange {
+        const start = this.start - startDecr;
+        const totalLength = this.totalLength + totalLengthInc;
+        // prevent end being larger than totalLength
+        const end = Math.min(Math.max(start, this.end - startDecr + viewportItemCountDecr), totalLength);
         return new ListRange(
-            this.start - startDecr,
-            this.end - startDecr + viewportItemCountDecr,
-            this.totalLength + totalLengthInc,
+            start,
+            end,
+            totalLength,
             this.viewportItemCount
         );
     }
@@ -414,7 +418,24 @@ export function tests() {
             list.remove(2);
             assert(removed);
         },
-        
+        "queryRemove with range on full length shrinks range": assert => {
+            const list = new ObservableArray(["a", "b", "c"]);
+            const range = new ListRange(0, 3, list.length);
+            let removed = false;
+            list.subscribe({
+                onRemove(idx) {
+                    removed = true;
+                    const result = range.queryRemove(idx, list);
+                    assert.deepEqual(result, {
+                        newRange: new ListRange(0, 2, 2, 3),
+                        type: ResultType.Remove,
+                        removeIdx: 2,
+                    });
+                }
+            });
+            list.remove(2);
+            assert(removed);
+        },
         "queryMove with move inside range": assert => {
             const list = new ObservableArray(["a", "b", "c", "d", "e"]);
             const range = new ListRange(1, 4, list.length);
