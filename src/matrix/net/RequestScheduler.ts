@@ -17,7 +17,7 @@ limitations under the License.
 
 import {AbortError} from "../../utils/error";
 import {HomeServerError} from "../error.js";
-import {HomeServerApi} from "./HomeServerApi.js";
+import {HomeServerApi} from "./HomeServerApi";
 import {ExponentialRetryDelay} from "./ExponentialRetryDelay";
 import {Clock} from "../../platform/web/dom/Clock.js";
 import type {HomeServerRequest} from "./HomeServerRequest.js";

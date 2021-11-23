@@ -23,7 +23,7 @@ export interface IEncodedBody {
     length: number;
 }
 
-export function encodeQueryParams(queryParams: object): string {
+export function encodeQueryParams(queryParams?: object): string {
     return Object.entries(queryParams || {})
         .filter(([, value]) => value !== undefined)
         .map(([name, value]) => {

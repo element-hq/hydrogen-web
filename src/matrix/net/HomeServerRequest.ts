@@ -23,7 +23,7 @@ export class HomeServerRequest {
     // todo: Shouldn't log be of type ILogItem; but ILogItem does not have finish method
     private readonly _log?: LogItem;
     private _sourceRequest?: RequestResult;
-    private readonly _promise: Promise<Request>;
+    private readonly _promise: Promise<any>;
 
     constructor(method: string, url: string, sourceRequest: RequestResult, log?: LogItem) {
         this._log = log;
@@ -96,7 +96,7 @@ export class HomeServerRequest {
         }
     }
 
-    response(): Promise<Request> {
+    response(): Promise<any> {
         return this._promise;
     }
 }
