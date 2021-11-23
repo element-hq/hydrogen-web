@@ -97,7 +97,7 @@ export class RequestScheduler {
         this._stopped = false;
     }
 
-    _hsApiRequest(name: string, args: any[]): Request {
+    private _hsApiRequest(name: string, args: any[]): Request {
         const request = new Request(name, args);
         this._doSend(request);
         return request;

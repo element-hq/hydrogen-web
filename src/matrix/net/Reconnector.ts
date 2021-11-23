@@ -93,7 +93,7 @@ export class Reconnector {
         }
     }
 
-    _setState(state: ConnectionStatus): void {
+    private _setState(state: ConnectionStatus): void {
         if (state !== this._state.get()) {
             if (state === ConnectionStatus.Waiting) {
                 this._stateSince = this._createTimeMeasure();
@@ -104,7 +104,7 @@ export class Reconnector {
         }
     }
     
-    async _reconnectLoop(hsApi: HomeServerApi): Promise<void> {
+    private async _reconnectLoop(hsApi: HomeServerApi): Promise<void> {
         this._versionsResponse = undefined;
         this._retryDelay.reset();
 

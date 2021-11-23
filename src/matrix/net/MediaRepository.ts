@@ -49,7 +49,7 @@ export class MediaRepository {
         }
     }
 
-    _parseMxcUrl(url: string): string[] | null {
+    private _parseMxcUrl(url: string): string[] | null {
         const prefix = "mxc://";
         if (url.startsWith(prefix)) {
             return url.substr(prefix.length).split("/", 2);

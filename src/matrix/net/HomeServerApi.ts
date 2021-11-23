@@ -42,11 +42,11 @@ export class HomeServerApi {
         this._reconnector = reconnector;
     }
 
-    _url(csPath: string, prefix: string = CS_R0_PREFIX): string {
+    private _url(csPath: string, prefix: string = CS_R0_PREFIX): string {
         return this._homeserver + prefix + csPath;
     }
 
-    _baseRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: IRequestOptions, accessToken?: string): HomeServerRequest {
+    private _baseRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: IRequestOptions, accessToken?: string): HomeServerRequest {
         const queryString = encodeQueryParams(queryParams);
         url = `${url}?${queryString}`;
         let log: LogItem | undefined;
@@ -98,23 +98,23 @@ export class HomeServerApi {
         return hsRequest;
     }
 
-    _unauthedRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: IRequestOptions): HomeServerRequest {
+    private _unauthedRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: IRequestOptions): HomeServerRequest {
         return this._baseRequest(method, url, queryParams, body, options);
     }
 
-    _authedRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: IRequestOptions): HomeServerRequest {
+    private _authedRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: IRequestOptions): HomeServerRequest {
         return this._baseRequest(method, url, queryParams, body, options, this._accessToken);
     }
 
-    _post(csPath: string, queryParams: Record<string, any>, body: Record<string, any>, options?: IRequestOptions): HomeServerRequest {
+    private _post(csPath: string, queryParams: Record<string, any>, body: Record<string, any>, options?: IRequestOptions): HomeServerRequest {
         return this._authedRequest("POST", this._url(csPath, options?.prefix || CS_R0_PREFIX), queryParams, body, options);
     }
 
-    _put(csPath: string, queryParams: Record<string, any>, body?: Record<string, any>, options?: IRequestOptions): HomeServerRequest {
+    private _put(csPath: string, queryParams: Record<string, any>, body?: Record<string, any>, options?: IRequestOptions): HomeServerRequest {
         return this._authedRequest("PUT", this._url(csPath, options?.prefix || CS_R0_PREFIX), queryParams, body, options);
     }
 
-    _get(csPath: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: IRequestOptions): HomeServerRequest {
+    private _get(csPath: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: IRequestOptions): HomeServerRequest {
         return this._authedRequest("GET", this._url(csPath, options?.prefix || CS_R0_PREFIX), queryParams, body, options);
     }
 
@@ -275,9 +275,8 @@ export function tests() {
                 request: () => new MockRequest().respond(200, 42),
                 homeserver: "https://hs.tld",
             });
-            const result = await hsApi
-                ._get("foo", undefined, undefined, undefined)
-                .response();
+            // @ts-ignore
+            const result = await hsApi._get("foo", undefined, undefined, undefined).response();
             assert.strictEqual(result, 42);
         }
     }
