@@ -17,10 +17,10 @@ limitations under the License.
 import {el} from "./html";
 import {mountView, insertAt} from "./utils";
 import {SubscriptionHandle} from "../../../../observable/BaseObservable";
-import {BaseObservableList as ObservableList} from "../../../../observable/list/BaseObservableList";
+import {BaseObservableList as ObservableList, IListObserver} from "../../../../observable/list/BaseObservableList";
 import {IView, IMountArgs} from "./types";
 
-interface IOptions<T, V> {
+export interface IOptions<T, V> {
     list: ObservableList<T>,
     onItemClick?: (childView: V, evt: UIEvent) => void,
     className?: string,
@@ -28,17 +28,17 @@ interface IOptions<T, V> {
     parentProvidesUpdates?: boolean
 }
 
-export class ListView<T, V extends IView> implements IView {
+export class ListView<T, V extends IView> implements IView, IListObserver<T> {
 
     private _onItemClick?: (childView: V, evt: UIEvent) => void;
-    private _list: ObservableList<T>;
     private _className?: string;
     private _tagName: string;
     private _root?: Element;
-    private _subscription?: SubscriptionHandle;
-    private _childCreator: (value: T) => V;
-    private _childInstances?: V[];
-    private _mountArgs: IMountArgs;
+    protected _subscription?: SubscriptionHandle;
+    protected _childCreator: (value: T) => V;
+    protected _mountArgs: IMountArgs;
+    protected _list: ObservableList<T>;
+    protected _childInstances?: V[];
 
     constructor(
         {list, onItemClick, className, tagName = "ul", parentProvidesUpdates = true}: IOptions<T, V>, 
@@ -145,31 +145,48 @@ export class ListView<T, V extends IView> implements IView {
     }
 
     onAdd(idx: number, value: T) {
-        const child = this._childCreator(value);
-        this._childInstances!.splice(idx, 0, child);
-        insertAt(this._root!, idx, mountView(child, this._mountArgs));
+        this.addChild(idx, value);
     }
 
     onRemove(idx: number, value: T) {
-        const [child] = this._childInstances!.splice(idx, 1);
+        this.removeChild(idx);
+    }
+
+    onMove(fromIdx: number, toIdx: number, value: T) {
+        this.moveChild(fromIdx, toIdx);
+    }
+
+    onUpdate(i: number, value: T, params: any) {
+        this.updateChild(i, value, params);
+    }
+
+    protected addChild(childIdx: number, value: T) {
+        const child = this._childCreator(value);
+        this._childInstances!.splice(childIdx, 0, child);
+        insertAt(this._root!, childIdx, mountView(child, this._mountArgs));
+    }
+
+    protected removeChild(childIdx: number) {
+        const [child] = this._childInstances!.splice(childIdx, 1);
         child.root()!.remove();
         child.unmount();
     }
 
-    onMove(fromIdx: number, toIdx: number, value: T) {
-        const [child] = this._childInstances!.splice(fromIdx, 1);
-        this._childInstances!.splice(toIdx, 0, child);
+    protected moveChild(fromChildIdx: number, toChildIdx: number) {
+        const [child] = this._childInstances!.splice(fromChildIdx, 1);
+        this._childInstances!.splice(toChildIdx, 0, child);
         child.root()!.remove();
-        insertAt(this._root!, toIdx, child.root()! as Element);
+        insertAt(this._root!, toChildIdx, child.root()! as Element);
     }
 
-    onUpdate(i: number, value: T, params: any) {
+    protected updateChild(childIdx: number, value: T, params: any) {
         if (this._childInstances) {
-            const instance = this._childInstances![i];
+            const instance = this._childInstances![childIdx];
             instance && instance.update(value, params);
         }
     }
 
+    // TODO: is this the list or view index? 
     protected recreateItem(index: number, value: T) {
         if (this._childInstances) {
             const child = this._childCreator(value);

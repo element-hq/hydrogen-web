@@ -44,6 +44,14 @@ export class ObservableArray extends BaseObservableList {
         this.emitAdd(idx, item);
     }
 
+    move(fromIdx, toIdx) {
+        if (fromIdx < this._items.length && toIdx < this._items.length) {
+            const [item] = this._items.splice(fromIdx, 1);
+            this._items.splice(toIdx, 0, item);
+            this.emitMove(fromIdx, toIdx, item);
+        }
+    }
+
     update(idx, item, params = null) {
         if (idx < this._items.length) {
             this._items[idx] = item;
