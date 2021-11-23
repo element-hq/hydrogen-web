@@ -17,7 +17,7 @@ limitations under the License.
 import {LazyListView} from "../../general/LazyListView";
 import {MemberTileView} from "./MemberTileView.js";
 
-export class MemberListView extends LazyListView{
+export class MemberListView extends LazyListView {
     constructor(vm) {
         super({
             list: vm.memberTileViewModels,

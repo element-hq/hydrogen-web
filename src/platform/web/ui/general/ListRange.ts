@@ -67,6 +67,8 @@ interface RemoveResult {
     removeIdx: number;
 }
 
+// need to repeat the fields from RemoveResult and AddResult here
+// to make the discriminated union work
 interface RemoveAndAddResult<T> {
     type: ResultType.RemoveAndAdd;
     newRange?: ListRange;

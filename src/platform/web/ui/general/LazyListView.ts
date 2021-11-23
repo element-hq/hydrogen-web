@@ -34,7 +34,7 @@ export class LazyListView<T, V extends IView> extends ListView<T, V> {
     private scrollContainer?: HTMLElement;
 
     constructor(
-        {itemHeight, overflowMargin = 5, overflowItems = 20,...options}: IOptions<T, V>, 
+        {itemHeight, overflowMargin = 5, overflowItems = 20, ...options}: IOptions<T, V>, 
         childCreator: (value: T) => V
     ) {
         super(options, childCreator);
