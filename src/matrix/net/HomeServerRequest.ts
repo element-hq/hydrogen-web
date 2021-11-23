@@ -23,6 +23,7 @@ export class HomeServerRequest {
     // todo: Shouldn't log be of type ILogItem; but ILogItem does not have finish method
     private readonly _log?: LogItem;
     private _sourceRequest?: RequestResult;
+    // as we add types for expected responses from hs, this could be a generic class instead
     private readonly _promise: Promise<any>;
 
     constructor(method: string, url: string, sourceRequest: RequestResult, log?: LogItem) {
