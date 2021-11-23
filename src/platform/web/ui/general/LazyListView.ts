@@ -22,7 +22,6 @@ import {IView} from "./types";
 
 export interface IOptions<T, V> extends IParentOptions<T, V> {
     itemHeight: number;
-    overflowMargin?: number;
     overflowItems?: number;
 }
 
@@ -34,13 +33,12 @@ export class LazyListView<T, V extends IView> extends ListView<T, V> {
     private scrollContainer?: HTMLElement;
 
     constructor(
-        {itemHeight, overflowMargin = 5, overflowItems = 20, ...options}: IOptions<T, V>, 
+        {itemHeight, overflowItems = 20, ...options}: IOptions<T, V>, 
         childCreator: (value: T) => V
     ) {
         super(options, childCreator);
         this.itemHeight = itemHeight;
         this.overflowItems = overflowItems;
-        // TODO: this.overflowMargin = overflowMargin;
     }
 
     handleEvent(e: Event) {
