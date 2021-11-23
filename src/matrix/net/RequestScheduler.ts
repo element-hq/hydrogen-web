@@ -19,33 +19,43 @@ import {AbortError} from "../../utils/error";
 import {HomeServerError} from "../error.js";
 import {HomeServerApi} from "./HomeServerApi.js";
 import {ExponentialRetryDelay} from "./ExponentialRetryDelay";
+import {Clock} from "../../platform/web/dom/Clock.js";
+import type {HomeServerRequest} from "./HomeServerRequest.js";
 
 class Request {
-    constructor(methodName, args) {
-        this._methodName = methodName;
-        this._args = args;
+    public readonly methodName: string;
+    public readonly args: any[];
+    public resolve: (result: Response) => void;
+    public reject: (error: AbortError) => void;
+    public requestResult?: HomeServerRequest;
+    private readonly _responsePromise: Promise<Response>;
+
+    constructor(methodName: string, args: any[]) {
+        this.methodName = methodName;
+        this.args = args;
         this._responsePromise = new Promise((resolve, reject) => {
-            this._resolve = resolve;
-            this._reject = reject;
+            this.resolve = resolve;
+            this.reject = reject;
         });
-        this._requestResult = null;
     }
 
-    abort() {
-        if (this._requestResult) {
-            this._requestResult.abort();
+    abort(): void {
+        if (this.requestResult) {
+            this.requestResult.abort();
         } else {
-            this._reject(new AbortError());
+            this.reject(new AbortError());
         }
     }
 
-    response() {
+    response(): Promise<Response> {
         return this._responsePromise;
     }
 }
 
 class HomeServerApiWrapper {
-    constructor(scheduler) {
+    private readonly _scheduler: RequestScheduler;
+
+    constructor(scheduler: RequestScheduler) {
         this._scheduler = scheduler;
     }
 }
@@ -60,21 +70,22 @@ for (const methodName of Object.getOwnPropertyNames(HomeServerApi.prototype)) {
 }
 
 export class RequestScheduler {
-    constructor({hsApi, clock}) {
+    private readonly _hsApi: HomeServerApi;
+    private readonly _clock: Clock;
+    private readonly _requests: Set<Request> = new Set();
+    private _stopped = false;
+    private _wrapper = new HomeServerApiWrapper(this);
+
+    constructor({ hsApi, clock }: { hsApi: HomeServerApi; clock: Clock }) {
         this._hsApi = hsApi;
         this._clock = clock;
-        this._requests = new Set();
-        this._isRateLimited = false;
-        this._isDrainingRateLimit = false;
-        this._stopped = true;
-        this._wrapper = new HomeServerApiWrapper(this);
     }
 
-    get hsApi() {
+    get hsApi(): HomeServerApiWrapper {
         return this._wrapper;
     }
 
-    stop() {
+    stop(): void {
         this._stopped = true;
         for (const request of this._requests) {
             request.abort();
@@ -82,40 +93,49 @@ export class RequestScheduler {
         this._requests.clear();
     }
 
-    start() {
+    start(): void {
         this._stopped = false;
     }
 
-    _hsApiRequest(name, args) {
+    _hsApiRequest(name: string, args: any[]): Request {
         const request = new Request(name, args);
         this._doSend(request);
         return request;
     }
 
-    async _doSend(request) {
+    private async _doSend(request: Request): Promise<void> {
         this._requests.add(request);
         try {
-            let retryDelay;
+            let retryDelay: ExponentialRetryDelay | undefined;
             while (!this._stopped) {
                 try {
-                    const requestResult = this._hsApi[request._methodName].apply(this._hsApi, request._args);
+                    const requestResult = this._hsApi[
+                        request.methodName
+                    ].apply(this._hsApi, request.args);
                     // so the request can be aborted
-                    request._requestResult = requestResult;
+                    request.requestResult = requestResult;
                     const response = await requestResult.response();
-                    request._resolve(response);
+                    request.resolve(response);
                     return;
                 } catch (err) {
-                    if (err instanceof HomeServerError && err.errcode === "M_LIMIT_EXCEEDED") {
+                    if (
+                        err instanceof HomeServerError &&
+                        err.errcode === "M_LIMIT_EXCEEDED"
+                    ) {
                         if (Number.isSafeInteger(err.retry_after_ms)) {
-                            await this._clock.createTimeout(err.retry_after_ms).elapsed();
+                            await this._clock
+                                .createTimeout(err.retry_after_ms)
+                                .elapsed();
                         } else {
                             if (!retryDelay) {
-                                retryDelay = new ExponentialRetryDelay(this._clock.createTimeout);
+                                retryDelay = new ExponentialRetryDelay(
+                                    this._clock.createTimeout
+                                );
                             }
                             await retryDelay.waitForRetry();
                         }
                     } else {
-                        request._reject(err);
+                        request.reject(err);
                         return;
                     }
                 }
