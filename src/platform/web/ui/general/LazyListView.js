@@ -72,11 +72,12 @@ class ItemRange {
 }
 
 export class LazyListView extends ListView {
-    constructor({itemHeight, overflowMargin = 5, overflowItems = 20,...options}, childCreator) {
+    constructor({itemHeight, onRangeVisible, overflowMargin = 5, overflowItems = 20,...options}, childCreator) {
         super(options, childCreator);
         this._itemHeight = itemHeight;
         this._overflowMargin = overflowMargin;
         this._overflowItems = overflowItems;
+        this._onRangeVisible = onRangeVisible; // function(ItemRange)
     }
 
     _getVisibleRange() {
@@ -103,6 +104,9 @@ export class LazyListView extends ListView {
         if (forceRender || !this._renderRange.contains(intersectRange)) {
             this._renderRange = renderRange;
             this._renderElementsInRange();
+            if (this._onRangeVisible) {
+                this._onRangeVisible(renderRange);
+            }
         }
     }
 
