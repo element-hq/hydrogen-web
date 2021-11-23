@@ -76,10 +76,10 @@ export class LazyListView<T, V extends IView> extends ListView<T, V> {
         if (!this._list) {
             return;
         }
+        this._subscription = this._list.subscribe(this);
         const visibleRange = this._getVisibleRange();
         this.renderRange = visibleRange.expand(this.overflowItems);
         this._childInstances = [];
-        this._subscription = this._list.subscribe(this);
         this.reRenderFullRange(this.renderRange);
     }
 
