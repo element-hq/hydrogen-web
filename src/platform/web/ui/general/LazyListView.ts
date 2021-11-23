@@ -131,7 +131,7 @@ export class LazyListView<T, V extends IView> extends ListView<T, V> {
     private adjustPadding(range: ListRange) {
         const paddingTop = range.start * this.itemHeight;
         const paddingBottom = (range.totalLength - range.end) * this.itemHeight;
-        const style = this.scrollContainer!.style;
+        const style = this._listElement!.style;
         style.paddingTop = `${paddingTop}px`;
         style.paddingBottom = `${paddingBottom}px`;
     }
@@ -153,8 +153,8 @@ export class LazyListView<T, V extends IView> extends ListView<T, V> {
         return this.scrollContainer;
     }
 
-    private get _listElement(): Element | undefined {
-        return super.root();
+    private get _listElement(): HTMLElement | undefined {
+        return super.root() as HTMLElement | undefined;
     }
 
     onAdd(idx: number, value: T) {
