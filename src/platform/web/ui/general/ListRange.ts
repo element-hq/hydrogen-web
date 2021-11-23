@@ -161,7 +161,6 @@ export class ListRange extends Range {
                 return {type: ResultType.Move, fromIdx, toIdx};
             }
         } else {
-            // TODO
             const addIdx = this.clampIndex(toIdx);
             const removeIdx = this.clampIndex(fromIdx);
             const addValue = addIdx === toIdx ? value : getIteratorValueAtIdx(list[Symbol.iterator](), addIdx)!;
