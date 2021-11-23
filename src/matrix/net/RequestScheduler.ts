@@ -81,8 +81,8 @@ export class RequestScheduler {
         this._clock = clock;
     }
 
-    get hsApi(): HomeServerApiWrapper {
-        return this._wrapper;
+    get hsApi(): HomeServerApi {
+        return this._wrapper as unknown as HomeServerApi;
     }
 
     stop(): void {
