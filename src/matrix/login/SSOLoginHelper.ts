@@ -15,13 +15,15 @@ limitations under the License.
 */
 
 export class SSOLoginHelper{
-    constructor(homeserver) {
+    private _homeserver: string;
+
+    constructor(homeserver: string) {
         this._homeserver = homeserver;
     }
 
-    get homeserver() { return this._homeserver; }
+    get homeserver(): string { return this._homeserver; }
 
-    createSSORedirectURL(returnURL) {
+    createSSORedirectURL(returnURL: string): string {
         return `${this._homeserver}/_matrix/client/r0/login/sso/redirect?redirectUrl=${returnURL}`;
     }
 }
