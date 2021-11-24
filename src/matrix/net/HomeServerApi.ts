@@ -276,7 +276,7 @@ export function tests() {
                 homeserver: "https://hs.tld",
             });
             // @ts-ignore
-            const result = await hsApi._get("foo", undefined, undefined, undefined).response();
+            const result = await hsApi._get("foo").response();
             assert.strictEqual(result, 42);
         }
     }
