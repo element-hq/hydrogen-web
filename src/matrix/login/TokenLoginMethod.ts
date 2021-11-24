@@ -14,16 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {LoginMethod} from "./LoginMethod";
 import {makeTxnId} from "../common.js";
+import {ILogItem} from "../../logging/types";
+import {ILoginMethod} from "./LoginMethod";
+import {HomeServerApi} from "../net/HomeServerApi.js";
 
-export class TokenLoginMethod extends LoginMethod {
-    constructor(options) {
-        super(options);
-        this._loginToken = options.loginToken;
+export class TokenLoginMethod implements ILoginMethod {
+    public readonly homeserver: string;
+    private readonly _loginToken: string;
+
+    constructor({ homeserver, loginToken }: { homeserver: string, loginToken: string}) {
+        this.homeserver = homeserver;
+        this._loginToken = loginToken;
     }
 
-    async login(hsApi, deviceName, log) {
+    async login(hsApi: HomeServerApi, deviceName: string, log: ILogItem): Promise<Response["body"]> {
         return await hsApi.tokenLogin(this._loginToken, makeTxnId(), deviceName, {log}).response();
     }
 }
