@@ -14,29 +14,36 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {
-    AbortError,
-    ConnectionError
-} from "../../error.js";
+import {AbortError, ConnectionError} from "../../error.js";
+import type {IRequestOptions, RequestFunction} from "../../../platform/types/types.js";
+import type {RequestResult} from "../../../platform/web/dom/request/fetch.js";
+
+interface IOptions extends IRequestOptions {
+    method?: any;
+    delay?: boolean;
+}
 
 class RequestLogItem {
-    constructor(url, options) {
+    public readonly url: string;
+    public readonly options: IOptions;
+    public error: {aborted: boolean, network: boolean, message: string};
+    public status: number;
+    public body: Response["body"];
+    public start: number = performance.now();
+    public end: number = 0;
+
+    constructor(url: string, options: IOptions) {
         this.url = url;
         this.options = options;
-        this.error = null;
-        this.body = null;
-        this.status = status;
-        this.start = performance.now();
-        this.end = 0;
     }
 
-    async handleResponse(response) {
+    async handleResponse(response: Response) {
         this.end = performance.now();
         this.status = response.status;
         this.body = response.body;
     }
 
-    handleError(err) {
+    handleError(err: Error): void {
         this.end = performance.now();
         this.error = {
             aborted: err instanceof AbortError,
@@ -47,13 +54,15 @@ class RequestLogItem {
 }
 
 export class RecordRequester {
-    constructor(request) {
+    private readonly _origRequest: RequestFunction;
+    private readonly _requestLog: RequestLogItem[] = [];
+
+    constructor(request: RequestFunction) {
         this._origRequest = request;
-        this._requestLog = [];
         this.request = this.request.bind(this);
     }
 
-    request(url, options) {
+    request(url: string, options: IOptions): RequestResult {
         const requestItem = new RequestLogItem(url, options);
         this._requestLog.push(requestItem);
         try {
@@ -68,24 +77,27 @@ export class RecordRequester {
         }
     }
 
-    log() {
+    log(): RequestLogItem[] {
         return this._requestLog;
     }
 }
 
 export class ReplayRequester {
-    constructor(log, options) {
+    private readonly _log: RequestLogItem[];
+    private readonly _options: IOptions;
+
+    constructor(log: RequestLogItem[], options: IOptions) {
         this._log = log.slice();
         this._options = options;
         this.request = this.request.bind(this);
     }
 
-    request(url, options) {
-        const idx = this._log.findIndex(item => {
+    request(url: string, options: IOptions): ReplayRequestResult {
+        const idx = this._log.findIndex((item) => {
             return item.url === url && options.method === item.options.method;
         });
         if (idx === -1) {
-            return new ReplayRequestResult({status: 404}, options);
+            return new ReplayRequestResult({ status: 404 } as RequestLogItem, options);
         } else {
             const [item] = this._log.splice(idx, 1);
             return new ReplayRequestResult(item, options);
@@ -94,17 +106,21 @@ export class ReplayRequester {
 }
 
 class ReplayRequestResult {
-    constructor(item, options) {
+    private readonly _item: RequestLogItem;
+    private readonly _options: IOptions;
+    private _aborted: boolean;
+
+    constructor(item: RequestLogItem, options: IOptions) {
         this._item = item;
         this._options = options;
         this._aborted = false;
     }
 
-    abort() {
+    abort(): void {
         this._aborted = true;
     }
 
-    async response() {
+    async response(): Promise<RequestLogItem> {
         if (this._options.delay) {
             const delay = this._item.end - this._item.start;
             await new Promise(resolve => setTimeout(resolve, delay));

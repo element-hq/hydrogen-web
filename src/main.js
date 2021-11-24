@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// import {RecordRequester, ReplayRequester} from "./matrix/net/request/replay.js";
+// import {RecordRequester, ReplayRequester} from "./matrix/net/request/replay";
 import {SessionContainer} from "./matrix/SessionContainer.js";
 import {RootViewModel} from "./domain/RootViewModel.js";
 import {createNavigation, createRouter} from "./domain/navigation/index.js";
