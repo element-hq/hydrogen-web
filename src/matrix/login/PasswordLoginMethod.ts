@@ -19,17 +19,17 @@ import {ILoginMethod} from "./LoginMethod";
 import {HomeServerApi} from "../net/HomeServerApi.js";
 
 export class PasswordLoginMethod implements ILoginMethod {
-    public username: string;
-    public password: string;
-    public homeserver: string;
+    private readonly _username: string;
+    private readonly _password: string;
+    public readonly homeserver: string;
 
     constructor({username, password, homeserver}: {username: string, password: string, homeserver: string}) {
-        this.username = username;
-        this.password = password;
+        this._username = username;
+        this._password = password;
         this.homeserver = homeserver;
     }
 
-    async login(hsApi: HomeServerApi, deviceName: string, log: ILogItem) {
-        return await hsApi.passwordLogin(this.username, this.password, deviceName, {log}).response();
+    async login(hsApi: HomeServerApi, deviceName: string, log: ILogItem): Promise<Response["body"]> {
+        return await hsApi.passwordLogin(this._username, this._password, deviceName, {log}).response();
     }
 }
