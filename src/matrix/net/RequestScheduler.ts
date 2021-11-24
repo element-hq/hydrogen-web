@@ -20,14 +20,14 @@ import {HomeServerError} from "../error.js";
 import {HomeServerApi} from "./HomeServerApi";
 import {ExponentialRetryDelay} from "./ExponentialRetryDelay";
 import {Clock} from "../../platform/web/dom/Clock.js";
-import type {HomeServerRequest} from "./HomeServerRequest.js";
+import type {IHomeServerRequest} from "./HomeServerRequest.js";
 
-class Request {
+class Request implements IHomeServerRequest {
     public readonly methodName: string;
     public readonly args: any[];
     public resolve: (result: Response) => void;
     public reject: (error: AbortError) => void;
-    public requestResult?: HomeServerRequest;
+    public requestResult?: IHomeServerRequest;
     private readonly _responsePromise: Promise<Response>;
 
     constructor(methodName: string, args: any[]) {
