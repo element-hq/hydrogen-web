@@ -27,13 +27,20 @@ type RequestMethod = "POST" | "GET" | "PUT";
 const CS_R0_PREFIX = "/_matrix/client/r0";
 const DEHYDRATION_PREFIX = "/_matrix/client/unstable/org.matrix.msc2697.v2";
 
+type Ctor = {
+    homeserver: string;
+    accessToken: string;
+    request: RequestFunction;
+    reconnector: Reconnector;
+};
+
 export class HomeServerApi {
     private readonly _homeserver: string;
     private readonly _accessToken: string;
     private readonly _requestFn: RequestFunction;
     private readonly _reconnector: Reconnector;
 
-    constructor({homeserver, accessToken, request, reconnector}: {homeserver: string, accessToken: string, request: RequestFunction, reconnector: Reconnector}) {
+    constructor({homeserver, accessToken, request, reconnector}: Ctor) {
         // store these both in a closure somehow so it's harder to get at in case of XSS?
         // one could change the homeserver as well so the token gets sent there, so both must be protected from read/write
         this._homeserver = homeserver;

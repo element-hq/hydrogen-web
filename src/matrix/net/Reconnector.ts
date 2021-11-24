@@ -27,6 +27,12 @@ export enum ConnectionStatus {
     "Online"
 };
 
+type Ctor = {
+    retryDelay: ExponentialRetryDelay;
+    createMeasure: () => TimeMeasure;
+    onlineStatus: OnlineStatus
+};
+
 export class Reconnector {
     private readonly _retryDelay: ExponentialRetryDelay;
     private readonly _createTimeMeasure: () => TimeMeasure;
@@ -36,7 +42,7 @@ export class Reconnector {
     private _versionsResponse?: IVersionResponse;
     private _stateSince: TimeMeasure;
 
-    constructor({retryDelay, createMeasure, onlineStatus}: {retryDelay: ExponentialRetryDelay, createMeasure: () => TimeMeasure, onlineStatus: OnlineStatus}) {
+    constructor({retryDelay, createMeasure, onlineStatus}: Ctor) {
         this._onlineStatus = onlineStatus;
         this._retryDelay = retryDelay;
         this._createTimeMeasure = createMeasure;
