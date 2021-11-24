@@ -110,6 +110,10 @@ export class HomeServerApi {
         return this._get("/sync", {since, timeout, filter}, null, options);
     }
 
+    sync3(body, pos, timeout, options = null) {
+        return this._authedRequest("POST", this._url("/sync", "/_matrix/client/v3"), {timeout, pos}, body, options);
+    }
+
     // params is from, dir and optionally to, limit, filter.
     messages(roomId, params, options = null) {
         return this._get(`/rooms/${encodeURIComponent(roomId)}/messages`, params, null, options);
