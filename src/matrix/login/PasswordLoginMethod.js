@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {LoginMethod} from "./LoginMethod.js";
+import {LoginMethod} from "./LoginMethod";
 
 export class PasswordLoginMethod extends LoginMethod {
     constructor(options) {

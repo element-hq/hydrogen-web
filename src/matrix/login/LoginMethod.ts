@@ -14,17 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export class LoginMethod {
-    constructor({homeserver}) {
-        this.homeserver = homeserver;
-    }
+import type {ILogItem} from "../../logging/types";
+import type {HomeServerApi} from "../net/HomeServerApi.js";
 
-    // eslint-disable-next-line no-unused-vars
-    async login(hsApi, deviceName, log) {
-        /*
-        Regardless of the login method, SessionContainer.startWithLogin()
-        can do SomeLoginMethod.login()
-        */
-        throw("Not Implemented");
-    }
+export interface ILoginMethod {
+    homeserver: string;
+    login(hsApi: HomeServerApi, deviceName: string, log: ILogItem): Response["body"];
 }

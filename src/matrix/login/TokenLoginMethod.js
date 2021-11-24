@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {LoginMethod} from "./LoginMethod.js";
+import {LoginMethod} from "./LoginMethod";
 import {makeTxnId} from "../common.js";
 
 export class TokenLoginMethod extends LoginMethod {
