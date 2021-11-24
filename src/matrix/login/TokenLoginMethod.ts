@@ -20,8 +20,8 @@ import {ILoginMethod} from "./LoginMethod";
 import {HomeServerApi} from "../net/HomeServerApi.js";
 
 export class TokenLoginMethod implements ILoginMethod {
-    public readonly homeserver: string;
     private readonly _loginToken: string;
+    public readonly homeserver: string;
 
     constructor({ homeserver, loginToken }: { homeserver: string, loginToken: string}) {
         this.homeserver = homeserver;
