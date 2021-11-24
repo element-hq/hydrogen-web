@@ -41,7 +41,7 @@ export class RoomTileViewModel extends BaseTileViewModel {
 
         // sync v3 has its own ordering, use it if we have an index
         if (this._room.index !== undefined && other._room.index !== undefined) {
-            return this._room.index > other._room.index ? 1 : -1;;
+            return this._room.index > other._room.index ? 1 : -1;
         }
 
         /*

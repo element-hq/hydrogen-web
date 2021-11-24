@@ -36,6 +36,7 @@ export class PlaceholderRoomTileViewModel extends BaseTileViewModel {
     }
 
     compare(other) {
+        // TODO: factor this out with the compare(other) of the room tile as it does this check as well.
         if (other._room.index !== undefined) {
             return this._room.index > other._room.index ? 1 : -1;
         }

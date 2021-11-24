@@ -401,7 +401,6 @@ export class Session {
                 room.setInvite(invite);
             }
         }
-        this._rooms.add(room.id, room);
     }
 
     dispose() {
