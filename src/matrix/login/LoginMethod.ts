@@ -19,5 +19,5 @@ import type {HomeServerApi} from "../net/HomeServerApi.js";
 
 export interface ILoginMethod {
     homeserver: string;
-    login(hsApi: HomeServerApi, deviceName: string, log: ILogItem): Response["body"];
+     login(hsApi: HomeServerApi, deviceName: string, log: ILogItem): Promise<Response["body"]>;
 }
