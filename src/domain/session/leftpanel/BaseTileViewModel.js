@@ -57,6 +57,10 @@ export class BaseTileViewModel extends ViewModel {
     }
 
     compare(other) {
+        // don't use KIND_ORDER for placeholder|room kinds as they are comparable
+        if (this.kind !== "invite" && other.kind !== "invite") {
+            return 0;
+        }
         if (other.kind !== this.kind) {
             return KIND_ORDER.indexOf(this.kind) - KIND_ORDER.indexOf(other.kind);
         }

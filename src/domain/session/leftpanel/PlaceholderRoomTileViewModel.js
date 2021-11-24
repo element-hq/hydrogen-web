@@ -20,6 +20,11 @@ import {BaseTileViewModel} from "./BaseTileViewModel.js";
 export class PlaceholderRoomTileViewModel extends BaseTileViewModel {
     constructor(options) {
         super(options);
+        // Placeholder tiles can be sorted with Room tiles, so we need to ensure we have the same
+        // fields else the comparison needs to take into account the kind().
+        // We need a fake room so we can do compare(other) with RoomTileViewModels 
+        const {room} = options;
+        this._room = room;
     }
 
     get busy() {
@@ -31,11 +36,14 @@ export class PlaceholderRoomTileViewModel extends BaseTileViewModel {
     }
 
     compare(other) {
+        if (other._room.index !== undefined) {
+            return this._room.index > other._room.index ? 1 : -1;
+        }
         return super.compare(other);
     }
 
     get name() {
-        return "Placeholder";
+        return "Placeholder " + this._room.index;
     }
 
     get avatarLetter() {

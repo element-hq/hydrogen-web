@@ -43,7 +43,7 @@ export class LeftPanelViewModel extends ViewModel {
             if (roomOrInvite.isInvite) {
                 vm = new InviteTileViewModel(this.childOptions({invite: roomOrInvite, emitChange}));
             } else if (roomOrInvite.isPlaceholder) {
-                vm = new PlaceholderRoomTileViewModel(this.childOptions({emitChange}));
+                vm = new PlaceholderRoomTileViewModel(this.childOptions({room: roomOrInvite, emitChange}));
             } else {
                 vm = new RoomTileViewModel(this.childOptions({room: roomOrInvite, emitChange}));
             }
@@ -139,5 +139,10 @@ export class LeftPanelViewModel extends ViewModel {
             });
             return startFiltering;
         }
+    }
+
+    // TODO: used in sync v3
+    loadRoomRange(range) {
+
     }
 }

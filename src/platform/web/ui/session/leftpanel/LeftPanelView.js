@@ -65,7 +65,7 @@ export class LeftPanelView extends TemplateView {
                 itemHeight: 44,
                 list: vm.tileViewModels,
                 onRangeVisible: (range) => {
-                    console.log(range);
+                    vm.loadRoomRange(range);
                 },
             },
             tileVM => {

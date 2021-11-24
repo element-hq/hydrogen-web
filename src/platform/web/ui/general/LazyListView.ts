@@ -14,15 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {tag} from "./html";
-import {removeChildren, mountView} from "./utils";
-import {ListRange, ResultType, AddRemoveResult} from "./ListRange";
-import {ListView, IOptions as IParentOptions} from "./ListView";
-import {IView} from "./types";
+import { tag } from "./html";
+import { removeChildren, mountView } from "./utils";
+import { ListRange, ResultType, AddRemoveResult } from "./ListRange";
+import { ListView, IOptions as IParentOptions } from "./ListView";
+import { IView } from "./types";
 
 export interface IOptions<T, V> extends IParentOptions<T, V> {
     itemHeight: number;
     overflowItems?: number;
+    onRangeVisible?: (range: ListRange) => void;
 }
 
 export class LazyListView<T, V extends IView> extends ListView<T, V> {
@@ -31,14 +32,16 @@ export class LazyListView<T, V extends IView> extends ListView<T, V> {
     private itemHeight: number;
     private overflowItems: number;
     private scrollContainer?: HTMLElement;
+    private onRangeVisible?: (range: ListRange) => void;
 
     constructor(
-        {itemHeight, overflowItems = 20, ...options}: IOptions<T, V>, 
+        { itemHeight, onRangeVisible, overflowItems = 20, ...options }: IOptions<T, V>,
         childCreator: (value: T) => V
     ) {
         super(options, childCreator);
         this.itemHeight = itemHeight;
         this.overflowItems = overflowItems;
+        this.onRangeVisible = onRangeVisible; // function(ItemRange)
     }
 
     handleEvent(e: Event) {
@@ -60,7 +63,7 @@ export class LazyListView<T, V extends IView> extends ListView<T, V> {
             this.renderUpdate(prevRenderRange, this.renderRange);
         }
     }
-    
+
     // override
     async loadList() {
         /*
@@ -82,7 +85,7 @@ export class LazyListView<T, V extends IView> extends ListView<T, V> {
     }
 
     private _getVisibleRange() {
-        const {clientHeight, scrollTop} = this.root()!;
+        const { clientHeight, scrollTop } = this.root()!;
         if (clientHeight === 0) {
             throw new Error("LazyListView height is 0");
         }
@@ -101,6 +104,9 @@ export class LazyListView<T, V extends IView> extends ListView<T, V> {
         });
         this._listElement!.appendChild(fragment);
         this.adjustPadding(range);
+        if (this.onRangeVisible) {
+            this.onRangeVisible(range);
+        }
     }
 
     private renderUpdate(prevRange: ListRange, newRange: ListRange) {
@@ -121,6 +127,9 @@ export class LazyListView<T, V extends IView> extends ListView<T, V> {
                 }
             });
             this.adjustPadding(newRange);
+            if (this.onRangeVisible) {
+                this.onRangeVisible(newRange);
+            }
         } else {
             this.reRenderFullRange(newRange);
         }
@@ -136,7 +145,7 @@ export class LazyListView<T, V extends IView> extends ListView<T, V> {
 
     mount() {
         const listElement = super.mount();
-        this.scrollContainer = tag.div({className: "LazyListParent"}, listElement) as HTMLElement;
+        this.scrollContainer = tag.div({ className: "LazyListParent" }, listElement) as HTMLElement;
         this.scrollContainer.addEventListener("scroll", this);
         return this.scrollContainer;
     }

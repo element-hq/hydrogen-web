@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+        <link rel="stylesheet" type="text/css" href="platform/web/ui/css/main.css">
+        <link rel="stylesheet" type="text/css" href="platform/web/ui/css/themes/element/theme.css">
+        <style type="text/css">
+        .LeftPanel{
+            height: 100%;
+        }
+        </style>
+	</head>
+	<body class="not-ie11">
+        <div id="session-status" class="hydrogen" style="height: 500px;"></div>
+        <script id="main" type="module">
+            import {LeftPanelView} from "./platform/web/ui/session/leftpanel/LeftPanelView.js";
+            import {LeftPanelViewModel} from "./domain/session/leftpanel/LeftPanelViewModel";
+            import {Navigation} from "./domain/navigation/Navigation.js";
+            import {URLRouter} from "./domain/navigation/URLRouter.js";
+            import {parseUrlPath, stringifyPath} from "./domain/navigation/index.js";
+            import {ObservableMap} from "./observable/index.js";
+            import {History} from "./platform/web/dom/History.js";
+            const navigation = new Navigation(() => false);
+            const rooms = new ObservableMap();
+            for (let i = 0; i < 1000; i++) {
+                let r = {
+                    id: "!placeholder-" + i,
+                    isPlaceholder: true,
+                    index: i,
+                };
+                rooms.add(r.id, r);
+            }
+            const leftPanel = new LeftPanelViewModel({
+                invites: new ObservableMap(),
+                rooms: rooms,
+                navigation: navigation,
+                urlCreator: new URLRouter({
+                    navigation: navigation,
+                    history: new History(),
+                    stringifyPath: stringifyPath,
+                    parseUrlPath: parseUrlPath,
+                }),
+                platform: null,
+            });
+            const sleep = (ms) => {
+                return new Promise((resolve) => setTimeout(resolve, ms));
+            };
+            leftPanel.loadRoomRange = async (range) => {
+                // pretend to load something
+                await sleep(200);
+                for (let i = range.start; i <= range.end; i++) {
+                    const fakeRoomId = "!placeholder-" + i;
+                    let room = rooms.get(fakeRoomId);
+                    if (room && room.isPlaceholder) {
+                        rooms.remove(fakeRoomId);
+                    }
+                    const actualRoomId = "!" + i + ":localhost";
+                    room = room || {};
+                    room.isPlaceholder = false;
+                    room.id = actualRoomId;
+                    room.avatarColorId = 1;
+                    room.name = "Room " + i;
+                    rooms.set(room.id, room);
+                }
+            };
+            const view = new LeftPanelView(leftPanel);
+            document.getElementById("session-status").appendChild(view.mount());
+        </script>
+	</body>
+</html>

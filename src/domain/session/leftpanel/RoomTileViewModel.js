@@ -38,6 +38,12 @@ export class RoomTileViewModel extends BaseTileViewModel {
         if (parentComparison !== 0) {
             return parentComparison;
         }
+
+        // sync v3 has its own ordering, use it if we have an index
+        if (this._room.index !== undefined && other._room.index !== undefined) {
+            return this._room.index > other._room.index ? 1 : -1;;
+        }
+
         /*
         put unread rooms first
         then put rooms with a timestamp first, and sort by name
