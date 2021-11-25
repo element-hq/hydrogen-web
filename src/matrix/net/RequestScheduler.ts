@@ -25,10 +25,10 @@ import type {IHomeServerRequest} from "./HomeServerRequest.js";
 class Request implements IHomeServerRequest {
     public readonly methodName: string;
     public readonly args: any[];
-    public resolve: (result: Response) => void;
-    public reject: (error: AbortError) => void;
+    public resolve: (result: any) => void;
+    public reject: (error: Error) => void;
     public requestResult?: IHomeServerRequest;
-    private readonly _responsePromise: Promise<Response>;
+    private readonly _responsePromise: Promise<any>;
 
     constructor(methodName: string, args: any[]) {
         this.methodName = methodName;
@@ -47,7 +47,7 @@ class Request implements IHomeServerRequest {
         }
     }
 
-    response(): Promise<Response> {
+    response(): Promise<any> {
         return this._responsePromise;
     }
 }
