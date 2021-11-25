@@ -333,7 +333,7 @@ export class SessionContainer {
             try {
                 encryptedDehydratedDevice = await getDehydratedDevice(hsApi, olm, this._platform, log);
             } catch (err) {
-                if (err instanceof HomeServerError) {
+                if (err.name === "HomeServerError") {
                     log.set("not_supported", true);
                 } else {
                     throw err;
