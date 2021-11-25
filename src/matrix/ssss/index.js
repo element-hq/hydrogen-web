@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {KeyDescription, Key} from "./common.js";
+import {KeyDescription, Key} from "./common";
 import {keyFromPassphrase} from "./passphrase.js";
 import {keyFromRecoveryKey} from "./recoveryKey.js";
 import {SESSION_E2EE_KEY_PREFIX} from "../e2ee/common.js";

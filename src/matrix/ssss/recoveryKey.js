@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {Key} from "./common.js";
+import {Key} from "./common";
 
 const OLM_RECOVERY_KEY_PREFIX = [0x8B, 0x01];
 

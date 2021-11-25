@@ -14,25 +14,41 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import type {Platform} from "../../platform/web/Platform.js";
+
+interface IKeyDescription {
+    algorithm: string;
+    passphrase: {
+        algorithm: string;
+        iterations: number;
+        salt: string;
+    };
+    mac: string;
+    iv: string;
+}
+
 export class KeyDescription {
-    constructor(id, keyDescription) {
+    private readonly _id: string;
+    private readonly _keyDescription: IKeyDescription;
+
+    constructor(id: string, keyDescription: IKeyDescription) {
         this._id = id;
         this._keyDescription = keyDescription;
     }
 
-    get id() {
+    get id(): string {
         return this._id;
     }
 
-    get passphraseParams() {
+    get passphraseParams(): IKeyDescription["passphrase"] {
         return this._keyDescription?.passphrase;
     }
 
-    get algorithm() {
+    get algorithm(): string {
         return this._keyDescription?.algorithm;
     }
 
-    async isCompatible(key, platform) {
+    async isCompatible(key: Key, platform: Platform): Promise<boolean> {
         if (this.algorithm === "m.secret_storage.v1.aes-hmac-sha2") {
             const kd = this._keyDescription;
             if (kd.mac) {
@@ -53,33 +69,36 @@ export class KeyDescription {
 }
 
 export class Key {
-    constructor(keyDescription, binaryKey) {
+    private readonly _keyDescription: KeyDescription;
+    private readonly _binaryKey: Uint8Array;
+
+    constructor(keyDescription: KeyDescription, binaryKey: Uint8Array) {
         this._keyDescription = keyDescription;
         this._binaryKey = binaryKey;
     }
 
-    withDescription(description) {
+    withDescription(description: KeyDescription): Key {
         return new Key(description, this._binaryKey);
     }
 
-    get description() {
+    get description(): KeyDescription {
         return this._keyDescription;
     }
 
-    get id() {
+    get id(): string {
         return this._keyDescription.id;
     }
 
-    get binaryKey() {
+    get binaryKey(): Uint8Array {
         return this._binaryKey;
     }
 
-    get algorithm() {
+    get algorithm(): string {
         return this._keyDescription.algorithm;
     }
 }
 
-async function calculateKeyMac(key, ivStr, platform) {
+async function calculateKeyMac(key: BufferSource, ivStr: string, platform: Platform): Promise<string> {
     const {crypto, encoding} = platform;
     const {utf8, base64} = encoding;
     const {derive, aes, hmac} = crypto;

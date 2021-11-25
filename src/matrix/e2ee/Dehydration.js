@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 const DEHYDRATION_LIBOLM_PICKLE_ALGORITHM = "org.matrix.msc2697.v1.olm.libolm_pickle"; 
-import {KeyDescription} from "../ssss/common.js";
+import {KeyDescription} from "../ssss/common";
 import {keyFromCredentialAndDescription} from "../ssss/index.js";
 
 export async function getDehydratedDevice(hsApi, olm, platform, log) {
