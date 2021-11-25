@@ -29,7 +29,7 @@ export class PasswordLoginMethod implements ILoginMethod {
         this.homeserver = homeserver;
     }
 
-    async login(hsApi: HomeServerApi, deviceName: string, log: ILogItem): Promise<Response["body"]> {
+    async login(hsApi: HomeServerApi, deviceName: string, log: ILogItem): Promise<Record<string, any>> {
         return await hsApi.passwordLogin(this._username, this._password, deviceName, {log}).response();
     }
 }

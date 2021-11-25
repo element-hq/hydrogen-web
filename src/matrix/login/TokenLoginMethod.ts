@@ -28,7 +28,7 @@ export class TokenLoginMethod implements ILoginMethod {
         this._loginToken = loginToken;
     }
 
-    async login(hsApi: HomeServerApi, deviceName: string, log: ILogItem): Promise<Response["body"]> {
+    async login(hsApi: HomeServerApi, deviceName: string, log: ILogItem): Promise<Record<string, any>> {
         return await hsApi.tokenLogin(this._loginToken, makeTxnId(), deviceName, {log}).response();
     }
 }
