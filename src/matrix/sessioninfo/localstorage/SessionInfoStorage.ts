@@ -14,12 +14,33 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export class SessionInfoStorage {
-    constructor(name) {
+interface ISessionInfo {
+    id: string;
+    deviceId: string;
+    userId: string;
+    homeserver: string;
+    homeServer: string;
+    accessToken: string;
+    lastUsed: number;
+}
+
+// todo: this should probably be in platform/types?
+interface ISessionInfoStorage {
+    getAll(): Promise<ISessionInfo[]>;
+    updateLastUsed(id: string, timestamp: number): Promise<void>;
+    get(id: string): Promise<ISessionInfo | undefined>;
+    add(sessionInfo: ISessionInfo): Promise<void>;
+    delete(sessionId: string): Promise<void>;
+}
+
+export class SessionInfoStorage implements ISessionInfoStorage {
+    private readonly _name: string;
+
+    constructor(name: string) {
         this._name = name;
     }
 
-    getAll() {
+    getAll(): Promise<ISessionInfo[]> {
         const sessionsJson = localStorage.getItem(this._name);
         if (sessionsJson) {
             const sessions = JSON.parse(sessionsJson);
@@ -30,7 +51,7 @@ export class SessionInfoStorage {
         return Promise.resolve([]);
     }
 
-    async updateLastUsed(id, timestamp) {
+    async updateLastUsed(id: string, timestamp: number): Promise<void> {
         const sessions = await this.getAll();
         if (sessions) {
             const session = sessions.find(session => session.id === id);
@@ -41,20 +62,20 @@ export class SessionInfoStorage {
         }
     }
 
-    async get(id) {
+    async get(id: string): Promise<ISessionInfo | undefined> {
         const sessions = await this.getAll();
         if (sessions) {
             return sessions.find(session => session.id === id);
         }
     }
 
-    async add(sessionInfo) {
+    async add(sessionInfo: ISessionInfo): Promise<void> {
         const sessions = await this.getAll();
         sessions.push(sessionInfo);
         localStorage.setItem(this._name, JSON.stringify(sessions));
     }
 
-    async delete(sessionId) {
+    async delete(sessionId: string): Promise<void> {
         let sessions = await this.getAll();
         sessions = sessions.filter(s => s.id !== sessionId);
         localStorage.setItem(this._name, JSON.stringify(sessions));
