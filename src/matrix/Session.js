@@ -19,7 +19,7 @@ import {Room} from "./room/Room.js";
 import {ArchivedRoom} from "./room/ArchivedRoom.js";
 import {RoomStatus} from "./room/RoomStatus.js";
 import {Invite} from "./room/Invite.js";
-import {Pusher} from "./push/Pusher.js";
+import {Pusher} from "./push/Pusher";
 import { ObservableMap } from "../observable/index.js";
 import {User} from "./User.js";
 import {DeviceMessageHandler} from "./DeviceMessageHandler.js";
