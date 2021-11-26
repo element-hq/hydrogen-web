@@ -149,6 +149,12 @@ export class HomeServerApi {
           "initial_device_display_name": initialDeviceDisplayName
         }, options);
     }
+    
+    guestLogin(initialDeviceDisplayName, options = null) {
+        return this._unauthedRequest("POST", this._url(`/register`), {kind: 'guest'}, {
+            "initial_device_display_name": initialDeviceDisplayName
+        }, options);
+    }
 
     tokenLogin(loginToken, txnId, initialDeviceDisplayName, options = null) {
         return this._unauthedRequest("POST", this._url("/login"), null, {
