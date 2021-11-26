@@ -229,6 +229,7 @@ export class Sync3 {
         console.log(resp);
         let { indexToRoom, updates } = this.processOps(resp.ops);
 
+        let rooms: any[] = [];
         // process the room updates: new rooms, new timeline events, updated room names, that sort of thing.
         // we're kinda forced to use the logger as most functions expect an ILogItem
         await this.logger.run("sync", async log => {
@@ -241,9 +242,29 @@ export class Sync3 {
                     if (!room) {
                         room = this.session.createRoom(roomResponse.room_id);
                     }
-                    room.writeSync(
-                        roomResponse, isFirstSync, {}, syncTxn, log
+                    const invite = {
+                        isDirectMessage: false,
+                        inviter: { userId: null },
+                    };
+                    const roomv2Response = {
+                        timeline: {
+                            events: roomResponse.timeline,
+                        },
+                        account_data: null,
+                        summary: null,
+                        unread_notifications: roomResponse.notification_count,
+                    }
+                    // newKeys = [] (null for now)
+                    const preparation = await room.prepareSync(
+                        roomv2Response, "join", invite, null, syncTxn, log,
+                    );
+                    const changes = await room.writeSync(
+                        roomv2Response, isFirstSync, preparation, syncTxn, log
                     )
+                    rooms.push({
+                        room: room,
+                        changes: changes,
+                    });
                 }))
             } catch (err) {
                 // avoid corrupting state by only
@@ -255,12 +276,15 @@ export class Sync3 {
             await syncTxn.complete(log);
 
             // update in-memory structs
-            this.session.afterSync(); // ???
+            // this.session.afterSync(); // ???
 
-            updates.forEach((roomResponse) => {
-                // get room then afterSync() ???
+            await this.logger.run("afterSync", async log => {
+                await Promise.all(rooms.map((r) => {
+                    return r.room.afterSync(r.changes, log);
+                }));
             });
 
+            // TODO: give valid args here
             this.session.applyRoomCollectionChangesAfterSync(null, roomStates, null);
         });
 
