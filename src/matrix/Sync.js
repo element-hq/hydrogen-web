@@ -181,10 +181,10 @@ export class Sync {
 
     async _syncRequest(syncToken, timeout, log) {
         let {syncFilterId} = this._session;
-        if (typeof syncFilterId !== "string") {
-            this._currentRequest = this._hsApi.createFilter(this._session.user.id, {room: {state: {lazy_load_members: true}}}, {log});
-            syncFilterId = (await this._currentRequest.response()).filter_id;
-        }
+        // if (typeof syncFilterId !== "string") {
+        //     this._currentRequest = this._hsApi.createFilter(this._session.user.id, {room: {state: {lazy_load_members: true}}}, {log});
+        //     syncFilterId = (await this._currentRequest.response()).filter_id;
+        // }
         const totalRequestTimeout = timeout + (80 * 1000);  // same as riot-web, don't get stuck on wedged long requests
         this._currentRequest = this._hsApi.sync(syncToken, syncFilterId, timeout, {timeout: totalRequestTimeout, log});
         const response = await this._currentRequest.response();
