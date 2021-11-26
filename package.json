@@ -39,7 +39,7 @@
     "eslint": "^7.32.0",
     "fake-indexeddb": "^3.1.2",
     "finalhandler": "^1.1.1",
-    "impunity": "^1.0.3",
+    "impunity": "^1.0.7",
     "mdn-polyfills": "^5.20.0",
     "postcss": "^8.1.1",
     "postcss-css-variables": "^0.17.0",
