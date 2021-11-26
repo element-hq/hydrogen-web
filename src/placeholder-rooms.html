@@ -23,6 +23,7 @@
             import {ObservableMap} from "./observable/index.js";
             import {History} from "./platform/web/dom/History.js";
             import {HomeServerApi} from "./matrix/net/HomeServerApi.js";
+            import {Sync3} from "./matrix/Sync3";
             import {xhrRequest} from "./platform/web/dom/request/xhr.js";
             const navigation = new Navigation(() => false);
             const rooms = new ObservableMap();
@@ -70,7 +71,6 @@
             const view = new LeftPanelView(leftPanel);
             document.getElementById("session-status").appendChild(view.mount());
 
-
             document.getElementById("tokensubmit").addEventListener("click", () => {
                 const accessToken = document.getElementById("tokeninput").value;
                 const sessionId = new Date().getTime() + "";
@@ -79,29 +79,8 @@
                     accessToken: accessToken,
                     request: xhrRequest,
                 });
-
-                const loop = async () => {
-                    let pos;
-                    while (true) {
-                        let req = hs.sync3({
-                            session_id: sessionId,
-                            lists: [{
-                                rooms: [ [0,99] ],
-                                // TODO: only send these the first time.
-                                sort: ["by_highlight_count", "by_notification_count", "by_recency"],
-                                timeline_limit: 20,
-                                required_state: [
-                                    ["m.room.avatar", ""],
-                                ]
-                            }],
-                        }, pos, 10);
-                        const resp = await req.response();
-                        console.log(resp);
-                        pos = resp.pos;
-                        await sleep(100);
-                    }
-                }
-                loop();
+                const syncer = new Sync3(hs, null, null, null);
+                syncer.start();
             });
 
         </script>
