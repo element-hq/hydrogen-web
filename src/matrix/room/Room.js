@@ -54,6 +54,7 @@ export class Room extends BaseRoom {
         return false;
     }
 
+    // {}, string, bool?, [], txn, log
     async prepareSync(roomResponse, membership, invite, newKeys, txn, log) {
         log.set("id", this.id);
         if (newKeys) {

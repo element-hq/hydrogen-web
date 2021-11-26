@@ -15,17 +15,58 @@
         <input id="tokensubmit" type="button" value="Start" />
         <div id="session-status" class="hydrogen" style="height: 500px;"></div>
         <script id="main" type="module">
+            // core hydrogen imports
+            import {Platform} from "./platform/web/Platform";
+            import {createNavigation, createRouter} from "./domain/navigation/index.js";
+            import {StorageFactory} from "./matrix/storage/idb/StorageFactory";
+            import {Session} from "./matrix/Session.js";
+            import {ObservableMap} from "./observable/index.js";
+
+            // left panel specific
             import {LeftPanelView} from "./platform/web/ui/session/leftpanel/LeftPanelView.js";
             import {LeftPanelViewModel} from "./domain/session/leftpanel/LeftPanelViewModel";
-            import {Navigation} from "./domain/navigation/Navigation.js";
-            import {URLRouter} from "./domain/navigation/URLRouter.js";
-            import {parseUrlPath, stringifyPath} from "./domain/navigation/index.js";
-            import {ObservableMap} from "./observable/index.js";
-            import {History} from "./platform/web/dom/History.js";
+
+            // matrix specific bits
             import {HomeServerApi} from "./matrix/net/HomeServerApi.js";
             import {Sync3} from "./matrix/Sync3";
-            import {xhrRequest} from "./platform/web/dom/request/xhr.js";
-            const navigation = new Navigation(() => false);
+
+            const sleep = (ms) => {
+                return new Promise((resolve) => setTimeout(resolve, ms));
+            };
+            
+
+            // dependency inject everything...
+            const platform = new Platform(document.body, {
+                // worker: "src/worker.js",
+                downloadSandbox: "assets/download-sandbox.html",
+                defaultHomeServer: "localhost",
+                // NOTE: uncomment this if you want the service worker for local development
+                // serviceWorker: "sw.js",
+                // NOTE: provide push config if you want push notifs for local development
+                //       see assets/config.json for what the config looks like
+                // push: {...},
+                olm: {
+                    wasm: "lib/olm/olm.wasm",
+                    legacyBundle: "lib/olm/olm_legacy.js",
+                    wasmBundle: "lib/olm/olm.js",
+                }
+            }, null, {development: true});
+            const navigation = createNavigation();
+            platform.setNavigation(navigation);
+            const urlRouter = createRouter({navigation, history: platform.history});
+            urlRouter.attach();
+            const hydrogenSessionID = "demo";
+            const factory = new StorageFactory(null); // TODO: this needs to be a fake idb
+            let storage;
+            const loadStorage = async () => {
+                await platform.logger.run("login", async log => {
+                    storage = await factory.create(hydrogenSessionID, log);
+                });
+            };
+            await loadStorage();
+
+
+            // make some placeholder rooms
             const rooms = new ObservableMap();
             for (let i = 0; i < 1000; i++) {
                 let r = {
@@ -35,21 +76,15 @@
                 };
                 rooms.add(r.id, r);
             }
+
+            // make a left panel
             const leftPanel = new LeftPanelViewModel({
                 invites: new ObservableMap(),
                 rooms: rooms,
                 navigation: navigation,
-                urlCreator: new URLRouter({
-                    navigation: navigation,
-                    history: new History(),
-                    stringifyPath: stringifyPath,
-                    parseUrlPath: parseUrlPath,
-                }),
+                urlCreator: urlRouter,
                 platform: null,
             });
-            const sleep = (ms) => {
-                return new Promise((resolve) => setTimeout(resolve, ms));
-            };
             leftPanel.loadRoomRange = async (range) => {
                 // pretend to load something
                 await sleep(200);
@@ -71,15 +106,26 @@
             const view = new LeftPanelView(leftPanel);
             document.getElementById("session-status").appendChild(view.mount());
 
+            // kick off a sync v3 loop when an access token is provided
             document.getElementById("tokensubmit").addEventListener("click", () => {
                 const accessToken = document.getElementById("tokeninput").value;
                 const sessionId = new Date().getTime() + "";
                 const hs = new HomeServerApi({
                     homeserver: "http://localhost:8008",
                     accessToken: accessToken,
-                    request: xhrRequest,
+                    request: platform.request,
                 });
-                const syncer = new Sync3(hs, null, null, null);
+                const session = new Session({
+                    storage: storage,
+                    hsApi: hs,
+                    sessionInfo: {
+                        id: hydrogenSessionID,
+                        deviceId: null,
+                        userId: null,
+                        homeserver: "http://localhost:8008",
+                    },
+                });
+                const syncer = new Sync3(hs, session, storage, platform.logger);
                 syncer.start();
             });
 
