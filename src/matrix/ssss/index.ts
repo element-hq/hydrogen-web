@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {KeyDescription, Key} from "./common";
-import {keyFromPassphrase} from "./passphrase.js";
+import {keyFromPassphrase} from "./passphrase";
 import {keyFromRecoveryKey} from "./recoveryKey.js";
 import {SESSION_E2EE_KEY_PREFIX} from "../e2ee/common.js";
 import type {Storage} from "../storage/idb/Storage";

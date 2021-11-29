@@ -22,6 +22,7 @@ export interface IKeyDescription {
         algorithm: string;
         iterations: number;
         salt: string;
+        bits?: number;
     };
     mac: string;
     iv: string;
