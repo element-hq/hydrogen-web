@@ -66,7 +66,7 @@ export class Room extends BaseRoom {
         }
         let roomEncryption = this._roomEncryption;
         // encryption is enabled in this sync
-        if (!roomEncryption && summaryChanges.encryption) {
+        if (!roomEncryption && summaryChanges.encryption && false) { // TODO: re-enable and ensure we call Session._setupEncryption first
             log.set("enableEncryption", true);
             roomEncryption = this._createRoomEncryption(this, summaryChanges.encryption);
         }

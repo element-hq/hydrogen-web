@@ -232,15 +232,18 @@ export class Sync3 {
         let rooms: any[] = [];
         // process the room updates: new rooms, new timeline events, updated room names, that sort of thing.
         // we're kinda forced to use the logger as most functions expect an ILogItem
-        await this.logger.run("sync", async log => {
+        await this.logger.run("sync3", async log => {
             const syncTxn = await this.openSyncTxn();
             try {
+                // session.prepareSync // E2EE decrypts room keys
                 // this.session.writeSync()  // write account data, device lists, etc.
                 await Promise.all(updates.map(async (roomResponse) => {
                     // get or create a room
                     let room = this.session.rooms.get(roomResponse.room_id);
                     if (!room) {
                         room = this.session.createRoom(roomResponse.room_id);
+                    } else {
+                        await room.load(null, syncTxn, log);
                     }
                     const invite = {
                         isDirectMessage: false,
@@ -252,12 +255,16 @@ export class Sync3 {
                         },
                         account_data: null,
                         summary: null,
-                        unread_notifications: roomResponse.notification_count,
+                        unread_notifications: {
+                            notification_count: roomResponse.notification_count,
+                            highlight_count: roomResponse.highlight_count,
+                        },
                     }
                     // newKeys = [] (null for now)
                     const preparation = await room.prepareSync(
                         roomv2Response, "join", invite, null, syncTxn, log,
                     );
+                    await room.afterPrepareSync(preparation, log);
                     const changes = await room.writeSync(
                         roomv2Response, isFirstSync, preparation, syncTxn, log
                     )
@@ -283,9 +290,16 @@ export class Sync3 {
                     return r.room.afterSync(r.changes, log);
                 }));
             });
+            // room.afterSyncCompleted E2EE key share requests
 
             // TODO: give valid args here
-            this.session.applyRoomCollectionChangesAfterSync(null, roomStates, null);
+            this.session.applyRoomCollectionChangesAfterSync([], rooms.map((r) => {
+                return {
+                    id: r.room.id,
+                    room: r.room,
+                    shouldAdd: true, // TODO: only if new room and membership = join
+                }
+            }), []);
         });
 
 
@@ -466,7 +480,7 @@ const indexInRange = (ranges: number[][], i: number) => {
 
 export function tests() {
     return {
-        "processOps": assert => {
+        "processSyncOps": assert => {
             assert.equal(1, 1);
         },
     };
