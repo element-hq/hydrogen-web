@@ -60,6 +60,11 @@
             let storage;
             const loadStorage = async () => {
                 await platform.logger.run("login", async log => {
+                    try {
+                        await factory.delete(hydrogenSessionID);
+                    } catch (err) {
+                        console.log("failed to delete old indexeddb:", err);
+                    }
                     storage = await factory.create(hydrogenSessionID, log);
                 });
             };
