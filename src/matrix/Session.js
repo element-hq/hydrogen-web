@@ -42,7 +42,7 @@ import {
     writeKey as ssssWriteKey,
     removeKey as ssssRemoveKey,
     keyFromDehydratedDeviceKey as createSSSSKeyFromDehydratedDeviceKey
-} from "./ssss/index.js";
+} from "./ssss/index";
 import {SecretStorage} from "./ssss/SecretStorage.js";
 import {ObservableValue, RetainedObservableValue} from "../observable/ObservableValue";
 
