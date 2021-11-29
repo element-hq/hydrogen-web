@@ -13,14 +13,20 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import type {Key} from "./common";
+import type {Platform} from "../../platform/web/Platform.js";
+import type {Transaction} from "../storage/idb/Transaction";
 
 export class SecretStorage {
-    constructor({key, platform}) {
+    private readonly _key: Key;
+    private readonly _platform: Platform;
+
+    constructor({key, platform}: {key: Key, platform: Platform}) {
         this._key = key;
         this._platform = platform;
     }
 
-    async readSecret(name, txn) {
+    async readSecret(name: string, txn: Transaction): Promise<string | undefined> {
         const accountData = await txn.accountData.get(name);
         if (!accountData) {
             return;
@@ -37,7 +43,7 @@ export class SecretStorage {
         }
     }
 
-    async _decryptAESSecret(type, encryptedData) {
+    async _decryptAESSecret(type: string, encryptedData: any): Promise<string> {
         const {base64, utf8} = this._platform.encoding;
         // now derive the aes and mac key from the 4s key
         const hkdfKey = await this._platform.crypto.derive.hkdf(
