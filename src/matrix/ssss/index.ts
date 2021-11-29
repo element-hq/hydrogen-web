@@ -16,17 +16,13 @@ limitations under the License.
 
 import {KeyDescription, Key} from "./common";
 import {keyFromPassphrase} from "./passphrase";
-import {keyFromRecoveryKey} from "./recoveryKey.js";
+import {keyFromRecoveryKey} from "./recoveryKey";
 import {SESSION_E2EE_KEY_PREFIX} from "../e2ee/common.js";
 import type {Storage} from "../storage/idb/Storage";
 import type {Transaction} from "../storage/idb/Transaction";
 import type {IKeyDescription} from "./common";
 import type {Platform} from "../../platform/web/Platform.js";
-
-type Olm = {
-    PRIVATE_KEY_LENGTH: number;
-    [key: string]: any
-};
+import type { Olm } from "./recoveryKey";
 
 const SSSS_KEY = `${SESSION_E2EE_KEY_PREFIX}ssssKey`;
 
