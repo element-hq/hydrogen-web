@@ -75,8 +75,6 @@ export class HomeServerApi {
         if (body) {
             const encoded = encodeBody(body);
             headers.set("Content-Type", encoded.mimeType);
-            //todo: remove this?
-            headers.set("Content-Length", encoded.length);
             encodedBody = encoded.body;
         }
 
