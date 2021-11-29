@@ -16,7 +16,7 @@ limitations under the License.
 
 import type {Platform} from "../../platform/web/Platform.js";
 
-interface IKeyDescription {
+export interface IKeyDescription {
     algorithm: string;
     passphrase: {
         algorithm: string;

@@ -18,13 +18,24 @@ import {KeyDescription, Key} from "./common";
 import {keyFromPassphrase} from "./passphrase.js";
 import {keyFromRecoveryKey} from "./recoveryKey.js";
 import {SESSION_E2EE_KEY_PREFIX} from "../e2ee/common.js";
-import {createEnum} from "../../utils/enum";
+import type {Storage} from "../storage/idb/Storage";
+import type {Transaction} from "../storage/idb/Transaction";
+import type {IKeyDescription} from "./common";
+import type {Platform} from "../../platform/web/Platform.js";
+
+type Olm = {
+    PRIVATE_KEY_LENGTH: number;
+    [key: string]: any
+};
 
 const SSSS_KEY = `${SESSION_E2EE_KEY_PREFIX}ssssKey`;
 
-export const KeyType = createEnum("RecoveryKey", "Passphrase");
+export enum KeyType {
+    "RecoveryKey",
+    "Passphrase"
+}
 
-async function readDefaultKeyDescription(storage) {
+async function readDefaultKeyDescription(storage: Storage): Promise<KeyDescription | undefined> {
     const txn = await storage.readTxn([
         storage.storeNames.accountData
     ]);
@@ -37,30 +48,30 @@ async function readDefaultKeyDescription(storage) {
     if (!keyAccountData) {
         return;
     }
-    return new KeyDescription(id, keyAccountData.content);
+    return new KeyDescription(id, keyAccountData.content as IKeyDescription);
 }
 
-export async function writeKey(key, txn) {
+export async function writeKey(key: Key, txn: Transaction): Promise<void> {
     txn.session.set(SSSS_KEY, {id: key.id, binaryKey: key.binaryKey});
 }
 
-export async function readKey(txn) {
+export async function readKey(txn: Transaction): Promise<Key | undefined> {
     const keyData = await txn.session.get(SSSS_KEY);
     if (!keyData) {
         return;
     }
     const keyAccountData = await txn.accountData.get(`m.secret_storage.key.${keyData.id}`);
     if (keyAccountData) {
-        return new Key(new KeyDescription(keyData.id, keyAccountData.content), keyData.binaryKey);
+        return new Key(new KeyDescription(keyData.id, keyAccountData.content as IKeyDescription), keyData.binaryKey);
     }
 }
 
 
-export async function removeKey(txn) {
-    await txn.session.remove(SSSS_KEY);
+export async function removeKey(txn: Transaction): Promise<void> {
+    txn.session.remove(SSSS_KEY);
 }
 
-export async function keyFromCredential(type, credential, storage, platform, olm) {
+export async function keyFromCredential(type: KeyType, credential: string, storage: Storage, platform: Platform, olm: Olm): Promise<Key> {
     const keyDescription = await readDefaultKeyDescription(storage);
     if (!keyDescription) {
         throw new Error("Could not find a default secret storage key in account data");
@@ -68,8 +79,8 @@ export async function keyFromCredential(type, credential, storage, platform, olm
     return await keyFromCredentialAndDescription(type, credential, keyDescription, platform, olm);
 }
 
-export async function keyFromCredentialAndDescription(type, credential, keyDescription, platform, olm) {
-    let key;
+export async function keyFromCredentialAndDescription(type: KeyType, credential: string, keyDescription: KeyDescription, platform: Platform, olm: Olm): Promise<Key> {
+    let key: Key;
     if (type === KeyType.Passphrase) {
         key = await keyFromPassphrase(keyDescription, credential, platform);
     } else if (type === KeyType.RecoveryKey) {
@@ -80,9 +91,9 @@ export async function keyFromCredentialAndDescription(type, credential, keyDescr
     return key;
 }
 
-export async function keyFromDehydratedDeviceKey(key, storage, platform) {
+export async function keyFromDehydratedDeviceKey(key: Key, storage: Storage, platform: Platform): Promise<Key | undefined> {
     const keyDescription = await readDefaultKeyDescription(storage);
-    if (await keyDescription.isCompatible(key, platform)) {
-        return key.withDescription(keyDescription);
+    if (await keyDescription?.isCompatible(key, platform)) {
+        return key.withDescription(keyDescription!);
     }
 }
