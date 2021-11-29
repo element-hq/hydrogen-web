@@ -21,6 +21,7 @@
             import {StorageFactory} from "./matrix/storage/idb/StorageFactory";
             import {Session} from "./matrix/Session.js";
             import {ObservableMap} from "./observable/index.js";
+            import {MediaRepository} from "./matrix/net/MediaRepository.js";
 
             // left panel specific
             import {LeftPanelView} from "./platform/web/ui/session/leftpanel/LeftPanelView.js";
@@ -70,47 +71,6 @@
             };
             await loadStorage();
 
-
-            // make some placeholder rooms
-            const rooms = new ObservableMap();
-            for (let i = 0; i < 1000; i++) {
-                let r = {
-                    id: "!placeholder-" + i,
-                    isPlaceholder: true,
-                    index: i,
-                };
-                rooms.add(r.id, r);
-            }
-
-            // make a left panel
-            const leftPanel = new LeftPanelViewModel({
-                invites: new ObservableMap(),
-                rooms: rooms,
-                navigation: navigation,
-                urlCreator: urlRouter,
-                platform: null,
-            });
-            leftPanel.loadRoomRange = async (range) => {
-                // pretend to load something
-                await sleep(200);
-                for (let i = range.start; i <= range.end; i++) {
-                    const fakeRoomId = "!placeholder-" + i;
-                    let room = rooms.get(fakeRoomId);
-                    if (room && room.isPlaceholder) {
-                        rooms.remove(fakeRoomId);
-                    }
-                    const actualRoomId = "!" + i + ":localhost";
-                    room = room || {};
-                    room.isPlaceholder = false;
-                    room.id = actualRoomId;
-                    room.avatarColorId = 1;
-                    room.name = "Room " + i;
-                    rooms.set(room.id, room);
-                }
-            };
-            const view = new LeftPanelView(leftPanel);
-            document.getElementById("session-status").appendChild(view.mount());
-
             // kick off a sync v3 loop when an access token is provided
             document.getElementById("tokensubmit").addEventListener("click", () => {
                 const accessToken = document.getElementById("tokeninput").value;
@@ -123,6 +83,10 @@
                 const session = new Session({
                     storage: storage,
                     hsApi: hs,
+                    mediaRepository: new MediaRepository({
+                        homeserver: "https://matrix.org",
+                        platform: platform,
+                    }),
                     sessionInfo: {
                         id: hydrogenSessionID,
                         deviceId: null,
@@ -132,6 +96,20 @@
                 });
                 const syncer = new Sync3(hs, session, storage, platform.logger);
                 syncer.start();
+
+                // make a left panel
+                const leftPanel = new LeftPanelViewModel({
+                    invites: new ObservableMap(),
+                    rooms: session.rooms,
+                    navigation: navigation,
+                    urlCreator: urlRouter,
+                    platform: platform,
+                });
+                leftPanel.loadRoomRange = async (range) => {
+                    // pretend to load something
+                };
+                const view = new LeftPanelView(leftPanel);
+                document.getElementById("session-status").appendChild(view.mount());
             });
 
         </script>

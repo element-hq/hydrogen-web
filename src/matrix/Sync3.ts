@@ -249,9 +249,25 @@ export class Sync3 {
                         isDirectMessage: false,
                         inviter: { userId: null },
                     };
+                    // inject a fake m.room.name event if there isn't a real m.room.name event there already
+                    roomResponse.required_state = roomResponse.required_state || [];
+                    roomResponse.required_state.push({
+                        event_id: "$name" + roomResponse.room_id,
+                        content: {
+                            name: roomResponse.name,
+                        },
+                        type: "m.room.name",
+                        state_key: "",
+                        sender: "@noone",
+                        room_id: roomResponse.room_id,
+                    })
+
                     const roomv2Response = {
                         timeline: {
                             events: roomResponse.timeline,
+                        },
+                        state: {
+                            events: roomResponse.required_state,
                         },
                         account_data: null,
                         summary: null,
