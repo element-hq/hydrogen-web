@@ -104,6 +104,7 @@
                     navigation: navigation,
                     urlCreator: urlRouter,
                     platform: platform,
+                    compareFn: syncer.compare.bind(syncer),
                 });
                 leftPanel.loadRoomRange = async (range) => {
                     // pretend to load something

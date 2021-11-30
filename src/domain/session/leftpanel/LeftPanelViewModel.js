@@ -26,7 +26,7 @@ import { PlaceholderRoomTileViewModel } from "./PlaceholderRoomTileViewModel.js"
 export class LeftPanelViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {rooms, invites} = options;
+        const {rooms, invites, compareFn} = options;
         this._tileViewModelsMap = this._mapTileViewModels(rooms, invites);
         this._tileViewModelsFilterMap = new ApplyMap(this._tileViewModelsMap);
         this._tileViewModels = this._tileViewModelsFilterMap.sortValues((a, b) => a.compare(b));
@@ -34,6 +34,7 @@ export class LeftPanelViewModel extends ViewModel {
         this._setupNavigation();
         this._closeUrl = this.urlCreator.urlForSegment("session");
         this._settingsUrl = this.urlCreator.urlForSegment("settings");
+        this._compareFn = compareFn;
     }
 
     _mapTileViewModels(rooms, invites) {
@@ -45,7 +46,11 @@ export class LeftPanelViewModel extends ViewModel {
             } else if (roomOrInvite.isPlaceholder) {
                 vm = new PlaceholderRoomTileViewModel(this.childOptions({room: roomOrInvite, emitChange}));
             } else {
-                vm = new RoomTileViewModel(this.childOptions({room: roomOrInvite, emitChange}));
+                vm = new RoomTileViewModel(this.childOptions({
+                    room: roomOrInvite,
+                    compareFn: this._compareFn,
+                    emitChange,
+                }));
             }
             const isOpen = this.navigation.path.get("room")?.value === roomOrInvite.id;
             if (isOpen) {

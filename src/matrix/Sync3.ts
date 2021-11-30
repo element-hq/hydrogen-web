@@ -97,8 +97,11 @@ interface RoomResponse {
 };
 
 type IndexToRoomId = {
-    [index: string]: string;
+    [index: number]: string;
 };
+type RoomIdToIndex = {
+    [roomId: string]: number;
+}
 
 export class Sync3 {
     private hsApi: HomeServerApi;
@@ -110,6 +113,7 @@ export class Sync3 {
     // sync v3 specific: contains the sliding window ranges to request
     private ranges: number[][];
     private roomIndexToRoomId: IndexToRoomId;
+    private roomIdToRoomIndex: RoomIdToIndex;
 
     public error?: any;
     public status: ObservableValue<SyncStatus>;
@@ -126,6 +130,7 @@ export class Sync3 {
         // Hydrogen only has 1 list currently (no DM section) so we only need 1 range
         this.ranges = [[0, 99]];
         this.roomIndexToRoomId = {};
+        this.roomIdToRoomIndex = {};
         console.log("session", session);
         console.log("storage", storage);
     }
@@ -150,6 +155,21 @@ export class Sync3 {
             this.currentRequest.abort();
             this.currentRequest = null;
         }
+    }
+
+    compare(roomIdA: string, roomIdB: string) {
+        if (roomIdA === roomIdB) {
+            return 0;
+        }
+        const indexA = this.roomIdToRoomIndex[roomIdA];
+        const indexB = this.roomIdToRoomIndex[roomIdB];
+        if (indexA === undefined || indexB === undefined) {
+            console.error("sync3 cannot compare: missing indices for rooms", roomIdA, roomIdB, indexA, indexB);
+        }
+        if (indexA < indexB) {
+            return -1;
+        }
+        return 1;
     }
 
     // The purpose of this function is to do repeated /sync calls and call processResponse. It doesn't
@@ -298,6 +318,14 @@ export class Sync3 {
             }
             await syncTxn.complete(log);
 
+            // atomically move all the rooms to their new positions
+            this.roomIndexToRoomId = indexToRoom;
+            this.roomIdToRoomIndex = {};
+            Object.keys(indexToRoom).forEach((indexStr) => {
+                const index = Number(indexStr);
+                this.roomIdToRoomIndex[indexToRoom[index]] = index;
+            });
+
             // update in-memory structs
             // this.session.afterSync(); // ???
 
@@ -317,10 +345,6 @@ export class Sync3 {
                 }
             }), []);
         });
-
-
-        // instantly move all the rooms to their new positions
-        this.roomIndexToRoomId = indexToRoom;
     }
 
     // The purpose of this function is to process the response `ops` array by modifying the current

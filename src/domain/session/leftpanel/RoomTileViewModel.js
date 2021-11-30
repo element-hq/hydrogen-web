@@ -20,9 +20,10 @@ import {BaseTileViewModel} from "./BaseTileViewModel.js";
 export class RoomTileViewModel extends BaseTileViewModel {
     constructor(options) {
         super(options);
-        const {room} = options;
+        const {room, compareFn} = options;
         this._room = room;
         this._url = this.urlCreator.openRoomActionUrl(this._room.id);
+        this._compareFn = compareFn;
     }
 
     get kind() {
@@ -34,6 +35,8 @@ export class RoomTileViewModel extends BaseTileViewModel {
     }
 
     compare(other) {
+        return this._compareFn(this._room.id, other._room.id);
+        
         const parentComparison = super.compare(other);
         if (parentComparison !== 0) {
             return parentComparison;
