@@ -24,7 +24,8 @@ import {Reconnector, ConnectionStatus} from "./net/Reconnector.js";
 import {ExponentialRetryDelay} from "./net/ExponentialRetryDelay.js";
 import {MediaRepository} from "./net/MediaRepository.js";
 import {RequestScheduler} from "./net/RequestScheduler.js";
-import {Sync, SyncStatus} from "./Sync.js";
+// import {Sync, SyncStatus} from "./Sync.js";
+import {Sync3, SyncStatus} from "./Sync3";
 import {Session} from "./Session.js";
 import {PasswordLoginMethod} from "./login/PasswordLoginMethod.js";
 import {TokenLoginMethod} from "./login/TokenLoginMethod.js";
@@ -254,7 +255,12 @@ export class SessionContainer {
             await log.wrap("createIdentity", log => this._session.createIdentity(log));
         }
         
-        this._sync = new Sync({hsApi: this._requestScheduler.hsApi, storage: this._storage, session: this._session, logger: this._platform.logger});
+        this._sync = new Sync3(
+            this._requestScheduler.hsApi,
+            this._session,
+            this._storage,
+            this._platform.logger,
+        );
         // notify sync and session when back online
         this._reconnectSubscription = this._reconnector.connectionStatus.subscribe(state => {
             if (state === ConnectionStatus.Online) {

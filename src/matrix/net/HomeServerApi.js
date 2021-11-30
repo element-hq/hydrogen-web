@@ -111,7 +111,9 @@ export class HomeServerApi {
     }
 
     sync3(body, pos, timeout, options = null) {
-        return this._authedRequest("POST", this._url("/sync", "/_matrix/client/v3"), {timeout, pos}, body, options);
+        // FIXME TODO
+        const syncURL = "http://localhost:8008/_matrix/client/v3/sync";
+        return this._authedRequest("POST", syncURL, {timeout, pos}, body, options);
     }
 
     // params is from, dir and optionally to, limit, filter.

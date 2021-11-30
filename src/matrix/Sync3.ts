@@ -236,7 +236,7 @@ export class Sync3 {
                     backoffCounter = 5;
                 }
                 const secs = Math.pow(2, backoffCounter);
-                console.log(`v3 /sync failed, backing off for ${secs}s`)
+                console.log(`v3 /sync failed, backing off for ${secs}s, err=`, err);
                 await sleep(secs * 1000);
             }
         }

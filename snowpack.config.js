@@ -5,7 +5,8 @@
 module.exports = {
   mount: {
     // More specific paths before less specific paths (if they overlap)
-    "src": "/",
+    "src/platform/web/docroot": "/",
+    "src": "/src",
     "lib": {url: "/lib", static: true },
     "assets": "/assets",
     /* ... */
