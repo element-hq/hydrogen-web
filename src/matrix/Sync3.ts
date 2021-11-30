@@ -128,11 +128,9 @@ export class Sync3 {
         this.status = new ObservableValue(SyncStatus.Stopped);
         this.error = null;
         // Hydrogen only has 1 list currently (no DM section) so we only need 1 range
-        this.ranges = [[0, 99]];
+        this.ranges = [[0, 49]];
         this.roomIndexToRoomId = {};
         this.roomIdToRoomIndex = {};
-        console.log("session", session);
-        console.log("storage", storage);
     }
 
     // Start syncing. Probably call this at startup once you have an access_token.
@@ -271,16 +269,18 @@ export class Sync3 {
                     };
                     // inject a fake m.room.name event if there isn't a real m.room.name event there already
                     roomResponse.required_state = roomResponse.required_state || [];
-                    roomResponse.required_state.push({
-                        event_id: "$name" + roomResponse.room_id,
-                        content: {
-                            name: roomResponse.name,
-                        },
-                        type: "m.room.name",
-                        state_key: "",
-                        sender: "@noone",
-                        room_id: roomResponse.room_id,
-                    })
+                    if (roomResponse.name) {
+                        roomResponse.required_state.push({
+                            event_id: "$name" + roomResponse.room_id,
+                            content: {
+                                name: roomResponse.name,
+                            },
+                            type: "m.room.name",
+                            state_key: "",
+                            sender: "@noone",
+                            room_id: roomResponse.room_id,
+                        })
+                    }
 
                     const roomv2Response = {
                         timeline: {
@@ -318,7 +318,11 @@ export class Sync3 {
             }
             await syncTxn.complete(log);
 
+            // Sync v3 specific
             // atomically move all the rooms to their new positions
+            // We need to do this BEFORE calling afterSync as that causes the room list to be sorted
+            // which eventually causes Sync3.compare to be called, so we need it to be using the latest
+            // sort positions by that point in time.
             this.roomIndexToRoomId = indexToRoom;
             this.roomIdToRoomIndex = {};
             Object.keys(indexToRoom).forEach((indexStr) => {
