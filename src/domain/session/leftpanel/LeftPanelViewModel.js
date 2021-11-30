@@ -19,6 +19,7 @@ import {ViewModel} from "../../ViewModel.js";
 import {RoomTileViewModel} from "./RoomTileViewModel.js";
 import {InviteTileViewModel} from "./InviteTileViewModel.js";
 import {RoomFilter} from "./RoomFilter.js";
+import {FilteredMap} from "../../../observable/map/FilteredMap.js";
 import {ApplyMap} from "../../../observable/map/ApplyMap.js";
 import {addPanelIfNeeded} from "../../navigation/index.js";
 import { PlaceholderRoomTileViewModel } from "./PlaceholderRoomTileViewModel.js";
@@ -26,9 +27,13 @@ import { PlaceholderRoomTileViewModel } from "./PlaceholderRoomTileViewModel.js"
 export class LeftPanelViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {rooms, invites, compareFn} = options;
+        const {rooms, invites, compareFn, includeRoomFn} = options;
         this._tileViewModelsMap = this._mapTileViewModels(rooms, invites);
-        this._tileViewModelsFilterMap = new ApplyMap(this._tileViewModelsMap);
+        this._tileViewModelsSlidingWindow = new FilteredMap(this._tileViewModelsMap, (r, roomId) => {
+            const include = includeRoomFn(roomId);
+            return include;
+        });
+        this._tileViewModelsFilterMap = new ApplyMap(this._tileViewModelsSlidingWindow);
         this._tileViewModels = this._tileViewModelsFilterMap.sortValues((a, b) => a.compare(b));
         this._currentTileVM = null;
         this._setupNavigation();

@@ -128,7 +128,7 @@ export class Sync3 {
         this.status = new ObservableValue(SyncStatus.Stopped);
         this.error = null;
         // Hydrogen only has 1 list currently (no DM section) so we only need 1 range
-        this.ranges = [[0, 49]];
+        this.ranges = [[0, 4]];
         this.roomIndexToRoomId = {};
         this.roomIdToRoomIndex = {};
     }
@@ -155,7 +155,11 @@ export class Sync3 {
         }
     }
 
-    compare(roomIdA: string, roomIdB: string) {
+    includeRoom(roomId: string): boolean {
+        return this.roomIdToRoomIndex[roomId] !== undefined;
+    }
+
+    compare(roomIdA: string, roomIdB: string): number {
         if (roomIdA === roomIdB) {
             return 0;
         }
@@ -325,6 +329,9 @@ export class Sync3 {
             await syncTxn.complete(log);
 
             // Sync v3 specific
+            // work out which rooms are no longer being tracked (they'll be deleted in indexToRoom but exist in this.roomIndexToRoomId)
+            // and then force update those rooms to force the FilteredMap to re-evalute to remove them from the left panel room list
+            const deletedRoomIDs = deletedElements(Object.values(this.roomIndexToRoomId), Object.values(indexToRoom));
             // atomically move all the rooms to their new positions
             // We need to do this BEFORE calling afterSync as that causes the room list to be sorted
             // which eventually causes Sync3.compare to be called, so we need it to be using the latest
@@ -335,6 +342,17 @@ export class Sync3 {
                 const index = Number(indexStr);
                 this.roomIdToRoomIndex[indexToRoom[index]] = index;
             });
+            if (deletedRoomIDs.length > 0) {
+                console.log("DELETED ", deletedRoomIDs);
+            }
+
+            // now force update rooms which fell off the sliding window
+            deletedRoomIDs.forEach((roomId) => {
+                let room = this.session.rooms.get(roomId);
+                room.forceRefresh();
+            })
+
+            // END sync v3 specific
 
             // update in-memory structs
             // this.session.afterSync(); // ???
@@ -527,6 +545,19 @@ const indexInRange = (ranges: number[][], i: number) => {
     });
     return isInRange;
 };
+
+// returns the elements which exist in old but not in new
+const deletedElements = (oldArr: string[], newArr: string[]): string[] => {
+    let set = {};
+    oldArr.forEach((k) => {
+        set[k] = true;
+    });
+    newArr.forEach((k) => {
+        delete set[k];
+    })
+
+    return Object.keys(set);
+}
 
 export function tests() {
     return {

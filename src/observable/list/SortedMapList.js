@@ -63,7 +63,20 @@ export class SortedMapList extends BaseObservableList {
 
     onRemove(key, value) {
         const pair = {key, value};
-        const idx = sortedIndex(this._sortedPairs, pair, this._comparator);
+        // Don't call sortedIndex as it does a binary search for the removed item.
+        // Whilst that is faster than the O(n) search we're doing here, it's not valid to compare
+        // removed items as the system may have no ability to compare them at this point.
+        let idx = -1;
+        for (let i = 0; i < this._sortedPairs.length; i++) {
+            if (this._sortedPairs[i].key === key) {
+                idx = i;
+                break;
+            }
+        }
+        if (idx === -1) {
+            return;
+        }
+        console.log("removing ", key, idx, value);
         // assert key === this._sortedPairs[idx].key;
         this._sortedPairs.splice(idx, 1);
         this.emitRemove(idx, value);

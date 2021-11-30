@@ -76,6 +76,11 @@ export class BaseRoom extends EventEmitter {
         return retryTimelineEntries;
     }
 
+    // Forcibly update this room in collections
+    forceRefresh() {
+        this._emitUpdate();
+    }
+
     /**
      * Used for retrying decryption from other sources than sync, like key backup.
      * @internal
