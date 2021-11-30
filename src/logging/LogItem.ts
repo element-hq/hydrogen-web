@@ -19,11 +19,6 @@ import {LogLevel, LogFilter} from "./LogFilter";
 import type {BaseLogger} from "./BaseLogger";
 import type {ISerializedItem, ILogItem, LogItemValues, LabelOrValues, FilterCreator, LogCallback} from "./types";
 
-// Make sure that loginToken does not end up in the logs
-function filterLoginToken(trace?: string): string | undefined {
-    return trace?.replace(/(?<=\/\?loginToken=).+/, "<snip>");
-}
-
 export class LogItem implements ILogItem {
     public readonly start: number;
     public logLevel: LogLevel;
@@ -160,7 +155,7 @@ export class LogItem implements ILogItem {
         if (this.error) {
             // (e)rror
             item.e = {
-                stack: filterLoginToken(this.error.stack),
+                stack: this.error.stack,
                 name: this.error.name,
                 message: this.error.message.split("\n")[0]
             };
@@ -265,13 +260,13 @@ export class LogItem implements ILogItem {
     }
 }
 
-export function tests() {
-    return {
-        "Login token removed from item": (assert) => {
-            const str = "main http://localhost:3000/src/main.js:55\n<anonymous> http://localhost:3000/?loginToken=secret:26";
-            const result = filterLoginToken(str);
-            const index = result!.search("secret");
-            assert.equal(index, -1);
-        }
-    }
-}
+// export function tests() {
+//     return {
+//         "Login token removed from item": (assert) => {
+//             const str = "main http://localhost:3000/src/main.js:55\n<anonymous> http://localhost:3000/?loginToken=secret:26";
+//             const result = filterLoginToken(str);
+//             const index = result!.search("secret");
+//             assert.equal(index, -1);
+//         }
+//     }
+// }
