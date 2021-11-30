@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 import {ObservableValue} from "../observable/ObservableValue";
-import {createEnum} from "../utils/enum.js";
+import {createEnum} from "../utils/enum";
 
 const INCREMENTAL_TIMEOUT = 30000;
 

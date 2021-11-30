@@ -22,7 +22,7 @@ limitations under the License.
  * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
  * Copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
  */
-export function sortedIndex(array, value, comparator) {
+export function sortedIndex<T>(array: T[], value: T, comparator: (x:T, y:T) => number): number {
     let low = 0;
     let high = array.length;
 

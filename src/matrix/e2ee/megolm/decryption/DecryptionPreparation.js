@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {DecryptionChanges} from "./DecryptionChanges.js";
-import {mergeMap} from "../../../../utils/mergeMap.js";
+import {mergeMap} from "../../../../utils/mergeMap";
 
 /**
  * Class that contains all the state loaded from storage to decrypt the given events

@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {ObservableMap} from "../../../observable/map/ObservableMap.js";
-import {RetainedValue} from "../../../utils/RetainedValue.js";
+import {RetainedValue} from "../../../utils/RetainedValue";
 
 export class MemberList extends RetainedValue {
     constructor({members, closeCallback}) {

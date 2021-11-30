@@ -16,9 +16,12 @@ limitations under the License.
 */
 
 import {ConnectionError} from "../matrix/error.js";
+import type {Timeout} from "../platform/web/dom/Clock.js"
+import type {IAbortable} from "./AbortableOperation";
 
+type TimeoutCreator = (ms: number) => Timeout;
 
-export function abortOnTimeout(createTimeout, timeoutAmount, requestResult, responsePromise) {
+export function abortOnTimeout(createTimeout: TimeoutCreator, timeoutAmount: number, requestResult: IAbortable, responsePromise: Promise<Response>) {
     const timeout = createTimeout(timeoutAmount);
     // abort request if timeout finishes first
     let timedOut = false;
