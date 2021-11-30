@@ -16,15 +16,31 @@ limitations under the License.
 
 import {TemplateView} from "../general/TemplateView";
 import {spinner} from "../common.js";
+import {AccountSetupView} from "./AccountSetupView.js";
 
 /** a view used both in the login view and the loading screen
 to show the current state of loading the session.
 Just a spinner and a label, meant to be used as a paragraph */
 export class SessionLoadStatusView extends TemplateView {
     render(t) {
+        const exportLogsButtonIfFailed = t.if(vm => vm.hasError, (t, vm) => {
+            return t.button({
+                onClick: () => vm.exportLogs()
+            }, vm.i18n`Export logs`);
+        });
+        const logoutButtonIfFailed = t.if(vm => vm.hasError, (t, vm) => {
+            return t.button({
+                onClick: () => vm.logout()
+            }, vm.i18n`Log out`);
+        });
         return t.div({className: "SessionLoadStatusView"}, [
-            spinner(t, {hiddenWithLayout: vm => !vm.loading}),
-            t.p(vm => vm.loadLabel)
+            t.p({className: "status"}, [
+                spinner(t, {hidden: vm => !vm.loading}),
+                t.p(vm => vm.loadLabel),
+                exportLogsButtonIfFailed,
+                logoutButtonIfFailed
+            ]),
+            t.ifView(vm => vm.accountSetupViewModel, vm => new AccountSetupView(vm.accountSetupViewModel)),
         ]);
     }
 }

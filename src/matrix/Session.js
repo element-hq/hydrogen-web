@@ -24,20 +24,24 @@ import { ObservableMap } from "../observable/index.js";
 import {User} from "./User.js";
 import {DeviceMessageHandler} from "./DeviceMessageHandler.js";
 import {Account as E2EEAccount} from "./e2ee/Account.js";
+import {uploadAccountAsDehydratedDevice} from "./e2ee/Dehydration.js";
 import {Decryption as OlmDecryption} from "./e2ee/olm/Decryption.js";
 import {Encryption as OlmEncryption} from "./e2ee/olm/Encryption.js";
-import {Decryption as MegOlmDecryption} from "./e2ee/megolm/Decryption.js";
+import {Decryption as MegOlmDecryption} from "./e2ee/megolm/Decryption";
+import {KeyLoader as MegOlmKeyLoader} from "./e2ee/megolm/decryption/KeyLoader";
 import {SessionBackup} from "./e2ee/megolm/SessionBackup.js";
 import {Encryption as MegOlmEncryption} from "./e2ee/megolm/Encryption.js";
 import {MEGOLM_ALGORITHM} from "./e2ee/common.js";
 import {RoomEncryption} from "./e2ee/RoomEncryption.js";
 import {DeviceTracker} from "./e2ee/DeviceTracker.js";
-import {LockMap} from "../utils/LockMap.js";
-import {groupBy} from "../utils/groupBy.js";
+import {LockMap} from "../utils/LockMap";
+import {groupBy} from "../utils/groupBy";
 import {
     keyFromCredential as ssssKeyFromCredential,
     readKey as ssssReadKey,
     writeKey as ssssWriteKey,
+    removeKey as ssssRemoveKey,
+    keyFromDehydratedDeviceKey as createSSSSKeyFromDehydratedDeviceKey
 } from "./ssss/index.js";
 import {SecretStorage} from "./ssss/SecretStorage.js";
 import {ObservableValue, RetainedObservableValue} from "../observable/ObservableValue";
@@ -105,6 +109,11 @@ export class Session {
         return this._sessionInfo.userId;
     }
 
+    /** @internal call SessionContainer.logout instead */
+    async logout(log = undefined) {
+        await this._hsApi.logout({log}).response();
+    }
+
     // called once this._e2eeAccount is assigned
     _setupEncryption() {
         // TODO: this should all go in a wrapper in e2ee/ that is bootstrapped by passing in the account
@@ -137,11 +146,8 @@ export class Session {
             now: this._platform.clock.now,
             ownDeviceId: this._sessionInfo.deviceId,
         });
-        this._megolmDecryption = new MegOlmDecryption({
-            pickleKey: PICKLE_KEY,
-            olm: this._olm,
-            olmWorker: this._olmWorker,
-        });
+        const keyLoader = new MegOlmKeyLoader(this._olm, PICKLE_KEY, 20);
+        this._megolmDecryption = new MegOlmDecryption(keyLoader, this._olmWorker);
         this._deviceMessageHandler.enableEncryption({olmDecryption, megolmDecryption: this._megolmDecryption});
     }
 
@@ -200,6 +206,12 @@ export class Session {
             this._storage.storeNames.accountData,
         ]);
         await this._createSessionBackup(key, readTxn);
+        await this._writeSSSSKey(key);
+        this._hasSecretStorageKey.set(true);
+        return key;
+    }
+
+    async _writeSSSSKey(key) {
         // only after having read a secret, write the key
         // as we only find out if it was good if the MAC verification succeeds
         const writeTxn = await this._storage.readWriteTxn([
@@ -212,7 +224,29 @@ export class Session {
             throw err;
         }
         await writeTxn.complete();
-        this._hasSecretStorageKey.set(true);
+    }
+
+    async disableSecretStorage() {
+        const writeTxn = await this._storage.readWriteTxn([
+            this._storage.storeNames.session,
+        ]);
+        try {
+            ssssRemoveKey(writeTxn);
+        } catch (err) {
+            writeTxn.abort();
+            throw err;
+        }
+        await writeTxn.complete();
+        if (this._sessionBackup) {
+            for (const room of this._rooms.values()) {
+                if (room.isEncrypted) {
+                    room.enableSessionBackup(undefined);
+                }
+            }
+            this._sessionBackup?.dispose();
+            this._sessionBackup = undefined;
+        }
+        this._hasSecretStorageKey.set(false);
     }
 
     async _createSessionBackup(ssssKey, txn) {
@@ -245,21 +279,74 @@ export class Session {
     async createIdentity(log) {
         if (this._olm) {
             if (!this._e2eeAccount) {
-                this._e2eeAccount = await E2EEAccount.create({
-                    hsApi: this._hsApi,
-                    olm: this._olm,
-                    pickleKey: PICKLE_KEY,
-                    userId: this._sessionInfo.userId,
-                    deviceId: this._sessionInfo.deviceId,
-                    olmWorker: this._olmWorker,
-                    storage: this._storage,
-                });
+                this._e2eeAccount = await this._createNewAccount(this._sessionInfo.deviceId, this._storage);
                 log.set("keys", this._e2eeAccount.identityKeys);
                 this._setupEncryption();
             }
             await this._e2eeAccount.generateOTKsIfNeeded(this._storage, log);
-            await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, log));
+            await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, false, log));
         }
+    }
+
+    /** @internal */
+    async dehydrateIdentity(dehydratedDevice, log) {
+        log.set("deviceId", dehydratedDevice.deviceId);
+        if (!this._olm) {
+            log.set("no_olm", true);
+            return false;
+        }
+        if (dehydratedDevice.deviceId !== this.deviceId) {
+            log.set("wrong_device", true);
+            return false;
+        }
+        if (this._e2eeAccount) {
+            log.set("account_already_setup", true);
+            return false;
+        }
+        if (!await dehydratedDevice.claim(this._hsApi, log)) {
+            log.set("already_claimed", true);
+            return false;
+        }
+        this._e2eeAccount = await E2EEAccount.adoptDehydratedDevice({
+            dehydratedDevice,
+            hsApi: this._hsApi,
+            olm: this._olm,
+            pickleKey: PICKLE_KEY,
+            userId: this._sessionInfo.userId,
+            olmWorker: this._olmWorker,
+            deviceId: this.deviceId,
+            storage: this._storage,
+        });
+        log.set("keys", this._e2eeAccount.identityKeys);
+        this._setupEncryption();
+        return true;
+    }
+
+    _createNewAccount(deviceId, storage = undefined) {
+        // storage is optional and if omitted the account won't be persisted (useful for dehydrating devices)
+        return E2EEAccount.create({
+            hsApi: this._hsApi,
+            olm: this._olm,
+            pickleKey: PICKLE_KEY,
+            userId: this._sessionInfo.userId,
+            olmWorker: this._olmWorker,
+            deviceId,
+            storage,
+        });
+    }
+
+    setupDehydratedDevice(key, log = null) {
+        return this._platform.logger.wrapOrRun(log, "setupDehydratedDevice", async log => {
+            const dehydrationAccount = await this._createNewAccount("temp-device-id");
+            try {
+                const deviceId = await uploadAccountAsDehydratedDevice(
+                    dehydrationAccount, this._hsApi, key, "Dehydrated device", log);
+                log.set("deviceId", deviceId);
+                return deviceId;
+            } finally {
+                dehydrationAccount.dispose();
+            }
+        });
     }
 
     /** @internal */
@@ -318,10 +405,17 @@ export class Session {
 
     dispose() {
         this._olmWorker?.dispose();
+        this._olmWorker = undefined;
         this._sessionBackup?.dispose();
+        this._sessionBackup = undefined;
+        this._megolmDecryption?.dispose();
+        this._megolmDecryption = undefined;
+        this._e2eeAccount?.dispose();
+        this._e2eeAccount = undefined;
         for (const room of this._rooms.values()) {
             room.dispose();
         }
+        this._rooms = undefined;
     }
 
     /**
@@ -330,7 +424,7 @@ export class Session {
      *                                      and useful to store so we can later tell what capabilities
      *                                      our homeserver has.
      */
-    async start(lastVersionResponse, log) {
+    async start(lastVersionResponse, dehydratedDevice, log) {
         if (lastVersionResponse) {
             // store /versions response
             const txn = await this._storage.readWriteTxn([
@@ -342,6 +436,15 @@ export class Session {
         }
         // enable session backup, this requests the latest backup version
         if (!this._sessionBackup) {
+            if (dehydratedDevice) {
+                await log.wrap("SSSSKeyFromDehydratedDeviceKey", async log => {
+                    const ssssKey = await createSSSSKeyFromDehydratedDeviceKey(dehydratedDevice.key, this._storage, this._platform);
+                    if (ssssKey) {
+                        log.set("success", true);
+                        await this._writeSSSSKey(ssssKey);
+                    }
+                })
+            }
             const txn = await this._storage.readTxn([
                 this._storage.storeNames.session,
                 this._storage.storeNames.accountData,
@@ -513,7 +616,7 @@ export class Session {
         if (!isCatchupSync) {
             const needsToUploadOTKs = await this._e2eeAccount.generateOTKsIfNeeded(this._storage, log);
             if (needsToUploadOTKs) {
-                await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, log));
+                await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, false, log));
             }
         }
     }

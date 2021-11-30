@@ -19,7 +19,7 @@ import {
     AbortError,
     ConnectionError
 } from "../../../../matrix/error.js";
-import {abortOnTimeout} from "../../../../utils/timeout.js";
+import {abortOnTimeout} from "../../../../utils/timeout";
 import {addCacheBuster} from "./common.js";
 import {xhrRequest} from "./xhr.js";
 

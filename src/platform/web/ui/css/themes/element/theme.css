@@ -502,7 +502,7 @@ a {
 }
 
 .MessageComposer_input, .MessageComposer_replyPreview {
-    padding: 8px 16px;
+    padding: 8px;
 }
 
 .MessageComposer_replyPreview > .replying {
@@ -536,14 +536,20 @@ a {
     margin-left: 12px;
 }
 
-.MessageComposer_input > input {
-    padding: 0 16px;
+.MessageComposer_input > textarea {
     border: none;
     border-radius: 24px;
     background: #F6F6F6;
-    height: 48px;
     font-size: 14px;
     font-family: "Inter", sans-serif;
+    resize: none;
+    flex: 1;
+    padding: 14px;
+    box-sizing: border-box;
+    overflow: hidden;
+    max-height: 113px; /* 5 lines */
+    overflow-y: auto;
+    overflow-y: overlay;
 }
 
 .MessageComposer_input > button.send {
@@ -559,6 +565,8 @@ a {
     background-image: url('icons/send.svg');
     background-repeat: no-repeat;
     background-position: center;
+    align-self: end;
+    margin-bottom: 8px;
 }
 
 .MessageComposer_input > button.sendFile {
@@ -575,8 +583,12 @@ a {
     background-position: center;
 }
 
-.MessageComposer_input > button.send:disabled {
-    background-color: #E3E8F0;
+.MessageComposer.MessageComposer_canSend button.sendFile {
+    display: none;
+}
+
+.MessageComposer:not(.MessageComposer_canSend) button.send {
+    display: none;
 }
 
 .SettingsBody {
@@ -629,6 +641,19 @@ a {
 
 .Settings .row .label {
     flex: 0 0 200px;
+    align-self: flex-start;
+}
+
+.Settings .row .content p {
+    margin: 8px 0;
+}
+
+.Settings .row .content p:first-child {
+    margin-top: 0;
+}
+
+.Settings .row .content p:last-child {
+    margin-bottom: 0;
 }
 
 .error {

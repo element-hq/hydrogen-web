@@ -25,14 +25,23 @@ export class MessageComposer extends TemplateView {
         this._input = null;
         this._attachmentPopup = null;
         this._focusInput = null;
+        this._rafResizeHandle = undefined;
     }
 
     render(t, vm) {
-        this._input = t.input({
-            placeholder: vm.isEncrypted ? "Send an encrypted message…" : "Send a message…",
+        this._input = t.textarea({
             enterkeyhint: 'send',
             onKeydown: e => this._onKeyDown(e),
-            onInput: () => vm.setInput(this._input.value),
+            onInput: () => {
+                vm.setInput(this._input.value);
+                if (this._input.value) {
+                    this._adjustHeight();
+                } else {
+                    this._clearHeight();
+                }
+            },
+            placeholder: vm.isEncrypted ? "Send an encrypted message…" : "Send a message…",
+            rows: "1"
         });
         this._focusInput = () => this._input.focus();
         this.value.on("focus", this._focusInput);
@@ -60,11 +69,13 @@ export class MessageComposer extends TemplateView {
             t.button({
                 className: "send",
                 title: vm.i18n`Send`,
-                disabled: vm => !vm.canSend,
                 onClick: () => this._trySend(),
             }, vm.i18n`Send`),
         ]);
-        return t.div({ className: "MessageComposer" }, [replyPreview, input]);
+        return t.div({ className: {
+            MessageComposer: true,
+            MessageComposer_canSend: vm => vm.canSend
+        } }, [replyPreview, input]);
     }
 
     unmount() {
@@ -80,13 +91,31 @@ export class MessageComposer extends TemplateView {
 
     async _trySend() {
         this._input.focus();
-        if (await this.value.sendMessage(this._input.value)) {
-            this._input.value = "";
+        // we clear the composer while enqueuing
+        // and restore it when that didn't work somehow
+        // to prevent the user from sending the message
+        // every time they hit enter while it's still enqueuing.
+        const {value} = this._input;
+        const restoreValue = () => {
+            this._input.value = value;
+            this._adjustHeight();
+        };
+        this._input.value = "";
+        this._clearHeight();
+        try {
+            if (!await this.value.sendMessage(value)) {
+                restoreValue();
+            }
+        } catch (err) {
+            restoreValue();
+            console.error(err);
         }
     }
 
     _onKeyDown(event) {
-        if (event.key === "Enter") {
+        if (event.key === "Enter" && !event.shiftKey) {
+            // don't insert newline into composer
+            event.preventDefault();
             this._trySend();
         }
     }
@@ -105,4 +134,20 @@ export class MessageComposer extends TemplateView {
             this._attachmentPopup.showRelativeTo(evt.target, 12);
         }
     }
+
+    _adjustHeight() {
+        if (this._rafResizeHandle) {
+            return;
+        }
+        this._rafResizeHandle = window.requestAnimationFrame(() => {
+            const scrollHeight = this._input.scrollHeight;
+            this._input.style.height = `${scrollHeight}px`;
+            this._rafResizeHandle = undefined;
+        });
+    }
+
+    _clearHeight() {
+        this._input.style.removeProperty("height");
+    }
+
 }

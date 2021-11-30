@@ -16,7 +16,7 @@ limitations under the License.
 
 import {iterateCursor, DONE, NOT_DONE, reqAsPromise} from "./utils";
 import {StorageError} from "../common";
-import {LogItem} from "../../../logging/LogItem.js";
+import {ILogItem} from "../../../logging/types";
 import {IDBKey} from "./Transaction";
 
 // this is the part of the Transaction class API that is used here and in the Store subclass,
@@ -25,7 +25,7 @@ export interface ITransaction {
     idbFactory: IDBFactory;
     IDBKeyRange: typeof IDBKeyRange;
     databaseName: string;
-    addWriteError(error: StorageError, refItem: LogItem | undefined, operationName: string, keys: IDBKey[] | undefined);
+    addWriteError(error: StorageError, refItem: ILogItem | undefined, operationName: string, keys: IDBKey[] | undefined);
 }
 
 type Reducer<A,B> = (acc: B, val: A) => B
@@ -277,7 +277,7 @@ export function tests() {
 
     class MockTransaction extends MockIDBImpl {
         get databaseName(): string { return "mockdb"; }
-        addWriteError(error: StorageError, refItem: LogItem | undefined, operationName: string, keys: IDBKey[] | undefined) {}
+        addWriteError(error: StorageError, refItem: ILogItem | undefined, operationName: string, keys: IDBKey[] | undefined) {}
     }
 
     interface TestEntry {

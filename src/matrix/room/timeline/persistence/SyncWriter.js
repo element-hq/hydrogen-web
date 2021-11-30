@@ -258,7 +258,7 @@ export class SyncWriter {
 
 import {createMockStorage} from "../../../../mocks/Storage";
 import {createEvent, withTextBody} from "../../../../mocks/event.js";
-import {Instance as nullLogger} from "../../../../logging/NullLogger.js";
+import {Instance as nullLogger} from "../../../../logging/NullLogger";
 export function tests() {
     const roomId = "!abc:hs.tld";
     return {

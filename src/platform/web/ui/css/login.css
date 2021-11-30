@@ -54,15 +54,12 @@ limitations under the License.
     padding: 0 0.4em 0.4em;
 }
 
-.SessionLoadStatusView, .LoginView_query-spinner {
+.SessionLoadStatusView > .status, .LoginView_query-spinner {
     display: flex;
+    gap: 12px;
 }
 
-.SessionLoadStatusView> :not(:first-child), .LoginView_query-spinner> :not(:first-child) {
-    margin-left: 12px;
-}
-
-.SessionLoadStatusView p, .LoginView_query-spinner p {
+.SessionLoadStatusView > .status p, .LoginView_query-spinner p {
     flex: 1;
     margin: 0;
 }

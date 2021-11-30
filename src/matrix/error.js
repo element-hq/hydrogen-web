@@ -38,7 +38,7 @@ export class HomeServerError extends Error {
     }
 }
 
-export {AbortError} from "../utils/error.js";
+export {AbortError} from "../utils/error";
 
 export class ConnectionError extends Error {
     constructor(message, isTimeout) {

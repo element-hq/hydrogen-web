@@ -41,17 +41,30 @@ export class SettingsViewModel extends ViewModel {
     constructor(options) {
         super(options);
         this._updateService = options.updateService;
-        const session = options.session;
-        this._session = session;
-        this._sessionBackupViewModel = this.track(new SessionBackupViewModel(this.childOptions({session})));
+        const {sessionContainer} = options;
+        this._sessionContainer = sessionContainer;
+        this._sessionBackupViewModel = this.track(new SessionBackupViewModel(this.childOptions({session: this._session})));
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
         this._estimate = null;
-
         this.sentImageSizeLimit = null;
         this.minSentImageSizeLimit = 400;
         this.maxSentImageSizeLimit = 4000;
         this.pushNotifications = new PushNotificationStatus();
+        this._isLoggingOut = false;
     }
+
+    get _session() {
+        return this._sessionContainer.session;
+    }
+
+    async logout() {
+        this._isLoggingOut = true;
+        await this._sessionContainer.logout();
+        this.emitChange("isLoggingOut");
+        this.navigation.push("session", true);
+    }
+
+    get isLoggingOut() { return this._isLoggingOut; }
 
     setSentImageSizeLimit(size) {
         if (size > this.maxSentImageSizeLimit || size < this.minSentImageSizeLimit) {

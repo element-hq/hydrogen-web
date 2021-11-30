@@ -13,8 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {createEnum} from "../../../utils/enum.js";
-import {AbortError} from "../../../utils/error.js";
+import {createEnum} from "../../../utils/enum";
+import {AbortError} from "../../../utils/error";
 import {REDACTION_TYPE} from "../common.js";
 import {getRelationFromContent, getRelationTarget, setRelationTarget} from "../timeline/relations.js";
 

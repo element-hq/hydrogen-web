@@ -21,8 +21,8 @@ import {SessionInfoStorage} from "../../matrix/sessioninfo/localstorage/SessionI
 import {SettingsStorage} from "./dom/SettingsStorage.js";
 import {Encoding} from "./utils/Encoding.js";
 import {OlmWorker} from "../../matrix/e2ee/OlmWorker.js";
-import {IDBLogger} from "../../logging/IDBLogger.js";
-import {ConsoleLogger} from "../../logging/ConsoleLogger.js";
+import {IDBLogger} from "../../logging/IDBLogger";
+import {ConsoleLogger} from "../../logging/ConsoleLogger";
 import {RootView} from "./ui/RootView.js";
 import {Clock} from "./dom/Clock.js";
 import {ServiceWorkerHandler} from "./dom/ServiceWorkerHandler.js";
@@ -35,7 +35,7 @@ import {WorkerPool} from "./dom/WorkerPool.js";
 import {BlobHandle} from "./dom/BlobHandle.js";
 import {hasReadPixelPermission, ImageHandle, VideoHandle} from "./dom/ImageHandle.js";
 import {downloadInIframe} from "./dom/download.js";
-import {Disposables} from "../../utils/Disposables.js";
+import {Disposables} from "../../utils/Disposables";
 import {parseHTML} from "./parsehtml.js";
 import {handleAvatarError} from "./ui/avatar.js";
 
@@ -132,11 +132,7 @@ export class Platform {
         this.clock = new Clock();
         this.encoding = new Encoding();
         this.random = Math.random;
-        if (options?.development) {
-            this.logger = new ConsoleLogger({platform: this});
-        } else {
-            this.logger = new IDBLogger({name: "hydrogen_logs", platform: this});
-        }
+        this._createLogger(options?.development);
         this.history = new History();
         this.onlineStatus = new OnlineStatus();
         this._serviceWorkerHandler = null;
@@ -160,6 +156,21 @@ export class Platform {
         const isIOS = /iPad|iPhone|iPod/.test(navigator.platform) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) && !window.MSStream;
         this.isIOS = isIOS;
         this._disposables = new Disposables();
+    }
+
+    _createLogger(isDevelopment) {
+        // Make sure that loginToken does not end up in the logs
+        const transformer = (item) => {
+            if (item.e?.stack) {
+                item.e.stack = item.e.stack.replace(/(?<=\/\?loginToken=).+/, "<snip>");
+            }
+            return item;
+        };
+        if (isDevelopment) {
+            this.logger = new ConsoleLogger({platform: this});
+        } else {
+            this.logger = new IDBLogger({name: "hydrogen_logs", platform: this, serializedTransformer: transformer});
+        }
     }
 
     get updateService() {
@@ -271,4 +282,31 @@ export class Platform {
     dispose() {
         this._disposables.dispose();
     }
+}
+
+import {LogItem} from "../../logging/LogItem";
+export function tests() {
+    return {
+        "loginToken should not be in logs": (assert) => {
+            const transformer = (item) => {
+                if (item.e?.stack) {
+                    item.e.stack = item.e.stack.replace(/(?<=\/\?loginToken=).+/, "<snip>");
+                }
+                return item;
+            };
+            const logger = {
+                _queuedItems: [],
+                _serializedTransformer: transformer,
+                _now: () => {}
+            };
+            logger.persist = IDBLogger.prototype._persistItem.bind(logger);
+            const logItem = new LogItem("test", 1, logger);
+            logItem.error = new Error();
+            logItem.error.stack = "main http://localhost:3000/src/main.js:55\n<anonymous> http://localhost:3000/?loginToken=secret:26"
+            logger.persist(logItem, null, false);
+            const item = logger._queuedItems.pop();
+            console.log(item);
+            assert.strictEqual(item.json.search("secret"), -1);
+        }
+    };
 }

@@ -50,3 +50,7 @@ export function insertAt(parentNode: Element, idx: number, childNode: Node): voi
         parentNode.insertBefore(childNode, nextDomNode);
     }
 }
+
+export function removeChildren(parentNode: Element): void {
+    parentNode.innerHTML = '';
+}

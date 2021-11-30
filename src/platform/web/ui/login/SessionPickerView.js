@@ -19,30 +19,6 @@ import {TemplateView} from "../general/TemplateView";
 import {hydrogenGithubLink} from "./common.js";
 import {SessionLoadStatusView} from "./SessionLoadStatusView.js";
 
-function selectFileAsText(mimeType) {
-    const input = document.createElement("input");
-    input.setAttribute("type", "file");
-    if (mimeType) {
-        input.setAttribute("accept", mimeType);
-    }
-    const promise = new Promise((resolve, reject) => {
-        const checkFile = () => {
-            input.removeEventListener("change", checkFile, true);
-            const file = input.files[0];
-            if (file) {
-                resolve(file.text());
-            } else {
-                reject(new Error("No file selected"));
-            }
-        }
-        input.addEventListener("change", checkFile, true);
-    });
-    input.click();
-    return promise;
-}
-
-
-
 class SessionPickerItemView extends TemplateView {
     _onDeleteClick() {
         if (confirm("Are you sure?")) {
@@ -57,39 +33,11 @@ class SessionPickerItemView extends TemplateView {
     }
 
     render(t, vm) {
-        const deleteButton = t.button({
-            className: "destructive",
-            disabled: vm => vm.isDeleting,
-            onClick: this._onDeleteClick.bind(this),
-        }, "Sign Out");
-        const clearButton = t.button({
-            disabled: vm => vm.isClearing,
-            onClick: this._onClearClick.bind(this),
-        }, "Clear");
-        const exportButton = t.button({
-            disabled: vm => vm.isClearing,
-            onClick: () => vm.export(),
-        }, "Export");
-        const downloadExport = t.if(vm => vm.exportDataUrl, (t, vm) => {
-            return t.a({
-                href: vm.exportDataUrl,
-                download: `brawl-session-${vm.id}.json`,
-                onClick: () => setTimeout(() => vm.clearExport(), 100),
-            }, "Download");
-        });
-        const errorMessage = t.if(vm => vm.error, t => t.p({className: "error"}, vm => vm.error));
         return t.li([
             t.a({className: "session-info", href: vm.openUrl}, [
                 t.div({className: `avatar usercolor${vm.avatarColorNumber}`}, vm => vm.avatarInitials),
                 t.div({className: "user-id"}, vm => vm.label),
-            ]),
-            t.div({className: "session-actions"}, [
-                deleteButton,
-                exportButton,
-                downloadExport,
-                clearButton,
-            ]),
-            errorMessage
+            ])
         ]);
     }
 }
@@ -109,10 +57,6 @@ export class SessionPickerView extends TemplateView {
                 t.h1(["Continue as …"]),
                 t.view(sessionList),
                 t.div({className: "button-row"}, [
-                    t.button({
-                        className: "button-action secondary",
-                        onClick: async () => vm.import(await selectFileAsText("application/json"))
-                    }, vm.i18n`Import a session`),
                     t.a({
                         className: "button-action primary",
                         href: vm.cancelUrl

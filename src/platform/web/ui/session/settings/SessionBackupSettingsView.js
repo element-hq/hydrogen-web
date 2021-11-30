@@ -21,25 +21,31 @@ export class SessionBackupSettingsView extends TemplateView {
     render(t, vm) {
         return t.mapView(vm => vm.status, status => {
             switch (status) {
-                case "enabled": return new TemplateView(vm, renderEnabled)
-                case "setupKey": return new TemplateView(vm, renderEnableFromKey)
-                case "setupPhrase": return new TemplateView(vm, renderEnableFromPhrase)
-                case "pending": return new StaticView(vm, t => t.p(vm.i18n`Waiting to go online…`))
+                case "Enabled": return new TemplateView(vm, renderEnabled)
+                case "SetupKey": return new TemplateView(vm, renderEnableFromKey)
+                case "SetupPhrase": return new TemplateView(vm, renderEnableFromPhrase)
+                case "Pending": return new StaticView(vm, t => t.p(vm.i18n`Waiting to go online…`))
             }
         });
     }
 }
 
 function renderEnabled(t, vm) {
-    return t.p(vm.i18n`Session backup is enabled, using backup version ${vm.backupVersion}.`);
+    const items = [
+        t.p([vm.i18n`Session backup is enabled, using backup version ${vm.backupVersion}. `, t.button({onClick: () => vm.disable()}, vm.i18n`Disable`)])
+    ];
+    if (vm.dehydratedDeviceId) {
+        items.push(t.p(vm.i18n`A dehydrated device id was set up with id ${vm.dehydratedDeviceId} which you can use during your next login with your secret storage key.`));
+    }
+    return t.div(items);
 }
 
 function renderEnableFromKey(t, vm) {
     const useASecurityPhrase = t.button({className: "link", onClick: () => vm.showPhraseSetup()}, vm.i18n`use a security phrase`);
     return t.div([
-        t.p(vm.i18n`Enter your secret storage security key below to set up session backup, which will enable you to decrypt messages received before you logged into this session. The security key is a code of 12 groups of 4 characters separated by a space that Element created for you when setting up security.`),
+        t.p(vm.i18n`Enter your secret storage security key below to ${vm.purpose}, which will enable you to decrypt messages received before you logged into this session. The security key is a code of 12 groups of 4 characters separated by a space that Element created for you when setting up security.`),
         renderError(t),
-        renderEnableFieldRow(t, vm, vm.i18n`Security key`, key => vm.enterSecurityKey(key)),
+        renderEnableFieldRow(t, vm, vm.i18n`Security key`, (key, setupDehydratedDevice) => vm.enterSecurityKey(key, setupDehydratedDevice)),
         t.p([vm.i18n`Alternatively, you can `, useASecurityPhrase, vm.i18n` if you have one.`]),
     ]);
 }
@@ -47,22 +53,34 @@ function renderEnableFromKey(t, vm) {
 function renderEnableFromPhrase(t, vm) {
     const useASecurityKey = t.button({className: "link", onClick: () => vm.showKeySetup()}, vm.i18n`use your security key`);
     return t.div([
-        t.p(vm.i18n`Enter your secret storage security phrase below to set up session backup, which will enable you to decrypt messages received before you logged into this session. The security phrase is a freeform secret phrase you optionally chose when setting up security in Element. It is different from your password to login, unless you chose to set them to the same value.`),
+        t.p(vm.i18n`Enter your secret storage security phrase below to ${vm.purpose}, which will enable you to decrypt messages received before you logged into this session. The security phrase is a freeform secret phrase you optionally chose when setting up security in Element. It is different from your password to login, unless you chose to set them to the same value.`),
         renderError(t),
-        renderEnableFieldRow(t, vm, vm.i18n`Security phrase`, phrase => vm.enterSecurityPhrase(phrase)),
+        renderEnableFieldRow(t, vm, vm.i18n`Security phrase`, (phrase, setupDehydratedDevice) => vm.enterSecurityPhrase(phrase, setupDehydratedDevice)),
         t.p([vm.i18n`You can also `, useASecurityKey, vm.i18n`.`]),
     ]);
 }
 
 function renderEnableFieldRow(t, vm, label, callback) {
-    const eventHandler = () => callback(input.value);
-    const input = t.input({type: "password", disabled: vm => vm.isBusy, placeholder: label, onChange: eventHandler});
+    let setupDehydrationCheck;
+    const eventHandler = () => callback(input.value, setupDehydrationCheck?.checked || false);
+    const input = t.input({type: "password", disabled: vm => vm.isBusy, placeholder: label});
+    const children = [
+        t.p([
+            input,
+            t.button({disabled: vm => vm.isBusy, onClick: eventHandler}, vm.decryptAction),
+        ]),
+    ];
+    if (vm.offerDehydratedDeviceSetup) {
+        setupDehydrationCheck = t.input({type: "checkbox", id:"enable-dehydrated-device"});
+        const moreInfo = t.a({href: "https://github.com/uhoreg/matrix-doc/blob/dehydration/proposals/2697-device-dehydration.md", target: "_blank", rel: "noopener"}, "more info");
+        children.push(t.p([
+            setupDehydrationCheck,
+            t.label({for: setupDehydrationCheck.id}, [vm.i18n`Back up my device as well (`, moreInfo, ")"])
+        ]));
+    }
     return t.div({className: `row`}, [
         t.div({className: "label"}, label),
-        t.div({className: "content"}, [
-            input,
-            t.button({disabled: vm => vm.isBusy, onClick: eventHandler}, vm.i18n`Set up`),
-        ]),
+        t.div({className: "content"}, children),
     ]);
 }
 

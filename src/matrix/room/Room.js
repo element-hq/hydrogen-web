@@ -76,6 +76,10 @@ export class Room extends BaseRoom {
             let eventsToDecrypt = roomResponse?.timeline?.events || [];
             // when new keys arrive, also see if any older events can now be retried to decrypt
             if (newKeys) {
+                // TODO: if a key is considered by roomEncryption.prepareDecryptAll to use for decryption,
+                // key.eventIds will be set. We could somehow try to reuse that work, but retrying also needs
+                // to happen if a key is not needed to decrypt this sync or there are indeed no encrypted messages
+                // in this sync at all.
                 retryEntries = await this._getSyncRetryDecryptEntries(newKeys, roomEncryption, txn);
                 if (retryEntries.length) {
                     log.set("retry", retryEntries.length);
@@ -236,7 +240,7 @@ export class Room extends BaseRoom {
         }
         if (this._heroes && heroChanges) {
             const oldName = this.name;
-            this._heroes.applyChanges(heroChanges, this._summary.data);
+            this._heroes.applyChanges(heroChanges, this._summary.data, log);
             if (oldName !== this.name) {
                 emitChange = true;
             }

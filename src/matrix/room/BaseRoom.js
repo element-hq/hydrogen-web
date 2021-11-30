@@ -27,7 +27,7 @@ import {Heroes} from "./members/Heroes.js";
 import {EventEntry} from "./timeline/entries/EventEntry.js";
 import {ObservedEventMap} from "./ObservedEventMap.js";
 import {DecryptionSource} from "../e2ee/common.js";
-import {ensureLogItem} from "../../logging/utils.js";
+import {ensureLogItem} from "../../logging/utils";
 import {PowerLevels} from "./PowerLevels.js";
 import {RetainedObservableValue} from "../../observable/ObservableValue";
 
@@ -208,7 +208,7 @@ export class BaseRoom extends EventEmitter {
             if (this._summary.data.needsHeroes) {
                 this._heroes = new Heroes(this._roomId);
                 const changes = await this._heroes.calculateChanges(this._summary.data.heroes, [], txn);
-                this._heroes.applyChanges(changes, this._summary.data);
+                this._heroes.applyChanges(changes, this._summary.data, log);
             }
         } catch (err) {
             throw new WrappedError(`Could not load room ${this._roomId}`, err);
@@ -463,7 +463,7 @@ export class BaseRoom extends EventEmitter {
     enableSessionBackup(sessionBackup) {
         this._roomEncryption?.enableSessionBackup(sessionBackup);
         // TODO: do we really want to do this every time you open the app?
-        if (this._timeline) {
+        if (this._timeline && sessionBackup) {
             this._platform.logger.run("enableSessionBackup", log => {
                 return this._roomEncryption.restoreMissingSessionsFromBackup(this._timeline.remoteEntries, log);
             });

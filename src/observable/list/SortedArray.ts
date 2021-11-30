@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {BaseObservableList} from "./BaseObservableList";
-import {sortedIndex} from "../../utils/sortedIndex.js";
+import {sortedIndex} from "../../utils/sortedIndex";
 import {findAndUpdateInArray} from "./common";
 
 declare function sortedIndex<T>(array: T[], value: T, comparator: (left: T, right: T) => number): number;
