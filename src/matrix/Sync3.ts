@@ -284,10 +284,10 @@ export class Sync3 {
 
                     const roomv2Response = {
                         timeline: {
-                            events: roomResponse.timeline,
+                            events: roomResponse.timeline || [],
                         },
                         state: {
-                            events: roomResponse.required_state,
+                            events: roomResponse.required_state || [],
                         },
                         account_data: null,
                         summary: null,
