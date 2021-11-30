@@ -35,7 +35,7 @@ export function defaultObserverWith<T>(overrides: { [key in keyof IListObserver<
     return Object.assign(defaults, overrides);
 }
 
-export abstract class BaseObservableList<T> extends BaseObservable<IListObserver<T>> {
+export abstract class BaseObservableList<T> extends BaseObservable<IListObserver<T>> implements Iterable<T> {
     emitReset() {
         for(let h of this._handlers) {
             h.onReset(this);
@@ -69,6 +69,6 @@ export abstract class BaseObservableList<T> extends BaseObservable<IListObserver
         }
     }
 
-    abstract [Symbol.iterator]();
+    abstract [Symbol.iterator](): Iterator<T>;
     abstract get length(): number;
 }

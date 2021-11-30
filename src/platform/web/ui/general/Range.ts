@@ -43,7 +43,7 @@ export class Range {
         return range.start < this.end && this.start < range.end;
     }
 
-    forEachInIterator<T>(it: IterableIterator<T>, callback: ((T, i: number) => void)) {
+    forEachInIterator<T>(it: Iterator<T>, callback: ((T, i: number) => void)) {
         let i = 0;
         for (i = 0; i < this.start; i += 1) {
             it.next();
