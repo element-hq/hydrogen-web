@@ -40,7 +40,7 @@ export class IDBLogger extends BaseLogger {
     private readonly _flushInterval: Interval;
     private _queuedItems: QueuedItem[];
 
-    constructor(options: {name: string, flushInterval?: number, limit?: number, platform: Platform, serializedTransformer: (item: ISerializedItem) => ISerializedItem}) {
+    constructor(options: {name: string, flushInterval?: number, limit?: number, platform: Platform, serializedTransformer?: (item: ISerializedItem) => ISerializedItem}) {
         super(options);
         const {name, flushInterval = 60 * 1000, limit = 3000} = options;
         this._name = name;
