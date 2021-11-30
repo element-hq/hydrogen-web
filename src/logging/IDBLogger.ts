@@ -26,7 +26,7 @@ import {BaseLogger} from "./BaseLogger";
 import type {Interval} from "../platform/web/dom/Clock";
 import type {Platform} from "../platform/web/Platform.js";
 import type {BlobHandle} from "../platform/web/dom/BlobHandle.js";
-import type {ILogItem, ILogExport} from "./types";
+import type {ILogItem, ILogExport, ISerializedItem} from "./types";
 import type {LogFilter} from "./LogFilter";
 
 type QueuedItem = {
@@ -40,7 +40,7 @@ export class IDBLogger extends BaseLogger {
     private readonly _flushInterval: Interval;
     private _queuedItems: QueuedItem[];
 
-    constructor(options: {name: string, flushInterval?: number, limit?: number, platform: Platform}) {
+    constructor(options: {name: string, flushInterval?: number, limit?: number, platform: Platform, serializedTransformer?: (item: ISerializedItem) => ISerializedItem}) {
         super(options);
         const {name, flushInterval = 60 * 1000, limit = 3000} = options;
         this._name = name;
@@ -119,9 +119,12 @@ export class IDBLogger extends BaseLogger {
     
     _persistItem(logItem: ILogItem, filter: LogFilter, forced: boolean): void {
         const serializedItem = logItem.serialize(filter, undefined, forced);
-        this._queuedItems.push({
-            json: JSON.stringify(serializedItem)
-        });
+        if (serializedItem) {
+            const transformedSerializedItem = this._serializedTransformer(serializedItem);
+            this._queuedItems.push({
+                json: JSON.stringify(transformedSerializedItem)
+            });
+        }
     }
 
     _persistQueuedItems(items: QueuedItem[]): void {
