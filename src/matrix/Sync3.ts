@@ -159,8 +159,14 @@ export class Sync3 {
         if (roomIdA === roomIdB) {
             return 0;
         }
-        const indexA = this.roomIdToRoomIndex[roomIdA];
-        const indexB = this.roomIdToRoomIndex[roomIdB];
+        let indexA = this.roomIdToRoomIndex[roomIdA];
+        let indexB = this.roomIdToRoomIndex[roomIdB];
+        if (indexA === undefined && roomIdA.startsWith("ph-")) {
+            indexA = Number(roomIdA.substr(3));
+        }
+        if (indexB === undefined && roomIdB.startsWith("ph-")) {
+            indexB = Number(roomIdB.substr(3));
+        }
         if (indexA === undefined || indexB === undefined) {
             console.error("sync3 cannot compare: missing indices for rooms", roomIdA, roomIdB, indexA, indexB);
         }
