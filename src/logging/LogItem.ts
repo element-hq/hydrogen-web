@@ -259,14 +259,3 @@ export class LogItem implements ILogItem {
         return this._children;
     }
 }
-
-// export function tests() {
-//     return {
-//         "Login token removed from item": (assert) => {
-//             const str = "main http://localhost:3000/src/main.js:55\n<anonymous> http://localhost:3000/?loginToken=secret:26";
-//             const result = filterLoginToken(str);
-//             const index = result!.search("secret");
-//             assert.equal(index, -1);
-//         }
-//     }
-// }
