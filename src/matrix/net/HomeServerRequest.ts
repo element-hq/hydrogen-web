@@ -17,7 +17,7 @@ limitations under the License.
 
 import {HomeServerError, ConnectionError} from "../error.js";
 import type {RequestResult} from "../../platform/web/dom/request/fetch.js";
-import type {LogItem} from "../../logging/LogItem";
+import type {ILogItem} from "../../logging/types";
 
 export interface IHomeServerRequest {
     abort(): void;
@@ -25,13 +25,12 @@ export interface IHomeServerRequest {
 }
 
 export class HomeServerRequest implements IHomeServerRequest {
-    // todo: Shouldn't log be of type ILogItem; but ILogItem does not have finish method
-    private readonly _log?: LogItem;
+    private readonly _log?: ILogItem;
     private _sourceRequest?: RequestResult;
     // as we add types for expected responses from hs, this could be a generic class instead
     private readonly _promise: Promise<any>;
 
-    constructor(method: string, url: string, sourceRequest: RequestResult, log?: LogItem) {
+    constructor(method: string, url: string, sourceRequest: RequestResult, log?: ILogItem) {
         this._log = log;
         this._sourceRequest = sourceRequest;
         this._promise = sourceRequest.response().then(response => {

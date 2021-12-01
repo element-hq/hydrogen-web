@@ -50,6 +50,7 @@ export interface ILogItem {
     ensureRefId(): void;
     catch(err: Error): Error;
     serialize(filter: LogFilter, parentStartTime: number | undefined, forced: boolean): ISerializedItem | undefined;
+    finish(): void;
 }
 
 export interface ILogger {
