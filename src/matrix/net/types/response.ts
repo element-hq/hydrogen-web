@@ -18,7 +18,7 @@ export type Attachment = {
     body: string;
     info: AttachmentInfo;
     // todo: what about m.audio?
-    msgtype: "m.image" | "m.file" | "m.video";
+    msgtype: string;
     url?: string;
     file?: EncryptedFile;
     filename?: string;
