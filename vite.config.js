@@ -32,11 +32,11 @@ export default {
         polyfillModulePreload: false,
     },
     plugins: [
-        legacyBuild(path.join(__dirname, "src/platform/web/index.html?html-proxy&index=0.js"), {
-            "./Platform": "./LegacyPlatform"
-        }, "hydrogen-legacy", [
-            './legacy-polyfill',
-        ]),
+        // legacyBuild(path.join(__dirname, "src/platform/web/index.html?html-proxy&index=0.js"), {
+        //     "./Platform": "./LegacyPlatform"
+        // }, "hydrogen-legacy", [
+        //     './legacy-polyfill',
+        // ]),
         injectWebManifest("assets/manifest.json"),
         injectServiceWorker("sw.js"),
     ],
