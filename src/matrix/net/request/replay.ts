@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {AbortError, ConnectionError} from "../../error.js";
-import type {IRequestOptions, RequestFunction} from "../../../platform/types/types.js";
+import type {IRequestOptions, RequestFunction} from "../../../platform/types/types";
 import type {RequestResult} from "../../../platform/web/dom/request/fetch.js";
 
 type Options = IRequestOptions & {
