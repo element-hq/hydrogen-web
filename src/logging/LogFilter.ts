@@ -14,31 +14,35 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export const LogLevel = {
-    All: 1,
-    Debug: 2,
-    Detail: 3,
-    Info: 4,
-    Warn: 5,
-    Error: 6,
-    Fatal: 7,
-    Off: 8,
+import type {ILogItem, ISerializedItem} from "./types";
+
+export enum LogLevel {
+    All = 1,
+    Debug,
+    Detail,
+    Info,
+    Warn,
+    Error,
+    Fatal,
+    Off
 }
 
 export class LogFilter {
-    constructor(parentFilter) {
+    private _min?: LogLevel;
+    private _parentFilter?: LogFilter;
+
+    constructor(parentFilter?: LogFilter) {
         this._parentFilter = parentFilter;
-        this._min = null;
     }
 
-    filter(item, children) {
+    filter(item: ILogItem, children: ISerializedItem[] | null): boolean {
         if (this._parentFilter) {
             if (!this._parentFilter.filter(item, children)) {
                 return false;
             }
         }
         // neither our children or us have a loglevel high enough, filter out.
-        if (this._min !== null && !Array.isArray(children) && item.logLevel < this._min) {
+        if (this._min !== undefined && !Array.isArray(children) && item.logLevel < this._min) {
             return false;
         } else {
             return true;
@@ -46,7 +50,7 @@ export class LogFilter {
     }
 
     /* methods to build the filter */
-    minLevel(logLevel) {
+    minLevel(logLevel: LogLevel): LogFilter {
         this._min = logLevel;
         return this;
     }

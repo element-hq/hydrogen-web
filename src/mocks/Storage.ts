@@ -21,7 +21,7 @@ import FDBKeyRange from "fake-indexeddb/lib/FDBKeyRange.js";
 import {StorageFactory} from "../matrix/storage/idb/StorageFactory";
 import {IDOMStorage} from "../matrix/storage/idb/types";
 import {Storage} from "../matrix/storage/idb/Storage";
-import {Instance as nullLogger} from "../logging/NullLogger.js";
+import {Instance as nullLogger} from "../logging/NullLogger";
 import {openDatabase, CreateObjectStore} from "../matrix/storage/idb/utils";
 
 export function createMockStorage(): Promise<Storage> {

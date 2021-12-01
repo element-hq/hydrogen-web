@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {createEnum} from "../utils/enum.js";
+import {createEnum} from "../utils/enum";
 import {lookupHomeserver} from "./well-known.js";
 import {AbortableOperation} from "../utils/AbortableOperation";
 import {ObservableValue} from "../observable/ObservableValue";
@@ -329,7 +329,16 @@ export class SessionContainer {
                 request: this._platform.request,
             });
             const olm = await this._olmPromise;
-            const encryptedDehydratedDevice = await getDehydratedDevice(hsApi, olm, this._platform, log);
+            let encryptedDehydratedDevice;
+            try {
+                encryptedDehydratedDevice = await getDehydratedDevice(hsApi, olm, this._platform, log);
+            } catch (err) {
+                if (err.name === "HomeServerError") {
+                    log.set("not_supported", true);
+                } else {
+                    throw err;
+                }
+            }
             if (encryptedDehydratedDevice) {
                 let resolveStageFinish;
                 const promiseStageFinish = new Promise(r => resolveStageFinish = r);

@@ -184,11 +184,11 @@ import {Clock as MockClock} from "../../../../mocks/Clock.js";
 import {createMockStorage} from "../../../../mocks/Storage";
 import {ListObserver} from "../../../../mocks/ListObserver.js";
 import {createEvent, withTextBody, withContent} from "../../../../mocks/event.js";
-import {NullLogItem, NullLogger} from "../../../../logging/NullLogger.js";
+import {NullLogItem, NullLogger} from "../../../../logging/NullLogger";
 import {HomeServer as MockHomeServer} from "../../../../mocks/HomeServer.js";
 // other imports
 import {BaseMessageTile} from "./tiles/BaseMessageTile.js";
-import {MappedList} from "../../../../observable/list/MappedList.js";
+import {MappedList} from "../../../../observable/list/MappedList";
 import {ObservableValue} from "../../../../observable/ObservableValue";
 import {PowerLevels} from "../../../../matrix/room/PowerLevels.js";
 

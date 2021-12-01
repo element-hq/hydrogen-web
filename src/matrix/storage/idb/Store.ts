@@ -18,7 +18,7 @@ import {QueryTarget, IDBQuery, ITransaction} from "./QueryTarget";
 import {IDBRequestError, IDBRequestAttemptError} from "./error";
 import {reqAsPromise} from "./utils";
 import {Transaction, IDBKey} from "./Transaction";
-import {LogItem} from "../../../logging/LogItem.js";
+import {ILogItem} from "../../../logging/types";
 
 const LOG_REQUESTS = false;
 
@@ -145,7 +145,7 @@ export class Store<T> extends QueryTarget<T> {
         return new QueryTarget<T>(new QueryTargetWrapper<T>(this._idbStore.index(indexName)), this._transaction);
     }
 
-    put(value: T, log?: LogItem): void {
+    put(value: T, log?: ILogItem): void {
         // If this request fails, the error will bubble up to the transaction and abort it,
         // which is the behaviour we want. Therefore, it is ok to not create a promise for this
         // request and await it.
@@ -160,13 +160,13 @@ export class Store<T> extends QueryTarget<T> {
         this._prepareErrorLog(request, log, "put", undefined, value);
     }
 
-    add(value: T, log?: LogItem): void {
+    add(value: T, log?: ILogItem): void {
         // ok to not monitor result of request, see comment in `put`.
         const request = this._idbStore.add(value);
         this._prepareErrorLog(request, log, "add", undefined, value);
     }
 
-    async tryAdd(value: T, log: LogItem): Promise<boolean> {
+    async tryAdd(value: T, log: ILogItem): Promise<boolean> {
         try {
             await reqAsPromise(this._idbStore.add(value));
             return true;
@@ -181,13 +181,13 @@ export class Store<T> extends QueryTarget<T> {
         }
     }
 
-    delete(keyOrKeyRange: IDBValidKey | IDBKeyRange, log?: LogItem): void {
+    delete(keyOrKeyRange: IDBValidKey | IDBKeyRange, log?: ILogItem): void {
         // ok to not monitor result of request, see comment in `put`.
         const request = this._idbStore.delete(keyOrKeyRange);
         this._prepareErrorLog(request, log, "delete", keyOrKeyRange, undefined);
     }
 
-    private _prepareErrorLog(request: IDBRequest, log: LogItem | undefined, operationName: string, key: IDBKey | undefined, value: T | undefined) {
+    private _prepareErrorLog(request: IDBRequest, log: ILogItem | undefined, operationName: string, key: IDBKey | undefined, value: T | undefined) {
         if (log) {
             log.ensureRefId();
         }

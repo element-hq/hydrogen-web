@@ -14,12 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export function createEnum(...values) {
+export function createEnum(...values: string[]): Readonly<{}> {
     const obj = {};
     for (const value of values) {
-        if (typeof value !== "string") {
-            throw new Error("Invalid enum value name" + value?.toString());
-        }
         obj[value] = value;
     }
     return Object.freeze(obj);

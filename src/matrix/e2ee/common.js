@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import anotherjson from "another-json";
-import {createEnum} from "../../utils/enum.js";
+import {createEnum} from "../../utils/enum";
 
 export const DecryptionSource = createEnum("Sync", "Timeline", "Retry");
 

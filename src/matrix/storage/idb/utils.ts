@@ -17,7 +17,7 @@ limitations under the License.
 
 import { IDBRequestError } from "./error";
 import { StorageError } from "../common";
-import { AbortError } from "../../../utils/error.js";
+import { AbortError } from "../../../utils/error";
 
 let needsSyncPromise = false;
 
