@@ -41,7 +41,7 @@ export class HomeServerApi {
     private readonly _requestFn: RequestFunction;
     private readonly _reconnector: Reconnector;
 
-    constructor({homeserver, accessToken, request, reconnector}: Ctor) {
+    constructor({homeserver, accessToken, request, reconnector}: Options) {
         // store these both in a closure somehow so it's harder to get at in case of XSS?
         // one could change the homeserver as well so the token gets sent there, so both must be protected from read/write
         this._homeserver = homeserver;
