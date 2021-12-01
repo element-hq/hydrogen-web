@@ -96,3 +96,14 @@ we could put this file per build system, as ESM, in dist as well so you can incl
             - css files and any resource used therein
             - download-sandbox.html
         - a type declaration file (index.d.ts)
+
+## Questions
+ - can rollup not bundle the source tree and leave modules intact?
+    - if we can use a function that creates a chunk per file to pass to manualChunks and disable chunk hashing we can probably do this. See https://rollupjs.org/guide/en/#outputmanualchunks
+
+    looks like we should be able to disable chunk name hashing with chunkFileNames https://rollupjs.org/guide/en/#outputoptions-object
+
+
+    we should test this with a vite test config
+ 
+    we also need to compile down to ES6, both for the app and for the sdk
