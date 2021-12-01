@@ -35,7 +35,7 @@ export function encodeQueryParams(queryParams?: Record<string, any>): string {
         .join("&");
 }
 
-export function encodeBody(body: Record<string, any>): EncodedBody {
+export function encodeBody(body: BlobHandle | object): EncodedBody {
     // todo: code change here
     if (body instanceof BlobHandle) {
         const blob = body as BlobHandle;
