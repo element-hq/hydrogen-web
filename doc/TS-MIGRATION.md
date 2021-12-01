@@ -10,4 +10,4 @@ Also see [this playground](https://www.typescriptlang.org/play?#code/C4TwDgpgBAC
 
 ## Use `Record<string, any>` to describe a type that accepts any Javascript object.
 
-Record<string, any> allows us to avoid passing in primitive types and prevents type errors when accessing properties. As this is a temporary type while converting javascript, it seems best to not add any additional requirements. If any errors occur, they must have already been present, and we should fix it by adding proper types. So prefer `Record<string, any>` over `[key: string]: any`, `any` or `object`.
+`Record<string, any>` allows us to avoid passing in primitive types and prevents type errors when accessing properties. As this is a temporary type while converting javascript, it seems best to not add any additional requirements. If any errors occur, they must have already been present, and we should fix it by adding proper types. So prefer `Record<string, any>` over `[key: string]: any`, `any` or `object`.
