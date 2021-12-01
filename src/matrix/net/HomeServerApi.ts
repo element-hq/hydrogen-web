@@ -28,7 +28,7 @@ type RequestMethod = "POST" | "GET" | "PUT";
 const CS_R0_PREFIX = "/_matrix/client/r0";
 const DEHYDRATION_PREFIX = "/_matrix/client/unstable/org.matrix.msc2697.v2";
 
-type Ctor = {
+type Options = {
     homeserver: string;
     accessToken: string;
     request: RequestFunction;
