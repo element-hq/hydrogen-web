@@ -19,7 +19,7 @@ import {encodeQueryParams, encodeBody} from "./common";
 import {HomeServerRequest} from "./HomeServerRequest";
 import type {IHomeServerRequest} from "./HomeServerRequest";
 import type {Reconnector} from "./Reconnector";
-import type {IEncodedBody} from "./common";
+import type {EncodedBody} from "./common";
 import type {IRequestOptions, RequestFunction} from "../../platform/types/types";
 import type {LogItem} from "../../logging/LogItem";
 
@@ -66,7 +66,7 @@ export class HomeServerApi {
                 method,
             }, parent.level.Info);
         }
-        let encodedBody: IEncodedBody["body"];
+        let encodedBody: EncodedBody["body"];
         const headers: Map<string, string | number> = new Map();
         if (accessToken) {
             headers.set("Authorization", `Bearer ${accessToken}`);

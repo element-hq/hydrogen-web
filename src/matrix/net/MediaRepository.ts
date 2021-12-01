@@ -18,7 +18,7 @@ import {encodeQueryParams} from "./common";
 import {decryptAttachment} from "../e2ee/attachment.js";
 import {Platform} from "../../platform/web/Platform.js";
 import {BlobHandle} from "../../platform/web/dom/BlobHandle.js";
-import type {IAttachment, IEncryptedFile} from "./types/response";
+import type {Attachment, EncryptedFile} from "./types/response";
 
 export class MediaRepository {
     private readonly _homeserver: string;
@@ -58,7 +58,7 @@ export class MediaRepository {
         }
     }
 
-    async downloadEncryptedFile(fileEntry: IEncryptedFile, cache: boolean = false): Promise<BlobHandle> {
+    async downloadEncryptedFile(fileEntry: EncryptedFile, cache: boolean = false): Promise<BlobHandle> {
         const url = this.mxcUrl(fileEntry.url);
         const {body: encryptedBuffer} = await this._platform.request(url, {method: "GET", format: "buffer", cache}).response();
         const decryptedBuffer = await decryptAttachment(this._platform, encryptedBuffer, fileEntry);
@@ -71,7 +71,7 @@ export class MediaRepository {
         return this._platform.createBlob(buffer, mimetype);
     }
 
-    async downloadAttachment(content: IAttachment, cache: boolean = false): Promise<BlobHandle> {
+    async downloadAttachment(content: Attachment, cache: boolean = false): Promise<BlobHandle> {
         if (content.file) {
             return this.downloadEncryptedFile(content.file, cache);
         } else {

@@ -17,7 +17,7 @@ limitations under the License.
 
 import {BlobHandle} from "../../platform/web/dom/BlobHandle.js";
 
-export interface IEncodedBody {
+export type EncodedBody = {
     mimeType: string;
     body: BlobHandle | string;
     length: number;
@@ -35,7 +35,7 @@ export function encodeQueryParams(queryParams?: Record<string, any>): string {
         .join("&");
 }
 
-export function encodeBody(body: Record<string, any>): IEncodedBody {
+export function encodeBody(body: Record<string, any>): EncodedBody {
     // todo: code change here
     if (body instanceof BlobHandle) {
         const blob = body as BlobHandle;

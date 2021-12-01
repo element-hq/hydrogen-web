@@ -18,7 +18,7 @@ import {ObservableValue} from "../../observable/ObservableValue";
 import type {ExponentialRetryDelay} from "./ExponentialRetryDelay";
 import type {TimeMeasure} from "../../platform/web/dom/Clock.js";
 import type {OnlineStatus} from "../../platform/web/dom/OnlineStatus.js";
-import type {IVersionResponse} from "./types/response";
+import type {VersionResponse} from "./types/response";
 import type {HomeServerApi} from "./HomeServerApi";
 
 export enum ConnectionStatus {
@@ -39,7 +39,7 @@ export class Reconnector {
     private readonly _onlineStatus: OnlineStatus;
     private readonly _state: ObservableValue<ConnectionStatus>;
     private _isReconnecting: boolean;
-    private _versionsResponse?: IVersionResponse;
+    private _versionsResponse?: VersionResponse;
     private _stateSince: TimeMeasure;
 
     constructor({retryDelay, createMeasure, onlineStatus}: Ctor) {
@@ -51,7 +51,7 @@ export class Reconnector {
         this._isReconnecting = false;
     }
 
-    get lastVersionsResponse(): IVersionResponse | undefined {
+    get lastVersionsResponse(): VersionResponse | undefined {
         return this._versionsResponse;
     }
 

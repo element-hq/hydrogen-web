@@ -14,17 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export interface IAttachment {
+export type Attachment = {
     body: string;
-    info: IAttachmentInfo;
+    info: AttachmentInfo;
     // todo: what about m.audio?
     msgtype: "m.image" | "m.file" | "m.video";
     url?: string;
-    file?: IEncryptedFile;
+    file?: EncryptedFile;
     filename?: string;
 }
 
-export interface IEncryptedFile {
+export type EncryptedFile = {
     key: JsonWebKey;
     iv: string;
     hashes: {
@@ -35,25 +35,25 @@ export interface IEncryptedFile {
     mimetype?: string;
 }
 
-interface IAttachmentInfo {
+type AttachmentInfo = {
     h?: number;
     w?: number;
     mimetype: string;
     size: number;
     duration?: number;
     thumbnail_url?: string;
-    thumbnail_file?: IEncryptedFile;
-    thumbnail_info?: IThumbnailInfo;
+    thumbnail_file?: EncryptedFile;
+    thumbnail_info?: ThumbnailInfo;
 }
 
-interface IThumbnailInfo {
+type ThumbnailInfo = {
     h: number;
     w: number;
     mimetype: string;
     size: number;
 }
 
-export interface IVersionResponse {
+export type VersionResponse = {
     versions: string[];
     unstable_features?: Record<string, boolean>;
 }

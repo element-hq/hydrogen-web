@@ -18,21 +18,21 @@ import {AbortError, ConnectionError} from "../../error.js";
 import type {IRequestOptions, RequestFunction} from "../../../platform/types/types.js";
 import type {RequestResult} from "../../../platform/web/dom/request/fetch.js";
 
-interface IOptions extends IRequestOptions {
+type Options = IRequestOptions & {
     method?: any;
     delay?: boolean;
 }
 
 class RequestLogItem {
     public readonly url: string;
-    public readonly options: IOptions;
+    public readonly options: Options;
     public error: {aborted: boolean, network: boolean, message: string};
     public status: number;
     public body: Response["body"];
     public start: number = performance.now();
     public end: number = 0;
 
-    constructor(url: string, options: IOptions) {
+    constructor(url: string, options: Options) {
         this.url = url;
         this.options = options;
     }
@@ -62,7 +62,7 @@ export class RecordRequester {
         this.request = this.request.bind(this);
     }
 
-    request(url: string, options: IOptions): RequestResult {
+    request(url: string, options: Options): RequestResult {
         const requestItem = new RequestLogItem(url, options);
         this._requestLog.push(requestItem);
         try {
@@ -84,15 +84,15 @@ export class RecordRequester {
 
 export class ReplayRequester {
     private readonly _log: RequestLogItem[];
-    private readonly _options: IOptions;
+    private readonly _options: Options;
 
-    constructor(log: RequestLogItem[], options: IOptions) {
+    constructor(log: RequestLogItem[], options: Options) {
         this._log = log.slice();
         this._options = options;
         this.request = this.request.bind(this);
     }
 
-    request(url: string, options: IOptions): ReplayRequestResult {
+    request(url: string, options: Options): ReplayRequestResult {
         const idx = this._log.findIndex((item) => {
             return item.url === url && options.method === item.options.method;
         });
@@ -107,10 +107,10 @@ export class ReplayRequester {
 
 class ReplayRequestResult {
     private readonly _item: RequestLogItem;
-    private readonly _options: IOptions;
+    private readonly _options: Options;
     private _aborted: boolean;
 
-    constructor(item: RequestLogItem, options: IOptions) {
+    constructor(item: RequestLogItem, options: Options) {
         this._item = item;
         this._options = options;
         this._aborted = false;
