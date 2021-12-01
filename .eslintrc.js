@@ -13,5 +13,8 @@ module.exports = {
         "no-empty": "off",
         "no-prototype-builtins": "off",
         "no-unused-vars": "warn"
+    },
+    "globals": {
+        "HYDROGEN_VERSION": "readonly"
     }
 };
