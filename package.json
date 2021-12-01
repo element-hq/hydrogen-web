@@ -10,7 +10,7 @@
     "lint": "eslint --cache src/",
     "lint-ts": "eslint src/ -c .ts-eslintrc.js --ext .ts",
     "lint-ci": "eslint src/",
-    "test": "impunity --entry-point src/main.js src/platform/web/Platform.js --force-esm-dirs lib/ src/ --root-dir src/",
+    "test": "impunity --entry-point src/platform/web/main.js src/platform/web/Platform.js --force-esm-dirs lib/ src/ --root-dir src/",
     "start": "vite --port 3000",
     "build": "vite build"
   },
