@@ -49,7 +49,6 @@ export function encodeBody(body: Record<string, any>): IEncodedBody {
         return {
             mimeType: "application/json",
             body: json,
-            // todo: code change here; body.length is a mistake?
             length: json.length
         }
     } else {
