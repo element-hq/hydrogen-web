@@ -338,16 +338,35 @@ export class Sync3 {
             // sort positions by that point in time.
             this.roomIndexToRoomId = indexToRoom;
             this.roomIdToRoomIndex = {};
+            let addedRoomIDs: string[] = [];
             Object.keys(indexToRoom).forEach((indexStr) => {
                 const index = Number(indexStr);
-                this.roomIdToRoomIndex[indexToRoom[index]] = index;
+                const roomId = indexToRoom[index];
+                if (this.roomIdToRoomIndex[roomId] === undefined) {
+                    addedRoomIDs.push(roomId);
+                }
+                this.roomIdToRoomIndex[roomId] = index;
             });
             if (deletedRoomIDs.length > 0) {
                 console.log("DELETED ", deletedRoomIDs);
             }
 
-            // now force update rooms which fell off the sliding window
-            deletedRoomIDs.forEach((roomId) => {
+            // now force update rooms which fell off the sliding window or have been added.
+            // NOTE: Early versions of this code only force refreshed deleted rooms as it was assumed
+            // that H's Observable stuff would see a new room and update the pipeline accordingly.
+            // However, it doesn't do this reliably. I tracked it down to the summary diff calculations
+            // as the culprit - if there is no diff then Room._emitUpdate is not called. I hypothesised
+            // that sync v3 could indeed return a room which looks like there had been no diff, i.e:
+            //  - set room name to "foo"
+            //  - let room disappear off sliding window
+            //  - kill Hydrogen
+            //  - set room name to "bar"
+            //  - let room disappear off sliding window (you have to guess this since H is closed)
+            //  - open H
+            //  - set room name to "foo" again, this will bump it to the top of the sliding window
+            //    but will be a no-op diff and hence not update the observable collection
+            // However, I failed to reproduce this so ¯\_(ツ)_/¯¯
+            deletedRoomIDs.concat(addedRoomIDs).forEach((roomId) => {
                 let room = this.session.rooms.get(roomId);
                 room.forceRefresh();
             })
