@@ -32,7 +32,7 @@ export default {
         polyfillModulePreload: false,
     },
     plugins: [
-        // legacyBuild(path.join(__dirname, "src/platform/web/index.html?html-proxy&index=0.js"), {
+        // legacyBuild(scriptTagPath(path.join(__dirname, "src/platform/web/index.html"), 0), {
         //     "./Platform": "./LegacyPlatform"
         // }, "hydrogen-legacy", [
         //     './legacy-polyfill',
@@ -44,3 +44,7 @@ export default {
         "HYDROGEN_VERSION": JSON.stringify(version)
     }
 };
+
+function scriptTagPath(htmlFile, index) {
+    return `${htmlFile}?html-proxy&index=${index}.js`;
+}
