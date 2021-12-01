@@ -24,7 +24,7 @@
                 olm: olmPaths,
                 downloadSandbox: downloadSandboxPath,
                 worker: workerPath,
-                config: JSON.parse(configJSON)
+                ...JSON.parse(configJSON)
             };
             const platform = new Platform(
                 document.body,
