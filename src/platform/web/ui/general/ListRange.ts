@@ -215,7 +215,7 @@ export class ListRange extends Range {
     }
 }
 
-import {ObservableArray} from "../../../../observable/list/ObservableArray.js";
+import {ObservableArray} from "../../../../observable/list/ObservableArray";
 
 export function tests() {
     return {
