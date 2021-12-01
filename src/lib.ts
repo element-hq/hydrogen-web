@@ -31,3 +31,6 @@ export {RoomViewModel} from "./domain/session/room/RoomViewModel.js";
 export {RoomView} from "./platform/web/ui/session/room/RoomView.js";
 export {TimelineViewModel} from "./domain/session/room/timeline/TimelineViewModel.js";
 export {TimelineView} from "./platform/web/ui/session/room/TimelineView";
+
+export * from "./platform/web/ui/css/main.css";
+export * from "./platform/web/ui/css/themes/element/theme.css";
