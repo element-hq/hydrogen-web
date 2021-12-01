@@ -17,7 +17,6 @@ limitations under the License.
 export type Attachment = {
     body: string;
     info: AttachmentInfo;
-    // todo: what about m.audio?
     msgtype: string;
     url?: string;
     file?: EncryptedFile;
