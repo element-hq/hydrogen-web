@@ -19,7 +19,7 @@ interface ISessionInfo {
     deviceId: string;
     userId: string;
     homeserver: string;
-    homeServer: string;
+    homeServer: string; // deprecate this over time
     accessToken: string;
     lastUsed: number;
 }
