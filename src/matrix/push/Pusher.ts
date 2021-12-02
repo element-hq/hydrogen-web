@@ -32,8 +32,8 @@ export interface IPusherDescription {
 interface IPusherData {
     format?: string;
     url?: string;
-    // todo: where did this come from?
-    endpoint?: string;
+    endpoint?: PushSubscriptionJSON["endpoint"];
+    keys?: PushSubscriptionJSON["keys"];
 }
 
 export class Pusher {
