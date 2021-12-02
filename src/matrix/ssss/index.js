@@ -18,7 +18,7 @@ import {KeyDescription, Key} from "./common.js";
 import {keyFromPassphrase} from "./passphrase.js";
 import {keyFromRecoveryKey} from "./recoveryKey.js";
 import {SESSION_E2EE_KEY_PREFIX} from "../e2ee/common.js";
-import {createEnum} from "../../utils/enum.js";
+import {createEnum} from "../../utils/enum";
 
 const SSSS_KEY = `${SESSION_E2EE_KEY_PREFIX}ssssKey`;
 

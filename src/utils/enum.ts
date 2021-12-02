@@ -14,8 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export class AbortError extends Error {
-    get name() {
-        return "AbortError";
+export function createEnum(...values: string[]): Readonly<{}> {
+    const obj = {};
+    for (const value of values) {
+        obj[value] = value;
     }
+    return Object.freeze(obj);
 }

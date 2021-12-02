@@ -17,15 +17,17 @@ limitations under the License.
 
 import {LogItem} from "./LogItem";
 import {LogLevel, LogFilter} from "./LogFilter";
-import type {ILogger, ILogExport, FilterCreator, LabelOrValues, LogCallback, ILogItem} from "./types";
+import type {ILogger, ILogExport, FilterCreator, LabelOrValues, LogCallback, ILogItem, ISerializedItem} from "./types";
 import type {Platform} from "../platform/web/Platform.js";
 
 export abstract class BaseLogger implements ILogger {
     protected _openItems: Set<LogItem> = new Set();
     protected _platform: Platform;
+    protected _serializedTransformer: (item: ISerializedItem) => ISerializedItem;
 
-    constructor({platform}) {
+    constructor({platform, serializedTransformer = (item: ISerializedItem) => item}) {
         this._platform = platform;
+        this._serializedTransformer = serializedTransformer;
     }
 
     log(labelOrValues: LabelOrValues, logLevel: LogLevel = LogLevel.Info): void {

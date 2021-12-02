@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {createEnum} from "../utils/enum.js";
+import {createEnum} from "../utils/enum";
 import {lookupHomeserver} from "./well-known.js";
 import {AbortableOperation} from "../utils/AbortableOperation";
 import {ObservableValue} from "../observable/ObservableValue";
@@ -27,9 +27,9 @@ import {RequestScheduler} from "./net/RequestScheduler.js";
 // import {Sync, SyncStatus} from "./Sync.js";
 import {Sync3, SyncStatus} from "./Sync3";
 import {Session} from "./Session.js";
-import {PasswordLoginMethod} from "./login/PasswordLoginMethod.js";
-import {TokenLoginMethod} from "./login/TokenLoginMethod.js";
-import {SSOLoginHelper} from "./login/SSOLoginHelper.js";
+import {PasswordLoginMethod} from "./login/PasswordLoginMethod";
+import {TokenLoginMethod} from "./login/TokenLoginMethod";
+import {SSOLoginHelper} from "./login/SSOLoginHelper";
 import {getDehydratedDevice} from "./e2ee/Dehydration.js";
 
 export const LoadStatus = createEnum(

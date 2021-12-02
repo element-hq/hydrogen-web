@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {Range, RangeZone} from "./Range";
+import {defaultObserverWith} from "../../../../observable/list/BaseObservableList";
 
 function skipOnIterator<T>(it: Iterator<T>, pos: number): boolean {
     let i = 0;
@@ -214,7 +215,7 @@ export class ListRange extends Range {
     }
 }
 
-import {ObservableArray} from "../../../../observable/list/ObservableArray.js";
+import {ObservableArray} from "../../../../observable/list/ObservableArray";
 
 export function tests() {
     return {
@@ -268,7 +269,7 @@ export function tests() {
             const list = new ObservableArray(["b", "c", "d", "e"]);
             const range = new ListRange(1, 3, list.length);
             let added = false;
-            list.subscribe({
+            list.subscribe(defaultObserverWith({
                 onAdd(idx, value) {
                     added = true;
                     const result = range.queryAdd(idx, value, list);
@@ -280,7 +281,7 @@ export function tests() {
                         newRange: new ListRange(1, 3, 5)
                     });
                 }
-            });
+            }));
             list.insert(0, "a");
             assert(added);
         },
@@ -288,7 +289,7 @@ export function tests() {
             const list = new ObservableArray(["a", "b", "d", "e"]);
             const range = new ListRange(1, 3, list.length);
             let added = false;
-            list.subscribe({
+            list.subscribe(defaultObserverWith({
                 onAdd(idx, value) {
                     added = true;
                     const result = range.queryAdd(idx, value, list);
@@ -300,7 +301,7 @@ export function tests() {
                         newRange: new ListRange(1, 3, 5)
                     });
                 }
-            });
+            }));
             list.insert(2, "c");
             assert(added);
         },
@@ -308,7 +309,7 @@ export function tests() {
             const list = new ObservableArray(["a", "b", "c", "d"]);
             const range = new ListRange(1, 3, list.length);
             let added = false;
-            list.subscribe({
+            list.subscribe(defaultObserverWith({
                 onAdd(idx, value) {
                     added = true;
                     const result = range.queryAdd(idx, value, list);
@@ -317,7 +318,7 @@ export function tests() {
                         newRange: new ListRange(1, 3, 5)
                     });
                 }
-            });
+            }));
             list.insert(4, "e");
             assert(added);
         },
@@ -326,7 +327,7 @@ export function tests() {
             const viewportItemCount = 4;
             const range = new ListRange(0, 3, list.length, viewportItemCount);
             let added = false;
-            list.subscribe({
+            list.subscribe(defaultObserverWith({
                 onAdd(idx, value) {
                     added = true;
                     const result = range.queryAdd(idx, value, list);
@@ -337,7 +338,7 @@ export function tests() {
                         value: "c"
                     });
                 }
-            });
+            }));
             list.insert(2, "c");
             assert(added);
         },
@@ -345,7 +346,7 @@ export function tests() {
             const list = new ObservableArray(["a", "b", "c", "d", "e"]);
             const range = new ListRange(1, 3, list.length);
             let removed = false;
-            list.subscribe({
+            list.subscribe(defaultObserverWith({
                 onRemove(idx) {
                     removed = true;
                     const result = range.queryRemove(idx, list);
@@ -357,7 +358,7 @@ export function tests() {
                         newRange: new ListRange(1, 3, 4)
                     });
                 }
-            });
+            }));
             list.remove(0);
             assert(removed);
         },
@@ -365,7 +366,7 @@ export function tests() {
             const list = new ObservableArray(["a", "b", "c", "d", "e"]);
             const range = new ListRange(1, 3, list.length);
             let removed = false;
-            list.subscribe({
+            list.subscribe(defaultObserverWith({
                 onRemove(idx) {
                     removed = true;
                     const result = range.queryRemove(idx, list);
@@ -378,7 +379,7 @@ export function tests() {
                     });
                     assert.equal(list.length, 4);
                 }
-            });
+            }));
             list.remove(2);
             assert(removed);
         },
@@ -386,7 +387,7 @@ export function tests() {
             const list = new ObservableArray(["a", "b", "c", "d", "e"]);
             const range = new ListRange(1, 3, list.length);
             let removed = false;
-            list.subscribe({
+            list.subscribe(defaultObserverWith({
                 onRemove(idx) {
                     removed = true;
                     const result = range.queryRemove(idx, list);
@@ -395,7 +396,7 @@ export function tests() {
                         newRange: new ListRange(1, 3, 4)
                     });
                 }
-            });
+            }));
             list.remove(3);
             assert(removed);
         },
@@ -403,7 +404,7 @@ export function tests() {
             const list = new ObservableArray(["a", "b", "c"]);
             const range = new ListRange(1, 3, list.length);
             let removed = false;
-            list.subscribe({
+            list.subscribe(defaultObserverWith({
                 onRemove(idx) {
                     removed = true;
                     const result = range.queryRemove(idx, list);
@@ -415,7 +416,7 @@ export function tests() {
                         value: "a"
                     });
                 }
-            });
+            }));
             list.remove(2);
             assert(removed);
         },
@@ -423,7 +424,7 @@ export function tests() {
             const list = new ObservableArray(["a", "b", "c"]);
             const range = new ListRange(0, 3, list.length);
             let removed = false;
-            list.subscribe({
+            list.subscribe(defaultObserverWith({
                 onRemove(idx) {
                     removed = true;
                     const result = range.queryRemove(idx, list);
@@ -433,7 +434,7 @@ export function tests() {
                         removeIdx: 2,
                     });
                 }
-            });
+            }));
             list.remove(2);
             assert(removed);
         },
@@ -441,7 +442,7 @@ export function tests() {
             const list = new ObservableArray(["a", "b", "c", "d", "e"]);
             const range = new ListRange(1, 4, list.length);
             let moved = false;
-            list.subscribe({
+            list.subscribe(defaultObserverWith({
                 onMove(fromIdx, toIdx, value) {
                     moved = true;
                     const result = range.queryMove(fromIdx, toIdx, value, list);
@@ -451,7 +452,7 @@ export function tests() {
                         toIdx: 3
                     });
                 }
-            });
+            }));
             list.move(2, 3);
             assert(moved);
         },
@@ -459,7 +460,7 @@ export function tests() {
             const list = new ObservableArray(["a", "b", "c", "d", "e"]);
             const range = new ListRange(2, 5, list.length);
             let moved = false;
-            list.subscribe({
+            list.subscribe(defaultObserverWith({
                 onMove(fromIdx, toIdx, value) {
                     moved = true;
                     const result = range.queryMove(fromIdx, toIdx, value, list);
@@ -470,7 +471,7 @@ export function tests() {
                         value: "a"
                     });
                 }
-            });
+            }));
             list.move(0, 3); // move "a" to after "d"
             assert(moved);
         },
@@ -478,7 +479,7 @@ export function tests() {
             const list = new ObservableArray(["a", "b", "c", "d", "e"]);
             const range = new ListRange(0, 3, list.length);
             let moved = false;
-            list.subscribe({
+            list.subscribe(defaultObserverWith({
                 onMove(fromIdx, toIdx, value) {
                     moved = true;
                     const result = range.queryMove(fromIdx, toIdx, value, list);
@@ -489,7 +490,7 @@ export function tests() {
                         value: "e"
                     });
                 }
-            });
+            }));
             list.move(4, 1); // move "e" to before "b"
             assert(moved);
         },
@@ -497,7 +498,7 @@ export function tests() {
             const list = new ObservableArray(["a", "b", "c", "d", "e"]);
             const range = new ListRange(0, 3, list.length);
             let moved = false;
-            list.subscribe({
+            list.subscribe(defaultObserverWith({
                 onMove(fromIdx, toIdx, value) {
                     moved = true;
                     const result = range.queryMove(fromIdx, toIdx, value, list);
@@ -508,7 +509,7 @@ export function tests() {
                         value: "d"
                     });
                 }
-            });
+            }));
             list.move(1, 3); // move "b" to after "d"
             assert(moved);
         },
@@ -516,7 +517,7 @@ export function tests() {
             const list = new ObservableArray(["a", "b", "c", "d", "e"]);
             const range = new ListRange(2, 5, list.length);
             let moved = false;
-            list.subscribe({
+            list.subscribe(defaultObserverWith({
                 onMove(fromIdx, toIdx, value) {
                     moved = true;
                     const result = range.queryMove(fromIdx, toIdx, value, list);
@@ -527,7 +528,7 @@ export function tests() {
                         value: "b"
                     });
                 }
-            });
+            }));
             list.move(3, 0); // move "d" to before "a"
             assert(moved);
         },
@@ -535,7 +536,7 @@ export function tests() {
             const list = new ObservableArray(["a", "b", "c", "d", "e"]);
             const range = new ListRange(1, 4, list.length);
             let moved = false;
-            list.subscribe({
+            list.subscribe(defaultObserverWith({
                 onMove(fromIdx, toIdx, value) {
                     moved = true;
                     const result = range.queryMove(fromIdx, toIdx, value, list);
@@ -546,7 +547,7 @@ export function tests() {
                         value: "e"
                     });
                 }
-            });
+            }));
             list.move(0, 4); // move "a" to after "e"
             assert(moved);
         },

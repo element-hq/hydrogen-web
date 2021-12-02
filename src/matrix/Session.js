@@ -19,7 +19,7 @@ import {Room} from "./room/Room.js";
 import {ArchivedRoom} from "./room/ArchivedRoom.js";
 import {RoomStatus} from "./room/RoomStatus.js";
 import {Invite} from "./room/Invite.js";
-import {Pusher} from "./push/Pusher.js";
+import {Pusher} from "./push/Pusher";
 import { ObservableMap } from "../observable/index.js";
 import {User} from "./User.js";
 import {DeviceMessageHandler} from "./DeviceMessageHandler.js";
@@ -34,7 +34,7 @@ import {Encryption as MegOlmEncryption} from "./e2ee/megolm/Encryption.js";
 import {MEGOLM_ALGORITHM} from "./e2ee/common.js";
 import {RoomEncryption} from "./e2ee/RoomEncryption.js";
 import {DeviceTracker} from "./e2ee/DeviceTracker.js";
-import {LockMap} from "../utils/LockMap.js";
+import {LockMap} from "../utils/LockMap";
 import {groupBy} from "../utils/groupBy";
 import {
     keyFromCredential as ssssKeyFromCredential,

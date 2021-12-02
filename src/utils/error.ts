@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Matrix.org Foundation C.I.C.
+Copyright 2020 Bruno Windels <bruno@windels.cloud>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,20 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export class RetainedValue {
-    constructor(freeCallback) {
-        this._freeCallback = freeCallback;
-        this._retentionCount = 1;
-    }
-
-    retain() {
-        this._retentionCount += 1;
-    }
-
-    release() {
-        this._retentionCount -= 1;
-        if (this._retentionCount === 0) {
-            this._freeCallback();
-        }
+export class AbortError extends Error {
+    get name(): string {
+        return "AbortError";
     }
 }

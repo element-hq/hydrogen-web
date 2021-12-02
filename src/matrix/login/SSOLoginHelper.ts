@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,13 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export function createEnum(...values) {
-    const obj = {};
-    for (const value of values) {
-        if (typeof value !== "string") {
-            throw new Error("Invalid enum value name" + value?.toString());
-        }
-        obj[value] = value;
+export class SSOLoginHelper{
+    private _homeserver: string;
+
+    constructor(homeserver: string) {
+        this._homeserver = homeserver;
     }
-    return Object.freeze(obj);
+
+    get homeserver(): string { return this._homeserver; }
+
+    createSSORedirectURL(returnURL: string): string {
+        return `${this._homeserver}/_matrix/client/r0/login/sso/redirect?redirectUrl=${returnURL}`;
+    }
 }

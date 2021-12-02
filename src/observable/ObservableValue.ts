@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {AbortError} from "../utils/error.js";
+import {AbortError} from "../utils/error";
 import {BaseObservable} from "./BaseObservable";
 
 // like an EventEmitter, but doesn't have an event type

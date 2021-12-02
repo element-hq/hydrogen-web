@@ -24,7 +24,18 @@ export interface IListObserver<T> {
     onMove(from: number, to: number, value: T, list: BaseObservableList<T>): void
 }
 
-export abstract class BaseObservableList<T> extends BaseObservable<IListObserver<T>> {
+export function defaultObserverWith<T>(overrides: { [key in keyof IListObserver<T>]?: IListObserver<T>[key] }): IListObserver<T> {
+    const defaults = {
+        onReset(){},
+        onAdd(){},
+        onUpdate(){},
+        onRemove(){},
+        onMove(){},
+    }
+    return Object.assign(defaults, overrides);
+}
+
+export abstract class BaseObservableList<T> extends BaseObservable<IListObserver<T>> implements Iterable<T> {
     emitReset() {
         for(let h of this._handlers) {
             h.onReset(this);
@@ -38,7 +49,7 @@ export abstract class BaseObservableList<T> extends BaseObservable<IListObserver
         }
     }
 
-    emitUpdate(index: number, value: T, params: any): void {
+    emitUpdate(index: number, value: T, params?: any): void {
         for(let h of this._handlers) {
             h.onUpdate(index, value, params, this);
         }
@@ -58,6 +69,6 @@ export abstract class BaseObservableList<T> extends BaseObservable<IListObserver
         }
     }
 
-    abstract [Symbol.iterator](): IterableIterator<T>;
+    abstract [Symbol.iterator](): Iterator<T>;
     abstract get length(): number;
 }

@@ -14,16 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {LoginMethod} from "./LoginMethod.js";
+import type {ILogItem} from "../../logging/types";
+import type {HomeServerApi} from "../net/HomeServerApi.js";
 
-export class PasswordLoginMethod extends LoginMethod {
-    constructor(options) {
-        super(options);
-        this.username = options.username;
-        this.password = options.password;
-    }
-
-    async login(hsApi, deviceName, log) {
-        return await hsApi.passwordLogin(this.username, this.password, deviceName, {log}).response();
-    }
+export interface ILoginMethod {
+    homeserver: string;
+    login(hsApi: HomeServerApi, deviceName: string, log: ILogItem): Promise<Record<string, any>>;
 }

@@ -14,14 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export class SSOLoginHelper{
-    constructor(homeserver) {
-        this._homeserver = homeserver;
+export class RetainedValue {
+    private readonly _freeCallback: () => void;
+    private _retentionCount: number = 1;
+
+    constructor(freeCallback: () => void) {
+        this._freeCallback = freeCallback;
     }
 
-    get homeserver() { return this._homeserver; }
+    retain(): void {
+        this._retentionCount += 1;
+    }
 
-    createSSORedirectURL(returnURL) {
-        return `${this._homeserver}/_matrix/client/r0/login/sso/redirect?redirectUrl=${returnURL}`;
+    release(): void {
+        this._retentionCount -= 1;
+        if (this._retentionCount === 0) {
+            this._freeCallback();
+        }
     }
 }
