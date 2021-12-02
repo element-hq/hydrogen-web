@@ -368,7 +368,9 @@ export class Sync3 {
             // However, I failed to reproduce this so ¯\_(ツ)_/¯¯
             deletedRoomIDs.concat(addedRoomIDs).forEach((roomId) => {
                 let room = this.session.rooms.get(roomId);
-                room.forceRefresh();
+                if (room) {
+                    room.forceRefresh();
+                }
             })
 
             // END sync v3 specific
