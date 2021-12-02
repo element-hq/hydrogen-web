@@ -17,6 +17,12 @@ import type {Key} from "./common";
 import type {Platform} from "../../platform/web/Platform.js";
 import type {Transaction} from "../storage/idb/Transaction";
 
+type EncryptedData = {
+    iv: string;
+    ciphertext: string;
+    mac: string;
+}
+
 export class SecretStorage {
     private readonly _key: Key;
     private readonly _platform: Platform;
@@ -31,7 +37,7 @@ export class SecretStorage {
         if (!accountData) {
             return;
         }
-        const encryptedData = accountData?.content?.encrypted?.[this._key.id];
+        const encryptedData = accountData?.content?.encrypted?.[this._key.id] as EncryptedData;
         if (!encryptedData) {
             throw new Error(`Secret ${accountData.type} is not encrypted for key ${this._key.id}`);
         }
@@ -43,7 +49,7 @@ export class SecretStorage {
         }
     }
 
-    async _decryptAESSecret(type: string, encryptedData: any): Promise<string> {
+    async _decryptAESSecret(type: string, encryptedData: EncryptedData): Promise<string> {
         const {base64, utf8} = this._platform.encoding;
         // now derive the aes and mac key from the 4s key
         const hkdfKey = await this._platform.crypto.derive.hkdf(
