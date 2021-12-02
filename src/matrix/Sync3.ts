@@ -396,128 +396,8 @@ export class Sync3 {
         });
     }
 
-    // The purpose of this function is to process the response `ops` array by modifying the current
-    // roooms list. It does this non-destructively to ensure that if we die half way through processing
-    // we are left in a consistent state. It has a few responsibilities:
-    //  - Keep the index->room_id map up-to-date, this is the sort order for the room list.
-    //  - Remove rooms we are no longer tracking e.g they fell off the sliding window.
-    //  - Add/update rooms which have new events.
-    // This functions returns the new index->room_id map with updated values along with a bunch of
-    // RoomUpdates which contain things like new timeline events, required state, etc. Note we don't
-    // especially handle removed rooms as we don't want to nuke precious data: it's enough to just remove
-    // them from the map for them to disappear from the list.
     private processOps(ops: Op[]): { indexToRoom: IndexToRoomId, updates: RoomResponse[] } {
-        // copy the index->room_id map. This is assumed to be reasonably cheap as we expect to only have
-        // up to 200 elements in this map. (first 100 then sliding window 100).
-        let indexToRoomID = { ...this.roomIndexToRoomId };
-        let roomUpdates: RoomResponse[] = []; // ordered by when we saw them in the response, earlier ops are earlier
-
-        let gapIndex = -1;
-        for (let i = 0; i < ops.length; i++) {
-            const op = ops[i];
-            switch (op.op) {
-                case "SYNC": {
-                    if (op.range === undefined || op.rooms === undefined) { // required fields
-                        console.error("malformed SYNC:", op);
-                        continue;
-                    }
-                    // e.g [100,199] (inclusive indexes) with an array of 100 rooms
-                    const startIndex = op.range[0];
-                    for (let j = startIndex; j <= op.range[1]; j++) {
-                        const r = op.rooms[j - startIndex];
-                        if (!r) {
-                            break; // we are at the end of list
-                        }
-                        indexToRoomID[j] = r.room_id;
-                        roomUpdates.push(r);
-                    }
-                    break;
-                }
-                case "INVALIDATE": {
-                    if (op.range === undefined) { // required fields
-                        console.error("malformed INVALIDATE:", op);
-                        continue;
-                    }
-                    const startIndex = op.range[0];
-                    for (let j = startIndex; j <= op.range[1]; j++) {
-                        delete indexToRoomID[j];
-                    }
-                    break;
-                }
-                case "INSERT": {
-                    if (op.index === undefined || op.room === undefined) { // required fields
-                        console.error("malformed INSERT:", op);
-                        continue;
-                    }
-                    if (indexToRoomID[op.index]) {
-                        // there exists a room at this location so we need to shift items out of the way.
-                        if (gapIndex < 0) {
-                            console.error(`cannot INSERT as there is a room already at index ${op.index} there and no gap`);
-                            continue;
-                        }
-                        //  0,1,2,3  index
-                        // [A,B,C,D]
-                        //   DEL 3
-                        // [A,B,C,_]
-                        //   INSERT E 0
-                        // [E,A,B,C]
-                        // gapIndex=3, op.index=0
-                        if (gapIndex > op.index) {
-                            // the gap is further down the list, shift every element to the right
-                            // starting at the gap so we can just shift each element in turn:
-                            // [A,B,C,_] gapIndex=3, op.index=0
-                            // [A,B,C,C] i=3
-                            // [A,B,B,C] i=2
-                            // [A,A,B,C] i=1
-                            // Terminate. We'll assign into op.index next.
-                            for (let j = gapIndex; j > op.index; j--) {
-                                if (indexInRange(this.ranges, j)) {
-                                    indexToRoomID[j] = indexToRoomID[j - 1];
-                                }
-                            }
-                        } else if (gapIndex < op.index) {
-                            // the gap is further up the list, shift every element to the left
-                            // starting at the gap so we can just shift each element in turn
-                            for (let j = gapIndex; j < op.index; j++) {
-                                if (indexInRange(this.ranges, j)) {
-                                    indexToRoomID[j] = indexToRoomID[j + 1];
-                                }
-                            }
-                        }
-                    }
-                    // assign to this index
-                    indexToRoomID[op.index] = op.room.room_id;
-                    roomUpdates.push(op.room);
-                    break;
-                }
-                case "DELETE": {
-                    if (op.index === undefined) { // required fields
-                        console.error("malformed DELETE:", op);
-                        continue;
-                    }
-                    // Delete the room at this index and remember the new gap. It may be filled in
-                    // a moment by a corresponding INSERT.
-                    delete indexToRoomID[op.index];
-                    gapIndex = op.index;
-                    break;
-                }
-                case "UPDATE": {
-                    if (op.index === undefined || op.room === undefined) { // required fields
-                        console.error("malformed UPDATE:", op);
-                        continue;
-                    }
-                    roomUpdates.push(op.room);
-                    break;
-                }
-                default:
-                    console.error("skipping unknown op: ", op.op);
-            }
-        }
-
-        return {
-            indexToRoom: indexToRoomID,
-            updates: roomUpdates,
-        };
+        return processSyncOps(this.roomIndexToRoomId, this.ranges, ops);
     }
 
     private openSyncTxn() {
@@ -552,12 +432,142 @@ const sleep = (ms: number) => {
     return new Promise((resolve) => setTimeout(resolve, ms));
 };
 
+// The purpose of this function is to process the response `ops` array by modifying the current
+// roooms list. It does this non-destructively to ensure that if we die half way through processing
+// we are left in a consistent state. It has a few responsibilities:
+//  - Keep the index->room_id map up-to-date, this is the sort order for the room list.
+//  - Remove rooms we are no longer tracking e.g they fell off the sliding window.
+//  - Add/update rooms which have new events.
+// This functions returns the new index->room_id map with updated values along with a bunch of
+// RoomUpdates which contain things like new timeline events, required state, etc. Note we don't
+// especially handle removed rooms as we don't want to nuke precious data: it's enough to just remove
+// them from the map for them to disappear from the list.
+const processSyncOps = (oldIndexToRoomId: IndexToRoomId, ranges: number[][], ops: Op[]): { indexToRoom: IndexToRoomId, updates: RoomResponse[] } => {
+    // copy the index->room_id map. This is assumed to be reasonably cheap as we expect to only have
+    // up to 200 elements in this map. (first 100 then sliding window 100).
+    let indexToRoomID = { ...oldIndexToRoomId };
+    let roomUpdates: RoomResponse[] = []; // ordered by when we saw them in the response, earlier ops are earlier
+
+    let gapIndex = -1;
+    for (let i = 0; i < ops.length; i++) {
+        const op = ops[i];
+        switch (op.op) {
+            case "SYNC": {
+                if (op.range === undefined || op.rooms === undefined) { // required fields
+                    console.error("malformed SYNC:", op);
+                    continue;
+                }
+                // e.g [100,199] (inclusive indexes) with an array of 100 rooms
+                const startIndex = op.range[0];
+                for (let j = startIndex; j <= op.range[1]; j++) {
+                    const r = op.rooms[j - startIndex];
+                    if (!r) {
+                        break; // we are at the end of list
+                    }
+                    indexToRoomID[j] = r.room_id;
+                    roomUpdates.push(r);
+                }
+                break;
+            }
+            case "INVALIDATE": {
+                if (op.range === undefined) { // required fields
+                    console.error("malformed INVALIDATE:", op);
+                    continue;
+                }
+                const startIndex = op.range[0];
+                for (let j = startIndex; j <= op.range[1]; j++) {
+                    delete indexToRoomID[j];
+                }
+                break;
+            }
+            case "INSERT": {
+                if (op.index === undefined || op.room === undefined) { // required fields
+                    console.error("malformed INSERT:", op);
+                    continue;
+                }
+                if (indexToRoomID[op.index]) {
+                    // there exists a room at this location so we need to shift items out of the way.
+                    if (gapIndex < 0) {
+                        console.error(`cannot INSERT as there is a room already at index ${op.index} there and no gap`);
+                        continue;
+                    }
+                    //  0,1,2,3  index
+                    // [A,B,C,D]
+                    //   DEL 3
+                    // [A,B,C,_]
+                    //   INSERT E 0
+                    // [E,A,B,C]
+                    // gapIndex=3, op.index=0
+                    if (gapIndex > op.index) {
+                        // the gap is further down the list, shift every element to the right
+                        // starting at the gap so we can just shift each element in turn:
+                        // [A,B,C,_] gapIndex=3, op.index=0
+                        // [A,B,C,C] i=3
+                        // [A,B,B,C] i=2
+                        // [A,A,B,C] i=1
+                        // Terminate. We'll assign into op.index next.
+                        for (let j = gapIndex; j > op.index; j--) {
+                            if (indexInRange(ranges, j)) {
+                                indexToRoomID[j] = indexToRoomID[j - 1];
+                                if (!indexToRoomID[j]) { // delete undefined entries
+                                    delete indexToRoomID[j];
+                                }
+                            }
+                        }
+                    } else if (gapIndex < op.index) {
+                        // the gap is further up the list, shift every element to the left
+                        // starting at the gap so we can just shift each element in turn
+                        for (let j = gapIndex; j < op.index; j++) {
+                            if (indexInRange(ranges, j)) {
+                                indexToRoomID[j] = indexToRoomID[j + 1];
+                                if (!indexToRoomID[j]) { // delete undefined entries
+                                    delete indexToRoomID[j];
+                                }
+                            }
+                        }
+                    }
+                }
+                // assign to this index
+                indexToRoomID[op.index] = op.room.room_id;
+                roomUpdates.push(op.room);
+                break;
+            }
+            case "DELETE": {
+                if (op.index === undefined) { // required fields
+                    console.error("malformed DELETE:", op);
+                    continue;
+                }
+                // Delete the room at this index and remember the new gap. It may be filled in
+                // a moment by a corresponding INSERT.
+                delete indexToRoomID[op.index];
+                gapIndex = op.index;
+                break;
+            }
+            case "UPDATE": {
+                if (op.index === undefined || op.room === undefined) { // required fields
+                    console.error("malformed UPDATE:", op);
+                    continue;
+                }
+                roomUpdates.push(op.room);
+                break;
+            }
+            default:
+                console.error("skipping unknown op: ", op.op);
+        }
+    }
+
+    return {
+        indexToRoom: indexToRoomID,
+        updates: roomUpdates,
+    };
+}
+
 // SYNC 0 2 a b c; SYNC 6 8 d e f; DELETE 7; INSERT 0 e;
 // 0 1 2 3 4 5 6 7 8
 // a b c       d e f
 // a b c       d _ f
 // e a b c       d f  <--- c=3 is wrong as we are not tracking it, ergo we need to see if `i` is in range else drop it
-const indexInRange = (ranges: number[][], i: number) => {
+const indexInRange = (ranges: number[][], i: number): boolean => {
     let isInRange = false;
     ranges.forEach((r) => {
         if (r[0] <= i && i <= r[1]) {
@@ -581,9 +591,196 @@ const deletedElements = (oldArr: string[], newArr: string[]): string[] => {
 }
 
 export function tests() {
+    let now = new Date().getTime();
+    const createEvent = (eventType, content, sk) => {
+        now += 1;
+        return {
+            type: eventType,
+            state_key: sk ? sk : undefined,
+            content: content,
+            sender: "@someone:localhost",
+            origin_server_ts: now,
+        }
+    }
     return {
+        "deletedElements": assert => {
+            assert.deepEqual(deletedElements(["a", "b", "c"], ["a", "b"]), ["c"]);   // deleted element
+            assert.deepEqual(deletedElements(["a", "b", "c"], ["b"]), ["a", "c"]);   // deleted elements
+            assert.deepEqual(deletedElements(["a", "b", "c"], ["a", "b", "c"]), []); // identical arrays
+            assert.deepEqual(deletedElements(["a", "b"], ["a", "b", "c"]), []);      // added element
+            assert.deepEqual(deletedElements([], []), []);                           // null case
+            assert.deepEqual(deletedElements([], ["a", "b"]), []);                   // 2 added elements
+        },
+        "indexInRange": assert => {
+            assert.equal(indexInRange([[0, 9]], 5), true);                  // index inside range
+            assert.equal(indexInRange([[0, 9]], 0), true);                  // index at lower bound inside
+            assert.equal(indexInRange([[0, 9]], 9), true);                  // index at upper bound inside
+            assert.equal(indexInRange([[0, 9]], 10), false);                // index outside range
+            assert.equal(indexInRange([[0, 9], [100, 109]], 100), true);    // index at lower bound of 2nd range
+            assert.equal(indexInRange([[0, 9], [100, 109]], 109), true);    // index at upper bound of 2nd range
+            assert.equal(indexInRange([[0, 9], [100, 109]], 102), true);    // index inside 2nd range
+            assert.equal(indexInRange([[0, 9], [100, 109]], 110), false);   // index outside ranges
+            assert.equal(indexInRange([[0, 9], [100, 109]], 50), false);    // index between 2 ranges
+        },
         "processSyncOps": assert => {
-            assert.equal(1, 1);
+            const roomA = {
+                room_id: "!a",
+                name: "A",
+                required_state: [],
+                timeline: [createEvent("m.room.message", { body: "Hi" }, null)],
+                notification_count: 0,
+                highlight_count: 0,
+            };
+            const roomB = {
+                room_id: "!b",
+                name: "B",
+                required_state: [],
+                timeline: [createEvent("m.room.message", { body: "Hi" }, null)],
+                notification_count: 1,
+                highlight_count: 1,
+            };
+            const roomC = {
+                room_id: "!c",
+                name: "C",
+                required_state: [],
+                timeline: [createEvent("m.room.message", { body: "Hi" }, null)],
+                notification_count: 0,
+                highlight_count: 0,
+            };
+            const roomD = {
+                room_id: "!d",
+                name: "D",
+                required_state: [],
+                timeline: [createEvent("m.room.message", { body: "Hi" }, null)],
+                notification_count: 0,
+                highlight_count: 0,
+            };
+
+            // initial sync
+            let result = processSyncOps({}, [[0, 2]], [
+                {
+                    list: 0,
+                    op: "SYNC",
+                    range: [0, 2], // 3 rooms
+                    rooms: [
+                        roomA, roomB, roomC,
+                    ],
+                },
+            ]);
+            assert.deepEqual(result.updates, [roomA, roomB, roomC]);
+            assert.deepEqual(result.indexToRoom, {
+                0: "!a",
+                1: "!b",
+                2: "!c",
+            });
+
+            // update room in window
+            result = processSyncOps({
+                0: "!a",
+                1: "!b",
+                2: "!c",
+            }, [[0, 2]], [
+                {
+                    list: 0,
+                    op: "UPDATE",
+                    index: 0,
+                    room: roomA,
+                },
+            ]);
+            assert.deepEqual(result.updates, [roomA]);
+            assert.deepEqual(result.indexToRoom, {
+                0: "!a",
+                1: "!b",
+                2: "!c",
+            });
+
+            // delete room a and insert room D, test bumping
+            result = processSyncOps({
+                0: "!a",
+                1: "!b",
+                2: "!c",
+            }, [[0, 2]], [
+                {
+                    list: 0,
+                    op: "DELETE",
+                    index: 2,
+                },
+                {
+                    list: 0,
+                    op: "INSERT",
+                    index: 0,
+                    room: roomD,
+                }
+            ]);
+            assert.deepEqual(result.updates, [roomD]);
+            assert.deepEqual(result.indexToRoom, {
+                0: "!d",
+                1: "!a",
+                2: "!b",
+            });
+
+            // test invalidation
+            result = processSyncOps({
+                0: "!a",
+                1: "!b",
+                2: "!c",
+            }, [[0, 2]], [
+                {
+                    list: 0,
+                    op: "INVALIDATE",
+                    range: [0, 2],
+                },
+            ]);
+            assert.deepEqual(result.updates, []);
+            assert.deepEqual(result.indexToRoom, {});
+
+            // sync an additional range
+            result = processSyncOps({
+                0: "!a",
+                1: "!b",
+            }, [[0, 1], [10, 11]], [
+                {
+                    list: 0,
+                    op: "SYNC",
+                    range: [10, 11],
+                    rooms: [roomC, roomD],
+                },
+            ]);
+            assert.deepEqual(result.updates, [roomC, roomD]);
+            assert.deepEqual(result.indexToRoom, {
+                0: "!a",
+                1: "!b",
+                10: "!c",
+                11: "!d",
+            });
+
+            // bump a room from one range to the other
+            result = processSyncOps({
+                0: "!a",
+                1: "!b",
+                10: "!c",
+                11: "!d",
+            }, [[0, 1], [10, 11]], [
+                {
+                    list: 0,
+                    op: "DELETE",
+                    index: 11,
+                },
+                {
+                    list: 0,
+                    op: "INSERT",
+                    index: 0,
+                    room: roomD,
+                },
+            ]);
+            assert.deepEqual(result.updates, [roomD]);
+            assert.deepEqual(result.indexToRoom, {
+                0: "!d",
+                1: "!a",
+                // we weren't told what should be in index 10 so it should be empty
+                11: "!c",
+            });
+
         },
     };
 }
