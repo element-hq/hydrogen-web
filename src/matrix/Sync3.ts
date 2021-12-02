@@ -114,6 +114,7 @@ export class Sync3 {
     private ranges: number[][];
     private roomIndexToRoomId: IndexToRoomId;
     private roomIdToRoomIndex: RoomIdToIndex;
+    private totalRooms: number;
 
     public error?: any;
     public status: ObservableValue<SyncStatus>;
@@ -131,6 +132,7 @@ export class Sync3 {
         this.ranges = [[0, 4]];
         this.roomIndexToRoomId = {};
         this.roomIdToRoomIndex = {};
+        this.totalRooms = 0;
     }
 
     // Start syncing. Probably call this at startup once you have an access_token.
@@ -155,10 +157,32 @@ export class Sync3 {
         }
     }
 
+    count(): number {
+        return this.totalRooms;
+    }
+
+    indexOfRoom(roomId: string): number {
+        const index = this.roomIdToRoomIndex[roomId];
+        if (index === undefined) {
+            return -1;
+        }
+        return index;
+    }
+
+    roomAtIndex(index: number): string | null {
+        const roomID = this.roomIndexToRoomId[index];
+        if (roomID === undefined) {
+            return null;
+        }
+        return roomID;
+    }
+
+    // TODO REMOVE
     includeRoom(roomId: string): boolean {
         return this.roomIdToRoomIndex[roomId] !== undefined;
     }
 
+    // TODO REMOVE
     compare(roomIdA: string, roomIdB: string): number {
         if (roomIdA === roomIdB) {
             return 0;
@@ -256,6 +280,7 @@ export class Sync3 {
     private async processResponse(isFirstSync: boolean, resp: Sync3Response) {
         console.log(resp);
         let { indexToRoom, updates } = this.processOps(resp.ops);
+        this.totalRooms = resp.counts[0];
 
         let rooms: any[] = [];
         // process the room updates: new rooms, new timeline events, updated room names, that sort of thing.
