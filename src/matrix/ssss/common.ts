@@ -16,7 +16,7 @@ limitations under the License.
 
 import type {Platform} from "../../platform/web/Platform.js";
 
-export interface IKeyDescription {
+export type KeyDescriptionData = {
     algorithm: string;
     passphrase: {
         algorithm: string;
@@ -30,9 +30,9 @@ export interface IKeyDescription {
 
 export class KeyDescription {
     private readonly _id: string;
-    private readonly _keyDescription: IKeyDescription;
+    private readonly _keyDescription: KeyDescriptionData;
 
-    constructor(id: string, keyDescription: IKeyDescription) {
+    constructor(id: string, keyDescription: KeyDescriptionData) {
         this._id = id;
         this._keyDescription = keyDescription;
     }
@@ -41,7 +41,7 @@ export class KeyDescription {
         return this._id;
     }
 
-    get passphraseParams(): IKeyDescription["passphrase"] {
+    get passphraseParams(): KeyDescriptionData["passphrase"] {
         return this._keyDescription?.passphrase;
     }
 

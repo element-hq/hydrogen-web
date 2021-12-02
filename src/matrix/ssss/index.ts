@@ -20,7 +20,7 @@ import {keyFromRecoveryKey} from "./recoveryKey";
 import {SESSION_E2EE_KEY_PREFIX} from "../e2ee/common.js";
 import type {Storage} from "../storage/idb/Storage";
 import type {Transaction} from "../storage/idb/Transaction";
-import type {IKeyDescription} from "./common";
+import type {KeyDescriptionData} from "./common";
 import type {Platform} from "../../platform/web/Platform.js";
 import type {Olm} from "./recoveryKey";
 
@@ -44,7 +44,7 @@ async function readDefaultKeyDescription(storage: Storage): Promise<KeyDescripti
     if (!keyAccountData) {
         return;
     }
-    return new KeyDescription(id, keyAccountData.content as IKeyDescription);
+    return new KeyDescription(id, keyAccountData.content as KeyDescriptionData);
 }
 
 export async function writeKey(key: Key, txn: Transaction): Promise<void> {
@@ -58,7 +58,7 @@ export async function readKey(txn: Transaction): Promise<Key | undefined> {
     }
     const keyAccountData = await txn.accountData.get(`m.secret_storage.key.${keyData.id}`);
     if (keyAccountData) {
-        return new Key(new KeyDescription(keyData.id, keyAccountData.content as IKeyDescription), keyData.binaryKey);
+        return new Key(new KeyDescription(keyData.id, keyAccountData.content as KeyDescriptionData), keyData.binaryKey);
     }
 }
 
