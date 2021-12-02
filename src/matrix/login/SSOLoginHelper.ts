@@ -14,16 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {LoginMethod} from "./LoginMethod.js";
+export class SSOLoginHelper{
+    private _homeserver: string;
 
-export class PasswordLoginMethod extends LoginMethod {
-    constructor(options) {
-        super(options);
-        this.username = options.username;
-        this.password = options.password;
+    constructor(homeserver: string) {
+        this._homeserver = homeserver;
     }
 
-    async login(hsApi, deviceName, log) {
-        return await hsApi.passwordLogin(this.username, this.password, deviceName, {log}).response();
+    get homeserver(): string { return this._homeserver; }
+
+    createSSORedirectURL(returnURL: string): string {
+        return `${this._homeserver}/_matrix/client/r0/login/sso/redirect?redirectUrl=${returnURL}`;
     }
 }
