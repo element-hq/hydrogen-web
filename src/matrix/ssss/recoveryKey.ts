@@ -16,11 +16,7 @@ limitations under the License.
 import {Key} from "./common";
 import {KeyDescription} from "./common";
 import type {Platform} from "../../platform/web/Platform.js";
-
-export type Olm = {
-    PRIVATE_KEY_LENGTH: number;
-    [key: string]: any;
-};
+import type * as Olm from "@matrix-org/olm"
 
 const OLM_RECOVERY_KEY_PREFIX = [0x8B, 0x01] as const;
 
@@ -30,7 +26,7 @@ const OLM_RECOVERY_KEY_PREFIX = [0x8B, 0x01] as const;
  * @param  {string} recoveryKey
  * @return {Key}
  */
-export function keyFromRecoveryKey(keyDescription: KeyDescription, recoveryKey: string, olm: Olm, platform: Platform): Key {
+export function keyFromRecoveryKey(keyDescription: KeyDescription, recoveryKey: string, olm: typeof Olm, platform: Platform): Key {
     const result = platform.encoding.base58.decode(recoveryKey.replace(/ /g, ''));
 
     let parity = 0;

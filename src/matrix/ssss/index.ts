@@ -22,7 +22,7 @@ import type {Storage} from "../storage/idb/Storage";
 import type {Transaction} from "../storage/idb/Transaction";
 import type {KeyDescriptionData} from "./common";
 import type {Platform} from "../../platform/web/Platform.js";
-import type {Olm} from "./recoveryKey";
+import type * as Olm from "@matrix-org/olm"
 
 const SSSS_KEY = `${SESSION_E2EE_KEY_PREFIX}ssssKey`;
 
@@ -67,7 +67,7 @@ export async function removeKey(txn: Transaction): Promise<void> {
     txn.session.remove(SSSS_KEY);
 }
 
-export async function keyFromCredential(type: KeyType, credential: string, storage: Storage, platform: Platform, olm: Olm): Promise<Key> {
+export async function keyFromCredential(type: KeyType, credential: string, storage: Storage, platform: Platform, olm: typeof Olm): Promise<Key> {
     const keyDescription = await readDefaultKeyDescription(storage);
     if (!keyDescription) {
         throw new Error("Could not find a default secret storage key in account data");
@@ -75,7 +75,7 @@ export async function keyFromCredential(type: KeyType, credential: string, stora
     return await keyFromCredentialAndDescription(type, credential, keyDescription, platform, olm);
 }
 
-export async function keyFromCredentialAndDescription(type: KeyType, credential: string, keyDescription: KeyDescription, platform: Platform, olm: Olm): Promise<Key> {
+export async function keyFromCredentialAndDescription(type: KeyType, credential: string, keyDescription: KeyDescription, platform: Platform, olm: typeof Olm): Promise<Key> {
     let key: Key;
     if (type === KeyType.Passphrase) {
         key = await keyFromPassphrase(keyDescription, credential, platform);
