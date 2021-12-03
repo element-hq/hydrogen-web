@@ -51,6 +51,7 @@ export interface ILogItem {
     catch(err: Error): Error;
     serialize(filter: LogFilter, parentStartTime: number | undefined, forced: boolean): ISerializedItem | undefined;
     finish(): void;
+    child(labelOrValues: LabelOrValues, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem;
 }
 
 export interface ILogger {

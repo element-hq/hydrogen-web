@@ -21,7 +21,7 @@ import type {IHomeServerRequest} from "./HomeServerRequest";
 import type {Reconnector} from "./Reconnector";
 import type {EncodedBody} from "./common";
 import type {IRequestOptions, RequestFunction} from "../../platform/types/types";
-import type {LogItem} from "../../logging/LogItem";
+import type {ILogItem} from "../../logging/types";
 
 type RequestMethod = "POST" | "GET" | "PUT";
 
@@ -57,7 +57,7 @@ export class HomeServerApi {
     private _baseRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: IRequestOptions, accessToken?: string): IHomeServerRequest {
         const queryString = encodeQueryParams(queryParams);
         url = `${url}?${queryString}`;
-        let log: LogItem | undefined;
+        let log: ILogItem | undefined;
         if (options?.log) {
             const parent = options?.log;
             log = parent.child({
