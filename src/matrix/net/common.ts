@@ -22,7 +22,7 @@ export type EncodedBody = {
     body: BlobHandle | string;
 }
 
-export function encodeQueryParams(queryParams?: Record<string, any>): string {
+export function encodeQueryParams(queryParams?: object): string {
     return Object.entries(queryParams || {})
         .filter(([, value]) => value !== undefined)
         .map(([name, value]) => {
@@ -34,7 +34,7 @@ export function encodeQueryParams(queryParams?: Record<string, any>): string {
         .join("&");
 }
 
-export function encodeBody(body: BlobHandle | Record<string, any>): EncodedBody {
+export function encodeBody(body: BlobHandle | object): EncodedBody {
     if (body instanceof BlobHandle) {
         const blob = body as BlobHandle;
         return {
