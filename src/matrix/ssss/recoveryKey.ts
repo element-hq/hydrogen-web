@@ -16,7 +16,8 @@ limitations under the License.
 import {Key} from "./common";
 import {KeyDescription} from "./common";
 import type {Platform} from "../../platform/web/Platform.js";
-import type * as Olm from "@matrix-org/olm"
+import type * as OlmNamespace from "@matrix-org/olm";
+type Olm = typeof OlmNamespace;
 
 const OLM_RECOVERY_KEY_PREFIX = [0x8B, 0x01] as const;
 
