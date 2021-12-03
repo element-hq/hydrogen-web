@@ -58,6 +58,7 @@
     "@rollup/plugin-commonjs": "^15.0.0",
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^9.0.0",
+    "@types/assert": "^1.5.6",
     "aes-js": "^3.1.2",
     "another-json": "^0.2.0",
     "base64-arraybuffer": "^0.2.0",
