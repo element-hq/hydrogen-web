@@ -89,8 +89,8 @@ export function tests() {
     }
 
     const assertList = function (assert, rooms, gotList, wantListRoomIds) {
+        assert.equal(wantListRoomIds.length, gotList.length);
         if (wantListRoomIds.length === 0) {
-            assert.equal(gotList.length, 0);
             for (const room of gotList) {
                 assert.equal(0, 1); // fail
             }
@@ -100,7 +100,7 @@ export function tests() {
         for (const room of gotList) {
             const wantRoomId = wantListRoomIds[i];
             const gotRoomId = room ? room.id : null;
-            assert.equal(wantRoomId, gotRoomId);
+            assert.strictEqual(wantRoomId, gotRoomId);
             if (wantRoomId !== null && gotRoomId !== null) {
                 assert.deepEqual(room, rooms.get(wantRoomId));
             }
