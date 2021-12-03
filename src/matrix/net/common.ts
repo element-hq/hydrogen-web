@@ -20,7 +20,6 @@ import {BlobHandle} from "../../platform/web/dom/BlobHandle.js";
 export type EncodedBody = {
     mimeType: string;
     body: BlobHandle | string;
-    length: number;
 }
 
 export function encodeQueryParams(queryParams?: Record<string, any>): string {
@@ -40,15 +39,13 @@ export function encodeBody(body: BlobHandle | Record<string, any>): EncodedBody 
         const blob = body as BlobHandle;
         return {
             mimeType: blob.mimeType,
-            body: blob, // will be unwrapped in request fn
-            length: blob.size
+            body: blob // will be unwrapped in request fn
         };
     } else if (typeof body === "object") {
         const json = JSON.stringify(body);
         return {
             mimeType: "application/json",
-            body: json,
-            length: json.length
+            body: json
         }
     } else {
         throw new Error("Unknown body type: " + body);
