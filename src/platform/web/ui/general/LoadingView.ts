@@ -1,6 +1,5 @@
 /*
-Copyright 2020 Bruno Windels <bruno@windels.cloud>
-Copyright 2020 The Matrix.org Foundation C.I.C.
+Copyright 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,25 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {tag} from "../general/html";
+import {TemplateView} from "./TemplateView";
+import {spinner} from "../common.js";
 
-export class StaticView {
-    constructor(value, render = undefined) {
-        if (typeof value === "function" && !render) {
-            render = value;
-            value = null;
-        }
-        this._root = render ? render(tag, value) : this.render(tag, value);
+export class LoadingView <T> extends TemplateView <T> {
+    className:string;
+    render(t) {
+        return t.div({ className: "LoadingView" }, [spinner(t), "Loading"]);
     }
-
-    mount() {
-        return this._root;
-    }
-
-    root() {
-        return this._root;
-    }
-
-    unmount() {}
-    update() {}
 }

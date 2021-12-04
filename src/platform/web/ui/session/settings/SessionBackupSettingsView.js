@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../general/TemplateView";
-import {StaticView} from "../../general/StaticView.js";
+import {StaticView} from "../../general/StaticView.ts";
 
 export class SessionBackupSettingsView extends TemplateView {
     render(t, vm) {

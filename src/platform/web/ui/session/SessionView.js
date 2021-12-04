@@ -21,7 +21,7 @@ import {UnknownRoomView} from "./room/UnknownRoomView.js";
 import {InviteView} from "./room/InviteView.js";
 import {LightboxView} from "./room/LightboxView.js";
 import {TemplateView} from "../general/TemplateView";
-import {StaticView} from "../general/StaticView.js";
+import {StaticView} from "../general/StaticView.ts";
 import {SessionStatusView} from "./SessionStatusView.js";
 import {RoomGridView} from "./RoomGridView.js";
 import {SettingsView} from "./settings/SettingsView.js";
