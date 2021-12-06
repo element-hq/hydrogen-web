@@ -135,6 +135,33 @@ export class Sync3 {
         this.totalRooms = 0;
     }
 
+    loadRange(start, end) {
+        let range = [start, end];
+        if (end < this.ranges[0][1]) {
+            // asked to load a range we are already loading, ignore
+            // E.g [0-20] and [5-15]
+            return;
+        }
+        // Somewhat elaborate bounds checking:
+        // - Ensure we start above the first range, bumping the start index if necessary.
+        // - Ensure bumping the start didn't cause overlap on ranges, bumping the end if necessary.
+        if (start < this.ranges[0][1]) {
+            // overlapping range e.g 0-20 and 15-30, so bump up this range to one above the first range
+            start = this.ranges[0][1] + 1;
+        }
+        if (start >= end) { // E.g [20,20] or [25,20]
+            end += 1;
+        }
+        if (this.ranges.length === 1) {
+            this.ranges.push([]);
+        }
+        this.ranges[1][0] = start;
+        this.ranges[1][1] = end;
+        console.log("new ranges: ", JSON.stringify(this.ranges), this.roomIndexToRoomId);
+        // interrupt the sync request to send up the new ranges
+        this.currentRequest?.abort();
+    }
+
     // Start syncing. Probably call this at startup once you have an access_token.
     // If we're already syncing, this does nothing.
     start(): void {

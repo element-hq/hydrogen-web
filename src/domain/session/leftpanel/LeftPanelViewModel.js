@@ -30,6 +30,7 @@ export class LeftPanelViewModel extends ViewModel {
     constructor(options) {
         super(options);
         const {rooms, invites, compareFn, sync} = options;
+        this._sync = sync;
         const sync3List = new Sync3ObservableList(sync, rooms);
         const list = new ConcatList(invites.sortValues((a,b) => a.compare(b)), sync3List);
         this._tileViewModelsMap = this._mapTileViewModels(list);
@@ -151,8 +152,7 @@ export class LeftPanelViewModel extends ViewModel {
         }
     }
 
-    // TODO: used in sync v3
     loadRoomRange(range) {
-
+        this._sync.loadRange(range.start, range.end);
     }
 }
