@@ -178,11 +178,6 @@ export class Sync3 {
     }
 
     // TODO REMOVE
-    includeRoom(roomId: string): boolean {
-        return this.roomIdToRoomIndex[roomId] !== undefined;
-    }
-
-    // TODO REMOVE
     compare(roomIdA: string, roomIdB: string): number {
         if (roomIdA === roomIdB) {
             return 0;

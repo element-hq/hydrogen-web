@@ -37,6 +37,7 @@ export class PlaceholderRoomTileViewModel extends BaseTileViewModel {
 
     compare(other) {
         // TODO: factor this out with the compare(other) of the room tile as it does this check as well.
+        // TODO _room is null
         if (other._room.index !== undefined) {
             return this._room.index > other._room.index ? 1 : -1;
         }
@@ -44,7 +45,7 @@ export class PlaceholderRoomTileViewModel extends BaseTileViewModel {
     }
 
     get name() {
-        return "Placeholder " + this._room.index;
+        return "Placeholder";
     }
 
     get avatarLetter() {

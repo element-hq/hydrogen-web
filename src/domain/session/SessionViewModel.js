@@ -40,8 +40,8 @@ export class SessionViewModel extends ViewModel {
         this._leftPanelViewModel = this.track(new LeftPanelViewModel(this.childOptions({
             invites: this._sessionContainer.session.invites,
             rooms: this._sessionContainer.session.rooms,
+            sync: this._sessionContainer.sync,
             compareFn: this._sessionContainer.sync.compare.bind(this._sessionContainer.sync),
-            includeRoomFn: this._sessionContainer.sync.includeRoom.bind(this._sessionContainer.sync),
         })));
         this._settingsViewModel = null;
         this._roomViewModelObservable = null;

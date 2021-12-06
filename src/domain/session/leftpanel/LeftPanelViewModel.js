@@ -19,7 +19,9 @@ import {ViewModel} from "../../ViewModel.js";
 import {RoomTileViewModel} from "./RoomTileViewModel.js";
 import {InviteTileViewModel} from "./InviteTileViewModel.js";
 import {RoomFilter} from "./RoomFilter.js";
+import { ConcatList, MappedList } from "../../../observable/index.js";
 import {FilteredMap} from "../../../observable/map/FilteredMap.js";
+import {Sync3ObservableList} from "../../../matrix/Sync3ObservableList";
 import {ApplyMap} from "../../../observable/map/ApplyMap.js";
 import {addPanelIfNeeded} from "../../navigation/index.js";
 import { PlaceholderRoomTileViewModel } from "./PlaceholderRoomTileViewModel.js";
@@ -27,14 +29,13 @@ import { PlaceholderRoomTileViewModel } from "./PlaceholderRoomTileViewModel.js"
 export class LeftPanelViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {rooms, invites, compareFn, includeRoomFn} = options;
-        this._tileViewModelsMap = this._mapTileViewModels(rooms, invites);
-        this._tileViewModelsSlidingWindow = new FilteredMap(this._tileViewModelsMap, (r, roomId) => {
-            const include = includeRoomFn(roomId);
-            return include;
-        });
-        this._tileViewModelsFilterMap = new ApplyMap(this._tileViewModelsSlidingWindow);
-        this._tileViewModels = this._tileViewModelsFilterMap.sortValues((a, b) => a.compare(b));
+        const {rooms, invites, compareFn, sync} = options;
+        const sync3List = new Sync3ObservableList(sync, rooms);
+        const list = new ConcatList(invites.sortValues((a,b) => a.compare(b)), sync3List);
+        this._tileViewModelsMap = this._mapTileViewModels(list);
+        this._tileViewModelsFilterMap = new ApplyMap(this._tileViewModelsMap);
+        console.log(this._tileViewModelsMap);
+        this._tileViewModels = this._tileViewModelsFilterMap;//.sortValues((a, b) => a.compare(b));
         this._currentTileVM = null;
         this._setupNavigation();
         this._closeUrl = this.urlCreator.urlForSegment("session");
@@ -42,14 +43,13 @@ export class LeftPanelViewModel extends ViewModel {
         this._compareFn = compareFn;
     }
 
-    _mapTileViewModels(rooms, invites) {
-        // join is not commutative, invites will take precedence over rooms
-        return invites.join(rooms).mapValues((roomOrInvite, emitChange) => {
+    _mapTileViewModels(list) {
+        return new MappedList(list, (roomOrInvite, emitChange) => {
             let vm;
-            if (roomOrInvite.isInvite) {
+            if (roomOrInvite === null) {
+                vm = new PlaceholderRoomTileViewModel(this.childOptions({room: null, emitChange}));
+            } else if (roomOrInvite.isInvite) {
                 vm = new InviteTileViewModel(this.childOptions({invite: roomOrInvite, emitChange}));
-            } else if (roomOrInvite.isPlaceholder) {
-                vm = new PlaceholderRoomTileViewModel(this.childOptions({room: roomOrInvite, emitChange}));
             } else {
                 vm = new RoomTileViewModel(this.childOptions({
                     room: roomOrInvite,
@@ -57,10 +57,12 @@ export class LeftPanelViewModel extends ViewModel {
                     emitChange,
                 }));
             }
-            const isOpen = this.navigation.path.get("room")?.value === roomOrInvite.id;
-            if (isOpen) {
-                vm.open();
-                this._updateCurrentVM(vm);
+            if (roomOrInvite) {
+                const isOpen = this.navigation.path.get("room")?.value === roomOrInvite.id;
+                if (isOpen) {
+                    vm.open();
+                    this._updateCurrentVM(vm);
+                }
             }
             return vm;
         });
