@@ -33,9 +33,7 @@ export class LeftPanelViewModel extends ViewModel {
         const sync3List = new Sync3ObservableList(sync, rooms);
         const list = new ConcatList(invites.sortValues((a,b) => a.compare(b)), sync3List);
         this._tileViewModelsMap = this._mapTileViewModels(list);
-        this._tileViewModelsFilterMap = new ApplyMap(this._tileViewModelsMap);
-        console.log(this._tileViewModelsMap);
-        this._tileViewModels = this._tileViewModelsFilterMap;//.sortValues((a, b) => a.compare(b));
+        this._tileViewModels = this._tileViewModelsMap;
         this._currentTileVM = null;
         this._setupNavigation();
         this._closeUrl = this.urlCreator.urlForSegment("session");
