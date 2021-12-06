@@ -17,9 +17,9 @@ limitations under the License.
 
 import {tag} from "./html";
 
-export class StaticView {
+export class StaticView <T> {
     private _root?: Element;
-    render: any;
+    render: (tag, T) => Element;
     constructor(value:any , render : any = undefined) {
         if (typeof value === "function" && !render) {
             render = value;

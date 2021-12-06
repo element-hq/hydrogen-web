@@ -17,8 +17,7 @@ limitations under the License.
 import {TemplateView} from "./TemplateView";
 import {spinner} from "../common.js";
 
-export class LoadingView <T> extends TemplateView <T> {
-    className:string;
+export class LoadingView extends TemplateView <any> {
     render(t) {
         return t.div({ className: "LoadingView" }, [spinner(t), "Loading"]);
     }
