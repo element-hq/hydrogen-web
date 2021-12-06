@@ -224,7 +224,7 @@ export class Timeline {
     }
 
     /** @package */
-    replaceEntries(entries) {
+     replaceEntries(entries) {
         this._addLocalRelationsToNewRemoteEntries(entries);
         for (const entry of entries) {
             try {
@@ -366,7 +366,7 @@ export class Timeline {
         }
         return eventEntry;
     }
-    
+
     // tries to prepend `amount` entries to the `entries` list.
     /**
      * [loadAtTop description]
