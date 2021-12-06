@@ -128,6 +128,10 @@ export class HomeServerApi {
         return this._get("/sync", {since, timeout, filter}, undefined, options);
     }
 
+    event(roomId, eventId) {
+        return this._get(`/rooms/${encodeURIComponent(roomId)}/event/${encodeURIComponent(eventId)}`);
+    }
+
     // params is from, dir and optionally to, limit, filter.
     messages(roomId: string, params: Record<string, any>, options?: IRequestOptions): IHomeServerRequest {
         return this._get(`/rooms/${encodeURIComponent(roomId)}/messages`, params, undefined, options);
