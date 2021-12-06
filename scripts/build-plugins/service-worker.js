@@ -22,19 +22,17 @@ module.exports = function injectServiceWorker(swFile) {
         },
         generateBundle: async function(_, bundle) {
             const absoluteSwFile = path.resolve(root, swFile);
-            const packageManifest = path.resolve(path.join(__dirname, "../../package.json"));
             let swSource = await fs.readFile(absoluteSwFile, {encoding: "utf8"});
-            const assets = Object.values(bundle).filter(a => a.type === "asset");
-            const cachedFileNames = assets.map(o => o.fileName).filter(fileName => fileName !== "index.html");
-            const r = Object.entries(bundle).find(([key, asset]) => key.includes("index.html"));
-            const index = assets.find(o => o.fileName === "index.html");
+            const index = bundle["index.html"];
             if (!index) {
-                console.log("index not found", index, r);
+                console.log("index not found", index);
             }
             const uncachedFileContentMap = {
                 "index.html": index.source,
                 "sw.js": swSource
             };
+            const assets = Object.values(bundle);
+            const cachedFileNames = assets.map(o => o.fileName).filter(fileName => fileName !== "index.html");
             const globalHash = getBuildHash(cachedFileNames, uncachedFileContentMap);
             swSource = await buildServiceWorker(swSource, version, globalHash, assets);
             const outputName = path.basename(absoluteSwFile);
