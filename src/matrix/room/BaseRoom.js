@@ -501,7 +501,9 @@ export class BaseRoom extends EventEmitter {
                 },
                 clock: this._platform.clock,
                 logger: this._platform.logger,
-                powerLevelsObservable: await this.observePowerLevels()
+                powerLevelsObservable: await this.observePowerLevels(),
+                fetchEventFromStorage: eventId => this._readEventById(eventId),
+                fetchEventFromHomeserver: eventId => this._getEventFromHomeserver(eventId)
             });
             try {
                 if (this._roomEncryption) {
@@ -557,6 +559,12 @@ export class BaseRoom extends EventEmitter {
             }
             return entry;
         }
+    }
+
+    async _getEventFromHomeserver(eventId) {
+        const response = await this._hsApi.event(this._roomId, eventId).response();
+        const entry = new EventEntry({ event: response }, this._fragmentIdComparer);
+        return entry;
     }
 
 

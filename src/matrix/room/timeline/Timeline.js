@@ -25,8 +25,10 @@ import {getRelation, ANNOTATION_RELATION_TYPE} from "./relations.js";
 import {REDACTION_TYPE} from "../common.js";
 
 export class Timeline {
-    constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock, powerLevelsObservable}) {
+    constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock, powerLevelsObservable, fetchEventFromStorage, fetchEventFromHomeserver}) {
         this._roomId = roomId;
+        this._fetchEventFromStorage = fetchEventFromStorage;
+        this._fetchEventFromHomeserver = fetchEventFromHomeserver;
         this._storage = storage;
         this._closeCallback = closeCallback;
         this._fragmentIdComparer = fragmentIdComparer;
@@ -78,6 +80,7 @@ export class Timeline {
         const readerRequest = this._disposables.track(this._timelineReader.readFromEnd(20, txn, log));
         try {
             const entries = await readerRequest.complete();
+            await this._loadRelatedEvents(entries);
             this._setupEntries(entries);
         } finally {
             this._disposables.disposeTracked(readerRequest);
@@ -211,8 +214,9 @@ export class Timeline {
     }
 
     /** @package */
-    replaceEntries(entries) {
+     replaceEntries(entries) {
         this._addLocalRelationsToNewRemoteEntries(entries);
+        this._loadRelatedEvents(entries);
         for (const entry of entries) {
             try {
                 this._remoteEntries.getAndUpdate(entry, Timeline._entryUpdater);
@@ -236,7 +240,29 @@ export class Timeline {
     /** @package */
     addEntries(newEntries) {
         this._addLocalRelationsToNewRemoteEntries(newEntries);
+        this._loadRelatedEvents(newEntries);
         this._remoteEntries.setManySorted(newEntries);
+    }
+
+    async _loadRelatedEvents(entries) {
+        const filteredEntries = entries.filter(e => !!e.relation);
+        for (const entry of filteredEntries) {
+            const id = entry.relatedEventId;
+            let relatedEvent;
+            // find in remote events
+            relatedEvent = this.getByEventId(id);
+            // find in storage
+            if (!relatedEvent) {
+                relatedEvent = await this._fetchEventFromStorage(id);
+            }
+            // fetch from hs
+            if (!relatedEvent) {
+                relatedEvent = await this._fetchEventFromHomeserver(id);
+            }
+            if (relatedEvent) {
+                entry.setRelatedEntry(relatedEvent);
+            }
+        }
     }
     
     // tries to prepend `amount` entries to the `entries` list.

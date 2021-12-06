@@ -110,6 +110,10 @@ export class HomeServerApi {
         return this._get("/sync", {since, timeout, filter}, null, options);
     }
 
+    event(roomId, eventId) {
+        return this._get(`/rooms/${encodeURIComponent(roomId)}/event/${encodeURIComponent(eventId)}`);
+    }
+
     // params is from, dir and optionally to, limit, filter.
     messages(roomId, params, options = null) {
         return this._get(`/rooms/${encodeURIComponent(roomId)}/messages`, params, null, options);

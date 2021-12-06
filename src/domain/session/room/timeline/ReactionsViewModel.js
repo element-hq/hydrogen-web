@@ -254,8 +254,16 @@ export function tests() {
             // 2. setup queue & timeline
             const queue = new SendQueue({roomId, storage, hsApi: new MockHomeServer().api});
             const powerLevelsObservable = new ObservableValue(new PowerLevels({ ownUserId: alice, membership: "join" }));
-            const timeline = new Timeline({roomId, storage, fragmentIdComparer,
-                clock: new MockClock(), pendingEvents: queue.pendingEvents, powerLevelsObservable});
+            const timeline = new Timeline({
+                roomId,
+                storage,
+                fragmentIdComparer,
+                clock: new MockClock(),
+                pendingEvents: queue.pendingEvents,
+                powerLevelsObservable,
+                fetchEventFromHomeserver: () => {},
+                fetchEventFromStorage: () => {}
+            });
             // 3. load the timeline, which will load the message with the reaction
             await timeline.load(new User(alice), "join", new NullLogItem());
             const tiles = mapMessageEntriesToBaseMessageTile(timeline, queue);
