@@ -17,12 +17,14 @@ limitations under the License.
 import * as assert from "assert";
 import { BaseObservableList } from "../observable/list/BaseObservableList";
 import { ObservableMap } from "../observable/map/ObservableMap.js";
+import { SubscriptionHandle } from "../observable/BaseObservable";
 import { Room } from "./room/Room.js";
 
 // subset of Sync3 functions used in this list; interfaced out for testing
 interface ISync {
     count(): number;
     roomAtIndex(i: number): string
+    indexOfRoom(roomId: string): number
 }
 
 /**
@@ -31,6 +33,7 @@ interface ISync {
 export class Sync3ObservableList extends BaseObservableList<Room | null> {
     sync: ISync;
     rooms: ObservableMap;
+    subscription: SubscriptionHandle | null;
 
     /**
      * Construct an observable list that produces Rooms within the sliding window of Sync3 responses
@@ -41,7 +44,38 @@ export class Sync3ObservableList extends BaseObservableList<Room | null> {
     constructor(sync3: ISync, rooms: ObservableMap) {
         super();
         this.sync = sync3;
+        this.subscription = null;
         this.rooms = rooms;
+    }
+
+    onSubscribeFirst() {
+        this.subscription = this.rooms.subscribe(this);
+    }
+
+    onUnsubscribeLast() {
+        if (!this.subscription) {
+            return;
+        }
+        this.subscription();
+        this.subscription = null;
+    }
+
+    onAdd(index, entry) {
+        let i = this.sync.indexOfRoom(entry.id);
+        this.emitUpdate(i, entry); // we always emit updates as we have num_joined_rooms entries (placeholders)
+    }
+
+    onUpdate(index, entry, params) {
+        let i = this.sync.indexOfRoom(entry.id);
+        if (i === -1) {
+            return;
+        }
+        this.emitUpdate(i, entry); // we always emit updates as we have num_joined_rooms entries (placeholders)
+    }
+
+    onRemove(index, entry) {
+        let i = this.sync.indexOfRoom(entry.id);
+        this.emitUpdate(i, entry); // we always emit updates as we have num_joined_rooms entries (placeholders)
     }
 
     get length(): number {
@@ -120,6 +154,15 @@ export function tests() {
                 roomAtIndex: (i: number): string => {
                     return indexToRoomId[i];
                 },
+                indexOfRoom(roomId: string): number {
+                    for (let i of Object.keys(indexToRoomId)) {
+                        let r = indexToRoomId[i];
+                        if (r === roomId) {
+                            return Number(i);
+                        }
+                    }
+                    return -1;
+                }
             };
 
             makeRooms(100).forEach((r) => {

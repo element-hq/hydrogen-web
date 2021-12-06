@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableList, IListObserver} from "./BaseObservableList";
+import { BaseObservableList, IListObserver } from "./BaseObservableList";
 
 export class ConcatList<T> extends BaseObservableList<T> implements IListObserver<T> {
     protected _sourceLists: BaseObservableList<T>[];
@@ -50,7 +50,7 @@ export class ConcatList<T> extends BaseObservableList<T> implements IListObserve
         // reset, and 
         this.emitReset();
         let idx = 0;
-        for(const item of this) {
+        for (const item of this) {
             this.emitAdd(idx, item);
             idx += 1;
         }
@@ -106,8 +106,8 @@ export class ConcatList<T> extends BaseObservableList<T> implements IListObserve
     }
 }
 
-import {ObservableArray} from "./ObservableArray";
-import {defaultObserverWith} from "./BaseObservableList";
+import { ObservableArray } from "./ObservableArray";
+import { defaultObserverWith } from "./BaseObservableList";
 export async function tests() {
     return {
         test_length(assert) {

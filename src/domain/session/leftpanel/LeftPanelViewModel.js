@@ -43,7 +43,7 @@ export class LeftPanelViewModel extends ViewModel {
     }
 
     _mapTileViewModels(list) {
-        return new MappedList(list, (roomOrInvite, emitChange) => {
+        const mapper = (roomOrInvite, emitChange) => {
             let vm;
             if (roomOrInvite === null) {
                 vm = new PlaceholderRoomTileViewModel(this.childOptions({room: null, emitChange}));
@@ -64,7 +64,11 @@ export class LeftPanelViewModel extends ViewModel {
                 }
             }
             return vm;
-        });
+        };
+        const updater = (tileViewModel, noIdea, roomOrInvite) => {
+            return mapper(roomOrInvite);
+        }
+        return new MappedList(list, mapper, updater);
     }
 
     _updateCurrentVM(vm) {

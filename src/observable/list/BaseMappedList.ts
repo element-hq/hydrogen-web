@@ -15,21 +15,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableList} from "./BaseObservableList";
-import {findAndUpdateInArray} from "./common";
+import { BaseObservableList } from "./BaseObservableList";
+import { findAndUpdateInArray } from "./common";
 
-export type Mapper<F,T> = (value: F) => T
-export type Updater<F,T> = (mappedValue: T, params: any, value: F) => void;
+export type Mapper<F, T> = (value: F) => T
+export type Updater<F, T> = (mappedValue: T, params: any, value: F) => void;
 
-export class BaseMappedList<F,T,R = T> extends BaseObservableList<T> {
+export class BaseMappedList<F, T, R = T> extends BaseObservableList<T> {
     protected _sourceList: BaseObservableList<F>;
     protected _sourceUnsubscribe: (() => void) | null = null;
-    _mapper: Mapper<F,R>;
-    _updater?: Updater<F,T>;
+    _mapper: Mapper<F, R>;
+    _updater?: Updater<F, T>;
     _removeCallback?: (value: T) => void;
     _mappedValues: T[] | null = null;
 
-    constructor(sourceList: BaseObservableList<F>, mapper: Mapper<F,R>, updater?: Updater<F,T>, removeCallback?: (value: T) => void) {
+    constructor(sourceList: BaseObservableList<F>, mapper: Mapper<F, R>, updater?: Updater<F, T>, removeCallback?: (value: T) => void) {
         super();
         this._sourceList = sourceList;
         this._mapper = mapper;
@@ -50,12 +50,12 @@ export class BaseMappedList<F,T,R = T> extends BaseObservableList<T> {
     }
 }
 
-export function runAdd<F,T,R>(list: BaseMappedList<F,T,R>, index: number, mappedValue: T): void {
+export function runAdd<F, T, R>(list: BaseMappedList<F, T, R>, index: number, mappedValue: T): void {
     list._mappedValues!.splice(index, 0, mappedValue);
     list.emitAdd(index, mappedValue);
 }
 
-export function runUpdate<F,T,R>(list: BaseMappedList<F,T,R>, index: number, value: F, params: any): void {
+export function runUpdate<F, T, R>(list: BaseMappedList<F, T, R>, index: number, value: F, params: any): void {
     const mappedValue = list._mappedValues![index];
     if (list._updater) {
         list._updater(mappedValue, params, value);
@@ -63,7 +63,7 @@ export function runUpdate<F,T,R>(list: BaseMappedList<F,T,R>, index: number, val
     list.emitUpdate(index, mappedValue, params);
 }
 
-export function runRemove<F,T,R>(list: BaseMappedList<F,T,R>, index: number): void {
+export function runRemove<F, T, R>(list: BaseMappedList<F, T, R>, index: number): void {
     const mappedValue = list._mappedValues![index];
     list._mappedValues!.splice(index, 1);
     if (list._removeCallback) {
@@ -72,14 +72,14 @@ export function runRemove<F,T,R>(list: BaseMappedList<F,T,R>, index: number): vo
     list.emitRemove(index, mappedValue);
 }
 
-export function runMove<F,T,R>(list: BaseMappedList<F,T,R>, fromIdx: number, toIdx: number): void {
+export function runMove<F, T, R>(list: BaseMappedList<F, T, R>, fromIdx: number, toIdx: number): void {
     const mappedValue = list._mappedValues![fromIdx];
     list._mappedValues!.splice(fromIdx, 1);
     list._mappedValues!.splice(toIdx, 0, mappedValue);
     list.emitMove(fromIdx, toIdx, mappedValue);
 }
 
-export function runReset<F,T,R>(list: BaseMappedList<F,T,R>): void {
+export function runReset<F, T, R>(list: BaseMappedList<F, T, R>): void {
     list._mappedValues = [];
     list.emitReset();
 }
