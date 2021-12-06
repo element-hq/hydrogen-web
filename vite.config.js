@@ -20,6 +20,7 @@ let polyfillRef;
 export default {
     public: false,
     root: "src/platform/web",
+    base: "./",
     server: {
         hmr: false
     },

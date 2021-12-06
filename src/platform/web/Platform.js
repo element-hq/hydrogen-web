@@ -80,8 +80,16 @@ function relPath(path, basePath) {
 async function loadOlmWorker(config) {
     const workerPool = new WorkerPool(config.worker, 4);
     await workerPool.init();
-    const path = relPath(config.olm.legacyBundle, config.worker);
-    await workerPool.sendAll({type: "load_olm", path});
+    let olmPath = config.olm.legacyBundle;
+    // convert olm path to absolute path
+    if (!olmPath.startsWith("/")) {
+        olmPath = new URL(olmPath, document.location.href).pathname;
+        console.log("olmPath", config.olm.legacyBundle, olmPath);
+    }
+    await workerPool.sendAll({
+        type: "load_olm",
+        path: olmPath
+    });
     const olmWorker = new OlmWorker(workerPool);
     return olmWorker;
 }
