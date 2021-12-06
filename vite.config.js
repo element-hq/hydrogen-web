@@ -47,6 +47,8 @@ export default {
         // }, "hydrogen-legacy", [
         //     './legacy-polyfill',
         // ]),
+        // important this comes before service worker
+        // otherwise the manifest and the icons it refers to won't be cached
         injectWebManifest("assets/manifest.json"),
         injectServiceWorker("sw.js"),
     ],

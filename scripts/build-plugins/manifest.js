@@ -32,7 +32,10 @@ module.exports = function injectWebManifest(manifestFile) {
                     name: path.basename(iconFileName),
                     source: imgData
                 });
-                icon.src = this.getFileName(ref);
+                // we take the basename as getFileName gives the filename
+                // relative to the output dir, but the manifest is an asset
+                // just like they icon, so we assume they end up in the same dir
+                icon.src = path.basename(this.getFileName(ref));
             }
             const outputName = path.basename(absoluteManifestFile);
             const manifestRef = this.emitFile({
