@@ -67,28 +67,21 @@ async function loadOlm(olmPaths) {
     }
     return null;
 }
-
-// make path relative to basePath,
-// assuming it and basePath are relative to document
-function relPath(path, basePath) {
-    const idx = basePath.lastIndexOf("/");
-    const dir = idx === -1 ? "" : basePath.slice(0, idx);
-    const dirCount = dir.length ? dir.split("/").length : 0;
-    return "../".repeat(dirCount) + path;
+// turn asset path to absolute path if it isn't already
+// so it can be loaded independent of base
+function assetAbsPath(assetPath) {
+    if (!assetPath.startsWith("/")) {
+        return new URL(assetPath, document.location.href).pathname;
+    }
+    return assetPath;
 }
 
 async function loadOlmWorker(config) {
     const workerPool = new WorkerPool(config.worker, 4);
     await workerPool.init();
-    let olmPath = config.olm.legacyBundle;
-    // convert olm path to absolute path
-    if (!olmPath.startsWith("/")) {
-        olmPath = new URL(olmPath, document.location.href).pathname;
-        console.log("olmPath", config.olm.legacyBundle, olmPath);
-    }
     await workerPool.sendAll({
         type: "load_olm",
-        path: olmPath
+        path: assetAbsPath(config.olm.legacyBundle)
     });
     const olmWorker = new OlmWorker(workerPool);
     return olmWorker;
