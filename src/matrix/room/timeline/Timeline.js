@@ -245,9 +245,9 @@ export class Timeline {
     }
 
     async _loadRelatedEvents(entries) {
-        const filteredEntries = entries.filter(e => !!e.relation);
+        const filteredEntries = entries.filter(e => !!e.contextEventId);
         for (const entry of filteredEntries) {
-            const id = entry.relatedEventId;
+            const id = entry.contextEventId;
             let contextEvent;
             // find in remote events
             contextEvent = this.getByEventId(id);
