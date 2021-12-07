@@ -23,6 +23,7 @@ import { IView } from "./types";
 export interface IOptions<T, V> extends IParentOptions<T, V> {
     itemHeight: number;
     overflowItems?: number;
+    shouldRecreateItem?: (value: any, oldValue: any) => boolean;
     onRangeVisible?: (range: ListRange) => void;
 }
 
@@ -33,15 +34,17 @@ export class LazyListView<T, V extends IView> extends ListView<T, V> {
     private overflowItems: number;
     private scrollContainer?: HTMLElement;
     private onRangeVisible?: (range: ListRange) => void;
+    private shouldRecreateItem?: (value: any, oldValue: any) => boolean;
 
     constructor(
-        { itemHeight, onRangeVisible, overflowItems = 20, ...options }: IOptions<T, V>,
+        { itemHeight, onRangeVisible, shouldRecreateItem, overflowItems = 20, ...options }: IOptions<T, V>,
         childCreator: (value: T) => V
     ) {
         super(options, childCreator);
         this.itemHeight = itemHeight;
         this.overflowItems = overflowItems;
-        this.onRangeVisible = onRangeVisible; // function(ItemRange)
+        this.onRangeVisible = onRangeVisible;
+        this.shouldRecreateItem = shouldRecreateItem;
     }
 
     handleEvent(e: Event) {
@@ -190,7 +193,11 @@ export class LazyListView<T, V extends IView> extends ListView<T, V> {
 
     onUpdate(i: number, value: T, params: any) {
         if (this.renderRange!.containsIndex(i)) {
-            this.updateChild(this.renderRange!.toLocalIndex(i), value, params);
+            if (this.shouldRecreateItem && this.shouldRecreateItem(value, params?.oldValue)) {
+                super.recreateItem(this.renderRange!.toLocalIndex(i), value);
+            } else {
+                this.updateChild(this.renderRange!.toLocalIndex(i), value, params);
+            }
         }
     }
 

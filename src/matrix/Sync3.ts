@@ -129,7 +129,7 @@ export class Sync3 {
         this.status = new ObservableValue(SyncStatus.Stopped);
         this.error = null;
         // Hydrogen only has 1 list currently (no DM section) so we only need 1 range
-        this.ranges = [[0, 4]];
+        this.ranges = [[0, 49]];
         this.roomIndexToRoomId = {};
         this.roomIdToRoomIndex = {};
         this.totalRooms = 0;

@@ -34,6 +34,10 @@ export class RoomTileViewModel extends BaseTileViewModel {
         return this._url;
     }
 
+    get id() {
+        return this._room.id;
+    }
+
     compare(other) {
         return this._compareFn(this._room.id, other._room.id);
         

@@ -19,6 +19,8 @@ import {TemplateView} from "../../general/TemplateView";
 import {RoomTileView} from "./RoomTileView.js";
 import {InviteTileView} from "./InviteTileView.js";
 import { PlaceholderRoomTileView } from "./PlaceholderRoomTileView";
+import { PlaceholderRoomTileViewModel } from "../../../../../domain/session/leftpanel/PlaceholderRoomTileViewModel";
+import { RoomTileViewModel } from "../../../../../domain/session/leftpanel/RoomTileViewModel";
 
 class FilterField extends TemplateView {
     render(t, options) {
@@ -67,6 +69,11 @@ export class LeftPanelView extends TemplateView {
                 onRangeVisible: (range) => {
                     vm.loadRoomRange(range);
                 },
+                shouldRecreateItem: (value, oldValue) => {
+                    const isOldRoom = oldValue instanceof RoomTileViewModel;
+                    const isNewRoom = value instanceof RoomTileViewModel;
+                    return isOldRoom != isNewRoom;
+                }
             },
             tileVM => {
                 if (tileVM.kind === "invite") {

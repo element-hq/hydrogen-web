@@ -19,7 +19,7 @@ import { BaseObservableList } from "./BaseObservableList";
 import { findAndUpdateInArray } from "./common";
 
 export type Mapper<F, T> = (value: F) => T
-export type Updater<F, T> = (mappedValue: T, params: any, value: F) => void;
+export type Updater<F, T> = (mappedValue: T, params: any, value: F) => any;
 
 export class BaseMappedList<F, T, R = T> extends BaseObservableList<T> {
     protected _sourceList: BaseObservableList<F>;
@@ -56,10 +56,21 @@ export function runAdd<F, T, R>(list: BaseMappedList<F, T, R>, index: number, ma
 }
 
 export function runUpdate<F, T, R>(list: BaseMappedList<F, T, R>, index: number, value: F, params: any): void {
-    const mappedValue = list._mappedValues![index];
+    let mappedValue = list._mappedValues![index];
     if (list._updater) {
-        list._updater(mappedValue, params, value);
+        // allow updates to completely remap the underlying data type
+        // TODO: do we need to unsubscribe from anything here?
+        let newMappedValue = list._updater(mappedValue, params, value);
+        if (newMappedValue) {
+            if (!params) {
+                params = {};
+            }
+            params.oldValue = mappedValue;
+            mappedValue = newMappedValue;
+            list._mappedValues![index] = mappedValue;
+        }
     }
+    // pass the new updated value down the chain
     list.emitUpdate(index, mappedValue, params);
 }
 

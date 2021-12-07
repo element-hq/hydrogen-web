@@ -33,8 +33,7 @@ export class LeftPanelViewModel extends ViewModel {
         this._sync = sync;
         const sync3List = new Sync3ObservableList(sync, rooms);
         const list = new ConcatList(invites.sortValues((a,b) => a.compare(b)), sync3List);
-        this._tileViewModelsMap = this._mapTileViewModels(list);
-        this._tileViewModels = this._tileViewModelsMap;
+        this._tileViewModels = this._mapTileViewModels(list);
         this._currentTileVM = null;
         this._setupNavigation();
         this._closeUrl = this.urlCreator.urlForSegment("session");
@@ -106,8 +105,21 @@ export class LeftPanelViewModel extends ViewModel {
         this._currentTileVM?.close();
         this._currentTileVM = null;
         if (roomId) {
-            this._currentTileVM = this._tileViewModelsMap.get(roomId);
-            this._currentTileVM?.open();
+            // find the vm for the room. Previously we used a map to do this but sync3 only gives
+            // us a list. We could've re-mapped things in the observable pipeline but we don't need
+            // these values to be kept up-to-date when a O(n) search on click isn't particularly
+            // expensive.
+            let targetVM;
+            for ( let vm of this._tileViewModels ) {
+                if (vm.id === roomId) {
+                    targetVM = vm;
+                    break;
+                }
+            }
+            if (targetVM) {
+                this._currentTileVM = targetVM;
+                this._currentTileVM?.open();
+            }
         }
     }
 
