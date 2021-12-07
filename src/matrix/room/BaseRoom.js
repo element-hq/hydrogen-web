@@ -571,7 +571,12 @@ export class BaseRoom extends EventEmitter {
             displayName: member.content.displayname,
             avatarUrl: member.content.avatar_url
         };
-        return new NonPersistedEventEntry(entry, this._fragmentIdComparer);
+        const eventEntry = new NonPersistedEventEntry(entry, this._fragmentIdComparer);
+        if (eventEntry.eventType === EVENT_ENCRYPTED_TYPE) {
+            const request = this._decryptEntries(DecryptionSource.Timeline, [eventEntry]);
+            await request.complete();
+        }
+        return eventEntry;
     }
 
 
