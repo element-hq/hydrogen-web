@@ -60,7 +60,7 @@ export class BaseTextTile extends BaseMessageTile {
     }
 
     get replyPreviewBody() {
-        const entry = this._entry.relatedEntry;
+        const entry = this._entry.contextEntry;
         if (!entry) {
             return {};
         }
@@ -71,7 +71,8 @@ export class BaseTextTile extends BaseMessageTile {
             sender: entry.displayName,
             avatar: {
                 colorNumber: getIdentifierColorNumber(entry.sender),
-                initial: avatarInitials(entry.displayName)
+                initial: avatarInitials(entry.displayName),
+                avatarUrl: entry.avatarUrl
             }
         };
     }
