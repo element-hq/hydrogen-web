@@ -17,7 +17,7 @@ limitations under the License.
 import {BaseMessageTile} from "./BaseMessageTile.js";
 import {stringAsBody} from "../MessageBody.js";
 import {createEnum} from "../../../../../utils/enum";
-import {avatarInitials, getIdentifierColorNumber} from "../../../../avatar.js";
+import {avatarInitials, getAvatarHttpUrl, getIdentifierColorNumber} from "../../../../avatar.js";
 
 export const BodyFormat = createEnum("Plain", "Html");
 
@@ -70,9 +70,9 @@ export class BaseTextTile extends BaseMessageTile {
             body: this._parseBody(body, format),
             sender: entry.displayName,
             avatar: {
-                colorNumber: getIdentifierColorNumber(entry.sender),
-                initial: avatarInitials(entry.displayName),
-                avatarUrl: entry.avatarUrl
+                avatarColorNumber: getIdentifierColorNumber(entry.sender),
+                avatarLetter: avatarInitials(entry.displayName),
+                avatarUrl: (size) => getAvatarHttpUrl(entry.avatarUrl, size, this.platform, this._mediaRepository)
             }
         };
     }
