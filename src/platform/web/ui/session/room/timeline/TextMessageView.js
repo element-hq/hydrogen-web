@@ -35,6 +35,18 @@ export class TextMessageView extends BaseMessageView {
             }
             container.appendChild(time);
         });
+        t.mapSideEffect(vm => vm.replyPreviewBody, ({ body, sender, avatar }) => {
+            if (!body) {
+                return;
+            }
+            const replyContainer = t.blockquote([
+                t.a({ className: "link", href: "#" }, "In reply to"),
+                t.a({ className: "pill", href: "#" }, [tag.div({class: `avatar size-12 usercolor${avatar.colorNumber}`}, text(avatar.initial)), sender]), t.br()]);
+            for (const part of body.parts) {
+                replyContainer.appendChild(renderPart(part));
+            }
+            container.insertBefore(replyContainer, container.firstChild);
+        });
         return container;
     }
 }
