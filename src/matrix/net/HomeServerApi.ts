@@ -128,8 +128,8 @@ export class HomeServerApi {
         return this._get("/sync", {since, timeout, filter}, undefined, options);
     }
 
-    event(roomId, eventId) {
-        return this._get(`/rooms/${encodeURIComponent(roomId)}/event/${encodeURIComponent(eventId)}`);
+    context(roomId: string, eventId: string, limit: number, filter: string): IHomeServerRequest {
+        return this._get(`/rooms/${encodeURIComponent(roomId)}/context/${encodeURIComponent(eventId)}`, {filter, limit});
     }
 
     // params is from, dir and optionally to, limit, filter.
