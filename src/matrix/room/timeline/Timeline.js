@@ -248,19 +248,19 @@ export class Timeline {
         const filteredEntries = entries.filter(e => !!e.relation);
         for (const entry of filteredEntries) {
             const id = entry.relatedEventId;
-            let relatedEvent;
+            let contextEvent;
             // find in remote events
-            relatedEvent = this.getByEventId(id);
+            contextEvent = this.getByEventId(id);
             // find in storage
-            if (!relatedEvent) {
-                relatedEvent = await this._fetchEventFromStorage(id);
+            if (!contextEvent) {
+                contextEvent = await this._fetchEventFromStorage(id);
             }
             // fetch from hs
-            if (!relatedEvent) {
-                relatedEvent = await this._fetchEventFromHomeserver(id);
+            if (!contextEvent) {
+                contextEvent = await this._fetchEventFromHomeserver(id);
             }
-            if (relatedEvent) {
-                entry.setRelatedEntry(relatedEvent);
+            if (contextEvent) {
+                entry.setContextEntry(contextEvent);
             }
         }
     }
