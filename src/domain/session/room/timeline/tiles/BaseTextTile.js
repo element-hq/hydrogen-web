@@ -17,6 +17,7 @@ limitations under the License.
 import {BaseMessageTile} from "./BaseMessageTile.js";
 import {stringAsBody} from "../MessageBody.js";
 import {createEnum} from "../../../../../utils/enum";
+import {avatarInitials, getIdentifierColorNumber} from "../../../../avatar.js";
 
 export const BodyFormat = createEnum("Plain", "Html");
 
@@ -54,6 +55,24 @@ export class BaseTextTile extends BaseMessageTile {
             this._messageBody = this._parseBody(body, format);
             this._format = format;
         }
+        // console.log("messageBody", this._messageBody);
         return this._messageBody;
+    }
+
+    get replyPreviewBody() {
+        const entry = this._entry.relatedEntry;
+        if (!entry) {
+            return {};
+        }
+        const format = entry.content.format === "org.matrix.custom.html" ? BodyFormat.Html : BodyFormat.Plain;
+        const body = entry.content["formatted_body"] ?? entry.content["body"];
+        return {
+            body: this._parseBody(body, format),
+            sender: entry.displayName,
+            avatar: {
+                colorNumber: getIdentifierColorNumber(entry.sender),
+                initial: avatarInitials(entry.displayName)
+            }
+        };
     }
 }
