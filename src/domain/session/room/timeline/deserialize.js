@@ -346,6 +346,10 @@ class Deserializer {
 }
 
 export function parseHTMLBody(platform, mediaRepository, allowReplies, html) {
+    if (allowReplies) {
+        // todo: might be better to remove mx-reply and children after parsing, need to think
+        html = html.replace(/<mx-reply>.+<\/mx-reply>/, "");
+    }
     const parseResult = platform.parseHTML(html);
     const deserializer = new Deserializer(parseResult, mediaRepository, allowReplies);
     const parts = deserializer.parseAnyNodes(parseResult.rootNodes);
