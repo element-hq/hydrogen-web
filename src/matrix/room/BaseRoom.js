@@ -30,6 +30,7 @@ import {DecryptionSource} from "../e2ee/common.js";
 import {ensureLogItem} from "../../logging/utils";
 import {PowerLevels} from "./PowerLevels.js";
 import {RetainedObservableValue} from "../../observable/ObservableValue";
+import {NonPersistedEventEntry} from "./timeline/entries/NonPersistedEventEntry";
 
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 
@@ -570,7 +571,7 @@ export class BaseRoom extends EventEmitter {
             displayName: member.content.displayname,
             avatarUrl: member.content.avatar_url
         };
-        return new EventEntry(entry, this._fragmentIdComparer);
+        return new NonPersistedEventEntry(entry, this._fragmentIdComparer);
     }
 
 
