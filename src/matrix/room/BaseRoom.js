@@ -562,9 +562,15 @@ export class BaseRoom extends EventEmitter {
     }
 
     async _getEventFromHomeserver(eventId) {
-        const response = await this._hsApi.event(this._roomId, eventId).response();
-        const entry = new EventEntry({ event: response }, this._fragmentIdComparer);
-        return entry;
+        const response = await this._hsApi.context(this._roomId, eventId, 0).response();
+        const sender = response.event.sender;
+        const member = response.state.find(e => e.type === "m.room.member" && e.user_id === sender);
+        const entry = {
+            event: response.event,
+            displayName: member.content.displayname,
+            avatarUrl: member.content.avatar_url
+        };
+        return new EventEntry(entry, this._fragmentIdComparer);
     }
 
 
