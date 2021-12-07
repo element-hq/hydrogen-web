@@ -24,7 +24,7 @@ export class EventEntry extends BaseEventEntry {
         this._eventEntry = eventEntry;
         this._decryptionError = null;
         this._decryptionResult = null;
-        this._relatedEntry = null;
+        this._contextEntry = null;
     }
 
     clone() {
@@ -42,8 +42,8 @@ export class EventEntry extends BaseEventEntry {
         }
     }
 
-    setRelatedEntry(entry) {
-        this._relatedEntry = entry;
+    setContextEntry(entry) {
+        this._contextEntry = entry;
     }
 
     get event() {
@@ -127,8 +127,8 @@ export class EventEntry extends BaseEventEntry {
         return getRelatedEventId(this.event);
     }
 
-    get relatedEntry() {
-        return this._relatedEntry;
+    get contextEntry() {
+        return this._contextEntry;
     }
 
     get isRedacted() {
