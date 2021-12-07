@@ -80,7 +80,7 @@ export class Timeline {
         const readerRequest = this._disposables.track(this._timelineReader.readFromEnd(20, txn, log));
         try {
             const entries = await readerRequest.complete();
-            await this._loadRelatedEvents(entries);
+            this._loadRelatedEvents(entries);
             this._setupEntries(entries);
         } finally {
             this._disposables.disposeTracked(readerRequest);
@@ -214,9 +214,9 @@ export class Timeline {
     }
 
     /** @package */
-    async replaceEntries(entries) {
+    replaceEntries(entries) {
         this._addLocalRelationsToNewRemoteEntries(entries);
-        await this._loadRelatedEvents(entries);
+        this._loadRelatedEvents(entries);
         for (const entry of entries) {
             try {
                 this._remoteEntries.getAndUpdate(entry, Timeline._entryUpdater);
@@ -238,9 +238,9 @@ export class Timeline {
     }
 
     /** @package */
-    async addEntries(newEntries) {
+    addEntries(newEntries) {
         this._addLocalRelationsToNewRemoteEntries(newEntries);
-        await this._loadRelatedEvents(newEntries);
+        this._loadRelatedEvents(newEntries);
         this._remoteEntries.setManySorted(newEntries);
     }
 
@@ -261,6 +261,8 @@ export class Timeline {
             }
             if (contextEvent) {
                 entry.setContextEntry(contextEvent);
+                // emit this change
+                this._remoteEntries.update(entry);
             }
         }
     }
