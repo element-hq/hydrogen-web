@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import { renderStaticAvatar } from "../../../avatar";
 import {tag, text} from "../../../general/html";
 import {BaseMessageView} from "./BaseMessageView.js";
 
@@ -39,9 +40,9 @@ export class TextMessageView extends BaseMessageView {
             if (!body) {
                 return;
             }
-            const replyContainer = t.blockquote([
-                t.a({ className: "link", href: "#" }, "In reply to"),
-                t.a({ className: "pill", href: "#" }, [tag.div({class: `avatar size-12 usercolor${avatar.colorNumber}`}, text(avatar.initial)), sender]), t.br()]);
+            const replyContainer = tag.blockquote([
+                tag.a({ className: "link", href: "#" }, "In reply to"),
+                tag.a({ className: "pill", href: "#" }, [renderStaticAvatar(avatar, 12), sender]), tag.br()]);
             for (const part of body.parts) {
                 replyContainer.appendChild(renderPart(part));
             }
