@@ -70,13 +70,19 @@ export class LeftPanelView extends TemplateView {
                     vm.loadRoomRange(range);
                 },
                 shouldRecreateItem: (value, oldValue) => {
-                    return true;
-                    // TODO: We used to just recreate the item if the underlying view model was swapped out e.g ph->room
+                    const oldIsPlaceholder = oldValue instanceof PlaceholderRoomTileViewModel;
+                    const newIsPlaceholder = value instanceof PlaceholderRoomTileViewModel;
+                    if (oldIsPlaceholder != newIsPlaceholder) {
+                        return true;
+                    }
+                    // We used to just recreate the item if the underlying view model was swapped out e.g ph->room
                     // but there is also a need to recreate items on room->room transitions (to re-make the
-                    // subviews), so just always recreate views for now.
-                    const isOldRoom = oldValue instanceof RoomTileViewModel;
-                    const isNewRoom = value instanceof RoomTileViewModel;
-                    return isOldRoom != isNewRoom;
+                    // subviews)
+                    // views can be recycled so if the room ID is different then also recreate
+                    if (oldValue.id !== value.id) {
+                        return true;
+                    }
+                    return false;
                 }
             },
             tileVM => {
