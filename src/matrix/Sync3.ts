@@ -41,12 +41,13 @@ const ROOM_LIST_TIMELINE_LIMIT = 1;
 // the state events which will be returned for every currently visible room on the central panel
 const ROOM_SUB_STATE_EVENTS = [
     ["m.room.avatar", ""],
-    ["m.room.topic", ""],
+    ["m.room.topic", ""], // TODO: we don't show this anywhere?
     ["m.room.join_rules", ""],
     ["m.room.history_visibility", ""],
     ["m.room.power_levels", ""],
     ["m.room.create", ""], // TODO: Does H need this?
-    ["m.room.encrypted", ""],
+    ["m.room.encryption", ""], // Used for Encryption: on|off in room details
+    ["m.room.canonical_alias", ""], // Room details shows it
 ];
 // the number of timeline events to get for every currently visible room timeline
 const ROOM_SUB_TIMELINE_LIMIT = 50;
@@ -340,7 +341,7 @@ export class Sync3 {
                 }, this.nextRoomSubscriptions, this.currentRoomSubscriptions);
             }
             try {
-                await sleep(100);
+                await sleep(10);
                 let resp: Sync3Response;
                 this.currentRequest = await this.hsApi.sync3(requestBody, pos);
                 resp = await this.currentRequest.response();
@@ -388,6 +389,11 @@ export class Sync3 {
     private async processResponse(isFirstSync: boolean, resp: Sync3Response) {
         console.log(resp);
         let { indexToRoom, updates } = this.processOps(resp.ops);
+        // add in room subs
+        for (let [roomId, roomResp] of Object.entries(resp.room_subscriptions)) {
+            roomResp.room_id = roomId;
+            updates.push(roomResp);
+        }
         this.totalRooms = resp.counts[0];
 
         let rooms: any[] = [];
