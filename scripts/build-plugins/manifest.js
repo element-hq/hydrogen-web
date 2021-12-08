@@ -3,12 +3,14 @@ const path = require('path');
 
 module.exports = function injectWebManifest(manifestFile) {
     let root;
+    let base;
     let manifestHref;
     return {
         name: "hydrogen:injectWebManifest",
         apply: "build",
         configResolved: config => {
             root = config.root;
+            base = config.base;
         },
         transformIndexHtml: {
             transform(html) {
@@ -43,7 +45,7 @@ module.exports = function injectWebManifest(manifestFile) {
                 name: outputName,
                 source: JSON.stringify(manifest)
             });
-            manifestHref = this.getFileName(manifestRef);
+            manifestHref = base + this.getFileName(manifestRef);
         }
     };
 }
