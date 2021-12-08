@@ -49,6 +49,7 @@ export default {
         // ]),
         // important this comes before service worker
         // otherwise the manifest and the icons it refers to won't be cached
+        addLibreJSHeaders(),
         injectWebManifest("assets/manifest.json"),
         injectServiceWorker("sw.js"),
     ],
@@ -74,4 +75,40 @@ export default {
 
 function scriptTagPath(htmlFile, index) {
     return `${htmlFile}?html-proxy&index=${index}.js`;
+}
+
+function addLibreJSHeaders() {
+    return addHeaderPlugin((name, fileName) => {
+        if (fileName.endsWith(".js")) {
+            switch (name) {
+                case "index":
+                    return {
+                        banner: "/* @license magnet:?xt=urn:btih:8e4f440f4c65981c5bf93c76d35135ba5064d8b7&dn=apache-2.0.txt Apache-2.0 */",
+                        footer: "/* @license-end */"
+                    };
+                case "vendor":
+                    return {
+                        banner: "/* @license multiple but all open source */",
+                        footer: "/* @license-end */"
+                    }
+            }
+        }
+        return null;
+    });
+}
+
+function addHeaderPlugin(callback) {
+    return {
+        name: "hydrogen:addHeader",
+        renderChunk: (code, chunk) => {
+            const result = callback(chunk.name, chunk.fileName);
+            if (result?.banner) {
+                code = result.banner + code;
+            }
+            if (result?.footer) {
+                code = code + result.footer;
+            }
+            return code;
+        }
+    }
 }
