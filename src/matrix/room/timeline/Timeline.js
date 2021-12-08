@@ -209,6 +209,8 @@ export class Timeline {
 
     // used in replaceEntries
     static _entryUpdater(existingEntry, entry) {
+        // ensure dependents point to the new entry instead of existingEntry
+        existingEntry.dependents?.forEach(event => event.setContextEntry(entry));
         entry.updateFrom(existingEntry);
         return entry;
     }
@@ -220,6 +222,8 @@ export class Timeline {
         for (const entry of entries) {
             try {
                 this._remoteEntries.getAndUpdate(entry, Timeline._entryUpdater);
+                // Since this entry changed, all dependent entries should be updated
+                entry.dependents?.forEach(e => this._findAndUpdateRelatedEntry(null, e.id, () => true));
             } catch (err) {
                 if (err.name === "CompareError") {
                     // see FragmentIdComparer, if the replacing entry is on a fragment
@@ -251,6 +255,7 @@ export class Timeline {
             let contextEvent;
             // find in remote events
             contextEvent = this.getByEventId(id);
+            contextEvent?.addDependent(entry);
             // find in storage
             if (!contextEvent) {
                 contextEvent = await this._fetchEventFromStorage(id);
