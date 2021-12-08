@@ -163,7 +163,7 @@ export class Platform {
         // Make sure that loginToken does not end up in the logs
         const transformer = (item) => {
             if (item.e?.stack) {
-                item.e.stack = item.e.stack.replace(/(?<=\/\?loginToken=).+/, "<snip>");
+                item.e.stack = item.e.stack.replace(/(?<=\/\?loginToken=).+/, "?loginToken=<snip>");
             }
             return item;
         };
