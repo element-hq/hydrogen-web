@@ -48,6 +48,7 @@ const ROOM_SUB_STATE_EVENTS = [
     ["m.room.create", ""], // TODO: Does H need this?
     ["m.room.encryption", ""], // Used for Encryption: on|off in room details
     ["m.room.canonical_alias", ""], // Room details shows it
+    ["m.room.member", "*"], // required for E2EE as we need to know all members to encrypt for when sending msgs
 ];
 // the number of timeline events to get for every currently visible room timeline
 const ROOM_SUB_TIMELINE_LIMIT = 50;
