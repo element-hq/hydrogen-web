@@ -41,6 +41,10 @@ export class LeftPanelViewModel extends ViewModel {
         this._compareFn = compareFn;
     }
 
+    _subscribeToRoom(roomId) {
+        this._sync.setRoomSubscriptions([roomId]);
+    }
+
     _mapTileViewModels(list) {
         const mapper = (roomOrInvite, emitChange) => {
             let vm;
@@ -117,6 +121,7 @@ export class LeftPanelViewModel extends ViewModel {
                 }
             }
             if (targetVM) {
+                this._subscribeToRoom(roomId);
                 this._currentTileVM = targetVM;
                 this._currentTileVM?.open();
             }
