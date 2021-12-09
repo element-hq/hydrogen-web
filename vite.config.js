@@ -32,8 +32,8 @@ export default defineConfig(({mode}) => {
         build: {
             outDir: "../../../target",
             emptyOutDir: true,
-            minify: false,
-            sourcemap: false,
+            minify: true,
+            sourcemap: true,
             assetsInlineLimit: 0,
             polyfillModulePreload: false,
         },
