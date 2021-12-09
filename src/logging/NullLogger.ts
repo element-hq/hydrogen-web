@@ -64,7 +64,9 @@ export class NullLogItem implements ILogItem {
         return callback(this);
     }
 
-    log(): void {}
+    log(): ILogItem {
+        return this;
+    }
     set(): void {}
 
     runDetached(_: LabelOrValues, callback: LogCallback<unknown>): ILogItem {
