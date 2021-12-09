@@ -14,14 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export class SSOLoginHelper{
-    constructor(homeserver) {
-        this._homeserver = homeserver;
-    }
+import type {ILogItem} from "../../logging/types";
+import type {HomeServerApi} from "../net/HomeServerApi.js";
 
-    get homeserver() { return this._homeserver; }
-
-    createSSORedirectURL(returnURL) {
-        return `${this._homeserver}/_matrix/client/r0/login/sso/redirect?redirectUrl=${returnURL}`;
-    }
+export interface ILoginMethod {
+    homeserver: string;
+    login(hsApi: HomeServerApi, deviceName: string, log: ILogItem): Promise<Record<string, any>>;
 }
