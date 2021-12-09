@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import anotherjson from "../../../lib/another-json/index.js";
+import anotherjson from "another-json";
 import {SESSION_E2EE_KEY_PREFIX, OLM_ALGORITHM, MEGOLM_ALGORITHM} from "./common.js";
 
 // use common prefix so it's easy to clear properties that are not e2ee related during session clear

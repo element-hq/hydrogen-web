@@ -1,0 +1,12 @@
+{
+    "name": "Hydrogen",
+    "short_name": "Hydrogen",
+    "display": "standalone",
+    "description": "Lightweight matrix client with legacy and mobile browser support",
+    "start_url": "../index.html",
+    "icons": [
+        {"src": "icon.png", "sizes": "384x384", "type": "image/png"},
+        {"src": "icon-maskable.png", "sizes": "384x384", "type": "image/png", "purpose": "maskable"}
+    ],
+    "theme_color": "#0DBD8B"
+}

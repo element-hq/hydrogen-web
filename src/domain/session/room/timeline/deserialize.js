@@ -352,9 +352,13 @@ export function parseHTMLBody(platform, mediaRepository, allowReplies, html) {
     return new MessageBody(html, parts);
 }
 
-import parse from '../../../../../lib/node-html-parser/index.js';
 
-export function tests() {
+export async function tests() {
+    // don't import node-html-parser until it's safe to assume we're actually in a unit test,
+    // as this is a devDependency
+    const nodeHtmlParser = await import("node-html-parser");
+    const {parse} = nodeHtmlParser.default;
+
     class HTMLParseResult {
         constructor(bodyNode) {
             this._bodyNode = bodyNode;

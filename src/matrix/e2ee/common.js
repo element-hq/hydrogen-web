@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import anotherjson from "../../../lib/another-json/index.js";
-import {createEnum} from "../../utils/enum.js";
+import anotherjson from "another-json";
+import {createEnum} from "../../utils/enum";
 
 export const DecryptionSource = createEnum("Sync", "Timeline", "Retry");
 

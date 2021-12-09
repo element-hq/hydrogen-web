@@ -1,6 +1,7 @@
-module.exports = class Buffer {
-    static isBuffer(array) {return array instanceof Uint8Array;}
-    static from(arrayBuffer) {return arrayBuffer;}
-    static allocUnsafe(size) {return Buffer.alloc(size);}
-    static alloc(size) {return new Uint8Array(size);}
+var Buffer = {
+    isBuffer: function(array) {return array instanceof Uint8Array;},
+    from: function(arrayBuffer) {return arrayBuffer;},
+    allocUnsafe: function(size) {return Buffer.alloc(size);},
+    alloc: function(size) {return new Uint8Array(size);}
 };
+export default Buffer;

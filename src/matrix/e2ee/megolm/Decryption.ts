@@ -26,7 +26,7 @@ import type {OlmWorker} from "../OlmWorker";
 import type {Transaction} from "../../storage/idb/Transaction";
 import type {TimelineEvent} from "../../storage/types";
 import type {DecryptionResult} from "../DecryptionResult";
-import type {LogItem} from "../../../logging/LogItem";
+import type {ILogItem} from "../../../logging/types";
 
 export class Decryption {
     private keyLoader: KeyLoader;
@@ -136,7 +136,7 @@ export class Decryption {
      * Extracts room keys from decrypted device messages.
      * The key won't be persisted yet, you need to call RoomKey.write for that.
      */
-    roomKeysFromDeviceMessages(decryptionResults: DecryptionResult[], log: LogItem): IncomingRoomKey[] {
+    roomKeysFromDeviceMessages(decryptionResults: DecryptionResult[], log: ILogItem): IncomingRoomKey[] {
         const keys: IncomingRoomKey[] = [];
         for (const dr of decryptionResults) {
             if (dr.event?.type !== "m.room_key" || dr.event.content?.algorithm !== MEGOLM_ALGORITHM) {

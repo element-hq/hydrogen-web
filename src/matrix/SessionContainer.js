@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {createEnum} from "../utils/enum.js";
+import {createEnum} from "../utils/enum";
 import {lookupHomeserver} from "./well-known.js";
 import {AbortableOperation} from "../utils/AbortableOperation";
 import {ObservableValue} from "../observable/ObservableValue";
@@ -26,9 +26,9 @@ import {MediaRepository} from "./net/MediaRepository.js";
 import {RequestScheduler} from "./net/RequestScheduler.js";
 import {Sync, SyncStatus} from "./Sync.js";
 import {Session} from "./Session.js";
-import {PasswordLoginMethod} from "./login/PasswordLoginMethod.js";
-import {TokenLoginMethod} from "./login/TokenLoginMethod.js";
-import {SSOLoginHelper} from "./login/SSOLoginHelper.js";
+import {PasswordLoginMethod} from "./login/PasswordLoginMethod";
+import {TokenLoginMethod} from "./login/TokenLoginMethod";
+import {SSOLoginHelper} from "./login/SSOLoginHelper";
 import {getDehydratedDevice} from "./e2ee/Dehydration.js";
 
 export const LoadStatus = createEnum(
@@ -329,7 +329,16 @@ export class SessionContainer {
                 request: this._platform.request,
             });
             const olm = await this._olmPromise;
-            const encryptedDehydratedDevice = await getDehydratedDevice(hsApi, olm, this._platform, log);
+            let encryptedDehydratedDevice;
+            try {
+                encryptedDehydratedDevice = await getDehydratedDevice(hsApi, olm, this._platform, log);
+            } catch (err) {
+                if (err.name === "HomeServerError") {
+                    log.set("not_supported", true);
+                } else {
+                    throw err;
+                }
+            }
             if (encryptedDehydratedDevice) {
                 let resolveStageFinish;
                 const promiseStageFinish = new Promise(r => resolveStageFinish = r);

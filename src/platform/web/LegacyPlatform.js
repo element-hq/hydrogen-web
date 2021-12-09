@@ -14,8 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import aesjs from "../../../lib/aes-js/index.js";
-import {hkdf} from "../../utils/crypto/hkdf.js";
+import aesjs from "aes-js";
+import {hkdf} from "../../utils/crypto/hkdf";
+
 import {Platform as ModernPlatform} from "./Platform.js";
 
 export function Platform(container, paths) {

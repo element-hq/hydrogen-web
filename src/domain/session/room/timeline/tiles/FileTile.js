@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 import {BaseMessageTile} from "./BaseMessageTile.js";
-import {formatSize} from "../../../../../utils/formatSize.js";
+import {formatSize} from "../../../../../utils/formatSize";
 import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent.js";
 
 export class FileTile extends BaseMessageTile {

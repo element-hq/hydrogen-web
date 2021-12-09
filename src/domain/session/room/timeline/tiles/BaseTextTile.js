@@ -16,7 +16,7 @@ limitations under the License.
 
 import {BaseMessageTile} from "./BaseMessageTile.js";
 import {stringAsBody} from "../MessageBody.js";
-import {createEnum} from "../../../../../utils/enum.js";
+import {createEnum} from "../../../../../utils/enum";
 
 export const BodyFormat = createEnum("Plain", "Html");
 

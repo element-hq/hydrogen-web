@@ -19,7 +19,7 @@ limitations under the License.
 // we do need to return a disposable from EventEmitter.on, or at least have a method here to easily track a subscription to an EventEmitter
 
 import {EventEmitter} from "../utils/EventEmitter";
-import {Disposables} from "../utils/Disposables.js";
+import {Disposables} from "../utils/Disposables";
 
 export class ViewModel extends EventEmitter {
     constructor(options = {}) {

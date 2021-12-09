@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Hydrogen Chat</title>
+        <meta name="viewport" content="width=device-width, user-scalable=no">
+        <meta name="application-name" content="Hydrogen Chat"/>
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black">
+        <meta name="apple-mobile-web-app-title" content="Hydrogen Chat">
+        <meta name="description" content="A matrix chat application">
+        <link rel="apple-touch-icon" href="./assets/icon-maskable.png">
+        <link rel="icon" type="image/png" href="assets/icon-maskable.png">
+        <link rel="stylesheet" type="text/css" href="./ui/css/main.css">
+        <link rel="stylesheet" type="text/css" href="./ui/css/themes/element/theme.css">
+    </head>
+    <body class="hydrogen">
+        <script id="main" type="module">
+            import {main} from "./main";
+            import {Platform} from "./Platform";
+            import configJSON from "./assets/config.json?raw";
+            import {olmPaths, downloadSandboxPath, workerPath} from "./sdk/paths/vite";
+            const paths = {
+                olm: olmPaths,
+                downloadSandbox: downloadSandboxPath,
+                worker: workerPath,
+                ...JSON.parse(configJSON)
+            };
+            if (import.meta.env.PROD) {
+                paths.serviceWorker = "sw.js";
+            }
+            const platform = new Platform(
+                document.body,
+                paths,
+                null,
+                {development: import.meta.env.DEV}
+            );
+            main(platform);
+        </script>
+    </body>
+</html>
