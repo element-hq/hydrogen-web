@@ -35,7 +35,7 @@ export class DecryptionError extends Error {
 
 export const SIGNATURE_ALGORITHM = "ed25519";
 
-export function verifyEd25519Signature(olmUtil, userId, deviceOrKeyId, ed25519Key, value) {
+export function verifyEd25519Signature(olmUtil, userId, deviceOrKeyId, ed25519Key, value, log = undefined) {
     const clone = Object.assign({}, value);
     delete clone.unsigned;
     delete clone.signatures;
@@ -49,7 +49,11 @@ export function verifyEd25519Signature(olmUtil, userId, deviceOrKeyId, ed25519Ke
         olmUtil.ed25519_verify(ed25519Key, canonicalJson, signature);
         return true;
     } catch (err) {
-        console.warn("Invalid signature, ignoring.", ed25519Key, canonicalJson, signature, err);
+        if (log) {
+            const logItem = log.log({l: "Invalid signature, ignoring.", ed25519Key, canonicalJson, signature});
+            logItem.error = err;
+            logItem.logLevel = log.level.Warn;
+        }
         return false;
     }
 }

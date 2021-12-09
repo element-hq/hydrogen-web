@@ -99,13 +99,13 @@ export class LogItem implements ILogItem {
     
     /**
      * Creates a new child item that finishes immediately
-     * and can hence not be modified anymore.
-     * 
-     * Hence, the child item is not returned.
+     * Finished items should not be modified anymore as they can be serialized
+     * at any stage, but using `set` on the return value in a synchronous way should still be safe.
      */
-    log(labelOrValues: LabelOrValues, logLevel?: LogLevel): void {
+    log(labelOrValues: LabelOrValues, logLevel?: LogLevel): ILogItem {
         const item = this.child(labelOrValues, logLevel);
         item.end = item.start;
+        return item;
     }
 
     set(key: string | object, value?: unknown): void {
