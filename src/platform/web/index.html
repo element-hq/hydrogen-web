@@ -19,7 +19,7 @@
             import {main} from "./main";
             import {Platform} from "./Platform";
             import configJSON from "./assets/config.json?raw";
-            import {olmPaths, downloadSandboxPath, workerPath, serviceWorkerPath} from "./sdk/paths/vite";
+            import {olmPaths, downloadSandboxPath, workerPath} from "./sdk/paths/vite";
             const paths = {
                 olm: olmPaths,
                 downloadSandbox: downloadSandboxPath,
@@ -27,7 +27,7 @@
                 ...JSON.parse(configJSON)
             };
             if (import.meta.env.PROD) {
-                paths.serviceWorker = serviceWorkerPath;
+                paths.serviceWorker = "sw.js";
             }
             const platform = new Platform(
                 document.body,
