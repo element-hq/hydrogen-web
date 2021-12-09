@@ -108,7 +108,7 @@ class MessageHandler {
             self.window = self;
             self.document = {};
             self.importScripts(path);
-            const olm = self.olm_exports;
+            const olm = self.Olm;
             await olm.init();
             this._olm = olm;
         });

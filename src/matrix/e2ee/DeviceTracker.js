@@ -264,7 +264,7 @@ export class DeviceTracker {
                     return false;
                 }
                 curve25519Keys.add(curve25519Key);
-                const isValid = this._hasValidSignature(deviceKeys);
+                const isValid = this._hasValidSignature(deviceKeys, parentLog);
                 if (!isValid) {
                     parentLog.log({
                         l: "ignore device with invalid signature",
@@ -279,11 +279,11 @@ export class DeviceTracker {
         return verifiedKeys;
     }
 
-    _hasValidSignature(deviceSection) {
+    _hasValidSignature(deviceSection, parentLog) {
         const deviceId = deviceSection["device_id"];
         const userId = deviceSection["user_id"];
         const ed25519Key = deviceSection?.keys?.[`${SIGNATURE_ALGORITHM}:${deviceId}`];
-        return verifyEd25519Signature(this._olmUtil, userId, deviceId, ed25519Key, deviceSection);
+        return verifyEd25519Signature(this._olmUtil, userId, deviceId, ed25519Key, deviceSection, parentLog);
     }
 
     /**

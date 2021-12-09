@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import bs58 from "../../../../lib/bs58/index.js";
+import bs58 from "bs58";
 
 export class Base58 {
     encode(buffer) {

@@ -67,21 +67,22 @@ async function loadOlm(olmPaths) {
     }
     return null;
 }
-
-// make path relative to basePath,
-// assuming it and basePath are relative to document
-function relPath(path, basePath) {
-    const idx = basePath.lastIndexOf("/");
-    const dir = idx === -1 ? "" : basePath.slice(0, idx);
-    const dirCount = dir.length ? dir.split("/").length : 0;
-    return "../".repeat(dirCount) + path;
+// turn asset path to absolute path if it isn't already
+// so it can be loaded independent of base
+function assetAbsPath(assetPath) {
+    if (!assetPath.startsWith("/")) {
+        return new URL(assetPath, document.location.href).pathname;
+    }
+    return assetPath;
 }
 
 async function loadOlmWorker(config) {
     const workerPool = new WorkerPool(config.worker, 4);
     await workerPool.init();
-    const path = relPath(config.olm.legacyBundle, config.worker);
-    await workerPool.sendAll({type: "load_olm", path});
+    await workerPool.sendAll({
+        type: "load_olm",
+        path: assetAbsPath(config.olm.legacyBundle)
+    });
     const olmWorker = new OlmWorker(workerPool);
     return olmWorker;
 }
@@ -162,7 +163,7 @@ export class Platform {
         // Make sure that loginToken does not end up in the logs
         const transformer = (item) => {
             if (item.e?.stack) {
-                item.e.stack = item.e.stack.replace(/(?<=\/\?loginToken=).+/, "<snip>");
+                item.e.stack = item.e.stack.replace(/\/\?loginToken=(.+)/, "?loginToken=<snip>");
             }
             return item;
         };
@@ -276,7 +277,7 @@ export class Platform {
     }
 
     get version() {
-        return window.HYDROGEN_VERSION;
+        return DEFINE_VERSION;
     }
 
     dispose() {

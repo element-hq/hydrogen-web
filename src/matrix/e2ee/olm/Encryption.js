@@ -189,10 +189,10 @@ export class Encryption {
             log.log({l: "failures", servers: Object.keys(claimResponse.failures)}, log.level.Warn);
         }
         const userKeyMap = claimResponse?.["one_time_keys"];
-        return this._verifyAndCreateOTKTargets(userKeyMap, devicesByUser);
+        return this._verifyAndCreateOTKTargets(userKeyMap, devicesByUser, log);
     }
 
-    _verifyAndCreateOTKTargets(userKeyMap, devicesByUser) {
+    _verifyAndCreateOTKTargets(userKeyMap, devicesByUser, log) {
         const verifiedEncryptionTargets = [];
         for (const [userId, userSection] of Object.entries(userKeyMap)) {
             for (const [deviceId, deviceSection] of Object.entries(userSection)) {
@@ -202,7 +202,7 @@ export class Encryption {
                     const device = devicesByUser.get(userId)?.get(deviceId);
                     if (device) {
                         const isValidSignature = verifyEd25519Signature(
-                            this._olmUtil, userId, deviceId, device.ed25519Key, keySection);
+                            this._olmUtil, userId, deviceId, device.ed25519Key, keySection, log);
                         if (isValidSignature) {
                             const target = EncryptionTarget.fromOTK(device, keySection.key);
                             verifiedEncryptionTargets.push(target);

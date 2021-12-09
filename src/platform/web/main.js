@@ -16,9 +16,9 @@ limitations under the License.
 */
 
 // import {RecordRequester, ReplayRequester} from "./matrix/net/request/replay";
-import {SessionContainer} from "./matrix/SessionContainer.js";
-import {RootViewModel} from "./domain/RootViewModel.js";
-import {createNavigation, createRouter} from "./domain/navigation/index.js";
+import {SessionContainer} from "../../matrix/SessionContainer.js";
+import {RootViewModel} from "../../domain/RootViewModel.js";
+import {createNavigation, createRouter} from "../../domain/navigation/index.js";
 // Don't use a default export here, as we use multiple entries during legacy build,
 // which does not support default exports,
 // see https://github.com/rollup/plugins/tree/master/packages/multi-entry

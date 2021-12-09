@@ -42,7 +42,7 @@ export interface ILogItem {
     readonly start?: number;
     readonly values: LogItemValues;
     wrap<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T;
-    log(labelOrValues: LabelOrValues, logLevel?: LogLevel): void;
+    log(labelOrValues: LabelOrValues, logLevel?: LogLevel): ILogItem;
     set(key: string | object, value: unknown): void;
     runDetached(labelOrValues: LabelOrValues, callback: LogCallback<unknown>, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem;
     wrapDetached(labelOrValues: LabelOrValues, callback: LogCallback<unknown>, logLevel?: LogLevel, filterCreator?: FilterCreator): void;

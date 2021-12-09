@@ -13,5 +13,13 @@ module.exports = {
         "no-empty": "off",
         "no-prototype-builtins": "off",
         "no-unused-vars": "warn"
+    },
+    "globals": {
+        "DEFINE_VERSION": "readonly",
+        "DEFINE_GLOBAL_HASH": "readonly",
+        // only available in sw.js
+        "DEFINE_UNHASHED_PRECACHED_ASSETS": "readonly",
+        "DEFINE_HASHED_PRECACHED_ASSETS": "readonly",
+        "DEFINE_HASHED_CACHED_ON_REQUEST_ASSETS": "readonly"
     }
 };

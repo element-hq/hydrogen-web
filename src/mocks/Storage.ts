@@ -14,31 +14,35 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {FDBFactory, FDBKeyRange} from "../../lib/fake-indexeddb/index.js";
 import {StorageFactory} from "../matrix/storage/idb/StorageFactory";
 import {IDOMStorage} from "../matrix/storage/idb/types";
 import {Storage} from "../matrix/storage/idb/Storage";
 import {Instance as nullLogger} from "../logging/NullLogger";
 import {openDatabase, CreateObjectStore} from "../matrix/storage/idb/utils";
 
-export function createMockStorage(): Promise<Storage> {
-    return new StorageFactory(null as any, new FDBFactory(), FDBKeyRange, new MockLocalStorage()).create("1", nullLogger.item);
+export async function createMockStorage(): Promise<Storage> {
+    const idbFactory = await createMockIDBFactory();
+    const FDBKeyRange = await getMockIDBKeyRange();
+    return new StorageFactory(null as any, idbFactory, FDBKeyRange, new MockLocalStorage()).create("1", nullLogger.item);
 }
 
-export function createMockDatabase(name: string, createObjectStore: CreateObjectStore, impl: MockIDBImpl): Promise<IDBDatabase> {
-    return openDatabase(name, createObjectStore, 1, impl.idbFactory);
+// don't import fake-indexeddb until it's safe to assume we're actually in a unit test,
+// as this is a devDependency
+export async function createMockIDBFactory(): Promise<IDBFactory> {
+    // @ts-ignore
+    const FDBFactory = (await import("fake-indexeddb/lib/FDBFactory.js")).default;
+    return new FDBFactory();
 }
 
-export class MockIDBImpl {
-    idbFactory: FDBFactory;
+// don't import fake-indexeddb until it's safe to assume we're actually in a unit test,
+// as this is a devDependency
+export async function getMockIDBKeyRange(): Promise<typeof IDBKeyRange> {
+    // @ts-ignore
+    return (await import("fake-indexeddb/lib/FDBKeyRange.js")).default;
+}
 
-    constructor() {
-        this.idbFactory = new FDBFactory();
-    }
-
-    get IDBKeyRange(): typeof IDBKeyRange {
-        return FDBKeyRange;
-    }
+export function createMockDatabase(name: string, createObjectStore: CreateObjectStore, idbFactory: IDBFactory): Promise<IDBDatabase> {
+    return openDatabase(name, createObjectStore, 1, idbFactory);
 }
 
 class MockLocalStorage implements IDOMStorage {
