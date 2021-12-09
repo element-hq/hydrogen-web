@@ -281,7 +281,7 @@ export class Timeline {
             if (contextEvent) {
                 if (needToTrack) {
                     // this entry was created from storage/hs, so it's not tracked by remoteEntries
-                    // we track them here for redactions
+                    // we track them here so that we can update reply preview of dependents on redaction
                     this._fetchedEventEntries.push(contextEvent);
                 }
                 contextEvent.addDependent(entry);
