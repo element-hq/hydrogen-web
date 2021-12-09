@@ -100,14 +100,14 @@ function replaceCacheFilenamesInServiceWorker(swChunk, unhashedFilenames, assets
     const replaceArrayInSource = (name, value) => {
         const newSource = swSource.replace(`${name} = []`, `${name} = ${JSON.stringify(value)}`);
         if (newSource === swSource) {
-            throw new Error(`${name} was not found in the service worker source`);
+            throw new Error(`${name} was not found in the service worker source: ` + swSource);
         }
         return newSource;
     };
     const replaceStringInSource = (name, value) => {
         const newSource = swSource.replace(new RegExp(`${name}\\s=\\s"[^"]*"`), `${name} = ${JSON.stringify(value)}`);
         if (newSource === swSource) {
-            throw new Error(`${name} was not found in the service worker source`);
+            throw new Error(`${name} was not found in the service worker source: ` + swSource);
         }
         return newSource;
     };
