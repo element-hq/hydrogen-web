@@ -185,7 +185,7 @@ export class ServiceWorkerHandler {
     }
 
     get buildHash() {
-        return window.HYDROGEN_GLOBAL_HASH;
+        return HYDROGEN_GLOBAL_HASH;
     }
 
     async preventConcurrentSessionAccess(sessionId) {
