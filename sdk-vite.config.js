@@ -1,5 +1,4 @@
 const cssvariables = require("postcss-css-variables");
-const autoprefixer = require("autoprefixer");
 const flexbugsFixes = require("postcss-flexbugs-fixes");
 
 const fs = require("fs");
@@ -37,15 +36,16 @@ export default {
     },
     build: {
         outDir: "../target",
+        emptyOutDir: true,
+        minify: false,
+        sourcemap: false,
+        assetsInlineLimit: 0,
+        polyfillModulePreload: false,
         lib: {
             entry: "lib.ts",
             name: "hydrogen",
             formats: ["cjs", "es"]
         },
-        emptyOutDir: true,
-        sourcemap: false,
-        assetsInlineLimit: 0,
-        polyfillModulePreload: false,
         rollupOptions: {
             external: id => id.startsWith(modulesDir) || id.startsWith(mocksDir) || id.startsWith(fixturesDir),
             output: {
@@ -60,11 +60,12 @@ export default {
                     }
                 },
                 chunkFileNames: `[format]/[name].js`,
+                // preserveModules: true,
             }
         }
     },
     define: {
-        "HYDROGEN_VERSION": JSON.stringify(version)
+        "DEFINE_VERSION": JSON.stringify(version)
     },
     css: {
         postcss: {
