@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { renderStaticAvatar } from "../../../avatar";
 import {tag, text} from "../../../general/html";
 import {BaseMessageView} from "./BaseMessageView.js";
+import {ReplyPreviewView} from "./ReplyPreviewView.js";
 
 export class TextMessageView extends BaseMessageView {
     renderMessageBody(t, vm) {
@@ -25,10 +25,11 @@ export class TextMessageView extends BaseMessageView {
             className: {
                 "Timeline_messageBody": true,
                 statusMessage: vm => vm.shape === "message-status",
-            },
-        });
+            }
+        }, t.mapView(vm => vm.replyPreviewBody, reply => reply ? new ReplyPreviewView(reply): null));
+
         t.mapSideEffect(vm => vm.body, body => {
-            while (container.lastChild) {
+            while (container.lastChild && container.lastChild.tagName !== "BLOCKQUOTE") {
                 container.removeChild(container.lastChild);
             }
             for (const part of body.parts) {
@@ -36,20 +37,10 @@ export class TextMessageView extends BaseMessageView {
             }
             container.appendChild(time);
         });
-        t.mapSideEffect(vm => vm.replyPreviewBody, ({ body, sender, avatar }) => {
-            if (!body) {
-                return;
-            }
-            const replyContainer = tag.blockquote([
-                tag.a({ className: "link", href: "#" }, "In reply to"),
-                tag.a({ className: "pill", href: "#" }, [renderStaticAvatar(avatar, 12), sender]), tag.br()]);
-            for (const part of body.parts) {
-                replyContainer.appendChild(renderPart(part));
-            }
-            container.insertBefore(replyContainer, container.firstChild);
-        });
+
         return container;
     }
+
 }
 
 function renderList(listBlock) {
@@ -116,7 +107,7 @@ const formatFunction = {
     newline: () => tag.br()
 };
 
-function renderPart(part) {
+export function renderPart(part) {
     const f = formatFunction[part.type];
     if (!f) {
         return text(`[unknown part type ${part.type}]`);
