@@ -17,11 +17,11 @@ limitations under the License.
 
 import NOTIFICATION_BADGE_ICON from "./assets/icon.png?url";
 // replaced by the service worker build plugin
-const UNHASHED_PRECACHED_ASSETS = [];
-const HASHED_PRECACHED_ASSETS = [];
-const HASHED_CACHED_ON_REQUEST_ASSETS = [];
+const UNHASHED_PRECACHED_ASSETS = DEFINE_UNHASHED_PRECACHED_ASSETS;
+const HASHED_PRECACHED_ASSETS = DEFINE_HASHED_PRECACHED_ASSETS;
+const HASHED_CACHED_ON_REQUEST_ASSETS = DEFINE_HASHED_CACHED_ON_REQUEST_ASSETS;
 
-const unhashedCacheName = `hydrogen-assets-${HYDROGEN_GLOBAL_HASH}`;
+const unhashedCacheName = `hydrogen-assets-${DEFINE_GLOBAL_HASH}`;
 const hashedCacheName = `hydrogen-assets`;
 const mediaThumbnailCacheName = `hydrogen-media-thumbnails-v2`;
 
@@ -175,7 +175,7 @@ self.addEventListener('message', (event) => {
     } else {
         switch (event.data?.type) {
             case "version":
-                reply({version: HYDROGEN_VERSION, buildHash: HYDROGEN_GLOBAL_HASH});
+                reply({version: DEFINE_VERSION, buildHash: DEFINE_GLOBAL_HASH});
                 break;
             case "skipWaiting":
                 self.skipWaiting();

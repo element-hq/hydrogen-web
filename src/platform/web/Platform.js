@@ -277,7 +277,7 @@ export class Platform {
     }
 
     get version() {
-        return HYDROGEN_VERSION;
+        return DEFINE_VERSION;
     }
 
     dispose() {

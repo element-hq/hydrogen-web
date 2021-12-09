@@ -1,78 +1,78 @@
 const cssvariables = require("postcss-css-variables");
-const autoprefixer = require("autoprefixer");
+//const autoprefixer = require("autoprefixer");
 const flexbugsFixes = require("postcss-flexbugs-fixes");
 
 const fs = require("fs");
 const path = require("path");
-const GLOBAL_HASH_PLACEHOLDER = "hydrogen-global-hash-placeholder-4cf32306-5d61-4262-9a57-c9983f472c3c";
 
 const injectWebManifest = require("./scripts/build-plugins/manifest");
-const injectServiceWorker = require("./scripts/build-plugins/service-worker");
+const {injectServiceWorker, createPlaceholderValues} = require("./scripts/build-plugins/service-worker");
 // const legacyBuild = require("./scripts/build-plugins/legacy-build");
-
-// we could also just import {version} from "../../package.json" where needed,
-// but this won't work in the service worker yet as it is not transformed yet
-// TODO: we should emit a chunk early on and then transform the asset again once we know all the other assets to cache
+const {defineConfig} = require('vite');
 const version = JSON.parse(fs.readFileSync(path.join(__dirname, "package.json"), "utf8")).version;
-const {defineConfig} = require("vite");
-let polyfillSrc;
-let polyfillRef;
 
-export default {
-    public: false,
-    root: "src/platform/web",
-    base: "./",
-    server: {
-        hmr: false
-    },
-    resolve: {
-        alias: {
-            // these should only be imported by the base-x package in any runtime code
-            // and works in the browser with a Uint8Array shim,
-            // rather than including a ton of polyfill code
-            "safe-buffer": "./scripts/package-overrides/safe-buffer/index.js",
-            "buffer": "./scripts/package-overrides/buffer/index.js",
+export default defineConfig(({mode}) => {
+    const definePlaceholders = createPlaceholderValues(mode);
+    return {
+        public: false,
+        root: "src/platform/web",
+        base: "./",
+        server: {
+            hmr: false
+        },
+        resolve: {
+            alias: {
+                // these should only be imported by the base-x package in any runtime code
+                // and works in the browser with a Uint8Array shim,
+                // rather than including a ton of polyfill code
+                "safe-buffer": "./scripts/package-overrides/safe-buffer/index.js",
+                "buffer": "./scripts/package-overrides/buffer/index.js",
+            }
+        },
+        build: {
+            outDir: "../../../target",
+            emptyOutDir: true,
+            minify: false,
+            sourcemap: false,
+            assetsInlineLimit: 0,
+            polyfillModulePreload: false,
+        },
+        plugins: [
+            // legacyBuild(scriptTagPath(path.join(__dirname, "src/platform/web/index.html"), 0), {
+            //     "./Platform": "./LegacyPlatform"
+            // }, "hydrogen-legacy", [
+            //     './legacy-polyfill',
+            // ]),
+            // important this comes before service worker
+            // otherwise the manifest and the icons it refers to won't be cached
+            injectWebManifest("assets/manifest.json"),
+            injectServiceWorker("./src/platform/web/sw.js", ["index.html"], {
+                // placeholders to replace at end of build by chunk name
+                "index": {DEFINE_GLOBAL_HASH: definePlaceholders.DEFINE_GLOBAL_HASH},
+                "sw": definePlaceholders
+            }),
+        ],
+        define: {
+            DEFINE_VERSION: JSON.stringify(version),
+            ...definePlaceholders
+        },
+        css: {
+            postcss: {
+                plugins: [
+                    cssvariables({
+                        preserve: (declaration) => {
+                            return declaration.value.indexOf("var(--ios-") == 0;
+                        }
+                    }),
+                    // the grid option creates some source fragment that causes the vite warning reporter to crash because
+                    // it wants to log a warning on a line that does not exist in the source fragment.
+                    // autoprefixer({overrideBrowserslist: ["IE 11"], grid: "no-autoplace"}),
+                    flexbugsFixes()
+                ]
+            }
         }
-    },
-    build: {
-        outDir: "../../../target",
-        emptyOutDir: true,
-        minify: true,
-        sourcemap: false,
-        assetsInlineLimit: 0,
-        polyfillModulePreload: false,
-    },
-    plugins: [
-        // legacyBuild(scriptTagPath(path.join(__dirname, "src/platform/web/index.html"), 0), {
-        //     "./Platform": "./LegacyPlatform"
-        // }, "hydrogen-legacy", [
-        //     './legacy-polyfill',
-        // ]),
-        // important this comes before service worker
-        // otherwise the manifest and the icons it refers to won't be cached
-        injectWebManifest("assets/manifest.json"),
-        injectServiceWorker("./src/platform/web/sw.js", ["index.html"], JSON.stringify(GLOBAL_HASH_PLACEHOLDER), ["index", "sw"]),
-    ],
-    define: {
-        "HYDROGEN_VERSION": JSON.stringify(version),
-        "HYDROGEN_GLOBAL_HASH": JSON.stringify(GLOBAL_HASH_PLACEHOLDER)
-    },
-    css: {
-        postcss: {
-            plugins: [
-                cssvariables({
-                    preserve: (declaration) => {
-                        return declaration.value.indexOf("var(--ios-") == 0;
-                    }
-                }),
-                // the grid option creates some source fragment that causes the vite warning reporter to crash because
-                // it wants to log a warning on a line that does not exist in the source fragment.
-                // autoprefixer({overrideBrowserslist: ["IE 11"], grid: "no-autoplace"}),
-                flexbugsFixes()
-            ]
-        }
-    }
-};
+    };
+});
 
 function scriptTagPath(htmlFile, index) {
     return `${htmlFile}?html-proxy&index=${index}.js`;

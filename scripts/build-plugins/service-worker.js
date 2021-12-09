@@ -8,7 +8,7 @@ function contentHash(str) {
     return hasher.digest();
 }
 
-module.exports = function injectServiceWorker(swFile, otherUnhashedFiles, globalHashPlaceholderLiteral, chunkNamesWithGlobalHash) {
+function injectServiceWorker(swFile, otherUnhashedFiles, placeholdersPerChunk) {
     const swName = path.basename(swFile);
     let root;
     let version;
@@ -26,7 +26,7 @@ module.exports = function injectServiceWorker(swFile, otherUnhashedFiles, global
         },
         configResolved: config => {
             root = config.root;
-            version = JSON.parse(config.define.HYDROGEN_VERSION); // unquote
+            version = JSON.parse(config.define.DEFINE_VERSION); // unquote
         },
         generateBundle: async function(options, bundle) {
             const unhashedFilenames = [swName].concat(otherUnhashedFiles);
@@ -41,9 +41,11 @@ module.exports = function injectServiceWorker(swFile, otherUnhashedFiles, global
             const assets = Object.values(bundle);
             const hashedFileNames = assets.map(o => o.fileName).filter(fileName => !unhashedFileContentMap[fileName]);
             const globalHash = getBuildHash(hashedFileNames, unhashedFileContentMap);
-            const sw = bundle[swName];
-            sw.code = replaceCacheFilenamesInServiceWorker(sw, unhashedFilenames, assets);
-            replaceGlobalHashPlaceholderInChunks(assets, chunkNamesWithGlobalHash, globalHashPlaceholderLiteral, `"${globalHash}"`);
+            const placeholderValues = {
+                DEFINE_GLOBAL_HASH: `"${globalHash}"`,
+                ...getCacheFileNamePlaceholderValues(swName, unhashedFilenames, assets, placeholdersPerChunk)
+            };
+            replacePlaceholdersInChunks(assets, placeholdersPerChunk, placeholderValues);
             console.log(`\nBuilt ${version} (${globalHash})`);
         }
     };
@@ -76,8 +78,7 @@ function isPreCached(asset) {
             fileName.endsWith(".js") && !NON_PRECACHED_JS.includes(path.basename(name));
 }
 
-function replaceCacheFilenamesInServiceWorker(swChunk, unhashedFilenames, assets) {
-    let swSource = swChunk.code;
+function getCacheFileNamePlaceholderValues(swName, unhashedFilenames, assets) {
     const unhashedPreCachedAssets = [];
     const hashedPreCachedAssets = [];
     const hashedCachedOnRequestAssets = [];
@@ -86,7 +87,7 @@ function replaceCacheFilenamesInServiceWorker(swChunk, unhashedFilenames, assets
         const {name, fileName} = asset;
         // the service worker should not be cached at all,
         // it's how updates happen
-        if (fileName === swChunk.fileName) {
+        if (fileName === swName) {
             continue;
         } else if (unhashedFilenames.includes(fileName)) {
             unhashedPreCachedAssets.push(fileName);
@@ -97,33 +98,57 @@ function replaceCacheFilenamesInServiceWorker(swChunk, unhashedFilenames, assets
         }
     }
 
-    const replaceArrayInSource = (name, value) => {
-        const newSource = swSource.replace(`${name} = []`, `${name} = ${JSON.stringify(value)}`);
-        if (newSource === swSource) {
-            throw new Error(`${name} was not found in the service worker source: ` + swSource);
-        }
-        return newSource;
-    };
-    const replaceStringInSource = (name, value) => {
-        const newSource = swSource.replace(new RegExp(`${name}\\s=\\s"[^"]*"`), `${name} = ${JSON.stringify(value)}`);
-        if (newSource === swSource) {
-            throw new Error(`${name} was not found in the service worker source: ` + swSource);
-        }
-        return newSource;
-    };
-
-    swSource = replaceArrayInSource("UNHASHED_PRECACHED_ASSETS", unhashedPreCachedAssets);
-    swSource = replaceArrayInSource("HASHED_PRECACHED_ASSETS", hashedPreCachedAssets);
-    swSource = replaceArrayInSource("HASHED_CACHED_ON_REQUEST_ASSETS", hashedCachedOnRequestAssets);
-    return swSource;
-}
-
-function replaceGlobalHashPlaceholderInChunks(assets, chunkNamesWithGlobalHash, globalHashPlaceholderLiteral, globalHashLiteral) {
-    for (const name of chunkNamesWithGlobalHash) {
-        const chunk = assets.find(a => a.type === "chunk" && a.name === name);
-        if (!chunk) {
-            throw new Error(`could not find chunk ${name} to replace global hash placeholder`);
-        }
-        chunk.code = chunk.code.replaceAll(globalHashPlaceholderLiteral, globalHashLiteral);
+    return {
+        DEFINE_UNHASHED_PRECACHED_ASSETS: JSON.stringify(unhashedPreCachedAssets),
+        DEFINE_HASHED_PRECACHED_ASSETS: JSON.stringify(hashedPreCachedAssets),
+        DEFINE_HASHED_CACHED_ON_REQUEST_ASSETS: JSON.stringify(hashedCachedOnRequestAssets)
     }
 }
+
+function replacePlaceholdersInChunks(assets, placeholdersPerChunk, placeholderValues) {
+    for (const [name, placeholderMap] of Object.entries(placeholdersPerChunk)) {
+        const chunk = assets.find(a => a.type === "chunk" && a.name === name);
+        if (!chunk) {
+            throw new Error(`could not find chunk ${name} to replace placeholders`);
+        }
+        for (const [placeholderName, placeholderLiteral] of Object.entries(placeholderMap)) {
+            const replacedValue = placeholderValues[placeholderName];
+            const oldCode = chunk.code;
+            chunk.code = chunk.code.replaceAll(placeholderLiteral, replacedValue);
+            if (chunk.code === oldCode) {
+                throw new Error(`Could not replace ${placeholderName} in ${name}, looking for literal ${placeholderLiteral}:\n${chunk.code}`);
+            }
+        }
+    }
+}
+
+/** creates a value to be include in the `define` build settings,
+ * but can be replace at the end of the build in certain chunks.
+ * We need this for injecting the global build hash and the final
+ * filenames in the service worker and index chunk.
+ * These values are only known in the generateBundle step, so we
+ * replace them by unique strings wrapped in a prompt call so no
+ * transformation will touch them (minifying, ...) and we can do a
+ * string replacement still at the end of the build. */
+function definePlaceholderValue(mode, name, devValue) {
+    if (mode === "production") {
+        // note that `prompt(...)` will never be in the final output, it's replaced by the final value
+        // once we know at the end of the build what it is and just used as a temporary value during the build
+        // as something that will not be transformed.
+        // I first considered Symbol but it's not inconceivable that babel would transform this.
+        return `prompt(${JSON.stringify(name)})`;
+    } else {
+        return JSON.stringify(devValue);
+    }
+}
+
+function createPlaceholderValues(mode) {
+    return {
+        DEFINE_GLOBAL_HASH: definePlaceholderValue(mode, "DEFINE_GLOBAL_HASH", null),
+        DEFINE_UNHASHED_PRECACHED_ASSETS: definePlaceholderValue(mode, "UNHASHED_PRECACHED_ASSETS", []),
+        DEFINE_HASHED_PRECACHED_ASSETS: definePlaceholderValue(mode, "HASHED_PRECACHED_ASSETS", []),
+        DEFINE_HASHED_CACHED_ON_REQUEST_ASSETS: definePlaceholderValue(mode, "HASHED_CACHED_ON_REQUEST_ASSETS", []),
+    };
+}
+
+module.exports = {injectServiceWorker, createPlaceholderValues};
