@@ -27,8 +27,8 @@ export class ReplyPreviewView extends TemplateView {
 
     _renderError({ error, avatar, senderName }) {
         const errorMessage = this._getErrorMessage(error);
-        const reply = avatar && senderName? this._renderReplyHeader(avatar, senderName) : tag.blockquote();
-        reply.append(tag.span({ className: "statusMessage" }, errorMessage), tag.br());
+        const children = [tag.span({ className: "statusMessage" }, errorMessage), tag.br()];
+        const reply = avatar && senderName? this._renderReplyHeader(avatar, senderName, children) : tag.blockquote(children);
         return reply;
     }
 
@@ -52,10 +52,12 @@ export class ReplyPreviewView extends TemplateView {
         return reply;
     }
 
-    _renderReplyHeader(avatar, displayName) {
+    _renderReplyHeader(avatar, displayName, children) {
         return tag.blockquote([
             tag.a({ className: "link", href: "#" }, "In reply to"),
-            tag.a({ className: "pill", href: "#" }, [renderStaticAvatar(avatar, 12), displayName]), tag.br()
+            tag.a({ className: "pill", href: "#" }, [renderStaticAvatar(avatar, 12), displayName]),
+            tag.br(),
+            ...children
         ]);
     }
 }
