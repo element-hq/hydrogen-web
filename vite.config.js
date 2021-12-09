@@ -51,10 +51,7 @@ export default {
         // important this comes before service worker
         // otherwise the manifest and the icons it refers to won't be cached
         injectWebManifest("assets/manifest.json"),
-        injectServiceWorker("./src/platform/web/sw.js", ["index.html"], {
-            // replace global hash placeholder in index chunk
-            "index": JSON.stringify(GLOBAL_HASH_PLACEHOLDER)
-        }),
+        injectServiceWorker("./src/platform/web/sw.js", ["index.html"], JSON.stringify(GLOBAL_HASH_PLACEHOLDER), ["index", "sw"]),
     ],
     define: {
         "HYDROGEN_VERSION": JSON.stringify(version),
