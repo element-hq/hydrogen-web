@@ -15,10 +15,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import NOTIFICATION_BADGE_ICON from "./assets/icon.png?url";
+// replaced by the service worker build plugin
 const UNHASHED_PRECACHED_ASSETS = [];
 const HASHED_PRECACHED_ASSETS = [];
 const HASHED_CACHED_ON_REQUEST_ASSETS = [];
-const NOTIFICATION_BADGE_ICON = "assets/icon.png";
+
 const unhashedCacheName = `hydrogen-assets-${HYDROGEN_GLOBAL_HASH}`;
 const hashedCacheName = `hydrogen-assets`;
 const mediaThumbnailCacheName = `hydrogen-media-thumbnails-v2`;

@@ -115,7 +115,6 @@ function replaceCacheFilenamesInServiceWorker(swChunk, unhashedFilenames, assets
     swSource = replaceArrayInSource("UNHASHED_PRECACHED_ASSETS", unhashedPreCachedAssets);
     swSource = replaceArrayInSource("HASHED_PRECACHED_ASSETS", hashedPreCachedAssets);
     swSource = replaceArrayInSource("HASHED_CACHED_ON_REQUEST_ASSETS", hashedCachedOnRequestAssets);
-    swSource = replaceStringInSource("NOTIFICATION_BADGE_ICON", assets.find(a => a.name === "icon.png").fileName);
     return swSource;
 }
 
