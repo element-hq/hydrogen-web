@@ -123,7 +123,6 @@ function replaceGlobalHashPlaceholderInChunks(assets, globalHashChunkReplaceMap,
         if (!chunk) {
             throw new Error(`could not find chunk ${name} to replace global hash placeholder`);
         }
-        console.log(placeholder, globalHash);
         chunk.code = chunk.code.replaceAll(placeholder, `"${globalHash}"`);
     }
 }
