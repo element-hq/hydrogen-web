@@ -45,6 +45,8 @@ export class Timeline {
         });
         this._readerRequest = null;
         this._allEntries = null;
+        // Stores event entries that we fetch for reply previews
+        this._fetchedEventEntries = [];
         this.initializePowerLevels(powerLevelsObservable);
     }
 
@@ -218,6 +220,7 @@ export class Timeline {
     /** @package */
     replaceEntries(entries) {
         this._addLocalRelationsToNewRemoteEntries(entries);
+        this._updateFetchedEntries(entries);
         this._loadRelatedEvents(entries);
         for (const entry of entries) {
             try {
@@ -244,20 +247,31 @@ export class Timeline {
     /** @package */
     addEntries(newEntries) {
         this._addLocalRelationsToNewRemoteEntries(newEntries);
+        this._updateFetchedEntries(newEntries);
         this._loadRelatedEvents(newEntries);
         this._remoteEntries.setManySorted(newEntries);
+    }
+
+    _updateFetchedEntries(entries) {
+        for (const entry of entries) {
+            const relatedEntry = this._fetchedEventEntries.find(e => e.id === entry.relatedEventId);
+            if (relatedEntry?.addLocalRelation(entry)) {
+                relatedEntry.dependents.forEach(e => this._findAndUpdateRelatedEntry(null, e.id, () => true));
+            }
+        }
     }
 
     async _loadRelatedEvents(entries) {
         const filteredEntries = entries.filter(e => !!e.contextEventId);
         for (const entry of filteredEntries) {
             const id = entry.contextEventId;
+            let needToTrack = false;
             let contextEvent;
             // find in remote events
             contextEvent = this.getByEventId(id);
-            contextEvent?.addDependent(entry);
             // find in storage
             if (!contextEvent) {
+                needToTrack = true;
                 contextEvent = await this._fetchEventFromStorage(id);
             }
             // fetch from hs
@@ -265,6 +279,12 @@ export class Timeline {
                 contextEvent = await this._fetchEventFromHomeserver(id);
             }
             if (contextEvent) {
+                if (needToTrack) {
+                    // this entry was created from storage/hs, so it's not tracked by remoteEntries
+                    // we track them here for redactions
+                    this._fetchedEventEntries.push(contextEvent);
+                }
+                contextEvent.addDependent(entry);
                 entry.setContextEntry(contextEvent);
                 // emit this change
                 this._remoteEntries.update(entry);
