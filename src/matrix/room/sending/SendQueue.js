@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {SortedArray} from "../../../observable/list/SortedArray.js";
+import {SortedArray} from "../../../observable/list/SortedArray";
 import {ConnectionError} from "../../error.js";
 import {PendingEvent, SendStatus} from "./PendingEvent.js";
 import {makeTxnId, isTxnId} from "../../common.js";
@@ -353,7 +353,7 @@ export class SendQueue {
 import {HomeServer as MockHomeServer} from "../../../mocks/HomeServer.js";
 import {createMockStorage} from "../../../mocks/Storage";
 import {ListObserver} from "../../../mocks/ListObserver.js";
-import {NullLogger, NullLogItem} from "../../../logging/NullLogger.js";
+import {NullLogger, NullLogItem} from "../../../logging/NullLogger";
 import {createEvent, withTextBody, withTxnId} from "../../../mocks/event.js";
 import {poll} from "../../../mocks/poll.js";
 import {createAnnotation} from "../timeline/relations.js";

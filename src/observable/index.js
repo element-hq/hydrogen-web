@@ -20,11 +20,11 @@ import {MappedMap} from "./map/MappedMap.js";
 import {JoinedMap} from "./map/JoinedMap.js";
 import {BaseObservableMap} from "./map/BaseObservableMap.js";
 // re-export "root" (of chain) collections
-export { ObservableArray } from "./list/ObservableArray.js";
-export { SortedArray } from "./list/SortedArray.js";
-export { MappedList } from "./list/MappedList.js";
-export { AsyncMappedList } from "./list/AsyncMappedList.js";
-export { ConcatList } from "./list/ConcatList.js";
+export { ObservableArray } from "./list/ObservableArray";
+export { SortedArray } from "./list/SortedArray";
+export { MappedList } from "./list/MappedList";
+export { AsyncMappedList } from "./list/AsyncMappedList";
+export { ConcatList } from "./list/ConcatList";
 export { ObservableMap } from "./map/ObservableMap.js";
 
 // avoid circular dependency between these classes

@@ -244,7 +244,7 @@ export class Invite extends EventEmitter {
     }
 }
 
-import {NullLogItem} from "../../logging/NullLogger.js";
+import {NullLogItem} from "../../logging/NullLogger";
 import {Clock as MockClock} from "../../mocks/Clock.js";
 import {default as roomInviteFixture} from "../../fixtures/matrix/invites/room.js";
 import {default as dmInviteFixture} from "../../fixtures/matrix/invites/dm.js";

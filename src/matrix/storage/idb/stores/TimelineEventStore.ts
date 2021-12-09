@@ -20,7 +20,7 @@ import { encodeUint32, decodeUint32 } from "../utils";
 import {KeyLimits} from "../../common";
 import {Store} from "../Store";
 import {TimelineEvent, StateEvent} from "../../types";
-import {LogItem} from "../../../../logging/LogItem.js";
+import {ILogItem} from "../../../../logging/types";
 
 interface Annotation {
     count: number;
@@ -286,7 +286,7 @@ export class TimelineEventStore {
      * 
      * Returns if the event was not yet known and the entry was written.
      */
-    tryInsert(entry: TimelineEventEntry, log: LogItem): Promise<boolean> {
+    tryInsert(entry: TimelineEventEntry, log: ILogItem): Promise<boolean> {
         (entry as TimelineEventStorageEntry).key = encodeKey(entry.roomId, entry.fragmentId, entry.eventIndex);
         (entry as TimelineEventStorageEntry).eventIdKey = encodeEventIdKey(entry.roomId, entry.event.event_id);
         return this._timelineStore.tryAdd(entry as TimelineEventStorageEntry, log);
@@ -320,7 +320,7 @@ export class TimelineEventStore {
 import {createMockStorage} from "../../../../mocks/Storage";
 import {createEvent, withTextBody} from "../../../../mocks/event.js";
 import {createEventEntry} from "../../../room/timeline/persistence/common.js";
-import {Instance as logItem} from "../../../../logging/NullLogger.js";
+import {Instance as nullLogger} from "../../../../logging/NullLogger";
 
 export function tests() {
 
@@ -368,7 +368,7 @@ export function tests() {
             let eventKey = EventKey.defaultFragmentKey(109);
             for (const insertedId of insertedIds) {
                 const entry = createEventEntry(eventKey.nextKey(), roomId, createEventWithId(insertedId));
-                assert(await txn.timelineEvents.tryInsert(entry, logItem));
+                assert(await txn.timelineEvents.tryInsert(entry, nullLogger.item));
                 eventKey = eventKey.nextKey();
             }
             const eventKeyMap = await txn.timelineEvents.getEventKeysForIds(roomId, checkedIds);

@@ -20,11 +20,10 @@ import { openDatabase, reqAsPromise } from "./utils";
 import { exportSession, importSession, Export } from "./export";
 import { schema } from "./schema";
 import { detectWebkitEarlyCloseTxnBug } from "./quirks";
-import { BaseLogger } from "../../../logging/BaseLogger.js";
-import { LogItem } from "../../../logging/LogItem.js";
+import { ILogItem } from "../../../logging/types";
 
 const sessionName = (sessionId: string) => `hydrogen_session_${sessionId}`;
-const openDatabaseWithSessionId = function(sessionId: string, idbFactory: IDBFactory, localStorage: IDOMStorage, log: LogItem) {
+const openDatabaseWithSessionId = function(sessionId: string, idbFactory: IDBFactory, localStorage: IDOMStorage, log: ILogItem) {
     const create = (db, txn, oldVersion, version) => createStores(db, txn, oldVersion, version, localStorage, log);
     return openDatabase(sessionName(sessionId), create, schema.length, idbFactory);
 }
@@ -63,7 +62,7 @@ export class StorageFactory {
         this._localStorage = localStorage;
     }
 
-    async create(sessionId: string, log: LogItem): Promise<Storage> {
+    async create(sessionId: string, log: ILogItem): Promise<Storage> {
         await this._serviceWorkerHandler?.preventConcurrentSessionAccess(sessionId);
         requestPersistedStorage().then(persisted => {
             // Firefox lies here though, and returns true even if the user denied the request
@@ -83,23 +82,25 @@ export class StorageFactory {
         return reqAsPromise(req);
     }
 
-    async export(sessionId: string, log: LogItem): Promise<Export> {
+    async export(sessionId: string, log: ILogItem): Promise<Export> {
         const db = await openDatabaseWithSessionId(sessionId, this._idbFactory, this._localStorage, log);
         return await exportSession(db);
     }
 
-    async import(sessionId: string, data: Export, log: LogItem): Promise<void> {
+    async import(sessionId: string, data: Export, log: ILogItem): Promise<void> {
         const db = await openDatabaseWithSessionId(sessionId, this._idbFactory, this._localStorage, log);
         return await importSession(db, data);
     }
 }
 
-async function createStores(db: IDBDatabase, txn: IDBTransaction, oldVersion: number | null, version: number, localStorage: IDOMStorage, log: LogItem): Promise<void> {
+async function createStores(db: IDBDatabase, txn: IDBTransaction, oldVersion: number | null, version: number, localStorage: IDOMStorage, log: ILogItem): Promise<void> {
     const startIdx = oldVersion || 0;
-    return log.wrap({l: "storage migration", oldVersion, version}, async log => {
-        for(let i = startIdx; i < version; ++i) {
-            const migrationFunc = schema[i];
-            await log.wrap(`v${i + 1}`, log => migrationFunc(db, txn, localStorage, log));
-        }
-    });
+    return log.wrap(
+        { l: "storage migration", oldVersion, version },
+        async (log) => {
+            for (let i = startIdx; i < version; ++i) {
+                const migrationFunc = schema[i];
+                await log.wrap(`v${i + 1}`, (log) => migrationFunc(db, txn, localStorage, log));
+            }
+        });
 }

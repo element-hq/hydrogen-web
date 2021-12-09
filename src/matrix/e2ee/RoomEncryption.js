@@ -16,7 +16,7 @@ limitations under the License.
 
 import {MEGOLM_ALGORITHM, DecryptionSource} from "./common.js";
 import {groupEventsBySession} from "./megolm/decryption/utils";
-import {mergeMap} from "../../utils/mergeMap.js";
+import {mergeMap} from "../../utils/mergeMap";
 import {groupBy} from "../../utils/groupBy";
 import {makeTxnId} from "../common.js";
 
