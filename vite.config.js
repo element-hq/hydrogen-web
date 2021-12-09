@@ -50,7 +50,7 @@ export default {
         // important this comes before service worker
         // otherwise the manifest and the icons it refers to won't be cached
         injectWebManifest("assets/manifest.json"),
-        injectServiceWorker("sw.js"),
+        injectServiceWorker("./src/platform/web/sw.js", ["index.html"]),
     ],
     define: {
         "HYDROGEN_VERSION": JSON.stringify(version)

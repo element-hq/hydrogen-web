@@ -8,42 +8,42 @@ function contentHash(str) {
     return hasher.digest();
 }
 
-module.exports = function injectServiceWorker(swFile) {
+module.exports = function injectServiceWorker(swFile, otherUncachedFiles) {
+    const swName = path.basename(swFile);
     let root;
     let version;
-    let manifestHref;
+
     return {
         name: "hydrogen:injectServiceWorker",
         apply: "build",
         enforce: "post",
+        buildStart() {
+            this.emitFile({
+                type: "chunk",
+                fileName: swName,
+                id: swFile,
+            });
+        },
         configResolved: config => {
             root = config.root;
             version = JSON.parse(config.define.HYDROGEN_VERSION); // unquote
         },
-        generateBundle: async function(_, bundle) {
-            const absoluteSwFile = path.resolve(root, swFile);
-            let swSource = await fs.readFile(absoluteSwFile, {encoding: "utf8"});
-            const index = bundle["index.html"];
-            if (!index) {
-                console.log("index not found", index);
-            }
-            const uncachedFileContentMap = {
-                "index.html": index.source,
-                "sw.js": swSource
-            };
+        generateBundle: async function(options, bundle) {
+            const uncachedFileNames = [swName].concat(otherUncachedFiles);
+            const uncachedFileContentMap = uncachedFileNames.reduce((map, fileName) => {
+                const chunkOrAsset = bundle[fileName];
+                if (!chunkOrAsset) {
+                    throw new Error("could not get content for uncached asset or chunk " + fileName);
+                }
+                map[fileName] = chunkOrAsset.source || chunkOrAsset.code;
+                return map;
+            }, {});
             const assets = Object.values(bundle);
-            const cachedFileNames = assets.map(o => o.fileName).filter(fileName => fileName !== "index.html");
+            const cachedFileNames = assets.map(o => o.fileName).filter(fileName => !uncachedFileContentMap[fileName]);
             const globalHash = getBuildHash(cachedFileNames, uncachedFileContentMap);
-            swSource = await buildServiceWorker(swSource, version, globalHash, assets);
-            const outputName = path.basename(absoluteSwFile);
-            // TODO: do normal build transformations for service worker too,
-            // I think if we emit it as a chunk rather than an asset it would
-            // but we can't emit chunks anymore in generateBundle I think ...
-            this.emitFile({
-                type: "asset",
-                fileName: outputName,
-                source: swSource
-            });
+            const sw = bundle[swName];
+            sw.code = replaceConstsInServiceWorker(sw.code, version, globalHash, assets);
+            console.log(`\nBuilt ${version} (${globalHash})`);
         }
     };
 }
@@ -75,7 +75,7 @@ function isPreCached(asset) {
             fileName.endsWith(".js") && !NON_PRECACHED_JS.includes(path.basename(name));
 }
 
-async function buildServiceWorker(swSource, version, globalHash, assets) {
+function replaceConstsInServiceWorker(swSource, version, globalHash, assets) {
     const unhashedPreCachedAssets = [];
     const hashedPreCachedAssets = [];
     const hashedCachedOnRequestAssets = [];
