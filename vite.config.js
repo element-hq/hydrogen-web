@@ -4,6 +4,7 @@ const flexbugsFixes = require("postcss-flexbugs-fixes");
 
 const fs = require("fs");
 const path = require("path");
+const GLOBAL_HASH_PLACEHOLDER = "hydrogen-global-hash-placeholder-4cf32306-5d61-4262-9a57-c9983f472c3c";
 
 const injectWebManifest = require("./scripts/build-plugins/manifest");
 const injectServiceWorker = require("./scripts/build-plugins/service-worker");
@@ -50,10 +51,14 @@ export default {
         // important this comes before service worker
         // otherwise the manifest and the icons it refers to won't be cached
         injectWebManifest("assets/manifest.json"),
-        injectServiceWorker("./src/platform/web/sw.js", ["index.html"]),
+        injectServiceWorker("./src/platform/web/sw.js", ["index.html"], {
+            // replace global hash placeholder in index chunk
+            "index": JSON.stringify(GLOBAL_HASH_PLACEHOLDER)
+        }),
     ],
     define: {
-        "HYDROGEN_VERSION": JSON.stringify(version)
+        "HYDROGEN_VERSION": JSON.stringify(version),
+        "HYDROGEN_GLOBAL_HASH": JSON.stringify(GLOBAL_HASH_PLACEHOLDER)
     },
     css: {
         postcss: {

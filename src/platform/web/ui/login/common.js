@@ -15,10 +15,10 @@ limitations under the License.
 */
 
 export function hydrogenGithubLink(t) {
-    if (HYDROGEN_VERSION) {
+    if (HYDROGEN_VERSION && HYDROGEN_GLOBAL_HASH) {
         return t.a({target: "_blank",
             href: `https://github.com/vector-im/hydrogen-web/releases/tag/v${HYDROGEN_VERSION}`},
-            `Hydrogen v${HYDROGEN_VERSION} (${window.HYDROGEN_GLOBAL_HASH}) on Github`);
+            `Hydrogen v${HYDROGEN_VERSION} (${HYDROGEN_GLOBAL_HASH}) on Github`);
     } else {
         return t.a({target: "_blank", href: "https://github.com/vector-im/hydrogen-web"},
             "Hydrogen on Github");

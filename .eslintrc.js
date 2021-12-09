@@ -15,6 +15,7 @@ module.exports = {
         "no-unused-vars": "warn"
     },
     "globals": {
-        "HYDROGEN_VERSION": "readonly"
+        "HYDROGEN_VERSION": "readonly",
+        "HYDROGEN_GLOBAL_HASH": "readonly"
     }
 };

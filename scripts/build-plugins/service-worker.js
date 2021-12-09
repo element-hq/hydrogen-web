@@ -8,7 +8,7 @@ function contentHash(str) {
     return hasher.digest();
 }
 
-module.exports = function injectServiceWorker(swFile, otherUncachedFiles) {
+module.exports = function injectServiceWorker(swFile, otherUncachedFiles, globalHashChunkReplaceMap) {
     const swName = path.basename(swFile);
     let root;
     let version;
@@ -43,6 +43,7 @@ module.exports = function injectServiceWorker(swFile, otherUncachedFiles) {
             const globalHash = getBuildHash(cachedFileNames, uncachedFileContentMap);
             const sw = bundle[swName];
             sw.code = replaceConstsInServiceWorker(sw.code, version, globalHash, assets);
+            replaceGlobalHashPlaceholderInChunks(assets, globalHashChunkReplaceMap, globalHash);
             console.log(`\nBuilt ${version} (${globalHash})`);
         }
     };
@@ -114,4 +115,15 @@ function replaceConstsInServiceWorker(swSource, version, globalHash, assets) {
     swSource = replaceArrayInSource("HASHED_CACHED_ON_REQUEST_ASSETS", hashedCachedOnRequestAssets);
     swSource = replaceStringInSource("NOTIFICATION_BADGE_ICON", assets.find(a => a.name === "icon.png").fileName);
     return swSource;
+}
+
+function replaceGlobalHashPlaceholderInChunks(assets, globalHashChunkReplaceMap, globalHash) {
+    for (const [name, placeholder] of Object.entries(globalHashChunkReplaceMap)) {
+        const chunk = assets.find(a => a.type === "chunk" && a.name === name);
+        if (!chunk) {
+            throw new Error(`could not find chunk ${name} to replace global hash placeholder`);
+        }
+        console.log(placeholder, globalHash);
+        chunk.code = chunk.code.replaceAll(placeholder, `"${globalHash}"`);
+    }
 }
