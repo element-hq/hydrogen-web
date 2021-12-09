@@ -42,8 +42,8 @@ import {
     writeKey as ssssWriteKey,
     removeKey as ssssRemoveKey,
     keyFromDehydratedDeviceKey as createSSSSKeyFromDehydratedDeviceKey
-} from "./ssss/index.js";
-import {SecretStorage} from "./ssss/SecretStorage.js";
+} from "./ssss/index";
+import {SecretStorage} from "./ssss/SecretStorage";
 import {ObservableValue, RetainedObservableValue} from "../observable/ObservableValue";
 
 const PICKLE_KEY = "DEFAULT_KEY";

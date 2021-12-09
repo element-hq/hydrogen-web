@@ -13,9 +13,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {Key} from "./common.js";
+import {Key} from "./common";
+import {KeyDescription} from "./common";
+import type {Platform} from "../../platform/web/Platform.js";
+import type * as OlmNamespace from "@matrix-org/olm";
+type Olm = typeof OlmNamespace;
 
-const OLM_RECOVERY_KEY_PREFIX = [0x8B, 0x01];
+const OLM_RECOVERY_KEY_PREFIX = [0x8B, 0x01] as const;
 
 /**
  * @param  {Olm} olm
@@ -23,7 +27,7 @@ const OLM_RECOVERY_KEY_PREFIX = [0x8B, 0x01];
  * @param  {string} recoveryKey
  * @return {Key}
  */
-export function keyFromRecoveryKey(keyDescription, recoveryKey, olm, platform) {
+export function keyFromRecoveryKey(keyDescription: KeyDescription, recoveryKey: string, olm: Olm, platform: Platform): Key {
     const result = platform.encoding.base58.decode(recoveryKey.replace(/ /g, ''));
 
     let parity = 0;

@@ -14,7 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {Key} from "./common.js";
+import {Key} from "./common";
+import type {KeyDescription} from "./common";
+import type {Platform} from "../../platform/web/Platform.js";
 
 const DEFAULT_ITERATIONS = 500000;
 const DEFAULT_BITSIZE = 256;
@@ -25,7 +27,7 @@ const DEFAULT_BITSIZE = 256;
  * @param  {Platform} platform
  * @return {Key}
  */
-export async function keyFromPassphrase(keyDescription, passphrase, platform) {
+export async function keyFromPassphrase(keyDescription: KeyDescription, passphrase: string, platform: Platform): Promise<Key> {
     const {passphraseParams} = keyDescription;
     if (!passphraseParams) {
         throw new Error("not a passphrase key");
