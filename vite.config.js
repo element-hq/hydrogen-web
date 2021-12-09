@@ -1,5 +1,4 @@
 const cssvariables = require("postcss-css-variables");
-//const autoprefixer = require("autoprefixer");
 const flexbugsFixes = require("postcss-flexbugs-fixes");
 
 const fs = require("fs");
@@ -7,7 +6,6 @@ const path = require("path");
 
 const injectWebManifest = require("./scripts/build-plugins/manifest");
 const {injectServiceWorker, createPlaceholderValues} = require("./scripts/build-plugins/service-worker");
-// const legacyBuild = require("./scripts/build-plugins/legacy-build");
 const {defineConfig} = require('vite');
 const version = JSON.parse(fs.readFileSync(path.join(__dirname, "package.json"), "utf8")).version;
 
@@ -38,11 +36,6 @@ export default defineConfig(({mode}) => {
             polyfillModulePreload: false,
         },
         plugins: [
-            // legacyBuild(scriptTagPath(path.join(__dirname, "src/platform/web/index.html"), 0), {
-            //     "./Platform": "./LegacyPlatform"
-            // }, "hydrogen-legacy", [
-            //     './legacy-polyfill',
-            // ]),
             // important this comes before service worker
             // otherwise the manifest and the icons it refers to won't be cached
             injectWebManifest("assets/manifest.json"),
