@@ -14,42 +14,59 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {createEnum} from "../../utils/enum";
 import {ObservableValue} from "../../observable/ObservableValue";
+import type {ExponentialRetryDelay} from "./ExponentialRetryDelay";
+import type {TimeMeasure} from "../../platform/web/dom/Clock.js";
+import type {OnlineStatus} from "../../platform/web/dom/OnlineStatus.js";
+import type {VersionResponse} from "./types/response";
+import type {HomeServerApi} from "./HomeServerApi";
 
-export const ConnectionStatus = createEnum(
+export enum ConnectionStatus {
     "Waiting",
     "Reconnecting",
     "Online"
-);
+};
+
+type Ctor = {
+    retryDelay: ExponentialRetryDelay;
+    createMeasure: () => TimeMeasure;
+    onlineStatus: OnlineStatus
+};
 
 export class Reconnector {
-    constructor({retryDelay, createMeasure, onlineStatus}) {
+    private readonly _retryDelay: ExponentialRetryDelay;
+    private readonly _createTimeMeasure: () => TimeMeasure;
+    private readonly _onlineStatus: OnlineStatus;
+    private readonly _state: ObservableValue<ConnectionStatus>;
+    private _isReconnecting: boolean;
+    private _versionsResponse?: VersionResponse;
+    private _stateSince: TimeMeasure;
+
+    constructor({retryDelay, createMeasure, onlineStatus}: Ctor) {
         this._onlineStatus = onlineStatus;
         this._retryDelay = retryDelay;
         this._createTimeMeasure = createMeasure;
         // assume online, and do our thing when something fails
         this._state = new ObservableValue(ConnectionStatus.Online);
         this._isReconnecting = false;
-        this._versionsResponse = null;
     }
 
-    get lastVersionsResponse() {
+    get lastVersionsResponse(): VersionResponse | undefined {
         return this._versionsResponse;
     }
 
-    get connectionStatus() {
+    get connectionStatus(): ObservableValue<ConnectionStatus> {
         return this._state;
     }
 
-    get retryIn() {
+    get retryIn(): number {
         if (this._state.get() === ConnectionStatus.Waiting) {
             return this._retryDelay.nextValue - this._stateSince.measure();
         }
         return 0;
     }
 
-    async onRequestFailed(hsApi) {
+    async onRequestFailed(hsApi: HomeServerApi): Promise<void> {
         if (!this._isReconnecting) {  
             this._isReconnecting = true;
  
@@ -75,14 +92,14 @@ export class Reconnector {
         }
     }
 
-    tryNow() {
+    tryNow(): void {
         if (this._retryDelay) {
             // this will interrupt this._retryDelay.waitForRetry() in _reconnectLoop
             this._retryDelay.abort();
         }
     }
 
-    _setState(state) {
+    private _setState(state: ConnectionStatus): void {
         if (state !== this._state.get()) {
             if (state === ConnectionStatus.Waiting) {
                 this._stateSince = this._createTimeMeasure();
@@ -93,8 +110,8 @@ export class Reconnector {
         }
     }
     
-    async _reconnectLoop(hsApi) {
-        this._versionsResponse = null;
+    private async _reconnectLoop(hsApi: HomeServerApi): Promise<void> {
+        this._versionsResponse = undefined;
         this._retryDelay.reset();
 
         while (!this._versionsResponse) {
@@ -120,7 +137,7 @@ export class Reconnector {
 
 
 import {Clock as MockClock} from "../../mocks/Clock.js";
-import {ExponentialRetryDelay} from "./ExponentialRetryDelay.js";
+import {ExponentialRetryDelay as _ExponentialRetryDelay} from "./ExponentialRetryDelay";
 import {ConnectionError} from "../error.js"
 
 export function tests() {
@@ -146,13 +163,14 @@ export function tests() {
             const clock = new MockClock();
             const {createMeasure} = clock;
             const onlineStatus = new ObservableValue(false);
-            const retryDelay = new ExponentialRetryDelay(clock.createTimeout);
+            const retryDelay = new _ExponentialRetryDelay(clock.createTimeout);
             const reconnector = new Reconnector({retryDelay, onlineStatus, createMeasure});
             const {connectionStatus} = reconnector;
-            const statuses = [];
+            const statuses: ConnectionStatus[] = [];
             const subscription = reconnector.connectionStatus.subscribe(s => {
                 statuses.push(s);
             });
+            // @ts-ignore
             reconnector.onRequestFailed(createHsApiMock(1));
             await connectionStatus.waitFor(s => s === ConnectionStatus.Waiting).promise;
             clock.elapse(2000);
@@ -170,9 +188,10 @@ export function tests() {
             const clock = new MockClock();
             const {createMeasure} = clock;
             const onlineStatus = new ObservableValue(false);
-            const retryDelay = new ExponentialRetryDelay(clock.createTimeout);
+            const retryDelay = new _ExponentialRetryDelay(clock.createTimeout);
             const reconnector = new Reconnector({retryDelay, onlineStatus, createMeasure});
             const {connectionStatus} = reconnector;
+            // @ts-ignore
             reconnector.onRequestFailed(createHsApiMock(1));
             await connectionStatus.waitFor(s => s === ConnectionStatus.Waiting).promise;
             onlineStatus.set(true); //skip waiting

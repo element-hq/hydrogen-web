@@ -15,18 +15,28 @@ limitations under the License.
 */
 
 import {AbortError} from "../../utils/error";
+import type {Timeout} from "../../platform/web/dom/Clock.js";
+
+type TimeoutCreator = (ms: number) => Timeout;
+
+const enum Default { start = 2000 }
 
 export class ExponentialRetryDelay {
-    constructor(createTimeout) {
+    private readonly _start: number = Default.start;
+    private _current: number = Default.start;
+    private readonly _createTimeout: TimeoutCreator;
+    private readonly _max: number;
+    private _timeout?: Timeout;
+
+    constructor(createTimeout: TimeoutCreator) {
         const start = 2000;
         this._start = start;
         this._current = start;
         this._createTimeout = createTimeout;
         this._max = 60 * 5 * 1000; //5 min
-        this._timeout = null;
     }
 
-    async waitForRetry() {
+    async waitForRetry(): Promise<void> {
         this._timeout = this._createTimeout(this._current);
         try {
             await this._timeout.elapsed();
@@ -39,22 +49,22 @@ export class ExponentialRetryDelay {
                 throw err;
             }
         } finally {
-            this._timeout = null;
+            this._timeout = undefined;
         }
     }
 
-    abort() {
+    abort(): void {
         if (this._timeout) {
             this._timeout.abort();
         }
     }
 
-    reset() {
+    reset(): void {
         this._current = this._start;
         this.abort();
     }
 
-    get nextValue() {
+    get nextValue(): number {
         return this._current;
     }
 }

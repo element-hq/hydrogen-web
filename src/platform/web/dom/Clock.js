@@ -60,7 +60,6 @@ class Interval {
     }
 }
 
-
 class TimeMeasure {
     constructor() {
         this._start = window.performance.now();
