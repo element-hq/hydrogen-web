@@ -181,11 +181,11 @@ export class ServiceWorkerHandler {
     }
 
     get version() {
-        return window.HYDROGEN_VERSION;
+        return DEFINE_VERSION;
     }
 
     get buildHash() {
-        return window.HYDROGEN_GLOBAL_HASH;
+        return DEFINE_GLOBAL_HASH;
     }
 
     async preventConcurrentSessionAccess(sessionId) {

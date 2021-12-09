@@ -15,13 +15,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-const VERSION = "%%VERSION%%";
-const GLOBAL_HASH = "%%GLOBAL_HASH%%";
-const UNHASHED_PRECACHED_ASSETS = [];
-const HASHED_PRECACHED_ASSETS = [];
-const HASHED_CACHED_ON_REQUEST_ASSETS = [];
-const NOTIFICATION_BADGE_ICON = "assets/icon.png";
-const unhashedCacheName = `hydrogen-assets-${GLOBAL_HASH}`;
+import NOTIFICATION_BADGE_ICON from "./assets/icon.png?url";
+// replaced by the service worker build plugin
+const UNHASHED_PRECACHED_ASSETS = DEFINE_UNHASHED_PRECACHED_ASSETS;
+const HASHED_PRECACHED_ASSETS = DEFINE_HASHED_PRECACHED_ASSETS;
+const HASHED_CACHED_ON_REQUEST_ASSETS = DEFINE_HASHED_CACHED_ON_REQUEST_ASSETS;
+
+const unhashedCacheName = `hydrogen-assets-${DEFINE_GLOBAL_HASH}`;
 const hashedCacheName = `hydrogen-assets`;
 const mediaThumbnailCacheName = `hydrogen-media-thumbnails-v2`;
 
@@ -175,7 +175,7 @@ self.addEventListener('message', (event) => {
     } else {
         switch (event.data?.type) {
             case "version":
-                reply({version: VERSION, buildHash: GLOBAL_HASH});
+                reply({version: DEFINE_VERSION, buildHash: DEFINE_GLOBAL_HASH});
                 break;
             case "skipWaiting":
                 self.skipWaiting();

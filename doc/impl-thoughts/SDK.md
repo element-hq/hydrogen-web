@@ -2,12 +2,6 @@ SDK:
 
  - we need to compile src/lib.ts to javascript, with a d.ts file generated as well. We need to compile to javascript once for cjs and once of es modules. The package.json looks like this:
 
-we don't need to bundle for the sdk case! we might need to do some transpilation to just plain ES6 (e.g. don't assume ?. and ??) we could use a browserslist query for this e.g. `node 14`. esbuild seems to support this as well, tldraw uses esbuild for their build.
-
-one advantage of not bundling the files for the sdk is that you can still use import overrides in the consuming project build settings. is that an idiomatic way of doing things though?
-
-
-
 ```
 "main": "./dist/index.cjs",
   "exports": {
@@ -16,6 +10,13 @@ one advantage of not bundling the files for the sdk is that you can still use im
   },
   "types": "dist/index.d.ts",
 ```
+
+we don't need to bundle for the sdk case! we might need to do some transpilation to just plain ES6 (e.g. don't assume ?. and ??) we could use a browserslist query for this e.g. `node 14`. esbuild seems to support this as well, tldraw uses esbuild for their build.
+
+one advantage of not bundling the files for the sdk is that you can still use import overrides in the consuming project build settings. is that an idiomatic way of doing things though?
+
+
+
 
 this way we will support typescript, non-esm javascript and esm javascript using libhydrogen as an SDK
 
@@ -95,3 +96,14 @@ we could put this file per build system, as ESM, in dist as well so you can incl
             - css files and any resource used therein
             - download-sandbox.html
         - a type declaration file (index.d.ts)
+
+## Questions
+ - can rollup not bundle the source tree and leave modules intact?
+    - if we can use a function that creates a chunk per file to pass to manualChunks and disable chunk hashing we can probably do this. See https://rollupjs.org/guide/en/#outputmanualchunks
+
+    looks like we should be able to disable chunk name hashing with chunkFileNames https://rollupjs.org/guide/en/#outputoptions-object
+
+
+    we should test this with a vite test config
+ 
+    we also need to compile down to ES6, both for the app and for the sdk

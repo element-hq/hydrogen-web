@@ -269,13 +269,18 @@ export class QueryTarget<T> {
     }
 }
 
-import {createMockDatabase, MockIDBImpl} from "../../../mocks/Storage";
+import {createMockDatabase, createMockIDBFactory, getMockIDBKeyRange} from "../../../mocks/Storage";
 import {txnAsPromise} from "./utils";
 import {QueryTargetWrapper, Store} from "./Store";
 
-export function tests() {
+export async function tests() {
 
-    class MockTransaction extends MockIDBImpl {
+    class MockTransaction {
+        constructor(public readonly idbFactory: IDBFactory, readonly idbKeyRangeType: typeof IDBKeyRange) {}
+
+        get IDBKeyRange(): typeof IDBKeyRange {
+            return this.idbKeyRangeType;
+        }
         get databaseName(): string { return "mockdb"; }
         addWriteError(error: StorageError, refItem: ILogItem | undefined, operationName: string, keys: IDBKey[] | undefined) {}
     }
@@ -285,10 +290,12 @@ export function tests() {
     }
 
     async function createTestStore(): Promise<Store<TestEntry>> {
-        const mockImpl = new MockTransaction();
+        const idbFactory = await createMockIDBFactory();
+        const idbKeyRangeType = await getMockIDBKeyRange();
+        const mockImpl = new MockTransaction(idbFactory, idbKeyRangeType);
         const db = await createMockDatabase("findExistingKeys", (db: IDBDatabase) => {
             db.createObjectStore("test", {keyPath: "key"});
-        }, mockImpl);
+        }, idbFactory);
         const txn = db.transaction(["test"], "readwrite");
         return new Store<TestEntry>(txn.objectStore("test"), mockImpl);
     }
