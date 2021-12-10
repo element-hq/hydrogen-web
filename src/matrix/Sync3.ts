@@ -137,6 +137,7 @@ export class Sync3 {
     // sync v3 specific: contains the sliding window ranges to request as well as the data structures
     // to remember the indexes for each room.
     private ranges: number[][];
+    private debounceTimeoutId: any;
     private roomIndexToRoomId: IndexToRoomId;
     private roomIdToRoomIndex: RoomIdToIndex;
     private totalRooms: number;
@@ -169,6 +170,7 @@ export class Sync3 {
         this.totalRooms = 0;
         this.currentRoomSubscriptions = [];
         this.nextRoomSubscriptions = [];
+        this.debounceTimeoutId = 0;
     }
 
     /**
@@ -189,7 +191,7 @@ export class Sync3 {
      * Load a new sliding window range for sync v3.
      * 
      * This range should be the part of the room list the user is currently looking at. No index
-     * padding will be performed (e.g viewing 10-20 so request 5-25).
+     * padding will be performed (e.g viewing 10-20 so request 5-25). Debounces after a few milliseconds.
      * @param start The start index (inclusive)
      * @param end The end index (inclusive)
      */
@@ -215,9 +217,13 @@ export class Sync3 {
         }
         this.ranges[1][0] = start;
         this.ranges[1][1] = end;
-        console.log("new sync v3 ranges: ", JSON.stringify(this.ranges));
-        // interrupt the sync request to send up the new ranges
-        this.currentRequest?.abort();
+        console.log("update ranges");
+        clearTimeout(this.debounceTimeoutId);
+        this.debounceTimeoutId = setTimeout(() => {
+            console.log("new sync v3 ranges: ", JSON.stringify(this.ranges));
+            // interrupt the sync request to send up the new ranges
+            this.currentRequest?.abort();
+        }, 200);
     }
 
     // Start syncing. Probably call this at startup once you have an access_token.
