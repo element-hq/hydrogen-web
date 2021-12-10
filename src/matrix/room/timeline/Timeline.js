@@ -287,7 +287,7 @@ export class Timeline {
                 contextEvent.addDependent(entry);
                 entry.setContextEntry(contextEvent);
                 // emit this change
-                this._remoteEntries.update(entry);
+                this._findAndUpdateRelatedEntry(null, entry.id, () => true);
             }
         }
     }
