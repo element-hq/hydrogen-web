@@ -29,7 +29,7 @@ export class TextMessageView extends BaseMessageView {
         }, t.mapView(vm => vm.replyPreviewBody, reply => reply ? new ReplyPreviewView(reply): null));
 
         t.mapSideEffect(vm => vm.body, body => {
-            while (container.lastChild && container.lastChild.tagName !== "BLOCKQUOTE") {
+            while (container.lastChild && container.lastChild.className !== "ReplyPreviewView") {
                 container.removeChild(container.lastChild);
             }
             for (const part of body.parts) {
