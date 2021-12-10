@@ -34,4 +34,5 @@ In this scenario:
 - Use `object` if you know that you will not access any property
 - Use `Record<string, any>` if you need to access some property
 
-Both usages prevent the type from accepting primitives (eg: string, boolean...). If using `Record`, ensure you have guards to check that the properties really do exist.
+Both usages prevent the type from accepting primitives (eg: string, boolean...).  
+If using `Record`, ensure that you have guards to check that the properties really do exist.
