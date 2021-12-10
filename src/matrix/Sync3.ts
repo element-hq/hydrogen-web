@@ -217,7 +217,6 @@ export class Sync3 {
         }
         this.ranges[1][0] = start;
         this.ranges[1][1] = end;
-        console.log("update ranges");
         clearTimeout(this.debounceTimeoutId);
         this.debounceTimeoutId = setTimeout(() => {
             console.log("new sync v3 ranges: ", JSON.stringify(this.ranges));
