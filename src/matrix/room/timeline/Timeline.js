@@ -25,6 +25,7 @@ import {getRelation, ANNOTATION_RELATION_TYPE} from "./relations.js";
 import {REDACTION_TYPE} from "../common.js";
 import {NonPersistedEventEntry} from "./entries/NonPersistedEventEntry.js";
 import {DecryptionSource} from "../../e2ee/common.js";
+import {EVENT_TYPE as MEMBER_EVENT_TYPE} from "../members/RoomMember.js";
 
 export class Timeline {
     constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock, powerLevelsObservable, hsApi}) {
@@ -290,7 +291,7 @@ export class Timeline {
     async _getEventFromHomeserver(eventId) {
         const response = await this._hsApi.context(this._roomId, eventId, 0).response();
         const sender = response.event.sender;
-        const member = response.state.find(e => e.type === "m.room.member" && e.user_id === sender);
+        const member = response.state.find(e => e.type === MEMBER_EVENT_TYPE && e.user_id === sender);
         const entry = {
             event: response.event,
             displayName: member.content.displayname,
