@@ -262,28 +262,17 @@ export class Timeline {
     }
 
     async _loadRelatedEvents(entries) {
-        const filteredEntries = entries.filter(e => !!e.contextEventId);
-        for (const entry of filteredEntries) {
+        const entriesNeedingContext = entries.filter(e => !!e.contextEventId);
+        for (const entry of entriesNeedingContext) {
             const id = entry.contextEventId;
-            let needToTrack = false;
-            let contextEvent;
-            // find in remote events
-            contextEvent = this.getByEventId(id);
-            // find in storage
+            let contextEvent = this.getByEventId(id);
             if (!contextEvent) {
-                needToTrack = true;
-                contextEvent = await this._fetchEventFromStorage(id);
-            }
-            // fetch from hs
-            if (!contextEvent) {
-                contextEvent = await this._fetchEventFromHomeserver(id);
+                contextEvent = await this._fetchEventFromStorage(id) ?? await this._fetchEventFromHomeserver(id);
+                // this entry was created from storage/hs, so it's not tracked by remoteEntries
+                // we track them here so that we can update reply preview of dependents on redaction
+                this._fetchedEventEntries.push(contextEvent);
             }
             if (contextEvent) {
-                if (needToTrack) {
-                    // this entry was created from storage/hs, so it's not tracked by remoteEntries
-                    // we track them here so that we can update reply preview of dependents on redaction
-                    this._fetchedEventEntries.push(contextEvent);
-                }
                 contextEvent.addDependent(entry);
                 entry.setContextEntry(contextEvent);
                 // emit this change
