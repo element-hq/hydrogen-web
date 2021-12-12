@@ -133,28 +133,28 @@ export class Timeline {
             const params = updater(e);
             return params ? params : false;
         };
-        this._findAndUpdateRelatedEntry(pee.pendingEvent.relatedTxnId, pee.relatedEventId, updateOrFalse);
+        this._findAndUpdateEntryById(pee.pendingEvent.relatedTxnId, pee.relatedEventId, updateOrFalse);
         // also look for a relation target to update with this redaction
         if (pee.redactingEntry) {
             // redactingEntry might be a PendingEventEntry or an EventEntry, so don't assume pendingEvent
             const relatedTxnId = pee.redactingEntry.pendingEvent?.relatedTxnId;
-            this._findAndUpdateRelatedEntry(relatedTxnId, pee.redactingEntry.relatedEventId, updateOrFalse);
+            this._findAndUpdateEntryById(relatedTxnId, pee.redactingEntry.relatedEventId, updateOrFalse);
         }
     }
 
-    _findAndUpdateRelatedEntry(relatedTxnId, relatedEventId, updateOrFalse) {
+    _findAndUpdateEntryById(txnId, eventId, updateOrFalse) {
         let found = false;
         // first, look in local entries based on txn id
-        if (relatedTxnId) {
+        if (txnId) {
             found = this._localEntries.findAndUpdate(
-                e => e.id === relatedTxnId,
+                e => e.id === txnId,
                 updateOrFalse,
             );
         }
         // if not found here, look in remote entries based on event id
-        if (!found && relatedEventId) {
+        if (!found && eventId) {
             this._remoteEntries.findAndUpdate(
-                e => e.id === relatedEventId,
+                e => e.id === eventId,
                 updateOrFalse
             );
         }
@@ -229,7 +229,7 @@ export class Timeline {
             try {
                 this._remoteEntries.getAndUpdate(entry, Timeline._entryUpdater);
                 // Since this entry changed, all dependent entries should be updated
-                entry.dependents?.forEach(e => this._findAndUpdateRelatedEntry(null, e.id, () => true));
+                entry.dependents?.forEach(e => this._updateEntry(e));
             } catch (err) {
                 if (err.name === "CompareError") {
                     // see FragmentIdComparer, if the replacing entry is on a fragment
@@ -259,9 +259,15 @@ export class Timeline {
         for (const entry of entries) {
             const relatedEntry = this._fetchedEventEntries.get(entry.relatedEventId);
             if (relatedEntry?.addLocalRelation(entry)) {
-                relatedEntry.dependents.forEach(e => this._findAndUpdateRelatedEntry(null, e.id, () => true));
+                relatedEntry.dependents.forEach(e => this._updateEntry(e));
             }
         }
+    }
+
+    _updateEntry(entry) {
+        const txnId = entry.isPending ? entry.id : null;
+        const eventId = entry.isPending ? null : entry.id;
+        this._findAndUpdateEntryById(txnId, eventId, () => true);
     }
 
     async _loadRelatedEvents(entries) {
@@ -279,7 +285,7 @@ export class Timeline {
                 contextEvent.addDependent(entry);
                 entry.setContextEntry(contextEvent);
                 // emit this change
-                this._findAndUpdateRelatedEntry(null, entry.id, () => true);
+                this._updateEntry(entry);
             }
         }
     }
