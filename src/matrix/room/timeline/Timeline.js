@@ -46,7 +46,7 @@ export class Timeline {
         this._readerRequest = null;
         this._allEntries = null;
         // Stores event entries that we fetch for reply previews
-        this._fetchedEventEntries = [];
+        this._fetchedEventEntries = new Map();
         this.initializePowerLevels(powerLevelsObservable);
     }
 
@@ -254,7 +254,7 @@ export class Timeline {
 
     _updateFetchedEntries(entries) {
         for (const entry of entries) {
-            const relatedEntry = this._fetchedEventEntries.find(e => e.id === entry.relatedEventId);
+            const relatedEntry = this._fetchedEventEntries.get(entry.relatedEventId);
             if (relatedEntry?.addLocalRelation(entry)) {
                 relatedEntry.dependents.forEach(e => this._findAndUpdateRelatedEntry(null, e.id, () => true));
             }
@@ -265,12 +265,12 @@ export class Timeline {
         const entriesNeedingContext = entries.filter(e => !!e.contextEventId);
         for (const entry of entriesNeedingContext) {
             const id = entry.contextEventId;
-            let contextEvent = this.getByEventId(id);
+            let contextEvent = this._getTrackedEvent(id);
             if (!contextEvent) {
                 contextEvent = await this._fetchEventFromStorage(id) ?? await this._fetchEventFromHomeserver(id);
                 // this entry was created from storage/hs, so it's not tracked by remoteEntries
                 // we track them here so that we can update reply preview of dependents on redaction
-                this._fetchedEventEntries.push(contextEvent);
+                this._fetchedEventEntries.set(id, contextEvent);
             }
             if (contextEvent) {
                 contextEvent.addDependent(entry);
@@ -279,6 +279,10 @@ export class Timeline {
                 this._findAndUpdateRelatedEntry(null, entry.id, () => true);
             }
         }
+    }
+
+    _getTrackedEvent(id) {
+        return this.getByEventId(id) ?? this._fetchedEventEntries.get(id);
     }
     
     // tries to prepend `amount` entries to the `entries` list.
