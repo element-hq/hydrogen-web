@@ -23,12 +23,12 @@ import {PendingEventEntry} from "./entries/PendingEventEntry.js";
 import {RoomMember} from "../members/RoomMember.js";
 import {getRelation, ANNOTATION_RELATION_TYPE} from "./relations.js";
 import {REDACTION_TYPE} from "../common.js";
+import {NonPersistedEventEntry} from "./entries/NonPersistedEventEntry.js";
+import {DecryptionSource} from "../../e2ee/common.js";
 
 export class Timeline {
-    constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock, powerLevelsObservable, fetchEventFromStorage, fetchEventFromHomeserver}) {
+    constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock, powerLevelsObservable, hsApi}) {
         this._roomId = roomId;
-        this._fetchEventFromStorage = fetchEventFromStorage;
-        this._fetchEventFromHomeserver = fetchEventFromHomeserver;
         this._storage = storage;
         this._closeCallback = closeCallback;
         this._fragmentIdComparer = fragmentIdComparer;
@@ -47,6 +47,8 @@ export class Timeline {
         this._allEntries = null;
         // Stores event entries that we fetch for reply previews
         this._fetchedEventEntries = new Map();
+        this._decryptEntries = null;
+        this._hsApi = hsApi;
         this.initializePowerLevels(powerLevelsObservable);
     }
 
@@ -267,7 +269,7 @@ export class Timeline {
             const id = entry.contextEventId;
             let contextEvent = this._getTrackedEvent(id);
             if (!contextEvent) {
-                contextEvent = await this._fetchEventFromStorage(id) ?? await this._fetchEventFromHomeserver(id);
+                contextEvent = await this._timelineReader.readById(id) ?? await this._getEventFromHomeserver(id);
                 // this entry was created from storage/hs, so it's not tracked by remoteEntries
                 // we track them here so that we can update reply preview of dependents on redaction
                 this._fetchedEventEntries.set(id, contextEvent);
@@ -283,6 +285,23 @@ export class Timeline {
 
     _getTrackedEvent(id) {
         return this.getByEventId(id) ?? this._fetchedEventEntries.get(id);
+    }
+
+    async _getEventFromHomeserver(eventId) {
+        const response = await this._hsApi.context(this._roomId, eventId, 0).response();
+        const sender = response.event.sender;
+        const member = response.state.find(e => e.type === "m.room.member" && e.user_id === sender);
+        const entry = {
+            event: response.event,
+            displayName: member.content.displayname,
+            avatarUrl: member.content.avatar_url
+        };
+        const eventEntry = new NonPersistedEventEntry(entry, this._fragmentIdComparer);
+        if (this._decryptEntries) {
+            const request = this._decryptEntries(DecryptionSource.Timeline, [eventEntry]);
+            await request.complete();
+        }
+        return eventEntry;
     }
     
     // tries to prepend `amount` entries to the `entries` list.
@@ -374,6 +393,7 @@ export class Timeline {
 
     /** @internal */
     enableEncryption(decryptEntries) {
+        this._decryptEntries = decryptEntries;
         this._timelineReader.enableEncryption(decryptEntries);
     }
 
