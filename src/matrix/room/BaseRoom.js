@@ -30,7 +30,7 @@ import {DecryptionSource} from "../e2ee/common.js";
 import {ensureLogItem} from "../../logging/utils";
 import {PowerLevels} from "./PowerLevels.js";
 import {RetainedObservableValue} from "../../observable/ObservableValue";
-import {NonPersistedEventEntry} from "./timeline/entries/NonPersistedEventEntry";
+import {TimelineReader} from "./timeline/persistence/TimelineReader";
 
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 
@@ -503,8 +503,7 @@ export class BaseRoom extends EventEmitter {
                 clock: this._platform.clock,
                 logger: this._platform.logger,
                 powerLevelsObservable: await this.observePowerLevels(),
-                fetchEventFromStorage: eventId => this._readEventById(eventId),
-                fetchEventFromHomeserver: eventId => this._getEventFromHomeserver(eventId)
+                hsApi: this._hsApi
             });
             try {
                 if (this._roomEncryption) {
@@ -546,39 +545,10 @@ export class BaseRoom extends EventEmitter {
     }
 
     async _readEventById(eventId) {
-        let stores = [this._storage.storeNames.timelineEvents];
-        if (this.isEncrypted) {
-            stores.push(this._storage.storeNames.inboundGroupSessions);
-        }
-        const txn = await this._storage.readTxn(stores);
-        const storageEntry = await txn.timelineEvents.getByEventId(this._roomId, eventId);
-        if (storageEntry) {
-            const entry = new EventEntry(storageEntry, this._fragmentIdComparer);
-            if (entry.eventType === EVENT_ENCRYPTED_TYPE) {
-                const request = this._decryptEntries(DecryptionSource.Timeline, [entry], txn);
-                await request.complete();
-            }
-            return entry;
-        }
+        const reader = new TimelineReader({ roomId: this._roomId, storage: this._storage, fragmentIdComparer: this._fragmentIdComparer });
+        const entry = await reader.readById(eventId);
+        return entry;
     }
-
-    async _getEventFromHomeserver(eventId) {
-        const response = await this._hsApi.context(this._roomId, eventId, 0).response();
-        const sender = response.event.sender;
-        const member = response.state.find(e => e.type === "m.room.member" && e.user_id === sender);
-        const entry = {
-            event: response.event,
-            displayName: member.content.displayname,
-            avatarUrl: member.content.avatar_url
-        };
-        const eventEntry = new NonPersistedEventEntry(entry, this._fragmentIdComparer);
-        if (eventEntry.eventType === EVENT_ENCRYPTED_TYPE) {
-            const request = this._decryptEntries(DecryptionSource.Timeline, [eventEntry]);
-            await request.complete();
-        }
-        return eventEntry;
-    }
-
 
     dispose() {
         this._roomEncryption?.dispose();
