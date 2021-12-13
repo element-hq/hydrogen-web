@@ -290,7 +290,7 @@ export class Timeline {
             const id = entry.contextEventId;
             let contextEvent = this._getTrackedEvent(id);
             if (!contextEvent) {
-                contextEvent = await this._timelineReader.readById(id) ?? await this._getEventFromHomeserver(id);
+                contextEvent = await this._getEventFromStorage(id) ?? await this._getEventFromHomeserver(id);
                 // this entry was created from storage/hs, so it's not tracked by remoteEntries
                 // we track them here so that we can update reply preview of dependents on redaction
                 this._fetchedEventEntries.set(id, contextEvent);
@@ -306,6 +306,11 @@ export class Timeline {
 
     _getTrackedEvent(id) {
         return this.getByEventId(id) ?? this._fetchedEventEntries.get(id);
+    }
+
+    async _getEventFromStorage(eventId) {
+        const entry = await this._timelineReader.readById(eventId);
+        return entry;
     }
 
     async _getEventFromHomeserver(eventId) {
@@ -364,18 +369,7 @@ export class Timeline {
             }
         }
         if (eventId) {
-            const loadedEntry = this.getByEventId(eventId);
-            if (loadedEntry) {
-                return loadedEntry;
-            } else {
-                const txn = await this._storage.readWriteTxn([
-                    this._storage.storeNames.timelineEvents,
-                ]);
-                const redactionTargetEntry = await txn.timelineEvents.getByEventId(this._roomId, eventId);
-                if (redactionTargetEntry) {
-                    return new EventEntry(redactionTargetEntry, this._fragmentIdComparer);
-                }
-            }
+            return this.getByEventId(eventId) ?? await this._getEventFromStorage(eventId);
         }
         return null;
     }
