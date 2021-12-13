@@ -214,8 +214,8 @@ export class Timeline {
 
     // used in replaceEntries
     static _entryUpdater(existingEntry, entry) {
-        // ensure dependents point to the new entry instead of existingEntry
-        existingEntry.dependents?.forEach(event => event.setContextEntry(entry));
+        // ensure other entries for which this existingEntry is a context point to the new entry instead of existingEntry
+        existingEntry.contextForEntries?.forEach(event => event.setContextEntry(entry));
         entry.updateFrom(existingEntry);
         return entry;
     }
@@ -229,7 +229,7 @@ export class Timeline {
             try {
                 this._remoteEntries.getAndUpdate(entry, Timeline._entryUpdater);
                 // Since this entry changed, all dependent entries should be updated
-                entry.dependents?.forEach(e => this._updateEntry(e));
+                entry.contextForEntries?.forEach(e => this._updateEntry(e));
             } catch (err) {
                 if (err.name === "CompareError") {
                     // see FragmentIdComparer, if the replacing entry is on a fragment
@@ -262,7 +262,7 @@ export class Timeline {
             const relatedEntry = this._fetchedEventEntries.get(entry.relatedEventId);
             // todo: can this be called .addRelation instead?
             if (relatedEntry?.addLocalRelation(entry)) {
-                relatedEntry.dependents.forEach(e => this._updateEntry(e));
+                relatedEntry.contextForEntries.forEach(e => this._updateEntry(e));
             }
         }
     }
@@ -272,7 +272,7 @@ export class Timeline {
         for (const entry of entries) {
             const fetchedEntry = this._fetchedEventEntries.get(entry.id);
             if (fetchedEntry) {
-                fetchedEntry.dependents.forEach(e => e.setContextEntry(entry));
+                fetchedEntry.contextForEntries.forEach(e => e.setContextEntry(entry));
                 entry.updateFrom(fetchedEntry);
             }
         }
@@ -296,7 +296,7 @@ export class Timeline {
                 this._fetchedEventEntries.set(id, contextEvent);
             }
             if (contextEvent) {
-                contextEvent.addDependent(entry);
+                contextEvent.setAsContextOf(entry);
                 entry.setContextEntry(contextEvent);
                 // emit this change
                 this._updateEntry(entry);
