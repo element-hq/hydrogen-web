@@ -252,20 +252,20 @@ export class Timeline {
         this._addLocalRelationsToNewRemoteEntries(newEntries);
         this._updateFetchedEntries(newEntries);
         this._moveFetchedEntryToRemoteEntries(newEntries);
-        this._loadRelatedEvents(newEntries);
         this._remoteEntries.setManySorted(newEntries);
+        this._loadRelatedEvents(newEntries);
     }
 
     /**
-     * Update entries in contextEntriesNotInTimeline based on newly received events.
+     * Update entries based on newly received events.
      * eg: a newly received redacted event may mark an existing event in contextEntriesNotInTimeline as being redacted 
      */
     _updateFetchedEntries(entries) {
         for (const entry of entries) {
-            const relatedEntry = this._contextEntriesNotInTimeline.get(entry.relatedEventId);
+            const relatedEntry = this._getTrackedEntry(entry.relatedEventId);
             // todo: can this be called .addRelation instead?
             if (relatedEntry?.addLocalRelation(entry)) {
-                relatedEntry.contextForEntries.forEach(e => this._updateEntry(e));
+                relatedEntry.contextForEntries?.forEach(e => this._updateEntry(e));
             }
         }
     }
@@ -294,7 +294,7 @@ export class Timeline {
         const entriesNeedingContext = entries.filter(e => !!e.contextEventId);
         for (const entry of entriesNeedingContext) {
             const id = entry.contextEventId;
-            let contextEvent = this._getTrackedEvent(id);
+            let contextEvent = this._getTrackedEntry(id);
             if (!contextEvent) {
                 contextEvent = await this._getEventFromStorage(id) ?? await this._getEventFromHomeserver(id);
                 if (contextEvent) {
@@ -311,7 +311,7 @@ export class Timeline {
         }
     }
 
-    _getTrackedEvent(id) {
+    _getTrackedEntry(id) {
         return this.getByEventId(id) ?? this._contextEntriesNotInTimeline.get(id);
     }
 
@@ -433,7 +433,7 @@ import {poll} from "../../../mocks/poll.js";
 import {Clock as MockClock} from "../../../mocks/Clock.js";
 import {createMockStorage} from "../../../mocks/Storage";
 import {ListObserver} from "../../../mocks/ListObserver.js";
-import {createEvent, withTextBody, withContent, withSender} from "../../../mocks/event.js";
+import {createEvent, withTextBody, withContent, withSender, withRedacts} from "../../../mocks/event.js";
 import {NullLogItem} from "../../../logging/NullLogger";
 import {EventEntry} from "./entries/EventEntry.js";
 import {User} from "../../User.js";
@@ -689,6 +689,141 @@ export function tests() {
             assert.equal(type, "update");
             assert.equal(value.eventType, "m.room.message");
             assert.equal(value.content.body, "hi bob!");
+        },
+
+        "context entry is fetched from remoteEntries": async assert => {
+            const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
+                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
+            const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)) });
+            let event = withContent({
+                body: "bar",
+                msgtype: "m.text",
+                "m.relates_to": {
+                    "m.in_reply_to": {
+                        "event_id": "event_id_1"
+                    }
+                }
+            }, createEvent("m.room.message", "event_id_2", bob));
+            const entryB = new EventEntry({ event });
+            await timeline.load(new User(alice), "join", new NullLogItem());
+            timeline._remoteEntries.setManyUnsorted([entryA, entryB]);
+            await timeline._loadRelatedEvents([entryA, entryB]);
+            assert.deepEqual(entryB.contextEntry, entryA);
+        },
+
+        "context entry is fetched from storage": async assert => {
+            const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
+                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
+            const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)) });
+            let event = withContent({
+                body: "bar",
+                msgtype: "m.text",
+                "m.relates_to": {
+                    "m.in_reply_to": {
+                        "event_id": "event_id_1"
+                    }
+                }
+            }, createEvent("m.room.message", "event_id_2", bob));
+            const entryB = new EventEntry({ event });
+            timeline._getEventFromStorage = () => entryA
+            await timeline.load(new User(alice), "join", new NullLogItem());
+            await timeline._loadRelatedEvents([entryB]);
+            assert.deepEqual(entryB.contextEntry, entryA);
+        },
+
+        "context entry is fetched from hs": async assert => {
+            const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
+                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
+            const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)) });
+            let event = withContent({
+                body: "bar",
+                msgtype: "m.text",
+                "m.relates_to": {
+                    "m.in_reply_to": {
+                        "event_id": "event_id_1"
+                    }
+                }
+            }, createEvent("m.room.message", "event_id_2", bob));
+            const entryB = new EventEntry({ event });
+            timeline._getEventFromHomeserver = () => entryA
+            await timeline.load(new User(alice), "join", new NullLogItem());
+            await timeline._loadRelatedEvents([entryB]);
+            assert.deepEqual(entryB.contextEntry, entryA);
+        },
+
+        "context entry has a list of entries to which it forms the context": async assert => {
+            const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
+                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
+            const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)) });
+            const content = {
+                body: "bar",
+                msgtype: "m.text",
+                "m.relates_to": {
+                    "m.in_reply_to": {
+                        "event_id": "event_id_1"
+                    }
+                }
+            };
+            const entryB = new EventEntry({ event: withContent(content, createEvent("m.room.message", "event_id_2", bob)) });
+            const entryC = new EventEntry({ event: withContent(content, createEvent("m.room.message", "event_id_3", bob)) });
+            await timeline.load(new User(alice), "join", new NullLogItem());
+            timeline._remoteEntries.setManyUnsorted([entryA, entryB, entryC]);
+            await timeline._loadRelatedEvents([entryA, entryB, entryC]);
+            assert.deepEqual(entryA.contextForEntries, [entryB, entryC]);
+        },
+
+        "context entry in contextEntryNotInTimeline gets updated based on incoming redaction": async assert => {
+            const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
+                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
+            const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)) });
+            let event = withContent({
+                body: "bar",
+                msgtype: "m.text",
+                "m.relates_to": {
+                    "m.in_reply_to": {
+                        "event_id": "event_id_1"
+                    }
+                }
+            }, createEvent("m.room.message", "event_id_2", bob));
+            const entryB = new EventEntry({ event });
+            timeline._getEventFromStorage = () => entryA
+            await timeline.load(new User(alice), "join", new NullLogItem());
+            await timeline._loadRelatedEvents([entryB]);
+            const redactingEntry = new EventEntry({ event: withRedacts(entryA.id, "foo", createEvent("m.room.redaction", "event_id_3", alice)) });
+            await timeline.addEntries([redactingEntry]);
+            const contextEntry = timeline._contextEntriesNotInTimeline.get(entryA.id);
+            assert.strictEqual(contextEntry.isRedacted, true);
+        },
+
+        "redaction of context entry triggers updates in other entries": async assert => {
+            const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
+                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
+            const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)) });
+            const content = {
+                body: "bar",
+                msgtype: "m.text",
+                "m.relates_to": {
+                    "m.in_reply_to": {
+                        "event_id": "event_id_1"
+                    }
+                }
+            };
+            const entryB = new EventEntry({ event: withContent(content, createEvent("m.room.message", "event_id_2", bob)) });
+            const entryC = new EventEntry({ event: withContent(content, createEvent("m.room.message", "event_id_3", bob)) });
+            await timeline.load(new User(alice), "join", new NullLogItem());
+            // timeline._getEventFromStorage = () => entryA;
+            await timeline.addEntries([entryA, entryB, entryC]);
+            const bin = [entryB, entryC];
+            timeline.entries.subscribe({
+                onUpdate: (index) => {
+                    const i = bin.findIndex(e => e.id === index);
+                    bin.splice(i, 1);
+                },
+                onAdd: () => { }
+            });
+            const redactingEntry = new EventEntry({ event: withRedacts(entryA.id, "foo", createEvent("m.room.redaction", "event_id_3", alice)) });
+            await timeline.addEntries([redactingEntry]);
+            assert.strictEqual(bin.length, 0);
         }
     };
 }
