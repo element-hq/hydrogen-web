@@ -251,6 +251,7 @@ export class Timeline {
     addEntries(newEntries) {
         this._addLocalRelationsToNewRemoteEntries(newEntries);
         this._updateFetchedEntries(newEntries);
+        this._moveFetchedEntryToRemoteEntries(newEntries);
         this._loadRelatedEvents(newEntries);
         this._remoteEntries.setManySorted(newEntries);
     }
@@ -262,6 +263,17 @@ export class Timeline {
             // todo: can this be called .addRelation instead?
             if (relatedEntry?.addLocalRelation(entry)) {
                 relatedEntry.dependents.forEach(e => this._updateEntry(e));
+            }
+        }
+    }
+
+    _moveFetchedEntryToRemoteEntries(entries) {
+        // if some entry in entries is also in fetchedEntries, we need to remove it from fetchedEntries
+        for (const entry of entries) {
+            const fetchedEntry = this._fetchedEventEntries.get(entry.id);
+            if (fetchedEntry) {
+                fetchedEntry.dependents.forEach(e => e.setContextEntry(entry));
+                entry.updateFrom(fetchedEntry);
             }
         }
     }
