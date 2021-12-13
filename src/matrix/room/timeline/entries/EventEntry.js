@@ -25,7 +25,7 @@ export class EventEntry extends BaseEventEntry {
         this._decryptionError = null;
         this._decryptionResult = null;
         this._contextEntry = null;
-        this._dependents = null;
+        this._contextForEntries = null;
     }
 
     clone() {
@@ -41,22 +41,22 @@ export class EventEntry extends BaseEventEntry {
         if (other._decryptionError && !this._decryptionError) {
             this._decryptionError = other._decryptionError;
         }
-        this._dependents = other._dependents;
+        this._contextForEntries = other._contextForEntries;
     }
 
     setContextEntry(entry) {
         this._contextEntry = entry;
     }
 
-    addDependent(entry) {
-        if (!this._dependents) {
-            this._dependents = [];
+    setAsContextOf(entry) {
+        if (!this._contextForEntries) {
+            this._contextForEntries = [];
         }
-        this._dependents.push(entry);
+        this._contextForEntries.push(entry);
     }
 
-    get dependents() {
-        return this._dependents;
+    get contextForEntries() {
+        return this._contextForEntries;
     }
 
     get event() {
