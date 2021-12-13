@@ -297,9 +297,11 @@ export class Timeline {
             let contextEvent = this._getTrackedEvent(id);
             if (!contextEvent) {
                 contextEvent = await this._getEventFromStorage(id) ?? await this._getEventFromHomeserver(id);
-                // this entry was created from storage/hs, so it's not tracked by remoteEntries
-                // we track them here so that we can update reply previews later 
-                this._contextEntriesNotInTimeline.set(id, contextEvent);
+                if (contextEvent) {
+                    // this entry was created from storage/hs, so it's not tracked by remoteEntries
+                    // we track them here so that we can update reply previews later
+                    this._contextEntriesNotInTimeline.set(id, contextEvent);
+                }
             }
             if (contextEvent) {
                 contextEvent.setAsContextOf(entry);
