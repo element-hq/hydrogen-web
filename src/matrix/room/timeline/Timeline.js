@@ -256,8 +256,10 @@ export class Timeline {
     }
 
     _updateFetchedEntries(entries) {
+        // Update fetchedEntries based on incoming event, eg: a fetched event being redacted
         for (const entry of entries) {
             const relatedEntry = this._fetchedEventEntries.get(entry.relatedEventId);
+            // todo: can this be called .addRelation instead?
             if (relatedEntry?.addLocalRelation(entry)) {
                 relatedEntry.dependents.forEach(e => this._updateEntry(e));
             }
