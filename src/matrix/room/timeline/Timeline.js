@@ -46,8 +46,8 @@ export class Timeline {
         });
         this._readerRequest = null;
         this._allEntries = null;
-        // Stores event entries that we fetch for reply previews
-        this._fetchedEventEntries = new Map();
+        /** Stores event entries that we had to fetch from hs/storage for reply previews (because they were not in timeline) */ 
+        this._contextEntriesNotInTimeline = new Map();
         this._decryptEntries = null;
         this._hsApi = hsApi;
         this.initializePowerLevels(powerLevelsObservable);
@@ -256,10 +256,13 @@ export class Timeline {
         this._remoteEntries.setManySorted(newEntries);
     }
 
+    /**
+     * Update entries in contextEntriesNotInTimeline based on newly received events.
+     * eg: a newly received redacted event may mark an existing event in contextEntriesNotInTimeline as being redacted 
+     */
     _updateFetchedEntries(entries) {
-        // Update fetchedEntries based on incoming event, eg: a fetched event being redacted
         for (const entry of entries) {
-            const relatedEntry = this._fetchedEventEntries.get(entry.relatedEventId);
+            const relatedEntry = this._contextEntriesNotInTimeline.get(entry.relatedEventId);
             // todo: can this be called .addRelation instead?
             if (relatedEntry?.addLocalRelation(entry)) {
                 relatedEntry.contextForEntries.forEach(e => this._updateEntry(e));
@@ -267,10 +270,13 @@ export class Timeline {
         }
     }
 
+    /**
+     * If an event we had to fetch from hs/storage is now in the timeline (for eg, due to gap fill),
+     * remove the event from _contextEntriesNotInTimeline since it is now in remoteEntries
+     */
     _moveFetchedEntryToRemoteEntries(entries) {
-        // if some entry in entries is also in fetchedEntries, we need to remove it from fetchedEntries
         for (const entry of entries) {
-            const fetchedEntry = this._fetchedEventEntries.get(entry.id);
+            const fetchedEntry = this._contextEntriesNotInTimeline.get(entry.id);
             if (fetchedEntry) {
                 fetchedEntry.contextForEntries.forEach(e => e.setContextEntry(entry));
                 entry.updateFrom(fetchedEntry);
@@ -292,20 +298,19 @@ export class Timeline {
             if (!contextEvent) {
                 contextEvent = await this._getEventFromStorage(id) ?? await this._getEventFromHomeserver(id);
                 // this entry was created from storage/hs, so it's not tracked by remoteEntries
-                // we track them here so that we can update reply preview of dependents on redaction
-                this._fetchedEventEntries.set(id, contextEvent);
+                // we track them here so that we can update reply previews later 
+                this._contextEntriesNotInTimeline.set(id, contextEvent);
             }
             if (contextEvent) {
                 contextEvent.setAsContextOf(entry);
                 entry.setContextEntry(contextEvent);
-                // emit this change
                 this._updateEntry(entry);
             }
         }
     }
 
     _getTrackedEvent(id) {
-        return this.getByEventId(id) ?? this._fetchedEventEntries.get(id);
+        return this.getByEventId(id) ?? this._contextEntriesNotInTimeline.get(id);
     }
 
     async _getEventFromStorage(eventId) {
