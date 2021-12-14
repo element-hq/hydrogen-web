@@ -26,7 +26,7 @@ export class ReplyPreviewView extends TemplateView {
             while (replyContainer.lastChild) {
                 replyContainer.removeChild(replyContainer.lastChild);
             }
-            replyContainer.appendChild(vm.error? this._renderError(vm) : this._renderReplyPreview(vm));
+            replyContainer.appendChild(vm.hasError? this._renderError(vm) : this._renderReplyPreview(vm));
         })
         return replyContainer;
     }
@@ -49,7 +49,7 @@ export class ReplyPreviewView extends TemplateView {
             return "This message has been deleted.";
         }
         else if (vm.decryptionError) {
-            return "This message could not be decrypted."
+            return vm.decryptionError.message;
         }
     }
 
