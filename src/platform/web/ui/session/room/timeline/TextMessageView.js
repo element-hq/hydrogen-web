@@ -26,10 +26,10 @@ export class TextMessageView extends BaseMessageView {
                 "Timeline_messageBody": true,
                 statusMessage: vm => vm.shape === "message-status",
             }
-        }, t.mapView(vm => vm.replyPreviewBody, reply => reply ? new ReplyPreviewView(reply): null));
+        }, t.mapView(vm => vm.replyTextTile, replyTextTile => replyTextTile ? new ReplyPreviewView(replyTextTile) : null));
 
         t.mapSideEffect(vm => vm.body, body => {
-            while (container.lastChild && container.lastChild.className !== "ReplyPreviewView") {
+            while (this._shouldRemove(container.lastChild)) {
                 container.removeChild(container.lastChild);
             }
             for (const part of body.parts) {
@@ -39,6 +39,10 @@ export class TextMessageView extends BaseMessageView {
         });
 
         return container;
+    }
+
+    _shouldRemove(element) {
+        return element && element.className !== "ReplyPreviewView" && element.nodeName !== "#comment";
     }
 
 }

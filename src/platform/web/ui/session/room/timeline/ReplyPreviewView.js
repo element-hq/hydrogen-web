@@ -21,7 +21,13 @@ import {renderPart} from "./TextMessageView.js";
 
 export class ReplyPreviewView extends TemplateView {
     render(t, vm) {
-        const replyContainer = vm.error? this._renderError(vm) : this._renderReplyPreview(vm);
+        const replyContainer = t.div({className: "ReplyPreviewView"});
+        t.mapSideEffect(vm => vm.body, () => {
+            while (replyContainer.lastChild) {
+                replyContainer.removeChild(replyContainer.lastChild);
+            }
+            replyContainer.appendChild(vm.error? this._renderError(vm) : this._renderReplyPreview(vm));
+        })
         return replyContainer;
     }
 
@@ -29,7 +35,7 @@ export class ReplyPreviewView extends TemplateView {
         const errorMessage = this._getErrorMessage(error);
         const children = [tag.span({ className: "statusMessage" }, errorMessage), tag.br()];
         const reply = avatar && senderName ? this._renderReplyHeader(avatar, senderName, children) :
-                                             tag.blockquote({ className: "ReplyPreviewView" }, children);
+                                             tag.blockquote(children);
         return reply;
     }
 
@@ -45,19 +51,20 @@ export class ReplyPreviewView extends TemplateView {
         }
     }
 
-    _renderReplyPreview({ body, avatar, senderName }) {
-        const reply = this._renderReplyHeader(avatar, senderName);
+    _renderReplyPreview(vm) {
+        const reply = this._renderReplyHeader(vm);
+        const body = vm.body;
         for (const part of body.parts) {
             reply.appendChild(renderPart(part));
         }
         return reply;
     }
 
-    _renderReplyHeader(avatar, displayName, children = []) {
-        return tag.blockquote({ className: "ReplyPreviewView" },
+    _renderReplyHeader(vm, children = []) {
+        return tag.blockquote(
             [
             tag.a({ className: "link", href: "#" }, "In reply to"),
-            tag.a({ className: "pill", href: "#" }, [renderStaticAvatar(avatar, 12), displayName]),
+            tag.a({ className: "pill", href: "#" }, [renderStaticAvatar(vm, 12, undefined, true), vm.displayName]),
             tag.br(),
             ...children
         ]);

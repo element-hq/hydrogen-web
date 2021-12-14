@@ -19,6 +19,12 @@ import {parsePlainBody} from "../MessageBody.js";
 import {parseHTMLBody} from "../deserialize.js";
 
 export class TextTile extends BaseTextTile {
+
+    constructor(options) {
+        super(options);
+        this._replyTextTile = null;
+    }
+
     _getContentString(key) {
         return this._getContent()?.[key] || "";
     }
@@ -58,5 +64,18 @@ export class TextTile extends BaseTextTile {
             messageBody.insertEmote(`* ${this.displayName} `);
         }
         return messageBody;
+    }
+
+    get replyTextTile() {
+        if (!this._entry.contextEventId) {
+            return null;
+        }
+        if (!this._replyTextTile) {
+            const entry = this._entry.contextEntry;
+            if (entry) {
+                this._replyTextTile = new TextTile(this.childOptions({entry, roomVM: this._roomVM, timeline: this._timeline}));
+            }
+        }
+        return this._replyTextTile;
     }
 }
