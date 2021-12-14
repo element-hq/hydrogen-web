@@ -34,8 +34,7 @@ const baseUrl = 'https://matrix.to';
 const linkPrefix = `${baseUrl}/#/`;
 
 class Deserializer {
-    constructor(result, mediaRepository, allowReplies) {
-        this.allowReplies = allowReplies;
+    constructor(result, mediaRepository) {
         this.result = result;
         this.mediaRepository = mediaRepository;
     }
@@ -289,7 +288,7 @@ class Deserializer {
     }
 
     _isAllowedNode(node) {
-        return this.allowReplies || !this._ensureElement(node, "MX-REPLY");
+        return !this._ensureElement(node, "MX-REPLY");
     }
 
     _parseInlineNodes(nodes, into) {
@@ -345,13 +344,11 @@ class Deserializer {
     }
 }
 
-export function parseHTMLBody(platform, mediaRepository, allowReplies, html) {
-    if (allowReplies) {
-        // todo: might be better to remove mx-reply and children after parsing, need to think
-        html = html.replace(/<mx-reply>.+<\/mx-reply>/, "");
-    }
+export function parseHTMLBody(platform, mediaRepository, html) {
+    // todo: might be better to remove mx-reply and children after parsing, need to think
+    html = html.replace(/<mx-reply>.+<\/mx-reply>/, "");
     const parseResult = platform.parseHTML(html);
-    const deserializer = new Deserializer(parseResult, mediaRepository, allowReplies);
+    const deserializer = new Deserializer(parseResult, mediaRepository);
     const parts = deserializer.parseAnyNodes(parseResult.rootNodes);
     return new MessageBody(html, parts);
 }
@@ -405,8 +402,8 @@ export async function tests() {
         parseHTML: (html) => new HTMLParseResult(parse(html))
     };
 
-    function test(assert, input, output, replies=true) {
-        assert.deepEqual(parseHTMLBody(platform, null, replies, input), new MessageBody(input, output));
+    function test(assert, input, output) {
+        assert.deepEqual(parseHTMLBody(platform, null, input), new MessageBody(input, output));
     }
 
     return {
@@ -504,23 +501,15 @@ export async function tests() {
             ];
             test(assert, input, output);
         },
-        "Replies are inserted when allowed": assert => {
+        "Reply fallback is always stripped": assert => {
             const input = 'Hello, <em><mx-reply>World</mx-reply></em>!';
-            const output = [
-                new TextPart('Hello, '),
-                new FormatPart("em", [new TextPart('World')]),
-                new TextPart('!'),
-            ];
-            test(assert, input, output);
-        },
-        "Replies are stripped when not allowed": assert => {
-            const input = 'Hello, <em><mx-reply>World</mx-reply></em>!';
+            const strippedInput = 'Hello, <em></em>!';
             const output = [
                 new TextPart('Hello, '),
                 new FormatPart("em", []),
                 new TextPart('!'),
             ];
-            test(assert, input, output, false);
+            assert.deepEqual(parseHTMLBody(platform, null, input), new MessageBody(strippedInput, output));
         }
         /* Doesnt work: HTML library doesn't handle <pre><code> properly.
         "Text with code block": assert => {
