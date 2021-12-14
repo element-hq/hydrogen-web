@@ -30,7 +30,11 @@ export class BaseEventEntry extends BaseEntry {
     }
 
     get isReply() {
-        return !!this.relation?.["m.in_reply_to"];
+        return !!(this.relation?.["m.in_reply_to"] || this.isThread);
+    }
+
+    get isThread() {
+        return this.relation?.["rel_type"] === "io.element.thread";
     }
 
     get isRedacting() {
