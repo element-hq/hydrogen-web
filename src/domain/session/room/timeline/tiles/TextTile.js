@@ -90,10 +90,10 @@ class ReplyPreviewTile extends TextTile {
     }
 
     get decryptionError() {
-        return !!this._entry.decryptionError;
+        return this._entry.decryptionError;
     }
 
-    get error() {
-        return this.isRedacted || this.decryptionError;
+    get hasError() {
+        return this.isRedacted || !!this.decryptionError;
     }
 }
