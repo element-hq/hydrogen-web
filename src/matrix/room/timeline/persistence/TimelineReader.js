@@ -134,7 +134,7 @@ export class TimelineReader {
 
     async readById(id, log) {
         let stores = [this._storage.storeNames.timelineEvents];
-        if (this.isEncrypted) {
+        if (this._decryptEntries) {
             stores.push(this._storage.storeNames.inboundGroupSessions);
         }
         const txn = await this._storage.readTxn(stores); // todo: can we just use this.readTxnStores here? probably
