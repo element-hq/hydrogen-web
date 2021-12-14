@@ -51,6 +51,9 @@ function _createReplyContent(targetId, msgtype, body, formattedBody) {
 }
 
 export function createReplyContent(entry, msgtype, body) {
+    if (entry.isThread) {
+        return createThreadContent(entry, msgtype, body);
+    }
     // TODO check for absense of sender / body / msgtype / etc?
     const nonTextual = fallbackForNonTextualMessage(entry.content.msgtype);
     const prefix = fallbackPrefix(entry.content.msgtype);
@@ -71,4 +74,15 @@ export function createReplyContent(entry, msgtype, body) {
     const newBody = plainFallback + '\n\n' + body;
     const newFormattedBody = formattedFallback + htmlEscape(body);
     return _createReplyContent(entry.id, msgtype, newBody, newFormattedBody);
+}
+
+function createThreadContent(entry, msgtype, body) {
+    return {
+        msgtype,
+        body,
+        "m.relates_to": {
+            "rel_type": "m.thread",
+            "event_id": entry.id 
+        }
+    };
 }
