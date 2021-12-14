@@ -31,23 +31,25 @@ export class ReplyPreviewView extends TemplateView {
         return replyContainer;
     }
 
-    _renderError({ error, avatar, senderName }) {
-        const errorMessage = this._getErrorMessage(error);
+    _renderError(vm) {
+        const errorMessage = this._getErrorMessage(vm);
         const children = [tag.span({ className: "statusMessage" }, errorMessage), tag.br()];
-        const reply = avatar && senderName ? this._renderReplyHeader(avatar, senderName, children) :
-                                             tag.blockquote(children);
+        let reply;
+        try {
+            reply = this._renderReplyHeader(vm, children);
+        }
+        catch {
+            reply = tag.blockquote(children);
+        }
         return reply;
     }
 
-    _getErrorMessage(error) {
-        switch (error.name) {
-            case "ContextEntryNotFound":
-            case "MissingBody":
-                return "This message could not be fetched.";
-            case "MessageRedacted":
-                return "This message has been deleted.";
-            default:
-                return error.message;
+    _getErrorMessage(vm) {
+        if (vm.isRedacted) {
+            return "This message has been deleted.";
+        }
+        else if (vm.decryptionError) {
+            return "This message could not be decrypted."
         }
     }
 
