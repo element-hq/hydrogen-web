@@ -17,7 +17,6 @@ limitations under the License.
 import {BaseMessageTile} from "./BaseMessageTile.js";
 import {stringAsBody} from "../MessageBody.js";
 import {createEnum} from "../../../../../utils/enum";
-import {avatarInitials, getAvatarHttpUrl, getIdentifierColorNumber} from "../../../../avatar.js";
 
 export const BodyFormat = createEnum("Plain", "Html");
 
@@ -58,42 +57,4 @@ export class BaseTextTile extends BaseMessageTile {
         return this._messageBody;
     }
 
-    get replyPreviewBody() {
-        if (!this._entry.contextEventId) {
-            return null;
-        }
-        const entry = this._entry.contextEntry;
-        const error = this._generateError(entry);
-        if (error?.name === "ContextEntryNotFound") {
-            return { error };
-        }
-        const format = entry.content.format === "org.matrix.custom.html" ? BodyFormat.Html : BodyFormat.Plain;
-        const body = entry.content["formatted_body"] ?? entry.content["body"];
-        return {
-            body: body && this._parseBody(body, format),
-            senderName: entry.displayName,
-            avatar: {
-                avatarColorNumber: getIdentifierColorNumber(entry.sender),
-                avatarLetter: avatarInitials(entry.displayName),
-                avatarUrl: (size) => getAvatarHttpUrl(entry.avatarUrl, size, this.platform, this._mediaRepository)
-            },
-            error
-        };
-    }
-
-    _generateError(entry) {
-        const createError = (name) => { const e = new Error(); e.name = name; return e;}
-        if (!entry) {
-            return createError("ContextEntryNotFound");
-        }
-        else if (entry.decryptionError) {
-            return entry.decryptionError;
-        } 
-        else if (entry.isRedacted) {
-            return createError("MessageRedacted");
-        }
-        else if (!(entry.content["formatted_body"] || entry.content["body"])) {
-            return createError("MissingBody");
-        }
-    }
 }
