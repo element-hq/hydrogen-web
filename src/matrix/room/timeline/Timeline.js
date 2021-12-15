@@ -259,14 +259,30 @@ export class Timeline {
     /**
      * Update entries based on newly received events.
      * eg: a newly received redacted event may mark an existing event in contextEntriesNotInTimeline as being redacted 
+     * This is only for the events that are not in the timeline but had to fetched from elsewhere to render reply previews.
      */
     _updateFetchedEntries(entries) {
         for (const entry of entries) {
-            const relatedEntry = this._getTrackedEntry(entry.relatedEventId);
-            // todo: can this be called .addRelation instead?
-            if (relatedEntry?.addLocalRelation(entry)) {
-                relatedEntry.contextForEntries?.forEach(e => this._updateEntry(e));
+            const relatedEntry = this._contextEntriesNotInTimeline.get(entry.relatedEventId);
+            if (!relatedEntry) {
+                continue;
             }
+            // update dependents with this new entry indicating that this is an update to contextEntry
+            const newEntry = this._createEntryFromRelatedEntries(entry, relatedEntry);
+            if (newEntry) {
+                Timeline._entryUpdater(relatedEntry, newEntry);
+                relatedEntry.contextForEntries?.forEach(e => {
+                    this._remoteEntries.findAndUpdate(te => te.id === e.id, () => { return { reply: newEntry }; });
+                });
+            }
+        }
+    }
+
+    _createEntryFromRelatedEntries(entry, relatedEntry) {
+        if (entry.isRedaction) {
+            const newEntry = relatedEntry.clone();
+            newEntry.setAsRedacted();
+            return newEntry;
         }
     }
 

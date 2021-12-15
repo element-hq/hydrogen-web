@@ -26,6 +26,7 @@ export class EventEntry extends BaseEventEntry {
         this._decryptionResult = null;
         this._contextEntry = null;
         this._contextForEntries = null;
+        this._markedAsRedacted = false;
     }
 
     clone() {
@@ -53,6 +54,10 @@ export class EventEntry extends BaseEventEntry {
             this._contextForEntries = [];
         }
         this._contextForEntries.push(entry);
+    }
+
+    setAsRedacted() {
+        this._markedAsRedacted = true;
     }
 
     get contextForEntries() {
@@ -153,7 +158,7 @@ export class EventEntry extends BaseEventEntry {
     }
 
     get isRedacted() {
-        return super.isRedacted || isRedacted(this._eventEntry.event);
+        return this._markedAsRedacted || super.isRedacted || isRedacted(this._eventEntry.event);
     }
 
     get redactionReason() {
