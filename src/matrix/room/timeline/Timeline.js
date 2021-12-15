@@ -280,6 +280,7 @@ export class Timeline {
             if (fetchedEntry) {
                 fetchedEntry.contextForEntries.forEach(e => e.setContextEntry(entry));
                 entry.updateFrom(fetchedEntry);
+                this._contextEntriesNotInTimeline.delete(entry.id);
             }
         }
     }
