@@ -42,12 +42,16 @@ export class SyncWriter {
         this._relationWriter = relationWriter;
         this._fragmentIdComparer = fragmentIdComparer;
         this._lastLiveKey = null;
+        this._lastEventId = null;
     }
 
     async load(txn, log) {
         const liveFragment = await txn.timelineFragments.liveFragment(this._roomId);
         if (liveFragment) {
             const [lastEvent] = await txn.timelineEvents.lastEvents(this._roomId, liveFragment.id, 1);
+            if (lastEvent && lastEvent.event) {
+                this._lastEventId = lastEvent.event.event_id;
+            }
             // fall back to the default event index in case the fragment was somehow written but no events
             // we should only create fragments when really writing timeline events now
             // (see https://github.com/vector-im/hydrogen-web/issues/112) but can't hurt to be extra robust.
@@ -148,12 +152,39 @@ export class SyncWriter {
     async _writeTimeline(timelineEvents, timeline, memberSync, currentKey, txn, log) {
         const entries = [];
         const updatedEntries = [];
+        timelineEvents = timelineEvents || [];
+        // Sync v3 hack:
+        // Events can come in multiple times currently in the following situation:
+        // - Click on room A, makes a room subscription, fetches most recent 20 events.
+        // - Click on room B, unsubs from room A and subs on room B.
+        // - Click on room A, remakes a room sub, fetches the same most recent 20 events.
+        // This confuses H which then thinks there are timeline fragments and it inserts events into
+        // the wrong places. To hack around this, we track the latest event in the room and drop all
+        // events <= this event ID to ensure we don't see duplicates. We can still get timeline
+        // fragments (e.g in busy rooms when you re-click on the room there may be >20 events) but
+        // this should guard against having dupes.
+        // NB: It is critical that the sliding window request has `timeline_limit: 0`, and ONLY the
+        // room subscription has `timeline_limit: N`. Failure to do this means when you click on a
+        // room you are actually getting _scrollback_ (if originally you want 1 event then want 20)
+        // and this results in dropped events due to not having the correct event key ordering.
+        let lastEventIndex = -1;
+        for (let i = 0; i < timelineEvents.length; i++) {
+            if (timelineEvents[i].event_id === this._lastEventId) {
+                lastEventIndex = i;
+                break;
+            }
+        }
+        if (lastEventIndex >= 0) {
+            timelineEvents.splice(0, lastEventIndex+1);
+        }
+
         if (timelineEvents?.length) {
             // only create a fragment when we will really write an event
             currentKey = await this._ensureLiveFragment(currentKey, entries, timeline, txn, log);
             log.set("timelineEvents", timelineEvents.length);
             let timelineStateEventCount = 0;
             for(const event of timelineEvents) {
+                this._lastEventId = event.event_id;
                 // store event in timeline
                 currentKey = currentKey.nextKey();
                 const storageEntry = createEventEntry(currentKey, this._roomId, event);
