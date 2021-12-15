@@ -411,58 +411,60 @@ export class Sync3 {
                 // session.prepareSync // E2EE decrypts room keys
                 // this.session.writeSync()  // write account data, device lists, etc.
                 await Promise.all(updates.map(async (roomResponse) => {
-                    // get or create a room
-                    let room = this.session.rooms.get(roomResponse.room_id);
-                    if (!room) {
-                        room = this.session.createRoom(roomResponse.room_id);
-                    } else {
-                        await room.load(null, syncTxn, log);
-                    }
-                    const invite = {
-                        isDirectMessage: false,
-                        inviter: { userId: null },
-                    };
-                    // inject a fake m.room.name event if there isn't a real m.room.name event there already
-                    roomResponse.required_state = roomResponse.required_state || [];
-                    if (roomResponse.name) {
-                        roomResponse.required_state.push({
-                            event_id: "$name" + roomResponse.room_id,
-                            content: {
-                                name: roomResponse.name,
-                            },
-                            type: "m.room.name",
-                            state_key: "",
-                            sender: "@noone",
-                            room_id: roomResponse.room_id,
-                        })
-                    }
+                    await log.wrap("room", async () => {
+                        // get or create a room
+                        let room = this.session.rooms.get(roomResponse.room_id);
+                        if (!room) {
+                            room = this.session.createRoom(roomResponse.room_id);
+                        } else {
+                            await room.load(null, syncTxn, log);
+                        }
+                        const invite = {
+                            isDirectMessage: false,
+                            inviter: { userId: null },
+                        };
+                        // inject a fake m.room.name event if there isn't a real m.room.name event there already
+                        roomResponse.required_state = roomResponse.required_state || [];
+                        if (roomResponse.name) {
+                            roomResponse.required_state.push({
+                                event_id: "$name" + roomResponse.room_id,
+                                content: {
+                                    name: roomResponse.name,
+                                },
+                                type: "m.room.name",
+                                state_key: "",
+                                sender: "@noone",
+                                room_id: roomResponse.room_id,
+                            })
+                        }
 
-                    const roomv2Response = {
-                        timeline: {
-                            events: roomResponse.timeline || [],
-                        },
-                        state: {
-                            events: roomResponse.required_state || [],
-                        },
-                        account_data: null,
-                        summary: null,
-                        unread_notifications: {
-                            notification_count: roomResponse.notification_count,
-                            highlight_count: roomResponse.highlight_count,
-                        },
-                    }
-                    // newKeys = [] (null for now)
-                    const preparation = await room.prepareSync(
-                        roomv2Response, "join", invite, null, syncTxn, log,
-                    );
-                    await room.afterPrepareSync(preparation, log);
-                    const changes = await room.writeSync(
-                        roomv2Response, isFirstSync, preparation, syncTxn, log
-                    )
-                    rooms.push({
-                        room: room,
-                        changes: changes,
-                    });
+                        const roomv2Response = {
+                            timeline: {
+                                events: roomResponse.timeline || [],
+                            },
+                            state: {
+                                events: roomResponse.required_state || [],
+                            },
+                            account_data: null,
+                            summary: null,
+                            unread_notifications: {
+                                notification_count: roomResponse.notification_count,
+                                highlight_count: roomResponse.highlight_count,
+                            },
+                        }
+                        // newKeys = [] (null for now)
+                        const preparation = await room.prepareSync(
+                            roomv2Response, "join", invite, null, syncTxn, log,
+                        );
+                        await room.afterPrepareSync(preparation, log);
+                        const changes = await room.writeSync(
+                            roomv2Response, isFirstSync, preparation, syncTxn, log
+                        )
+                        rooms.push({
+                            room: room,
+                            changes: changes,
+                        });
+                    })
                 }))
             } catch (err) {
                 // avoid corrupting state by only
