@@ -52,6 +52,10 @@ export class SimpleTile extends ViewModel {
         return this._entry.isPending && this._entry.pendingEvent.status !== SendStatus.Sent;
     }
 
+    get isRedacted() {
+        return this._entry.isRedacted;
+    }
+
     get canAbortSending() {
         return this._entry.isPending &&
             !this._entry.pendingEvent.hasStartedSending;
@@ -92,7 +96,15 @@ export class SimpleTile extends ViewModel {
     }
 
     // update received for already included (falls within sort keys) entry
-    updateEntry(entry, param) {
+    updateEntry(entry, param, tileCreator) {
+        const replyEntry = param?.reply ?? entry.contextEntry;
+        if (replyEntry) {
+            // this is an update to contextEntry used for replyPreview
+            const action = this._replyTextTile?.updateEntry(replyEntry);
+            if (action?.shouldReplace) {
+                this._replyTextTile = tileCreator(replyEntry);
+            }
+        }
         const renderedAsRedacted = this.shape === "redacted";
         if (!entry.isGap && entry.isRedacted !== renderedAsRedacted) {
             // recreate the tile if the entry becomes redacted

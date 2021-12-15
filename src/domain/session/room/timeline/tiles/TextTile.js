@@ -73,27 +73,9 @@ export class TextTile extends BaseTextTile {
         if (!this._replyTextTile) {
             const entry = this._entry.contextEntry;
             if (entry) {
-                this._replyTextTile =  new ReplyPreviewTile(this.childOptions({entry, roomVM: this._roomVM, timeline: this._timeline}));
+                this._replyTextTile = new TextTile(this.childOptions({entry, roomVM: this._roomVM, timeline: this._timeline}));
             }
         }
         return this._replyTextTile;
-    }
-}
-
-class ReplyPreviewTile extends TextTile {
-    constructor(options) {
-        super(options);
-    }
-
-    get isRedacted() {
-        return this._entry.isRedacted;
-    }
-
-    get decryptionError() {
-        return this._entry.decryptionError;
-    }
-
-    get hasError() {
-        return this.isRedacted || !!this.decryptionError;
     }
 }

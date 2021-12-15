@@ -26,7 +26,7 @@ export class ReplyPreviewView extends TemplateView {
             while (replyContainer.lastChild) {
                 replyContainer.removeChild(replyContainer.lastChild);
             }
-            replyContainer.appendChild(vm.hasError? this._renderError(vm) : this._renderReplyPreview(vm));
+            replyContainer.appendChild(vm.isRedacted? this._renderError(vm) : this._renderReplyPreview(vm));
         })
         return replyContainer;
     }
