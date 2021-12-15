@@ -271,6 +271,8 @@ export class Timeline {
             const newEntry = this._createEntryFromRelatedEntries(entry, relatedEntry);
             if (newEntry) {
                 Timeline._entryUpdater(relatedEntry, newEntry);
+                this._contextEntriesNotInTimeline.delete(relatedEntry.id);
+                this._contextEntriesNotInTimeline.set(newEntry.id, newEntry);
                 relatedEntry.contextForEntries?.forEach(e => {
                     this._remoteEntries.findAndUpdate(te => te.id === e.id, () => { return { reply: newEntry }; });
                 });
@@ -828,8 +830,8 @@ export function tests() {
             const entryB = new EventEntry({ event: withContent(content, createEvent("m.room.message", "event_id_2", bob)) });
             const entryC = new EventEntry({ event: withContent(content, createEvent("m.room.message", "event_id_3", bob)) });
             await timeline.load(new User(alice), "join", new NullLogItem());
-            // timeline._getEventFromStorage = () => entryA;
-            await timeline.addEntries([entryA, entryB, entryC]);
+            timeline._getEventFromStorage = () => entryA;
+            await timeline.addEntries([entryB, entryC]);
             const bin = [entryB, entryC];
             timeline.entries.subscribe({
                 onUpdate: (index) => {
