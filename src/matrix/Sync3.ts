@@ -37,7 +37,8 @@ const ROOM_LIST_STATE_EVENTS = [
     ["m.room.avatar", ""], // don't need m.room.name etc as server calculates this for us
 ];
 // the number of timeline events to get for every visible room in the left panel room list
-const ROOM_LIST_TIMELINE_LIMIT = 1;
+// THIS HAS TO BE ZERO FOR SCROLLBACK TO WORK ON ROOM SUBSCRIPTIONS
+const ROOM_LIST_TIMELINE_LIMIT = 0;
 // the state events which will be returned for every currently visible room on the central panel
 const ROOM_SUB_STATE_EVENTS = [
     ["m.room.avatar", ""],
