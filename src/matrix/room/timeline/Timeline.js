@@ -223,7 +223,7 @@ export class Timeline {
     /** @package */
     replaceEntries(entries) {
         this._addLocalRelationsToNewRemoteEntries(entries);
-        this._updateFetchedEntries(entries);
+        this._updateEntriesNotInTimeline(entries);
         this._loadRelatedEvents(entries);
         for (const entry of entries) {
             try {
@@ -250,18 +250,18 @@ export class Timeline {
     /** @package */
     addEntries(newEntries) {
         this._addLocalRelationsToNewRemoteEntries(newEntries);
-        this._updateFetchedEntries(newEntries);
-        this._moveFetchedEntryToRemoteEntries(newEntries);
+        this._updateEntriesNotInTimeline(newEntries);
+        this._moveEntryToRemoteEntries(newEntries);
         this._remoteEntries.setManySorted(newEntries);
         this._loadRelatedEvents(newEntries);
     }
 
     /**
      * Update entries based on newly received events.
-     * eg: a newly received redacted event may mark an existing event in contextEntriesNotInTimeline as being redacted 
+     * eg: a newly received redaction event may mark an existing event in contextEntriesNotInTimeline as being redacted
      * This is only for the events that are not in the timeline but had to fetched from elsewhere to render reply previews.
      */
-    _updateFetchedEntries(entries) {
+    _updateEntriesNotInTimeline(entries) {
         for (const entry of entries) {
             const relatedEntry = this._contextEntriesNotInTimeline.get(entry.relatedEventId);
             if (!relatedEntry) {
@@ -292,7 +292,7 @@ export class Timeline {
      * If an event we had to fetch from hs/storage is now in the timeline (for eg, due to gap fill),
      * remove the event from _contextEntriesNotInTimeline since it is now in remoteEntries
      */
-    _moveFetchedEntryToRemoteEntries(entries) {
+    _moveEntryToRemoteEntries(entries) {
         for (const entry of entries) {
             const fetchedEntry = this._contextEntriesNotInTimeline.get(entry.id);
             if (fetchedEntry) {
