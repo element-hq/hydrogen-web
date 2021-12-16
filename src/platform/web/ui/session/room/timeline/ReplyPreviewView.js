@@ -57,6 +57,7 @@ export class ReplyPreviewView extends TemplateView {
             case "file":
                 return new FileView(vm);
             case "message":
+            case "message-status":
                 return new TextMessageView(vm);
         }
     }
