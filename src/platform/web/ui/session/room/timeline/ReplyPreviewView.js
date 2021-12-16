@@ -24,13 +24,11 @@ import {VideoView} from "./VideoView";
 
 export class ReplyPreviewView extends TemplateView {
     render(t, vm) {
-        const replyContainer = t.div({className: "ReplyPreviewView"});
-        t.mapSideEffect(vm => vm.body, () => {
-            while (replyContainer.lastChild) {
-                replyContainer.removeChild(replyContainer.lastChild);
-            }
-            replyContainer.appendChild(vm.isRedacted? this._renderRedaction(vm) : this._renderReplyPreview(t, vm));
-        })
+        const replyContainer = t.div({ className: "ReplyPreviewView" }, [
+            vm.isRedacted
+                ? this._renderRedaction(vm)
+                : this._renderReplyPreview(t, vm),
+        ]);
         return replyContainer;
     }
 
