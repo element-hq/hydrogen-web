@@ -22,7 +22,6 @@ export class TextTile extends BaseTextTile {
 
     constructor(options) {
         super(options);
-        this._replyTextTile = null;
     }
 
     _getContentString(key) {
@@ -66,16 +65,4 @@ export class TextTile extends BaseTextTile {
         return messageBody;
     }
 
-    get replyTextTile() {
-        if (!this._entry.contextEventId) {
-            return null;
-        }
-        if (!this._replyTextTile) {
-            const entry = this._entry.contextEntry;
-            if (entry) {
-                this._replyTextTile = this._tileCreator(entry);
-            }
-        }
-        return this._replyTextTile;
-    }
 }

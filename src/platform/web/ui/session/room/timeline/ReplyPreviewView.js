@@ -17,7 +17,10 @@ limitations under the License.
 import {renderStaticAvatar} from "../../../avatar";
 import {tag} from "../../../general/html";
 import {TemplateView} from "../../../general/TemplateView";
-import {renderPart} from "./TextMessageView.js";
+import {FileView} from "./FileView";
+import {ImageView} from "./ImageView";
+import {TextMessageView} from "./TextMessageView.js";
+import {VideoView} from "./VideoView";
 
 export class ReplyPreviewView extends TemplateView {
     render(t, vm) {
@@ -26,7 +29,7 @@ export class ReplyPreviewView extends TemplateView {
             while (replyContainer.lastChild) {
                 replyContainer.removeChild(replyContainer.lastChild);
             }
-            replyContainer.appendChild(vm.isRedacted? this._renderRedaction(vm) : this._renderReplyPreview(vm));
+            replyContainer.appendChild(vm.isRedacted? this._renderRedaction(vm) : this._renderReplyPreview(t, vm));
         })
         return replyContainer;
     }
@@ -37,13 +40,44 @@ export class ReplyPreviewView extends TemplateView {
         return reply;
     }
 
-    _renderReplyPreview(vm) {
-        const reply = this._renderReplyHeader(vm);
-        const body = vm.body;
-        for (const part of body.parts) {
-            reply.appendChild(renderPart(part));
+    _renderReplyPreview(t, vm) {
+        let reply;
+        switch (vm.shape) {
+            case "image":
+            case "video":
+                reply = this._renderMediaPreview(t, vm);
+                break;
+            default:
+                reply = this._renderPreview(t, vm);
+                break;
         }
         return reply;
+    }
+
+    _renderPreview(t, vm) {
+        const view = this._viewFromShape(vm);
+        const rendered = view.renderMessageBody(t, vm);
+        return this._renderReplyHeader(vm, [rendered]);
+    }
+
+    _renderMediaPreview(t, vm) {
+        const view = this._viewFromShape(vm);
+        const rendered = view.renderMedia(t, vm);
+        return this._renderReplyHeader(vm, [rendered]);
+    }
+
+    _viewFromShape(vm) {
+        const shape = vm.shape;
+        switch (shape) {
+            case "image":
+                return new ImageView(vm);
+            case "video":
+                return new VideoView(vm);
+            case "file":
+                return new FileView(vm);
+            case "message":
+                return new TextMessageView(vm);
+        }
     }
 
     _renderReplyHeader(vm, children = []) {
