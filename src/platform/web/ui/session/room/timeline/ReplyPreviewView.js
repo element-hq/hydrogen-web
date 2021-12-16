@@ -19,52 +19,35 @@ import {tag} from "../../../general/html";
 import {TemplateView} from "../../../general/TemplateView";
 import {FileView} from "./FileView";
 import {ImageView} from "./ImageView";
+import {RedactedView} from "./RedactedView";
 import {TextMessageView} from "./TextMessageView.js";
 import {VideoView} from "./VideoView";
 
 export class ReplyPreviewView extends TemplateView {
     render(t, vm) {
-        const replyContainer = t.div({ className: "ReplyPreviewView" }, [
-            vm.isRedacted
-                ? this._renderRedaction(vm)
-                : this._renderReplyPreview(t, vm),
-        ]);
-        return replyContainer;
-    }
-
-    _renderRedaction(vm) {
-        const children = [tag.span({ className: "statusMessage" }, vm.description), tag.br()];
-        const reply = this._renderReplyHeader(vm, children);
-        return reply;
+        return t.div({ className: "ReplyPreviewView" }, this._renderReplyPreview(t, vm));
     }
 
     _renderReplyPreview(t, vm) {
-        let reply;
+        const view = this._viewFromViewModel(vm);
+        const rendered = this._renderContent(t, vm, view);
+        return this._renderReplyHeader(vm, [rendered]);
+    }
+
+    _renderContent(t, vm, view) {
         switch (vm.shape) {
             case "image":
             case "video":
-                reply = this._renderMediaPreview(t, vm);
-                break;
+                return view.renderMedia(t, vm);
             default:
-                reply = this._renderPreview(t, vm);
-                break;
+                return view.renderMessageBody(t, vm);
         }
-        return reply;
     }
 
-    _renderPreview(t, vm) {
-        const view = this._viewFromShape(vm);
-        const rendered = view.renderMessageBody(t, vm);
-        return this._renderReplyHeader(vm, [rendered]);
-    }
-
-    _renderMediaPreview(t, vm) {
-        const view = this._viewFromShape(vm);
-        const rendered = view.renderMedia(t, vm);
-        return this._renderReplyHeader(vm, [rendered]);
-    }
-
-    _viewFromShape(vm) {
+    _viewFromViewModel(vm) {
+        if (vm.isRedacted) {
+            return new RedactedView(vm);
+        }
         const shape = vm.shape;
         switch (shape) {
             case "image":
