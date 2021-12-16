@@ -22,6 +22,7 @@ export class TextTile extends BaseTextTile {
 
     constructor(options) {
         super(options);
+        this._tileCreator = options.tileCreator;
         this._replyTextTile = null;
     }
 
@@ -73,7 +74,7 @@ export class TextTile extends BaseTextTile {
         if (!this._replyTextTile) {
             const entry = this._entry.contextEntry;
             if (entry) {
-                this._replyTextTile = new TextTile(this.childOptions({entry, roomVM: this._roomVM, timeline: this._timeline}));
+                this._replyTextTile = this._tileCreator(entry);
             }
         }
         return this._replyTextTile;

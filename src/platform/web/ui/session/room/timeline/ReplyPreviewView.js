@@ -26,31 +26,15 @@ export class ReplyPreviewView extends TemplateView {
             while (replyContainer.lastChild) {
                 replyContainer.removeChild(replyContainer.lastChild);
             }
-            replyContainer.appendChild(vm.isRedacted? this._renderError(vm) : this._renderReplyPreview(vm));
+            replyContainer.appendChild(vm.isRedacted? this._renderRedaction(vm) : this._renderReplyPreview(vm));
         })
         return replyContainer;
     }
 
-    _renderError(vm) {
-        const errorMessage = this._getErrorMessage(vm);
-        const children = [tag.span({ className: "statusMessage" }, errorMessage), tag.br()];
-        let reply;
-        try {
-            reply = this._renderReplyHeader(vm, children);
-        }
-        catch {
-            reply = tag.blockquote(children);
-        }
+    _renderRedaction(vm) {
+        const children = [tag.span({ className: "statusMessage" }, vm.description), tag.br()];
+        const reply = this._renderReplyHeader(vm, children);
         return reply;
-    }
-
-    _getErrorMessage(vm) {
-        if (vm.isRedacted) {
-            return "This message has been deleted.";
-        }
-        else if (vm.decryptionError) {
-            return vm.decryptionError.message;
-        }
     }
 
     _renderReplyPreview(vm) {

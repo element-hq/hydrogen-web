@@ -28,8 +28,8 @@ import {EncryptionEnabledTile} from "./tiles/EncryptionEnabledTile.js";
 import {MissingAttachmentTile} from "./tiles/MissingAttachmentTile.js";
 
 export function tilesCreator(baseOptions) {
-    return function tilesCreator(entry, emitUpdate) {
-        const options = Object.assign({entry, emitUpdate}, baseOptions);
+    const creator =  function tilesCreator(entry, emitUpdate) {
+        const options = Object.assign({entry, emitUpdate, tileCreator: creator}, baseOptions);
         if (entry.isGap) {
             return new GapTile(options);
         } else if (entry.isPending && entry.pendingEvent.isMissingAttachments) {
@@ -77,4 +77,5 @@ export function tilesCreator(baseOptions) {
             }
         }
     }   
+    return creator;
 }
