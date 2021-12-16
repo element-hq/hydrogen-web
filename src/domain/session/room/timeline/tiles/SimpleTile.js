@@ -21,6 +21,7 @@ import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent.js";
 export class SimpleTile extends ViewModel {
     constructor(options) {
         super(options);
+        this._tileCreator = options.tileCreator;
         this._entry = options.entry;
     }
     // view model props for all subclasses
@@ -96,13 +97,13 @@ export class SimpleTile extends ViewModel {
     }
 
     // update received for already included (falls within sort keys) entry
-    updateEntry(entry, param, tileCreator) {
+    updateEntry(entry, param) {
         const replyEntry = param?.reply ?? entry.contextEntry;
         if (replyEntry) {
             // this is an update to contextEntry used for replyPreview
             const action = this._replyTextTile?.updateEntry(replyEntry);
             if (action?.shouldReplace) {
-                this._replyTextTile = tileCreator(replyEntry);
+                this._replyTextTile = this._tileCreator(replyEntry);
             }
         }
         const renderedAsRedacted = this.shape === "redacted";

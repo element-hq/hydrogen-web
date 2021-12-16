@@ -22,7 +22,6 @@ export class TextTile extends BaseTextTile {
 
     constructor(options) {
         super(options);
-        this._tileCreator = options.tileCreator;
         this._replyTextTile = null;
     }
 
