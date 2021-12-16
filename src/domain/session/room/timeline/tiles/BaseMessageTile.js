@@ -33,6 +33,14 @@ export class BaseMessageTile extends SimpleTile {
         return this._room.mediaRepository;
     }
 
+    get roomId() {
+        return this._room.id;
+    }
+
+    get eventId() {
+        return this._entry.id;
+    }
+
     get displayName() {
         return this._entry.displayName || this.sender;
     }
