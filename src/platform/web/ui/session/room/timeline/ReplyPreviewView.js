@@ -15,7 +15,6 @@ limitations under the License.
 */
 
 import {renderStaticAvatar} from "../../../avatar";
-import {tag} from "../../../general/html";
 import {TemplateView} from "../../../general/TemplateView";
 import {viewClassForEntry} from "../TimelineView";
 
@@ -29,7 +28,7 @@ export class ReplyPreviewView extends TemplateView {
         const viewClass = viewClassForEntry(vm);
         const view = new viewClass(vm)
         const rendered = this._renderContent(t, vm, view);
-        return this._renderReplyHeader(vm, [rendered]);
+        return this._renderReplyHeader(t, vm, [rendered]);
     }
 
     _renderContent(t, vm, view) {
@@ -42,12 +41,12 @@ export class ReplyPreviewView extends TemplateView {
         }
     }
 
-    _renderReplyHeader(vm, children = []) {
-        return tag.blockquote(
+    _renderReplyHeader(t, vm, children = []) {
+        return t.blockquote(
             [
-            tag.a({ className: "link", href: `https://matrix.to/#/${vm.roomId}/${vm.eventId}` }, "In reply to"),
-            tag.a({ className: "pill", href: `https://matrix.to/#/${vm.sender}` }, [renderStaticAvatar(vm, 12, undefined, true), vm.displayName]),
-            tag.br(),
+            t.a({ className: "link", href: `https://matrix.to/#/${vm.roomId}/${vm.eventId}` }, "In reply to"),
+            t.a({ className: "pill", href: `https://matrix.to/#/${vm.sender}` }, [renderStaticAvatar(vm, 12, undefined, true), vm.displayName]),
+            t.br(),
             ...children
         ]);
     }
