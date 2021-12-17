@@ -16,7 +16,7 @@ limitations under the License.
 
 import {renderStaticAvatar} from "../../../avatar";
 import {TemplateView} from "../../../general/TemplateView";
-import {viewClassForEntry} from "../TimelineView";
+import {viewClassForEntry} from "../common";
 
 export class ReplyPreviewView extends TemplateView {
     render(t, vm) {
@@ -26,8 +26,9 @@ export class ReplyPreviewView extends TemplateView {
     _renderReplyPreview(t, vm) {
         // todo: this should probably be called viewClassForTile instead
         const viewClass = viewClassForEntry(vm);
-        const view = new viewClass(vm)
-        const rendered = this._renderContent(t, vm, view);
+        const view = new viewClass(vm, false)
+        // const rendered = this._renderContent(t, vm, view);
+        const rendered = view.render(t, vm);
         return this._renderReplyHeader(t, vm, [rendered]);
     }
 

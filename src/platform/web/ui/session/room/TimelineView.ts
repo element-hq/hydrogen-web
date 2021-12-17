@@ -27,6 +27,7 @@ import {AnnouncementView} from "./timeline/AnnouncementView.js";
 import {RedactedView} from "./timeline/RedactedView.js";
 import {SimpleTile} from "../../../../../domain/session/room/timeline/tiles/SimpleTile.js";
 import {BaseObservableList as ObservableList} from "../../../../../observable/list/BaseObservableList";
+import {viewClassForEntry} from "./common";
 
 //import {TimelineViewModel} from "../../../../../domain/session/room/timeline/TimelineViewModel.js";
 export interface TimelineViewModel extends IObservableValue {
@@ -35,25 +36,9 @@ export interface TimelineViewModel extends IObservableValue {
     setVisibleTileRange(start?: SimpleTile, end?: SimpleTile);
 }
 
-type TileView = GapView | AnnouncementView | TextMessageView |
+export type TileView = GapView | AnnouncementView | TextMessageView |
     ImageView | VideoView | FileView | MissingAttachmentView | RedactedView;
-type TileViewConstructor = (this: TileView, SimpleTile) => void;
 
-export function viewClassForEntry(entry: SimpleTile): TileViewConstructor | undefined {
-    switch (entry.shape) {
-        case "gap": return GapView;
-        case "announcement": return AnnouncementView;
-        case "message":
-        case "message-status":
-            return TextMessageView;
-        case "image": return ImageView;
-        case "video": return VideoView;
-        case "file": return FileView;
-        case "missing-attachment": return MissingAttachmentView;
-        case "redacted":
-            return RedactedView;
-    }
-}
 
 function bottom(node: HTMLElement): number {
     return node.offsetTop + node.clientHeight;
