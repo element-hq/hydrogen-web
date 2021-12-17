@@ -465,10 +465,7 @@ export class Sync3 {
                 };
                 const lock = await this.session.obtainSyncLock(v2DeviceResponse);
                 const sessionPreparation = await this.session.prepareSync(v2DeviceResponse, lock, syncTxn, log);
-                // TODO:
-                // response.device_one_time_keys_count
-                // response.device_lists
-                // response.account_data
+                // TODO: response.account_data
                 const changes = await this.session.writeSync(
                     v2DeviceResponse, null, sessionPreparation, syncTxn, log
                 );
