@@ -82,12 +82,17 @@ type RoomSubscriptionsRequest = {
 
 type ExtensionsRequest = {
     to_device?: ToDeviceExtensionRequest;
+    e2ee?: E2EEExtensionRequest;
 };
 
 type ToDeviceExtensionRequest = {
     enabled: boolean;
     since?: string;
     limit?: number;
+};
+
+type E2EEExtensionRequest = {
+    enabled: boolean;
 };
 
 interface Sync3RequestBody {
@@ -133,11 +138,17 @@ interface RoomResponse {
 
 type ExtensionsResponse = {
     to_device?: ToDeviceExtensionResponse;
+    e2ee?: E2EEExtensionResponse;
 };
 
 type ToDeviceExtensionResponse = {
     next_batch: string;
     events: any[];
+};
+
+type E2EEExtensionResponse = {
+    device_lists: any;
+    device_one_time_keys_count: any;
 };
 
 // Some internal data structure types
@@ -366,6 +377,9 @@ export class Sync3 {
                         limit: 100,
                         since: toDeviceSince,
                     },
+                    e2ee: {
+                        enabled: true,
+                    },
                 },
             };
             if (this.nextRoomSubscriptions.length > 0) {
@@ -443,6 +457,8 @@ export class Sync3 {
             try {
                 // E2EE decrypts room keys
                 const v2DeviceResponse = {
+                    device_one_time_keys_count: resp.extensions?.e2ee?.device_one_time_keys_count,
+                    device_lists: resp.extensions?.e2ee?.device_lists,
                     to_device: {
                         events: resp.extensions?.to_device?.events,
                     },
