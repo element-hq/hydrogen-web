@@ -17,11 +17,7 @@ limitations under the License.
 import {renderStaticAvatar} from "../../../avatar";
 import {tag} from "../../../general/html";
 import {TemplateView} from "../../../general/TemplateView";
-import {FileView} from "./FileView";
-import {ImageView} from "./ImageView";
-import {RedactedView} from "./RedactedView";
-import {TextMessageView} from "./TextMessageView.js";
-import {VideoView} from "./VideoView";
+import {viewClassForEntry} from "../TimelineView";
 
 export class ReplyPreviewView extends TemplateView {
     render(t, vm) {
@@ -29,7 +25,9 @@ export class ReplyPreviewView extends TemplateView {
     }
 
     _renderReplyPreview(t, vm) {
-        const view = this._viewFromViewModel(vm);
+        // todo: this should probably be called viewClassForTile instead
+        const viewClass = viewClassForEntry(vm);
+        const view = new viewClass(vm)
         const rendered = this._renderContent(t, vm, view);
         return this._renderReplyHeader(vm, [rendered]);
     }
@@ -41,24 +39,6 @@ export class ReplyPreviewView extends TemplateView {
                 return view.renderMedia(t, vm);
             default:
                 return view.renderMessageBody(t, vm);
-        }
-    }
-
-    _viewFromViewModel(vm) {
-        if (vm.isRedacted) {
-            return new RedactedView(vm);
-        }
-        const shape = vm.shape;
-        switch (shape) {
-            case "image":
-                return new ImageView(vm);
-            case "video":
-                return new VideoView(vm);
-            case "file":
-                return new FileView(vm);
-            case "message":
-            case "message-status":
-                return new TextMessageView(vm);
         }
     }
 
