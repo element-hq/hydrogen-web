@@ -2,7 +2,8 @@ const cssvariables = require("postcss-css-variables");
 const flexbugsFixes = require("postcss-flexbugs-fixes");
 const fs = require("fs");
 const path = require("path");
-const version = JSON.parse(fs.readFileSync(path.join(__dirname, "package.json"), "utf8")).version;
+const manifest = require("./package.json");
+const version = manifest.version;
 
 const commonOptions = {
     logLevel: "info",
