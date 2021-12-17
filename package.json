@@ -2,7 +2,6 @@
   "name": "hydrogen-web",
   "version": "0.2.22",
   "description": "A javascript matrix client prototype, trying to minize RAM usage by offloading as much as possible to IndexedDB",
-  "main": "src/lib.ts",
   "directories": {
     "doc": "doc"
   },
@@ -12,7 +11,8 @@
     "lint-ci": "eslint src/",
     "test": "impunity --entry-point src/platform/web/main.js src/platform/web/Platform.js --force-esm-dirs lib/ src/ --root-dir src/",
     "start": "vite --port 3000",
-    "build": "vite build"
+    "build": "vite build",
+    "build:sdk": "./scripts/sdk/build.sh"
   },
   "repository": {
     "type": "git",

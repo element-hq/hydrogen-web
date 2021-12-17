@@ -11,6 +11,8 @@ export default defineConfig(({mode}) => {
         base: "./",
         build: {
             outDir: "../../../target",
+            minify: true,
+            sourcemap: true,
         },
         plugins: [
             // important this comes before service worker

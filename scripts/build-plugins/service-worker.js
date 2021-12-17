@@ -12,6 +12,7 @@ function injectServiceWorker(swFile, otherUnhashedFiles, placeholdersPerChunk) {
     const swName = path.basename(swFile);
     let root;
     let version;
+    let logger;
 
     return {
         name: "hydrogen:injectServiceWorker",
@@ -27,6 +28,7 @@ function injectServiceWorker(swFile, otherUnhashedFiles, placeholdersPerChunk) {
         configResolved: config => {
             root = config.root;
             version = JSON.parse(config.define.DEFINE_VERSION); // unquote
+            logger = config.logger;
         },
         generateBundle: async function(options, bundle) {
             const unhashedFilenames = [swName].concat(otherUnhashedFiles);
@@ -46,7 +48,7 @@ function injectServiceWorker(swFile, otherUnhashedFiles, placeholdersPerChunk) {
                 ...getCacheFileNamePlaceholderValues(swName, unhashedFilenames, assets, placeholdersPerChunk)
             };
             replacePlaceholdersInChunks(assets, placeholdersPerChunk, placeholderValues);
-            console.log(`\nBuilt ${version} (${globalHash})`);
+            logger.info(`\nBuilt ${version} (${globalHash})`);
         }
     };
 }

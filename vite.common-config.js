@@ -5,7 +5,7 @@ const path = require("path");
 const version = JSON.parse(fs.readFileSync(path.join(__dirname, "package.json"), "utf8")).version;
 
 const commonOptions = {
-    logLevel: "warn",
+    logLevel: "info",
     public: false,
     server: {
         hmr: false
@@ -21,8 +21,6 @@ const commonOptions = {
     },
     build: {
         emptyOutDir: true,
-        minify: true,
-        sourcemap: true,
         assetsInlineLimit: 0,
         polyfillModulePreload: false,
     },
