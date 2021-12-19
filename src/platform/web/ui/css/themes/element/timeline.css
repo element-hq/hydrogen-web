@@ -49,6 +49,21 @@ limitations under the License.
     margin-top: 4px;
 }
 
+.ReplyPreviewView .Timeline_message {
+    display: grid;
+    grid-template:
+        "body" auto
+        "body" 1fr;
+    margin-left: 0;
+    padding-left: 0;
+    padding-top: 0;
+    padding: 0;
+}
+
+.ReplyPreviewView .Timeline_message:not(.continuation) {
+    margin-top: 0;
+}
+
 @media screen and (max-width: 800px) {
     .Timeline_message {
         grid-template:
