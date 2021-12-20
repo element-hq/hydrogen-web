@@ -24,12 +24,13 @@ import {Menu} from "../../../general/Menu.js";
 import {ReactionsView} from "./ReactionsView.js";
 
 export class BaseMessageView extends TemplateView {
-    constructor(value, interactive = true, tagName = "li") {
+    constructor(value, renderFlags, tagName = "li") {
         super(value);
         this._menuPopup = null;
         this._tagName = tagName;
         // TODO An enum could be nice to make code easier to read at call sites.
-        this._interactive = interactive;
+        this._interactive = renderFlags?.interactive ?? true;
+        this._isReplyPreview = renderFlags?.reply;
     }
 
     render(t, vm) {
@@ -54,7 +55,7 @@ export class BaseMessageView extends TemplateView {
             if (isContinuation && wasContinuation === false) {
                 li.removeChild(li.querySelector(".Timeline_messageAvatar"));
                 li.removeChild(li.querySelector(".Timeline_messageSender"));
-            } else if (!isContinuation && this._interactive) {
+            } else if (!isContinuation && !this._isReplyPreview) {
                 const avatar = tag.a({href: vm.memberPanelLink, className: "Timeline_messageAvatar"}, [renderStaticAvatar(vm, 30)]);
                 const sender = tag.div({className: `Timeline_messageSender usercolor${vm.avatarColorNumber}`}, vm.displayName);
                 li.insertBefore(avatar, li.firstChild);

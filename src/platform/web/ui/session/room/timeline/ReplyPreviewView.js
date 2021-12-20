@@ -26,7 +26,7 @@ export class ReplyPreviewView extends TemplateView {
     _renderReplyPreview(t, vm) {
         // todo: this should probably be called viewClassForTile instead
         const viewClass = viewClassForEntry(vm);
-        const view = new viewClass(vm, false)
+        const view = new viewClass(vm, { reply: true, interactive: false });
         const rendered = view.render(t, vm);
         return this._renderReplyHeader(t, vm, [rendered]);
     }
