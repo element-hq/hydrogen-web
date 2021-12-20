@@ -26,7 +26,15 @@ export class TextMessageView extends BaseMessageView {
                 "Timeline_messageBody": true,
                 statusMessage: vm => vm.shape === "message-status",
             }
-        }, t.mapView(vm => vm.replyTextTile, replyTextTile => replyTextTile ? new ReplyPreviewView(replyTextTile) : null));
+        }, t.mapView(vm => vm.replyTextTile, replyTextTile => {
+            if (replyTextTile && this._interactive) {
+                // if this._interactive = false, this is already a reply preview, don't nest replies for now.
+                return new ReplyPreviewView(replyTextTile);
+            }
+            else {
+                return null;
+            }
+        }));
 
         t.mapSideEffect(vm => vm.body, body => {
             while (this._shouldRemove(container.lastChild)) {
