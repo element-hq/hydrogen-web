@@ -18,7 +18,7 @@ import {BaseEntry} from "./BaseEntry";
 import {REDACTION_TYPE} from "../../common.js";
 import {createAnnotation, ANNOTATION_RELATION_TYPE, getRelationFromContent} from "../relations.js";
 import {PendingAnnotation} from "../PendingAnnotation.js";
-import {createReplyContent} from "./reply.js"
+import {createReplyContent, THREADING_REL_TYPE} from "./reply.js"
 
 /** Deals mainly with local echo for relations and redactions,
  * so it is shared between PendingEventEntry and EventEntry */
@@ -36,7 +36,7 @@ export class BaseEventEntry extends BaseEntry {
     }
 
     get isThread() {
-        return this.relation?.["rel_type"] === "io.element.thread";
+        return this.relation?.["rel_type"] === THREADING_REL_TYPE;
     }
 
     get isRedacting() {

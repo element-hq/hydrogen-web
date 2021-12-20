@@ -14,6 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {getRelatedEventId} from "../relations.js";
+
+export const THREADING_REL_TYPE = "io.element.thread";
+
 function htmlEscape(string) {
     return string.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -81,8 +85,8 @@ function createThreadContent(entry, msgtype, body) {
         msgtype,
         body,
         "m.relates_to": {
-            "rel_type": "m.thread",
-            "event_id": entry.id 
+            "rel_type": THREADING_REL_TYPE,
+            "event_id": getRelatedEventId(entry)
         }
     };
 }
