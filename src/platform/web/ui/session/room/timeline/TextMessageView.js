@@ -16,7 +16,7 @@ limitations under the License.
 
 import {tag, text} from "../../../general/html";
 import {BaseMessageView} from "./BaseMessageView.js";
-import {ReplyPreviewView} from "./ReplyPreviewView.js";
+import {ReplyPreviewError, ReplyPreviewView} from "./ReplyPreviewView.js";
 
 export class TextMessageView extends BaseMessageView {
     renderMessageBody(t, vm) {
@@ -27,7 +27,10 @@ export class TextMessageView extends BaseMessageView {
                 statusMessage: vm => vm.shape === "message-status",
             }
         }, t.mapView(vm => vm.replyTextTile, replyTextTile => {
-            if (replyTextTile && this._interactive) {
+            if (vm.isReply && !replyTextTile) {
+                return new ReplyPreviewError();
+            }
+            else if (replyTextTile && this._interactive) {
                 // if this._interactive = false, this is already a reply preview, don't nest replies for now.
                 return new ReplyPreviewView(replyTextTile);
             }

@@ -41,3 +41,11 @@ export class ReplyPreviewView extends TemplateView {
         ]);
     }
 }
+
+export class ReplyPreviewError extends TemplateView {
+    render(t) {
+        return t.blockquote({ className: "ReplyPreviewView" }, [
+            t.div({ className: "Timeline_messageBody statusMessage" }, "This reply could not be found.")
+        ]);
+    }
+}

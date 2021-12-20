@@ -91,6 +91,10 @@ export class BaseMessageTile extends SimpleTile {
         return this._entry.isUnverified;
     }
 
+    get isReply() {
+        return this._entry.isReply;
+    }
+
     _getContent() {
         return this._entry.content;
     }
