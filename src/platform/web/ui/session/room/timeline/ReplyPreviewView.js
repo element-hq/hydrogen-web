@@ -27,19 +27,8 @@ export class ReplyPreviewView extends TemplateView {
         // todo: this should probably be called viewClassForTile instead
         const viewClass = viewClassForEntry(vm);
         const view = new viewClass(vm, false)
-        // const rendered = this._renderContent(t, vm, view);
         const rendered = view.render(t, vm);
         return this._renderReplyHeader(t, vm, [rendered]);
-    }
-
-    _renderContent(t, vm, view) {
-        switch (vm.shape) {
-            case "image":
-            case "video":
-                return view.renderMedia(t, vm);
-            default:
-                return view.renderMessageBody(t, vm);
-        }
     }
 
     _renderReplyHeader(t, vm, children = []) {
