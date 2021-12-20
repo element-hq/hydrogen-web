@@ -40,8 +40,8 @@ function fallbackPrefix(msgtype) {
     return msgtype === "m.emote" ? "* " : "";
 }
 
-function _createReplyContent(targetId, msgtype, body, formattedBody) {
-    return {
+function _createReplyContent(targetId, msgtype, body, formattedBody, threadId) {
+    const reply =  {
         msgtype,
         body,
         "format": "org.matrix.custom.html",
@@ -52,10 +52,18 @@ function _createReplyContent(targetId, msgtype, body, formattedBody) {
             }
         }
     };
+    if (threadId) {
+        Object.assign(reply["m.relates_to"], {
+            rel_type: THREADING_REL_TYPE,
+            event_id: threadId,
+        });
+    }
+    return reply;
 }
 
 export function createReplyContent(entry, msgtype, body) {
-    if (entry.isThread) {
+    // don't use entry.isReply here since we pretend that threads are replies
+    if (!entry.relation["m.in_reply_to"] && entry.isThread) {
         return createThreadContent(entry, msgtype, body);
     }
     // TODO check for absense of sender / body / msgtype / etc?
@@ -77,7 +85,7 @@ export function createReplyContent(entry, msgtype, body) {
 
     const newBody = plainFallback + '\n\n' + body;
     const newFormattedBody = formattedFallback + htmlEscape(body);
-    return _createReplyContent(entry.id, msgtype, newBody, newFormattedBody);
+    return _createReplyContent(entry.id, msgtype, newBody, newFormattedBody, entry.threadEventId);
 }
 
 function createThreadContent(entry, msgtype, body) {
