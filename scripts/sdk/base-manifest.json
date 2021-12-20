@@ -1,0 +1,11 @@
+{
+    "name": "hydrogen-sdk",
+    "version": "0.0.1",
+    "main": "./hydrogen.cjs.js",
+    "exports": {
+        "import": "./hydrogen.es.js",
+        "require": "./hydrogen.cjs.js"
+    },
+    "files": [],
+    "types": "types/lib.d.ts"
+}

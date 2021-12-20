@@ -1,16 +1,13 @@
 <!DOCTYPE html>
+<!-- this file contains all references to include in the SDK asset build (using vite.sdk-assets-config.js) -->
 <html>
 <head>
-    <meta charset="utf-8">
-    <title></title>
     <link rel="stylesheet" type="text/css" href="./platform/web/ui/css/main.css">
     <link rel="stylesheet" type="text/css" href="./platform/web/ui/css/themes/element/theme.css">
 </head>
 <body>
     <script type="module">
-        export * from "./lib.ts";
-        import downloadSandboxPath from "./platform/web/assets/download-sandbox.html?url";
-        import workerPath from "./platform/web/worker/main.js?url";
+        import "./platform/web/sdk/paths/vite.ts";
     </script>
 </body>
 </html>

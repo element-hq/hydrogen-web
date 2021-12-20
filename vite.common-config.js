@@ -7,18 +7,9 @@ const version = manifest.version;
 
 const commonOptions = {
     logLevel: "info",
-    public: false,
+    publicDir: false,
     server: {
         hmr: false
-    },
-    resolve: {
-        alias: {
-            // these should only be imported by the base-x package in any runtime code
-            // and works in the browser with a Uint8Array shim,
-            // rather than including a ton of polyfill code
-            "safe-buffer": "./scripts/package-overrides/safe-buffer/index.js",
-            "buffer": "./scripts/package-overrides/buffer/index.js",
-        }
     },
     build: {
         emptyOutDir: true,

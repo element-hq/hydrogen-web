@@ -31,12 +31,3 @@ export {RoomViewModel} from "./domain/session/room/RoomViewModel.js";
 export {RoomView} from "./platform/web/ui/session/room/RoomView.js";
 export {TimelineViewModel} from "./domain/session/room/timeline/TimelineViewModel.js";
 export {TimelineView} from "./platform/web/ui/session/room/TimelineView";
-
-// @ts-ignore
-export * from "./platform/web/ui/css/main.css";
-// @ts-ignore
-export * from "./platform/web/ui/css/themes/element/theme.css";
-// @ts-ignore
-import _downloadSandboxPath from "./platform/web/assets/download-sandbox.html?url";
-// @ts-ignore
-import _workerPath from "./platform/web/worker/main.js?url";
