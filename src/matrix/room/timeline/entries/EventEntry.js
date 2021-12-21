@@ -42,7 +42,8 @@ export class EventEntry extends BaseEventEntry {
         if (other._decryptionError && !this._decryptionError) {
             this._decryptionError = other._decryptionError;
         }
-        this._contextForEntries = other._contextForEntries;
+        this._contextForEntries = other.contextForEntries;
+        this._contextEntry = other.contextEntry;
     }
 
     setContextEntry(entry) {
