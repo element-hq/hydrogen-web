@@ -19,11 +19,6 @@ import {parsePlainBody} from "../MessageBody.js";
 import {parseHTMLBody} from "../deserialize.js";
 
 export class TextTile extends BaseTextTile {
-
-    constructor(options) {
-        super(options);
-    }
-
     _getContentString(key) {
         return this._getContent()?.[key] || "";
     }
