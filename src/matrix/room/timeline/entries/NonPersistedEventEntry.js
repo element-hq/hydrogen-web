@@ -17,6 +17,8 @@ limitations under the License.
 import {EventEntry} from "./EventEntry.js";
 
 // EventEntry but without the two properties that are populated via SyncWriter
+// Useful if you want to create an EventEntry that is ephemeral
+
 export class NonPersistedEventEntry extends EventEntry {
     get fragmentId() {
         throw new Error("Cannot access fragmentId for non-persisted EventEntry");
