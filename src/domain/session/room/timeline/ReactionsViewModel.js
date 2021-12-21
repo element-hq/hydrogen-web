@@ -260,9 +260,7 @@ export function tests() {
                 fragmentIdComparer,
                 clock: new MockClock(),
                 pendingEvents: queue.pendingEvents,
-                powerLevelsObservable,
-                fetchEventFromHomeserver: () => {},
-                fetchEventFromStorage: () => {}
+                powerLevelsObservable
             });
             // 3. load the timeline, which will load the message with the reaction
             await timeline.load(new User(alice), "join", new NullLogItem());
