@@ -842,6 +842,33 @@ export function tests() {
             const redactingEntry = new EventEntry({ event: withRedacts(entryA.id, "foo", createEvent("m.room.redaction", "event_id_3", alice)) });
             await timeline.addEntries([redactingEntry]);
             assert.strictEqual(bin.length, 0);
+        },
+
+        "context entries fetched from storage/hs are moved to remoteEntries": async assert => {
+            const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
+                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
+            const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)) });
+            let event = withContent({
+                body: "bar",
+                msgtype: "m.text",
+                "m.relates_to": {
+                    "m.in_reply_to": {
+                        "event_id": "event_id_1"
+                    }
+                }
+            }, createEvent("m.room.message", "event_id_2", bob));
+            const entryB = new EventEntry({ event });
+            timeline._getEventFromHomeserver = () => entryA
+            await timeline.load(new User(alice), "join", new NullLogItem());
+            await timeline.addEntries([entryB]);
+            await timeline._loadRelatedEvents([entryB]);
+            assert.strictEqual(timeline._contextEntriesNotInTimeline.has(entryA.id), true);
+            await timeline.addEntries([entryA]);
+            assert.strictEqual(timeline._contextEntriesNotInTimeline.has(entryA.id), false);
+            const movedEntry = timeline.remoteEntries[0];
+            assert.deepEqual(movedEntry, entryA);
+            assert.deepEqual(movedEntry.contextForEntries.pop(), entryB);
+            assert.deepEqual(entryB.contextEntry, movedEntry);
         }
     };
 }
