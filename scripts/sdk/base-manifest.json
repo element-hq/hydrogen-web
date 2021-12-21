@@ -6,6 +6,5 @@
         "import": "./hydrogen.es.js",
         "require": "./hydrogen.cjs.js"
     },
-    "files": [],
     "types": "types/lib.d.ts"
 }
