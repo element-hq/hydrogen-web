@@ -53,10 +53,6 @@ export class SimpleTile extends ViewModel {
         return this._entry.isPending && this._entry.pendingEvent.status !== SendStatus.Sent;
     }
 
-    get isRedacted() {
-        return this._entry.isRedacted;
-    }
-
     get canAbortSending() {
         return this._entry.isPending &&
             !this._entry.pendingEvent.hasStartedSending;
