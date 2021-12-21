@@ -27,9 +27,12 @@
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^4.29.2",
     "@typescript-eslint/parser": "^4.29.2",
+    "acorn": "^8.6.0",
+    "acorn-walk": "^8.2.0",
     "aes-js": "^3.1.2",
     "core-js": "^3.6.5",
     "es6-promise": "https://github.com/bwindels/es6-promise.git#bwindels/expose-flush",
+    "escodegen": "^2.0.0",
     "eslint": "^7.32.0",
     "fake-indexeddb": "^3.1.2",
     "impunity": "^1.0.9",
