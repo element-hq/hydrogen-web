@@ -122,7 +122,7 @@ const formatFunction = {
     newline: () => tag.br()
 };
 
-export function renderPart(part) {
+function renderPart(part) {
     const f = formatFunction[part.type];
     if (!f) {
         return text(`[unknown part type ${part.type}]`);
