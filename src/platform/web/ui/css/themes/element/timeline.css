@@ -51,12 +51,8 @@ limitations under the License.
 
 .ReplyPreviewView .Timeline_message {
     display: grid;
-    grid-template:
-        "body" auto
-        "body" 1fr;
+    grid-template: "body" auto;
     margin-left: 0;
-    padding-left: 0;
-    padding-top: 0;
     padding: 0;
 }
 
