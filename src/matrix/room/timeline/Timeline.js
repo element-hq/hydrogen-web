@@ -485,10 +485,10 @@ export function tests() {
             // 2. test replaceEntries and addEntries don't fail
             const event1 = withTextBody("hi!", withSender(bob, createEvent("m.room.message", "!abc")));
             const entry1 = new EventEntry({event: event1, fragmentId: 1, eventIndex: 1}, fragmentIdComparer);
-            await timeline.replaceEntries([entry1]);
+            timeline.replaceEntries([entry1]);
             const event2 = withTextBody("hi bob!", withSender(alice, createEvent("m.room.message", "!def")));
             const entry2 = new EventEntry({event: event2, fragmentId: 1, eventIndex: 2}, fragmentIdComparer);
-            await timeline.addEntries([entry2]);
+            timeline.addEntries([entry2]);
             // 3. add local relation (redaction)
             pendingEvents.append(new PendingEvent({data: {
                 roomId,
@@ -512,7 +512,7 @@ export function tests() {
             await timeline.load(new User(bob), "join", new NullLogItem());
             timeline.entries.subscribe(new ListObserver());
             const event = withTextBody("hi bob!", withSender(alice, createEvent("m.room.message", "!abc")));
-            await timeline.addEntries([new EventEntry({event, fragmentId: 1, eventIndex: 2}, fragmentIdComparer)]);
+            timeline.addEntries([new EventEntry({event, fragmentId: 1, eventIndex: 2}, fragmentIdComparer)]);
             let entry = getIndexFromIterable(timeline.entries, 0);
             // 2. add local reaction
             pendingEvents.append(new PendingEvent({data: {
@@ -583,7 +583,7 @@ export function tests() {
             await timeline.load(new User(bob), "join", new NullLogItem());
             timeline.entries.subscribe(new ListObserver());
             // 3. add message to timeline
-            await timeline.addEntries([messageEntry]);
+            timeline.addEntries([messageEntry]);
             const entry = getIndexFromIterable(timeline.entries, 0);
             assert.equal(entry, messageEntry);
             assert.equal(entry.annotations["👋"].count, 1);
@@ -605,7 +605,7 @@ export function tests() {
                 event: withContent(createAnnotation(messageEntry.id, "👋"), createEvent("m.reaction", "!def", bob)),
                 fragmentId: 1, eventIndex: 3, roomId
             }, fragmentIdComparer);
-            await timeline.addEntries([messageEntry, reactionEntry]);
+            timeline.addEntries([messageEntry, reactionEntry]);
             // 3. redact reaction
             pendingEvents.append(new PendingEvent({data: {
                 roomId,
@@ -638,7 +638,7 @@ export function tests() {
             }}));
             await poll(() => timeline.entries.length === 1);
             // 3. add remote reaction target
-            await timeline.addEntries([messageEntry]);
+            timeline.addEntries([messageEntry]);
             await poll(() => timeline.entries.length === 2);
             const entry = getIndexFromIterable(timeline.entries, 0);
             assert.equal(entry, messageEntry);
@@ -672,7 +672,7 @@ export function tests() {
             }}));
             await poll(() => timeline.entries.length === 1);
             // 4. add reaction target
-            await timeline.addEntries([new EventEntry({
+            timeline.addEntries([new EventEntry({
                 event: withTextBody("hi bob!", createEvent("m.room.message", messageId, alice)),
                 fragmentId: 1, eventIndex: 2}, fragmentIdComparer)
             ]);
@@ -695,14 +695,14 @@ export function tests() {
             const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
                 fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
             await timeline.load(new User(alice), "join", new NullLogItem());
-            await timeline.addEntries([decryptedEntry]);
+            timeline.addEntries([decryptedEntry]);
             const observer = new ListObserver();
             timeline.entries.subscribe(observer);
             // 3. replace the entry with one that is not decrypted
             //    (as would happen when receiving a reaction,
             //    as it does not rerun the decryption)
             //    and check that the decrypted content is preserved
-            await timeline.replaceEntries([encryptedEntry]);
+            timeline.replaceEntries([encryptedEntry]);
             const {value, type} = await observer.next();
             assert.equal(type, "update");
             assert.equal(value.eventType, "m.room.message");
@@ -808,7 +808,7 @@ export function tests() {
             await timeline.load(new User(alice), "join", new NullLogItem());
             await timeline._loadRelatedEvents([entryB]);
             const redactingEntry = new EventEntry({ event: withRedacts(entryA.id, "foo", createEvent("m.room.redaction", "event_id_3", alice)) });
-            await timeline.addEntries([redactingEntry]);
+            timeline.addEntries([redactingEntry]);
             const contextEntry = timeline._contextEntriesNotInTimeline.get(entryA.id);
             assert.strictEqual(contextEntry.isRedacted, true);
         },
@@ -830,7 +830,8 @@ export function tests() {
             const entryC = new EventEntry({ event: withContent(content, createEvent("m.room.message", "event_id_3", bob)) });
             await timeline.load(new User(alice), "join", new NullLogItem());
             timeline._getEventFromStorage = () => entryA;
-            await timeline.addEntries([entryB, entryC]);
+            timeline.addEntries([entryB, entryC]);
+            await poll(() => timeline._remoteEntries.array.length === 2);
             const bin = [entryB, entryC];
             timeline.entries.subscribe({
                 onUpdate: (index) => {
@@ -840,7 +841,7 @@ export function tests() {
                 onAdd: () => { }
             });
             const redactingEntry = new EventEntry({ event: withRedacts(entryA.id, "foo", createEvent("m.room.redaction", "event_id_3", alice)) });
-            await timeline.addEntries([redactingEntry]);
+            timeline.addEntries([redactingEntry]);
             assert.strictEqual(bin.length, 0);
         },
 
@@ -860,10 +861,10 @@ export function tests() {
             const entryB = new EventEntry({ event });
             timeline._getEventFromHomeserver = () => entryA
             await timeline.load(new User(alice), "join", new NullLogItem());
-            await timeline.addEntries([entryB]);
+            timeline.addEntries([entryB]);
             await timeline._loadRelatedEvents([entryB]);
             assert.strictEqual(timeline._contextEntriesNotInTimeline.has(entryA.id), true);
-            await timeline.addEntries([entryA]);
+            timeline.addEntries([entryA]);
             assert.strictEqual(timeline._contextEntriesNotInTimeline.has(entryA.id), false);
             const movedEntry = timeline.remoteEntries[0];
             assert.deepEqual(movedEntry, entryA);
