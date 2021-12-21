@@ -30,8 +30,8 @@ export class TextMessageView extends BaseMessageView {
             if (vm.isReply && !replyTextTile) {
                 return new ReplyPreviewError();
             }
-            else if (replyTextTile && this._interactive) {
-                // if this._interactive = false, this is already a reply preview, don't nest replies for now.
+            else if (replyTextTile && !this._isReplyPreview) {
+                // if this._isReplyPreview = true, this is already a reply preview, don't nest replies for now.
                 return new ReplyPreviewView(replyTextTile);
             }
             else {
