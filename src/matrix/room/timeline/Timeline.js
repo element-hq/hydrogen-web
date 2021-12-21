@@ -267,11 +267,11 @@ export class Timeline {
             if (!relatedEntry) {
                 continue;
             }
-            // update dependents with this new entry indicating that this is an update to contextEntry
             const newEntry = this._createEntryFromRelatedEntries(entry, relatedEntry);
             if (newEntry) {
                 Timeline._entryUpdater(relatedEntry, newEntry);
                 this._contextEntriesNotInTimeline.set(newEntry.id, newEntry);
+                // update other entries for which this entry is a context entry
                 relatedEntry.contextForEntries?.forEach(e => {
                     this._remoteEntries.findAndUpdate(te => te.id === e.id, () => { return { reply: newEntry }; });
                 });
