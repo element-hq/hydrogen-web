@@ -271,7 +271,6 @@ export class Timeline {
             const newEntry = this._createEntryFromRelatedEntries(entry, relatedEntry);
             if (newEntry) {
                 Timeline._entryUpdater(relatedEntry, newEntry);
-                this._contextEntriesNotInTimeline.delete(relatedEntry.id);
                 this._contextEntriesNotInTimeline.set(newEntry.id, newEntry);
                 relatedEntry.contextForEntries?.forEach(e => {
                     this._remoteEntries.findAndUpdate(te => te.id === e.id, () => { return { reply: newEntry }; });
