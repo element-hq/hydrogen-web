@@ -88,3 +88,7 @@ There is partial typescript support while we are still in the process of convert
 ## API Stability
 
 This library follows semantic versioning; there is no API stability promised as long as the major version is still 0. Once 1.0.0 is released, breaking changes will be released with a change in major versioning.
+
+## Third-party licenses
+
+This package bundles the bs58 package ([license](https://github.com/cryptocoinjs/bs58/blob/master/LICENSE)), and the Inter font ([license](https://github.com/rsms/inter/blob/master/LICENSE.txt)).
