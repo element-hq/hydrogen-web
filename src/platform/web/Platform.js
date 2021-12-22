@@ -157,6 +157,8 @@ export class Platform {
         const isIOS = /iPad|iPhone|iPod/.test(navigator.platform) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) && !window.MSStream;
         this.isIOS = isIOS;
         this._disposables = new Disposables();
+        this._olmPromise = undefined;
+        this._workerPromise = undefined;
     }
 
     _createLogger(isDevelopment) {
@@ -179,7 +181,10 @@ export class Platform {
     }
 
     loadOlm() {
-        return loadOlm(this._config.olm);
+        if (!this._olmPromise) {
+            this._olmPromise = loadOlm(this._config.olm);
+        }
+        return this._olmPromise;
     }
 
     get config() {
@@ -188,7 +193,10 @@ export class Platform {
 
     async loadOlmWorker() {
         if (!window.WebAssembly) {
-            return await loadOlmWorker(this._config);
+            if (!this._workerPromise) {
+                this._workerPromise = loadOlmWorker(this._config);
+            }
+            return this._workerPromise;
         }
     }
 
