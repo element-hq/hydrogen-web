@@ -18,6 +18,7 @@ import {REDACTION_TYPE} from "../common.js";
 
 export const REACTION_TYPE = "m.reaction";
 export const ANNOTATION_RELATION_TYPE = "m.annotation";
+export const THREADING_RELATION_TYPE = "io.element.thread";
 
 export function createAnnotation(targetId, key) {
     return {
