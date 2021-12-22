@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {getRelatedEventId, THREADING_RELATION_TYPE} from "../relations.js";
+import {THREADING_RELATION_TYPE} from "../relations.js";
 
 function htmlEscape(string) {
     return string.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -60,11 +60,6 @@ function _createReplyContent(targetId, msgtype, body, formattedBody, threadId) {
 }
 
 export function createReplyContent(entry, msgtype, body) {
-    // don't use entry.isReply here since we pretend that threads are replies
-    if (!entry.relation["m.in_reply_to"] && entry.isThread) {
-        return createThreadContent(entry, msgtype, body);
-    }
-    // TODO check for absense of sender / body / msgtype / etc?
     const nonTextual = fallbackForNonTextualMessage(entry.content.msgtype);
     const prefix = fallbackPrefix(entry.content.msgtype);
     const sender = entry.sender;
@@ -84,15 +79,4 @@ export function createReplyContent(entry, msgtype, body) {
     const newBody = plainFallback + '\n\n' + body;
     const newFormattedBody = formattedFallback + htmlEscape(body);
     return _createReplyContent(entry.id, msgtype, newBody, newFormattedBody, entry.threadEventId);
-}
-
-function createThreadContent(entry, msgtype, body) {
-    return {
-        msgtype,
-        body,
-        "m.relates_to": {
-            "rel_type": THREADING_RELATION_TYPE,
-            "event_id": getRelatedEventId(entry)
-        }
-    };
 }
