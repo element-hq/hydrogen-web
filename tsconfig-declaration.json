@@ -1,0 +1,14 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "noEmit": false,
+        "emitDeclarationOnly": true,
+        "declaration": true,
+        "outDir": "target/types",
+        "rootDir": "src"
+    },
+    "exclude": [
+        "src/sdk/paths/*"
+    ],
+    "include": ["src/**/*"],
+}

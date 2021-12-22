@@ -1,80 +1,94 @@
-# How to use Hydrogen as an SDK
+# Hydrogen View SDK
 
-If you want to use end-to-end encryption, it is recommended to use a [supported build system](../src/sdk/paths/) (currently only vite) to be able to locate the olm library files.
 
-**NOTE**: For now, these instructions will only work at development time, support when building (e.g. `vite build`) is being worked on and tracked in [#529](https://github.com/vector-im/hydrogen-web/issues/529).
+The Hydrogen view SDK allows developers to integrate parts of the Hydrogen application into the UI of their own application. Hydrogen is written with the MVVM pattern, so to construct a view, you'd first construct a view model, which you then pass into the view. For most view models, you will first need a running client.
 
-You can create a project using the following commands
+## Example
+
+The Hydrogen SDK requires some assets to be shipped along with your app for things like downloading attachments, and end-to-end encryption. A convenient way to make this happen is provided by the SDK (importing `hydrogen-view-sdk/paths/vite`) but depends on your build system. Currently, only [vite](https://vitejs.dev/) is supported, so that's what we'll be using in the example below.
+
+You can create a vite project using the following commands:
 
 ```sh
 # you can pick "vanilla-ts" here for project type if you're not using react or vue
 yarn create vite
 cd <your-project-name>
 yarn
-yarn add https://github.com/vector-im/hydrogen-web.git
+yarn add hydrogen-view-sdk
 ```
 
-If you go into the `src` directory, you should see a `main.ts` file. If you put this code in there, you should see a basic timeline after login and initial sync have finished.
+You should see a `index.html` in the project root directory, containing an element with `id="app"`. Add the attribute `class="hydrogen"` to this element, as the CSS we'll include from the SDK assumes for now that the app is rendered in an element with this classname.
+
+If you go into the `src` directory, you should see a `main.ts` file. If you put this code in there, you should see a basic timeline after login and initial sync have finished (might take a while before you see anything on the screen actually).
+
+You'll need to provide the username and password of a user that is already in the [#element-dev:matrix.org](https://matrix.to/#/#element-dev:matrix.org) room (or change the room id).
 
 ```ts
 import {
     Platform,
-    SessionContainer,
+    Client,
     LoadStatus,
     createNavigation,
     createRouter,
     RoomViewModel,
     TimelineView
-} from "hydrogen-web";
-import {olmPaths, downloadSandboxPath} from "hydrogen-web/src/sdk/paths/vite";
+} from "hydrogen-view-sdk";
+import assetPaths from "hydrogen-view-sdk/paths/vite";
+import "hydrogen-view-sdk/style.css";
 
-const app = document.querySelector<HTMLDivElement>('#app')!
-
-// bootstrap a session container
-const platform = new Platform(app, {
-    downloadSandbox: downloadSandboxPath,
-    olm: olmPaths,
-}, null, { development: true });
-const navigation = createNavigation();
-platform.setNavigation(navigation);
-const urlRouter = createRouter({
-    navigation: navigation,
-    history: platform.history
-});
-urlRouter.attach();
-const sessionContainer = new SessionContainer({
-    platform,
-    olmPromise: platform.loadOlm(),
-    workerPromise: platform.loadOlmWorker()
-});
-
-// wait for login and first sync to finish
-const loginOptions = await sessionContainer.queryLogin("matrix.org").result;
-sessionContainer.startWithLogin(loginOptions.password("user", "password"));
-await sessionContainer.loadStatus.waitFor((status: string) => {
-    return status === LoadStatus.Ready ||
-        status === LoadStatus.Error ||
-        status === LoadStatus.LoginFailed;
-}).promise;
-// check the result
-if (sessionContainer.loginFailure) {
-    alert("login failed: " + sessionContainer.loginFailure);
-} else if (sessionContainer.loadError) {
-    alert("load failed: " + sessionContainer.loadError.message);
-} else {
-    // we're logged in, we can access the room now
-    const {session} = sessionContainer;
-    // room id for #element-dev:matrix.org
-    const room = session.rooms.get("!bEWtlqtDwCLFIAKAcv:matrix.org");
-    const vm = new RoomViewModel({
-        room,
-        ownUserId: session.userId,
-        platform,
-        urlCreator: urlRouter,
-        navigation,
+async function main() {
+    const app = document.querySelector<HTMLDivElement>('#app')!
+    const platform = new Platform(app, assetPaths, { development: import.meta.env.DEV });
+    const navigation = createNavigation();
+    platform.setNavigation(navigation);
+    const urlRouter = createRouter({
+        navigation: navigation,
+        history: platform.history
     });
-    await vm.load();
-    const view = new TimelineView(vm.timelineViewModel);
-    app.appendChild(view.mount());
+    urlRouter.attach();
+    const client = new Client(platform);
+
+    const loginOptions = await client.queryLogin("matrix.org").result;
+    client.startWithLogin(loginOptions.password("username", "password"));
+
+    await client.loadStatus.waitFor((status: string) => {
+        return status === LoadStatus.Ready ||
+            status === LoadStatus.Error ||
+            status === LoadStatus.LoginFailed;
+    }).promise;
+
+    if (client.loginFailure) {
+        alert("login failed: " + client.loginFailure);
+    } else if (client.loadError) {
+        alert("load failed: " + client.loadError.message);
+    } else {
+        const {session} = client;
+        // looks for room corresponding to #element-dev:matrix.org, assuming it is already joined
+        const room = session.rooms.get("!bEWtlqtDwCLFIAKAcv:matrix.org");
+        const vm = new RoomViewModel({
+            room,
+            ownUserId: session.userId,
+            platform,
+            urlCreator: urlRouter,
+            navigation,
+        });
+        await vm.load();
+        const view = new TimelineView(vm.timelineViewModel);
+        app.appendChild(view.mount());
+    }
 }
+
+main();
 ```
+
+## Typescript support
+
+There is partial typescript support while we are still in the process of converting the Hydrogen codebase to typesccript.
+
+## API Stability
+
+This library follows semantic versioning; there is no API stability promised as long as the major version is still 0. Once 1.0.0 is released, breaking changes will be released with a change in major versioning.
+
+## Third-party licenses
+
+This package bundles the bs58 package ([license](https://github.com/cryptocoinjs/bs58/blob/master/LICENSE)), and the Inter font ([license](https://github.com/rsms/inter/blob/master/LICENSE.txt)).

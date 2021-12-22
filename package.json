@@ -2,7 +2,6 @@
   "name": "hydrogen-web",
   "version": "0.2.22",
   "description": "A javascript matrix client prototype, trying to minize RAM usage by offloading as much as possible to IndexedDB",
-  "main": "src/lib.ts",
   "directories": {
     "doc": "doc"
   },
@@ -12,7 +11,8 @@
     "lint-ci": "eslint src/",
     "test": "impunity --entry-point src/platform/web/main.js src/platform/web/Platform.js --force-esm-dirs lib/ src/ --root-dir src/",
     "start": "vite --port 3000",
-    "build": "vite build"
+    "build": "vite build",
+    "build:sdk": "./scripts/sdk/build.sh"
   },
   "repository": {
     "type": "git",
@@ -27,27 +27,31 @@
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^4.29.2",
     "@typescript-eslint/parser": "^4.29.2",
+    "acorn": "^8.6.0",
+    "acorn-walk": "^8.2.0",
+    "aes-js": "^3.1.2",
     "core-js": "^3.6.5",
+    "es6-promise": "https://github.com/bwindels/es6-promise.git#bwindels/expose-flush",
+    "escodegen": "^2.0.0",
     "eslint": "^7.32.0",
     "fake-indexeddb": "^3.1.2",
     "impunity": "^1.0.9",
     "mdn-polyfills": "^5.20.0",
+    "merge-options": "^3.0.4",
     "node-html-parser": "^4.0.0",
     "postcss-css-variables": "^0.18.0",
     "postcss-flexbugs-fixes": "^5.0.2",
     "regenerator-runtime": "^0.13.7",
+    "text-encoding": "^0.7.0",
     "typescript": "^4.3.5",
     "vite": "^2.6.14",
     "xxhashjs": "^0.2.2"
   },
   "dependencies": {
     "@matrix-org/olm": "https://gitlab.matrix.org/api/v4/projects/27/packages/npm/@matrix-org/olm/-/@matrix-org/olm-3.2.3.tgz",
-    "aes-js": "^3.1.2",
     "another-json": "^0.2.0",
     "base64-arraybuffer": "^0.2.0",
     "bs58": "^4.0.1",
-    "dompurify": "^2.3.0",
-    "es6-promise": "https://github.com/bwindels/es6-promise.git#bwindels/expose-flush",
-    "text-encoding": "^0.7.0"
+    "dompurify": "^2.3.0"
   }
 }
