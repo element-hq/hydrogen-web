@@ -5,6 +5,7 @@ yarn tsc -p tsconfig-declaration.json
 ./scripts/sdk/create-manifest.js ./target/package.json
 mkdir target/paths
 ./scripts/sdk/transform-paths.js ./src/platform/web/sdk/paths/vite.js ./target/paths/vite.js
+cp doc/SDK.md target/README.md
 pushd target
 pushd asset-build/assets
 mv main.*.js ../../main.js
