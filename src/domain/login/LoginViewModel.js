@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {Client} from "../../matrix/Client.js";
 import {ViewModel} from "../ViewModel.js";
 import {PasswordLoginViewModel} from "./PasswordLoginViewModel.js";
 import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel.js";
@@ -24,11 +25,10 @@ import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
 export class LoginViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {ready, defaultHomeserver, createClient, loginToken} = options;
-        this._createClient = createClient;
+        const {ready, defaultHomeserver, loginToken} = options;
         this._ready = ready;
         this._loginToken = loginToken;
-        this._client = this._createClient();
+        this._client = new Client(this.platform);
         this._loginOptions = null;
         this._passwordLoginViewModel = null;
         this._startSSOLoginViewModel = null;

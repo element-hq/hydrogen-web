@@ -37,13 +37,7 @@ export async function main(platform) {
         platform.setNavigation(navigation);
         const urlRouter = createRouter({navigation, history: platform.history});
         urlRouter.attach();
-        const olmPromise = platform.loadOlm();
-        const workerPromise = platform.loadOlmWorker();
-
         const vm = new RootViewModel({
-            createClient: () => {
-                return new Client({platform, olmPromise, workerPromise});
-            },
             platform,
             // the only public interface of the router is to create urls,
             // so we call it that in the view models

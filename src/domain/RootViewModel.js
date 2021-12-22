@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {Client} from "../matrix/Client.js";
 import {SessionViewModel} from "./session/SessionViewModel.js";
 import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
 import {LoginViewModel} from "./login/LoginViewModel.js";
@@ -23,7 +24,6 @@ import {ViewModel} from "./ViewModel.js";
 export class RootViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        this._createClient = options.createClient;
         this._error = null;
         this._sessionPickerViewModel = null;
         this._sessionLoadViewModel = null;
@@ -106,7 +106,6 @@ export class RootViewModel extends ViewModel {
         this._setSection(() => {
             this._loginViewModel = new LoginViewModel(this.childOptions({
                 defaultHomeserver: this.platform.config["defaultHomeServer"],
-                createClient: this._createClient,
                 ready: client => {
                     // we don't want to load the session container again,
                     // but we also want the change of screen to go through the navigation
@@ -132,7 +131,7 @@ export class RootViewModel extends ViewModel {
     }
 
     _showSessionLoader(sessionId) {
-        const client = this._createClient();
+        const client = new Client(this.platform);
         client.startWithExistingSession(sessionId);
         this._setSection(() => {
             this._sessionLoadViewModel = new SessionLoadViewModel(this.childOptions({
