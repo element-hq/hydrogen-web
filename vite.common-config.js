@@ -6,7 +6,7 @@ const manifest = require("./package.json");
 const version = manifest.version;
 
 const commonOptions = {
-    logLevel: "info",
+    logLevel: "warn",
     publicDir: false,
     server: {
         hmr: false
