@@ -76,12 +76,12 @@ function assetAbsPath(assetPath) {
     return assetPath;
 }
 
-async function loadOlmWorker(config) {
-    const workerPool = new WorkerPool(config.worker, 4);
+async function loadOlmWorker(assetPaths) {
+    const workerPool = new WorkerPool(assetPaths.worker, 4);
     await workerPool.init();
     await workerPool.sendAll({
         type: "load_olm",
-        path: assetAbsPath(config.olm.legacyBundle)
+        path: assetAbsPath(assetPaths.olm.legacyBundle)
     });
     const olmWorker = new OlmWorker(workerPool);
     return olmWorker;
@@ -126,9 +126,10 @@ function adaptUIOnVisualViewportResize(container) {
 }
 
 export class Platform {
-    constructor(container, config, cryptoExtras = null, options = null) {
-        this._config = config;
+    constructor(container, assetPaths, config, options = null, cryptoExtras = null) {
         this._container = container;
+        this._assetPaths = assetPaths;
+        this._config = config;
         this.settingsStorage = new SettingsStorage("hydrogen_setting_v1_");
         this.clock = new Clock();
         this.encoding = new Encoding();
@@ -137,9 +138,9 @@ export class Platform {
         this.history = new History();
         this.onlineStatus = new OnlineStatus();
         this._serviceWorkerHandler = null;
-        if (config.serviceWorker && "serviceWorker" in navigator) {
+        if (assetPaths.serviceWorker && "serviceWorker" in navigator) {
             this._serviceWorkerHandler = new ServiceWorkerHandler();
-            this._serviceWorkerHandler.registerAndStart(config.serviceWorker);
+            this._serviceWorkerHandler.registerAndStart(assetPaths.serviceWorker);
         }
         this.notificationService = new NotificationService(this._serviceWorkerHandler, config.push);
         this.crypto = new Crypto(cryptoExtras);
@@ -182,7 +183,7 @@ export class Platform {
 
     loadOlm() {
         if (!this._olmPromise) {
-            this._olmPromise = loadOlm(this._config.olm);
+            this._olmPromise = loadOlm(this._assetPaths.olm);
         }
         return this._olmPromise;
     }
@@ -194,7 +195,7 @@ export class Platform {
     async loadOlmWorker() {
         if (!window.WebAssembly) {
             if (!this._workerPromise) {
-                this._workerPromise = loadOlmWorker(this._config);
+                this._workerPromise = loadOlmWorker(this._assetPaths);
             }
             return this._workerPromise;
         }
@@ -230,7 +231,7 @@ export class Platform {
         if (navigator.msSaveBlob) {
             navigator.msSaveBlob(blobHandle.nativeBlob, filename);
         } else {
-            downloadInIframe(this._container, this._config.downloadSandbox, blobHandle, filename, this.isIOS);
+            downloadInIframe(this._container, this._assetPaths.downloadSandbox, blobHandle, filename, this.isIOS);
         }
     }
 

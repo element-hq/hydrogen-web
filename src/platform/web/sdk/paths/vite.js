@@ -9,11 +9,12 @@ import olmJsPath from "@matrix-org/olm/olm.js?url";
 // @ts-ignore
 import olmLegacyJsPath from "@matrix-org/olm/olm_legacy.js?url";
 
-export const olmPaths = {
-    wasm: olmWasmPath,
-    legacyBundle: olmLegacyJsPath,
-    wasmBundle: olmJsPath,
+export default {
+    downloadSandbox: _downloadSandboxPath,
+    worker: _workerPath,
+    olm: {
+        wasm: olmWasmPath,
+        legacyBundle: olmLegacyJsPath,
+        wasmBundle: olmJsPath,
+    }
 };
-
-export const downloadSandboxPath = _downloadSandboxPath;
-export const workerPath = _workerPath;

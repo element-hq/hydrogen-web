@@ -19,20 +19,14 @@
             import {main} from "./main";
             import {Platform} from "./Platform";
             import configJSON from "./assets/config.json?raw";
-            import {olmPaths, downloadSandboxPath, workerPath} from "./sdk/paths/vite";
-            const paths = {
-                olm: olmPaths,
-                downloadSandbox: downloadSandboxPath,
-                worker: workerPath,
-                ...JSON.parse(configJSON)
-            };
+            import assetPaths from "./sdk/paths/vite";
             if (import.meta.env.PROD) {
-                paths.serviceWorker = "sw.js";
+                assetPaths.serviceWorker = "sw.js";
             }
             const platform = new Platform(
                 document.body,
-                paths,
-                null,
+                assetPaths,
+                JSON.parse(configJSON),
                 {development: import.meta.env.DEV}
             );
             main(platform);
