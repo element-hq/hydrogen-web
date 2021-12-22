@@ -1,5 +1,5 @@
 {
-    "name": "hydrogen-sdk",
+    "name": "hydrogen-view-sdk",
     "version": "0.0.1",
     "main": "./hydrogen.cjs.js",
     "exports": {
