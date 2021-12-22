@@ -109,7 +109,7 @@ export class Session {
         return this._sessionInfo.userId;
     }
 
-    /** @internal call SessionContainer.logout instead */
+    /** @internal call Client.logout instead */
     async logout(log = undefined) {
         await this._hsApi.logout({log}).response();
     }

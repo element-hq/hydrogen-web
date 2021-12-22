@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {Client} from "../matrix/Client.js";
 import {SessionViewModel} from "./session/SessionViewModel.js";
 import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
 import {LoginViewModel} from "./login/LoginViewModel.js";
@@ -23,13 +24,12 @@ import {ViewModel} from "./ViewModel.js";
 export class RootViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        this._createSessionContainer = options.createSessionContainer;
         this._error = null;
         this._sessionPickerViewModel = null;
         this._sessionLoadViewModel = null;
         this._loginViewModel = null;
         this._sessionViewModel = null;
-        this._pendingSessionContainer = null;
+        this._pendingClient = null;
     }
 
     async load() {
@@ -53,16 +53,16 @@ export class RootViewModel extends ViewModel {
             }
         } else if (sessionId) {
             if (!this._sessionViewModel || this._sessionViewModel.id !== sessionId) {
-                // see _showLogin for where _pendingSessionContainer comes from
-                if (this._pendingSessionContainer && this._pendingSessionContainer.sessionId === sessionId) {
-                    const sessionContainer = this._pendingSessionContainer;
-                    this._pendingSessionContainer = null;
-                    this._showSession(sessionContainer);
+                // see _showLogin for where _pendingClient comes from
+                if (this._pendingClient && this._pendingClient.sessionId === sessionId) {
+                    const client = this._pendingClient;
+                    this._pendingClient = null;
+                    this._showSession(client);
                 } else {
                     // this should never happen, but we want to be sure not to leak it
-                    if (this._pendingSessionContainer) {
-                        this._pendingSessionContainer.dispose();
-                        this._pendingSessionContainer = null;
+                    if (this._pendingClient) {
+                        this._pendingClient.dispose();
+                        this._pendingClient = null;
                     }
                     this._showSessionLoader(sessionId);
                 }
@@ -106,8 +106,7 @@ export class RootViewModel extends ViewModel {
         this._setSection(() => {
             this._loginViewModel = new LoginViewModel(this.childOptions({
                 defaultHomeserver: this.platform.config["defaultHomeServer"],
-                createSessionContainer: this._createSessionContainer,
-                ready: sessionContainer => {
+                ready: client => {
                     // we don't want to load the session container again,
                     // but we also want the change of screen to go through the navigation
                     // so we store the session container in a temporary variable that will be
@@ -116,28 +115,28 @@ export class RootViewModel extends ViewModel {
                     // Also, we should not call _setSection before the navigation is in the correct state,
                     // as url creation (e.g. in RoomTileViewModel)
                     // won't be using the correct navigation base path.
-                    this._pendingSessionContainer = sessionContainer;
-                    this.navigation.push("session", sessionContainer.sessionId);
+                    this._pendingClient = client;
+                    this.navigation.push("session", client.sessionId);
                 },
                 loginToken
             }));
         });
     }
 
-    _showSession(sessionContainer) {
+    _showSession(client) {
         this._setSection(() => {
-            this._sessionViewModel = new SessionViewModel(this.childOptions({sessionContainer}));
+            this._sessionViewModel = new SessionViewModel(this.childOptions({client}));
             this._sessionViewModel.start();
         });
     }
 
     _showSessionLoader(sessionId) {
-        const sessionContainer = this._createSessionContainer();
-        sessionContainer.startWithExistingSession(sessionId);
+        const client = new Client(this.platform);
+        client.startWithExistingSession(sessionId);
         this._setSection(() => {
             this._sessionLoadViewModel = new SessionLoadViewModel(this.childOptions({
-                sessionContainer,
-                ready: sessionContainer => this._showSession(sessionContainer)
+                client,
+                ready: client => this._showSession(client)
             }));
             this._sessionLoadViewModel.start();
         });

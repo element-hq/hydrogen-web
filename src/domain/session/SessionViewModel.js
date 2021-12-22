@@ -30,16 +30,16 @@ import {RightPanelViewModel} from "./rightpanel/RightPanelViewModel.js";
 export class SessionViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {sessionContainer} = options;
-        this._sessionContainer = this.track(sessionContainer);
+        const {client} = options;
+        this._client = this.track(client);
         this._sessionStatusViewModel = this.track(new SessionStatusViewModel(this.childOptions({
-            sync: sessionContainer.sync,
-            reconnector: sessionContainer.reconnector,
-            session: sessionContainer.session,
+            sync: client.sync,
+            reconnector: client.reconnector,
+            session: client.session,
         })));
         this._leftPanelViewModel = this.track(new LeftPanelViewModel(this.childOptions({
-            invites: this._sessionContainer.session.invites,
-            rooms: this._sessionContainer.session.rooms
+            invites: this._client.session.invites,
+            rooms: this._client.session.rooms
         })));
         this._settingsViewModel = null;
         this._roomViewModelObservable = null;
@@ -88,7 +88,7 @@ export class SessionViewModel extends ViewModel {
     }
 
     get id() {
-        return this._sessionContainer.sessionId;
+        return this._client.sessionId;
     }
 
     start() {
@@ -163,7 +163,7 @@ export class SessionViewModel extends ViewModel {
     }
 
     _createRoomViewModel(roomId) {
-        const room = this._sessionContainer.session.rooms.get(roomId);
+        const room = this._client.session.rooms.get(roomId);
         if (room) {
             const roomVM = new RoomViewModel(this.childOptions({room}));
             roomVM.load();
@@ -175,12 +175,12 @@ export class SessionViewModel extends ViewModel {
     _createUnknownRoomViewModel(roomIdOrAlias) {
         return new UnknownRoomViewModel(this.childOptions({
             roomIdOrAlias,
-            session: this._sessionContainer.session,
+            session: this._client.session,
         }));
     }
 
     async _createArchivedRoomViewModel(roomId) {
-        const room = await this._sessionContainer.session.loadArchivedRoom(roomId);
+        const room = await this._client.session.loadArchivedRoom(roomId);
         if (room) {
             const roomVM = new RoomViewModel(this.childOptions({room}));
             roomVM.load();
@@ -190,11 +190,11 @@ export class SessionViewModel extends ViewModel {
     }
 
     _createInviteViewModel(roomId) {
-        const invite = this._sessionContainer.session.invites.get(roomId);
+        const invite = this._client.session.invites.get(roomId);
         if (invite) {
             return new InviteViewModel(this.childOptions({
                 invite,
-                mediaRepository: this._sessionContainer.session.mediaRepository,
+                mediaRepository: this._client.session.mediaRepository,
             }));
         }
         return null;
@@ -230,7 +230,7 @@ export class SessionViewModel extends ViewModel {
         }
         if (settingsOpen) {
             this._settingsViewModel = this.track(new SettingsViewModel(this.childOptions({
-                sessionContainer: this._sessionContainer,
+                client: this._client,
             })));
             this._settingsViewModel.load();
         }
@@ -254,7 +254,7 @@ export class SessionViewModel extends ViewModel {
 
     _roomFromNavigation() {
         const roomId = this.navigation.path.get("room")?.value;
-        const room = this._sessionContainer.session.rooms.get(roomId);
+        const room = this._client.session.rooms.get(roomId);
         return room;
     }
 

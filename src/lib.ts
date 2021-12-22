@@ -14,15 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// types need to bootstrap a SessionContainer
-export {SessionContainer, LoadStatus} from "./matrix/SessionContainer.js";
-export {Session} from "./matrix/Session.js";
-export {Sync} from "./matrix/Sync.js";
-export {Room} from "./matrix/room/Room.js";
-export {Timeline} from "./matrix/room/timeline/Timeline.js";
-export {createNavigation, createRouter} from "./domain/navigation/index.js";
 export {Platform} from "./platform/web/Platform.js";
+export {Client, LoadStatus} from "./matrix/Client.js";
 // export main view & view models
+export {createNavigation, createRouter} from "./domain/navigation/index.js";
 export {RootViewModel} from "./domain/RootViewModel.js";
 export {RootView} from "./platform/web/ui/RootView.js";
 export {SessionViewModel} from "./domain/session/SessionViewModel.js";

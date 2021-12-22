@@ -14,21 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {Client} from "../../matrix/Client.js";
 import {ViewModel} from "../ViewModel.js";
 import {PasswordLoginViewModel} from "./PasswordLoginViewModel.js";
 import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel.js";
 import {CompleteSSOLoginViewModel} from "./CompleteSSOLoginViewModel.js";
-import {LoadStatus} from "../../matrix/SessionContainer.js";
+import {LoadStatus} from "../../matrix/Client.js";
 import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
 
 export class LoginViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {ready, defaultHomeserver, createSessionContainer, loginToken} = options;
-        this._createSessionContainer = createSessionContainer;
+        const {ready, defaultHomeserver, loginToken} = options;
         this._ready = ready;
         this._loginToken = loginToken;
-        this._sessionContainer = this._createSessionContainer();
+        this._client = new Client(this.platform);
         this._loginOptions = null;
         this._passwordLoginViewModel = null;
         this._startSSOLoginViewModel = null;
@@ -66,7 +66,7 @@ export class LoginViewModel extends ViewModel {
             this._completeSSOLoginViewModel = this.track(new CompleteSSOLoginViewModel(
                 this.childOptions(
                     {
-                        sessionContainer: this._sessionContainer,
+                        client: this._client,
                         attemptLogin: loginMethod => this.attemptLogin(loginMethod),
                         loginToken: this._loginToken
                     })));
@@ -107,14 +107,14 @@ export class LoginViewModel extends ViewModel {
 
     async attemptLogin(loginMethod) {
         this._setBusy(true);
-        this._sessionContainer.startWithLogin(loginMethod, {inspectAccountSetup: true});
-        const loadStatus = this._sessionContainer.loadStatus;
+        this._client.startWithLogin(loginMethod, {inspectAccountSetup: true});
+        const loadStatus = this._client.loadStatus;
         const handle = loadStatus.waitFor(status => status !== LoadStatus.Login);
         await handle.promise;
         this._setBusy(false);
         const status = loadStatus.get();
         if (status === LoadStatus.LoginFailed) {
-            return this._sessionContainer.loginFailure;
+            return this._client.loginFailure;
         }
         this._hideHomeserver = true;
         this.emitChange("hideHomeserver");
@@ -129,12 +129,12 @@ export class LoginViewModel extends ViewModel {
         this._loadViewModel = this.track(
             new SessionLoadViewModel(
                 this.childOptions({
-                    ready: (sessionContainer) => {
+                    ready: (client) => {
                         // make sure we don't delete the session in dispose when navigating away
-                        this._sessionContainer = null;
-                        this._ready(sessionContainer);
+                        this._client = null;
+                        this._ready(client);
                     },
-                    sessionContainer: this._sessionContainer,
+                    client: this._client,
                     homeserver: this._homeserver
                 })
             )
@@ -200,7 +200,7 @@ export class LoginViewModel extends ViewModel {
         // cancel ongoing query operation, if any
         this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
         try {
-            const queryOperation = this._sessionContainer.queryLogin(this._homeserver);
+            const queryOperation = this._client.queryLogin(this._homeserver);
             this._abortQueryOperation = this.track(() => queryOperation.abort());
             this.emitChange("isFetchingLoginOptions");
             this._loginOptions = await queryOperation.result;
@@ -230,10 +230,10 @@ export class LoginViewModel extends ViewModel {
 
     dispose() {
         super.dispose();
-        if (this._sessionContainer) {
+        if (this._client) {
             // if we move away before we're done with initial sync
             // delete the session
-            this._sessionContainer.deleteSession();
+            this._client.deleteSession();
         }
     }
 }

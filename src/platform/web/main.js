@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 // import {RecordRequester, ReplayRequester} from "./matrix/net/request/replay";
-import {SessionContainer} from "../../matrix/SessionContainer.js";
+import {Client} from "../../matrix/Client.js";
 import {RootViewModel} from "../../domain/RootViewModel.js";
 import {createNavigation, createRouter} from "../../domain/navigation/index.js";
 // Don't use a default export here, as we use multiple entries during legacy build,
@@ -37,13 +37,7 @@ export async function main(platform) {
         platform.setNavigation(navigation);
         const urlRouter = createRouter({navigation, history: platform.history});
         urlRouter.attach();
-        const olmPromise = platform.loadOlm();
-        const workerPromise = platform.loadOlmWorker();
-
         const vm = new RootViewModel({
-            createSessionContainer: () => {
-                return new SessionContainer({platform, olmPromise, workerPromise});
-            },
             platform,
             // the only public interface of the router is to create urls,
             // so we call it that in the view models

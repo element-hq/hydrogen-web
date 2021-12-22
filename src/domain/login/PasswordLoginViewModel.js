@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {ViewModel} from "../ViewModel.js";
-import {LoginFailure} from "../../matrix/SessionContainer.js";
+import {LoginFailure} from "../../matrix/Client.js";
 
 export class PasswordLoginViewModel extends ViewModel {
     constructor(options) {

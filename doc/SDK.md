@@ -38,7 +38,8 @@ import "hydrogen-view-sdk/style.css";
 
 async function main() {
     const app = document.querySelector<HTMLDivElement>('#app')!
-    const platform = new Platform(app, assetPaths, { development: import.meta.env.DEV });
+    const config = {};
+    const platform = new Platform(app, assetPaths, config, { development: import.meta.env.DEV });
     const navigation = createNavigation();
     platform.setNavigation(navigation);
     const urlRouter = createRouter({

@@ -41,8 +41,8 @@ export class SettingsViewModel extends ViewModel {
     constructor(options) {
         super(options);
         this._updateService = options.updateService;
-        const {sessionContainer} = options;
-        this._sessionContainer = sessionContainer;
+        const {client} = options;
+        this._client = client;
         this._sessionBackupViewModel = this.track(new SessionBackupViewModel(this.childOptions({session: this._session})));
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
         this._estimate = null;
@@ -54,12 +54,12 @@ export class SettingsViewModel extends ViewModel {
     }
 
     get _session() {
-        return this._sessionContainer.session;
+        return this._client.session;
     }
 
     async logout() {
         this._isLoggingOut = true;
-        await this._sessionContainer.logout();
+        await this._client.logout();
         this.emitChange("isLoggingOut");
         this.navigation.push("session", true);
     }

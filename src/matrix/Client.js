@@ -51,8 +51,8 @@ export const LoginFailure = createEnum(
     "Unknown",
 );
 
-export class SessionContainer {
-    constructor({platform, olmPromise, workerPromise}) {
+export class Client {
+    constructor(platform) {
         this._platform = platform;
         this._sessionStartedByReconnector = false;
         this._status = new ObservableValue(LoadStatus.NotLoading);
@@ -64,8 +64,8 @@ export class SessionContainer {
         this._sessionId = null;
         this._storage = null;
         this._requestScheduler = null;
-        this._olmPromise = olmPromise;
-        this._workerPromise = workerPromise;
+        this._olmPromise = platform.loadOlm();
+        this._workerPromise = platform.loadOlmWorker();
         this._accountSetup = undefined;
     }
 
