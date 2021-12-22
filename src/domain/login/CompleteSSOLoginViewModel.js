@@ -15,18 +15,18 @@ limitations under the License.
 */
 
 import {ViewModel} from "../ViewModel.js";
-import {LoginFailure} from "../../matrix/SessionContainer.js";
+import {LoginFailure} from "../../matrix/Client.js";
 
 export class CompleteSSOLoginViewModel extends ViewModel {
     constructor(options) {
         super(options);
         const {
             loginToken,
-            sessionContainer,
+            client,
             attemptLogin,
         } = options;
         this._loginToken = loginToken;
-        this._sessionContainer = sessionContainer;
+        this._client = client;
         this._attemptLogin = attemptLogin;
         this._errorMessage = "";
         this.performSSOLoginCompletion();
@@ -46,7 +46,7 @@ export class CompleteSSOLoginViewModel extends ViewModel {
         const homeserver = await this.platform.settingsStorage.getString("sso_ongoing_login_homeserver");
         let loginOptions;
         try {
-            loginOptions = await this._sessionContainer.queryLogin(homeserver).result;
+            loginOptions = await this._client.queryLogin(homeserver).result;
         }
         catch (err) {
             this._showError(err.message);

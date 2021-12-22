@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// types need to bootstrap a SessionContainer
-export {SessionContainer, LoadStatus} from "./matrix/SessionContainer.js";
+// types need to bootstrap a Client
+export {Client, LoadStatus} from "./matrix/Client.js";
 export {Session} from "./matrix/Session.js";
 export {Sync} from "./matrix/Sync.js";
 export {Room} from "./matrix/room/Room.js";

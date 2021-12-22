@@ -48,7 +48,7 @@ export class RoomViewModelObservable extends ObservableValue {
     are called in that case.
     */
     async initialize() {
-        const {session} = this._sessionViewModel._sessionContainer;
+        const {session} = this._sessionViewModel._client;
         const statusObservable = await session.observeRoomStatus(this.id);
         this.set(await this._statusToViewModel(statusObservable.get()));
         this._statusSubscription = statusObservable.subscribe(async status => {

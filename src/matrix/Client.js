@@ -51,7 +51,7 @@ export const LoginFailure = createEnum(
     "Unknown",
 );
 
-export class SessionContainer {
+export class Client {
     constructor({platform, olmPromise, workerPromise}) {
         this._platform = platform;
         this._sessionStartedByReconnector = false;

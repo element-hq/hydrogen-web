@@ -15,15 +15,15 @@ limitations under the License.
 */
 
 import {AccountSetupViewModel} from "./AccountSetupViewModel.js";
-import {LoadStatus} from "../matrix/SessionContainer.js";
+import {LoadStatus} from "../matrix/Client.js";
 import {SyncStatus} from "../matrix/Sync.js";
 import {ViewModel} from "./ViewModel.js";
 
 export class SessionLoadViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {sessionContainer, ready, homeserver, deleteSessionOnCancel} = options;
-        this._sessionContainer = sessionContainer;
+        const {client, ready, homeserver, deleteSessionOnCancel} = options;
+        this._client = client;
         this._ready = ready;
         this._homeserver = homeserver;
         this._deleteSessionOnCancel = deleteSessionOnCancel;
@@ -41,16 +41,16 @@ export class SessionLoadViewModel extends ViewModel {
         try {
             this._loading = true;
             this.emitChange("loading");
-            this._waitHandle = this._sessionContainer.loadStatus.waitFor(s => {
+            this._waitHandle = this._client.loadStatus.waitFor(s => {
                 if (s === LoadStatus.AccountSetup) {
-                    this._accountSetupViewModel = new AccountSetupViewModel(this._sessionContainer.accountSetup);
+                    this._accountSetupViewModel = new AccountSetupViewModel(this._client.accountSetup);
                 } else {
                     this._accountSetupViewModel = undefined;
                 }
                 this.emitChange("loadLabel");
                 // wait for initial sync, but not catchup sync
                 const isCatchupSync = s === LoadStatus.FirstSync &&
-                    this._sessionContainer.sync.status.get() === SyncStatus.CatchupSync;
+                    this._client.sync.status.get() === SyncStatus.CatchupSync;
                 return isCatchupSync ||
                     s === LoadStatus.LoginFailed ||
                     s === LoadStatus.Error ||
@@ -67,15 +67,15 @@ export class SessionLoadViewModel extends ViewModel {
             // much like we will once you are in the app. Probably a good idea
 
             // did it finish or get stuck at LoginFailed or Error?
-            const loadStatus = this._sessionContainer.loadStatus.get();
-            const loadError = this._sessionContainer.loadError;
+            const loadStatus = this._client.loadStatus.get();
+            const loadError = this._client.loadError;
             if (loadStatus === LoadStatus.FirstSync || loadStatus === LoadStatus.Ready) {
-                const sessionContainer = this._sessionContainer;
+                const client = this._client;
                 // session container is ready,
                 // don't dispose it anymore when 
                 // we get disposed
-                this._sessionContainer = null;
-                this._ready(sessionContainer);
+                this._client = null;
+                this._ready(client);
             }
             if (loadError) {
                 console.error("session load error", loadError);
@@ -85,16 +85,16 @@ export class SessionLoadViewModel extends ViewModel {
             console.error("error thrown during session load", err.stack);
         } finally {
             this._loading = false;
-            // loadLabel in case of sc.loadError also gets updated through this
+            // loadLabel in case of client.loadError also gets updated through this
             this.emitChange("loading");
         }
     }
 
 
     dispose() {
-        if (this._sessionContainer) {
-            this._sessionContainer.dispose();
-            this._sessionContainer = null;
+        if (this._client) {
+            this._client.dispose();
+            this._client = null;
         }
         if (this._waitHandle) {
             // rejects with AbortError
@@ -105,23 +105,23 @@ export class SessionLoadViewModel extends ViewModel {
 
     // to show a spinner or not
     get loading() {
-        const sc = this._sessionContainer;
-        if (sc && sc.loadStatus.get() === LoadStatus.AccountSetup) {
+        const client = this._client;
+        if (client && client.loadStatus.get() === LoadStatus.AccountSetup) {
             return false;
         }
         return this._loading;
     }
 
     get loadLabel() {
-        const sc = this._sessionContainer;
+        const client = this._client;
         const error = this._getError();
-        if (error || (sc && sc.loadStatus.get() === LoadStatus.Error)) {
+        if (error || (client && client.loadStatus.get() === LoadStatus.Error)) {
             return `Something went wrong: ${error && error.message}.`;
         }
 
         // Statuses related to login are handled by respective login view models
-        if (sc) {
-            switch (sc.loadStatus.get()) {
+        if (client) {
+            switch (client.loadStatus.get()) {
                 case LoadStatus.QueryAccount:
                     return `Querying account encryption setup…`;
                 case LoadStatus.AccountSetup:
@@ -133,7 +133,7 @@ export class SessionLoadViewModel extends ViewModel {
                 case LoadStatus.FirstSync:
                     return `Getting your conversations from the server…`;
                 default:
-                    return this._sessionContainer.loadStatus.get();
+                    return this._client.loadStatus.get();
             }
         }
 
@@ -141,7 +141,7 @@ export class SessionLoadViewModel extends ViewModel {
     }
 
     _getError() {
-        return this._error || this._sessionContainer?.loadError; 
+        return this._error || this._client?.loadError; 
     }
 
     get hasError() {
@@ -154,7 +154,7 @@ export class SessionLoadViewModel extends ViewModel {
     }
 
     async logout() {
-        await this._sessionContainer.logout();
+        await this._client.logout();
         this.navigation.push("session", true);
     }
 
