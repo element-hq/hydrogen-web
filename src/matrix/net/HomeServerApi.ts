@@ -26,6 +26,7 @@ import type {ILogItem} from "../../logging/types";
 type RequestMethod = "POST" | "GET" | "PUT";
 
 const CS_R0_PREFIX = "/_matrix/client/r0";
+const CS_V3_PREFIX = "/_matrix/client/v3";
 const DEHYDRATION_PREFIX = "/_matrix/client/unstable/org.matrix.msc2697.v2";
 
 type Options = {
@@ -161,6 +162,10 @@ export class HomeServerApi {
 
     getLoginFlows(): IHomeServerRequest {
         return this._unauthedRequest("GET", this._url("/login"));
+    }
+
+    getRegistrationFlows(): IHomeServerRequest {
+        return this._unauthedRequest("POST", this._url("/register", CS_V3_PREFIX), undefined, { auth: {} });
     }
 
     passwordLogin(username: string, password: string, initialDeviceDisplayName: string, options?: IRequestOptions): IHomeServerRequest {
