@@ -54,7 +54,6 @@ export class Registration {
     async start(): Promise<BaseRegistrationStage> {
         const response = await this._fetchFlows();
         this.parseStagesFromResponse(response);
-        await new Promise(r => setTimeout(r, 2000));
         return this._firstStage;
     }
 

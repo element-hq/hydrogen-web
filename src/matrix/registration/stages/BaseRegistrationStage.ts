@@ -55,7 +55,7 @@ export abstract class BaseRegistrationStage {
             // registration completed successfully
             return true;
         }
-        else if (response.completed?.forEach(c => c === this.type)) {
+        else if (response.completed?.find(c => c === this.type)) {
             return this._nextStage;
         }
         const error = response.error ?? "Could not parse response";
