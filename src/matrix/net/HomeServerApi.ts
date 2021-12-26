@@ -85,7 +85,8 @@ export class HomeServerApi {
             body: encodedBody,
             timeout: options?.timeout,
             uploadProgress: options?.uploadProgress,
-            format: "json"  // response format
+            format: "json",  // response format
+            cache: options?.cache ?? false
         });
 
         const hsRequest = new HomeServerRequest(method, url, requestResult, log);
@@ -164,8 +165,25 @@ export class HomeServerApi {
         return this._unauthedRequest("GET", this._url("/login"));
     }
 
-    getRegistrationFlows(): IHomeServerRequest {
-        return this._unauthedRequest("POST", this._url("/register", CS_V3_PREFIX), undefined, { auth: {} });
+    register(username: string, password: string, initialDeviceDisplayName: string, auth?: Record<string, any>, inhibitLogin?: boolean , options?: IRequestOptions): IHomeServerRequest {
+        // todo: This is so that we disable cache-buster because it would cause the hs to respond with error
+        // see https://github.com/matrix-org/synapse/issues/7722
+        // need to this about the implications of this later
+        const _options = options ?? {};
+        Object.assign(_options, { cache: true });
+        return this._unauthedRequest(
+            "POST",
+            this._url("/register", CS_V3_PREFIX),
+            undefined,
+            {
+                auth,
+                username,
+                password,
+                initial_device_displayname: initialDeviceDisplayName,
+                inhibit_login: inhibitLogin ?? false,
+            },
+            _options
+        );
     }
 
     passwordLogin(username: string, password: string, initialDeviceDisplayName: string, options?: IRequestOptions): IHomeServerRequest {
