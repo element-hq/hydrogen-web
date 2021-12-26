@@ -36,7 +36,10 @@ export class HomeServerRequest implements IHomeServerRequest {
         this._promise = sourceRequest.response().then(response => {
             log?.set("status", response.status);
             // ok?
-            if (response.status >= 200 && response.status < 300) {
+            // todo: register endpoint indicates our progress in using the user interactive
+            // authentication using 401 responses
+            // passing through all 401 responses as a temporary fix
+            if (response.status >= 200 && response.status < 300 || response.status === 401) {
                 log?.finish();
                 return response.body;
             } else {
