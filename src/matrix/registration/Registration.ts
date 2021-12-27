@@ -34,7 +34,6 @@ export class Registration {
     private _hsApi: HomeServerApi;
     private _data: RegistrationParameters;
     private _firstStage: BaseRegistrationStage;
-    private _session: string;
 
     constructor(hsApi: HomeServerApi, data: RegistrationParameters) {
         this._hsApi = hsApi;
@@ -58,7 +57,7 @@ export class Registration {
     }
 
     parseStagesFromResponse(response: RegistrationResponse) {
-        this._session = response.session;
+        const { session, params } = response;
         const flow = response.flows.pop();
         let lastStage: BaseRegistrationStage;
         for (const stage of flow.stages) {
@@ -66,7 +65,7 @@ export class Registration {
             if (!stageClass) {
                 throw new Error("Unknown stage");
             }
-            const registrationStage = new stageClass(this._hsApi, this._data, this._session);
+            const registrationStage = new stageClass(this._hsApi, this._data, session, params?.[stage]);
             if (!this._firstStage) {
                 this._firstStage = registrationStage;
                 lastStage = registrationStage;

@@ -26,11 +26,13 @@ export abstract class BaseRegistrationStage {
     protected _registrationData: RegistrationParameters;
     protected _session: string;
     protected _nextStage: BaseRegistrationStage;
+    protected _params?: Record<string, any>
 
-    constructor(hsApi: HomeServerApi, registrationData: RegistrationParameters, session: string) {
+    constructor(hsApi: HomeServerApi, registrationData: RegistrationParameters, session: string, params?: Record<string, any>) {
         this._hsApi = hsApi;
         this._registrationData = registrationData;
         this._session = session;
+        this._params = params;
     }
 
     /**
