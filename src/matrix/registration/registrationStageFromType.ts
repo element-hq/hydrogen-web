@@ -14,11 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import type {BaseRegistrationStage} from "./stages/BaseRegistrationStage";
+import type {HomeServerApi} from "../net/HomeServerApi";
+import type {RegistrationParameters} from "./Registration";
 import {DummyAuth} from "./stages/DummyAuth";
+import {TermsAuth} from "./stages/TermsAuth";
 
-export function registrationStageFromType(type: string): typeof DummyAuth | undefined {
+type DerivedFromBaseRegistration = { new(hsApi: HomeServerApi, registrationData: RegistrationParameters, session: string, params?: Record<string, any>): BaseRegistrationStage } & typeof BaseRegistrationStage | undefined;
+
+export function registrationStageFromType(type: string): DerivedFromBaseRegistration {
     switch (type) {
         case "m.login.dummy":
             return DummyAuth;
+        case "m.login.terms":
+            return TermsAuth;
     }
 }
