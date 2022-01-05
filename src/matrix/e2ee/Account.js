@@ -147,7 +147,7 @@ export class Account {
         // We need to keep a pool of one time public keys on the server so that
         // other devices can start conversations with us. But we can only store
         // a finite number of private keys in the olm Account object.
-        // To complicate things further then can be a delay between a device
+        // To complicate things further there can be a delay between a device
         // claiming a public one time key from the server and it sending us a
         // message. We need to keep the corresponding private key locally until
         // we receive the message.
