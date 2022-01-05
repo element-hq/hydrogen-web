@@ -30,6 +30,7 @@ import {PasswordLoginMethod} from "./login/PasswordLoginMethod";
 import {TokenLoginMethod} from "./login/TokenLoginMethod";
 import {SSOLoginHelper} from "./login/SSOLoginHelper";
 import {getDehydratedDevice} from "./e2ee/Dehydration.js";
+import {Registration} from "./registration/Registration";
 
 export const LoadStatus = createEnum(
     "NotLoading",
@@ -129,6 +130,19 @@ export class Client {
             const response = await setAbortable(hsApi.getLoginFlows()).response();
             return this._parseLoginOptions(response, homeserver);
         });
+    }
+
+    async startRegistration(homeserver, username, password, initialDeviceDisplayName) {
+        const request = this._platform.request;
+        const hsApi = new HomeServerApi({homeserver, request});
+        const registration = new Registration(hsApi, {
+            username, 
+            password,
+            initialDeviceDisplayName,
+            inhibitLogin: true
+        });
+        let stage = await registration.start();
+        return stage;
     }
 
     async startWithLogin(loginMethod, {inspectAccountSetup} = {}) {
