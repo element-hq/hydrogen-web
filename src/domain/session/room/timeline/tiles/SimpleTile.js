@@ -97,9 +97,9 @@ export class SimpleTile extends ViewModel {
         const replyEntry = param?.reply ?? entry.contextEntry;
         if (replyEntry) {
             // this is an update to contextEntry used for replyPreview
-            const action = this._replyTextTile?.updateEntry(replyEntry);
+            const action = this._replyTile?.updateEntry(replyEntry);
             if (action?.shouldReplace) {
-                this._replyTextTile = this._tileCreator(replyEntry);
+                this._replyTile = this._tileCreator(replyEntry);
             }
         }
         const renderedAsRedacted = this.shape === "redacted";

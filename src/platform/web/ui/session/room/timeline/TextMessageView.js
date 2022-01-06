@@ -26,13 +26,13 @@ export class TextMessageView extends BaseMessageView {
                 "Timeline_messageBody": true,
                 statusMessage: vm => vm.shape === "message-status",
             }
-        }, t.mapView(vm => vm.replyTextTile, replyTextTile => {
-            if (vm.isReply && !replyTextTile) {
+        }, t.mapView(vm => vm.replyTile, replyTile => {
+            if (vm.isReply && !replyTile) {
                 return new ReplyPreviewError();
             }
-            else if (replyTextTile && !this._isReplyPreview) {
+            else if (replyTile && !this._isReplyPreview) {
                 // if this._isReplyPreview = true, this is already a reply preview, don't nest replies for now.
-                return new ReplyPreviewView(replyTextTile);
+                return new ReplyPreviewView(replyTile);
             }
             else {
                 return null;

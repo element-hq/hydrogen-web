@@ -24,7 +24,7 @@ export class BaseMessageTile extends SimpleTile {
         this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : null;
         this._isContinuation = false;
         this._reactions = null;
-        this._replyTextTile = null;
+        this._replyTile = null;
         if (this._entry.annotations || this._entry.pendingAnnotations) {
             this._updateReactions();
         }
@@ -216,16 +216,16 @@ export class BaseMessageTile extends SimpleTile {
         }
     }
 
-    get replyTextTile() {
+    get replyTile() {
         if (!this._entry.contextEventId) {
             return null;
         }
-        if (!this._replyTextTile) {
+        if (!this._replyTile) {
             const entry = this._entry.contextEntry;
             if (entry) {
-                this._replyTextTile = this._tileCreator(entry);
+                this._replyTile = this._tileCreator(entry);
             }
         }
-        return this._replyTextTile;
+        return this._replyTile;
     }
 }
