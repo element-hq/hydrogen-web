@@ -34,8 +34,8 @@ export class ReplyPreviewView extends TemplateView {
     _renderReplyHeader(t, vm, children = []) {
         return t.blockquote(
             [
-            t.a({ className: "link", href: `https://matrix.to/#/${vm.roomId}/${vm.eventId}` }, "In reply to"),
-            t.a({ className: "pill", href: `https://matrix.to/#/${vm.sender}` }, [renderStaticAvatar(vm, 12, undefined, true), vm.displayName]),
+            t.a({ className: "link", href: vm.permaLink }, "In reply to"),
+            t.a({ className: "pill", href: vm.senderProfileLink }, [renderStaticAvatar(vm, 12, undefined, true), vm.displayName]),
             t.br(),
             ...children
         ]);

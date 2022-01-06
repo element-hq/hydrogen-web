@@ -34,12 +34,12 @@ export class BaseMessageTile extends SimpleTile {
         return this._room.mediaRepository;
     }
 
-    get roomId() {
-        return this._room.id;
+    get permaLink() {
+        return `https://matrix.to/#/${this._room.id}/${this._entry.id}`;
     }
 
-    get eventId() {
-        return this._entry.id;
+    get senderProfileLink() {
+        return `https://matrix.to/#/${this.sender}`;
     }
 
     get displayName() {
