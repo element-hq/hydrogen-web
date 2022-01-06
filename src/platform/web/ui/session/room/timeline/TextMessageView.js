@@ -39,8 +39,10 @@ export class TextMessageView extends BaseMessageView {
             }
         }));
 
+        const shouldRemove = (element) => element && element.className !== "ReplyPreviewView" && element.nodeName !== "#comment";
+
         t.mapSideEffect(vm => vm.body, body => {
-            while (this._shouldRemove(container.lastChild)) {
+            while (shouldRemove(container.lastChild)) {
                 container.removeChild(container.lastChild);
             }
             for (const part of body.parts) {
@@ -52,9 +54,6 @@ export class TextMessageView extends BaseMessageView {
         return container;
     }
 
-    _shouldRemove(element) {
-        return element && element.className !== "ReplyPreviewView" && element.nodeName !== "#comment";
-    }
 
 }
 
