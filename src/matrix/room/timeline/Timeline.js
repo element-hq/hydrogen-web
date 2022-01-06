@@ -85,7 +85,7 @@ export class Timeline {
         const readerRequest = this._disposables.track(this._timelineReader.readFromEnd(20, txn, log));
         try {
             const entries = await readerRequest.complete();
-            this._loadRelatedEvents(entries);
+            this._loadContextEntriesWhereNeeded(entries);
             this._setupEntries(entries);
         } finally {
             this._disposables.disposeTracked(readerRequest);
@@ -224,7 +224,7 @@ export class Timeline {
     replaceEntries(entries) {
         this._addLocalRelationsToNewRemoteEntries(entries);
         this._updateEntriesNotInTimeline(entries);
-        this._loadRelatedEvents(entries);
+        this._loadContextEntriesWhereNeeded(entries);
         for (const entry of entries) {
             try {
                 this._remoteEntries.getAndUpdate(entry, Timeline._entryUpdater);
@@ -253,7 +253,7 @@ export class Timeline {
         this._updateEntriesNotInTimeline(newEntries);
         this._moveEntryToRemoteEntries(newEntries);
         this._remoteEntries.setManySorted(newEntries);
-        this._loadRelatedEvents(newEntries);
+        this._loadContextEntriesWhereNeeded(newEntries);
     }
 
     /**
@@ -308,7 +308,15 @@ export class Timeline {
         this._findAndUpdateEntryById(txnId, eventId, () => true);
     }
 
-    async _loadRelatedEvents(entries) {
+    /**
+     * For each entry in entries, this method associates a context-entry (if needed) to it.
+     * The context-entry is fetched using the following strategies (in the same order as given):
+     * - timeline
+     * - storage
+     * - homeserver
+     * @param {EventEntry[]} entries 
+     */
+    async _loadContextEntriesWhereNeeded(entries) {
         const entriesNeedingContext = entries.filter(e => !!e.contextEventId);
         for (const entry of entriesNeedingContext) {
             const id = entry.contextEventId;
@@ -730,7 +738,7 @@ export function tests() {
             const entryB = new EventEntry({ event });
             await timeline.load(new User(alice), "join", new NullLogItem());
             timeline._remoteEntries.setManyUnsorted([entryA, entryB]);
-            await timeline._loadRelatedEvents([entryA, entryB]);
+            await timeline._loadContextEntriesWhereNeeded([entryA, entryB]);
             assert.deepEqual(entryB.contextEntry, entryA);
         },
 
@@ -750,7 +758,7 @@ export function tests() {
             const entryB = new EventEntry({ event });
             timeline._getEventFromStorage = () => entryA
             await timeline.load(new User(alice), "join", new NullLogItem());
-            await timeline._loadRelatedEvents([entryB]);
+            await timeline._loadContextEntriesWhereNeeded([entryB]);
             assert.deepEqual(entryB.contextEntry, entryA);
         },
 
@@ -770,7 +778,7 @@ export function tests() {
             const entryB = new EventEntry({ event });
             timeline._getEventFromHomeserver = () => entryA
             await timeline.load(new User(alice), "join", new NullLogItem());
-            await timeline._loadRelatedEvents([entryB]);
+            await timeline._loadContextEntriesWhereNeeded([entryB]);
             assert.deepEqual(entryB.contextEntry, entryA);
         },
 
@@ -791,7 +799,7 @@ export function tests() {
             const entryC = new EventEntry({ event: withContent(content, createEvent("m.room.message", "event_id_3", bob)) });
             await timeline.load(new User(alice), "join", new NullLogItem());
             timeline._remoteEntries.setManyUnsorted([entryA, entryB, entryC]);
-            await timeline._loadRelatedEvents([entryA, entryB, entryC]);
+            await timeline._loadContextEntriesWhereNeeded([entryA, entryB, entryC]);
             assert.deepEqual(entryA.contextForEntries, [entryB, entryC]);
         },
 
@@ -811,7 +819,7 @@ export function tests() {
             const entryB = new EventEntry({ event });
             timeline._getEventFromStorage = () => entryA
             await timeline.load(new User(alice), "join", new NullLogItem());
-            await timeline._loadRelatedEvents([entryB]);
+            await timeline._loadContextEntriesWhereNeeded([entryB]);
             const redactingEntry = new EventEntry({ event: withRedacts(entryA.id, "foo", createEvent("m.room.redaction", "event_id_3", alice)) });
             timeline.addEntries([redactingEntry]);
             const contextEntry = timeline._contextEntriesNotInTimeline.get(entryA.id);
@@ -867,7 +875,7 @@ export function tests() {
             timeline._getEventFromHomeserver = () => entryA
             await timeline.load(new User(alice), "join", new NullLogItem());
             timeline.addEntries([entryB]);
-            await timeline._loadRelatedEvents([entryB]);
+            await timeline._loadContextEntriesWhereNeeded([entryB]);
             assert.strictEqual(timeline._contextEntriesNotInTimeline.has(entryA.id), true);
             timeline.addEntries([entryA]);
             assert.strictEqual(timeline._contextEntriesNotInTimeline.has(entryA.id), false);
