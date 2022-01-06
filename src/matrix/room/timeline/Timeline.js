@@ -329,8 +329,13 @@ export class Timeline {
         }
     }
 
-    _getTrackedEntry(id) {
-        return this.getByEventId(id) ?? this._contextEntriesNotInTimeline.get(id);
+    /**
+     * Fetches an entry with the given event-id from remoteEntries or contextEntriesNotInTimeline.
+     * @param {string} eventId event-id of the entry
+     * @returns entry if found, undefined otherwise
+     */
+    _getTrackedEntry(eventId) {
+        return this.getByEventId(eventId) ?? this._contextEntriesNotInTimeline.get(eventId);
     }
 
     async _getEventFromStorage(eventId) {
