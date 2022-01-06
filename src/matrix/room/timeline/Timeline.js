@@ -48,6 +48,7 @@ export class Timeline {
         this._allEntries = null;
         /** Stores event entries that we had to fetch from hs/storage for reply previews (because they were not in timeline) */ 
         this._contextEntriesNotInTimeline = new Map();
+        /** Only used to decrypt non-persisted context entries fetched from the homeserver */
         this._decryptEntries = null;
         this._hsApi = hsApi;
         this.initializePowerLevels(powerLevelsObservable);
