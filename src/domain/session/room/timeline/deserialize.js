@@ -345,7 +345,6 @@ class Deserializer {
 }
 
 export function parseHTMLBody(platform, mediaRepository, html) {
-    html = html.replace(/<mx-reply>.+<\/mx-reply>/s, "");
     const parseResult = platform.parseHTML(html);
     const deserializer = new Deserializer(parseResult, mediaRepository);
     const parts = deserializer.parseAnyNodes(parseResult.rootNodes);
