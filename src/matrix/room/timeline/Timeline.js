@@ -279,6 +279,12 @@ export class Timeline {
         }
     }
 
+    /**
+     * Creates a new entry based on two related entries
+     * @param {EventEntry} entry an entry
+     * @param {EventEntry} relatedEntry `entry` specifies something about this entry (eg: this entry is redacted)
+     * @returns a new entry or undefined
+     */
     _createEntryFromRelatedEntries(entry, relatedEntry) {
         if (entry.isRedaction) {
             const newEntry = relatedEntry.clone();
