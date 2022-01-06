@@ -24,9 +24,11 @@ export class ReplyPreviewView extends TemplateView {
     }
 
     _renderReplyPreview(t, vm) {
-        // todo: this should probably be called viewClassForTile instead
         const viewClass = viewClassForEntry(vm);
         const view = new viewClass(vm, { reply: true, interactive: false });
+        if (!view) {
+            throw new Error(`Shape ${vm.shape} is unrecognized.`)
+        }
         const rendered = t.view(view);
         return this._renderReplyHeader(t, vm, [rendered]);
     }
