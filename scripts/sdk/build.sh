@@ -1,3 +1,4 @@
+#!/bin/bash
 rm -rf target
 yarn run vite build -c vite.sdk-assets-config.js
 yarn run vite build -c vite.sdk-lib-config.js
