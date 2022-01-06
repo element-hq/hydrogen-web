@@ -39,7 +39,7 @@ export class TextMessageView extends BaseMessageView {
             }
         }));
 
-        const shouldRemove = (element) => element && element.className !== "ReplyPreviewView" && element.nodeName !== "#comment";
+        const shouldRemove = (element) => element?.nodeType === Node.ELEMENT_NODE && element.className !== "ReplyPreviewView";
 
         t.mapSideEffect(vm => vm.body, body => {
             while (shouldRemove(container.lastChild)) {
