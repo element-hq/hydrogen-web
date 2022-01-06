@@ -20,27 +20,23 @@ import {viewClassForEntry} from "../common";
 
 export class ReplyPreviewView extends TemplateView {
     render(t, vm) {
-        return t.div({ className: "ReplyPreviewView" }, this._renderReplyPreview(t, vm));
-    }
-
-    _renderReplyPreview(t, vm) {
         const viewClass = viewClassForEntry(vm);
-        const view = new viewClass(vm, { reply: true, interactive: false });
-        if (!view) {
+        if (!viewClass) {
             throw new Error(`Shape ${vm.shape} is unrecognized.`)
         }
-        const rendered = t.view(view);
-        return this._renderReplyHeader(t, vm, [rendered]);
-    }
-
-    _renderReplyHeader(t, vm, children = []) {
-        return t.blockquote(
-            [
-            t.a({ className: "link", href: vm.permaLink }, "In reply to"),
-            t.a({ className: "pill", href: vm.senderProfileLink }, [renderStaticAvatar(vm, 12, undefined, true), vm.displayName]),
-            t.br(),
-            ...children
-        ]);
+        const view = new viewClass(vm, { reply: true, interactive: false });
+        return t.div(
+            { className: "ReplyPreviewView" },
+            t.blockquote([
+                t.a({ className: "link", href: vm.permaLink }, "In reply to"),
+                t.a({ className: "pill", href: vm.senderProfileLink }, [
+                    renderStaticAvatar(vm, 12, undefined, true),
+                    vm.displayName,
+                ]),
+                t.br(),
+                t.view(view),
+            ])
+        );
     }
 }
 
