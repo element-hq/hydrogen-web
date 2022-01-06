@@ -28,15 +28,21 @@ import type {TileView} from "./TimelineView";
 type TileViewConstructor = (this: TileView, SimpleTile) => void;
 export function viewClassForEntry(entry: SimpleTile): TileViewConstructor | undefined {
     switch (entry.shape) {
-        case "gap": return GapView;
-        case "announcement": return AnnouncementView;
+        case "gap":
+            return GapView;
+        case "announcement":
+            return AnnouncementView;
         case "message":
         case "message-status":
             return TextMessageView;
-        case "image": return ImageView;
-        case "video": return VideoView;
-        case "file": return FileView;
-        case "missing-attachment": return MissingAttachmentView;
+        case "image":
+            return ImageView;
+        case "video":
+            return VideoView;
+        case "file":
+            return FileView;
+        case "missing-attachment":
+            return MissingAttachmentView;
         case "redacted":
             return RedactedView;
     }
