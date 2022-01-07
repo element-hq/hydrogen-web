@@ -267,7 +267,7 @@ export class Timeline {
     _updateEntriesFetchedFromHomeserver(entries) {
         for (const entry of entries) {
             const relatedEntry = this._contextEntriesNotInTimeline.get(entry.relatedEventId);
-            if (!relatedEntry || !relatedEntry.isNonPersisted) {
+            if (!relatedEntry) {
                 /**
                  * Updates for entries in timeline is handled by remoteEntries observable collection
                  * Updates for entries not in timeline but fetched from storage is handled in this.replaceEntries()
@@ -294,7 +294,7 @@ export class Timeline {
      * @returns a new entry or undefined
      */
     _createEntryFromRelatedEntries(entry, relatedEntry) {
-        if (entry.isRedaction) {
+        if (entry.isRedaction && relatedEntry.isNonPersisted) {
             const newEntry = relatedEntry.clone();
             newEntry.redact(entry);
             return newEntry;
