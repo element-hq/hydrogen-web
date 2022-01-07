@@ -254,7 +254,7 @@ export class Timeline {
     /** @package */
     addEntries(newEntries) {
         this._addLocalRelationsToNewRemoteEntries(newEntries);
-        this._updateEntriesNotInTimeline(newEntries);
+        this._updateEntriesFetchedFromHomeserver(newEntries);
         this._moveEntryToRemoteEntries(newEntries);
         this._remoteEntries.setManySorted(newEntries);
         this._loadContextEntriesWhereNeeded(newEntries);
@@ -262,13 +262,17 @@ export class Timeline {
 
     /**
      * Update entries based on newly received events.
-     * eg: a newly received redaction event may mark an existing event in contextEntriesNotInTimeline as being redacted
-     * This is only for the events that are not in the timeline but had to fetched from elsewhere to render reply previews.
+     * This is specific to events that are not in the timeline but had to be fetched from the homeserver.
      */
-    _updateEntriesNotInTimeline(entries) {
+    _updateEntriesFetchedFromHomeserver(entries) {
         for (const entry of entries) {
             const relatedEntry = this._contextEntriesNotInTimeline.get(entry.relatedEventId);
-            if (!relatedEntry) {
+            if (!relatedEntry || !relatedEntry.isNonPersisted) {
+                /**
+                 * Updates for entries in timeline is handled by remoteEntries observable collection
+                 * Updates for entries not in timeline but fetched from storage is handled in this.replaceEntries()
+                 * This code is specific to entries fetched from HomeServer i.e NonPersistedEventEntry
+                 */
                 continue;
             }
             const newEntry = this._createEntryFromRelatedEntries(entry, relatedEntry);
@@ -292,7 +296,7 @@ export class Timeline {
     _createEntryFromRelatedEntries(entry, relatedEntry) {
         if (entry.isRedaction) {
             const newEntry = relatedEntry.clone();
-            newEntry.setAsRedacted();
+            newEntry.redact(entry);
             return newEntry;
         }
     }

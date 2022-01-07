@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {EventEntry} from "./EventEntry.js";
+import {redactEvent} from "../common.js";
 
 // EventEntry but without the two properties that are populated via SyncWriter
 // Useful if you want to create an EventEntry that is ephemeral
@@ -26,5 +27,22 @@ export class NonPersistedEventEntry extends EventEntry {
 
     get entryIndex() {
         throw new Error("Cannot access entryIndex for non-persisted EventEntry");
+    }
+
+    /**
+     * This method is needed because NonPersistedEventEntry cannot rely on RelationWriter to handle redactions
+     */
+    redact(redactionEvent) {
+        redactEvent(redactionEvent.event, this.event);
+    }
+
+    clone() {
+        const clone = new NonPersistedEventEntry(this._eventEntry, this._fragmentIdComparer);
+        clone.updateFrom(this);
+        return clone;
+    }
+
+    get isNonPersisted() {
+        return true;
     }
 }
