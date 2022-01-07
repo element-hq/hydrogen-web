@@ -230,8 +230,8 @@ export class Timeline {
                 const oldEntry = this._contextEntriesNotInTimeline.get(entry.id)
                 if (oldEntry) {
                     Timeline._entryUpdater(oldEntry, entry);
+                    this._contextEntriesNotInTimeline.set(entry.id, entry);
                 }
-                this._contextEntriesNotInTimeline.set(entry.id, entry);
                 // Since this entry changed, all dependent entries should be updated
                 entry.contextForEntries?.forEach(e => this._updateEntry(e));
             } catch (err) {
