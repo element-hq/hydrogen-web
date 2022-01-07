@@ -224,11 +224,14 @@ export class Timeline {
     /** @package */
     replaceEntries(entries) {
         this._addLocalRelationsToNewRemoteEntries(entries);
-        this._updateEntriesNotInTimeline(entries);
-        this._loadContextEntriesWhereNeeded(entries);
         for (const entry of entries) {
             try {
                 this._remoteEntries.getAndUpdate(entry, Timeline._entryUpdater);
+                const oldEntry = this._contextEntriesNotInTimeline.get(entry.id)
+                if (oldEntry) {
+                    Timeline._entryUpdater(oldEntry, entry);
+                }
+                this._contextEntriesNotInTimeline.set(entry.id, entry);
                 // Since this entry changed, all dependent entries should be updated
                 entry.contextForEntries?.forEach(e => this._updateEntry(e));
             } catch (err) {
