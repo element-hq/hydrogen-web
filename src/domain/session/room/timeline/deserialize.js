@@ -501,13 +501,12 @@ export async function tests() {
         },
         "Reply fallback is always stripped": assert => {
             const input = 'Hello, <em><mx-reply>World</mx-reply></em>!';
-            const strippedInput = 'Hello, <em></em>!';
             const output = [
                 new TextPart('Hello, '),
                 new FormatPart("em", []),
                 new TextPart('!'),
             ];
-            assert.deepEqual(parseHTMLBody(platform, null, input), new MessageBody(strippedInput, output));
+            assert.deepEqual(parseHTMLBody(platform, null, input), new MessageBody(input, output));
         }
         /* Doesnt work: HTML library doesn't handle <pre><code> properly.
         "Text with code block": assert => {
