@@ -48,6 +48,7 @@ export class EventEntry extends BaseEventEntry {
 
     setContextEntry(entry) {
         this._contextEntry = entry;
+        entry.setAsContextOf(this);
     }
 
     setAsContextOf(entry) {

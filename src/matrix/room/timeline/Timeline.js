@@ -340,7 +340,6 @@ export class Timeline {
                 }
             }
             if (contextEvent) {
-                contextEvent.setAsContextOf(entry);
                 entry.setContextEntry(contextEvent);
                 this._updateEntry(entry);
             }
