@@ -819,7 +819,7 @@ export function tests() {
         "context entry in contextEntryNotInTimeline gets updated based on incoming redaction": async assert => {
             const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
                 fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
-            const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)) });
+            const entryA = new NonPersistedEventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)) });
             let event = withContent({
                 body: "bar",
                 msgtype: "m.text",
@@ -830,7 +830,8 @@ export function tests() {
                 }
             }, createEvent("m.room.message", "event_id_2", bob));
             const entryB = new EventEntry({ event });
-            timeline._getEventFromStorage = () => entryA
+            timeline._getEventFromStorage = () => null;
+            timeline._getEventFromHomeserver = () => entryA;
             await timeline.load(new User(alice), "join", new NullLogItem());
             await timeline._loadContextEntriesWhereNeeded([entryB]);
             const redactingEntry = new EventEntry({ event: withRedacts(entryA.id, "foo", createEvent("m.room.redaction", "event_id_3", alice)) });
@@ -842,7 +843,7 @@ export function tests() {
         "redaction of context entry triggers updates in other entries": async assert => {
             const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
                 fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
-            const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)) });
+            const entryA = new NonPersistedEventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)) });
             const content = {
                 body: "bar",
                 msgtype: "m.text",
@@ -855,9 +856,10 @@ export function tests() {
             const entryB = new EventEntry({ event: withContent(content, createEvent("m.room.message", "event_id_2", bob)) });
             const entryC = new EventEntry({ event: withContent(content, createEvent("m.room.message", "event_id_3", bob)) });
             await timeline.load(new User(alice), "join", new NullLogItem());
-            timeline._getEventFromStorage = () => entryA;
+            timeline._getEventFromStorage = () => null;
+            timeline._getEventFromHomeserver = () => entryA;
             timeline.addEntries([entryB, entryC]);
-            await poll(() => timeline._remoteEntries.array.length === 2);
+            await poll(() => timeline._remoteEntries.array.length === 2 && timeline._contextEntriesNotInTimeline.get(entryA.id));
             const bin = [entryB, entryC];
             timeline.entries.subscribe({
                 onUpdate: (index) => {
