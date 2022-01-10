@@ -265,39 +265,19 @@ export class Timeline {
      * This is specific to events that are not in the timeline but had to be fetched from the homeserver.
      */
     _updateEntriesFetchedFromHomeserver(entries) {
+        /**
+         * Updates for entries in timeline is handled by remoteEntries observable collection
+         * Updates for entries not in timeline but fetched from storage is handled in this.replaceEntries()
+         * This code is specific to entries fetched from HomeServer i.e NonPersistedEventEntry
+         */
         for (const entry of entries) {
             const relatedEntry = this._contextEntriesNotInTimeline.get(entry.relatedEventId);
-            if (!relatedEntry) {
-                /**
-                 * Updates for entries in timeline is handled by remoteEntries observable collection
-                 * Updates for entries not in timeline but fetched from storage is handled in this.replaceEntries()
-                 * This code is specific to entries fetched from HomeServer i.e NonPersistedEventEntry
-                 */
-                continue;
-            }
-            const newEntry = this._createEntryFromRelatedEntries(entry, relatedEntry);
-            if (newEntry) {
-                Timeline._entryUpdater(relatedEntry, newEntry);
-                this._contextEntriesNotInTimeline.set(newEntry.id, newEntry);
+            if (relatedEntry?.addLocalRelation(entry)) {
                 // update other entries for which this entry is a context entry
                 relatedEntry.contextForEntries?.forEach(e => {
-                    this._remoteEntries.findAndUpdate(te => te.id === e.id, () => { return { reply: newEntry }; });
+                    this._remoteEntries.findAndUpdate(te => te.id === e.id, () => { return { reply: relatedEntry }; });
                 });
             }
-        }
-    }
-
-    /**
-     * Creates a new entry based on two related entries
-     * @param {EventEntry} entry an entry
-     * @param {EventEntry} relatedEntry `entry` specifies something about this entry (eg: this entry is redacted)
-     * @returns a new entry or undefined
-     */
-    _createEntryFromRelatedEntries(entry, relatedEntry) {
-        if (entry.isRedaction && relatedEntry.isNonPersisted) {
-            const newEntry = relatedEntry.clone();
-            newEntry.redact(entry);
-            return newEntry;
         }
     }
 
