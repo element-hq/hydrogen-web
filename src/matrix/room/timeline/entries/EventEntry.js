@@ -47,10 +47,10 @@ export class EventEntry extends BaseEventEntry {
 
     setContextEntry(entry) {
         this._contextEntry = entry;
-        entry.setAsContextOf(this);
+        entry._setAsContextOf(this);
     }
 
-    setAsContextOf(entry) {
+    _setAsContextOf(entry) {
         if (!this._contextForEntries) {
             this._contextForEntries = [];
         }
