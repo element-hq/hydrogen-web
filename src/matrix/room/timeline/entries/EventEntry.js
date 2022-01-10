@@ -190,7 +190,7 @@ export function tests() {
 
     function addPendingReaction(target, key) {
         queueIndex += 1;
-        target.addLocalRelation(new PendingEventEntry({
+        target.addRelation(new PendingEventEntry({
             pendingEvent: new PendingEvent({data: {
                 eventType: "m.reaction",
                 content: createAnnotation(target.id, key),
@@ -212,7 +212,7 @@ export function tests() {
             });
         }
         queueIndex += 1;
-        target.addLocalRelation(new PendingEventEntry({
+        target.addRelation(new PendingEventEntry({
             pendingEvent: new PendingEvent({data: {
                 eventType: "m.room.redaction",
                 relatedTxnId: pendingReaction ? pendingReaction.id : null,

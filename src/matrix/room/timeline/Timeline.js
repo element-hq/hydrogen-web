@@ -124,7 +124,7 @@ export class Timeline {
             pendingEvent: pe, member: this._ownMember,
             clock: this._clock, redactingEntry
         });
-        this._applyAndEmitLocalRelationChange(pee, target => target.addLocalRelation(pee));
+        this._applyAndEmitLocalRelationChange(pee, target => target.addRelation(pee));
         return pee;
     }
 
@@ -203,12 +203,12 @@ export class Timeline {
             if (pee.relatedEventId) {
                 const relationTarget = entries.find(e => e.id === pee.relatedEventId);
                 // no need to emit here as this entry is about to be added
-                relationTarget?.addLocalRelation(pee);
+                relationTarget?.addRelation(pee);
             }
             if (pee.redactingEntry) {
                 const eventId = pee.redactingEntry.relatedEventId;
                 const relationTarget = entries.find(e => e.id === eventId);
-                relationTarget?.addLocalRelation(pee);
+                relationTarget?.addRelation(pee);
             }
         }
     }
@@ -272,7 +272,7 @@ export class Timeline {
          */
         for (const entry of entries) {
             const relatedEntry = this._contextEntriesNotInTimeline.get(entry.relatedEventId);
-            if (relatedEntry?.addLocalRelation(entry)) {
+            if (relatedEntry?.addRelation(entry)) {
                 // update other entries for which this entry is a context entry
                 relatedEntry.contextForEntries?.forEach(e => {
                     this._remoteEntries.findAndUpdate(te => te.id === e.id, () => { return { reply: relatedEntry }; });

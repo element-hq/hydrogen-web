@@ -53,10 +53,13 @@ export class BaseEventEntry extends BaseEntry {
     }
 
     /**
-        aggregates local relation or local redaction of remote relation.
+        Aggregates relation or redaction of remote relation.  
+        Used in two situations:
+        - to aggregate local relation/redaction of remote relation
+        - to mark this entry as being redacted in Timeline._updateEntriesFetchedFromHomeserver
         @return [string] returns the name of the field that has changed, if any
     */
-    addLocalRelation(entry) {
+    addRelation(entry) {
         if (entry.eventType === REDACTION_TYPE && entry.isRelatedToId(this.id)) {
             if (!this._pendingRedactions) {
                 this._pendingRedactions = [];
