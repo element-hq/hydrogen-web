@@ -275,7 +275,7 @@ export class Timeline {
             if (relatedEntry?.addRelation(entry)) {
                 // update other entries for which this entry is a context entry
                 relatedEntry.contextForEntries?.forEach(e => {
-                    this._remoteEntries.findAndUpdate(te => te.id === e.id, () => true);
+                    this._remoteEntries.findAndUpdate(te => te.id === e.id, () => "contextEntry");
                 });
             }
         }
