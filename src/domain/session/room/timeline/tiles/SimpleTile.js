@@ -94,7 +94,7 @@ export class SimpleTile extends ViewModel {
 
     // update received for already included (falls within sort keys) entry
     updateEntry(entry, param) {
-        const replyEntry = param?.reply ?? entry.contextEntry;
+        const replyEntry = entry.contextEntry;
         if (replyEntry) {
             // this is an update to contextEntry used for replyPreview
             const action = this._replyTile?.updateEntry(replyEntry);
