@@ -318,7 +318,7 @@ export class Timeline {
                 continue;
             }
             const id = entry.contextEventId;
-            let contextEvent = this._getTrackedEntry(id);
+            let contextEvent = this._findLoadedEventById(id);
             if (!contextEvent) {
                 contextEvent = await this._getEventFromStorage(id) ?? await this._getEventFromHomeserver(id);
                 if (contextEvent) {
@@ -339,7 +339,7 @@ export class Timeline {
      * @param {string} eventId event-id of the entry
      * @returns entry if found, undefined otherwise
      */
-    _getTrackedEntry(eventId) {
+    _findLoadedEventById(eventId) {
         return this.getByEventId(eventId) ?? this._contextEntriesNotInTimeline.get(eventId);
     }
 
