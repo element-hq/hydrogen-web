@@ -233,7 +233,7 @@ export class Timeline {
                     this._contextEntriesNotInTimeline.set(entry.id, entry);
                 }
                 // Since this entry changed, all dependent entries should be updated
-                entry.contextForEntries?.forEach(e => this._updateEntry(e));
+                entry.contextForEntries?.forEach(e => this._emitUpdateForEntry(e));
             } catch (err) {
                 if (err.name === "CompareError") {
                     // see FragmentIdComparer, if the replacing entry is on a fragment
@@ -291,14 +291,14 @@ export class Timeline {
             if (fetchedEntry) {
                 fetchedEntry.contextForEntries.forEach(e => {
                     e.setContextEntry(entry);
-                    this._updateEntry(e);
+                    this._emitUpdateForEntry(e);
                 });
                 this._contextEntriesNotInTimeline.delete(entry.id);
             }
         }
     }
 
-    _updateEntry(entry) {
+    _emitUpdateForEntry(entry) {
         const txnId = entry.isPending ? entry.id : null;
         const eventId = entry.isPending ? null : entry.id;
         this._findAndUpdateEntryById(txnId, eventId, () => true);
@@ -327,7 +327,7 @@ export class Timeline {
             }
             if (contextEvent) {
                 entry.setContextEntry(contextEvent);
-                this._updateEntry(entry);
+                this._emitUpdateForEntry(entry);
             }
         }
     }
