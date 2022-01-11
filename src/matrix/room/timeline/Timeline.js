@@ -262,7 +262,9 @@ export class Timeline {
 
     /**
      * Update entries based on newly received events.
-     * This is specific to events that are not in the timeline but had to be fetched from the homeserver.
+     * This is specific to events that are not in the timeline but had to be fetched from the homeserver
+     * because they are context-events for other events in the timeline (i.e fetched from hs so that we
+     * can render things like reply previews)
      */
     _updateEntriesFetchedFromHomeserver(entries) {
         /**
