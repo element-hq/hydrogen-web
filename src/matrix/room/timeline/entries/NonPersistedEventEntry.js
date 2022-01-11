@@ -27,4 +27,8 @@ export class NonPersistedEventEntry extends EventEntry {
     get entryIndex() {
         throw new Error("Cannot access entryIndex for non-persisted EventEntry");
     }
+
+    get isNonPersisted() {
+        return true;
+    }
 }

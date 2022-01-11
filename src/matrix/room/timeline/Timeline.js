@@ -274,7 +274,7 @@ export class Timeline {
          */
         for (const entry of entries) {
             const relatedEntry = this._contextEntriesNotInTimeline.get(entry.relatedEventId);
-            if (relatedEntry?.addRelation(entry)) {
+            if (relatedEntry?.isNonPersisted && relatedEntry?.addRelation(entry)) {
                 // update other entries for which this entry is a context entry
                 relatedEntry.contextForEntries?.forEach(e => {
                     this._remoteEntries.findAndUpdate(te => te.id === e.id, () => "contextEntry");
