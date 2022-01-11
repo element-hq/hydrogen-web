@@ -313,8 +313,10 @@ export class Timeline {
      * @param {EventEntry[]} entries 
      */
     async _loadContextEntriesWhereNeeded(entries) {
-        const entriesNeedingContext = entries.filter(e => !!e.contextEventId);
-        for (const entry of entriesNeedingContext) {
+        for (const entry of entries) {
+            if (!entry.contextEventId) {
+                continue;
+            }
             const id = entry.contextEventId;
             let contextEvent = this._getTrackedEntry(id);
             if (!contextEvent) {
