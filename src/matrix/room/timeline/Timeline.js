@@ -422,8 +422,11 @@ export class Timeline {
     }
 
     getFromAllEntriesById(eventId) {
-        for (let i = 0; i < this.entries.length; i += 1) {
-            const entry = this.entries.get(i);
+        if (!this._allEntries) {
+            // if allEntries isn't loaded yet, fallback to looking only in remoteEntries
+            return this.getByEventId(eventId);
+        }
+        for (const entry of this._allEntries) {
             if (entry.id === eventId) {
                 return entry;
             }
