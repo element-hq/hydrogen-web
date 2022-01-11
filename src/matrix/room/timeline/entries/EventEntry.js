@@ -24,8 +24,6 @@ export class EventEntry extends BaseEventEntry {
         this._eventEntry = eventEntry;
         this._decryptionError = null;
         this._decryptionResult = null;
-        this._contextEntry = null;
-        this._contextForEntries = null;
     }
 
     clone() {
@@ -45,20 +43,8 @@ export class EventEntry extends BaseEventEntry {
         this._contextEntry = other.contextEntry;
     }
 
-    setContextEntry(entry) {
-        this._contextEntry = entry;
-        entry._setAsContextOf(this);
-    }
-
-    _setAsContextOf(entry) {
-        if (!this._contextForEntries) {
-            this._contextForEntries = [];
-        }
-        this._contextForEntries.push(entry);
-    }
-
-    get contextForEntries() {
-        return this._contextForEntries;
+    setRelatedEntry(entry) {
+        this._relatedEntry = entry;
     }
 
     get event() {
@@ -142,16 +128,11 @@ export class EventEntry extends BaseEventEntry {
         return getRelatedEventId(this.event);
     }
 
-    // similar to relatedEventID but only for replies
-    get contextEventId() {
-        if (this.isReply) {
-            return this.relatedEventId;
+    get threadEventId() {
+        if (this.isThread) {
+            return this.relation?.event_id;
         }
         return null;
-    }
-
-    get contextEntry() {
-        return this._contextEntry;
     }
 
     get isRedacted() {
@@ -176,6 +157,15 @@ export class EventEntry extends BaseEventEntry {
         const originalRelation = originalContent && getRelationFromContent(originalContent);
         return originalRelation || getRelationFromContent(this.content);
     }
+
+    // similar to relatedEventID but only for replies
+    get contextEventId() {
+        if (this.isReply) {
+            return this.relatedEventId;
+        }
+        return null;
+    }
+
 }
 
 import {withTextBody, withContent, createEvent} from "../../../../mocks/event.js";

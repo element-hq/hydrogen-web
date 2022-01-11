@@ -100,4 +100,11 @@ export class PendingEventEntry extends BaseEventEntry {
     get redactingEntry() {
         return this._redactingEntry;
     }
+
+    get contextEventId() {
+        if (this.isReply) {
+            return this._pendingEvent.relatedEventId ?? this._pendingEvent.relatedTxnId;
+        }
+        return null;
+    }
 }

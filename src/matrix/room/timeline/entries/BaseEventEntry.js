@@ -27,6 +27,8 @@ export class BaseEventEntry extends BaseEntry {
         super(fragmentIdComparer);
         this._pendingRedactions = null;
         this._pendingAnnotations = null;
+        this._contextEntry = null;
+        this._contextForEntries = null;
     }
 
     get isReply() {
@@ -50,6 +52,26 @@ export class BaseEventEntry extends BaseEntry {
             return this._pendingRedactions[0].content?.reason;
         }
         return null;
+    }
+
+    setContextEntry(entry) {
+        this._contextEntry = entry;
+        entry._setAsContextOf(this);
+    }
+
+    _setAsContextOf(entry) {
+        if (!this._contextForEntries) {
+            this._contextForEntries = [];
+        }
+        this._contextForEntries.push(entry);
+    }
+
+    get contextForEntries() {
+        return this._contextForEntries;
+    }
+
+    get contextEntry() {
+        return this._contextEntry;
     }
 
     /**

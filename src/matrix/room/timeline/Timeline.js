@@ -101,6 +101,7 @@ export class Timeline {
                 pe => this._mapPendingEventToEntry(pe),
                 (pee, params) => {
                     // is sending but redacted, who do we detect that here to remove the relation?
+                    this._loadContextEntriesWhereNeeded([pee]);
                     pee.notifyUpdate(params);
                 },
                 pee => this._applyAndEmitLocalRelationChange(pee, target => target.removeLocalRelation(pee))
@@ -124,6 +125,7 @@ export class Timeline {
             pendingEvent: pe, member: this._ownMember,
             clock: this._clock, redactingEntry
         });
+        this._loadContextEntriesWhereNeeded([pee]);
         this._applyAndEmitLocalRelationChange(pee, target => target.addRelation(pee));
         return pee;
     }
