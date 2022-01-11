@@ -289,8 +289,10 @@ export class Timeline {
         for (const entry of entries) {
             const fetchedEntry = this._contextEntriesNotInTimeline.get(entry.id);
             if (fetchedEntry) {
-                fetchedEntry.contextForEntries.forEach(e => e.setContextEntry(entry));
-                entry.updateFrom(fetchedEntry);
+                fetchedEntry.contextForEntries.forEach(e => {
+                    e.setContextEntry(entry);
+                    this._updateEntry(e);
+                });
                 this._contextEntriesNotInTimeline.delete(entry.id);
             }
         }
