@@ -751,6 +751,8 @@ export function tests() {
             }, createEvent("m.room.message", "event_id_2", bob));
             const entryB = new EventEntry({ event });
             await timeline.load(new User(alice), "join", new NullLogItem());
+            timeline._setupEntries([]);
+            timeline._localEntries.onSubscribeFirst();
             timeline._remoteEntries.setManyUnsorted([entryA, entryB]);
             await timeline._loadContextEntriesWhereNeeded([entryA, entryB]);
             assert.deepEqual(entryB.contextEntry, entryA);
@@ -772,6 +774,8 @@ export function tests() {
             const entryB = new EventEntry({ event });
             timeline._getEventFromStorage = () => entryA
             await timeline.load(new User(alice), "join", new NullLogItem());
+            timeline._setupEntries([]);
+            timeline._localEntries.onSubscribeFirst();
             await timeline._loadContextEntriesWhereNeeded([entryB]);
             assert.deepEqual(entryB.contextEntry, entryA);
         },
@@ -792,6 +796,8 @@ export function tests() {
             const entryB = new EventEntry({ event });
             timeline._getEventFromHomeserver = () => entryA
             await timeline.load(new User(alice), "join", new NullLogItem());
+            timeline._setupEntries([]);
+            timeline._localEntries.onSubscribeFirst();
             await timeline._loadContextEntriesWhereNeeded([entryB]);
             assert.deepEqual(entryB.contextEntry, entryA);
         },
@@ -811,7 +817,12 @@ export function tests() {
             };
             const entryB = new EventEntry({ event: withContent(content, createEvent("m.room.message", "event_id_2", bob)) });
             const entryC = new EventEntry({ event: withContent(content, createEvent("m.room.message", "event_id_3", bob)) });
+            entryA._eventEntry.eventIndex = 1;
+            entryB._eventEntry.eventIndex = 2;
+            entryC._eventEntry.eventIndex = 3;
             await timeline.load(new User(alice), "join", new NullLogItem());
+            timeline._setupEntries([]);
+            timeline._localEntries.onSubscribeFirst();
             timeline._remoteEntries.setManyUnsorted([entryA, entryB, entryC]);
             await timeline._loadContextEntriesWhereNeeded([entryA, entryB, entryC]);
             assert.deepEqual(entryA.contextForEntries, [entryB, entryC]);
@@ -834,6 +845,8 @@ export function tests() {
             timeline._getEventFromStorage = () => null;
             timeline._getEventFromHomeserver = () => entryA;
             await timeline.load(new User(alice), "join", new NullLogItem());
+            timeline._setupEntries([]);
+            timeline._localEntries.onSubscribeFirst();
             await timeline._loadContextEntriesWhereNeeded([entryB]);
             const redactingEntry = new EventEntry({ event: withRedacts(entryA.id, "foo", createEvent("m.room.redaction", "event_id_3", alice)) });
             timeline.addEntries([redactingEntry]);
@@ -856,7 +869,12 @@ export function tests() {
             };
             const entryB = new EventEntry({ event: withContent(content, createEvent("m.room.message", "event_id_2", bob)) });
             const entryC = new EventEntry({ event: withContent(content, createEvent("m.room.message", "event_id_3", bob)) });
+            entryA._eventEntry.eventIndex = 1;
+            entryB._eventEntry.eventIndex = 2;
+            entryC._eventEntry.eventIndex = 3;
             await timeline.load(new User(alice), "join", new NullLogItem());
+            timeline._setupEntries([]);
+            timeline._localEntries.onSubscribeFirst();
             timeline._getEventFromStorage = () => null;
             timeline._getEventFromHomeserver = () => entryA;
             timeline.addEntries([entryB, entryC]);
@@ -888,8 +906,12 @@ export function tests() {
                 }
             }, createEvent("m.room.message", "event_id_2", bob));
             const entryB = new EventEntry({ event });
+            entryA._eventEntry.eventIndex = 1;
+            entryB._eventEntry.eventIndex = 2;
             timeline._getEventFromHomeserver = () => entryA
             await timeline.load(new User(alice), "join", new NullLogItem());
+            timeline._setupEntries([]);
+            timeline._localEntries.onSubscribeFirst();
             timeline.addEntries([entryB]);
             await timeline._loadContextEntriesWhereNeeded([entryB]);
             assert.strictEqual(timeline._contextEntriesNotInTimeline.has(entryA.id), true);
