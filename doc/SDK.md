@@ -33,7 +33,20 @@ import {
     RoomViewModel,
     TimelineView
 } from "hydrogen-view-sdk";
-import assetPaths from "hydrogen-view-sdk/paths/vite";
+import downloadSandboxPath from 'hydrogen-view-sdk/download-sandbox.html?url';
+import workerPath from 'hydrogen-view-sdk/main.js?url';
+import olmWasmPath from '@matrix-org/olm/olm.wasm?url';
+import olmJsPath from '@matrix-org/olm/olm.js?url';
+import olmLegacyJsPath from '@matrix-org/olm/olm_legacy.js?url';
+const assetPaths = {
+    downloadSandbox: downloadSandboxPath,
+    worker: workerPath,
+    olm: {
+        wasm: olmWasmPath,
+        legacyBundle: olmLegacyJsPath,
+        wasmBundle: olmJsPath
+    }
+};
 import "hydrogen-view-sdk/style.css";
 
 async function main() {
@@ -84,7 +97,13 @@ main();
 
 ## Typescript support
 
-There is partial typescript support while we are still in the process of converting the Hydrogen codebase to typesccript.
+Typescript support is not yet available while we're converting the Hydrogen codebase to Typescript.
+In your `src` directory, you'll need to add a `.d.ts` (can be called anything, e.g. `deps.d.ts`)
+containing this snippet to make Typescript not complain that `hydrogen-view-sdk` doesn't have types:
+
+```ts
+declare module "hydrogen-view-sdk";
+```
 
 ## API Stability
 
