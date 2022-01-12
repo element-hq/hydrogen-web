@@ -1,7 +1,22 @@
 #!/usr/bin/env node
 const fs = require("fs");
-const appManifest = require("../../package.json")
-const baseSDKManifest = require("./base-manifest.json")
+const appManifest = require("../../package.json");
+const baseSDKManifest = require("./base-manifest.json");
+/*
+    need to leave exports out of base-manifest.json because of #vite-bug,
+    with the downside that we can't support environments that support
+    both esm and commonjs modules, so we pick just esm.
+    ```
+    "exports": {
+        ".": {
+            "import": "./hydrogen.es.js",
+            "require": "./hydrogen.cjs.js"
+        },
+        "./paths/vite": "./paths/vite.js",
+        "./style.css": "./style.css"
+    },
+    ```
+*/
 const mergeOptions = require('merge-options');
 
 const manifestExtension = {
