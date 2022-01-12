@@ -2,14 +2,6 @@
     "name": "hydrogen-view-sdk",
     "description": "Embeddable matrix client library, including view components",
     "version": "0.0.2",
-    "main": "./hydrogen.cjs.js",
-    "exports": {
-        ".": {
-            "import": "./hydrogen.es.js",
-            "require": "./hydrogen.cjs.js"
-        },
-        "./paths/vite": "./paths/vite.js",
-        "./style.css": "./style.css"
-    },
-    "types": "types/lib.d.ts"
+    "main": "./hydrogen.es.js",
+    "type": "module"
 }
