@@ -16,6 +16,13 @@ const baseSDKManifest = require("./base-manifest.json");
         "./style.css": "./style.css"
     },
     ```
+
+    Also need to leave typescript type definitions out until the
+    typescript conversion is complete and all imports in the d.ts files
+    exists.
+    ```
+    "types": "types/lib.d.ts"
+    ```
 */
 const mergeOptions = require('merge-options');
 
