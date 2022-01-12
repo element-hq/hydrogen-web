@@ -81,7 +81,7 @@ export class BaseEventEntry extends BaseEntry {
         - to mark this entry as being redacted in Timeline._updateEntriesFetchedFromHomeserver
         @return [string] returns the name of the field that has changed, if any
     */
-    addRelation(entry) {
+    addLocalRelation(entry) {
         if (entry.eventType === REDACTION_TYPE && entry.isRelatedToId(this.id)) {
             if (!this._pendingRedactions) {
                 this._pendingRedactions = [];

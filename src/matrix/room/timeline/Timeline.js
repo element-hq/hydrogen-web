@@ -125,7 +125,7 @@ export class Timeline {
             clock: this._clock, redactingEntry
         });
         this._loadContextEntriesWhereNeeded([pee]);
-        this._applyAndEmitLocalRelationChange(pee, target => target.addRelation(pee));
+        this._applyAndEmitLocalRelationChange(pee, target => target.addLocalRelation(pee));
         return pee;
     }
 
@@ -204,12 +204,12 @@ export class Timeline {
             if (pee.relatedEventId) {
                 const relationTarget = entries.find(e => e.id === pee.relatedEventId);
                 // no need to emit here as this entry is about to be added
-                relationTarget?.addRelation(pee);
+                relationTarget?.addLocalRelation(pee);
             }
             if (pee.redactingEntry) {
                 const eventId = pee.redactingEntry.relatedEventId;
                 const relationTarget = entries.find(e => e.id === eventId);
-                relationTarget?.addRelation(pee);
+                relationTarget?.addLocalRelation(pee);
             }
         }
     }
@@ -275,7 +275,7 @@ export class Timeline {
          */
         for (const entry of entries) {
             const relatedEntry = this._contextEntriesNotInTimeline.get(entry.relatedEventId);
-            if (relatedEntry?.isNonPersisted && relatedEntry?.addRelation(entry)) {
+            if (relatedEntry?.isNonPersisted && relatedEntry?.addLocalRelation(entry)) {
                 // update other entries for which this entry is a context entry
                 relatedEntry.contextForEntries?.forEach(e => {
                     this._remoteEntries.findAndUpdate(te => te.id === e.id, () => "contextEntry");
