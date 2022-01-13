@@ -56,8 +56,6 @@ export class TextMessageView extends BaseMessageView {
 
         return container;
     }
-
-
 }
 
 function renderList(listBlock) {
