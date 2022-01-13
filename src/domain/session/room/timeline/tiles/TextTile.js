@@ -59,5 +59,4 @@ export class TextTile extends BaseTextTile {
         }
         return messageBody;
     }
-
 }
