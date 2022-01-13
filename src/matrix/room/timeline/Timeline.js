@@ -141,6 +141,7 @@ export class Timeline {
             // redactingEntry might be a PendingEventEntry or an EventEntry, so don't assume pendingEvent
             const relatedTxnId = pee.redactingEntry.pendingEvent?.relatedTxnId;
             this._findAndUpdateEntryById(relatedTxnId, pee.redactingEntry.relatedEventId, updateOrFalse);
+            pee.redactingEntry.contextForEntries?.forEach(e => this._emitUpdateForEntry(e));
         }
     }
 
