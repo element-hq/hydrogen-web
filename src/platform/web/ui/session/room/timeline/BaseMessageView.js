@@ -105,7 +105,7 @@ export class BaseMessageView extends TemplateView {
 
     createMenuOptions(vm) {
         const options = [];
-        if (vm.canReact && vm.shape !== "redacted") {
+        if (vm.canReact && vm.shape !== "redacted" && !vm.isPending) {
             options.push(new QuickReactionsMenuOption(vm));
             options.push(Menu.option(vm.i18n`Reply`, () => vm.startReply()));
         }
