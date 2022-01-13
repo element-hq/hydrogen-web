@@ -21,7 +21,6 @@ import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent.js";
 export class SimpleTile extends ViewModel {
     constructor(options) {
         super(options);
-        this._tileCreator = options.tileCreator;
         this._entry = options.entry;
     }
     // view model props for all subclasses

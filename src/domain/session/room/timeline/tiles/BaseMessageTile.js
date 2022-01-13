@@ -21,6 +21,7 @@ import {getIdentifierColorNumber, avatarInitials, getAvatarHttpUrl} from "../../
 export class BaseMessageTile extends SimpleTile {
     constructor(options) {
         super(options);
+        this._tileCreator = options.tileCreator;
         this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : null;
         this._isContinuation = false;
         this._reactions = null;
