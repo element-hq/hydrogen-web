@@ -101,6 +101,9 @@ export class SimpleTile extends ViewModel {
             if (action?.shouldReplace) {
                 this._replyTile = this._tileCreator(replyEntry);
             }
+            else {
+                this._replyTile?.emitChange();
+            }
         }
         const renderedAsRedacted = this.shape === "redacted";
         if (!entry.isGap && entry.isRedacted !== renderedAsRedacted) {
