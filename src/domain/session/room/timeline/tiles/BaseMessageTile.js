@@ -117,15 +117,15 @@ export class BaseMessageTile extends SimpleTile {
 
     updateEntry(entry, param) {
         const replyEntry = entry.contextEntry;
-        if (replyEntry) {
+        if (replyEntry && this._replyTile) {
             // this is an update to contextEntry used for replyPreview
-            const action = this._replyTile?.updateEntry(replyEntry);
+            const action = this._replyTile.updateEntry(replyEntry);
             if (action?.shouldReplace) {
                 this.disposeTracked(this._replyTile);
                 this._replyTile = this._tileCreator(replyEntry);
             }
-            else {
-                this._replyTile?.emitChange();
+            if(action?.shouldUpdate) {
+                this._replyTile.emitChange();
             }
         }
         const action = super.updateEntry(entry, param);
