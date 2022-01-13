@@ -29,7 +29,7 @@ import {MissingAttachmentTile} from "./tiles/MissingAttachmentTile.js";
 
 export function tilesCreator(baseOptions) {
     const creator =  function tilesCreator(entry, emitUpdate) {
-        const options = Object.assign({entry, emitUpdate, tileCreator: creator}, baseOptions);
+        const options = Object.assign({entry, emitUpdate, tilesCreator: creator}, baseOptions);
         if (entry.isGap) {
             return new GapTile(options);
         } else if (entry.isPending && entry.pendingEvent.isMissingAttachments) {
