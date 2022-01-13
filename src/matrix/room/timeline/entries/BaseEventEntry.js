@@ -32,7 +32,7 @@ export class BaseEventEntry extends BaseEntry {
     }
 
     get isReply() {
-        return !!(this.relation?.["m.in_reply_to"] || this.isThread);
+        return !!this.relation?.["m.in_reply_to"] || this.isThread;
     }
 
     get isThread() {
