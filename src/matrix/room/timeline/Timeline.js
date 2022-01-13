@@ -141,7 +141,7 @@ export class Timeline {
             // redactingEntry might be a PendingEventEntry or an EventEntry, so don't assume pendingEvent
             const relatedTxnId = pee.redactingEntry.pendingEvent?.relatedTxnId;
             this._findAndUpdateEntryById(relatedTxnId, pee.redactingEntry.relatedEventId, updateOrFalse);
-            pee.redactingEntry.contextForEntries?.forEach(e => this._emitUpdateForEntry(e));
+            pee.redactingEntry.contextForEntries?.forEach(e => this._emitUpdateForEntry(e, "contextEntry"));
         }
     }
 
@@ -235,7 +235,7 @@ export class Timeline {
                     this._contextEntriesNotInTimeline.set(entry.id, entry);
                 }
                 // Since this entry changed, all dependent entries should be updated
-                entry.contextForEntries?.forEach(e => this._emitUpdateForEntry(e));
+                entry.contextForEntries?.forEach(e => this._emitUpdateForEntry(e, "contextEntry"));
             } catch (err) {
                 if (err.name === "CompareError") {
                     // see FragmentIdComparer, if the replacing entry is on a fragment
@@ -295,17 +295,17 @@ export class Timeline {
             if (fetchedEntry) {
                 fetchedEntry.contextForEntries.forEach(e => {
                     e.setContextEntry(entry);
-                    this._emitUpdateForEntry(e);
+                    this._emitUpdateForEntry(e, "contextEntry");
                 });
                 this._contextEntriesNotInTimeline.delete(entry.id);
             }
         }
     }
 
-    _emitUpdateForEntry(entry) {
+    _emitUpdateForEntry(entry, param) {
         const txnId = entry.isPending ? entry.id : null;
         const eventId = entry.isPending ? null : entry.id;
-        this._findAndUpdateEntryById(txnId, eventId, () => true);
+        this._findAndUpdateEntryById(txnId, eventId, () => param);
     }
 
     /**
@@ -333,7 +333,7 @@ export class Timeline {
             }
             if (contextEvent) {
                 entry.setContextEntry(contextEvent);
-                this._emitUpdateForEntry(entry);
+                this._emitUpdateForEntry(entry, "contextEntry");
             }
         }
     }
