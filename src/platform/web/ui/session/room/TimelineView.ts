@@ -22,6 +22,7 @@ import {TextMessageView} from "./timeline/TextMessageView.js";
 import {ImageView} from "./timeline/ImageView.js";
 import {VideoView} from "./timeline/VideoView.js";
 import {FileView} from "./timeline/FileView.js";
+import {LocationView} from "./timeline/LocationView.js";
 import {MissingAttachmentView} from "./timeline/MissingAttachmentView.js";
 import {AnnouncementView} from "./timeline/AnnouncementView.js";
 import {RedactedView} from "./timeline/RedactedView.js";
@@ -49,6 +50,7 @@ export function viewClassForEntry(entry: SimpleTile): TileViewConstructor | unde
         case "image": return ImageView;
         case "video": return VideoView;
         case "file": return FileView;
+        case "location": return LocationView;
         case "missing-attachment": return MissingAttachmentView;
         case "redacted":
             return RedactedView;
