@@ -765,9 +765,24 @@ export function tests() {
         },
 
         "context entry is fetched from hs": async assert => {
+            const hsApi = {
+                context() {
+                    const result = {
+                        event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)),
+                        state: [{
+                            type: MEMBER_EVENT_TYPE,
+                            user_id: alice,
+                            content: {
+                                displayName: "",
+                                avatarUrl: ""
+                            }
+                        }]
+                    };
+                    return { response: () => result };
+                }
+            };
             const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
-                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
-            const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)), eventIndex: 1 });
+                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock(), hsApi});
             let event = withContent({
                 body: "bar",
                 msgtype: "m.text",
@@ -778,12 +793,11 @@ export function tests() {
                 }
             }, createEvent("m.room.message", "event_id_2", bob));
             const entryB = new EventEntry({ event, eventIndex: 2 });
-            timeline._getEventFromHomeserver = () => entryA
             await timeline.load(new User(alice), "join", new NullLogItem());
             timeline.entries.subscribe({ onAdd: () => null, onUpdate: () => null });
             timeline.addEntries([entryB]);
             await poll(() => entryB.contextEntry);
-            assert.deepEqual(entryB.contextEntry, entryA);
+            assert.strictEqual(entryB.contextEntry.id, "event_id_1");
         },
 
         "context entry has a list of entries to which it forms the context": async assert => {
