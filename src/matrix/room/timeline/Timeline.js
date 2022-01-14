@@ -742,7 +742,7 @@ export function tests() {
             const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)) });
             const entryB = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2 });
             await timeline.load(new User(alice), "join", new NullLogItem());
-            timeline.entries.subscribe({ onAdd: () => null, });
+            timeline.entries.subscribe({ onAdd: () => null, onUpdate: () => null});
             timeline.addEntries([entryA, entryB]);
             assert.deepEqual(entryB.contextEntry, entryA);
         },
