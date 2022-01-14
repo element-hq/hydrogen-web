@@ -258,8 +258,8 @@ export class Timeline {
         this._addLocalRelationsToNewRemoteEntries(newEntries);
         this._updateEntriesFetchedFromHomeserver(newEntries);
         this._moveEntryToRemoteEntries(newEntries);
-        this._remoteEntries.setManySorted(newEntries);
         this._loadContextEntriesWhereNeeded(newEntries);
+        this._remoteEntries.setManySorted(newEntries);
     }
 
     /**
@@ -320,19 +320,38 @@ export class Timeline {
                 continue;
             }
             const id = entry.contextEventId;
-            let contextEvent = this._findLoadedEventById(id);
-            if (!contextEvent) {
-                contextEvent = await this._getEventFromStorage(id) ?? await this._getEventFromHomeserver(id);
-                if (contextEvent) {
-                    // this entry was created from storage/hs, so it's not tracked by remoteEntries
-                    // we track them here so that we can update reply previews later
-                    this._contextEntriesNotInTimeline.set(id, contextEvent);
-                }
-            }
+            // before looking into remoteEntries, check the entries
+            // that about to be added first
+            let contextEvent = entries.find(e => e.id === id);
+            contextEvent = this._findLoadedEventById(id);
             if (contextEvent) {
                 entry.setContextEntry(contextEvent);
-                this._emitUpdateForEntry(entry, "contextEntry");
+                // we don't emit an update here, as the add or update
+                // that the callee will emit hasn't been emitted yet.
+            } else {
+                // we don't await here, which is not ideal,
+                // but one of our callers, addEntries, is not async
+                // so there is not much point.
+                // Also, we want to run the entry fetching in parallel.
+                this._loadContextEntryNotInTimeline(entry);
             }
+        }
+    }
+
+    async _loadContextEntryNotInTimeline(entry) {
+        const id = entry.contextEventId;
+        let contextEvent = await this._getEventFromStorage(id);
+        if (!contextEvent) {
+            contextEvent = await this._getEventFromHomeserver(id);
+        }
+        if (contextEvent) {
+            // this entry was created from storage/hs, so it's not tracked by remoteEntries
+            // we track them here so that we can update reply previews later
+            this._contextEntriesNotInTimeline.set(id, contextEvent);
+            entry.setContextEntry(contextEvent);
+            // here, we awaited something, so from now on we do have to emit
+            // an update if we set the context entry.
+            this._emitUpdateForEntry(entry, "contextEntry");
         }
     }
 
