@@ -92,7 +92,7 @@ export class SimpleTile extends ViewModel {
     }
 
     // update received for already included (falls within sort keys) entry
-    updateEntry(entry, param, tilesCreator) {
+    updateEntry(entry, param) {
         const renderedAsRedacted = this.shape === "redacted";
         if (!entry.isGap && entry.isRedacted !== renderedAsRedacted) {
             // recreate the tile if the entry becomes redacted
