@@ -490,6 +490,7 @@ import {EventEntry} from "./entries/EventEntry.js";
 import {User} from "../../User.js";
 import {PendingEvent} from "../sending/PendingEvent.js";
 import {createAnnotation} from "./relations.js";
+import {redactEvent} from "./common.js";
 
 export function tests() {
     const fragmentIdComparer = new FragmentIdComparer([]);
@@ -763,7 +764,9 @@ export function tests() {
             const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)) });
             const entryB = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2 });
             await timeline.load(new User(alice), "join", new NullLogItem());
-            timeline.entries.subscribe({ onAdd: () => null, onUpdate: () => null});
+            timeline.entries.subscribe({
+                onAdd() {},
+            });
             timeline.addEntries([entryA, entryB]);
             assert.deepEqual(entryB.contextEntry, entryA);
         },
@@ -823,21 +826,22 @@ export function tests() {
         "redaction of context entry triggers updates in other entries": async assert => {
             const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
                 fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock(), hsApi});
-            const entryB = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2 });
-            const entryC = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_3", bob)), eventIndex: 3 });
+            const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)), eventIndex: 1, fragmentId: 1 });
+            const entryB = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2, fragmentId: 1 });
+            const entryC = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_3", bob)), eventIndex: 3, fragmentId: 1 });
             await timeline.load(new User(alice), "join", new NullLogItem());
             const bin = [];
             timeline.entries.subscribe({
-                onUpdate: (index) => {
-                    const e = timeline.remoteEntries[index];
+                onUpdate: (index, e) => {
                     bin.push(e.id);
                 },
                 onAdd: () => null,
             });
-            timeline.addEntries([entryB, entryC]);
-            await poll(() => timeline._remoteEntries.array.length === 2 && timeline._contextEntriesNotInTimeline.get("event_id_1"));
-            const redactingEntry = new EventEntry({ event: withRedacts("event_id_1", "foo", createEvent("m.room.redaction", "event_id_3", alice)) });
-            timeline.addEntries([redactingEntry]);
+            timeline.addEntries([entryA, entryB, entryC]);
+            const eventAClone = JSON.parse(JSON.stringify(entryA.event));
+            redactEvent(withRedacts("event_id_1", "foo", createEvent("m.room.redaction", "event_id_4", alice)), eventAClone);
+            const redactedEntry = new EventEntry({ event: eventAClone, eventIndex: 1, fragmentId: 1 });
+            timeline.replaceEntries([redactedEntry]);
             assert.strictEqual(bin.includes("event_id_2"), true);
             assert.strictEqual(bin.includes("event_id_3"), true);
         },
