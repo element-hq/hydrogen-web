@@ -35,11 +35,11 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     get permaLink() {
-        return `https://matrix.to/#/${this._room.id}/${this._entry.id}`;
+        return `https://matrix.to/#/${encodeURIComponent(this._room.id)}/${encodeURIComponent(this._entry.id)}`;
     }
 
     get senderProfileLink() {
-        return `https://matrix.to/#/${this.sender}`;
+        return `https://matrix.to/#/${encodeURIComponent(this.sender)}`;
     }
 
     get displayName() {
