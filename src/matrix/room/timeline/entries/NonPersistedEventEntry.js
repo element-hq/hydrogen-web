@@ -31,4 +31,14 @@ export class NonPersistedEventEntry extends EventEntry {
     get isNonPersisted() {
         return true;
     }
+
+    // overridden here because we reuse addLocalRelation() for updating this entry
+    // we don't want the RedactedTile created using this entry to ever show "is being redacted"
+    get isRedacting() {
+        return false;
+    }
+
+    get isRedacted() {
+        return !!this._pendingRedactions;
+    }
 }
