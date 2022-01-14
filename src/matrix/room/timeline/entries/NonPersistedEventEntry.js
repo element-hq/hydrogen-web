@@ -39,6 +39,6 @@ export class NonPersistedEventEntry extends EventEntry {
     }
 
     get isRedacted() {
-        return !!this._pendingRedactions;
+        return super.isRedacting;
     }
 }
