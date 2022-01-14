@@ -124,6 +124,13 @@ export class EventEntry extends BaseEventEntry {
         return getRelatedEventId(this.event);
     }
 
+    get threadEventId() {
+        if (this.isThread) {
+            return this.relation?.event_id;
+        }
+        return null;
+    }
+
     get isRedacted() {
         return super.isRedacted || isRedacted(this._eventEntry.event);
     }

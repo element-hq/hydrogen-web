@@ -16,9 +16,9 @@ limitations under the License.
 
 import {BaseEntry} from "./BaseEntry";
 import {REDACTION_TYPE} from "../../common.js";
-import {createAnnotation, ANNOTATION_RELATION_TYPE, getRelationFromContent} from "../relations.js";
+import {createAnnotation, ANNOTATION_RELATION_TYPE, THREADING_RELATION_TYPE, getRelationFromContent} from "../relations.js";
 import {PendingAnnotation} from "../PendingAnnotation.js";
-import {createReplyContent} from "./reply.js"
+import {createReplyContent} from "./reply.js";
 
 /** Deals mainly with local echo for relations and redactions,
  * so it is shared between PendingEventEntry and EventEntry */
@@ -32,7 +32,11 @@ export class BaseEventEntry extends BaseEntry {
     }
 
     get isReply() {
-        return !!this.relation?.["m.in_reply_to"];
+        return !!this.relation?.["m.in_reply_to"] || this.isThread;
+    }
+
+    get isThread() {
+        return this.relation?.["rel_type"] === THREADING_RELATION_TYPE;
     }
 
     get isRedacting() {

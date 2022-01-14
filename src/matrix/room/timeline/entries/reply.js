@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {THREADING_RELATION_TYPE} from "../relations.js";
+
 function htmlEscape(string) {
     return string.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -36,8 +38,8 @@ function fallbackPrefix(msgtype) {
     return msgtype === "m.emote" ? "* " : "";
 }
 
-function _createReplyContent(targetId, msgtype, body, formattedBody) {
-    return {
+function _createReplyContent(targetId, msgtype, body, formattedBody, threadId) {
+    const reply =  {
         msgtype,
         body,
         "format": "org.matrix.custom.html",
@@ -48,10 +50,16 @@ function _createReplyContent(targetId, msgtype, body, formattedBody) {
             }
         }
     };
+    if (threadId) {
+        Object.assign(reply["m.relates_to"], {
+            rel_type: THREADING_RELATION_TYPE,
+            event_id: threadId,
+        });
+    }
+    return reply;
 }
 
 export function createReplyContent(entry, msgtype, body) {
-    // TODO check for absense of sender / body / msgtype / etc?
     const nonTextual = fallbackForNonTextualMessage(entry.content.msgtype);
     const prefix = fallbackPrefix(entry.content.msgtype);
     const sender = entry.sender;
@@ -70,5 +78,5 @@ export function createReplyContent(entry, msgtype, body) {
 
     const newBody = plainFallback + '\n\n' + body;
     const newFormattedBody = formattedFallback + htmlEscape(body);
-    return _createReplyContent(entry.id, msgtype, newBody, newFormattedBody);
+    return _createReplyContent(entry.id, msgtype, newBody, newFormattedBody, entry.threadEventId);
 }

@@ -18,6 +18,7 @@ import {REDACTION_TYPE} from "../common.js";
 
 export const REACTION_TYPE = "m.reaction";
 export const ANNOTATION_RELATION_TYPE = "m.annotation";
+export const THREADING_RELATION_TYPE = "io.element.thread";
 
 export function createAnnotation(targetId, key) {
     return {
@@ -30,7 +31,7 @@ export function createAnnotation(targetId, key) {
 }
 
 export function getRelationTarget(relation) {
-    return relation.event_id || relation["m.in_reply_to"]?.event_id
+    return relation["m.in_reply_to"]?.event_id || relation.event_id;
 }
 
 export function setRelationTarget(relation, target) {
