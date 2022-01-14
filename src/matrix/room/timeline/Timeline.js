@@ -475,6 +475,22 @@ export function tests() {
     const roomId = "$abc";
     const alice = "@alice:hs.tld";
     const bob = "@bob:hs.tld";
+    const hsApi = {
+        context() {
+            const result = {
+                event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)),
+                state: [{
+                    type: MEMBER_EVENT_TYPE,
+                    user_id: alice,
+                    content: {
+                        displayName: "",
+                        avatarUrl: ""
+                    }
+                }]
+            };
+            return { response: () => result };
+        }
+    };
 
     function getIndexFromIterable(it, n) {
         let i = 0;
@@ -765,22 +781,6 @@ export function tests() {
         },
 
         "context entry is fetched from hs": async assert => {
-            const hsApi = {
-                context() {
-                    const result = {
-                        event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)),
-                        state: [{
-                            type: MEMBER_EVENT_TYPE,
-                            user_id: alice,
-                            content: {
-                                displayName: "",
-                                avatarUrl: ""
-                            }
-                        }]
-                    };
-                    return { response: () => result };
-                }
-            };
             const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
                 fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock(), hsApi});
             let event = withContent({
@@ -824,8 +824,7 @@ export function tests() {
 
         "context entry in contextEntryNotInTimeline gets updated based on incoming redaction": async assert => {
             const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
-                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
-            const entryA = new NonPersistedEventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)), eventIndex: 1 });
+                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock(), hsApi});
             let event = withContent({
                 body: "bar",
                 msgtype: "m.text",
@@ -836,21 +835,18 @@ export function tests() {
                 }
             }, createEvent("m.room.message", "event_id_2", bob));
             const entryB = new EventEntry({ event, eventIndex: 2 });
-            timeline._getEventFromHomeserver = () => entryA;
             await timeline.load(new User(alice), "join", new NullLogItem());
             timeline.entries.subscribe({ onAdd: () => null, onUpdate: () => null });
             timeline.addEntries([entryB]);
             await poll(() => entryB.contextEntry);
-            const redactingEntry = new EventEntry({ event: withRedacts(entryA.id, "foo", createEvent("m.room.redaction", "event_id_3", alice)), eventIndex: 3 });
+            const redactingEntry = new EventEntry({ event: withRedacts("event_id_1", "foo", createEvent("m.room.redaction", "event_id_3", alice)), eventIndex: 3 });
             timeline.addEntries([redactingEntry]);
-            const contextEntry = timeline._contextEntriesNotInTimeline.get(entryA.id);
-            assert.strictEqual(contextEntry.isRedacted, true);
+            assert.strictEqual(entryB.contextEntry.isRedacted, true);
         },
 
         "redaction of context entry triggers updates in other entries": async assert => {
             const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
-                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
-            const entryA = new NonPersistedEventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)), eventIndex: 1 });
+                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock(), hsApi});
             const content = {
                 body: "bar",
                 msgtype: "m.text",
@@ -871,17 +867,16 @@ export function tests() {
                 },
                 onAdd: () => null,
             });
-            timeline._getEventFromHomeserver = () => entryA;
             timeline.addEntries([entryB, entryC]);
-            await poll(() => timeline._remoteEntries.array.length === 2 && timeline._contextEntriesNotInTimeline.get(entryA.id));
-            const redactingEntry = new EventEntry({ event: withRedacts(entryA.id, "foo", createEvent("m.room.redaction", "event_id_3", alice)) });
+            await poll(() => timeline._remoteEntries.array.length === 2 && timeline._contextEntriesNotInTimeline.get("event_id_1"));
+            const redactingEntry = new EventEntry({ event: withRedacts("event_id_1", "foo", createEvent("m.room.redaction", "event_id_3", alice)) });
             timeline.addEntries([redactingEntry]);
             assert.strictEqual(bin.length, 0);
         },
 
         "context entries fetched from storage/hs are moved to remoteEntries": async assert => {
             const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
-                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
+                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock(), hsApi});
             const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)), eventIndex: 1 });
             let event = withContent({
                 body: "bar",
@@ -893,7 +888,6 @@ export function tests() {
                 }
             }, createEvent("m.room.message", "event_id_2", bob));
             const entryB = new EventEntry({ event, eventIndex: 2 });
-            timeline._getEventFromHomeserver = () => entryA
             await timeline.load(new User(alice), "join", new NullLogItem());
             timeline.entries.subscribe({ onAdd: () => null, onUpdate: () => null });
             timeline.addEntries([entryB]);
@@ -903,7 +897,7 @@ export function tests() {
             assert.strictEqual(timeline._contextEntriesNotInTimeline.has(entryA.id), false);
             const movedEntry = timeline.remoteEntries[0];
             assert.deepEqual(movedEntry, entryA);
-            assert.deepEqual(movedEntry.contextForEntries.pop(), entryB);
+            assert.deepEqual(movedEntry.contextForEntries[0], entryB);
             assert.deepEqual(entryB.contextEntry, movedEntry);
         }
     };
