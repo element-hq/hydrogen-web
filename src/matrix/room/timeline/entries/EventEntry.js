@@ -39,6 +39,8 @@ export class EventEntry extends BaseEventEntry {
         if (other._decryptionError && !this._decryptionError) {
             this._decryptionError = other._decryptionError;
         }
+        this._contextForEntries = other.contextForEntries;
+        this._contextEntry = other.contextEntry;
     }
 
     get event() {
@@ -144,6 +146,15 @@ export class EventEntry extends BaseEventEntry {
         const originalRelation = originalContent && getRelationFromContent(originalContent);
         return originalRelation || getRelationFromContent(this.content);
     }
+
+    // similar to relatedEventID but only for replies
+    get contextEventId() {
+        if (this.isReply) {
+            return this.relatedEventId;
+        }
+        return null;
+    }
+
 }
 
 import {withTextBody, withContent, createEvent} from "../../../../mocks/event.js";

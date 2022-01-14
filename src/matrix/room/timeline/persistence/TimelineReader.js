@@ -132,6 +132,23 @@ export class TimelineReader {
         }, log);
     }
 
+    async readById(id, log) {
+        let stores = [this._storage.storeNames.timelineEvents];
+        if (this._decryptEntries) {
+            stores.push(this._storage.storeNames.inboundGroupSessions);
+        }
+        const txn = await this._storage.readTxn(stores); // todo: can we just use this.readTxnStores here? probably
+        const storageEntry = await txn.timelineEvents.getByEventId(this._roomId, id);
+        if (storageEntry) {
+            const entry = new EventEntry(storageEntry, this._fragmentIdComparer);
+            if (this._decryptEntries) {
+                const request = this._decryptEntries([entry], txn, log);
+                await request.complete();
+            }
+            return entry;
+        }
+    }
+
     async _readFrom(eventKey, direction, amount, r, txn, log) {
         const entries = await readRawTimelineEntriesWithTxn(this._roomId, eventKey, direction, amount, this._fragmentIdComparer, txn);
         if (this._decryptEntries) {

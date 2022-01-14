@@ -30,6 +30,7 @@ import {DecryptionSource} from "../e2ee/common.js";
 import {ensureLogItem} from "../../logging/utils";
 import {PowerLevels} from "./PowerLevels.js";
 import {RetainedObservableValue} from "../../observable/ObservableValue";
+import {TimelineReader} from "./timeline/persistence/TimelineReader";
 
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 
@@ -501,7 +502,8 @@ export class BaseRoom extends EventEmitter {
                 },
                 clock: this._platform.clock,
                 logger: this._platform.logger,
-                powerLevelsObservable: await this.observePowerLevels()
+                powerLevelsObservable: await this.observePowerLevels(),
+                hsApi: this._hsApi
             });
             try {
                 if (this._roomEncryption) {
@@ -543,22 +545,10 @@ export class BaseRoom extends EventEmitter {
     }
 
     async _readEventById(eventId) {
-        let stores = [this._storage.storeNames.timelineEvents];
-        if (this.isEncrypted) {
-            stores.push(this._storage.storeNames.inboundGroupSessions);
-        }
-        const txn = await this._storage.readTxn(stores);
-        const storageEntry = await txn.timelineEvents.getByEventId(this._roomId, eventId);
-        if (storageEntry) {
-            const entry = new EventEntry(storageEntry, this._fragmentIdComparer);
-            if (entry.eventType === EVENT_ENCRYPTED_TYPE) {
-                const request = this._decryptEntries(DecryptionSource.Timeline, [entry], txn);
-                await request.complete();
-            }
-            return entry;
-        }
+        const reader = new TimelineReader({ roomId: this._roomId, storage: this._storage, fragmentIdComparer: this._fragmentIdComparer });
+        const entry = await reader.readById(eventId);
+        return entry;
     }
-
 
     dispose() {
         this._roomEncryption?.dispose();

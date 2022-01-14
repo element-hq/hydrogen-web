@@ -27,6 +27,8 @@ export class BaseEventEntry extends BaseEntry {
         super(fragmentIdComparer);
         this._pendingRedactions = null;
         this._pendingAnnotations = null;
+        this._contextEntry = null;
+        this._contextForEntries = null;
     }
 
     get isReply() {
@@ -52,8 +54,31 @@ export class BaseEventEntry extends BaseEntry {
         return null;
     }
 
+    setContextEntry(entry) {
+        this._contextEntry = entry;
+        entry._setAsContextOf(this);
+    }
+
+    _setAsContextOf(entry) {
+        if (!this._contextForEntries) {
+            this._contextForEntries = [];
+        }
+        this._contextForEntries.push(entry);
+    }
+
+    get contextForEntries() {
+        return this._contextForEntries;
+    }
+
+    get contextEntry() {
+        return this._contextEntry;
+    }
+
     /**
-        aggregates local relation or local redaction of remote relation.
+        Aggregates relation or redaction of remote relation.  
+        Used in two situations:
+        - to aggregate local relation/redaction of remote relation
+        - to mark this entry as being redacted in Timeline._updateEntriesFetchedFromHomeserver
         @return [string] returns the name of the field that has changed, if any
     */
     addLocalRelation(entry) {

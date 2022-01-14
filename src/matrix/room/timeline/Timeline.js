@@ -23,9 +23,12 @@ import {PendingEventEntry} from "./entries/PendingEventEntry.js";
 import {RoomMember} from "../members/RoomMember.js";
 import {getRelation, ANNOTATION_RELATION_TYPE} from "./relations.js";
 import {REDACTION_TYPE} from "../common.js";
+import {NonPersistedEventEntry} from "./entries/NonPersistedEventEntry.js";
+import {DecryptionSource} from "../../e2ee/common.js";
+import {EVENT_TYPE as MEMBER_EVENT_TYPE} from "../members/RoomMember.js";
 
 export class Timeline {
-    constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock, powerLevelsObservable}) {
+    constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock, powerLevelsObservable, hsApi}) {
         this._roomId = roomId;
         this._storage = storage;
         this._closeCallback = closeCallback;
@@ -43,6 +46,11 @@ export class Timeline {
         });
         this._readerRequest = null;
         this._allEntries = null;
+        /** Stores event entries that we had to fetch from hs/storage for reply previews (because they were not in timeline) */ 
+        this._contextEntriesNotInTimeline = new Map();
+        /** Only used to decrypt non-persisted context entries fetched from the homeserver */
+        this._decryptEntries = null;
+        this._hsApi = hsApi;
         this.initializePowerLevels(powerLevelsObservable);
     }
 
@@ -78,6 +86,7 @@ export class Timeline {
         const readerRequest = this._disposables.track(this._timelineReader.readFromEnd(20, txn, log));
         try {
             const entries = await readerRequest.complete();
+            this._loadContextEntriesWhereNeeded(entries);
             this._setupEntries(entries);
         } finally {
             this._disposables.disposeTracked(readerRequest);
@@ -115,6 +124,7 @@ export class Timeline {
             pendingEvent: pe, member: this._ownMember,
             clock: this._clock, redactingEntry
         });
+        this._loadContextEntriesWhereNeeded([pee]);
         this._applyAndEmitLocalRelationChange(pee, target => target.addLocalRelation(pee));
         return pee;
     }
@@ -125,28 +135,29 @@ export class Timeline {
             const params = updater(e);
             return params ? params : false;
         };
-        this._findAndUpdateRelatedEntry(pee.pendingEvent.relatedTxnId, pee.relatedEventId, updateOrFalse);
+        this._findAndUpdateEntryById(pee.pendingEvent.relatedTxnId, pee.relatedEventId, updateOrFalse);
         // also look for a relation target to update with this redaction
         if (pee.redactingEntry) {
             // redactingEntry might be a PendingEventEntry or an EventEntry, so don't assume pendingEvent
             const relatedTxnId = pee.redactingEntry.pendingEvent?.relatedTxnId;
-            this._findAndUpdateRelatedEntry(relatedTxnId, pee.redactingEntry.relatedEventId, updateOrFalse);
+            this._findAndUpdateEntryById(relatedTxnId, pee.redactingEntry.relatedEventId, updateOrFalse);
+            pee.redactingEntry.contextForEntries?.forEach(e => this._emitUpdateForEntry(e, "contextEntry"));
         }
     }
 
-    _findAndUpdateRelatedEntry(relatedTxnId, relatedEventId, updateOrFalse) {
+    _findAndUpdateEntryById(txnId, eventId, updateOrFalse) {
         let found = false;
         // first, look in local entries based on txn id
-        if (relatedTxnId) {
+        if (txnId) {
             found = this._localEntries.findAndUpdate(
-                e => e.id === relatedTxnId,
+                e => e.id === txnId,
                 updateOrFalse,
             );
         }
         // if not found here, look in remote entries based on event id
-        if (!found && relatedEventId) {
+        if (!found && eventId) {
             this._remoteEntries.findAndUpdate(
-                e => e.id === relatedEventId,
+                e => e.id === eventId,
                 updateOrFalse
             );
         }
@@ -206,6 +217,8 @@ export class Timeline {
 
     // used in replaceEntries
     static _entryUpdater(existingEntry, entry) {
+        // ensure other entries for which this existingEntry is a context point to the new entry instead of existingEntry
+        existingEntry.contextForEntries?.forEach(event => event.setContextEntry(entry));
         entry.updateFrom(existingEntry);
         return entry;
     }
@@ -216,6 +229,13 @@ export class Timeline {
         for (const entry of entries) {
             try {
                 this._remoteEntries.getAndUpdate(entry, Timeline._entryUpdater);
+                const oldEntry = this._contextEntriesNotInTimeline.get(entry.id)
+                if (oldEntry) {
+                    Timeline._entryUpdater(oldEntry, entry);
+                    this._contextEntriesNotInTimeline.set(entry.id, entry);
+                }
+                // Since this entry changed, all dependent entries should be updated
+                entry.contextForEntries?.forEach(e => this._emitUpdateForEntry(e, "contextEntry"));
             } catch (err) {
                 if (err.name === "CompareError") {
                     // see FragmentIdComparer, if the replacing entry is on a fragment
@@ -236,7 +256,115 @@ export class Timeline {
     /** @package */
     addEntries(newEntries) {
         this._addLocalRelationsToNewRemoteEntries(newEntries);
+        this._updateEntriesFetchedFromHomeserver(newEntries);
+        this._moveEntryToRemoteEntries(newEntries);
         this._remoteEntries.setManySorted(newEntries);
+        this._loadContextEntriesWhereNeeded(newEntries);
+    }
+
+    /**
+     * Update entries based on newly received events.
+     * This is specific to events that are not in the timeline but had to be fetched from the homeserver
+     * because they are context-events for other events in the timeline (i.e fetched from hs so that we
+     * can render things like reply previews)
+     */
+    _updateEntriesFetchedFromHomeserver(entries) {
+        /**
+         * Updates for entries in timeline is handled by remoteEntries observable collection
+         * Updates for entries not in timeline but fetched from storage is handled in this.replaceEntries()
+         * This code is specific to entries fetched from HomeServer i.e NonPersistedEventEntry
+         */
+        for (const entry of entries) {
+            const relatedEntry = this._contextEntriesNotInTimeline.get(entry.relatedEventId);
+            if (relatedEntry?.isNonPersisted && relatedEntry?.addLocalRelation(entry)) {
+                // update other entries for which this entry is a context entry
+                relatedEntry.contextForEntries?.forEach(e => this._emitUpdateForEntry(e, "contextEntry"));
+            }
+        }
+    }
+
+    /**
+     * If an event we had to fetch from hs/storage is now in the timeline (for eg, due to gap fill),
+     * remove the event from _contextEntriesNotInTimeline since it is now in remoteEntries
+     */
+    _moveEntryToRemoteEntries(entries) {
+        for (const entry of entries) {
+            const fetchedEntry = this._contextEntriesNotInTimeline.get(entry.id);
+            if (fetchedEntry) {
+                fetchedEntry.contextForEntries.forEach(e => {
+                    e.setContextEntry(entry);
+                    this._emitUpdateForEntry(e, "contextEntry");
+                });
+                this._contextEntriesNotInTimeline.delete(entry.id);
+            }
+        }
+    }
+
+    _emitUpdateForEntry(entry, param) {
+        const txnId = entry.isPending ? entry.id : null;
+        const eventId = entry.isPending ? null : entry.id;
+        this._findAndUpdateEntryById(txnId, eventId, () => param);
+    }
+
+    /**
+     * For each entry in entries, this method associates a context-entry (if needed) to it.
+     * The context-entry is fetched using the following strategies (in the same order as given):
+     * - timeline
+     * - storage
+     * - homeserver
+     * @param {EventEntry[]} entries 
+     */
+    async _loadContextEntriesWhereNeeded(entries) {
+        for (const entry of entries) {
+            if (!entry.contextEventId) {
+                continue;
+            }
+            const id = entry.contextEventId;
+            let contextEvent = this._findLoadedEventById(id);
+            if (!contextEvent) {
+                contextEvent = await this._getEventFromStorage(id) ?? await this._getEventFromHomeserver(id);
+                if (contextEvent) {
+                    // this entry was created from storage/hs, so it's not tracked by remoteEntries
+                    // we track them here so that we can update reply previews later
+                    this._contextEntriesNotInTimeline.set(id, contextEvent);
+                }
+            }
+            if (contextEvent) {
+                entry.setContextEntry(contextEvent);
+                this._emitUpdateForEntry(entry, "contextEntry");
+            }
+        }
+    }
+
+    /**
+     * Fetches an entry with the given event-id from localEntries, remoteEntries or contextEntriesNotInTimeline.
+     * @param {string} eventId event-id of the entry
+     * @returns entry if found, undefined otherwise
+     */
+    _findLoadedEventById(eventId) {
+        return this.getByEventId(eventId) ?? this._contextEntriesNotInTimeline.get(eventId);
+    }
+
+    async _getEventFromStorage(eventId) {
+        const entry = await this._timelineReader.readById(eventId);
+        return entry;
+    }
+
+    async _getEventFromHomeserver(eventId) {
+        const response = await this._hsApi.context(this._roomId, eventId, 0).response();
+        const sender = response.event.sender;
+        const member = response.state.find(e => e.type === MEMBER_EVENT_TYPE && e.user_id === sender);
+        const entry = {
+            event: response.event,
+            displayName: member.content.displayname,
+            avatarUrl: member.content.avatar_url
+        };
+        const eventEntry = new NonPersistedEventEntry(entry, this._fragmentIdComparer);
+        if (this._decryptEntries) {
+            const request = this._decryptEntries(DecryptionSource.Timeline, [eventEntry]);
+            await request.complete();
+        }
+        return eventEntry;
     }
     
     // tries to prepend `amount` entries to the `entries` list.
@@ -278,18 +406,7 @@ export class Timeline {
             }
         }
         if (eventId) {
-            const loadedEntry = this.getByEventId(eventId);
-            if (loadedEntry) {
-                return loadedEntry;
-            } else {
-                const txn = await this._storage.readWriteTxn([
-                    this._storage.storeNames.timelineEvents,
-                ]);
-                const redactionTargetEntry = await txn.timelineEvents.getByEventId(this._roomId, eventId);
-                if (redactionTargetEntry) {
-                    return new EventEntry(redactionTargetEntry, this._fragmentIdComparer);
-                }
-            }
+            return this.getByEventId(eventId) ?? await this._getEventFromStorage(eventId);
         }
         return null;
     }
@@ -328,6 +445,7 @@ export class Timeline {
 
     /** @internal */
     enableEncryption(decryptEntries) {
+        this._decryptEntries = decryptEntries;
         this._timelineReader.enableEncryption(decryptEntries);
     }
 
@@ -345,7 +463,7 @@ import {poll} from "../../../mocks/poll.js";
 import {Clock as MockClock} from "../../../mocks/Clock.js";
 import {createMockStorage} from "../../../mocks/Storage";
 import {ListObserver} from "../../../mocks/ListObserver.js";
-import {createEvent, withTextBody, withContent, withSender} from "../../../mocks/event.js";
+import {createEvent, withTextBody, withContent, withSender, withRedacts, withReply} from "../../../mocks/event.js";
 import {NullLogItem} from "../../../logging/NullLogger";
 import {EventEntry} from "./entries/EventEntry.js";
 import {User} from "../../User.js";
@@ -357,6 +475,22 @@ export function tests() {
     const roomId = "$abc";
     const alice = "@alice:hs.tld";
     const bob = "@bob:hs.tld";
+    const hsApi = {
+        context() {
+            const result = {
+                event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)),
+                state: [{
+                    type: MEMBER_EVENT_TYPE,
+                    user_id: alice,
+                    content: {
+                        displayName: "",
+                        avatarUrl: ""
+                    }
+                }]
+            };
+            return { response: () => result };
+        }
+    };
 
     function getIndexFromIterable(it, n) {
         let i = 0;
@@ -486,7 +620,7 @@ export function tests() {
             // 1. setup timeline
             const pendingEvents = new ObservableArray();
             const timeline = new Timeline({roomId, storage: await createMockStorage(),
-                closeCallback: () => {}, fragmentIdComparer, pendingEvents, clock: new MockClock()});
+                closeCallback: () => { }, fragmentIdComparer, pendingEvents, clock: new MockClock()});
             await timeline.load(new User(bob), "join", new NullLogItem());
             timeline.entries.subscribe(new ListObserver());
             // 2. add message and reaction to timeline
@@ -600,6 +734,109 @@ export function tests() {
             assert.equal(type, "update");
             assert.equal(value.eventType, "m.room.message");
             assert.equal(value.content.body, "hi bob!");
+        },
+
+        "context entry is fetched from remoteEntries": async assert => {
+            const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
+                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
+            const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)) });
+            const entryB = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2 });
+            await timeline.load(new User(alice), "join", new NullLogItem());
+            timeline.entries.subscribe({ onAdd: () => null, });
+            timeline.addEntries([entryA, entryB]);
+            assert.deepEqual(entryB.contextEntry, entryA);
+        },
+
+        "context entry is fetched from storage": async assert => {
+            const storage = await createMockStorage();
+            const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
+            txn.timelineEvents.tryInsert({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)), fragmentId: 1, eventIndex: 1, roomId });
+            await txn.complete();
+            const timeline = new Timeline({roomId, storage, closeCallback: () => {},
+                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
+            const entryB = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2 });
+            await timeline.load(new User(alice), "join", new NullLogItem());
+            timeline.entries.subscribe({ onAdd: () => null, onUpdate: () => null });
+            timeline.addEntries([entryB]);
+            await poll(() => entryB.contextEntry);
+            assert.strictEqual(entryB.contextEntry.id, "event_id_1");
+        },
+
+        "context entry is fetched from hs": async assert => {
+            const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
+                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock(), hsApi});
+            const entryB = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2 });
+            await timeline.load(new User(alice), "join", new NullLogItem());
+            timeline.entries.subscribe({ onAdd: () => null, onUpdate: () => null });
+            timeline.addEntries([entryB]);
+            await poll(() => entryB.contextEntry);
+            assert.strictEqual(entryB.contextEntry.id, "event_id_1");
+        },
+
+        "context entry has a list of entries to which it forms the context": async assert => {
+            const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
+                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
+            const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)), eventIndex: 1 });
+            const entryB = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2 });
+            const entryC = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_3", bob)), eventIndex: 3 });
+            await timeline.load(new User(alice), "join", new NullLogItem());
+            timeline.entries.subscribe({ onAdd: () => null, onUpdate: () => null });
+            timeline.addEntries([entryA, entryB, entryC]);
+            await poll(() => entryA.contextForEntries.length === 2);
+            assert.deepEqual(entryA.contextForEntries, [entryB, entryC]);
+        },
+
+        "context entry in contextEntryNotInTimeline gets updated based on incoming redaction": async assert => {
+            const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
+                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock(), hsApi});
+            const entryB = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2 });
+            await timeline.load(new User(alice), "join", new NullLogItem());
+            timeline.entries.subscribe({ onAdd: () => null, onUpdate: () => null });
+            timeline.addEntries([entryB]);
+            await poll(() => entryB.contextEntry);
+            const redactingEntry = new EventEntry({ event: withRedacts("event_id_1", "foo", createEvent("m.room.redaction", "event_id_3", alice)), eventIndex: 3 });
+            timeline.addEntries([redactingEntry]);
+            assert.strictEqual(entryB.contextEntry.isRedacted, true);
+        },
+
+        "redaction of context entry triggers updates in other entries": async assert => {
+            const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
+                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock(), hsApi});
+            const entryB = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2 });
+            const entryC = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_3", bob)), eventIndex: 3 });
+            await timeline.load(new User(alice), "join", new NullLogItem());
+            const bin = [];
+            timeline.entries.subscribe({
+                onUpdate: (index) => {
+                    const e = timeline.remoteEntries[index];
+                    bin.push(e.id);
+                },
+                onAdd: () => null,
+            });
+            timeline.addEntries([entryB, entryC]);
+            await poll(() => timeline._remoteEntries.array.length === 2 && timeline._contextEntriesNotInTimeline.get("event_id_1"));
+            const redactingEntry = new EventEntry({ event: withRedacts("event_id_1", "foo", createEvent("m.room.redaction", "event_id_3", alice)) });
+            timeline.addEntries([redactingEntry]);
+            assert.strictEqual(bin.includes("event_id_2"), true);
+            assert.strictEqual(bin.includes("event_id_3"), true);
+        },
+
+        "context entries fetched from storage/hs are moved to remoteEntries": async assert => {
+            const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
+                fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock(), hsApi});
+            const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)), eventIndex: 1 });
+            const entryB = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2 });
+            await timeline.load(new User(alice), "join", new NullLogItem());
+            timeline.entries.subscribe({ onAdd: () => null, onUpdate: () => null });
+            timeline.addEntries([entryB]);
+            await poll(() => entryB.contextEntry);
+            assert.strictEqual(timeline._contextEntriesNotInTimeline.has(entryA.id), true);
+            timeline.addEntries([entryA]);
+            assert.strictEqual(timeline._contextEntriesNotInTimeline.has(entryA.id), false);
+            const movedEntry = timeline.remoteEntries[0];
+            assert.deepEqual(movedEntry, entryA);
+            assert.deepEqual(movedEntry.contextForEntries[0], entryB);
+            assert.deepEqual(entryB.contextEntry, movedEntry);
         }
     };
 }
