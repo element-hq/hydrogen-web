@@ -17,7 +17,7 @@ limitations under the License.
 import {TemplateView} from "../../general/TemplateView";
 import {Popup} from "../../general/Popup.js";
 import {Menu} from "../../general/Menu.js";
-import {viewClassForEntry} from "./TimelineView"
+import {viewClassForEntry} from "./common"
 
 export class MessageComposer extends TemplateView {
     constructor(viewModel) {
@@ -56,7 +56,7 @@ export class MessageComposer extends TemplateView {
                         className: "cancel",
                         onClick: () => this._clearReplyingTo()
                     }, "Close"),
-                    t.view(new View(rvm, false, "div"))
+                t.view(new View(rvm, { interactive: false }, "div"))
                 ])
         });
         const input = t.div({className: "MessageComposer_input"}, [

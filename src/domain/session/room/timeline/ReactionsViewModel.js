@@ -225,7 +225,7 @@ export function tests() {
                 return new BaseMessageTile({entry, roomVM: {room}, timeline, platform: {logger}});
             }
             return null;
-        }, (tile, params, entry) => tile?.updateEntry(entry, params));
+        }, (tile, params, entry) => tile?.updateEntry(entry, params, function () {}));
         return tiles;
     }
 

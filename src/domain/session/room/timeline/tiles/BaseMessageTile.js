@@ -24,13 +24,23 @@ export class BaseMessageTile extends SimpleTile {
         this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : null;
         this._isContinuation = false;
         this._reactions = null;
+        this._replyTile = null;
         if (this._entry.annotations || this._entry.pendingAnnotations) {
             this._updateReactions();
         }
+        this._updateReplyTileIfNeeded(options.tilesCreator, undefined);
     }
 
     get _mediaRepository() {
         return this._room.mediaRepository;
+    }
+
+    get permaLink() {
+        return `https://matrix.to/#/${encodeURIComponent(this._room.id)}/${encodeURIComponent(this._entry.id)}`;
+    }
+
+    get senderProfileLink() {
+        return `https://matrix.to/#/${encodeURIComponent(this.sender)}`;
     }
 
     get displayName() {
@@ -82,6 +92,10 @@ export class BaseMessageTile extends SimpleTile {
         return this._entry.isUnverified;
     }
 
+    get isReply() {
+        return this._entry.isReply;
+    }
+
     _getContent() {
         return this._entry.content;
     }
@@ -102,12 +116,28 @@ export class BaseMessageTile extends SimpleTile {
         }
     }
 
-    updateEntry(entry, param) {
-        const action = super.updateEntry(entry, param);
+    updateEntry(entry, param, tilesCreator) {
+        const action = super.updateEntry(entry, param, tilesCreator);
         if (action.shouldUpdate) {
             this._updateReactions();
         }
+        this._updateReplyTileIfNeeded(tilesCreator, param);
         return action;
+    }
+
+    _updateReplyTileIfNeeded(tilesCreator, param) {
+        const replyEntry = this._entry.contextEntry;
+        if (replyEntry) {
+            // this is an update to contextEntry used for replyPreview
+            const action = this._replyTile?.updateEntry(replyEntry, param, tilesCreator);
+            if (action?.shouldReplace || !this._replyTile) {
+                this.disposeTracked(this._replyTile);
+                this._replyTile = tilesCreator(replyEntry);
+            }
+            if(action?.shouldUpdate) {
+                this._replyTile?.emitChange();
+            }
+        }
     }
 
     startReply() {
@@ -201,5 +231,12 @@ export class BaseMessageTile extends SimpleTile {
             }
             this._reactions.update(annotations, pendingAnnotations);
         }
+    }
+
+    get replyTile() {
+        if (!this._entry.contextEventId) {
+            return null;
+        }
+        return this._replyTile;
     }
 }

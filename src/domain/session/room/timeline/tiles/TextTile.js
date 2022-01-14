@@ -50,7 +50,7 @@ export class TextTile extends BaseTextTile {
     _parseBody(body, format) {
         let messageBody;
         if (format === BodyFormat.Html) {
-            messageBody = parseHTMLBody(this.platform, this._mediaRepository, this._entry.isReply, body);
+            messageBody = parseHTMLBody(this.platform, this._mediaRepository, body);
         } else {
             messageBody = parsePlainBody(body);
         }

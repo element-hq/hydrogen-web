@@ -56,4 +56,5 @@ export class BaseTextTile extends BaseMessageTile {
         }
         return this._messageBody;
     }
+
 }

@@ -14,15 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import type {TileView} from "./common";
+import {viewClassForEntry} from "./common";
 import {ListView} from "../../general/ListView";
 import {TemplateView, Builder} from "../../general/TemplateView";
 import {IObservableValue} from "../../general/BaseUpdateView";
-import {GapView} from "./timeline/GapView.js";
-import {TextMessageView} from "./timeline/TextMessageView.js";
-import {ImageView} from "./timeline/ImageView.js";
-import {VideoView} from "./timeline/VideoView.js";
-import {FileView} from "./timeline/FileView.js";
-import {LocationView} from "./timeline/LocationView.js";
 import {MissingAttachmentView} from "./timeline/MissingAttachmentView.js";
 import {AnnouncementView} from "./timeline/AnnouncementView.js";
 import {RedactedView} from "./timeline/RedactedView.js";
@@ -34,27 +30,6 @@ export interface TimelineViewModel extends IObservableValue {
     showJumpDown: boolean;
     tiles: ObservableList<SimpleTile>;
     setVisibleTileRange(start?: SimpleTile, end?: SimpleTile);
-}
-
-type TileView = GapView | AnnouncementView | TextMessageView |
-    ImageView | VideoView | FileView | MissingAttachmentView | RedactedView;
-type TileViewConstructor = (this: TileView, SimpleTile) => void;
-
-export function viewClassForEntry(entry: SimpleTile): TileViewConstructor | undefined {
-    switch (entry.shape) {
-        case "gap": return GapView;
-        case "announcement": return AnnouncementView;
-        case "message":
-        case "message-status":
-            return TextMessageView;
-        case "image": return ImageView;
-        case "video": return VideoView;
-        case "file": return FileView;
-        case "location": return LocationView;
-        case "missing-attachment": return MissingAttachmentView;
-        case "redacted":
-            return RedactedView;
-    }
 }
 
 function bottom(node: HTMLElement): number {
