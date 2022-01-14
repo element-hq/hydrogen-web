@@ -28,6 +28,7 @@ export class BaseMessageTile extends SimpleTile {
         if (this._entry.annotations || this._entry.pendingAnnotations) {
             this._updateReactions();
         }
+        this._updateReplyTileIfNeeded(options.tilesCreator);
     }
 
     get _mediaRepository() {
@@ -116,6 +117,15 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     updateEntry(entry, param, tilesCreator) {
+        this._updateReplyTileIfNeeded(tilesCreator);
+        const action = super.updateEntry(entry, param, tilesCreator);
+        if (action.shouldUpdate) {
+            this._updateReactions();
+        }
+        return action;
+    }
+
+    _updateReplyTileIfNeeded(tilesCreator) {
         const replyEntry = entry.contextEntry;
         if (replyEntry) {
             // this is an update to contextEntry used for replyPreview
@@ -128,11 +138,6 @@ export class BaseMessageTile extends SimpleTile {
                 this._replyTile?.emitChange();
             }
         }
-        const action = super.updateEntry(entry, param, tilesCreator);
-        if (action.shouldUpdate) {
-            this._updateReactions();
-        }
-        return action;
     }
 
     startReply() {
