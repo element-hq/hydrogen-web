@@ -24,7 +24,9 @@ import {AnnouncementView} from "./timeline/AnnouncementView.js";
 import {RedactedView} from "./timeline/RedactedView.js";
 import {SimpleTile} from "../../../../../domain/session/room/timeline/tiles/SimpleTile.js";
 import {GapView} from "./timeline/GapView.js";
-import type {TileView} from "./TimelineView";
+
+export type TileView = GapView | AnnouncementView | TextMessageView |
+    ImageView | VideoView | FileView | MissingAttachmentView | RedactedView;
 
 type TileViewConstructor = (this: TileView, SimpleTile) => void;
 export function viewClassForEntry(entry: SimpleTile): TileViewConstructor | undefined {

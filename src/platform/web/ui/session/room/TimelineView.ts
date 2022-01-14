@@ -14,20 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import type {TileView} from "./common";
+import {viewClassForEntry} from "./common";
 import {ListView} from "../../general/ListView";
 import {TemplateView, Builder} from "../../general/TemplateView";
 import {IObservableValue} from "../../general/BaseUpdateView";
-import {GapView} from "./timeline/GapView.js";
-import {TextMessageView} from "./timeline/TextMessageView.js";
-import {ImageView} from "./timeline/ImageView.js";
-import {VideoView} from "./timeline/VideoView.js";
-import {FileView} from "./timeline/FileView.js";
 import {MissingAttachmentView} from "./timeline/MissingAttachmentView.js";
 import {AnnouncementView} from "./timeline/AnnouncementView.js";
 import {RedactedView} from "./timeline/RedactedView.js";
 import {SimpleTile} from "../../../../../domain/session/room/timeline/tiles/SimpleTile.js";
 import {BaseObservableList as ObservableList} from "../../../../../observable/list/BaseObservableList";
-import {viewClassForEntry} from "./common";
 
 //import {TimelineViewModel} from "../../../../../domain/session/room/timeline/TimelineViewModel.js";
 export interface TimelineViewModel extends IObservableValue {
@@ -35,9 +31,6 @@ export interface TimelineViewModel extends IObservableValue {
     tiles: ObservableList<SimpleTile>;
     setVisibleTileRange(start?: SimpleTile, end?: SimpleTile);
 }
-
-export type TileView = GapView | AnnouncementView | TextMessageView |
-    ImageView | VideoView | FileView | MissingAttachmentView | RedactedView;
 
 function bottom(node: HTMLElement): number {
     return node.offsetTop + node.clientHeight;
