@@ -604,8 +604,7 @@ export function tests() {
             // 1. setup timeline
             const pendingEvents = new ObservableArray();
             const timeline = new Timeline({roomId, storage: await createMockStorage(),
-                closeCallback: () => { }, fragmentIdComparer, pendingEvents, clock: new MockClock(),
-                fetchEventFromStorage: () => undefined, fetchEventFromHomeserver: () => undefined});
+                closeCallback: () => { }, fragmentIdComparer, pendingEvents, clock: new MockClock()});
             await timeline.load(new User(bob), "join", new NullLogItem());
             timeline.entries.subscribe(new ListObserver());
             // 2. add message and reaction to timeline
