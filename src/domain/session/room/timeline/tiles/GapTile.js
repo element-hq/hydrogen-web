@@ -81,8 +81,8 @@ export class GapTile extends SimpleTile {
         this._siblingChanged = true;
     }
 
-    updateEntry(entry, params) {
-        super.updateEntry(entry, params);
+    updateEntry(entry, params, tilesCreator) {
+        super.updateEntry(entry, params, tilesCreator);
         if (!entry.isGap) {
             return UpdateAction.Remove();
         } else {

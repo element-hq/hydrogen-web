@@ -18,8 +18,8 @@ import {BaseTextTile} from "./BaseTextTile.js";
 import {UpdateAction} from "../UpdateAction.js";
 
 export class EncryptedEventTile extends BaseTextTile {
-    updateEntry(entry, params) {
-        const parentResult = super.updateEntry(entry, params);
+    updateEntry(entry, params, tilesCreator) {
+        const parentResult = super.updateEntry(entry, params, tilesCreator);
         // event got decrypted, recreate the tile and replace this one with it
         if (entry.eventType !== "m.room.encrypted") {
             // the "shape" parameter trigger tile recreation in TimelineView

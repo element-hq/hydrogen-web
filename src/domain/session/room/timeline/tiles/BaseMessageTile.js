@@ -128,7 +128,7 @@ export class BaseMessageTile extends SimpleTile {
                 this._replyTile?.emitChange();
             }
         }
-        const action = super.updateEntry(entry, param);
+        const action = super.updateEntry(entry, param, tilesCreator);
         if (action.shouldUpdate) {
             this._updateReactions();
         }
