@@ -278,9 +278,7 @@ export class Timeline {
             const relatedEntry = this._contextEntriesNotInTimeline.get(entry.relatedEventId);
             if (relatedEntry?.isNonPersisted && relatedEntry?.addLocalRelation(entry)) {
                 // update other entries for which this entry is a context entry
-                relatedEntry.contextForEntries?.forEach(e => {
-                    this._remoteEntries.findAndUpdate(te => te.id === e.id, () => "contextEntry");
-                });
+                relatedEntry.contextForEntries?.forEach(e => this._emitUpdateForEntry(e, "contextEntry"));
             }
         }
     }
