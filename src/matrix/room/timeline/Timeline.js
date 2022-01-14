@@ -323,7 +323,9 @@ export class Timeline {
             // before looking into remoteEntries, check the entries
             // that about to be added first
             let contextEvent = entries.find(e => e.id === id);
-            contextEvent = this._findLoadedEventById(id);
+            if (!contextEvent) {
+                contextEvent = this._findLoadedEventById(id);
+            }
             if (contextEvent) {
                 entry.setContextEntry(contextEvent);
                 // we don't emit an update here, as the add or update
