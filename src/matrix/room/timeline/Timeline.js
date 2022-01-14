@@ -859,11 +859,11 @@ export function tests() {
             const entryB = new EventEntry({ event: withContent(content, createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2 });
             const entryC = new EventEntry({ event: withContent(content, createEvent("m.room.message", "event_id_3", bob)), eventIndex: 3 });
             await timeline.load(new User(alice), "join", new NullLogItem());
-            const bin = [entryB, entryC];
+            const bin = [];
             timeline.entries.subscribe({
                 onUpdate: (index) => {
-                    const i = bin.findIndex(e => e.id === index);
-                    bin.splice(i, 1);
+                    const e = timeline.remoteEntries[index];
+                    bin.push(e.id);
                 },
                 onAdd: () => null,
             });
@@ -871,7 +871,8 @@ export function tests() {
             await poll(() => timeline._remoteEntries.array.length === 2 && timeline._contextEntriesNotInTimeline.get("event_id_1"));
             const redactingEntry = new EventEntry({ event: withRedacts("event_id_1", "foo", createEvent("m.room.redaction", "event_id_3", alice)) });
             timeline.addEntries([redactingEntry]);
-            assert.strictEqual(bin.length, 0);
+            assert.strictEqual(bin.includes("event_id_2"), true);
+            assert.strictEqual(bin.includes("event_id_3"), true);
         },
 
         "context entries fetched from storage/hs are moved to remoteEntries": async assert => {
