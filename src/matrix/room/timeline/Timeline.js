@@ -742,9 +742,12 @@ export function tests() {
         },
 
         "context entry is fetched from storage": async assert => {
-            const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
+            const storage = await createMockStorage();
+            const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
+            txn.timelineEvents.tryInsert({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)), fragmentId: 1, eventIndex: 1, roomId });
+            await txn.complete();
+            const timeline = new Timeline({roomId, storage, closeCallback: () => {},
                 fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
-            const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)), eventIndex: 1 });
             let event = withContent({
                 body: "bar",
                 msgtype: "m.text",
@@ -755,12 +758,11 @@ export function tests() {
                 }
             }, createEvent("m.room.message", "event_id_2", bob));
             const entryB = new EventEntry({ event, eventIndex: 2 });
-            timeline._getEventFromStorage = () => entryA
             await timeline.load(new User(alice), "join", new NullLogItem());
             timeline.entries.subscribe({ onAdd: () => null, onUpdate: () => null });
             timeline.addEntries([entryB]);
             await poll(() => entryB.contextEntry);
-            assert.deepEqual(entryB.contextEntry, entryA);
+            assert.strictEqual(entryB.contextEntry.id, "event_id_1");
         },
 
         "context entry is fetched from hs": async assert => {
