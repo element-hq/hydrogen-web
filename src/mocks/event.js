@@ -37,3 +37,13 @@ export function withTxnId(txnId, event) {
 export function withRedacts(redacts, reason, event) {
     return Object.assign({redacts, content: {reason}}, event);
 }
+
+export function withReply(replyToId, event) {
+    return withContent({
+        "m.relates_to": {
+            "m.in_reply_to": {
+                "event_id": replyToId
+            }
+        }
+    }, event);
+}

@@ -463,7 +463,7 @@ import {poll} from "../../../mocks/poll.js";
 import {Clock as MockClock} from "../../../mocks/Clock.js";
 import {createMockStorage} from "../../../mocks/Storage";
 import {ListObserver} from "../../../mocks/ListObserver.js";
-import {createEvent, withTextBody, withContent, withSender, withRedacts} from "../../../mocks/event.js";
+import {createEvent, withTextBody, withContent, withSender, withRedacts, withReply} from "../../../mocks/event.js";
 import {NullLogItem} from "../../../logging/NullLogger";
 import {EventEntry} from "./entries/EventEntry.js";
 import {User} from "../../User.js";
@@ -740,16 +740,7 @@ export function tests() {
             const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
                 fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
             const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)) });
-            let event = withContent({
-                body: "bar",
-                msgtype: "m.text",
-                "m.relates_to": {
-                    "m.in_reply_to": {
-                        "event_id": "event_id_1"
-                    }
-                }
-            }, createEvent("m.room.message", "event_id_2", bob));
-            const entryB = new EventEntry({ event });
+            const entryB = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2 });
             await timeline.load(new User(alice), "join", new NullLogItem());
             timeline.entries.subscribe({ onAdd: () => null, });
             timeline.addEntries([entryA, entryB]);
@@ -763,16 +754,7 @@ export function tests() {
             await txn.complete();
             const timeline = new Timeline({roomId, storage, closeCallback: () => {},
                 fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
-            let event = withContent({
-                body: "bar",
-                msgtype: "m.text",
-                "m.relates_to": {
-                    "m.in_reply_to": {
-                        "event_id": "event_id_1"
-                    }
-                }
-            }, createEvent("m.room.message", "event_id_2", bob));
-            const entryB = new EventEntry({ event, eventIndex: 2 });
+            const entryB = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2 });
             await timeline.load(new User(alice), "join", new NullLogItem());
             timeline.entries.subscribe({ onAdd: () => null, onUpdate: () => null });
             timeline.addEntries([entryB]);
@@ -783,16 +765,7 @@ export function tests() {
         "context entry is fetched from hs": async assert => {
             const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
                 fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock(), hsApi});
-            let event = withContent({
-                body: "bar",
-                msgtype: "m.text",
-                "m.relates_to": {
-                    "m.in_reply_to": {
-                        "event_id": "event_id_1"
-                    }
-                }
-            }, createEvent("m.room.message", "event_id_2", bob));
-            const entryB = new EventEntry({ event, eventIndex: 2 });
+            const entryB = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2 });
             await timeline.load(new User(alice), "join", new NullLogItem());
             timeline.entries.subscribe({ onAdd: () => null, onUpdate: () => null });
             timeline.addEntries([entryB]);
@@ -804,17 +777,8 @@ export function tests() {
             const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
                 fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
             const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)), eventIndex: 1 });
-            const content = {
-                body: "bar",
-                msgtype: "m.text",
-                "m.relates_to": {
-                    "m.in_reply_to": {
-                        "event_id": "event_id_1"
-                    }
-                }
-            };
-            const entryB = new EventEntry({ event: withContent(content, createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2 });
-            const entryC = new EventEntry({ event: withContent(content, createEvent("m.room.message", "event_id_3", bob)), eventIndex: 3 });
+            const entryB = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2 });
+            const entryC = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_3", bob)), eventIndex: 3 });
             await timeline.load(new User(alice), "join", new NullLogItem());
             timeline.entries.subscribe({ onAdd: () => null, onUpdate: () => null });
             timeline.addEntries([entryA, entryB, entryC]);
@@ -825,16 +789,7 @@ export function tests() {
         "context entry in contextEntryNotInTimeline gets updated based on incoming redaction": async assert => {
             const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
                 fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock(), hsApi});
-            let event = withContent({
-                body: "bar",
-                msgtype: "m.text",
-                "m.relates_to": {
-                    "m.in_reply_to": {
-                        "event_id": "event_id_1"
-                    }
-                }
-            }, createEvent("m.room.message", "event_id_2", bob));
-            const entryB = new EventEntry({ event, eventIndex: 2 });
+            const entryB = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2 });
             await timeline.load(new User(alice), "join", new NullLogItem());
             timeline.entries.subscribe({ onAdd: () => null, onUpdate: () => null });
             timeline.addEntries([entryB]);
@@ -847,17 +802,8 @@ export function tests() {
         "redaction of context entry triggers updates in other entries": async assert => {
             const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
                 fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock(), hsApi});
-            const content = {
-                body: "bar",
-                msgtype: "m.text",
-                "m.relates_to": {
-                    "m.in_reply_to": {
-                        "event_id": "event_id_1"
-                    }
-                }
-            };
-            const entryB = new EventEntry({ event: withContent(content, createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2 });
-            const entryC = new EventEntry({ event: withContent(content, createEvent("m.room.message", "event_id_3", bob)), eventIndex: 3 });
+            const entryB = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2 });
+            const entryC = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_3", bob)), eventIndex: 3 });
             await timeline.load(new User(alice), "join", new NullLogItem());
             const bin = [];
             timeline.entries.subscribe({
@@ -879,16 +825,7 @@ export function tests() {
             const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
                 fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock(), hsApi});
             const entryA = new EventEntry({ event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)), eventIndex: 1 });
-            let event = withContent({
-                body: "bar",
-                msgtype: "m.text",
-                "m.relates_to": {
-                    "m.in_reply_to": {
-                        "event_id": "event_id_1"
-                    }
-                }
-            }, createEvent("m.room.message", "event_id_2", bob));
-            const entryB = new EventEntry({ event, eventIndex: 2 });
+            const entryB = new EventEntry({ event: withReply("event_id_1", createEvent("m.room.message", "event_id_2", bob)), eventIndex: 2 });
             await timeline.load(new User(alice), "join", new NullLogItem());
             timeline.entries.subscribe({ onAdd: () => null, onUpdate: () => null });
             timeline.addEntries([entryB]);
