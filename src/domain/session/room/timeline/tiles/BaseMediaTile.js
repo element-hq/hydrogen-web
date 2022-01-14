@@ -25,10 +25,8 @@ export class BaseMediaTile extends BaseMessageTile {
         super(options);
         this._decryptedThumbnail = null;
         this._decryptedFile = null;
+        this._isVisible = false;
         this._error = null;
-        if (!this.isPending) {
-            this._tryLoadEncryptedThumbnail();
-        }
     }
 
     get isUploading() {
@@ -60,6 +58,9 @@ export class BaseMediaTile extends BaseMessageTile {
     }
 
     get thumbnailUrl() {
+        if (!this._isVisible) {
+            return "";
+        }
         if (this._decryptedThumbnail) {
             return this._decryptedThumbnail.url;
         } else {
@@ -83,6 +84,15 @@ export class BaseMediaTile extends BaseMessageTile {
             }
         }
         return "";
+    }
+
+    notifyVisible() {
+        super.notifyVisible();
+        this._isVisible = true;
+        this.emitChange("thumbnailUrl");
+        if (!this.isPending) {
+            this._tryLoadEncryptedThumbnail();
+        }
     }
 
     get width() {

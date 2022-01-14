@@ -14,16 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseMediaView} from "./BaseMediaView.js";
+import {BaseMessageView} from "./BaseMessageView.js";
 
-export class ImageView extends BaseMediaView {
-    renderMedia(t, vm) {
-        const img = t.img({
-            src: vm => vm.thumbnailUrl,
-            alt: vm => vm.label,
-            title: vm => vm.label,
-            style: `max-width: ${vm.width}px; max-height: ${vm.height}px;`
-        });
-        return vm.isPending ? img : t.a({href: vm.lightboxUrl}, img);
+export class LocationView extends BaseMessageView {
+    renderMessageBody(t, vm) {
+        return t.p({className: "Timeline_messageBody statusMessage"}, [
+            t.span(vm.label),
+            t.a({className: "Timeline_locationLink", href: vm.mapsLink, target: "_blank", rel: "noopener"}, vm.i18n`Click to open in maps`),
+            t.time(vm.date + " " + vm.time)
+        ]);
     }
 }

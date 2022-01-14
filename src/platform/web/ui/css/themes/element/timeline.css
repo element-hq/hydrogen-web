@@ -374,6 +374,18 @@ only loads when the top comes into view*/
     animation-timing-function: linear;
 }
 
+.Timeline_locationLink {
+    padding: 0px 8px;
+    border-radius: 16px;
+    border: 1px solid #e9edf1;
+    background-color: #f3f8fd;
+    text-decoration: none;
+    display: inline-block;
+    line-height: 2rem;
+    vertical-align: top;
+    margin: 1px 4px;
+}
+
 .AnnouncementView {
     margin: 5px 0;
     padding: 5px 10%;

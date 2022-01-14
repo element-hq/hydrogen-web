@@ -39,7 +39,6 @@ export interface TimelineViewModel extends IObservableValue {
 export type TileView = GapView | AnnouncementView | TextMessageView |
     ImageView | VideoView | FileView | MissingAttachmentView | RedactedView;
 
-
 function bottom(node: HTMLElement): number {
     return node.offsetTop + node.clientHeight;
 }
