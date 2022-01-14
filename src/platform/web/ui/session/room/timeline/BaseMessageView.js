@@ -29,9 +29,11 @@ export class BaseMessageView extends TemplateView {
         this._menuPopup = null;
         this._tagName = tagName;
         // TODO An enum could be nice to make code easier to read at call sites.
-        this._interactive = renderFlags?.interactive ?? true;
-        this._isReplyPreview = renderFlags?.reply;
+        this._renderFlags = renderFlags;
     }
+
+    get _interactive() { return this._renderFlags?.interactive ?? true; }
+    get _isReplyPreview() { return this._renderFlags?.reply; }
 
     render(t, vm) {
         const children = [this.renderMessageBody(t, vm)];
