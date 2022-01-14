@@ -19,7 +19,6 @@ import {BaseMediaView} from "./BaseMediaView.js";
 export class ImageView extends BaseMediaView {
     renderMedia(t, vm) {
         const img = t.img({
-            loading: "lazy",
             src: vm => vm.thumbnailUrl,
             alt: vm => vm.label,
             title: vm => vm.label,
