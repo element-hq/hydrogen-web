@@ -21,7 +21,6 @@ import {getIdentifierColorNumber, avatarInitials, getAvatarHttpUrl} from "../../
 export class BaseMessageTile extends SimpleTile {
     constructor(options) {
         super(options);
-        this._tilesCreator = options.tilesCreator;
         this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : null;
         this._isContinuation = false;
         this._reactions = null;
@@ -116,17 +115,17 @@ export class BaseMessageTile extends SimpleTile {
         }
     }
 
-    updateEntry(entry, param) {
+    updateEntry(entry, param, tilesCreator) {
         const replyEntry = entry.contextEntry;
-        if (replyEntry && this._replyTile) {
+        if (replyEntry) {
             // this is an update to contextEntry used for replyPreview
-            const action = this._replyTile.updateEntry(replyEntry);
-            if (action?.shouldReplace) {
+            const action = this._replyTile?.updateEntry(replyEntry);
+            if (action?.shouldReplace || !this._replyTile) {
                 this.disposeTracked(this._replyTile);
-                this._replyTile = this._tilesCreator(replyEntry);
+                this._replyTile = tilesCreator(replyEntry);
             }
             if(action?.shouldUpdate) {
-                this._replyTile.emitChange();
+                this._replyTile?.emitChange();
             }
         }
         const action = super.updateEntry(entry, param);
@@ -232,12 +231,6 @@ export class BaseMessageTile extends SimpleTile {
     get replyTile() {
         if (!this._entry.contextEventId) {
             return null;
-        }
-        if (!this._replyTile) {
-            const entry = this._entry.contextEntry;
-            if (entry) {
-                this._replyTile = this.track(this._tilesCreator(entry));
-            }
         }
         return this._replyTile;
     }
