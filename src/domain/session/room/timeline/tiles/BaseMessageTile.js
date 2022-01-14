@@ -28,7 +28,7 @@ export class BaseMessageTile extends SimpleTile {
         if (this._entry.annotations || this._entry.pendingAnnotations) {
             this._updateReactions();
         }
-        this._updateReplyTileIfNeeded(options.tilesCreator);
+        this._updateReplyTileIfNeeded(options.tilesCreator, undefined);
     }
 
     get _mediaRepository() {
@@ -121,11 +121,11 @@ export class BaseMessageTile extends SimpleTile {
         if (action.shouldUpdate) {
             this._updateReactions();
         }
-        this._updateReplyTileIfNeeded(tilesCreator);
+        this._updateReplyTileIfNeeded(tilesCreator, param);
         return action;
     }
 
-    _updateReplyTileIfNeeded(tilesCreator) {
+    _updateReplyTileIfNeeded(tilesCreator, param) {
         const replyEntry = this._entry.contextEntry;
         if (replyEntry) {
             // this is an update to contextEntry used for replyPreview
