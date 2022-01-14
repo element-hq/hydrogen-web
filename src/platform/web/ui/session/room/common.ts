@@ -26,8 +26,9 @@ import {SimpleTile} from "../../../../../domain/session/room/timeline/tiles/Simp
 import {GapView} from "./timeline/GapView.js";
 
 export type TileView = GapView | AnnouncementView | TextMessageView |
-    ImageView | VideoView | FileView | MissingAttachmentView | RedactedView;
+    ImageView | VideoView | FileView | LocationView | MissingAttachmentView | RedactedView;
 
+// TODO: this is what works for a ctor but doesn't actually check we constrain the returned ctors to the types above
 type TileViewConstructor = (this: TileView, SimpleTile) => void;
 export function viewClassForEntry(entry: SimpleTile): TileViewConstructor | undefined {
     switch (entry.shape) {
