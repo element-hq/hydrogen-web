@@ -344,7 +344,7 @@ export class Timeline {
      * @returns entry if found, undefined otherwise
      */
     _findLoadedEventById(eventId) {
-        return this.getFromAllEntriesById(eventId) ?? this._contextEntriesNotInTimeline.get(eventId);
+        return this.getByEventId(eventId) ?? this._contextEntriesNotInTimeline.get(eventId);
     }
 
     async _getEventFromStorage(eventId) {
@@ -416,19 +416,6 @@ export class Timeline {
     getByEventId(eventId) {
         for (let i = 0; i < this._remoteEntries.length; i += 1) {
             const entry = this._remoteEntries.get(i);
-            if (entry.id === eventId) {
-                return entry;
-            }
-        }
-        return null;
-    }
-
-    getFromAllEntriesById(eventId) {
-        if (!this._allEntries) {
-            // if allEntries isn't loaded yet, fallback to looking only in remoteEntries
-            return this.getByEventId(eventId);
-        }
-        for (const entry of this._allEntries) {
             if (entry.id === eventId) {
                 return entry;
             }
