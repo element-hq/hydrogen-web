@@ -117,16 +117,16 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     updateEntry(entry, param, tilesCreator) {
-        this._updateReplyTileIfNeeded(tilesCreator);
         const action = super.updateEntry(entry, param, tilesCreator);
         if (action.shouldUpdate) {
             this._updateReactions();
         }
+        this._updateReplyTileIfNeeded(tilesCreator);
         return action;
     }
 
     _updateReplyTileIfNeeded(tilesCreator) {
-        const replyEntry = entry.contextEntry;
+        const replyEntry = this._entry.contextEntry;
         if (replyEntry) {
             // this is an update to contextEntry used for replyPreview
             const action = this._replyTile?.updateEntry(replyEntry, param, tilesCreator);
