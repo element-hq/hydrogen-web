@@ -29,7 +29,6 @@ function objHasFns(obj: ClassNames<unknown>): obj is { [className: string]: bool
     return false;
 }
 
-
 export type RenderFn<T> = (t: Builder<T>, vm: T) => ViewNode;
 type EventHandler = ((event: Event) => void);
 type AttributeStaticValue = string | boolean;
@@ -52,19 +51,12 @@ export type Builder<T> = TemplateBuilder<T> & { [tagName in typeof TAG_NAMES[str
         - add subviews inside the template
 */
 // TODO: should we rename this to BoundView or something? As opposed to StaticView ...
-export class TemplateView<T extends IObservableValue> extends BaseUpdateView<T> {
-    private _render?: RenderFn<T>;
+export abstract class TemplateView<T extends IObservableValue> extends BaseUpdateView<T> {
     private _eventListeners?: { node: Element, name: string, fn: EventHandler, useCapture: boolean }[] = undefined;
     private _bindings?: (() => void)[] = undefined;
     private _root?: ViewNode = undefined;
     // public because used by TemplateBuilder
     _subViews?: IView[] = undefined;
-
-    constructor(value: T, render?: RenderFn<T>) {
-        super(value);
-        // TODO: can avoid this if we have a separate class for inline templates vs class template views
-        this._render = render;
-    }
 
     _attach(): void {
         if (this._eventListeners) {
@@ -82,16 +74,12 @@ export class TemplateView<T extends IObservableValue> extends BaseUpdateView<T> 
         }
     }
 
+    abstract render(t: Builder<T>, value: T): ViewNode;
+
     mount(options?: IMountArgs): ViewNode {
         const builder = new TemplateBuilder(this) as Builder<T>;
         try {
-            if (this._render) {
-                this._root = this._render(builder, this._value);
-            } else if (this["render"]) {   // overriden in subclass
-                this._root = this["render"](builder, this._value);
-            } else {
-                throw new Error("no render function passed in, or overriden in subclass");
-            }
+            this._root = this.render(builder, this._value);
         } finally {
             builder.close();
         }
@@ -344,7 +332,7 @@ export class TemplateBuilder<T extends IObservableValue> {
     // on mappedValue, use `if` or `mapView`
     map<R>(mapFn: (value: T) => R, renderFn: (mapped: R, t: Builder<T>, vm: T) => ViewNode): ViewNode {
         return this.mapView(mapFn, mappedValue => {
-            return new TemplateView(this._value, (t, vm) => {
+            return new InlineTemplateView(this._value, (t, vm) => {
                 const rootNode = renderFn(mappedValue, t, vm);
                 if (!rootNode) {
                     // TODO: this will confuse mapView which assumes that
@@ -366,7 +354,7 @@ export class TemplateBuilder<T extends IObservableValue> {
     // creates a conditional subtemplate
     // use mapView if you need to map to a different view class
     if(predicate: (value: T) => boolean, renderFn: (t: Builder<T>, vm: T) => ViewNode) {
-        return this.ifView(predicate, vm => new TemplateView(vm, renderFn));
+        return this.ifView(predicate, vm => new InlineTemplateView(vm, renderFn));
     }
 
     /** You probably are looking for something else, like map or mapView.
@@ -396,5 +384,18 @@ for (const [ns, tags] of Object.entries(TAG_NAMES)) {
         TemplateBuilder.prototype[tag] = function(attributes, children) {
             return this.elNS(ns, tag, attributes, children);
         };
+    }
+}
+
+export class InlineTemplateView<T> extends TemplateView<T> {
+    private _render: RenderFn<T>;
+
+    constructor(value: T, render: RenderFn<T>) {
+        super(value);
+        this._render = render;
+    }
+
+    override render(t: Builder<T>, value: T): ViewNode {
+        return this._render(t, value);
     }
 }
