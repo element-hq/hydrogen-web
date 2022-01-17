@@ -50,7 +50,6 @@ export class SettingsViewModel extends ViewModel {
         this.minSentImageSizeLimit = 400;
         this.maxSentImageSizeLimit = 4000;
         this.pushNotifications = new PushNotificationStatus();
-        this._isLoggingOut = false;
     }
 
     get _session() {
@@ -58,13 +57,8 @@ export class SettingsViewModel extends ViewModel {
     }
 
     async logout() {
-        this._isLoggingOut = true;
-        await this._client.logout();
-        this.emitChange("isLoggingOut");
-        this.navigation.push("session", true);
+        this.navigation.push("logout", this._client.sessionId);
     }
-
-    get isLoggingOut() { return this._isLoggingOut; }
 
     setSentImageSizeLimit(size) {
         if (size > this.maxSentImageSizeLimit || size < this.minSentImageSizeLimit) {

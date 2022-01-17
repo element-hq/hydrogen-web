@@ -14,16 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../general/TemplateView";
+import {TemplateView, InlineTemplateView} from "../../general/TemplateView";
 import {StaticView} from "../../general/StaticView.js";
 
 export class SessionBackupSettingsView extends TemplateView {
     render(t, vm) {
         return t.mapView(vm => vm.status, status => {
             switch (status) {
-                case "Enabled": return new TemplateView(vm, renderEnabled)
-                case "SetupKey": return new TemplateView(vm, renderEnableFromKey)
-                case "SetupPhrase": return new TemplateView(vm, renderEnableFromPhrase)
+                case "Enabled": return new InlineTemplateView(vm, renderEnabled)
+                case "SetupKey": return new InlineTemplateView(vm, renderEnableFromKey)
+                case "SetupPhrase": return new InlineTemplateView(vm, renderEnableFromPhrase)
                 case "Pending": return new StaticView(vm, t => t.p(vm.i18n`Waiting to go online…`))
             }
         });
