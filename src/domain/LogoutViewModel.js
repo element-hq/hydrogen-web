@@ -57,7 +57,7 @@ export class LogoutViewModel extends ViewModel {
         if (this._error) {
             return this.i18n`Could not log out of device: ${this._error.message}`;
         } else {
-            return this.i18n`Logging out…`;
+            return this.i18n`Logging out… Please don't close the app.`;
         }
     }
 }
