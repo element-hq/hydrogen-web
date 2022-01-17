@@ -386,10 +386,21 @@ export class Client {
         return !this._reconnector;
     }
 
-    logout() {
+    startLogout(sessionId) {
         return this._platform.logger.run("logout", async log => {
+            this._sessionId = sessionId;
+            log.set("id", this._sessionId);
+            const sessionInfo = await this._platform.sessionInfoStorage.get(this._sessionId);
+            if (!sessionInfo) {
+                throw new Error(`Could not find session for id ${this._sessionId}`);
+            }
             try {
-                await this._session?.logout(log);
+                const hsApi = new HomeServerApi({
+                    homeserver: sessionInfo.homeServer,
+                    accessToken: sessionInfo.accessToken,
+                    request: this._platform.request
+                });
+                await hsApi.logout({log}).response();
             } catch (err) {}
             await this.deleteSession(log);
         });
