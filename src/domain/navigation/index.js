@@ -30,7 +30,7 @@ function allowsChild(parent, child) {
     switch (parent?.type) {
         case undefined:
             // allowed root segments
-            return type === "login"  || type === "session" || type === "sso";
+            return type === "login"  || type === "session" || type === "sso" || type === "logout";
         case "session":
             return type === "room" || type === "rooms" || type === "settings";
         case "rooms":
