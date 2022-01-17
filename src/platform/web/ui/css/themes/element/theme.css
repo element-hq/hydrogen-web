@@ -1058,3 +1058,20 @@ button.RoomDetailsView_row::after {
 .LazyListParent {
     overflow-y: auto;
 }
+
+.LogoutScreen {
+  height: 100vh;
+}
+
+.LogoutScreen .content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.LogoutScreen .status {
+    display: flex;
+    gap: 12px;
+}
