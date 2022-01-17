@@ -31,6 +31,12 @@ export class BaseMessageTile extends SimpleTile {
         this._updateReplyTileIfNeeded(options.tilesCreator, undefined);
     }
 
+    notifyVisible() {
+        super.notifyVisible();
+        this._replyTile?.notifyVisible();
+    }
+
+
     get _mediaRepository() {
         return this._room.mediaRepository;
     }

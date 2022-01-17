@@ -30,6 +30,7 @@ export class ComposerViewModel extends ViewModel {
             this._replyVM = this.disposeTracked(this._replyVM);
             if (entry) {
                 this._replyVM = this.track(this._roomVM._createTile(entry));
+                this._replyVM.notifyVisible();
             }
             this.emitChange("replyViewModel");
             this.emit("focus");
