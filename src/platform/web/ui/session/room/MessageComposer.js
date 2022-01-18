@@ -30,7 +30,6 @@ export class MessageComposer extends TemplateView {
 
     render(t, vm) {
         this._input = t.textarea({
-            enterkeyhint: 'send',
             onKeydown: e => this._onKeyDown(e),
             onInput: () => {
                 vm.setInput(this._input.value);
