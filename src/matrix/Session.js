@@ -70,6 +70,7 @@ export class Session {
         this._e2eeAccount = null;
         this._deviceTracker = null;
         this._olmEncryption = null;
+        this._keyLoader = null;
         this._megolmEncryption = null;
         this._megolmDecryption = null;
         this._getSyncToken = () => this.syncToken;
@@ -141,8 +142,8 @@ export class Session {
             now: this._platform.clock.now,
             ownDeviceId: this._sessionInfo.deviceId,
         });
-        const keyLoader = new MegOlmKeyLoader(this._olm, PICKLE_KEY, 20);
-        this._megolmDecryption = new MegOlmDecryption(keyLoader, this._olmWorker);
+        this._keyLoader = new MegOlmKeyLoader(this._olm, PICKLE_KEY, 20);
+        this._megolmDecryption = new MegOlmDecryption(this._keyLoader, this._olmWorker);
         this._deviceMessageHandler.enableEncryption({olmDecryption, megolmDecryption: this._megolmDecryption});
     }
 
@@ -246,12 +247,14 @@ export class Session {
 
     async _createSessionBackup(ssssKey, txn) {
         const secretStorage = new SecretStorage({key: ssssKey, platform: this._platform});
-        this._sessionBackup = await SessionBackup.fromSecretStorage({
-            platform: this._platform,
-            olm: this._olm, secretStorage,
-            hsApi: this._hsApi,
+        this._sessionBackup = await SessionBackup.fromSecretStorage(
+            this._platform,
+            this._olm,
+            secretStorage,
+            this._hsApi,
+            this._keyLoader,
             txn
-        });
+        );
         if (this._sessionBackup) {
             for (const room of this._rooms.values()) {
                 if (room.isEncrypted) {
