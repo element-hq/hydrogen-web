@@ -17,7 +17,9 @@ limitations under the License.
 import type {InboundGroupSessionEntry} from "../../../storage/idb/stores/InboundGroupSessionStore";
 import type {Transaction} from "../../../storage/idb/Transaction";
 import type {DecryptionResult} from "../../DecryptionResult";
-import type {KeyLoader, OlmInboundGroupSession} from "./KeyLoader";
+import type {KeyLoader} from "./KeyLoader";
+import type * as OlmNamespace from "@matrix-org/olm";
+type Olm = typeof OlmNamespace;
 
 export abstract class RoomKey {
     private _isBetter: boolean | undefined;
@@ -33,7 +35,7 @@ export abstract class RoomKey {
     abstract get serializationKey(): string;
     abstract get serializationType(): string;
     abstract get eventIds(): string[] | undefined;
-    abstract loadInto(session: OlmInboundGroupSession, pickleKey: string): void;
+    abstract loadInto(session: Olm.InboundGroupSession, pickleKey: string): void;
     /* Whether the key has been checked against storage (or is from storage)
      * to be the better key for a given session. Given that all keys are checked to be better
      * as part of writing, we can trust that when this returns true, it really is the best key
@@ -44,7 +46,7 @@ export abstract class RoomKey {
     set isBetter(value: boolean | undefined) { this._isBetter = value; }
 }
 
-export function isBetterThan(newSession: OlmInboundGroupSession, existingSession: OlmInboundGroupSession) {
+export function isBetterThan(newSession: Olm.InboundGroupSession, existingSession: Olm.InboundGroupSession) {
      return newSession.first_known_index() < existingSession.first_known_index();
 }
 
@@ -87,7 +89,7 @@ export abstract class IncomingRoomKey extends RoomKey {
 
     get eventIds() { return this._eventIds; }
 
-    private async _checkBetterThanKeyInStorage(loader: KeyLoader, callback: (((session: OlmInboundGroupSession, pickleKey: string) => void) | undefined), txn: Transaction): Promise<boolean> {
+    private async _checkBetterThanKeyInStorage(loader: KeyLoader, callback: (((session: Olm.InboundGroupSession, pickleKey: string) => void) | undefined), txn: Transaction): Promise<boolean> {
         if (this.isBetter !== undefined) {
             return this.isBetter;
         }
