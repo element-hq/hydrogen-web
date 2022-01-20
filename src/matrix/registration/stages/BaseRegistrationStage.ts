@@ -43,10 +43,10 @@ export abstract class BaseRegistrationStage {
     /**
      * Finish a registration stage, return value is:
      * - the next stage if this stage was completed successfully
-     * - true if registration is completed
+     * - user-id (string) if registration is completed
      * - an error if something went wrong
      */
-    abstract complete(auth?: Auth): Promise<BaseRegistrationStage | Error | true>;
+    abstract complete(auth?: Auth): Promise<BaseRegistrationStage | Error | string>;
 
     setNextStage(stage: BaseRegistrationStage) {
         this._nextStage = stage;
@@ -55,7 +55,7 @@ export abstract class BaseRegistrationStage {
     parseResponse(response: RegistrationResponse) {
         if (response.user_id) {
             // registration completed successfully
-            return true;
+            return response.user_id;
         }
         else if (response.completed?.find(c => c === this.type)) {
             return this._nextStage;
