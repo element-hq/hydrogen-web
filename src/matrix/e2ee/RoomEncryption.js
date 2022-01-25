@@ -182,35 +182,30 @@ export class RoomEncryption {
         log.set("id", sessionId);
         log.set("senderKey", senderKey);
         try {
-            const session = await this._sessionBackup.getSession(this._room.id, sessionId, log);
-            if (session?.algorithm === MEGOLM_ALGORITHM) {
-                let roomKey = this._megolmDecryption.roomKeyFromBackup(this._room.id, sessionId, session);
-                if (roomKey) {
-                    if (roomKey.senderKey !== senderKey) {
-                        log.set("wrong_sender_key", roomKey.senderKey);
-                        log.logLevel = log.level.Warn;
-                        return;
-                    }
-                    let keyIsBestOne = false;
-                    let retryEventIds;
-                    const txn = await this._storage.readWriteTxn([this._storage.storeNames.inboundGroupSessions]);
-                    try {
-                        keyIsBestOne = await this._megolmDecryption.writeRoomKey(roomKey, txn);
-                        log.set("isBetter", keyIsBestOne);
-                        if (keyIsBestOne) {
-                            retryEventIds = roomKey.eventIds;
-                        }
-                    } catch (err) {
-                        txn.abort();
-                        throw err;
-                    }
-                    await txn.complete();
-                    if (keyIsBestOne) {
-                        await log.wrap("retryDecryption", log => this._room.notifyRoomKey(roomKey, retryEventIds || [], log));
-                    }
+            const roomKey = await this._sessionBackup.getRoomKey(this._room.id, sessionId, log);
+            if (roomKey) {
+                if (roomKey.senderKey !== senderKey) {
+                    log.set("wrong_sender_key", roomKey.senderKey);
+                    log.logLevel = log.level.Warn;
+                    return;
                 }
-            } else if (session?.algorithm) {
-                log.set("unknown algorithm", session.algorithm);
+                let keyIsBestOne = false;
+                let retryEventIds;
+                const txn = await this._storage.readWriteTxn([this._storage.storeNames.inboundGroupSessions]);
+                try {
+                    keyIsBestOne = await this._megolmDecryption.writeRoomKey(roomKey, txn);
+                    log.set("isBetter", keyIsBestOne);
+                    if (keyIsBestOne) {
+                        retryEventIds = roomKey.eventIds;
+                    }
+                } catch (err) {
+                    txn.abort();
+                    throw err;
+                }
+                await txn.complete();
+                if (keyIsBestOne) {
+                    await log.wrap("retryDecryption", log => this._room.notifyRoomKey(roomKey, retryEventIds || [], log));
+                }
             }
         } catch (err) {
             if (!(err.name === "HomeServerError" && err.errcode === "M_NOT_FOUND")) {
