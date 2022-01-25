@@ -253,6 +253,7 @@ export class Session {
             secretStorage,
             this._hsApi,
             this._keyLoader,
+            this._storage,
             txn
         );
         if (this._sessionBackup) {
@@ -580,6 +581,11 @@ export class Session {
 
         if (preparation) {
             await log.wrap("deviceMsgs", log => this._deviceMessageHandler.writeSync(preparation, txn, log));
+            // this should come after the deviceMessageHandler, so the room keys are already written and their
+            // isBetter property has been checked
+            if (this._sessionBackup) {
+                this._sessionBackup.writeKeys(preparation.newRoomKeys, txn, log);
+            }
         }
 
         // store account data
@@ -616,6 +622,9 @@ export class Session {
             if (needsToUploadOTKs) {
                 await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, false, log));
             }
+        }
+        if (this._sessionBackup) {
+            this._sessionBackup.flush();
         }
     }
 
