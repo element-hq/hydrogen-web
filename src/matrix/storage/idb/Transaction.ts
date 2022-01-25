@@ -36,6 +36,7 @@ import {OutboundGroupSessionStore} from "./stores/OutboundGroupSessionStore";
 import {GroupSessionDecryptionStore} from "./stores/GroupSessionDecryptionStore";
 import {OperationStore} from "./stores/OperationStore";
 import {AccountDataStore} from "./stores/AccountDataStore";
+import {SessionNeedingBackupStore} from "./stores/SessionNeedingBackupStore";
 import type {ILogger, ILogItem} from "../../../logging/types";
 
 export type IDBKey = IDBValidKey | IDBKeyRange;
@@ -150,6 +151,10 @@ export class Transaction {
     
     get inboundGroupSessions(): InboundGroupSessionStore {
         return this._store(StoreNames.inboundGroupSessions, idbStore => new InboundGroupSessionStore(idbStore));
+    }
+
+    get sessionsNeedingBackup(): SessionNeedingBackupStore {
+        return this._store(StoreNames.sessionsNeedingBackup, idbStore => new SessionNeedingBackupStore(idbStore));
     }
     
     get outboundGroupSessions(): OutboundGroupSessionStore {

@@ -31,7 +31,8 @@ export const schema: MigrationFunc[] = [
     fixMissingRoomsInUserIdentities,
     changeSSSSKeyPrefix,
     backupAndRestoreE2EEAccountToLocalStorage,
-    clearAllStores
+    clearAllStores,
+    createSessionsNeedingBackup
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -269,4 +270,9 @@ async function clearAllStores(db: IDBDatabase, txn: IDBTransaction) {
             }
         }
     }
+}
+
+// v15 adds the sessionsNeedingBackup store, for session backup
+function createSessionsNeedingBackup(db: IDBDatabase): void {
+    db.createObjectStore("sessionsNeedingBackup", {keyPath: "key"});
 }
