@@ -148,15 +148,8 @@ class DeviceMessageRoomKey extends IncomingRoomKey {
 }
 
 class BackupRoomKey extends IncomingRoomKey {
-    private _roomId: string;
-    private _sessionId: string;
-    private _backupInfo: string;
-
-    constructor(roomId, sessionId, backupInfo) {
+    constructor(private _roomId: string, private _sessionId: string, private _backupInfo: object) {
         super();
-        this._roomId = roomId;
-        this._sessionId = sessionId;
-        this._backupInfo = backupInfo;
     }
 
     get roomId() { return this._roomId; }
