@@ -46,7 +46,7 @@ export class InboundGroupSessionStore {
         return key === fetchedKey;
     }
 
-    get(roomId: string, senderKey: string, sessionId: string): Promise<InboundGroupSessionEntry | null> {
+    get(roomId: string, senderKey: string, sessionId: string): Promise<InboundGroupSessionEntry | undefined> {
         return this._store.get(encodeKey(roomId, senderKey, sessionId));
     }
 

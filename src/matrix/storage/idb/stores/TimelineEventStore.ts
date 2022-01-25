@@ -301,11 +301,11 @@ export class TimelineEventStore {
         this._timelineStore.put(entry as TimelineEventStorageEntry);
     }
 
-    get(roomId: string, eventKey: EventKey): Promise<TimelineEventEntry | null> {
+    get(roomId: string, eventKey: EventKey): Promise<TimelineEventEntry | undefined> {
         return this._timelineStore.get(encodeKey(roomId, eventKey.fragmentId, eventKey.eventIndex));
     }
 
-    getByEventId(roomId: string, eventId: string): Promise<TimelineEventEntry | null> {
+    getByEventId(roomId: string, eventId: string): Promise<TimelineEventEntry | undefined> {
         return this._timelineStore.index("byEventId").get(encodeEventIdKey(roomId, eventId));
     }
 

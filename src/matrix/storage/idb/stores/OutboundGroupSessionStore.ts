@@ -32,7 +32,7 @@ export class OutboundGroupSessionStore {
         this._store.delete(roomId);
     }
 
-    get(roomId: string): Promise<OutboundSession | null> {
+    get(roomId: string): Promise<OutboundSession | undefined> {
         return this._store.get(roomId);
     }
 

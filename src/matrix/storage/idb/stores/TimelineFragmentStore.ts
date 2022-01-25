@@ -83,7 +83,7 @@ export class TimelineFragmentStore {
         this._store.put(fragment);
     }
 
-    get(roomId: string, fragmentId: number): Promise<FragmentEntry | null> {
+    get(roomId: string, fragmentId: number): Promise<FragmentEntry | undefined> {
         return this._store.get(encodeKey(roomId, fragmentId));
     }
 

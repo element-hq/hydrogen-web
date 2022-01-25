@@ -28,7 +28,7 @@ export class AccountDataStore {
         this._store = store;
     }
 
-    async get(type: string): Promise<AccountDataEntry | null> {
+    async get(type: string): Promise<AccountDataEntry | undefined> {
         return await this._store.get(type);
     }
 
