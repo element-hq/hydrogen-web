@@ -28,7 +28,7 @@ export type BackupInfo = BaseBackupInfo & {
     auth_data: AuthData,
 }
 
-export type AuthData = {
+type AuthData = {
     public_key: string,
     signatures: SignatureMap
 }

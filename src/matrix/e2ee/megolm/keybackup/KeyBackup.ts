@@ -24,7 +24,6 @@ import type {IncomingRoomKey, RoomKey} from "../decryption/RoomKey";
 import type {KeyLoader} from "../decryption/KeyLoader";
 import type {SecretStorage} from "../../../ssss/SecretStorage";
 import type {Storage} from "../../../storage/idb/Storage";
-import type {DeviceIdentity} from "../../../storage/idb/stores/DeviceIdentityStore";
 import type {ILogItem} from "../../../../logging/types";
 import type {Platform} from "../../../../platform/web/Platform";
 import type {Transaction} from "../../../storage/idb/Transaction";
@@ -46,13 +45,13 @@ type OtherBackupInfo = BaseBackupInfo & {
 };
 
 type BackupInfo = Curve25519.BackupInfo | OtherBackupInfo;
-type AuthData = Curve25519.AuthData;
+type SessionData = Curve25519.SessionData;
 
 type SessionInfo = {
     first_message_index: number,
     forwarded_count: number,
     is_verified: boolean,
-    session_data: Curve25519.SessionData | any
+    session_data: SessionData
 }
 
 type MegOlmSessionKeyInfo = {
@@ -63,6 +62,7 @@ type MegOlmSessionKeyInfo = {
     session_key: string
 }
 
+// the type that session_data decrypts from / encrypts to
 export type SessionKeyInfo = MegOlmSessionKeyInfo | {algorithm: string};
 
 type KeyBackupPayload = {
