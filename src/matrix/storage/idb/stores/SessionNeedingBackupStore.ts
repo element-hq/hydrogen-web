@@ -26,7 +26,7 @@ type StorageEntry = {
     key: string
 };
 
-function encodeKey(roomId: string, senderKey: string, sessionId: string): string {
+export function encodeKey(roomId: string, senderKey: string, sessionId: string): string {
     return `${roomId}|${senderKey}|${sessionId}`;
 }
 
