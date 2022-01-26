@@ -118,6 +118,14 @@ export class QueryTargetWrapper<T> {
         }
     }
 
+    count(keyRange?: IDBKeyRange): IDBRequest<number> {
+        try {
+            return this._qtStore.count(keyRange);
+        } catch(err) {
+            throw new IDBRequestAttemptError("count", this._qt, err, [keyRange]);
+        }
+    }
+
     index(name: string): IDBIndex {
         try {
             return this._qtStore.index(name);
