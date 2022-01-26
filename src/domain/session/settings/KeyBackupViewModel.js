@@ -20,7 +20,7 @@ import {createEnum} from "../../../utils/enum";
 
 export const Status = createEnum("Enabled", "SetupKey", "SetupPhrase", "Pending"); 
 
-export class SessionBackupViewModel extends ViewModel {
+export class KeyBackupViewModel extends ViewModel {
     constructor(options) {
         super(options);
         this._session = options.session;
@@ -43,7 +43,7 @@ export class SessionBackupViewModel extends ViewModel {
         let status;
         const hasSecretStorageKey = this._session.hasSecretStorageKey.get();
         if (hasSecretStorageKey === true) {
-            status = this._session.sessionBackup ? Status.Enabled : Status.SetupKey;
+            status = this._session.keyBackup ? Status.Enabled : Status.SetupKey;
         } else if (hasSecretStorageKey === false) {
             status = Status.SetupKey;
         } else {
@@ -59,7 +59,7 @@ export class SessionBackupViewModel extends ViewModel {
     }
 
     get purpose() {
-        return this.i18n`set up session backup`;
+        return this.i18n`set up key backup`;
     }
 
     offerDehydratedDeviceSetup() {
@@ -75,7 +75,7 @@ export class SessionBackupViewModel extends ViewModel {
     }
 
     get backupVersion() {
-        return this._session.sessionBackup?.version;
+        return this._session.keyBackup?.version;
     }
 
     get status() {

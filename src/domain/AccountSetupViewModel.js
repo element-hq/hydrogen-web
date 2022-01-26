@@ -16,7 +16,7 @@ limitations under the License.
 
 import {ViewModel} from "./ViewModel.js";
 import {KeyType} from "../matrix/ssss/index";
-import {Status} from "./session/settings/SessionBackupViewModel.js";
+import {Status} from "./session/settings/KeyBackupViewModel.js";
 
 export class AccountSetupViewModel extends ViewModel {
     constructor(accountSetup) {
@@ -50,7 +50,7 @@ export class AccountSetupViewModel extends ViewModel {
     }
 }
 
-// this vm adopts the same shape as SessionBackupViewModel so the same view can be reused.
+// this vm adopts the same shape as KeyBackupViewModel so the same view can be reused.
 class DecryptDehydratedDeviceViewModel extends ViewModel {
     constructor(accountSetupViewModel, decryptedCallback) {
         super();

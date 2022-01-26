@@ -17,7 +17,7 @@ limitations under the License.
 import {TemplateView, InlineTemplateView} from "../../general/TemplateView";
 import {StaticView} from "../../general/StaticView.js";
 
-export class SessionBackupSettingsView extends TemplateView {
+export class KeyBackupSettingsView extends TemplateView {
     render(t, vm) {
         return t.mapView(vm => vm.status, status => {
             switch (status) {

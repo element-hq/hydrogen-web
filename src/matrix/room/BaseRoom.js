@@ -461,11 +461,11 @@ export class BaseRoom extends EventEmitter {
         return observable;
     }
 
-    enableSessionBackup(sessionBackup) {
-        this._roomEncryption?.enableSessionBackup(sessionBackup);
+    enableKeyBackup(keyBackup) {
+        this._roomEncryption?.enableKeyBackup(keyBackup);
         // TODO: do we really want to do this every time you open the app?
-        if (this._timeline && sessionBackup) {
-            this._platform.logger.run("enableSessionBackup", log => {
+        if (this._timeline && keyBackup) {
+            this._platform.logger.run("enableKeyBackup", log => {
                 return this._roomEncryption.restoreMissingSessionsFromBackup(this._timeline.remoteEntries, log);
             });
         }

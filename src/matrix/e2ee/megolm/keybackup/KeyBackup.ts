@@ -14,20 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {StoreNames} from "../../storage/common";
-import {LRUCache} from "../../../utils/LRUCache";
-import {keyFromStorage, keyFromBackup} from "./decryption/RoomKey";
-import {MEGOLM_ALGORITHM} from "../common";
+import {StoreNames} from "../../../storage/common";
+import {LRUCache} from "../../../../utils/LRUCache";
+import {keyFromStorage, keyFromBackup} from "../decryption/RoomKey";
+import {MEGOLM_ALGORITHM} from "../../common";
 
-import type {HomeServerApi} from "../../net/HomeServerApi";
-import type {IncomingRoomKey, RoomKey} from "./decryption/RoomKey";
-import type {KeyLoader} from "./decryption/KeyLoader";
-import type {SecretStorage} from "../../ssss/SecretStorage";
-import type {Storage} from "../../storage/idb/Storage";
-import type {DeviceIdentity} from "../../storage/idb/stores/DeviceIdentityStore";
-import type {ILogItem} from "../../../logging/types";
-import type {Platform} from "../../../platform/web/Platform";
-import type {Transaction} from "../../storage/idb/Transaction";
+import type {HomeServerApi} from "../../../net/HomeServerApi";
+import type {IncomingRoomKey, RoomKey} from "../decryption/RoomKey";
+import type {KeyLoader} from "../decryption/KeyLoader";
+import type {SecretStorage} from "../../../ssss/SecretStorage";
+import type {Storage} from "../../../storage/idb/Storage";
+import type {DeviceIdentity} from "../../../storage/idb/stores/DeviceIdentityStore";
+import type {ILogItem} from "../../../../logging/types";
+import type {Platform} from "../../../../platform/web/Platform";
+import type {Transaction} from "../../../storage/idb/Transaction";
 import type * as OlmNamespace from "@matrix-org/olm";
 type Olm = typeof OlmNamespace;
 
@@ -85,7 +85,7 @@ type MegOlmSessionKeyInfo = {
 
 type SessionKeyInfo = MegOlmSessionKeyInfo | {algorithm: string};
 
-export class SessionBackup {
+export class KeyBackup {
     constructor(
         private readonly backupInfo: BackupInfo,
         private readonly algorithm: Curve25519,
@@ -187,14 +187,14 @@ export class SessionBackup {
         this.algorithm.dispose();
     }
 
-    static async fromSecretStorage(platform: Platform, olm: Olm, secretStorage: SecretStorage, hsApi: HomeServerApi, keyLoader: KeyLoader, storage: Storage, txn: Transaction) {
+    static async fromSecretStorage(platform: Platform, olm: Olm, secretStorage: SecretStorage, hsApi: HomeServerApi, keyLoader: KeyLoader, storage: Storage, txn: Transaction): Promise<KeyBackup | undefined> {
         const base64PrivateKey = await secretStorage.readSecret("m.megolm_backup.v1", txn);
         if (base64PrivateKey) {
             const privateKey = new Uint8Array(platform.encoding.base64.decode(base64PrivateKey));
             const backupInfo = await hsApi.roomKeysVersion().response() as BackupInfo;
             if (backupInfo.algorithm === Curve25519Algorithm) {
                 const algorithm = Curve25519.fromAuthData(backupInfo.auth_data, privateKey, olm);
-                return new SessionBackup(backupInfo, algorithm, hsApi, keyLoader, storage, platform);
+                return new KeyBackup(backupInfo, algorithm, hsApi, keyLoader, storage, platform);
             } else {
                 throw new Error(`Unknown backup algorithm: ${backupInfo.algorithm}`);
             }

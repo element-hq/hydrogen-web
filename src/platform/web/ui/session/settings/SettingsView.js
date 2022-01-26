@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../general/TemplateView";
-import {SessionBackupSettingsView} from "./SessionBackupSettingsView.js"
+import {KeyBackupSettingsView} from "./KeyBackupSettingsView.js"
 
 export class SettingsView extends TemplateView {
     render(t, vm) {
@@ -47,8 +47,8 @@ export class SettingsView extends TemplateView {
             }, vm.i18n`Log out`)),
         );
         settingNodes.push(
-            t.h3("Session Backup"),
-            t.view(new SessionBackupSettingsView(vm.sessionBackupViewModel))
+            t.h3("Key backup"),
+            t.view(new KeyBackupSettingsView(vm.keyBackupViewModel))
         );
 
         settingNodes.push(

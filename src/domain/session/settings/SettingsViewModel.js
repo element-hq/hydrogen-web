@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {ViewModel} from "../../ViewModel.js";
-import {SessionBackupViewModel} from "./SessionBackupViewModel.js";
+import {KeyBackupViewModel} from "./KeyBackupViewModel.js";
 
 class PushNotificationStatus {
     constructor() {
@@ -43,7 +43,7 @@ export class SettingsViewModel extends ViewModel {
         this._updateService = options.updateService;
         const {client} = options;
         this._client = client;
-        this._sessionBackupViewModel = this.track(new SessionBackupViewModel(this.childOptions({session: this._session})));
+        this._keyBackupViewModel = this.track(new KeyBackupViewModel(this.childOptions({session: this._session})));
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
         this._estimate = null;
         this.sentImageSizeLimit = null;
@@ -115,8 +115,8 @@ export class SettingsViewModel extends ViewModel {
         return !!this.platform.updateService;
     }
 
-    get sessionBackupViewModel() {
-        return this._sessionBackupViewModel;
+    get keyBackupViewModel() {
+        return this._keyBackupViewModel;
     }
 
     get storageQuota() {

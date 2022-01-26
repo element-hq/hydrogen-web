@@ -28,7 +28,7 @@ const MIN_PRESHARE_INTERVAL = 60 * 1000; // 1min
 
 // TODO: this class is a good candidate for splitting up into encryption and decryption, there doesn't seem to be much overlap
 export class RoomEncryption {
-    constructor({room, deviceTracker, olmEncryption, megolmEncryption, megolmDecryption, encryptionParams, storage, sessionBackup, notifyMissingMegolmSession, clock}) {
+    constructor({room, deviceTracker, olmEncryption, megolmEncryption, megolmDecryption, encryptionParams, storage, keyBackup, notifyMissingMegolmSession, clock}) {
         this._room = room;
         this._deviceTracker = deviceTracker;
         this._olmEncryption = olmEncryption;
@@ -39,7 +39,7 @@ export class RoomEncryption {
         // caches devices to verify events
         this._senderDeviceCache = new Map();
         this._storage = storage;
-        this._sessionBackup = sessionBackup;
+        this._keyBackup = keyBackup;
         this._notifyMissingMegolmSession = notifyMissingMegolmSession;
         this._clock = clock;
         this._isFlushingRoomKeyShares = false;
@@ -48,11 +48,11 @@ export class RoomEncryption {
         this._disposed = false;
     }
 
-    enableSessionBackup(sessionBackup) {
-        if (this._sessionBackup && !!sessionBackup) {
+    enableKeyBackup(keyBackup) {
+        if (this._keyBackup && !!keyBackup) {
             return;
         }
-        this._sessionBackup = sessionBackup;
+        this._keyBackup = keyBackup;
     }
 
     async restoreMissingSessionsFromBackup(entries, log) {
@@ -130,7 +130,7 @@ export class RoomEncryption {
             }));
         }
         
-        if (!this._sessionBackup) {
+        if (!this._keyBackup) {
             return;
         }
 
@@ -174,7 +174,7 @@ export class RoomEncryption {
 
     async _requestMissingSessionFromBackup(senderKey, sessionId, log) {
         // show prompt to enable secret storage
-        if (!this._sessionBackup) {
+        if (!this._keyBackup) {
             log.set("enabled", false);
             this._notifyMissingMegolmSession();
             return;
@@ -182,7 +182,7 @@ export class RoomEncryption {
         log.set("id", sessionId);
         log.set("senderKey", senderKey);
         try {
-            const roomKey = await this._sessionBackup.getRoomKey(this._room.id, sessionId, log);
+            const roomKey = await this._keyBackup.getRoomKey(this._room.id, sessionId, log);
             if (roomKey) {
                 if (roomKey.senderKey !== senderKey) {
                     log.set("wrong_sender_key", roomKey.senderKey);

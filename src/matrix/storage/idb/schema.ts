@@ -272,7 +272,7 @@ async function clearAllStores(db: IDBDatabase, txn: IDBTransaction) {
     }
 }
 
-// v15 adds the sessionsNeedingBackup store, for session backup
+// v15 adds the sessionsNeedingBackup store, for key backup
 function createSessionsNeedingBackup(db: IDBDatabase): void {
     db.createObjectStore("sessionsNeedingBackup", {keyPath: "key"});
 }
