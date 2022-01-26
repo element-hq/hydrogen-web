@@ -30,49 +30,6 @@ import type {Transaction} from "../../../storage/idb/Transaction";
 import type * as OlmNamespace from "@matrix-org/olm";
 type Olm = typeof OlmNamespace;
 
-export type SignatureMap = {
-    [userId: string]: {[deviceIdAndAlgorithm: string]: string}
-}
-
-export type BaseBackupInfo = {
-    version: string,
-    etag: string,
-    count: number,
-}
-
-type OtherBackupInfo = BaseBackupInfo & {
-    algorithm: "other"
-};
-
-type BackupInfo = Curve25519.BackupInfo | OtherBackupInfo;
-type SessionData = Curve25519.SessionData;
-
-type SessionInfo = {
-    first_message_index: number,
-    forwarded_count: number,
-    is_verified: boolean,
-    session_data: SessionData
-}
-
-type MegOlmSessionKeyInfo = {
-    algorithm: MEGOLM_ALGORITHM,
-    sender_key: string,
-    sender_claimed_keys: {[algorithm: string]: string},
-    forwarding_curve25519_key_chain: string[],
-    session_key: string
-}
-
-// the type that session_data decrypts from / encrypts to
-export type SessionKeyInfo = MegOlmSessionKeyInfo | {algorithm: string};
-
-type KeyBackupPayload = {
-    rooms: {
-        [roomId: string]: {
-            sessions: {[sessionId: string]: SessionInfo}
-        }
-    }
-}
-
 export class KeyBackup {
     constructor(
         private readonly backupInfo: BackupInfo,

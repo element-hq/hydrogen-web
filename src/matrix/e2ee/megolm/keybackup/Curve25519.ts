@@ -17,7 +17,7 @@ limitations under the License.
 import {MEGOLM_ALGORITHM} from "../../common";
 import type {RoomKey} from "../decryption/RoomKey";
 
-import type {BaseBackupInfo, SignatureMap, SessionKeyInfo} from "./KeyBackup";
+import type {BaseBackupInfo, SignatureMap, SessionKeyInfo} from "./types";
 import type * as OlmNamespace from "@matrix-org/olm";
 type Olm = typeof OlmNamespace;
 
