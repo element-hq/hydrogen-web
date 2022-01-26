@@ -76,6 +76,7 @@ export class Session {
         this._getSyncToken = () => this.syncToken;
         this._olmWorker = olmWorker;
         this._keyBackup = null;
+        this._keyBackupOperation = new ObservableValue(null);
         this._hasSecretStorageKey = new ObservableValue(null);
         this._observedRoomStatus = new Map();
 
@@ -268,6 +269,10 @@ export class Session {
 
     get keyBackup() {
         return this._keyBackup;
+    }
+
+    get keyBackupOperation() {
+        return this._keyBackupOperation;
     }
 
     get hasIdentity() {
@@ -559,7 +564,7 @@ export class Session {
     async writeSync(syncResponse, syncFilterId, preparation, txn, log) {
         const changes = {
             syncInfo: null,
-            e2eeAccountChanges: null,
+            e2eeAccountChanges: null
         };
         const syncToken = syncResponse.next_batch;
         if (syncToken !== this.syncToken) {
@@ -584,7 +589,7 @@ export class Session {
             // this should come after the deviceMessageHandler, so the room keys are already written and their
             // isBetter property has been checked
             if (this._keyBackup) {
-                this._keyBackup.writeKeys(preparation.newRoomKeys, txn, log);
+                changes.shouldFlushKeyBackup = this._keyBackup.writeKeys(preparation.newRoomKeys, txn, log);
             }
         }
 
@@ -623,8 +628,18 @@ export class Session {
                 await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, false, log));
             }
         }
-        if (this._keyBackup) {
-            this._keyBackup.flush();
+        // should flush and not already flushing
+        if (changes.shouldFlushKeyBackup && this._keyBackup && !this._keyBackupOperation.get()) {
+            log.wrapDetached("flush key backup", async log => {
+                const operation = this._keyBackup.flush(log);
+                this._keyBackupOperation.set(operation);
+                try {
+                    await operation.result;
+                } catch (err) {
+                    log.catch(err);
+                }
+                this._keyBackupOperation.set(null);
+            });
         }
     }
 

@@ -53,4 +53,8 @@ export class SessionNeedingBackupStore {
     remove(roomId: string, senderKey: string, sessionId: string): void {
         this.store.delete(encodeKey(roomId, senderKey, sessionId));
     }
+
+    count(): Promise<number> {
+        return this.store.count();
+    }
 }
