@@ -15,9 +15,9 @@ limitations under the License.
 */
 
 import {StoreNames} from "../../../storage/common";
-import {LRUCache} from "../../../../utils/LRUCache";
 import {keyFromStorage, keyFromBackup} from "../decryption/RoomKey";
 import {MEGOLM_ALGORITHM} from "../../common";
+import * as Curve25519 from "./Curve25519";
 
 import type {HomeServerApi} from "../../../net/HomeServerApi";
 import type {IncomingRoomKey, RoomKey} from "../decryption/RoomKey";
@@ -31,48 +31,28 @@ import type {Transaction} from "../../../storage/idb/Transaction";
 import type * as OlmNamespace from "@matrix-org/olm";
 type Olm = typeof OlmNamespace;
 
-type SignatureMap = {
+export type SignatureMap = {
     [userId: string]: {[deviceIdAndAlgorithm: string]: string}
 }
 
-interface BaseBackupInfo {
+export type BaseBackupInfo = {
     version: string,
     etag: string,
     count: number,
 }
 
-const Curve25519Algorithm = "m.megolm_backup.v1.curve25519-aes-sha2";
-
-interface Curve25519BackupInfo extends BaseBackupInfo {
-    algorithm: typeof Curve25519Algorithm,
-    auth_data: Curve25519AuthData,
-}
-
-interface OtherBackupInfo extends BaseBackupInfo {
+type OtherBackupInfo = BaseBackupInfo & {
     algorithm: "other"
 };
 
-type BackupInfo = Curve25519BackupInfo | OtherBackupInfo;
-
-
-interface Curve25519AuthData {
-    public_key: string,
-    signatures: SignatureMap
-}
-
-type AuthData = Curve25519AuthData;
+type BackupInfo = Curve25519.BackupInfo | OtherBackupInfo;
+type AuthData = Curve25519.AuthData;
 
 type SessionInfo = {
     first_message_index: number,
     forwarded_count: number,
     is_verified: boolean,
-    session_data: Curve29915SessionData | any
-}
-
-type Curve29915SessionData = {
-    ciphertext: string,
-    mac: string,
-    ephemeral: string,
+    session_data: Curve25519.SessionData | any
 }
 
 type MegOlmSessionKeyInfo = {
@@ -83,12 +63,20 @@ type MegOlmSessionKeyInfo = {
     session_key: string
 }
 
-type SessionKeyInfo = MegOlmSessionKeyInfo | {algorithm: string};
+export type SessionKeyInfo = MegOlmSessionKeyInfo | {algorithm: string};
+
+type KeyBackupPayload = {
+    rooms: {
+        [roomId: string]: {
+            sessions: {[sessionId: string]: SessionInfo}
+        }
+    }
+}
 
 export class KeyBackup {
     constructor(
         private readonly backupInfo: BackupInfo,
-        private readonly algorithm: Curve25519,
+        private readonly crypto: Curve25519.BackupEncryption,
         private readonly hsApi: HomeServerApi,
         private readonly keyLoader: KeyLoader,
         private readonly storage: Storage,
@@ -100,7 +88,7 @@ export class KeyBackup {
         if (!sessionResponse.session_data) {
             return;
         }
-        const sessionKeyInfo = this.algorithm.decryptRoomKey(sessionResponse.session_data);
+        const sessionKeyInfo = this.crypto.decryptRoomKey(sessionResponse.session_data as Curve25519.SessionData);
         if (sessionKeyInfo?.algorithm === MEGOLM_ALGORITHM) {
             return keyFromBackup(roomId, sessionId, sessionKeyInfo);
         } else if (sessionKeyInfo?.algorithm) {
@@ -131,13 +119,7 @@ export class KeyBackup {
                 return;
             }
             const roomKeys = await Promise.all(keysNeedingBackup.map(k => keyFromStorage(k.roomId, k.senderKey, k.sessionId, txn)));
-            const payload: {
-                rooms: {
-                    [roomId: string]: {
-                        sessions: {[sessionId: string]: SessionInfo}
-                    }
-                }
-            } = { rooms: {} };
+            const payload: KeyBackupPayload = { rooms: {} };
             const payloadRooms = payload.rooms;
             for (const key of roomKeys) {
                 if (key) {
@@ -174,7 +156,7 @@ export class KeyBackup {
                 first_message_index: firstMessageIndex,
                 forwarded_count: 0,
                 is_verified: false,
-                session_data: this.algorithm.encryptRoomKey(roomKey, sessionKey)
+                session_data: this.crypto.encryptRoomKey(roomKey, sessionKey)
             };
         });
     }
@@ -184,7 +166,7 @@ export class KeyBackup {
     }
 
     dispose() {
-        this.algorithm.dispose();
+        this.crypto.dispose();
     }
 
     static async fromSecretStorage(platform: Platform, olm: Olm, secretStorage: SecretStorage, hsApi: HomeServerApi, keyLoader: KeyLoader, storage: Storage, txn: Transaction): Promise<KeyBackup | undefined> {
@@ -192,61 +174,12 @@ export class KeyBackup {
         if (base64PrivateKey) {
             const privateKey = new Uint8Array(platform.encoding.base64.decode(base64PrivateKey));
             const backupInfo = await hsApi.roomKeysVersion().response() as BackupInfo;
-            if (backupInfo.algorithm === Curve25519Algorithm) {
-                const algorithm = Curve25519.fromAuthData(backupInfo.auth_data, privateKey, olm);
-                return new KeyBackup(backupInfo, algorithm, hsApi, keyLoader, storage, platform);
+            if (backupInfo.algorithm === Curve25519.Algorithm) {
+                const crypto = Curve25519.BackupEncryption.fromAuthData(backupInfo.auth_data, privateKey, olm);
+                return new KeyBackup(backupInfo, crypto, hsApi, keyLoader, storage, platform);
             } else {
                 throw new Error(`Unknown backup algorithm: ${backupInfo.algorithm}`);
             }
         }
-    }
-}
-
-class Curve25519 {
-    constructor(
-        private readonly encryption: Olm.PkEncryption,
-        private readonly decryption: Olm.PkDecryption
-    ) {}
-
-    static fromAuthData(authData: Curve25519AuthData, privateKey: Uint8Array, olm: Olm): Curve25519 {
-        const expectedPubKey = authData.public_key;
-        const decryption = new olm.PkDecryption();
-        const encryption = new olm.PkEncryption();
-        try {
-            const pubKey = decryption.init_with_private_key(privateKey);
-            if (pubKey !== expectedPubKey) {
-                throw new Error(`Bad backup key, public key does not match. Calculated ${pubKey} but expected ${expectedPubKey}`);
-            }
-            encryption.set_recipient_key(pubKey);
-        } catch(err) {
-            decryption.free();
-            throw err;
-        }
-        return new Curve25519(encryption, decryption);
-    }
-
-    decryptRoomKey(sessionData: Curve29915SessionData): SessionKeyInfo {
-        const sessionInfo = this.decryption.decrypt(
-            sessionData.ephemeral,
-            sessionData.mac,
-            sessionData.ciphertext,
-        );
-        return JSON.parse(sessionInfo) as SessionKeyInfo;
-    }
-
-    encryptRoomKey(key: RoomKey, sessionKey: string): Curve29915SessionData {
-        const sessionInfo: SessionKeyInfo = {
-            algorithm: MEGOLM_ALGORITHM,
-            sender_key: key.senderKey,
-            sender_claimed_keys: {ed25519: key.claimedEd25519Key},
-            forwarding_curve25519_key_chain: [],
-            session_key: sessionKey
-        };
-        return this.encryption.encrypt(JSON.stringify(sessionInfo)) as Curve29915SessionData;
-    }
-
-    dispose() {
-        this.decryption.free();
-        this.encryption.free();
     }
 }
