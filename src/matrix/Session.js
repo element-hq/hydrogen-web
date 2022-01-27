@@ -190,22 +190,25 @@ export class Session {
      * @param  {string} credential either the passphrase or the recovery key, depending on the type
      * @return {Promise} resolves or rejects after having tried to enable secret storage
      */
-    async enableSecretStorage(type, credential) {
-        if (!this._olm) {
-            throw new Error("olm required");
-        }
-        if (this._keyBackup) {
-            return false;
-        }
-        const key = await ssssKeyFromCredential(type, credential, this._storage, this._platform, this._olm);
-        // and create key backup, which needs to read from accountData
-        const readTxn = await this._storage.readTxn([
-            this._storage.storeNames.accountData,
-        ]);
-        await this._createKeyBackup(key, readTxn);
-        await this._writeSSSSKey(key);
-        this._hasSecretStorageKey.set(true);
-        return key;
+    enableSecretStorage(type, credential, log = undefined) {
+        return this._platform.logger.wrapOrRun(log, "enable secret storage", async log => {
+            if (!this._olm) {
+                throw new Error("olm required");
+            }
+            if (this._keyBackup) {
+                return false;
+            }
+            const key = await ssssKeyFromCredential(type, credential, this._storage, this._platform, this._olm);
+            // and create key backup, which needs to read from accountData
+            const readTxn = await this._storage.readTxn([
+                this._storage.storeNames.accountData,
+            ]);
+            if (await this._createKeyBackup(key, readTxn, log)) {
+                await this._writeSSSSKey(key);
+                this._hasSecretStorageKey.set(true);
+                return key;
+            }
+        });
     }
 
     async _writeSSSSKey(key) {
@@ -246,25 +249,33 @@ export class Session {
         this._hasSecretStorageKey.set(false);
     }
 
-    async _createKeyBackup(ssssKey, txn) {
-        const secretStorage = new SecretStorage({key: ssssKey, platform: this._platform});
-        this._keyBackup = await KeyBackup.fromSecretStorage(
-            this._platform,
-            this._olm,
-            secretStorage,
-            this._hsApi,
-            this._keyLoader,
-            this._storage,
-            txn
-        );
-        if (this._keyBackup) {
-            for (const room of this._rooms.values()) {
-                if (room.isEncrypted) {
-                    room.enableKeyBackup(this._keyBackup);
+    _createKeyBackup(ssssKey, txn, log) {
+        return log.wrap("enable key backup", async log => {
+            try {
+                const secretStorage = new SecretStorage({key: ssssKey, platform: this._platform});
+                this._keyBackup = await KeyBackup.fromSecretStorage(
+                    this._platform,
+                    this._olm,
+                    secretStorage,
+                    this._hsApi,
+                    this._keyLoader,
+                    this._storage,
+                    txn
+                );
+                if (this._keyBackup) {
+                    for (const room of this._rooms.values()) {
+                        if (room.isEncrypted) {
+                            room.enableKeyBackup(this._keyBackup);
+                        }
+                    }
                 }
+                this.needsKeyBackup.set(false);
+            } catch (err) {
+                log.catch(err);
+                return false;
             }
-        }
-        this.needsKeyBackup.set(false);
+            return true;
+        });
     }
 
     get keyBackup() {
@@ -455,11 +466,12 @@ export class Session {
             ]);
             // try set up session backup if we stored the ssss key
             const ssssKey = await ssssReadKey(txn);
+            let couldReadKeyBackup = false;
             if (ssssKey) {
                 // txn will end here as this does a network request
-                await this._createKeyBackup(ssssKey, txn);
+                couldReadKeyBackup = await this._createKeyBackup(ssssKey, txn, log);
             }
-            this._hasSecretStorageKey.set(!!ssssKey);
+            this._hasSecretStorageKey.set(couldReadKeyBackup);
         }
         // restore unfinished operations, like sending out room keys
         const opsTxn = await this._storage.readWriteTxn([
