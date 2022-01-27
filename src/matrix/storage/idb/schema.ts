@@ -6,8 +6,7 @@ import {addRoomToIdentity} from "../../e2ee/DeviceTracker.js";
 import {SESSION_E2EE_KEY_PREFIX} from "../../e2ee/common.js";
 import {SummaryData} from "../../room/RoomSummary";
 import {RoomMemberStore, MemberData} from "./stores/RoomMemberStore";
-import {encodeKey as encodeBackupKey} from "./stores/SessionNeedingBackupStore";
-import {InboundGroupSessionStore, InboundGroupSessionEntry} from "./stores/InboundGroupSessionStore";
+import {InboundGroupSessionStore, InboundGroupSessionEntry, BackupStatus} from "./stores/InboundGroupSessionStore";
 import {RoomStateEntry} from "./stores/RoomStateStore";
 import {SessionStore} from "./stores/SessionStore";
 import {Store} from "./Store";
@@ -34,7 +33,7 @@ export const schema: MigrationFunc[] = [
     changeSSSSKeyPrefix,
     backupAndRestoreE2EEAccountToLocalStorage,
     clearAllStores,
-    createSessionsNeedingBackup
+    addInboundSessionBackupIndex
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -279,26 +278,12 @@ async function clearAllStores(db: IDBDatabase, txn: IDBTransaction) {
     }
 }
 
-// v15 adds the sessionsNeedingBackup store, for key backup
-async function createSessionsNeedingBackup(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem): Promise<void> {
-    const backupStore = db.createObjectStore("sessionsNeedingBackup", {keyPath: "key"});
-    const session = txn.objectStore("session");
-    const ssssKey = await reqAsPromise(session.get(`${SESSION_E2EE_KEY_PREFIX}ssssKey`) as IDBRequest<string>);
-    const keyBackupEnabled = !!ssssKey;
-    log.set("key backup", keyBackupEnabled);
-    if (keyBackupEnabled) {
-        let count = 0;
-        try {
-            const inboundGroupSessions = txn.objectStore("inboundGroupSessions");
-            await iterateCursor<InboundGroupSessionEntry>(inboundGroupSessions.openCursor(), session => {
-                backupStore.add({key: encodeBackupKey(session.roomId, session.senderKey, session.sessionId)});
-                count += 1;
-                return NOT_DONE;
-            });
-        } catch (err) {
-            txn.abort();
-            log.log("could not migrate operations").catch(err);
-        }
-        log.set("count", count);
-    }
+// v15 add backup index to inboundGroupSessions
+async function addInboundSessionBackupIndex(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem): Promise<void> {
+    const inboundGroupSessions = txn.objectStore("inboundGroupSessions");
+    await iterateCursor<InboundGroupSessionEntry>(inboundGroupSessions.openCursor(), (value, key, cursor) => {
+        value.backup = BackupStatus.NotBackedUp;
+        return NOT_DONE;
+    });
+    inboundGroupSessions.createIndex("byBackup", "backup", {unique: false});
 }

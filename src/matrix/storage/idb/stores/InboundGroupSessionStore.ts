@@ -17,6 +17,11 @@ limitations under the License.
 import {MIN_UNICODE, MAX_UNICODE} from "./common";
 import {Store} from "../Store";
 
+export enum BackupStatus {
+    NotBackedUp = 0,
+    BackedUp = 1
+}
+
 export interface InboundGroupSessionEntry {
     roomId: string;
     senderKey: string;
@@ -24,6 +29,7 @@ export interface InboundGroupSessionEntry {
     session?: string;
     claimedKeys?: { [algorithm : string] : string };
     eventIds?: string[];
+    backup: BackupStatus
 }
 
 type InboundGroupSessionStorageEntry = InboundGroupSessionEntry & { key: string };
@@ -62,5 +68,20 @@ export class InboundGroupSessionStore {
             encodeKey(roomId, MAX_UNICODE, MAX_UNICODE)
         );
         this._store.delete(range);
+    }
+    countNonBackedUpSessions(): Promise<number> {
+        return this._store.index("byBackup").count();
+    }
+
+    getFirstNonBackedUpSessions(amount: number): Promise<InboundGroupSessionEntry[]> {
+        return this._store.index("byBackup").selectLimit(0, amount);
+    }
+
+    async markAsBackedUp(roomId: string, senderKey: string, sessionId: string): Promise<void> {
+        const entry = await this._store.get(encodeKey(roomId, senderKey, sessionId));
+        if (entry) {
+            entry.backup = BackupStatus.BackedUp;
+            this._store.put(entry);
+        }
     }
 }
