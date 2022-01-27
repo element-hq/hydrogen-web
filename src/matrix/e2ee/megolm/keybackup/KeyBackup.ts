@@ -93,7 +93,7 @@ export class KeyBackup {
                 const roomKeys = roomKeysOrNotFound.filter(k => !!k) as RoomKey[];
                 if (roomKeys.length) {
                     const payload = await this.encodeKeysForBackup(roomKeys);
-                    const uploadRequest = this.hsApi.uploadRoomKeysToBackup(this.backupInfo.version, payload);
+                    const uploadRequest = this.hsApi.uploadRoomKeysToBackup(this.backupInfo.version, payload, {log});
                     setAbortable(uploadRequest);
                     await uploadRequest.response();
                 }
