@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {BackupStatus} from "../../../storage/idb/stores/InboundGroupSessionStore";
 import type {InboundGroupSessionEntry} from "../../../storage/idb/stores/InboundGroupSessionStore";
 import type {Transaction} from "../../../storage/idb/Transaction";
 import type {DecryptionResult} from "../../DecryptionResult";
@@ -81,6 +82,7 @@ export abstract class IncomingRoomKey extends RoomKey {
             senderKey: this.senderKey,
             sessionId: this.sessionId,
             session: pickledSession,
+            backup: this.backupStatus,
             claimedKeys: {"ed25519": this.claimedEd25519Key},
         };
         txn.inboundGroupSessions.set(sessionEntry);
@@ -125,6 +127,10 @@ export abstract class IncomingRoomKey extends RoomKey {
         }
         return this.isBetter!;
     }
+
+    protected get backupStatus(): BackupStatus {
+        return BackupStatus.NotBackedUp;
+    }
 }
 
 class DeviceMessageRoomKey extends IncomingRoomKey {
@@ -162,9 +168,13 @@ class BackupRoomKey extends IncomingRoomKey {
     loadInto(session) {
         session.import_session(this.serializationKey);
     }
+
+    protected get backupStatus(): BackupStatus {
+        return BackupStatus.BackedUp;
+    }
 }
 
-class StoredRoomKey extends RoomKey {
+export class StoredRoomKey extends RoomKey {
     private storageEntry: InboundGroupSessionEntry;
 
     constructor(storageEntry: InboundGroupSessionEntry) {

@@ -597,12 +597,7 @@ export class Session {
         }
 
         if (preparation) {
-            await log.wrap("deviceMsgs", log => this._deviceMessageHandler.writeSync(preparation, txn, log));
-            // this should come after the deviceMessageHandler, so the room keys are already written and their
-            // isBetter property has been checked
-            if (this._keyBackup) {
-                changes.shouldFlushKeyBackup = this._keyBackup.writeKeys(preparation.newRoomKeys, txn, log);
-            }
+            changes.hasNewRoomKeys = await log.wrap("deviceMsgs", log => this._deviceMessageHandler.writeSync(preparation, txn, log));
         }
 
         // store account data
@@ -641,7 +636,7 @@ export class Session {
             }
         }
         // should flush and not already flushing
-        if (changes.shouldFlushKeyBackup && this._keyBackup && !this._keyBackupOperation.get()) {
+        if (changes.hasNewRoomKeys && this._keyBackup && !this._keyBackupOperation.get()) {
             log.wrapDetached("flush key backup", async log => {
                 const operation = this._keyBackup.flush(log);
                 this._keyBackupOperation.set(operation);

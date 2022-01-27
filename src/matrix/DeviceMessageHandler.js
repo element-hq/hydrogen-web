@@ -57,7 +57,8 @@ export class DeviceMessageHandler {
     async writeSync(prep, txn) {
         // write olm changes
         prep.olmDecryptChanges.write(txn);
-        await Promise.all(prep.newRoomKeys.map(key => this._megolmDecryption.writeRoomKey(key, txn)));
+        const didWriteValues = await Promise.all(prep.newRoomKeys.map(key => this._megolmDecryption.writeRoomKey(key, txn)));
+        return didWriteValues.some(didWrite => !!didWrite);
     }
 }
 

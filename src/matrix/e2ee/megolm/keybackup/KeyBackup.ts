@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {StoreNames} from "../../../storage/common";
-import {keyFromStorage, keyFromBackup} from "../decryption/RoomKey";
+import {StoredRoomKey, keyFromBackup} from "../decryption/RoomKey";
 import {MEGOLM_ALGORITHM} from "../../common";
 import * as Curve25519 from "./Curve25519";
 import {AbortableOperation} from "../../../../utils/AbortableOperation";
@@ -30,7 +30,6 @@ import type {Storage} from "../../../storage/idb/Storage";
 import type {ILogItem} from "../../../../logging/types";
 import type {Platform} from "../../../../platform/web/Platform";
 import type {Transaction} from "../../../storage/idb/Transaction";
-import type {BackupEntry} from "../../../storage/idb/stores/SessionNeedingBackupStore";
 import type * as OlmNamespace from "@matrix-org/olm";
 type Olm = typeof OlmNamespace;
 
@@ -57,17 +56,6 @@ export class KeyBackup {
         }
     }
 
-    writeKeys(roomKeys: IncomingRoomKey[], txn: Transaction): boolean {
-        let hasBetter = false;
-        for (const key of roomKeys) {
-            if (key.isBetter) {
-                txn.sessionsNeedingBackup.set(key.roomId, key.senderKey, key.sessionId);
-                hasBetter = true;
-            }
-        }
-        return hasBetter;
-    }
-
     // TODO: protect against having multiple concurrent flushes
     flush(log: ILogItem): AbortableOperation<Promise<boolean>, Progress> {
         return new AbortableOperation(async (setAbortable, setProgress) => {
@@ -77,36 +65,30 @@ export class KeyBackup {
                 const timeout = this.platform.clock.createTimeout(this.platform.random() * 10000);
                 setAbortable(timeout);
                 await timeout.elapsed();
-                const txn = await this.storage.readTxn([
-                    StoreNames.sessionsNeedingBackup,
-                    StoreNames.inboundGroupSessions,
-                ]);
+                const txn = await this.storage.readTxn([StoreNames.inboundGroupSessions]);
                 setAbortable(txn);
                 // fetch total again on each iteration as while we are flushing, sync might be adding keys
-                total = await txn.sessionsNeedingBackup.count();
+                total = await txn.inboundGroupSessions.countNonBackedUpSessions();
                 setProgress(new Progress(total, amountFinished));
-                const keysNeedingBackup = await txn.sessionsNeedingBackup.getFirstEntries(20);
+                const keysNeedingBackup = (await txn.inboundGroupSessions.getFirstNonBackedUpSessions(20))
+                    .map(entry => new StoredRoomKey(entry));
                 if (keysNeedingBackup.length === 0) {
                     return true;
                 }
-                const roomKeysOrNotFound = await Promise.all(keysNeedingBackup.map(k => keyFromStorage(k.roomId, k.senderKey, k.sessionId, txn)));
-                const roomKeys = roomKeysOrNotFound.filter(k => !!k) as RoomKey[];
-                if (roomKeys.length) {
-                    const payload = await this.encodeKeysForBackup(roomKeys);
-                    const uploadRequest = this.hsApi.uploadRoomKeysToBackup(this.backupInfo.version, payload, {log});
-                    setAbortable(uploadRequest);
-                    try {
-                        await uploadRequest.response();
-                    } catch (err) {
-                        if (err.name === "HomeServerError" && err.errcode === "M_WRONG_ROOM_KEYS_VERSION") {
-                            log.set("wrong_version", true);
-                            return false;
-                        } else {
-                            throw err;
-                        }
+                const payload = await this.encodeKeysForBackup(keysNeedingBackup);
+                const uploadRequest = this.hsApi.uploadRoomKeysToBackup(this.backupInfo.version, payload, {log});
+                setAbortable(uploadRequest);
+                try {
+                    await uploadRequest.response();
+                } catch (err) {
+                    if (err.name === "HomeServerError" && err.errcode === "M_WRONG_ROOM_KEYS_VERSION") {
+                        log.set("wrong_version", true);
+                        return false;
+                    } else {
+                        throw err;
                     }
                 }
-                this.removeBackedUpKeys(keysNeedingBackup, setAbortable);
+                this.markKeysAsBackedUp(keysNeedingBackup, setAbortable);
                 amountFinished += keysNeedingBackup.length;
                 setProgress(new Progress(total, amountFinished));
             }
@@ -126,15 +108,13 @@ export class KeyBackup {
         return payload;
     }
 
-    private async removeBackedUpKeys(keysNeedingBackup: BackupEntry[], setAbortable: SetAbortableFn) {
+    private async markKeysAsBackedUp(roomKeys: RoomKey[], setAbortable: SetAbortableFn) {
         const txn = await this.storage.readWriteTxn([
-            StoreNames.sessionsNeedingBackup,
+            StoreNames.inboundGroupSessions,
         ]);
         setAbortable(txn);
         try {
-            for (const key of keysNeedingBackup) {
-                txn.sessionsNeedingBackup.remove(key.roomId, key.senderKey, key.sessionId);
-            }
+            await Promise.all(roomKeys.map(key => txn.inboundGroupSessions.markAsBackedUp(key.roomId, key.senderKey, key.sessionId)));
         } catch (err) {
             txn.abort();
             throw err;
