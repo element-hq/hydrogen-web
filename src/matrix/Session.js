@@ -646,7 +646,12 @@ export class Session {
                 const operation = this._keyBackup.flush(log);
                 this._keyBackupOperation.set(operation);
                 try {
-                    await operation.result;
+                    const success = await operation.result;
+                    // stop key backup if the version was changed
+                    if (!success) {
+                        this._keyBackup = this._keyBackup.dispose();
+                        this.needsKeyBackup.set(true);
+                    }
                 } catch (err) {
                     log.catch(err);
                 }

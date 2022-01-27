@@ -69,7 +69,7 @@ export class KeyBackup {
     }
 
     // TODO: protect against having multiple concurrent flushes
-    flush(log: ILogItem): AbortableOperation<Promise<void>, Progress> {
+    flush(log: ILogItem): AbortableOperation<Promise<boolean>, Progress> {
         return new AbortableOperation(async (setAbortable, setProgress) => {
             let total = 0;
             let amountFinished = 0;
@@ -87,7 +87,7 @@ export class KeyBackup {
                 setProgress(new Progress(total, amountFinished));
                 const keysNeedingBackup = await txn.sessionsNeedingBackup.getFirstEntries(20);
                 if (keysNeedingBackup.length === 0) {
-                    return;
+                    return true;
                 }
                 const roomKeysOrNotFound = await Promise.all(keysNeedingBackup.map(k => keyFromStorage(k.roomId, k.senderKey, k.sessionId, txn)));
                 const roomKeys = roomKeysOrNotFound.filter(k => !!k) as RoomKey[];
@@ -95,7 +95,16 @@ export class KeyBackup {
                     const payload = await this.encodeKeysForBackup(roomKeys);
                     const uploadRequest = this.hsApi.uploadRoomKeysToBackup(this.backupInfo.version, payload, {log});
                     setAbortable(uploadRequest);
-                    await uploadRequest.response();
+                    try {
+                        await uploadRequest.response();
+                    } catch (err) {
+                        if (err.name === "HomeServerError" && err.errcode === "M_WRONG_ROOM_KEYS_VERSION") {
+                            log.set("wrong_version", true);
+                            return false;
+                        } else {
+                            throw err;
+                        }
+                    }
                 }
                 this.removeBackedUpKeys(keysNeedingBackup, setAbortable);
                 amountFinished += keysNeedingBackup.length;
