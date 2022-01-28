@@ -60,7 +60,7 @@ export abstract class IncomingRoomKey extends RoomKey {
 
     async write(loader: KeyLoader, txn: Transaction): Promise<boolean> {
         // we checked already and we had a better session in storage, so don't write
-        let pickledSession;
+        let pickledSession: string | undefined;
         if (this.isBetter === undefined) {
             // if this key wasn't used to decrypt any messages in the same sync,
             // we haven't checked if this is the best key yet,
