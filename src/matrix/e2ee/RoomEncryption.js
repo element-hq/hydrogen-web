@@ -236,6 +236,7 @@ export class RoomEncryption {
             this._keySharePromise = (async () => {
                 const roomKeyMessage = await this._megolmEncryption.ensureOutboundSession(this._room.id, this._encryptionParams);
                 if (roomKeyMessage) {
+                    this._keyBackup?.flush(log);
                     await log.wrap("share key", log => this._shareNewRoomKey(roomKeyMessage, hsApi, log));
                 }
             })();
@@ -254,6 +255,7 @@ export class RoomEncryption {
         }
         const megolmResult = await log.wrap("megolm encrypt", () => this._megolmEncryption.encrypt(this._room.id, type, content, this._encryptionParams));
         if (megolmResult.roomKeyMessage) {
+            this._keyBackup?.flush(log);
             await log.wrap("share key", log => this._shareNewRoomKey(megolmResult.roomKeyMessage, hsApi, log));
         }
         return {
