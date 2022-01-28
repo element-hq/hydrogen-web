@@ -204,6 +204,7 @@ export class Session {
             ]);
             if (await this._createKeyBackup(key, readTxn, log)) {
                 await this._writeSSSSKey(key);
+                this._keyBackup.get().flush(log);
                 return key;
             }
         });
