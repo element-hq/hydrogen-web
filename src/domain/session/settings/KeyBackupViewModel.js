@@ -28,9 +28,10 @@ export class KeyBackupViewModel extends ViewModel {
         this._isBusy = false;
         this._dehydratedDeviceId = undefined;
         this._status = undefined;
-        this._needsNewKeySubscription = undefined;
-        this._operationSubscription = undefined;
-        this._operationProgressSubscription = undefined;
+        this._backupOperation = this._session.keyBackup.flatMap(keyBackup => keyBackup.operationInProgress);
+        this._progress = this._backupOperation.flatMap(op => op.progress);
+        this.track(this._backupOperation.subscribe(() => this.emitChange("isBackingUp")));
+        this.track(this._progress.subscribe(() => this.emitChange("backupPercentage")));
         this._reevaluateStatus();
         this.track(this._session.keyBackup.subscribe(() => {
             if (this._reevaluateStatus()) {
@@ -46,24 +47,8 @@ export class KeyBackupViewModel extends ViewModel {
         let status;
         const keyBackup = this._session.keyBackup.get();
         if (keyBackup) {
-            if (!this._needsNewKeySubscription) {
-                this._needsNewKeySubscription = this.track(keyBackup.needsNewKey.subscribe(() => this._reevaluateStatus()));
-            }
-            if (!this._operationSubscription) {
-                this._operationSubscription = this.track(keyBackup.operationInProgress.subscribe(op => {
-                    if (op && !this._operationProgressSubscription) {
-                        this._operationProgressSubscription = this.track(op.progress.subscribe(() => this.emitChange("backupPercentage")));
-                    } else if (!op && this._operationProgressSubscription) {
-                        this._operationProgressSubscription = this.disposeTracked(this._operationProgressSubscription);
-                    }
-                    this.emitChange("isBackingUp");
-                }));
-            }
             status = keyBackup.needsNewKey.get() ? Status.NewVersionAvailable : Status.Enabled;
         } else {
-            this._needsNewKeySubscription = this.disposeTracked(this._needsNewKeySubscription);
-            this._operationSubscription = this.disposeTracked(this._operationSubscription);
-            this._operationProgressSubscription = this.disposeTracked(this._operationProgressSubscription);
             status = this.showPhraseSetup() ? Status.SetupPhrase : Status.SetupKey;
         } /* TODO: bring back "waiting to get online"
         else {
@@ -166,39 +151,23 @@ export class KeyBackupViewModel extends ViewModel {
     }
 
     get isBackingUp() {
-        const keyBackup = this._session.keyBackup.get();
-        if (keyBackup) {
-            return !!keyBackup.operationInProgress.get();
-        }
-        return undefined;
+        return !!this._backupOperation.get();
     }
 
     get backupPercentage() {
-        const keyBackup = this._session.keyBackup.get();
-        if (keyBackup) {
-            const op = keyBackup.operationInProgress.get();
-            const progress = op.progress.get();
-            if (progress) {
-                return Math.round(progress.finished / progress.total) * 100;
-            }
+        const progress = this._progress.get();
+        if (progress) {
+            return Math.round(progress.finished / progress.total) * 100;
         }
         return 0;
     }
 
     get backupInProgressLabel() {
-        const keyBackup = this._session.keyBackup.get();
-        if (keyBackup) {
-            const op = keyBackup.operationInProgress.get();
-            if (op) {
-                const progress = op.progress.get();
-                if (progress) {
-                    return this.i18n`${progress.finished} of ${progress.total}`;
-                } else {
-                    return this.i18n`…`;
-                }
-            }
+        const progress = this._progress.get();
+        if (progress) {
+            return this.i18n`${progress.finished} of ${progress.total}`;
         }
-        return undefined;
+        return this.i18n`…`;
     }
 
     cancelBackup() {
