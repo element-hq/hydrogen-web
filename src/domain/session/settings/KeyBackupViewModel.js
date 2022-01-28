@@ -18,7 +18,7 @@ import {ViewModel} from "../../ViewModel.js";
 import {KeyType} from "../../../matrix/ssss/index";
 import {createEnum} from "../../../utils/enum";
 
-export const Status = createEnum("Enabled", "SetupKey", "SetupPhrase", "Pending"); 
+export const Status = createEnum("Enabled", "SetupKey", "SetupPhrase", "Pending", "NewVersionAvailable"); 
 
 export class KeyBackupViewModel extends ViewModel {
     constructor(options) {
@@ -28,8 +28,11 @@ export class KeyBackupViewModel extends ViewModel {
         this._isBusy = false;
         this._dehydratedDeviceId = undefined;
         this._status = undefined;
+        this._needsNewKeySubscription = undefined;
+        this._operationSubscription = undefined;
+        this._operationProgressSubscription = undefined;
         this._reevaluateStatus();
-        this.track(this._session.hasSecretStorageKey.subscribe(() => {
+        this.track(this._session.keyBackup.subscribe(() => {
             if (this._reevaluateStatus()) {
                 this.emitChange("status");
             }
@@ -41,14 +44,31 @@ export class KeyBackupViewModel extends ViewModel {
             return false;
         }
         let status;
-        const hasSecretStorageKey = this._session.hasSecretStorageKey.get();
-        if (hasSecretStorageKey === true) {
-            status = this._session.keyBackup ? Status.Enabled : Status.SetupKey;
-        } else if (hasSecretStorageKey === false) {
-            status = Status.SetupKey;
+        const keyBackup = this._session.keyBackup.get();
+        if (keyBackup) {
+            if (!this._needsNewKeySubscription) {
+                this._needsNewKeySubscription = this.track(keyBackup.needsNewKey.subscribe(() => this._reevaluateStatus()));
+            }
+            if (!this._operationSubscription) {
+                this._operationSubscription = this.track(keyBackup.operationInProgress.subscribe(op => {
+                    if (op && !this._operationProgressSubscription) {
+                        this._operationProgressSubscription = this.track(op.progress.subscribe(() => this.emitChange("backupPercentage")));
+                    } else if (!op && this._operationProgressSubscription) {
+                        this._operationProgressSubscription = this.disposeTracked(this._operationProgressSubscription);
+                    }
+                    this.emitChange("isBackingUp");
+                }));
+            }
+            status = keyBackup.needsNewKey.get() ? Status.NewVersionAvailable : Status.Enabled;
         } else {
+            this._needsNewKeySubscription = this.disposeTracked(this._needsNewKeySubscription);
+            this._operationSubscription = this.disposeTracked(this._operationSubscription);
+            this._operationProgressSubscription = this.disposeTracked(this._operationProgressSubscription);
+            status = this.showPhraseSetup() ? Status.SetupPhrase : Status.SetupKey;
+        } /* TODO: bring back "waiting to get online"
+        else {
             status = Status.Pending;
-        }
+        } */
         const changed = status !== this._status;
         this._status = status;
         return changed;
@@ -75,7 +95,7 @@ export class KeyBackupViewModel extends ViewModel {
     }
 
     get backupVersion() {
-        return this._session.keyBackup?.version;
+        return this._session.keyBackup.get()?.version;
     }
 
     get status() {
@@ -144,4 +164,45 @@ export class KeyBackupViewModel extends ViewModel {
             this.emitChange("");
         }
     }
+
+    get isBackingUp() {
+        const keyBackup = this._session.keyBackup.get();
+        if (keyBackup) {
+            return !!keyBackup.operationInProgress.get();
+        }
+        return undefined;
+    }
+
+    get backupPercentage() {
+        const keyBackup = this._session.keyBackup.get();
+        if (keyBackup) {
+            const op = keyBackup.operationInProgress.get();
+            const progress = op.progress.get();
+            if (progress) {
+                return Math.round(progress.finished / progress.total) * 100;
+            }
+        }
+        return 0;
+    }
+
+    get backupInProgressLabel() {
+        const keyBackup = this._session.keyBackup.get();
+        if (keyBackup) {
+            const op = keyBackup.operationInProgress.get();
+            if (op) {
+                const progress = op.progress.get();
+                if (progress) {
+                    return this.i18n`${progress.finished} of ${progress.total}`;
+                } else {
+                    return this.i18n`…`;
+                }
+            }
+        }
+        return undefined;
+    }
+
+    cancelBackup() {
+        this._session.keyBackup.get()?.operationInProgress.get()?.abort();
+    }
 }
+

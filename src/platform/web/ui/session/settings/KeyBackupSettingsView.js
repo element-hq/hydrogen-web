@@ -14,19 +14,33 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView, InlineTemplateView} from "../../general/TemplateView";
-import {StaticView} from "../../general/StaticView.js";
+import {TemplateView} from "../../general/TemplateView";
 
 export class KeyBackupSettingsView extends TemplateView {
-    render(t, vm) {
-        return t.mapView(vm => vm.status, status => {
-            switch (status) {
-                case "Enabled": return new InlineTemplateView(vm, renderEnabled)
-                case "SetupKey": return new InlineTemplateView(vm, renderEnableFromKey)
-                case "SetupPhrase": return new InlineTemplateView(vm, renderEnableFromPhrase)
-                case "Pending": return new StaticView(vm, t => t.p(vm.i18n`Waiting to go online…`))
-            }
-        });
+    render(t) {
+        return t.div([
+            t.map(vm => vm.status, (status, t, vm) => {
+                switch (status) {
+                    case "Enabled": return renderEnabled(t, vm);
+                    case "SetupKey": return renderEnableFromKey(t, vm);
+                    case "SetupPhrase": return renderEnableFromPhrase(t, vm);
+                    case "NewVersionAvailable": return t.p(vm.i18n`A new backup version has been created. Disable key backup and enable it again with the new key.`);
+                    case "Pending": return t.p(vm.i18n`Waiting to go online…`);
+                }
+            }),
+            t.map(vm => vm.isBackingUp, (backingUp, t, vm) => {
+                if (backingUp) {
+                    const progress = t.progress({
+                        min: 0,
+                        max: 100,
+                        value: vm => vm.backupPercentage,
+                    });
+                    return t.div([`Backup in progress `, progress, " ", vm => vm.backupInProgressLabel]);
+                } else {
+                    return t.p("All keys are backed up.");
+                }
+            })
+        ]);
     }
 }
 
