@@ -120,7 +120,7 @@ export class QueryTargetWrapper<T> {
 
     count(keyRange?: IDBKeyRange): IDBRequest<number> {
         try {
-            return this._qtStore.count(keyRange);
+            return this._qt.count(keyRange);
         } catch(err) {
             throw new IDBRequestAttemptError("count", this._qt, err, [keyRange]);
         }
