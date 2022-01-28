@@ -42,7 +42,8 @@ export class TextMessageView extends BaseMessageView {
             }
         }));
 
-        const shouldRemove = (element) => element?.nodeType === Node.ELEMENT_NODE && element.className !== "ReplyPreviewView";
+        // exclude comment nodes as they are used by t.map and friends for placeholders
+        const shouldRemove = (element) => element?.nodeType !== Node.COMMENT_NODE && element.className !== "ReplyPreviewView";
 
         t.mapSideEffect(vm => vm.body, body => {
             while (shouldRemove(container.lastChild)) {
