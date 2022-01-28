@@ -155,7 +155,38 @@ class DeviceMessageRoomKey extends IncomingRoomKey {
     loadInto(session) {
         session.create(this.serializationKey);
     }
+}
 
+// a room key we send out ourselves,
+// here adapted to write it as an incoming key
+// as we don't send it to ourself with a to_device msg
+export class OutboundRoomKey extends IncomingRoomKey {
+    private _sessionKey: string;
+
+    constructor(
+        private readonly _roomId: string,
+        private readonly outboundSession: Olm.OutboundGroupSession,
+        private readonly identityKeys: {[algo: string]: string}
+    ) {
+        super();
+        // this is a new key, so always better than what might be in storage, no need to check
+        this.isBetter = true;
+        // cache this, as it is used by key loader to find a matching key and
+        // this calls into WASM so is not just reading a prop
+        this._sessionKey = this.outboundSession.session_key();
+    }
+
+    get roomId(): string { return this._roomId; }
+    get senderKey(): string { return this.identityKeys.curve25519; }
+    get sessionId(): string { return this.outboundSession.session_id(); }
+    get claimedEd25519Key(): string { return this.identityKeys.ed25519; }
+    get serializationKey(): string { return this._sessionKey; }
+    get serializationType(): string { return "create"; }
+    protected get keySource(): KeySource { return KeySource.Outbound; }
+
+    loadInto(session: Olm.InboundGroupSession) {
+        session.create(this.serializationKey);
+    }
 }
 
 class BackupRoomKey extends IncomingRoomKey {

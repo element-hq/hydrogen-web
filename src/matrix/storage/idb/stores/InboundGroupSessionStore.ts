@@ -25,6 +25,7 @@ export enum BackupStatus {
 export enum KeySource {
     DeviceMessage = 1,
     Backup,
+    Outbound
 }
 
 export interface InboundGroupSessionEntry {
