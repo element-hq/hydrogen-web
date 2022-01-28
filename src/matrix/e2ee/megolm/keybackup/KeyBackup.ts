@@ -88,7 +88,7 @@ export class KeyBackup {
                         throw err;
                     }
                 }
-                this.markKeysAsBackedUp(keysNeedingBackup, setAbortable);
+                await this.markKeysAsBackedUp(keysNeedingBackup, setAbortable);
                 amountFinished += keysNeedingBackup.length;
                 setProgress(new Progress(total, amountFinished));
             }
