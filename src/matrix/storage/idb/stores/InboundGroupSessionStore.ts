@@ -81,7 +81,7 @@ export class InboundGroupSessionStore {
     }
 
     getFirstNonBackedUpSessions(amount: number): Promise<InboundGroupSessionEntry[]> {
-        return this._store.index("byBackup").selectLimit(0, amount);
+        return this._store.index("byBackup").selectLimit(this._store.IDBKeyRange.only(BackupStatus.NotBackedUp), amount);
     }
 
     async markAsBackedUp(roomId: string, senderKey: string, sessionId: string): Promise<void> {
