@@ -217,7 +217,7 @@ export function tests() {
         },
         "flatMap.get": assert => {
             const a = new ObservableValue<undefined | {count: ObservableValue<number>}>(undefined);
-            const countProxy = a.flatMap(a => a.count);
+            const countProxy = a.flatMap(a => a!.count);
             assert.strictEqual(countProxy.get(), undefined);
             const count = new ObservableValue<number>(0);
             a.set({count});
@@ -226,7 +226,7 @@ export function tests() {
         "flatMap update from source": assert => {
             const a = new ObservableValue<undefined | {count: ObservableValue<number>}>(undefined);
             const updates: (number | undefined)[] = [];
-            a.flatMap(a => a.count).subscribe(count => {
+            a.flatMap(a => a!.count).subscribe(count => {
                 updates.push(count);
             });
             const count = new ObservableValue<number>(0);
@@ -236,7 +236,7 @@ export function tests() {
         "flatMap update from target": assert => {
             const a = new ObservableValue<undefined | {count: ObservableValue<number>}>(undefined);
             const updates: (number | undefined)[] = [];
-            a.flatMap(a => a.count).subscribe(count => {
+            a.flatMap(a => a!.count).subscribe(count => {
                 updates.push(count);
             });
             const count = new ObservableValue<number>(0);
