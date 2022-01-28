@@ -19,6 +19,7 @@ import {StoredRoomKey, keyFromBackup} from "../decryption/RoomKey";
 import {MEGOLM_ALGORITHM} from "../../common";
 import * as Curve25519 from "./Curve25519";
 import {AbortableOperation} from "../../../../utils/AbortableOperation";
+import {ObservableValue} from "../../../../observable/ObservableValue";
 
 import {SetAbortableFn} from "../../../../utils/AbortableOperation";
 import type {BackupInfo, SessionData, SessionKeyInfo, SessionInfo, KeyBackupPayload} from "./types";
@@ -33,7 +34,12 @@ import type {Transaction} from "../../../storage/idb/Transaction";
 import type * as OlmNamespace from "@matrix-org/olm";
 type Olm = typeof OlmNamespace;
 
+const KEYS_PER_REQUEST = 20;
+
 export class KeyBackup {
+    public readonly operationInProgress = new ObservableValue<AbortableOperation<Promise<boolean>, Progress> | undefined>(undefined);
+    public readonly needsNewKey = new ObservableValue(false);
+
     constructor(
         private readonly backupInfo: BackupInfo,
         private readonly crypto: Curve25519.BackupEncryption,
@@ -56,13 +62,32 @@ export class KeyBackup {
         }
     }
 
-    // TODO: protect against having multiple concurrent flushes
-    flush(log: ILogItem): AbortableOperation<Promise<boolean>, Progress> {
+    flush(log: ILogItem): void {
+        if (!this.operationInProgress.get()) {
+            log.wrapDetached("flush key backup", async log => {
+                const operation = this._flush(log);
+                this.operationInProgress.set(operation);
+                try {
+                    const success = await operation.result;
+                    // stop key backup if the version was changed
+                    if (!success) {
+                        this.needsNewKey.set(true);
+                    }
+                } catch (err) {
+                    log.catch(err);
+                }
+                this.operationInProgress.set(undefined);
+            });
+        }
+    }
+
+    private _flush(log: ILogItem): AbortableOperation<Promise<boolean>, Progress> {
         return new AbortableOperation(async (setAbortable, setProgress) => {
             let total = 0;
             let amountFinished = 0;
             while (true) {
-                const timeout = this.platform.clock.createTimeout(this.platform.random() * 10000);
+                const waitMs = this.platform.random() * 10000;
+                const timeout = this.platform.clock.createTimeout(waitMs);
                 setAbortable(timeout);
                 await timeout.elapsed();
                 const txn = await this.storage.readTxn([StoreNames.inboundGroupSessions]);
@@ -70,7 +95,7 @@ export class KeyBackup {
                 // fetch total again on each iteration as while we are flushing, sync might be adding keys
                 total = await txn.inboundGroupSessions.countNonBackedUpSessions();
                 setProgress(new Progress(total, amountFinished));
-                const keysNeedingBackup = (await txn.inboundGroupSessions.getFirstNonBackedUpSessions(20))
+                const keysNeedingBackup = (await txn.inboundGroupSessions.getFirstNonBackedUpSessions(KEYS_PER_REQUEST))
                     .map(entry => new StoredRoomKey(entry));
                 if (keysNeedingBackup.length === 0) {
                     return true;
@@ -114,7 +139,9 @@ export class KeyBackup {
         ]);
         setAbortable(txn);
         try {
-            await Promise.all(roomKeys.map(key => txn.inboundGroupSessions.markAsBackedUp(key.roomId, key.senderKey, key.sessionId)));
+            await Promise.all(roomKeys.map(key => {
+                return txn.inboundGroupSessions.markAsBackedUp(key.roomId, key.senderKey, key.sessionId);
+            }));
         } catch (err) {
             txn.abort();
             throw err;

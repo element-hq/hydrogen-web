@@ -76,7 +76,6 @@ export class Session {
         this._getSyncToken = () => this.syncToken;
         this._olmWorker = olmWorker;
         this._keyBackup = null;
-        this._keyBackupOperation = new ObservableValue(null);
         this._hasSecretStorageKey = new ObservableValue(null);
         this._observedRoomStatus = new Map();
 
@@ -135,15 +134,16 @@ export class Session {
             olmUtil: this._olmUtil,
             senderKeyLock
         });
+        this._keyLoader = new MegOlmKeyLoader(this._olm, PICKLE_KEY, 20);
         this._megolmEncryption = new MegOlmEncryption({
             account: this._e2eeAccount,
             pickleKey: PICKLE_KEY,
             olm: this._olm,
             storage: this._storage,
+            keyLoader: this._keyLoader,
             now: this._platform.clock.now,
             ownDeviceId: this._sessionInfo.deviceId,
         });
-        this._keyLoader = new MegOlmKeyLoader(this._olm, PICKLE_KEY, 20);
         this._megolmDecryption = new MegOlmDecryption(this._keyLoader, this._olmWorker);
         this._deviceMessageHandler.enableEncryption({olmDecryption, megolmDecryption: this._megolmDecryption});
     }
@@ -280,10 +280,6 @@ export class Session {
 
     get keyBackup() {
         return this._keyBackup;
-    }
-
-    get keyBackupOperation() {
-        return this._keyBackupOperation;
     }
 
     get hasIdentity() {
@@ -635,23 +631,8 @@ export class Session {
                 await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, false, log));
             }
         }
-        // should flush and not already flushing
-        if (changes.hasNewRoomKeys && this._keyBackup && !this._keyBackupOperation.get()) {
-            log.wrapDetached("flush key backup", async log => {
-                const operation = this._keyBackup.flush(log);
-                this._keyBackupOperation.set(operation);
-                try {
-                    const success = await operation.result;
-                    // stop key backup if the version was changed
-                    if (!success) {
-                        this._keyBackup = this._keyBackup.dispose();
-                        this.needsKeyBackup.set(true);
-                    }
-                } catch (err) {
-                    log.catch(err);
-                }
-                this._keyBackupOperation.set(null);
-            });
+        if (changes.hasNewRoomKeys) {
+            this._keyBackup?.flush(log);
         }
     }
 
