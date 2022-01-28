@@ -213,6 +213,9 @@ class KeyOperation {
     }
 }
 
+import {KeySource} from "../../../storage/idb/stores/InboundGroupSessionStore";
+
+
 export function tests() {
     let instances = 0;
 
@@ -237,6 +240,8 @@ export function tests() {
         get serializationKey(): string { return `key-${this.sessionId}-${this._firstKnownIndex}`; }
         get serializationType(): string { return "type"; }
         get eventIds(): string[] | undefined { return undefined; }
+        get keySource(): KeySource { return KeySource.DeviceMessage; }
+
         loadInto(session: Olm.InboundGroupSession) {
             const mockSession = session as MockInboundSession;
             mockSession.sessionId = this.sessionId;

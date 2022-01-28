@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BackupStatus} from "../../../storage/idb/stores/InboundGroupSessionStore";
+import {BackupStatus, KeySource} from "../../../storage/idb/stores/InboundGroupSessionStore";
 import type {InboundGroupSessionEntry} from "../../../storage/idb/stores/InboundGroupSessionStore";
 import type {Transaction} from "../../../storage/idb/Transaction";
 import type {DecryptionResult} from "../../DecryptionResult";
@@ -83,6 +83,7 @@ export abstract class IncomingRoomKey extends RoomKey {
             sessionId: this.sessionId,
             session: pickledSession,
             backup: this.backupStatus,
+            source: this.keySource,
             claimedKeys: {"ed25519": this.claimedEd25519Key},
         };
         txn.inboundGroupSessions.set(sessionEntry);
@@ -131,6 +132,8 @@ export abstract class IncomingRoomKey extends RoomKey {
     protected get backupStatus(): BackupStatus {
         return BackupStatus.NotBackedUp;
     }
+
+    protected abstract get keySource(): KeySource;
 }
 
 class DeviceMessageRoomKey extends IncomingRoomKey {
@@ -147,10 +150,12 @@ class DeviceMessageRoomKey extends IncomingRoomKey {
     get claimedEd25519Key() { return this._decryptionResult.claimedEd25519Key; }
     get serializationKey(): string { return this._decryptionResult.event.content?.["session_key"]; }
     get serializationType(): string { return "create"; }
+    protected get keySource(): KeySource { return KeySource.DeviceMessage; }
 
     loadInto(session) {
         session.create(this.serializationKey);
     }
+
 }
 
 class BackupRoomKey extends IncomingRoomKey {
@@ -164,7 +169,8 @@ class BackupRoomKey extends IncomingRoomKey {
     get claimedEd25519Key() { return this._backupInfo["sender_claimed_keys"]?.["ed25519"]; }
     get serializationKey(): string { return this._backupInfo["session_key"]; }
     get serializationType(): string { return "import_session"; }
-    
+    protected get keySource(): KeySource { return KeySource.Backup; }
+
     loadInto(session) {
         session.import_session(this.serializationKey);
     }

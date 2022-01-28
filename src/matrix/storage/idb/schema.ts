@@ -6,7 +6,7 @@ import {addRoomToIdentity} from "../../e2ee/DeviceTracker.js";
 import {SESSION_E2EE_KEY_PREFIX} from "../../e2ee/common.js";
 import {SummaryData} from "../../room/RoomSummary";
 import {RoomMemberStore, MemberData} from "./stores/RoomMemberStore";
-import {InboundGroupSessionStore, InboundGroupSessionEntry, BackupStatus} from "./stores/InboundGroupSessionStore";
+import {InboundGroupSessionStore, InboundGroupSessionEntry, BackupStatus, KeySource} from "./stores/InboundGroupSessionStore";
 import {RoomStateEntry} from "./stores/RoomStateStore";
 import {SessionStore} from "./stores/SessionStore";
 import {Store} from "./Store";
@@ -283,6 +283,11 @@ async function addInboundSessionBackupIndex(db: IDBDatabase, txn: IDBTransaction
     const inboundGroupSessions = txn.objectStore("inboundGroupSessions");
     await iterateCursor<InboundGroupSessionEntry>(inboundGroupSessions.openCursor(), (value, key, cursor) => {
         value.backup = BackupStatus.NotBackedUp;
+        // we'll also have backup keys in here, we can't tell,
+        // but the worst thing that can happen is that we try
+        // to backup keys that were already in backup, which
+        // the server will ignore
+        value.source = KeySource.DeviceMessage;
         return NOT_DONE;
     });
     inboundGroupSessions.createIndex("byBackup", "backup", {unique: false});

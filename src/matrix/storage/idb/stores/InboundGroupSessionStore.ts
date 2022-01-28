@@ -22,6 +22,11 @@ export enum BackupStatus {
     BackedUp = 1
 }
 
+export enum KeySource {
+    DeviceMessage = 1,
+    Backup,
+}
+
 export interface InboundGroupSessionEntry {
     roomId: string;
     senderKey: string;
@@ -29,7 +34,8 @@ export interface InboundGroupSessionEntry {
     session?: string;
     claimedKeys?: { [algorithm : string] : string };
     eventIds?: string[];
-    backup: BackupStatus
+    backup: BackupStatus,
+    source: KeySource
 }
 
 type InboundGroupSessionStorageEntry = InboundGroupSessionEntry & { key: string };
