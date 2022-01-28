@@ -77,7 +77,7 @@ export class InboundGroupSessionStore {
         this._store.delete(range);
     }
     countNonBackedUpSessions(): Promise<number> {
-        return this._store.index("byBackup").count();
+        return this._store.index("byBackup").count(this._store.IDBKeyRange.only(BackupStatus.NotBackedUp));
     }
 
     getFirstNonBackedUpSessions(amount: number): Promise<InboundGroupSessionEntry[]> {
