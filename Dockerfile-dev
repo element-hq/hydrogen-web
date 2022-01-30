@@ -1,4 +1,4 @@
-FROM docker.io/node:alpine
+FROM docker.io/node:17.4.0-alpine
 RUN apk add --no-cache git python3 build-base
 COPY . /code
 WORKDIR /code
