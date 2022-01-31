@@ -62,6 +62,10 @@ export class KeyBackup {
         }
     }
 
+    markAllForBackup(txn: Transaction): Promise<number> {
+        return txn.inboundGroupSessions.markAllAsNotBackedUp();
+    }
+
     flush(log: ILogItem): void {
         if (!this.operationInProgress.get()) {
             log.wrapDetached("flush key backup", async log => {

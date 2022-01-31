@@ -203,21 +203,32 @@ export class Session {
                 this._storage.storeNames.accountData,
             ]);
             if (await this._createKeyBackup(key, readTxn, log)) {
-                await this._writeSSSSKey(key);
+                // only after having read a secret, write the key
+                // as we only find out if it was good if the MAC verification succeeds
+                await this._writeSSSSKey(key, log);
                 this._keyBackup.get().flush(log);
                 return key;
             }
         });
     }
 
-    async _writeSSSSKey(key) {
-        // only after having read a secret, write the key
-        // as we only find out if it was good if the MAC verification succeeds
+    async _writeSSSSKey(key, log) {
+        // we're going to write the 4S key, and also the backup version.
+        // this way, we can detect when we enter a key for a new backup version
+        // and mark all inbound sessions to be backed up again
+        const backupVersion = this._keyBackup.get()?.version;
         const writeTxn = await this._storage.readWriteTxn([
             this._storage.storeNames.session,
+            this._storage.storeNames.inboundGroupSessions,
         ]);
         try {
-            ssssWriteKey(key, writeTxn);
+            const previousBackupVersion = await ssssWriteKey(key, backupVersion, writeTxn);
+            log.set("previousBackupVersion", previousBackupVersion);
+            log.set("backupVersion", backupVersion);
+            if (typeof previousBackupVersion === "number" && previousBackupVersion !== backupVersion) {
+                const amountMarked = await this._keyBackup.markAllForBackup(writeTxn);
+                log.set("amountMarkedForBackup", amountMarked);
+            }
         } catch (err) {
             writeTxn.abort();
             throw err;

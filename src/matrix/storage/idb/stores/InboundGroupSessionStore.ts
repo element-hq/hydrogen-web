@@ -91,4 +91,16 @@ export class InboundGroupSessionStore {
             this._store.put(entry);
         }
     }
+
+    async markAllAsNotBackedUp(): Promise<number> {
+        const backedUpKey = this._store.IDBKeyRange.only(BackupStatus.BackedUp);
+        let count = 0;
+        await this._store.index("byBackup").iterateValues(backedUpKey, (val: InboundGroupSessionEntry, key: IDBValidKey, cur: IDBCursorWithValue) => {
+            val.backup = BackupStatus.NotBackedUp;
+            cur.update(val);
+            count += 1;
+            return false;
+        });
+        return count;
+    }
 }
