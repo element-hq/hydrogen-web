@@ -157,7 +157,7 @@ export class KeyBackupViewModel extends ViewModel {
     get backupPercentage() {
         const progress = this._progress.get();
         if (progress) {
-            return Math.round(progress.finished / progress.total) * 100;
+            return Math.round((progress.finished / progress.total) * 100);
         }
         return 0;
     }
