@@ -93,7 +93,7 @@ export class KeyBackup {
                     this._hasBackedUpAllKeys = true;
                 } catch (err) {
                     this._stopped = true;
-                    if (err.name === "HomeServerError" && err.errcode === "M_WRONG_ROOM_KEYS_VERSION") {
+                    if (err.name === "HomeServerError" && (err.errcode === "M_WRONG_ROOM_KEYS_VERSION" || err.errcode === "M_NOT_FOUND")) {
                         log.set("wrong_version", true);
                         this._needsNewKey = true;
                     } else {
