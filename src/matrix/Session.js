@@ -208,6 +208,8 @@ export class Session {
                 await this._writeSSSSKey(key, log);
                 this._keyBackup.get().flush(log);
                 return key;
+            } else {
+                throw new Error("Could not read key backup with the given key");
             }
         });
     }
@@ -216,7 +218,11 @@ export class Session {
         // we're going to write the 4S key, and also the backup version.
         // this way, we can detect when we enter a key for a new backup version
         // and mark all inbound sessions to be backed up again
-        const backupVersion = this._keyBackup.get()?.version;
+        const keyBackup = this._keyBackup.get();
+        if (!keyBackup) {
+            return;
+        }
+        const backupVersion = keyBackup.version;
         const writeTxn = await this._storage.readWriteTxn([
             this._storage.storeNames.session,
             this._storage.storeNames.inboundGroupSessions,
@@ -225,8 +231,8 @@ export class Session {
             const previousBackupVersion = await ssssWriteKey(key, backupVersion, writeTxn);
             log.set("previousBackupVersion", previousBackupVersion);
             log.set("backupVersion", backupVersion);
-            if (typeof previousBackupVersion === "number" && previousBackupVersion !== backupVersion) {
-                const amountMarked = await this._keyBackup.markAllForBackup(writeTxn);
+            if (!!previousBackupVersion && previousBackupVersion !== backupVersion) {
+                const amountMarked = await keyBackup.markAllForBackup(writeTxn);
                 log.set("amountMarkedForBackup", amountMarked);
             }
         } catch (err) {
@@ -473,7 +479,7 @@ export class Session {
             if (ssssKey) {
                 // txn will end here as this does a network request
                 await this._createKeyBackup(ssssKey, txn, log);
-                this._keyBackup.get()?.flush();
+                this._keyBackup.get()?.flush(log);
             }
         }
         // restore unfinished operations, like sending out room keys

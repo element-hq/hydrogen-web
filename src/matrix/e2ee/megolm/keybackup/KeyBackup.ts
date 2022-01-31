@@ -39,8 +39,9 @@ const KEYS_PER_REQUEST = 20;
 export class KeyBackup {
     public readonly operationInProgress = new ObservableValue<AbortableOperation<Promise<void>, Progress> | undefined>(undefined);
 
-    private _cancelled = false;
+    private _stopped = false;
     private _needsNewKey = false;
+    private _hasBackedUpAllKeys = false;
     private _error?: Error;
 
     constructor(
@@ -52,9 +53,11 @@ export class KeyBackup {
         private readonly platform: Platform,
     ) {}
 
-    get cancelled(): boolean { return this._cancelled; }
-    get needsNewKey(): boolean { return this._needsNewKey; }
+    get hasStopped(): boolean { return this._stopped; }
     get error(): Error | undefined { return this._error; }
+    get version(): string { return this.backupInfo.version; }
+    get needsNewKey(): boolean { return this._needsNewKey; }
+    get hasBackedUpAllKeys(): boolean { return this._hasBackedUpAllKeys; }
 
     async getRoomKey(roomId: string, sessionId: string, log: ILogItem): Promise<IncomingRoomKey | undefined> {
         const sessionResponse = await this.hsApi.roomKeyForRoomAndSession(this.backupInfo.version, roomId, sessionId, {log}).response();
@@ -80,18 +83,20 @@ export class KeyBackup {
                     log.set("needsNewKey", this._needsNewKey);
                     return;
                 }
-                this._cancelled = false;
+                this._stopped = false;
                 this._error = undefined;
+                this._hasBackedUpAllKeys = false;
                 const operation = this._runFlushOperation(log);
                 this.operationInProgress.set(operation);
                 try {
                     await operation.result;
+                    this._hasBackedUpAllKeys = true;
                 } catch (err) {
+                    this._stopped = true;
                     if (err.name === "HomeServerError" && err.errcode === "M_WRONG_ROOM_KEYS_VERSION") {
                         log.set("wrong_version", true);
                         this._needsNewKey = true;
                     } else {
-                        this._cancelled = true;
                         // TODO should really also use AbortError in storage
                         if (err.name !== "AbortError" || (err.name === "StorageError" && err.errcode === "AbortError")) {
                             this._error = err;
@@ -174,10 +179,6 @@ export class KeyBackup {
                 session_data: this.crypto.encryptRoomKey(roomKey, sessionKey)
             };
         });
-    }
-
-    get version(): string {
-        return this.backupInfo.version;
     }
 
     dispose() {
