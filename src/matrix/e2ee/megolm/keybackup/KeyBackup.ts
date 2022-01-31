@@ -51,6 +51,7 @@ export class KeyBackup {
         private readonly keyLoader: KeyLoader,
         private readonly storage: Storage,
         private readonly platform: Platform,
+        private readonly maxDelay: number = 10000
     ) {}
 
     get hasStopped(): boolean { return this._stopped; }
@@ -114,7 +115,7 @@ export class KeyBackup {
             let total = 0;
             let amountFinished = 0;
             while (true) {
-                const waitMs = this.platform.random() * 10000;
+                const waitMs = this.platform.random() * this.maxDelay;
                 const timeout = this.platform.clock.createTimeout(waitMs);
                 setAbortable(timeout);
                 await timeout.elapsed();
