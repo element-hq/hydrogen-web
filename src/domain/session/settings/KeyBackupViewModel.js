@@ -18,7 +18,7 @@ import {ViewModel} from "../../ViewModel.js";
 import {KeyType} from "../../../matrix/ssss/index";
 import {createEnum} from "../../../utils/enum";
 
-export const Status = createEnum("Enabled", "SetupKey", "SetupPhrase", "Pending", "NewVersionAvailable", "Error", "Cancelled"); 
+export const Status = createEnum("Enabled", "SetupKey", "SetupPhrase", "Pending", "NewVersionAvailable"); 
 export const BackupWriteStatus = createEnum("Writing", "Stopped", "Done", "Pending"); 
 
 export class KeyBackupViewModel extends ViewModel {
