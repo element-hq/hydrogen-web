@@ -18,7 +18,8 @@ import {ViewModel} from "../../ViewModel.js";
 import {KeyType} from "../../../matrix/ssss/index";
 import {createEnum} from "../../../utils/enum";
 
-export const Status = createEnum("Enabled", "SetupKey", "SetupPhrase", "Pending", "NewVersionAvailable"); 
+export const Status = createEnum("Enabled", "SetupKey", "SetupPhrase", "Pending", "NewVersionAvailable", "Error", "Cancelled"); 
+export const BackupWriteStatus = createEnum("Writing", "Stopped", "Done", "Pending"); 
 
 export class KeyBackupViewModel extends ViewModel {
     constructor(options) {
@@ -30,7 +31,11 @@ export class KeyBackupViewModel extends ViewModel {
         this._status = undefined;
         this._backupOperation = this._session.keyBackup.flatMap(keyBackup => keyBackup.operationInProgress);
         this._progress = this._backupOperation.flatMap(op => op.progress);
-        this.track(this._backupOperation.subscribe(() => this.emitChange("isBackingUp")));
+        this.track(this._backupOperation.subscribe(() => {
+            // see if needsNewKey might be set
+            this._reevaluateStatus();
+            this.emitChange("isBackingUp");
+        }));
         this.track(this._progress.subscribe(() => this.emitChange("backupPercentage")));
         this._reevaluateStatus();
         this.track(this._session.keyBackup.subscribe(() => {
@@ -47,7 +52,7 @@ export class KeyBackupViewModel extends ViewModel {
         let status;
         const keyBackup = this._session.keyBackup.get();
         if (keyBackup) {
-            status = keyBackup.needsNewKey.get() ? Status.NewVersionAvailable : Status.Enabled;
+            status = keyBackup.needsNewKey ? Status.NewVersionAvailable : Status.Enabled;
         } else {
             status = this.showPhraseSetup() ? Status.SetupPhrase : Status.SetupKey;
         } /* TODO: bring back "waiting to get online"
@@ -81,6 +86,27 @@ export class KeyBackupViewModel extends ViewModel {
 
     get backupVersion() {
         return this._session.keyBackup.get()?.version;
+    }
+
+    get backupWriteStatus() {
+        const keyBackup = this._session.keyBackup.get();
+        if (!keyBackup) {
+            return BackupWriteStatus.Pending;
+        } else if (keyBackup.hasStopped) {
+            return BackupWriteStatus.Stopped;
+        }
+        const operation = keyBackup.operationInProgress.get();
+        if (operation) {
+            return BackupWriteStatus.Writing;
+        } else if (keyBackup.hasBackedUpAllKeys) {
+            return BackupWriteStatus.Done;
+        } else {
+            return BackupWriteStatus.Pending;
+        }
+    }
+
+    get backupError() {
+        return this._session.keyBackup.get()?.error?.message;
     }
 
     get status() {
@@ -171,7 +197,11 @@ export class KeyBackupViewModel extends ViewModel {
     }
 
     cancelBackup() {
-        this._session.keyBackup.get()?.operationInProgress.get()?.abort();
+        this._backupOperation.get()?.abort();
+    }
+
+    startBackup() {
+        this._session.keyBackup.get()?.flush();
     }
 }
 

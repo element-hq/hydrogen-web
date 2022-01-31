@@ -22,22 +22,36 @@ export class KeyBackupSettingsView extends TemplateView {
             t.map(vm => vm.status, (status, t, vm) => {
                 switch (status) {
                     case "Enabled": return renderEnabled(t, vm);
+                    case "NewVersionAvailable": return renderNewVersionAvailable(t, vm);
                     case "SetupKey": return renderEnableFromKey(t, vm);
                     case "SetupPhrase": return renderEnableFromPhrase(t, vm);
-                    case "NewVersionAvailable": return t.p(vm.i18n`A new backup version has been created. Disable key backup and enable it again with the new key.`);
                     case "Pending": return t.p(vm.i18n`Waiting to go online…`);
                 }
             }),
-            t.map(vm => vm.isBackingUp, (backingUp, t, vm) => {
-                if (backingUp) {
-                    const progress = t.progress({
-                        min: 0,
-                        max: 100,
-                        value: vm => vm.backupPercentage,
-                    });
-                    return t.div([`Backup in progress `, progress, " ", vm => vm.backupInProgressLabel]);
-                } else {
-                    return t.p("All keys are backed up.");
+            t.map(vm => vm.backupWriteStatus, (status, t, vm) => {
+                switch (status) {
+                    case "Writing": {
+                        const progress = t.progress({
+                            min: 0,
+                            max: 100,
+                            value: vm => vm.backupPercentage,
+                        });
+                        return t.div([`Backup in progress `, progress, " ", vm => vm.backupInProgressLabel]);
+                    }
+                    case "Stopped": {
+                        let label;
+                        const error = vm.backupError;
+                        if (error) {
+                            label = `Backup has stopped because of an error: ${vm.backupError}`;
+                        } else {
+                            label = `Backup has stopped`;
+                        }
+                        return t.p(label, " ", t.button({onClick: () => vm.startBackup()}, `Backup now`));
+                    }
+                    case "Done":
+                        return t.p(`All keys are backed up.`);
+                    default:
+                        return null;
                 }
             })
         ]);
@@ -46,11 +60,18 @@ export class KeyBackupSettingsView extends TemplateView {
 
 function renderEnabled(t, vm) {
     const items = [
-        t.p([vm.i18n`Session backup is enabled, using backup version ${vm.backupVersion}. `, t.button({onClick: () => vm.disable()}, vm.i18n`Disable`)])
+        t.p([vm.i18n`Key backup is enabled, using backup version ${vm.backupVersion}. `, t.button({onClick: () => vm.disable()}, vm.i18n`Disable`)])
     ];
     if (vm.dehydratedDeviceId) {
         items.push(t.p(vm.i18n`A dehydrated device id was set up with id ${vm.dehydratedDeviceId} which you can use during your next login with your secret storage key.`));
     }
+    return t.div(items);
+}
+
+function renderNewVersionAvailable(t, vm) {
+    const items = [
+        t.p([vm.i18n`A new backup version has been created from another device. Disable key backup and enable it again with the new key.`, t.button({onClick: () => vm.disable()}, vm.i18n`Disable`)])
+    ];
     return t.div(items);
 }
 
@@ -101,7 +122,7 @@ function renderEnableFieldRow(t, vm, label, callback) {
 function renderError(t) {
     return t.if(vm => vm.error, (t, vm) => {
         return t.div([
-            t.p({className: "error"}, vm => vm.i18n`Could not enable session backup: ${vm.error}.`),
+            t.p({className: "error"}, vm => vm.i18n`Could not enable key backup: ${vm.error}.`),
             t.p(vm.i18n`Try double checking that you did not mix up your security key, security phrase and login password as explained above.`)
         ])
     });
