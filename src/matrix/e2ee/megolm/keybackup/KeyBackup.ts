@@ -37,8 +37,11 @@ type Olm = typeof OlmNamespace;
 const KEYS_PER_REQUEST = 20;
 
 export class KeyBackup {
-    public readonly operationInProgress = new ObservableValue<AbortableOperation<Promise<boolean>, Progress> | undefined>(undefined);
-    public readonly needsNewKey = new ObservableValue(false);
+    public readonly operationInProgress = new ObservableValue<AbortableOperation<Promise<void>, Progress> | undefined>(undefined);
+
+    private _cancelled = false;
+    private _needsNewKey = false;
+    private _error?: Error;
 
     constructor(
         private readonly backupInfo: BackupInfo,
@@ -48,6 +51,10 @@ export class KeyBackup {
         private readonly storage: Storage,
         private readonly platform: Platform,
     ) {}
+
+    get cancelled(): boolean { return this._cancelled; }
+    get needsNewKey(): boolean { return this._needsNewKey; }
+    get error(): Error | undefined { return this._error; }
 
     async getRoomKey(roomId: string, sessionId: string, log: ILogItem): Promise<IncomingRoomKey | undefined> {
         const sessionResponse = await this.hsApi.roomKeyForRoomAndSession(this.backupInfo.version, roomId, sessionId, {log}).response();
@@ -69,15 +76,27 @@ export class KeyBackup {
     flush(log: ILogItem): void {
         if (!this.operationInProgress.get()) {
             log.wrapDetached("flush key backup", async log => {
-                const operation = this._flush(log);
+                if (this._needsNewKey) {
+                    log.set("needsNewKey", this._needsNewKey);
+                    return;
+                }
+                this._cancelled = false;
+                this._error = undefined;
+                const operation = this._runFlushOperation(log);
                 this.operationInProgress.set(operation);
                 try {
-                    const success = await operation.result;
-                    // stop key backup if the version was changed
-                    if (!success) {
-                        this.needsNewKey.set(true);
-                    }
+                    await operation.result;
                 } catch (err) {
+                    if (err.name === "HomeServerError" && err.errcode === "M_WRONG_ROOM_KEYS_VERSION") {
+                        log.set("wrong_version", true);
+                        this._needsNewKey = true;
+                    } else {
+                        this._cancelled = true;
+                        // TODO should really also use AbortError in storage
+                        if (err.name !== "AbortError" || (err.name === "StorageError" && err.errcode === "AbortError")) {
+                            this._error = err;
+                        }
+                    }
                     log.catch(err);
                 }
                 this.operationInProgress.set(undefined);
@@ -85,7 +104,7 @@ export class KeyBackup {
         }
     }
 
-    private _flush(log: ILogItem): AbortableOperation<Promise<boolean>, Progress> {
+    private _runFlushOperation(log: ILogItem): AbortableOperation<Promise<void>, Progress> {
         return new AbortableOperation(async (setAbortable, setProgress) => {
             let total = 0;
             let amountFinished = 0;
@@ -102,21 +121,12 @@ export class KeyBackup {
                 const keysNeedingBackup = (await txn.inboundGroupSessions.getFirstNonBackedUpSessions(KEYS_PER_REQUEST))
                     .map(entry => new StoredRoomKey(entry));
                 if (keysNeedingBackup.length === 0) {
-                    return true;
+                    return;
                 }
                 const payload = await this.encodeKeysForBackup(keysNeedingBackup);
                 const uploadRequest = this.hsApi.uploadRoomKeysToBackup(this.backupInfo.version, payload, {log});
                 setAbortable(uploadRequest);
-                try {
-                    await uploadRequest.response();
-                } catch (err) {
-                    if (err.name === "HomeServerError" && err.errcode === "M_WRONG_ROOM_KEYS_VERSION") {
-                        log.set("wrong_version", true);
-                        return false;
-                    } else {
-                        throw err;
-                    }
-                }
+                await uploadRequest.response();
                 await this.markKeysAsBackedUp(keysNeedingBackup, setAbortable);
                 amountFinished += keysNeedingBackup.length;
                 setProgress(new Progress(total, amountFinished));
