@@ -116,7 +116,7 @@ export class KeyBackup {
                 const txn = await this.storage.readTxn([StoreNames.inboundGroupSessions]);
                 setAbortable(txn);
                 // fetch total again on each iteration as while we are flushing, sync might be adding keys
-                total = await txn.inboundGroupSessions.countNonBackedUpSessions();
+                total = amountFinished + await txn.inboundGroupSessions.countNonBackedUpSessions();
                 setProgress(new Progress(total, amountFinished));
                 const keysNeedingBackup = (await txn.inboundGroupSessions.getFirstNonBackedUpSessions(KEYS_PER_REQUEST))
                     .map(entry => new StoredRoomKey(entry));
