@@ -34,7 +34,7 @@ import type {Transaction} from "../../../storage/idb/Transaction";
 import type * as OlmNamespace from "@matrix-org/olm";
 type Olm = typeof OlmNamespace;
 
-const KEYS_PER_REQUEST = 20;
+const KEYS_PER_REQUEST = 200;
 
 export class KeyBackup {
     public readonly operationInProgress = new ObservableValue<AbortableOperation<Promise<void>, Progress> | undefined>(undefined);
