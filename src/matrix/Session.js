@@ -473,6 +473,7 @@ export class Session {
             if (ssssKey) {
                 // txn will end here as this does a network request
                 await this._createKeyBackup(ssssKey, txn, log);
+                this._keyBackup.get()?.flush();
             }
         }
         // restore unfinished operations, like sending out room keys
