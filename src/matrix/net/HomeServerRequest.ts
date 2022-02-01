@@ -18,6 +18,7 @@ limitations under the License.
 import {HomeServerError, ConnectionError} from "../error.js";
 import type {RequestResult} from "../../platform/web/dom/request/fetch.js";
 import type {ILogItem} from "../../logging/types";
+import type {IRequestOptions} from "../../platform/types/types.js";
 
 export interface IHomeServerRequest {
     abort(): void;
@@ -30,16 +31,18 @@ export class HomeServerRequest implements IHomeServerRequest {
     // as we add types for expected responses from hs, this could be a generic class instead
     private readonly _promise: Promise<any>;
 
-    constructor(method: string, url: string, sourceRequest: RequestResult, log?: ILogItem) {
+    constructor(method: string, url: string, sourceRequest: RequestResult, options?: IRequestOptions) {
+        let log: ILogItem | undefined;
+        if (options?.log) {
+            const parent = options?.log;
+            log = parent.child({ t: "network", url, method, }, parent.level.Info);
+        }
         this._log = log;
         this._sourceRequest = sourceRequest;
         this._promise = sourceRequest.response().then(response => {
             log?.set("status", response.status);
             // ok?
-            // todo: register endpoint indicates our progress in using the user interactive
-            // authentication using 401 responses
-            // passing through all 401 responses as a temporary fix
-            if (response.status >= 200 && response.status < 300 || response.status === 401) {
+            if (response.status >= 200 && response.status < 300 || options?.allowedErrors?.find(e => e === response.status)) {
                 log?.finish();
                 return response.body;
             } else {

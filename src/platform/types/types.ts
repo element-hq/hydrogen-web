@@ -28,6 +28,7 @@ export interface IRequestOptions {
     prefix?: string;
     method?: string;
     format?: string;
+    allowedErrors?: number[];
 }
 
 export type RequestFunction = (url: string, options: IRequestOptions) => RequestResult;

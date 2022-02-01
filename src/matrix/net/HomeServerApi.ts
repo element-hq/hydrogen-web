@@ -58,15 +58,6 @@ export class HomeServerApi {
     private _baseRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: IRequestOptions, accessToken?: string): IHomeServerRequest {
         const queryString = encodeQueryParams(queryParams);
         url = `${url}?${queryString}`;
-        let log: ILogItem | undefined;
-        if (options?.log) {
-            const parent = options?.log;
-            log = parent.child({
-                t: "network",
-                url,
-                method,
-            }, parent.level.Info);
-        }
         let encodedBody: EncodedBody["body"];
         const headers: Map<string, string | number> = new Map();
         if (accessToken) {
@@ -89,7 +80,7 @@ export class HomeServerApi {
             cache: options?.cache ?? false
         });
 
-        const hsRequest = new HomeServerRequest(method, url, requestResult, log);
+        const hsRequest = new HomeServerRequest(method, url, requestResult, options);
         
         if (this._reconnector) {
             hsRequest.response().catch(err => {
@@ -169,7 +160,7 @@ export class HomeServerApi {
         // todo: This is so that we disable cache-buster because it would cause the hs to respond with error
         // see https://github.com/matrix-org/synapse/issues/7722
         const _options = options ?? {};
-        Object.assign(_options, { cache: true });
+        Object.assign(_options, { cache: true, allowedErrors: [401] });
         const body = {
             auth,
             password,
