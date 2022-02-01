@@ -158,7 +158,7 @@ export class HomeServerApi {
 
     register(username: string | null, password: string, initialDeviceDisplayName: string, auth?: Record<string, any>, inhibitLogin: boolean = true , options: IRequestOptions = {}): IHomeServerRequest {
         Object.assign(options, { allowedErrors: [401] });
-        const body = {
+        const body: any = {
             auth,
             password,
             initial_device_displayname: initialDeviceDisplayName,
@@ -166,7 +166,7 @@ export class HomeServerApi {
         };
         if (username) {
             // username is optional for registration
-            Object.assign(body, { username });
+            body.username = username;
         }
         return this._unauthedRequest( "POST", this._url("/register", CS_V3_PREFIX), undefined, body, options);
     }
