@@ -33,7 +33,8 @@ export const schema: MigrationFunc[] = [
     changeSSSSKeyPrefix,
     backupAndRestoreE2EEAccountToLocalStorage,
     clearAllStores,
-    addInboundSessionBackupIndex
+    addInboundSessionBackupIndex,
+    migrateBackupStatus
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -281,6 +282,13 @@ async function clearAllStores(db: IDBDatabase, txn: IDBTransaction) {
 // v15 add backup index to inboundGroupSessions
 async function addInboundSessionBackupIndex(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem): Promise<void> {
     const inboundGroupSessions = txn.objectStore("inboundGroupSessions");
+    inboundGroupSessions.createIndex("byBackup", "backup", {unique: false});
+}
+
+
+// v16 migrates the backup and source fields of inbound group sessions
+async function migrateBackupStatus(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem): Promise<void> {
+    const inboundGroupSessions = txn.objectStore("inboundGroupSessions");
     let countWithSession = 0;
     let countWithoutSession = 0;
     await iterateCursor<InboundGroupSessionEntry>(inboundGroupSessions.openCursor(), (value, key, cursor) => {
@@ -291,6 +299,7 @@ async function addInboundSessionBackupIndex(db: IDBDatabase, txn: IDBTransaction
             // to backup keys that were already in backup, which
             // the server will ignore
             value.source = KeySource.DeviceMessage;
+            cursor.update(value);
             countWithSession += 1;
         } else {
             countWithoutSession += 1;
@@ -299,5 +308,4 @@ async function addInboundSessionBackupIndex(db: IDBDatabase, txn: IDBTransaction
     });
     log.set("countWithoutSession", countWithoutSession);
     log.set("countWithSession", countWithSession);
-    inboundGroupSessions.createIndex("byBackup", "backup", {unique: false});
 }
