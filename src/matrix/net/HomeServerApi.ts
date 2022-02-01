@@ -77,7 +77,7 @@ export class HomeServerApi {
             timeout: options?.timeout,
             uploadProgress: options?.uploadProgress,
             format: "json",  // response format
-            cache: options?.cache ?? false
+            cache: method !== "GET",
         });
 
         const hsRequest = new HomeServerRequest(method, url, requestResult, options);
@@ -160,7 +160,7 @@ export class HomeServerApi {
         // todo: This is so that we disable cache-buster because it would cause the hs to respond with error
         // see https://github.com/matrix-org/synapse/issues/7722
         const _options = options ?? {};
-        Object.assign(_options, { cache: true, allowedErrors: [401] });
+        Object.assign(_options, { allowedErrors: [401] });
         const body = {
             auth,
             password,
