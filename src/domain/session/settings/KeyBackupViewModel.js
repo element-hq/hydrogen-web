@@ -18,9 +18,10 @@ import {ViewModel} from "../../ViewModel.js";
 import {KeyType} from "../../../matrix/ssss/index";
 import {createEnum} from "../../../utils/enum";
 
-export const Status = createEnum("Enabled", "SetupKey", "SetupPhrase", "Pending"); 
+export const Status = createEnum("Enabled", "SetupKey", "SetupPhrase", "Pending", "NewVersionAvailable"); 
+export const BackupWriteStatus = createEnum("Writing", "Stopped", "Done", "Pending"); 
 
-export class SessionBackupViewModel extends ViewModel {
+export class KeyBackupViewModel extends ViewModel {
     constructor(options) {
         super(options);
         this._session = options.session;
@@ -28,8 +29,16 @@ export class SessionBackupViewModel extends ViewModel {
         this._isBusy = false;
         this._dehydratedDeviceId = undefined;
         this._status = undefined;
+        this._backupOperation = this._session.keyBackup.flatMap(keyBackup => keyBackup.operationInProgress);
+        this._progress = this._backupOperation.flatMap(op => op.progress);
+        this.track(this._backupOperation.subscribe(() => {
+            // see if needsNewKey might be set
+            this._reevaluateStatus();
+            this.emitChange("isBackingUp");
+        }));
+        this.track(this._progress.subscribe(() => this.emitChange("backupPercentage")));
         this._reevaluateStatus();
-        this.track(this._session.hasSecretStorageKey.subscribe(() => {
+        this.track(this._session.keyBackup.subscribe(() => {
             if (this._reevaluateStatus()) {
                 this.emitChange("status");
             }
@@ -41,11 +50,11 @@ export class SessionBackupViewModel extends ViewModel {
             return false;
         }
         let status;
-        const hasSecretStorageKey = this._session.hasSecretStorageKey.get();
-        if (hasSecretStorageKey === true) {
-            status = this._session.sessionBackup ? Status.Enabled : Status.SetupKey;
-        } else if (hasSecretStorageKey === false) {
-            status = Status.SetupKey;
+        const keyBackup = this._session.keyBackup.get();
+        if (keyBackup) {
+            status = keyBackup.needsNewKey ? Status.NewVersionAvailable : Status.Enabled;
+        } else if (keyBackup === null) {
+            status = this.showPhraseSetup() ? Status.SetupPhrase : Status.SetupKey;
         } else {
             status = Status.Pending;
         }
@@ -59,7 +68,7 @@ export class SessionBackupViewModel extends ViewModel {
     }
 
     get purpose() {
-        return this.i18n`set up session backup`;
+        return this.i18n`set up key backup`;
     }
 
     offerDehydratedDeviceSetup() {
@@ -75,7 +84,28 @@ export class SessionBackupViewModel extends ViewModel {
     }
 
     get backupVersion() {
-        return this._session.sessionBackup?.version;
+        return this._session.keyBackup.get()?.version;
+    }
+
+    get backupWriteStatus() {
+        const keyBackup = this._session.keyBackup.get();
+        if (!keyBackup) {
+            return BackupWriteStatus.Pending;
+        } else if (keyBackup.hasStopped) {
+            return BackupWriteStatus.Stopped;
+        }
+        const operation = keyBackup.operationInProgress.get();
+        if (operation) {
+            return BackupWriteStatus.Writing;
+        } else if (keyBackup.hasBackedUpAllKeys) {
+            return BackupWriteStatus.Done;
+        } else {
+            return BackupWriteStatus.Pending;
+        }
+    }
+
+    get backupError() {
+        return this._session.keyBackup.get()?.error?.message;
     }
 
     get status() {
@@ -144,4 +174,33 @@ export class SessionBackupViewModel extends ViewModel {
             this.emitChange("");
         }
     }
+
+    get isBackingUp() {
+        return !!this._backupOperation.get();
+    }
+
+    get backupPercentage() {
+        const progress = this._progress.get();
+        if (progress) {
+            return Math.round((progress.finished / progress.total) * 100);
+        }
+        return 0;
+    }
+
+    get backupInProgressLabel() {
+        const progress = this._progress.get();
+        if (progress) {
+            return this.i18n`${progress.finished} of ${progress.total}`;
+        }
+        return this.i18n`…`;
+    }
+
+    cancelBackup() {
+        this._backupOperation.get()?.abort();
+    }
+
+    startBackup() {
+        this._session.keyBackup.get()?.flush();
+    }
 }
+

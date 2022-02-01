@@ -26,7 +26,7 @@ export class SessionStatusView extends TemplateView {
             spinner(t, {hidden: vm => !vm.isWaiting}),
             t.p(vm => vm.statusLabel),
             t.if(vm => vm.isConnectNowShown, t => t.button({className: "link", onClick: () => vm.connectNow()}, "Retry now")),
-            t.if(vm => vm.isSecretStorageShown, t => t.a({href: vm.setupSessionBackupUrl}, "Go to settings")),
+            t.if(vm => vm.isSecretStorageShown, t => t.a({href: vm.setupKeyBackupUrl}, "Go to settings")),
             t.if(vm => vm.canDismiss, t => t.div({className: "end"}, t.button({className: "dismiss", onClick: () => vm.dismiss()}))),
         ]);
     }

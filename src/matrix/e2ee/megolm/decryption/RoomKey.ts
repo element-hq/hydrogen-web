@@ -14,10 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {BackupStatus, KeySource} from "../../../storage/idb/stores/InboundGroupSessionStore";
 import type {InboundGroupSessionEntry} from "../../../storage/idb/stores/InboundGroupSessionStore";
 import type {Transaction} from "../../../storage/idb/Transaction";
 import type {DecryptionResult} from "../../DecryptionResult";
-import type {KeyLoader, OlmInboundGroupSession} from "./KeyLoader";
+import type {KeyLoader} from "./KeyLoader";
+import type * as OlmNamespace from "@matrix-org/olm";
+type Olm = typeof OlmNamespace;
 
 export abstract class RoomKey {
     private _isBetter: boolean | undefined;
@@ -33,7 +36,7 @@ export abstract class RoomKey {
     abstract get serializationKey(): string;
     abstract get serializationType(): string;
     abstract get eventIds(): string[] | undefined;
-    abstract loadInto(session: OlmInboundGroupSession, pickleKey: string): void;
+    abstract loadInto(session: Olm.InboundGroupSession, pickleKey: string): void;
     /* Whether the key has been checked against storage (or is from storage)
      * to be the better key for a given session. Given that all keys are checked to be better
      * as part of writing, we can trust that when this returns true, it really is the best key
@@ -44,7 +47,7 @@ export abstract class RoomKey {
     set isBetter(value: boolean | undefined) { this._isBetter = value; }
 }
 
-export function isBetterThan(newSession: OlmInboundGroupSession, existingSession: OlmInboundGroupSession) {
+export function isBetterThan(newSession: Olm.InboundGroupSession, existingSession: Olm.InboundGroupSession) {
      return newSession.first_known_index() < existingSession.first_known_index();
 }
 
@@ -57,7 +60,7 @@ export abstract class IncomingRoomKey extends RoomKey {
 
     async write(loader: KeyLoader, txn: Transaction): Promise<boolean> {
         // we checked already and we had a better session in storage, so don't write
-        let pickledSession;
+        let pickledSession: string | undefined;
         if (this.isBetter === undefined) {
             // if this key wasn't used to decrypt any messages in the same sync,
             // we haven't checked if this is the best key yet,
@@ -79,6 +82,8 @@ export abstract class IncomingRoomKey extends RoomKey {
             senderKey: this.senderKey,
             sessionId: this.sessionId,
             session: pickledSession,
+            backup: this.backupStatus,
+            source: this.keySource,
             claimedKeys: {"ed25519": this.claimedEd25519Key},
         };
         txn.inboundGroupSessions.set(sessionEntry);
@@ -87,7 +92,7 @@ export abstract class IncomingRoomKey extends RoomKey {
 
     get eventIds() { return this._eventIds; }
 
-    private async _checkBetterThanKeyInStorage(loader: KeyLoader, callback: (((session: OlmInboundGroupSession, pickleKey: string) => void) | undefined), txn: Transaction): Promise<boolean> {
+    private async _checkBetterThanKeyInStorage(loader: KeyLoader, callback: (((session: Olm.InboundGroupSession, pickleKey: string) => void) | undefined), txn: Transaction): Promise<boolean> {
         if (this.isBetter !== undefined) {
             return this.isBetter;
         }
@@ -123,6 +128,12 @@ export abstract class IncomingRoomKey extends RoomKey {
         }
         return this.isBetter!;
     }
+
+    protected get backupStatus(): BackupStatus {
+        return BackupStatus.NotBackedUp;
+    }
+
+    protected abstract get keySource(): KeySource;
 }
 
 class DeviceMessageRoomKey extends IncomingRoomKey {
@@ -139,22 +150,48 @@ class DeviceMessageRoomKey extends IncomingRoomKey {
     get claimedEd25519Key() { return this._decryptionResult.claimedEd25519Key; }
     get serializationKey(): string { return this._decryptionResult.event.content?.["session_key"]; }
     get serializationType(): string { return "create"; }
+    protected get keySource(): KeySource { return KeySource.DeviceMessage; }
 
     loadInto(session) {
         session.create(this.serializationKey);
     }
 }
 
-class BackupRoomKey extends IncomingRoomKey {
-    private _roomId: string;
-    private _sessionId: string;
-    private _backupInfo: string;
+// a room key we send out ourselves,
+// here adapted to write it as an incoming key
+// as we don't send it to ourself with a to_device msg
+export class OutboundRoomKey extends IncomingRoomKey {
+    private _sessionKey: string;
 
-    constructor(roomId, sessionId, backupInfo) {
+    constructor(
+        private readonly _roomId: string,
+        private readonly outboundSession: Olm.OutboundGroupSession,
+        private readonly identityKeys: {[algo: string]: string}
+    ) {
         super();
-        this._roomId = roomId;
-        this._sessionId = sessionId;
-        this._backupInfo = backupInfo;
+        // this is a new key, so always better than what might be in storage, no need to check
+        this.isBetter = true;
+        // cache this, as it is used by key loader to find a matching key and
+        // this calls into WASM so is not just reading a prop
+        this._sessionKey = this.outboundSession.session_key();
+    }
+
+    get roomId(): string { return this._roomId; }
+    get senderKey(): string { return this.identityKeys.curve25519; }
+    get sessionId(): string { return this.outboundSession.session_id(); }
+    get claimedEd25519Key(): string { return this.identityKeys.ed25519; }
+    get serializationKey(): string { return this._sessionKey; }
+    get serializationType(): string { return "create"; }
+    protected get keySource(): KeySource { return KeySource.Outbound; }
+
+    loadInto(session: Olm.InboundGroupSession) {
+        session.create(this.serializationKey);
+    }
+}
+
+class BackupRoomKey extends IncomingRoomKey {
+    constructor(private _roomId: string, private _sessionId: string, private _backupInfo: object) {
+        super();
     }
 
     get roomId() { return this._roomId; }
@@ -163,13 +200,18 @@ class BackupRoomKey extends IncomingRoomKey {
     get claimedEd25519Key() { return this._backupInfo["sender_claimed_keys"]?.["ed25519"]; }
     get serializationKey(): string { return this._backupInfo["session_key"]; }
     get serializationType(): string { return "import_session"; }
-    
+    protected get keySource(): KeySource { return KeySource.Backup; }
+
     loadInto(session) {
         session.import_session(this.serializationKey);
     }
+
+    protected get backupStatus(): BackupStatus {
+        return BackupStatus.BackedUp;
+    }
 }
 
-class StoredRoomKey extends RoomKey {
+export class StoredRoomKey extends RoomKey {
     private storageEntry: InboundGroupSessionEntry;
 
     constructor(storageEntry: InboundGroupSessionEntry) {

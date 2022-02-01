@@ -46,7 +46,7 @@ export class RoomMemberStore {
         this._roomMembersStore = roomMembersStore;
     }
 
-    get(roomId: string, userId: string): Promise<MemberStorageEntry | null> {
+    get(roomId: string, userId: string): Promise<MemberStorageEntry | undefined> {
         return this._roomMembersStore.get(encodeKey(roomId, userId));
     }
 

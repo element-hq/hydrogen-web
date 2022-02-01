@@ -17,23 +17,12 @@ limitations under the License.
 import {isBetterThan, IncomingRoomKey} from "./RoomKey";
 import {BaseLRUCache} from "../../../../utils/LRUCache";
 import type {RoomKey} from "./RoomKey";
+import type * as OlmNamespace from "@matrix-org/olm";
+type Olm = typeof OlmNamespace;
 
 export declare class OlmDecryptionResult {
     readonly plaintext: string;
     readonly message_index: number;
-}
-
-export declare class OlmInboundGroupSession {
-    constructor();
-    free(): void;
-    pickle(key: string | Uint8Array): string;
-    unpickle(key: string | Uint8Array, pickle: string);
-    create(session_key: string): string;
-    import_session(session_key: string): string;
-    decrypt(message: string): OlmDecryptionResult;
-    session_id(): string;
-    first_known_index(): number;
-    export_session(message_index: number): string;
 }
 
 /*
@@ -43,11 +32,11 @@ we limit the amount of sessions held in memory.
 export class KeyLoader extends BaseLRUCache<KeyOperation> {
 
     private pickleKey: string;
-    private olm: any;
+    private olm: Olm;
     private resolveUnusedOperation?: () => void;
     private operationBecomesUnusedPromise?: Promise<void>;
 
-    constructor(olm: any, pickleKey: string, limit: number) {
+    constructor(olm: Olm, pickleKey: string, limit: number) {
         super(limit);
         this.pickleKey = pickleKey;
         this.olm = olm;
@@ -60,7 +49,7 @@ export class KeyLoader extends BaseLRUCache<KeyOperation> {
         }
     }
 
-    async useKey<T>(key: RoomKey, callback: (session: OlmInboundGroupSession, pickleKey: string) => Promise<T> | T): Promise<T> {
+    async useKey<T>(key: RoomKey, callback: (session: Olm.InboundGroupSession, pickleKey: string) => Promise<T> | T): Promise<T> {
         const keyOp = await this.allocateOperation(key);
         try {
             return await callback(keyOp.session, this.pickleKey);
@@ -186,11 +175,11 @@ export class KeyLoader extends BaseLRUCache<KeyOperation> {
 }
 
 class KeyOperation {
-    session: OlmInboundGroupSession;
+    session: Olm.InboundGroupSession;
     key: RoomKey;
     refCount: number;
 
-    constructor(key: RoomKey, session: OlmInboundGroupSession) {
+    constructor(key: RoomKey, session: Olm.InboundGroupSession) {
         this.key = key;
         this.session = session;
         this.refCount = 1;
@@ -224,6 +213,9 @@ class KeyOperation {
     }
 }
 
+import {KeySource} from "../../../storage/idb/stores/InboundGroupSessionStore";
+
+
 export function tests() {
     let instances = 0;
 
@@ -248,7 +240,9 @@ export function tests() {
         get serializationKey(): string { return `key-${this.sessionId}-${this._firstKnownIndex}`; }
         get serializationType(): string { return "type"; }
         get eventIds(): string[] | undefined { return undefined; }
-        loadInto(session: OlmInboundGroupSession) {
+        get keySource(): KeySource { return KeySource.DeviceMessage; }
+
+        loadInto(session: Olm.InboundGroupSession) {
             const mockSession = session as MockInboundSession;
             mockSession.sessionId = this.sessionId;
             mockSession.firstKnownIndex = this._firstKnownIndex;
@@ -284,7 +278,7 @@ export function tests() {
     
     return {
         "load key gives correct session": async assert => {
-            const loader = new KeyLoader(olm, PICKLE_KEY, 2);
+            const loader = new KeyLoader(olm as any as Olm, PICKLE_KEY, 2);
             let callback1Called = false;
             let callback2Called = false;
             const p1 = loader.useKey(new MockRoomKey(roomId, aliceSenderKey, sessionId1, 1), async session => {
@@ -305,7 +299,7 @@ export function tests() {
             assert(callback2Called);
         },
         "keys with different first index are kept separate": async assert => {
-            const loader = new KeyLoader(olm, PICKLE_KEY, 2);
+            const loader = new KeyLoader(olm as any as Olm, PICKLE_KEY, 2);
             let callback1Called = false;
             let callback2Called = false;
             const p1 = loader.useKey(new MockRoomKey(roomId, aliceSenderKey, sessionId1, 1), async session => {
@@ -326,7 +320,7 @@ export function tests() {
             assert(callback2Called);
         },
         "useKey blocks as long as no free sessions are available": async assert => {
-            const loader = new KeyLoader(olm, PICKLE_KEY, 1);
+            const loader = new KeyLoader(olm as any as Olm, PICKLE_KEY, 1);
             let resolve;
             let callbackCalled = false;
             loader.useKey(new MockRoomKey(roomId, aliceSenderKey, sessionId1, 1), async session => {
@@ -343,7 +337,7 @@ export function tests() {
             assert.equal(callbackCalled, true);
         },
         "cache hit while key in use, then replace (check refCount works properly)": async assert => {
-            const loader = new KeyLoader(olm, PICKLE_KEY, 1);
+            const loader = new KeyLoader(olm as any as Olm, PICKLE_KEY, 1);
             let resolve1, resolve2;
             const key1 = new MockRoomKey(roomId, aliceSenderKey, sessionId1, 1);
             const p1 = loader.useKey(key1, async session => {
@@ -371,7 +365,7 @@ export function tests() {
             assert.equal(callbackCalled, true);
         },
         "cache hit while key not in use": async assert => {
-            const loader = new KeyLoader(olm, PICKLE_KEY, 2);
+            const loader = new KeyLoader(olm as any as Olm, PICKLE_KEY, 2);
             let resolve1, resolve2, invocations = 0;
             const key1 = new MockRoomKey(roomId, aliceSenderKey, sessionId1, 1);
             await loader.useKey(key1, async session => { invocations += 1; });
@@ -385,7 +379,7 @@ export function tests() {
         },
         "dispose calls free on all sessions": async assert => {
             instances = 0;
-            const loader = new KeyLoader(olm, PICKLE_KEY, 2);
+            const loader = new KeyLoader(olm as any as Olm, PICKLE_KEY, 2);
             await loader.useKey(new MockRoomKey(roomId, aliceSenderKey, sessionId1, 1), async session => {});
             await loader.useKey(new MockRoomKey(roomId, aliceSenderKey, sessionId2, 1), async session => {});
             assert.equal(instances, 2);
@@ -395,7 +389,7 @@ export function tests() {
             assert.strictEqual(loader.size, 0, "loader.size");
         },
         "checkBetterThanKeyInStorage false with cache": async assert => {
-            const loader = new KeyLoader(olm, PICKLE_KEY, 2);
+            const loader = new KeyLoader(olm as any as Olm, PICKLE_KEY, 2);
             const key1 = new MockRoomKey(roomId, aliceSenderKey, sessionId1, 2);
             await loader.useKey(key1, async session => {});
             // fake we've checked with storage that this is the best key,
@@ -409,7 +403,7 @@ export function tests() {
             assert.strictEqual(key2.isBetter, false);
         },
         "checkBetterThanKeyInStorage true with cache": async assert => {
-            const loader = new KeyLoader(olm, PICKLE_KEY, 2);
+            const loader = new KeyLoader(olm as any as Olm, PICKLE_KEY, 2);
             const key1 = new MockRoomKey(roomId, aliceSenderKey, sessionId1, 2);
             key1.isBetter = true; // fake we've check with storage so far (not including key2) this is the best key
             await loader.useKey(key1, async session => {});
@@ -420,7 +414,7 @@ export function tests() {
             assert.strictEqual(key2.isBetter, true);
         },
         "prefer to remove worst key for a session from cache": async assert => {
-            const loader = new KeyLoader(olm, PICKLE_KEY, 2);
+            const loader = new KeyLoader(olm as any as Olm, PICKLE_KEY, 2);
             const key1 = new MockRoomKey(roomId, aliceSenderKey, sessionId1, 2);
             await loader.useKey(key1, async session => {});
             key1.isBetter = true; // set to true just so it gets returned from getCachedKey

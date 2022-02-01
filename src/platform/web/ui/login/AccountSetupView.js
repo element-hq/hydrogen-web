@@ -15,13 +15,13 @@ limitations under the License.
 */
 
 import {TemplateView} from "../general/TemplateView";
-import {SessionBackupSettingsView} from "../session/settings/SessionBackupSettingsView.js";
+import {KeyBackupSettingsView} from "../session/settings/KeyBackupSettingsView.js";
 
 export class AccountSetupView extends TemplateView {
     render(t, vm) {
         return t.div({className: "Settings" /* hack for now to get the layout right*/}, [
             t.h3(vm.i18n`Restore your encrypted history?`),
-            t.ifView(vm => vm.decryptDehydratedDeviceViewModel, vm => new SessionBackupSettingsView(vm.decryptDehydratedDeviceViewModel)),
+            t.ifView(vm => vm.decryptDehydratedDeviceViewModel, vm => new KeyBackupSettingsView(vm.decryptDehydratedDeviceViewModel)),
             t.map(vm => vm.deviceDecrypted, (decrypted, t) => {
                 if (decrypted) {
                     return t.p(vm.i18n`That worked out, you're good to go!`);

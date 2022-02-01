@@ -28,7 +28,7 @@ export class UserIdentityStore {
         this._store = store;
     }
 
-    get(userId: string): Promise<UserIdentity | null> {
+    get(userId: string): Promise<UserIdentity | undefined> {
         return this._store.get(userId);
     }
 

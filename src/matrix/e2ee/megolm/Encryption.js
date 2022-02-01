@@ -15,12 +15,14 @@ limitations under the License.
 */
 
 import {MEGOLM_ALGORITHM} from "../common.js";
+import {OutboundRoomKey} from "./decryption/RoomKey";
 
 export class Encryption {
-    constructor({pickleKey, olm, account, storage, now, ownDeviceId}) {
+    constructor({pickleKey, olm, account, keyLoader, storage, now, ownDeviceId}) {
         this._pickleKey = pickleKey;
         this._olm = olm;
         this._account = account;
+        this._keyLoader = keyLoader;
         this._storage = storage;
         this._now = now;
         this._ownDeviceId = ownDeviceId;
@@ -64,7 +66,7 @@ export class Encryption {
             let roomKeyMessage;
             try {
                 let sessionEntry = await txn.outboundGroupSessions.get(roomId);
-                roomKeyMessage = this._readOrCreateSession(session, sessionEntry, roomId, encryptionParams, txn);
+                roomKeyMessage = await this._readOrCreateSession(session, sessionEntry, roomId, encryptionParams, txn);
                 if (roomKeyMessage) {
                     this._writeSession(this._now(), session, roomId, txn);
                 }
@@ -79,7 +81,7 @@ export class Encryption {
         }
     }
 
-    _readOrCreateSession(session, sessionEntry, roomId, encryptionParams, txn) {
+    async _readOrCreateSession(session, sessionEntry, roomId, encryptionParams, txn) {
         if (sessionEntry) {
             session.unpickle(this._pickleKey, sessionEntry.session);
         }
@@ -91,7 +93,8 @@ export class Encryption {
             }
             session.create();
             const roomKeyMessage = this._createRoomKeyMessage(session, roomId);
-            this._storeAsInboundSession(session, roomId, txn);
+            const roomKey = new OutboundRoomKey(roomId, session, this._account.identityKeys);
+            await roomKey.write(this._keyLoader, txn);
             return roomKeyMessage;
         }
     }
@@ -123,7 +126,7 @@ export class Encryption {
             let encryptedContent;
             try {
                 let sessionEntry = await txn.outboundGroupSessions.get(roomId);
-                roomKeyMessage = this._readOrCreateSession(session, sessionEntry, roomId, encryptionParams, txn);
+                roomKeyMessage = await this._readOrCreateSession(session, sessionEntry, roomId, encryptionParams, txn);
                 encryptedContent = this._encryptContent(roomId, session, type, content);
                 // update timestamp when a new session is created
                 const createdAt = roomKeyMessage ? this._now() : sessionEntry.createdAt;
@@ -188,26 +191,6 @@ export class Encryption {
             // chain_index is ignored by element-web if not all clients
             // but let's send it anyway, as element-web does so
             chain_index: session.message_index()
-        }
-    }
-
-    _storeAsInboundSession(outboundSession, roomId, txn) {
-        const {identityKeys} = this._account;
-        const claimedKeys = {ed25519: identityKeys.ed25519};
-        const session = new this._olm.InboundGroupSession();
-        try {
-            session.create(outboundSession.session_key());
-            const sessionEntry = {
-                roomId,
-                senderKey: identityKeys.curve25519,
-                sessionId: session.session_id(),
-                session: session.pickle(this._pickleKey),
-                claimedKeys,
-            };
-            txn.inboundGroupSessions.set(sessionEntry);
-            return sessionEntry;
-        } finally {
-            session.free();
         }
     }
 }

@@ -14,27 +14,40 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {BaseObservableValue, ObservableValue} from "../observable/ObservableValue";
+
 export interface IAbortable {
     abort();
 }
 
-type RunFn<T> = (setAbortable: (a: IAbortable) => typeof a) => T;
+export type SetAbortableFn = (a: IAbortable) => typeof a;
+export type SetProgressFn<P> = (progress: P) => void;
+type RunFn<T, P> = (setAbortable: SetAbortableFn, setProgress: SetProgressFn<P>) => T;
 
-export class AbortableOperation<T> {
+export class AbortableOperation<T, P = void> implements IAbortable {
     public readonly result: T;
-    private _abortable: IAbortable | null;
+    private _abortable?: IAbortable;
+    private _progress: ObservableValue<P | undefined>;
 
-    constructor(run: RunFn<T>) {
-        this._abortable = null;
-        const setAbortable = abortable => {
+    constructor(run: RunFn<T, P>) {
+        this._abortable = undefined;
+        const setAbortable: SetAbortableFn = abortable => {
             this._abortable = abortable;
             return abortable;
         };
-        this.result = run(setAbortable);
+        this._progress = new ObservableValue<P | undefined>(undefined);
+        const setProgress: SetProgressFn<P> = (progress: P) => {
+            this._progress.set(progress);
+        };
+        this.result = run(setAbortable, setProgress);
+    }
+
+    get progress(): BaseObservableValue<P | undefined> {
+        return this._progress;
     }
 
     abort() {
         this._abortable?.abort();
-        this._abortable = null;
+        this._abortable = undefined;
     }
 }

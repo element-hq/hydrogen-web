@@ -91,7 +91,7 @@ export class QueryTargetWrapper<T> {
         }
     }
 
-    get(key: IDBValidKey | IDBKeyRange): IDBRequest<T | null> {
+    get(key: IDBValidKey | IDBKeyRange): IDBRequest<T | undefined> {
         try {
             LOG_REQUESTS && logRequest("get", [key], this._qt);
             return this._qt.get(key);
@@ -115,6 +115,14 @@ export class QueryTargetWrapper<T> {
             return this._qtStore.delete(key);
         } catch(err) {
             throw new IDBRequestAttemptError("delete", this._qt, err, [key]);
+        }
+    }
+
+    count(keyRange?: IDBKeyRange): IDBRequest<number> {
+        try {
+            return this._qt.count(keyRange);
+        } catch(err) {
+            throw new IDBRequestAttemptError("count", this._qt, err, [keyRange]);
         }
     }
 

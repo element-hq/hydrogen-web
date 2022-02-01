@@ -29,7 +29,7 @@ import {Decryption as OlmDecryption} from "./e2ee/olm/Decryption.js";
 import {Encryption as OlmEncryption} from "./e2ee/olm/Encryption.js";
 import {Decryption as MegOlmDecryption} from "./e2ee/megolm/Decryption";
 import {KeyLoader as MegOlmKeyLoader} from "./e2ee/megolm/decryption/KeyLoader";
-import {SessionBackup} from "./e2ee/megolm/SessionBackup.js";
+import {KeyBackup} from "./e2ee/megolm/keybackup/KeyBackup";
 import {Encryption as MegOlmEncryption} from "./e2ee/megolm/Encryption.js";
 import {MEGOLM_ALGORITHM} from "./e2ee/common.js";
 import {RoomEncryption} from "./e2ee/RoomEncryption.js";
@@ -70,12 +70,12 @@ export class Session {
         this._e2eeAccount = null;
         this._deviceTracker = null;
         this._olmEncryption = null;
+        this._keyLoader = null;
         this._megolmEncryption = null;
         this._megolmDecryption = null;
         this._getSyncToken = () => this.syncToken;
         this._olmWorker = olmWorker;
-        this._sessionBackup = null;
-        this._hasSecretStorageKey = new ObservableValue(null);
+        this._keyBackup = new ObservableValue(undefined);
         this._observedRoomStatus = new Map();
 
         if (olm) {
@@ -90,7 +90,7 @@ export class Session {
         }
         this._createRoomEncryption = this._createRoomEncryption.bind(this);
         this._forgetArchivedRoom = this._forgetArchivedRoom.bind(this);
-        this.needsSessionBackup = new ObservableValue(false);
+        this.needsKeyBackup = new ObservableValue(false);
     }
 
     get fingerprintKey() {
@@ -133,16 +133,17 @@ export class Session {
             olmUtil: this._olmUtil,
             senderKeyLock
         });
+        this._keyLoader = new MegOlmKeyLoader(this._olm, PICKLE_KEY, 20);
         this._megolmEncryption = new MegOlmEncryption({
             account: this._e2eeAccount,
             pickleKey: PICKLE_KEY,
             olm: this._olm,
             storage: this._storage,
+            keyLoader: this._keyLoader,
             now: this._platform.clock.now,
             ownDeviceId: this._sessionInfo.deviceId,
         });
-        const keyLoader = new MegOlmKeyLoader(this._olm, PICKLE_KEY, 20);
-        this._megolmDecryption = new MegOlmDecryption(keyLoader, this._olmWorker);
+        this._megolmDecryption = new MegOlmDecryption(this._keyLoader, this._olmWorker);
         this._deviceMessageHandler.enableEncryption({olmDecryption, megolmDecryption: this._megolmDecryption});
     }
 
@@ -169,11 +170,11 @@ export class Session {
             megolmEncryption: this._megolmEncryption,
             megolmDecryption: this._megolmDecryption,
             storage: this._storage,
-            sessionBackup: this._sessionBackup,
+            keyBackup: this._keyBackup?.get(),
             encryptionParams,
             notifyMissingMegolmSession: () => {
-                if (!this._sessionBackup) {
-                    this.needsSessionBackup.set(true)
+                if (!this._keyBackup.get()) {
+                    this.needsKeyBackup.set(true)
                 }
             },
             clock: this._platform.clock
@@ -182,38 +183,59 @@ export class Session {
 
     /**
      * Enable secret storage by providing the secret storage credential.
-     * This will also see if there is a megolm session backup and try to enable that if so.
+     * This will also see if there is a megolm key backup and try to enable that if so.
      * 
      * @param  {string} type       either "passphrase" or "recoverykey"
      * @param  {string} credential either the passphrase or the recovery key, depending on the type
      * @return {Promise} resolves or rejects after having tried to enable secret storage
      */
-    async enableSecretStorage(type, credential) {
-        if (!this._olm) {
-            throw new Error("olm required");
-        }
-        if (this._sessionBackup) {
-            return false;
-        }
-        const key = await ssssKeyFromCredential(type, credential, this._storage, this._platform, this._olm);
-        // and create session backup, which needs to read from accountData
-        const readTxn = await this._storage.readTxn([
-            this._storage.storeNames.accountData,
-        ]);
-        await this._createSessionBackup(key, readTxn);
-        await this._writeSSSSKey(key);
-        this._hasSecretStorageKey.set(true);
-        return key;
+    enableSecretStorage(type, credential, log = undefined) {
+        return this._platform.logger.wrapOrRun(log, "enable secret storage", async log => {
+            if (!this._olm) {
+                throw new Error("olm required");
+            }
+            if (this._keyBackup.get()) {
+                this._keyBackup.get().dispose();
+                this._keyBackup.set(null);
+            }
+            const key = await ssssKeyFromCredential(type, credential, this._storage, this._platform, this._olm);
+            // and create key backup, which needs to read from accountData
+            const readTxn = await this._storage.readTxn([
+                this._storage.storeNames.accountData,
+            ]);
+            if (await this._createKeyBackup(key, readTxn, log)) {
+                // only after having read a secret, write the key
+                // as we only find out if it was good if the MAC verification succeeds
+                await this._writeSSSSKey(key, log);
+                this._keyBackup.get().flush(log);
+                return key;
+            } else {
+                throw new Error("Could not read key backup with the given key");
+            }
+        });
     }
 
-    async _writeSSSSKey(key) {
-        // only after having read a secret, write the key
-        // as we only find out if it was good if the MAC verification succeeds
+    async _writeSSSSKey(key, log) {
+        // we're going to write the 4S key, and also the backup version.
+        // this way, we can detect when we enter a key for a new backup version
+        // and mark all inbound sessions to be backed up again
+        const keyBackup = this._keyBackup.get();
+        if (!keyBackup) {
+            return;
+        }
+        const backupVersion = keyBackup.version;
         const writeTxn = await this._storage.readWriteTxn([
             this._storage.storeNames.session,
+            this._storage.storeNames.inboundGroupSessions,
         ]);
         try {
-            ssssWriteKey(key, writeTxn);
+            const previousBackupVersion = await ssssWriteKey(key, backupVersion, writeTxn);
+            log.set("previousBackupVersion", previousBackupVersion);
+            log.set("backupVersion", backupVersion);
+            if (!!previousBackupVersion && previousBackupVersion !== backupVersion) {
+                const amountMarked = await keyBackup.markAllForBackup(writeTxn);
+                log.set("amountMarkedForBackup", amountMarked);
+            }
         } catch (err) {
             writeTxn.abort();
             throw err;
@@ -232,38 +254,53 @@ export class Session {
             throw err;
         }
         await writeTxn.complete();
-        if (this._sessionBackup) {
+        if (this._keyBackup.get()) {
             for (const room of this._rooms.values()) {
                 if (room.isEncrypted) {
-                    room.enableSessionBackup(undefined);
+                    room.enableKeyBackup(undefined);
                 }
             }
-            this._sessionBackup?.dispose();
-            this._sessionBackup = undefined;
+            this._keyBackup.get().dispose();
+            this._keyBackup.set(null);
         }
-        this._hasSecretStorageKey.set(false);
     }
 
-    async _createSessionBackup(ssssKey, txn) {
-        const secretStorage = new SecretStorage({key: ssssKey, platform: this._platform});
-        this._sessionBackup = await SessionBackup.fromSecretStorage({
-            platform: this._platform,
-            olm: this._olm, secretStorage,
-            hsApi: this._hsApi,
-            txn
+    _createKeyBackup(ssssKey, txn, log) {
+        return log.wrap("enable key backup", async log => {
+            try {
+                const secretStorage = new SecretStorage({key: ssssKey, platform: this._platform});
+                const keyBackup = await KeyBackup.fromSecretStorage(
+                    this._platform,
+                    this._olm,
+                    secretStorage,
+                    this._hsApi,
+                    this._keyLoader,
+                    this._storage,
+                    txn
+                );
+                if (keyBackup) {
+                    for (const room of this._rooms.values()) {
+                        if (room.isEncrypted) {
+                            room.enableKeyBackup(keyBackup);
+                        }
+                    }
+                    this._keyBackup.set(keyBackup);
+                    return true;
+                }
+            } catch (err) {
+                log.catch(err);
+            }
+            return false;
         });
-        if (this._sessionBackup) {
-            for (const room of this._rooms.values()) {
-                if (room.isEncrypted) {
-                    room.enableSessionBackup(this._sessionBackup);
-                }
-            }
-        }
-        this.needsSessionBackup.set(false);
     }
 
-    get sessionBackup() {
-        return this._sessionBackup;
+    /**
+     * @type {ObservableValue<KeyBackup | undefined | null}
+     *  - `undefined` means, we're not done with catchup sync yet and haven't checked yet if key backup is configured
+     *  - `null` means we've checked and key backup hasn't been configured correctly or at all.
+     */
+    get keyBackup() {
+        return this._keyBackup;
     }
 
     get hasIdentity() {
@@ -401,8 +438,8 @@ export class Session {
     dispose() {
         this._olmWorker?.dispose();
         this._olmWorker = undefined;
-        this._sessionBackup?.dispose();
-        this._sessionBackup = undefined;
+        this._keyBackup.get()?.dispose();
+        this._keyBackup.set(undefined);
         this._megolmDecryption?.dispose();
         this._megolmDecryption = undefined;
         this._e2eeAccount?.dispose();
@@ -430,7 +467,7 @@ export class Session {
             await txn.complete();
         }
         // enable session backup, this requests the latest backup version
-        if (!this._sessionBackup) {
+        if (!this._keyBackup.get()) {
             if (dehydratedDevice) {
                 await log.wrap("SSSSKeyFromDehydratedDeviceKey", async log => {
                     const ssssKey = await createSSSSKeyFromDehydratedDeviceKey(dehydratedDevice.key, this._storage, this._platform);
@@ -438,7 +475,7 @@ export class Session {
                         log.set("success", true);
                         await this._writeSSSSKey(ssssKey);
                     }
-                })
+                });
             }
             const txn = await this._storage.readTxn([
                 this._storage.storeNames.session,
@@ -448,9 +485,15 @@ export class Session {
             const ssssKey = await ssssReadKey(txn);
             if (ssssKey) {
                 // txn will end here as this does a network request
-                await this._createSessionBackup(ssssKey, txn);
+                if (await this._createKeyBackup(ssssKey, txn, log)) {
+                    this._keyBackup.get()?.flush(log);
+                }
             }
-            this._hasSecretStorageKey.set(!!ssssKey);
+            if (!this._keyBackup.get()) {
+                // null means key backup isn't configured yet
+                // as opposed to undefined, which means we're still checking
+                this._keyBackup.set(null);
+            }
         }
         // restore unfinished operations, like sending out room keys
         const opsTxn = await this._storage.readWriteTxn([
@@ -555,7 +598,7 @@ export class Session {
     async writeSync(syncResponse, syncFilterId, preparation, txn, log) {
         const changes = {
             syncInfo: null,
-            e2eeAccountChanges: null,
+            e2eeAccountChanges: null
         };
         const syncToken = syncResponse.next_batch;
         if (syncToken !== this.syncToken) {
@@ -576,7 +619,7 @@ export class Session {
         }
 
         if (preparation) {
-            await log.wrap("deviceMsgs", log => this._deviceMessageHandler.writeSync(preparation, txn, log));
+            changes.hasNewRoomKeys = await log.wrap("deviceMsgs", log => this._deviceMessageHandler.writeSync(preparation, txn, log));
         }
 
         // store account data
@@ -613,6 +656,9 @@ export class Session {
             if (needsToUploadOTKs) {
                 await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, false, log));
             }
+        }
+        if (changes.hasNewRoomKeys) {
+            this._keyBackup.get()?.flush(log);
         }
     }
 

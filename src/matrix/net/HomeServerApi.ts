@@ -227,6 +227,10 @@ export class HomeServerApi {
         return this._get(`/room_keys/keys/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`, {version}, undefined, options);
     }
 
+    uploadRoomKeysToBackup(version: string, payload: Record<string, any>, options?: IRequestOptions): IHomeServerRequest {
+        return this._put(`/room_keys/keys`, {version}, payload, options);
+    }
+
     uploadAttachment(blob: Blob, filename: string, options?: IRequestOptions): IHomeServerRequest {
         return this._authedRequest("POST", `${this._homeserver}/_matrix/media/r0/upload`, {filename}, blob, options);
     }

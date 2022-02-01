@@ -36,7 +36,7 @@ export class SessionStatusViewModel extends ViewModel {
         this._reconnector = reconnector;
         this._status = this._calculateState(reconnector.connectionStatus.get(), sync.status.get());
         this._session = session;
-        this._setupSessionBackupUrl = this.urlCreator.urlForSegment("settings");
+        this._setupKeyBackupUrl = this.urlCreator.urlForSegment("settings");
         this._dismissSecretStorage = false;
     }
 
@@ -44,17 +44,17 @@ export class SessionStatusViewModel extends ViewModel {
         const update = () => this._updateStatus();
         this.track(this._sync.status.subscribe(update));
         this.track(this._reconnector.connectionStatus.subscribe(update));
-        this.track(this._session.needsSessionBackup.subscribe(() => {
+        this.track(this._session.needsKeyBackup.subscribe(() => {
             this.emitChange();
         }));
     }
 
-    get setupSessionBackupUrl () {
-        return this._setupSessionBackupUrl;
+    get setupKeyBackupUrl () {
+        return this._setupKeyBackupUrl;
     }
 
     get isShown() {
-        return (this._session.needsSessionBackup.get() && !this._dismissSecretStorage) || this._status !== SessionStatus.Syncing;
+        return (this._session.needsKeyBackup.get() && !this._dismissSecretStorage) || this._status !== SessionStatus.Syncing;
     }
 
     get statusLabel() {
@@ -70,7 +70,7 @@ export class SessionStatusViewModel extends ViewModel {
             case SessionStatus.SyncError:
                 return this.i18n`Sync failed because of ${this._sync.error}`;
         }
-        if (this._session.needsSessionBackup.get()) {
+        if (this._session.needsKeyBackup.get()) {
             return this.i18n`Set up session backup to decrypt older messages.`;
         }
         return "";
@@ -135,7 +135,7 @@ export class SessionStatusViewModel extends ViewModel {
 
     get isSecretStorageShown() {
         // TODO: we need a model here where we can have multiple messages queued up and their buttons don't bleed into each other.
-        return this._status === SessionStatus.Syncing && this._session.needsSessionBackup.get() && !this._dismissSecretStorage;
+        return this._status === SessionStatus.Syncing && this._session.needsKeyBackup.get() && !this._dismissSecretStorage;
     }
 
     get canDismiss() {

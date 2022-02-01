@@ -27,6 +27,7 @@ import type * as OlmNamespace from "@matrix-org/olm"
 type Olm = typeof OlmNamespace;
 
 const SSSS_KEY = `${SESSION_E2EE_KEY_PREFIX}ssssKey`;
+const BACKUPVERSION_KEY = `${SESSION_E2EE_KEY_PREFIX}keyBackupVersion`;
 
 export enum KeyType {
     "RecoveryKey",
@@ -49,8 +50,11 @@ async function readDefaultKeyDescription(storage: Storage): Promise<KeyDescripti
     return new KeyDescription(id, keyAccountData.content as KeyDescriptionData);
 }
 
-export async function writeKey(key: Key, txn: Transaction): Promise<void> {
+export async function writeKey(key: Key, keyBackupVersion: number, txn: Transaction): Promise<number | undefined> {
+    const existingVersion: number | undefined = await txn.session.get(BACKUPVERSION_KEY);
+    txn.session.set(BACKUPVERSION_KEY, keyBackupVersion);
     txn.session.set(SSSS_KEY, {id: key.id, binaryKey: key.binaryKey});
+    return existingVersion;
 }
 
 export async function readKey(txn: Transaction): Promise<Key | undefined> {
