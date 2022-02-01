@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import type {HomeServerApi} from "../net/HomeServerApi";
-import { registrationStageFromType } from "./registrationStageFromType";
+import {registrationStageFromType} from "./registrationStageFromType";
 import type {BaseRegistrationStage} from "./stages/BaseRegistrationStage";
 
 export type RegistrationParameters = {
