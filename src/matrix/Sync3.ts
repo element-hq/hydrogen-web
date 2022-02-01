@@ -65,7 +65,7 @@ export enum SyncStatus {
 // Request types are below: See api.md for what these fields mean.
 
 interface Sync3List {
-    rooms: number[][];
+    ranges: number[][];
     timeline_limit?: number;
     required_state?: string[][];
     sort?: string[];
@@ -359,7 +359,7 @@ export class Sync3 {
         while (this.status.get() !== SyncStatus.Stopped) {
             let isFirstSync = this.status.get() === SyncStatus.InitialSync;
             const list: Sync3List = {
-                rooms: this.ranges, // always provide the sliding window ranges
+                ranges: this.ranges, // always provide the sliding window ranges
             };
             if (isFirstSync) {
                 // add in sticky params, these are set once (initially) and then can be omitted and
