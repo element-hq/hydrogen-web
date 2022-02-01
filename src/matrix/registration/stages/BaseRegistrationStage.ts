@@ -18,6 +18,10 @@ export type Auth = {
     [key: string]: any;
 }
 
+type Params = {
+    [key: string]: any;   
+}
+
 import type {HomeServerApi} from "../../net/HomeServerApi";
 import type {RegistrationParameters, RegistrationResponse} from "../Registration";
 
@@ -28,7 +32,7 @@ export abstract class BaseRegistrationStage {
     protected _nextStage: BaseRegistrationStage;
     protected _params?: Record<string, any>
 
-    constructor(hsApi: HomeServerApi, registrationData: RegistrationParameters, session: string, params?: Record<string, any>) {
+    constructor(hsApi: HomeServerApi, registrationData: RegistrationParameters, session: string, params?: Params) {
         this._hsApi = hsApi;
         this._registrationData = registrationData;
         this._session = session;
