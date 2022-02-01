@@ -196,7 +196,7 @@ export class Session {
             }
             if (this._keyBackup.get()) {
                 this._keyBackup.get().dispose();
-                this._keyBackup.set(undefined);
+                this._keyBackup.set(null);
             }
             const key = await ssssKeyFromCredential(type, credential, this._storage, this._platform, this._olm);
             // and create key backup, which needs to read from accountData
