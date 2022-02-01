@@ -33,7 +33,6 @@ export type RegistrationResponse = {
 export class Registration {
     private _hsApi: HomeServerApi;
     private _data: RegistrationParameters;
-    private _firstStage: BaseRegistrationStage;
 
     constructor(hsApi: HomeServerApi, data: RegistrationParameters) {
         this._hsApi = hsApi;
@@ -47,13 +46,13 @@ export class Registration {
             this._initialDeviceDisplayName,
             undefined,
             this._inhibitLogin).response();
-        this.parseStagesFromResponse(response);
-        return this._firstStage;
+        return this.parseStagesFromResponse(response);
     }
 
-    parseStagesFromResponse(response: RegistrationResponse) {
+    parseStagesFromResponse(response: RegistrationResponse): BaseRegistrationStage {
         const { session, params } = response;
         const flow = response.flows.pop();
+        let firstStage: BaseRegistrationStage | undefined;
         let lastStage: BaseRegistrationStage;
         for (const stage of flow.stages) {
             const stageClass = registrationStageFromType(stage);
@@ -61,14 +60,15 @@ export class Registration {
                 throw new Error("Unknown stage");
             }
             const registrationStage = new stageClass(this._hsApi, this._data, session, params?.[stage]);
-            if (!this._firstStage) {
-                this._firstStage = registrationStage;
+            if (!firstStage) {
+                firstStage = registrationStage;
                 lastStage = registrationStage;
             } else {
                 lastStage!.setNextStage(registrationStage);
                 lastStage = registrationStage;
             }
         }
+        return firstStage!;
     }
 
     private get _username() { return this._data.username; }
