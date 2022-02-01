@@ -281,14 +281,23 @@ async function clearAllStores(db: IDBDatabase, txn: IDBTransaction) {
 // v15 add backup index to inboundGroupSessions
 async function addInboundSessionBackupIndex(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem): Promise<void> {
     const inboundGroupSessions = txn.objectStore("inboundGroupSessions");
+    let countWithSession = 0;
+    let countWithoutSession = 0;
     await iterateCursor<InboundGroupSessionEntry>(inboundGroupSessions.openCursor(), (value, key, cursor) => {
-        value.backup = BackupStatus.NotBackedUp;
-        // we'll also have backup keys in here, we can't tell,
-        // but the worst thing that can happen is that we try
-        // to backup keys that were already in backup, which
-        // the server will ignore
-        value.source = KeySource.DeviceMessage;
+        if (value.session) {
+            value.backup = BackupStatus.NotBackedUp;
+            // we'll also have backup keys in here, we can't tell,
+            // but the worst thing that can happen is that we try
+            // to backup keys that were already in backup, which
+            // the server will ignore
+            value.source = KeySource.DeviceMessage;
+            countWithSession += 1;
+        } else {
+            countWithoutSession += 1;
+        }
         return NOT_DONE;
     });
+    log.set("countWithoutSession", countWithoutSession);
+    log.set("countWithSession", countWithSession);
     inboundGroupSessions.createIndex("byBackup", "backup", {unique: false});
 }
