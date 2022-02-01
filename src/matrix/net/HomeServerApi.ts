@@ -168,23 +168,19 @@ export class HomeServerApi {
     register(username: string | null, password: string, initialDeviceDisplayName: string, auth?: Record<string, any>, inhibitLogin?: boolean , options?: IRequestOptions): IHomeServerRequest {
         // todo: This is so that we disable cache-buster because it would cause the hs to respond with error
         // see https://github.com/matrix-org/synapse/issues/7722
-        // need to this about the implications of this later
         const _options = options ?? {};
         Object.assign(_options, { cache: true });
-        const _username = username ?? undefined;
-        return this._unauthedRequest(
-            "POST",
-            this._url("/register", CS_V3_PREFIX),
-            undefined,
-            {
-                auth,
-                _username,
-                password,
-                initial_device_displayname: initialDeviceDisplayName,
-                inhibit_login: inhibitLogin ?? false,
-            },
-            _options
-        );
+        const body = {
+            auth,
+            password,
+            initial_device_displayname: initialDeviceDisplayName,
+            inhibit_login: inhibitLogin ?? false,
+        };
+        if (username) {
+            // username is optional for registration
+            Object.assign(body, { username });
+        }
+        return this._unauthedRequest( "POST", this._url("/register", CS_V3_PREFIX), undefined, body, _options);
     }
 
     passwordLogin(username: string, password: string, initialDeviceDisplayName: string, options?: IRequestOptions): IHomeServerRequest {
