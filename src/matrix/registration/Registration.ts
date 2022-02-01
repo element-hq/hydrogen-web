@@ -41,11 +41,11 @@ export class Registration {
 
     async start(): Promise<BaseRegistrationStage> {
         const response = await this._hsApi.register(
-            this._username,
-            this._password,
-            this._initialDeviceDisplayName,
+            this._data.username,
+            this._data.password,
+            this._data.initialDeviceDisplayName,
             undefined,
-            this._inhibitLogin).response();
+            this._data.inhibitLogin).response();
         return this.parseStagesFromResponse(response);
     }
 
@@ -70,9 +70,4 @@ export class Registration {
         }
         return firstStage!;
     }
-
-    private get _username() { return this._data.username; }
-    private get _password() { return this._data.password; }
-    private get _initialDeviceDisplayName() { return this._data.initialDeviceDisplayName; }
-    private get _inhibitLogin() { return this._data.inhibitLogin; }
 }
