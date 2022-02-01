@@ -53,12 +53,11 @@ export class KeyBackupViewModel extends ViewModel {
         const keyBackup = this._session.keyBackup.get();
         if (keyBackup) {
             status = keyBackup.needsNewKey ? Status.NewVersionAvailable : Status.Enabled;
-        } else {
+        } else if (keyBackup === null) {
             status = this.showPhraseSetup() ? Status.SetupPhrase : Status.SetupKey;
-        } /* TODO: bring back "waiting to get online"
-        else {
+        } else {
             status = Status.Pending;
-        } */
+        }
         const changed = status !== this._status;
         this._status = status;
         return changed;

@@ -289,9 +289,15 @@ export class Session {
             } catch (err) {
                 log.catch(err);
             }
+            return false;
         });
     }
 
+    /**
+     * @type {ObservableValue<KeyBackup | undefined | null}
+     *  - `undefined` means, we're not done with catchup sync yet and haven't checked yet if key backup is configured
+     *  - `null` means we've checked and key backup hasn't been configured correctly or at all.
+     */
     get keyBackup() {
         return this._keyBackup;
     }
@@ -468,7 +474,7 @@ export class Session {
                         log.set("success", true);
                         await this._writeSSSSKey(ssssKey);
                     }
-                })
+                });
             }
             const txn = await this._storage.readTxn([
                 this._storage.storeNames.session,
@@ -478,8 +484,14 @@ export class Session {
             const ssssKey = await ssssReadKey(txn);
             if (ssssKey) {
                 // txn will end here as this does a network request
-                await this._createKeyBackup(ssssKey, txn, log);
-                this._keyBackup.get()?.flush(log);
+                if (await this._createKeyBackup(ssssKey, txn, log)) {
+                    this._keyBackup.get()?.flush(log);
+                }
+            }
+            if (!this._keyBackup.get()) {
+                // null means key backup isn't configured yet
+                // as opposed to undefined, which means we're still checking
+                this._keyBackup.set(null);
             }
         }
         // restore unfinished operations, like sending out room keys
