@@ -261,7 +261,7 @@ export class Session {
                 }
             }
             this._keyBackup.get().dispose();
-            this._keyBackup.set(undefined);
+            this._keyBackup.set(null);
         }
     }
 
