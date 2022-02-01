@@ -40,18 +40,13 @@ export class Registration {
         this._data = data;
     }
 
-    private async _fetchFlows(): Promise<RegistrationResponse> {
+    async start(): Promise<BaseRegistrationStage> {
         const response = await this._hsApi.register(
             this._username,
             this._password,
             this._initialDeviceDisplayName,
             undefined,
             this._inhibitLogin).response();
-        return response; 
-    }
-
-    async start(): Promise<BaseRegistrationStage> {
-        const response = await this._fetchFlows();
         this.parseStagesFromResponse(response);
         return this._firstStage;
     }
