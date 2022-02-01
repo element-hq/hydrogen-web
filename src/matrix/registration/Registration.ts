@@ -19,7 +19,7 @@ import {registrationStageFromType} from "./registrationStageFromType";
 import type {BaseRegistrationStage} from "./stages/BaseRegistrationStage";
 
 export type RegistrationParameters = {
-    username: string;
+    username: string | null;
     password: string;
     initialDeviceDisplayName: string;
     inhibitLogin: boolean;
