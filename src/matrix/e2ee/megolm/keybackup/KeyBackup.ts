@@ -127,6 +127,7 @@ export class KeyBackup {
                 const keysNeedingBackup = (await txn.inboundGroupSessions.getFirstNonBackedUpSessions(KEYS_PER_REQUEST))
                     .map(entry => new StoredRoomKey(entry));
                 if (keysNeedingBackup.length === 0) {
+                    log.set("total", total);
                     return;
                 }
                 const payload = await this.encodeKeysForBackup(keysNeedingBackup);
