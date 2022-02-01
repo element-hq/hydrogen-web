@@ -195,7 +195,8 @@ export class Session {
                 throw new Error("olm required");
             }
             if (this._keyBackup.get()) {
-                return false;
+                this._keyBackup.get().dispose();
+                this._keyBackup.set(undefined);
             }
             const key = await ssssKeyFromCredential(type, credential, this._storage, this._platform, this._olm);
             // and create key backup, which needs to read from accountData

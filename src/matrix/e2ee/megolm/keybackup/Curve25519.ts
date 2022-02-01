@@ -41,8 +41,8 @@ export type SessionData = {
 
 export class BackupEncryption {
     constructor(
-        private readonly encryption: Olm.PkEncryption,
-        private readonly decryption: Olm.PkDecryption
+        private encryption?: Olm.PkEncryption,
+        private decryption?: Olm.PkDecryption
     ) {}
 
     static fromAuthData(authData: AuthData, privateKey: Uint8Array, olm: Olm): BackupEncryption {
@@ -63,7 +63,7 @@ export class BackupEncryption {
     }
 
     decryptRoomKey(sessionData: SessionData): SessionKeyInfo {
-        const sessionInfo = this.decryption.decrypt(
+        const sessionInfo = this.decryption!.decrypt(
             sessionData.ephemeral,
             sessionData.mac,
             sessionData.ciphertext,
@@ -79,11 +79,13 @@ export class BackupEncryption {
             forwarding_curve25519_key_chain: [],
             session_key: sessionKey
         };
-        return this.encryption.encrypt(JSON.stringify(sessionInfo)) as SessionData;
+        return this.encryption!.encrypt(JSON.stringify(sessionInfo)) as SessionData;
     }
 
     dispose() {
-        this.decryption.free();
-        this.encryption.free();
+        this.decryption?.free();
+        this.decryption = undefined;
+        this.encryption?.free();
+        this.encryption = undefined;
     }
 }
