@@ -139,7 +139,6 @@ export class Client {
             username, 
             password,
             initialDeviceDisplayName,
-            inhibitLogin: true
         });
         let stage = await registration.start();
         return stage;
