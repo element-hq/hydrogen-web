@@ -10,7 +10,7 @@ RUN yarn install
 COPY . .
 RUN yarn build
 
-FROM --platform=${TARGETPLATFORM} docker.io/library/nginx:alpine
+FROM --platform=${TARGETPLATFORM} docker.io/nginxinc/nginx-unprivileged:1.21-alpine
 COPY --from=builder /app/target /usr/share/nginx/html
 
 # Values from the default config that can be overridden at runtime
