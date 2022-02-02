@@ -17,30 +17,7 @@ limitations under the License.
 import type {HomeServerApi} from "../net/HomeServerApi";
 import {registrationStageFromType} from "./registrationStageFromType";
 import type {BaseRegistrationStage} from "./stages/BaseRegistrationStage";
-
-export type RegistrationDetails = {
-    username: string | null;
-    password: string;
-    initialDeviceDisplayName: string;
-    inhibitLogin: boolean;
-} 
-
-export type RegistrationResponse = {
-    completed: string[];
-    flows: Record<string, any>[];
-    params: Record<string, any>;
-    session: string;
-} & error & success;
-
-type error = {
-    errcode: string;
-    error: string;
-}
-type success = {
-    user_id: string;
-    device_id: string;
-    access_token?: string;
-}
+import type {RegistrationDetails, RegistrationResponse} from "./types/type";
 
 export class Registration {
     private _hsApi: HomeServerApi;

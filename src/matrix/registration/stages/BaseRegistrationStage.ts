@@ -14,19 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-type AuthenticationData = {
-    type: string;
-    session: string;
-    [key: string]: any;
-}
-
-// contains data needed to complete this stage, eg: link to privacy policy
-type RegistrationParams = {
-    [key: string]: any;   
-}
-
 import type {HomeServerApi} from "../../net/HomeServerApi";
-import type {RegistrationDetails, RegistrationResponse} from "../Registration";
+import type {RegistrationDetails, RegistrationResponse, AuthenticationData, RegistrationParams} from "../types/type";
 
 export abstract class BaseRegistrationStage {
     protected _hsApi: HomeServerApi;
