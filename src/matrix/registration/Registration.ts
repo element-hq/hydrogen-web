@@ -17,32 +17,32 @@ limitations under the License.
 import type {HomeServerApi} from "../net/HomeServerApi";
 import {registrationStageFromType} from "./registrationStageFromType";
 import type {BaseRegistrationStage} from "./stages/BaseRegistrationStage";
-import type {RegistrationDetails, RegistrationFlow, RegistrationResponse401} from "./types/types";
+import type {AccountDetails, RegistrationFlow, RegistrationResponseMoreDataNeeded} from "./types/types";
 
 type FlowSelector = (flows: RegistrationFlow[]) => RegistrationFlow | void;
 
 export class Registration {
     private _hsApi: HomeServerApi;
-    private _data: RegistrationDetails;
+    private _accountDetails: AccountDetails;
     private _flowSelector: FlowSelector;
 
-    constructor(hsApi: HomeServerApi, data: RegistrationDetails, flowSelector?: FlowSelector) {
+    constructor(hsApi: HomeServerApi, accountDetails: AccountDetails, flowSelector?: FlowSelector) {
         this._hsApi = hsApi;
-        this._data = data;
+        this._accountDetails = accountDetails;
         this._flowSelector = flowSelector ?? (flows => flows.pop());
     }
 
     async start(): Promise<BaseRegistrationStage> {
         const response = await this._hsApi.register(
-            this._data.username,
-            this._data.password,
-            this._data.initialDeviceDisplayName,
+            this._accountDetails.username,
+            this._accountDetails.password,
+            this._accountDetails.initialDeviceDisplayName,
             undefined,
-            this._data.inhibitLogin).response();
+            this._accountDetails.inhibitLogin).response();
         return this.parseStagesFromResponse(response);
     }
 
-    parseStagesFromResponse(response: RegistrationResponse401): BaseRegistrationStage {
+    parseStagesFromResponse(response: RegistrationResponseMoreDataNeeded): BaseRegistrationStage {
         const { session, params } = response;
         const flow = this._flowSelector(response.flows);
         if (!flow) {
@@ -55,7 +55,7 @@ export class Registration {
             if (!stageClass) {
                 throw new Error(`Unknown stage: ${stage}`);
             }
-            const registrationStage = new stageClass(this._hsApi, this._data, session, params?.[stage]);
+            const registrationStage = new stageClass(this._hsApi, this._accountDetails, session, params?.[stage]);
             if (!firstStage) {
                 firstStage = registrationStage;
                 lastStage = registrationStage;

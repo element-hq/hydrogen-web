@@ -14,16 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export type RegistrationDetails = {
+export type AccountDetails = {
     username: string | null;
     password: string;
     initialDeviceDisplayName: string;
     inhibitLogin: boolean;
 } 
 
-export type RegistrationResponse = RegistrationResponse401 | RegistrationResponseError | RegistrationResponseSuccess;
+export type RegistrationResponse = RegistrationResponseMoreDataNeeded | RegistrationResponseError | RegistrationResponseSuccess;
 
-export type RegistrationResponse401 = {
+export type RegistrationResponseMoreDataNeeded = {
     completed: string[];
     flows: RegistrationFlow[];
     params: Record<string, any>;
@@ -46,7 +46,6 @@ export type RegistrationFlow = {
 }
 
 /* Types for Registration Stage */
-
 export type AuthenticationData = {
     type: string;
     session: string;

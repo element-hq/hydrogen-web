@@ -15,18 +15,18 @@ limitations under the License.
 */
 
 import type {HomeServerApi} from "../../net/HomeServerApi";
-import type {RegistrationDetails, RegistrationResponse, AuthenticationData, RegistrationParams} from "../types/types";
+import type {AccountDetails, RegistrationResponse, AuthenticationData, RegistrationParams} from "../types/types";
 
 export abstract class BaseRegistrationStage {
     protected _hsApi: HomeServerApi;
-    protected _registrationData: RegistrationDetails;
+    protected _accountDetails: AccountDetails;
     protected _session: string;
     protected _nextStage: BaseRegistrationStage;
     protected _params?: Record<string, any>
 
-    constructor(hsApi: HomeServerApi, registrationData: RegistrationDetails, session: string, params?: RegistrationParams) {
+    constructor(hsApi: HomeServerApi, accountDetails: AccountDetails, session: string, params?: RegistrationParams) {
         this._hsApi = hsApi;
-        this._registrationData = registrationData;
+        this._accountDetails = accountDetails;
         this._session = session;
         this._params = params;
     }
@@ -52,7 +52,7 @@ export abstract class BaseRegistrationStage {
             // registration completed successfully
             return response.user_id;
         }
-        else if ("completed" in response && response.completed?.find(c => c === this.type)) {
+        else if ("completed" in response && response.completed.find(c => c === this.type)) {
             return this._nextStage;
         }
         const error = "error" in response? response.error: "Could not parse response";

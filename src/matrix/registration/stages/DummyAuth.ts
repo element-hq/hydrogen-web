@@ -17,9 +17,8 @@ limitations under the License.
 import {BaseRegistrationStage} from "./BaseRegistrationStage";
 
 export class DummyAuth extends BaseRegistrationStage {
-
     async complete() {
-        const { username, password, initialDeviceDisplayName, inhibitLogin } = this._registrationData;
+        const { username, password, initialDeviceDisplayName, inhibitLogin } = this._accountDetails;
         const response = await this._hsApi.register(username, password, initialDeviceDisplayName, {
             session: this._session,
             type: this.type
