@@ -23,11 +23,23 @@ export type RegistrationDetails = {
     password: string;
     initialDeviceDisplayName: string;
     inhibitLogin: boolean;
-}
+} 
 
-// todo: type this later
 export type RegistrationResponse = {
-    [key: string]: any;
+    completed: string[];
+    flows: Record<string, any>[];
+    params: Record<string, any>;
+    session: string;
+} & error & success;
+
+type error = {
+    errcode: string;
+    error: string;
+}
+type success = {
+    user_id: string;
+    device_id: string;
+    access_token?: string;
 }
 
 export class Registration {
@@ -52,6 +64,9 @@ export class Registration {
     parseStagesFromResponse(response: RegistrationResponse): BaseRegistrationStage {
         const { session, params } = response;
         const flow = response.flows.pop();
+        if (!flow) {
+            throw new Error("No registration flows available!");
+        }
         let firstStage: BaseRegistrationStage | undefined;
         let lastStage: BaseRegistrationStage;
         for (const stage of flow.stages) {
