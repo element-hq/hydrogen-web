@@ -48,9 +48,8 @@ export abstract class BaseRegistrationStage {
      * Finish a registration stage, return value is:
      * - the next stage if this stage was completed successfully
      * - user-id (string) if registration is completed
-     * - an error if something went wrong
      */
-    abstract complete(auth?: Auth): Promise<BaseRegistrationStage | Error | string>;
+    abstract complete(auth?: Auth): Promise<BaseRegistrationStage | string>;
 
     setNextStage(stage: BaseRegistrationStage) {
         this._nextStage = stage;
@@ -65,6 +64,6 @@ export abstract class BaseRegistrationStage {
             return this._nextStage;
         }
         const error = response.error ?? "Could not parse response";
-        return new Error(error);
-        }
+        throw new Error(error);
+    }
 }
