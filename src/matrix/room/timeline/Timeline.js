@@ -187,8 +187,6 @@ export class Timeline {
     }
 
     _addLocalRelationsToNewRemoteEntries(entries) {
-        console.log('_addLocalRelationsToNewRemoteEntries entries', entries)
-        console.log('this._localEntries?.hasSubscriptions entries', this._localEntries?.hasSubscriptions)
         // because it is not safe to iterate a derived observable collection
         // before it has any subscriptions, we bail out if this isn't
         // the case yet. This can happen when sync adds or replaces entries
@@ -202,7 +200,6 @@ export class Timeline {
         if (!this._localEntries?.hasSubscriptions) {
             return;
         }
-        console.log('after')
         // find any local relations to these new remote events or maybe these
         // new remote events reference one of the other new remote events we have.
         const entryList = new ConcatList(entries, this._localEntries);
