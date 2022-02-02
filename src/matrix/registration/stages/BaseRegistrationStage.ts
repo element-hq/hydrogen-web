@@ -14,25 +14,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-type Auth = {
+type AuthenticationData = {
+    type: string;
+    session: string;
     [key: string]: any;
 }
 
-type Params = {
+// contains data needed to complete this stage, eg: link to privacy policy
+type RegistrationParams = {
     [key: string]: any;   
 }
 
 import type {HomeServerApi} from "../../net/HomeServerApi";
-import type {RegistrationParameters, RegistrationResponse} from "../Registration";
+import type {RegistrationDetails, RegistrationResponse} from "../Registration";
 
 export abstract class BaseRegistrationStage {
     protected _hsApi: HomeServerApi;
-    protected _registrationData: RegistrationParameters;
+    protected _registrationData: RegistrationDetails;
     protected _session: string;
     protected _nextStage: BaseRegistrationStage;
     protected _params?: Record<string, any>
 
-    constructor(hsApi: HomeServerApi, registrationData: RegistrationParameters, session: string, params?: Params) {
+    constructor(hsApi: HomeServerApi, registrationData: RegistrationDetails, session: string, params?: RegistrationParams) {
         this._hsApi = hsApi;
         this._registrationData = registrationData;
         this._session = session;
@@ -49,7 +52,7 @@ export abstract class BaseRegistrationStage {
      * - the next stage if this stage was completed successfully
      * - user-id (string) if registration is completed
      */
-    abstract complete(auth?: Auth): Promise<BaseRegistrationStage | string>;
+    abstract complete(auth?: AuthenticationData): Promise<BaseRegistrationStage | string>;
 
     setNextStage(stage: BaseRegistrationStage) {
         this._nextStage = stage;

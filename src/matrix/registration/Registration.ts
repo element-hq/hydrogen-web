@@ -18,7 +18,7 @@ import type {HomeServerApi} from "../net/HomeServerApi";
 import {registrationStageFromType} from "./registrationStageFromType";
 import type {BaseRegistrationStage} from "./stages/BaseRegistrationStage";
 
-export type RegistrationParameters = {
+export type RegistrationDetails = {
     username: string | null;
     password: string;
     initialDeviceDisplayName: string;
@@ -32,9 +32,9 @@ export type RegistrationResponse = {
 
 export class Registration {
     private _hsApi: HomeServerApi;
-    private _data: RegistrationParameters;
+    private _data: RegistrationDetails;
 
-    constructor(hsApi: HomeServerApi, data: RegistrationParameters) {
+    constructor(hsApi: HomeServerApi, data: RegistrationDetails) {
         this._hsApi = hsApi;
         this._data = data;
     }

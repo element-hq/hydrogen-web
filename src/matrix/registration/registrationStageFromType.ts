@@ -16,11 +16,11 @@ limitations under the License.
 
 import type {BaseRegistrationStage} from "./stages/BaseRegistrationStage";
 import type {HomeServerApi} from "../net/HomeServerApi";
-import type {RegistrationParameters} from "./Registration";
+import type {RegistrationDetails} from "./Registration";
 import {DummyAuth} from "./stages/DummyAuth";
 import {TermsAuth} from "./stages/TermsAuth";
 
-type DerivedFromBaseRegistration = { new(hsApi: HomeServerApi, registrationData: RegistrationParameters, session: string, params?: Record<string, any>): BaseRegistrationStage } & typeof BaseRegistrationStage | undefined;
+type DerivedFromBaseRegistration = { new(hsApi: HomeServerApi, registrationData: RegistrationDetails, session: string, params?: Record<string, any>): BaseRegistrationStage } & typeof BaseRegistrationStage | undefined;
 
 export function registrationStageFromType(type: string): DerivedFromBaseRegistration {
     switch (type) {
