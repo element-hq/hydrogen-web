@@ -48,14 +48,14 @@ export abstract class BaseRegistrationStage {
     }
 
     parseResponse(response: RegistrationResponse) {
-        if (response.user_id) {
+        if ("user_id" in response) {
             // registration completed successfully
             return response.user_id;
         }
-        else if (response.completed?.find(c => c === this.type)) {
+        else if ("completed" in response && response.completed?.find(c => c === this.type)) {
             return this._nextStage;
         }
-        const error = response.error ?? "Could not parse response";
+        const error = "error" in response? response.error: "Could not parse response";
         throw new Error(error);
     }
 }

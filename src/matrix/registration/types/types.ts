@@ -21,9 +21,9 @@ export type RegistrationDetails = {
     inhibitLogin: boolean;
 } 
 
-export type RegistrationResponse = RegistrationResponse401 & RegistrationResponseError & RegistrationResponseSuccess;
+export type RegistrationResponse = RegistrationResponse401 | RegistrationResponseError | RegistrationResponseSuccess;
 
-type RegistrationResponse401 = {
+export type RegistrationResponse401 = {
     completed: string[];
     flows: RegistrationFlow[];
     params: Record<string, any>;

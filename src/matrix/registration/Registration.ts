@@ -17,7 +17,7 @@ limitations under the License.
 import type {HomeServerApi} from "../net/HomeServerApi";
 import {registrationStageFromType} from "./registrationStageFromType";
 import type {BaseRegistrationStage} from "./stages/BaseRegistrationStage";
-import type {RegistrationDetails, RegistrationResponse, RegistrationFlow} from "./types/types";
+import type {RegistrationDetails, RegistrationFlow, RegistrationResponse401} from "./types/types";
 
 type FlowSelector = (flows: RegistrationFlow[]) => RegistrationFlow | void;
 
@@ -42,7 +42,7 @@ export class Registration {
         return this.parseStagesFromResponse(response);
     }
 
-    parseStagesFromResponse(response: RegistrationResponse): BaseRegistrationStage {
+    parseStagesFromResponse(response: RegistrationResponse401): BaseRegistrationStage {
         const { session, params } = response;
         const flow = this._flowSelector(response.flows);
         if (!flow) {
