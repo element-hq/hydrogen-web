@@ -20,9 +20,9 @@ import type {RegistrationDetails} from "./Registration";
 import {DummyAuth} from "./stages/DummyAuth";
 import {TermsAuth} from "./stages/TermsAuth";
 
-type DerivedFromBaseRegistration = { new(hsApi: HomeServerApi, registrationData: RegistrationDetails, session: string, params?: Record<string, any>): BaseRegistrationStage } & typeof BaseRegistrationStage | undefined;
+type ClassDerivedFromBaseRegistration = { new(hsApi: HomeServerApi, registrationData: RegistrationDetails, session: string, params?: Record<string, any>): BaseRegistrationStage } & typeof BaseRegistrationStage;
 
-export function registrationStageFromType(type: string): DerivedFromBaseRegistration {
+export function registrationStageFromType(type: string): ClassDerivedFromBaseRegistration | undefined{
     switch (type) {
         case "m.login.dummy":
             return DummyAuth;
