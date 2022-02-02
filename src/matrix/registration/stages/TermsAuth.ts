@@ -31,9 +31,11 @@ export class TermsAuth extends BaseRegistrationStage {
         return "m.login.terms";
     }
 
-    // todo: add better parsing logic here, also remember that server admins can
-    // require any sort documents here, even those that are not toc/privacy policies
     get privacyPolicy() {
         return this._params?.policies["privacy_policy"];
+    }
+
+    get termsOfService() {
+        return this._params?.policies["terms_of_service"];
     }
 }
