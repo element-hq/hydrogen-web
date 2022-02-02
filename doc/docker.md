@@ -41,7 +41,7 @@ export DOCKER_BUILDKIT=1
 docker build -t hydrogen .
 ```
 
-Or, pull the docker image from GitHub Container Registry:
+Or, pull the Docker image from the GitHub Container Registry:
 
 ```
 docker pull ghcr.io/vector-im/hydrogen-web
