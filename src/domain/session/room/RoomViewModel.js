@@ -21,6 +21,7 @@ import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../
 import {tilesCreator} from "./timeline/tilesCreator.js";
 import {ViewModel} from "../../ViewModel.js";
 
+console.log('RoomViewModel asdfwafeawfefewfewaeafwafewefw');
 export class RoomViewModel extends ViewModel {
     constructor(options) {
         super(options);
@@ -45,6 +46,7 @@ export class RoomViewModel extends ViewModel {
         this._room.on("change", this._onRoomChange);
         try {
             const timeline = await this._room.openTimeline();
+            console.log('timeline', timeline.entries);
             this._tilesCreator = tilesCreator(this.childOptions({
                 roomVM: this,
                 timeline,

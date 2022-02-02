@@ -2,6 +2,6 @@
     "name": "hydrogen-view-sdk",
     "description": "Embeddable matrix client library, including view components",
     "version": "0.0.4",
-    "main": "./hydrogen.es.js",
+    "main": "./lib-build/hydrogen.es.js",
     "type": "module"
 }

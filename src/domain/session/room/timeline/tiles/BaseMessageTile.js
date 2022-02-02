@@ -87,7 +87,7 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     get isOwn() {
-        return this._entry.sender === this._ownMember.userId;
+        return this._ownMember && this._entry.sender === this._ownMember.userId;
     }
 
     get isContinuation() {
@@ -124,6 +124,7 @@ export class BaseMessageTile extends SimpleTile {
 
     updateEntry(entry, param, tilesCreator) {
         const action = super.updateEntry(entry, param, tilesCreator);
+        console.log('updateEntry', entry);
         if (action.shouldUpdate) {
             this._updateReactions();
         }
