@@ -25,7 +25,7 @@ export type RegistrationResponse = RegistrationResponse401 & RegistrationRespons
 
 type RegistrationResponse401 = {
     completed: string[];
-    flows: Record<string, any>[];
+    flows: RegistrationFlow[];
     params: Record<string, any>;
     session: string;
 } 
@@ -39,6 +39,10 @@ type RegistrationResponseSuccess = {
     user_id: string;
     device_id: string;
     access_token?: string;
+}
+
+export type RegistrationFlow = {
+    stages: string[];
 }
 
 /* Types for Registration Stage */

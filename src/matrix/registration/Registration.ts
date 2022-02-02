@@ -17,15 +17,19 @@ limitations under the License.
 import type {HomeServerApi} from "../net/HomeServerApi";
 import {registrationStageFromType} from "./registrationStageFromType";
 import type {BaseRegistrationStage} from "./stages/BaseRegistrationStage";
-import type {RegistrationDetails, RegistrationResponse} from "./types/type";
+import type {RegistrationDetails, RegistrationResponse, RegistrationFlow} from "./types/types";
+
+type FlowSelector = (flows: RegistrationFlow[]) => RegistrationFlow | void;
 
 export class Registration {
     private _hsApi: HomeServerApi;
     private _data: RegistrationDetails;
+    private _flowSelector: FlowSelector;
 
-    constructor(hsApi: HomeServerApi, data: RegistrationDetails) {
+    constructor(hsApi: HomeServerApi, data: RegistrationDetails, flowSelector?: FlowSelector) {
         this._hsApi = hsApi;
         this._data = data;
+        this._flowSelector = flowSelector ?? (flows => flows.pop());
     }
 
     async start(): Promise<BaseRegistrationStage> {
@@ -40,16 +44,16 @@ export class Registration {
 
     parseStagesFromResponse(response: RegistrationResponse): BaseRegistrationStage {
         const { session, params } = response;
-        const flow = response.flows.pop();
+        const flow = this._flowSelector(response.flows);
         if (!flow) {
-            throw new Error("No registration flows available!");
+            throw new Error("flowSelector did not return any flow!");
         }
         let firstStage: BaseRegistrationStage | undefined;
         let lastStage: BaseRegistrationStage;
         for (const stage of flow.stages) {
             const stageClass = registrationStageFromType(stage);
             if (!stageClass) {
-                throw new Error("Unknown stage");
+                throw new Error(`Unknown stage: ${stage}`);
             }
             const registrationStage = new stageClass(this._hsApi, this._data, session, params?.[stage]);
             if (!firstStage) {

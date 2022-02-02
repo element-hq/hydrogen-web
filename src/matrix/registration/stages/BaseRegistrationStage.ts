@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import type {HomeServerApi} from "../../net/HomeServerApi";
-import type {RegistrationDetails, RegistrationResponse, AuthenticationData, RegistrationParams} from "../types/type";
+import type {RegistrationDetails, RegistrationResponse, AuthenticationData, RegistrationParams} from "../types/types";
 
 export abstract class BaseRegistrationStage {
     protected _hsApi: HomeServerApi;
