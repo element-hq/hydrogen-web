@@ -7,7 +7,6 @@ const version = manifest.version;
 
 const commonOptions = {
     logLevel: "warn",
-    publicDir: false,
     server: {
         hmr: false
     },

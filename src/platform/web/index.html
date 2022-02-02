@@ -9,6 +9,7 @@
         <meta name="apple-mobile-web-app-status-bar-style" content="black">
         <meta name="apple-mobile-web-app-title" content="Hydrogen Chat">
         <meta name="description" content="A matrix chat application">
+        <script src="config.js"></script>
         <link rel="apple-touch-icon" href="./assets/icon-maskable.png">
         <link rel="icon" type="image/png" href="assets/icon-maskable.png">
         <link rel="stylesheet" type="text/css" href="./ui/css/main.css">
@@ -18,7 +19,6 @@
         <script id="main" type="module">
             import {main} from "./main";
             import {Platform} from "./Platform";
-            import configJSON from "./assets/config.json?raw";
             import assetPaths from "./sdk/paths/vite";
             if (import.meta.env.PROD) {
                 assetPaths.serviceWorker = "sw.js";
@@ -26,7 +26,7 @@
             const platform = new Platform(
                 document.body,
                 assetPaths,
-                JSON.parse(configJSON),
+                window.APP_CONFIG || {},
                 {development: import.meta.env.DEV}
             );
             main(platform);
