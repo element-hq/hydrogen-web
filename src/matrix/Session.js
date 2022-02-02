@@ -18,6 +18,7 @@ limitations under the License.
 import {Room} from "./room/Room.js";
 import {ArchivedRoom} from "./room/ArchivedRoom.js";
 import {RoomStatus} from "./room/RoomStatus.js";
+import {RoomBeingCreated} from "./room/create";
 import {Invite} from "./room/Invite.js";
 import {Pusher} from "./push/Pusher";
 import { ObservableMap } from "../observable/index.js";
@@ -63,6 +64,7 @@ export class Session {
         this._activeArchivedRooms = new Map();
         this._invites = new ObservableMap();
         this._inviteUpdateCallback = (invite, params) => this._invites.update(invite.id, params);
+        this._roomsBeingCreated = new ObservableMap();
         this._user = new User(sessionInfo.userId);
         this._deviceMessageHandler = new DeviceMessageHandler({storage});
         this._olm = olm;
@@ -421,7 +423,7 @@ export class Session {
         // load rooms
         const rooms = await txn.roomSummary.getAll();
         const roomLoadPromise = Promise.all(rooms.map(async summary => {
-            const room = this.createRoom(summary.roomId, pendingEventsByRoomId.get(summary.roomId));
+            const room = this.createJoinedRoom(summary.roomId, pendingEventsByRoomId.get(summary.roomId));
             await log.wrap("room", log => room.load(summary, txn, log));
             this._rooms.add(room.id, room);
         }));
@@ -530,7 +532,7 @@ export class Session {
     }
 
     /** @internal */
-    createRoom(roomId, pendingEvents) {
+    createJoinedRoom(roomId, pendingEvents) {
         return new Room({
             roomId,
             getSyncToken: this._getSyncToken,
@@ -578,6 +580,20 @@ export class Session {
             user: this._user,
             platform: this._platform,
         });
+    }
+
+    get roomsBeingCreated() {
+        return this._roomsBeingCreated;
+    }
+
+    createRoom(type, isEncrypted, explicitName, topic, invites) {
+        const localId = `room-being-created-${this.platform.random()}`;
+        const roomBeingCreated = new RoomBeingCreated(localId, type, isEncrypted, explicitName, topic, invites);
+        this._roomsBeingCreated.set(localId, roomBeingCreated);
+        this._platform.logger.runDetached("create room", async log => {
+            roomBeingCreated.start(this._hsApi, log);
+        });
+        return localId;
     }
 
     async obtainSyncLock(syncResponse) {
@@ -667,6 +683,13 @@ export class Session {
         for (const rs of roomStates) {
             if (rs.shouldAdd) {
                 this._rooms.add(rs.id, rs.room);
+                for (const roomBeingCreated of this._roomsBeingCreated) {
+                    if (roomBeingCreated.roomId === rs.id) {
+                        roomBeingCreated.notifyJoinedRoom();
+                        this._roomsBeingCreated.delete(roomBeingCreated.localId);
+                        break;
+                    }
+                }
             } else if (rs.shouldRemove) {
                 this._rooms.remove(rs.id);
             }

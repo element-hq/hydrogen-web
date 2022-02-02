@@ -263,20 +263,29 @@ export class HomeServerApi {
         return this._post(`/logout`, {}, {}, options);
     }
 
-    getDehydratedDevice(options: IRequestOptions): IHomeServerRequest {
+    getDehydratedDevice(options: IRequestOptions = {}): IHomeServerRequest {
         options.prefix = DEHYDRATION_PREFIX;
         return this._get(`/dehydrated_device`, undefined, undefined, options);
     }
 
-    createDehydratedDevice(payload: Record<string, any>, options: IRequestOptions): IHomeServerRequest {
+    createDehydratedDevice(payload: Record<string, any>, options: IRequestOptions = {}): IHomeServerRequest {
         options.prefix = DEHYDRATION_PREFIX;
         return this._put(`/dehydrated_device`, {}, payload, options);
     }
 
-    claimDehydratedDevice(deviceId: string, options: IRequestOptions): IHomeServerRequest {
+    claimDehydratedDevice(deviceId: string, options: IRequestOptions = {}): IHomeServerRequest {
         options.prefix = DEHYDRATION_PREFIX;
         return this._post(`/dehydrated_device/claim`, {}, {device_id: deviceId}, options);
     }
+
+    profile(userId: string, options?: IRequestOptions): IHomeServerRequest {
+        return this._get(`/profile/${encodeURIComponent(userId)}`);
+    }
+
+    createRoom(payload: Record<string, any>, options?: IRequestOptions): IHomeServerRequest {
+        return this._post(`/createRoom`, {}, payload, options);
+    }
+    
 }
 
 import {Request as MockRequest} from "../../mocks/Request.js";

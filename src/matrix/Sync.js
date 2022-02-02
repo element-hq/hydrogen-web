@@ -392,7 +392,7 @@ export class Sync {
         // we receive also gets written.
         // In any case, don't create a room for a rejected invite
         if (!room && (membership === "join" || (isInitialSync && membership === "leave"))) {
-            room = this._session.createRoom(roomId);
+            room = this._session.createJoinedRoom(roomId);
             isNewRoom = true;
         }
         if (room) {
