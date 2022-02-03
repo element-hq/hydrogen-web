@@ -17,7 +17,7 @@ limitations under the License.
 
 import {Room} from "./room/Room.js";
 import {ArchivedRoom} from "./room/ArchivedRoom.js";
-import {RoomStatus} from "./room/RoomStatus.js";
+import {RoomStatus} from "./room/RoomStatus";
 import {RoomBeingCreated} from "./room/create";
 import {Invite} from "./room/Invite.js";
 import {Pusher} from "./push/Pusher";
@@ -64,6 +64,12 @@ export class Session {
         this._activeArchivedRooms = new Map();
         this._invites = new ObservableMap();
         this._inviteUpdateCallback = (invite, params) => this._invites.update(invite.id, params);
+        this._roomsBeingCreatedUpdateCallback = (rbc, params) => {
+            this._roomsBeingCreated.update(rbc.localId, params);
+            if (rbc.roomId && !!this.rooms.get(rbc.roomId)) {
+                this._tryReplaceRoomBeingCreated(rbc.roomId);
+            }
+        };
         this._roomsBeingCreated = new ObservableMap();
         this._user = new User(sessionInfo.userId);
         this._deviceMessageHandler = new DeviceMessageHandler({storage});
@@ -586,14 +592,16 @@ export class Session {
         return this._roomsBeingCreated;
     }
 
-    createRoom(type, isEncrypted, explicitName, topic, invites) {
-        const localId = `room-being-created-${this.platform.random()}`;
-        const roomBeingCreated = new RoomBeingCreated(localId, type, isEncrypted, explicitName, topic, invites);
-        this._roomsBeingCreated.set(localId, roomBeingCreated);
-        this._platform.logger.runDetached("create room", async log => {
-            roomBeingCreated.start(this._hsApi, log);
+    createRoom(type, isEncrypted, explicitName, topic, invites, log = undefined) {
+        return this._platform.logger.wrapOrRun(log, "create room", log => {
+            const localId = `room-being-created-${this._platform.random()}`;
+            const roomBeingCreated = new RoomBeingCreated(localId, type, isEncrypted, explicitName, topic, invites, this._roomsBeingCreatedUpdateCallback, this._mediaRepository, log);
+            this._roomsBeingCreated.set(localId, roomBeingCreated);
+            log.wrapDetached("create room network", async log => {
+                roomBeingCreated.start(this._hsApi, log);
+            });
+            return localId;
         });
-        return localId;
     }
 
     async obtainSyncLock(syncResponse) {
@@ -678,18 +686,29 @@ export class Session {
         }
     }
 
+    _tryReplaceRoomBeingCreated(roomId) {
+        console.trace("_tryReplaceRoomBeingCreated " + roomId);
+        for (const [,roomBeingCreated] of this._roomsBeingCreated) {
+            if (roomBeingCreated.roomId === roomId) {
+                const observableStatus = this._observedRoomStatus.get(roomBeingCreated.localId);
+                if (observableStatus) {
+                    console.log("marking room as replaced", observableStatus.get());
+                    observableStatus.set(observableStatus.get() | RoomStatus.Replaced);
+                } else {
+                    console.log("no observableStatus");
+                }
+                this._roomsBeingCreated.remove(roomBeingCreated.localId);
+                return;
+            }
+        }
+    }
+
     applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates) {
         // update the collections after sync
         for (const rs of roomStates) {
             if (rs.shouldAdd) {
                 this._rooms.add(rs.id, rs.room);
-                for (const roomBeingCreated of this._roomsBeingCreated) {
-                    if (roomBeingCreated.roomId === rs.id) {
-                        roomBeingCreated.notifyJoinedRoom();
-                        this._roomsBeingCreated.delete(roomBeingCreated.localId);
-                        break;
-                    }
-                }
+                this._tryReplaceRoomBeingCreated(rs.id);
             } else if (rs.shouldRemove) {
                 this._rooms.remove(rs.id);
             }
@@ -707,12 +726,12 @@ export class Session {
         if (this._observedRoomStatus.size !== 0) {
             for (const ars of archivedRoomStates) {
                 if (ars.shouldAdd) {
-                    this._observedRoomStatus.get(ars.id)?.set(RoomStatus.archived);
+                    this._observedRoomStatus.get(ars.id)?.set(RoomStatus.Archived);
                 }
             }
             for (const rs of roomStates) {
                 if (rs.shouldAdd) {
-                    this._observedRoomStatus.get(rs.id)?.set(RoomStatus.joined);
+                    this._observedRoomStatus.get(rs.id)?.set(RoomStatus.Joined);
                 }
             }
             for (const is of inviteStates) {
@@ -731,7 +750,7 @@ export class Session {
     _forgetArchivedRoom(roomId) {
         const statusObservable = this._observedRoomStatus.get(roomId);
         if (statusObservable) {
-            statusObservable.set(statusObservable.get().withoutArchived());
+            statusObservable.set(statusObservable.get() ^ RoomStatus.Archived);
         }
     }
 
@@ -820,21 +839,25 @@ export class Session {
     }
 
     async getRoomStatus(roomId) {
+        const isBeingCreated = !!this._roomsBeingCreated.get(roomId);
+        if (isBeingCreated) {
+            return RoomStatus.BeingCreated;
+        }
         const isJoined = !!this._rooms.get(roomId);
         if (isJoined) {
-            return RoomStatus.joined;
+            return RoomStatus.Joined;
         } else {
             const isInvited = !!this._invites.get(roomId);
             const txn = await this._storage.readTxn([this._storage.storeNames.archivedRoomSummary]);
             const isArchived = await txn.archivedRoomSummary.has(roomId);
             if (isInvited && isArchived) {
-                return RoomStatus.invitedAndArchived;
+                return RoomStatus.Invited | RoomStatus.Archived;
             } else if (isInvited) {
-                return RoomStatus.invited;
+                return RoomStatus.Invited;
             } else if (isArchived) {
-                return RoomStatus.archived;
+                return RoomStatus.Archived;
             } else {
-                return RoomStatus.none;
+                return RoomStatus.None;
             }
         }
     }
@@ -843,9 +866,10 @@ export class Session {
         let observable = this._observedRoomStatus.get(roomId);
         if (!observable) {
             const status = await this.getRoomStatus(roomId);
-            observable = new RetainedObservableValue(status, () => {
+            observable = new FooRetainedObservableValue(status, () => {
                 this._observedRoomStatus.delete(roomId);
             });
+
             this._observedRoomStatus.set(roomId, observable);
         }
         return observable;
@@ -894,6 +918,13 @@ export class Session {
             const body = await this._hsApi.joinIdOrAlias(roomIdOrAlias, {log}).response();
             return body.room_id;
         });
+    }
+}
+
+class FooRetainedObservableValue extends RetainedObservableValue {
+    set(value) {
+        console.log("setting room status to", value);
+        super.set(value);
     }
 }
 

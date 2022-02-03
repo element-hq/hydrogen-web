@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../general/TemplateView";
-import {renderStaticAvatar} from "../../avatar.js";
+import {AvatarView} from "../../AvatarView";
 import {spinner} from "../../common.js";
 
 export class InviteTileView extends TemplateView {
@@ -27,9 +27,9 @@ export class InviteTileView extends TemplateView {
         };
         return t.li({"className": classes}, [
             t.a({href: vm.url}, [
-                renderStaticAvatar(vm, 32),
+                t.view(new AvatarView(vm, 32), {parentProvidesUpdates: true}),
                 t.div({className: "description"}, [
-                    t.div({className: "name"}, vm.name),
+                    t.div({className: "name"}, vm => vm.name),
                     t.map(vm => vm.busy, busy => {
                         if (busy) {
                             return spinner(t);
@@ -40,5 +40,11 @@ export class InviteTileView extends TemplateView {
                 ])
             ])
         ]);
+    }
+
+    update(value, props) {
+        super.update(value);
+        // update the AvatarView as we told it to not subscribe itself with parentProvidesUpdates
+        this.updateSubViews(value, props);
     }
 }

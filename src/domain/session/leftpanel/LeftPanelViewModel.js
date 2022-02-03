@@ -18,6 +18,7 @@ limitations under the License.
 import {ViewModel} from "../../ViewModel.js";
 import {RoomTileViewModel} from "./RoomTileViewModel.js";
 import {InviteTileViewModel} from "./InviteTileViewModel.js";
+import {RoomBeingCreatedTileViewModel} from "./RoomBeingCreatedTileViewModel.js";
 import {RoomFilter} from "./RoomFilter.js";
 import {ApplyMap} from "../../../observable/map/ApplyMap.js";
 import {addPanelIfNeeded} from "../../navigation/index.js";
@@ -25,8 +26,8 @@ import {addPanelIfNeeded} from "../../navigation/index.js";
 export class LeftPanelViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {rooms, invites} = options;
-        this._tileViewModelsMap = this._mapTileViewModels(rooms, invites);
+        const {session} = options;
+        this._tileViewModelsMap = this._mapTileViewModels(session.roomsBeingCreated, session.invites, session.rooms);
         this._tileViewModelsFilterMap = new ApplyMap(this._tileViewModelsMap);
         this._tileViewModels = this._tileViewModelsFilterMap.sortValues((a, b) => a.compare(b));
         this._currentTileVM = null;
@@ -35,16 +36,18 @@ export class LeftPanelViewModel extends ViewModel {
         this._settingsUrl = this.urlCreator.urlForSegment("settings");
     }
 
-    _mapTileViewModels(rooms, invites) {
+    _mapTileViewModels(roomsBeingCreated, invites, rooms) {
         // join is not commutative, invites will take precedence over rooms
-        return invites.join(rooms).mapValues((roomOrInvite, emitChange) => {
+        return roomsBeingCreated.join(invites).join(rooms).mapValues((item, emitChange) => {
             let vm;
-            if (roomOrInvite.isInvite) {
-                vm = new InviteTileViewModel(this.childOptions({invite: roomOrInvite, emitChange}));
+            if (item.isBeingCreated) {
+                vm = new RoomBeingCreatedTileViewModel(this.childOptions({roomBeingCreated: item, emitChange}));
+            } else if (item.isInvite) {
+                vm = new InviteTileViewModel(this.childOptions({invite: item, emitChange}));
             } else {
-                vm = new RoomTileViewModel(this.childOptions({room: roomOrInvite, emitChange}));
+                vm = new RoomTileViewModel(this.childOptions({room: item, emitChange}));
             }
-            const isOpen = this.navigation.path.get("room")?.value === roomOrInvite.id;
+            const isOpen = this.navigation.path.get("room")?.value === item.id;
             if (isOpen) {
                 vm.open();
                 this._updateCurrentVM(vm);

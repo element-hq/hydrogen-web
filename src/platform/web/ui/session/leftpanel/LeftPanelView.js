@@ -64,7 +64,7 @@ export class LeftPanelView extends TemplateView {
                 list: vm.tileViewModels,
             },
             tileVM => {
-                if (tileVM.kind === "invite") {
+                if (tileVM.kind === "invite" || tileVM.kind === "roomBeingCreated") {
                     return new InviteTileView(tileVM);
                 } else {
                     return new RoomTileView(tileVM);

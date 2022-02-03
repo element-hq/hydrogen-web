@@ -19,6 +19,7 @@ import {LeftPanelViewModel} from "./leftpanel/LeftPanelViewModel.js";
 import {RoomViewModel} from "./room/RoomViewModel.js";
 import {UnknownRoomViewModel} from "./room/UnknownRoomViewModel.js";
 import {InviteViewModel} from "./room/InviteViewModel.js";
+import {RoomBeingCreatedViewModel} from "./room/RoomBeingCreatedViewModel.js";
 import {LightboxViewModel} from "./room/LightboxViewModel.js";
 import {SessionStatusViewModel} from "./SessionStatusViewModel.js";
 import {RoomGridViewModel} from "./RoomGridViewModel.js";
@@ -37,10 +38,7 @@ export class SessionViewModel extends ViewModel {
             reconnector: client.reconnector,
             session: client.session,
         })));
-        this._leftPanelViewModel = this.track(new LeftPanelViewModel(this.childOptions({
-            invites: this._client.session.invites,
-            rooms: this._client.session.rooms
-        })));
+        this._leftPanelViewModel = this.track(new LeftPanelViewModel(this.childOptions({session: this._client.session})));
         this._settingsViewModel = null;
         this._roomViewModelObservable = null;
         this._gridViewModel = null;
@@ -200,6 +198,17 @@ export class SessionViewModel extends ViewModel {
         return null;
     }
 
+    _createRoomBeingCreatedViewModel(localId) {
+        const roomBeingCreated = this._client.session.roomsBeingCreated.get(localId);
+        if (roomBeingCreated) {
+            return new RoomBeingCreatedViewModel(this.childOptions({
+                roomBeingCreated,
+                mediaRepository: this._client.session.mediaRepository,
+            }));
+        }
+        return null;
+    }
+
     _updateRoom(roomId) {
         // opening a room and already open?
         if (this._roomViewModelObservable?.id === roomId) {
@@ -263,7 +272,7 @@ export class SessionViewModel extends ViewModel {
         const enable = !!this.navigation.path.get("right-panel")?.value;
         if (enable) {
             const room = this._roomFromNavigation();
-            this._rightPanelViewModel = this.track(new RightPanelViewModel(this.childOptions({room})));
+            this._rightPanelViewModel = this.track(new RightPanelViewModel(this.childOptions({room, session: this._client.session})));
         }
         this.emitChange("rightPanelViewModel");
     }
