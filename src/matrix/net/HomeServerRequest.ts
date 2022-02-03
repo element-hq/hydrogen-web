@@ -42,7 +42,7 @@ export class HomeServerRequest implements IHomeServerRequest {
         this._promise = sourceRequest.response().then(response => {
             log?.set("status", response.status);
             // ok?
-            if (response.status >= 200 && response.status < 300 || options?.allowedErrors?.find(e => e === response.status)) {
+            if (response.status >= 200 && response.status < 300 || options?.allowedErrors?.includes(response.status)) {
                 log?.finish();
                 return response.body;
             } else {
