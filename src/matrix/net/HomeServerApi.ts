@@ -157,7 +157,7 @@ export class HomeServerApi {
     }
 
     register(username: string | null, password: string, initialDeviceDisplayName: string, auth?: Record<string, any>, inhibitLogin: boolean = true , options: IRequestOptions = {}): IHomeServerRequest {
-        Object.assign(options, { allowedErrors: [401] });
+        options.allowedErrors = [401];
         const body: any = {
             auth,
             password,
