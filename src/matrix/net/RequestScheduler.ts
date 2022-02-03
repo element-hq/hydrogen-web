@@ -50,6 +50,13 @@ class Request implements IHomeServerRequest {
     response(): Promise<any> {
         return this._responsePromise;
     }
+
+    async responseCode(): Promise<number> {
+        let resolve;
+        const promise: Promise<number> = new Promise(r => resolve = r);
+        this.requestResult?.responseCode().then(code => resolve(code));
+        return promise;
+    }
 }
 
 class HomeServerApiWrapper {
