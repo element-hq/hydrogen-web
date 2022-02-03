@@ -16,7 +16,7 @@ limitations under the License.
 
 import type {BaseRegistrationStage} from "./stages/BaseRegistrationStage";
 import type {HomeServerApi} from "../net/HomeServerApi";
-import type {AccountDetails, RegistrationParams} from "./types/types";
+import type {AccountDetails, RegistrationParams} from "./types";
 import {DummyAuth} from "./stages/DummyAuth";
 import {TermsAuth} from "./stages/TermsAuth";
 

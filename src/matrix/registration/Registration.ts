@@ -17,7 +17,7 @@ limitations under the License.
 import type {HomeServerApi} from "../net/HomeServerApi";
 import {registrationStageFromType} from "./registrationStageFromType";
 import type {BaseRegistrationStage} from "./stages/BaseRegistrationStage";
-import type {AccountDetails, RegistrationFlow, RegistrationResponseMoreDataNeeded} from "./types/types";
+import type {AccountDetails, RegistrationFlow, RegistrationResponseMoreDataNeeded} from "./types";
 
 type FlowSelector = (flows: RegistrationFlow[]) => RegistrationFlow | void;
 
