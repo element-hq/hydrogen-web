@@ -29,7 +29,7 @@ export class Registration {
     constructor(hsApi: HomeServerApi, accountDetails: AccountDetails, flowSelector?: FlowSelector) {
         this._hsApi = hsApi;
         this._accountDetails = accountDetails;
-        this._flowSelector = flowSelector ?? (flows => flows.pop());
+        this._flowSelector = flowSelector ?? (flows => flows[0]);
     }
 
     async start(): Promise<BaseRegistrationStage> {
