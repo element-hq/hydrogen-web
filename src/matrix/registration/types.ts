@@ -24,7 +24,7 @@ export type AccountDetails = {
 export type RegistrationResponse = RegistrationResponseMoreDataNeeded | RegistrationResponseError | RegistrationResponseSuccess;
 
 export type RegistrationResponseMoreDataNeeded = {
-    completed: string[];
+    completed?: string[];
     flows: RegistrationFlow[];
     params: Record<string, any>;
     session: string;
