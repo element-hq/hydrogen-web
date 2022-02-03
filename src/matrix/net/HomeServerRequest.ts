@@ -23,6 +23,7 @@ import type {IRequestOptions} from "../../platform/types/types.js";
 export interface IHomeServerRequest {
     abort(): void;
     response(): Promise<any>;
+    responseCode(): Promise<number>;
 }
 
 export class HomeServerRequest implements IHomeServerRequest {
@@ -109,6 +110,11 @@ export class HomeServerRequest implements IHomeServerRequest {
 
     response(): Promise<any> {
         return this._promise;
+    }
+
+    async responseCode(): Promise<number> {
+        const response = await this._sourceRequest.response();
+        return response.status;
     }
 }
 

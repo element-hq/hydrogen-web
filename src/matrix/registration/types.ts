@@ -28,17 +28,20 @@ export type RegistrationResponseMoreDataNeeded = {
     flows: RegistrationFlow[];
     params: Record<string, any>;
     session: string;
+    status: 401;
 } 
 
 type RegistrationResponseError = {
     errcode: string;
     error: string;
+    status: 400;
 }
 
 export type RegistrationResponseSuccess = {
     user_id: string;
     device_id: string;
     access_token?: string;
+    status: 200;
 }
 
 export type RegistrationFlow = {

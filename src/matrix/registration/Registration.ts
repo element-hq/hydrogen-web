@@ -57,8 +57,11 @@ export class Registration {
     async submitStage(stage: BaseRegistrationStage): Promise<BaseRegistrationStage | undefined> {
         const auth = stage.generateAuthenticationData();
         const { username, password, initialDeviceDisplayName, inhibitLogin } = this._accountDetails;
-        const response = await this._hsApi.register(username, password, initialDeviceDisplayName, auth, inhibitLogin).response();
-        return this.parseRegistrationResponse(response, stage);
+        const request = this._hsApi.register(username, password, initialDeviceDisplayName, auth, inhibitLogin);
+        const response = await request.response();
+        const status = await request.responseCode();
+        const registrationResponse: RegistrationResponse = { ...response, status };
+        return this.parseRegistrationResponse(registrationResponse, stage);
     }
 
     parseStagesFromResponse(response: RegistrationResponseMoreDataNeeded): BaseRegistrationStage {
@@ -86,17 +89,23 @@ export class Registration {
         return firstStage!;
     }
 
-    parseRegistrationResponse(response: RegistrationResponse, currentStage: BaseRegistrationStage) {
-        if ("user_id" in response) {
-            // registration completed successfully
-            this._sessionInfo = response;
-            return undefined;
+    async parseRegistrationResponse(response: RegistrationResponse, currentStage: BaseRegistrationStage) {
+        switch (response.status) {
+            case 200:
+                this._sessionInfo = response;
+                return undefined;
+            case 401:
+                if (response.completed?.includes(currentStage.type)) {
+                    return currentStage.nextStage;
+                }
+                else {
+                    throw new Error("This stage could not be completed!");
+                }
+            case 400:
+            default:
+                const error = "error" in response? response.error: "Could not parse response";
+                throw new Error(error);
         }
-        else if ("completed" in response && response.completed.find(c => c === currentStage.type)) {
-            return currentStage.nextStage;
-        }
-        const error = "error" in response? response.error: "Could not parse response";
-        throw new Error(error);
     }
 
     get sessionInfo(): RegistrationResponseSuccess | undefined {
