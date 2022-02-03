@@ -292,6 +292,11 @@ export class TemplateBuilder<T extends IObservableValue> {
         const attrMap = {};
         if(attributes) {
             for(let [key, value] of Object.entries(attributes)) {
+                let attrName = key;
+                if (key === "className") {
+                    attrName = "class";
+                }
+
                 // binding for className as object of className => enabled
                 if (typeof value === "object") {
                     if (key !== "className" || value === null) {
@@ -300,16 +305,17 @@ export class TemplateBuilder<T extends IObservableValue> {
                     }
                     if (objHasFns(value)) {
                         //this._addClassNamesBinding(node, value);
-                        attrMap[key] = classNames(value, value);
+                        attrMap[attrName] = classNames(value, value);
                     } else {
-                        attrMap[key] = classNames(value, this._value);
+                        attrMap[attrName] = classNames(value, this._value);
                     }
                 } else if (this._isEventHandler(key, value)) {
                     // no-op
                 } else if (typeof value === "function") {
-                    this._addAttributeBinding(node, key, value);
+                    //this._addAttributeBinding(node, key, value);
+                    attrMap[attrName] = value(this._value);
                 } else {
-                    attrMap[key] = value;
+                    attrMap[attrName] = value;
                 }
             }
         }
