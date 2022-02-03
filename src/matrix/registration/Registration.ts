@@ -28,9 +28,9 @@ import type {
 type FlowSelector = (flows: RegistrationFlow[]) => RegistrationFlow | void;
 
 export class Registration {
-    private _hsApi: HomeServerApi;
-    private _accountDetails: AccountDetails;
-    private _flowSelector: FlowSelector;
+    private readonly _hsApi: HomeServerApi;
+    private readonly _accountDetails: AccountDetails;
+    private readonly _flowSelector: FlowSelector;
     private _sessionInfo?: RegistrationResponseSuccess
 
     constructor(hsApi: HomeServerApi, accountDetails: AccountDetails, flowSelector?: FlowSelector) {
@@ -64,7 +64,7 @@ export class Registration {
         return this.parseRegistrationResponse(registrationResponse, stage);
     }
 
-    parseStagesFromResponse(response: RegistrationResponseMoreDataNeeded): BaseRegistrationStage {
+    private parseStagesFromResponse(response: RegistrationResponseMoreDataNeeded): BaseRegistrationStage {
         const { session, params } = response;
         const flow = this._flowSelector(response.flows);
         if (!flow) {
@@ -89,7 +89,7 @@ export class Registration {
         return firstStage!;
     }
 
-    async parseRegistrationResponse(response: RegistrationResponse, currentStage: BaseRegistrationStage) {
+    private async parseRegistrationResponse(response: RegistrationResponse, currentStage: BaseRegistrationStage) {
         switch (response.status) {
             case 200:
                 this._sessionInfo = response;

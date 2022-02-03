@@ -18,11 +18,11 @@ import type {HomeServerApi} from "../../net/HomeServerApi";
 import type {AccountDetails, AuthenticationData, RegistrationParams} from "../types";
 
 export abstract class BaseRegistrationStage {
-    protected _hsApi: HomeServerApi;
-    protected _accountDetails: AccountDetails;
+    protected readonly _hsApi: HomeServerApi;
+    protected readonly _accountDetails: AccountDetails;
     protected _session: string;
     protected _nextStage: BaseRegistrationStage;
-    protected _params?: Record<string, any>
+    protected readonly _params?: Record<string, any>
 
     constructor(hsApi: HomeServerApi, accountDetails: AccountDetails, session: string, params?: RegistrationParams) {
         this._hsApi = hsApi;
