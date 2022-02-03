@@ -80,6 +80,7 @@ export abstract class TemplateView<T extends IObservableValue> extends BaseUpdat
         const builder = new TemplateBuilder(this) as Builder<T>;
         try {
             this._root = this.render(builder, this._value);
+            console.log('this._root', this._root)
         } finally {
             builder.close();
         }
@@ -287,6 +288,49 @@ export class TemplateBuilder<T extends IObservableValue> {
         }
 
         const node = document.createElementNS(ns, name);
+
+        const attrMap = {};
+        if(attributes) {
+            for(let [key, value] of Object.entries(attributes)) {
+                // binding for className as object of className => enabled
+                if (typeof value === "object") {
+                    if (key !== "className" || value === null) {
+                        // Ignore non-className objects.
+                        continue;
+                    }
+                    if (objHasFns(value)) {
+                        //this._addClassNamesBinding(node, value);
+                        attrMap[key] = classNames(value, value);
+                    } else {
+                        attrMap[key] = classNames(value, this._value);
+                    }
+                } else if (this._isEventHandler(key, value)) {
+                    // no-op
+                } else if (typeof value === "function") {
+                    this._addAttributeBinding(node, key, value);
+                } else {
+                    attrMap[key] = value;
+                }
+            }
+        }
+
+        const attrString = Object.keys(attrMap)
+            .map((attrKey) => {
+                return `${attrKey}="${attrMap[attrKey]}"`;
+            })
+            .join(' ');
+
+        const childenStrings = [];
+        for (let child of [].concat(children)) {
+            console.log('child', child)
+            if (typeof child === "function") {
+                //child = this._addTextBinding(child);
+                childenStrings.push('todo');
+            }
+            childenStrings.push(child);
+        }
+
+        return `<${name} ${attrString}>${childenStrings.join('')}</${name}>`;
         
         if (attributes) {
             this._setNodeAttributes(node, attributes);
@@ -303,6 +347,8 @@ export class TemplateBuilder<T extends IObservableValue> {
     view(view: IView, mountOptions?: IMountArgs): ViewNode {
         this._templateView.addSubView(view);
         return mountView(view, mountOptions);
+
+        //return view.render(this, this._value)
     }
 
     // map a value to a view, every time the value changes
@@ -322,7 +368,8 @@ export class TemplateBuilder<T extends IObservableValue> {
             if (view) {
                 return this.view(view);
             } else {
-                return document.createComment("node binding placeholder");
+                //return document.createComment("node binding placeholder");
+                return '<!-- node binding placeholder -->';
             }
         });
     }
@@ -337,7 +384,8 @@ export class TemplateBuilder<T extends IObservableValue> {
                 if (!rootNode) {
                     // TODO: this will confuse mapView which assumes that
                     // a comment node means there is no view to clean up
-                    return document.createComment("map placeholder");
+                    //return document.createComment("map placeholder");
+                    return '<!-- map placeholder -->';
                 }
                 return rootNode;
             });
@@ -365,16 +413,16 @@ export class TemplateBuilder<T extends IObservableValue> {
     You should not call the TemplateBuilder (e.g. `t.xxx()`) at all from the side effect,
     instead use tags from html.ts to help you construct any DOM you need. */
     mapSideEffect<R>(mapFn: (value: T) => R, sideEffect: (newV: R, oldV: R | undefined) => void) {
-        let prevValue = mapFn(this._value);
-        const binding = () => {
-            const newValue = mapFn(this._value);
-            if (prevValue !== newValue) {
-                sideEffect(newValue, prevValue);
-                prevValue = newValue;
-            }
-        };
-        this._addBinding(binding);
-        sideEffect(prevValue, undefined);
+        // let prevValue = mapFn(this._value);
+        // const binding = () => {
+        //     const newValue = mapFn(this._value);
+        //     if (prevValue !== newValue) {
+        //         sideEffect(newValue, prevValue);
+        //         prevValue = newValue;
+        //     }
+        // };
+        // this._addBinding(binding);
+        // sideEffect(prevValue, undefined);
     }
 }
 

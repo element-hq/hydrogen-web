@@ -81,7 +81,7 @@ export class ListView<T, V extends IView> implements IView, IListObserver<T> {
         const root = this._root = el(this._tagName, attr);
         this.loadList();
         if (this._onItemClick) {
-            root.addEventListener("click", this);
+            //root.addEventListener("click", this);
         }
         return root;
     }

@@ -57,16 +57,34 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
 
     render(t: Builder<TimelineViewModel>, vm: TimelineViewModel) {
         // assume this view will be mounted in the parent DOM straight away
-        requestAnimationFrame(() => {
-            // do initial scroll positioning
-            this.restoreScrollPosition();
-        });
+        // requestAnimationFrame(() => {
+        //     // do initial scroll positioning
+        //     this.restoreScrollPosition();
+        // });
+        console.log('vm.tiles', vm.tiles)
+
+        const childrenRenders = [];
+        for(const entry of vm.tiles) {
+            const View = viewClassForEntry(entry);
+            if (View) {
+                const view = new View(entry);
+                const childrenRender = view.render(t, entry);
+                console.log('childrenRender', childrenRender)
+                childrenRenders.push(childrenRender);
+                //childrenViews.push();
+            }
+        }
+
         this.tilesView = new TilesListView(vm.tiles, () => this.restoreScrollPosition());
         const root = t.div({className: "Timeline"}, [
-            t.div({
-                className: "Timeline_scroller bottom-aligned-scroll",
-                onScroll: () => this.onScroll()
-            }, t.view(this.tilesView)),
+            t.div(
+                {
+                    className: "Timeline_scroller bottom-aligned-scroll",
+                    onScroll: () => this.onScroll()
+                },
+                //t.view(this.tilesView)
+                childrenRenders
+            ),
             t.button({
                 className: {
                     "Timeline_jumpDown": true,
@@ -77,12 +95,12 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
             })
         ]);
 
-        if (typeof ResizeObserver === "function") {
-            this.resizeObserver = new ResizeObserver(() => {
-                this.restoreScrollPosition();
-            });
-            this.resizeObserver.observe(root);
-        }
+        // if (typeof ResizeObserver === "function") {
+        //     this.resizeObserver = new ResizeObserver(() => {
+        //         this.restoreScrollPosition();
+        //     });
+        //     this.resizeObserver.observe(root);
+        // }
 
         return root;
     }

@@ -21,26 +21,36 @@ import {ReplyPreviewError, ReplyPreviewView} from "./ReplyPreviewView.js";
 export class TextMessageView extends BaseMessageView {
     renderMessageBody(t, vm) {
         const time = t.time({className: {hidden: !vm.date}}, vm.date + " " + vm.time);
-        const container = t.div({
-            className: {
-                "Timeline_messageBody": true,
-                statusMessage: vm => vm.shape === "message-status",
-            }
-        }, t.mapView(vm => vm.replyTile, replyTile => {
-            if (this._isReplyPreview) {
-                // if this._isReplyPreview = true, this is already a reply preview, don't nest replies for now.
-                return null;
-            }
-            else if (vm.isReply && !replyTile) {
-                return new ReplyPreviewError();
-            }
-            else if (replyTile) {
-                return new ReplyPreviewView(replyTile);
-            }
-            else {
-                return null;
-            }
-        }));
+
+        const parts = [];
+        for (const part of vm.body.parts) {
+            parts.push(renderPart(part));
+        }
+
+        const container = t.div(
+            {
+                className: {
+                    "Timeline_messageBody": true,
+                    statusMessage: vm => vm.shape === "message-status",
+                }
+            },
+            parts,
+            // t.mapView(vm => vm.replyTile, replyTile => {
+            //     if (this._isReplyPreview) {
+            //         // if this._isReplyPreview = true, this is already a reply preview, don't nest replies for now.
+            //         return null;
+            //     }
+            //     else if (vm.isReply && !replyTile) {
+            //         return new ReplyPreviewError();
+            //     }
+            //     else if (replyTile) {
+            //         return new ReplyPreviewView(replyTile);
+            //     }
+            //     else {
+            //         return null;
+            //     }
+            // })
+        );
 
         const shouldRemove = (element) => element?.nodeType === Node.ELEMENT_NODE && element.className !== "ReplyPreviewView";
 
@@ -53,6 +63,9 @@ export class TextMessageView extends BaseMessageView {
             }
             container.appendChild(time);
         });
+
+        
+        
 
         return container;
     }

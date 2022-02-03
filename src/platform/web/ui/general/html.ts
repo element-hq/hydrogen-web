@@ -60,12 +60,34 @@ export function el(elementName: string, attributes?: BasicAttributes<never> | Ch
 }
 
 export function elNS(ns: string, elementName: string, attributes?: BasicAttributes<never> | Child | Child[], children?: Child | Child[]): Element {
+    //console.log('html elNS', new Error().stack);
     if (attributes && isChildren(attributes)) {
         children = attributes;
         attributes = undefined;
     }
 
     const e = document.createElementNS(ns, elementName);
+
+    const attrMap = {};
+    if (attributes) {
+        for (let [name, value] of Object.entries(attributes)) {
+            if (typeof value === "object") {
+                // Only className should ever be an object; be careful
+                // here anyway and ignore object-valued non-className attributes.
+                value = (value !== null && name === "className") ? classNames(value, undefined) : false;
+            }
+            attrMap[name] = value;
+        }
+    }
+
+    const attrString = Object.keys(attrMap)
+        .map((attrKey) => {
+            return `${attrKey}="${attrMap[attrKey]}"`;
+        })
+        .join(' ');
+
+    return `<${elementName} ${attrString}>${[].concat(children).join('')}</${elementName}>`;
+
 
     if (attributes) {
         for (let [name, value] of Object.entries(attributes)) {
@@ -93,7 +115,8 @@ export function elNS(ns: string, elementName: string, attributes?: BasicAttribut
 }
 
 export function text(str: string): Text {
-    return document.createTextNode(str);
+    return str;
+    //return document.createTextNode(str);
 }
 
 export const HTML_NS: string = "http://www.w3.org/1999/xhtml";
