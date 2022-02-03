@@ -17,7 +17,13 @@ limitations under the License.
 import type {HomeServerApi} from "../net/HomeServerApi";
 import {registrationStageFromType} from "./registrationStageFromType";
 import type {BaseRegistrationStage} from "./stages/BaseRegistrationStage";
-import type {AccountDetails, RegistrationFlow, RegistrationResponseMoreDataNeeded} from "./types";
+import type {
+    AccountDetails,
+    RegistrationFlow,
+    RegistrationResponseMoreDataNeeded,
+    RegistrationResponse,
+    RegistrationResponseSuccess,
+} from "./types";
 
 type FlowSelector = (flows: RegistrationFlow[]) => RegistrationFlow | void;
 
@@ -25,6 +31,7 @@ export class Registration {
     private _hsApi: HomeServerApi;
     private _accountDetails: AccountDetails;
     private _flowSelector: FlowSelector;
+    private _sessionInfo?: RegistrationResponseSuccess
 
     constructor(hsApi: HomeServerApi, accountDetails: AccountDetails, flowSelector?: FlowSelector) {
         this._hsApi = hsApi;
@@ -40,6 +47,18 @@ export class Registration {
             undefined,
             this._accountDetails.inhibitLogin).response();
         return this.parseStagesFromResponse(response);
+    }
+
+    /**
+     * Finish a registration stage, return value is:
+     * - the next stage if this stage was completed successfully
+     * - undefined if registration is completed
+     */
+    async submitStage(stage: BaseRegistrationStage): Promise<BaseRegistrationStage | undefined> {
+        const auth = stage.generateAuthenticationData();
+        const { username, password, initialDeviceDisplayName, inhibitLogin } = this._accountDetails;
+        const response = await this._hsApi.register(username, password, initialDeviceDisplayName, auth, inhibitLogin).response();
+        return this.parseRegistrationResponse(response, stage);
     }
 
     parseStagesFromResponse(response: RegistrationResponseMoreDataNeeded): BaseRegistrationStage {
@@ -65,5 +84,22 @@ export class Registration {
             }
         }
         return firstStage!;
+    }
+
+    parseRegistrationResponse(response: RegistrationResponse, currentStage: BaseRegistrationStage) {
+        if ("user_id" in response) {
+            // registration completed successfully
+            this._sessionInfo = response;
+            return undefined;
+        }
+        else if ("completed" in response && response.completed.find(c => c === currentStage.type)) {
+            return currentStage.nextStage;
+        }
+        const error = "error" in response? response.error: "Could not parse response";
+        throw new Error(error);
+    }
+
+    get sessionInfo(): RegistrationResponseSuccess | undefined {
+        return this._sessionInfo;
     }
 }

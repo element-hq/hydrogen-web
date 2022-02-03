@@ -14,16 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {AuthenticationData} from "../types";
 import {BaseRegistrationStage} from "./BaseRegistrationStage";
 
 export class DummyAuth extends BaseRegistrationStage {
-    async complete() {
-        const { username, password, initialDeviceDisplayName, inhibitLogin } = this._accountDetails;
-        const response = await this._hsApi.register(username, password, initialDeviceDisplayName, {
+    generateAuthenticationData(): AuthenticationData {
+        return {
             session: this._session,
-            type: this.type
-        }, inhibitLogin).response();
-        return this.parseResponse(response);
+            type: this.type,
+        };    
     }
 
     get type(): string {

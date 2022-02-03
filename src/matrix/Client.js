@@ -140,8 +140,7 @@ export class Client {
             password,
             initialDeviceDisplayName,
         });
-        let stage = await registration.start();
-        return stage;
+        return registration;
     }
 
     async startWithLogin(loginMethod, {inspectAccountSetup} = {}) {

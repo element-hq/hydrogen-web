@@ -35,7 +35,7 @@ type RegistrationResponseError = {
     error: string;
 }
 
-type RegistrationResponseSuccess = {
+export type RegistrationResponseSuccess = {
     user_id: string;
     device_id: string;
     access_token?: string;

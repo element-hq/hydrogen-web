@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import type {HomeServerApi} from "../../net/HomeServerApi";
-import type {AccountDetails, RegistrationResponse, AuthenticationData, RegistrationParams} from "../types";
+import type {AccountDetails, AuthenticationData, RegistrationParams} from "../types";
 
 export abstract class BaseRegistrationStage {
     protected _hsApi: HomeServerApi;
@@ -37,25 +37,16 @@ export abstract class BaseRegistrationStage {
     abstract get type(): string;
 
     /**
-     * Finish a registration stage, return value is:
-     * - the next stage if this stage was completed successfully
-     * - user-id (string) if registration is completed
+     * This method should return auth part that must be provided to
+     * /register endpoint to successfully complete this stage
      */
-    abstract complete(auth?: AuthenticationData): Promise<BaseRegistrationStage | string>;
+    abstract generateAuthenticationData(): AuthenticationData;
 
     setNextStage(stage: BaseRegistrationStage) {
         this._nextStage = stage;
     }
 
-    parseResponse(response: RegistrationResponse) {
-        if ("user_id" in response) {
-            // registration completed successfully
-            return response.user_id;
-        }
-        else if ("completed" in response && response.completed.find(c => c === this.type)) {
-            return this._nextStage;
-        }
-        const error = "error" in response? response.error: "Could not parse response";
-        throw new Error(error);
+    get nextStage(): BaseRegistrationStage {
+        return this._nextStage;
     }
 }
