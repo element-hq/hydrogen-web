@@ -24,11 +24,8 @@ export interface IRequestOptions {
     body?: EncodedBody;
     headers?: Map<string, string|number>;
     cache?: boolean;
-    log?: ILogItem;
-    prefix?: string;
     method?: string;
     format?: string;
-    allowedErrors?: number[];
 }
 
 export type RequestFunction = (url: string, options: IRequestOptions) => RequestResult;

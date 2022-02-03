@@ -20,7 +20,7 @@ import {HomeServerRequest} from "./HomeServerRequest";
 import type {IHomeServerRequest} from "./HomeServerRequest";
 import type {Reconnector} from "./Reconnector";
 import type {EncodedBody} from "./common";
-import type {IRequestOptions, RequestFunction} from "../../platform/types/types";
+import type {RequestFunction} from "../../platform/types/types";
 import type {ILogItem} from "../../logging/types";
 
 type RequestMethod = "POST" | "GET" | "PUT";
@@ -34,6 +34,14 @@ type Options = {
     accessToken: string;
     request: RequestFunction;
     reconnector: Reconnector;
+};
+
+type BaseRequestOptions = {
+    log?: ILogItem;
+    allowedErrors?: number[];
+    uploadProgress?: (loadedBytes: number) => void;
+    timeout?: number;
+    prefix?: string;
 };
 
 export class HomeServerApi {
@@ -55,7 +63,7 @@ export class HomeServerApi {
         return this._homeserver + prefix + csPath;
     }
 
-    private _baseRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: IRequestOptions, accessToken?: string): IHomeServerRequest {
+    private _baseRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: BaseRequestOptions, accessToken?: string): IHomeServerRequest {
         const queryString = encodeQueryParams(queryParams);
         url = `${url}?${queryString}`;
         let encodedBody: EncodedBody["body"];
@@ -97,27 +105,27 @@ export class HomeServerApi {
         return hsRequest;
     }
 
-    private _unauthedRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: IRequestOptions): IHomeServerRequest {
+    private _unauthedRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._baseRequest(method, url, queryParams, body, options);
     }
 
-    private _authedRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: IRequestOptions): IHomeServerRequest {
+    private _authedRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._baseRequest(method, url, queryParams, body, options, this._accessToken);
     }
 
-    private _post(csPath: string, queryParams: Record<string, any>, body: Record<string, any>, options?: IRequestOptions): IHomeServerRequest {
+    private _post(csPath: string, queryParams: Record<string, any>, body: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._authedRequest("POST", this._url(csPath, options?.prefix || CS_R0_PREFIX), queryParams, body, options);
     }
 
-    private _put(csPath: string, queryParams: Record<string, any>, body?: Record<string, any>, options?: IRequestOptions): IHomeServerRequest {
+    private _put(csPath: string, queryParams: Record<string, any>, body?: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._authedRequest("PUT", this._url(csPath, options?.prefix || CS_R0_PREFIX), queryParams, body, options);
     }
 
-    private _get(csPath: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: IRequestOptions): IHomeServerRequest {
+    private _get(csPath: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._authedRequest("GET", this._url(csPath, options?.prefix || CS_R0_PREFIX), queryParams, body, options);
     }
 
-    sync(since: string, filter: string, timeout: number, options?: IRequestOptions): IHomeServerRequest {
+    sync(since: string, filter: string, timeout: number, options?: BaseRequestOptions): IHomeServerRequest {
         return this._get("/sync", {since, timeout, filter}, undefined, options);
     }
 
@@ -126,29 +134,29 @@ export class HomeServerApi {
     }
 
     // params is from, dir and optionally to, limit, filter.
-    messages(roomId: string, params: Record<string, any>, options?: IRequestOptions): IHomeServerRequest {
+    messages(roomId: string, params: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._get(`/rooms/${encodeURIComponent(roomId)}/messages`, params, undefined, options);
     }
 
     // params is at, membership and not_membership
-    members(roomId: string, params: Record<string, any>, options?: IRequestOptions): IHomeServerRequest {
+    members(roomId: string, params: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._get(`/rooms/${encodeURIComponent(roomId)}/members`, params, undefined, options);
     }
 
-    send(roomId: string, eventType: string, txnId: string, content: Record<string, any>, options?: IRequestOptions): IHomeServerRequest {
+    send(roomId: string, eventType: string, txnId: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._put(`/rooms/${encodeURIComponent(roomId)}/send/${encodeURIComponent(eventType)}/${encodeURIComponent(txnId)}`, {}, content, options);
     }
 
-    redact(roomId: string, eventId: string, txnId: string, content: Record<string, any>, options?: IRequestOptions): IHomeServerRequest {
+    redact(roomId: string, eventId: string, txnId: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._put(`/rooms/${encodeURIComponent(roomId)}/redact/${encodeURIComponent(eventId)}/${encodeURIComponent(txnId)}`, {}, content, options);
     }
 
-    receipt(roomId: string, receiptType: string, eventId: string, options?: IRequestOptions): IHomeServerRequest {
+    receipt(roomId: string, receiptType: string, eventId: string, options?: BaseRequestOptions): IHomeServerRequest {
         return this._post(`/rooms/${encodeURIComponent(roomId)}/receipt/${encodeURIComponent(receiptType)}/${encodeURIComponent(eventId)}`,
             {}, {}, options);
     }
 
-    state(roomId: string, eventType: string, stateKey: string, options?: IRequestOptions): IHomeServerRequest {
+    state(roomId: string, eventType: string, stateKey: string, options?: BaseRequestOptions): IHomeServerRequest {
         return this._get(`/rooms/${encodeURIComponent(roomId)}/state/${encodeURIComponent(eventType)}/${encodeURIComponent(stateKey)}`, {}, undefined, options);
     }
 
@@ -156,7 +164,7 @@ export class HomeServerApi {
         return this._unauthedRequest("GET", this._url("/login"));
     }
 
-    register(username: string | null, password: string, initialDeviceDisplayName: string, auth?: Record<string, any>, inhibitLogin: boolean = true , options: IRequestOptions = {}): IHomeServerRequest {
+    register(username: string | null, password: string, initialDeviceDisplayName: string, auth?: Record<string, any>, inhibitLogin: boolean = true , options: BaseRequestOptions = {}): IHomeServerRequest {
         options.allowedErrors = [401];
         const body: any = {
             auth,
@@ -171,7 +179,7 @@ export class HomeServerApi {
         return this._unauthedRequest( "POST", this._url("/register", CS_V3_PREFIX), undefined, body, options);
     }
 
-    passwordLogin(username: string, password: string, initialDeviceDisplayName: string, options?: IRequestOptions): IHomeServerRequest {
+    passwordLogin(username: string, password: string, initialDeviceDisplayName: string, options?: BaseRequestOptions): IHomeServerRequest {
         return this._unauthedRequest("POST", this._url("/login"), undefined, {
           "type": "m.login.password",
           "identifier": {
@@ -183,7 +191,7 @@ export class HomeServerApi {
         }, options);
     }
 
-    tokenLogin(loginToken: string, txnId: string, initialDeviceDisplayName: string, options?: IRequestOptions): IHomeServerRequest {
+    tokenLogin(loginToken: string, txnId: string, initialDeviceDisplayName: string, options?: BaseRequestOptions): IHomeServerRequest {
         return this._unauthedRequest("POST", this._url("/login"), undefined, {
           "type": "m.login.token",
           "identifier": {
@@ -195,15 +203,15 @@ export class HomeServerApi {
         }, options);
     }
 
-    createFilter(userId: string, filter: Record<string, any>, options?: IRequestOptions): IHomeServerRequest {
+    createFilter(userId: string, filter: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._post(`/user/${encodeURIComponent(userId)}/filter`, {}, filter, options);
     }
 
-    versions(options?: IRequestOptions): IHomeServerRequest {
+    versions(options?: BaseRequestOptions): IHomeServerRequest {
         return this._unauthedRequest("GET", `${this._homeserver}/_matrix/client/versions`, undefined, undefined, options);
     }
 
-    uploadKeys(dehydratedDeviceId: string, payload: Record<string, any>, options?: IRequestOptions): IHomeServerRequest {
+    uploadKeys(dehydratedDeviceId: string, payload: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         let path = "/keys/upload";
         if (dehydratedDeviceId) {
             path = path + `/${encodeURIComponent(dehydratedDeviceId)}`;
@@ -211,19 +219,19 @@ export class HomeServerApi {
         return this._post(path, {}, payload, options);
     }
 
-    queryKeys(queryRequest: Record<string, any>, options?: IRequestOptions): IHomeServerRequest {
+    queryKeys(queryRequest: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._post("/keys/query", {}, queryRequest, options);
     }
 
-    claimKeys(payload: Record<string, any>, options?: IRequestOptions): IHomeServerRequest {
+    claimKeys(payload: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._post("/keys/claim", {}, payload, options);
     }
 
-    sendToDevice(type: string, payload: Record<string, any>, txnId: string, options?: IRequestOptions): IHomeServerRequest {
+    sendToDevice(type: string, payload: Record<string, any>, txnId: string, options?: BaseRequestOptions): IHomeServerRequest {
         return this._put(`/sendToDevice/${encodeURIComponent(type)}/${encodeURIComponent(txnId)}`, {}, payload, options);
     }
     
-    roomKeysVersion(version?: string, options?: IRequestOptions): IHomeServerRequest {
+    roomKeysVersion(version?: string, options?: BaseRequestOptions): IHomeServerRequest {
         let versionPart = "";
         if (version) {
             versionPart = `/${encodeURIComponent(version)}`;
@@ -231,57 +239,57 @@ export class HomeServerApi {
         return this._get(`/room_keys/version${versionPart}`, undefined, undefined, options);
     }
 
-    roomKeyForRoomAndSession(version: string, roomId: string, sessionId: string, options?: IRequestOptions): IHomeServerRequest {
+    roomKeyForRoomAndSession(version: string, roomId: string, sessionId: string, options?: BaseRequestOptions): IHomeServerRequest {
         return this._get(`/room_keys/keys/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`, {version}, undefined, options);
     }
 
-    uploadRoomKeysToBackup(version: string, payload: Record<string, any>, options?: IRequestOptions): IHomeServerRequest {
+    uploadRoomKeysToBackup(version: string, payload: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._put(`/room_keys/keys`, {version}, payload, options);
     }
 
-    uploadAttachment(blob: Blob, filename: string, options?: IRequestOptions): IHomeServerRequest {
+    uploadAttachment(blob: Blob, filename: string, options?: BaseRequestOptions): IHomeServerRequest {
         return this._authedRequest("POST", `${this._homeserver}/_matrix/media/r0/upload`, {filename}, blob, options);
     }
 
-    setPusher(pusher: Record<string, any>, options?: IRequestOptions): IHomeServerRequest {
+    setPusher(pusher: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._post("/pushers/set", {}, pusher, options);
     }
 
-    getPushers(options?: IRequestOptions): IHomeServerRequest {
+    getPushers(options?: BaseRequestOptions): IHomeServerRequest {
         return this._get("/pushers", undefined, undefined, options);
     }
 
-    join(roomId: string, options?: IRequestOptions): IHomeServerRequest {
+    join(roomId: string, options?: BaseRequestOptions): IHomeServerRequest {
         return this._post(`/rooms/${encodeURIComponent(roomId)}/join`, {}, {}, options);
     }
 
-    joinIdOrAlias(roomIdOrAlias: string, options?: IRequestOptions): IHomeServerRequest {
+    joinIdOrAlias(roomIdOrAlias: string, options?: BaseRequestOptions): IHomeServerRequest {
         return this._post(`/join/${encodeURIComponent(roomIdOrAlias)}`, {}, {}, options);
     }
 
-    leave(roomId: string, options?: IRequestOptions): IHomeServerRequest {
+    leave(roomId: string, options?: BaseRequestOptions): IHomeServerRequest {
         return this._post(`/rooms/${encodeURIComponent(roomId)}/leave`, {}, {}, options);
     }
 
-    forget(roomId: string, options?: IRequestOptions): IHomeServerRequest {
+    forget(roomId: string, options?: BaseRequestOptions): IHomeServerRequest {
         return this._post(`/rooms/${encodeURIComponent(roomId)}/forget`, {}, {}, options);
     }
 
-    logout(options?: IRequestOptions): IHomeServerRequest {
+    logout(options?: BaseRequestOptions): IHomeServerRequest {
         return this._post(`/logout`, {}, {}, options);
     }
 
-    getDehydratedDevice(options: IRequestOptions): IHomeServerRequest {
+    getDehydratedDevice(options: BaseRequestOptions): IHomeServerRequest {
         options.prefix = DEHYDRATION_PREFIX;
         return this._get(`/dehydrated_device`, undefined, undefined, options);
     }
 
-    createDehydratedDevice(payload: Record<string, any>, options: IRequestOptions): IHomeServerRequest {
+    createDehydratedDevice(payload: Record<string, any>, options: BaseRequestOptions): IHomeServerRequest {
         options.prefix = DEHYDRATION_PREFIX;
         return this._put(`/dehydrated_device`, {}, payload, options);
     }
 
-    claimDehydratedDevice(deviceId: string, options: IRequestOptions): IHomeServerRequest {
+    claimDehydratedDevice(deviceId: string, options: BaseRequestOptions): IHomeServerRequest {
         options.prefix = DEHYDRATION_PREFIX;
         return this._post(`/dehydrated_device/claim`, {}, {device_id: deviceId}, options);
     }

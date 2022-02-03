@@ -18,7 +18,6 @@ limitations under the License.
 import {HomeServerError, ConnectionError} from "../error.js";
 import type {RequestResult} from "../../platform/web/dom/request/fetch.js";
 import type {ILogItem} from "../../logging/types";
-import type {IRequestOptions} from "../../platform/types/types.js";
 
 export interface IHomeServerRequest {
     abort(): void;
@@ -26,13 +25,18 @@ export interface IHomeServerRequest {
     responseCode(): Promise<number>;
 }
 
+type HomeServerRequestOptions = {
+    log?: ILogItem;
+    allowedErrors?: number[];
+};
+
 export class HomeServerRequest implements IHomeServerRequest {
     private readonly _log?: ILogItem;
     private _sourceRequest?: RequestResult;
     // as we add types for expected responses from hs, this could be a generic class instead
     private readonly _promise: Promise<any>;
 
-    constructor(method: string, url: string, sourceRequest: RequestResult, options?: IRequestOptions) {
+    constructor(method: string, url: string, sourceRequest: RequestResult, options?: HomeServerRequestOptions) {
         let log: ILogItem | undefined;
         if (options?.log) {
             const parent = options?.log;
