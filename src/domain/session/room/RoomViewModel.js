@@ -97,9 +97,8 @@ export class RoomViewModel extends ViewModel {
     // room doesn't tell us yet which fields changed,
     // so emit all fields originating from summary
     _onRoomChange() {
-        if (this._room.isArchived) {
-            this._composerVM.emitChange();
-        }
+        // propagate the update to the child view models so it's bindings can update based on room changes
+        this._composerVM.emitChange();
         this.emitChange();
     }
 
