@@ -22,7 +22,13 @@ import type {ILogItem} from "../../logging/types";
 export interface IHomeServerRequest {
     abort(): void;
     response(): Promise<any>;
+    responseCode(): Promise<number>;
 }
+
+type HomeServerRequestOptions = {
+    log?: ILogItem;
+    allowedStatusCodes?: number[];
+};
 
 export class HomeServerRequest implements IHomeServerRequest {
     private readonly _log?: ILogItem;
@@ -30,13 +36,18 @@ export class HomeServerRequest implements IHomeServerRequest {
     // as we add types for expected responses from hs, this could be a generic class instead
     private readonly _promise: Promise<any>;
 
-    constructor(method: string, url: string, sourceRequest: RequestResult, log?: ILogItem) {
+    constructor(method: string, url: string, sourceRequest: RequestResult, options?: HomeServerRequestOptions) {
+        let log: ILogItem | undefined;
+        if (options?.log) {
+            const parent = options?.log;
+            log = parent.child({ t: "network", url, method, }, parent.level.Info);
+        }
         this._log = log;
         this._sourceRequest = sourceRequest;
         this._promise = sourceRequest.response().then(response => {
             log?.set("status", response.status);
             // ok?
-            if (response.status >= 200 && response.status < 300) {
+            if (response.status >= 200 && response.status < 300 || options?.allowedStatusCodes?.includes(response.status)) {
                 log?.finish();
                 return response.body;
             } else {
@@ -103,6 +114,11 @@ export class HomeServerRequest implements IHomeServerRequest {
 
     response(): Promise<any> {
         return this._promise;
+    }
+
+    async responseCode(): Promise<number> {
+        const response = await this._sourceRequest.response();
+        return response.status;
     }
 }
 

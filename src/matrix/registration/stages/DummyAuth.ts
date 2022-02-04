@@ -14,18 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type {RequestResult} from "../web/dom/request/fetch.js";
-import type {EncodedBody} from "../../matrix/net/common";
-import type {ILogItem} from "../../logging/types";
+import {AuthenticationData} from "../types";
+import {BaseRegistrationStage} from "./BaseRegistrationStage";
 
-export interface IRequestOptions {
-    uploadProgress?: (loadedBytes: number) => void;
-    timeout?: number;
-    body?: EncodedBody;
-    headers?: Map<string, string|number>;
-    cache?: boolean;
-    method?: string;
-    format?: string;
+export class DummyAuth extends BaseRegistrationStage {
+    generateAuthenticationData(): AuthenticationData {
+        return {
+            session: this._session,
+            type: this.type,
+        };    
+    }
+
+    get type(): string {
+        return "m.login.dummy";
+    }
 }
-
-export type RequestFunction = (url: string, options: IRequestOptions) => RequestResult;
