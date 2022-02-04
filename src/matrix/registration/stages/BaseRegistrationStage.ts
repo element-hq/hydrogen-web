@@ -14,8 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type {HomeServerApi} from "../../net/HomeServerApi";
-import type {AccountDetails, AuthenticationData, RegistrationParams} from "../types";
+import type {AuthenticationData, RegistrationParams} from "../types";
 
 export abstract class BaseRegistrationStage {
     protected _session: string;
