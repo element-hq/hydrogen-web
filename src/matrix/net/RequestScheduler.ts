@@ -31,7 +31,7 @@ class Request implements IHomeServerRequest {
     private responseCodeReject: (result: any) => void;
     private _requestResult?: IHomeServerRequest;
     private readonly _responsePromise: Promise<any>;
-    private readonly _responseCodePromise: Promise<any>;
+    private _responseCodePromise: Promise<any>;
 
     constructor(methodName: string, args: any[]) {
         this.methodName = methodName;
@@ -39,10 +39,6 @@ class Request implements IHomeServerRequest {
         this._responsePromise = new Promise((resolve, reject) => {
             this.responseResolve = resolve;
             this.responseReject = reject;
-        });
-        this._responseCodePromise = new Promise((resolve, reject) => {
-            this.responseCodeResolve = resolve;
-            this.responseCodeReject = reject;
         });
     }
 
@@ -60,13 +56,22 @@ class Request implements IHomeServerRequest {
     }
 
     responseCode(): Promise<number> {
+        if (this.requestResult) {
+            return this.requestResult.responseCode();
+        }
+        if (!this._responseCodePromise) {
+            this._responseCodePromise = new Promise((resolve, reject) => {
+                this.responseCodeResolve = resolve;
+                this.responseCodeReject = reject;
+            });
+        }
         return this._responseCodePromise;
     }
 
-    set requestResult(result) {
+    setRequestResult(result) {
         this._requestResult = result;
         this._requestResult?.response().then(response => this.responseResolve(response));
-        this._requestResult?.responseCode().then(response => this.responseCodeResolve(response));
+        this._requestResult?.responseCode().then(response => this.responseCodeResolve?.(response));
     }
 
     get requestResult() {
@@ -135,7 +140,7 @@ export class RequestScheduler {
                         request.methodName
                     ].apply(this._hsApi, request.args);
                     // so the request can be aborted
-                    request.requestResult = requestResult;
+                    request.setRequestResult(requestResult);
                     return;
                 } catch (err) {
                     if (
