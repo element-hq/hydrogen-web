@@ -47,7 +47,7 @@ class Request implements IHomeServerRequest {
             this._requestResult.abort();
         } else {
             this.responseReject(new AbortError());
-            this.responseCodeReject(new AbortError());
+            this.responseCodeReject?.(new AbortError());
         }
     }
 
