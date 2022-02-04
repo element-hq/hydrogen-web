@@ -21,7 +21,7 @@ export type AccountDetails = {
     inhibitLogin: boolean;
 } 
 
-export type RegistrationResponse = RegistrationResponseMoreDataNeeded | RegistrationResponseError | RegistrationResponseSuccess;
+export type RegistrationResponse = RegistrationResponseMoreDataNeeded | RegistrationResponseSuccess;
 
 export type RegistrationResponseMoreDataNeeded = {
     completed?: string[];
@@ -30,12 +30,6 @@ export type RegistrationResponseMoreDataNeeded = {
     session: string;
     status: 401;
 } 
-
-type RegistrationResponseError = {
-    errcode: string;
-    error: string;
-    status: 400;
-}
 
 export type RegistrationResponseSuccess = {
     user_id: string;

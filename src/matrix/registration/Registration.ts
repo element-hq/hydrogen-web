@@ -101,10 +101,6 @@ export class Registration {
                 else {
                     throw new Error("This stage could not be completed!");
                 }
-            case 400:
-            default:
-                const error = "error" in response? response.error: "Could not parse response";
-                throw new Error(error);
         }
     }
 
