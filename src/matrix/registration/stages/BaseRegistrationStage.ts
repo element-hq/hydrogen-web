@@ -36,6 +36,7 @@ export abstract class BaseRegistrationStage {
      * This method should return auth part that must be provided to
      * /register endpoint to successfully complete this stage
      */
+    /** @internal */
     abstract generateAuthenticationData(): AuthenticationData;
 
     setNextStage(stage: BaseRegistrationStage) {
