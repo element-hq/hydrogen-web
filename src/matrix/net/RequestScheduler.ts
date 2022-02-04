@@ -25,25 +25,33 @@ import type {IHomeServerRequest} from "./HomeServerRequest.js";
 class Request implements IHomeServerRequest {
     public readonly methodName: string;
     public readonly args: any[];
-    public resolve: (result: any) => void;
-    public reject: (error: Error) => void;
-    public requestResult?: IHomeServerRequest;
+    private responseResolve: (result: any) => void;
+    public responseReject: (error: Error) => void;
+    private responseCodeResolve: (result: any) => void;
+    private responseCodeReject: (result: any) => void;
+    private _requestResult?: IHomeServerRequest;
     private readonly _responsePromise: Promise<any>;
+    private readonly _responseCodePromise: Promise<any>;
 
     constructor(methodName: string, args: any[]) {
         this.methodName = methodName;
         this.args = args;
         this._responsePromise = new Promise((resolve, reject) => {
-            this.resolve = resolve;
-            this.reject = reject;
+            this.responseResolve = resolve;
+            this.responseReject = reject;
+        });
+        this._responseCodePromise = new Promise((resolve, reject) => {
+            this.responseCodeResolve = resolve;
+            this.responseCodeReject = reject;
         });
     }
 
     abort(): void {
-        if (this.requestResult) {
-            this.requestResult.abort();
+        if (this._requestResult) {
+            this._requestResult.abort();
         } else {
-            this.reject(new AbortError());
+            this.responseReject(new AbortError());
+            this.responseCodeReject(new AbortError());
         }
     }
 
@@ -51,11 +59,18 @@ class Request implements IHomeServerRequest {
         return this._responsePromise;
     }
 
-    async responseCode(): Promise<number> {
-        let resolve;
-        const promise: Promise<number> = new Promise(r => resolve = r);
-        this.requestResult?.responseCode().then(code => resolve(code));
-        return promise;
+    responseCode(): Promise<number> {
+        return this._responseCodePromise;
+    }
+
+    set requestResult(result) {
+        this._requestResult = result;
+        this._requestResult?.response().then(response => this.responseResolve(response));
+        this._requestResult?.responseCode().then(response => this.responseCodeResolve(response));
+    }
+
+    get requestResult() {
+        return this._requestResult;
     }
 }
 
@@ -121,8 +136,6 @@ export class RequestScheduler {
                     ].apply(this._hsApi, request.args);
                     // so the request can be aborted
                     request.requestResult = requestResult;
-                    const response = await requestResult.response();
-                    request.resolve(response);
                     return;
                 } catch (err) {
                     if (
@@ -142,7 +155,7 @@ export class RequestScheduler {
                             await retryDelay.waitForRetry();
                         }
                     } else {
-                        request.reject(err);
+                        request.responseReject(err);
                         return;
                     }
                 }
