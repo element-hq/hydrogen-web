@@ -15,14 +15,16 @@ limitations under the License.
 */
 
 import type {HomeServerApi} from "../net/HomeServerApi";
-import {registrationStageFromType} from "./registrationStageFromType";
 import type {BaseRegistrationStage} from "./stages/BaseRegistrationStage";
+import {DummyAuth} from "./stages/DummyAuth";
+import {TermsAuth} from "./stages/TermsAuth";
 import type {
     AccountDetails,
     RegistrationFlow,
     RegistrationResponseMoreDataNeeded,
     RegistrationResponse,
     RegistrationResponseSuccess,
+    RegistrationParams,
 } from "./types";
 
 type FlowSelector = (flows: RegistrationFlow[]) => RegistrationFlow | void;
@@ -73,11 +75,7 @@ export class Registration {
         let firstStage: BaseRegistrationStage | undefined;
         let lastStage: BaseRegistrationStage;
         for (const stage of flow.stages) {
-            const stageClass = registrationStageFromType(stage);
-            if (!stageClass) {
-                throw new Error(`Unknown stage: ${stage}`);
-            }
-            const registrationStage = new stageClass(session, params?.[stage]);
+            const registrationStage = this._createRegistrationStage(stage, session, params);
             if (!firstStage) {
                 firstStage = registrationStage;
                 lastStage = registrationStage;
@@ -101,6 +99,17 @@ export class Registration {
                 else {
                     throw new Error("This stage could not be completed!");
                 }
+        }
+    }
+
+    private _createRegistrationStage(type: string, session: string, params?: RegistrationParams) {
+        switch (type) {
+            case "m.login.dummy":
+                return new DummyAuth(session, params);
+            case "m.login.terms":
+                return new TermsAuth(session, params);
+            default:
+                throw new Error(`Unknown stage: ${type}`);
         }
     }
 
