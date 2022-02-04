@@ -68,10 +68,12 @@ class Request implements IHomeServerRequest {
         return this._responseCodePromise;
     }
 
-    setRequestResult(result) {
+    async setRequestResult(result) {
         this._requestResult = result;
-        this._requestResult?.response().then(response => this.responseResolve(response));
-        this._requestResult?.responseCode().then(response => this.responseCodeResolve?.(response));
+        const response = await this._requestResult?.response();
+        this.responseResolve(response);
+        const responseCode = await this._requestResult?.responseCode();
+        this.responseCodeResolve(responseCode);
     }
 
     get requestResult() {
@@ -140,7 +142,7 @@ export class RequestScheduler {
                         request.methodName
                     ].apply(this._hsApi, request.args);
                     // so the request can be aborted
-                    request.setRequestResult(requestResult);
+                    await request.setRequestResult(requestResult);
                     return;
                 } catch (err) {
                     if (
