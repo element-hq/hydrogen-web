@@ -73,7 +73,7 @@ export class Registration {
             throw new Error("flowSelector did not return any flow!");
         }
         let firstStage: BaseRegistrationStage | undefined;
-        let lastStage: BaseRegistrationStage;
+        let lastStage: BaseRegistrationStage | undefined;
         for (const stage of flow.stages) {
             const registrationStage = this._createRegistrationStage(stage, session, params);
             if (!firstStage) {
