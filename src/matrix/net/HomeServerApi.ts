@@ -38,7 +38,7 @@ type Options = {
 
 type BaseRequestOptions = {
     log?: ILogItem;
-    allowedErrors?: number[];
+    allowedStatusCodes?: number[];
     uploadProgress?: (loadedBytes: number) => void;
     timeout?: number;
     prefix?: string;
@@ -165,7 +165,7 @@ export class HomeServerApi {
     }
 
     register(username: string | null, password: string, initialDeviceDisplayName: string, auth?: Record<string, any>, inhibitLogin: boolean = true , options: BaseRequestOptions = {}): IHomeServerRequest {
-        options.allowedErrors = [401];
+        options.allowedStatusCodes = [401];
         const body: any = {
             auth,
             password,

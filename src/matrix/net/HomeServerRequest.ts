@@ -27,7 +27,7 @@ export interface IHomeServerRequest {
 
 type HomeServerRequestOptions = {
     log?: ILogItem;
-    allowedErrors?: number[];
+    allowedStatusCodes?: number[];
 };
 
 export class HomeServerRequest implements IHomeServerRequest {
@@ -47,7 +47,7 @@ export class HomeServerRequest implements IHomeServerRequest {
         this._promise = sourceRequest.response().then(response => {
             log?.set("status", response.status);
             // ok?
-            if (response.status >= 200 && response.status < 300 || options?.allowedErrors?.includes(response.status)) {
+            if (response.status >= 200 && response.status < 300 || options?.allowedStatusCodes?.includes(response.status)) {
                 log?.finish();
                 return response.body;
             } else {
