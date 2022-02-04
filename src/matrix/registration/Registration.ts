@@ -105,9 +105,9 @@ export class Registration {
     private _createRegistrationStage(type: string, session: string, params?: RegistrationParams) {
         switch (type) {
             case "m.login.dummy":
-                return new DummyAuth(session, params);
+                return new DummyAuth(session, params?.[type]);
             case "m.login.terms":
-                return new TermsAuth(session, params);
+                return new TermsAuth(session, params?.[type]);
             default:
                 throw new Error(`Unknown stage: ${type}`);
         }
