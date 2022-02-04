@@ -59,7 +59,7 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
         // assume this view will be mounted in the parent DOM straight away
         requestAnimationFrame(() => {
             // do initial scroll positioning
-            this.restoreScrollPosition();
+            //this.restoreScrollPosition();
         });
         this.tilesView = new TilesListView(vm.tiles, () => this.restoreScrollPosition());
         const root = t.div({className: "Timeline"}, [
