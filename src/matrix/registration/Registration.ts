@@ -77,7 +77,7 @@ export class Registration {
             if (!stageClass) {
                 throw new Error(`Unknown stage: ${stage}`);
             }
-            const registrationStage = new stageClass(this._hsApi, this._accountDetails, session, params?.[stage]);
+            const registrationStage = new stageClass(session, params?.[stage]);
             if (!firstStage) {
                 firstStage = registrationStage;
                 lastStage = registrationStage;
