@@ -21,6 +21,7 @@ import {InviteTileViewModel} from "./InviteTileViewModel.js";
 import {RoomBeingCreatedTileViewModel} from "./RoomBeingCreatedTileViewModel.js";
 import {RoomFilter} from "./RoomFilter.js";
 import {ApplyMap} from "../../../observable/map/ApplyMap.js";
+import {LogMap} from "../../../observable/map/LogMap.js";
 import {addPanelIfNeeded} from "../../navigation/index.js";
 
 export class LeftPanelViewModel extends ViewModel {
@@ -38,7 +39,7 @@ export class LeftPanelViewModel extends ViewModel {
 
     _mapTileViewModels(roomsBeingCreated, invites, rooms) {
         // join is not commutative, invites will take precedence over rooms
-        return roomsBeingCreated.join(invites).join(rooms).mapValues((item, emitChange) => {
+        const joined = invites.join(roomsBeingCreated, rooms).mapValues((item, emitChange) => {
             let vm;
             if (item.isBeingCreated) {
                 vm = new RoomBeingCreatedTileViewModel(this.childOptions({roomBeingCreated: item, emitChange}));
@@ -54,6 +55,10 @@ export class LeftPanelViewModel extends ViewModel {
             }
             return vm;
         });
+        return joined;
+        // return new LogMap(joined, (op, key, value) => {
+        //     console.log("room list", op, key, value);
+        // });
     }
 
     _updateCurrentVM(vm) {

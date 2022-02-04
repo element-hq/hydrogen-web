@@ -96,7 +96,10 @@ function processRoomAccountData(data, event) {
 }
 
 export function processStateEvent(data, event) {
-    if (event.type === "m.room.encryption") {
+    if (event.type === "m.room.create") {
+        data = data.cloneIfNeeded();
+        data.lastMessageTimestamp = event.origin_server_ts;
+    } else if (event.type === "m.room.encryption") {
         const algorithm = event.content?.algorithm;
         if (!data.encryption && algorithm === MEGOLM_ALGORITHM) {
             data = data.cloneIfNeeded();

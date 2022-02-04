@@ -316,7 +316,7 @@ export class Sync {
         for(let is of inviteStates) {
             log.wrap("invite", log => is.invite.afterSync(is.changes, log), log.level.Detail);
         }
-        this._session.applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates);
+        this._session.applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates, log);
     }
 
     _openSyncTxn() {

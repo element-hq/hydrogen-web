@@ -64,10 +64,10 @@ export class Session {
         this._activeArchivedRooms = new Map();
         this._invites = new ObservableMap();
         this._inviteUpdateCallback = (invite, params) => this._invites.update(invite.id, params);
-        this._roomsBeingCreatedUpdateCallback = (rbc, params) => {
+        this._roomsBeingCreatedUpdateCallback = (rbc, params, log) => {
             this._roomsBeingCreated.update(rbc.localId, params);
             if (rbc.roomId && !!this.rooms.get(rbc.roomId)) {
-                this._tryReplaceRoomBeingCreated(rbc.roomId);
+                this._tryReplaceRoomBeingCreated(rbc.roomId, log);
             }
         };
         this._roomsBeingCreated = new ObservableMap();
@@ -686,16 +686,16 @@ export class Session {
         }
     }
 
-    _tryReplaceRoomBeingCreated(roomId) {
-        console.trace("_tryReplaceRoomBeingCreated " + roomId);
+    _tryReplaceRoomBeingCreated(roomId, log) {
         for (const [,roomBeingCreated] of this._roomsBeingCreated) {
             if (roomBeingCreated.roomId === roomId) {
                 const observableStatus = this._observedRoomStatus.get(roomBeingCreated.localId);
                 if (observableStatus) {
-                    console.log("marking room as replaced", observableStatus.get());
+                    this._platform.logger.wrapOrRun(log, `replacing room being created`, log => {
+                        log.set("localId", roomBeingCreated.localId)
+                           .set("roomId", roomBeingCreated.roomId);
+                    });
                     observableStatus.set(observableStatus.get() | RoomStatus.Replaced);
-                } else {
-                    console.log("no observableStatus");
                 }
                 this._roomsBeingCreated.remove(roomBeingCreated.localId);
                 return;
@@ -703,12 +703,12 @@ export class Session {
         }
     }
 
-    applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates) {
+    applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates, log) {
         // update the collections after sync
         for (const rs of roomStates) {
             if (rs.shouldAdd) {
                 this._rooms.add(rs.id, rs.room);
-                this._tryReplaceRoomBeingCreated(rs.id);
+                this._tryReplaceRoomBeingCreated(rs.id, log);
             } else if (rs.shouldRemove) {
                 this._rooms.remove(rs.id);
             }

@@ -121,7 +121,7 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
         console.log("done creating the room now", this._roomId);
         // TODO: somehow check in Session if we need to replace this with a joined room
         // in case the room appears first in sync, and this request returns later
-        this.emitChange();
+        this.emitChange(undefined, log);
     }
 
     private async loadProfiles(hsApi: HomeServerApi, log: ILogItem): Promise<void> {
@@ -139,8 +139,8 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
         }
     }
 
-    private emitChange() {
-        this.updateCallback(this);
+    private emitChange(params?, log?) {
+        this.updateCallback(this, params, log);
         this.emit("change");
     }
 
