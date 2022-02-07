@@ -537,6 +537,19 @@ export class Session {
         return this._rooms;
     }
 
+    findDirectMessageForUserId(userId) {
+        for (const [,room] of this._rooms) {
+            if (room.isDirectMessageForUserId(userId)) {
+                return room;
+            }
+        }
+        for (const [,invite] of this._invites) {
+            if (invite.isDirectMessageForUserId(userId)) {
+                return invite;
+            }
+        }
+    }
+
     /** @internal */
     createJoinedRoom(roomId, pendingEvents) {
         return new Room({

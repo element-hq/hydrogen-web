@@ -83,7 +83,13 @@ export class MemberDetailsViewModel extends ViewModel {
     }
 
     async openDirectMessage() {
-        const roomBeingCreated = await this._session.createRoom(RoomType.DirectMessage, undefined, undefined, undefined, [this.userId]);
-        this.navigation.push("room", roomBeingCreated.localId);
+        const room = this._session.findDirectMessageForUserId(this.userId);
+        let roomId = room?.id;
+        if (!roomId) {
+            const roomBeingCreated = await this._session.createRoom(
+                RoomType.DirectMessage, undefined, undefined, undefined, [this.userId], {loadProfiles: true});
+            roomId = roomBeingCreated.localId;
+        }
+        this.navigation.push("room", roomId);
     }
 }

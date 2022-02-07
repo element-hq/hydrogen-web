@@ -420,6 +420,10 @@ export class BaseRoom extends EventEmitter {
         return this._summary.data.membership;
     }
 
+    isDirectMessageForUserId(userId) {
+        return this._summary.data.dmUserId === userId;
+    }
+
     async _loadPowerLevels() {
         const txn = await this._storage.readTxn([this._storage.storeNames.roomState]);
         const powerLevelsState = await txn.roomState.get(this._roomId, "m.room.power_levels", "");

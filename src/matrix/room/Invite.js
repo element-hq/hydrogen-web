@@ -73,6 +73,10 @@ export class Invite extends EventEmitter {
         return this._inviter;
     }
 
+    isDirectMessageForUserId(userId) {
+        return this.isDirectMessage && this._inviter.userId === userId;
+    }
+
     get isPublic() {
         return this._inviteData.joinRule === "public";
     }
