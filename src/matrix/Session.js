@@ -592,13 +592,17 @@ export class Session {
         return this._roomsBeingCreated;
     }
 
-    createRoom(type, isEncrypted, explicitName, topic, invites, log = undefined) {
+    createRoom(type, isEncrypted, explicitName, topic, invites, options = undefined, log = undefined) {
         return this._platform.logger.wrapOrRun(log, "create room", log => {
             const localId = `local-${Math.round(this._platform.random() * Math.MAX_SAFE_INTEGER)}`;
             const roomBeingCreated = new RoomBeingCreated(localId, type, isEncrypted, explicitName, topic, invites, this._roomsBeingCreatedUpdateCallback, this._mediaRepository, log);
             this._roomsBeingCreated.set(localId, roomBeingCreated);
             log.wrapDetached("create room network", log => {
-                return roomBeingCreated.start(this._hsApi, log);
+                const promises = [roomBeingCreated.create(this._hsApi, log)];
+                if (options?.loadProfiles) {
+                    promises.push(roomBeingCreated.loadProfiles(this._hsApi, log));
+                }
+                return Promise.all(promises);
             });
             return roomBeingCreated;
         });

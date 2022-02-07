@@ -92,14 +92,7 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
         }
     }
 
-    public async start(hsApi: HomeServerApi, log: ILogItem): Promise<void> {
-        await Promise.all([
-            this.loadProfiles(hsApi, log),
-            this.create(hsApi, log),
-        ]);
-    }
-
-    private async create(hsApi: HomeServerApi, log: ILogItem): Promise<void> {
+    async create(hsApi: HomeServerApi, log: ILogItem): Promise<void> {
         const options: CreateRoomPayload = {
             is_direct: this.type === RoomType.DirectMessage,
             preset: presetForType(this.type)
@@ -125,7 +118,12 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
         this.emitChange(undefined, log);
     }
 
-    private async loadProfiles(hsApi: HomeServerApi, log: ILogItem): Promise<void> {
+    /** requests the profiles of the invitees if needed to give an accurate
+     * estimated room name in case an explicit room name is not set.
+     * The room is being created in the background whether this is called
+     * or not, and this just gives a more accurate name while that request
+     * is running. */
+    async loadProfiles(hsApi: HomeServerApi, log: ILogItem): Promise<void> {
         // only load profiles if we need it for the room name and avatar
         if (!this.explicitName && this.inviteUserIds) {
             this.profiles = await loadProfiles(this.inviteUserIds, hsApi, log);
