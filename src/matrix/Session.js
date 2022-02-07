@@ -594,13 +594,13 @@ export class Session {
 
     createRoom(type, isEncrypted, explicitName, topic, invites, log = undefined) {
         return this._platform.logger.wrapOrRun(log, "create room", log => {
-            const localId = `room-being-created-${this._platform.random()}`;
+            const localId = `local-${Math.round(this._platform.random() * Math.MAX_SAFE_INTEGER)}`;
             const roomBeingCreated = new RoomBeingCreated(localId, type, isEncrypted, explicitName, topic, invites, this._roomsBeingCreatedUpdateCallback, this._mediaRepository, log);
             this._roomsBeingCreated.set(localId, roomBeingCreated);
-            log.wrapDetached("create room network", async log => {
-                roomBeingCreated.start(this._hsApi, log);
+            log.wrapDetached("create room network", log => {
+                return roomBeingCreated.start(this._hsApi, log);
             });
-            return localId;
+            return roomBeingCreated;
         });
     }
 
@@ -691,10 +691,9 @@ export class Session {
             if (roomBeingCreated.roomId === roomId) {
                 const observableStatus = this._observedRoomStatus.get(roomBeingCreated.localId);
                 if (observableStatus) {
-                    this._platform.logger.wrapOrRun(log, `replacing room being created`, log => {
-                        log.set("localId", roomBeingCreated.localId)
-                           .set("roomId", roomBeingCreated.roomId);
-                    });
+                    log.log(`replacing room being created`)
+                       .set("localId", roomBeingCreated.localId)
+                       .set("roomId", roomBeingCreated.roomId);
                     observableStatus.set(observableStatus.get() | RoomStatus.Replaced);
                 }
                 this._roomsBeingCreated.remove(roomBeingCreated.localId);
@@ -737,10 +736,12 @@ export class Session {
             for (const is of inviteStates) {
                 const statusObservable = this._observedRoomStatus.get(is.id);
                 if (statusObservable) {
+                    const withInvited = statusObservable.get() | RoomStatus.Invited;
                     if (is.shouldAdd) {
-                        statusObservable.set(statusObservable.get().withInvited());
+                        statusObservable.set(withInvited);
                     } else if (is.shouldRemove) {
-                        statusObservable.set(statusObservable.get().withoutInvited());
+                        const withoutInvited = withInvited ^ RoomStatus.Invited;
+                        statusObservable.set(withoutInvited);
                     }
                 }
             }
@@ -750,7 +751,7 @@ export class Session {
     _forgetArchivedRoom(roomId) {
         const statusObservable = this._observedRoomStatus.get(roomId);
         if (statusObservable) {
-            statusObservable.set(statusObservable.get() ^ RoomStatus.Archived);
+            statusObservable.set((statusObservable.get() | RoomStatus.Archived) ^ RoomStatus.Archived);
         }
     }
 

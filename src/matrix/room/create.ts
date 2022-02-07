@@ -65,6 +65,7 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
 
     public readonly isEncrypted: boolean;
     private _name: string;
+    private _error?: Error;
 
     constructor(
         public readonly localId: string,
@@ -115,12 +116,12 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
         if (this.isEncrypted) {
             options.initial_state = [createRoomEncryptionEvent()];
         }
-        console.log("going to create the room now");
-        const response = await hsApi.createRoom(options, {log}).response();
-        this._roomId = response["room_id"];
-        console.log("done creating the room now", this._roomId);
-        // TODO: somehow check in Session if we need to replace this with a joined room
-        // in case the room appears first in sync, and this request returns later
+        try {
+            const response = await hsApi.createRoom(options, {log}).response();
+            this._roomId = response["room_id"];
+        } catch (err) {
+            this._error = err;
+        }
         this.emitChange(undefined, log);
     }
 
@@ -128,39 +129,30 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
         // only load profiles if we need it for the room name and avatar
         if (!this.explicitName && this.inviteUserIds) {
             this.profiles = await loadProfiles(this.inviteUserIds, hsApi, log);
-            console.log("loaded the profiles", this.profiles);
             const summaryData = {
                 joinCount: 1, // ourselves
                 inviteCount: this.inviteUserIds.length
             };
             this._name = calculateRoomName(this.profiles, summaryData, log);
-            console.log("loaded the profiles and the new name", this.name);
             this.emitChange();
         }
     }
 
-    private emitChange(params?, log?) {
+    private emitChange(params?, log?: ILogItem) {
         this.updateCallback(this, params, log);
         this.emit("change");
     }
 
-    get avatarColorId(): string {
-        return this.inviteUserIds?.[0] ?? this._roomId ?? this.localId;
-    }
-
-    get avatarUrl(): string | undefined {
-        const result = this.profiles[0]?.avatarUrl;
-        console.log("RoomBeingCreated.avatarUrl", this.profiles, result);
-        return result;
-    }
-
-    get roomId(): string | undefined {
-        return this._roomId;
-    }
-
+    get avatarColorId(): string { return this.inviteUserIds?.[0] ?? this._roomId ?? this.localId; }
+    get avatarUrl(): string | undefined { return this.profiles[0]?.avatarUrl; }
+    get roomId(): string | undefined { return this._roomId; }
     get name() { return this._name; }
-
     get isBeingCreated(): boolean { return true; }
+    get error(): Error | undefined { return this._error; }
+
+    cancel() {
+        // remove from collection somehow
+    }
 }
 
 export async function loadProfiles(userIds: string[], hsApi: HomeServerApi, log: ILogItem): Promise<Profile[]> {
@@ -194,5 +186,4 @@ class UserIdProfile implements IProfile {
     get displayName() { return undefined; }
     get name() { return this.userId; }
     get avatarUrl() { return undefined; }
-
 }
