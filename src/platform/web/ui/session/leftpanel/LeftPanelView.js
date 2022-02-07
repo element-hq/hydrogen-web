@@ -1,12 +1,9 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -71,7 +68,8 @@ export class LeftPanelView extends TemplateView {
                 }
             }
         ));
-        const utilitiesRow = t.div({className: "utilities"}, [
+        const utilitiesRow = t.form({name:"utilities-form"}, [ 
+            t.div({className: "utilities"}, [
             t.a({className: "button-utility close-session", href: vm.closeUrl, "aria-label": vm.i18n`Back to account list`, title: vm.i18n`Back to account list`}),
             t.view(new FilterField({
                 i18n: vm.i18n,
@@ -97,6 +95,7 @@ export class LeftPanelView extends TemplateView {
                 "aria-label": gridButtonLabel
             }),
             t.a({className: "button-utility settings", href: vm.settingsUrl, "aria-label": vm.i18n`Settings`, title: vm.i18n`Settings`}),
+        ])
         ]);
 
         return t.div({className: "LeftPanel"}, [
