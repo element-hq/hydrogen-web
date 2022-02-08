@@ -17,6 +17,7 @@ limitations under the License.
 
 import {TemplateView} from "../../general/TemplateView";
 import {AvatarView} from "../../AvatarView.js";
+import {spinner} from "../../common.js";
 
 export class RoomTileView extends TemplateView {
     render(t, vm) {
@@ -29,13 +30,19 @@ export class RoomTileView extends TemplateView {
                 t.view(new AvatarView(vm, 32), {parentProvidesUpdates: true}),
                 t.div({className: "description"}, [
                     t.div({className: {"name": true, unread: vm => vm.isUnread}}, vm => vm.name),
-                    t.div({
-                        className: {
-                            badge: true,
-                            highlighted: vm => vm.isHighlighted,
-                            hidden: vm => !vm.badgeCount
+                    t.map(vm => vm.busy, busy => {
+                        if (busy) {
+                            return spinner(t);
+                        } else {
+                            return t.div({
+                                className: {
+                                    badge: true,
+                                    highlighted: vm => vm.isHighlighted,
+                                    hidden: vm => !vm.badgeCount
+                                }
+                            }, vm => vm.badgeCount);
                         }
-                    }, vm => vm.badgeCount),
+                    })
                 ])
             ])
         ]);

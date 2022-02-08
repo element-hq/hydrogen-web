@@ -25,17 +25,14 @@ export class InviteTileViewModel extends BaseTileViewModel {
         this._url = this.urlCreator.openRoomActionUrl(this._invite.id);
     }
 
-    get busy() {
-        return this._invite.accepting || this._invite.rejecting;
-    }
-
-    get kind() {
-        return "invite";
-    }
-
-    get url() {
-        return this._url;
-    }
+    get busy() { return this._invite.accepting || this._invite.rejecting; }
+    get kind() { return "invite"; }
+    get url() { return this._url; }
+    get name() { return this._invite.name; }
+    get isHighlighted() { return true; }
+    get isUnread() { return true; }
+    get badgeCount() { return this.i18n`!`; }
+    get _avatarSource() { return this._invite; }
 
     compare(other) {
         const parentComparison = super.compare(other);
@@ -43,13 +40,5 @@ export class InviteTileViewModel extends BaseTileViewModel {
             return parentComparison;
         }
         return other._invite.timestamp - this._invite.timestamp;
-    }
-
-    get name() {
-        return this._invite.name;
-    }
-
-    get _avatarSource() {
-        return this._invite;
     }
 }
