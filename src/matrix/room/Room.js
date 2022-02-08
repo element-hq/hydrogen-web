@@ -54,15 +54,12 @@ export class Room extends BaseRoom {
         return false;
     }
 
-    async prepareSync(roomResponse, membership, invite, newKeys, txn, log) {
+    async prepareSync(roomResponse, membership, newKeys, txn, log) {
         log.set("id", this.id);
         if (newKeys) {
             log.set("newKeys", newKeys.length);
         }
-        let summaryChanges = this._summary.data.applySyncResponse(roomResponse, membership);
-        if (membership === "join" && invite) {
-            summaryChanges = summaryChanges.applyInvite(invite);
-        }
+        let summaryChanges = this._summary.data.applySyncResponse(roomResponse, membership, this._user.id);
         let roomEncryption = this._roomEncryption;
         // encryption is enabled in this sync
         if (!roomEncryption && summaryChanges.encryption) {
