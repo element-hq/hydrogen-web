@@ -886,7 +886,7 @@ export class Session {
         let observable = this._observedRoomStatus.get(roomId);
         if (!observable) {
             const status = await this.getRoomStatus(roomId);
-            observable = new FooRetainedObservableValue(status, () => {
+            observable = new RetainedObservableValue(status, () => {
                 this._observedRoomStatus.delete(roomId);
             });
 
@@ -938,13 +938,6 @@ export class Session {
             const body = await this._hsApi.joinIdOrAlias(roomIdOrAlias, {log}).response();
             return body.room_id;
         });
-    }
-}
-
-class FooRetainedObservableValue extends RetainedObservableValue {
-    set(value) {
-        console.log("setting room status to", value);
-        super.set(value);
     }
 }
 

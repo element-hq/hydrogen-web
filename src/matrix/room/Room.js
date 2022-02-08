@@ -228,7 +228,6 @@ export class Room extends BaseRoom {
             }
         }
         let emitChange = false;
-        console.log("Room summaryChanges", this.id, summaryChanges);
         if (summaryChanges) {
             this._summary.applyChanges(summaryChanges);
             if (!this._summary.data.needsHeroes) {
