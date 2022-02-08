@@ -64,12 +64,7 @@ export class Session {
         this._activeArchivedRooms = new Map();
         this._invites = new ObservableMap();
         this._inviteUpdateCallback = (invite, params) => this._invites.update(invite.id, params);
-        this._roomsBeingCreatedUpdateCallback = (rbc, params, log) => {
-            this._roomsBeingCreated.update(rbc.localId, params);
-            if (rbc.roomId && !!this.rooms.get(rbc.roomId)) {
-                this._tryReplaceRoomBeingCreated(rbc.roomId, log);
-            }
-        };
+        this._roomsBeingCreatedUpdateCallback = (rbc, params) => this._roomsBeingCreated.update(rbc.localId, params);
         this._roomsBeingCreated = new ObservableMap();
         this._user = new User(sessionInfo.userId);
         this._deviceMessageHandler = new DeviceMessageHandler({storage});
@@ -605,20 +600,27 @@ export class Session {
         return this._roomsBeingCreated;
     }
 
-    createRoom(type, isEncrypted, explicitName, topic, invites, options = undefined, log = undefined) {
-        return this._platform.logger.wrapOrRun(log, "create room", log => {
-            const localId = `local-${Math.round(this._platform.random() * Math.MAX_SAFE_INTEGER)}`;
-            const roomBeingCreated = new RoomBeingCreated(localId, type, isEncrypted, explicitName, topic, invites, this._roomsBeingCreatedUpdateCallback, this._mediaRepository, log);
+    createRoom({type, isEncrypted, explicitName, topic, invites, loadProfiles = true}, log = undefined) {
+        let roomBeingCreated;
+        this._platform.logger.runDetached("create room", async log => {
+            const localId = `local-${Math.floor(this._platform.random() * Number.MAX_SAFE_INTEGER)}`;
+            roomBeingCreated = new RoomBeingCreated(localId, type, isEncrypted,
+                explicitName, topic, invites, this._roomsBeingCreatedUpdateCallback,
+                this._mediaRepository, log);
             this._roomsBeingCreated.set(localId, roomBeingCreated);
-            log.wrapDetached("create room network", log => {
-                const promises = [roomBeingCreated.create(this._hsApi, log)];
-                if (options?.loadProfiles) {
-                    promises.push(roomBeingCreated.loadProfiles(this._hsApi, log));
-                }
-                return Promise.all(promises);
-            });
-            return roomBeingCreated;
+            const promises = [roomBeingCreated.create(this._hsApi, log)];
+            if (loadProfiles) {
+                promises.push(roomBeingCreated.loadProfiles(this._hsApi, log));
+            }
+            await Promise.all(promises);
+            // we should now know the roomId, check if the room was synced before we received
+            // the room id. Replace the room being created with the synced room.
+            if (roomBeingCreated.roomId && !!this.rooms.get(roomBeingCreated.roomId)) {
+                this._tryReplaceRoomBeingCreated(roomBeingCreated.roomId, log);
+            }
+            // TODO: if type is DM, then adjust the m.direct account data
         });
+        return roomBeingCreated;
     }
 
     async obtainSyncLock(syncResponse) {

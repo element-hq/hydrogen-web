@@ -74,7 +74,7 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
         private readonly explicitName: string | undefined,
         private readonly topic: string | undefined,
         private readonly inviteUserIds: string[] | undefined,
-        private readonly updateCallback,
+        private readonly updateCallback: (self: RoomBeingCreated, params: string | undefined) => void,
         public readonly mediaRepository: MediaRepository,
         log: ILogItem
     ) {
@@ -92,6 +92,7 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
         }
     }
 
+    /** @internal */
     async create(hsApi: HomeServerApi, log: ILogItem): Promise<void> {
         const options: CreateRoomPayload = {
             is_direct: this.type === RoomType.DirectMessage,
@@ -115,7 +116,7 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
         } catch (err) {
             this._error = err;
         }
-        this.emitChange(undefined, log);
+        this.emitChange();
     }
 
     /** requests the profiles of the invitees if needed to give an accurate
@@ -123,6 +124,7 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
      * The room is being created in the background whether this is called
      * or not, and this just gives a more accurate name while that request
      * is running. */
+    /** @internal */
     async loadProfiles(hsApi: HomeServerApi, log: ILogItem): Promise<void> {
         // only load profiles if we need it for the room name and avatar
         if (!this.explicitName && this.inviteUserIds) {
@@ -136,8 +138,8 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
         }
     }
 
-    private emitChange(params?, log?: ILogItem) {
-        this.updateCallback(this, params, log);
+    private emitChange(params?: string) {
+        this.updateCallback(this, params);
         this.emit("change");
     }
 
@@ -149,7 +151,7 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
     get error(): Error | undefined { return this._error; }
 
     cancel() {
-        // remove from collection somehow
+        // TODO: remove from collection somehow
     }
 }
 
