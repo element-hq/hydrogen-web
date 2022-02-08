@@ -79,7 +79,7 @@ export class MemberDetailsViewModel extends ViewModel {
     }
 
     get linkToUser() {
-        return `https://matrix.to/#/${this._member.userId}`;
+        return `https://matrix.to/#/${encodeURIComponent(this._member.userId)}`;
     }
 
     async openDirectMessage() {
