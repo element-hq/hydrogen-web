@@ -76,7 +76,7 @@ export class RoomViewModelObservable extends ObservableValue {
         } else if (status & RoomStatus.Invited) {
             return this._sessionViewModel._createInviteViewModel(this.id);
         } else if (status & RoomStatus.Joined) {
-            return this._sessionViewModel._createRoomViewModel(this.id);
+            return this._sessionViewModel._createRoomViewModelInstance(this.id);
         } else if (status & RoomStatus.Archived) {
             return await this._sessionViewModel._createArchivedRoomViewModel(this.id);
         } else {
