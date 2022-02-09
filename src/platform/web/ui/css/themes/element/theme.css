@@ -80,11 +80,19 @@ limitations under the License.
     flex: 1 0 auto;
 }
 
+.form textarea {
+    font-family: "Inter", sans-serif;
+}
+
+.form-group {
+    margin: 24px 0;
+}
+
 .form-row {
     margin: 12px 0;
 }
 
-.form-row input {
+.form-row.text > input, .form-row.text > textarea {
     padding: 12px;
     border: 1px solid rgba(141, 151, 165, 0.15);
     border-radius: 8px;
@@ -92,7 +100,13 @@ limitations under the License.
     font-size: 1em;
 }
 
-.form-row label, .form-row input {
+.form-row.check {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.form-row.text > label, .form-row.text > input {
     display: block;
 }
 
