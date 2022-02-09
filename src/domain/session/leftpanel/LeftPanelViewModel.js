@@ -35,6 +35,7 @@ export class LeftPanelViewModel extends ViewModel {
         this._setupNavigation();
         this._closeUrl = this.urlCreator.urlForSegment("session");
         this._settingsUrl = this.urlCreator.urlForSegment("settings");
+        this._createRoomUrl = this.urlCreator.urlForSegment("create-room");
     }
 
     _mapTileViewModels(roomsBeingCreated, invites, rooms) {
@@ -76,6 +77,8 @@ export class LeftPanelViewModel extends ViewModel {
     get settingsUrl() {
         return this._settingsUrl;
     }
+
+    get createRoomUrl() { return this._createRoomUrl; }
 
     _setupNavigation() {
         const roomObservable = this.navigation.observe("room");

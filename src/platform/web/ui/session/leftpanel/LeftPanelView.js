@@ -90,6 +90,7 @@ export class LeftPanelView extends TemplateView {
                 "aria-label": gridButtonLabel
             }),
             t.a({className: "button-utility settings", href: vm.settingsUrl, "aria-label": vm.i18n`Settings`, title: vm.i18n`Settings`}),
+            t.a({className: "button-utility create", href: vm.createRoomUrl, "aria-label": vm.i18n`Create room`, title: vm.i18n`Create room`}),
         ]);
 
         return t.div({className: "LeftPanel"}, [

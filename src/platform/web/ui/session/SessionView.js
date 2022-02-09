@@ -26,6 +26,7 @@ import {StaticView} from "../general/StaticView.js";
 import {SessionStatusView} from "./SessionStatusView.js";
 import {RoomGridView} from "./RoomGridView.js";
 import {SettingsView} from "./settings/SettingsView.js";
+import {CreateRoomView} from "./CreateRoomView.js";
 import {RightPanelView} from "./rightpanel/RightPanelView.js";
 
 export class SessionView extends TemplateView {
@@ -44,6 +45,8 @@ export class SessionView extends TemplateView {
                     return new RoomGridView(vm.roomGridViewModel);
                 } else if (vm.settingsViewModel) {
                     return new SettingsView(vm.settingsViewModel);
+                } else if (vm.createRoomViewModel) {
+                    return new CreateRoomView(vm.createRoomViewModel);
                 } else if (vm.currentRoomViewModel) {
                     if (vm.currentRoomViewModel.kind === "invite") {
                         return new InviteView(vm.currentRoomViewModel);
