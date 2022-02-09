@@ -600,15 +600,16 @@ export class Session {
         return this._roomsBeingCreated;
     }
 
-    createRoom({type, isEncrypted, explicitName, topic, invites, loadProfiles = true}, log = undefined) {
+    createRoom(options, log = undefined) {
         let roomBeingCreated;
         this._platform.logger.runDetached("create room", async log => {
             const localId = `local-${Math.floor(this._platform.random() * Number.MAX_SAFE_INTEGER)}`;
-            roomBeingCreated = new RoomBeingCreated(localId, type, isEncrypted,
-                explicitName, topic, invites, this._roomsBeingCreatedUpdateCallback,
-                this._mediaRepository, log);
+            roomBeingCreated = new RoomBeingCreated(
+                localId, options, this._roomsBeingCreatedUpdateCallback,
+                this._mediaRepository, this._platform, log);
             this._roomsBeingCreated.set(localId, roomBeingCreated);
             const promises = [roomBeingCreated.create(this._hsApi, log)];
+            const loadProfiles = !(options.loadProfiles === false); // default to true
             if (loadProfiles) {
                 promises.push(roomBeingCreated.loadProfiles(this._hsApi, log));
             }
@@ -715,6 +716,7 @@ export class Session {
                        .set("roomId", roomBeingCreated.roomId);
                     observableStatus.set(observableStatus.get() | RoomStatus.Replaced);
                 }
+                roomBeingCreated.dispose();
                 this._roomsBeingCreated.remove(roomBeingCreated.localId);
                 return;
             }

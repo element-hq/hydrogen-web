@@ -18,10 +18,12 @@ import {calculateRoomName} from "./members/Heroes";
 import {createRoomEncryptionEvent} from "../e2ee/common";
 import {MediaRepository} from "../net/MediaRepository";
 import {EventEmitter} from "../../utils/EventEmitter";
+import {AttachmentUpload} from "./AttachmentUpload";
 
-import type {StateEvent} from "../storage/types";
 import type {HomeServerApi} from "../net/HomeServerApi";
 import type {ILogItem} from "../../logging/types";
+import type {Platform} from "../../platform/web/Platform";
+import type {IBlobHandle} from "../../platform/types/types";
 
 type CreateRoomPayload = {
     is_direct?: boolean;
@@ -29,7 +31,31 @@ type CreateRoomPayload = {
     name?: string;
     topic?: string;
     invite?: string[];
-    initial_state?: StateEvent[]
+    room_alias_name?: string;
+    initial_state: {type: string; state_key: string; content: Record<string, any>}[]
+}
+
+type ImageInfo = {
+    w: number;
+    h: number;
+    mimetype: string;
+    size: number;
+}
+
+type Avatar = {
+    info: ImageInfo;
+    blob: IBlobHandle;
+    name: string;
+}
+
+type Options = {
+    type: RoomType;
+    isEncrypted?: boolean;
+    name?: string;
+    topic?: string;
+    invites?: string[];
+    avatar?: Avatar;
+    alias?: string;
 }
 
 export enum RoomType {
@@ -64,54 +90,72 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
     private profiles: Profile[] = [];
 
     public readonly isEncrypted: boolean;
-    private _name: string;
+    private _calculatedName: string;
     private _error?: Error;
 
     constructor(
         public readonly localId: string,
-        private readonly type: RoomType,
-        isEncrypted: boolean | undefined,
-        private readonly explicitName: string | undefined,
-        private readonly topic: string | undefined,
-        private readonly inviteUserIds: string[] | undefined,
+        private readonly options: Options,
         private readonly updateCallback: (self: RoomBeingCreated, params: string | undefined) => void,
         public readonly mediaRepository: MediaRepository,
+        public readonly platform: Platform,
         log: ILogItem
     ) {
         super();
-        this.isEncrypted = isEncrypted === undefined ? defaultE2EEStatusForType(this.type) : isEncrypted;
-        if (explicitName) {
-            this._name = explicitName;
+        this.isEncrypted = options.isEncrypted === undefined ? defaultE2EEStatusForType(options.type) : options.isEncrypted;
+        if (options.name) {
+            this._calculatedName = options.name;
         } else {
             const summaryData = {
                 joinCount: 1, // ourselves
-                inviteCount: (this.inviteUserIds?.length || 0)
+                inviteCount: (options.invites?.length || 0)
             };
-            const userIdProfiles = (inviteUserIds || []).map(userId => new UserIdProfile(userId));
-            this._name = calculateRoomName(userIdProfiles, summaryData, log);
+            const userIdProfiles = (options.invites || []).map(userId => new UserIdProfile(userId));
+            this._calculatedName = calculateRoomName(userIdProfiles, summaryData, log);
         }
     }
 
     /** @internal */
     async create(hsApi: HomeServerApi, log: ILogItem): Promise<void> {
-        const options: CreateRoomPayload = {
-            is_direct: this.type === RoomType.DirectMessage,
-            preset: presetForType(this.type)
+        let avatarEventContent;
+        if (this.options.avatar) {
+            const {avatar} = this.options;
+            const attachment = new AttachmentUpload({filename: avatar.name, blob: avatar.blob, platform: this.platform});
+            await attachment.upload(hsApi, () => {}, log);
+            avatarEventContent = {
+                info: avatar.info
+            };
+            attachment.applyToContent("url", avatarEventContent);
+        }
+        const createOptions: CreateRoomPayload = {
+            is_direct: this.options.type === RoomType.DirectMessage,
+            preset: presetForType(this.options.type),
+            initial_state: []
         };
-        if (this.explicitName) {
-            options.name = this.explicitName;
+        if (this.options.name) {
+            createOptions.name = this.options.name;
         }
-        if (this.topic) {
-            options.topic = this.topic;
+        if (this.options.topic) {
+            createOptions.topic = this.options.topic;
         }
-        if (this.inviteUserIds) {
-            options.invite = this.inviteUserIds;
+        if (this.options.invites) {
+            createOptions.invite = this.options.invites;
+        }
+        if (this.options.alias) {
+            createOptions.room_alias_name = this.options.alias;
         }
         if (this.isEncrypted) {
-            options.initial_state = [createRoomEncryptionEvent()];
+            createOptions.initial_state.push(createRoomEncryptionEvent());
+        }
+        if (avatarEventContent) {
+            createOptions.initial_state.push({
+                type: "m.room.avatar",
+                state_key: "",
+                content: avatarEventContent
+            });
         }
         try {
-            const response = await hsApi.createRoom(options, {log}).response();
+            const response = await hsApi.createRoom(createOptions, {log}).response();
             this._roomId = response["room_id"];
         } catch (err) {
             this._error = err;
@@ -127,13 +171,13 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
     /** @internal */
     async loadProfiles(hsApi: HomeServerApi, log: ILogItem): Promise<void> {
         // only load profiles if we need it for the room name and avatar
-        if (!this.explicitName && this.inviteUserIds) {
-            this.profiles = await loadProfiles(this.inviteUserIds, hsApi, log);
+        if (!this.options.name && this.options.invites) {
+            this.profiles = await loadProfiles(this.options.invites, hsApi, log);
             const summaryData = {
                 joinCount: 1, // ourselves
-                inviteCount: this.inviteUserIds.length
+                inviteCount: this.options.invites.length
             };
-            this._name = calculateRoomName(this.profiles, summaryData, log);
+            this._calculatedName = calculateRoomName(this.profiles, summaryData, log);
             this.emitChange();
         }
     }
@@ -143,15 +187,22 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
         this.emit("change");
     }
 
-    get avatarColorId(): string { return this.inviteUserIds?.[0] ?? this._roomId ?? this.localId; }
-    get avatarUrl(): string | undefined { return this.profiles[0]?.avatarUrl; }
+    get avatarColorId(): string { return this.options.invites?.[0] ?? this._roomId ?? this.localId; }
+    get avatarUrl(): string | undefined { return this.profiles?.[0].avatarUrl; }
+    get avatarBlobUrl(): string | undefined { return this.options.avatar?.blob?.url; }
     get roomId(): string | undefined { return this._roomId; }
-    get name() { return this._name; }
+    get name() { return this._calculatedName; }
     get isBeingCreated(): boolean { return true; }
     get error(): Error | undefined { return this._error; }
 
     cancel() {
         // TODO: remove from collection somehow
+    }
+
+    dispose() {
+        if (this.options.avatar) {
+            this.options.avatar.blob.dispose();
+        }
     }
 }
 

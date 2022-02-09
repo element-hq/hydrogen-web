@@ -40,17 +40,15 @@ export class AttachmentUpload {
         return this._sentBytes;
     }
 
-    /** @public */
     abort() {
         this._uploadRequest?.abort();
     }
 
-    /** @public */
     get localPreview() {
         return this._unencryptedBlob;
     }
 
-    /** @package */
+    /** @internal */
     async encrypt() {
         if (this._encryptionInfo) {
             throw new Error("already encrypted");
@@ -60,7 +58,7 @@ export class AttachmentUpload {
         this._encryptionInfo = info;
     }
 
-    /** @package */
+    /** @internal */
     async upload(hsApi, progressCallback, log) {
         this._uploadRequest = hsApi.uploadAttachment(this._transferredBlob, this._filename, {
             uploadProgress: sentBytes => {
@@ -73,7 +71,7 @@ export class AttachmentUpload {
         this._mxcUrl = content_uri;
     }
 
-    /** @package */
+    /** @internal */
     applyToContent(urlPath, content) {
         if (!this._mxcUrl) {
             throw new Error("upload has not finished");

@@ -31,3 +31,17 @@ export interface IRequestOptions {
 }
 
 export type RequestFunction = (url: string, options: IRequestOptions) => RequestResult;
+
+export interface IBlobHandle {
+    nativeBlob: any;
+    url: string;
+    size: number;
+    mimeType: string;
+    readAsBuffer(): BufferSource;
+    dispose()
+}
+
+export type File = {
+    readonly name: string;
+    readonly blob: IBlobHandle;
+}

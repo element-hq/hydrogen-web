@@ -50,4 +50,9 @@ export class RoomBeingCreatedTileViewModel extends BaseTileViewModel {
     get _avatarSource() {
         return this._roomBeingCreated;
     }
+
+    avatarUrl(size) {
+        // allow blob url which doesn't need mxc => http resolution
+        return this._roomBeingCreated.avatarBlobUrl ?? super.avatarUrl(size);
+    }
 }
