@@ -49,7 +49,7 @@ main {
     grid-template:
         "status status" auto
         "left   middle" 1fr /
-        300px   1fr;
+        320px   1fr;
     min-height: 0;
     min-width: 0;
 }
@@ -58,7 +58,7 @@ main {
     grid-template:
         "status status status" auto
         "left   middle right" 1fr /
-        300px   1fr 300px;
+        320px   1fr 300px;
 }
 
 /* resize and reposition session view to account for mobile Safari which shifts

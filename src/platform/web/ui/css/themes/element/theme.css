@@ -171,6 +171,10 @@ a.button-action {
     background-image: url('icons/settings.svg');
 }
 
+.button-utility.create {
+    background-image: url('icons/plus.svg');
+}
+
 .button-utility.grid.on {
     background-image: url('icons/disable-grid.svg');
 }
@@ -1088,4 +1092,29 @@ button.RoomDetailsView_row::after {
 .LogoutScreen .status {
     display: flex;
     gap: 12px;
+}
+
+.CreateRoomView {
+    padding: 0 12px;
+    justify-self: center;
+    max-width: 400px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.CreateRoomView_selectAvatar {
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+.CreateRoomView_selectAvatarPlaceholder {
+    width: 64px;
+    height: 64px;
+    border-radius: 100%;
+    background-color: #e1e3e6;
+    background-image: url('icons/plus.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 36px;
 }

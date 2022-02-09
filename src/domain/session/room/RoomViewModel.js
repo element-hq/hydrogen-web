@@ -20,6 +20,7 @@ import {ComposerViewModel} from "./ComposerViewModel.js"
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar.js";
 import {tilesCreator} from "./timeline/tilesCreator.js";
 import {ViewModel} from "../../ViewModel.js";
+import {imageToInfo} from "../common.js";
 
 export class RoomViewModel extends ViewModel {
     constructor(options) {
@@ -273,7 +274,9 @@ export class RoomViewModel extends ViewModel {
             let image = await this.platform.loadImage(file.blob);
             const limit = await this.platform.settingsStorage.getInt("sentImageSizeLimit");
             if (limit && image.maxDimension > limit) {
-                image = await image.scale(limit);
+                const scaledImage = await image.scale(limit);
+                image.dispose();
+                image = scaledImage;
             }
             const content = {
                 body: file.name,
@@ -317,15 +320,6 @@ export class RoomViewModel extends ViewModel {
             this._composerVM.setReplyingTo(entry);
         }
     }
-}
-
-function imageToInfo(image) {
-    return {
-        w: image.width,
-        h: image.height,
-        mimetype: image.blob.mimeType,
-        size: image.blob.size
-    };
 }
 
 function videoToInfo(video) {
