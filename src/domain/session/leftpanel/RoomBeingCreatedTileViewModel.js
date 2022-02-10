@@ -16,6 +16,7 @@ limitations under the License.
 */
 
 import {BaseTileViewModel} from "./BaseTileViewModel.js";
+import {comparePrimitive} from "./common";
 
 export class RoomBeingCreatedTileViewModel extends BaseTileViewModel {
     constructor(options) {
@@ -33,16 +34,37 @@ export class RoomBeingCreatedTileViewModel extends BaseTileViewModel {
     get name() { return this._roomBeingCreated.name; }
     get _avatarSource() { return this._roomBeingCreated; }
 
+    /** very important that sorting order is stable and that comparing
+     * to itself always returns 0, otherwise SortedMapList will
+     * remove the wrong children, etc ... */
     compare(other) {
-        const parentComparison = super.compare(other);
-        if (parentComparison !== 0) {
-            return parentComparison;
+        const parentCmp = super.compare(other);
+        if (parentCmp !== 0) {
+            return parentCmp;
         }
-        return other._roomBeingCreated.name.localeCompare(this._roomBeingCreated.name);
+        const nameCmp = comparePrimitive(this.name, other.name);
+        if (nameCmp === 0) {
+            return comparePrimitive(this._roomBeingCreated.id, other._roomBeingCreated.id);
+        } else {
+            return nameCmp;
+        }
     }
 
     avatarUrl(size) {
         // allow blob url which doesn't need mxc => http resolution
         return this._roomBeingCreated.avatarBlobUrl ?? super.avatarUrl(size);
+    }
+}
+
+export function tests() {
+    return {
+        "test compare with names": assert => {
+            const urlCreator = {openRoomActionUrl() { return "";}}
+            const vm1 = new RoomBeingCreatedTileViewModel({roomBeingCreated: {name: "A", id: "1"}, urlCreator});
+            const vm2 = new RoomBeingCreatedTileViewModel({roomBeingCreated: {name: "B", id: "2"}, urlCreator});
+            assert(vm1.compare(vm2) < 0);
+            assert(vm2.compare(vm1) > 0);
+            assert.equal(vm1.compare(vm1), 0);
+        },
     }
 }
