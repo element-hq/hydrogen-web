@@ -24,8 +24,6 @@ export interface IRequestOptions {
     body?: EncodedBody;
     headers?: Map<string, string|number>;
     cache?: boolean;
-    log?: ILogItem;
-    prefix?: string;
     method?: string;
     format?: string;
 }
