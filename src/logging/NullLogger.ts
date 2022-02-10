@@ -67,7 +67,7 @@ export class NullLogItem implements ILogItem {
     log(): ILogItem {
         return this;
     }
-    set(): void {}
+    set(): ILogItem { return this; }
 
     runDetached(_: LabelOrValues, callback: LogCallback<unknown>): ILogItem {
         new Promise(r => r(callback(this))).then(noop, noop);
