@@ -25,15 +25,13 @@ export class RoomBeingCreatedTileViewModel extends BaseTileViewModel {
         this._url = this.urlCreator.openRoomActionUrl(this._roomBeingCreated.id);
     }
 
-    get busy() { return true; }
-
-    get kind() {
-        return "roomBeingCreated";
-    }
-
-    get url() {
-        return this._url;
-    }
+    get busy() { return !this._roomBeingCreated.error; }
+    get kind() { return "roomBeingCreated"; }
+    get isHighlighted() { return !this.busy; }
+    get badgeCount() { return !this.busy && this.i18n`Failed`; }
+    get url() { return this._url; }
+    get name() { return this._roomBeingCreated.name; }
+    get _avatarSource() { return this._roomBeingCreated; }
 
     compare(other) {
         const parentComparison = super.compare(other);
@@ -41,14 +39,6 @@ export class RoomBeingCreatedTileViewModel extends BaseTileViewModel {
             return parentComparison;
         }
         return other._roomBeingCreated.name.localeCompare(this._roomBeingCreated.name);
-    }
-
-    get name() {
-        return this._roomBeingCreated.name;
-    }
-
-    get _avatarSource() {
-        return this._roomBeingCreated;
     }
 
     avatarUrl(size) {
