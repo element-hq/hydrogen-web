@@ -236,7 +236,10 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
                         mapEntry = {type: DM_MAP_TYPE, content: {}};
                     }
                     const map = mapEntry.content;
-                    const userRooms = map[userId];
+                    let userRooms = map[userId];
+                    if (!userRooms) {
+                        map[userId] = userRooms = [];
+                    }
                     // this is a new room id so no need to check if it's already there
                     userRooms.push(this._roomId);
                     txn.accountData.set(mapEntry);
