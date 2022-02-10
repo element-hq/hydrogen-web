@@ -39,6 +39,10 @@ export class InviteTileViewModel extends BaseTileViewModel {
         if (parentComparison !== 0) {
             return parentComparison;
         }
-        return other._invite.timestamp - this._invite.timestamp;
+        const timeDiff = other._invite.timestamp - this._invite.timestamp;
+        if (timeDiff !== 0) {
+            return timeDiff;
+        }
+        return this._invite.id < other._invite.id ? -1 : 1;
     }
 }

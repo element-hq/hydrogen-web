@@ -194,7 +194,8 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
     get name() { return this._calculatedName; }
     get isBeingCreated(): boolean { return true; }
     get error(): Error | undefined { return this._error; }
-
+    get id() { return this.localId; }
+    
     cancel() {
         // TODO: remove from collection somehow
     }
