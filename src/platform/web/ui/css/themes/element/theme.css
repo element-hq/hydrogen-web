@@ -80,7 +80,7 @@ limitations under the License.
     flex: 1 0 auto;
 }
 
-.form textarea {
+.form-row.text textarea {
     font-family: "Inter", sans-serif;
 }
 
