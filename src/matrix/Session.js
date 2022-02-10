@@ -615,7 +615,7 @@ export class Session {
                 this._mediaRepository, this._platform, log);
             this._roomsBeingCreated.set(id, roomBeingCreated);
             const promises = [roomBeingCreated.create(this._hsApi, log)];
-            const loadProfiles = !(options.loadProfiles === false); // default to true
+            const loadProfiles = options.loadProfiles !== false; // default to true
             if (loadProfiles) {
                 promises.push(roomBeingCreated.loadProfiles(this._hsApi, log));
             }
