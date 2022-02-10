@@ -92,6 +92,7 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
     public readonly isEncrypted: boolean;
     private _calculatedName: string;
     private _error?: Error;
+    private _isCancelled = false;
 
     constructor(
         public readonly id: string,
@@ -189,17 +190,25 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
         this.emit("change");
     }
 
-    get avatarUrl(): string | undefined { return this.profiles?.[0].avatarUrl; }
     get avatarColorId(): string { return this.options.invites?.[0] ?? this._roomId ?? this.id; }
+    get avatarUrl(): string | undefined { return this.profiles?.[0]?.avatarUrl; }
     get avatarBlobUrl(): string | undefined { return this.options.avatar?.blob?.url; }
     get roomId(): string | undefined { return this._roomId; }
     get name() { return this._calculatedName; }
     get isBeingCreated(): boolean { return true; }
     get error(): Error | undefined { return this._error; }
-    cancel() {
-        // TODO: remove from collection somehow
-    }
 
+    cancel() {
+        if (!this._isCancelled) {
+            this.dispose();
+            this._isCancelled = true;
+            this.emitChange("isCancelled");
+        }
+    }
+    // called from Session when updateCallback is invoked to remove it from the collection
+    get isCancelled() { return this._isCancelled; }
+
+    /** @internal */
     dispose() {
         if (this.options.avatar) {
             this.options.avatar.blob.dispose();

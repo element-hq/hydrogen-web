@@ -1095,10 +1095,17 @@ button.RoomDetailsView_row::after {
     gap: 12px;
 }
 
-.CreateRoomView {
-    padding: 0 12px;
-    justify-self: center;
+.CreateRoomView, .RoomBeingCreated_error {
     max-width: 400px;
+}
+
+.RoomBeingCreated_error {
+    margin-top: 48px;
+}
+
+.centered-column {
+    padding: 0 12px;
+    align-self: center;
     width: 100%;
     box-sizing: border-box;
 }

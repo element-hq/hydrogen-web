@@ -34,27 +34,27 @@ export class RoomBeingCreatedViewModel extends ViewModel {
     get name() { return this._roomBeingCreated.name; }
     get id() { return this._roomBeingCreated.id; }
     get isEncrypted() { return this._roomBeingCreated.isEncrypted; }
-
-    get avatarLetter() {
-        return avatarInitials(this.name);
-    }
-
-    get avatarColorNumber() {
-        return getIdentifierColorNumber(this._roomBeingCreated.avatarColorId);
-    }
+    get error() { return this._roomBeingCreated.error?.message; }
+    get avatarLetter() { return avatarInitials(this.name); }
+    get avatarColorNumber() { return getIdentifierColorNumber(this._roomBeingCreated.avatarColorId); }
+    get avatarTitle() { return this.name; }
 
     avatarUrl(size) {
-        return getAvatarHttpUrl(this._roomBeingCreated.avatarUrl, size, this.platform, this._mediaRepository);
-    }
-
-    get avatarTitle() {
-        return this.name;
+        // allow blob url which doesn't need mxc => http resolution
+        return this._roomBeingCreated.avatarBlobUrl ??
+            getAvatarHttpUrl(this._roomBeingCreated.avatarUrl, size, this.platform, this._mediaRepository);
     }
 
     focus() {}
 
     _onRoomChange() {
         this.emitChange();
+    }
+
+    cancel() {
+        this._roomBeingCreated.cancel();
+        // navigate away from the room
+        this.navigation.applyPath(this.navigation.path.until("session"));
     }
 
     dispose() {
