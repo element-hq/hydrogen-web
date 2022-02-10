@@ -298,4 +298,7 @@ export class SessionViewModel extends ViewModel {
         this.emitChange("rightPanelViewModel");
     }
 
+    notifyRoomReplaced(oldId, newId) {
+        this.navigation.push("room", newId);
+    }
 }

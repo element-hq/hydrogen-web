@@ -64,7 +64,7 @@ export class RoomViewModelObservable extends ObservableValue {
             if (status & RoomStatus.BeingCreated) {
                 const {session} = this._sessionViewModel._client;
                 const roomBeingCreated = session.roomsBeingCreated.get(this.id);
-                this._sessionViewModel.navigation.push("room", roomBeingCreated.roomId);
+                this._sessionViewModel.notifyRoomReplaced(roomBeingCreated.id, roomBeingCreated.roomId);
             } else {
                 throw new Error("Don't know how to replace a room with this status: " + (status ^ RoomStatus.Replaced));
             }
