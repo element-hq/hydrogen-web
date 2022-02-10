@@ -21,7 +21,6 @@ import {InviteTileViewModel} from "./InviteTileViewModel.js";
 import {RoomBeingCreatedTileViewModel} from "./RoomBeingCreatedTileViewModel.js";
 import {RoomFilter} from "./RoomFilter.js";
 import {ApplyMap} from "../../../observable/map/ApplyMap.js";
-import {LogMap} from "../../../observable/map/LogMap.js";
 import {addPanelIfNeeded} from "../../navigation/index.js";
 
 export class LeftPanelViewModel extends ViewModel {

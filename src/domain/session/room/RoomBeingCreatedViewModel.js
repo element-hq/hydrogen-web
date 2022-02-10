@@ -43,6 +43,7 @@ export class RoomBeingCreatedViewModel extends ViewModel {
                 return error.message;
             }
         }
+        return "";
     }
     get avatarLetter() { return avatarInitials(this.name); }
     get avatarColorNumber() { return getIdentifierColorNumber(this._roomBeingCreated.avatarColorId); }

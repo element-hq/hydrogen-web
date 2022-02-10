@@ -606,7 +606,7 @@ export class Session {
         return this._roomsBeingCreated;
     }
 
-    createRoom(options, log = undefined) {
+    createRoom(options) {
         let roomBeingCreated;
         this._platform.logger.runDetached("create room", async log => {
             const id = `local-${Math.floor(this._platform.random() * Number.MAX_SAFE_INTEGER)}`;

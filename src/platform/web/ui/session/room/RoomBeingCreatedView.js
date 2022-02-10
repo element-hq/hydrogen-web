@@ -18,7 +18,6 @@ limitations under the License.
 import {TemplateView} from "../../general/TemplateView";
 import {LoadingView} from "../../general/LoadingView";
 import {AvatarView} from "../../AvatarView";
-import {renderStaticAvatar} from "../../avatar.js";
 
 export class RoomBeingCreatedView extends TemplateView {
     render(t, vm) {
