@@ -64,7 +64,13 @@ export class Session {
         this._activeArchivedRooms = new Map();
         this._invites = new ObservableMap();
         this._inviteUpdateCallback = (invite, params) => this._invites.update(invite.id, params);
-        this._roomsBeingCreatedUpdateCallback = (rbc, params) => this._roomsBeingCreated.update(rbc.localId, params);
+        this._roomsBeingCreatedUpdateCallback = (rbc, params) => {
+            if (rbc.isCancelled) {
+                this._roomsBeingCreated.remove(rbc.id);
+            } else {
+                this._roomsBeingCreated.update(rbc.id, params)
+            }
+        };
         this._roomsBeingCreated = new ObservableMap();
         this._user = new User(sessionInfo.userId);
         this._deviceMessageHandler = new DeviceMessageHandler({storage});
@@ -603,11 +609,11 @@ export class Session {
     createRoom(options, log = undefined) {
         let roomBeingCreated;
         this._platform.logger.runDetached("create room", async log => {
-            const localId = `local-${Math.floor(this._platform.random() * Number.MAX_SAFE_INTEGER)}`;
+            const id = `local-${Math.floor(this._platform.random() * Number.MAX_SAFE_INTEGER)}`;
             roomBeingCreated = new RoomBeingCreated(
-                localId, options, this._roomsBeingCreatedUpdateCallback,
+                id, options, this._roomsBeingCreatedUpdateCallback,
                 this._mediaRepository, this._platform, log);
-            this._roomsBeingCreated.set(localId, roomBeingCreated);
+            this._roomsBeingCreated.set(id, roomBeingCreated);
             const promises = [roomBeingCreated.create(this._hsApi, log)];
             const loadProfiles = !(options.loadProfiles === false); // default to true
             if (loadProfiles) {
@@ -709,15 +715,15 @@ export class Session {
     _tryReplaceRoomBeingCreated(roomId, log) {
         for (const [,roomBeingCreated] of this._roomsBeingCreated) {
             if (roomBeingCreated.roomId === roomId) {
-                const observableStatus = this._observedRoomStatus.get(roomBeingCreated.localId);
+                const observableStatus = this._observedRoomStatus.get(roomBeingCreated.id);
                 if (observableStatus) {
                     log.log(`replacing room being created`)
-                       .set("localId", roomBeingCreated.localId)
+                       .set("localId", roomBeingCreated.id)
                        .set("roomId", roomBeingCreated.roomId);
                     observableStatus.set(observableStatus.get() | RoomStatus.Replaced);
                 }
                 roomBeingCreated.dispose();
-                this._roomsBeingCreated.remove(roomBeingCreated.localId);
+                this._roomsBeingCreated.remove(roomBeingCreated.id);
                 return;
             }
         }

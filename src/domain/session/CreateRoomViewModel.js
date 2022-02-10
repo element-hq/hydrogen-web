@@ -82,7 +82,7 @@ export class CreateRoomViewModel extends ViewModel {
             avatar,
             invites: ["@bwindels:matrix.org"]
         });
-        this.navigation.push("room", roomBeingCreated.localId);
+        this.navigation.push("room", roomBeingCreated.id);
     }
 
     

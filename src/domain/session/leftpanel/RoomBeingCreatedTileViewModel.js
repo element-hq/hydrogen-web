@@ -22,7 +22,7 @@ export class RoomBeingCreatedTileViewModel extends BaseTileViewModel {
         super(options);
         const {roomBeingCreated} = options;
         this._roomBeingCreated = roomBeingCreated;
-        this._url = this.urlCreator.openRoomActionUrl(this._roomBeingCreated.localId);
+        this._url = this.urlCreator.openRoomActionUrl(this._roomBeingCreated.id);
     }
 
     get busy() { return true; }

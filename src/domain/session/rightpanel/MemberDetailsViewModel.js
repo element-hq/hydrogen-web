@@ -90,7 +90,7 @@ export class MemberDetailsViewModel extends ViewModel {
                 type: RoomType.DirectMessage,
                 invites: [this.userId]
             });
-            roomId = roomBeingCreated.localId;
+            roomId = roomBeingCreated.id;
         }
         this.navigation.push("room", roomId);
     }

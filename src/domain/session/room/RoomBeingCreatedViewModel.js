@@ -32,7 +32,7 @@ export class RoomBeingCreatedViewModel extends ViewModel {
     get kind() { return "roomBeingCreated"; }
     get closeUrl() { return this._closeUrl; }
     get name() { return this._roomBeingCreated.name; }
-    get id() { return this._roomBeingCreated.localId; }
+    get id() { return this._roomBeingCreated.id; }
     get isEncrypted() { return this._roomBeingCreated.isEncrypted; }
 
     get avatarLetter() {

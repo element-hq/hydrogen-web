@@ -94,7 +94,7 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
     private _error?: Error;
 
     constructor(
-        public readonly localId: string,
+        public readonly id: string,
         private readonly options: Options,
         private readonly updateCallback: (self: RoomBeingCreated, params: string | undefined) => void,
         public readonly mediaRepository: MediaRepository,
@@ -187,15 +187,13 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
         this.emit("change");
     }
 
-    get avatarColorId(): string { return this.options.invites?.[0] ?? this._roomId ?? this.localId; }
     get avatarUrl(): string | undefined { return this.profiles?.[0].avatarUrl; }
+    get avatarColorId(): string { return this.options.invites?.[0] ?? this._roomId ?? this.id; }
     get avatarBlobUrl(): string | undefined { return this.options.avatar?.blob?.url; }
     get roomId(): string | undefined { return this._roomId; }
     get name() { return this._calculatedName; }
     get isBeingCreated(): boolean { return true; }
     get error(): Error | undefined { return this._error; }
-    get id() { return this.localId; }
-    
     cancel() {
         // TODO: remove from collection somehow
     }
