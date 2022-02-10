@@ -98,6 +98,7 @@ limitations under the License.
     border-radius: 8px;
     margin-top: 5px;
     font-size: 1em;
+    resize: vertical;
 }
 
 .form-row.check {
