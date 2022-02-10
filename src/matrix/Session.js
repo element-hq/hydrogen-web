@@ -622,8 +622,10 @@ export class Session {
             await Promise.all(promises);
             // we should now know the roomId, check if the room was synced before we received
             // the room id. Replace the room being created with the synced room.
-            if (roomBeingCreated.roomId && !!this.rooms.get(roomBeingCreated.roomId)) {
-                this._tryReplaceRoomBeingCreated(roomBeingCreated.roomId, log);
+            if (roomBeingCreated.roomId) {
+                if (!!this.rooms.get(roomBeingCreated.roomId)) {
+                    this._tryReplaceRoomBeingCreated(roomBeingCreated.roomId, log);
+                }
                 await roomBeingCreated.adjustDirectMessageMapIfNeeded(this._user, this._storage, this._hsApi, log);
             }
         });
