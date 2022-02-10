@@ -34,7 +34,16 @@ export class RoomBeingCreatedViewModel extends ViewModel {
     get name() { return this._roomBeingCreated.name; }
     get id() { return this._roomBeingCreated.id; }
     get isEncrypted() { return this._roomBeingCreated.isEncrypted; }
-    get error() { return this._roomBeingCreated.error?.message; }
+    get error() {
+        const {error} = this._roomBeingCreated;
+        if (error) {
+            if (error.name === "ConnectionError") {
+                return this.i18n`You seem to be offline`;
+            } else {
+                return error.message;
+            }
+        }
+    }
     get avatarLetter() { return avatarInitials(this.name); }
     get avatarColorNumber() { return getIdentifierColorNumber(this._roomBeingCreated.avatarColorId); }
     get avatarTitle() { return this.name; }
