@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {ViewModel} from "../../ViewModel.js";
-import {RoomType} from "../../../matrix/room/create";
+import {RoomType} from "../../../matrix/room/common";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar.js";
 
 export class MemberDetailsViewModel extends ViewModel {

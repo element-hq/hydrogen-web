@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {ObservableValue} from "../../observable/ObservableValue";
-import {RoomStatus} from "../../matrix/room/RoomStatus";
+import {RoomStatus} from "../../matrix/room/common";
 
 /**
 Depending on the status of a room (invited, joined, archived, or none),

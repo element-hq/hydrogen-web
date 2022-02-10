@@ -15,7 +15,7 @@ limitations under the License.
 */
 import {createEnum} from "../../../utils/enum";
 import {AbortError} from "../../../utils/error";
-import {REDACTION_TYPE} from "../common.js";
+import {REDACTION_TYPE} from "../common";
 import {getRelationFromContent, getRelationTarget, setRelationTarget} from "../timeline/relations.js";
 
 export const SendStatus = createEnum(

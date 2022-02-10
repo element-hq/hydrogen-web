@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {EventEntry} from "../entries/EventEntry.js";
-import {REDACTION_TYPE, isRedacted} from "../../common.js";
+import {REDACTION_TYPE, isRedacted} from "../../common";
 import {ANNOTATION_RELATION_TYPE, getRelation} from "../relations.js";
 import {redactEvent} from "../common.js";
 

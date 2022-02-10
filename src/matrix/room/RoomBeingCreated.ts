@@ -19,6 +19,8 @@ import {createRoomEncryptionEvent} from "../e2ee/common";
 import {MediaRepository} from "../net/MediaRepository";
 import {EventEmitter} from "../../utils/EventEmitter";
 import {AttachmentUpload} from "./AttachmentUpload";
+import {loadProfiles, Profile, UserIdProfile} from "../profile";
+import {RoomType} from "./common";
 
 import type {HomeServerApi} from "../net/HomeServerApi";
 import type {ILogItem} from "../../logging/types";
@@ -58,12 +60,6 @@ type Options = {
     invites?: string[];
     avatar?: Avatar;
     alias?: string;
-}
-
-export enum RoomType {
-    DirectMessage,
-    Private,
-    Public
 }
 
 function defaultE2EEStatusForType(type: RoomType): boolean {
@@ -221,37 +217,4 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
             this.options.avatar.blob.dispose();
         }
     }
-}
-
-export async function loadProfiles(userIds: string[], hsApi: HomeServerApi, log: ILogItem): Promise<Profile[]> {
-    const profiles = await Promise.all(userIds.map(async userId => {
-        const response = await hsApi.profile(userId, {log}).response();
-        return new Profile(userId, response.displayname as string, response.avatar_url as string);
-    }));
-    profiles.sort((a, b) => a.name.localeCompare(b.name));
-    return profiles;
-}
-
-interface IProfile {
-    get userId(): string;
-    get displayName(): string | undefined;
-    get avatarUrl(): string | undefined;
-    get name(): string;
-}
-
-export class Profile implements IProfile {
-    constructor(
-        public readonly userId: string,
-        public readonly displayName: string,
-        public readonly avatarUrl: string | undefined
-    ) {}
-
-    get name() { return this.displayName || this.userId; }
-}
-
-class UserIdProfile implements IProfile {
-    constructor(public readonly userId: string) {}
-    get displayName() { return undefined; }
-    get name() { return this.userId; }
-    get avatarUrl() { return undefined; }
 }
