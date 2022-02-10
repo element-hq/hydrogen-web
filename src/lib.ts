@@ -19,11 +19,13 @@ export {Client, LoadStatus} from "./matrix/Client.js";
 // export main view & view models
 export {createNavigation, createRouter} from "./domain/navigation/index.js";
 export {RootViewModel} from "./domain/RootViewModel.js";
+export {TemplateView} from "./platform/web/ui/general/TemplateView";
 export {RootView} from "./platform/web/ui/RootView.js";
 export {SessionViewModel} from "./domain/session/SessionViewModel.js";
 export {SessionView} from "./platform/web/ui/session/SessionView.js";
 export {RoomViewModel} from "./domain/session/room/RoomViewModel.js";
 export {RoomView} from "./platform/web/ui/session/room/RoomView.js";
+export {RightPanelView} from "./platform/web/ui/session/rightpanel/RightPanelView.js";
 export {MediaRepository} from "./matrix/net/MediaRepository";
 export {TilesCollection} from "./domain/session/room/timeline/TilesCollection.js";
 export {tilesCreator} from "./domain/session/room/timeline/tilesCreator.js";

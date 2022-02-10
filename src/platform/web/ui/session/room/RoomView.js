@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import { text } from "../../general/html";
 import {TemplateView} from "../../general/TemplateView";
 import {Popup} from "../../general/Popup.js";
 import {Menu} from "../../general/Menu.js";
@@ -57,7 +58,7 @@ export class RoomView extends TemplateView {
                         new TimelineView(timelineViewModel) :
                         new TimelineLoadingView(vm);    // vm is just needed for i18n
                 }),
-                t.view(bottomView),
+                bottomView ? t.view(bottomView) : text(''),
             ])
         ]);
     }

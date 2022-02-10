@@ -21,7 +21,6 @@ import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../
 import {tilesCreator} from "./timeline/tilesCreator.js";
 import {ViewModel} from "../../ViewModel.js";
 
-console.log('RoomViewModel asdfwafeawfefewfewaeafwafewefw');
 export class RoomViewModel extends ViewModel {
     constructor(options) {
         super(options);
