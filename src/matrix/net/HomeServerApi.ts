@@ -286,6 +286,9 @@ export class HomeServerApi {
         return this._post(`/createRoom`, {}, payload, options);
     }
     
+    setAccountData(ownUserId: string, type: string, content: Record<string, any>, options?: IRequestOptions): IHomeServerRequest {
+        return this._put(`/user/${encodeURIComponent(ownUserId)}/account_data/${encodeURIComponent(type)}`, {}, content, options);
+    }
 }
 
 import {Request as MockRequest} from "../../mocks/Request.js";

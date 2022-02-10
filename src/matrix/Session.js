@@ -624,8 +624,8 @@ export class Session {
             // the room id. Replace the room being created with the synced room.
             if (roomBeingCreated.roomId && !!this.rooms.get(roomBeingCreated.roomId)) {
                 this._tryReplaceRoomBeingCreated(roomBeingCreated.roomId, log);
+                await roomBeingCreated.adjustDirectMessageMapIfNeeded(this._user, this._storage, this._hsApi, log);
             }
-            // TODO: if type is DM, then adjust the m.direct account data
         });
         return roomBeingCreated;
     }

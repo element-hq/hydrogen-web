@@ -26,6 +26,8 @@ import type {HomeServerApi} from "../net/HomeServerApi";
 import type {ILogItem} from "../../logging/types";
 import type {Platform} from "../../platform/web/Platform";
 import type {IBlobHandle} from "../../platform/types/types";
+import type {User} from "../User";
+import type {Storage} from "../storage/idb/Storage";
 
 type CreateRoomPayload = {
     is_direct?: boolean;
@@ -216,5 +218,38 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
         if (this.options.avatar) {
             this.options.avatar.blob.dispose();
         }
+    }
+
+    async adjustDirectMessageMapIfNeeded(user: User, storage: Storage, hsApi: HomeServerApi, log: ILogItem): Promise<void> {
+        if (!this.options.invites || this.options.type !== RoomType.DirectMessage) {
+            return;
+        }
+        const userId = this.options.invites[0];
+        const DM_MAP_TYPE = "m.direct";
+        await log.wrap("set " + DM_MAP_TYPE, async log => {
+            try {
+                const txn = await storage.readWriteTxn([storage.storeNames.accountData]);
+                let mapEntry;
+                try {
+                    mapEntry = await txn.accountData.get(DM_MAP_TYPE);
+                    if (!mapEntry) {
+                        mapEntry = {type: DM_MAP_TYPE, content: {}};
+                    }
+                    const map = mapEntry.content;
+                    const userRooms = map[userId];
+                    // this is a new room id so no need to check if it's already there
+                    userRooms.push(this._roomId);
+                    txn.accountData.set(mapEntry);
+                    await txn.complete();
+                } catch (err) {
+                    txn.abort();
+                    throw err;
+                }
+                await hsApi.setAccountData(user.id, DM_MAP_TYPE, mapEntry.content, {log}).response();
+            } catch (err) {
+                // we can't really do anything else but logging here
+                log.catch(err);
+            }
+        });
     }
 }
