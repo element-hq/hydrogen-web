@@ -32,6 +32,7 @@ type CreateRoomPayload = {
     topic?: string;
     invite?: string[];
     room_alias_name?: string;
+    creation_content?: {"m.federate": boolean};
     initial_state: {type: string; state_key: string; content: Record<string, any>}[]
 }
 
@@ -51,6 +52,7 @@ type Avatar = {
 type Options = {
     type: RoomType;
     isEncrypted?: boolean;
+    isFederationDisabled?: boolean;
     name?: string;
     topic?: string;
     invites?: string[];
@@ -145,6 +147,11 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
             }
             if (this.options.alias) {
                 createOptions.room_alias_name = this.options.alias;
+            }
+            if (this.options.isFederationDisabled === true) {
+                createOptions.creation_content = {
+                    "m.federate": false
+                };
             }
             if (this.isEncrypted) {
                 createOptions.initial_state.push(createRoomEncryptionEvent());

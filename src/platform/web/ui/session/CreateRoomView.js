@@ -44,7 +44,7 @@ export class CreateRoomView extends TemplateView {
                                 onInput: evt => vm.setName(evt.target.value),
                                 type: "text", name: "name", id: "name",
                                 placeholder: vm.i18n`Enter a room name`
-                            }, vm => vm.name),
+                            }),
                         ]),
                     ]),
                     t.div({className: "form-row text"}, [
@@ -74,8 +74,18 @@ export class CreateRoomView extends TemplateView {
                         t.input({
                             onInput: evt => vm.setRoomAlias(evt.target.value),
                             type: "text", name: "roomAlias", id: "roomAlias",
-                            placeholder: vm.i18n`Room alias
-                        `}),
+                            placeholder: vm.i18n`Room alias (<alias>, or #<alias> or #<alias>:hs.tld`}),
+                    ]),
+                    t.div({className: "form-group"}, [
+                        t.div(t.button({className: "link", type: "button", onClick: () => vm.toggleAdvancedShown()},
+                            vm => vm.isAdvancedShown ? vm.i18n`Hide advanced settings` : vm.i18n`Show advanced settings`)),
+                        t.div({className: {"form-row check": true, hidden: vm => !vm.isAdvancedShown}}, [
+                            t.input({type: "checkbox", name: "isFederationDisabled", id: "isFederationDisabled", checked: vm.isFederationDisabled}),
+                            t.label({for: "isFederationDisabled"}, [
+                                vm.i18n`Disable federation`,
+                                t.p({className: "form-row-description"}, vm.i18n`Can't be changed later. This will prevent people on other homeservers from joining the room. This is typically used when only people from your own organisation (if applicable) should be allowed in the room, and is otherwise not needed.`)
+                            ]),
+                        ]),
                     ]),
                     t.div({className: "button-row"}, [
                         t.button({
@@ -96,6 +106,9 @@ export class CreateRoomView extends TemplateView {
                 break;
             case "isPublic":
                 this.value.setPublic(evt.currentTarget.isPublic.value === "true");
+                break;
+            case "isFederationDisabled":
+                this.value.setFederationDisabled(evt.target.checked);
                 break;
         }
     }

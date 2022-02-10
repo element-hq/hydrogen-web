@@ -23,45 +23,60 @@ export class CreateRoomViewModel extends ViewModel {
         super(options);
         const {session} = options;
         this._session = session;
-        this._name = "";
-        this._topic = "";
+        this._name = undefined;
+        this._topic = undefined;
+        this._roomAlias = undefined;
         this._isPublic = false;
         this._isEncrypted = true;
+        this._isAdvancedShown = false;
+        this._isFederationDisabled = false;
         this._avatarScaledBlob = undefined;
         this._avatarFileName = undefined;
         this._avatarInfo = undefined;
     }
 
+    get isPublic() { return this._isPublic; }
+    get isEncrypted() { return this._isEncrypted; }
+    get canCreate() { return !!this._name; }
+    avatarUrl() { return this._avatarScaledBlob.url; }
+    get avatarTitle() { return this._name; }
+    get avatarLetter() { return ""; }
+    get avatarColorNumber() { return 0; }
+    get hasAvatar() { return !!this._avatarScaledBlob; }
+    get isFederationDisabled() { return this._isFederationDisabled; }
+    get isAdvancedShown() { return this._isAdvancedShown; }
+
     setName(name) {
         this._name = name;
-        this.emitChange("name");
+        this.emitChange("canCreate");
     }
 
-    get name() { return this._name; }
+    setRoomAlias(roomAlias) {
+        this._roomAlias = roomAlias;
+    }
 
     setTopic(topic) {
         this._topic = topic;
-        this.emitChange("topic");
     }
-
-    get topic() { return this._topic; }
 
     setPublic(isPublic) {
         this._isPublic = isPublic;
         this.emitChange("isPublic");
     }
 
-    get isPublic() { return this._isPublic; }
-
     setEncrypted(isEncrypted) {
         this._isEncrypted = isEncrypted;
         this.emitChange("isEncrypted");
     }
 
-    get isEncrypted() { return this._isEncrypted; }
+    setFederationDisabled(disable) {
+        this._isFederationDisabled = disable;
+        this.emitChange("isFederationDisabled");
+    }
 
-    get canCreate() {
-        return !!this.name;
+    toggleAdvancedShown() {
+        this._isAdvancedShown = !this._isAdvancedShown;
+        this.emitChange("isAdvancedShown");
     }
 
     create() {
@@ -75,23 +90,15 @@ export class CreateRoomViewModel extends ViewModel {
         }
         const roomBeingCreated = this._session.createRoom({
             type: this.isPublic ? RoomType.Public : RoomType.Private,
-            name: this.name ?? undefined,
+            name: this._name ?? undefined,
             topic: this.topic ?? undefined,
             isEncrypted: !this.isPublic && this._isEncrypted,
-            alias: this.isPublic ? this.roomAlias : undefined,
+            isFederationDisabled: this._isFederationDisabled,
+            alias: this.isPublic ? ensureAliasIsLocalPart(this._roomAlias) : undefined,
             avatar,
-            invites: ["@bwindels:matrix.org"]
         });
         this.navigation.push("room", roomBeingCreated.id);
     }
-
-    
-    avatarUrl() { return this._avatarScaledBlob.url; }
-    get avatarTitle() { return this.name; }
-    get avatarLetter() { return ""; }
-    get avatarColorNumber() { return 0; }
-    get hasAvatar() { return !!this._avatarScaledBlob; }
-    get error() { return ""; }
 
     async selectAvatar() {
         if (!this.platform.hasReadPixelPermission()) {
@@ -123,4 +130,15 @@ export class CreateRoomViewModel extends ViewModel {
         this._avatarFileName = file.name;
         this.emitChange("hasAvatar");
     }
+}
+
+function ensureAliasIsLocalPart(roomAliasLocalPart) {
+    if (roomAliasLocalPart.startsWith("#")) {
+        roomAliasLocalPart = roomAliasLocalPart.substr(1);
+    }
+    const colonIdx = roomAliasLocalPart.indexOf(":");
+    if (colonIdx !== -1) {
+        roomAliasLocalPart = roomAliasLocalPart.substr(0, colonIdx);
+    }
+    return roomAliasLocalPart;
 }
