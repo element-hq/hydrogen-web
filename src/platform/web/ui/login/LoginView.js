@@ -34,7 +34,7 @@ export class LoginView extends TemplateView {
             t.div({className: "logo"}),
             t.h1([vm.i18n`Sign In`]),
             t.mapView(vm => vm.completeSSOLoginViewModel, vm => vm ? new CompleteSSOView(vm) : null),
-            t.if(vm => vm.showHomeserver, (t, vm) => t.div({ className: "LoginView_sso form form-row" },
+            t.if(vm => vm.showHomeserver, (t, vm) => t.div({ className: "LoginView_sso form-row text" },
                 [
                     t.label({for: "homeserver"}, vm.i18n`Homeserver`),
                     t.input({
