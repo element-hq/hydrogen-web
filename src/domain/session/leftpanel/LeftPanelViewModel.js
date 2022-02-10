@@ -40,7 +40,7 @@ export class LeftPanelViewModel extends ViewModel {
 
     _mapTileViewModels(roomsBeingCreated, invites, rooms) {
         // join is not commutative, invites will take precedence over rooms
-        const joined = invites.join(roomsBeingCreated, rooms).mapValues((item, emitChange) => {
+        const allTiles = invites.join(roomsBeingCreated, rooms).mapValues((item, emitChange) => {
             let vm;
             if (item.isBeingCreated) {
                 vm = new RoomBeingCreatedTileViewModel(this.childOptions({roomBeingCreated: item, emitChange}));
@@ -56,10 +56,7 @@ export class LeftPanelViewModel extends ViewModel {
             }
             return vm;
         });
-        return joined;
-        // return new LogMap(joined, (op, key, value) => {
-        //     console.log("room list", op, key, value);
-        // });
+        return allTiles;
     }
 
     _updateCurrentVM(vm) {
