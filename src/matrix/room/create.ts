@@ -117,44 +117,44 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
 
     /** @internal */
     async create(hsApi: HomeServerApi, log: ILogItem): Promise<void> {
-        let avatarEventContent;
-        if (this.options.avatar) {
-            const {avatar} = this.options;
-            const attachment = new AttachmentUpload({filename: avatar.name, blob: avatar.blob, platform: this.platform});
-            await attachment.upload(hsApi, () => {}, log);
-            avatarEventContent = {
-                info: avatar.info
-            };
-            attachment.applyToContent("url", avatarEventContent);
-        }
-        const createOptions: CreateRoomPayload = {
-            is_direct: this.options.type === RoomType.DirectMessage,
-            preset: presetForType(this.options.type),
-            initial_state: []
-        };
-        if (this.options.name) {
-            createOptions.name = this.options.name;
-        }
-        if (this.options.topic) {
-            createOptions.topic = this.options.topic;
-        }
-        if (this.options.invites) {
-            createOptions.invite = this.options.invites;
-        }
-        if (this.options.alias) {
-            createOptions.room_alias_name = this.options.alias;
-        }
-        if (this.isEncrypted) {
-            createOptions.initial_state.push(createRoomEncryptionEvent());
-        }
-        if (avatarEventContent) {
-            createOptions.initial_state.push({
-                type: "m.room.avatar",
-                state_key: "",
-                content: avatarEventContent
-            });
-        }
         try {
+            let avatarEventContent;
+            if (this.options.avatar) {
+                const {avatar} = this.options;
+                const attachment = new AttachmentUpload({filename: avatar.name, blob: avatar.blob, platform: this.platform});
+                await attachment.upload(hsApi, () => {}, log);
+                avatarEventContent = {
+                    info: avatar.info
+                };
+                attachment.applyToContent("url", avatarEventContent);
+            }
+            const createOptions: CreateRoomPayload = {
+                is_direct: this.options.type === RoomType.DirectMessage,
+                preset: presetForType(this.options.type),
+                initial_state: []
+            };
+            if (this.options.name) {
+                createOptions.name = this.options.name;
+            }
+            if (this.options.topic) {
+                createOptions.topic = this.options.topic;
+            }
+            if (this.options.invites) {
+                createOptions.invite = this.options.invites;
+            }
+            if (this.options.alias) {
+                createOptions.room_alias_name = this.options.alias;
+            }
+            if (this.isEncrypted) {
+                createOptions.initial_state.push(createRoomEncryptionEvent());
+            }
+            if (avatarEventContent) {
+                createOptions.initial_state.push({
+                    type: "m.room.avatar",
+                    state_key: "",
+                    content: avatarEventContent
+                });
+            }
             const response = await hsApi.createRoom(createOptions, {log}).response();
             this._roomId = response["room_id"];
         } catch (err) {
@@ -170,16 +170,18 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
      * is running. */
     /** @internal */
     async loadProfiles(hsApi: HomeServerApi, log: ILogItem): Promise<void> {
-        // only load profiles if we need it for the room name and avatar
-        if (!this.options.name && this.options.invites) {
-            this.profiles = await loadProfiles(this.options.invites, hsApi, log);
-            const summaryData = {
-                joinCount: 1, // ourselves
-                inviteCount: this.options.invites.length
-            };
-            this._calculatedName = calculateRoomName(this.profiles, summaryData, log);
-            this.emitChange();
-        }
+        try {
+            // only load profiles if we need it for the room name and avatar
+            if (!this.options.name && this.options.invites) {
+                this.profiles = await loadProfiles(this.options.invites, hsApi, log);
+                const summaryData = {
+                    joinCount: 1, // ourselves
+                    inviteCount: this.options.invites.length
+                };
+                this._calculatedName = calculateRoomName(this.profiles, summaryData, log);
+                this.emitChange();
+            }
+        } catch (err) {} // swallow error, loading profiles is not essential
     }
 
     private emitChange(params?: string) {
