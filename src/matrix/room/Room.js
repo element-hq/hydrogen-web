@@ -158,7 +158,7 @@ export class Room extends BaseRoom {
             summaryChanges = this._summary.writeData(summaryChanges, txn);
         }
         if (summaryChanges) {
-            log.set("summaryChanges", summaryChanges.diff(this._summary.data));
+            log.set("summaryChanges", summaryChanges.changedKeys(this._summary.data));
         }
         // fetch new members while we have txn open,
         // but don't make any in-memory changes yet

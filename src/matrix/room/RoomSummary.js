@@ -203,16 +203,11 @@ export class SummaryData {
         this.cloned = copy ? true : false;
     }
 
-    diff(other) {
+    changedKeys(other) {
         const props = Object.getOwnPropertyNames(this);
-        return props.reduce((diff, prop) => {
-            if (prop !== "cloned") {
-                if (this[prop] !== other[prop]) {
-                    diff[prop] = this[prop];
-                }
-            }
-            return diff;
-        }, {});
+        return props.filter(prop => {
+            return prop !== "cloned" && this[prop] !== other[prop]
+        });
     }
 
     cloneIfNeeded() {
