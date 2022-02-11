@@ -91,7 +91,7 @@ export class CreateRoomViewModel extends ViewModel {
         const roomBeingCreated = this._session.createRoom({
             type: this.isPublic ? RoomType.Public : RoomType.Private,
             name: this._name ?? undefined,
-            topic: this.topic ?? undefined,
+            topic: this._topic ?? undefined,
             isEncrypted: !this.isPublic && this._isEncrypted,
             isFederationDisabled: this._isFederationDisabled,
             alias: this.isPublic ? ensureAliasIsLocalPart(this._roomAlias) : undefined,
