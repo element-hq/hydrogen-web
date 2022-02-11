@@ -16,7 +16,7 @@ limitations under the License.
 
 import {RoomMember} from "./RoomMember.js";
 
-function calculateRoomName(sortedMembers, summaryData, log) {
+export function calculateRoomName(sortedMembers, summaryData, log) {
     const countWithoutMe = summaryData.joinCount + summaryData.inviteCount - 1;
     if (sortedMembers.length >= countWithoutMe) {
         if (sortedMembers.length > 1) {

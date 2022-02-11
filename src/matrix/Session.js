@@ -17,7 +17,8 @@ limitations under the License.
 
 import {Room} from "./room/Room.js";
 import {ArchivedRoom} from "./room/ArchivedRoom.js";
-import {RoomStatus} from "./room/RoomStatus.js";
+import {RoomStatus} from "./room/common";
+import {RoomBeingCreated} from "./room/RoomBeingCreated";
 import {Invite} from "./room/Invite.js";
 import {Pusher} from "./push/Pusher";
 import { ObservableMap } from "../observable/index.js";
@@ -63,6 +64,14 @@ export class Session {
         this._activeArchivedRooms = new Map();
         this._invites = new ObservableMap();
         this._inviteUpdateCallback = (invite, params) => this._invites.update(invite.id, params);
+        this._roomsBeingCreatedUpdateCallback = (rbc, params) => {
+            if (rbc.isCancelled) {
+                this._roomsBeingCreated.remove(rbc.id);
+            } else {
+                this._roomsBeingCreated.update(rbc.id, params)
+            }
+        };
+        this._roomsBeingCreated = new ObservableMap();
         this._user = new User(sessionInfo.userId);
         this._deviceMessageHandler = new DeviceMessageHandler({storage});
         this._olm = olm;
@@ -421,7 +430,7 @@ export class Session {
         // load rooms
         const rooms = await txn.roomSummary.getAll();
         const roomLoadPromise = Promise.all(rooms.map(async summary => {
-            const room = this.createRoom(summary.roomId, pendingEventsByRoomId.get(summary.roomId));
+            const room = this.createJoinedRoom(summary.roomId, pendingEventsByRoomId.get(summary.roomId));
             await log.wrap("room", log => room.load(summary, txn, log));
             this._rooms.add(room.id, room);
         }));
@@ -529,8 +538,21 @@ export class Session {
         return this._rooms;
     }
 
+    findDirectMessageForUserId(userId) {
+        for (const [,room] of this._rooms) {
+            if (room.isDirectMessageForUserId(userId)) {
+                return room;
+            }
+        }
+        for (const [,invite] of this._invites) {
+            if (invite.isDirectMessageForUserId(userId)) {
+                return invite;
+            }
+        }
+    }
+
     /** @internal */
-    createRoom(roomId, pendingEvents) {
+    createJoinedRoom(roomId, pendingEvents) {
         return new Room({
             roomId,
             getSyncToken: this._getSyncToken,
@@ -578,6 +600,36 @@ export class Session {
             user: this._user,
             platform: this._platform,
         });
+    }
+
+    get roomsBeingCreated() {
+        return this._roomsBeingCreated;
+    }
+
+    createRoom(options) {
+        let roomBeingCreated;
+        this._platform.logger.runDetached("create room", async log => {
+            const id = `local-${Math.floor(this._platform.random() * Number.MAX_SAFE_INTEGER)}`;
+            roomBeingCreated = new RoomBeingCreated(
+                id, options, this._roomsBeingCreatedUpdateCallback,
+                this._mediaRepository, this._platform, log);
+            this._roomsBeingCreated.set(id, roomBeingCreated);
+            const promises = [roomBeingCreated.create(this._hsApi, log)];
+            const loadProfiles = options.loadProfiles !== false; // default to true
+            if (loadProfiles) {
+                promises.push(roomBeingCreated.loadProfiles(this._hsApi, log));
+            }
+            await Promise.all(promises);
+            // we should now know the roomId, check if the room was synced before we received
+            // the room id. Replace the room being created with the synced room.
+            if (roomBeingCreated.roomId) {
+                if (this.rooms.get(roomBeingCreated.roomId)) {
+                    this._tryReplaceRoomBeingCreated(roomBeingCreated.roomId, log);
+                }
+                await roomBeingCreated.adjustDirectMessageMapIfNeeded(this._user, this._storage, this._hsApi, log);
+            }
+        });
+        return roomBeingCreated;
     }
 
     async obtainSyncLock(syncResponse) {
@@ -662,11 +714,29 @@ export class Session {
         }
     }
 
-    applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates) {
+    _tryReplaceRoomBeingCreated(roomId, log) {
+        for (const [,roomBeingCreated] of this._roomsBeingCreated) {
+            if (roomBeingCreated.roomId === roomId) {
+                const observableStatus = this._observedRoomStatus.get(roomBeingCreated.id);
+                if (observableStatus) {
+                    log.log(`replacing room being created`)
+                       .set("localId", roomBeingCreated.id)
+                       .set("roomId", roomBeingCreated.roomId);
+                    observableStatus.set(observableStatus.get() | RoomStatus.Replaced);
+                }
+                roomBeingCreated.dispose();
+                this._roomsBeingCreated.remove(roomBeingCreated.id);
+                return;
+            }
+        }
+    }
+
+    applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates, log) {
         // update the collections after sync
         for (const rs of roomStates) {
             if (rs.shouldAdd) {
                 this._rooms.add(rs.id, rs.room);
+                this._tryReplaceRoomBeingCreated(rs.id, log);
             } else if (rs.shouldRemove) {
                 this._rooms.remove(rs.id);
             }
@@ -684,21 +754,23 @@ export class Session {
         if (this._observedRoomStatus.size !== 0) {
             for (const ars of archivedRoomStates) {
                 if (ars.shouldAdd) {
-                    this._observedRoomStatus.get(ars.id)?.set(RoomStatus.archived);
+                    this._observedRoomStatus.get(ars.id)?.set(RoomStatus.Archived);
                 }
             }
             for (const rs of roomStates) {
                 if (rs.shouldAdd) {
-                    this._observedRoomStatus.get(rs.id)?.set(RoomStatus.joined);
+                    this._observedRoomStatus.get(rs.id)?.set(RoomStatus.Joined);
                 }
             }
             for (const is of inviteStates) {
                 const statusObservable = this._observedRoomStatus.get(is.id);
                 if (statusObservable) {
+                    const withInvited = statusObservable.get() | RoomStatus.Invited;
                     if (is.shouldAdd) {
-                        statusObservable.set(statusObservable.get().withInvited());
+                        statusObservable.set(withInvited);
                     } else if (is.shouldRemove) {
-                        statusObservable.set(statusObservable.get().withoutInvited());
+                        const withoutInvited = withInvited ^ RoomStatus.Invited;
+                        statusObservable.set(withoutInvited);
                     }
                 }
             }
@@ -708,7 +780,7 @@ export class Session {
     _forgetArchivedRoom(roomId) {
         const statusObservable = this._observedRoomStatus.get(roomId);
         if (statusObservable) {
-            statusObservable.set(statusObservable.get().withoutArchived());
+            statusObservable.set((statusObservable.get() | RoomStatus.Archived) ^ RoomStatus.Archived);
         }
     }
 
@@ -797,21 +869,25 @@ export class Session {
     }
 
     async getRoomStatus(roomId) {
+        const isBeingCreated = !!this._roomsBeingCreated.get(roomId);
+        if (isBeingCreated) {
+            return RoomStatus.BeingCreated;
+        }
         const isJoined = !!this._rooms.get(roomId);
         if (isJoined) {
-            return RoomStatus.joined;
+            return RoomStatus.Joined;
         } else {
             const isInvited = !!this._invites.get(roomId);
             const txn = await this._storage.readTxn([this._storage.storeNames.archivedRoomSummary]);
             const isArchived = await txn.archivedRoomSummary.has(roomId);
             if (isInvited && isArchived) {
-                return RoomStatus.invitedAndArchived;
+                return RoomStatus.Invited | RoomStatus.Archived;
             } else if (isInvited) {
-                return RoomStatus.invited;
+                return RoomStatus.Invited;
             } else if (isArchived) {
-                return RoomStatus.archived;
+                return RoomStatus.Archived;
             } else {
-                return RoomStatus.none;
+                return RoomStatus.None;
             }
         }
     }
@@ -823,6 +899,7 @@ export class Session {
             observable = new RetainedObservableValue(status, () => {
                 this._observedRoomStatus.delete(roomId);
             });
+
             this._observedRoomStatus.set(roomId, observable);
         }
         return observable;

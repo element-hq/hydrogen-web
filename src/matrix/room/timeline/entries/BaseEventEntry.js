@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {BaseEntry} from "./BaseEntry";
-import {REDACTION_TYPE} from "../../common.js";
+import {REDACTION_TYPE} from "../../common";
 import {createAnnotation, ANNOTATION_RELATION_TYPE, getRelationFromContent} from "../relations.js";
 import {PendingAnnotation} from "../PendingAnnotation.js";
 import {createReplyContent} from "./reply.js"

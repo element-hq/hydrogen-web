@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {REDACTION_TYPE} from "../common.js";
+import {REDACTION_TYPE} from "../common";
 
 export const REACTION_TYPE = "m.reaction";
 export const ANNOTATION_RELATION_TYPE = "m.annotation";

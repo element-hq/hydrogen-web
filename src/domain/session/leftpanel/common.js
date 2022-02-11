@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Matrix.org Foundation C.I.C.
+Copyright 2020, 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,13 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {StaticView} from "./StaticView";
-import {spinner} from "../common.js";
-
-export class LoadingView extends StaticView {
-    constructor(label = "Loading") {
-        super(label, (t, label) => {
-            return t.div({ className: "LoadingView" }, [spinner(t), label]);
-        });
+export function comparePrimitive(a, b) {
+    if (a === b) {
+        return 0;
+    } else {
+        return a < b ? -1 : 1;
     }
 }

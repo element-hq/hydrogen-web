@@ -420,6 +420,21 @@ export class BaseRoom extends EventEmitter {
         return this._summary.data.membership;
     }
 
+    isDirectMessageForUserId(userId) {
+        if (this._summary.data.dmUserId === userId) {
+            return true;
+        } else {
+            // fall back to considering any room a DM containing heroes (e.g. no name) and 2 members,
+            // on of which the userId we're looking for.
+            // We need this because we're not yet processing m.direct account data correctly.
+            const {heroes, joinCount, inviteCount} = this._summary.data;
+            if (heroes && heroes.includes(userId) && (joinCount + inviteCount) === 2) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     async _loadPowerLevels() {
         const txn = await this._storage.readTxn([this._storage.storeNames.roomState]);
         const powerLevelsState = await txn.roomState.get(this._roomId, "m.room.power_levels", "");

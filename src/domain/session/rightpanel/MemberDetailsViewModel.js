@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {ViewModel} from "../../ViewModel.js";
+import {RoomType} from "../../../matrix/room/common";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar.js";
 
 export class MemberDetailsViewModel extends ViewModel {
@@ -25,6 +26,7 @@ export class MemberDetailsViewModel extends ViewModel {
         this._member = this._observableMember.get();
         this._isEncrypted = options.isEncrypted;
         this._powerLevelsObservable = options.powerLevelsObservable;
+        this._session = options.session;
         this.track(this._powerLevelsObservable.subscribe(() => this._onPowerLevelsChange()));
         this.track(this._observableMember.subscribe( () => this._onMemberChange()));
     }
@@ -77,6 +79,19 @@ export class MemberDetailsViewModel extends ViewModel {
     }
 
     get linkToUser() {
-        return `https://matrix.to/#/${this._member.userId}`;
+        return `https://matrix.to/#/${encodeURIComponent(this._member.userId)}`;
+    }
+
+    async openDirectMessage() {
+        const room = this._session.findDirectMessageForUserId(this.userId);
+        let roomId = room?.id;
+        if (!roomId) {
+            const roomBeingCreated = await this._session.createRoom({
+                type: RoomType.DirectMessage,
+                invites: [this.userId]
+            });
+            roomId = roomBeingCreated.id;
+        }
+        this.navigation.push("room", roomId);
     }
 }

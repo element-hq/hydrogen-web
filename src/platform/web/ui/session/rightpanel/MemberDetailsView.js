@@ -46,7 +46,8 @@ export class MemberDetailsView extends TemplateView {
                 t.div({className: "MemberDetailsView_label"}, vm.i18n`Options`),
                 t.div({className: "MemberDetailsView_options"},
                     [
-                        t.a({href: vm.linkToUser, target: "_blank", rel: "noopener"}, vm.i18n`Open Link to User`)
+                        t.a({href: vm.linkToUser, target: "_blank", rel: "noopener"}, vm.i18n`Open Link to User`),
+                        t.button({className: "text", onClick: () => vm.openDirectMessage()}, vm.i18n`Open direct message`)
                     ])
             ]);
     }

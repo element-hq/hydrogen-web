@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {ObservableValue} from "../../observable/ObservableValue";
+import {RoomStatus} from "../../matrix/room/common";
 
 /**
 Depending on the status of a room (invited, joined, archived, or none),
@@ -34,11 +35,11 @@ the now transferred child view model.
 This is also why there is an explicit initialize method, see comment there.
 */
 export class RoomViewModelObservable extends ObservableValue {
-    constructor(sessionViewModel, roomId) {
+    constructor(sessionViewModel, roomIdOrLocalId) {
         super(null);
         this._statusSubscription = null;
         this._sessionViewModel = sessionViewModel;
-        this.id = roomId;
+        this.id = roomIdOrLocalId;
     }
 
     /**
@@ -59,11 +60,21 @@ export class RoomViewModelObservable extends ObservableValue {
     }
 
     async _statusToViewModel(status) {
-        if (status.invited) {
+        if (status & RoomStatus.Replaced) {
+            if (status & RoomStatus.BeingCreated) {
+                const {session} = this._sessionViewModel._client;
+                const roomBeingCreated = session.roomsBeingCreated.get(this.id);
+                this._sessionViewModel.notifyRoomReplaced(roomBeingCreated.id, roomBeingCreated.roomId);
+            } else {
+                throw new Error("Don't know how to replace a room with this status: " + (status ^ RoomStatus.Replaced));
+            }
+        } else if (status & RoomStatus.BeingCreated) {
+            return this._sessionViewModel._createRoomBeingCreatedViewModel(this.id);
+        } else if (status & RoomStatus.Invited) {
             return this._sessionViewModel._createInviteViewModel(this.id);
-        } else if (status.joined) {
-            return this._sessionViewModel._createRoomViewModel(this.id);
-        } else if (status.archived) {
+        } else if (status & RoomStatus.Joined) {
+            return this._sessionViewModel._createRoomViewModelInstance(this.id);
+        } else if (status & RoomStatus.Archived) {
             return await this._sessionViewModel._createArchivedRoomViewModel(this.id);
         } else {
             return this._sessionViewModel._createUnknownRoomViewModel(this.id);

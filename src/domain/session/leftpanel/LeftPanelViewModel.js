@@ -18,6 +18,7 @@ limitations under the License.
 import {ViewModel} from "../../ViewModel.js";
 import {RoomTileViewModel} from "./RoomTileViewModel.js";
 import {InviteTileViewModel} from "./InviteTileViewModel.js";
+import {RoomBeingCreatedTileViewModel} from "./RoomBeingCreatedTileViewModel.js";
 import {RoomFilter} from "./RoomFilter.js";
 import {ApplyMap} from "../../../observable/map/ApplyMap.js";
 import {addPanelIfNeeded} from "../../navigation/index.js";
@@ -25,32 +26,36 @@ import {addPanelIfNeeded} from "../../navigation/index.js";
 export class LeftPanelViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {rooms, invites} = options;
-        this._tileViewModelsMap = this._mapTileViewModels(rooms, invites);
+        const {session} = options;
+        this._tileViewModelsMap = this._mapTileViewModels(session.roomsBeingCreated, session.invites, session.rooms);
         this._tileViewModelsFilterMap = new ApplyMap(this._tileViewModelsMap);
         this._tileViewModels = this._tileViewModelsFilterMap.sortValues((a, b) => a.compare(b));
         this._currentTileVM = null;
         this._setupNavigation();
         this._closeUrl = this.urlCreator.urlForSegment("session");
         this._settingsUrl = this.urlCreator.urlForSegment("settings");
+        this._createRoomUrl = this.urlCreator.urlForSegment("create-room");
     }
 
-    _mapTileViewModels(rooms, invites) {
+    _mapTileViewModels(roomsBeingCreated, invites, rooms) {
         // join is not commutative, invites will take precedence over rooms
-        return invites.join(rooms).mapValues((roomOrInvite, emitChange) => {
+        const allTiles = invites.join(roomsBeingCreated, rooms).mapValues((item, emitChange) => {
             let vm;
-            if (roomOrInvite.isInvite) {
-                vm = new InviteTileViewModel(this.childOptions({invite: roomOrInvite, emitChange}));
+            if (item.isBeingCreated) {
+                vm = new RoomBeingCreatedTileViewModel(this.childOptions({roomBeingCreated: item, emitChange}));
+            } else if (item.isInvite) {
+                vm = new InviteTileViewModel(this.childOptions({invite: item, emitChange}));
             } else {
-                vm = new RoomTileViewModel(this.childOptions({room: roomOrInvite, emitChange}));
+                vm = new RoomTileViewModel(this.childOptions({room: item, emitChange}));
             }
-            const isOpen = this.navigation.path.get("room")?.value === roomOrInvite.id;
+            const isOpen = this.navigation.path.get("room")?.value === item.id;
             if (isOpen) {
                 vm.open();
                 this._updateCurrentVM(vm);
             }
             return vm;
         });
+        return allTiles;
     }
 
     _updateCurrentVM(vm) {
@@ -68,6 +73,8 @@ export class LeftPanelViewModel extends ViewModel {
     get settingsUrl() {
         return this._settingsUrl;
     }
+
+    get createRoomUrl() { return this._createRoomUrl; }
 
     _setupNavigation() {
         const roomObservable = this.navigation.observe("room");

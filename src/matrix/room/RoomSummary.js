@@ -46,7 +46,7 @@ export function reduceStateEvents(roomResponse, callback, value) {
     return value;
 }
 
-function applySyncResponse(data, roomResponse, membership) {
+function applySyncResponse(data, roomResponse, membership, ownUserId) {
     if (roomResponse.summary) {
         data = updateSummary(data, roomResponse.summary);
     }
@@ -60,7 +60,7 @@ function applySyncResponse(data, roomResponse, membership) {
     // process state events in state and in timeline.
     // non-state events are handled by applyTimelineEntries
     // so decryption is handled properly
-    data = reduceStateEvents(roomResponse, processStateEvent, data);
+    data = reduceStateEvents(roomResponse, (data, event) => processStateEvent(data, event, ownUserId), data);
     const unreadNotifications = roomResponse.unread_notifications;
     if (unreadNotifications) {
         data = processNotificationCounts(data, unreadNotifications);
@@ -95,8 +95,11 @@ function processRoomAccountData(data, event) {
     return data;
 }
 
-export function processStateEvent(data, event) {
-    if (event.type === "m.room.encryption") {
+export function processStateEvent(data, event, ownUserId) {
+    if (event.type === "m.room.create") {
+        data = data.cloneIfNeeded();
+        data.lastMessageTimestamp = event.origin_server_ts;
+    } else if (event.type === "m.room.encryption") {
         const algorithm = event.content?.algorithm;
         if (!data.encryption && algorithm === MEGOLM_ALGORITHM) {
             data = data.cloneIfNeeded();
@@ -118,6 +121,25 @@ export function processStateEvent(data, event) {
         const content = event.content;
         data = data.cloneIfNeeded();
         data.canonicalAlias = content.alias;
+    } else if (event.type === "m.room.member") {
+        const content = event.content;
+        if (content.is_direct === true && content.membership === "invite" && !data.isDirectMessage) {
+            let other;
+            if (event.sender === ownUserId) {
+                other = event.state_key;
+            } else if (event.state_key === ownUserId) {
+                other = event.sender;
+            }
+            if (other) {
+                data = data.cloneIfNeeded();
+                data.isDirectMessage = true;
+                data.dmUserId = other;
+            }
+        } else if (content.membership === "leave" && data.isDirectMessage && data.dmUserId === event.state_key) {
+            data = data.cloneIfNeeded();
+            data.isDirectMessage = false;
+            data.dmUserId = null;
+        }
     }
     return data;
 }
@@ -154,19 +176,6 @@ function updateSummary(data, summary) {
     if (Number.isInteger(joinCount)) {
         data = data.cloneIfNeeded();
         data.joinCount = joinCount;
-    }
-    return data;
-}
-
-function applyInvite(data, invite) {
-    if (data.isDirectMessage !== invite.isDirectMessage) {
-        data = data.cloneIfNeeded();
-        data.isDirectMessage = invite.isDirectMessage;
-        if (invite.isDirectMessage) {
-            data.dmUserId = invite.inviter?.userId;
-        } else {
-            data.dmUserId = null;
-        }
     }
     return data;
 }
@@ -227,12 +236,8 @@ export class SummaryData {
         return applyTimelineEntries(this, timelineEntries, isInitialSync, canMarkUnread, ownUserId);
     }
 
-    applySyncResponse(roomResponse, membership) {
-        return applySyncResponse(this, roomResponse, membership);
-    }
-
-    applyInvite(invite) {
-        return applyInvite(this, invite);
+    applySyncResponse(roomResponse, membership, ownUserId) {
+        return applySyncResponse(this, roomResponse, membership, ownUserId);
     }
 
     get needsHeroes() {

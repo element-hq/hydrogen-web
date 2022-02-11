@@ -279,19 +279,31 @@ export class HomeServerApi {
         return this._post(`/logout`, {}, {}, options);
     }
 
-    getDehydratedDevice(options: BaseRequestOptions): IHomeServerRequest {
+    getDehydratedDevice(options: BaseRequestOptions = {}): IHomeServerRequest {
         options.prefix = DEHYDRATION_PREFIX;
         return this._get(`/dehydrated_device`, undefined, undefined, options);
     }
 
-    createDehydratedDevice(payload: Record<string, any>, options: BaseRequestOptions): IHomeServerRequest {
+    createDehydratedDevice(payload: Record<string, any>, options: BaseRequestOptions = {}): IHomeServerRequest {
         options.prefix = DEHYDRATION_PREFIX;
         return this._put(`/dehydrated_device`, {}, payload, options);
     }
 
-    claimDehydratedDevice(deviceId: string, options: BaseRequestOptions): IHomeServerRequest {
+    claimDehydratedDevice(deviceId: string, options: BaseRequestOptions = {}): IHomeServerRequest {
         options.prefix = DEHYDRATION_PREFIX;
         return this._post(`/dehydrated_device/claim`, {}, {device_id: deviceId}, options);
+    }
+
+    profile(userId: string, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._get(`/profile/${encodeURIComponent(userId)}`);
+    }
+
+    createRoom(payload: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._post(`/createRoom`, {}, payload, options);
+    }
+    
+    setAccountData(ownUserId: string, type: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._put(`/user/${encodeURIComponent(ownUserId)}/account_data/${encodeURIComponent(type)}`, {}, content, options);
     }
 }
 

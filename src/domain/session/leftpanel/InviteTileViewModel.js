@@ -1,5 +1,4 @@
 /*
-Copyright 2020 Bruno Windels <bruno@windels.cloud>
 Copyright 2020, 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +15,7 @@ limitations under the License.
 */
 
 import {BaseTileViewModel} from "./BaseTileViewModel.js";
+import {comparePrimitive} from "./common";
 
 export class InviteTileViewModel extends BaseTileViewModel {
     constructor(options) {
@@ -25,31 +25,40 @@ export class InviteTileViewModel extends BaseTileViewModel {
         this._url = this.urlCreator.openRoomActionUrl(this._invite.id);
     }
 
-    get busy() {
-        return this._invite.accepting || this._invite.rejecting;
-    }
+    get busy() { return this._invite.accepting || this._invite.rejecting; }
+    get kind() { return "invite"; }
+    get url() { return this._url; }
+    get name() { return this._invite.name; }
+    get isHighlighted() { return true; }
+    get isUnread() { return true; }
+    get badgeCount() { return this.i18n`!`; }
+    get _avatarSource() { return this._invite; }
 
-    get kind() {
-        return "invite";
-    }
-
-    get url() {
-        return this._url;
-    }
-
+    /** very important that sorting order is stable and that comparing
+     * to itself always returns 0, otherwise SortedMapList will
+     * remove the wrong children, etc ... */
     compare(other) {
         const parentComparison = super.compare(other);
         if (parentComparison !== 0) {
             return parentComparison;
         }
-        return other._invite.timestamp - this._invite.timestamp;
+        const timeDiff = other._invite.timestamp - this._invite.timestamp;
+        if (timeDiff !== 0) {
+            return timeDiff;
+        }
+        return comparePrimitive(this._invite.id, other._invite.id);
     }
+}
 
-    get name() {
-        return this._invite.name;
-    }
-
-    get _avatarSource() {
-        return this._invite;
+export function tests() {
+    return {
+        "test compare with timestamp": assert => {
+            const urlCreator = {openRoomActionUrl() { return "";}}
+            const vm1 = new InviteTileViewModel({invite: {timestamp: 500, id: "1"}, urlCreator});
+            const vm2 = new InviteTileViewModel({invite: {timestamp: 250, id: "2"}, urlCreator});
+            assert(vm1.compare(vm2) < 0);
+            assert(vm2.compare(vm1) > 0);
+            assert.equal(vm1.compare(vm1), 0);
+        },
     }
 }

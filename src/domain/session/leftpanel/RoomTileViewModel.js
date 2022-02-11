@@ -33,6 +33,9 @@ export class RoomTileViewModel extends BaseTileViewModel {
         return this._url;
     }
 
+    /** very important that sorting order is stable and that comparing
+     * to itself always returns 0, otherwise SortedMapList will
+     * remove the wrong children, etc ... */
     compare(other) {
         const parentComparison = super.compare(other);
         if (parentComparison !== 0) {

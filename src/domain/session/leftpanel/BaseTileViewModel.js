@@ -18,7 +18,7 @@ limitations under the License.
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar.js";
 import {ViewModel} from "../../ViewModel.js";
 
-const KIND_ORDER = ["invite", "room"];
+const KIND_ORDER = ["roomBeingCreated", "invite", "room"];
 
 export class BaseTileViewModel extends ViewModel {
     constructor(options) {
