@@ -382,7 +382,7 @@ export class Timeline {
         };
         const eventEntry = new NonPersistedEventEntry(entry, this._fragmentIdComparer);
         if (this._decryptEntries) {
-            const request = this._decryptEntries(DecryptionSource.Timeline, [eventEntry]);
+            const request = this._decryptEntries([eventEntry]);
             await request.complete();
         }
         return eventEntry;
