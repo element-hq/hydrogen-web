@@ -64,6 +64,6 @@ export function parseHTML(html) {
     // If DOMPurify uses DOMParser, can't we just get the built tree from it
     // instead of re-parsing?
     const sanitized = DOMPurify.sanitize(html, sanitizeConfig);
-    const bodyNode = new DOMParser().parseFromString(sanitized, "text/html").body;
+    const bodyNode = new DOMParser().parseFromString(`<!DOCTYPE html><html><body>${sanitized}</body></html>`, "text/html").body;
     return new HTMLParseResult(bodyNode);
 }
