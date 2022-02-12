@@ -64,9 +64,7 @@ export function parseHTML(html) {
     // If DOMPurify uses DOMParser, can't we just get the built tree from it
     // instead of re-parsing?
     const sanitized = DOMPurify.sanitize(html, sanitizeConfig);
-    // FIXME: DOMParser from linkedom does not behave the same as the browser,
-    // see https://github.com/WebReflection/linkedom/issues/106
-    const bodyNode = new DOMParser().parseFromString(`<body>${sanitized}</body>`, "text/html").documentElement;
+    const bodyNode = new DOMParser().parseFromString(`<!DOCTYPE html><html><body>${sanitized}</body></html>`, "text/html").body;
 
     return new HTMLParseResult(bodyNode);
 }
