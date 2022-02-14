@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ViewModel} from "../../ViewModel.js";
+import {ViewModel} from "../../ViewModel";
 import {MemberTileViewModel} from "./MemberTileViewModel.js";
 import {createMemberComparator} from "./members/comparator.js";
 import {Disambiguator} from "./members/disambiguator.js";
