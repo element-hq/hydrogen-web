@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2022 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,7 +19,7 @@ export interface IDisposable {
     dispose(): void;
 }
 
-type Disposable = IDisposable | (() => void);
+export type Disposable = IDisposable | (() => void);
 
 function disposeValue(value: Disposable): void {
     if (typeof value === "function") {
@@ -33,9 +34,9 @@ function isDisposable(value: Disposable): boolean {
 }
 
 export class Disposables {
-    private _disposables: Disposable[] | null = [];
+    private _disposables?: Disposable[] = [];
 
-    track(disposable: Disposable): Disposable {
+    track<D extends Disposable>(disposable: D): D {
         if (!isDisposable(disposable)) {
             throw new Error("Not a disposable");
         }
@@ -48,16 +49,16 @@ export class Disposables {
         return disposable;
     }
 
-    untrack(disposable: Disposable): null {
+    untrack(disposable: Disposable): undefined {
         if (this.isDisposed) {
             console.warn("Disposables already disposed, cannot untrack");
-            return null;
+            return undefined;
         }
         const idx = this._disposables!.indexOf(disposable);
         if (idx >= 0) {
             this._disposables!.splice(idx, 1);
         }
-        return null;
+        return undefined;
     }
 
     dispose(): void {
@@ -65,17 +66,17 @@ export class Disposables {
             for (const d of this._disposables) {
                 disposeValue(d);
             }
-            this._disposables = null;
+            this._disposables = undefined;
         }
     }
 
     get isDisposed(): boolean {
-        return this._disposables === null;
+        return this._disposables === undefined;
     }
 
-    disposeTracked(value: Disposable): null {
+    disposeTracked(value: Disposable | undefined): undefined {
         if (value === undefined || value === null || this.isDisposed) {
-            return null;
+            return undefined;
         }
         const idx = this._disposables!.indexOf(value);
         if (idx !== -1) {
@@ -84,6 +85,6 @@ export class Disposables {
         } else {
             console.warn("disposable not found, did it leak?", value);
         }
-        return null;
+        return undefined;
     }
 }
