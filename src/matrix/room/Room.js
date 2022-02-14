@@ -30,6 +30,7 @@ const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 export class Room extends BaseRoom {
     constructor(options) {
         super(options);
+        this._callHandler = options.callHandler;
         // TODO: pass pendingEvents to start like pendingOperations?
         const {pendingEvents} = options;
         const relationWriter = new RelationWriter({
@@ -91,6 +92,8 @@ export class Room extends BaseRoom {
                     eventsToDecrypt, newKeys, DecryptionSource.Sync, txn);
             }
         }
+
+        this._updateCallHandler(roomResponse);
 
         return {
             roomEncryption,
@@ -440,6 +443,25 @@ export class Room extends BaseRoom {
     /* called by BaseRoom to pass pendingEvents when opening the timeline */
     _getPendingEvents() {
         return this._sendQueue.pendingEvents;
+    }
+
+    _updateCallHandler(roomResponse) {
+        if (this._callHandler) {
+            const stateEvents = roomResponse.state?.events;
+            if (stateEvents) {
+                for (const e of stateEvents) {
+                    this._callHandler.handleRoomState(this, e);
+                }
+            }
+            let timelineEvents = roomResponse.timeline?.events;
+            if (timelineEvents) {
+                for (const e of timelineEvents) {
+                    if (typeof e.state_key === "string") {
+                        this._callHandler.handleRoomState(this, e);
+                    }
+                }
+            }
+        }
     }
 
     /** @package */

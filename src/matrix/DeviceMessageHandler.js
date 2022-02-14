@@ -16,12 +16,15 @@ limitations under the License.
 
 import {OLM_ALGORITHM} from "./e2ee/common.js";
 import {countBy, groupBy} from "../utils/groupBy";
+import {LRUCache} from "../../utils/LRUCache";
 
 export class DeviceMessageHandler {
-    constructor({storage}) {
+    constructor({storage, callHandler}) {
         this._storage = storage;
         this._olmDecryption = null;
         this._megolmDecryption = null;
+        this._callHandler = callHandler;
+        this._senderDeviceCache = new LRUCache(10, di => di.curve25519Key);
     }
 
     enableEncryption({olmDecryption, megolmDecryption}) {
@@ -49,6 +52,15 @@ export class DeviceMessageHandler {
                 log.child("decrypt_error").catch(err);
             }
             const newRoomKeys = this._megolmDecryption.roomKeysFromDeviceMessages(olmDecryptChanges.results, log);
+            const callMessages = olmDecryptChanges.results.filter(dr => this._callHandler.handlesDeviceMessageEventType(dr.event?.type));
+            await Promise.all(callMessages.map(async dr => {
+                dr.setDevice(await this._getDevice(dr.senderCurve25519Key, txn));
+                this._callHandler.handleDeviceMessage(dr.device.userId, dr.device.deviceId, dr.event.type, dr.event.content, log);
+            }));
+            // TODO: somehow include rooms that received a call to_device message in the sync state?
+            // or have updates flow through event emitter?
+            // well, we don't really need to update the room other then when a call starts or stops
+            // any changes within the call will be emitted on the call object?
             return new SyncPreparation(olmDecryptChanges, newRoomKeys);
         }
     }
@@ -59,6 +71,18 @@ export class DeviceMessageHandler {
         prep.olmDecryptChanges.write(txn);
         const didWriteValues = await Promise.all(prep.newRoomKeys.map(key => this._megolmDecryption.writeRoomKey(key, txn)));
         return didWriteValues.some(didWrite => !!didWrite);
+    }
+
+
+    async _getDevice(senderKey, txn) {
+        let device = this._senderDeviceCache.get(senderKey);
+        if (!device) {
+            device = await txn.deviceIdentities.getByCurve25519Key(senderKey);
+            if (device) {
+                this._senderDeviceCache.set(device);
+            }
+        }
+        return device;
     }
 }
 

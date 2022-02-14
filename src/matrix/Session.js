@@ -73,7 +73,7 @@ export class Session {
         };
         this._roomsBeingCreated = new ObservableMap();
         this._user = new User(sessionInfo.userId);
-        this._deviceMessageHandler = new DeviceMessageHandler({storage});
+        this._deviceMessageHandler = new DeviceMessageHandler({storage, callHandler: this._callHandler});
         this._olm = olm;
         this._olmUtil = null;
         this._e2eeAccount = null;
@@ -100,6 +100,7 @@ export class Session {
         this._createRoomEncryption = this._createRoomEncryption.bind(this);
         this._forgetArchivedRoom = this._forgetArchivedRoom.bind(this);
         this.needsKeyBackup = new ObservableValue(false);
+        this._callHandler = new CallHandler(this._platform, this._hsApi);
     }
 
     get fingerprintKey() {
@@ -562,7 +563,8 @@ export class Session {
             pendingEvents,
             user: this._user,
             createRoomEncryption: this._createRoomEncryption,
-            platform: this._platform
+            platform: this._platform,
+            callHandler: this._callHandler
         });
     }
 

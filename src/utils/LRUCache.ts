@@ -71,7 +71,7 @@ export class BaseLRUCache<T> {
 export class LRUCache<T, K> extends BaseLRUCache<T> {
     private _keyFn: (T) => K;
 
-    constructor(limit, keyFn: (T) => K) {
+    constructor(limit: number, keyFn: (T) => K) {
         super(limit);
         this._keyFn = keyFn;
     }

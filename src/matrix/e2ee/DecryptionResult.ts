@@ -69,6 +69,14 @@ export class DecryptionResult {
         }
     }
 
+    get userId(): string | undefined {
+        return this.device?.userId;
+    }
+
+    get deviceId(): string | undefined {
+        return this.device?.deviceId;
+    }
+
     get isVerificationUnknown(): boolean {
         // verification is unknown if we haven't yet fetched the devices for the room
         return !this.device && !this.roomTracked;
