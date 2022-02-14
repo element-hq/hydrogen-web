@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {getPrevContentFromStateEvent} from "../common.js";
+import {getPrevContentFromStateEvent} from "../common";
 
 export const EVENT_TYPE = "m.room.member";
 

@@ -80,20 +80,41 @@ limitations under the License.
     flex: 1 0 auto;
 }
 
+.form-row.text textarea {
+    font-family: "Inter", sans-serif;
+}
+
+.form-group {
+    margin: 24px 0;
+}
+
 .form-row {
     margin: 12px 0;
 }
 
-.form-row input {
+.form-row.text > input, .form-row.text > textarea {
     padding: 12px;
     border: 1px solid rgba(141, 151, 165, 0.15);
     border-radius: 8px;
     margin-top: 5px;
     font-size: 1em;
+    resize: vertical;
 }
 
-.form-row label, .form-row input {
+.form-row.check {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.form-row.text > label, .form-row.text > input {
     display: block;
+}
+
+.form-row .form-row-description {
+    font-size: 1rem;
+    color: #777;
+    margin: 8px 0 0 0;
 }
 
 .button-action {
@@ -155,6 +176,10 @@ a.button-action {
 
 .button-utility.settings {
     background-image: url('icons/settings.svg');
+}
+
+.button-utility.create {
+    background-image: url('icons/plus.svg');
 }
 
 .button-utility.grid.on {
@@ -1049,10 +1074,14 @@ button.RoomDetailsView_row::after {
     flex-direction: column;
 }
 
-.MemberDetailsView_options a{
+.MemberDetailsView_options a, .MemberDetailsView_options button {
     color: #0dbd8b;
     text-decoration: none;
-    margin-bottom: 3px;
+    margin: 0 0 3px 0;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
 }
 
 .LazyListParent {
@@ -1074,4 +1103,36 @@ button.RoomDetailsView_row::after {
 .LogoutScreen .status {
     display: flex;
     gap: 12px;
+}
+
+.CreateRoomView, .RoomBeingCreated_error {
+    max-width: 400px;
+}
+
+.RoomBeingCreated_error {
+    margin-top: 48px;
+}
+
+.centered-column {
+    padding: 0 12px;
+    align-self: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.CreateRoomView_selectAvatar {
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+.CreateRoomView_selectAvatarPlaceholder {
+    width: 64px;
+    height: 64px;
+    border-radius: 100%;
+    background-color: #e1e3e6;
+    background-image: url('icons/plus.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 36px;
 }

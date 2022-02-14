@@ -23,6 +23,7 @@ export class RightPanelViewModel extends ViewModel {
     constructor(options) {
         super(options);
         this._room = options.room;
+        this._session = options.session;
         this._members = null;
         this._setupNavigation();
     }
@@ -48,7 +49,13 @@ export class RightPanelViewModel extends ViewModel {
         }
         const isEncrypted = this._room.isEncrypted;
         const powerLevelsObservable = await this._room.observePowerLevels();
-        return {observableMember, isEncrypted, powerLevelsObservable, mediaRepository: this._room.mediaRepository};
+        return {
+            observableMember,
+            isEncrypted,
+            powerLevelsObservable,
+            mediaRepository: this._room.mediaRepository,
+            session: this._session
+        };
     }
 
     _setupNavigation() {

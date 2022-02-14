@@ -17,7 +17,7 @@ limitations under the License.
 import {DecryptionResult} from "../../DecryptionResult.js";
 import {DecryptionError} from "../../common.js";
 import {ReplayDetectionEntry} from "./ReplayDetectionEntry";
-import type {RoomKey} from "./RoomKey.js";
+import type {RoomKey} from "./RoomKey";
 import type {KeyLoader, OlmDecryptionResult} from "./KeyLoader";
 import type {OlmWorker} from "../../OlmWorker";
 import type {TimelineEvent} from "../../../storage/types";
@@ -61,7 +61,7 @@ export class SessionDecryption {
                         this.decryptionRequests!.push(request);
                         decryptionResult = await request.response();
                     } else {
-                        decryptionResult = session.decrypt(ciphertext);
+                        decryptionResult = session.decrypt(ciphertext) as OlmDecryptionResult;
                     }
                     const {plaintext} = decryptionResult!;
                     let payload;

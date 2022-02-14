@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-.form input {
+.form-row.text > input, .form-row.text > textarea {
   display: block;
   width: 100%;
   min-width: 0;

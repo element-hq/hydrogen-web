@@ -35,3 +35,10 @@ export {encodeKey, decodeKey, encodeEventIdKey, decodeEventIdKey} from "./matrix
 export {Timeline} from "./matrix/room/timeline/Timeline.js";
 export {TimelineViewModel} from "./domain/session/room/timeline/TimelineViewModel.js";
 export {TimelineView} from "./platform/web/ui/session/room/TimelineView";
+export {Navigation} from "./domain/navigation/Navigation.js";
+export {ComposerViewModel} from "./domain/session/room/ComposerViewModel.js";
+export {MessageComposer} from "./platform/web/ui/session/room/MessageComposer.js";
+export {TemplateView} from "./platform/web/ui/general/TemplateView";
+export {ViewModel} from "./domain/ViewModel.js";
+export {LoadingView} from "./platform/web/ui/general/LoadingView.js";
+export {AvatarView} from "./platform/web/ui/AvatarView.js";

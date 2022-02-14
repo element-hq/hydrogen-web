@@ -18,7 +18,7 @@ import {SortedArray} from "../../../observable/list/SortedArray";
 import {ConnectionError} from "../../error.js";
 import {PendingEvent, SendStatus} from "./PendingEvent.js";
 import {makeTxnId, isTxnId} from "../../common.js";
-import {REDACTION_TYPE} from "../common.js";
+import {REDACTION_TYPE} from "../common";
 import {getRelationFromContent, getRelationTarget, setRelationTarget, REACTION_TYPE, ANNOTATION_RELATION_TYPE} from "../timeline/relations.js";
 
 export class SendQueue {

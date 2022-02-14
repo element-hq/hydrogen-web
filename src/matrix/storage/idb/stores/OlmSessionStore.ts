@@ -62,7 +62,7 @@ export class OlmSessionStore {
         });
     }
 
-    get(senderKey: string, sessionId: string): Promise<OlmSession | null> {
+    get(senderKey: string, sessionId: string): Promise<OlmSession | undefined> {
         return this._store.get(encodeKey(senderKey, sessionId));
     }
 

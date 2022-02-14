@@ -57,3 +57,15 @@ export function verifyEd25519Signature(olmUtil, userId, deviceOrKeyId, ed25519Ke
         return false;
     }
 }
+
+export function createRoomEncryptionEvent() {
+    return {
+        "type": "m.room.encryption",
+        "state_key": "",
+        "content": {
+            "algorithm": MEGOLM_ALGORITHM,
+            "rotation_period_ms": 604800000,
+            "rotation_period_msgs": 100
+        }
+    }
+}

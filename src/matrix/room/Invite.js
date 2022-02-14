@@ -73,6 +73,10 @@ export class Invite extends EventEmitter {
         return this._inviter;
     }
 
+    isDirectMessageForUserId(userId) {
+        return this.isDirectMessage && this._inviter.userId === userId;
+    }
+
     get isPublic() {
         return this._inviteData.joinRule === "public";
     }
@@ -184,7 +188,7 @@ export class Invite extends EventEmitter {
         return {
             roomId: this.id,
             isEncrypted: !!summaryData.encryption,
-            isDirectMessage: this._isDirectMessage(myInvite),
+            isDirectMessage: summaryData.isDirectMessage,
 //            type: 
             name,
             avatarUrl,
@@ -196,12 +200,8 @@ export class Invite extends EventEmitter {
         };
     }
 
-    _isDirectMessage(myInvite) {
-        return !!(myInvite?.content?.is_direct);
-    }
-
     _createSummaryData(inviteState) {
-        return inviteState.reduce(processStateEvent, new SummaryData(null, this.id));
+        return inviteState.reduce((data, event) => processStateEvent(data, event, this._user.id), new SummaryData(null, this.id));
     }
 
     async _createHeroes(inviteState, log) {

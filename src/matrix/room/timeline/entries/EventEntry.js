@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {BaseEventEntry} from "./BaseEventEntry.js";
-import {getPrevContentFromStateEvent, isRedacted} from "../../common.js";
+import {getPrevContentFromStateEvent, isRedacted} from "../../common";
 import {getRelationFromContent, getRelatedEventId} from "../relations.js";
 
 export class EventEntry extends BaseEventEntry {

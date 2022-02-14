@@ -37,7 +37,8 @@ interface QueryTargetInterface<T> {
     openKeyCursor(range?: IDBQuery, direction?: IDBCursorDirection | undefined): IDBRequest<IDBCursor | null>;
     supports(method: string): boolean;
     keyPath: string | string[];
-    get(key: IDBValidKey | IDBKeyRange): IDBRequest<T | null>;
+    count(keyRange?: IDBKeyRange): IDBRequest<number>;
+    get(key: IDBValidKey | IDBKeyRange): IDBRequest<T | undefined>;
     getKey(key: IDBValidKey | IDBKeyRange): IDBRequest<IDBValidKey | undefined>;
 }
 
@@ -78,7 +79,11 @@ export class QueryTarget<T> {
         return this._target.supports(methodName);
     }
 
-    get(key: IDBValidKey | IDBKeyRange): Promise<T | null> {
+    count(keyRange?: IDBKeyRange): Promise<number> {
+        return reqAsPromise(this._target.count(keyRange));
+    }
+
+    get(key: IDBValidKey | IDBKeyRange): Promise<T | undefined> {
         return reqAsPromise(this._target.get(key));
     }
 

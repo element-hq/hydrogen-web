@@ -17,7 +17,7 @@ limitations under the License.
 import {MAX_UNICODE, MIN_UNICODE} from "./common";
 import {Store} from "../Store";
 
-interface DeviceIdentity {
+export interface DeviceIdentity {
     userId: string;
     deviceId: string;
     ed25519Key: string;
@@ -65,7 +65,7 @@ export class DeviceIdentityStore {
         return deviceIds;
     }
 
-    get(userId: string, deviceId: string): Promise<DeviceIdentity | null> {
+    get(userId: string, deviceId: string): Promise<DeviceIdentity | undefined> {
         return this._store.get(encodeKey(userId, deviceId));
     }
 
@@ -74,7 +74,7 @@ export class DeviceIdentityStore {
         this._store.put(deviceIdentity);
     }
 
-    getByCurve25519Key(curve25519Key: string): Promise<DeviceIdentity | null> {
+    getByCurve25519Key(curve25519Key: string): Promise<DeviceIdentity | undefined> {
         return this._store.index("byCurve25519Key").get(curve25519Key);
     }
 

@@ -6,6 +6,7 @@ import {addRoomToIdentity} from "../../e2ee/DeviceTracker.js";
 import {SESSION_E2EE_KEY_PREFIX} from "../../e2ee/common.js";
 import {SummaryData} from "../../room/RoomSummary";
 import {RoomMemberStore, MemberData} from "./stores/RoomMemberStore";
+import {InboundGroupSessionStore, InboundGroupSessionEntry, BackupStatus, KeySource} from "./stores/InboundGroupSessionStore";
 import {RoomStateEntry} from "./stores/RoomStateStore";
 import {SessionStore} from "./stores/SessionStore";
 import {Store} from "./Store";
@@ -31,12 +32,29 @@ export const schema: MigrationFunc[] = [
     fixMissingRoomsInUserIdentities,
     changeSSSSKeyPrefix,
     backupAndRestoreE2EEAccountToLocalStorage,
-    clearAllStores
+    clearAllStores,
+    addInboundSessionBackupIndex,
+    migrateBackupStatus
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
 // TypeScript note: for now, do not bother introducing interfaces / alias
 // for old schemas. Just take them as `any`. 
+
+function createDatabaseNameHelper(db: IDBDatabase): ITransaction {
+    // the Store object gets passed in several things through the Transaction class (a wrapper around IDBTransaction),
+    // the only thing we should need here is the databaseName though, so we mock it out.
+    // ideally we should have an easier way to go from the idb primitive layer to the specific store classes where
+    // we implement logic, but for now we need this.
+    const databaseNameHelper: ITransaction = {
+        databaseName: db.name,
+        get idbFactory(): IDBFactory { throw new Error("unused");},
+        get IDBKeyRange(): typeof IDBKeyRange { throw new Error("unused");},
+        addWriteError() {},
+    };
+    return databaseNameHelper;
+}
+
 
 // how do we deal with schema updates vs existing data migration in a way that 
 //v1
@@ -222,17 +240,7 @@ async function changeSSSSKeyPrefix(db: IDBDatabase, txn: IDBTransaction) {
 // v13
 async function backupAndRestoreE2EEAccountToLocalStorage(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem) {
     const session = txn.objectStore("session");
-    // the Store object gets passed in several things through the Transaction class (a wrapper around IDBTransaction),
-    // the only thing we should need here is the databaseName though, so we mock it out.
-    // ideally we should have an easier way to go from the idb primitive layer to the specific store classes where
-    // we implement logic, but for now we need this.
-    const databaseNameHelper: ITransaction = {
-        databaseName: db.name,
-        get idbFactory(): IDBFactory { throw new Error("unused");},
-        get IDBKeyRange(): typeof IDBKeyRange { throw new Error("unused");},
-        addWriteError() {},
-    };
-    const sessionStore = new SessionStore(new Store(session, databaseNameHelper), localStorage);
+    const sessionStore = new SessionStore(new Store(session, createDatabaseNameHelper(db)), localStorage);
     // if we already have an e2ee identity, write a backup to local storage.
     // further updates to e2ee keys in the session store will also write to local storage from 0.2.15 on,
     // but here we make sure a backup is immediately created after installing the update and we don't wait until
@@ -269,4 +277,35 @@ async function clearAllStores(db: IDBDatabase, txn: IDBTransaction) {
             }
         }
     }
+}
+
+// v15 add backup index to inboundGroupSessions
+async function addInboundSessionBackupIndex(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem): Promise<void> {
+    const inboundGroupSessions = txn.objectStore("inboundGroupSessions");
+    inboundGroupSessions.createIndex("byBackup", "backup", {unique: false});
+}
+
+
+// v16 migrates the backup and source fields of inbound group sessions
+async function migrateBackupStatus(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem): Promise<void> {
+    const inboundGroupSessions = txn.objectStore("inboundGroupSessions");
+    let countWithSession = 0;
+    let countWithoutSession = 0;
+    await iterateCursor<InboundGroupSessionEntry>(inboundGroupSessions.openCursor(), (value, key, cursor) => {
+        if (value.session) {
+            value.backup = BackupStatus.NotBackedUp;
+            // we'll also have backup keys in here, we can't tell,
+            // but the worst thing that can happen is that we try
+            // to backup keys that were already in backup, which
+            // the server will ignore
+            value.source = KeySource.DeviceMessage;
+            cursor.update(value);
+            countWithSession += 1;
+        } else {
+            countWithoutSession += 1;
+        }
+        return NOT_DONE;
+    });
+    log.set("countWithoutSession", countWithoutSession);
+    log.set("countWithSession", countWithSession);
 }

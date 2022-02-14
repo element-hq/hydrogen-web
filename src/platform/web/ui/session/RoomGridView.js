@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {RoomView} from "./room/RoomView.js";
+import {RoomBeingCreatedView} from "./room/RoomBeingCreatedView.js";
 import {InviteView} from "./room/InviteView.js";
 import {TemplateView} from "../general/TemplateView";
 import {StaticView} from "../general/StaticView.js";
@@ -33,7 +34,9 @@ export class RoomGridView extends TemplateView {
                 },
             }, t.mapView(vm => vm.roomViewModelAt(i), roomVM => {
                 if (roomVM) {
-                    if (roomVM.kind === "invite") {
+                    if (roomVM.kind === "roomBeingCreated") {
+                        return new RoomBeingCreatedView(roomVM);
+                    } else if (roomVM.kind === "invite") {
                         return new InviteView(roomVM);
                     } else {
                         return new RoomView(roomVM);

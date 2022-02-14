@@ -17,6 +17,17 @@ limitations under the License.
 import {MIN_UNICODE, MAX_UNICODE} from "./common";
 import {Store} from "../Store";
 
+export enum BackupStatus {
+    NotBackedUp = 0,
+    BackedUp = 1
+}
+
+export enum KeySource {
+    DeviceMessage = 1,
+    Backup,
+    Outbound
+}
+
 export interface InboundGroupSessionEntry {
     roomId: string;
     senderKey: string;
@@ -24,6 +35,8 @@ export interface InboundGroupSessionEntry {
     session?: string;
     claimedKeys?: { [algorithm : string] : string };
     eventIds?: string[];
+    backup: BackupStatus,
+    source: KeySource
 }
 
 type InboundGroupSessionStorageEntry = InboundGroupSessionEntry & { key: string };
@@ -46,7 +59,7 @@ export class InboundGroupSessionStore {
         return key === fetchedKey;
     }
 
-    get(roomId: string, senderKey: string, sessionId: string): Promise<InboundGroupSessionEntry | null> {
+    get(roomId: string, senderKey: string, sessionId: string): Promise<InboundGroupSessionEntry | undefined> {
         return this._store.get(encodeKey(roomId, senderKey, sessionId));
     }
 
@@ -62,5 +75,32 @@ export class InboundGroupSessionStore {
             encodeKey(roomId, MAX_UNICODE, MAX_UNICODE)
         );
         this._store.delete(range);
+    }
+    countNonBackedUpSessions(): Promise<number> {
+        return this._store.index("byBackup").count(this._store.IDBKeyRange.only(BackupStatus.NotBackedUp));
+    }
+
+    getFirstNonBackedUpSessions(amount: number): Promise<InboundGroupSessionEntry[]> {
+        return this._store.index("byBackup").selectLimit(this._store.IDBKeyRange.only(BackupStatus.NotBackedUp), amount);
+    }
+
+    async markAsBackedUp(roomId: string, senderKey: string, sessionId: string): Promise<void> {
+        const entry = await this._store.get(encodeKey(roomId, senderKey, sessionId));
+        if (entry) {
+            entry.backup = BackupStatus.BackedUp;
+            this._store.put(entry);
+        }
+    }
+
+    async markAllAsNotBackedUp(): Promise<number> {
+        const backedUpKey = this._store.IDBKeyRange.only(BackupStatus.BackedUp);
+        let count = 0;
+        await this._store.index("byBackup").iterateValues(backedUpKey, (val: InboundGroupSessionEntry, key: IDBValidKey, cur: IDBCursorWithValue) => {
+            val.backup = BackupStatus.NotBackedUp;
+            cur.update(val);
+            count += 1;
+            return false;
+        });
+        return count;
     }
 }

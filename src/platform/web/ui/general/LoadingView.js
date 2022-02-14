@@ -14,11 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "./TemplateView";
+import {StaticView} from "./StaticView";
 import {spinner} from "../common.js";
 
-export class LoadingView extends TemplateView {
-    render(t) {
-        return t.div({ className: "LoadingView" }, [spinner(t), "Loading"]);
+export class LoadingView extends StaticView {
+    constructor(label = "Loading") {
+        super(label, (t, label) => {
+            return t.div({ className: "LoadingView" }, [spinner(t), label]);
+        });
     }
 }

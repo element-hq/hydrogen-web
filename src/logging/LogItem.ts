@@ -108,13 +108,14 @@ export class LogItem implements ILogItem {
         return item;
     }
 
-    set(key: string | object, value?: unknown): void {
+    set(key: string | object, value?: unknown): ILogItem {
         if(typeof key === "object") {
             const values = key;
             Object.assign(this._values, values);
         } else {
             this._values[key] = value;
         }
+        return this;
     }
 
     serialize(filter: LogFilter, parentStartTime: number | undefined, forced: boolean): ISerializedItem | undefined {

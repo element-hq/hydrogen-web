@@ -35,7 +35,7 @@ export class GroupSessionDecryptionStore {
         this._store = store;
     }
 
-    get(roomId: string, sessionId: string, messageIndex: number): Promise<GroupSessionDecryption | null> {
+    get(roomId: string, sessionId: string, messageIndex: number): Promise<GroupSessionDecryption | undefined> {
         return this._store.get(encodeKey(roomId, sessionId, messageIndex));
     }
 

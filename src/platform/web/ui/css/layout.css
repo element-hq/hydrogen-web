@@ -49,7 +49,7 @@ main {
     grid-template:
         "status status" auto
         "left   middle" 1fr /
-        300px   1fr;
+        320px   1fr;
     min-height: 0;
     min-width: 0;
 }
@@ -58,7 +58,7 @@ main {
     grid-template:
         "status status status" auto
         "left   middle right" 1fr /
-        300px   1fr 300px;
+        320px   1fr 300px;
 }
 
 /* resize and reposition session view to account for mobile Safari which shifts
@@ -215,4 +215,15 @@ the layout viewport up without resizing it when the keyboard shows */
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+.vertical-layout {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+}
+
+.vertical-layout > .stretch {
+    flex: 1 0 0;
 }

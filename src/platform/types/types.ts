@@ -24,10 +24,22 @@ export interface IRequestOptions {
     body?: EncodedBody;
     headers?: Map<string, string|number>;
     cache?: boolean;
-    log?: ILogItem;
-    prefix?: string;
     method?: string;
     format?: string;
 }
 
 export type RequestFunction = (url: string, options: IRequestOptions) => RequestResult;
+
+export interface IBlobHandle {
+    nativeBlob: any;
+    url: string;
+    size: number;
+    mimeType: string;
+    readAsBuffer(): BufferSource;
+    dispose()
+}
+
+export type File = {
+    readonly name: string;
+    readonly blob: IBlobHandle;
+}

@@ -65,6 +65,5 @@ export function parseHTML(html) {
     // instead of re-parsing?
     const sanitized = DOMPurify.sanitize(html, sanitizeConfig);
     const bodyNode = new DOMParser().parseFromString(`<!DOCTYPE html><html><body>${sanitized}</body></html>`, "text/html").body;
-
     return new HTMLParseResult(bodyNode);
 }

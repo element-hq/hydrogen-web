@@ -32,7 +32,7 @@ function allowsChild(parent, child) {
             // allowed root segments
             return type === "login"  || type === "session" || type === "sso" || type === "logout";
         case "session":
-            return type === "room" || type === "rooms" || type === "settings";
+            return type === "room" || type === "rooms" || type === "settings" || type === "create-room";
         case "rooms":
             // downside of the approach: both of these will control which tile is selected
             return type === "room" || type === "empty-grid-tile";

@@ -249,7 +249,7 @@ export class Sync {
                 if (!isRoomInResponse) {
                     let room = this._session.rooms.get(roomId);
                     if (room) {
-                        roomStates.push(new RoomSyncProcessState(room, false, null, {}, room.membership));
+                        roomStates.push(new RoomSyncProcessState(room, false, {}, room.membership));
                     }
                 }
             }
@@ -264,7 +264,7 @@ export class Sync {
                     await rs.room.load(null, prepareTxn, log);
                 }
                 return rs.room.prepareSync(
-                    rs.roomResponse, rs.membership, rs.invite, newKeys, prepareTxn, log)
+                    rs.roomResponse, rs.membership, newKeys, prepareTxn, log)
             }, log.level.Detail);
         }));
 
@@ -316,7 +316,7 @@ export class Sync {
         for(let is of inviteStates) {
             log.wrap("invite", log => is.invite.afterSync(is.changes, log), log.level.Detail);
         }
-        this._session.applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates);
+        this._session.applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates, log);
     }
 
     _openSyncTxn() {
@@ -366,7 +366,7 @@ export class Sync {
                         if (invite) {
                             inviteStates.push(new InviteSyncProcessState(invite, false, null, membership));
                         }
-                        const roomState = this._createRoomSyncState(roomId, invite, roomResponse, membership, isInitialSync);
+                        const roomState = this._createRoomSyncState(roomId, roomResponse, membership, isInitialSync);
                         if (roomState) {
                             roomStates.push(roomState);
                         }
@@ -381,7 +381,7 @@ export class Sync {
         return {roomStates, archivedRoomStates};
     }
 
-    _createRoomSyncState(roomId, invite, roomResponse, membership, isInitialSync) {
+    _createRoomSyncState(roomId, roomResponse, membership, isInitialSync) {
         let isNewRoom = false;
         let room = this._session.rooms.get(roomId);
         // create room only either on new join,
@@ -392,12 +392,12 @@ export class Sync {
         // we receive also gets written.
         // In any case, don't create a room for a rejected invite
         if (!room && (membership === "join" || (isInitialSync && membership === "leave"))) {
-            room = this._session.createRoom(roomId);
+            room = this._session.createJoinedRoom(roomId);
             isNewRoom = true;
         }
         if (room) {
             return new RoomSyncProcessState(
-                room, isNewRoom, invite, roomResponse, membership);
+                room, isNewRoom, roomResponse, membership);
         }
     }
 
@@ -468,10 +468,9 @@ class SessionSyncProcessState {
 }
 
 class RoomSyncProcessState {
-    constructor(room, isNewRoom, invite, roomResponse, membership) {
+    constructor(room, isNewRoom, roomResponse, membership) {
         this.room = room;
         this.isNewRoom = isNewRoom;
-        this.invite = invite;
         this.roomResponse = roomResponse;
         this.membership = membership;
         this.preparation = null;

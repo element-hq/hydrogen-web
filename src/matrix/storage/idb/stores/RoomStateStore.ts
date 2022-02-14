@@ -36,7 +36,7 @@ export class RoomStateStore {
         this._roomStateStore = idbStore;
     }
 
-    get(roomId: string, type: string, stateKey: string): Promise<RoomStateEntry | null> {
+    get(roomId: string, type: string, stateKey: string): Promise<RoomStateEntry | undefined> {
         const key = encodeKey(roomId, type, stateKey);
         return this._roomStateStore.get(key);
     }

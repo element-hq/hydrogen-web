@@ -17,7 +17,6 @@ limitations under the License.
 import {ListView} from "../../general/ListView";
 import {TemplateView} from "../../general/TemplateView";
 import {RoomTileView} from "./RoomTileView.js";
-import {InviteTileView} from "./InviteTileView.js";
 
 class FilterField extends TemplateView {
     render(t, options) {
@@ -63,13 +62,7 @@ export class LeftPanelView extends TemplateView {
                 className: "RoomList",
                 list: vm.tileViewModels,
             },
-            tileVM => {
-                if (tileVM.kind === "invite") {
-                    return new InviteTileView(tileVM);
-                } else {
-                    return new RoomTileView(tileVM);
-                }
-            }
+            tileVM => new RoomTileView(tileVM)
         ));
         const utilitiesRow = t.div({className: "utilities"}, [
             t.a({className: "button-utility close-session", href: vm.closeUrl, "aria-label": vm.i18n`Back to account list`, title: vm.i18n`Back to account list`}),
@@ -97,6 +90,7 @@ export class LeftPanelView extends TemplateView {
                 "aria-label": gridButtonLabel
             }),
             t.a({className: "button-utility settings", href: vm.settingsUrl, "aria-label": vm.i18n`Settings`, title: vm.i18n`Settings`}),
+            t.a({className: "button-utility create", href: vm.createRoomUrl, "aria-label": vm.i18n`Create room`, title: vm.i18n`Create room`}),
         ]);
 
         return t.div({className: "LeftPanel"}, [
