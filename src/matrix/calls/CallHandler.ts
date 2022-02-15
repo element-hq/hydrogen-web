@@ -34,6 +34,7 @@ const CALL_ID = "m.call_id";
 const CALL_TERMINATED = "m.terminated";
 
 export class CallHandler {
+    // group calls by call id
     public readonly groupCalls: ObservableMap<string, GroupCall> = new ObservableMap<string, GroupCall>();
 
     constructor() {
