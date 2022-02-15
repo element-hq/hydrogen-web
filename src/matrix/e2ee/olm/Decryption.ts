@@ -16,32 +16,52 @@ limitations under the License.
 
 import {DecryptionError} from "../common.js";
 import {groupBy} from "../../../utils/groupBy";
-import {MultiLock} from "../../../utils/Lock";
+import {MultiLock, ILock} from "../../../utils/Lock";
 import {Session} from "./Session.js";
-import {DecryptionResult} from "../DecryptionResult.js";
+import {DecryptionResult} from "../DecryptionResult";
+
+import type {OlmMessage, OlmPayload} from "./types";
+import type {Account} from "../Account";
+import type {LockMap} from "../../../utils/LockMap";
+import type {Storage} from "../../storage/idb/Storage";
+import type {Transaction} from "../../storage/idb/Transaction";
+import type {OlmEncryptedEvent} from "./types";
+import type * as OlmNamespace from "@matrix-org/olm";
+type Olm = typeof OlmNamespace;
 
 const SESSION_LIMIT_PER_SENDER_KEY = 4;
 
-function isPreKeyMessage(message) {
+type DecryptionResults = {
+    results: DecryptionResult[],
+    errors: DecryptionError[],
+    senderKeyDecryption: SenderKeyDecryption
+};
+
+type CreateAndDecryptResult = {
+    session: Session,
+    plaintext: string
+};
+
+function isPreKeyMessage(message: OlmMessage): boolean {
     return message.type === 0;
 }
 
-function sortSessions(sessions) {
+function sortSessions(sessions: Session[]) {
     sessions.sort((a, b) => {
         return b.data.lastUsed - a.data.lastUsed;
     });
 }
 
 export class Decryption {
-    constructor({account, pickleKey, now, ownUserId, storage, olm, senderKeyLock}) {
-        this._account = account;
-        this._pickleKey = pickleKey;
-        this._now = now;
-        this._ownUserId = ownUserId;
-        this._storage = storage;
-        this._olm = olm;
-        this._senderKeyLock = senderKeyLock;
-    }
+    constructor(
+        private readonly account: Account,
+        private readonly pickleKey: string,
+        private readonly now: () => number,
+        private readonly ownUserId: string,
+        private readonly storage: Storage,
+        private readonly olm: Olm,
+        private readonly senderKeyLock: LockMap<string>
+    ) {}
     
     // we need to lock because both encryption and decryption can't be done in one txn,
     // so for them not to step on each other toes, we need to lock.
@@ -50,8 +70,8 @@ export class Decryption {
     //  - decryptAll below fails (to release the lock as early as we can)
     //  - DecryptionChanges.write succeeds
     //  - Sync finishes the writeSync phase (or an error was thrown, in case we never get to DecryptionChanges.write) 
-    async obtainDecryptionLock(events) {
-        const senderKeys = new Set();
+    async obtainDecryptionLock(events: OlmEncryptedEvent[]): Promise<ILock> {
+        const senderKeys = new Set<string>();
         for (const event of events) {
             const senderKey = event.content?.["sender_key"];
             if (senderKey) {
@@ -61,7 +81,7 @@ export class Decryption {
         // take a lock on all senderKeys so encryption or other calls to decryptAll (should not happen)
         // don't modify the sessions at the same time
         const locks = await Promise.all(Array.from(senderKeys).map(senderKey => {
-            return this._senderKeyLock.takeLock(senderKey);
+            return this.senderKeyLock.takeLock(senderKey);
         }));
         return new MultiLock(locks);
     }
@@ -83,18 +103,18 @@ export class Decryption {
      * @param  {[type]} events
      * @return {Promise<DecryptionChanges>}        [description]
      */
-    async decryptAll(events, lock, txn) {
+    async decryptAll(events: OlmEncryptedEvent[], lock: ILock, txn: Transaction): Promise<DecryptionChanges> {
         try {
-            const eventsPerSenderKey = groupBy(events, event => event.content?.["sender_key"]);
-            const timestamp = this._now();
+            const eventsPerSenderKey = groupBy(events, (event: OlmEncryptedEvent) => event.content?.["sender_key"]);
+            const timestamp = this.now();
             // decrypt events for different sender keys in parallel
             const senderKeyOperations = await Promise.all(Array.from(eventsPerSenderKey.entries()).map(([senderKey, events]) => {
-                return this._decryptAllForSenderKey(senderKey, events, timestamp, txn);
+                return this._decryptAllForSenderKey(senderKey!, events, timestamp, txn);
             }));
-            const results = senderKeyOperations.reduce((all, r) => all.concat(r.results), []);
-            const errors = senderKeyOperations.reduce((all, r) => all.concat(r.errors), []);
+            const results = senderKeyOperations.reduce((all, r) => all.concat(r.results), [] as DecryptionResult[]);
+            const errors = senderKeyOperations.reduce((all, r) => all.concat(r.errors), [] as DecryptionError[]);
             const senderKeyDecryptions = senderKeyOperations.map(r => r.senderKeyDecryption);
-            return new DecryptionChanges(senderKeyDecryptions, results, errors, this._account, lock);
+            return new DecryptionChanges(senderKeyDecryptions, results, errors, this.account, lock);
         } catch (err) {
             // make sure the locks are release if something throws
             // otherwise they will be released in DecryptionChanges after having written
@@ -104,11 +124,11 @@ export class Decryption {
         }
     }
 
-    async _decryptAllForSenderKey(senderKey, events, timestamp, readSessionsTxn) {
+    async _decryptAllForSenderKey(senderKey: string, events: OlmEncryptedEvent[], timestamp: number, readSessionsTxn: Transaction): Promise<DecryptionResults> {
         const sessions = await this._getSessions(senderKey, readSessionsTxn);
-        const senderKeyDecryption = new SenderKeyDecryption(senderKey, sessions, this._olm, timestamp);
-        const results = [];
-        const errors = [];
+        const senderKeyDecryption = new SenderKeyDecryption(senderKey, sessions, this.olm, timestamp);
+        const results: DecryptionResult[] = [];
+        const errors: DecryptionError[] = [];
         // events for a single senderKey need to be decrypted one by one
         for (const event of events) {
             try {
@@ -121,10 +141,10 @@ export class Decryption {
         return {results, errors, senderKeyDecryption};
     }
 
-    _decryptForSenderKey(senderKeyDecryption, event, timestamp) {
+    _decryptForSenderKey(senderKeyDecryption: SenderKeyDecryption, event: OlmEncryptedEvent, timestamp: number): DecryptionResult {
         const senderKey = senderKeyDecryption.senderKey;
         const message = this._getMessageAndValidateEvent(event);
-        let plaintext;
+        let plaintext: string | undefined;
         try {
             plaintext = senderKeyDecryption.decrypt(message);
         } catch (err) {
@@ -133,7 +153,7 @@ export class Decryption {
         }
         // could not decrypt with any existing session
         if (typeof plaintext !== "string" && isPreKeyMessage(message)) {
-            let createResult;
+            let createResult: CreateAndDecryptResult;
             try {
                 createResult = this._createSessionAndDecrypt(senderKey, message, timestamp);
             } catch (error) {
@@ -143,14 +163,14 @@ export class Decryption {
             plaintext = createResult.plaintext;
         }
         if (typeof plaintext === "string") {
-            let payload;
+            let payload: OlmPayload;
             try {
                 payload = JSON.parse(plaintext);
             } catch (error) {
                 throw new DecryptionError("PLAINTEXT_NOT_JSON", event, {plaintext, error});
             }
             this._validatePayload(payload, event);
-            return new DecryptionResult(payload, senderKey, payload.keys.ed25519);
+            return new DecryptionResult(payload, senderKey, payload.keys!.ed25519!);
         } else {
             throw new DecryptionError("OLM_NO_MATCHING_SESSION", event,
                 {knownSessionIds: senderKeyDecryption.sessions.map(s => s.id)});
@@ -158,16 +178,16 @@ export class Decryption {
     }
 
     // only for pre-key messages after having attempted decryption with existing sessions
-    _createSessionAndDecrypt(senderKey, message, timestamp) {
+    _createSessionAndDecrypt(senderKey: string, message: OlmMessage, timestamp: number): CreateAndDecryptResult {
         let plaintext;
         // if we have multiple messages encrypted with the same new session,
         // this could create multiple sessions as the OTK isn't removed yet
         // (this only happens in DecryptionChanges.write)
         // This should be ok though as we'll first try to decrypt with the new session
-        const olmSession = this._account.createInboundOlmSession(senderKey, message.body);
+        const olmSession = this.account.createInboundOlmSession(senderKey, message.body);
         try {
             plaintext = olmSession.decrypt(message.type, message.body);
-            const session = Session.create(senderKey, olmSession, this._olm, this._pickleKey, timestamp);
+            const session = Session.create(senderKey, olmSession, this.olm, this.pickleKey, timestamp);
             session.unload(olmSession);
             return {session, plaintext};
         } catch (err) {
@@ -176,12 +196,12 @@ export class Decryption {
         }
     }
 
-    _getMessageAndValidateEvent(event) {
+    _getMessageAndValidateEvent(event: OlmEncryptedEvent): OlmMessage {
         const ciphertext = event.content?.ciphertext;
         if (!ciphertext) {
             throw new DecryptionError("OLM_MISSING_CIPHERTEXT", event);
         }
-        const message = ciphertext?.[this._account.identityKeys.curve25519];
+        const message = ciphertext?.[this.account.identityKeys.curve25519];
         if (!message) {
             throw new DecryptionError("OLM_NOT_INCLUDED_IN_RECIPIENTS", event);
         }
@@ -189,22 +209,22 @@ export class Decryption {
         return message;
     }
 
-    async _getSessions(senderKey, txn) {
+    async _getSessions(senderKey: string, txn: Transaction): Promise<Session[]> {
         const sessionEntries = await txn.olmSessions.getAll(senderKey);
         // sort most recent used sessions first
-        const sessions = sessionEntries.map(s => new Session(s, this._pickleKey, this._olm));
+        const sessions = sessionEntries.map(s => new Session(s, this.pickleKey, this.olm));
         sortSessions(sessions);
         return sessions;
     }
 
-    _validatePayload(payload, event) {
+    _validatePayload(payload: OlmPayload, event: OlmEncryptedEvent): void {
         if (payload.sender !== event.sender) {
             throw new DecryptionError("OLM_FORWARDED_MESSAGE", event, {sentBy: event.sender, encryptedBy: payload.sender});
         }
-        if (payload.recipient !== this._ownUserId) {
+        if (payload.recipient !== this.ownUserId) {
             throw new DecryptionError("OLM_BAD_RECIPIENT", event, {recipient: payload.recipient});
         }
-        if (payload.recipient_keys?.ed25519 !== this._account.identityKeys.ed25519) {
+        if (payload.recipient_keys?.ed25519 !== this.account.identityKeys.ed25519) {
             throw new DecryptionError("OLM_BAD_RECIPIENT_KEY", event, {key: payload.recipient_keys?.ed25519});
         }
         // TODO: check room_id
@@ -219,21 +239,21 @@ export class Decryption {
 
 // decryption helper for a single senderKey
 class SenderKeyDecryption {
-    constructor(senderKey, sessions, olm, timestamp) {
-        this.senderKey = senderKey;
-        this.sessions = sessions;
-        this._olm = olm;
-        this._timestamp = timestamp;
-    }
+    constructor(
+        public readonly senderKey: string,
+        public readonly sessions: Session[],
+        private readonly olm: Olm,
+        private readonly timestamp: number
+    ) {}
 
-    addNewSession(session) {
+    addNewSession(session: Session) {
         // add at top as it is most recent
         this.sessions.unshift(session);
     }
 
-    decrypt(message) {
+    decrypt(message: OlmMessage): string | undefined {
         for (const session of this.sessions) {
-            const plaintext = this._decryptWithSession(session, message);
+            const plaintext = this.decryptWithSession(session, message);
             if (typeof plaintext === "string") {
                 // keep them sorted so will try the same session first for other messages
                 // and so we can assume the excess ones are at the end
@@ -244,11 +264,11 @@ class SenderKeyDecryption {
         }
     }
 
-    getModifiedSessions() {
+    getModifiedSessions(): Session[] {
         return this.sessions.filter(session => session.isModified);
     }
 
-    get hasNewSessions() {
+    get hasNewSessions(): boolean {
         return this.sessions.some(session => session.isNew);
     }
 
@@ -257,7 +277,10 @@ class SenderKeyDecryption {
     // if this turns out to be a real cost for IE11,
     // we could look into adding a less expensive serialization mechanism
     // for olm sessions to libolm
-    _decryptWithSession(session, message) {
+    private decryptWithSession(session: Session, message: OlmMessage): string | undefined {
+        if (message.type === undefined || message.body === undefined) {
+            throw new Error("Invalid message without type or body");
+        }
         const olmSession = session.load();
         try {
             if (isPreKeyMessage(message) && !olmSession.matches_inbound(message.body)) {
@@ -266,7 +289,7 @@ class SenderKeyDecryption {
             try {
                 const plaintext = olmSession.decrypt(message.type, message.body);
                 session.save(olmSession);
-                session.lastUsed = this._timestamp;
+                session.data.lastUsed = this.timestamp;
                 return plaintext;
             } catch (err) {
                 if (isPreKeyMessage(message)) {
@@ -286,27 +309,27 @@ class SenderKeyDecryption {
  * @property {Array<DecryptionError>} errors  see DecryptionError.event to retrieve the event that failed to decrypt.
  */
 class DecryptionChanges {
-    constructor(senderKeyDecryptions, results, errors, account, lock) {
-        this._senderKeyDecryptions = senderKeyDecryptions;
-        this._account = account;    
-        this.results = results;
-        this.errors = errors;
-        this._lock = lock;
+    constructor(
+        private readonly senderKeyDecryptions: SenderKeyDecryption[],
+        private readonly results: DecryptionResult[],
+        private readonly errors: DecryptionError[],
+        private readonly account: Account,
+        private readonly lock: ILock
+    ) {}
+
+    get hasNewSessions(): boolean {
+        return this.senderKeyDecryptions.some(skd => skd.hasNewSessions);
     }
 
-    get hasNewSessions() {
-        return this._senderKeyDecryptions.some(skd => skd.hasNewSessions);
-    }
-
-    write(txn) {
+    write(txn: Transaction): void {
         try {
-            for (const senderKeyDecryption of this._senderKeyDecryptions) {
+            for (const senderKeyDecryption of this.senderKeyDecryptions) {
                 for (const session of senderKeyDecryption.getModifiedSessions()) {
                     txn.olmSessions.set(session.data);
                     if (session.isNew) {
                         const olmSession = session.load();
                         try {
-                            this._account.writeRemoveOneTimeKey(olmSession, txn);
+                            this.account.writeRemoveOneTimeKey(olmSession, txn);
                         } finally {
                             session.unload(olmSession);
                         }
@@ -322,7 +345,7 @@ class DecryptionChanges {
                 }
             }
         } finally {
-            this._lock.release();
+            this.lock.release();
         }
     }
 }

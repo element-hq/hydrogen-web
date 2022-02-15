@@ -14,7 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export class Lock {
+export interface ILock {
+    release(): void;
+}
+
+export class Lock implements ILock {
     private _promise?: Promise<void>;
     private _resolve?: (() => void);
 
@@ -52,7 +56,7 @@ export class Lock {
     }
 }
 
-export class MultiLock {
+export class MultiLock implements ILock {
 
     constructor(public readonly locks: Lock[]) {
     }
