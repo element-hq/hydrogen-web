@@ -16,7 +16,7 @@ limitations under the License.
 
 import {groupByWithCreator} from "../../../utils/groupBy";
 import {verifyEd25519Signature, OLM_ALGORITHM} from "../common.js";
-import {createSessionEntry} from "./Session.js";
+import {createSessionEntry} from "./Session";
 
 function findFirstSessionId(sessionIds) {
     return sessionIds.reduce((first, sessionId) => {
