@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ViewModel} from "../../ViewModel.js";
+import {ViewModel} from "../../ViewModel";
 import {RoomDetailsViewModel} from "./RoomDetailsViewModel.js";
 import {MemberListViewModel} from "./MemberListViewModel.js";
 import {MemberDetailsViewModel} from "./MemberDetailsViewModel.js";

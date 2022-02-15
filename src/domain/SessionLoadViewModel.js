@@ -17,7 +17,7 @@ limitations under the License.
 import {AccountSetupViewModel} from "./AccountSetupViewModel.js";
 import {LoadStatus} from "../matrix/Client.js";
 import {SyncStatus} from "../matrix/Sync.js";
-import {ViewModel} from "./ViewModel.js";
+import {ViewModel} from "./ViewModel";
 
 export class SessionLoadViewModel extends ViewModel {
     constructor(options) {

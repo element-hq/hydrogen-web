@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {UpdateAction} from "../UpdateAction.js";
-import {ViewModel} from "../../../../ViewModel.js";
+import {ViewModel} from "../../../../ViewModel";
 import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent.js";
 
 export class SimpleTile extends ViewModel {
