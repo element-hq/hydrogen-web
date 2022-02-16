@@ -20,6 +20,9 @@ import type {Room} from "../room/Room";
 import type {StateEvent} from "../storage/types";
 import type {ILogItem} from "../../logging/types";
 
+import {WebRTC, PeerConnection, PeerConnectionHandler, StreamPurpose} from "../../platform/types/WebRTC";
+import {MediaDevices, Track, AudioTrack, TrackType} from "../../platform/types/MediaDevices";
+
 const GROUP_CALL_TYPE = "m.call";
 const GROUP_CALL_MEMBER_TYPE = "m.call.member";
 
@@ -129,13 +132,96 @@ class GroupCall {
  * */
 
 
+class LocalMedia {
+    private tracks = new Map<TrackType, Track>();
+
+    setTracks(tracks: Track[]) {
+        for (const track of tracks) {
+            this.setTrack(track);
+        }
+    }
+
+    setTrack(track: Track) {
+        let cameraAndMicStreamDontMatch = false;
+        if (track.type === TrackType.Microphone) {
+            const {cameraTrack} = this;
+            if (cameraTrack && track.streamId !== cameraTrack.streamId) {
+                cameraAndMicStreamDontMatch = true;
+            }
+        }
+        if (track.type === TrackType.Camera) {
+            const {microphoneTrack} = this;
+            if (microphoneTrack && track.streamId !== microphoneTrack.streamId) {
+                cameraAndMicStreamDontMatch = true;
+            }
+        }
+        if (cameraAndMicStreamDontMatch) {
+            throw new Error("The camera and audio track should have the same stream id");
+        }
+        this.tracks.set(track.type, track);
+    }
+
+    public get cameraTrack(): Track | undefined { return this.tracks.get(TrackType.Camera); };
+    public get screenShareTrack(): Track | undefined { return this.tracks.get(TrackType.ScreenShare); };
+    public get microphoneTrack(): AudioTrack | undefined { return this.tracks.get(TrackType.Microphone) as (AudioTrack | undefined); };
+
+    getSDPMetadata(): any {
+        const metadata = {};
+        const userMediaTrack = this.microphoneTrack ?? this.cameraTrack;
+        if (userMediaTrack) {
+            metadata[userMediaTrack.streamId] = {
+                purpose: StreamPurpose.UserMedia
+            };
+        }
+        if (this.screenShareTrack) {
+            metadata[this.screenShareTrack.streamId] = {
+                purpose: StreamPurpose.ScreenShare
+            };
+        }
+        return metadata;
+    }
+}
+
 // when sending, we need to encrypt message with olm. I think the flow of room => roomEncryption => olmEncryption as we already
 // do for sharing keys will be best as that already deals with room tracking.
 type SendSignallingMessageCallback = (type: CallSetupMessageType, content: Record<string, any>) => Promise<void>;
 
-class PeerCall {
-    constructor(private readonly sendSignallingMessage: SendSignallingMessageCallback) {
+/** Implements a call between two peers with the signalling state keeping, while still delegating the signalling message sending. Used by GroupCall.*/
+class PeerCall implements PeerConnectionHandler {
+    private readonly peerConnection: PeerConnection;
 
+    constructor(
+        private readonly sendSignallingMessage: SendSignallingMessageCallback,
+        private localMedia: LocalMedia,
+        webRTC: WebRTC
+    ) {
+        this.peerConnection = webRTC.createPeerConnection(this);
+    }
+
+    onIceConnectionStateChange(state: RTCIceConnectionState) {}
+    onLocalIceCandidate(candidate: RTCIceCandidate) {}
+    onIceGatheringStateChange(state: RTCIceGatheringState) {}
+    onRemoteTracksChanged(tracks: Track[]) {}
+    onDataChannelChanged(dataChannel: DataChannel | undefined) {}
+    onNegotiationNeeded() {
+        const message = {
+            offer: this.peerConnection.createOffer(),
+            sdp_stream_metadata: this.localMedia.getSDPMetadata(),
+            version: 1
+        }
+        this.sendSignallingMessage(CallSetupMessageType.Invite, message);
+    }
+
+    setLocalMedia(localMedia: LocalMedia) {
+        this.localMedia = localMedia;
+        // TODO: send new metadata
+    }
+
+
+    // request the type of incoming track
+    getPurposeForStreamId(streamId: string): StreamPurpose {
+        // look up stream purpose 
+        return StreamPurpose.UserMedia;
     }
 
     handleIncomingSignallingMessage(type: CallSetupMessageType, content: Record<string, any>) {
@@ -148,10 +234,3 @@ class PeerCall {
     }
 }
 
-class MediaSource {
-
-}
-
-class PeerConnection {
-
-}
