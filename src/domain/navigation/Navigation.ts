@@ -15,28 +15,53 @@ limitations under the License.
 */
 
 import {BaseObservableValue, ObservableValue} from "../../observable/ObservableValue";
+import type {allowsChild as AllowsChild} from "./index.js";
+
+type SegmentType = {
+    "login": true;
+    "session": string;
+    "sso": string;
+    "logout": true;
+    "room": string;
+    "rooms": string[];
+    "settings": true;
+    "create-room": true;
+    "empty-grid-tile": number;
+    "lightbox": string;
+    "right-panel": boolean;
+    "details": true;
+    "members": true;
+    "member": string;
+};
 
 export class Navigation {
-    constructor(allowsChild) {
+    private readonly _allowsChild: AllowsChild;
+    private _path: Path;
+    private readonly _observables: Map<string, SegmentObservable> = new Map();
+    private readonly _pathObservable: ObservableValue<Path>;
+
+    constructor(allowsChild: AllowsChild) {
         this._allowsChild = allowsChild;
         this._path = new Path([], allowsChild);
-        this._observables = new Map();
         this._pathObservable = new ObservableValue(this._path);
     }
 
-    get pathObservable() {
+    get pathObservable(): ObservableValue<Path> {
         return this._pathObservable;
     }
 
-    get path() {
+    get path(): Path {
         return this._path;
     }
 
-    push(type, value = undefined) {
-        return this.applyPath(this.path.with(new Segment(type, value)));
+    push(type, value = undefined): void {
+        const newPath = this.path.with(new Segment(type, value));
+        if (newPath) {
+            this.applyPath(newPath);
+        }
     }
 
-    applyPath(path) {
+    applyPath(path: Path): void {
         // Path is not exported, so you can only create a Path through Navigation,
         // so we assume it respects the allowsChild rules
         const oldPath = this._path;
@@ -60,7 +85,7 @@ export class Navigation {
         this._pathObservable.set(this._path);
     }
 
-    observe(type) {
+    observe(type: keyof SegmentType): SegmentObservable {
         let observable = this._observables.get(type);
         if (!observable) {
             observable = new SegmentObservable(this, type);
@@ -69,9 +94,9 @@ export class Navigation {
         return observable;
     }
 
-    pathFrom(segments) {
-        let parent;
-        let i;
+    pathFrom(segments: Segment<any>[]): Path {
+        let parent: Segment<any> | undefined;
+        let i: number;
         for (i = 0; i < segments.length; i += 1) {
             if (!this._allowsChild(parent, segments[i])) {
                 return new Path(segments.slice(0, i), this._allowsChild);
@@ -81,12 +106,12 @@ export class Navigation {
         return new Path(segments, this._allowsChild);
     }
 
-    segment(type, value) {
+    segment<T extends keyof SegmentType>(type: T, value: SegmentType[T]): Segment<T> {
         return new Segment(type, value);
     }
 }
 
-function segmentValueEqual(a, b) {
+function segmentValueEqual(a?: SegmentType[keyof SegmentType], b?: SegmentType[keyof SegmentType]): boolean {
     if (a === b) {
         return true;
     }
@@ -103,24 +128,28 @@ function segmentValueEqual(a, b) {
     return false;
 }
 
-export class Segment {
-    constructor(type, value) {
-        this.type = type;
-        this.value = value === undefined ? true : value;
-    }
+
+export class Segment<T extends keyof SegmentType> {
+    constructor(
+        public type: T,
+        public value: SegmentType[T] | true = value === undefined ? true : value 
+    ) {}
 }
 
 class Path {
-    constructor(segments = [], allowsChild) {
+    private readonly _segments: Segment<any>[];
+    private readonly _allowsChild: AllowsChild;
+
+    constructor(segments: Segment<any>[] = [], allowsChild: AllowsChild) {
         this._segments = segments;
         this._allowsChild = allowsChild;
     }
 
-    clone() {
+    clone(): Path {
         return new Path(this._segments.slice(), this._allowsChild);
     }
 
-    with(segment) {
+    with(segment: Segment<any>): Path | null {
         let index = this._segments.length - 1;
         do {
             if (this._allowsChild(this._segments[index], segment)) {
@@ -135,7 +164,7 @@ class Path {
         return null;
     }
 
-    until(type) {
+    until(type: keyof SegmentType): Path {
         const index = this._segments.findIndex(s => s.type === type);
         if (index !== -1) {
             return new Path(this._segments.slice(0, index + 1), this._allowsChild)
@@ -143,11 +172,11 @@ class Path {
         return new Path([], this._allowsChild);
     }
 
-    get(type) {
+    get(type: keyof SegmentType): Segment<any> | undefined {
         return this._segments.find(s => s.type === type);
     }
 
-    replace(segment) {
+    replace(segment: Segment<any>): Path | null {
         const index = this._segments.findIndex(s => s.type === segment.type);
         if (index !== -1) {
             const parent = this._segments[index - 1];
@@ -163,7 +192,7 @@ class Path {
         return null;
     }
 
-    get segments() {
+    get segments(): Segment<any>[] {
         return this._segments;
     }
 }
@@ -172,22 +201,26 @@ class Path {
  * custom observable so it always returns what is in navigation.path, even if we haven't emitted the change yet.
  * This ensures that observers of a segment can also read the most recent value of other segments.
  */
-class SegmentObservable extends BaseObservableValue {
-    constructor(navigation, type) {
+class SegmentObservable extends BaseObservableValue<SegmentType[keyof SegmentType] | undefined> {
+    private readonly _navigation: Navigation;
+    private _type: keyof SegmentType;
+    private _lastSetValue?: SegmentType[keyof SegmentType];
+        
+    constructor(navigation: Navigation, type: keyof SegmentType) {
         super();
         this._navigation = navigation;
         this._type = type;
         this._lastSetValue = navigation.path.get(type)?.value;
     }
 
-    get() {
+    get(): SegmentType[keyof SegmentType] | undefined {
         const path = this._navigation.path;
         const segment = path.get(this._type);
         const value = segment?.value;
         return value;
     }
 
-    emitIfChanged() {
+    emitIfChanged(): void {
         const newValue = this.get();
         if (!segmentValueEqual(newValue, this._lastSetValue)) {
             this._lastSetValue = newValue;

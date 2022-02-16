@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {Navigation, Segment} from "./Navigation.js";
+import {Navigation, Segment} from "./Navigation";
 import {URLRouter} from "./URLRouter.js";
 
 export function createNavigation() {
