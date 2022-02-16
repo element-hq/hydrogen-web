@@ -94,9 +94,7 @@ export class Registration {
                 this._sessionInfo = response;
                 return undefined;
             case 401:
-                // Support unstable prefix for TokenAuth
-                const typeFromServer = (currentStage as TokenAuth).typeFromServer;
-                if (response.completed?.includes(typeFromServer ?? currentStage.type)) {
+                if (response.completed?.includes(currentStage.type)) {
                     return currentStage.nextStage;
                 }
                 else {

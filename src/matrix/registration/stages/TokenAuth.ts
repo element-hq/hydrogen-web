@@ -43,10 +43,6 @@ export class TokenAuth extends BaseRegistrationStage {
     }
 
     get type(): string {
-        return "m.login.registration_token";
-    }
-
-    get typeFromServer(): string {
         return this._type;
     }
 }
