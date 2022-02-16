@@ -17,7 +17,7 @@ limitations under the License.
 import {DecryptionError} from "../common.js";
 import {groupBy} from "../../../utils/groupBy";
 import {MultiLock, ILock} from "../../../utils/Lock";
-import {Session} from "./Session.js";
+import {Session} from "./Session";
 import {DecryptionResult} from "../DecryptionResult";
 
 import type {OlmMessage, OlmPayload} from "./types";
@@ -246,7 +246,7 @@ class SenderKeyDecryption {
         private readonly timestamp: number
     ) {}
 
-    addNewSession(session: Session) {
+    addNewSession(session: Session): void {
         // add at top as it is most recent
         this.sessions.unshift(session);
     }
