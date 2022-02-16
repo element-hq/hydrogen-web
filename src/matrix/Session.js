@@ -27,7 +27,7 @@ import {DeviceMessageHandler} from "./DeviceMessageHandler.js";
 import {Account as E2EEAccount} from "./e2ee/Account.js";
 import {uploadAccountAsDehydratedDevice} from "./e2ee/Dehydration.js";
 import {Decryption as OlmDecryption} from "./e2ee/olm/Decryption";
-import {Encryption as OlmEncryption} from "./e2ee/olm/Encryption.js";
+import {Encryption as OlmEncryption} from "./e2ee/olm/Encryption";
 import {Decryption as MegOlmDecryption} from "./e2ee/megolm/Decryption";
 import {KeyLoader as MegOlmKeyLoader} from "./e2ee/megolm/decryption/KeyLoader";
 import {KeyBackup} from "./e2ee/megolm/keybackup/KeyBackup";
@@ -132,16 +132,16 @@ export class Session {
             this._user.id,
             senderKeyLock
         );
-        this._olmEncryption = new OlmEncryption({
-            account: this._e2eeAccount,
-            pickleKey: PICKLE_KEY,
-            olm: this._olm,
-            storage: this._storage,
-            now: this._platform.clock.now,
-            ownUserId: this._user.id,
-            olmUtil: this._olmUtil,
+        this._olmEncryption = new OlmEncryption(
+            this._e2eeAccount,
+            PICKLE_KEY,
+            this._olm,
+            this._storage,
+            this._platform.clock.now,
+            this._user.id,
+            this._olmUtil,
             senderKeyLock
-        });
+        );
         this._keyLoader = new MegOlmKeyLoader(this._olm, PICKLE_KEY, 20);
         this._megolmEncryption = new MegOlmEncryption({
             account: this._e2eeAccount,
