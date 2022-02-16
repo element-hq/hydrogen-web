@@ -14,13 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {AuthenticationData} from "../types";
+import {AuthenticationData, RegistrationParams} from "../types";
 import {BaseRegistrationStage} from "./BaseRegistrationStage";
-
-export const TOKEN_AUTH_TYPE = "org.matrix.msc3231.login.registration_token";
 
 export class TokenAuth extends BaseRegistrationStage {
     private _token?: string;
+    private readonly _type: string;
+
+    constructor(session: string, params: RegistrationParams | undefined, type: string) {
+        super(session, params);
+        this._type = type;
+    }
+
 
     generateAuthenticationData(): AuthenticationData {
         if (!this._token) {
@@ -28,7 +33,7 @@ export class TokenAuth extends BaseRegistrationStage {
         }
         return {
             session: this._session,
-            type: this.type,
+            type: this._type,
             token: this._token,
         };    
     }
@@ -38,6 +43,10 @@ export class TokenAuth extends BaseRegistrationStage {
     }
 
     get type(): string {
-        return TOKEN_AUTH_TYPE;
+        return "m.login.registration_token";
+    }
+
+    get typeFromServer(): string {
+        return this._type;
     }
 }
