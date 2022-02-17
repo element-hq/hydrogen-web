@@ -15,35 +15,31 @@ limitations under the License.
 */
 
 import {DecryptionError} from "../../common.js";
+import type {DecryptionResult} from "../../DecryptionResult";
+import type {ReplayDetectionEntry} from "./ReplayDetectionEntry";
 
 export class DecryptionChanges {
-    constructor(roomId, results, errors, replayEntries) {
-        this._roomId = roomId;
-        this._results = results;
-        this._errors = errors;
-        this._replayEntries = replayEntries;
-    }
+    constructor(
+        private readonly roomId: string, 
+        private readonly results: Map<string, DecryptionResult>, 
+        private readonly errors: Map<string, Error> | undefined, 
+        private readonly replayEntries: ReplayDetectionEntry[]
+    ) {}
 
     /**
-     * @type MegolmBatchDecryptionResult
-     * @property {Map<string, DecryptionResult>} results a map of event id to decryption result
-     * @property {Map<string, Error>} errors event id -> errors
-     * 
      * Handle replay attack detection, and return result
-     * @param  {[type]} txn [description]
-     * @return {MegolmBatchDecryptionResult}
      */
-    async write(txn) {
-        await Promise.all(this._replayEntries.map(async replayEntry => {
+    async write(txn): Promise<{results: Map<string, DecryptionResult>, errors: Map<string, Error>}> {
+        await Promise.all(this.replayEntries.map(async replayEntry => {
             try {
-                this._handleReplayAttack(this._roomId, replayEntry, txn);
+                this._handleReplayAttack(this.roomId, replayEntry, txn);
             } catch (err) {
-                this._errors.set(replayEntry.eventId, err);
+                this.errors.set(replayEntry.eventId, err);
             }
         }));
         return {
-            results: this._results,
-            errors: this._errors
+            results: this.results,
+            errors: this.errors
         };
     }
 
