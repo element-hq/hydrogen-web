@@ -30,44 +30,6 @@ Things that should go into your PR description:
  * Add comments to the diff for the reviewer that might help them to understand
    why the change is necessary or how they might better understand and review it.
 
-To add a longer, more detailed description of the change for the changelog:
-
-
-*Fix llama herding bug*
-
-```
-Notes: Fix a bug (https://github.com/matrix-org/notaproject/issues/123) where the 'Herd' button would not herd more than 8 Llamas if the moon was in the waxing gibbous phase
-```
-
-*Remove outdated comment from `Ungulates.ts`*
-```
-Notes: none
-```
-
-Sometimes, you're fixing a bug in a downstream project, in which case you want
-an entry in that project's changelog. You can do that too:
-
-*Fix another herding bug*
-```
-Notes: Fix a bug where the `herd()` function would only work on Tuesdays
-element-web notes: Fix a bug where the 'Herd' button only worked on Tuesdays
-```
-
-If your PR introduces a breaking change, add the `X-Breaking-Change` label (see below)
-and remember to tell the developer how to migrate:
-
-*Remove legacy class*
-
-```
-Notes: Remove legacy `Camelopard` class. `Giraffe` should be used instead.
-```
-
-Other metadata can be added using labels.
- * `X-Breaking-Change`: A breaking change - adding this label will mean the change causes a *major* version bump.
-
-If you don't have permission to add labels, your PR reviewer(s) can work with you
-to add them: ask in the PR description or comments.
-
 We use continuous integration, and all pull requests get automatically tested:
 if your change breaks the build, then the PR will show that there are failed
 checks, so please check back after a few minutes.
@@ -101,7 +63,7 @@ If present, you'll be asked to undo any unrelated whitespace changes during code
 Members should not be exported as a default export in general.
 In general, avoid using `export default`.
 
-The remaining code-style for hydrogen is not formally documented, but
+The remaining code-style for hydrogen is [in the process of being documented](codestyle.md), but
 contributors are encouraged to read the
 [code style document for matrix-react-sdk](https://github.com/matrix-org/matrix-react-sdk/blob/master/code_style.md)
 and follow the principles set out there.
