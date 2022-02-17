@@ -1,4 +1,4 @@
-Contributing code to matrix-js-sdk
+Contributing code to hydrogen-web
 ==================================
 
 Everyone is welcome to contribute code to hydrogen-web, provided that they are
@@ -20,13 +20,11 @@ We use GitHub's pull request workflow to review the contribution, and either
 ask you to make any refinements needed or merge it and make them ourselves.
 
 Things that should go into your PR description:
- * Please disable any automatic formatting tools you may have active.
-   You'll be asked to undo any unrelated whitespace changes during code review.
  * References to any bugs fixed by the change (in GitHub's `Fixes` notation)
  * Describe the why and what is changing in the PR description so it's easy for
    onlookers and reviewers to onboard and context switch.
- * Include both **before** and **after** screenshots to easily compare and discuss
-   what's changing.
+ * If your PR makes visual changes, include both **before** and **after** screenshots
+   to easily compare and discuss what's changing.
  * Include a step-by-step testing strategy so that a reviewer can check out the
    code locally and easily get to the point of testing your change.
  * Add comments to the diff for the reviewer that might help them to understand
@@ -76,30 +74,34 @@ checks, so please check back after a few minutes.
 
 Tests
 -----
-If your PR is a feature (ie. if it's being labelled with the 'T-Enhancement'
-label) then we require that the PR also includes tests. These need to test that
-your feature works as expected and ideally test edge cases too. For the js-sdk
-itself, your tests should generally be unit tests. matrix-react-sdk also uses
-these guidelines, so for that your tests can be unit tests using
-react-test-utils, snapshot tests or screenshot tests.
+If your PR is a feature then we require that the PR also includes tests.
+These need to test that your feature works as expected and ideally test edge cases too.
 
-We don't require tests for bug fixes (T-Defect) but strongly encourage regression
-tests for the bug itself wherever possible.
+Tests are written as unit tests by exporting a `tests` function from the file to be tested.
+The function returns an object where the key is the test label, and the value is a 
+function that accepts an [assert](https://nodejs.org/api/assert.html) object, and return a Promise or nothing.
 
-In the future we may formalise this more with a minimum test coverage
-percentage for the diff.
+Note that there is currently a limitation that files that are not indirectly included from `src/platform/web/main.js` won't be found by the runner.
+
+You can run the tests by running `yarn test`.
+This uses the [impunity](https://github.com/bwindels/impunity) runner.
+
+We don't require tests for bug fixes.
+
+In the future we may formalise this more.
 
 Code style
 ----------
 The js-sdk aims to target TypeScript/ES6. All new files should be written in
 TypeScript and existing files should use ES6 principles where possible.
 
-Members should not be exported as a default export in general - it causes problems
-with the architecture of the SDK (index file becomes less clear) and could
-introduce naming problems (as default exports get aliased upon import). In
-general, avoid using `export default`.
+Please disable any automatic formatting tools you may have active.
+If present, you'll be asked to undo any unrelated whitespace changes during code review.
 
-The remaining code-style for matrix-js-sdk is not formally documented, but
+Members should not be exported as a default export in general.
+In general, avoid using `export default`.
+
+The remaining code-style for hydrogen is not formally documented, but
 contributors are encouraged to read the
 [code style document for matrix-react-sdk](https://github.com/matrix-org/matrix-react-sdk/blob/master/code_style.md)
 and follow the principles set out there.
@@ -110,13 +112,8 @@ makes it horribly hard to review otherwise.
 
 Attribution
 -----------
-Everyone who contributes anything to Matrix is welcome to be listed in the
-AUTHORS.rst file for the project in question. Please feel free to include a
-change to AUTHORS.rst in your pull request to list yourself and a short
-description of the area(s) you've worked on. Also, we sometimes have swag to
-give away to contributors - if you feel that Matrix-branded apparel is missing
-from your life, please mail us your shipping address to matrix at matrix.org
-and we'll try to fix it :)
+If you change or create a file, feel free to add yourself to the copyright holders
+in the license header of that file.
 
 Sign off
 --------
