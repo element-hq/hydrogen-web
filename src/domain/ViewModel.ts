@@ -110,7 +110,7 @@ export class ViewModel<O extends Options = Options> extends EventEmitter<{change
     }
 
     emitChange(changedProps: any): void {
-        if (this._options.emitChange) {
+        if (this._options?.emitChange) {
             this._options.emitChange(changedProps);
         } else {
             this.emit("change", changedProps);
