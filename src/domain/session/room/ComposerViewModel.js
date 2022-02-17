@@ -18,7 +18,7 @@ import {ViewModel} from "../../ViewModel";
 
 export class ComposerViewModel extends ViewModel {
     constructor(roomVM) {
-        super();
+        super(roomVM.options);
         this._roomVM = roomVM;
         this._isEmpty = true;
         this._replyVM = null;
