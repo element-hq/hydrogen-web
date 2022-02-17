@@ -36,9 +36,9 @@ enum CallSetupMessageType {
 const CALL_ID = "m.call_id";
 const CALL_TERMINATED = "m.terminated";
 
-export class CallHandler {
+export class GroupCallHandler {
     // group calls by call id
-    public readonly groupCalls: ObservableMap<string, GroupCall> = new ObservableMap<string, GroupCall>();
+    public readonly calls: ObservableMap<string, GroupCall> = new ObservableMap<string, GroupCall>();
 
     constructor() {
 
@@ -49,15 +49,15 @@ export class CallHandler {
         for (const event of events) {
             if (event.type === GROUP_CALL_TYPE) {
                 const callId = event.state_key;
-                let call = this.groupCalls.get(callId);
+                let call = this.calls.get(callId);
                 if (call) {
                     call.updateCallEvent(event);
                     if (call.isTerminated) {
-                        this.groupCalls.remove(call.id);
+                        this.calls.remove(call.id);
                     }
                 } else {
                     call = new GroupCall(event, room);
-                    this.groupCalls.set(call.id, call);
+                    this.calls.set(call.id, call);
                 }
             }
         }
@@ -67,7 +67,7 @@ export class CallHandler {
                 const participant = event.state_key;
                 const sources = event.content["m.sources"];
                 for (const source of sources) {
-                    const call = this.groupCalls.get(source[CALL_ID]);
+                    const call = this.calls.get(source[CALL_ID]);
                     if (call && !call.isTerminated) {
                         call.addParticipant(participant, source);
                     }
@@ -85,20 +85,69 @@ export class CallHandler {
 
     handleDeviceMessage(senderUserId: string, senderDeviceId: string, eventType: string, content: Record<string, any>, log: ILogItem) {
         const callId = content[CALL_ID];
-        const call = this.groupCalls.get(callId);
+        const call = this.calls.get(callId);
         call?.handleDeviceMessage(senderUserId, senderDeviceId, eventType, content, log);
     }
 }
 
-function peerCallKey(senderUserId: string, senderDeviceId: string) {
+function participantId(senderUserId: string, senderDeviceId: string | null) {
     return JSON.stringify(senderUserId) + JSON.stringify(senderDeviceId);
 }
 
+class GroupParticipant implements PeerCallHandler {
+    private peerCall?: PeerCall;
+
+    constructor(
+        private readonly userId: string,
+        private readonly deviceId: string,
+        private localMedia: LocalMedia | undefined,
+        private readonly webRTC: WebRTC,
+        private readonly hsApi: HomeServerApi
+    ) {}
+
+    sendInvite() {
+        this.peerCall = new PeerCall(this, this.webRTC);
+        this.peerCall.setLocalMedia(this.localMedia);
+        this.peerCall.sendOffer();
+    }
+
+    /** From PeerCallHandler
+     * @internal */
+    override emitUpdate() {
+
+    }
+
+    /** From PeerCallHandler
+     * @internal */
+    override onSendSignallingMessage() {
+        // TODO: this needs to be encrypted with olm first
+        this.hsApi.sendToDevice(type, {[this.userId]: {[this.deviceId ?? "*"]: content}});
+    }
+}
+
 class GroupCall {
-    private peerCalls: Map<string, PeerCall>
+    private readonly participants: ObservableMap<string, Participant> = new ObservableMap();
+    private localMedia?: LocalMedia;
 
-    constructor(private callEvent: StateEvent, private readonly room: Room) {
+    constructor(private readonly ownUserId: string, private callEvent: StateEvent, private readonly room: Room, private readonly webRTC: WebRTC) {
 
+    }
+
+    get id(): string { return this.callEvent.state_key; }
+
+    async participate(tracks: Track[]) {
+        this.localMedia = LocalMedia.fromTracks(tracks);
+        for (const [,participant] of this.participants) {
+            participant.setLocalMedia(this.localMedia.clone());
+        }
+        // send m.call.member state event
+
+        // send invite to all participants that are < my userId
+        for (const [,participant] of this.participants) {
+            if (participant.userId < this.ownUserId) {
+                participant.sendInvite();
+            }
+        }
     }
 
     updateCallEvent(callEvent: StateEvent) {
@@ -106,12 +155,32 @@ class GroupCall {
     }
 
     addParticipant(userId, source) {
-
+        const participantId = getParticipantId(userId, source.device_id);
+        const participant = this.participants.get(participantId);
+        if (participant) {
+            participant.updateSource(source);
+        } else {
+            participant.add(participantId, new GroupParticipant(userId, source.device_id, this.localMedia?.clone(), this.webRTC));
+        }
     }
 
     handleDeviceMessage(senderUserId: string, senderDeviceId: string, eventType: string, content: Record<string, any>, log: ILogItem) {
-        const peerCall = this.peerCalls.get(peerCallKey(senderUserId, senderDeviceId));
-        peerCall?.handleIncomingSignallingMessage()
+        const participantId = getParticipantId(senderUserId, senderDeviceId);
+        let peerCall = this.participants.get(participantId);
+        let hasDeviceInKey = true;
+        if (!peerCall) {
+            hasDeviceInKey = false;
+            peerCall = this.participants.get(getParticipantId(senderUserId, null))
+        }
+        if (peerCall) {
+            peerCall.handleIncomingSignallingMessage(eventType, content, senderDeviceId);
+            if (!hasDeviceInKey && peerCall.opponentPartyId) {
+                this.participants.delete(getParticipantId(senderUserId, null));
+                this.participants.add(getParticipantId(senderUserId, peerCall.opponentPartyId));
+            }
+        } else {
+            // create peerCall
+        }
     }
 
     get id(): string {
@@ -121,116 +190,4 @@ class GroupCall {
     get isTerminated(): boolean {
         return !!this.callEvent.content[CALL_TERMINATED];
     }
-
-    private createPeerCall(userId: string, deviceId: string): PeerCall {
-
-    }
 }
-
-/**
- * Does WebRTC signalling for a single PeerConnection, and deals with WebRTC wrappers from platform
- * */
-
-
-class LocalMedia {
-    private tracks = new Map<TrackType, Track>();
-
-    setTracks(tracks: Track[]) {
-        for (const track of tracks) {
-            this.setTrack(track);
-        }
-    }
-
-    setTrack(track: Track) {
-        let cameraAndMicStreamDontMatch = false;
-        if (track.type === TrackType.Microphone) {
-            const {cameraTrack} = this;
-            if (cameraTrack && track.streamId !== cameraTrack.streamId) {
-                cameraAndMicStreamDontMatch = true;
-            }
-        }
-        if (track.type === TrackType.Camera) {
-            const {microphoneTrack} = this;
-            if (microphoneTrack && track.streamId !== microphoneTrack.streamId) {
-                cameraAndMicStreamDontMatch = true;
-            }
-        }
-        if (cameraAndMicStreamDontMatch) {
-            throw new Error("The camera and audio track should have the same stream id");
-        }
-        this.tracks.set(track.type, track);
-    }
-
-    public get cameraTrack(): Track | undefined { return this.tracks.get(TrackType.Camera); };
-    public get screenShareTrack(): Track | undefined { return this.tracks.get(TrackType.ScreenShare); };
-    public get microphoneTrack(): AudioTrack | undefined { return this.tracks.get(TrackType.Microphone) as (AudioTrack | undefined); };
-
-    getSDPMetadata(): any {
-        const metadata = {};
-        const userMediaTrack = this.microphoneTrack ?? this.cameraTrack;
-        if (userMediaTrack) {
-            metadata[userMediaTrack.streamId] = {
-                purpose: StreamPurpose.UserMedia
-            };
-        }
-        if (this.screenShareTrack) {
-            metadata[this.screenShareTrack.streamId] = {
-                purpose: StreamPurpose.ScreenShare
-            };
-        }
-        return metadata;
-    }
-}
-
-// when sending, we need to encrypt message with olm. I think the flow of room => roomEncryption => olmEncryption as we already
-// do for sharing keys will be best as that already deals with room tracking.
-type SendSignallingMessageCallback = (type: CallSetupMessageType, content: Record<string, any>) => Promise<void>;
-
-/** Implements a call between two peers with the signalling state keeping, while still delegating the signalling message sending. Used by GroupCall.*/
-class PeerCall implements PeerConnectionHandler {
-    private readonly peerConnection: PeerConnection;
-
-    constructor(
-        private readonly sendSignallingMessage: SendSignallingMessageCallback,
-        private localMedia: LocalMedia,
-        webRTC: WebRTC
-    ) {
-        this.peerConnection = webRTC.createPeerConnection(this);
-    }
-
-    onIceConnectionStateChange(state: RTCIceConnectionState) {}
-    onLocalIceCandidate(candidate: RTCIceCandidate) {}
-    onIceGatheringStateChange(state: RTCIceGatheringState) {}
-    onRemoteTracksChanged(tracks: Track[]) {}
-    onDataChannelChanged(dataChannel: DataChannel | undefined) {}
-    onNegotiationNeeded() {
-        const message = {
-            offer: this.peerConnection.createOffer(),
-            sdp_stream_metadata: this.localMedia.getSDPMetadata(),
-            version: 1
-        }
-        this.sendSignallingMessage(CallSetupMessageType.Invite, message);
-    }
-
-    setLocalMedia(localMedia: LocalMedia) {
-        this.localMedia = localMedia;
-        // TODO: send new metadata
-    }
-
-
-    // request the type of incoming track
-    getPurposeForStreamId(streamId: string): StreamPurpose {
-        // look up stream purpose 
-        return StreamPurpose.UserMedia;
-    }
-
-    handleIncomingSignallingMessage(type: CallSetupMessageType, content: Record<string, any>) {
-        switch (type) {
-            case CallSetupMessageType.Invite:
-            case CallSetupMessageType.Answer:
-            case CallSetupMessageType.Candidates:
-            case CallSetupMessageType.Hangup:
-        }
-    }
-}
-

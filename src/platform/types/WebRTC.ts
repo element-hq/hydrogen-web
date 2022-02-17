@@ -47,7 +47,8 @@ export interface PeerConnection {
     createOffer(): Promise<RTCSessionDescriptionInit>;
     createAnswer(): Promise<RTCSessionDescriptionInit>;
     setLocalDescription(description: RTCSessionDescriptionInit);
-    setRemoteDescription(description: RTCSessionDescriptionInit);
+    setRemoteDescription(description: RTCSessionDescriptionInit): Promise<void>;
+    addIceCandidate(candidate: RTCIceCandidate): Promise<void>;
     addTrack(track: Track): void;
     removeTrack(track: Track): boolean;
     replaceTrack(oldTrack: Track, newTrack: Track): Promise<boolean>;

@@ -32,6 +32,7 @@ export interface Track {
     get label(): string;
     get id(): string;
     get streamId(): string;
+    get settings(): MediaTrackSettings;
     get muted(): boolean;
     setMuted(muted: boolean): void;
 }

@@ -97,6 +97,7 @@ export class TrackWrapper implements Track {
     get id(): string { return this.track.id; }
     get streamId(): string { return this.stream.id; }
     get muted(): boolean { return this.track.muted; }
+    get settings(): MediaTrackSettings { return this.track.getSettings(); }
 
     setMuted(muted: boolean): void {
         this.track.enabled = !muted;
