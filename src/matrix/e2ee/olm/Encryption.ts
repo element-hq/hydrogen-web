@@ -64,12 +64,12 @@ const MAX_BATCH_SIZE = 20;
 export class Encryption {
     constructor(
         private readonly account: Account,
+        private readonly pickleKey: string,
         private readonly olm: Olm,
-        private readonly olmUtil: Olm.Utility,
-        private readonly ownUserId: string,
         private readonly storage: Storage,
         private readonly now: () => number,
-        private readonly pickleKey: string,
+        private readonly ownUserId: string,
+        private readonly olmUtil: Olm.Utility,
         private readonly senderKeyLock: LockMap<string>
     ) {}
 

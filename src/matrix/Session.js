@@ -126,9 +126,9 @@ export class Session {
         const olmDecryption = new OlmDecryption(
             this._e2eeAccount,
             PICKLE_KEY,
-            this._olm,
             this._platform.clock.now,
             this._user.id,
+            this._olm,
             senderKeyLock
         );
         this._olmEncryption = new OlmEncryption(
