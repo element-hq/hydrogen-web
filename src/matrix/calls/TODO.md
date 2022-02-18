@@ -1,3 +1,26 @@
+## TODO
+ - PeerCall
+    - send invite
+    - find out if we need to do something different when renegotation is triggered (a subsequent onnegotiationneeded event) whether
+      we sent the invite/offer or answer. e.g. do we always do createOffer/setLocalDescription and then send it over a matrix negotiation event? even if we before called createAnswer.
+    - handle receiving offer and send anwser
+    - handle sending ice candidates
+        - handle ice candidates finished (iceGatheringState === 'complete')
+    - handle receiving ice candidates
+    - handle sending renegotiation
+    - handle receiving renegotiation
+    - reject call
+    - hangup call
+    - handle muting tracks
+    - handle remote track being muted
+    - handle adding/removing tracks to an ongoing call
+    - handle sdp metadata
+ - Participant
+    - handle glare
+    - encrypt to_device message with olm
+    - batch outgoing to_device messages in one request to homeserver for operations that will send out an event to all participants (e.g. mute)
+    - find out if we should start muted or not?
+
 ## Store ongoing calls
 
 Add store with all ongoing calls so when we quit and start again, we don't have to go through all the past calls to know which ones might still be ongoing.

@@ -49,12 +49,12 @@ class DOMPeerConnection implements PeerConnection {
         return this.peerConnection.createAnswer();
     }
 
-    setLocalDescription(description: RTCSessionDescriptionInit) {
-        this.peerConnection.setLocalDescription(description);
+    setLocalDescription(description?: RTCSessionDescriptionInit): Promise<void> {
+        return this.peerConnection.setLocalDescription(description);
     }
 
-    setRemoteDescription(description: RTCSessionDescriptionInit) {
-        this.peerConnection.setRemoteDescription(description);
+    setRemoteDescription(description: RTCSessionDescriptionInit): Promise<void> {
+        return this.peerConnection.setRemoteDescription(description);
     }
 
     addIceCandidate(candidate: RTCIceCandidate): Promise<void> {
@@ -66,6 +66,9 @@ class DOMPeerConnection implements PeerConnection {
             throw new Error("Not a TrackWrapper");
         }
         this.peerConnection.addTrack(track.track, track.stream);
+        if (track.type === TrackType.ScreenShare) {
+            this.getRidOfRTXCodecs(track);
+        }
     }
 
     removeTrack(track: Track): boolean {
@@ -87,6 +90,9 @@ class DOMPeerConnection implements PeerConnection {
         const sender = this.peerConnection.getSenders().find(s => s.track === oldTrack.track);
         if (sender) {
             await sender.replaceTrack(newTrack.track);
+            if (newTrack.type === TrackType.ScreenShare) {
+                this.getRidOfRTXCodecs(newTrack);
+            }
             return true;
         }
         return false;
@@ -104,6 +110,17 @@ class DOMPeerConnection implements PeerConnection {
         pc.addEventListener('signalingstatechange', this);
         pc.addEventListener('track', this);
         pc.addEventListener('datachannel', this);
+    }
+
+    private deregisterHandler() {
+        const pc = this.peerConnection;
+        pc.removeEventListener('negotiationneeded', this);
+        pc.removeEventListener('icecandidate', this);
+        pc.removeEventListener('iceconnectionstatechange', this);
+        pc.removeEventListener('icegatheringstatechange', this);
+        pc.removeEventListener('signalingstatechange', this);
+        pc.removeEventListener('track', this);
+        pc.removeEventListener('datachannel', this);
     }
 
     /** @internal */
@@ -129,6 +146,10 @@ class DOMPeerConnection implements PeerConnection {
         }
     }
 
+    dispose(): void {
+        this.deregisterHandler();
+    }
+
     private handleLocalIceCandidate(event: RTCPeerConnectionIceEvent) {
         if (event.candidate) {
             this.handler.onLocalIceCandidate(event.candidate);
@@ -145,10 +166,15 @@ class DOMPeerConnection implements PeerConnection {
     }
 
     private handleRemoteTrack(evt: RTCTrackEvent) {
+        // the tracks on the new stream (with their stream)
         const updatedTracks = evt.streams.flatMap(stream => stream.getTracks().map(track => {return {stream, track};}));
-        const withoutRemovedTracks = this._remoteTracks.filter(t => !updatedTracks.some(ut => t.track == ut.track));
-        const addedTracks = updatedTracks.filter(ut => !this._remoteTracks.some(t => t.track === ut.track));
+        // of the tracks we already know about, filter the ones that aren't in the new stream
+        const withoutRemovedTracks = this._remoteTracks.filter(t => !updatedTracks.some(ut => t.track.id === ut.track.id));
+        // of the new tracks, filter the ones that we didn't already knew about
+        const addedTracks = updatedTracks.filter(ut => !this._remoteTracks.some(t => t.track.id === ut.track.id));
+        // wrap them
         const wrappedAddedTracks = addedTracks.map(t => this.wrapRemoteTrack(t.track, t.stream));
+        // and concat the tracks for other streams with the added tracks
         this._remoteTracks = withoutRemovedTracks.concat(...wrappedAddedTracks);
         this.handler.onRemoteTracksChanged(this.remoteTracks);
     }
@@ -161,5 +187,45 @@ class DOMPeerConnection implements PeerConnection {
             type = TrackType.Microphone;
         }
         return wrapTrack(track, stream, type);
+    }
+
+    /**
+     * This method removes all video/rtx codecs from screensharing video
+     * transceivers. This is necessary since they can cause problems. Without
+     * this the following steps should produce an error:
+     *   Chromium calls Firefox
+     *   Firefox answers
+     *   Firefox starts screen-sharing
+     *   Chromium starts screen-sharing
+     *   Call crashes for Chromium with:
+     *       [96685:23:0518/162603.933321:ERROR:webrtc_video_engine.cc(3296)] RTX codec (PT=97) mapped to PT=96 which is not in the codec list.
+     *       [96685:23:0518/162603.933377:ERROR:webrtc_video_engine.cc(1171)] GetChangedRecvParameters called without any video codecs.
+     *       [96685:23:0518/162603.933430:ERROR:sdp_offer_answer.cc(4302)] Failed to set local video description recv parameters for m-section with mid='2'. (INVALID_PARAMETER)
+     */
+    private getRidOfRTXCodecs(screensharingTrack: TrackWrapper): void {
+        // RTCRtpReceiver.getCapabilities and RTCRtpSender.getCapabilities don't seem to be supported on FF
+        if (!RTCRtpReceiver.getCapabilities || !RTCRtpSender.getCapabilities) return;
+
+        const recvCodecs = RTCRtpReceiver.getCapabilities("video")?.codecs ?? [];
+        const sendCodecs = RTCRtpSender.getCapabilities("video")?.codecs ?? [];
+        const codecs = [...sendCodecs, ...recvCodecs];
+
+        for (const codec of codecs) {
+            if (codec.mimeType === "video/rtx") {
+                const rtxCodecIndex = codecs.indexOf(codec);
+                codecs.splice(rtxCodecIndex, 1);
+            }
+        }
+
+        for (const trans of this.peerConnection.getTransceivers()) {
+            if (trans.sender.track === screensharingTrack.track &&
+                (
+                    trans.sender.track?.kind === "video" ||
+                    trans.receiver.track?.kind === "video"
+                )
+            ) {
+                trans.setCodecPreferences(codecs);
+            }
+        }
     }
 }

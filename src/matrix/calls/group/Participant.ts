@@ -14,6 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {EventType} from "../PeerCall";
+import type {PeerCallHandler} from "../PeerCall";
+
 class Participant implements PeerCallHandler {
     private peerCall?: PeerCall;
 
@@ -27,19 +30,18 @@ class Participant implements PeerCallHandler {
 
     sendInvite() {
         this.peerCall = new PeerCall(this, this.webRTC);
-        this.peerCall.setLocalMedia(this.localMedia);
-        this.peerCall.sendOffer();
+        this.peerCall.call(this.localMedia);
     }
 
     /** From PeerCallHandler
      * @internal */
-    override emitUpdate() {
+    emitUpdate(params: any) {
 
     }
 
     /** From PeerCallHandler
      * @internal */
-    override onSendSignallingMessage() {
+    onSendSignallingMessage(type: EventType, content: Record<string, any>) {
         // TODO: this needs to be encrypted with olm first
         this.hsApi.sendToDevice(type, {[this.userId]: {[this.deviceId ?? "*"]: content}});
     }

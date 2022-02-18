@@ -33,7 +33,7 @@ export interface PeerConnectionHandler {
     onDataChannelChanged(dataChannel: DataChannel | undefined);
     onNegotiationNeeded();
     // request the type of incoming stream
-    getPurposeForStreamId(trackId: string): StreamPurpose;
+    getPurposeForStreamId(streamId: string): StreamPurpose;
 }
 // does it make sense to wrap this?
 export interface DataChannel {
@@ -46,11 +46,12 @@ export interface PeerConnection {
     get dataChannel(): DataChannel | undefined;
     createOffer(): Promise<RTCSessionDescriptionInit>;
     createAnswer(): Promise<RTCSessionDescriptionInit>;
-    setLocalDescription(description: RTCSessionDescriptionInit);
+    setLocalDescription(description?: RTCSessionDescriptionInit): Promise<void>;
     setRemoteDescription(description: RTCSessionDescriptionInit): Promise<void>;
     addIceCandidate(candidate: RTCIceCandidate): Promise<void>;
     addTrack(track: Track): void;
     removeTrack(track: Track): boolean;
     replaceTrack(oldTrack: Track, newTrack: Track): Promise<boolean>;
     createDataChannel(): DataChannel;
+    dispose(): void;
 }
