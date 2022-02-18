@@ -14,8 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+export const enum OlmPayloadType {
+    PreKey = 0,
+    Normal = 1
+}
+
 export type OlmMessage = {
-    type?: 0 | 1,
+    type?: OlmPayloadType,
     body?: string
 }
 

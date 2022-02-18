@@ -19,6 +19,7 @@ import {groupBy} from "../../../utils/groupBy";
 import {MultiLock, ILock} from "../../../utils/Lock";
 import {Session} from "./Session";
 import {DecryptionResult} from "../DecryptionResult";
+import {OlmPayloadType} from "./types";
 
 import type {OlmMessage, OlmPayload} from "./types";
 import type {Account} from "../Account";
@@ -41,10 +42,6 @@ type CreateAndDecryptResult = {
     session: Session,
     plaintext: string
 };
-
-function isPreKeyMessage(message: OlmMessage): boolean {
-    return message.type === 0;
-}
 
 function sortSessions(sessions: Session[]) {
     sessions.sort((a, b) => {
@@ -151,7 +148,7 @@ export class Decryption {
             throw new DecryptionError("OLM_BAD_ENCRYPTED_MESSAGE", event, {senderKey, error: err.message});
         }
         // could not decrypt with any existing session
-        if (typeof plaintext !== "string" && isPreKeyMessage(message)) {
+        if (typeof plaintext !== "string" && message.type === OlmPayloadType.PreKey) {
             let createResult: CreateAndDecryptResult;
             try {
                 createResult = this._createSessionAndDecrypt(senderKey, message, timestamp);
@@ -282,16 +279,16 @@ class SenderKeyDecryption {
         }
         const olmSession = session.load();
         try {
-            if (isPreKeyMessage(message) && !olmSession.matches_inbound(message.body)) {
+            if (message.type === OlmPayloadType.PreKey && !olmSession.matches_inbound(message.body)) {
                 return;
             }
             try {
-                const plaintext = olmSession.decrypt(message.type, message.body);
+                const plaintext = olmSession.decrypt(message.type as number, message.body!);
                 session.save(olmSession);
                 session.data.lastUsed = this.timestamp;
                 return plaintext;
             } catch (err) {
-                if (isPreKeyMessage(message)) {
+                if (message.type === OlmPayloadType.PreKey) {
                     throw new Error(`Error decrypting prekey message with existing session id ${session.id}: ${err.message}`);
                 }
                 // decryption failed, bail out
