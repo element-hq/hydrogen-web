@@ -43,7 +43,7 @@ export class DecryptionResult {
         public readonly claimedEd25519Key: string
     ) {}
 
-    setDevice(device: DeviceIdentity) {
+    setDevice(device: DeviceIdentity): void {
         this.device = device;
     }
 
