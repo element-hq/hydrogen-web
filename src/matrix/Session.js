@@ -127,7 +127,6 @@ export class Session {
             this._e2eeAccount,
             PICKLE_KEY,
             this._olm,
-            this._storage,
             this._platform.clock.now,
             this._user.id,
             senderKeyLock

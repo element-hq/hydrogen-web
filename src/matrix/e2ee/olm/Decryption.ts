@@ -58,7 +58,6 @@ export class Decryption {
         private readonly pickleKey: string,
         private readonly now: () => number,
         private readonly ownUserId: string,
-        private readonly storage: Storage,
         private readonly olm: Olm,
         private readonly senderKeyLock: LockMap<string>
     ) {}
