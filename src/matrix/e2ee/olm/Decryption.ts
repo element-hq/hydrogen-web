@@ -43,7 +43,7 @@ type CreateAndDecryptResult = {
     plaintext: string
 };
 
-function sortSessions(sessions: Session[]) {
+function sortSessions(sessions: Session[]): void {
     sessions.sort((a, b) => {
         return b.data.lastUsed - a.data.lastUsed;
     });
