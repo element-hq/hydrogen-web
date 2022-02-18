@@ -122,7 +122,7 @@ export class Decryption {
 
     async _decryptAllForSenderKey(senderKey: string, events: OlmEncryptedEvent[], timestamp: number, readSessionsTxn: Transaction): Promise<DecryptionResults> {
         const sessions = await this._getSessions(senderKey, readSessionsTxn);
-        const senderKeyDecryption = new SenderKeyDecryption(senderKey, sessions, this.olm, timestamp);
+        const senderKeyDecryption = new SenderKeyDecryption(senderKey, sessions, timestamp);
         const results: DecryptionResult[] = [];
         const errors: DecryptionError[] = [];
         // events for a single senderKey need to be decrypted one by one
@@ -238,7 +238,6 @@ class SenderKeyDecryption {
     constructor(
         public readonly senderKey: string,
         public readonly sessions: Session[],
-        private readonly olm: Olm,
         private readonly timestamp: number
     ) {}
 
