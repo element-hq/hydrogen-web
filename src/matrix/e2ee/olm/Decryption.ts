@@ -306,8 +306,8 @@ class SenderKeyDecryption {
 class DecryptionChanges {
     constructor(
         private readonly senderKeyDecryptions: SenderKeyDecryption[],
-        private readonly results: DecryptionResult[],
-        private readonly errors: DecryptionError[],
+        public readonly results: DecryptionResult[],
+        public readonly errors: DecryptionError[],
         private readonly account: Account,
         private readonly lock: ILock
     ) {}
