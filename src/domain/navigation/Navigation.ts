@@ -34,11 +34,11 @@ type SegmentType = {
     "member": string;
 };
 
-export class Navigation {
+export class Navigation<T> {
     private readonly _allowsChild: AllowsChild;
-    private _path: Path;
-    private readonly _observables: Map<string, SegmentObservable> = new Map();
-    private readonly _pathObservable: ObservableValue<Path>;
+    private _path: Path<T>;
+    private readonly _observables: Map<keyof T, SegmentObservable<T>> = new Map();
+    private readonly _pathObservable: ObservableValue<Path<T>>;
 
     constructor(allowsChild: AllowsChild) {
         this._allowsChild = allowsChild;
@@ -46,11 +46,11 @@ export class Navigation {
         this._pathObservable = new ObservableValue(this._path);
     }
 
-    get pathObservable(): ObservableValue<Path> {
+    get pathObservable(): ObservableValue<Path<T>> {
         return this._pathObservable;
     }
 
-    get path(): Path {
+    get path(): Path<T> {
         return this._path;
     }
 
@@ -61,7 +61,7 @@ export class Navigation {
         }
     }
 
-    applyPath(path: Path): void {
+    applyPath(path: Path<T>): void {
         // Path is not exported, so you can only create a Path through Navigation,
         // so we assume it respects the allowsChild rules
         const oldPath = this._path;
@@ -85,7 +85,7 @@ export class Navigation {
         this._pathObservable.set(this._path);
     }
 
-    observe(type: keyof SegmentType): SegmentObservable {
+    observe(type: keyof T): SegmentObservable<T> {
         let observable = this._observables.get(type);
         if (!observable) {
             observable = new SegmentObservable(this, type);
@@ -94,7 +94,7 @@ export class Navigation {
         return observable;
     }
 
-    pathFrom(segments: Segment<any>[]): Path {
+    pathFrom(segments: Segment<any>[]): Path<T> {
         let parent: Segment<any> | undefined;
         let i: number;
         for (i = 0; i < segments.length; i += 1) {
@@ -106,12 +106,12 @@ export class Navigation {
         return new Path(segments, this._allowsChild);
     }
 
-    segment<T extends keyof SegmentType>(type: T, value: SegmentType[T]): Segment<T> {
+    segment<K extends keyof T>(type: K, value: T[K]): Segment<T> {
         return new Segment(type, value);
     }
 }
 
-function segmentValueEqual(a?: SegmentType[keyof SegmentType], b?: SegmentType[keyof SegmentType]): boolean {
+function segmentValueEqual<T>(a?: T[keyof T], b?: T[keyof T]): boolean {
     if (a === b) {
         return true;
     }
@@ -129,27 +129,27 @@ function segmentValueEqual(a?: SegmentType[keyof SegmentType], b?: SegmentType[k
 }
 
 
-export class Segment<T extends keyof SegmentType> {
+export class Segment<T, K extends keyof T = any> {
     constructor(
-        public type: T,
-        public value: SegmentType[T] | true = value === undefined ? true : value 
+        public type: K,
+        public value: T[K]  = (value === undefined ? true : value) as T[K]
     ) {}
 }
 
-class Path {
-    private readonly _segments: Segment<any>[];
+class Path<T> {
+    private readonly _segments: Segment<T, any>[];
     private readonly _allowsChild: AllowsChild;
 
-    constructor(segments: Segment<any>[] = [], allowsChild: AllowsChild) {
+    constructor(segments: Segment<T>[] = [], allowsChild: AllowsChild) {
         this._segments = segments;
         this._allowsChild = allowsChild;
     }
 
-    clone(): Path {
+    clone(): Path<T> {
         return new Path(this._segments.slice(), this._allowsChild);
     }
 
-    with(segment: Segment<any>): Path | null {
+    with(segment: Segment<T>): Path<T> | null {
         let index = this._segments.length - 1;
         do {
             if (this._allowsChild(this._segments[index], segment)) {
@@ -164,7 +164,7 @@ class Path {
         return null;
     }
 
-    until(type: keyof SegmentType): Path {
+    until(type: keyof T): Path<T> {
         const index = this._segments.findIndex(s => s.type === type);
         if (index !== -1) {
             return new Path(this._segments.slice(0, index + 1), this._allowsChild)
@@ -172,11 +172,11 @@ class Path {
         return new Path([], this._allowsChild);
     }
 
-    get(type: keyof SegmentType): Segment<any> | undefined {
+    get(type: keyof T): Segment<T> | undefined {
         return this._segments.find(s => s.type === type);
     }
 
-    replace(segment: Segment<any>): Path | null {
+    replace(segment: Segment<T>): Path<T> | null {
         const index = this._segments.findIndex(s => s.type === segment.type);
         if (index !== -1) {
             const parent = this._segments[index - 1];
@@ -192,7 +192,7 @@ class Path {
         return null;
     }
 
-    get segments(): Segment<any>[] {
+    get segments(): Segment<T>[] {
         return this._segments;
     }
 }
@@ -201,19 +201,19 @@ class Path {
  * custom observable so it always returns what is in navigation.path, even if we haven't emitted the change yet.
  * This ensures that observers of a segment can also read the most recent value of other segments.
  */
-class SegmentObservable extends BaseObservableValue<SegmentType[keyof SegmentType] | undefined> {
-    private readonly _navigation: Navigation;
-    private _type: keyof SegmentType;
-    private _lastSetValue?: SegmentType[keyof SegmentType];
+class SegmentObservable<T> extends BaseObservableValue<T[keyof T] | undefined> {
+    private readonly _navigation: Navigation<T>;
+    private _type: keyof T;
+    private _lastSetValue?: T[keyof T];
         
-    constructor(navigation: Navigation, type: keyof SegmentType) {
+    constructor(navigation: Navigation<T>, type: keyof T) {
         super();
         this._navigation = navigation;
         this._type = type;
         this._lastSetValue = navigation.path.get(type)?.value;
     }
 
-    get(): SegmentType[keyof SegmentType] | undefined {
+    get(): T[keyof T] | undefined {
         const path = this._navigation.path;
         const segment = path.get(this._type);
         const value = segment?.value;
@@ -222,7 +222,7 @@ class SegmentObservable extends BaseObservableValue<SegmentType[keyof SegmentTyp
 
     emitIfChanged(): void {
         const newValue = this.get();
-        if (!segmentValueEqual(newValue, this._lastSetValue)) {
+        if (!segmentValueEqual<T>(newValue, this._lastSetValue)) {
             this._lastSetValue = newValue;
             this.emit(newValue);
         }
@@ -249,13 +249,19 @@ export function tests() {
     }
 
     function observeTypes(nav, types) {
-        const changes = [];
+        const changes: {type:string, value:any}[] = [];
         for (const type of types) {
             nav.observe(type).subscribe(value => {
                 changes.push({type, value});
             });
         }
         return changes;
+    }
+
+    type SegmentType = {
+        "foo": number;
+        "bar": number;
+        "baz": number;
     }
 
     return {
@@ -275,18 +281,18 @@ export function tests() {
             assert.equal(changes[1].value, 8);
         },
         "path.get": assert => {
-            const path = new Path([new Segment("foo", 5), new Segment("bar", 6)], () => true);
-            assert.equal(path.get("foo").value, 5);
-            assert.equal(path.get("bar").value, 6);
+            const path = new Path<SegmentType>([new Segment("foo", 5), new Segment("bar", 6)], () => true);
+            assert.equal(path.get("foo")!.value, 5);
+            assert.equal(path.get("bar")!.value, 6);
         },
         "path.replace success": assert => {
-            const path = new Path([new Segment("foo", 5), new Segment("bar", 6)], () => true);
+            const path = new Path<SegmentType>([new Segment("foo", 5), new Segment("bar", 6)], () => true);
             const newPath = path.replace(new Segment("foo", 1));
-            assert.equal(newPath.get("foo").value, 1);
-            assert.equal(newPath.get("bar").value, 6);
+            assert.equal(newPath!.get("foo")!.value, 1);
+            assert.equal(newPath!.get("bar")!.value, 6);
         },
         "path.replace not found": assert => {
-            const path = new Path([new Segment("foo", 5), new Segment("bar", 6)], () => true);
+            const path = new Path<SegmentType>([new Segment("foo", 5), new Segment("bar", 6)], () => true);
             const newPath = path.replace(new Segment("baz", 1));
             assert.equal(newPath, null);
         }
