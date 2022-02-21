@@ -47,7 +47,7 @@ export abstract class RoomKey {
     set isBetter(value: boolean | undefined) { this._isBetter = value; }
 }
 
-export function isBetterThan(newSession: Olm.InboundGroupSession, existingSession: Olm.InboundGroupSession) {
+export function isBetterThan(newSession: Olm.InboundGroupSession, existingSession: Olm.InboundGroupSession): boolean {
      return newSession.first_known_index() < existingSession.first_known_index();
 }
 
@@ -90,7 +90,7 @@ export abstract class IncomingRoomKey extends RoomKey {
         return true;
     }
 
-    get eventIds() { return this._eventIds; }
+    get eventIds(): string[] | undefined { return this._eventIds; }
 
     private async _checkBetterThanKeyInStorage(loader: KeyLoader, callback: (((session: Olm.InboundGroupSession, pickleKey: string) => void) | undefined), txn: Transaction): Promise<boolean> {
         if (this.isBetter !== undefined) {
@@ -144,15 +144,15 @@ class DeviceMessageRoomKey extends IncomingRoomKey {
         this._decryptionResult = decryptionResult;
     }
 
-    get roomId() { return this._decryptionResult.event.content?.["room_id"]; }
-    get senderKey() { return this._decryptionResult.senderCurve25519Key; }
-    get sessionId() { return this._decryptionResult.event.content?.["session_id"]; }
-    get claimedEd25519Key() { return this._decryptionResult.claimedEd25519Key; }
+    get roomId(): string { return this._decryptionResult.event.content?.["room_id"]; }
+    get senderKey(): string { return this._decryptionResult.senderCurve25519Key; }
+    get sessionId(): string { return this._decryptionResult.event.content?.["session_id"]; }
+    get claimedEd25519Key(): string { return this._decryptionResult.claimedEd25519Key; }
     get serializationKey(): string { return this._decryptionResult.event.content?.["session_key"]; }
     get serializationType(): string { return "create"; }
     protected get keySource(): KeySource { return KeySource.DeviceMessage; }
 
-    loadInto(session) {
+    loadInto(session): void {
         session.create(this.serializationKey);
     }
 }
@@ -184,7 +184,7 @@ export class OutboundRoomKey extends IncomingRoomKey {
     get serializationType(): string { return "create"; }
     protected get keySource(): KeySource { return KeySource.Outbound; }
 
-    loadInto(session: Olm.InboundGroupSession) {
+    loadInto(session: Olm.InboundGroupSession): void {
         session.create(this.serializationKey);
     }
 }
@@ -194,15 +194,15 @@ class BackupRoomKey extends IncomingRoomKey {
         super();
     }
 
-    get roomId() { return this._roomId; }
-    get senderKey() { return this._backupInfo["sender_key"]; }
-    get sessionId() { return this._sessionId; }
-    get claimedEd25519Key() { return this._backupInfo["sender_claimed_keys"]?.["ed25519"]; }
+    get roomId(): void { return this._roomId; }
+    get senderKey(): void { return this._backupInfo["sender_key"]; }
+    get sessionId(): void { return this._sessionId; }
+    get claimedEd25519Key(): void { return this._backupInfo["sender_claimed_keys"]?.["ed25519"]; }
     get serializationKey(): string { return this._backupInfo["session_key"]; }
     get serializationType(): string { return "import_session"; }
     protected get keySource(): KeySource { return KeySource.Backup; }
 
-    loadInto(session) {
+    loadInto(session): void {
         session.import_session(this.serializationKey);
     }
 
@@ -220,19 +220,19 @@ export class StoredRoomKey extends RoomKey {
         this.storageEntry = storageEntry;
     }
 
-    get roomId() { return this.storageEntry.roomId; }
-    get senderKey() { return this.storageEntry.senderKey; }
-    get sessionId() { return this.storageEntry.sessionId; }
-    get claimedEd25519Key() { return this.storageEntry.claimedKeys!["ed25519"]; }
-    get eventIds() { return this.storageEntry.eventIds; }
+    get roomId(): string { return this.storageEntry.roomId; }
+    get senderKey(): string { return this.storageEntry.senderKey; }
+    get sessionId(): string { return this.storageEntry.sessionId; }
+    get claimedEd25519Key(): string { return this.storageEntry.claimedKeys!["ed25519"]; }
+    get eventIds(): string[] | undefined { return this.storageEntry.eventIds; }
     get serializationKey(): string { return this.storageEntry.session || ""; }
     get serializationType(): string { return "unpickle"; }
     
-    loadInto(session, pickleKey) {
+    loadInto(session, pickleKey): void {
         session.unpickle(pickleKey, this.serializationKey);
     }
 
-    get hasSession() {
+    get hasSession(): boolean {
         // sessions are stored before they are received
         // to keep track of events that need it to be decrypted.
         // This is used to retry decryption of those events once the session is received.
@@ -261,7 +261,7 @@ sessionInfo is a response from key backup and has the following keys:
     sender_key
     session_key
  */
-export function keyFromBackup(roomId, sessionId, backupInfo): BackupRoomKey | undefined {
+export function keyFromBackup(roomId: string, sessionId: string, backupInfo: object): BackupRoomKey | undefined {
     const sessionKey = backupInfo["session_key"];
     const senderKey = backupInfo["sender_key"];
     // TODO: can we just trust this?

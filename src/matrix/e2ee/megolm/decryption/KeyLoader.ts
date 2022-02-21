@@ -58,11 +58,11 @@ export class KeyLoader extends BaseLRUCache<KeyOperation> {
         }
     }
 
-    get running() {
+    get running(): boolean {
         return this._entries.some(op => op.refCount !== 0);
     }
 
-    dispose() {
+    dispose(): void {
         for (let i = 0; i < this._entries.length; i += 1) {
             this._entries[i].dispose();
         }
@@ -98,7 +98,7 @@ export class KeyLoader extends BaseLRUCache<KeyOperation> {
         }
     }
 
-    private releaseOperation(op: KeyOperation) {
+    private releaseOperation(op: KeyOperation): void {
         op.refCount -= 1;
         if (op.refCount <= 0 && this.resolveUnusedOperation) {
             this.resolveUnusedOperation();
@@ -116,7 +116,7 @@ export class KeyLoader extends BaseLRUCache<KeyOperation> {
         return this.operationBecomesUnusedPromise;
     }
 
-    private findIndexForAllocation(key: RoomKey) {
+    private findIndexForAllocation(key: RoomKey): number {
         let idx = this.findIndexSameKey(key); // cache hit
         if (idx === -1) {
             if (this.size < this.limit) {
@@ -190,16 +190,16 @@ class KeyOperation {
     }
 
     // assumes isForSameSession is true
-    isBetter(other: KeyOperation) {
+    isBetter(other: KeyOperation): boolean {
         return isBetterThan(this.session, other.session);
     }
 
-    isForKey(key: RoomKey) {
+    isForKey(key: RoomKey): boolean {
         return this.key.serializationKey === key.serializationKey &&
             this.key.serializationType === key.serializationType;
     }
 
-    dispose() {
+    dispose(): void {
         this.session.free();
         this.session = undefined as any;
     }

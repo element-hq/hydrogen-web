@@ -14,38 +14,40 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {DecryptionChanges} from "./DecryptionChanges.js";
+import {DecryptionChanges} from "./DecryptionChanges";
 import {mergeMap} from "../../../../utils/mergeMap";
+import type {SessionDecryption} from "./SessionDecryption";
+import type {ReplayDetectionEntry} from "./ReplayDetectionEntry";
 
 /**
  * Class that contains all the state loaded from storage to decrypt the given events
  */
 export class DecryptionPreparation {
-    constructor(roomId, sessionDecryptions, errors) {
-        this._roomId = roomId;
-        this._sessionDecryptions = sessionDecryptions;
-        this._initialErrors = errors;
-    }
+    constructor(
+        private readonly roomId: string,
+        private readonly sessionDecryptions: SessionDecryption[],
+        private errors: Map<string, Error>
+    ) {}
 
-    async decrypt() {
+    async decrypt(): Promise<DecryptionChanges> {
         try {
-            const errors = this._initialErrors;
+            const errors = this.errors;
             const results = new Map();
-            const replayEntries = [];
-            await Promise.all(this._sessionDecryptions.map(async sessionDecryption => {
+            const replayEntries: ReplayDetectionEntry[] = [];
+            await Promise.all(this.sessionDecryptions.map(async sessionDecryption => {
                 const sessionResult = await sessionDecryption.decryptAll();
                 mergeMap(sessionResult.errors, errors);
                 mergeMap(sessionResult.results, results);
                 replayEntries.push(...sessionResult.replayEntries);
             }));
-            return new DecryptionChanges(this._roomId, results, errors, replayEntries);
+            return new DecryptionChanges(this.roomId, results, errors, replayEntries);
         } finally {
             this.dispose();
         }
     }
 
-    dispose() {
-        for (const sd of this._sessionDecryptions) {
+    dispose(): void {
+        for (const sd of this.sessionDecryptions) {
             sd.dispose();
         }
     }
