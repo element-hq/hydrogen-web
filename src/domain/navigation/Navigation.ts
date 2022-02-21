@@ -15,7 +15,6 @@ limitations under the License.
 */
 
 import {BaseObservableValue, ObservableValue} from "../../observable/ObservableValue";
-import type {allowsChild as AllowsChild} from "./index.js";
 
 type SegmentType = {
     "login": true;
@@ -34,14 +33,15 @@ type SegmentType = {
     "member": string;
 };
 
+type AllowsChild<T> = (parent: Segment<T> | undefined, child: Segment<T>) => boolean;
 
 export class Navigation<T> {
-    private readonly _allowsChild: AllowsChild;
+    private readonly _allowsChild: AllowsChild<T>;
     private _path: Path<T>;
     private readonly _observables: Map<keyof T, SegmentObservable<T>> = new Map();
     private readonly _pathObservable: ObservableValue<Path<T>>;
 
-    constructor(allowsChild: AllowsChild) {
+    constructor(allowsChild: AllowsChild<T>) {
         this._allowsChild = allowsChild;
         this._path = new Path([], allowsChild);
         this._pathObservable = new ObservableValue(this._path);
@@ -140,9 +140,9 @@ export class Segment<T, K extends keyof T = any> {
 
 class Path<T> {
     private readonly _segments: Segment<T, any>[];
-    private readonly _allowsChild: AllowsChild;
+    private readonly _allowsChild: AllowsChild<T>;
 
-    constructor(segments: Segment<T>[] = [], allowsChild: AllowsChild) {
+    constructor(segments: Segment<T>[] = [], allowsChild: AllowsChild<T>) {
         this._segments = segments;
         this._allowsChild = allowsChild;
     }
@@ -237,13 +237,13 @@ export function tests() {
         return new Navigation((parent, {type}) => {
             switch (parent?.type) {
                 case undefined:
-                    return type === "1" || "2";
+                    return type === "1" || type === "2";
                 case "1":
                     return type === "1.1";
                 case "1.1":
                     return type === "1.1.1";
                 case "2":
-                    return type === "2.1" || "2.2";
+                    return type === "2.1" || type === "2.2";
                 default:
                     return false;
             }
