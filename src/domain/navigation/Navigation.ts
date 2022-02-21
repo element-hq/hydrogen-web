@@ -34,6 +34,7 @@ type SegmentType = {
     "member": string;
 };
 
+
 export class Navigation<T> {
     private readonly _allowsChild: AllowsChild;
     private _path: Path<T>;
@@ -54,8 +55,8 @@ export class Navigation<T> {
         return this._path;
     }
 
-    push(type, value = undefined): void {
-        const newPath = this.path.with(new Segment(type, value));
+    push<K extends keyof T>(type: K, ...value: T[K] extends true? [undefined?]: [T[K]]): void {
+        const newPath = this.path.with(new Segment(type, ...value));
         if (newPath) {
             this.applyPath(newPath);
         }
@@ -106,8 +107,8 @@ export class Navigation<T> {
         return new Path(segments, this._allowsChild);
     }
 
-    segment<K extends keyof T>(type: K, value: T[K]): Segment<T> {
-        return new Segment(type, value);
+    segment<K extends keyof T>(type: K, ...value: T[K] extends true? [undefined?]: [T[K]]): Segment<T> {
+        return new Segment(type, ...value);
     }
 }
 
@@ -130,10 +131,11 @@ function segmentValueEqual<T>(a?: T[keyof T], b?: T[keyof T]): boolean {
 
 
 export class Segment<T, K extends keyof T = any> {
-    constructor(
-        public type: K,
-        public value: T[K]  = (value === undefined ? true : value) as T[K]
-    ) {}
+    public value: T[K];
+
+    constructor(public type: K, ...value: T[K] extends true? [undefined?]: [T[K]]) {
+        this.value = (value[0] === undefined ? true : value[0]) as unknown as T[K];
+    }
 }
 
 class Path<T> {
