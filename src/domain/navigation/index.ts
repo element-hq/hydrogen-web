@@ -106,7 +106,6 @@ function roomsSegmentWithRoom(rooms: Segment<SegmentType, "rooms">, roomId: stri
     }
 }
 
-// todo-self: verify code change here is okay
 function pushRightPanelSegment<T extends keyof SegmentType>(array: Segment<SegmentType>[], segment: T, ...value: OptionalValue<SegmentType[T]>) {
     array.push(new Segment("right-panel"));
     array.push(new Segment(segment, ...value));
