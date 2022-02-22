@@ -18,7 +18,7 @@ import {Navigation, Segment} from "./Navigation";
 import {URLRouter} from "./URLRouter";
 import type {Path, OptionalValue} from "./Navigation";
 
-export type SegmentType = {
+type SegmentType = {
     "login": true;
     "session": string;
     "sso": string;
