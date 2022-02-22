@@ -18,7 +18,7 @@ import {Navigation, Segment} from "./Navigation";
 import {URLRouter} from "./URLRouter";
 import type {Path, OptionalValue} from "./Navigation";
 
-type SegmentType = {
+export type SegmentType = {
     "login": true;
     "session": string;
     "sso": string;
@@ -124,7 +124,7 @@ export function addPanelIfNeeded<T extends SegmentType>(navigation: Navigation<T
 }
 
 export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>, defaultSessionId?: string): Segment<SegmentType>[] {
-    // substr(1) to take of initial /
+    // substring(1) to take of initial /
     const parts = urlPath.substring(1).split("/");
     const iterator = parts[Symbol.iterator]();
     const segments: Segment<SegmentType>[] = [];

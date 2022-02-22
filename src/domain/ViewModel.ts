@@ -27,6 +27,7 @@ import type {Platform} from "../platform/web/Platform";
 import type {Clock} from "../platform/web/dom/Clock";
 import type {ILogger} from "../logging/types";
 import type {Navigation} from "./navigation/Navigation";
+import type {SegmentType} from "./navigation/index";
 import type {URLRouter} from "./navigation/URLRouter";
 
 type Options<N extends {session: string}> = {
@@ -37,7 +38,7 @@ type Options<N extends {session: string}> = {
     emitChange?: (params: any) => void
 }
 
-export class ViewModel<N extends {session: string}, O extends Options<N> = Options<N>> extends EventEmitter<{change: never}> {
+export class ViewModel<N extends {session: string} = SegmentType, O extends Options<N> = Options<N>> extends EventEmitter<{change: never}> {
     private disposables?: Disposables;
     private _isDisposed = false;
     private _options: Readonly<O>;
