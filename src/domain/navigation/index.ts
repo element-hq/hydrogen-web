@@ -19,20 +19,20 @@ import {URLRouter} from "./URLRouter.js";
 import type { Path } from "./Navigation";
 
 type SegmentType = {
-    login: true;
-    session: string;
-    sso: string;
-    logout: true;
-    room: string;
-    rooms: string[];
-    settings: true;
+    "login": true;
+    "session": string;
+    "sso": string;
+    "logout": true;
+    "room": string;
+    "rooms": string[];
+    "settings": true;
     "create-room": true;
     "empty-grid-tile": number;
-    lightbox: string;
+    "lightbox": string;
     "right-panel": true;
-    details: true;
-    members: true;
-    member: string;
+    "details": true;
+    "members": true;
+    "member": string;
 };
 
 export function createNavigation() {
