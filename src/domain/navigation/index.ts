@@ -35,7 +35,7 @@ type SegmentType = {
     "member": string;
 };
 
-export function createNavigation() {
+export function createNavigation(): Navigation<SegmentType> {
     return new Navigation(allowsChild);
 }
 
