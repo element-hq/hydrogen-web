@@ -39,7 +39,7 @@ export function createNavigation(): Navigation<SegmentType> {
     return new Navigation(allowsChild);
 }
 
-export function createRouter({history, navigation}) {
+export function createRouter({history, navigation}: {history: History, navigation: Navigation<SegmentType>}): URLRouter<SegmentType> {
     return new URLRouter(history, navigation, parseUrlPath, stringifyPath);
 }
 
