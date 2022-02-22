@@ -43,7 +43,7 @@ export function createRouter({history, navigation}) {
     return new URLRouter(history, navigation, parseUrlPath, stringifyPath);
 }
 
-function allowsChild(parent: {type: string, value: any} | undefined, child: {type: string, value: any}): boolean {
+function allowsChild(parent: Segment<SegmentType> | undefined, child: Segment<SegmentType>): boolean {
     const {type} = child;
     switch (parent?.type) {
         case undefined:
