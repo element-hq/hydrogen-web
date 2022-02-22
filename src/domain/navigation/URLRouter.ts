@@ -40,7 +40,7 @@ export class URLRouter<T extends SegmentType> {
         this._defaultSessionId = this._getLastSessionId();
     }
 
-    _getLastSessionId(): string | undefined {
+    private _getLastSessionId(): string | undefined {
         const navPath = this._urlAsNavPath(this._history.getLastUrl() || "");
         const sessionId = navPath.get("session")?.value;
         if (typeof sessionId === "string") {
@@ -62,7 +62,7 @@ export class URLRouter<T extends SegmentType> {
         if (this._pathSubscription) { this._pathSubscription = this._pathSubscription(); }
     }
 
-    _applyNavPathToHistory(path: Path<T>): void {
+    private _applyNavPathToHistory(path: Path<T>): void {
         const url = this.urlForPath(path);
         if (url !== this._history.get()) {
             if (this._isApplyingUrl) {
@@ -74,7 +74,7 @@ export class URLRouter<T extends SegmentType> {
         }
     }
 
-    _applyNavPathToNavigation(navPath: Path<T>): void {
+    private _applyNavPathToNavigation(navPath: Path<T>): void {
         // this will cause _applyNavPathToHistory to be called,
         // so set a flag whether this request came from ourselves
         // (in which case it is a redirect if the url does not match the current one)
@@ -83,12 +83,12 @@ export class URLRouter<T extends SegmentType> {
         this._isApplyingUrl = false;
     }
 
-    _urlAsNavPath(url: string): Path<T> {
+    private _urlAsNavPath(url: string): Path<T> {
         const urlPath = this._history.urlAsPath(url);
         return this._navigation.pathFrom(this._parseUrlPath(urlPath, this._navigation.path, this._defaultSessionId));
     }
 
-    _applyUrl(url: string): void {
+    private _applyUrl(url: string): void {
         const navPath = this._urlAsNavPath(url);
         this._applyNavPathToNavigation(navPath);
     }
