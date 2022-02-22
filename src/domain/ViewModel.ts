@@ -29,15 +29,15 @@ import type {ILogger} from "../logging/types";
 import type {Navigation} from "./navigation/Navigation";
 import type {URLRouter} from "./navigation/URLRouter";
 
-export type Options = {
+type Options<N extends {session: string}> = {
     platform: Platform
     logger: ILogger
-    urlCreator: URLRouter
-    navigation: Navigation
+    urlCreator: URLRouter<N>
+    navigation: Navigation<N>
     emitChange?: (params: any) => void
 }
 
-export class ViewModel<O extends Options = Options> extends EventEmitter<{change: never}> {
+export class ViewModel<N extends {session: string}, O extends Options<N> = Options<N>> extends EventEmitter<{change: never}> {
     private disposables?: Disposables;
     private _isDisposed = false;
     private _options: Readonly<O>;
@@ -47,7 +47,7 @@ export class ViewModel<O extends Options = Options> extends EventEmitter<{change
         this._options = options;
     }
 
-    childOptions<T extends Object>(explicitOptions: T): T & Options {
+    childOptions<T extends Object>(explicitOptions: T): T & Options<N> {
         return Object.assign({}, this._options, explicitOptions);
     }
 
@@ -135,11 +135,11 @@ export class ViewModel<O extends Options = Options> extends EventEmitter<{change
         return this.platform.logger;
     }
 
-    get urlCreator(): URLRouter {
+    get urlCreator(): URLRouter<N> {
         return this._options.urlCreator;
     }
 
-    get navigation(): Navigation {
+    get navigation(): Navigation<N> {
         return this._options.navigation;
     }
 }
