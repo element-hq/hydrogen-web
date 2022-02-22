@@ -17,12 +17,11 @@ limitations under the License.
 import type {History} from "../../platform/web/dom/History.js";
 import type {Navigation, Segment, Path, OptionalValue} from "./Navigation";
 import type {SubscriptionHandle} from "../../observable/BaseObservable";
-import type {SegmentType} from "./index";
 
 type ParseURLPath<T> = (urlPath: string, currentNavPath: Path<T>, defaultSessionId?: string) => Segment<T>[];
 type StringifyPath<T> = (path: Path<T>) => string;
 
-export class URLRouter<T extends SegmentType> {
+export class URLRouter<T extends {session: string}> {
     private readonly _history: History;
     private readonly _navigation: Navigation<T>;
     private readonly _parseUrlPath: ParseURLPath<T>;
