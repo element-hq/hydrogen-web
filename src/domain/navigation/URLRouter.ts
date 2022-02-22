@@ -14,19 +14,33 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export class URLRouter {
-    constructor({history, navigation, parseUrlPath, stringifyPath}) {
+import type {History} from "../../platform/web/dom/History.js";
+import type {Navigation, Segment, Path, OptionalValue} from "./Navigation";
+import type {SubscriptionHandle} from "../../observable/BaseObservable";
+import type {SegmentType} from "./index";
+
+type ParseURLPath<T> = (urlPath: string, currentNavPath: Path<T>, defaultSessionId: string | null) => Segment<T>[];
+type StringifyPath<T> = (path: Path<T>) => string;
+
+export class URLRouter<T extends SegmentType> {
+    private readonly _history: History;
+    private readonly _navigation: Navigation<T>;
+    private readonly _parseUrlPath: ParseURLPath<T>;
+    private readonly _stringifyPath: StringifyPath<T>;
+    private _subscription?: SubscriptionHandle;
+    private _pathSubscription?: SubscriptionHandle;
+    private _isApplyingUrl: boolean = false;
+    private _defaultSessionId: string | null;
+
+    constructor(history: History, navigation: Navigation<T>, parseUrlPath: ParseURLPath<T>, stringifyPath: StringifyPath<T>) {
         this._history = history;
         this._navigation = navigation;
         this._parseUrlPath = parseUrlPath;
         this._stringifyPath = stringifyPath;
-        this._subscription = null;
-        this._pathSubscription = null;
-        this._isApplyingUrl = false;
         this._defaultSessionId = this._getLastSessionId();
     }
 
-    _getLastSessionId() {
+    _getLastSessionId(): string | null {
         const navPath = this._urlAsNavPath(this._history.getLastUrl() || "");
         const sessionId = navPath.get("session")?.value;
         if (typeof sessionId === "string") {
@@ -35,7 +49,7 @@ export class URLRouter {
         return null;
     }
 
-    attach() {
+    attach(): void {
         this._subscription = this._history.subscribe(url => this._applyUrl(url));
         // subscribe to path before applying initial url
         // so redirects in _applyNavPathToHistory are reflected in url bar
@@ -43,12 +57,12 @@ export class URLRouter {
         this._applyUrl(this._history.get());
     }
 
-    dispose() {
-        this._subscription = this._subscription();
-        this._pathSubscription = this._pathSubscription();
+    dispose(): void {
+        if (this._subscription) { this._subscription = this._subscription(); }
+        if (this._pathSubscription) { this._pathSubscription = this._pathSubscription(); }
     }
 
-    _applyNavPathToHistory(path) {
+    _applyNavPathToHistory(path: Path<T>): void {
         const url = this.urlForPath(path);
         if (url !== this._history.get()) {
             if (this._isApplyingUrl) {
@@ -60,7 +74,7 @@ export class URLRouter {
         }
     }
 
-    _applyNavPathToNavigation(navPath) {
+    _applyNavPathToNavigation(navPath: Path<T>): void {
         // this will cause _applyNavPathToHistory to be called,
         // so set a flag whether this request came from ourselves
         // (in which case it is a redirect if the url does not match the current one)
@@ -69,21 +83,21 @@ export class URLRouter {
         this._isApplyingUrl = false;
     }
 
-    _urlAsNavPath(url) {
+    _urlAsNavPath(url: string): Path<T> {
         const urlPath = this._history.urlAsPath(url);
         return this._navigation.pathFrom(this._parseUrlPath(urlPath, this._navigation.path, this._defaultSessionId));
     }
 
-    _applyUrl(url) {
+    _applyUrl(url: string): void {
         const navPath = this._urlAsNavPath(url);
         this._applyNavPathToNavigation(navPath);
     }
 
-    pushUrl(url) {
+    pushUrl(url: string): void {
         this._history.pushUrl(url);
     }
 
-    tryRestoreLastUrl() {
+    tryRestoreLastUrl(): boolean {
         const lastNavPath = this._urlAsNavPath(this._history.getLastUrl() || "");
         if (lastNavPath.segments.length !== 0) {
             this._applyNavPathToNavigation(lastNavPath);
@@ -92,8 +106,8 @@ export class URLRouter {
         return false;
     }
 
-    urlForSegments(segments) {
-        let path = this._navigation.path;
+    urlForSegments(segments: Segment<T>[]): string | undefined {
+        let path: Path<T> | null = this._navigation.path;
         for (const segment of segments) {
             path = path.with(segment);
             if (!path) {
@@ -103,29 +117,29 @@ export class URLRouter {
         return this.urlForPath(path);
     }
 
-    urlForSegment(type, value) {
-        return this.urlForSegments([this._navigation.segment(type, value)]);
+    urlForSegment<K extends keyof T>(type: K, ...value: OptionalValue<T[K]>): string | undefined {
+        return this.urlForSegments([this._navigation.segment(type, ...value)]);
     }
 
-    urlUntilSegment(type) {
+    urlUntilSegment(type: keyof T): string {
         return this.urlForPath(this._navigation.path.until(type));
     }
 
-    urlForPath(path) {
+    urlForPath(path: Path<T>): string {
         return this._history.pathAsUrl(this._stringifyPath(path));
     }
 
-    openRoomActionUrl(roomId) {
+    openRoomActionUrl(roomId: string) {
         // not a segment to navigation knowns about, so append it manually
         const urlPath = `${this._stringifyPath(this._navigation.path.until("session"))}/open-room/${roomId}`;
         return this._history.pathAsUrl(urlPath);
     }
 
-    createSSOCallbackURL() {
+    createSSOCallbackURL(): string {
         return window.location.origin;
     }
 
-    normalizeUrl() {
+    normalizeUrl(): void {
         // Remove any queryParameters from the URL
         // Gets rid of the loginToken after SSO
         this._history.replaceUrlSilently(`${window.location.origin}/${window.location.hash}`);

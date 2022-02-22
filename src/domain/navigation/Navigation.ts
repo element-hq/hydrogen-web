@@ -19,6 +19,8 @@ import {BaseObservableValue, ObservableValue} from "../../observable/ObservableV
 
 type AllowsChild<T> = (parent: Segment<T> | undefined, child: Segment<T>) => boolean;
 
+export type OptionalValue<T> = T extends true? [(undefined | true)?]: [T];
+
 export class Navigation<T> {
     private readonly _allowsChild: AllowsChild<T>;
     private _path: Path<T>;

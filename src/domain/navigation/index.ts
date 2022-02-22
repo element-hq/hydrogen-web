@@ -15,10 +15,10 @@ limitations under the License.
 */
 
 import {Navigation, Segment} from "./Navigation";
-import {URLRouter} from "./URLRouter.js";
+import {URLRouter} from "./URLRouter";
 import type {Path} from "./Navigation";
 
-type SegmentType = {
+export type SegmentType = {
     "login": true;
     "session": string;
     "sso": string;
@@ -124,7 +124,7 @@ export function addPanelIfNeeded<T extends SegmentType>(navigation: Navigation<T
     return _path;
 }
 
-export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>, defaultSessionId: string): Segment<SegmentType>[] {
+export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>, defaultSessionId: string | null): Segment<SegmentType>[] {
     // substr(1) to take of initial /
     const parts = urlPath.substring(1).split("/");
     const iterator = parts[Symbol.iterator]();
