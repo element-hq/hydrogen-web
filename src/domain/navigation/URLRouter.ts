@@ -106,7 +106,7 @@ export class URLRouter<T extends {session: string}> {
     }
 
     urlForSegments(segments: Segment<T>[]): string | undefined {
-        let path: Path<T> | null = this._navigation.path;
+        let path: Path<T> | undefined = this._navigation.path;
         for (const segment of segments) {
             path = path.with(segment);
             if (!path) {

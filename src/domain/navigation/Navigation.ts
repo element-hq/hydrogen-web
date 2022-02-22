@@ -137,7 +137,7 @@ class Path<T> {
         return new Path(this._segments.slice(), this._allowsChild);
     }
 
-    with(segment: Segment<T>): Path<T> | null {
+    with(segment: Segment<T>): Path<T> | undefined {
         let index = this._segments.length - 1;
         do {
             if (this._allowsChild(this._segments[index], segment)) {
@@ -149,7 +149,7 @@ class Path<T> {
             index -= 1;
         } while(index >= -1);
         // allow -1 as well so we check if the segment is allowed as root
-        return null;
+        return undefined;
     }
 
     until(type: keyof T): Path<T> {
@@ -164,7 +164,7 @@ class Path<T> {
         return this._segments.find(s => s.type === type);
     }
 
-    replace(segment: Segment<T>): Path<T> | null {
+    replace(segment: Segment<T>): Path<T> | undefined {
         const index = this._segments.findIndex(s => s.type === segment.type);
         if (index !== -1) {
             const parent = this._segments[index - 1];
@@ -177,7 +177,7 @@ class Path<T> {
                 }
             }
         }
-        return null;
+        return undefined;
     }
 
     get segments(): Segment<T>[] {

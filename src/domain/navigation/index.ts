@@ -63,8 +63,8 @@ function allowsChild(parent: Segment<SegmentType> | undefined, child: Segment<Se
     }
 }
 
-export function removeRoomFromPath(path: Path<SegmentType>, roomId: string): Path<SegmentType> | null {
-    let newPath: Path<SegmentType> | null = path;
+export function removeRoomFromPath(path: Path<SegmentType>, roomId: string): Path<SegmentType> | undefined {
+    let newPath: Path<SegmentType> | undefined = path;
     const rooms = newPath.get("rooms");
     let roomIdGridIndex = -1;
     // first delete from rooms segment
