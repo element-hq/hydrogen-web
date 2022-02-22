@@ -126,7 +126,7 @@ export function addPanelIfNeeded<T extends SegmentType>(navigation: Navigation<T
 
 export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>, defaultSessionId: string): Segment<SegmentType>[] {
     // substr(1) to take of initial /
-    const parts = urlPath.substr(1).split("/");
+    const parts = urlPath.substring(1).split("/");
     const iterator = parts[Symbol.iterator]();
     const segments: Segment<SegmentType>[] = [];
     let next; 
