@@ -215,7 +215,7 @@ class SegmentObservable<T> extends BaseObservableValue<T[keyof T] | undefined> {
     }
 }
 
-export type { Path };
+export type {Path};
 
 export function tests() {
 

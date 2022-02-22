@@ -16,7 +16,7 @@ limitations under the License.
 
 import {Navigation, Segment} from "./Navigation";
 import {URLRouter} from "./URLRouter.js";
-import type { Path } from "./Navigation";
+import type {Path} from "./Navigation";
 
 type SegmentType = {
     "login": true;
