@@ -124,7 +124,7 @@ export function addPanelIfNeeded<T extends SegmentType>(navigation: Navigation<T
     return _path;
 }
 
-export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>, defaultSessionId: string | null): Segment<SegmentType>[] {
+export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>, defaultSessionId?: string): Segment<SegmentType>[] {
     // substr(1) to take of initial /
     const parts = urlPath.substring(1).split("/");
     const iterator = parts[Symbol.iterator]();
@@ -267,14 +267,14 @@ export function tests() {
         },
         "Parse loginToken query parameter into SSO segment": assert => {
             const path = createEmptyPath();
-            const segments = parseUrlPath("?loginToken=a1232aSD123", path, "");
+            const segments = parseUrlPath("?loginToken=a1232aSD123", path);
             assert.equal(segments.length, 1);
             assert.equal(segments[0].type, "sso");
             assert.equal(segments[0].value, "a1232aSD123");
         },
         "parse grid url path with focused empty tile": assert => {
             const path = createEmptyPath();
-            const segments = parseUrlPath("/session/1/rooms/a,b,c/3", path, "");
+            const segments = parseUrlPath("/session/1/rooms/a,b,c/3", path);
             assert.equal(segments.length, 3);
             assert.equal(segments[0].type, "session");
             assert.equal(segments[0].value, "1");
@@ -285,7 +285,7 @@ export function tests() {
         },
         "parse grid url path with focused room": assert => {
             const path = createEmptyPath();
-            const segments = parseUrlPath("/session/1/rooms/a,b,c/1", path, "");
+            const segments = parseUrlPath("/session/1/rooms/a,b,c/1", path);
             assert.equal(segments.length, 3);
             assert.equal(segments[0].type, "session");
             assert.equal(segments[0].value, "1");
@@ -296,7 +296,7 @@ export function tests() {
         },
         "parse empty grid url": assert => {
             const path = createEmptyPath();
-            const segments = parseUrlPath("/session/1/rooms/", path, "");
+            const segments = parseUrlPath("/session/1/rooms/", path);
             assert.equal(segments.length, 3);
             assert.equal(segments[0].type, "session");
             assert.equal(segments[0].value, "1");
@@ -307,7 +307,7 @@ export function tests() {
         },
         "parse empty grid url with focus": assert => {
             const path = createEmptyPath();
-            const segments = parseUrlPath("/session/1/rooms//1", path, "");
+            const segments = parseUrlPath("/session/1/rooms//1", path);
             assert.equal(segments.length, 3);
             assert.equal(segments[0].type, "session");
             assert.equal(segments[0].value, "1");
@@ -323,7 +323,7 @@ export function tests() {
                 new Segment("rooms", ["a", "b", "c"]),
                 new Segment("room", "b")
             ]);
-            const segments = parseUrlPath("/session/1/open-room/d", path, "");
+            const segments = parseUrlPath("/session/1/open-room/d", path);
             assert.equal(segments.length, 3);
             assert.equal(segments[0].type, "session");
             assert.equal(segments[0].value, "1");
@@ -339,7 +339,7 @@ export function tests() {
                 new Segment("rooms", ["a", "b", "c"]),
                 new Segment("room", "b")
             ]);
-            const segments = parseUrlPath("/session/1/open-room/a", path, "");
+            const segments = parseUrlPath("/session/1/open-room/a", path);
             assert.equal(segments.length, 3);
             assert.equal(segments[0].type, "session");
             assert.equal(segments[0].value, "1");
@@ -357,7 +357,7 @@ export function tests() {
                 new Segment("right-panel", true),
                 new Segment("details", true)
             ]);
-            const segments = parseUrlPath("/session/1/open-room/a", path, "");
+            const segments = parseUrlPath("/session/1/open-room/a", path);
             assert.equal(segments.length, 5);
             assert.equal(segments[0].type, "session");
             assert.equal(segments[0].value, "1");
@@ -379,7 +379,7 @@ export function tests() {
                 new Segment("right-panel", true),
                 new Segment("members", true)
             ]);
-            const segments = parseUrlPath("/session/1/open-room/a/member/foo", path, "");
+            const segments = parseUrlPath("/session/1/open-room/a/member/foo", path);
             assert.equal(segments.length, 5);
             assert.equal(segments[0].type, "session");
             assert.equal(segments[0].value, "1");
@@ -399,7 +399,7 @@ export function tests() {
                 new Segment("rooms", ["a", "b", "c"]),
                 new Segment("empty-grid-tile", 4)
             ]);
-            const segments = parseUrlPath("/session/1/open-room/d", path, "");
+            const segments = parseUrlPath("/session/1/open-room/d", path);
             assert.equal(segments.length, 3);
             assert.equal(segments[0].type, "session");
             assert.equal(segments[0].value, "1");
@@ -410,7 +410,7 @@ export function tests() {
         },
         "parse session url path without id": assert => {
             const path = createEmptyPath();
-            const segments = parseUrlPath("/session", path, "");
+            const segments = parseUrlPath("/session", path);
             assert.equal(segments.length, 1);
             assert.equal(segments[0].type, "session");
             assert.strictEqual(segments[0].value, true);

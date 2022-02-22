@@ -19,7 +19,7 @@ import type {Navigation, Segment, Path, OptionalValue} from "./Navigation";
 import type {SubscriptionHandle} from "../../observable/BaseObservable";
 import type {SegmentType} from "./index";
 
-type ParseURLPath<T> = (urlPath: string, currentNavPath: Path<T>, defaultSessionId: string | null) => Segment<T>[];
+type ParseURLPath<T> = (urlPath: string, currentNavPath: Path<T>, defaultSessionId?: string) => Segment<T>[];
 type StringifyPath<T> = (path: Path<T>) => string;
 
 export class URLRouter<T extends SegmentType> {
@@ -30,7 +30,7 @@ export class URLRouter<T extends SegmentType> {
     private _subscription?: SubscriptionHandle;
     private _pathSubscription?: SubscriptionHandle;
     private _isApplyingUrl: boolean = false;
-    private _defaultSessionId: string | null;
+    private _defaultSessionId?: string;
 
     constructor(history: History, navigation: Navigation<T>, parseUrlPath: ParseURLPath<T>, stringifyPath: StringifyPath<T>) {
         this._history = history;
@@ -40,13 +40,13 @@ export class URLRouter<T extends SegmentType> {
         this._defaultSessionId = this._getLastSessionId();
     }
 
-    _getLastSessionId(): string | null {
+    _getLastSessionId(): string | undefined {
         const navPath = this._urlAsNavPath(this._history.getLastUrl() || "");
         const sessionId = navPath.get("session")?.value;
         if (typeof sessionId === "string") {
             return sessionId;
         }
-        return null;
+        return undefined;
     }
 
     attach(): void {
