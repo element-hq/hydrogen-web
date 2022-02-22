@@ -224,7 +224,6 @@ export function stringifyPath(path: Path<SegmentType>): string {
 }
 
 export function tests() {
-
     function createEmptyPath() {
         const nav: Navigation<SegmentType> = new Navigation(allowsChild);
         const path = nav.pathFrom([]);
