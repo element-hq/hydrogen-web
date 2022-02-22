@@ -40,7 +40,7 @@ export function createNavigation(): Navigation<SegmentType> {
 }
 
 export function createRouter({history, navigation}) {
-    return new URLRouter({history, navigation, stringifyPath, parseUrlPath});
+    return new URLRouter(history, navigation, parseUrlPath, stringifyPath);
 }
 
 function allowsChild(parent: {type: string, value: any} | undefined, child: {type: string, value: any}): boolean {
