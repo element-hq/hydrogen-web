@@ -41,7 +41,7 @@ export class Navigation<T> {
         return this._path;
     }
 
-    push<K extends keyof T>(type: K, ...value: T[K] extends true? [(undefined | true)?]: [T[K]]): void {
+    push<K extends keyof T>(type: K, ...value: OptionalValue<T[K]>): void {
         const newPath = this.path.with(new Segment(type, ...value));
         if (newPath) {
             this.applyPath(newPath);
@@ -93,7 +93,7 @@ export class Navigation<T> {
         return new Path(segments, this._allowsChild);
     }
 
-    segment<K extends keyof T>(type: K, ...value: T[K] extends true? [(undefined | true)?]: [T[K]]): Segment<T> {
+    segment<K extends keyof T>(type: K, ...value: OptionalValue<T[K]>): Segment<T> {
         return new Segment(type, ...value);
     }
 }
@@ -119,7 +119,7 @@ function segmentValueEqual<T>(a?: T[keyof T], b?: T[keyof T]): boolean {
 export class Segment<T, K extends keyof T = any> {
     public value: T[K];
 
-    constructor(public type: K, ...value: T[K] extends true? [(undefined | true)?]: [T[K]]) {
+    constructor(public type: K, ...value: OptionalValue<T[K]>) {
         this.value = (value[0] === undefined ? true : value[0]) as unknown as T[K];
     }
 }

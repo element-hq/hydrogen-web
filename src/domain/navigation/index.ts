@@ -16,7 +16,7 @@ limitations under the License.
 
 import {Navigation, Segment} from "./Navigation";
 import {URLRouter} from "./URLRouter";
-import type {Path} from "./Navigation";
+import type {Path, OptionalValue} from "./Navigation";
 
 export type SegmentType = {
     "login": true;
@@ -107,7 +107,7 @@ function roomsSegmentWithRoom(rooms: Segment<SegmentType, "rooms">, roomId: stri
 }
 
 // todo-self: verify code change here is okay
-function pushRightPanelSegment<T extends keyof SegmentType>(array: Segment<SegmentType>[], segment: T, ...value: SegmentType[T] extends true? [(undefined | true)?]: [SegmentType[T]]) {
+function pushRightPanelSegment<T extends keyof SegmentType>(array: Segment<SegmentType>[], segment: T, ...value: OptionalValue<SegmentType[T]>) {
     array.push(new Segment("right-panel"));
     array.push(new Segment(segment, ...value));
 }
