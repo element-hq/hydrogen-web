@@ -18,7 +18,7 @@ export {Platform} from "./platform/web/Platform.js";
 export {Client, LoadStatus} from "./matrix/Client.js";
 export {RoomStatus} from "./matrix/room/common";
 // export main view & view models
-export {createNavigation, createRouter} from "./domain/navigation/index.js";
+export {createNavigation, createRouter} from "./domain/navigation/index";
 export {RootViewModel} from "./domain/RootViewModel.js";
 export {RootView} from "./platform/web/ui/RootView.js";
 export {SessionViewModel} from "./domain/session/SessionViewModel.js";

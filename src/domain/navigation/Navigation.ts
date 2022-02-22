@@ -16,22 +16,6 @@ limitations under the License.
 
 import {BaseObservableValue, ObservableValue} from "../../observable/ObservableValue";
 
-type SegmentType = {
-    "login": true;
-    "session": string;
-    "sso": string;
-    "logout": true;
-    "room": string;
-    "rooms": string[];
-    "settings": true;
-    "create-room": true;
-    "empty-grid-tile": number;
-    "lightbox": string;
-    "right-panel": boolean;
-    "details": true;
-    "members": true;
-    "member": string;
-};
 
 type AllowsChild<T> = (parent: Segment<T> | undefined, child: Segment<T>) => boolean;
 
@@ -55,7 +39,7 @@ export class Navigation<T> {
         return this._path;
     }
 
-    push<K extends keyof T>(type: K, ...value: T[K] extends true? [undefined?]: [T[K]]): void {
+    push<K extends keyof T>(type: K, ...value: T[K] extends true? [(undefined | true)?]: [T[K]]): void {
         const newPath = this.path.with(new Segment(type, ...value));
         if (newPath) {
             this.applyPath(newPath);
@@ -107,7 +91,7 @@ export class Navigation<T> {
         return new Path(segments, this._allowsChild);
     }
 
-    segment<K extends keyof T>(type: K, ...value: T[K] extends true? [undefined?]: [T[K]]): Segment<T> {
+    segment<K extends keyof T>(type: K, ...value: T[K] extends true? [(undefined | true)?]: [T[K]]): Segment<T> {
         return new Segment(type, ...value);
     }
 }
@@ -133,7 +117,7 @@ function segmentValueEqual<T>(a?: T[keyof T], b?: T[keyof T]): boolean {
 export class Segment<T, K extends keyof T = any> {
     public value: T[K];
 
-    constructor(public type: K, ...value: T[K] extends true? [undefined?]: [T[K]]) {
+    constructor(public type: K, ...value: T[K] extends true? [(undefined | true)?]: [T[K]]) {
         this.value = (value[0] === undefined ? true : value[0]) as unknown as T[K];
     }
 }
@@ -230,6 +214,8 @@ class SegmentObservable<T> extends BaseObservableValue<T[keyof T] | undefined> {
         }
     }
 }
+
+export type { Path };
 
 export function tests() {
 

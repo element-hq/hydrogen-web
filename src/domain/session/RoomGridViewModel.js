@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {ViewModel} from "../ViewModel";
-import {addPanelIfNeeded} from "../navigation/index.js";
+import {addPanelIfNeeded} from "../navigation/index";
 
 function dedupeSparse(roomIds) {
     return roomIds.map((id, idx) => {
@@ -185,7 +185,7 @@ export class RoomGridViewModel extends ViewModel {
     }
 }
 
-import {createNavigation} from "../navigation/index.js";
+import {createNavigation} from "../navigation/index";
 import {ObservableValue} from "../../observable/ObservableValue";
 
 export function tests() { 
