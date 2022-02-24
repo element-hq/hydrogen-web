@@ -49,6 +49,10 @@ export class BaseMessageTile extends SimpleTile {
         return `https://matrix.to/#/${encodeURIComponent(this.sender)}`;
     }
 
+    get eventId() {
+        return this._entry.id;
+    }
+
     get displayName() {
         return this._entry.displayName || this.sender;
     }
@@ -79,11 +83,11 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     get date() {
-        return this._date && this._date.toLocaleDateString({}, {month: "numeric", day: "numeric"});
+        return this._date && this._date.toLocaleDateString({}, {month: "numeric", day: "numeric", timeZone: 'UTC'});
     }
 
     get time() {
-        return this._date && this._date.toLocaleTimeString({}, {hour: "numeric", minute: "2-digit"});
+        return this._date && this._date.toLocaleTimeString({}, {hour: "numeric", minute: "2-digit", timeZone: 'UTC'});
     }
 
     get isOwn() {
