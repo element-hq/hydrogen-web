@@ -104,8 +104,8 @@ export const TAG_NAMES = {
         "br", "a", "ol", "ul", "li", "div", "h1", "h2", "h3", "h4", "h5", "h6",
         "p", "strong", "em", "span", "img", "section", "main", "article", "aside", "del", "blockquote",
         "table", "thead", "tbody", "tr", "th", "td", "hr",
-        "pre", "code", "button", "time", "input", "textarea", "label", "form", "progress", "output", "video"],
-    [SVG_NS]: ["svg", "circle"]
+        "pre", "code", "button", "time", "input", "textarea", "select", "option", "label", "form", "progress", "output", "video"],
+    [SVG_NS]: ["svg", "circle", "path"]
 } as const;
 
 export const tag: { [tagName in typeof TAG_NAMES[string][number]]: (attributes?: BasicAttributes<never> | Child | Child[], children?: Child | Child[]) => Element } = {} as any;
