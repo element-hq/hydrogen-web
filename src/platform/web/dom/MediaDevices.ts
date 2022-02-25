@@ -90,9 +90,10 @@ export class TrackWrapper implements Track {
     constructor(
         public readonly track: MediaStreamTrack,
         public readonly stream: MediaStream,
-        public readonly type: TrackType
+        private _type: TrackType,
     ) {}
 
+    get type(): TrackType { return this._type; }
     get label(): string { return this.track.label; }
     get id(): string { return this.track.id; }
     get streamId(): string { return this.stream.id; }
@@ -101,6 +102,10 @@ export class TrackWrapper implements Track {
 
     setMuted(muted: boolean): void {
         this.track.enabled = !muted;
+    }
+
+    setType(type: TrackType): void {
+        this._type = type;
     }
 }
 

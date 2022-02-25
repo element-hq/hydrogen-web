@@ -15,11 +15,7 @@ limitations under the License.
 */
 
 import {Track, TrackType} from "./MediaDevices";
-
-export enum StreamPurpose {
-    UserMedia = "m.usermedia",
-    ScreenShare = "m.screenshare"
-}
+import {SDPStreamMetadataPurpose} from "../../matrix/calls/callEventTypes";
 
 export interface WebRTC {
     createPeerConnection(handler: PeerConnectionHandler): PeerConnection;
@@ -33,7 +29,7 @@ export interface PeerConnectionHandler {
     onDataChannelChanged(dataChannel: DataChannel | undefined);
     onNegotiationNeeded();
     // request the type of incoming stream
-    getPurposeForStreamId(streamId: string): StreamPurpose;
+    getPurposeForStreamId(streamId: string): SDPStreamMetadataPurpose;
 }
 // does it make sense to wrap this?
 export interface DataChannel {
@@ -42,8 +38,11 @@ export interface DataChannel {
 }
 
 export interface PeerConnection {
-    get remoteTracks(): Track[] | undefined;
+    notifyStreamPurposeChanged(): void;
+    get remoteTracks(): Track[];
     get dataChannel(): DataChannel | undefined;
+    get iceGatheringState(): RTCIceGatheringState;
+    get localDescription(): RTCSessionDescription | undefined;
     createOffer(): Promise<RTCSessionDescriptionInit>;
     createAnswer(): Promise<RTCSessionDescriptionInit>;
     setLocalDescription(description?: RTCSessionDescriptionInit): Promise<void>;

@@ -44,6 +44,8 @@ export class GroupCallHandler {
 
     }
 
+    // TODO: check and poll turn server credentials here
+
     handleRoomState(room: Room, events: StateEvent[], log: ILogItem) {
         // first update call events
         for (const event of events) {

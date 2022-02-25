@@ -16,7 +16,8 @@ limitations under the License.
 
 import {TrackWrapper, wrapTrack} from "./MediaDevices";
 import {Track, TrackType} from "../../types/MediaDevices";
-import {WebRTC, PeerConnectionHandler, DataChannel, PeerConnection, StreamPurpose} from "../../types/WebRTC";
+import {WebRTC, PeerConnectionHandler, DataChannel, PeerConnection} from "../../types/WebRTC";
+import {SDPStreamMetadataPurpose} from "../../../matrix/calls/callEventTypes";
 
 const POLLING_INTERVAL = 200; // ms
 export const SPEAKING_THRESHOLD = -60; // dB
@@ -25,8 +26,8 @@ const SPEAKING_SAMPLE_COUNT = 8; // samples
 class DOMPeerConnection implements PeerConnection {
     private readonly peerConnection: RTCPeerConnection;
     private readonly handler: PeerConnectionHandler;
-    private dataChannelWrapper?: DOMDataChannel;
-    private _remoteTracks: TrackWrapper[];
+    //private dataChannelWrapper?: DOMDataChannel;
+    private _remoteTracks: TrackWrapper[] = [];
 
     constructor(handler: PeerConnectionHandler, forceTURN: boolean, turnServers: RTCIceServer[], iceCandidatePoolSize = 0) {
         this.handler = handler;
@@ -39,7 +40,9 @@ class DOMPeerConnection implements PeerConnection {
     }
 
     get remoteTracks(): Track[] { return this._remoteTracks; }
-    get dataChannel(): DataChannel | undefined { return this.dataChannelWrapper; }
+    get dataChannel(): DataChannel | undefined { return undefined; }
+    get iceGatheringState(): RTCIceGatheringState { return this.peerConnection.iceGatheringState; }
+    get localDescription(): RTCSessionDescription | undefined { return this.peerConnection.localDescription ?? undefined; }
 
     createOffer(): Promise<RTCSessionDescriptionInit> {
         return this.peerConnection.createOffer();
@@ -97,6 +100,14 @@ class DOMPeerConnection implements PeerConnection {
         }
         return false;
     }
+
+    notifyStreamPurposeChanged(): void {
+        for (const track of this.remoteTracks) {
+            const wrapper = track as TrackWrapper;
+            wrapper.setType(this.getRemoteTrackType(wrapper.track, wrapper.streamId));
+        }
+    }
+
     createDataChannel(): DataChannel {
         return new DataChannel(this.peerConnection.createDataChannel());
     }
@@ -173,20 +184,19 @@ class DOMPeerConnection implements PeerConnection {
         // of the new tracks, filter the ones that we didn't already knew about
         const addedTracks = updatedTracks.filter(ut => !this._remoteTracks.some(t => t.track.id === ut.track.id));
         // wrap them
-        const wrappedAddedTracks = addedTracks.map(t => this.wrapRemoteTrack(t.track, t.stream));
+        const wrappedAddedTracks = addedTracks.map(t => wrapTrack(t.track, t.stream, this.getRemoteTrackType(t.track, t.stream.id)));
         // and concat the tracks for other streams with the added tracks
         this._remoteTracks = withoutRemovedTracks.concat(...wrappedAddedTracks);
         this.handler.onRemoteTracksChanged(this.remoteTracks);
     }
-    private wrapRemoteTrack(track: MediaStreamTrack, stream: MediaStream): TrackWrapper {
-        let type: TrackType;
+
+    private getRemoteTrackType(track: MediaStreamTrack, streamId: string): TrackType {
         if (track.kind === "video") {
-            const purpose = this.handler.getPurposeForStreamId(stream.id);
-            type = purpose === StreamPurpose.UserMedia ? TrackType.Camera : TrackType.ScreenShare;
+            const purpose = this.handler.getPurposeForStreamId(streamId);
+            return purpose === SDPStreamMetadataPurpose.Usermedia ? TrackType.Camera : TrackType.ScreenShare;
         } else {
-            type = TrackType.Microphone;
+            return TrackType.Microphone;
         }
-        return wrapTrack(track, stream, type);
     }
 
     /**
