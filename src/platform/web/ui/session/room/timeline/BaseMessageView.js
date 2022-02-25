@@ -40,14 +40,17 @@ export class BaseMessageView extends TemplateView {
         if (this._interactive) {
             children.push(t.button({className: "Timeline_messageOptions"}, "⋯"));
         }
-        const li = t.el(this._tagName, {className: {
-            "Timeline_message": true,
-            own: vm.isOwn,
-            unsent: vm.isUnsent,
-            unverified: vm.isUnverified,
-            disabled: !this._interactive,
-            continuation: vm => vm.isContinuation,
-        }}, children);
+        const li = t.el(this._tagName, {
+            className: {
+                "Timeline_message": true,
+                own: vm.isOwn,
+                unsent: vm.isUnsent,
+                unverified: vm.isUnverified,
+                disabled: !this._interactive,
+                continuation: vm => vm.isContinuation,
+            },
+            'data-event-id': vm.eventId
+        }, children);
         // given that there can be many tiles, we don't add
         // unneeded DOM nodes in case of a continuation, and we add it
         // with a side-effect binding to not have to create sub views,
