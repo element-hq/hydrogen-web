@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../general/TemplateView";
-import {renderStaticAvatar} from "../../avatar.js";
+import {renderStaticAvatar} from "../../avatar";
 
 export class InviteView extends TemplateView {
     render(t, vm) {

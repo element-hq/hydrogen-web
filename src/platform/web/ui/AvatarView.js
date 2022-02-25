@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {BaseUpdateView} from "./general/BaseUpdateView";
-import {renderStaticAvatar, renderImg} from "./avatar.js";
+import {renderStaticAvatar, renderImg} from "./avatar";
 
 /*
 optimization to not use a sub view when changing between img and text

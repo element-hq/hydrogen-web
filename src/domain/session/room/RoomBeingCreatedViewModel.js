@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar.js";
+import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {ViewModel} from "../../ViewModel";
 
 export class RoomBeingCreatedViewModel extends ViewModel {

@@ -16,7 +16,7 @@ limitations under the License.
 
 import {SimpleTile} from "./SimpleTile.js";
 import {ReactionsViewModel} from "../ReactionsViewModel.js";
-import {getIdentifierColorNumber, avatarInitials, getAvatarHttpUrl} from "../../../../avatar.js";
+import {getIdentifierColorNumber, avatarInitials, getAvatarHttpUrl} from "../../../../avatar";
 
 export class BaseMessageTile extends SimpleTile {
     constructor(options) {

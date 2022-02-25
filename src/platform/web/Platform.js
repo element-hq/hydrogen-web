@@ -37,7 +37,7 @@ import {hasReadPixelPermission, ImageHandle, VideoHandle} from "./dom/ImageHandl
 import {downloadInIframe} from "./dom/download.js";
 import {Disposables} from "../../utils/Disposables";
 import {parseHTML} from "./parsehtml.js";
-import {handleAvatarError} from "./ui/avatar.js";
+import {handleAvatarError} from "./ui/avatar";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
