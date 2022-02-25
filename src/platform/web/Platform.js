@@ -143,7 +143,10 @@ export class Platform {
             this._serviceWorkerHandler.registerAndStart(assetPaths.serviceWorker);
         }
         this.notificationService = new NotificationService(this._serviceWorkerHandler, config.push);
-        this.crypto = new Crypto(cryptoExtras);
+        // `window.crypto.subtle` is only available in a secure context
+        if(window.isSecureContext) {
+            this.crypto = new Crypto(cryptoExtras);
+        }
         this.storageFactory = new StorageFactory(this._serviceWorkerHandler);
         this.sessionInfoStorage = new SessionInfoStorage("hydrogen_sessions_v1");
         this.estimateStorageUsage = estimateStorageUsage;
