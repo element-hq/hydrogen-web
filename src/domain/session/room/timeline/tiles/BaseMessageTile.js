@@ -49,6 +49,10 @@ export class BaseMessageTile extends SimpleTile {
         return `https://matrix.to/#/${encodeURIComponent(this.sender)}`;
     }
 
+    get eventId() {
+        return this._entry.id;
+    }
+
     get displayName() {
         return this._entry.displayName || this.sender;
     }
