@@ -3,7 +3,7 @@ const mergeOptions = require('merge-options');
 const commonOptions = require("./vite.common-config.js");
 
 const pathsToExport = [
-    "index.js",
+    "main.js",
     "index.css",
     "download-sandbox.html"
 ];

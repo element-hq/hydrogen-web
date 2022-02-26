@@ -10,7 +10,7 @@
         },
         "./paths/vite": "./paths/vite.js",
         "./style.css": "./asset-build/assets/index.css",
-        "./main.js": "./asset-build/assets/download-sandbox.html",
+        "./main.js": "./asset-build/assets/main.js",
         "./download-sandbox.html": "./asset-build/assets/download-sandbox.html",
         "./assets/*": "./asset-build/assets/*"
     },
