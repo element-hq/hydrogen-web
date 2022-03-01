@@ -48,7 +48,6 @@ export {
 } from "./observable/index";
 export {
     BaseObservableValue,
-    IWaitHandle,
     ObservableValue,
     RetainedObservableValue
 } from "./observable/ObservableValue";
