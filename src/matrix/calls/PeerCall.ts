@@ -21,6 +21,7 @@ import type {Room} from "../room/Room";
 import type {StateEvent} from "../storage/types";
 import type {ILogItem} from "../../logging/types";
 
+import type {TimeoutCreator, Timeout} from "../../platform/types/types";
 import {WebRTC, PeerConnection, PeerConnectionHandler} from "../../platform/types/WebRTC";
 import {MediaDevices, Track, AudioTrack, TrackType} from "../../platform/types/MediaDevices";
 import type {LocalMedia} from "./LocalMedia";
@@ -49,10 +50,12 @@ class PeerCall {
     private responsePromiseChain?: Promise<void>;
     private opponentPartyId?: PartyId;
     private hangupParty: CallParty;
+    private hangupTimeout?: Timeout;
 
     constructor(
         private readonly handler: PeerCallHandler,
         private localMedia: LocalMedia,
+        private readonly createTimeout: TimeoutCreator,
         webRTC: WebRTC
     ) {
         const outer = this;
@@ -84,7 +87,7 @@ class PeerCall {
                 this.handleInvite(message.content, partyId);
                 break;
             case EventType.Answer:
-                this.handleAnswer(message.content);
+                this.handleAnswer(message.content, partyId);
                 break;
             case EventType.Candidates:
                 this.handleRemoteIceCandidates(message.content);
@@ -148,9 +151,7 @@ class PeerCall {
             return;
         }
         // Allow a short time for initial candidates to be gathered
-        await new Promise(resolve => {
-            setTimeout(resolve, 200);
-        });
+        await this.createTimeout(200).elapsed();
         this.sendAnswer();
     }
 
@@ -180,7 +181,7 @@ class PeerCall {
         applyTrack(m => m.screenShareTrack);
     }
 
-    // calls are serialized and deduplicated by negotiationQueue
+    // calls are serialized and deduplicated by responsePromiseChain
     private handleNegotiation = async (): Promise<void> => {
         try {
             await this.peerConnection.setLocalDescription();
@@ -192,7 +193,7 @@ class PeerCall {
 
         if (this.peerConnection.iceGatheringState === 'gathering') {
             // Allow a short time for initial candidates to be gathered
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await this.createTimeout(200).elapsed();
         }
 
         if (this.state === CallState.Ended) {
@@ -220,12 +221,12 @@ class PeerCall {
         this.sendCandidateQueue();
 
         if (this.state === CallState.CreateOffer) {
-            this.inviteTimeout = setTimeout(() => {
-                this.inviteTimeout = null;
-                if (this.state === CallState.InviteSent) {
-                    this.hangup(CallErrorCode.InviteTimeout);
-                }
-            }, CALL_TIMEOUT_MS);
+            this.hangupTimeout = this.createTimeout(CALL_TIMEOUT_MS);
+            await this.hangupTimeout.elapsed();
+            // @ts-ignore TS doesn't take the await above into account to know that the state could have changed in between
+            if (this.state === CallState.InviteSent) {
+                this.hangup(CallErrorCode.InviteTimeout);
+            }
         }
     };
 
@@ -333,10 +334,9 @@ class PeerCall {
         // MSC2746 recommends these values (can be quite long when calling because the
         // callee will need a while to answer the call)
         const delay = this.direction === CallDirection.Inbound ? 500 : 2000;
-
-        setTimeout(() => {
+        this.createTimeout(delay).elapsed().then(() => {
             this.sendCandidateQueue();
-        }, delay);
+        });
     }
 
 

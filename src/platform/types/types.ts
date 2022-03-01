@@ -43,3 +43,11 @@ export type File = {
     readonly name: string;
     readonly blob: IBlobHandle;
 }
+
+export interface Timeout {
+    elapsed(): Promise<void>;
+    abort(): void;
+    dispose(): void;
+};
+
+export type TimeoutCreator = (timeout: number) => Timeout;
