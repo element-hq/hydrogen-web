@@ -107,6 +107,10 @@ export class TrackWrapper implements Track {
     setType(type: TrackType): void {
         this._type = type;
     }
+
+    stop() {
+        this.track.stop();
+    }
 }
 
 export class AudioTrackWrapper extends TrackWrapper {

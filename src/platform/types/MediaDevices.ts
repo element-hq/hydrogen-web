@@ -35,6 +35,7 @@ export interface Track {
     get settings(): MediaTrackSettings;
     get muted(): boolean;
     setMuted(muted: boolean): void;
+    stop(): void;
 }
 
 export interface AudioTrack extends Track {

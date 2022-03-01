@@ -21,7 +21,7 @@ import type {Room} from "../room/Room";
 import type {StateEvent} from "../storage/types";
 import type {ILogItem} from "../../logging/types";
 
-import {WebRTC, PeerConnection, PeerConnectionHandler, StreamPurpose} from "../../platform/types/WebRTC";
+import {WebRTC, PeerConnection, PeerConnectionHandler} from "../../platform/types/WebRTC";
 import {MediaDevices, Track, AudioTrack, TrackType} from "../../platform/types/MediaDevices";
 import type {LocalMedia} from "./LocalMedia";
 
@@ -48,6 +48,7 @@ class PeerCall {
     private remoteSDPStreamMetadata?: SDPStreamMetadata;
     private responsePromiseChain?: Promise<void>;
     private opponentPartyId?: PartyId;
+    private hangupParty: CallParty;
 
     constructor(
         private readonly handler: PeerCallHandler,
@@ -80,7 +81,7 @@ class PeerCall {
     handleIncomingSignallingMessage(message: SignallingMessage, partyId: PartyId) {
         switch (message.type) {
             case EventType.Invite:
-                this.handleInvite(message.content);
+                this.handleInvite(message.content, partyId);
                 break;
             case EventType.Answer:
                 this.handleAnswer(message.content);
@@ -112,15 +113,52 @@ class PeerCall {
         await this.waitForState(CallState.InviteSent);
     }
 
-    async answer() {
+    async answer(localMediaPromise: Promise<LocalMedia>): Promise<void> {
+        if (this.state !== CallState.Ringing) {
+            return;
+        }
+        this.setState(CallState.WaitLocalMedia);
+        try {
+            this.localMedia = await localMediaPromise;
+        } catch (err) {
+            this.setState(CallState.Ended);
+            return;
+        }
+        this.setState(CallState.CreateAnswer);
+        for (const t of this.localMedia.tracks) {
+            this.peerConnection.addTrack(t);
+        }
 
+        let myAnswer: RTCSessionDescriptionInit;
+        try {
+            myAnswer = await this.peerConnection.createAnswer();
+        } catch (err) {
+            this.logger.debug(`Call ${this.callId} Failed to create answer: `, err);
+            this.terminate(CallParty.Local, CallErrorCode.CreateAnswer, true);
+            return;
+        }
+
+        try {
+            await this.peerConnection.setLocalDescription(myAnswer);
+            this.setState(CallState.Connecting);
+
+        } catch (err) {
+            this.logger.debug(`Call ${this.callId} Error setting local description!`, err);
+            this.terminate(CallParty.Local, CallErrorCode.SetLocalDescription, true);
+            return;
+        }
+        // Allow a short time for initial candidates to be gathered
+        await new Promise(resolve => {
+            setTimeout(resolve, 200);
+        });
+        this.sendAnswer();
     }
 
     async hangup() {
 
     }
 
-    async updateLocalMedia(localMediaPromise: Promise<LocalMedia>) {
+    async setMedia(localMediaPromise: Promise<LocalMedia>) {
         const oldMedia = this.localMedia;
         this.localMedia = await localMediaPromise;
 
@@ -179,6 +217,16 @@ class PeerCall {
             await this.handler.sendSignallingMessage({type: EventType.Invite, content});
             this.setState(CallState.InviteSent);
         }
+        this.sendCandidateQueue();
+
+        if (this.state === CallState.CreateOffer) {
+            this.inviteTimeout = setTimeout(() => {
+                this.inviteTimeout = null;
+                if (this.state === CallState.InviteSent) {
+                    this.hangup(CallErrorCode.InviteTimeout);
+                }
+            }, CALL_TIMEOUT_MS);
+        }
     };
 
     private async handleInvite(content: InviteContent, partyId: PartyId): Promise<void> {
@@ -202,6 +250,7 @@ class PeerCall {
         }
 
         try {
+            // Q: Why do we set the remote description before accepting the call? To start creating ICE candidates?
             await this.peerConnection.setRemoteDescription(content.offer);
             await this.addBufferedIceCandidates();
         } catch (e) {
@@ -233,6 +282,88 @@ class PeerCall {
                 this.emit(CallEvent.Hangup);
             }
         }, content.lifetime ?? CALL_TIMEOUT_MS /* - event.getLocalAge() */ );
+    }
+
+    private async sendAnswer(): Promise<void> {
+        const answerMessage: AnswerMessage = {
+            type: EventType.Answer,
+            content: {
+                answer: {
+                    sdp: this.peerConnection.localDescription!.sdp,
+                    type: this.peerConnection.localDescription!.type,
+                },
+                [SDPStreamMetadataKey]: this.localMedia.getSDPMetadata(),
+            }
+        };
+
+        // We have just taken the local description from the peerConn which will
+        // contain all the local candidates added so far, so we can discard any candidates
+        // we had queued up because they'll be in the answer.
+        this.logger.info(`Call ${this.callId} Discarding ${
+            this.candidateSendQueue.length} candidates that will be sent in answer`);
+        this.candidateSendQueue = [];
+
+        try {
+            await this.handler.sendSignallingMessage(answerMessage);
+        } catch (error) {
+            this.terminate(CallParty.Local, CallErrorCode.SendAnswer, false);
+            throw error;
+        }
+
+        // error handler re-throws so this won't happen on error, but
+        // we don't want the same error handling on the candidate queue
+        this.sendCandidateQueue();
+    }
+
+    private queueCandidate(content: RTCIceCandidate): void {
+        // We partially de-trickle candidates by waiting for `delay` before sending them
+        // amalgamated, in order to avoid sending too many m.call.candidates events and hitting
+        // rate limits in Matrix.
+        // In practice, it'd be better to remove rate limits for m.call.*
+
+        // N.B. this deliberately lets you queue and send blank candidates, which MSC2746
+        // currently proposes as the way to indicate that candidate gathering is complete.
+        // This will hopefully be changed to an explicit rather than implicit notification
+        // shortly.
+        this.candidateSendQueue.push(content);
+
+        // Don't send the ICE candidates yet if the call is in the ringing state
+        if (this.state === CallState.Ringing) return;
+
+        // MSC2746 recommends these values (can be quite long when calling because the
+        // callee will need a while to answer the call)
+        const delay = this.direction === CallDirection.Inbound ? 500 : 2000;
+
+        setTimeout(() => {
+            this.sendCandidateQueue();
+        }, delay);
+    }
+
+
+    private async sendCandidateQueue(): Promise<void> {
+        if (this.candidateSendQueue.length === 0 || this.state === CallState.Ended) {
+            return;
+        }
+
+        const candidates = this.candidateSendQueue;
+        this.candidateSendQueue = [];
+        const candidatesMessage: CandidatesMessage = {
+            type: EventType.Candidates,
+            content: {
+                candidates: candidates,
+            }
+        };
+        this.logger.debug(`Call ${this.callId} attempting to send ${candidates.length} candidates`);
+        try {
+            await this.handler.sendSignallingMessage(candidatesMessage);
+            // Try to send candidates again just in case we received more candidates while sending.
+            this.sendCandidateQueue();
+        } catch (error) {
+            // don't retry this event: we'll send another one later as we might
+            // have more candidates by then.
+            // put all the candidates we failed to send back in the queue
+            this.terminate(CallParty.Local, CallErrorCode.SignallingFailed, false);
+        }
     }
 
     private updateRemoteSDPStreamMetadata(metadata: SDPStreamMetadata): void {
@@ -295,6 +426,12 @@ class PeerCall {
 
     private async terminate(hangupParty: CallParty, hangupReason: CallErrorCode, shouldEmit: boolean): Promise<void> {
 
+    }
+
+    private stopAllMedia(): void {
+        for (const track of this.localMedia.tracks) {
+            track.stop();
+        }
     }
 }
 
@@ -480,9 +617,34 @@ export type InviteMessage = {
     content: InviteContent
 }
 
-export type SignallingMessage = InviteMessage;
+type AnwserContent = {
+    answer: {
+        sdp: string,
+        // type is now deprecated as of Matrix VoIP v1, but
+        // required to still be sent for backwards compat
+        type: RTCSdpType,
+    },
+    [SDPStreamMetadataKey]: SDPStreamMetadata,
+}
+
+export type AnswerMessage = {
+    type: EventType.Answer,
+    content: AnwserContent
+}
+
+type CandidatesContent = {
+    candidates: RTCIceCandidate[]
+}
+
+export type CandidatesMessage = {
+    type: EventType.Candidates,
+    content: CandidatesContent
+}
+
+
+export type SignallingMessage = InviteMessage | AnswerMessage | CandidatesMessage;
 
 export interface PeerCallHandler {
     emitUpdate(peerCall: PeerCall, params: any);
-    sendSignallingMessage(message: InviteMessage);
+    sendSignallingMessage(message: SignallingMessage);
 }
