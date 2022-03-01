@@ -37,4 +37,12 @@ export {AvatarView} from "./platform/web/ui/AvatarView.js";
 export {RoomType} from "./matrix/room/common";
 export {EventEmitter} from "./utils/EventEmitter";
 export {Disposables} from "./utils/Disposables";
-export * from "./observable/";
+// these should eventually be moved to another library
+export {
+    ObservableArray,
+    SortedArray,
+    MappedList,
+    AsyncMappedList,
+    ConcatList,
+    ObservableMap
+} from "./observable/index";
