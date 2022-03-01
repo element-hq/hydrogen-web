@@ -41,7 +41,7 @@ export abstract class BaseObservableValue<T> extends BaseObservable<(value: T) =
     }
 }
 
-interface IWaitHandle<T> {
+export interface IWaitHandle<T> {
     promise: Promise<T>;
     dispose(): void;
 }

@@ -34,3 +34,21 @@ export {TemplateView} from "./platform/web/ui/general/TemplateView";
 export {ViewModel} from "./domain/ViewModel";
 export {LoadingView} from "./platform/web/ui/general/LoadingView.js";
 export {AvatarView} from "./platform/web/ui/AvatarView.js";
+export {RoomType} from "./matrix/room/common";
+export {EventEmitter} from "./utils/EventEmitter";
+export {Disposables} from "./utils/Disposables";
+// these should eventually be moved to another library
+export {
+    ObservableArray,
+    SortedArray,
+    MappedList,
+    AsyncMappedList,
+    ConcatList,
+    ObservableMap
+} from "./observable/index";
+export {
+    BaseObservableValue,
+    IWaitHandle,
+    ObservableValue,
+    RetainedObservableValue
+} from "./observable/ObservableValue";
