@@ -46,3 +46,9 @@ export {
     ConcatList,
     ObservableMap
 } from "./observable/index";
+export {
+    BaseObservableValue,
+    IWaitHandle,
+    ObservableValue,
+    RetainedObservableValue
+} from "./observable/ObservableValue";
