@@ -17,7 +17,7 @@ limitations under the License.
 
 import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
 import {ComposerViewModel} from "./ComposerViewModel.js"
-import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar.js";
+import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {tilesCreator} from "./timeline/tilesCreator.js";
 import {ViewModel} from "../../ViewModel";
 import {imageToInfo} from "../common.js";

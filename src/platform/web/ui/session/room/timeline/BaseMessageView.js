@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {renderStaticAvatar} from "../../../avatar.js";
+import {renderStaticAvatar} from "../../../avatar";
 import {tag} from "../../../general/html";
 import {mountView} from "../../../general/utils";
 import {TemplateView} from "../../../general/TemplateView";

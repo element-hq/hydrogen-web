@@ -29,7 +29,7 @@ import type {ILogger} from "../logging/types";
 import type {Navigation} from "./navigation/Navigation";
 import type {URLRouter} from "./navigation/URLRouter";
 
-type Options = {
+export type Options = {
     platform: Platform
     logger: ILogger
     urlCreator: URLRouter
@@ -95,7 +95,7 @@ export class ViewModel<O extends Options = Options> extends EventEmitter<{change
     // 
     // translated string should probably always be bindings, unless we're fine with a refresh when changing the language?
     // we probably are, if we're using routing with a url, we could just refresh.
-    i18n(parts: string[], ...expr: any[]) {
+    i18n(parts: TemplateStringsArray, ...expr: any[]) {
         // just concat for now
         let result = "";
         for (let i = 0; i < parts.length; ++i) {

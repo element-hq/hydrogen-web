@@ -1,5 +1,5 @@
 import { linkify } from "./linkify/linkify.js";
-import { getIdentifierColorNumber, avatarInitials } from "../../../avatar.js";
+import { getIdentifierColorNumber, avatarInitials } from "../../../avatar";
 
 /**
  * Parse text into parts such as newline, links and text.
