@@ -24,7 +24,6 @@ import {OlmPayloadType} from "./types";
 import type {OlmMessage, OlmPayload} from "./types";
 import type {Account} from "../Account";
 import type {LockMap} from "../../../utils/LockMap";
-import type {Storage} from "../../storage/idb/Storage";
 import type {Transaction} from "../../storage/idb/Transaction";
 import type {OlmEncryptedEvent} from "./types";
 import type * as OlmNamespace from "@matrix-org/olm";
