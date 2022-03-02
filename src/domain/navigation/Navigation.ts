@@ -21,7 +21,7 @@ type AllowsChild<T> = (parent: Segment<T> | undefined, child: Segment<T>) => boo
 
 export type OptionalValue<T> = T extends true? [(undefined | true)?]: [T];
 
-export class Navigation<T> {
+export class Navigation<T extends object> {
     private readonly _allowsChild: AllowsChild<T>;
     private _path: Path<T>;
     private readonly _observables: Map<keyof T, SegmentObservable<T>> = new Map();
@@ -189,7 +189,7 @@ class Path<T> {
  * custom observable so it always returns what is in navigation.path, even if we haven't emitted the change yet.
  * This ensures that observers of a segment can also read the most recent value of other segments.
  */
-class SegmentObservable<T> extends BaseObservableValue<T[keyof T] | undefined> {
+class SegmentObservable<T extends object> extends BaseObservableValue<T[keyof T] | undefined> {
     private readonly _navigation: Navigation<T>;
     private _type: keyof T;
     private _lastSetValue?: T[keyof T];
