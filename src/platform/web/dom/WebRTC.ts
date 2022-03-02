@@ -43,6 +43,7 @@ class DOMPeerConnection implements PeerConnection {
     get dataChannel(): DataChannel | undefined { return undefined; }
     get iceGatheringState(): RTCIceGatheringState { return this.peerConnection.iceGatheringState; }
     get localDescription(): RTCSessionDescription | undefined { return this.peerConnection.localDescription ?? undefined; }
+    get signalingState(): RTCSignalingState { return this.peerConnection.signalingState; }
 
     createOffer(): Promise<RTCSessionDescriptionInit> {
         return this.peerConnection.createOffer();
@@ -62,6 +63,10 @@ class DOMPeerConnection implements PeerConnection {
 
     addIceCandidate(candidate: RTCIceCandidate): Promise<void> {
         return this.peerConnection.addIceCandidate(candidate);
+    }
+
+    close(): void {
+        return this.peerConnection.close();
     }
 
     addTrack(track: Track): void {

@@ -17,6 +17,7 @@ limitations under the License.
 import {ObservableMap} from "../../observable/map/ObservableMap";
 import {recursivelyAssign} from "../../utils/recursivelyAssign";
 import {AsyncQueue} from "../../utils/AsyncQueue";
+import {Disposables, Disposable} from "../../utils/Disposables";
 import type {Room} from "../room/Room";
 import type {StateEvent} from "../storage/types";
 import type {ILogItem} from "../../logging/types";
@@ -50,7 +51,8 @@ class PeerCall {
     private responsePromiseChain?: Promise<void>;
     private opponentPartyId?: PartyId;
     private hangupParty: CallParty;
-    private hangupTimeout?: Timeout;
+    private disposables = new Disposables();
+    private statePromiseMap = new Map<CallState, {resolve: () => void, promise: Promise<void>}>();
 
     constructor(
         private readonly handler: PeerCallHandler,
@@ -144,14 +146,13 @@ class PeerCall {
         try {
             await this.peerConnection.setLocalDescription(myAnswer);
             this.setState(CallState.Connecting);
-
         } catch (err) {
             this.logger.debug(`Call ${this.callId} Error setting local description!`, err);
             this.terminate(CallParty.Local, CallErrorCode.SetLocalDescription, true);
             return;
         }
         // Allow a short time for initial candidates to be gathered
-        await this.createTimeout(200).elapsed();
+        await this.delay(200);
         this.sendAnswer();
     }
 
@@ -193,7 +194,7 @@ class PeerCall {
 
         if (this.peerConnection.iceGatheringState === 'gathering') {
             // Allow a short time for initial candidates to be gathered
-            await this.createTimeout(200).elapsed();
+            await this.delay(200);
         }
 
         if (this.state === CallState.Ended) {
@@ -221,8 +222,7 @@ class PeerCall {
         this.sendCandidateQueue();
 
         if (this.state === CallState.CreateOffer) {
-            this.hangupTimeout = this.createTimeout(CALL_TIMEOUT_MS);
-            await this.hangupTimeout.elapsed();
+            await this.delay(CALL_TIMEOUT_MS);
             // @ts-ignore TS doesn't take the await above into account to know that the state could have changed in between
             if (this.state === CallState.InviteSent) {
                 this.hangup(CallErrorCode.InviteTimeout);
@@ -271,18 +271,55 @@ class PeerCall {
 
         this.setState(CallState.Ringing);
 
-        setTimeout(() => {
-            if (this.state == CallState.Ringing) {
-                this.logger.debug(`Call ${this.callId} invite has expired. Hanging up.`);
-                this.hangupParty = CallParty.Remote; // effectively
-                this.setState(CallState.Ended);
-                this.stopAllMedia();
-                if (this.peerConnection.signalingState != 'closed') {
-                    this.peerConnection.close();
-                }
-                this.emit(CallEvent.Hangup);
+        await this.delay(content.lifetime ?? CALL_TIMEOUT_MS);
+        // @ts-ignore TS doesn't take the await above into account to know that the state could have changed in between
+        if (this.state === CallState.Ringing) {
+            this.logger.debug(`Call ${this.callId} invite has expired. Hanging up.`);
+            this.hangupParty = CallParty.Remote; // effectively
+            this.setState(CallState.Ended);
+            this.stopAllMedia();
+            if (this.peerConnection.signalingState != 'closed') {
+                this.peerConnection.close();
             }
-        }, content.lifetime ?? CALL_TIMEOUT_MS /* - event.getLocalAge() */ );
+        }
+    }
+
+    private async handleAnswer(content: AnwserContent, partyId: PartyId): Promise<void> {
+        this.logger.debug(`Got answer for call ID ${this.callId} from party ID ${content.party_id}`);
+
+        if (this.state === CallState.Ended) {
+            this.logger.debug(`Ignoring answer because call ID ${this.callId} has ended`);
+            return;
+        }
+
+        if (this.opponentPartyId !== undefined) {
+            this.logger.info(
+                `Call ${this.callId} ` +
+                `Ignoring answer from party ID ${content.party_id}: ` +
+                `we already have an answer/reject from ${this.opponentPartyId}`,
+            );
+            return;
+        }
+
+        this.opponentPartyId = partyId;
+        await this.addBufferedIceCandidates();
+
+        this.setState(CallState.Connecting);
+
+        const sdpStreamMetadata = content[SDPStreamMetadataKey];
+        if (sdpStreamMetadata) {
+            this.updateRemoteSDPStreamMetadata(sdpStreamMetadata);
+        } else {
+            this.logger.warn(`Call ${this.callId} Did not get any SDPStreamMetadata! Can not send/receive multiple streams`);
+        }
+
+        try {
+            await this.peerConnection.setRemoteDescription(content.answer);
+        } catch (e) {
+            this.logger.debug(`Call ${this.callId} Failed to set remote description`, e);
+            this.terminate(CallParty.Local, CallErrorCode.SetRemoteDescription, false);
+            return;
+        }
     }
 
     private async sendAnswer(): Promise<void> {
@@ -333,8 +370,7 @@ class PeerCall {
 
         // MSC2746 recommends these values (can be quite long when calling because the
         // callee will need a while to answer the call)
-        const delay = this.direction === CallDirection.Inbound ? 500 : 2000;
-        this.createTimeout(delay).elapsed().then(() => {
+        this.delay(this.direction === CallDirection.Inbound ? 500 : 2000).then(() => {
             this.sendCandidateQueue();
         });
     }
@@ -384,13 +420,15 @@ class PeerCall {
 
 
     private async addBufferedIceCandidates(): Promise<void> {
-        const bufferedCandidates = this.remoteCandidateBuffer!.get(this.opponentPartyId!);
-        if (bufferedCandidates) {
-            this.logger.info(`Call ${this.callId} Adding ${
-                bufferedCandidates.length} buffered candidates for opponent ${this.opponentPartyId}`);
-            await this.addIceCandidates(bufferedCandidates);
+        if (this.remoteCandidateBuffer && this.opponentPartyId) {
+            const bufferedCandidates = this.remoteCandidateBuffer.get(this.opponentPartyId);
+            if (bufferedCandidates) {
+                this.logger.info(`Call ${this.callId} Adding ${
+                    bufferedCandidates.length} buffered candidates for opponent ${this.opponentPartyId}`);
+                await this.addIceCandidates(bufferedCandidates);
+            }
+            this.remoteCandidateBuffer = undefined;
         }
-        this.remoteCandidateBuffer = undefined;
     }
 
     private async addIceCandidates(candidates: RTCIceCandidate[]): Promise<void> {
@@ -417,11 +455,25 @@ class PeerCall {
     private setState(state: CallState): void {
         const oldState = this.state;
         this.state = state;
-        this.handler.emitUpdate();
+        let deferred = this.statePromiseMap.get(state);
+        if (deferred) {
+            deferred.resolve();
+            this.statePromiseMap.delete(state);
+        }
+        this.handler.emitUpdate(this, undefined);
     }
 
     private waitForState(state: CallState): Promise<void> {
-        
+        let deferred = this.statePromiseMap.get(state);
+        if (!deferred) {
+            let resolve;
+            const promise = new Promise<void>(r => {
+                resolve = r;
+            });
+            deferred = {resolve, promise};
+            this.statePromiseMap.set(state, deferred);
+        }
+        return deferred.promise;
     }
 
     private async terminate(hangupParty: CallParty, hangupReason: CallErrorCode, shouldEmit: boolean): Promise<void> {
@@ -432,6 +484,18 @@ class PeerCall {
         for (const track of this.localMedia.tracks) {
             track.stop();
         }
+    }
+
+    private async delay(timeoutMs: number): Promise<void> {
+        // Allow a short time for initial candidates to be gathered
+        const timeout = this.disposables.track(this.createTimeout(timeoutMs));
+        await timeout.elapsed();
+        this.disposables.untrack(timeout);
+    }
+
+    public dispose(): void {
+        this.disposables.dispose();
+        // TODO: dispose peerConnection?
     }
 }
 

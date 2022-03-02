@@ -42,6 +42,7 @@ export interface PeerConnection {
     get remoteTracks(): Track[];
     get dataChannel(): DataChannel | undefined;
     get iceGatheringState(): RTCIceGatheringState;
+    get signalingState(): RTCSignalingState;
     get localDescription(): RTCSessionDescription | undefined;
     createOffer(): Promise<RTCSessionDescriptionInit>;
     createAnswer(): Promise<RTCSessionDescriptionInit>;
@@ -53,4 +54,5 @@ export interface PeerConnection {
     replaceTrack(oldTrack: Track, newTrack: Track): Promise<boolean>;
     createDataChannel(): DataChannel;
     dispose(): void;
+    close(): void;
 }

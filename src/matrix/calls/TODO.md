@@ -105,7 +105,7 @@ Expose call objects
 Write view model
 write view
 
-## Calls questions\
+## Calls questions
  - how do we handle glare between group calls (e.g. different state events with different call ids?)
  - Split up DOM part into platform code? What abstractions to choose?
    Does it make sense to come up with our own API very similar to DOM api?
