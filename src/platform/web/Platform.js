@@ -143,8 +143,8 @@ export class Platform {
             this._serviceWorkerHandler.registerAndStart(assetPaths.serviceWorker);
         }
         this.notificationService = new NotificationService(this._serviceWorkerHandler, config.push);
-        // `window.crypto.subtle` is only available in a secure context
-        if(window.isSecureContext) {
+        // Only try to use crypto when olm is provided
+        if(this._assetPaths.olm) {
             this.crypto = new Crypto(cryptoExtras);
         }
         this.storageFactory = new StorageFactory(this._serviceWorkerHandler);
