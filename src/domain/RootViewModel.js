@@ -38,6 +38,8 @@ export class RootViewModel extends ViewModel {
         this.track(this.navigation.observe("login").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("session").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("sso").subscribe(() => this._applyNavigation()));
+        this.track(this.navigation.observe("oidc-callback").subscribe(() => this._applyNavigation()));
+        this.track(this.navigation.observe("oidc-error").subscribe(() => this._applyNavigation()));
         this._applyNavigation(true);
     }
 
@@ -46,6 +48,8 @@ export class RootViewModel extends ViewModel {
         const logoutSessionId = this.navigation.path.get("logout")?.value;
         const sessionId = this.navigation.path.get("session")?.value;
         const loginToken = this.navigation.path.get("sso")?.value;
+        const oidcCallback = this.navigation.path.get("oidc-callback")?.value;
+        const oidcError = this.navigation.path.get("oidc-error")?.value;
         if (isLogin) {
             if (this.activeSection !== "login") {
                 this._showLogin();
@@ -77,7 +81,20 @@ export class RootViewModel extends ViewModel {
         } else if (loginToken) {
             this.urlCreator.normalizeUrl();
             if (this.activeSection !== "login") {
-                this._showLogin(loginToken);
+                this._showLogin({loginToken});
+            }
+        } else if (oidcError) {
+            this._setSection(() => this._error = new Error(`OIDC error: ${oidcError[1]}`));
+        } else if (oidcCallback) {
+            this._setSection(() => this._error = new Error(`OIDC callback: state=${oidcCallback[0]}, code=${oidcCallback[1]}`));
+            this.urlCreator.normalizeUrl();
+            if (this.activeSection !== "login") {
+                this._showLogin({
+                    oidc: {
+                        state: oidcCallback[0],
+                        code: oidcCallback[1],
+                    }
+                });
             }
         }
         else {
@@ -109,7 +126,7 @@ export class RootViewModel extends ViewModel {
         }
     }
 
-    _showLogin(loginToken) {
+    _showLogin({loginToken, oidc} = {}) {
         this._setSection(() => {
             this._loginViewModel = new LoginViewModel(this.childOptions({
                 defaultHomeserver: this.platform.config["defaultHomeServer"],
@@ -125,7 +142,8 @@ export class RootViewModel extends ViewModel {
                     this._pendingClient = client;
                     this.navigation.push("session", client.sessionId);
                 },
-                loginToken
+                loginToken,
+                oidc,
             }));
         });
     }
