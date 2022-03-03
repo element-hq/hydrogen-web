@@ -32,6 +32,7 @@ export class TokenRefresher {
     private _clock: Clock;
     private _oidcApi: OidcApi;
     private _timeout: Timeout
+    private _running: boolean;
 
     constructor({
         oidcApi,
@@ -65,11 +66,15 @@ export class TokenRefresher {
             await this.renew();
         }
 
+        this._running = true;
         this._renewingLoop();
     }
 
     stop() {
-        // TODO
+        this._running = false;
+        if (this._timeout) {
+            this._timeout.dispose();
+        }
     }
 
     get needsRenewing() {
@@ -79,14 +84,19 @@ export class TokenRefresher {
     }
 
     async _renewingLoop() {
-        while (true) {
+        while (this._running) {
             const remaining =
                 this._token.get().accessTokenExpiresAt - this._clock.now();
             const anticipated = remaining - this._anticipation;
 
             if (anticipated > 0) {
                 this._timeout = this._clock.createTimeout(anticipated);
-                await this._timeout.elapsed();
+                try {
+                    await this._timeout.elapsed();
+                } catch {
+                    // The timeout will throw when aborted, so stop the loop if it is the case
+                    return;
+                }
             }
 
             await this.renew();
