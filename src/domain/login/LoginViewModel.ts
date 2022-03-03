@@ -166,14 +166,15 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         this._startOIDCLoginViewModel = this.track(
             new StartOIDCLoginViewModel(this.childOptions({loginOptions: this._loginOptions}))
         );
-        await this._startOIDCLoginViewModel.start();
         this.emitChange("startOIDCLoginViewModel");
+        this._startOIDCLoginViewModel.discover();
     }
 
     private _setBusy(status: boolean): void {
         this._isBusy = status;
         this._passwordLoginViewModel?.setBusy(status);
         this._startSSOLoginViewModel?.setBusy(status);
+        this.startOIDCLoginViewModel?.setBusy(status);
         this.emitChange("isBusy");
     }
 
@@ -291,7 +292,7 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         if (this._loginOptions) {
             if (this._loginOptions.sso) { this._showSSOLogin(); }
             if (this._loginOptions.password) { this._showPasswordLogin(); }
-            if (this._loginOptions.oidc) { await this._showOIDCLogin(); }
+            if (this._loginOptions.oidc) { this._showOIDCLogin(); }
             if (!this._loginOptions.sso && !this._loginOptions.password && !this._loginOptions.oidc) {
                 this._showError("This homeserver supports neither SSO nor password based login flows");
             }
