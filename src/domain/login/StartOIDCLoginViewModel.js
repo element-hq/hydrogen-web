@@ -44,11 +44,15 @@ export class StartOIDCLoginViewModel extends ViewModel {
     }
 
     async startOIDCLogin() {
-        const p = this._api.generateParams("openid");
+        const p = this._api.generateParams({
+            scope: "openid",
+            redirectUri: this.urlCreator.createOIDCRedirectURL(),
+        });
         await Promise.all([
             this.platform.settingsStorage.setInt(`oidc_${p.state}_started_at`, Date.now()),
             this.platform.settingsStorage.setString(`oidc_${p.state}_nonce`, p.nonce),
             this.platform.settingsStorage.setString(`oidc_${p.state}_code_verifier`, p.codeVerifier),
+            this.platform.settingsStorage.setString(`oidc_${p.state}_redirect_uri`, p.redirectUri),
             this.platform.settingsStorage.setString(`oidc_${p.state}_homeserver`, this._homeserver),
             this.platform.settingsStorage.setString(`oidc_${p.state}_issuer`, this._issuer),
         ]);

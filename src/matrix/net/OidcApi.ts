@@ -39,6 +39,7 @@ const isValidBearerToken = (t: any): t is BearerToken =>
 type AuthorizationParams = {
     state: string,
     scope: string,
+    redirectUri: string,
     nonce?: string,
     codeVerifier?: string,
 };
@@ -118,6 +119,7 @@ export class OidcApi {
 
     async authorizationEndpoint({
         state,
+        redirectUri,
         scope,
         nonce,
         codeVerifier,
@@ -126,7 +128,7 @@ export class OidcApi {
         const url = new URL(metadata["authorization_endpoint"]);
         url.searchParams.append("response_mode", "fragment");
         url.searchParams.append("response_type", "code");
-        url.searchParams.append("redirect_uri", this.redirectUri);
+        url.searchParams.append("redirect_uri", redirectUri);
         url.searchParams.append("client_id", this._clientId);
         url.searchParams.append("state", state);
         url.searchParams.append("scope", scope);
@@ -147,9 +149,10 @@ export class OidcApi {
         return metadata["token_endpoint"];
     }
 
-    generateParams(scope: string): AuthorizationParams {
+    generateParams({ scope, redirectUri }: { scope: string, redirectUri: string }): AuthorizationParams {
         return {
             scope,
+            redirectUri,
             state: randomString(8),
             nonce: randomString(8),
             codeVerifier: randomString(32),
@@ -159,12 +162,13 @@ export class OidcApi {
     async completeAuthorizationCodeGrant({
         codeVerifier,
         code,
-    }: { codeVerifier: string, code: string }): Promise<BearerToken> {
+        redirectUri,
+    }: { codeVerifier: string, code: string, redirectUri: string }): Promise<BearerToken> {
         const params = new URLSearchParams();
         params.append("grant_type", "authorization_code");
         params.append("client_id", this._clientId);
         params.append("code_verifier", codeVerifier);
-        params.append("redirect_uri", this.redirectUri);
+        params.append("redirect_uri", redirectUri);
         params.append("code", code);
         const body = params.toString();
 

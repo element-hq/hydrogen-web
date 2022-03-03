@@ -125,6 +125,10 @@ export class URLRouter {
         return window.location.origin;
     }
 
+    createOIDCRedirectURL() {
+        return window.location.origin;
+    }
+
     normalizeUrl() {
         // Remove any queryParameters from the URL
         // Gets rid of the loginToken after SSO
