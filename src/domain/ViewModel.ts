@@ -30,15 +30,17 @@ import type {Navigation} from "./navigation/Navigation";
 import type {SegmentType} from "./navigation/index";
 import type {URLRouter} from "./navigation/URLRouter";
 
-type Options<N extends {session: string}> = {
+type OptionsWithoutUrlCreator<N extends object> = {
     platform: Platform
     logger: ILogger
-    urlCreator: URLRouter<N>
     navigation: Navigation<N>
     emitChange?: (params: any) => void
 }
+type OptionsWithUrlCreator<N extends { session: string }> = OptionsWithoutUrlCreator<N> & {urlCreator: URLRouter<N>}; 
 
-export class ViewModel<N extends {session: string} = SegmentType, O extends Options<N> = Options<N>> extends EventEmitter<{change: never}> {
+type Options<N extends object> = N extends { session: string } ? OptionsWithUrlCreator<N> : OptionsWithoutUrlCreator<N>;
+
+export class ViewModel<N extends object = SegmentType, O extends Options<N> = Options<N>> extends EventEmitter<{change: never}> {
     private disposables?: Disposables;
     private _isDisposed = false;
     private _options: Readonly<O>;
@@ -136,11 +138,13 @@ export class ViewModel<N extends {session: string} = SegmentType, O extends Opti
         return this.platform.logger;
     }
 
-    get urlCreator(): URLRouter<N> {
-        return this._options.urlCreator;
+    get urlCreator(): N extends { session: string }? URLRouter<N>: undefined {
+        // typescript needs a little help here
+        return (this._options as unknown as {urlCreator: any}).urlCreator;
     }
 
     get navigation(): Navigation<N> {
-        return this._options.navigation;
+        // typescript needs a little help here
+        return this._options.navigation as unknown as Navigation<N>;
     }
 }
