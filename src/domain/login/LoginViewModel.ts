@@ -15,19 +15,24 @@ limitations under the License.
 */
 
 import {Client} from "../../matrix/Client.js";
+import {OidcApi} from "../../matrix/net/OidcApi.js";
 import {Options as BaseOptions, ViewModel} from "../ViewModel";
 import {PasswordLoginViewModel} from "./PasswordLoginViewModel.js";
 import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel.js";
 import {CompleteSSOLoginViewModel} from "./CompleteSSOLoginViewModel.js";
+import {StartOIDCLoginViewModel} from "./StartOIDCLoginViewModel.js";
+import {CompleteOIDCLoginViewModel} from "./CompleteOIDCLoginViewModel.js";
 import {LoadStatus} from "../../matrix/Client.js";
 import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
 import {SegmentType} from "../navigation/index";
 
 import type {PasswordLoginMethod, SSOLoginHelper, TokenLoginMethod, ILoginMethod} from "../../matrix/login";
+import { OIDCLoginMethod } from "../../matrix/login/OIDCLoginMethod.js";
 
 type Options = {
     defaultHomeserver: string;
     ready: ReadyFn;
+    oidc?: { state: string, code: string };
     loginToken?: string;
 } & BaseOptions;
 
@@ -35,10 +40,13 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
     private _ready: ReadyFn;
     private _loginToken?: string;
     private _client: Client;
+    private _oidc?: { state: string, code: string };
     private _loginOptions?: LoginOptions;
     private _passwordLoginViewModel?: PasswordLoginViewModel;
     private _startSSOLoginViewModel?: StartSSOLoginViewModel;
     private _completeSSOLoginViewModel?: CompleteSSOLoginViewModel;
+    private _startOIDCLoginViewModel?: StartOIDCLoginViewModel;
+    private _completeOIDCLoginViewModel?: CompleteOIDCLoginViewModel;
     private _loadViewModel?: SessionLoadViewModel;
     private _loadViewModelSubscription?: () => void;
     private _homeserver: string;
@@ -52,9 +60,10 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
 
     constructor(options: Readonly<Options>) {
         super(options);
-        const {ready, defaultHomeserver, loginToken} = options;
+        const {ready, defaultHomeserver, loginToken, oidc} = options;
         this._ready = ready;
         this._loginToken = loginToken;
+        this._oidc = oidc;
         this._client = new Client(this.platform);
         this._homeserver = defaultHomeserver;
         this._initViewModels();
@@ -71,6 +80,15 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
     get completeSSOLoginViewModel(): CompleteSSOLoginViewModel {
         return this._completeSSOLoginViewModel;
     }
+
+    get startOIDCLoginViewModel(): StartOIDCLoginViewModel {
+        return this._startOIDCLoginViewModel;
+    }
+
+    get completeOIDCLoginViewModel(): CompleteOIDCLoginViewModel {
+        return this._completeOIDCLoginViewModel;
+    }
+
 
     get homeserver(): string {
         return this._homeserver;
@@ -116,6 +134,18 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
                     })));
             this.emitChange("completeSSOLoginViewModel");
         }
+        else if (this._oidc) {
+            this._hideHomeserver = true;
+            this._completeOIDCLoginViewModel = this.track(new CompleteOIDCLoginViewModel(
+                this.childOptions(
+                    {
+                        client: this._client,
+                        attemptLogin: (loginMethod: OIDCLoginMethod) => this.attemptLogin(loginMethod),
+                        state: this._oidc.state,
+                        code: this._oidc.code,
+                    })));
+            this.emitChange("completeOIDCLoginViewModel");
+        }
         else {
             void this.queryHomeserver();
         }
@@ -135,6 +165,14 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
             new StartSSOLoginViewModel(this.childOptions({loginOptions: this._loginOptions}))
         );
         this.emitChange("startSSOLoginViewModel");
+    }
+
+    private async _showOIDCLogin(): Promise<void> {
+        this._startOIDCLoginViewModel = this.track(
+            new StartOIDCLoginViewModel(this.childOptions({loginOptions: this._loginOptions}))
+        );
+        await this._startOIDCLoginViewModel.start();
+        this.emitChange("startOIDCLoginViewModel");
     }
 
     private _showError(message: string): void {
@@ -263,7 +301,8 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         if (this._loginOptions) {
             if (this._loginOptions.sso) { this._showSSOLogin(); }
             if (this._loginOptions.password) { this._showPasswordLogin(); }
-            if (!this._loginOptions.sso && !this._loginOptions.password) {
+            if (this._loginOptions.oidc) { await this._showOIDCLogin(); }
+            if (!this._loginOptions.sso && !this._loginOptions.password && !this._loginOptions.oidc) {
                 this._showError("This homeserver supports neither SSO nor password based login flows");
             }
         }
@@ -289,5 +328,6 @@ type LoginOptions = {
     homeserver: string;
     password?: (username: string, password: string) => PasswordLoginMethod;
     sso?: SSOLoginHelper;
+    oidc?: { issuer: string };
     token?: (loginToken: string) => TokenLoginMethod;
 };

@@ -33,6 +33,8 @@ export type SegmentType = {
     "details": true;
     "members": true;
     "member": string;
+    "oidc-callback": (string | null)[];
+    "oidc-error": (string | null)[];
 };
 
 export function createNavigation(): Navigation<SegmentType> {
@@ -48,7 +50,7 @@ function allowsChild(parent: Segment<SegmentType> | undefined, child: Segment<Se
     switch (parent?.type) {
         case undefined:
             // allowed root segments
-            return type === "login"  || type === "session" || type === "sso" || type === "logout";
+            return type === "login" || type === "session" || type === "sso" || type === "logout" || type === "oidc-callback" || type === "oidc-error";
         case "session":
             return type === "room" || type === "rooms" || type === "settings" || type === "create-room";
         case "rooms":
@@ -57,7 +59,7 @@ function allowsChild(parent: Segment<SegmentType> | undefined, child: Segment<Se
         case "room":
             return type === "lightbox" || type === "right-panel";
         case "right-panel":
-            return type === "details"|| type === "members" || type === "member";
+            return type === "details" || type === "members" || type === "member";
         default:
             return false;
     }
@@ -124,10 +126,34 @@ export function addPanelIfNeeded<T extends SegmentType>(navigation: Navigation<T
 }
 
 export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>, defaultSessionId?: string): Segment<SegmentType>[] {
+    const segments: Segment<SegmentType>[] = [];
+
+    // Special case for OIDC callback
+    if (urlPath.includes("state")) {
+        const params = new URLSearchParams(urlPath);
+        if (params.has("state")) {
+            // This is a proper OIDC callback
+            if (params.has("code")) {
+                segments.push(new Segment("oidc-callback", [
+                    params.get("state"),
+                    params.get("code"),
+                ]));
+                return segments;
+            } else if (params.has("error")) {
+                segments.push(new Segment("oidc-error", [
+                    params.get("state"),
+                    params.get("error"),
+                    params.get("error_description"),
+                    params.get("error_uri"),
+                ]));
+                return segments;
+            }
+        }
+    }
+
     // substring(1) to take of initial /
     const parts = urlPath.substring(1).split("/");
     const iterator = parts[Symbol.iterator]();
-    const segments: Segment<SegmentType>[] = [];
     let next; 
     while (!(next = iterator.next()).done) {
         const type = next.value;
@@ -210,6 +236,8 @@ export function stringifyPath(path: Path<SegmentType>): string {
                 break;
             case "right-panel":
             case "sso":
+            case "oidc-callback":
+            case "oidc-error":
                 // Do not put these segments in URL
                 continue;
             default:
@@ -485,6 +513,23 @@ export function tests() {
             assert.equal(newPath?.segments[1].type, "room");
             assert.equal(newPath?.segments[1].value, "b");
         },
-        
+        "Parse OIDC callback": assert => {
+            const segments = parseUrlPath("state=tc9CnLU7&code=cnmUnwIYtY7V8RrWUyhJa4yvX72jJ5Yx");
+            assert.equal(segments.length, 1);
+            assert.equal(segments[0].type, "oidc-callback");
+            assert.deepEqual(segments[0].value, ["tc9CnLU7", "cnmUnwIYtY7V8RrWUyhJa4yvX72jJ5Yx"]);
+        },
+        "Parse OIDC error": assert => {
+            const segments = parseUrlPath("state=tc9CnLU7&error=invalid_request");
+            assert.equal(segments.length, 1);
+            assert.equal(segments[0].type, "oidc-error");
+            assert.deepEqual(segments[0].value, ["tc9CnLU7", "invalid_request", null, null]);
+        },
+        "Parse OIDC error with description": assert => {
+            const segments = parseUrlPath("state=tc9CnLU7&error=invalid_request&error_description=Unsupported%20response_type%20value");
+            assert.equal(segments.length, 1);
+            assert.equal(segments[0].type, "oidc-error");
+            assert.deepEqual(segments[0].value, ["tc9CnLU7", "invalid_request", "Unsupported response_type value", null]);
+        },
     }
 }

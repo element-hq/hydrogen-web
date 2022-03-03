@@ -31,7 +31,7 @@ const DEHYDRATION_PREFIX = "/_matrix/client/unstable/org.matrix.msc2697.v2";
 
 type Options = {
     homeserver: string;
-    accessToken: string;
+    accessToken: BaseObservableValue<string>;
     request: RequestFunction;
     reconnector: Reconnector;
 };
@@ -42,11 +42,12 @@ type BaseRequestOptions = {
     uploadProgress?: (loadedBytes: number) => void;
     timeout?: number;
     prefix?: string;
+    accessTokenOverride?: string;
 };
 
 export class HomeServerApi {
     private readonly _homeserver: string;
-    private readonly _accessToken: string;
+    private readonly _accessToken: BaseObservableValue<string>;
     private readonly _requestFn: RequestFunction;
     private readonly _reconnector: Reconnector;
 
@@ -63,11 +64,19 @@ export class HomeServerApi {
         return this._homeserver + prefix + csPath;
     }
 
-    private _baseRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: BaseRequestOptions, accessToken?: string): IHomeServerRequest {
+    private _baseRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: BaseRequestOptions, accessTokenSource?: BaseObservableValue<string>): IHomeServerRequest {
         const queryString = encodeQueryParams(queryParams);
         url = `${url}?${queryString}`;
         let encodedBody: EncodedBody["body"];
         const headers: Map<string, string | number> = new Map();
+
+        let accessToken: string | null = null;
+        if (options?.accessTokenOverride) {
+            accessToken = options.accessTokenOverride;
+        } else if (accessTokenSource) {
+            accessToken = accessTokenSource.get();
+        }
+
         if (accessToken) {
             headers.set("Authorization", `Bearer ${accessToken}`);
         }
@@ -279,6 +288,10 @@ export class HomeServerApi {
         return this._post(`/logout`, {}, {}, options);
     }
 
+    whoami(options?: BaseRequestOptions): IHomeServerRequest {
+        return this._get(`/account/whoami`, undefined, undefined, options);
+    }
+
     getDehydratedDevice(options: BaseRequestOptions = {}): IHomeServerRequest {
         options.prefix = DEHYDRATION_PREFIX;
         return this._get(`/dehydrated_device`, undefined, undefined, options);
@@ -308,6 +321,7 @@ export class HomeServerApi {
 }
 
 import {Request as MockRequest} from "../../mocks/Request.js";
+import {BaseObservableValue} from "../../observable/ObservableValue";
 
 export function tests() {
     return {

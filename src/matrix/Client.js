@@ -20,6 +20,8 @@ import {lookupHomeserver} from "./well-known.js";
 import {AbortableOperation} from "../utils/AbortableOperation";
 import {ObservableValue} from "../observable/ObservableValue";
 import {HomeServerApi} from "./net/HomeServerApi";
+import {OidcApi} from "./net/OidcApi";
+import {TokenRefresher} from "./net/TokenRefresher";
 import {Reconnector, ConnectionStatus} from "./net/Reconnector";
 import {ExponentialRetryDelay} from "./net/ExponentialRetryDelay";
 import {MediaRepository} from "./net/MediaRepository";
@@ -123,11 +125,29 @@ export class Client {
         return result;
     }
 
-    queryLogin(homeserver) {
+    queryLogin(initialHomeserver) {
         return new AbortableOperation(async setAbortable => {
-            homeserver = await lookupHomeserver(homeserver, (url, options) => {
+            const { homeserver, issuer } = await lookupHomeserver(initialHomeserver, (url, options) => {
                 return setAbortable(this._platform.request(url, options));
             });
+            if (issuer) {
+                try {
+                    const oidcApi = new OidcApi({
+                        issuer,
+                        clientId: "hydrogen-web",
+                        request: this._platform.request,
+                        encoding: this._platform.encoding,
+                    });
+                    await oidcApi.validate();
+
+                    return {
+                        homeserver,
+                        oidc: { issuer },
+                    };
+                } catch (e) {
+                    console.log(e);
+                }
+            }
             const hsApi = new HomeServerApi({homeserver, request: this._platform.request});
             const response = await setAbortable(hsApi.getLoginFlows()).response();
             return this._parseLoginOptions(response, homeserver);
@@ -172,6 +192,19 @@ export class Client {
                     accessToken: loginData.access_token,
                     lastUsed: clock.now()
                 };
+
+                if (loginData.refresh_token) {
+                    sessionInfo.refreshToken = loginData.refresh_token;
+                }
+
+                if (loginData.expires_in) {
+                    sessionInfo.accessTokenExpiresAt = clock.now() + loginData.expires_in * 1000;
+                }
+
+                if (loginData.oidc_issuer) {
+                    sessionInfo.oidcIssuer = loginData.oidc_issuer;
+                }
+
                 log.set("id", sessionId);
             } catch (err) {
                 this._error = err;
@@ -225,9 +258,41 @@ export class Client {
             retryDelay: new ExponentialRetryDelay(clock.createTimeout),
             createMeasure: clock.createMeasure
         });
+
+        let accessToken;
+
+        if (sessionInfo.oidcIssuer) {
+            const oidcApi = new OidcApi({
+                issuer: sessionInfo.oidcIssuer,
+                clientId: "hydrogen-web",
+                request: this._platform.request,
+                encoding: this._platform.encoding,
+            });
+
+            // TODO: stop/pause the refresher?
+            const tokenRefresher = new TokenRefresher({
+                oidcApi,
+                clock: this._platform.clock,
+                accessToken: sessionInfo.accessToken,
+                accessTokenExpiresAt: sessionInfo.accessTokenExpiresAt,
+                refreshToken: sessionInfo.refreshToken,
+                anticipation: 30 * 1000,
+            });
+
+            tokenRefresher.token.subscribe(t => {
+                this._platform.sessionInfoStorage.updateToken(sessionInfo.id, t.accessToken, t.accessTokenExpiresAt, t.refreshToken);
+            });
+
+            await tokenRefresher.start();
+
+            accessToken = tokenRefresher.accessToken;
+        } else {
+            accessToken = new ObservableValue(sessionInfo.accessToken);
+        }
+
         const hsApi = new HomeServerApi({
             homeserver: sessionInfo.homeServer,
-            accessToken: sessionInfo.accessToken,
+            accessToken,
             request: this._platform.request,
             reconnector: this._reconnector,
         });

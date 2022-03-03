@@ -41,6 +41,7 @@ async function getWellKnownResponse(homeserver, request) {
 
 export async function lookupHomeserver(homeserver, request) {
     homeserver = normalizeHomeserver(homeserver);
+    let issuer = null;
     const wellKnownResponse = await getWellKnownResponse(homeserver, request);
     if (wellKnownResponse && wellKnownResponse.status === 200) {
         const {body} = wellKnownResponse;
@@ -48,6 +49,11 @@ export async function lookupHomeserver(homeserver, request) {
         if (typeof wellKnownHomeserver === "string") {
             homeserver = normalizeHomeserver(wellKnownHomeserver);
         }
+
+        const wellKnownIssuer = body["m.authentication"]?.["issuer"];
+        if (typeof wellKnownIssuer === "string") {
+            issuer = wellKnownIssuer;
+        }
     }
-    return homeserver;
+    return {homeserver, issuer};
 }
