@@ -137,6 +137,7 @@ export class Client {
                         clientId: "hydrogen-web",
                         request: this._platform.request,
                         encoding: this._platform.encoding,
+                        crypto: this._platform.crypto,
                     });
                     await oidcApi.validate();
 
@@ -267,6 +268,7 @@ export class Client {
                 clientId: "hydrogen-web",
                 request: this._platform.request,
                 encoding: this._platform.encoding,
+                crypto: this._platform.crypto,
             });
 
             // TODO: stop/pause the refresher?

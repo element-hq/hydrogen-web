@@ -54,14 +54,16 @@ export class OidcApi {
     _issuer: string;
     _clientId: string;
     _requestFn: any;
-    _base64: any;
+    _encoding: any;
+    _crypto: any;
     _metadataPromise: Promise<any>;
 
-    constructor({ issuer, clientId, request, encoding }) {
+    constructor({ issuer, clientId, request, encoding, crypto }) {
         this._issuer = issuer;
         this._clientId = clientId;
         this._requestFn = request;
-        this._base64 = encoding.base64;
+        this._encoding = encoding;
+        this._crypto = crypto;
     }
 
     get metadataUrl() {
@@ -110,10 +112,9 @@ export class OidcApi {
     async _generateCodeChallenge(
         codeVerifier: string
     ): Promise<string> {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(codeVerifier);
-        const digest = await window.crypto.subtle.digest("SHA-256", data);
-        const base64Digest = this._base64.encode(digest);
+        const data = this._encoding.utf8.encode(codeVerifier);
+        const digest = await this._crypto.digest("SHA-256", data);
+        const base64Digest = this._encoding.base64.encode(digest);
         return base64Digest.replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
     }
 

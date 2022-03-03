@@ -28,6 +28,7 @@ export class StartOIDCLoginViewModel extends ViewModel {
             issuer: this._issuer,
             request: this.platform.request,
             encoding: this.platform.encoding,
+            crypto: this.platform.crypto,
         });
     }
 
