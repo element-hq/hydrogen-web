@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {Client} from "../../matrix/Client.js";
+import {OidcApi} from "../../matrix/net/OidcApi.js";
 import {Options as BaseOptions, ViewModel} from "../ViewModel";
 import {PasswordLoginViewModel} from "./PasswordLoginViewModel";
 import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel";
@@ -26,10 +27,12 @@ import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
 import {SegmentType} from "../navigation/index";
 
 import type {PasswordLoginMethod, SSOLoginHelper, TokenLoginMethod, ILoginMethod} from "../../matrix/login";
+import { OIDCLoginMethod } from "../../matrix/login/OIDCLoginMethod.js";
 
 type Options = {
     defaultHomeserver: string;
     ready: ReadyFn;
+    oidc?: { state: string, code: string };
     loginToken?: string;
 } & BaseOptions;
 
@@ -37,6 +40,7 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
     private _ready: ReadyFn;
     private _loginToken?: string;
     private _client: Client;
+    private _oidc?: { state: string, code: string };
     private _loginOptions?: LoginOptions;
     private _passwordLoginViewModel?: PasswordLoginViewModel;
     private _startSSOLoginViewModel?: StartSSOLoginViewModel;
@@ -77,8 +81,13 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         return this._completeSSOLoginViewModel;
     }
 
-    get startOIDCLoginViewModel() { return this._startOIDCLoginViewModel; }
-    get completeOIDCLoginViewModel() { return this._completeOIDCLoginViewModel; }
+    get startOIDCLoginViewModel(): StartOIDCLoginViewModel {
+        return this._startOIDCLoginViewModel;
+    }
+
+    get completeOIDCLoginViewModel(): CompleteOIDCLoginViewModel {
+        return this._completeOIDCLoginViewModel;
+    }
 
     get homeserver(): string {
         return this._homeserver;
@@ -129,8 +138,8 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
             this._completeOIDCLoginViewModel = this.track(new CompleteOIDCLoginViewModel(
                 this.childOptions(
                     {
-                        sessionContainer: this._sessionContainer,
-                        attemptLogin: loginMethod => this.attemptLogin(loginMethod),
+                        client: this._client,
+                        attemptLogin: (loginMethod: OIDCLoginMethod) => this.attemptLogin(loginMethod),
                         state: this._oidc.state,
                         code: this._oidc.code,
                     })));
@@ -157,23 +166,31 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         this.emitChange("startSSOLoginViewModel");
     }
 
+    private async _showOIDCLogin(): Promise<void> {
+        this._startOIDCLoginViewModel = this.track(
+            new StartOIDCLoginViewModel(this.childOptions({loginOptions: this._loginOptions}))
+        );
+        await this._startOIDCLoginViewModel.start();
+        this.emitChange("startOIDCLoginViewModel");
+    }
+
     private _showError(message: string): void {
         this._errorMessage = message;
         this.emitChange("errorMessage");
     }
 
-    async _showOIDCLogin() {
-        this._startOIDCLoginViewModel = this.track(
-            new StartOIDCLoginViewModel(this.childOptions({loginOptions: this._loginOptions}))
-        );
-        this.emitChange("startOIDCLoginViewModel");
-        try {
-            await this._startOIDCLoginViewModel.discover();
-        } catch (err) {
-            this._showError(err.message);
-            this._disposeViewModels();
-        }
-    }
+    // async _showOIDCLogin() {
+    //     this._startOIDCLoginViewModel = this.track(
+    //         new StartOIDCLoginViewModel(this.childOptions({loginOptions: this._loginOptions}))
+    //     );
+    //     this.emitChange("startOIDCLoginViewModel");
+    //     try {
+    //         await this._startOIDCLoginViewModel.discover();
+    //     } catch (err) {
+    //         this._showError(err.message);
+    //         this._disposeViewModels();
+    //     }
+    // }
 
     private _setBusy(status: boolean): void {
         this._isBusy = status;
@@ -298,7 +315,7 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         if (this._loginOptions) {
             if (this._loginOptions.sso) { this._showSSOLogin(); }
             if (this._loginOptions.password) { this._showPasswordLogin(); }
-            if (this._loginOptions.oidc) { this._showOIDCLogin(); }
+            if (this._loginOptions.oidc) { await this._showOIDCLogin(); }
             if (!this._loginOptions.sso && !this._loginOptions.password && !this._loginOptions.oidc) {
                 this._showError("This homeserver supports neither SSO nor password based login flows or has a usable OIDC Provider");
             } 
@@ -325,5 +342,6 @@ export type LoginOptions = {
     homeserver: string;
     password?: (username: string, password: string) => PasswordLoginMethod;
     sso?: SSOLoginHelper;
+    oidc?: { issuer: string };
     token?: (loginToken: string) => TokenLoginMethod;
 };

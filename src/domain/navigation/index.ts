@@ -34,6 +34,8 @@ export type SegmentType = {
     "details": true;
     "members": true;
     "member": string;
+    "oidc-callback": (string | null)[];
+    "oidc-error": (string | null)[];
 };
 
 export function createNavigation(): Navigation<SegmentType> {
@@ -153,9 +155,9 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
     }
 
     // substring(1) to take of initial /
-    const parts = urlPath.substr(1).split("/");
+    const parts = urlPath.substring(1).split("/");
     const iterator = parts[Symbol.iterator]();
-    let next;
+    let next; 
     while (!(next = iterator.next()).done) {
         const type = next.value;
         if (type === "rooms") {
