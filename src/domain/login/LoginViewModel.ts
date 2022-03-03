@@ -184,7 +184,7 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         this._isBusy = status;
         this._passwordLoginViewModel?.setBusy(status);
         this._startSSOLoginViewModel?.setBusy(status);
-        this.startOIDCLoginViewModel?.setBusy(status);
+        this._startOIDCLoginViewModel?.setBusy(status);
         this.emitChange("isBusy");
     }
 
