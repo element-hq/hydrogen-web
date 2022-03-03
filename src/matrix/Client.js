@@ -265,8 +265,7 @@ export class Client {
                 crypto: this._platform.crypto,
             });
 
-            // TODO: stop/pause the refresher?
-            const tokenRefresher = new TokenRefresher({
+            this._tokenRefresher = new TokenRefresher({
                 oidcApi,
                 clock: this._platform.clock,
                 accessToken: sessionInfo.accessToken,
@@ -275,13 +274,13 @@ export class Client {
                 anticipation: 30 * 1000,
             });
 
-            tokenRefresher.token.subscribe(t => {
+            this._tokenRefresher.token.subscribe(t => {
                 this._platform.sessionInfoStorage.updateToken(sessionInfo.id, t.accessToken, t.accessTokenExpiresAt, t.refreshToken);
             });
 
-            await tokenRefresher.start();
+            await this._tokenRefresher.start();
 
-            accessToken = tokenRefresher.accessToken;
+            accessToken = this._tokenRefresher.accessToken;
         } else {
             accessToken = new ObservableValue(sessionInfo.accessToken);
         }
@@ -504,6 +503,10 @@ export class Client {
         if (this._sync) {
             this._sync.stop();
             this._sync = null;
+        }
+        if (this._tokenRefresher) {
+            this._tokenRefresher.stop();
+            this._tokenRefresher = null;
         }
         if (this._session) {
             this._session.dispose();

@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import type {RequestFunction} from "../../platform/types/types";
+
 const WELL_KNOWN = ".well-known/openid-configuration";
 
 const RANDOM_CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -53,7 +55,7 @@ function assert(condition: any, message: string): asserts condition {
 export class OidcApi {
     _issuer: string;
     _clientId: string;
-    _requestFn: any;
+    _requestFn: RequestFunction;
     _encoding: any;
     _crypto: any;
     _metadataPromise: Promise<any>;
