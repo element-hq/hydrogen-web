@@ -19,6 +19,8 @@ import {Options as BaseOptions, ViewModel} from "../ViewModel";
 import {PasswordLoginViewModel} from "./PasswordLoginViewModel";
 import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel";
 import {CompleteSSOLoginViewModel} from "./CompleteSSOLoginViewModel";
+import {StartOIDCLoginViewModel} from "./StartOIDCLoginViewModel.js";
+import {CompleteOIDCLoginViewModel} from "./CompleteOIDCLoginViewModel.js";
 import {LoadStatus} from "../../matrix/Client.js";
 import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
 import {SegmentType} from "../navigation/index";
@@ -39,6 +41,8 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
     private _passwordLoginViewModel?: PasswordLoginViewModel;
     private _startSSOLoginViewModel?: StartSSOLoginViewModel;
     private _completeSSOLoginViewModel?: CompleteSSOLoginViewModel;
+    private _startOIDCLoginViewModel?: StartOIDCLoginViewModel;
+    private _completeOIDCLoginViewModel?: CompleteOIDCLoginViewModel;
     private _loadViewModel?: SessionLoadViewModel;
     private _loadViewModelSubscription?: () => void;
     private _homeserver: string;
@@ -52,10 +56,11 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
 
     constructor(options: Readonly<Options>) {
         super(options);
-        const {ready, defaultHomeserver, loginToken} = options;
+        const {ready, defaultHomeserver, loginToken, oidc} = options;
         this._ready = ready;
         this._loginToken = loginToken;
         this._client = new Client(this.platform, this.features);
+        this._oidc = oidc;
         this._homeserver = defaultHomeserver;
         this._initViewModels();
     }
@@ -71,6 +76,9 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
     get completeSSOLoginViewModel(): CompleteSSOLoginViewModel | undefined {
         return this._completeSSOLoginViewModel;
     }
+
+    get startOIDCLoginViewModel() { return this._startOIDCLoginViewModel; }
+    get completeOIDCLoginViewModel() { return this._completeOIDCLoginViewModel; }
 
     get homeserver(): string {
         return this._homeserver;
@@ -116,6 +124,18 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
                     })));
             this.emitChange("completeSSOLoginViewModel");
         }
+        else if (this._oidc) {
+            this._hideHomeserver = true;
+            this._completeOIDCLoginViewModel = this.track(new CompleteOIDCLoginViewModel(
+                this.childOptions(
+                    {
+                        sessionContainer: this._sessionContainer,
+                        attemptLogin: loginMethod => this.attemptLogin(loginMethod),
+                        state: this._oidc.state,
+                        code: this._oidc.code,
+                    })));
+            this.emitChange("completeOIDCLoginViewModel");
+        }
         else {
             void this.queryHomeserver();
         }
@@ -140,6 +160,14 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
     private _showError(message: string): void {
         this._errorMessage = message;
         this.emitChange("errorMessage");
+    }
+
+    async _showOIDCLogin() {
+        this._startOIDCLoginViewModel = this.track(
+            new StartOIDCLoginViewModel(this.childOptions({loginOptions: this._loginOptions}))
+        );
+        await this._startOIDCLoginViewModel.start();
+        this.emitChange("startOIDCLoginViewModel");
     }
 
     private _setBusy(status: boolean): void {
@@ -263,7 +291,8 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         if (this._loginOptions) {
             if (this._loginOptions.sso) { this._showSSOLogin(); }
             if (this._loginOptions.password) { this._showPasswordLogin(); }
-            if (!this._loginOptions.sso && !this._loginOptions.password) {
+            if (this._loginOptions.oidc) { await this._showOIDCLogin(); }
+            if (!this._loginOptions.sso && !this._loginOptions.password && !this._loginOptions.oidc) {
                 this._showError("This homeserver supports neither SSO nor password based login flows");
             }
         }

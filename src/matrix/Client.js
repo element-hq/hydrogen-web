@@ -20,6 +20,8 @@ import {lookupHomeserver} from "./well-known.js";
 import {AbortableOperation} from "../utils/AbortableOperation";
 import {ObservableValue} from "../observable/value";
 import {HomeServerApi} from "./net/HomeServerApi";
+import {OidcApi} from "./net/OidcApi";
+import {TokenRefresher} from "./net/TokenRefresher";
 import {Reconnector, ConnectionStatus} from "./net/Reconnector";
 import {ExponentialRetryDelay} from "./net/ExponentialRetryDelay";
 import {MediaRepository} from "./net/MediaRepository";
@@ -125,11 +127,29 @@ export class Client {
         return result;
     }
 
-    queryLogin(homeserver) {
+    queryLogin(initialHomeserver) {
         return new AbortableOperation(async setAbortable => {
-            homeserver = await lookupHomeserver(homeserver, (url, options) => {
+            const { homeserver, issuer } = await lookupHomeserver(initialHomeserver, (url, options) => {
                 return setAbortable(this._platform.request(url, options));
             });
+            if (issuer) {
+                try {
+                    const oidcApi = new OidcApi({
+                        issuer,
+                        clientId: "hydrogen-web",
+                        request: this._platform.request,
+                        encoding: this._platform.encoding,
+                    });
+                    await oidcApi.validate();
+
+                    return {
+                        homeserver,
+                        oidc: { issuer },
+                    };
+                } catch (e) {
+                    console.log(e);
+                }
+            }
             const hsApi = new HomeServerApi({homeserver, request: this._platform.request});
             const response = await setAbortable(hsApi.getLoginFlows()).response();
             return this._parseLoginOptions(response, homeserver);
@@ -179,6 +199,7 @@ export class Client {
                     homeserver: loginMethod.homeserver,
                     accessToken: loginData.access_token,
                 };
+                log.set("id", sessionId);
             } catch (err) {
                 this._error = err;
                 if (err.name === "HomeServerError") {
@@ -197,43 +218,28 @@ export class Client {
                 }
                 return;
             }
-            await this._createSessionAfterAuth(sessionInfo, inspectAccountSetup, log);
-        });
-    }
-
-    async _createSessionAfterAuth({deviceId, userId, accessToken, homeserver}, inspectAccountSetup, log) {
-        const id = this.createNewSessionId();
-        const lastUsed = this._platform.clock.now();
-        const sessionInfo = {
-            id,
-            deviceId,
-            userId,
-            homeServer: homeserver, // deprecate this over time
-            homeserver,
-            accessToken,
-            lastUsed,
-        };
-        let dehydratedDevice;
-        if (inspectAccountSetup) {
-            dehydratedDevice = await this._inspectAccountAfterLogin(sessionInfo, log);
-            if (dehydratedDevice) {
-                sessionInfo.deviceId = dehydratedDevice.deviceId;
+            let dehydratedDevice;
+            if (inspectAccountSetup) {
+                dehydratedDevice = await this._inspectAccountAfterLogin(sessionInfo, log);
+                if (dehydratedDevice) {
+                    sessionInfo.deviceId = dehydratedDevice.deviceId;
+                }
             }
-        }
-        await this._platform.sessionInfoStorage.add(sessionInfo);
-        // loading the session can only lead to
-        // LoadStatus.Error in case of an error,
-        // so separate try/catch
-        try {
-            await this._loadSessionInfo(sessionInfo, dehydratedDevice, log);
-            log.set("status", this._status.get());
-        } catch (err) {
-            log.catch(err);
-            // free olm Account that might be contained
-            dehydratedDevice?.dispose();
-            this._error = err;
-            this._status.set(LoadStatus.Error);
-        }
+            await this._platform.sessionInfoStorage.add(sessionInfo);            
+            // loading the session can only lead to
+            // LoadStatus.Error in case of an error,
+            // so separate try/catch
+            try {
+                await this._loadSessionInfo(sessionInfo, dehydratedDevice, log);
+                log.set("status", this._status.get());
+            } catch (err) {
+                log.catch(err);
+                // free olm Account that might be contained
+                dehydratedDevice?.dispose();
+                this._error = err;
+                this._status.set(LoadStatus.Error);
+            }
+        });
     }
 
     async _loadSessionInfo(sessionInfo, dehydratedDevice, log) {
@@ -246,9 +252,41 @@ export class Client {
             retryDelay: new ExponentialRetryDelay(clock.createTimeout),
             createMeasure: clock.createMeasure
         });
+
+        let accessToken;
+
+        if (sessionInfo.oidcIssuer) {
+            const oidcApi = new OidcApi({
+                issuer: sessionInfo.oidcIssuer,
+                clientId: "hydrogen-web",
+                request: this._platform.request,
+                encoding: this._platform.encoding,
+            });
+
+            // TODO: stop/pause the refresher?
+            const tokenRefresher = new TokenRefresher({
+                oidcApi,
+                clock: this._platform.clock,
+                accessToken: sessionInfo.accessToken,
+                accessTokenExpiresAt: sessionInfo.accessTokenExpiresAt,
+                refreshToken: sessionInfo.refreshToken,
+                anticipation: 30 * 1000,
+            });
+
+            tokenRefresher.token.subscribe(t => {
+                this._platform.sessionInfoStorage.updateToken(sessionInfo.id, t.accessToken, t.accessTokenExpiresAt, t.refreshToken);
+            });
+
+            await tokenRefresher.start();
+
+            accessToken = tokenRefresher.accessToken;
+        } else {
+            accessToken = new ObservableValue(sessionInfo.accessToken);
+        }
+
         const hsApi = new HomeServerApi({
             homeserver: sessionInfo.homeServer,
-            accessToken: sessionInfo.accessToken,
+            accessToken,
             request: this._platform.request,
             reconnector: this._reconnector,
         });
