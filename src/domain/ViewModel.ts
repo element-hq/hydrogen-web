@@ -58,6 +58,14 @@ export class ViewModel<O extends Options = Options> extends EventEmitter<{change
         return this._options[name];
     }
 
+    observeNavigation(type: string, onChange: (value: true | string, type: string) => void) {
+      const segmentObservable = this.navigation.observe(type);
+      const unsubscribe = segmentObservable.subscribe((value: true | string) => {
+        onChange(value, type);
+      })
+      this.track(unsubscribe);
+    }
+
     track<D extends Disposable>(disposable: D): D {
         if (!this.disposables) {
             this.disposables = new Disposables();
