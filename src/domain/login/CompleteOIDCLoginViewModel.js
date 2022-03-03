@@ -29,6 +29,7 @@ export class CompleteOIDCLoginViewModel extends ViewModel {
         } = options;
         this._request = options.platform.request;
         this._encoding = options.platform.encoding;
+        this._crypto = options.platform.crypto;
         this._state = state;
         this._code = code;
         this._attemptLogin = attemptLogin;
@@ -63,6 +64,7 @@ export class CompleteOIDCLoginViewModel extends ViewModel {
             clientId: "hydrogen-web",
             request: this._request,
             encoding: this._encoding,
+            crypto: this._crypto,
         });
         const method = new OIDCLoginMethod({oidcApi, nonce, codeVerifier, code, homeserver, startedAt, redirectUri});
         const status = await this._attemptLogin(method);
