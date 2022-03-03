@@ -83,7 +83,9 @@ class StartOIDCLoginView extends TemplateView {
         return t.div({ className: "StartOIDCLoginView" },
             t.a({
                 className: "StartOIDCLoginView_button button-action secondary",
-                href: vm => (vm.isBusy ? "#" : vm.authorizationEndpoint),
+                type: "button",
+                onClick: () => vm.startOIDCLogin(),
+                disabled: vm => vm.isBusy
             }, vm.i18n`Log in via OIDC`)
         );
     }

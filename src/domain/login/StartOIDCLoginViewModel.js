@@ -21,35 +21,39 @@ export class StartOIDCLoginViewModel extends ViewModel {
     constructor(options) {
         super(options);
         this._isBusy = true;
-        this._authorizationEndpoint = null;
+        this._issuer = options.loginOptions.oidc.issuer;
+        this._homeserver = options.loginOptions.homeserver;
         this._api = new OidcApi({
             clientId: "hydrogen-web",
-            issuer: options.loginOptions.oidc.issuer,
+            issuer: this._issuer,
             request: this.platform.request,
             encoding: this.platform.encoding,
         });
-        this._homeserver = options.loginOptions.homeserver;
     }
 
     get isBusy() { return this._isBusy; }
-    get authorizationEndpoint() { return this._authorizationEndpoint; }
 
-    async start() {
+    setBusy(status) {
+        this._isBusy = status;
+        this.emitChange("isBusy");
+    }
+
+    async discover() {
+        // Ask for the metadata once so it gets discovered and cached
+        await this._api.metadata()
+    }
+
+    async startOIDCLogin() {
         const p = this._api.generateParams("openid");
         await Promise.all([
             this.platform.settingsStorage.setInt(`oidc_${p.state}_started_at`, Date.now()),
             this.platform.settingsStorage.setString(`oidc_${p.state}_nonce`, p.nonce),
             this.platform.settingsStorage.setString(`oidc_${p.state}_code_verifier`, p.codeVerifier),
             this.platform.settingsStorage.setString(`oidc_${p.state}_homeserver`, this._homeserver),
-            this.platform.settingsStorage.setString(`oidc_${p.state}_issuer`, this._api.issuer),
+            this.platform.settingsStorage.setString(`oidc_${p.state}_issuer`, this._issuer),
         ]);
 
-        this._authorizationEndpoint = await this._api.authorizationEndpoint(p);
-        this._isBusy = false;
-    }
-
-    setBusy(status) {
-        this._isBusy = status;
-        this.emitChange("isBusy");
+        const link = await this._api.authorizationEndpoint(p);
+        this.platform.openUrl(link);
     }
 }
