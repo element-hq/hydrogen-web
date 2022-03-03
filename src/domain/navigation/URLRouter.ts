@@ -152,6 +152,10 @@ export class URLRouter<T extends {session: string | boolean}> implements IURLRou
         return window.location.origin;
     }
 
+    createOIDCRedirectURL(): string {
+        return window.location.origin;
+    }
+
     normalizeUrl(): void {
         // Remove any queryParameters from the URL
         // Gets rid of the loginToken after SSO

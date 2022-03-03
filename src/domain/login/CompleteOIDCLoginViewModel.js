@@ -49,10 +49,11 @@ export class CompleteOIDCLoginViewModel extends ViewModel {
         }
         const code = this._code;
         // TODO: cleanup settings storage
-        const [startedAt, nonce, codeVerifier, homeserver, issuer] = await Promise.all([
+        const [startedAt, nonce, codeVerifier, redirectUri, homeserver, issuer] = await Promise.all([
             this.platform.settingsStorage.getInt(`oidc_${this._state}_started_at`),
             this.platform.settingsStorage.getString(`oidc_${this._state}_nonce`),
             this.platform.settingsStorage.getString(`oidc_${this._state}_code_verifier`),
+            this.platform.settingsStorage.getString(`oidc_${this._state}_redirect_uri`),
             this.platform.settingsStorage.getString(`oidc_${this._state}_homeserver`),
             this.platform.settingsStorage.getString(`oidc_${this._state}_issuer`),
         ]);
@@ -63,7 +64,7 @@ export class CompleteOIDCLoginViewModel extends ViewModel {
             request: this._request,
             encoding: this._encoding,
         });
-        const method = new OIDCLoginMethod({oidcApi, nonce, codeVerifier, code, homeserver, startedAt});
+        const method = new OIDCLoginMethod({oidcApi, nonce, codeVerifier, code, homeserver, startedAt, redirectUri});
         const status = await this._attemptLogin(method);
         let error = "";
         switch (status) {

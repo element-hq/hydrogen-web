@@ -23,6 +23,7 @@ export class OIDCLoginMethod implements ILoginMethod {
     private readonly _code: string;
     private readonly _codeVerifier: string;
     private readonly _nonce: string;
+    private readonly _redirectUri: string;
     private readonly _oidcApi: OidcApi;
     public readonly homeserver: string;
 
@@ -31,18 +32,21 @@ export class OIDCLoginMethod implements ILoginMethod {
         codeVerifier,
         code,
         homeserver,
+        redirectUri,
         oidcApi,
     }: {
         nonce: string,
         code: string,
         codeVerifier: string,
         homeserver: string,
+        redirectUri: string,
         oidcApi: OidcApi,
     }) {
         this._oidcApi = oidcApi;
         this._code = code;
         this._codeVerifier = codeVerifier;
         this._nonce = nonce;
+        this._redirectUri = redirectUri;
         this.homeserver = homeserver;
     }
 
@@ -50,6 +54,7 @@ export class OIDCLoginMethod implements ILoginMethod {
         const { access_token, refresh_token, expires_in } = await this._oidcApi.completeAuthorizationCodeGrant({
             code: this._code,
             codeVerifier: this._codeVerifier,
+            redirectUri: this._redirectUri,
         });
 
         // TODO: validate the id_token and the nonce claim
