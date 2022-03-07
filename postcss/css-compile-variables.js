@@ -1,4 +1,4 @@
-import { Color } from "color";
+const Color = require("color");
 
 let aliasMap;
 let resolvedMap;
@@ -44,6 +44,21 @@ function extractAlias(decl) {
     }
 }
 
+function addResolvedVariablesToRootSelector( root, variables, { Rule, Declaration }) {
+    const newRule = new Rule({ selector: ":root", source: root.source });
+    // Add base css variables to :root
+    for (const [key, value] of Object.entries(variables)) {
+        const declaration = new Declaration({ prop: `--${key}`, value });
+        newRule.append(declaration);
+    }
+    // Add derived css variables to :root
+    resolvedMap.forEach((value, key) => {
+        const declaration = new Declaration({ prop: key, value });
+        newRule.append(declaration);
+    });
+    root.append(newRule);
+}
+
 /* *
  * @type {import('postcss').PluginCreator}
  */
@@ -54,32 +69,15 @@ module.exports = (opts = {}) => {
   return {
     postcssPlugin: "postcss-compile-variables",
 
-    Once(root) {
+    Once(root, {Rule, Declaration}) {
       /*
       Go through the CSS file once to extract all aliases.
       We use the extracted alias when resolving derived variables
       later.
       */
       root.walkDecls(decl => extractAlias(decl));
-    },
-
-    Declaration(declaration) {
-      resolveDerivedVariable(declaration, variables);
-    },
-
-    OnceExit(root, { Rule, Declaration }) {
-      const newRule = new Rule({ selector: ":root", source: root.source })
-      // Add base css variables to :root
-      for (const [key, value] of Object.entries(variables)) {
-        const declaration = new Declaration({ prop: `--${key}`, value });
-        newRule.append(declaration);
-      }
-      // Add derived css variables to :root
-      resolvedMap.forEach((value, key) => {
-        const declaration = new Declaration({ prop: key, value });
-        newRule.append(declaration);
-      });
-      root.append(newRule);
+      root.walkDecls(decl => resolveDerivedVariable(decl, variables));
+      addResolvedVariablesToRootSelector(root, variables, { Rule, Declaration });
     },
   };
 };
