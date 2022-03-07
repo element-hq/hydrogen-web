@@ -5,35 +5,35 @@ let resolvedMap;
 const RE_VARIABLE_VALUE = /var\((--(.+)--(.+)-(.+))\)/;
 
 function getValueFromAlias(alias) {
-  const derivedVariable = aliasMap.get(`--${alias}`);
-  return resolvedMap.get(derivedVariable); // what if we haven't resolved this variable yet?
+    const derivedVariable = aliasMap.get(`--${alias}`);
+    return resolvedMap.get(derivedVariable); // what if we haven't resolved this variable yet?
 }
 
 function resolveDerivedVariable(decl, variables) {
-  const matches = decl.value.match(RE_VARIABLE_VALUE);
-  if (matches) {
-    const [,wholeVariable, baseVariable, operation, argument] = matches;
-    if (!variables[baseVariable]) {
-      // hmm.. baseVariable should be in config..., maybe this is an alias?
-      if (!aliasMap.get(`--${baseVariable}`)) {
-        throw new Error(`Cannot derive from ${baseVariable} because it is neither defined in config nor is it an alias!`);
-      }
+    const matches = decl.value.match(RE_VARIABLE_VALUE);
+    if (matches) {
+        const [, wholeVariable, baseVariable, operation, argument] = matches;
+        if (!variables[baseVariable]) {
+            // hmm.. baseVariable should be in config..., maybe this is an alias?
+            if (!aliasMap.get(`--${baseVariable}`)) {
+                throw new Error(`Cannot derive from ${baseVariable} because it is neither defined in config nor is it an alias!`);
+            }
+        }
+        switch (operation) {
+            case "darker": {
+                const colorString = variables[baseVariable] ?? getValueFromAlias(baseVariable);
+                const newColorString = new Color(colorString).darken(argument / 100).hex();
+                resolvedMap.set(wholeVariable, newColorString);
+                break;
+            }
+            case "lighter": {
+                const colorString = variables[baseVariable] ?? getValueFromAlias(baseVariable);
+                const newColorString = new Color(colorString).lighten(argument / 100).hex();
+                resolvedMap.set(wholeVariable, newColorString);
+                break;
+            }
+        }
     }
-    switch (operation) {
-      case "darker": {
-        const colorString = variables[baseVariable] ?? getValueFromAlias(baseVariable);
-        const newColorString = new Color(colorString).darken(argument / 100).hex();
-        resolvedMap.set(wholeVariable, newColorString);
-        break;
-      }
-      case "lighter": {
-        const colorString = variables[baseVariable] ?? getValueFromAlias(baseVariable);
-        const newColorString = new Color(colorString).lighten(argument / 100).hex();
-        resolvedMap.set(wholeVariable, newColorString);
-        break;
-      }
-    }
-  }
 }
 
 function extractAlias(decl) {
@@ -44,7 +44,7 @@ function extractAlias(decl) {
     }
 }
 
-function addResolvedVariablesToRootSelector( root, variables, { Rule, Declaration }) {
+function addResolvedVariablesToRootSelector(root, variables, { Rule, Declaration }) {
     const newRule = new Rule({ selector: ":root", source: root.source });
     // Add base css variables to :root
     for (const [key, value] of Object.entries(variables)) {
@@ -63,23 +63,23 @@ function addResolvedVariablesToRootSelector( root, variables, { Rule, Declaratio
  * @type {import('postcss').PluginCreator}
  */
 module.exports = (opts = {}) => {
-  aliasMap = new Map();
-  resolvedMap = new Map();
-  const { variables } = opts;
-  return {
-    postcssPlugin: "postcss-compile-variables",
+    aliasMap = new Map();
+    resolvedMap = new Map();
+    const { variables } = opts;
+    return {
+        postcssPlugin: "postcss-compile-variables",
 
-    Once(root, {Rule, Declaration}) {
-      /*
-      Go through the CSS file once to extract all aliases.
-      We use the extracted alias when resolving derived variables
-      later.
-      */
-      root.walkDecls(decl => extractAlias(decl));
-      root.walkDecls(decl => resolveDerivedVariable(decl, variables));
-      addResolvedVariablesToRootSelector(root, variables, { Rule, Declaration });
-    },
-  };
+        Once(root, { Rule, Declaration }) {
+            /*
+            Go through the CSS file once to extract all aliases.
+            We use the extracted alias when resolving derived variables
+            later.
+            */
+            root.walkDecls(decl => extractAlias(decl));
+            root.walkDecls(decl => resolveDerivedVariable(decl, variables));
+            addResolvedVariablesToRootSelector(root, variables, { Rule, Declaration });
+        },
+    };
 };
 
 module.exports.postcss = true;
