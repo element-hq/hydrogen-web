@@ -124,3 +124,64 @@ write view
     - you send m.call.negotiate
  - SOLVED: wrt to MSC2746, is the screen share track and the audio track (and video track) part of the same stream? or do screen share tracks need to go in a different stream? it sounds incompatible with the MSC2746 requirement.
  - SOLVED: how does muting work? MediaStreamTrack.enabled
+ - SOLVED: so, what's the difference between the call_id and the conf_id in group call events?
+    - call_id is the specific 1:1 call, conf_id is the thing in the m.call state event key
+    - so a group call has a conf_id with MxN peer calls, each having their call_id.
+
+I think we need to synchronize the negotiation needed because we don't use a CallState to guard it...
+
+
+
+## Thursday 3-3 notes
+
+we probably best keep the perfect negotiation flags, as they are needed for both starting the call AND renegotiation? if only for the former, it would make sense as it is a step in setting up the call, but if the call is ongoing, does it make sense to have a MakingOffer state? it actually looks like they are only needed for renegotiation! for call setup we compare the call_ids. What does that mean for these flags?
+
+
+List state transitions
+
+FROM CALLER                                         FROM CALLEE
+
+Fledgling                                           Fledgling
+ V calling `call()`                                  V handleInvite
+WaitLocalMedia                                      Ringing
+ V media promise resolves                            V answer()
+CreateOffer                                         WaitLocalMedia
+ V add tracks                                        V media promise resolves
+ V wait for negotionneeded events                   CreateAnswer
+ V setLocalDescription()                             V 
+ V send invite events                               
+InviteSent                                          
+ V receive anwser, setRemoteDescription()           |
+ \__________________________________________________/
+                             V
+                            Connecting
+                             V receive ice candidates and
+                               iceConnectionState becomes 'connected'
+                            Connected
+                             V hangup for some reason
+                            Ended
+
+## From callee
+
+Fledgling
+Ringing
+WaitLocalMedia
+CreateAnswer
+Connecting
+Connected
+Ended
+
+Fledgling
+WaitLocalMedia
+CreateOffer
+InviteSent
+CreateAnswer
+Connecting
+Connected
+Ringing
+Ended
+
+so if we don't want to bother with having two call objects, we can make the existing call hangup his old call_id? That way we keep the old peerConnection.
+
+
+when glare, won't we drop both calls? No: https://github.com/matrix-org/matrix-spec-proposals/pull/2746#discussion_r819388754

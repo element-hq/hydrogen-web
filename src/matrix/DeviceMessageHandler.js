@@ -53,10 +53,14 @@ export class DeviceMessageHandler {
             }
             const newRoomKeys = this._megolmDecryption.roomKeysFromDeviceMessages(olmDecryptChanges.results, log);
             const callMessages = olmDecryptChanges.results.filter(dr => this._callHandler.handlesDeviceMessageEventType(dr.event?.type));
+            // load devices by sender key
             await Promise.all(callMessages.map(async dr => {
                 dr.setDevice(await this._getDevice(dr.senderCurve25519Key, txn));
-                this._callHandler.handleDeviceMessage(dr.device.userId, dr.device.deviceId, dr.event.type, dr.event.content, log);
             }));
+            // TODO: pass this in the prep and run it in afterSync or afterSyncComplete (as callHandler can send events as well)?
+            for (const dr of callMessages) {
+                this._callHandler.handleDeviceMessage(dr.device.userId, dr.device.deviceId, dr.event.type, dr.event.content, log);
+            }
             // TODO: somehow include rooms that received a call to_device message in the sync state?
             // or have updates flow through event emitter?
             // well, we don't really need to update the room other then when a call starts or stops

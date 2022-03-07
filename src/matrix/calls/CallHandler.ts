@@ -109,8 +109,7 @@ class GroupParticipant implements PeerCallHandler {
 
     sendInvite() {
         this.peerCall = new PeerCall(this, this.webRTC);
-        this.peerCall.setLocalMedia(this.localMedia);
-        this.peerCall.sendOffer();
+        this.peerCall.call(this.localMedia);
     }
 
     /** From PeerCallHandler
@@ -140,7 +139,7 @@ class GroupCall {
     async participate(tracks: Track[]) {
         this.localMedia = LocalMedia.fromTracks(tracks);
         for (const [,participant] of this.participants) {
-            participant.setLocalMedia(this.localMedia.clone());
+            participant.setMedia(this.localMedia.clone());
         }
         // send m.call.member state event
 

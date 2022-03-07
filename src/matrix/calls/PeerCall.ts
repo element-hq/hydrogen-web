@@ -86,13 +86,23 @@ class PeerCall {
     handleIncomingSignallingMessage(message: SignallingMessage, partyId: PartyId) {
         switch (message.type) {
             case EventType.Invite:
-                this.handleInvite(message.content, partyId);
+                // determining whether or not an incoming invite glares
+                // with an instance of PeerCall is different for group calls
+                // and 1:1 calls, so done outside of this class.
+                // If you pass an event for another call id in here it will assume it glares.
+
+                //const newCallId = message.content.call_id;
+                //if (this.id && newCallId !== this.id) {
+                //    this.handleInviteGlare(message.content);
+                //} else {
+                    this.handleInvite(message.content, partyId);
+                //}
                 break;
             case EventType.Answer:
                 this.handleAnswer(message.content, partyId);
                 break;
             case EventType.Candidates:
-                this.handleRemoteIceCandidates(message.content);
+                this.handleRemoteIceCandidates(message.content, partyId);
                 break;
             case EventType.Hangup:
         }
@@ -184,6 +194,8 @@ class PeerCall {
 
     // calls are serialized and deduplicated by responsePromiseChain
     private handleNegotiation = async (): Promise<void> => {
+        // TODO: does this make sense to have this state if we're already connected?
+        this.setState(CallState.MakingOffer)
         try {
             await this.peerConnection.setLocalDescription();
         } catch (err) {
@@ -221,7 +233,7 @@ class PeerCall {
         }
         this.sendCandidateQueue();
 
-        if (this.state === CallState.CreateOffer) {
+        if (this.state === CallState.InviteSent) {
             await this.delay(CALL_TIMEOUT_MS);
             // @ts-ignore TS doesn't take the await above into account to know that the state could have changed in between
             if (this.state === CallState.InviteSent) {
@@ -495,7 +507,7 @@ class PeerCall {
 
     public dispose(): void {
         this.disposables.dispose();
-        // TODO: dispose peerConnection?
+        this.peerConnection.dispose();
     }
 }
 
@@ -529,9 +541,9 @@ export enum CallParty {
 
 export enum CallState {
     Fledgling = 'fledgling',
-    InviteSent = 'invite_sent',
     WaitLocalMedia = 'wait_local_media',
     CreateOffer = 'create_offer',
+    InviteSent = 'invite_sent',
     CreateAnswer = 'create_answer',
     Connecting = 'connecting',
     Connected = 'connected',
