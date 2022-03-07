@@ -37,9 +37,8 @@ function resolveDerivedVariable(decl, variables) {
 }
 
 function extractAlias(decl) {
-    const RE_VARIABLE_PROP = /--(.+)/;
     const wholeVariable = decl.value.match(RE_VARIABLE_VALUE)?.[1];
-    if (RE_VARIABLE_PROP.test(decl.prop) && wholeVariable) {
+    if (decl.prop.startsWith("--") && wholeVariable) {
         aliasMap.set(decl.prop, wholeVariable);
     }
 }
