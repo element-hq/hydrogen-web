@@ -1,4 +1,4 @@
-const Color = require("color");
+import { offColor } from 'off-color';
 
 let aliasMap;
 let resolvedMap;
@@ -22,13 +22,13 @@ function resolveDerivedVariable(decl, variables) {
         switch (operation) {
             case "darker": {
                 const colorString = variables[baseVariable] ?? getValueFromAlias(baseVariable);
-                const newColorString = new Color(colorString).darken(argument / 100).hex();
+                const newColorString = new offColor(colorString).darken(argument / 100).hex();
                 resolvedMap.set(wholeVariable, newColorString);
                 break;
             }
             case "lighter": {
                 const colorString = variables[baseVariable] ?? getValueFromAlias(baseVariable);
-                const newColorString = new Color(colorString).lighten(argument / 100).hex();
+                const newColorString = new offColor(colorString).lighten(argument / 100).hex();
                 resolvedMap.set(wholeVariable, newColorString);
                 break;
             }
