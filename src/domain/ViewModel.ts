@@ -58,9 +58,9 @@ export class ViewModel<O extends Options = Options> extends EventEmitter<{change
         return this._options[name];
     }
 
-    observeNavigation(type: string, onChange: (value: true | string, type: string) => void) {
+    observeNavigation(type: string, onChange: (value: string | true | undefined, type: string) => void) {
       const segmentObservable = this.navigation.observe(type);
-      const unsubscribe = segmentObservable.subscribe((value: true | string) => {
+      const unsubscribe = segmentObservable.subscribe((value: string | true | undefined) => {
         onChange(value, type);
       })
       this.track(unsubscribe);
