@@ -19,7 +19,7 @@ import {BaseObservableMap} from "./BaseObservableMap";
 export class ObservableMap<K, V> extends BaseObservableMap<K, V> {
     private readonly _values: Map<K, V>;
 
-    constructor(initialValues?: Iterable<[K, V]>) {
+    constructor(initialValues?: Iterable<readonly [K, V]>) {
         super();
         this._values = new Map(initialValues);
     }
