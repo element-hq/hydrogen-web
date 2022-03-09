@@ -29,7 +29,8 @@ import type {LocalMedia} from "./LocalMedia";
 
 import {
     SDPStreamMetadataKey,
-    SDPStreamMetadataPurpose
+    SDPStreamMetadataPurpose,
+    EventType,
 } from "./callEventTypes";
 import type {
     MCallBase,
@@ -39,6 +40,7 @@ import type {
     MCallCandidates,
     MCallHangupReject,
     SDPStreamMetadata,
+    SignallingMessage
 } from "./callEventTypes";
 
 // when sending, we need to encrypt message with olm. I think the flow of room => roomEncryption => olmEncryption as we already
@@ -677,21 +679,6 @@ export enum CallDirection {
     Outbound = 'outbound',
 }
 
-export enum EventType {
-    Invite = "m.call.invite",
-    Candidates = "m.call.candidates",
-    Answer = "m.call.answer",
-    Hangup = "m.call.hangup",
-    Reject = "m.call.reject",
-    SelectAnswer = "m.call.select_answer",
-    Negotiate = "m.call.negotiate",
-    SDPStreamMetadataChanged = "m.call.sdp_stream_metadata_changed",
-    SDPStreamMetadataChangedPrefix = "org.matrix.call.sdp_stream_metadata_changed",
-    Replaces = "m.call.replaces",
-    AssertedIdentity = "m.call.asserted_identity",
-    AssertedIdentityPrefix = "org.matrix.call.asserted_identity",
-}
-
 export enum CallErrorCode {
     /** The user chose to end the call */
     UserHangup = 'user_hangup',
@@ -802,16 +789,16 @@ export class CallError extends Error {
     }
 }
 
-export type SignallingMessage<Base extends MCallBase> =
-    {type: EventType.Invite, content: MCallInvite<Base>} |
-    {type: EventType.Answer, content: MCallAnswer<Base>} |
-    {type: EventType.SDPStreamMetadataChanged | EventType.SDPStreamMetadataChangedPrefix, content: MCallSDPStreamMetadataChanged<Base>} |
-    {type: EventType.Candidates, content: MCallCandidates<Base>} |
-    {type: EventType.Hangup | EventType.Reject, content: MCallHangupReject<Base>};
-
 export interface PeerCallHandler {
     emitUpdate(peerCall: PeerCall, params: any);
     sendSignallingMessage(message: SignallingMessage<MCallBase>);
+}
+
+export function handlesEventType(eventType: string): boolean {
+    return  eventType === EventType.Invite ||
+            eventType === EventType.Candidates ||
+            eventType === EventType.Answer ||
+            eventType === EventType.Hangup;
 }
 
 export function tests() {

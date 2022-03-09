@@ -18,16 +18,21 @@ import {ObservableMap} from "../../../observable/map/ObservableMap";
 import {Participant} from "./Participant";
 import {LocalMedia} from "../LocalMedia";
 import type {Track} from "../../../platform/types/MediaDevices";
-
-function getParticipantId(senderUserId: string, senderDeviceId: string | null) {
-    return JSON.stringify(senderUserId) + JSON.stringify(senderDeviceId);
-}
+import type {SignallingMessage, MGroupCallBase} from "../callEventTypes";
+import type {Room} from "../../room/Room";
+import type {StateEvent} from "../../storage/types";
+import type {Platform} from "../../../platform/web/Platform";
 
 export class GroupCall {
     private readonly participants: ObservableMap<string, Participant> = new ObservableMap();
     private localMedia?: Promise<LocalMedia>;
 
-    constructor(private readonly ownUserId: string, private callEvent: StateEvent, private readonly room: Room, private readonly webRTC: WebRTC) {
+    constructor(
+        private readonly ownUserId: string,
+        private callEvent: StateEvent,
+        private readonly room: Room,
+        private readonly platform: Platform
+    ) {
 
     }
 
@@ -52,32 +57,25 @@ export class GroupCall {
         this.callEvent = callEvent;
     }
 
-    addParticipant(userId, source) {
-        const participantId = getParticipantId(userId, source.device_id);
-        const participant = this.participants.get(participantId);
+    addParticipant(userId, memberCallInfo) {
+        let participant = this.participants.get(userId);
         if (participant) {
-            participant.updateSource(source);
+            participant.updateCallInfo(memberCallInfo);
         } else {
-            participant.add(participantId, new Participant(userId, source.device_id, this.localMedia?.clone(), this.webRTC));
+            participant = new Participant(userId, source.device_id, this.localMedia?.clone(), this.webRTC);
+            participant.updateCallInfo(memberCallInfo);
+            this.participants.add(userId, participant);
         }
     }
 
-    handleDeviceMessage(senderUserId: string, senderDeviceId: string, eventType: string, content: Record<string, any>, log: ILogItem) {
-        const participantId = getParticipantId(senderUserId, senderDeviceId);
-        let peerCall = this.participants.get(participantId);
-        let hasDeviceInKey = true;
-        if (!peerCall) {
-            hasDeviceInKey = false;
-            peerCall = this.participants.get(getParticipantId(senderUserId, null))
-        }
-        if (peerCall) {
-            peerCall.handleIncomingSignallingMessage(eventType, content, senderDeviceId);
-            if (!hasDeviceInKey && peerCall.opponentPartyId) {
-                this.participants.delete(getParticipantId(senderUserId, null));
-                this.participants.add(getParticipantId(senderUserId, peerCall.opponentPartyId));
-            }
-        } else {
-            // create peerCall
+    removeParticipant(userId) {
+
+    }
+
+    handleDeviceMessage(userId: string, senderDeviceId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) {
+        let participant = this.participants.get(userId);
+        if (participant) {
+            participant.handleIncomingSignallingMessage(message, senderDeviceId);
         }
     }
 

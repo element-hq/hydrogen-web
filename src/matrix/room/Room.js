@@ -218,6 +218,9 @@ export class Room extends BaseRoom {
             if (this._memberList) {
                 this._memberList.afterSync(memberChanges);
             }
+            if (this._callHandler) {
+                this._callHandler.updateRoomMembers(this, memberChanges);
+            }
             if (this._observedMembers) {
                 this._updateObservedMembers(memberChanges);
             }
