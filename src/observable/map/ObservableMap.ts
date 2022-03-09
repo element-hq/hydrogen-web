@@ -14,15 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableMap} from "./BaseObservableMap.js";
+import {BaseObservableMap} from "./BaseObservableMap";
 
-export class ObservableMap extends BaseObservableMap {
-    constructor(initialValues) {
+export class ObservableMap<K, V> extends BaseObservableMap<K, V> {
+    private readonly _values: Map<K, V>;
+
+    constructor(initialValues: Iterable<[K, V]>) {
         super();
         this._values = new Map(initialValues);
     }
 
-    update(key, params) {
+    update(key: K, params: any): boolean {
         const value = this._values.get(key);
         if (value !== undefined) {
             // could be the same value, so it's already updated
@@ -34,7 +36,7 @@ export class ObservableMap extends BaseObservableMap {
         return false;   // or return existing value?
     }
 
-    add(key, value) {
+    add(key: K, value: V): boolean {
         if (!this._values.has(key)) {
             this._values.set(key, value);
             this.emitAdd(key, value);
@@ -43,7 +45,7 @@ export class ObservableMap extends BaseObservableMap {
         return false;   // or return existing value?
     }
 
-    remove(key) {
+    remove(key: K): boolean {
         const value = this._values.get(key);
         if (value !== undefined) {
             this._values.delete(key);
@@ -54,39 +56,39 @@ export class ObservableMap extends BaseObservableMap {
         }
     }
 
-    set(key, value) {
+    set(key: K, value: V): boolean {
         if (this._values.has(key)) {
             // We set the value here because update only supports inline updates
             this._values.set(key, value);
-            return this.update(key);
+            return this.update(key, undefined);
         }    
         else {
             return this.add(key, value);
         }
     }
 
-    reset() {
+    reset(): void {
         this._values.clear();
         this.emitReset();
     }
 
-    get(key) {
+    get(key: K): V | undefined {
         return this._values.get(key);
     }
 
-    get size() {
+    get size(): number {
         return this._values.size;
     }
 
-    [Symbol.iterator]() {
+    [Symbol.iterator](): Iterator<[K, V]> {
         return this._values.entries();
     }
 
-    values() {
+    values(): Iterator<V> {
         return this._values.values();
     }
 
-    keys() {
+    keys(): Iterator<K> {
         return this._values.keys();
     }
 }
