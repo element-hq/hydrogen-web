@@ -114,7 +114,7 @@ class DOMPeerConnection implements PeerConnection {
     }
 
     createDataChannel(): DataChannel {
-        return new DataChannel(this.peerConnection.createDataChannel());
+        return undefined as any;// new DataChannel(this.peerConnection.createDataChannel());
     }
 
     private registerHandler() {

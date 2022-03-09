@@ -15,14 +15,17 @@ limitations under the License.
 */
 
 import {ObservableMap} from "../../../observable/map/ObservableMap";
+import {Participant} from "./Participant";
+import {LocalMedia} from "../LocalMedia";
+import type {Track} from "../../../platform/types/MediaDevices";
 
-function participantId(senderUserId: string, senderDeviceId: string | null) {
+function getParticipantId(senderUserId: string, senderDeviceId: string | null) {
     return JSON.stringify(senderUserId) + JSON.stringify(senderDeviceId);
 }
 
-class Call {
+export class GroupCall {
     private readonly participants: ObservableMap<string, Participant> = new ObservableMap();
-    private localMedia?: LocalMedia;
+    private localMedia?: Promise<LocalMedia>;
 
     constructor(private readonly ownUserId: string, private callEvent: StateEvent, private readonly room: Room, private readonly webRTC: WebRTC) {
 
@@ -30,17 +33,17 @@ class Call {
 
     get id(): string { return this.callEvent.state_key; }
 
-    async participate(tracks: Track[]) {
-        this.localMedia = LocalMedia.fromTracks(tracks);
+    async participate(tracks: Promise<Track[]>) {
+        this.localMedia = tracks.then(tracks => LocalMedia.fromTracks(tracks));
         for (const [,participant] of this.participants) {
-            participant.setLocalMedia(this.localMedia.clone());
+            participant.setLocalMedia(this.localMedia.then(localMedia => localMedia.clone()));
         }
         // send m.call.member state event
 
         // send invite to all participants that are < my userId
         for (const [,participant] of this.participants) {
             if (participant.userId < this.ownUserId) {
-                participant.sendInvite();
+                participant.call();
             }
         }
     }
@@ -76,10 +79,6 @@ class Call {
         } else {
             // create peerCall
         }
-    }
-
-    get id(): string {
-        return this.callEvent.state_key;
     }
 
     get isTerminated(): boolean {

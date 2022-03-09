@@ -17,15 +17,29 @@ limitations under the License.
 import {ObservableMap} from "../../observable/map/ObservableMap";
 import {recursivelyAssign} from "../../utils/recursivelyAssign";
 import {AsyncQueue} from "../../utils/AsyncQueue";
-import {Disposables, Disposable} from "../../utils/Disposables";
+import {Disposables, IDisposable} from "../../utils/Disposables";
 import type {Room} from "../room/Room";
 import type {StateEvent} from "../storage/types";
 import type {ILogItem} from "../../logging/types";
 
 import type {TimeoutCreator, Timeout} from "../../platform/types/types";
-import {WebRTC, PeerConnection, PeerConnectionHandler} from "../../platform/types/WebRTC";
+import {WebRTC, PeerConnection, PeerConnectionHandler, DataChannel} from "../../platform/types/WebRTC";
 import {MediaDevices, Track, AudioTrack, TrackType} from "../../platform/types/MediaDevices";
 import type {LocalMedia} from "./LocalMedia";
+
+import {
+    SDPStreamMetadataKey,
+    SDPStreamMetadataPurpose
+} from "./callEventTypes";
+import type {
+    MCallBase,
+    MCallInvite,
+    MCallAnswer,
+    MCallSDPStreamMetadataChanged,
+    MCallCandidates,
+    MCallHangupReject,
+    SDPStreamMetadata,
+} from "./callEventTypes";
 
 // when sending, we need to encrypt message with olm. I think the flow of room => roomEncryption => olmEncryption as we already
 // do for sharing keys will be best as that already deals with room tracking.
@@ -33,10 +47,11 @@ import type {LocalMedia} from "./LocalMedia";
  * Does WebRTC signalling for a single PeerConnection, and deals with WebRTC wrappers from platform
  * */
 /** Implements a call between two peers with the signalling state keeping, while still delegating the signalling message sending. Used by GroupCall.*/
-class PeerCall {
+export class PeerCall implements IDisposable {
     private readonly peerConnection: PeerConnection;
     private state = CallState.Fledgling;
     private direction: CallDirection;
+    private localMedia?: LocalMedia;
     // A queue for candidates waiting to go out.
     // We try to amalgamate candidates into a single candidate message where
     // possible
@@ -54,9 +69,13 @@ class PeerCall {
     private disposables = new Disposables();
     private statePromiseMap = new Map<CallState, {resolve: () => void, promise: Promise<void>}>();
 
+    // perfect negotiation flags
+    private makingOffer: boolean = false;
+    private ignoreOffer: boolean = false;
+
     constructor(
+        private callId: string, // generated or from invite
         private readonly handler: PeerCallHandler,
-        private localMedia: LocalMedia,
         private readonly createTimeout: TimeoutCreator,
         webRTC: WebRTC
     ) {
@@ -83,29 +102,8 @@ class PeerCall {
         }
     }
 
-    handleIncomingSignallingMessage(message: SignallingMessage, partyId: PartyId) {
-        switch (message.type) {
-            case EventType.Invite:
-                // determining whether or not an incoming invite glares
-                // with an instance of PeerCall is different for group calls
-                // and 1:1 calls, so done outside of this class.
-                // If you pass an event for another call id in here it will assume it glares.
-
-                //const newCallId = message.content.call_id;
-                //if (this.id && newCallId !== this.id) {
-                //    this.handleInviteGlare(message.content);
-                //} else {
-                    this.handleInvite(message.content, partyId);
-                //}
-                break;
-            case EventType.Answer:
-                this.handleAnswer(message.content, partyId);
-                break;
-            case EventType.Candidates:
-                this.handleRemoteIceCandidates(message.content, partyId);
-                break;
-            case EventType.Hangup:
-        }
+    get remoteTracks(): Track[] {
+        return this.peerConnection.remoteTracks;
     }
 
     async call(localMediaPromise: Promise<LocalMedia>): Promise<void> {
@@ -125,7 +123,9 @@ class PeerCall {
         for (const t of this.localMedia.tracks) {
             this.peerConnection.addTrack(t);
         }
-        await this.waitForState(CallState.InviteSent);
+        // TODO: in case of glare, we would not go to InviteSent if we haven't started sending yet
+        // but we would go straight to CreateAnswer, so also need to wait for that state
+        await this.waitForState([CallState.InviteSent, CallState.CreateAnswer]);
     }
 
     async answer(localMediaPromise: Promise<LocalMedia>): Promise<void> {
@@ -166,15 +166,11 @@ class PeerCall {
         this.sendAnswer();
     }
 
-    async hangup() {
-
-    }
-
     async setMedia(localMediaPromise: Promise<LocalMedia>) {
         const oldMedia = this.localMedia;
         this.localMedia = await localMediaPromise;
 
-        const applyTrack = (selectTrack: (media: LocalMedia) => Track | undefined) => {
+        const applyTrack = (selectTrack: (media: LocalMedia | undefined) => Track | undefined) => {
             const oldTrack = selectTrack(oldMedia);
             const newTrack = selectTrack(this.localMedia);
             if (oldTrack && newTrack) {
@@ -187,50 +183,101 @@ class PeerCall {
         };
 
         // add the local tracks, and wait for onNegotiationNeeded and handleNegotiation to be called
-        applyTrack(m => m.microphoneTrack);
-        applyTrack(m => m.cameraTrack);
-        applyTrack(m => m.screenShareTrack);
+        applyTrack(m => m?.microphoneTrack);
+        applyTrack(m => m?.cameraTrack);
+        applyTrack(m => m?.screenShareTrack);
+    }
+
+    async reject() {
+
+    }
+
+    async hangup(errorCode: CallErrorCode) {
+    }
+
+    async handleIncomingSignallingMessage<B extends MCallBase>(message: SignallingMessage<B>, partyId: PartyId): Promise<void> {
+        switch (message.type) {
+            case EventType.Invite:
+                if (this.callId !== message.content.call_id) {
+                    await this.handleInviteGlare(message.content, partyId);
+                } else {
+                    await this.handleFirstInvite(message.content, partyId);
+                }
+                break;
+            case EventType.Answer:
+                await this.handleAnswer(message.content, partyId);
+                break;
+            //case EventType.Candidates:
+            //    await this.handleRemoteIceCandidates(message.content, partyId);
+            //    break;
+            case EventType.Hangup:
+            default:
+                throw new Error(`Unknown event type for call: ${message.type}`);
+        }
+    }
+
+    private sendHangupWithCallId(callId: string, reason?: CallErrorCode): Promise<void> {
+        const content = {
+            call_id: callId,
+            version: 1,
+        };
+        if (reason) {
+            content["reason"] = reason;
+        }
+        return this.handler.sendSignallingMessage({
+            type: EventType.Hangup,
+            content
+        });
     }
 
     // calls are serialized and deduplicated by responsePromiseChain
     private handleNegotiation = async (): Promise<void> => {
-        // TODO: does this make sense to have this state if we're already connected?
-        this.setState(CallState.MakingOffer)
+        this.makingOffer = true;
         try {
-            await this.peerConnection.setLocalDescription();
-        } catch (err) {
-            this.logger.debug(`Call ${this.callId} Error setting local description!`, err);
-            this.terminate(CallParty.Local, CallErrorCode.SetLocalDescription, true);
-            return;
+            try {
+                await this.peerConnection.setLocalDescription();
+            } catch (err) {
+                this.logger.debug(`Call ${this.callId} Error setting local description!`, err);
+                this.terminate(CallParty.Local, CallErrorCode.SetLocalDescription, true);
+                return;
+            }
+
+            if (this.peerConnection.iceGatheringState === 'gathering') {
+                // Allow a short time for initial candidates to be gathered
+                await this.delay(200);
+            }
+
+            if (this.state === CallState.Ended) {
+                return;
+            }
+
+            const offer = this.peerConnection.localDescription!;
+            // Get rid of any candidates waiting to be sent: they'll be included in the local
+            // description we just got and will send in the offer.
+            this.logger.info(`Call ${this.callId} Discarding ${
+                this.candidateSendQueue.length} candidates that will be sent in offer`);
+            this.candidateSendQueue = [];
+
+            // need to queue this
+            const content = {
+                call_id: this.callId,
+                offer,
+                [SDPStreamMetadataKey]: this.localMedia!.getSDPMetadata(),
+                version: 1,
+                lifetime: CALL_TIMEOUT_MS
+            };
+            if (this.state === CallState.CreateOffer) {
+                await this.handler.sendSignallingMessage({type: EventType.Invite, content});
+                this.setState(CallState.InviteSent);
+            } else if (this.state === CallState.Connected || this.state === CallState.Connecting) {
+                // send Negotiate message
+                //await this.handler.sendSignallingMessage({type: EventType.Invite, content});
+                //this.setState(CallState.InviteSent);
+            }
+        } finally {
+            this.makingOffer = false;
         }
 
-        if (this.peerConnection.iceGatheringState === 'gathering') {
-            // Allow a short time for initial candidates to be gathered
-            await this.delay(200);
-        }
-
-        if (this.state === CallState.Ended) {
-            return;
-        }
-
-        const offer = this.peerConnection.localDescription!;
-        // Get rid of any candidates waiting to be sent: they'll be included in the local
-        // description we just got and will send in the offer.
-        this.logger.info(`Call ${this.callId} Discarding ${
-            this.candidateSendQueue.length} candidates that will be sent in offer`);
-        this.candidateSendQueue = [];
-
-        // need to queue this
-        const content = {
-            offer,
-            [SDPStreamMetadataKey]: this.localMedia.getSDPMetadata(),
-            version: 1,
-            lifetime: CALL_TIMEOUT_MS
-        };
-        if (this.state === CallState.CreateOffer) {
-            await this.handler.sendSignallingMessage({type: EventType.Invite, content});
-            this.setState(CallState.InviteSent);
-        }
         this.sendCandidateQueue();
 
         if (this.state === CallState.InviteSent) {
@@ -242,11 +289,47 @@ class PeerCall {
         }
     };
 
-    private async handleInvite(content: InviteContent, partyId: PartyId): Promise<void> {
+    private async handleInviteGlare(content: MCallInvite, partyId: PartyId): Promise<void> {
+        // this is only called when the ids are different
+        const newCallId = content.call_id;
+        if (this.callId! > newCallId) {
+            this.logger.log(
+                "Glare detected: answering incoming call " + newCallId +
+                " and canceling outgoing call " + this.callId,
+            );
+
+            /*
+            first, we should set CallDirection
+            we should anser the call
+            */
+
+            // TODO: review states to be unambigous, WaitLocalMedia for sending offer or answer?
+            // How do we interrupt `call()`? well, perhaps we need to not just await InviteSent but also CreateAnswer?
+            if (this.state === CallState.Fledgling || this.state === CallState.CreateOffer || this.state === CallState.WaitLocalMedia) {
+
+            } else {
+                await this.sendHangupWithCallId(this.callId, CallErrorCode.Replaced);
+            }
+            await this.handleInvite(content, partyId);
+            await this.answer(Promise.resolve(this.localMedia!));
+        } else {
+            this.logger.log(
+                "Glare detected: rejecting incoming call " + newCallId +
+                " and keeping outgoing call " + this.callId,
+            );
+            await this.sendHangupWithCallId(newCallId, CallErrorCode.Replaced);
+        }
+    }
+
+    private async handleFirstInvite(content: MCallInvite, partyId: PartyId): Promise<void> {
         if (this.state !== CallState.Fledgling || this.opponentPartyId !== undefined) {
             // TODO: hangup or ignore?
             return;
         }
+        await this.handleInvite(content, partyId);
+    }
+
+    private async handleInvite(content: MCallInvite, partyId: PartyId): Promise<void> {
 
         // we must set the party ID before await-ing on anything: the call event
         // handler will start giving us more call events (eg. candidates) so if
@@ -296,8 +379,8 @@ class PeerCall {
         }
     }
 
-    private async handleAnswer(content: AnwserContent, partyId: PartyId): Promise<void> {
-        this.logger.debug(`Got answer for call ID ${this.callId} from party ID ${content.party_id}`);
+    private async handleAnswer(content: MCallAnswer, partyId: PartyId): Promise<void> {
+        this.logger.debug(`Got answer for call ID ${this.callId} from party ID ${partyId}`);
 
         if (this.state === CallState.Ended) {
             this.logger.debug(`Ignoring answer because call ID ${this.callId} has ended`);
@@ -307,7 +390,7 @@ class PeerCall {
         if (this.opponentPartyId !== undefined) {
             this.logger.info(
                 `Call ${this.callId} ` +
-                `Ignoring answer from party ID ${content.party_id}: ` +
+                `Ignoring answer from party ID ${partyId}: ` +
                 `we already have an answer/reject from ${this.opponentPartyId}`,
             );
             return;
@@ -334,16 +417,66 @@ class PeerCall {
         }
     }
 
+    // private async onNegotiateReceived(event: MatrixEvent): Promise<void> {
+    //     const content = event.getContent<MCallNegotiate>();
+    //     const description = content.description;
+    //     if (!description || !description.sdp || !description.type) {
+    //         this.logger.info(`Call ${this.callId} Ignoring invalid m.call.negotiate event`);
+    //         return;
+    //     }
+    //     // Politeness always follows the direction of the call: in a glare situation,
+    //     // we pick either the inbound or outbound call, so one side will always be
+    //     // inbound and one outbound
+    //     const polite = this.direction === CallDirection.Inbound;
+
+    //     // Here we follow the perfect negotiation logic from
+    //     // https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Perfect_negotiation
+    //     const offerCollision = (
+    //         (description.type === 'offer') &&
+    //         (this.makingOffer || this.peerConnection.signalingState !== 'stable')
+    //     );
+
+    //     this.ignoreOffer = !polite && offerCollision;
+    //     if (this.ignoreOffer) {
+    //         this.logger.info(`Call ${this.callId} Ignoring colliding negotiate event because we're impolite`);
+    //         return;
+    //     }
+
+    //     const sdpStreamMetadata = content[SDPStreamMetadataKey];
+    //     if (sdpStreamMetadata) {
+    //         this.updateRemoteSDPStreamMetadata(sdpStreamMetadata);
+    //     } else {
+    //         this.logger.warn(`Call ${this.callId} Received negotiation event without SDPStreamMetadata!`);
+    //     }
+
+    //     try {
+    //         await this.peerConnection.setRemoteDescription(description);
+
+    //         if (description.type === 'offer') {
+    //             await this.peerConnection.setLocalDescription();
+    //             await this.handler.sendSignallingMessage({
+    //                 type: EventType.CallNegotiate,
+    //                 content: {
+    //                     description: this.peerConnection.localDescription!,
+    //                     [SDPStreamMetadataKey]: this.localMedia.getSDPMetadata(),
+    //                 }
+    //             });
+    //         }
+    //     } catch (err) {
+    //         this.logger.warn(`Call ${this.callId} Failed to complete negotiation`, err);
+    //     }
+    // }
+
     private async sendAnswer(): Promise<void> {
-        const answerMessage: AnswerMessage = {
-            type: EventType.Answer,
-            content: {
-                answer: {
-                    sdp: this.peerConnection.localDescription!.sdp,
-                    type: this.peerConnection.localDescription!.type,
-                },
-                [SDPStreamMetadataKey]: this.localMedia.getSDPMetadata(),
-            }
+        const localDescription = this.peerConnection.localDescription!;
+        const answerContent: MCallAnswer = {
+            call_id: this.callId,
+            version: 1,
+            answer: {
+                sdp: localDescription.sdp,
+                type: localDescription.type,
+            },
+            [SDPStreamMetadataKey]: this.localMedia!.getSDPMetadata(),
         };
 
         // We have just taken the local description from the peerConn which will
@@ -354,7 +487,7 @@ class PeerCall {
         this.candidateSendQueue = [];
 
         try {
-            await this.handler.sendSignallingMessage(answerMessage);
+            await this.handler.sendSignallingMessage({type: EventType.Answer, content: answerContent});
         } catch (error) {
             this.terminate(CallParty.Local, CallErrorCode.SendAnswer, false);
             throw error;
@@ -387,7 +520,6 @@ class PeerCall {
         });
     }
 
-
     private async sendCandidateQueue(): Promise<void> {
         if (this.candidateSendQueue.length === 0 || this.state === CallState.Ended) {
             return;
@@ -395,15 +527,16 @@ class PeerCall {
 
         const candidates = this.candidateSendQueue;
         this.candidateSendQueue = [];
-        const candidatesMessage: CandidatesMessage = {
-            type: EventType.Candidates,
-            content: {
-                candidates: candidates,
-            }
-        };
         this.logger.debug(`Call ${this.callId} attempting to send ${candidates.length} candidates`);
         try {
-            await this.handler.sendSignallingMessage(candidatesMessage);
+            await this.handler.sendSignallingMessage({
+                type: EventType.Candidates,
+                content: {
+                    call_id: this.callId,
+                    version: 1,
+                    candidates
+                }
+            });
             // Try to send candidates again just in case we received more candidates while sending.
             this.sendCandidateQueue();
         } catch (error) {
@@ -429,7 +562,6 @@ class PeerCall {
             }
         }
     }
-
 
     private async addBufferedIceCandidates(): Promise<void> {
         if (this.remoteCandidateBuffer && this.opponentPartyId) {
@@ -463,7 +595,6 @@ class PeerCall {
         }
     }
 
-
     private setState(state: CallState): void {
         const oldState = this.state;
         this.state = state;
@@ -475,17 +606,20 @@ class PeerCall {
         this.handler.emitUpdate(this, undefined);
     }
 
-    private waitForState(state: CallState): Promise<void> {
-        let deferred = this.statePromiseMap.get(state);
-        if (!deferred) {
-            let resolve;
-            const promise = new Promise<void>(r => {
-                resolve = r;
-            });
-            deferred = {resolve, promise};
-            this.statePromiseMap.set(state, deferred);
-        }
-        return deferred.promise;
+    private waitForState(states: CallState[]): Promise<void> {
+        // TODO: rework this, do we need to clean up the promises?
+        return Promise.race(states.map(state => {
+            let deferred = this.statePromiseMap.get(state);
+            if (!deferred) {
+                let resolve;
+                const promise = new Promise<void>(r => {
+                    resolve = r;
+                });
+                deferred = {resolve, promise};
+                this.statePromiseMap.set(state, deferred);
+            }
+            return deferred.promise;
+        }));
     }
 
     private async terminate(hangupParty: CallParty, hangupReason: CallErrorCode, shouldEmit: boolean): Promise<void> {
@@ -493,8 +627,10 @@ class PeerCall {
     }
 
     private stopAllMedia(): void {
-        for (const track of this.localMedia.tracks) {
-            track.stop();
+        if (this.localMedia) {
+            for (const track of this.localMedia.tracks) {
+                track.stop();
+            }
         }
     }
 
@@ -514,21 +650,6 @@ class PeerCall {
 
 
 //import { randomString } from '../randomstring';
-import {
-    MCallReplacesEvent,
-    MCallAnswer,
-    MCallInviteNegotiate,
-    CallCapabilities,
-    SDPStreamMetadataPurpose,
-    SDPStreamMetadata,
-    SDPStreamMetadataKey,
-    MCallSDPStreamMetadataChanged,
-    MCallSelectAnswer,
-    MCAllAssertedIdentity,
-    MCallCandidates,
-    MCallBase,
-    MCallHangupReject,
-} from './callEventTypes';
 
 // null is used as a special value meaning that the we're in a legacy 1:1 call
 // without MSC2746 that doesn't provide an id which device sent the message.
@@ -681,46 +802,18 @@ export class CallError extends Error {
     }
 }
 
-type InviteContent = {
-    offer: RTCSessionDescriptionInit,
-    [SDPStreamMetadataKey]: SDPStreamMetadata,
-    version?: number,
-    lifetime?: number
-}
-
-export type InviteMessage = {
-    type: EventType.Invite,
-    content: InviteContent
-}
-
-type AnwserContent = {
-    answer: {
-        sdp: string,
-        // type is now deprecated as of Matrix VoIP v1, but
-        // required to still be sent for backwards compat
-        type: RTCSdpType,
-    },
-    [SDPStreamMetadataKey]: SDPStreamMetadata,
-}
-
-export type AnswerMessage = {
-    type: EventType.Answer,
-    content: AnwserContent
-}
-
-type CandidatesContent = {
-    candidates: RTCIceCandidate[]
-}
-
-export type CandidatesMessage = {
-    type: EventType.Candidates,
-    content: CandidatesContent
-}
-
-
-export type SignallingMessage = InviteMessage | AnswerMessage | CandidatesMessage;
+export type SignallingMessage<Base extends MCallBase> =
+    {type: EventType.Invite, content: MCallInvite<Base>} |
+    {type: EventType.Answer, content: MCallAnswer<Base>} |
+    {type: EventType.SDPStreamMetadataChanged | EventType.SDPStreamMetadataChangedPrefix, content: MCallSDPStreamMetadataChanged<Base>} |
+    {type: EventType.Candidates, content: MCallCandidates<Base>} |
+    {type: EventType.Hangup | EventType.Reject, content: MCallHangupReject<Base>};
 
 export interface PeerCallHandler {
     emitUpdate(peerCall: PeerCall, params: any);
-    sendSignallingMessage(message: SignallingMessage);
+    sendSignallingMessage(message: SignallingMessage<MCallBase>);
+}
+
+export function tests() {
+
 }

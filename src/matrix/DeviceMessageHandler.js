@@ -59,7 +59,7 @@ export class DeviceMessageHandler {
             }));
             // TODO: pass this in the prep and run it in afterSync or afterSyncComplete (as callHandler can send events as well)?
             for (const dr of callMessages) {
-                this._callHandler.handleDeviceMessage(dr.device.userId, dr.device.deviceId, dr.event.type, dr.event.content, log);
+                this._callHandler.handleDeviceMessage(dr.device.userId, dr.device.deviceId, dr.event, log);
             }
             // TODO: somehow include rooms that received a call to_device message in the sync state?
             // or have updates flow through event emitter?

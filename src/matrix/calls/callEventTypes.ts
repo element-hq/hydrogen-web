@@ -1,10 +1,13 @@
 // allow non-camelcase as these are events type that go onto the wire
 /* eslint-disable camelcase */
 
-import { CallErrorCode } from "./Call";
-
 // TODO: Change to "sdp_stream_metadata" when MSC3077 is merged
 export const SDPStreamMetadataKey = "org.matrix.msc3077.sdp_stream_metadata";
+
+export interface SessionDescription {
+    sdp?: string;
+    type: RTCSdpType
+}
 
 export enum SDPStreamMetadataPurpose {
     Usermedia = "m.usermedia",
@@ -32,40 +35,36 @@ export interface CallReplacesTarget {
     avatar_url: string;
 }
 
-export interface MCallBase {
+export type MCallBase = {
     call_id: string;
     version: string | number;
-    party_id?: string;
-    sender_session_id?: string;
-    dest_session_id?: string;
 }
 
-export interface MCallAnswer extends MCallBase {
-    answer: RTCSessionDescription;
+export type MGroupCallBase = MCallBase & {
+    conf_id: string;
+} 
+
+export type MCallAnswer<Base extends MCallBase> = Base & {
+    answer: SessionDescription;
     capabilities?: CallCapabilities;
     [SDPStreamMetadataKey]: SDPStreamMetadata;
 }
 
-export interface MCallSelectAnswer extends MCallBase {
+export type MCallSelectAnswer<Base extends MCallBase> = Base & {
     selected_party_id: string;
 }
 
-export interface MCallInviteNegotiate extends MCallBase {
-    offer: RTCSessionDescription;
-    description: RTCSessionDescription;
+export type MCallInvite<Base extends MCallBase> = Base & {
+    offer: SessionDescription;
     lifetime: number;
-    capabilities?: CallCapabilities;
-    invitee?: string;
-    sender_session_id?: string;
-    dest_session_id?: string;
     [SDPStreamMetadataKey]: SDPStreamMetadata;
 }
 
-export interface MCallSDPStreamMetadataChanged extends MCallBase {
+export type MCallSDPStreamMetadataChanged<Base extends MCallBase> = Base & {
     [SDPStreamMetadataKey]: SDPStreamMetadata;
 }
 
-export interface MCallReplacesEvent extends MCallBase {
+export type MCallReplacesEvent<Base extends MCallBase> = Base & {
     replacement_id: string;
     target_user: CallReplacesTarget;
     create_call: string;
@@ -73,7 +72,7 @@ export interface MCallReplacesEvent extends MCallBase {
     target_room: string;
 }
 
-export interface MCAllAssertedIdentity extends MCallBase {
+export type MCAllAssertedIdentity<Base extends MCallBase> = Base & {
     asserted_identity: {
         id: string;
         display_name: string;
@@ -81,11 +80,11 @@ export interface MCAllAssertedIdentity extends MCallBase {
     };
 }
 
-export interface MCallCandidates extends MCallBase {
+export type MCallCandidates<Base extends MCallBase> = Base & {
     candidates: RTCIceCandidate[];
 }
 
-export interface MCallHangupReject extends MCallBase {
+export type MCallHangupReject<Base extends MCallBase> = Base & {
     reason?: CallErrorCode;
 }
 

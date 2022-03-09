@@ -144,7 +144,7 @@ export class AudioTrackWrapper extends TrackWrapper {
         } else {
             this.measuringVolumeActivity = false;
             this.speakingVolumeSamples.fill(-Infinity);
-            this.emit(CallFeedEvent.VolumeChanged, -Infinity);
+            // this.emit(CallFeedEvent.VolumeChanged, -Infinity);
         }
     }
 
@@ -186,7 +186,7 @@ export class AudioTrackWrapper extends TrackWrapper {
         this.speakingVolumeSamples.shift();
         this.speakingVolumeSamples.push(maxVolume);
 
-        this.emit(CallFeedEvent.VolumeChanged, maxVolume);
+        // this.emit(CallFeedEvent.VolumeChanged, maxVolume);
 
         let newSpeaking = false;
 
@@ -201,7 +201,7 @@ export class AudioTrackWrapper extends TrackWrapper {
 
         if (this.speaking !== newSpeaking) {
             this.speaking = newSpeaking;
-            this.emit(CallFeedEvent.Speaking, this.speaking);
+            // this.emit(CallFeedEvent.Speaking, this.speaking);
         }
 
         this.volumeLooperTimeout = setTimeout(this.volumeLooper, POLLING_INTERVAL) as unknown as number;

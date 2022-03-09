@@ -14,35 +14,54 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {EventType} from "../PeerCall";
+import {EventType, PeerCall, SignallingMessage} from "../PeerCall";
+import {makeTxnId} from "../../common";
+
 import type {PeerCallHandler} from "../PeerCall";
+import type {LocalMedia} from "../LocalMedia";
+import type {HomeServerApi} from "../../net/HomeServerApi";
+import type {Track} from "../../../platform/types/MediaDevices";
+import type {MCallBase, MGroupCallBase} from "../callEventTypes";
+import type {GroupCall} from "./GroupCall";
+import type {RoomMember} from "../../room/members/RoomMember";
 
-class Participant implements PeerCallHandler {
-    private peerCall?: PeerCall;
-
+export class Participant implements PeerCallHandler {
     constructor(
-        private readonly userId: string,
-        private readonly deviceId: string,
-        private localMedia: LocalMedia | undefined,
-        private readonly webRTC: WebRTC,
-        private readonly hsApi: HomeServerApi
+        public readonly member: RoomMember,
+        private readonly deviceId: string | undefined,
+        private readonly peerCall: PeerCall,
+        private readonly hsApi: HomeServerApi,
+        private readonly groupCall: GroupCall
     ) {}
 
-    sendInvite() {
-        this.peerCall = new PeerCall(this, this.webRTC);
-        this.peerCall.call(this.localMedia);
+    /* @internal */
+    call(localMedia: Promise<LocalMedia>) {
+        this.peerCall.call(localMedia);
+    }
+
+    get remoteTracks(): Track[] {
+        return this.peerCall.remoteTracks;
     }
 
     /** From PeerCallHandler
      * @internal */
     emitUpdate(params: any) {
-
+        this.groupCall.emitParticipantUpdate(this, params);
     }
 
     /** From PeerCallHandler
      * @internal */
-    onSendSignallingMessage(type: EventType, content: Record<string, any>) {
+    async sendSignallingMessage(message: SignallingMessage<MCallBase>) {
+        const groupMessage = message as SignallingMessage<MGroupCallBase>;
+        groupMessage.content.conf_id = this.groupCall.id;
         // TODO: this needs to be encrypted with olm first
-        this.hsApi.sendToDevice(type, {[this.userId]: {[this.deviceId ?? "*"]: content}});
+
+        const request = this.hsApi.sendToDevice(
+            groupMessage.type,
+            {[this.member.userId]: {
+                [this.deviceId ?? "*"]: groupMessage.content
+            }
+        }, makeTxnId());
+        await request.response();
     }
 }
