@@ -54,6 +54,7 @@
     "another-json": "^0.2.0",
     "base64-arraybuffer": "^0.2.0",
     "dompurify": "^2.3.0",
-    "off-color": "^2.0.0"
+    "off-color": "^2.0.0",
+    "postcss-value-parser": "^4.2.0"
   }
 }

@@ -1,4 +1,5 @@
 const offColor = require("off-color").offColor;
+const valueParser = require("postcss-value-parser");
 
 let aliasMap;
 let resolvedMap;
@@ -9,28 +10,45 @@ function getValueFromAlias(alias) {
     return resolvedMap.get(derivedVariable); // what if we haven't resolved this variable yet?
 }
 
-function resolveDerivedVariable(decl, variables) {
-    const matches = decl.value.match(RE_VARIABLE_VALUE);
-    if (matches) {
-        const [, wholeVariable, baseVariable, operation, argument] = matches;
-        if (!variables[baseVariable]) {
-            // hmm.. baseVariable should be in config..., maybe this is an alias?
-            if (!aliasMap.get(`--${baseVariable}`)) {
-                throw new Error(`Cannot derive from ${baseVariable} because it is neither defined in config nor is it an alias!`);
-            }
+function parseDeclarationValue(value) {
+    const parsed = valueParser(value);
+    const variables = [];
+    parsed.walk(node => {
+        if (node.type !== "function" && node.value !== "var") {
+            return;
         }
-        switch (operation) {
-            case "darker": {
-                const colorString = variables[baseVariable] ?? getValueFromAlias(baseVariable);
-                const newColorString = offColor(colorString).darken(argument / 100).hex();
-                resolvedMap.set(wholeVariable, newColorString);
-                break;
+        const variable = node.nodes[0];
+        variables.push(variable.value);
+    });
+    return variables;
+}
+
+function resolveDerivedVariable(decl, variables) {
+    const RE_VARIABLE_VALUE = /--(.+)--(.+)-(.+)/;
+    const variableCollection = parseDeclarationValue(decl.value);
+    for (const variable of variableCollection) {
+        const matches = variable.match(RE_VARIABLE_VALUE);
+        if (matches) {
+            const [wholeVariable, baseVariable, operation, argument] = matches;
+            if (!variables[baseVariable]) {
+                // hmm.. baseVariable should be in config..., maybe this is an alias?
+                if (!aliasMap.get(`--${baseVariable}`)) {
+                    throw new Error(`Cannot derive from ${baseVariable} because it is neither defined in config nor is it an alias!`);
+                }
             }
-            case "lighter": {
-                const colorString = variables[baseVariable] ?? getValueFromAlias(baseVariable);
-                const newColorString = offColor(colorString).lighten(argument / 100).hex();
-                resolvedMap.set(wholeVariable, newColorString);
-                break;
+            switch (operation) {
+                case "darker": {
+                    const colorString = variables[baseVariable] ?? getValueFromAlias(baseVariable);
+                    const newColorString = offColor(colorString).darken(argument / 100).hex();
+                    resolvedMap.set(wholeVariable, newColorString);
+                    break;
+                }
+                case "lighter": {
+                    const colorString = variables[baseVariable] ?? getValueFromAlias(baseVariable);
+                    const newColorString = offColor(colorString).lighten(argument / 100).hex();
+                    resolvedMap.set(wholeVariable, newColorString);
+                    break;
+                }
             }
         }
     }

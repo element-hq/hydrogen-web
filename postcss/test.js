@@ -61,6 +61,29 @@ module.exports.tests = function tests() {
                 color: var(--icon-color--darker-20);
             }`;
             assert.rejects(async () => await postcss([plugin({ variables: {} })]).process(css, { from: undefined, }));
+        },
+
+        "multiple derived variable in single declaration is parsed correctly": async (assert) => {
+            const inputCSS = `div {
+                background-color: linear-gradient(var(--foo-color--lighter-50), var(--foo-color--darker-20));
+            }`;
+            const transformedColor1 = offColor("#ff0").lighten(0.5);
+            const transformedColor2 = offColor("#ff0").darken(0.2);
+            const outputCSS =
+                inputCSS +
+                `
+            :root {
+                --foo-color: #ff0;
+                --foo-color--lighter-50: ${transformedColor1.hex()};
+                --foo-color--darker-20: ${transformedColor2.hex()};
+            }
+            `;
+            await run(
+                inputCSS,
+                outputCSS,
+                { variables: { "foo-color": "#ff0" } },
+                assert
+            );
         }
     };
 };
