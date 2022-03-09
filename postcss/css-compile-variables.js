@@ -1,13 +1,11 @@
-const offColor = require("off-color").offColor;
 const valueParser = require("postcss-value-parser");
 
 let aliasMap;
 let resolvedMap;
-const RE_VARIABLE_VALUE = /var\((--(.+)--(.+)-(.+))\)/;
 
-function getValueFromAlias(alias) {
+function getValueFromAlias(alias, variables) {
     const derivedVariable = aliasMap.get(`--${alias}`);
-    return resolvedMap.get(derivedVariable); // what if we haven't resolved this variable yet?
+    return variables[derivedVariable] ?? resolvedMap.get(`--${derivedVariable}`); // what if we haven't resolved this variable yet?
 }
 
 function parseDeclarationValue(value) {
@@ -23,7 +21,7 @@ function parseDeclarationValue(value) {
     return variables;
 }
 
-function resolveDerivedVariable(decl, variables) {
+function resolveDerivedVariable(decl, {variables, derive}) {
     const RE_VARIABLE_VALUE = /--(.+)--(.+)-(.+)/;
     const variableCollection = parseDeclarationValue(decl.value);
     for (const variable of variableCollection) {
@@ -36,26 +34,15 @@ function resolveDerivedVariable(decl, variables) {
                     throw new Error(`Cannot derive from ${baseVariable} because it is neither defined in config nor is it an alias!`);
                 }
             }
-            switch (operation) {
-                case "darker": {
-                    const colorString = variables[baseVariable] ?? getValueFromAlias(baseVariable);
-                    const newColorString = offColor(colorString).darken(argument / 100).hex();
-                    resolvedMap.set(wholeVariable, newColorString);
-                    break;
-                }
-                case "lighter": {
-                    const colorString = variables[baseVariable] ?? getValueFromAlias(baseVariable);
-                    const newColorString = offColor(colorString).lighten(argument / 100).hex();
-                    resolvedMap.set(wholeVariable, newColorString);
-                    break;
-                }
-            }
+            const value = variables[baseVariable] ?? getValueFromAlias(baseVariable, variables);
+            const derivedValue = derive(value, operation, argument);
+            resolvedMap.set(wholeVariable, derivedValue);
         }
     }
 }
 
 function extractAlias(decl) {
-    const wholeVariable = decl.value.match(RE_VARIABLE_VALUE)?.[1];
+    const wholeVariable = decl.value.match(/var\(--(.+)\)/)?.[1];
     if (decl.prop.startsWith("--") && wholeVariable) {
         aliasMap.set(decl.prop, wholeVariable);
     }
@@ -82,7 +69,7 @@ function addResolvedVariablesToRootSelector(root, variables, { Rule, Declaration
 module.exports = (opts = {}) => {
     aliasMap = new Map();
     resolvedMap = new Map();
-    const { variables } = opts;
+    const {variables} = opts;
     return {
         postcssPlugin: "postcss-compile-variables",
 
@@ -93,7 +80,7 @@ module.exports = (opts = {}) => {
             later.
             */
             root.walkDecls(decl => extractAlias(decl));
-            root.walkDecls(decl => resolveDerivedVariable(decl, variables));
+            root.walkDecls(decl => resolveDerivedVariable(decl, opts));
             addResolvedVariablesToRootSelector(root, variables, { Rule, Declaration });
         },
     };

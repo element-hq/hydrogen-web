@@ -1,9 +1,10 @@
 const offColor = require("off-color").offColor;
 const postcss = require("postcss");
 const plugin = require("./css-compile-variables");
+const derive = require("./color").derive;
 
 async function run(input, output, opts = {}, assert) {
-    let result = await postcss([plugin(opts)]).process(input, { from: undefined, });
+    let result = await postcss([plugin({ ...opts, derive })]).process(input, { from: undefined, });
     assert.strictEqual(
         result.css.replaceAll(/\s/g, ""),
         output.replaceAll(/\s/g, "")
@@ -78,12 +79,25 @@ module.exports.tests = function tests() {
                 --foo-color--darker-20: ${transformedColor2.hex()};
             }
             `;
-            await run(
-                inputCSS,
-                outputCSS,
-                { variables: { "foo-color": "#ff0" } },
-                assert
-            );
+            await run( inputCSS, outputCSS, { variables: { "foo-color": "#ff0" } }, assert);
+        },
+        "multiple aliased-derived variable in single declaration is parsed correctly": async (assert) => {
+            const inputCSS = `div {
+                --my-alias: var(--foo-color);
+                background-color: linear-gradient(var(--my-alias--lighter-50), var(--my-alias--darker-20));
+            }`;
+            const transformedColor1 = offColor("#ff0").lighten(0.5);
+            const transformedColor2 = offColor("#ff0").darken(0.2);
+            const outputCSS =
+                inputCSS +
+                `
+            :root {
+                --foo-color: #ff0;
+                --my-alias--lighter-50: ${transformedColor1.hex()};
+                --my-alias--darker-20: ${transformedColor2.hex()};
+            }
+            `;
+            await run( inputCSS, outputCSS, { variables: { "foo-color": "#ff0" } }, assert);
         }
     };
 };
