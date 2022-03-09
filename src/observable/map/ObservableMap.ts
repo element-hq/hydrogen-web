@@ -19,12 +19,12 @@ import {BaseObservableMap} from "./BaseObservableMap";
 export class ObservableMap<K, V> extends BaseObservableMap<K, V> {
     private readonly _values: Map<K, V>;
 
-    constructor(initialValues: Iterable<[K, V]>) {
+    constructor(initialValues?: Iterable<[K, V]>) {
         super();
         this._values = new Map(initialValues);
     }
 
-    update(key: K, params: any): boolean {
+    update(key: K, params?: any): boolean {
         const value = this._values.get(key);
         if (value !== undefined) {
             // could be the same value, so it's already updated
@@ -107,13 +107,16 @@ export function tests() {
 
         test_add(assert) {
             let fired = 0;
-            const map = new ObservableMap();
+            const map = new ObservableMap<number, {value: number}>();
             map.subscribe({
                 onAdd(key, value) {
                     fired += 1;
                     assert.equal(key, 1);
                     assert.deepEqual(value, {value: 5}); 
-                }
+                },
+                onUpdate() {},
+                onRemove() {},
+                onReset() {}
             });
             map.add(1, {value: 5});
             assert.equal(map.size, 1);
@@ -122,7 +125,7 @@ export function tests() {
 
         test_update(assert) {
             let fired = 0;
-            const map = new ObservableMap();
+            const map = new ObservableMap<number, {number: number}>();
             const value = {number: 5};
             map.add(1, value);
             map.subscribe({
@@ -131,7 +134,10 @@ export function tests() {
                     assert.equal(key, 1);
                     assert.deepEqual(value, {number: 6}); 
                     assert.equal(params, "test");
-                }
+                },
+                onAdd() {},
+                onRemove() {},
+                onReset() {}
             });
             value.number = 6;
             map.update(1, "test");
@@ -140,9 +146,12 @@ export function tests() {
 
         test_update_unknown(assert) {
             let fired = 0;
-            const map = new ObservableMap();
+            const map = new ObservableMap<number, {number: number}>();
             map.subscribe({
-                onUpdate() { fired += 1; }
+                onUpdate() { fired += 1; },
+                onAdd() {},
+                onRemove() {},
+                onReset() {}
             });
             const result = map.update(1);
             assert.equal(fired, 0);
@@ -151,7 +160,7 @@ export function tests() {
 
         test_set(assert) {
             let add_fired = 0, update_fired = 0;
-            const map = new ObservableMap();
+            const map = new ObservableMap<number, {value: number}>();
             map.subscribe({
                 onAdd(key, value) {
                     add_fired += 1;
@@ -162,7 +171,9 @@ export function tests() {
                     update_fired += 1;
                     assert.equal(key, 1);
                     assert.deepEqual(value, {value: 7}); 
-                }
+                },
+                onRemove() {},
+                onReset() {}
             });
             // Add
             map.set(1, {value: 5});
@@ -176,7 +187,7 @@ export function tests() {
 
         test_remove(assert) {
             let fired = 0;
-            const map = new ObservableMap();
+            const map = new ObservableMap<number, {value: number}>();
             const value = {value: 5};
             map.add(1, value);
             map.subscribe({
@@ -184,7 +195,10 @@ export function tests() {
                     fired += 1;
                     assert.equal(key, 1);
                     assert.deepEqual(value, {value: 5}); 
-                }
+                },
+                onAdd() {},
+                onUpdate() {},
+                onReset() {}
             });
             map.remove(1);
             assert.equal(map.size, 0);
@@ -192,8 +206,8 @@ export function tests() {
         },
 
         test_iterate(assert) {
-            const results = [];
-            const map = new ObservableMap();
+            const results: any[] = [];
+            const map = new ObservableMap<number, {number: number}>();
             map.add(1, {number: 5});
             map.add(2, {number: 6});
             map.add(3, {number: 7});
@@ -206,7 +220,7 @@ export function tests() {
             assert.equal(results.find(([key]) => key === 3)[1].number, 7);
         },
         test_size(assert) {
-            const map = new ObservableMap();
+            const map = new ObservableMap<number, {number: number}>();
             map.add(1, {number: 5});
             map.add(2, {number: 6});
             assert.equal(map.size, 2);
