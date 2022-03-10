@@ -44,13 +44,10 @@ function resolveDerivedVariable(decl, {variables, derive}) {
         const matches = variable.match(RE_VARIABLE_VALUE);
         if (matches) {
             const [wholeVariable, baseVariable, operation, argument] = matches;
-            if (!variables[baseVariable]) {
-                // hmm.. baseVariable should be in config..., maybe this is an alias?
-                if (!aliasMap.get(`--${baseVariable}`)) {
-                    throw new Error(`Cannot derive from ${baseVariable} because it is neither defined in config nor is it an alias!`);
-                }
-            }
             const value = variables[baseVariable] ?? getValueFromAlias(baseVariable, variables);
+            if (!value) {
+                throw new Error(`Cannot derive from ${baseVariable} because it is neither defined in config nor is it an alias!`);
+            }
             const derivedValue = derive(value, operation, argument);
             resolvedMap.set(wholeVariable, derivedValue);
         }
