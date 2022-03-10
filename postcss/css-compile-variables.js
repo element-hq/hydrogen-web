@@ -87,7 +87,7 @@ function addResolvedVariablesToRootSelector(root, variables, {Rule, Declaration}
 /**
  * 
  * @param {Object} opts - Options for the plugin
- * @param {Object} opts.variables - An object with records of the form: {base_variable_name: value}
+ * @param {Object} opts.variables - An object with of the form: {base_variable_name_1: value, base_variable_name_2: value, ...}
  * @param {derive} opts.derive - The callback which contains the logic for resolving derived variables
  */
 module.exports = (opts = {}) => {
