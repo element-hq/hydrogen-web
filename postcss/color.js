@@ -17,13 +17,14 @@ limitations under the License.
 const offColor = require("off-color").offColor;
 
 module.exports.derive = function (value, operation, argument) {
+    const argumentAsNumber = parseInt(argument);
     switch (operation) {
         case "darker": {
-            const newColorString = offColor(value).darken(argument / 100).hex();
+            const newColorString = offColor(value).darken(argumentAsNumber / 100).hex();
             return newColorString;
         }
         case "lighter": {
-            const newColorString = offColor(value).lighten(argument / 100).hex();
+            const newColorString = offColor(value).lighten(argumentAsNumber / 100).hex();
             return newColorString;
         }
     }
