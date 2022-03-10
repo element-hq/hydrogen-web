@@ -65,7 +65,7 @@ export class Member {
 
     /** @internal */
     updateCallInfo(memberCallInfo) {
-
+        // m.calls object from the m.call.member event
     }
 
     /** @internal */

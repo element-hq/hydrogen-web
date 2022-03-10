@@ -27,17 +27,31 @@ import type {StateEvent} from "../../storage/types";
 import type {Platform} from "../../../platform/web/Platform";
 import type {EncryptedMessage} from "../../e2ee/olm/Encryption";
 import type {ILogItem} from "../../../logging/types";
+import type {Storage} from "../../storage/idb/Storage";
+
+export enum GroupCallState {
+    LocalCallFeedUninitialized = "local_call_feed_uninitialized",
+    InitializingLocalCallFeed = "initializing_local_call_feed",
+    LocalCallFeedInitialized = "local_call_feed_initialized",
+    Joining = "entering",
+    Joined = "entered",
+    Ended = "ended",
+}
 
 export type Options = Omit<MemberOptions, "emitUpdate" | "confId" | "encryptDeviceMessage"> & {
     emitUpdate: (call: GroupCall, params?: any) => void;
     encryptDeviceMessage: (roomId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage>,
+    storage: Storage,
+    ownDeviceId: string
 };
 
 export class GroupCall {
     private readonly _members: ObservableMap<string, Member> = new ObservableMap();
     private localMedia?: Promise<LocalMedia>;
     private _memberOptions: MemberOptions;
-
+    private _state: GroupCallState = GroupCallState.LocalCallFeedInitialized;
+    
+    // TODO: keep connected state and deal
     constructor(
         private callEvent: StateEvent,
         private readonly room: Room,
@@ -52,6 +66,10 @@ export class GroupCall {
         }, options);
     }
 
+    static async create(roomId: string, options: Options): Promise<GroupCall> {
+
+    }
+
     get members(): BaseObservableMap<string, Member> { return this._members; }
 
     get id(): string { return this.callEvent.state_key; }
@@ -60,12 +78,11 @@ export class GroupCall {
         return this.callEvent.content["m.terminated"] === true;
     }
 
-    async join(tracks: Promise<Track[]>) {
-        this.localMedia = tracks.then(tracks => LocalMedia.fromTracks(tracks));
+    async join(localMedia: Promise<LocalMedia>) {
+        this.localMedia = localMedia;
+        const memberContent = await this._createOrUpdateOwnMemberStateContent();
         // send m.call.member state event
-        const request = this.options.hsApi.sendState(this.room.id, "m.call.member", this.options.ownUserId, {
-
-        });
+        const request = this.options.hsApi.sendState(this.room.id, "m.call.member", this.options.ownUserId, memberContent);
         await request.response();
         // send invite to all members that are < my userId
         for (const [,member] of this._members) {
@@ -105,5 +122,32 @@ export class GroupCall {
         } else {
             // we haven't received the m.call.member yet for this caller. buffer the device messages or create the member/call anyway?
         }
+    }
+
+    private async _createOrUpdateOwnMemberStateContent() {
+        const {storage} = this.options;
+        const txn = await storage.readTxn([storage.storeNames.roomState]);
+        const stateEvent = await txn.roomState.get(this.room.id, "m.call.member", this.options.ownUserId);
+        const stateContent = stateEvent?.event?.content ?? {
+            ["m.calls"]: []
+        };
+        const callsInfo = stateContent["m.calls"];
+        let callInfo = callsInfo.find(c => c["m.call_id"] === this.id);
+        if (!callInfo) {
+            callInfo = {
+                ["m.call_id"]: this.id,
+                ["m.devices"]: []
+            };
+            callsInfo.push(callInfo);
+        }
+        const devicesInfo = callInfo["m.devices"];
+        let deviceInfo = devicesInfo.find(d => d["device_id"] === this.options.ownDeviceId);
+        if (!deviceInfo) {
+            deviceInfo = {
+                ["device_id"]: this.options.ownDeviceId
+            };
+            devicesInfo.push(deviceInfo);
+        }
+        return stateContent;
     }
 }
