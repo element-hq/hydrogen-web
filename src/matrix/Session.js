@@ -73,6 +73,19 @@ export class Session {
         };
         this._roomsBeingCreated = new ObservableMap();
         this._user = new User(sessionInfo.userId);
+        this._callHandler = new CallHandler({
+            createTimeout: this._platform.clock.createTimeout,
+            hsApi: this._hsApi,
+            encryptDeviceMessage: async (roomId, message, log) => {
+                if (!this._deviceTracker || !this._olmEncryption) {
+                    throw new Error("encryption is not enabled");
+                }
+                await this._deviceTracker.trackRoom(roomId, log);
+                const devices = await this._deviceTracker.devicesForTrackedRoom(roomId, this._hsApi, log);
+                const encryptedMessage = await this._olmEncryption.encrypt(message.type, message.content, devices, this._hsApi, log);
+                return encryptedMessage;
+            }
+        });
         this._deviceMessageHandler = new DeviceMessageHandler({storage, callHandler: this._callHandler});
         this._olm = olm;
         this._olmUtil = null;
@@ -100,7 +113,6 @@ export class Session {
         this._createRoomEncryption = this._createRoomEncryption.bind(this);
         this._forgetArchivedRoom = this._forgetArchivedRoom.bind(this);
         this.needsKeyBackup = new ObservableValue(false);
-        this._callHandler = new CallHandler(this._platform, this._hsApi);
     }
 
     get fingerprintKey() {

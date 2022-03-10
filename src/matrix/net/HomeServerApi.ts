@@ -159,6 +159,10 @@ export class HomeServerApi {
     state(roomId: string, eventType: string, stateKey: string, options?: BaseRequestOptions): IHomeServerRequest {
         return this._get(`/rooms/${encodeURIComponent(roomId)}/state/${encodeURIComponent(eventType)}/${encodeURIComponent(stateKey)}`, {}, undefined, options);
     }
+    
+    sendState(roomId: string, eventType: string, stateKey: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._put(`/rooms/${encodeURIComponent(roomId)}/state/${encodeURIComponent(eventType)}/${encodeURIComponent(stateKey)}`, {}, content, options);
+    }
 
     getLoginFlows(): IHomeServerRequest {
         return this._unauthedRequest("GET", this._url("/login"));

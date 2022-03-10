@@ -16,9 +16,13 @@ limitations under the License.
 */
 
 export function makeTxnId() {
+    return makeId("t");
+}
+
+export function makeId(prefix) {
     const n = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
     const str = n.toString(16);
-    return "t" + "0".repeat(14 - str.length) + str;
+    return prefix + "0".repeat(14 - str.length) + str;
 }
 
 export function isTxnId(txnId) {

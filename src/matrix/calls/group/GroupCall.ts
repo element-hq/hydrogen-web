@@ -15,71 +15,95 @@ limitations under the License.
 */
 
 import {ObservableMap} from "../../../observable/map/ObservableMap";
-import {Participant} from "./Participant";
+import {Member} from "./Member";
 import {LocalMedia} from "../LocalMedia";
+import {RoomMember} from "../../room/members/RoomMember";
+import type {Options as MemberOptions} from "./Member";
+import type {BaseObservableMap} from "../../../observable/map/BaseObservableMap";
 import type {Track} from "../../../platform/types/MediaDevices";
 import type {SignallingMessage, MGroupCallBase} from "../callEventTypes";
 import type {Room} from "../../room/Room";
 import type {StateEvent} from "../../storage/types";
 import type {Platform} from "../../../platform/web/Platform";
+import type {EncryptedMessage} from "../../e2ee/olm/Encryption";
+import type {ILogItem} from "../../../logging/types";
+
+export type Options = Omit<MemberOptions, "emitUpdate" | "confId" | "encryptDeviceMessage"> & {
+    emitUpdate: (call: GroupCall, params?: any) => void;
+    encryptDeviceMessage: (roomId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage>,
+};
 
 export class GroupCall {
-    private readonly participants: ObservableMap<string, Participant> = new ObservableMap();
+    private readonly _members: ObservableMap<string, Member> = new ObservableMap();
     private localMedia?: Promise<LocalMedia>;
+    private _memberOptions: MemberOptions;
 
     constructor(
-        private readonly ownUserId: string,
         private callEvent: StateEvent,
         private readonly room: Room,
-        private readonly platform: Platform
+        private readonly options: Options
     ) {
-
+        this._memberOptions = Object.assign({
+            confId: this.id,
+            emitUpdate: member => this._members.update(member.member.userId, member),
+            encryptDeviceMessage: (message: SignallingMessage<MGroupCallBase>, log) => {
+                return this.options.encryptDeviceMessage(this.room.id, message, log);
+            }
+        }, options);
     }
+
+    get members(): BaseObservableMap<string, Member> { return this._members; }
 
     get id(): string { return this.callEvent.state_key; }
 
-    async participate(tracks: Promise<Track[]>) {
-        this.localMedia = tracks.then(tracks => LocalMedia.fromTracks(tracks));
-        for (const [,participant] of this.participants) {
-            participant.setLocalMedia(this.localMedia.then(localMedia => localMedia.clone()));
-        }
-        // send m.call.member state event
+    get isTerminated(): boolean {
+        return this.callEvent.content["m.terminated"] === true;
+    }
 
-        // send invite to all participants that are < my userId
-        for (const [,participant] of this.participants) {
-            if (participant.userId < this.ownUserId) {
-                participant.call();
-            }
+    async join(tracks: Promise<Track[]>) {
+        this.localMedia = tracks.then(tracks => LocalMedia.fromTracks(tracks));
+        // send m.call.member state event
+        const request = this.options.hsApi.sendState(this.room.id, "m.call.member", this.options.ownUserId, {
+
+        });
+        await request.response();
+        // send invite to all members that are < my userId
+        for (const [,member] of this._members) {
+            member.connect(this.localMedia);
         }
     }
 
+    /** @internal */
     updateCallEvent(callEvent: StateEvent) {
         this.callEvent = callEvent;
+        // TODO: emit update
     }
 
-    addParticipant(userId, memberCallInfo) {
-        let participant = this.participants.get(userId);
-        if (participant) {
-            participant.updateCallInfo(memberCallInfo);
+    /** @internal */
+    addMember(userId, memberCallInfo) {
+        let member = this._members.get(userId);
+        if (member) {
+            member.updateCallInfo(memberCallInfo);
         } else {
-            participant = new Participant(userId, source.device_id, this.localMedia?.clone(), this.webRTC);
-            participant.updateCallInfo(memberCallInfo);
-            this.participants.add(userId, participant);
+            member = new Member(RoomMember.fromUserId(this.room.id, userId, "join"), this._memberOptions);
+            member.updateCallInfo(memberCallInfo);
+            this._members.add(userId, member);
         }
     }
 
-    removeParticipant(userId) {
-
+    /** @internal */
+    removeMember(userId) {
+        this._members.remove(userId);
     }
 
-    handleDeviceMessage(userId: string, senderDeviceId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) {
-        let participant = this.participants.get(userId);
-        if (participant) {
-            participant.handleIncomingSignallingMessage(message, senderDeviceId);
+    /** @internal */
+    handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, userId: string, deviceId: string, log: ILogItem) {
+        // TODO: return if we are not membering to the call
+        let member = this._members.get(userId);
+        if (member) {
+            member.handleDeviceMessage(message, deviceId, log);
+        } else {
+            // we haven't received the m.call.member yet for this caller. buffer the device messages or create the member/call anyway?
         }
-    }
-
-    get isTerminated(): boolean {
-        return !!this.callEvent.content[CALL_TERMINATED];
     }
 }

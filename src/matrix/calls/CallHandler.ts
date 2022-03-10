@@ -15,48 +15,53 @@ limitations under the License.
 */
 
 import {ObservableMap} from "../../observable/map/ObservableMap";
+import {WebRTC, PeerConnection, PeerConnectionHandler} from "../../platform/types/WebRTC";
+import {MediaDevices, Track, AudioTrack, TrackType} from "../../platform/types/MediaDevices";
+import {handlesEventType} from "./PeerCall";
+import {EventType} from "./callEventTypes";
+import {GroupCall} from "./group/GroupCall";
 
 import type {Room} from "../room/Room";
 import type {MemberChange} from "../room/members/RoomMember";
 import type {StateEvent} from "../storage/types";
 import type {ILogItem} from "../../logging/types";
 import type {Platform} from "../../platform/web/Platform";
-
-import {WebRTC, PeerConnection, PeerConnectionHandler, StreamPurpose} from "../../platform/types/WebRTC";
-import {MediaDevices, Track, AudioTrack, TrackType} from "../../platform/types/MediaDevices";
-import {handlesEventType, PeerCall, PeerCallHandler} from "./PeerCall";
-import {EventType} from "./callEventTypes";
+import type {BaseObservableMap} from "../../observable/map/BaseObservableMap";
 import type {SignallingMessage, MGroupCallBase} from "./callEventTypes";
-import type {GroupCall} from "./group/GroupCall";
+import type {Options as GroupCallOptions} from "./group/GroupCall";
 
 const GROUP_CALL_TYPE = "m.call";
 const GROUP_CALL_MEMBER_TYPE = "m.call.member";
 const CALL_TERMINATED = "m.terminated";
 
-export class GroupCallHandler {
+export type Options = Omit<GroupCallOptions, "emitUpdate">;
 
-    private createPeerCall: (callId: string, handler: PeerCallHandler) => PeerCall;
+export class GroupCallHandler {
     // group calls by call id
-    public readonly calls: ObservableMap<string, GroupCall> = new ObservableMap<string, GroupCall>();
+    private readonly _calls: ObservableMap<string, GroupCall> = new ObservableMap<string, GroupCall>();
     // map of userId to set of conf_id's they are in
     private memberToCallIds: Map<string, Set<string>> = new Map();
+    private groupCallOptions: GroupCallOptions;
 
-    constructor(hsApi: HomeServerApi, platform: Platform, ownUserId: string, ownDeviceId: string) {
-        this.createPeerCall = (callId: string, handler: PeerCallHandler) => {
-            return new PeerCall(callId, handler, platform.createTimeout, platform.webRTC);
-        }
+    constructor(private readonly options: Options) {
+        this.groupCallOptions = Object.assign({}, this.options, {
+            emitUpdate: (groupCall, params) => this._calls.update(groupCall.id, params)
+        });
     }
+
+    get calls(): BaseObservableMap<string, GroupCall> { return this._calls; }
 
     // TODO: check and poll turn server credentials here
 
+    /** @internal */
     handleRoomState(room: Room, events: StateEvent[], log: ILogItem) {
         // first update call events
         for (const event of events) {
             if (event.type === EventType.GroupCall) {
-                this.handleCallEvent(event);
+                this.handleCallEvent(event, room);
             }
         }
-        // then update participants
+        // then update members
         for (const event of events) {
             if (event.type === EventType.GroupCallMember) {
                 this.handleCallMemberEvent(event);
@@ -64,59 +69,62 @@ export class GroupCallHandler {
         }
     }
 
+    /** @internal */
     updateRoomMembers(room: Room, memberChanges: Map<string, MemberChange>) {
 
     }
 
-    private handleCallEvent(event: StateEvent) {
-        const callId = event.state_key;
-        let call = this.calls.get(callId);
-        if (call) {
-            call.updateCallEvent(event);
-            if (call.isTerminated) {
-                this.calls.remove(call.id);
-            }
-        } else {
-            call = new GroupCall(event, room, this.createPeerCall);
-            this.calls.set(call.id, call);
-        }
-    }
-
-    private handleCallMemberEvent(event: StateEvent) {
-        const participant = event.state_key;
-        const calls = event.content["m.calls"] ?? [];
-        const newCallIdsMemberOf = new Set<string>(calls.map(call => {
-            const callId = call["m.call_id"];
-            const groupCall = this.calls.get(callId);
-            // TODO: also check the participant when receiving the m.call event
-            groupCall?.addParticipant(participant, call);
-            return callId;
-        }));
-        let previousCallIdsMemberOf = this.memberToCallIds.get(participant);
-        // remove user as participant of any calls not present anymore
-        if (previousCallIdsMemberOf) {
-            for (const previousCallId of previousCallIdsMemberOf) {
-                if (!newCallIdsMemberOf.has(previousCallId)) {
-                    const groupCall = this.calls.get(previousCallId);
-                    groupCall?.removeParticipant(participant);
-                }
-            }
-        }
-        if (newCallIdsMemberOf.size === 0) {
-            this.memberToCallIds.delete(participant);
-        } else {
-            this.memberToCallIds.set(participant, newCallIdsMemberOf);
-        }
-    }
-
+    /** @internal */
     handlesDeviceMessageEventType(eventType: string): boolean {
         return handlesEventType(eventType);
     }
 
-    handleDeviceMessage(senderUserId: string, senderDeviceId: string, event: SignallingMessage<MGroupCallBase>, log: ILogItem) {
+    /** @internal */
+    handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, userId: string, deviceId: string, log: ILogItem) {
         // TODO: buffer messages for calls we haven't received the state event for yet?
-        const call = this.calls.get(event.content.conf_id);
-        call?.handleDeviceMessage(senderUserId, senderDeviceId, event, log);
+        const call = this._calls.get(message.content.conf_id);
+        call?.handleDeviceMessage(message, userId, deviceId, log);
+    }
+
+    private handleCallEvent(event: StateEvent, room: Room) {
+        const callId = event.state_key;
+        let call = this._calls.get(callId);
+        if (call) {
+            call.updateCallEvent(event);
+            if (call.isTerminated) {
+                this._calls.remove(call.id);
+            }
+        } else {
+            call = new GroupCall(event, room, this.groupCallOptions);
+            this._calls.set(call.id, call);
+        }
+    }
+
+    private handleCallMemberEvent(event: StateEvent) {
+        const userId = event.state_key;
+        const calls = event.content["m.calls"] ?? [];
+        const newCallIdsMemberOf = new Set<string>(calls.map(call => {
+            const callId = call["m.call_id"];
+            const groupCall = this._calls.get(callId);
+            // TODO: also check the member when receiving the m.call event
+            groupCall?.addMember(userId, call);
+            return callId;
+        }));
+        let previousCallIdsMemberOf = this.memberToCallIds.get(userId);
+        // remove user as member of any calls not present anymore
+        if (previousCallIdsMemberOf) {
+            for (const previousCallId of previousCallIdsMemberOf) {
+                if (!newCallIdsMemberOf.has(previousCallId)) {
+                    const groupCall = this._calls.get(previousCallId);
+                    groupCall?.removeMember(userId);
+                }
+            }
+        }
+        if (newCallIdsMemberOf.size === 0) {
+            this.memberToCallIds.delete(userId);
+        } else {
+            this.memberToCallIds.set(userId, newCallIdsMemberOf);
+        }
     }
 }
 

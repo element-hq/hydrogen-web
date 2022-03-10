@@ -17,6 +17,7 @@ limitations under the License.
 export interface MediaDevices {
     // filter out audiooutput
     enumerate(): Promise<MediaDeviceInfo[]>;
+    // to assign to a video element, we downcast to WrappedTrack and use the stream property. 
     getMediaTracks(audio: true | MediaDeviceInfo, video: boolean | MediaDeviceInfo): Promise<Track[]>;
     getScreenShareTrack(): Promise<Track | undefined>;
 }

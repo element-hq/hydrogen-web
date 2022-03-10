@@ -43,6 +43,13 @@ import type {
     SignallingMessage
 } from "./callEventTypes";
 
+export type Options = {
+    webRTC: WebRTC,
+    createTimeout: TimeoutCreator,
+    emitUpdate: (peerCall: PeerCall, params: any) => void;
+    sendSignallingMessage: (message: SignallingMessage<MCallBase>, log: ILogItem) => Promise<void>;
+};
+
 // when sending, we need to encrypt message with olm. I think the flow of room => roomEncryption => olmEncryption as we already
 // do for sharing keys will be best as that already deals with room tracking.
 /**
@@ -51,7 +58,7 @@ import type {
 /** Implements a call between two peers with the signalling state keeping, while still delegating the signalling message sending. Used by GroupCall.*/
 export class PeerCall implements IDisposable {
     private readonly peerConnection: PeerConnection;
-    private state = CallState.Fledgling;
+    private _state = CallState.Fledgling;
     private direction: CallDirection;
     private localMedia?: LocalMedia;
     // A queue for candidates waiting to go out.
@@ -74,15 +81,12 @@ export class PeerCall implements IDisposable {
     // perfect negotiation flags
     private makingOffer: boolean = false;
     private ignoreOffer: boolean = false;
-
     constructor(
         private callId: string, // generated or from invite
-        private readonly handler: PeerCallHandler,
-        private readonly createTimeout: TimeoutCreator,
-        webRTC: WebRTC
+        private readonly options: Options
     ) {
         const outer = this;
-        this.peerConnection = webRTC.createPeerConnection({
+        this.peerConnection = options.webRTC.createPeerConnection({
             onIceConnectionStateChange(state: RTCIceConnectionState) {},
             onLocalIceCandidate(candidate: RTCIceCandidate) {},
             onIceGatheringStateChange(state: RTCIceGatheringState) {},
@@ -104,12 +108,14 @@ export class PeerCall implements IDisposable {
         }
     }
 
+    get state(): CallState { return this._state; }
+
     get remoteTracks(): Track[] {
         return this.peerConnection.remoteTracks;
     }
 
     async call(localMediaPromise: Promise<LocalMedia>): Promise<void> {
-        if (this.state !== CallState.Fledgling) {
+        if (this._state !== CallState.Fledgling) {
             return;
         }
         this.direction = CallDirection.Outbound;
@@ -131,7 +137,7 @@ export class PeerCall implements IDisposable {
     }
 
     async answer(localMediaPromise: Promise<LocalMedia>): Promise<void> {
-        if (this.state !== CallState.Ringing) {
+        if (this._state !== CallState.Ringing) {
             return;
         }
         this.setState(CallState.WaitLocalMedia);
@@ -197,7 +203,7 @@ export class PeerCall implements IDisposable {
     async hangup(errorCode: CallErrorCode) {
     }
 
-    async handleIncomingSignallingMessage<B extends MCallBase>(message: SignallingMessage<B>, partyId: PartyId): Promise<void> {
+    async handleIncomingSignallingMessage<B extends MCallBase>(message: SignallingMessage<B>, partyId: PartyId, log: ILogItem): Promise<void> {
         switch (message.type) {
             case EventType.Invite:
                 if (this.callId !== message.content.call_id) {
@@ -226,10 +232,10 @@ export class PeerCall implements IDisposable {
         if (reason) {
             content["reason"] = reason;
         }
-        return this.handler.sendSignallingMessage({
+        return this.options.sendSignallingMessage({
             type: EventType.Hangup,
             content
-        });
+        }, undefined);
     }
 
     // calls are serialized and deduplicated by responsePromiseChain
@@ -249,7 +255,7 @@ export class PeerCall implements IDisposable {
                 await this.delay(200);
             }
 
-            if (this.state === CallState.Ended) {
+            if (this._state === CallState.Ended) {
                 return;
             }
 
@@ -268,12 +274,12 @@ export class PeerCall implements IDisposable {
                 version: 1,
                 lifetime: CALL_TIMEOUT_MS
             };
-            if (this.state === CallState.CreateOffer) {
-                await this.handler.sendSignallingMessage({type: EventType.Invite, content});
+            if (this._state === CallState.CreateOffer) {
+                await this.options.sendSignallingMessage({type: EventType.Invite, content});
                 this.setState(CallState.InviteSent);
-            } else if (this.state === CallState.Connected || this.state === CallState.Connecting) {
+            } else if (this._state === CallState.Connected || this._state === CallState.Connecting) {
                 // send Negotiate message
-                //await this.handler.sendSignallingMessage({type: EventType.Invite, content});
+                //await this.options.sendSignallingMessage({type: EventType.Invite, content});
                 //this.setState(CallState.InviteSent);
             }
         } finally {
@@ -282,10 +288,10 @@ export class PeerCall implements IDisposable {
 
         this.sendCandidateQueue();
 
-        if (this.state === CallState.InviteSent) {
+        if (this._state === CallState.InviteSent) {
             await this.delay(CALL_TIMEOUT_MS);
             // @ts-ignore TS doesn't take the await above into account to know that the state could have changed in between
-            if (this.state === CallState.InviteSent) {
+            if (this._state === CallState.InviteSent) {
                 this.hangup(CallErrorCode.InviteTimeout);
             }
         }
@@ -307,7 +313,7 @@ export class PeerCall implements IDisposable {
 
             // TODO: review states to be unambigous, WaitLocalMedia for sending offer or answer?
             // How do we interrupt `call()`? well, perhaps we need to not just await InviteSent but also CreateAnswer?
-            if (this.state === CallState.Fledgling || this.state === CallState.CreateOffer || this.state === CallState.WaitLocalMedia) {
+            if (this._state === CallState.Fledgling || this._state === CallState.CreateOffer || this._state === CallState.WaitLocalMedia) {
 
             } else {
                 await this.sendHangupWithCallId(this.callId, CallErrorCode.Replaced);
@@ -324,7 +330,7 @@ export class PeerCall implements IDisposable {
     }
 
     private async handleFirstInvite(content: MCallInvite, partyId: PartyId): Promise<void> {
-        if (this.state !== CallState.Fledgling || this.opponentPartyId !== undefined) {
+        if (this._state !== CallState.Fledgling || this.opponentPartyId !== undefined) {
             // TODO: hangup or ignore?
             return;
         }
@@ -370,7 +376,7 @@ export class PeerCall implements IDisposable {
 
         await this.delay(content.lifetime ?? CALL_TIMEOUT_MS);
         // @ts-ignore TS doesn't take the await above into account to know that the state could have changed in between
-        if (this.state === CallState.Ringing) {
+        if (this._state === CallState.Ringing) {
             this.logger.debug(`Call ${this.callId} invite has expired. Hanging up.`);
             this.hangupParty = CallParty.Remote; // effectively
             this.setState(CallState.Ended);
@@ -384,7 +390,7 @@ export class PeerCall implements IDisposable {
     private async handleAnswer(content: MCallAnswer, partyId: PartyId): Promise<void> {
         this.logger.debug(`Got answer for call ID ${this.callId} from party ID ${partyId}`);
 
-        if (this.state === CallState.Ended) {
+        if (this._state === CallState.Ended) {
             this.logger.debug(`Ignoring answer because call ID ${this.callId} has ended`);
             return;
         }
@@ -456,7 +462,7 @@ export class PeerCall implements IDisposable {
 
     //         if (description.type === 'offer') {
     //             await this.peerConnection.setLocalDescription();
-    //             await this.handler.sendSignallingMessage({
+    //             await this.options.sendSignallingMessage({
     //                 type: EventType.CallNegotiate,
     //                 content: {
     //                     description: this.peerConnection.localDescription!,
@@ -471,7 +477,7 @@ export class PeerCall implements IDisposable {
 
     private async sendAnswer(): Promise<void> {
         const localDescription = this.peerConnection.localDescription!;
-        const answerContent: MCallAnswer = {
+        const answerContent: MCallAnswer<MCallBase> = {
             call_id: this.callId,
             version: 1,
             answer: {
@@ -489,7 +495,7 @@ export class PeerCall implements IDisposable {
         this.candidateSendQueue = [];
 
         try {
-            await this.handler.sendSignallingMessage({type: EventType.Answer, content: answerContent});
+            await this.options.sendSignallingMessage({type: EventType.Answer, content: answerContent}, undefined);
         } catch (error) {
             this.terminate(CallParty.Local, CallErrorCode.SendAnswer, false);
             throw error;
@@ -513,7 +519,7 @@ export class PeerCall implements IDisposable {
         this.candidateSendQueue.push(content);
 
         // Don't send the ICE candidates yet if the call is in the ringing state
-        if (this.state === CallState.Ringing) return;
+        if (this._state === CallState.Ringing) return;
 
         // MSC2746 recommends these values (can be quite long when calling because the
         // callee will need a while to answer the call)
@@ -523,7 +529,7 @@ export class PeerCall implements IDisposable {
     }
 
     private async sendCandidateQueue(): Promise<void> {
-        if (this.candidateSendQueue.length === 0 || this.state === CallState.Ended) {
+        if (this.candidateSendQueue.length === 0 || this._state === CallState.Ended) {
             return;
         }
 
@@ -531,14 +537,14 @@ export class PeerCall implements IDisposable {
         this.candidateSendQueue = [];
         this.logger.debug(`Call ${this.callId} attempting to send ${candidates.length} candidates`);
         try {
-            await this.handler.sendSignallingMessage({
+            await this.options.sendSignallingMessage({
                 type: EventType.Candidates,
                 content: {
                     call_id: this.callId,
                     version: 1,
                     candidates
-                }
-            });
+                },
+            }, undefined);
             // Try to send candidates again just in case we received more candidates while sending.
             this.sendCandidateQueue();
         } catch (error) {
@@ -598,14 +604,14 @@ export class PeerCall implements IDisposable {
     }
 
     private setState(state: CallState): void {
-        const oldState = this.state;
-        this.state = state;
+        const oldState = this._state;
+        this._state = state;
         let deferred = this.statePromiseMap.get(state);
         if (deferred) {
             deferred.resolve();
             this.statePromiseMap.delete(state);
         }
-        this.handler.emitUpdate(this, undefined);
+        this.options.emitUpdate(this, undefined);
     }
 
     private waitForState(states: CallState[]): Promise<void> {
@@ -638,7 +644,7 @@ export class PeerCall implements IDisposable {
 
     private async delay(timeoutMs: number): Promise<void> {
         // Allow a short time for initial candidates to be gathered
-        const timeout = this.disposables.track(this.createTimeout(timeoutMs));
+        const timeout = this.disposables.track(this.options.createTimeout(timeoutMs));
         await timeout.elapsed();
         this.disposables.untrack(timeout);
     }
@@ -787,11 +793,6 @@ export class CallError extends Error {
 
         this.code = code;
     }
-}
-
-export interface PeerCallHandler {
-    emitUpdate(peerCall: PeerCall, params: any);
-    sendSignallingMessage(message: SignallingMessage<MCallBase>);
 }
 
 export function handlesEventType(eventType: string): boolean {

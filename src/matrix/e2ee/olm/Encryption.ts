@@ -311,7 +311,7 @@ class EncryptionTarget {
     }
 }
 
-class EncryptedMessage {
+export class EncryptedMessage {
     constructor(
         public readonly content: OlmEncryptedMessageContent,
         public readonly device: DeviceIdentity
