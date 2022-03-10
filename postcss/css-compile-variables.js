@@ -76,13 +76,21 @@ function addResolvedVariablesToRootSelector(root, variables, { Rule, Declaration
     root.append(newRule);
 }
 
-/* *
- * @type {import('postcss').PluginCreator}
+/**
+ * @callback derive
+ * @param {string} value - The base value on which an operation is applied
+ * @param {string} operation - The operation to be applied (eg: darker, lighter...)
+ * @param {string} argument - The argument for this operation
+ */
+/**
+ * 
+ * @param {Object} opts - Options for the plugin
+ * @param {Object} opts.variables - An object with records of the form: {base_variable_name: value}
+ * @param {derive} opts.derive - The callback which contains the logic for resolving derived variables
  */
 module.exports = (opts = {}) => {
     aliasMap = new Map();
     resolvedMap = new Map();
-    const {variables} = opts;
     return {
         postcssPlugin: "postcss-compile-variables",
 
@@ -94,7 +102,7 @@ module.exports = (opts = {}) => {
             */
             root.walkDecls(decl => extractAlias(decl));
             root.walkDecls(decl => resolveDerivedVariable(decl, opts));
-            addResolvedVariablesToRootSelector(root, variables, { Rule, Declaration });
+            addResolvedVariablesToRootSelector(root, opts.variables, { Rule, Declaration });
         },
     };
 };
