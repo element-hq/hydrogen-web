@@ -21,7 +21,7 @@ let resolvedMap;
 
 function getValueFromAlias(alias, variables) {
     const derivedVariable = aliasMap.get(`--${alias}`);
-    return variables[derivedVariable] ?? resolvedMap.get(`--${derivedVariable}`); // what if we haven't resolved this variable yet?
+    return variables[derivedVariable] ?? resolvedMap.get(`--${derivedVariable}`);
 }
 
 function parseDeclarationValue(value) {
