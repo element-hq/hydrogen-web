@@ -145,10 +145,10 @@ FROM CALLER                                         FROM CALLEE
 
 Fledgling                                           Fledgling
  V `call()`                                          V `handleInvite()`: setRemoteDescription(event.offer), add buffered candidates
-WaitLocalMedia                                      Ringing
- V media promise resolves                            V `answer()`
- V add local tracks                                 WaitLocalMedia
-CreateOffer                                          V media promise resolves
+ V                                                  Ringing
+ V                                                   V `answer()`
+CreateOffer                                          V
+ V add local tracks                                  V
  V wait for negotionneeded events                    V add local tracks
  V setLocalDescription()                            CreateAnswer
  V send invite event                                 V setLocalDescription(createAnswer())

@@ -114,18 +114,12 @@ export class PeerCall implements IDisposable {
         return this.peerConnection.remoteTracks;
     }
 
-    async call(localMediaPromise: Promise<LocalMedia>): Promise<void> {
+    async call(localMedia: LocalMedia): Promise<void> {
         if (this._state !== CallState.Fledgling) {
             return;
         }
+        this.localMedia = localMedia;
         this.direction = CallDirection.Outbound;
-        this.setState(CallState.WaitLocalMedia);
-        try {
-            this.localMedia = await localMediaPromise;
-        } catch (err) {
-            this.setState(CallState.Ended);
-            return;
-        }
         this.setState(CallState.CreateOffer);
         for (const t of this.localMedia.tracks) {
             this.peerConnection.addTrack(t);
@@ -135,17 +129,11 @@ export class PeerCall implements IDisposable {
         await this.waitForState([CallState.InviteSent, CallState.CreateAnswer]);
     }
 
-    async answer(localMediaPromise: Promise<LocalMedia>): Promise<void> {
+    async answer(localMedia: LocalMedia): Promise<void> {
         if (this._state !== CallState.Ringing) {
             return;
         }
-        this.setState(CallState.WaitLocalMedia);
-        try {
-            this.localMedia = await localMediaPromise;
-        } catch (err) {
-            this.setState(CallState.Ended);
-            return;
-        }
+        this.localMedia = localMedia;
         this.setState(CallState.CreateAnswer);
         for (const t of this.localMedia.tracks) {
             this.peerConnection.addTrack(t);
@@ -274,7 +262,7 @@ export class PeerCall implements IDisposable {
                 lifetime: CALL_TIMEOUT_MS
             };
             if (this._state === CallState.CreateOffer) {
-                await this.options.sendSignallingMessage({type: EventType.Invite, content});
+                await this.options.sendSignallingMessage({type: EventType.Invite, content}, undefined);
                 this.setState(CallState.InviteSent);
             } else if (this._state === CallState.Connected || this._state === CallState.Connecting) {
                 // send Negotiate message
@@ -304,21 +292,15 @@ export class PeerCall implements IDisposable {
                 "Glare detected: answering incoming call " + newCallId +
                 " and canceling outgoing call " + this.callId,
             );
-
-            /*
-            first, we should set CallDirection
-            we should anser the call
-            */
-
-            // TODO: review states to be unambigous, WaitLocalMedia for sending offer or answer?
             // How do we interrupt `call()`? well, perhaps we need to not just await InviteSent but also CreateAnswer?
-            if (this._state === CallState.Fledgling || this._state === CallState.CreateOffer || this._state === CallState.WaitLocalMedia) {
-
+            if (this._state === CallState.Fledgling || this._state === CallState.CreateOffer) {
+                // TODO: don't send invite!
             } else {
                 await this.sendHangupWithCallId(this.callId, CallErrorCode.Replaced);
             }
             await this.handleInvite(content, partyId);
-            await this.answer(Promise.resolve(this.localMedia!));
+            // TODO: need to skip state check
+            await this.answer(this.localMedia!);
         } else {
             this.logger.log(
                 "Glare detected: rejecting incoming call " + newCallId +
@@ -328,7 +310,7 @@ export class PeerCall implements IDisposable {
         }
     }
 
-    private async handleFirstInvite(content: MCallInvite, partyId: PartyId): Promise<void> {
+    private async handleFirstInvite(content: MCallInvite<MCallBase>, partyId: PartyId): Promise<void> {
         if (this._state !== CallState.Fledgling || this.opponentPartyId !== undefined) {
             // TODO: hangup or ignore?
             return;
@@ -336,7 +318,7 @@ export class PeerCall implements IDisposable {
         await this.handleInvite(content, partyId);
     }
 
-    private async handleInvite(content: MCallInvite, partyId: PartyId): Promise<void> {
+    private async handleInvite(content: MCallInvite<MCallBase>, partyId: PartyId): Promise<void> {
 
         // we must set the party ID before await-ing on anything: the call event
         // handler will start giving us more call events (eg. candidates) so if
@@ -705,7 +687,6 @@ export enum CallParty {
 
 export enum CallState {
     Fledgling = 'fledgling',
-    WaitLocalMedia = 'wait_local_media',
     CreateOffer = 'create_offer',
     InviteSent = 'invite_sent',
     CreateAnswer = 'create_answer',

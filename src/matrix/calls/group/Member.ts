@@ -60,7 +60,7 @@ export class Member {
         // otherwise wait for it to connect
         if (this.member.userId < this.options.ownUserId) {
             this.peerCall = this._createPeerCall(makeId("c"));
-            this.peerCall.call(Promise.resolve(localMedia.clone()));
+            this.peerCall.call(localMedia);
         }
     }
 
@@ -72,7 +72,7 @@ export class Member {
     /** @internal */
     emitUpdate = (peerCall: PeerCall, params: any) => {
         if (peerCall.state === CallState.Ringing) {
-            peerCall.answer(Promise.resolve(this.localMedia!));
+            peerCall.answer(this.localMedia!);
         }
         this.options.emitUpdate(this, params);
     }
