@@ -38,10 +38,11 @@ export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessag
 
 export class Member {
     private peerCall?: PeerCall;
-    private localMedia?: Promise<LocalMedia>;
+    private localMedia?: LocalMedia;
 
     constructor(
         public readonly member: RoomMember,
+        private memberCallInfo: Record<string, any>,
         private readonly options: Options
     ) {}
 
@@ -53,13 +54,13 @@ export class Member {
         return this.peerCall?.state === CallState.Connected;
     }
 
-    /* @internal */
-    connect(localMedia: Promise<LocalMedia>) {
+    /** @internal */
+    connect(localMedia: LocalMedia) {
         this.localMedia = localMedia;
         // otherwise wait for it to connect
         if (this.member.userId < this.options.ownUserId) {
             this.peerCall = this._createPeerCall(makeId("c"));
-            this.peerCall.call(localMedia);
+            this.peerCall.call(Promise.resolve(localMedia.clone()));
         }
     }
 
@@ -71,13 +72,12 @@ export class Member {
     /** @internal */
     emitUpdate = (peerCall: PeerCall, params: any) => {
         if (peerCall.state === CallState.Ringing) {
-            peerCall.answer(this.localMedia!);
+            peerCall.answer(Promise.resolve(this.localMedia!));
         }
         this.options.emitUpdate(this, params);
     }
 
-    /** From PeerCallHandler
-     * @internal */
+    /** @internal */
     sendSignallingMessage = async (message: SignallingMessage<MCallBase>, log: ILogItem) => {
         const groupMessage = message as SignallingMessage<MGroupCallBase>;
         groupMessage.content.conf_id = this.options.confId;

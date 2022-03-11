@@ -21,6 +21,7 @@ import {handlesEventType} from "./PeerCall";
 import {EventType} from "./callEventTypes";
 import {GroupCall} from "./group/GroupCall";
 
+import type {LocalMedia} from "./LocalMedia";
 import type {Room} from "../room/Room";
 import type {MemberChange} from "../room/members/RoomMember";
 import type {StateEvent} from "../storage/types";
@@ -49,6 +50,22 @@ export class GroupCallHandler {
         });
     }
 
+    async createCall(roomId: string, localMedia: LocalMedia, name: string): Promise<GroupCall> {
+        const call = new GroupCall(undefined, undefined, roomId, this.groupCallOptions);
+        this._calls.set(call.id, call);
+        try {
+            await call.create(localMedia, name);
+        } catch (err) {
+            if (err.name === "ConnectionError") {
+                // if we're offline, give up and remove the call again
+                this._calls.remove(call.id);
+            }
+            throw err;
+        }
+        await call.join(localMedia);
+        return call;
+    }
+
     get calls(): BaseObservableMap<string, GroupCall> { return this._calls; }
 
     // TODO: check and poll turn server credentials here
@@ -58,7 +75,7 @@ export class GroupCallHandler {
         // first update call events
         for (const event of events) {
             if (event.type === EventType.GroupCall) {
-                this.handleCallEvent(event, room);
+                this.handleCallEvent(event, room.id);
             }
         }
         // then update members
@@ -71,7 +88,8 @@ export class GroupCallHandler {
 
     /** @internal */
     updateRoomMembers(room: Room, memberChanges: Map<string, MemberChange>) {
-
+        // TODO: also have map for roomId to calls, so we can easily update members
+        // we will also need this to get the call for a room
     }
 
     /** @internal */
@@ -86,7 +104,7 @@ export class GroupCallHandler {
         call?.handleDeviceMessage(message, userId, deviceId, log);
     }
 
-    private handleCallEvent(event: StateEvent, room: Room) {
+    private handleCallEvent(event: StateEvent, roomId: string) {
         const callId = event.state_key;
         let call = this._calls.get(callId);
         if (call) {
@@ -95,7 +113,7 @@ export class GroupCallHandler {
                 this._calls.remove(call.id);
             }
         } else {
-            call = new GroupCall(event, room, this.groupCallOptions);
+            call = new GroupCall(event.state_key, event.content, roomId, this.groupCallOptions);
             this._calls.set(call.id, call);
         }
     }

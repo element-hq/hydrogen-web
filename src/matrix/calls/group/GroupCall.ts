@@ -18,6 +18,8 @@ import {ObservableMap} from "../../../observable/map/ObservableMap";
 import {Member} from "./Member";
 import {LocalMedia} from "../LocalMedia";
 import {RoomMember} from "../../room/members/RoomMember";
+import {makeId} from "../../common";
+
 import type {Options as MemberOptions} from "./Member";
 import type {BaseObservableMap} from "../../../observable/map/BaseObservableMap";
 import type {Track} from "../../../platform/types/MediaDevices";
@@ -30,12 +32,11 @@ import type {ILogItem} from "../../../logging/types";
 import type {Storage} from "../../storage/idb/Storage";
 
 export enum GroupCallState {
-    LocalCallFeedUninitialized = "local_call_feed_uninitialized",
-    InitializingLocalCallFeed = "initializing_local_call_feed",
-    LocalCallFeedInitialized = "local_call_feed_initialized",
-    Joining = "entering",
-    Joined = "entered",
-    Ended = "ended",
+    Fledgling = "fledgling",
+    Creating = "creating",
+    Created = "created",
+    Joining = "joining",
+    Joined = "joined",
 }
 
 export type Options = Omit<MemberOptions, "emitUpdate" | "confId" | "encryptDeviceMessage"> & {
@@ -46,70 +47,112 @@ export type Options = Omit<MemberOptions, "emitUpdate" | "confId" | "encryptDevi
 };
 
 export class GroupCall {
+    public readonly id: string;
     private readonly _members: ObservableMap<string, Member> = new ObservableMap();
-    private localMedia?: Promise<LocalMedia>;
+    private _localMedia?: LocalMedia;
     private _memberOptions: MemberOptions;
-    private _state: GroupCallState = GroupCallState.LocalCallFeedInitialized;
-    
-    // TODO: keep connected state and deal
+    private _state: GroupCallState;
+
     constructor(
-        private callEvent: StateEvent,
-        private readonly room: Room,
+        id: string | undefined,
+        private callContent: Record<string, any> | undefined,
+        private readonly roomId: string,
         private readonly options: Options
     ) {
+        this.id = id ??  makeId("conf-");
+        this._state = id ? GroupCallState.Created : GroupCallState.Fledgling;
         this._memberOptions = Object.assign({
             confId: this.id,
             emitUpdate: member => this._members.update(member.member.userId, member),
             encryptDeviceMessage: (message: SignallingMessage<MGroupCallBase>, log) => {
-                return this.options.encryptDeviceMessage(this.room.id, message, log);
+                return this.options.encryptDeviceMessage(this.roomId, message, log);
             }
         }, options);
     }
 
-    static async create(roomId: string, options: Options): Promise<GroupCall> {
-
-    }
-
+    get localMedia(): LocalMedia | undefined { return this._localMedia; }
     get members(): BaseObservableMap<string, Member> { return this._members; }
 
-    get id(): string { return this.callEvent.state_key; }
-
     get isTerminated(): boolean {
-        return this.callEvent.content["m.terminated"] === true;
+        return this.callContent?.["m.terminated"] === true;
     }
 
-    async join(localMedia: Promise<LocalMedia>) {
-        this.localMedia = localMedia;
-        const memberContent = await this._createOrUpdateOwnMemberStateContent();
+    async join(localMedia: LocalMedia) {
+        if (this._state !== GroupCallState.Created) {
+            return;
+        }
+        this._state = GroupCallState.Joining;
+        this._localMedia = localMedia;
+        const memberContent = await this._joinCallMemberContent();
         // send m.call.member state event
-        const request = this.options.hsApi.sendState(this.room.id, "m.call.member", this.options.ownUserId, memberContent);
+        const request = this.options.hsApi.sendState(this.roomId, "m.call.member", this.options.ownUserId, memberContent);
         await request.response();
         // send invite to all members that are < my userId
         for (const [,member] of this._members) {
-            member.connect(this.localMedia);
+            member.connect(this._localMedia);
+        }
+    }
+
+    async leave() {
+        const memberContent = await this._leaveCallMemberContent();
+        // send m.call.member state event
+        if (memberContent) {
+            const request = this.options.hsApi.sendState(this.roomId, "m.call.member", this.options.ownUserId, memberContent);
+            await request.response();
         }
     }
 
     /** @internal */
-    updateCallEvent(callEvent: StateEvent) {
-        this.callEvent = callEvent;
-        // TODO: emit update
+    async create(localMedia: LocalMedia, name: string) {
+        if (this._state !== GroupCallState.Fledgling) {
+            return;
+        }
+        this._state = GroupCallState.Creating;
+        this.callContent = {
+            "m.type": localMedia.cameraTrack ? "m.video" : "m.voice",
+            "m.name": name,
+            "m.intent": "m.ring"
+        };
+        const request = this.options.hsApi.sendState(this.roomId, "m.call", this.id, this.callContent);
+        await request.response();
+    }
+
+    /** @internal */
+    updateCallEvent(callContent: Record<string, any>) {
+        this.callContent = callContent;
+        if (this._state === GroupCallState.Creating) {
+            this._state = GroupCallState.Created;
+        }
     }
 
     /** @internal */
     addMember(userId, memberCallInfo) {
+        if (userId === this.options.ownUserId) {
+            if (this._state === GroupCallState.Joining) {
+                this._state = GroupCallState.Joined;
+            }
+            return;
+        }
         let member = this._members.get(userId);
         if (member) {
             member.updateCallInfo(memberCallInfo);
         } else {
-            member = new Member(RoomMember.fromUserId(this.room.id, userId, "join"), this._memberOptions);
-            member.updateCallInfo(memberCallInfo);
+            member = new Member(RoomMember.fromUserId(this.roomId, userId, "join"), memberCallInfo, this._memberOptions);
             this._members.add(userId, member);
+            if (this._state === GroupCallState.Joining || this._state === GroupCallState.Joined) {
+                member.connect(this._localMedia!);
+            }
         }
     }
 
     /** @internal */
     removeMember(userId) {
+        if (userId === this.options.ownUserId) {
+            if (this._state === GroupCallState.Joined) {
+                this._state = GroupCallState.Created;
+            }
+            return;
+        }
         this._members.remove(userId);
     }
 
@@ -124,10 +167,10 @@ export class GroupCall {
         }
     }
 
-    private async _createOrUpdateOwnMemberStateContent() {
+    private async _joinCallMemberContent() {
         const {storage} = this.options;
         const txn = await storage.readTxn([storage.storeNames.roomState]);
-        const stateEvent = await txn.roomState.get(this.room.id, "m.call.member", this.options.ownUserId);
+        const stateEvent = await txn.roomState.get(this.roomId, "m.call.member", this.options.ownUserId);
         const stateContent = stateEvent?.event?.content ?? {
             ["m.calls"]: []
         };
@@ -149,5 +192,14 @@ export class GroupCall {
             devicesInfo.push(deviceInfo);
         }
         return stateContent;
+    }
+
+    private async _leaveCallMemberContent(): Promise<Record<string, any> | undefined> {
+        const {storage} = this.options;
+        const txn = await storage.readTxn([storage.storeNames.roomState]);
+        const stateEvent = await txn.roomState.get(this.roomId, "m.call.member", this.options.ownUserId);
+        const callsInfo = stateEvent?.event?.content?.["m.calls"];
+        callsInfo?.filter(c => c["m.call_id"] === this.id);
+        return stateEvent?.event.content;
     }
 }

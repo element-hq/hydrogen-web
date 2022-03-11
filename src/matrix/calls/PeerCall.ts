@@ -127,12 +127,11 @@ export class PeerCall implements IDisposable {
             return;
         }
         this.setState(CallState.CreateOffer);
-        // add the local tracks, and wait for onNegotiationNeeded and handleNegotiation to be called
         for (const t of this.localMedia.tracks) {
             this.peerConnection.addTrack(t);
         }
-        // TODO: in case of glare, we would not go to InviteSent if we haven't started sending yet
-        // but we would go straight to CreateAnswer, so also need to wait for that state
+        // after adding the local tracks, and wait for handleNegotiation to be called,
+        // or invite glare where we give up our invite and answer instead
         await this.waitForState([CallState.InviteSent, CallState.CreateAnswer]);
     }
 

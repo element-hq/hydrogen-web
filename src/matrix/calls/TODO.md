@@ -97,12 +97,12 @@ party identification
 
 Build basic version of PeerCall
     - add candidates code
-Build basic version of GroupCall
-    - add state, block invalid actions
+DONE: Build basic version of GroupCall
+    - DONE: add state, block invalid actions
 DONE: Make it possible to olm encrypt the messages
 Do work needed for state events
-    - receiving (almost done?)
-    - sending
+    - DONEish: receiving (almost done?)
+    - DONEish: sending
 Expose call objects
 expose volume events from audiotrack to group call
 Write view model
