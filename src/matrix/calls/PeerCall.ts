@@ -105,7 +105,7 @@ export class PeerCall implements IDisposable {
             log(...args) { console.log.apply(console, ["WebRTC log:", ...args])},
             warn(...args) { console.log.apply(console, ["WebRTC warn:", ...args])},
             error(...args) { console.error.apply(console, ["WebRTC error:", ...args])},
-        }
+        };
     }
 
     get state(): CallState { return this._state; }
@@ -214,9 +214,9 @@ export class PeerCall implements IDisposable {
             case EventType.Answer:
                 await this.handleAnswer(message.content, partyId);
                 break;
-            //case EventType.Candidates:
-            //    await this.handleRemoteIceCandidates(message.content, partyId);
-            //    break;
+            case EventType.Candidates:
+                await this.handleRemoteIceCandidates(message.content, partyId);
+                break;
             case EventType.Hangup:
             default:
                 throw new Error(`Unknown event type for call: ${message.type}`);
@@ -296,7 +296,7 @@ export class PeerCall implements IDisposable {
         }
     };
 
-    private async handleInviteGlare(content: MCallInvite, partyId: PartyId): Promise<void> {
+    private async handleInviteGlare(content: MCallInvite<MCallBase>, partyId: PartyId): Promise<void> {
         // this is only called when the ids are different
         const newCallId = content.call_id;
         if (this.callId! > newCallId) {
@@ -386,7 +386,7 @@ export class PeerCall implements IDisposable {
         }
     }
 
-    private async handleAnswer(content: MCallAnswer, partyId: PartyId): Promise<void> {
+    private async handleAnswer(content: MCallAnswer<MCallBase>, partyId: PartyId): Promise<void> {
         this.logger.debug(`Got answer for call ID ${this.callId} from party ID ${partyId}`);
 
         if (this._state === CallState.Ended) {
@@ -422,6 +422,42 @@ export class PeerCall implements IDisposable {
             this.terminate(CallParty.Local, CallErrorCode.SetRemoteDescription, false);
             return;
         }
+    }
+
+    async handleRemoteIceCandidates(content: MCallCandidates<MCallBase>, partyId) {
+        if (this.state === CallState.Ended) {
+            //debuglog("Ignoring remote ICE candidate because call has ended");
+            return;
+        }
+
+        const candidates = content.candidates;
+        if (!candidates) {
+            this.logger.info(`Call ${this.callId} Ignoring candidates event with no candidates!`);
+            return;
+        }
+
+        const fromPartyId = content.version === 0 ? null : partyId || null;
+
+        if (this.opponentPartyId === undefined) {
+            // we haven't picked an opponent yet so save the candidates
+            this.logger.info(`Call ${this.callId} Buffering ${candidates.length} candidates until we pick an opponent`);
+            const bufferedCandidates = this.remoteCandidateBuffer!.get(fromPartyId) || [];
+            bufferedCandidates.push(...candidates);
+            this.remoteCandidateBuffer!.set(fromPartyId, bufferedCandidates);
+            return;
+        }
+
+        if (this.opponentPartyId !== partyId) {
+            this.logger.info(
+                `Call ${this.callId} `+
+                `Ignoring candidates from party ID ${partyId}: ` +
+                `we have chosen party ID ${this.opponentPartyId}`,
+            );
+
+            return;
+        }
+
+        await this.addIceCandidates(candidates);
     }
 
     // private async onNegotiateReceived(event: MatrixEvent): Promise<void> {

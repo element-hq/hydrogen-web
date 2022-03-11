@@ -103,6 +103,7 @@ DONE: Make it possible to olm encrypt the messages
 Do work needed for state events
     - DONEish: receiving (almost done?)
     - DONEish: sending
+logging
 Expose call objects
 expose volume events from audiotrack to group call
 Write view model
