@@ -31,7 +31,11 @@ async function run(input, output, opts = {}, assert) {
 module.exports.tests = function tests() {
     return {
         "derived variables are resolved": async (assert) => {
-            const inputCSS = `div {
+            const inputCSS = `
+            :root {
+                --foo-color: #ff0;
+            }
+            div {
                 background-color: var(--foo-color--lighter-50);
             }`;
             const transformedColor = offColor("#ff0").lighten(0.5);
@@ -39,38 +43,30 @@ module.exports.tests = function tests() {
                 inputCSS +
                 `
             :root {
-                --foo-color: #ff0;
                 --foo-color--lighter-50: ${transformedColor.hex()};
             }
             `;
-            await run(
-                inputCSS,
-                outputCSS,
-                { variables: { "foo-color": "#ff0" } },
-                assert
-            );
+            await run( inputCSS, outputCSS, {}, assert);
         },
 
         "derived variables work with alias": async (assert) => {
-            const inputCSS = `div {
+            const inputCSS = `
+            :root {
+                --icon-color: #fff;
+            }
+            div {
                 background: var(--icon-color--darker-20);
                 --my-alias: var(--icon-color--darker-20);
                 color: var(--my-alias--lighter-15);
             }`;
             const colorDarker = offColor("#fff").darken(0.2).hex();
             const aliasLighter = offColor(colorDarker).lighten(0.15).hex();
-            const outputCSS = `div {
-                background: var(--icon-color--darker-20);
-                --my-alias: var(--icon-color--darker-20);
-                color: var(--my-alias--lighter-15);
-            }
-            :root {
-                --icon-color: #fff;
+            const outputCSS = inputCSS + `:root {
                 --icon-color--darker-20: ${colorDarker};
                 --my-alias--lighter-15: ${aliasLighter};
             }
             `;
-            await run(inputCSS, outputCSS, { variables: { "icon-color": "#fff" }, }, assert);
+            await run(inputCSS, outputCSS, { }, assert);
         },
 
         "derived variable throws if base not present in config": async (assert) => {
@@ -81,7 +77,11 @@ module.exports.tests = function tests() {
         },
 
         "multiple derived variable in single declaration is parsed correctly": async (assert) => {
-            const inputCSS = `div {
+            const inputCSS = `
+            :root {
+                --foo-color: #ff0;
+            }
+            div {
                 background-color: linear-gradient(var(--foo-color--lighter-50), var(--foo-color--darker-20));
             }`;
             const transformedColor1 = offColor("#ff0").lighten(0.5);
@@ -90,15 +90,18 @@ module.exports.tests = function tests() {
                 inputCSS +
                 `
             :root {
-                --foo-color: #ff0;
                 --foo-color--lighter-50: ${transformedColor1.hex()};
                 --foo-color--darker-20: ${transformedColor2.hex()};
             }
             `;
-            await run( inputCSS, outputCSS, { variables: { "foo-color": "#ff0" } }, assert);
+            await run( inputCSS, outputCSS, { }, assert);
         },
         "multiple aliased-derived variable in single declaration is parsed correctly": async (assert) => {
-            const inputCSS = `div {
+            const inputCSS = `
+            :root {
+                --foo-color: #ff0;
+            }
+            div {
                 --my-alias: var(--foo-color);
                 background-color: linear-gradient(var(--my-alias--lighter-50), var(--my-alias--darker-20));
             }`;
@@ -108,12 +111,11 @@ module.exports.tests = function tests() {
                 inputCSS +
                 `
             :root {
-                --foo-color: #ff0;
                 --my-alias--lighter-50: ${transformedColor1.hex()};
                 --my-alias--darker-20: ${transformedColor2.hex()};
             }
             `;
-            await run( inputCSS, outputCSS, { variables: { "foo-color": "#ff0" } }, assert);
+            await run( inputCSS, outputCSS, { }, assert);
         }
     };
 };

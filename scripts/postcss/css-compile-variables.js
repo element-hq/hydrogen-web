@@ -18,10 +18,11 @@ const valueParser = require("postcss-value-parser");
 
 let aliasMap;
 let resolvedMap;
+let baseVariables;
 
-function getValueFromAlias(alias, variables) {
+function getValueFromAlias(alias) {
     const derivedVariable = aliasMap.get(`--${alias}`);
-    return variables[derivedVariable] ?? resolvedMap.get(`--${derivedVariable}`);
+    return baseVariables.get(derivedVariable) ?? resolvedMap.get(derivedVariable);
 }
 
 function parseDeclarationValue(value) {
@@ -37,14 +38,14 @@ function parseDeclarationValue(value) {
     return variables;
 }
 
-function resolveDerivedVariable(decl, {variables, derive}) {
+function resolveDerivedVariable(decl, derive) {
     const RE_VARIABLE_VALUE = /--(.+)--(.+)-(.+)/;
     const variableCollection = parseDeclarationValue(decl.value);
     for (const variable of variableCollection) {
         const matches = variable.match(RE_VARIABLE_VALUE);
         if (matches) {
             const [wholeVariable, baseVariable, operation, argument] = matches;
-            const value = variables[baseVariable] ?? getValueFromAlias(baseVariable, variables);
+            const value = baseVariables.get(`--${baseVariable}`) ?? getValueFromAlias(baseVariable);
             if (!value) {
                 throw new Error(`Cannot derive from ${baseVariable} because it is neither defined in config nor is it an alias!`);
             }
@@ -54,22 +55,21 @@ function resolveDerivedVariable(decl, {variables, derive}) {
     }
 }
 
-function extractAlias(decl) {
+function extract(decl) {
     if (decl.variable) {
-        const wholeVariable = decl.value.match(/var\(--(.+)\)/)?.[1];
+        // see if right side is of form "var(--foo)"
+        const wholeVariable = decl.value.match(/var\((--.+)\)/)?.[1];
         if (wholeVariable) {
             aliasMap.set(decl.prop, wholeVariable);
+            // Since this is an alias, we shouldn't store it in baseVariables
+            return;
         }
+        baseVariables.set(decl.prop, decl.value);
     }
 }
 
-function addResolvedVariablesToRootSelector(root, variables, {Rule, Declaration}) {
+function addResolvedVariablesToRootSelector(root, {Rule, Declaration}) {
     const newRule = new Rule({ selector: ":root", source: root.source });
-    // Add base css variables to :root
-    for (const [key, value] of Object.entries(variables)) {
-        const declaration = new Declaration({prop: `--${key}`, value});
-        newRule.append(declaration);
-    }
     // Add derived css variables to :root
     resolvedMap.forEach((value, key) => {
         const declaration = new Declaration({prop: key, value});
@@ -87,24 +87,23 @@ function addResolvedVariablesToRootSelector(root, variables, {Rule, Declaration}
 /**
  * 
  * @param {Object} opts - Options for the plugin
- * @param {Object} opts.variables - An object of the form: {base_variable_name_1: value, base_variable_name_2: value, ...}
  * @param {derive} opts.derive - The callback which contains the logic for resolving derived variables
  */
 module.exports = (opts = {}) => {
     aliasMap = new Map();
     resolvedMap = new Map();
+    baseVariables = new Map();
     return {
         postcssPlugin: "postcss-compile-variables",
 
         Once(root, {Rule, Declaration}) {
             /*
-            Go through the CSS file once to extract all aliases.
-            We use the extracted alias when resolving derived variables
-            later.
+            Go through the CSS file once to extract all aliases and base variables.
+            We use these when resolving derived variables later.
             */
-            root.walkDecls(decl => extractAlias(decl));
-            root.walkDecls(decl => resolveDerivedVariable(decl, opts));
-            addResolvedVariablesToRootSelector(root, opts.variables, {Rule, Declaration});
+            root.walkDecls(decl => extract(decl));
+            root.walkDecls(decl => resolveDerivedVariable(decl, opts.derive));
+            addResolvedVariablesToRootSelector(root, {Rule, Declaration});
         },
     };
 };
