@@ -10,7 +10,7 @@
     "lint-ts": "eslint src/ -c .ts-eslintrc.js --ext .ts",
     "lint-ci": "eslint src/",
     "test": "impunity --entry-point src/platform/web/main.js src/platform/web/Platform.js --force-esm-dirs lib/ src/ --root-dir src/",
-    "test:postcss": "impunity --entry-point  scripts/postcss/test.js ",
+    "test:postcss": "impunity --entry-point  scripts/postcss/tests/css-compile-variables.test.js scripts/postcss/tests/css-url-to-variables.test.js",
     "start": "vite --port 3000",
     "build": "vite build",
     "build:sdk": "./scripts/sdk/build.sh"

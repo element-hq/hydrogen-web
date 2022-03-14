@@ -16,8 +16,8 @@ limitations under the License.
 
 const offColor = require("off-color").offColor;
 const postcss = require("postcss");
-const plugin = require("./css-compile-variables");
-const derive = require("./color").derive;
+const plugin = require("../css-compile-variables");
+const derive = require("../color").derive;
 
 async function run(input, output, opts = {}, assert) {
     let result = await postcss([plugin({ ...opts, derive })]).process(input, { from: undefined, });
