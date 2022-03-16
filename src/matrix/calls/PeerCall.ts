@@ -21,6 +21,7 @@ import {Disposables, IDisposable} from "../../utils/Disposables";
 import type {Room} from "../room/Room";
 import type {StateEvent} from "../storage/types";
 import type {ILogItem} from "../../logging/types";
+import {Instance as logger} from "../../logging/NullLogger";
 
 import type {TimeoutCreator, Timeout} from "../../platform/types/types";
 import {WebRTC, PeerConnection, PeerConnectionHandler, DataChannel} from "../../platform/types/WebRTC";
@@ -81,16 +82,28 @@ export class PeerCall implements IDisposable {
     // perfect negotiation flags
     private makingOffer: boolean = false;
     private ignoreOffer: boolean = false;
+
+    private sentEndOfCandidates: boolean = false;
+    private iceDisconnectedTimeout?: Timeout;
+
     constructor(
-        private callId: string, // generated or from invite
+        private callId: string,
         private readonly options: Options
     ) {
         const outer = this;
         this.peerConnection = options.webRTC.createPeerConnection({
-            onIceConnectionStateChange(state: RTCIceConnectionState) {},
-            onLocalIceCandidate(candidate: RTCIceCandidate) {},
-            onIceGatheringStateChange(state: RTCIceGatheringState) {},
-            onRemoteTracksChanged(tracks: Track[]) {},
+            onIceConnectionStateChange(state: RTCIceConnectionState) {
+                outer.onIceConnectionStateChange(state);
+            },
+            onLocalIceCandidate(candidate: RTCIceCandidate) {
+                outer.handleLocalIceCandidate(candidate);
+            },
+            onIceGatheringStateChange(state: RTCIceGatheringState) {
+                outer.handleIceGatheringState(state);
+            },
+            onRemoteTracksChanged(tracks: Track[]) {
+                outer.options.emitUpdate(outer, undefined);
+            },
             onDataChannelChanged(dataChannel: DataChannel | undefined) {},
             onNegotiationNeeded() {
                 const promiseCreator = () => outer.handleNegotiation();
@@ -158,7 +171,7 @@ export class PeerCall implements IDisposable {
         }
         // Allow a short time for initial candidates to be gathered
         await this.delay(200);
-        this.sendAnswer();
+        await this.sendAnswer();
     }
 
     async setMedia(localMediaPromise: Promise<LocalMedia>) {
@@ -187,7 +200,11 @@ export class PeerCall implements IDisposable {
 
     }
 
-    async hangup(errorCode: CallErrorCode) {
+    async hangup(errorCode: CallErrorCode): Promise<void> {
+        if (this._state !== CallState.Ended) {
+            this._state = CallState.Ended;
+            await this.sendHangupWithCallId(this.callId, errorCode);
+        }
     }
 
     async handleIncomingSignallingMessage<B extends MCallBase>(message: SignallingMessage<B>, partyId: PartyId, log: ILogItem): Promise<void> {
@@ -222,7 +239,7 @@ export class PeerCall implements IDisposable {
         return this.options.sendSignallingMessage({
             type: EventType.Hangup,
             content
-        }, undefined);
+        }, logger.item);
     }
 
     // calls are serialized and deduplicated by responsePromiseChain
@@ -262,7 +279,7 @@ export class PeerCall implements IDisposable {
                 lifetime: CALL_TIMEOUT_MS
             };
             if (this._state === CallState.CreateOffer) {
-                await this.options.sendSignallingMessage({type: EventType.Invite, content}, undefined);
+                await this.options.sendSignallingMessage({type: EventType.Invite, content}, logger.item);
                 this.setState(CallState.InviteSent);
             } else if (this._state === CallState.Connected || this._state === CallState.Connecting) {
                 // send Negotiate message
@@ -406,7 +423,42 @@ export class PeerCall implements IDisposable {
         }
     }
 
-    async handleRemoteIceCandidates(content: MCallCandidates<MCallBase>, partyId) {
+    private handleIceGatheringState(state: RTCIceGatheringState) {
+        this.logger.debug(`Call ${this.callId} ice gathering state changed to  ${state}`);
+        if (state === 'complete' && !this.sentEndOfCandidates) {
+            // If we didn't get an empty-string candidate to signal the end of candidates,
+            // create one ourselves now gathering has finished.
+            // We cast because the interface lists all the properties as required but we
+            // only want to send 'candidate'
+            // XXX: We probably want to send either sdpMid or sdpMLineIndex, as it's not strictly
+            // correct to have a candidate that lacks both of these. We'd have to figure out what
+            // previous candidates had been sent with and copy them.
+            const c = {
+                candidate: '',
+            } as RTCIceCandidate;
+            this.queueCandidate(c);
+            this.sentEndOfCandidates = true;
+        }
+    }
+
+    private handleLocalIceCandidate(candidate: RTCIceCandidate) {
+        this.logger.debug(
+            "Call " + this.callId + " got local ICE " + candidate.sdpMid + " candidate: " +
+            candidate.candidate,
+        );
+
+        if (this._state === CallState.Ended) return;
+
+        // As with the offer, note we need to make a copy of this object, not
+        // pass the original: that broke in Chrome ~m43.
+        if (candidate.candidate !== '' || !this.sentEndOfCandidates) {
+            this.queueCandidate(candidate);
+
+            if (candidate.candidate === '') this.sentEndOfCandidates = true;
+        }
+    }
+
+    private async handleRemoteIceCandidates(content: MCallCandidates<MCallBase>, partyId) {
         if (this.state === CallState.Ended) {
             //debuglog("Ignoring remote ICE candidate because call has ended");
             return;
@@ -512,7 +564,7 @@ export class PeerCall implements IDisposable {
         this.candidateSendQueue = [];
 
         try {
-            await this.options.sendSignallingMessage({type: EventType.Answer, content: answerContent}, undefined);
+            await this.options.sendSignallingMessage({type: EventType.Answer, content: answerContent}, logger.item);
         } catch (error) {
             this.terminate(CallParty.Local, CallErrorCode.SendAnswer, false);
             throw error;
@@ -561,7 +613,7 @@ export class PeerCall implements IDisposable {
                     version: 1,
                     candidates
                 },
-            }, undefined);
+            }, logger.item);
             // Try to send candidates again just in case we received more candidates while sending.
             this.sendCandidateQueue();
         } catch (error) {
@@ -619,6 +671,31 @@ export class PeerCall implements IDisposable {
             }
         }
     }
+
+    private onIceConnectionStateChange = (state: RTCIceConnectionState): void => {
+        if (this._state === CallState.Ended) {
+            return; // because ICE can still complete as we're ending the call
+        }
+        this.logger.debug(
+            "Call ID " + this.callId + ": ICE connection state changed to: " + state,
+        );
+        // ideally we'd consider the call to be connected when we get media but
+        // chrome doesn't implement any of the 'onstarted' events yet
+        if (state == 'connected') {
+            this.iceDisconnectedTimeout?.abort();
+            this.iceDisconnectedTimeout = undefined;
+            this.setState(CallState.Connected);
+        } else if (state == 'failed') {
+            this.iceDisconnectedTimeout?.abort();
+            this.iceDisconnectedTimeout = undefined;
+            this.hangup(CallErrorCode.IceFailed);
+        } else if (state == 'disconnected') {
+            this.iceDisconnectedTimeout = this.options.createTimeout(30 * 1000);
+            this.iceDisconnectedTimeout.elapsed().then(() => {
+                this.hangup(CallErrorCode.IceFailed);
+            }, () => { /* ignore AbortError */ });
+        }
+    };
 
     private setState(state: CallState): void {
         const oldState = this._state;

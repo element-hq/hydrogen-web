@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {StreamPurpose} from "../../platform/types/WebRTC";
+import {SDPStreamMetadataPurpose} from "./callEventTypes";
 import {Track, AudioTrack, TrackType} from "../../platform/types/MediaDevices";
 import {SDPStreamMetadata} from "./callEventTypes";
 
@@ -42,14 +42,14 @@ export class LocalMedia {
         const userMediaTrack = this.microphoneTrack ?? this.cameraTrack;
         if (userMediaTrack) {
             metadata[userMediaTrack.streamId] = {
-                purpose: StreamPurpose.UserMedia,
+                purpose: SDPStreamMetadataPurpose.Usermedia,
                 audio_muted: this.microphoneTrack?.muted ?? false,
                 video_muted: this.cameraTrack?.muted ?? false,
             };
         }
         if (this.screenShareTrack) {
             metadata[this.screenShareTrack.streamId] = {
-                purpose: StreamPurpose.ScreenShare
+                purpose: SDPStreamMetadataPurpose.Screenshare
             };
         }
         return metadata;
