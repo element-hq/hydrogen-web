@@ -23,6 +23,7 @@ import {TimelineLoadingView} from "./TimelineLoadingView.js";
 import {MessageComposer} from "./MessageComposer.js";
 import {RoomArchivedView} from "./RoomArchivedView.js";
 import {AvatarView} from "../../AvatarView.js";
+import {CallView} from "./CallView";
 
 export class RoomView extends TemplateView {
     constructor(options) {
@@ -52,8 +53,8 @@ export class RoomView extends TemplateView {
             ]),
             t.div({className: "RoomView_body"}, [
                 t.div({className: "RoomView_error"}, vm => vm.error),
-                t.map(vm => vm.callViewModel, (callViewModel, t) => {
-                    return t.p(["A call is in progress", callViewModel => callViewModel.name])
+                t.mapView(vm => vm.callViewModel, callViewModel => {
+                    return new CallView(callViewModel);
                 }),
                 t.mapView(vm => vm.timelineViewModel, timelineViewModel => {
                     return timelineViewModel ?

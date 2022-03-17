@@ -43,6 +43,10 @@ export class RoomViewModel extends ViewModel {
         }
         this._clearUnreadTimout = null;
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
+        this._setupCallViewModel();
+    }
+
+    _setupCallViewModel() {
         // pick call for this room with lowest key
         this._callObservable = new PickMapObservableValue(session.callHandler.calls.filterValues(c => c.roomId === this.roomId));
         this._callViewModel = undefined;
@@ -53,8 +57,9 @@ export class RoomViewModel extends ViewModel {
             }
             this.emitChange("callViewModel");
         }));
-        if (this._callObservable.get()) {
-            this._callViewModel = new CallViewModel(this.childOptions({call: this._callObservable.get()}));
+        const call = this._callObservable.get();
+        if (call) {
+            this._callViewModel = new CallViewModel(this.childOptions({call}));
         }
     }
 

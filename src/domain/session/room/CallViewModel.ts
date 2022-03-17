@@ -1,6 +1,5 @@
 /*
-Copyright 2020 Bruno Windels <bruno@windels.cloud>
-Copyright 2020 The Matrix.org Foundation C.I.C.
+Copyright 2022 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,20 +14,40 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ViewModel} from "../../ViewModel";
+import {ViewModel, Options as BaseOptions} from "../../ViewModel";
 import type {GroupCall} from "../../../matrix/calls/group/GroupCall";
+import type {Member} from "../../../matrix/calls/group/Member";
+import type {BaseObservableList} from "../../../observable/list/BaseObservableList";
+import type {Track} from "../../../platform/types/MediaDevices";
 
-export class CallViewModel extends ViewModel {
+type Options = BaseOptions & {call: GroupCall};
 
-    private call: GroupCall;
+export class CallViewModel extends ViewModel<Options> {
+   
+    public readonly memberViewModels: BaseObservableList<CallMemberViewModel>;
 
-    constructor(options) {
+    constructor(options: Options) {
         super(options);
-        const {call} = options;
-        this.call = call;
+        this.memberViewModels = this.getOption("call").members
+            .mapValues(member => new CallMemberViewModel(this.childOptions({member})))
+            .sortValues((a, b) => {
+                
+            });
     }
 
     get name(): string {
-        return this.call.name;
+        return this.getOption("call").name;
+    }
+
+    get localTracks(): Track[] {
+        return this.getOption("call").localMedia?.tracks ?? [];
+    }
+}
+
+type MemberOptions = BaseOptions & {member: Member};
+
+class CallMemberViewModel extends ViewModel<MemberOptions> {
+    get tracks(): Track[] {
+        return this.getOption("member").remoteTracks;
     }
 }
