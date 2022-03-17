@@ -17,6 +17,7 @@ limitations under the License.
 import {ViewModel} from "../../ViewModel";
 import {KeyType} from "../../../matrix/ssss/index";
 import {createEnum} from "../../../utils/enum";
+import {FlatMapObservableValue} from "../../../observable/value/FlatMapObservableValue";
 
 export const Status = createEnum("Enabled", "SetupKey", "SetupPhrase", "Pending", "NewVersionAvailable"); 
 export const BackupWriteStatus = createEnum("Writing", "Stopped", "Done", "Pending"); 
@@ -29,8 +30,8 @@ export class KeyBackupViewModel extends ViewModel {
         this._isBusy = false;
         this._dehydratedDeviceId = undefined;
         this._status = undefined;
-        this._backupOperation = this._session.keyBackup.flatMap(keyBackup => keyBackup.operationInProgress);
-        this._progress = this._backupOperation.flatMap(op => op.progress);
+        this._backupOperation = new FlatMapObservableValue(this._session.keyBackup, keyBackup => keyBackup.operationInProgress);
+        this._progress = new FlatMapObservableValue(this._backupOperation, op => op.progress);
         this.track(this._backupOperation.subscribe(() => {
             // see if needsNewKey might be set
             this._reevaluateStatus();

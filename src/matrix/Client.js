@@ -18,7 +18,7 @@ limitations under the License.
 import {createEnum} from "../utils/enum";
 import {lookupHomeserver} from "./well-known.js";
 import {AbortableOperation} from "../utils/AbortableOperation";
-import {ObservableValue} from "../observable/ObservableValue";
+import {ObservableValue} from "../observable/value/ObservableValue";
 import {HomeServerApi} from "./net/HomeServerApi";
 import {Reconnector, ConnectionStatus} from "./net/Reconnector";
 import {ExponentialRetryDelay} from "./net/ExponentialRetryDelay";

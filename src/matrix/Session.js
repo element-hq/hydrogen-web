@@ -45,7 +45,8 @@ import {
     keyFromDehydratedDeviceKey as createSSSSKeyFromDehydratedDeviceKey
 } from "./ssss/index";
 import {SecretStorage} from "./ssss/SecretStorage";
-import {ObservableValue, RetainedObservableValue} from "../observable/ObservableValue";
+import {ObservableValue} from "../observable/value/ObservableValue";
+import {RetainedObservableValue} from "../observable/value/RetainedObservableValue";
 
 const PICKLE_KEY = "DEFAULT_KEY";
 const PUSHER_KEY = "pusher";
@@ -997,9 +998,18 @@ export function tests() {
 
     return {
         "session data is not modified until after sync": async (assert) => {
-            const session = new Session({storage: createStorageMock({
+            const storage = createStorageMock({
                 sync: {token: "a", filterId: 5}
-            }), sessionInfo: {userId: ""}});
+            });
+            const session = new Session({
+                storage,
+                sessionInfo: {userId: ""},
+                platform: {
+                    clock: {
+                        createTimeout: () => undefined
+                    }
+                }
+            });
             await session.load();
             let syncSet = false;
             const syncTxn = {

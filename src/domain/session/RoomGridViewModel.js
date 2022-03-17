@@ -186,7 +186,7 @@ export class RoomGridViewModel extends ViewModel {
 }
 
 import {createNavigation} from "../navigation/index.js";
-import {ObservableValue} from "../../observable/ObservableValue";
+import {ObservableValue} from "../../observable/value/ObservableValue";
 
 export function tests() { 
     class RoomVMMock {

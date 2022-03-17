@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ObservableValue} from "../observable/ObservableValue";
+import {ObservableValue} from "../observable/value/ObservableValue";
 import {createEnum} from "../utils/enum";
 
 const INCREMENTAL_TIMEOUT = 30000;

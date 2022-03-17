@@ -19,7 +19,7 @@ import {StoredRoomKey, keyFromBackup} from "../decryption/RoomKey";
 import {MEGOLM_ALGORITHM} from "../../common";
 import * as Curve25519 from "./Curve25519";
 import {AbortableOperation} from "../../../../utils/AbortableOperation";
-import {ObservableValue} from "../../../../observable/ObservableValue";
+import {ObservableValue} from "../../../../observable/value/ObservableValue";
 
 import {SetAbortableFn} from "../../../../utils/AbortableOperation";
 import type {BackupInfo, SessionData, SessionKeyInfo, SessionInfo, KeyBackupPayload} from "./types";

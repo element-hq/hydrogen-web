@@ -29,7 +29,7 @@ import {ObservedEventMap} from "./ObservedEventMap.js";
 import {DecryptionSource} from "../e2ee/common.js";
 import {ensureLogItem} from "../../logging/utils";
 import {PowerLevels} from "./PowerLevels.js";
-import {RetainedObservableValue} from "../../observable/ObservableValue";
+import {RetainedObservableValue} from "../../observable/value/RetainedObservableValue";
 import {TimelineReader} from "./timeline/persistence/TimelineReader";
 
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
