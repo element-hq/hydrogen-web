@@ -21,7 +21,7 @@ const POLLING_INTERVAL = 200; // ms
 export const SPEAKING_THRESHOLD = -60; // dB
 const SPEAKING_SAMPLE_COUNT = 8; // samples
 
-class MediaDevicesWrapper implements IMediaDevices {
+export class MediaDevicesWrapper implements IMediaDevices {
     constructor(private readonly mediaDevices: MediaDevices) {}
 
     enumerate(): Promise<MediaDeviceInfo[]> {

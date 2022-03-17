@@ -38,6 +38,8 @@ import {downloadInIframe} from "./dom/download.js";
 import {Disposables} from "../../utils/Disposables";
 import {parseHTML} from "./parsehtml.js";
 import {handleAvatarError} from "./ui/avatar";
+import {MediaDevicesWrapper} from "./dom/MediaDevices";
+import {DOMWebRTC} from "./dom/WebRTC";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -163,6 +165,8 @@ export class Platform {
         this._disposables = new Disposables();
         this._olmPromise = undefined;
         this._workerPromise = undefined;
+        this.mediaDevices = new MediaDevicesWrapper(navigator.mediaDevices);
+        this.webRTC = new DOMWebRTC();
     }
 
     _createLogger(isDevelopment) {
