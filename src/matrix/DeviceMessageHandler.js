@@ -16,7 +16,7 @@ limitations under the License.
 
 import {OLM_ALGORITHM} from "./e2ee/common.js";
 import {countBy, groupBy} from "../utils/groupBy";
-import {LRUCache} from "../../utils/LRUCache";
+import {LRUCache} from "../utils/LRUCache";
 
 export class DeviceMessageHandler {
     constructor({storage, callHandler}) {

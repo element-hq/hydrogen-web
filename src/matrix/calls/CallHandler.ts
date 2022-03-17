@@ -37,7 +37,7 @@ const CALL_TERMINATED = "m.terminated";
 
 export type Options = Omit<GroupCallOptions, "emitUpdate">;
 
-export class GroupCallHandler {
+export class CallHandler {
     // group calls by call id
     private readonly _calls: ObservableMap<string, GroupCall> = new ObservableMap<string, GroupCall>();
     // map of userId to set of conf_id's they are in

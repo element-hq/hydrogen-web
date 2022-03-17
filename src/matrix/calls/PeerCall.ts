@@ -875,7 +875,7 @@ const FALLBACK_ICE_SERVER = 'stun:turn.matrix.org';
 /** The length of time a call can be ringing for. */
 const CALL_TIMEOUT_MS = 60000;
 
-const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+//const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 export class CallError extends Error {
     code: string;
