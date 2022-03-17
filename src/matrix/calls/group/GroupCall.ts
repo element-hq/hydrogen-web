@@ -56,7 +56,7 @@ export class GroupCall {
     constructor(
         id: string | undefined,
         private callContent: Record<string, any> | undefined,
-        private readonly roomId: string,
+        public readonly roomId: string,
         private readonly options: Options
     ) {
         this.id = id ??  makeId("conf-");
@@ -75,6 +75,10 @@ export class GroupCall {
 
     get isTerminated(): boolean {
         return this.callContent?.["m.terminated"] === true;
+    }
+
+    get name(): string {
+        return this.callContent?.["m.name"];
     }
 
     async join(localMedia: LocalMedia) {

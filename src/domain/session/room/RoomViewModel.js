@@ -17,15 +17,18 @@ limitations under the License.
 
 import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
 import {ComposerViewModel} from "./ComposerViewModel.js"
+import {CallViewModel} from "./CallViewModel"
+import {PickMapObservableValue} from "../../../observable/value/PickMapObservableValue";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {tilesCreator} from "./timeline/tilesCreator.js";
 import {ViewModel} from "../../ViewModel";
 import {imageToInfo} from "../common.js";
+import {LocalMedia} from "../../../matrix/calls/LocalMedia";
 
 export class RoomViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {room} = options;
+        const {room, session} = options;
         this._room = room;
         this._timelineVM = null;
         this._tilesCreator = null;
@@ -40,6 +43,19 @@ export class RoomViewModel extends ViewModel {
         }
         this._clearUnreadTimout = null;
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
+        // pick call for this room with lowest key
+        this._callObservable = new PickMapObservableValue(session.callHandler.calls.filterValues(c => c.roomId === this.roomId));
+        this._callViewModel = undefined;
+        this.track(this._callObservable.subscribe(call => {
+            this._callViewModel = this.disposeTracked(this._callViewModel);
+            if (call) {
+                this._callViewModel = new CallViewModel(this.childOptions({call}));
+            }
+            this.emitChange("callViewModel");
+        }));
+        if (this._callObservable.get()) {
+            this._callViewModel = new CallViewModel(this.childOptions({call: this._callObservable.get()}));
+        }
     }
 
     async load() {
@@ -308,6 +324,10 @@ export class RoomViewModel extends ViewModel {
         return this._composerVM;
     }
 
+    get callViewModel() {
+        return this._callViewModel;
+    }
+
     openDetailsPanel() {
         let path = this.navigation.path.until("room");
         path = path.with(this.navigation.segment("right-panel", true));
@@ -319,6 +339,13 @@ export class RoomViewModel extends ViewModel {
         if (!this._room.isArchived) {
             this._composerVM.setReplyingTo(entry);
         }
+    }
+
+    async startCall() {
+        const mediaTracks = await this.platform.mediaDevices.getMediaTracks(true, true);
+        const localMedia = LocalMedia.fromTracks(mediaTracks);
+        // this will set the callViewModel above as a call will be added to callHandler.calls
+        await this.session.callHandler.createCall(this.roomId, localMedia, "A call " + Math.round(this.platform.random() * 100));
     }
 }
 

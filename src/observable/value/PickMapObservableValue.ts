@@ -22,7 +22,7 @@ function pickLowestKey<K>(currentKey: K, newKey: K): boolean {
     return newKey < currentKey;
 }
 
-export class PickMapObservable<K, V> implements IMapObserver<K, V> extends BaseObservableValue<V | undefined> {
+export class PickMapObservableValue<K, V> extends BaseObservableValue<V | undefined>  implements IMapObserver<K, V>{
 
     private key?: K;
     private mapSubscription?: SubscriptionHandle;
@@ -34,7 +34,7 @@ export class PickMapObservable<K, V> implements IMapObserver<K, V> extends BaseO
         super();
     }
 
-    private trySetKey(newKey: K): boolean {
+    private updateKey(newKey: K): boolean {
         if (this.key === undefined || this.pickKey(this.key, newKey)) {
             this.key = newKey;
             return true;
@@ -48,7 +48,7 @@ export class PickMapObservable<K, V> implements IMapObserver<K, V> extends BaseO
     }
 
     onAdd(key: K, value:V): void {
-        if (this.trySetKey(key)) {
+        if (this.updateKey(key)) {
             this.emit(this.get());
         }
     }
@@ -60,7 +60,7 @@ export class PickMapObservable<K, V> implements IMapObserver<K, V> extends BaseO
             this.key = undefined;
             let changed = false;
             for (const [key] of this.map) {
-                changed = this.trySetKey(key) || changed;
+                changed = this.updateKey(key) || changed;
             }
             if (changed) {
                 this.emit(this.get());
@@ -71,12 +71,12 @@ export class PickMapObservable<K, V> implements IMapObserver<K, V> extends BaseO
     onSubscribeFirst(): void {
         this.mapSubscription = this.map.subscribe(this);
         for (const [key] of this.map) {
-            this.trySetKey(key);
+            this.updateKey(key);
         }
     }
 
     onUnsubscribeLast(): void {
-        this.mapSubscription();
+        this.mapSubscription!();
         this.key = undefined;
     }
 

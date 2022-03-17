@@ -174,7 +174,7 @@ export class SessionViewModel extends ViewModel {
     _createRoomViewModelInstance(roomId) {
         const room = this._client.session.rooms.get(roomId);
         if (room) {
-            const roomVM = new RoomViewModel(this.childOptions({room}));
+            const roomVM = new RoomViewModel(this.childOptions({room, session: this._client.session}));
             roomVM.load();
             return roomVM;
         }

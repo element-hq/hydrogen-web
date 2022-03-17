@@ -52,6 +52,9 @@ export class RoomView extends TemplateView {
             ]),
             t.div({className: "RoomView_body"}, [
                 t.div({className: "RoomView_error"}, vm => vm.error),
+                t.map(vm => vm.callViewModel, (callViewModel, t) => {
+                    return t.p(["A call is in progress", callViewModel => callViewModel.name])
+                }),
                 t.mapView(vm => vm.timelineViewModel, timelineViewModel => {
                     return timelineViewModel ?
                         new TimelineView(timelineViewModel) :
@@ -69,6 +72,7 @@ export class RoomView extends TemplateView {
             const vm = this.value;
             const options = [];
             options.push(Menu.option(vm.i18n`Room details`, () => vm.openDetailsPanel()))
+            options.push(Menu.option(vm.i18n`Start call`, () => vm.startCall()))
             if (vm.canLeave) {
                 options.push(Menu.option(vm.i18n`Leave room`, () => this._confirmToLeaveRoom()).setDestructive());
             }
