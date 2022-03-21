@@ -15,29 +15,33 @@ limitations under the License.
 */
 
 import {TemplateView, TemplateBuilder} from "../../general/TemplateView";
+import {ListView} from "../../general/ListView";
 import {Track, TrackType} from "../../../../types/MediaDevices";
 import type {TrackWrapper} from "../../../dom/MediaDevices";
-import type {CallViewModel} from "../../../../../domain/session/room/CallViewModel";
+import type {CallViewModel, CallMemberViewModel} from "../../../../../domain/session/room/CallViewModel";
 
 function bindVideoTracks<T>(t: TemplateBuilder<T>, video: HTMLVideoElement, propSelector: (vm: T) => Track[]) {
     t.mapSideEffect(propSelector, tracks => {
+        console.log("tracks", tracks);
         if (tracks.length) {
             video.srcObject = (tracks[0] as TrackWrapper).stream;
         }
     });
+    return video;
 }
 
 export class CallView extends TemplateView<CallViewModel> {
     render(t: TemplateBuilder<CallViewModel>, vm: CallViewModel): HTMLElement {
         return t.div({class: "CallView"}, [
+            t.p(`Call ${vm.name} (${vm.id})`),
             t.div({class: "CallView_me"}, bindVideoTracks(t, t.video(), vm => vm.localTracks)),
-            t.view(new ListView(vm.memberViewModels, vm => new MemberView(vm)))
+            t.view(new ListView({list: vm.memberViewModels}, vm => new MemberView(vm)))
         ]);
     }
 }
 
 class MemberView extends TemplateView<CallMemberViewModel> {
-    render(t, vm) {
+    render(t: TemplateBuilder<CallMemberViewModel>, vm: CallMemberViewModel) {
         return bindVideoTracks(t, t.video(), vm => vm.tracks);
     }
 }

@@ -52,6 +52,7 @@ export class CallHandler {
 
     async createCall(roomId: string, localMedia: LocalMedia, name: string): Promise<GroupCall> {
         const call = new GroupCall(undefined, undefined, roomId, this.groupCallOptions);
+        console.log("created call with id", call.id);
         this._calls.set(call.id, call);
         try {
             await call.create(localMedia, name);

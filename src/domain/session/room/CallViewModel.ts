@@ -30,24 +30,36 @@ export class CallViewModel extends ViewModel<Options> {
         super(options);
         this.memberViewModels = this.getOption("call").members
             .mapValues(member => new CallMemberViewModel(this.childOptions({member})))
-            .sortValues((a, b) => {
-                
-            });
+            .sortValues((a, b) => a.compare(b));
     }
 
     get name(): string {
         return this.getOption("call").name;
     }
 
+    get id(): string {
+        return this.getOption("call").id;
+    }
+
     get localTracks(): Track[] {
+        console.log("localTracks", this.getOption("call").localMedia);
         return this.getOption("call").localMedia?.tracks ?? [];
     }
 }
 
 type MemberOptions = BaseOptions & {member: Member};
 
-class CallMemberViewModel extends ViewModel<MemberOptions> {
+export class CallMemberViewModel extends ViewModel<MemberOptions> {
     get tracks(): Track[] {
         return this.getOption("member").remoteTracks;
+    }
+
+    compare(other: CallMemberViewModel): number {
+        const myUserId = this.getOption("member").member.userId;
+        const otherUserId = other.getOption("member").member.userId;
+        if(myUserId === otherUserId) {
+            return 0;
+        }
+        return myUserId < otherUserId ? -1 : 1;
     }
 }

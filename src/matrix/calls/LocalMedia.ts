@@ -35,7 +35,13 @@ export class LocalMedia {
         return new LocalMedia(cameraTrack, screenShareTrack, microphoneTrack as AudioTrack);
     }
 
-    get tracks(): Track[] { return []; }
+    get tracks(): Track[] {
+        const tracks: Track[] = [];
+        if (this.cameraTrack) { tracks.push(this.cameraTrack); }
+        if (this.screenShareTrack) { tracks.push(this.screenShareTrack); }
+        if (this.microphoneTrack) { tracks.push(this.microphoneTrack); }
+        return tracks;
+    }
 
     getSDPMetadata(): SDPStreamMetadata {
         const metadata = {};

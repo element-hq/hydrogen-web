@@ -53,9 +53,7 @@ export class RoomView extends TemplateView {
             ]),
             t.div({className: "RoomView_body"}, [
                 t.div({className: "RoomView_error"}, vm => vm.error),
-                t.mapView(vm => vm.callViewModel, callViewModel => {
-                    return new CallView(callViewModel);
-                }),
+                t.mapView(vm => vm.callViewModel, callViewModel => callViewModel ? new CallView(callViewModel) : null),
                 t.mapView(vm => vm.timelineViewModel, timelineViewModel => {
                     return timelineViewModel ?
                         new TimelineView(timelineViewModel) :

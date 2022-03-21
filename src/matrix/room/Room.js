@@ -93,7 +93,7 @@ export class Room extends BaseRoom {
             }
         }
 
-        this._updateCallHandler(roomResponse);
+        this._updateCallHandler(roomResponse, log);
 
         return {
             roomEncryption,
@@ -448,20 +448,17 @@ export class Room extends BaseRoom {
         return this._sendQueue.pendingEvents;
     }
 
-    _updateCallHandler(roomResponse) {
+    _updateCallHandler(roomResponse, log) {
         if (this._callHandler) {
             const stateEvents = roomResponse.state?.events;
             if (stateEvents) {
-                for (const e of stateEvents) {
-                    this._callHandler.handleRoomState(this, e);
-                }
+                this._callHandler.handleRoomState(this, stateEvents, log);
             }
             let timelineEvents = roomResponse.timeline?.events;
             if (timelineEvents) {
-                for (const e of timelineEvents) {
-                    if (typeof e.state_key === "string") {
-                        this._callHandler.handleRoomState(this, e);
-                    }
+                const timelineStateEvents = timelineEvents.filter(e => typeof e.state_key === "string");
+                if (timelineEvents.length !== 0) {
+                    this._callHandler.handleRoomState(this, timelineStateEvents, log);
                 }
             }
         }
