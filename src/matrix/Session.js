@@ -88,7 +88,11 @@ export class Session {
                 const devices = await this._deviceTracker.devicesForTrackedRoom(roomId, this._hsApi, log);
                 const encryptedMessage = await this._olmEncryption.encrypt(message.type, message.content, devices, this._hsApi, log);
                 return encryptedMessage;
-            }
+            },
+            storage: this._storage,
+            webRTC: this._platform.webRTC,
+            ownDeviceId: sessionInfo.deviceId,
+            ownUserId: sessionInfo.userId,
         });
         this._deviceMessageHandler = new DeviceMessageHandler({storage, callHandler: this._callHandler});
         this._olm = olm;

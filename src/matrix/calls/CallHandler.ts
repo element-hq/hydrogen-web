@@ -63,7 +63,9 @@ export class CallHandler {
             }
             throw err;
         }
+        console.log("joining call I just created");
         await call.join(localMedia);
+        console.log("joined!");
         return call;
     }
 
@@ -73,6 +75,7 @@ export class CallHandler {
 
     /** @internal */
     handleRoomState(room: Room, events: StateEvent[], log: ILogItem) {
+        console.log("handling room state");
         // first update call events
         for (const event of events) {
             if (event.type === EventType.GroupCall) {

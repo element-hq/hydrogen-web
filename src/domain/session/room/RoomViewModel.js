@@ -347,12 +347,17 @@ export class RoomViewModel extends ViewModel {
     }
 
     async startCall() {
-        const session = this.getOption("session");
-        const mediaTracks = await this.platform.mediaDevices.getMediaTracks(true, true);
-        const localMedia = new LocalMedia().withTracks(mediaTracks);
-        console.log("localMedia", localMedia.tracks);
-        // this will set the callViewModel above as a call will be added to callHandler.calls
-        await session.callHandler.createCall(this._room.id, localMedia, "A call " + Math.round(this.platform.random() * 100));
+        try {
+            const session = this.getOption("session");
+            const mediaTracks = await this.platform.mediaDevices.getMediaTracks(true, true);
+            const localMedia = new LocalMedia().withTracks(mediaTracks);
+            console.log("localMedia", localMedia.tracks);
+            // this will set the callViewModel above as a call will be added to callHandler.calls
+            await session.callHandler.createCall(this._room.id, localMedia, "A call " + Math.round(this.platform.random() * 100));
+        } catch (err) {
+            console.error(err.stack);
+            alert(err.message);
+        }
     }
 }
 

@@ -42,7 +42,6 @@ export class CallViewModel extends ViewModel<Options> {
     }
 
     get localTracks(): Track[] {
-        console.log("localTracks", this.getOption("call").localMedia);
         return this.getOption("call").localMedia?.tracks ?? [];
     }
 }

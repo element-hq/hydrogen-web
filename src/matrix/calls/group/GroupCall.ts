@@ -49,7 +49,7 @@ export type Options = Omit<MemberOptions, "emitUpdate" | "confId" | "encryptDevi
 export class GroupCall {
     public readonly id: string;
     private readonly _members: ObservableMap<string, Member> = new ObservableMap();
-    private _localMedia?: LocalMedia;
+    private _localMedia?: LocalMedia = undefined;
     private _memberOptions: MemberOptions;
     private _state: GroupCallState;
 
@@ -87,10 +87,12 @@ export class GroupCall {
         }
         this._state = GroupCallState.Joining;
         this._localMedia = localMedia;
+        this.options.emitUpdate(this);
         const memberContent = await this._joinCallMemberContent();
         // send m.call.member state event
         const request = this.options.hsApi.sendState(this.roomId, "m.call.member", this.options.ownUserId, memberContent);
         await request.response();
+        this.options.emitUpdate(this);
         // send invite to all members that are < my userId
         for (const [,member] of this._members) {
             member.connect(this._localMedia);
@@ -119,6 +121,7 @@ export class GroupCall {
         };
         const request = this.options.hsApi.sendState(this.roomId, "m.call", this.id, this.callContent);
         await request.response();
+        this._state = GroupCallState.Created;
     }
 
     /** @internal */

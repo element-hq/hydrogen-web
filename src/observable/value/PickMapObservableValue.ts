@@ -53,7 +53,9 @@ export class PickMapObservableValue<K, V> extends BaseObservableValue<V | undefi
         }
     }
 
-    onUpdate(key: K, value: V, params: any): void {}
+    onUpdate(key: K, value: V, params: any): void {
+        this.emit(this.get());
+    }
 
     onRemove(key: K, value: V): void {
         if (key === this.key) {
