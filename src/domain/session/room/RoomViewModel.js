@@ -48,7 +48,8 @@ export class RoomViewModel extends ViewModel {
 
     _setupCallViewModel() {
         // pick call for this room with lowest key
-        this._callObservable = new PickMapObservableValue(this.getOption("session").callHandler.calls.filterValues(c => c.roomId === this._room.id));
+        const calls = this.getOption("session").callHandler.calls;
+        this._callObservable = new PickMapObservableValue(calls.filterValues(c => c.roomId === this._room.id && c.hasJoined));
         this._callViewModel = undefined;
         this.track(this._callObservable.subscribe(call => {
             this._callViewModel = this.disposeTracked(this._callViewModel);
@@ -68,6 +69,7 @@ export class RoomViewModel extends ViewModel {
         try {
             const timeline = await this._room.openTimeline();
             this._tilesCreator = tilesCreator(this.childOptions({
+                session: this.getOption("session"),
                 roomVM: this,
                 timeline,
             }));
@@ -349,9 +351,8 @@ export class RoomViewModel extends ViewModel {
     async startCall() {
         try {
             const session = this.getOption("session");
-            const mediaTracks = await this.platform.mediaDevices.getMediaTracks(true, true);
+            const mediaTracks = await this.platform.mediaDevices.getMediaTracks(false, true);
             const localMedia = new LocalMedia().withTracks(mediaTracks);
-            console.log("localMedia", localMedia.tracks);
             // this will set the callViewModel above as a call will be added to callHandler.calls
             await session.callHandler.createCall(this._room.id, localMedia, "A call " + Math.round(this.platform.random() * 100));
         } catch (err) {

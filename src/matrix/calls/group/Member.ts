@@ -17,6 +17,7 @@ limitations under the License.
 import {PeerCall, CallState} from "../PeerCall";
 import {makeTxnId, makeId} from "../../common";
 import {EventType} from "../callEventTypes";
+import {formatToDeviceMessagesPayload} from "../../common";
 
 import type {Options as PeerCallOptions} from "../PeerCall";
 import type {LocalMedia} from "../LocalMedia";
@@ -32,7 +33,7 @@ export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessag
     confId: string,
     ownUserId: string,
     hsApi: HomeServerApi,
-    encryptDeviceMessage: (message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage>,
+    encryptDeviceMessage: (userId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage>,
     emitUpdate: (participant: Member, params?: any) => void,
 }
 
@@ -81,13 +82,14 @@ export class Member {
     sendSignallingMessage = async (message: SignallingMessage<MCallBase>, log: ILogItem) => {
         const groupMessage = message as SignallingMessage<MGroupCallBase>;
         groupMessage.content.conf_id = this.options.confId;
-        const encryptedMessage = await this.options.encryptDeviceMessage(groupMessage, log);
+        const encryptedMessages = await this.options.encryptDeviceMessage(this.member.userId, groupMessage, log);
+        const payload = formatToDeviceMessagesPayload(encryptedMessages);
         const request = this.options.hsApi.sendToDevice(
             "m.room.encrypted",
-            {[this.member.userId]: {
-                ["*"]: encryptedMessage.content
-            }
-        }, makeTxnId(), {log});
+            payload,
+            makeTxnId(),
+            {log}
+        );
         await request.response();
     }
 

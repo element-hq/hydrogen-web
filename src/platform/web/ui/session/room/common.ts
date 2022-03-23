@@ -24,6 +24,7 @@ import {AnnouncementView} from "./timeline/AnnouncementView.js";
 import {RedactedView} from "./timeline/RedactedView.js";
 import {SimpleTile} from "../../../../../domain/session/room/timeline/tiles/SimpleTile.js";
 import {GapView} from "./timeline/GapView.js";
+import {CallTileView} from "./timeline/CallTileView";
 
 export type TileView = GapView | AnnouncementView | TextMessageView |
     ImageView | VideoView | FileView | LocationView | MissingAttachmentView | RedactedView;
@@ -51,5 +52,7 @@ export function viewClassForEntry(entry: SimpleTile): TileViewConstructor | unde
             return MissingAttachmentView;
         case "redacted":
             return RedactedView;
+        case "call":
+            return CallTileView;
     }
 }

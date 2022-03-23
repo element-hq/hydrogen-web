@@ -224,6 +224,7 @@ export class Sync {
     _openPrepareSyncTxn() {
         const storeNames = this._storage.storeNames;
         return this._storage.readTxn([
+            storeNames.deviceIdentities, // to read device from olm messages
             storeNames.olmSessions,
             storeNames.inboundGroupSessions,
             // to read fragments when loading sync writer when rejoining archived room

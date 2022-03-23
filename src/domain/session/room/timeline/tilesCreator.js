@@ -26,6 +26,7 @@ import {RoomMemberTile} from "./tiles/RoomMemberTile.js";
 import {EncryptedEventTile} from "./tiles/EncryptedEventTile.js";
 import {EncryptionEnabledTile} from "./tiles/EncryptionEnabledTile.js";
 import {MissingAttachmentTile} from "./tiles/MissingAttachmentTile.js";
+import {CallTile} from "./tiles/CallTile.js";
 
 export function tilesCreator(baseOptions) {
     const tilesCreator = function tilesCreator(entry, emitUpdate) {
@@ -71,6 +72,8 @@ export function tilesCreator(baseOptions) {
                     return new EncryptedEventTile(options);
                 case "m.room.encryption":
                     return new EncryptionEnabledTile(options);
+                case "m.call":
+                    return entry.stateKey ? new CallTile(options) : null;
                 default:
                     // unknown type not rendered
                     return null;

@@ -41,7 +41,7 @@ export enum GroupCallState {
 
 export type Options = Omit<MemberOptions, "emitUpdate" | "confId" | "encryptDeviceMessage"> & {
     emitUpdate: (call: GroupCall, params?: any) => void;
-    encryptDeviceMessage: (roomId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage>,
+    encryptDeviceMessage: (roomId: string, userId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage>,
     storage: Storage,
     ownDeviceId: string
 };
@@ -61,13 +61,13 @@ export class GroupCall {
     ) {
         this.id = id ??  makeId("conf-");
         this._state = id ? GroupCallState.Created : GroupCallState.Fledgling;
-        this._memberOptions = Object.assign({
+        this._memberOptions = Object.assign({}, options, {
             confId: this.id,
             emitUpdate: member => this._members.update(member.member.userId, member),
-            encryptDeviceMessage: (message: SignallingMessage<MGroupCallBase>, log) => {
-                return this.options.encryptDeviceMessage(this.roomId, message, log);
+            encryptDeviceMessage: (userId: string, message: SignallingMessage<MGroupCallBase>, log) => {
+                return this.options.encryptDeviceMessage(this.roomId, userId, message, log);
             }
-        }, options);
+        });
     }
 
     get localMedia(): LocalMedia | undefined { return this._localMedia; }
@@ -97,6 +97,10 @@ export class GroupCall {
         for (const [,member] of this._members) {
             member.connect(this._localMedia);
         }
+    }
+
+    get hasJoined() {
+        return this._state === GroupCallState.Joining || this._state === GroupCallState.Joined;
     }
 
     async leave() {
@@ -165,6 +169,7 @@ export class GroupCall {
 
     /** @internal */
     handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, userId: string, deviceId: string, log: ILogItem) {
+        console.log("incoming to_device call signalling message from", userId, deviceId, message);
         // TODO: return if we are not membering to the call
         let member = this._members.get(userId);
         if (member) {

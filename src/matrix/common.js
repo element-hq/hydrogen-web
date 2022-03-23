@@ -15,6 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {groupBy} from "../utils/groupBy";
+
+
 export function makeTxnId() {
     return makeId("t");
 }
@@ -27,6 +30,20 @@ export function makeId(prefix) {
 
 export function isTxnId(txnId) {
 	return txnId.startsWith("t") && txnId.length === 15;
+}
+
+export function formatToDeviceMessagesPayload(messages) {
+    const messagesByUser = groupBy(messages, message => message.device.userId);
+    const payload = {
+        messages: Array.from(messagesByUser.entries()).reduce((userMap, [userId, messages]) => {
+            userMap[userId] = messages.reduce((deviceMap, message) => {
+                deviceMap[message.device.deviceId] = message.content;
+                return deviceMap;
+            }, {});
+            return userMap;
+        }, {})
+    };
+    return payload;
 }
 
 export function tests() {

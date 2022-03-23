@@ -114,6 +114,7 @@ export class PeerCall implements IDisposable {
             }
         });
         this.logger = {
+            info(...args) { console.info.apply(console, ["WebRTC debug:", ...args])},
             debug(...args) { console.log.apply(console, ["WebRTC debug:", ...args])},
             log(...args) { console.log.apply(console, ["WebRTC log:", ...args])},
             warn(...args) { console.log.apply(console, ["WebRTC warn:", ...args])},
