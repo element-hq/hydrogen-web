@@ -53,12 +53,12 @@ function parseDeclarationValue(value) {
 }
 
 function resolveDerivedVariable(decl, derive) {
-    const RE_VARIABLE_VALUE = /(--.+)--(.+)-(.+)/;
+    const RE_VARIABLE_VALUE = /--((.+)--(.+)-(.+))/;
     const variableCollection = parseDeclarationValue(decl.value);
     for (const variable of variableCollection) {
         const matches = variable.match(RE_VARIABLE_VALUE);
         if (matches) {
-            const [wholeVariable, baseVariable, operation, argument] = matches;
+            const [, wholeVariable, baseVariable, operation, argument] = matches;
             const value = baseVariables.get(baseVariable) ?? getValueFromAlias(baseVariable);
             if (!value) {
                 throw new Error(`Cannot derive from ${baseVariable} because it is neither defined in config nor is it an alias!`);
@@ -72,13 +72,15 @@ function resolveDerivedVariable(decl, derive) {
 function extract(decl) {
     if (decl.variable) {
         // see if right side is of form "var(--foo)"
-        const wholeVariable = decl.value.match(/var\((--.+)\)/)?.[1];
+        const wholeVariable = decl.value.match(/var\(--(.+)\)/)?.[1];
+        // remove -- from the prop
+        const prop = decl.prop.substring(2);
         if (wholeVariable) {
-            aliasMap.set(decl.prop, wholeVariable);
+            aliasMap.set(prop, wholeVariable);
             // Since this is an alias, we shouldn't store it in baseVariables
             return;
         }
-        baseVariables.set(decl.prop, decl.value);
+        baseVariables.set(prop, decl.value);
     }
 }
 
@@ -86,7 +88,7 @@ function addResolvedVariablesToRootSelector(root, {Rule, Declaration}) {
     const newRule = new Rule({ selector: ":root", source: root.source });
     // Add derived css variables to :root
     resolvedMap.forEach((value, key) => {
-        const declaration = new Declaration({prop: key, value});
+        const declaration = new Declaration({prop: `--${key}`, value});
         newRule.append(declaration);
     });
     root.append(newRule);
