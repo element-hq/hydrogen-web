@@ -16,6 +16,20 @@ limitations under the License.
 
 const valueParser = require("postcss-value-parser");
 
+/**
+ * This plugin derives new css variables from a given set of base variables.
+ * A derived css variable has the form --base--operation-argument; meaning that the derived
+ * variable has a value that is generated from the base variable "base" by applying "operation"
+ * with given "argument".
+ * 
+ * eg: given the base variable --foo-color: #40E0D0, --foo-color--darker-20 is a css variable
+ * derived from foo-color by making it 20% more darker.
+ * 
+ * All derived variables are added to the :root section.
+ * 
+ * The actual derivation is done outside the plugin in a callback.
+ */
+
 let aliasMap;
 let resolvedMap;
 let baseVariables;
