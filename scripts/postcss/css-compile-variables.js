@@ -21,7 +21,7 @@ let resolvedMap;
 let baseVariables;
 
 function getValueFromAlias(alias) {
-    const derivedVariable = aliasMap.get(`--${alias}`);
+    const derivedVariable = aliasMap.get(alias);
     return baseVariables.get(derivedVariable) ?? resolvedMap.get(derivedVariable);
 }
 
@@ -39,13 +39,13 @@ function parseDeclarationValue(value) {
 }
 
 function resolveDerivedVariable(decl, derive) {
-    const RE_VARIABLE_VALUE = /--(.+)--(.+)-(.+)/;
+    const RE_VARIABLE_VALUE = /(--.+)--(.+)-(.+)/;
     const variableCollection = parseDeclarationValue(decl.value);
     for (const variable of variableCollection) {
         const matches = variable.match(RE_VARIABLE_VALUE);
         if (matches) {
             const [wholeVariable, baseVariable, operation, argument] = matches;
-            const value = baseVariables.get(`--${baseVariable}`) ?? getValueFromAlias(baseVariable);
+            const value = baseVariables.get(baseVariable) ?? getValueFromAlias(baseVariable);
             if (!value) {
                 throw new Error(`Cannot derive from ${baseVariable} because it is neither defined in config nor is it an alias!`);
             }
