@@ -1,7 +1,23 @@
+/*
+Copyright 2021 The Matrix.org Foundation C.I.C.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 const valueParser = require("postcss-value-parser");
-let counter = 0;
-const variableMap = new Map();
-const format = "icon-url"
+let counter;
+const urlVariables = new Map();
+const idToPrepend = "icon-url";
 
 function extractUrl(decl) {
     const value = decl.value;
@@ -12,14 +28,14 @@ function extractUrl(decl) {
             return;
         }
         const urlStringNode = node.nodes[0];
-        const variableName = `--${format}-${counter++}`;
-        variableMap.set(variableName, `"${urlStringNode.value}"`);
+        const variableName = `${idToPrepend}-${counter++}`;
+        urlVariables.set(variableName, `"${urlStringNode.value}"`);
         const varNode = {
             type: "function",
             value: "var",
-            nodes: [{ type: "word", value: variableName }],
+            nodes: [{ type: "word", value: `--${variableName}` }],
         };
-        //replace the url-string node with this var-node
+        // replace the url-string node with this var-node
         node.nodes[0] = varNode;
     });
     decl.assign({prop: decl.prop, value: parsed.toString()})
@@ -29,8 +45,8 @@ function extractUrl(decl) {
 function addResolvedVariablesToRootSelector(root, { Rule, Declaration }) {
     const newRule = new Rule({ selector: ":root", source: root.source });
     // Add derived css variables to :root
-    variableMap.forEach((value, key) => {
-        const declaration = new Declaration({ prop: key, value });
+    urlVariables.forEach((value, key) => {
+        const declaration = new Declaration({ prop: `--${key}`, value });
         newRule.append(declaration);
     });
     root.append(newRule);
@@ -40,6 +56,7 @@ function addResolvedVariablesToRootSelector(root, { Rule, Declaration }) {
  * @type {import('postcss').PluginCreator}
  */
 module.exports = (opts = {}) => {
+    counter = 0;
     return {
         postcssPlugin: "postcss-url-to-variable",
 
