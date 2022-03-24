@@ -31,14 +31,21 @@ module.exports.tests = function tests() {
         "url is replaced with variable": async (assert) => {
             const inputCSS = `div {
                 background: no-repeat center/80% url("../img/image.png");
+            }
+            button {
+                background: url("/home/foo/bar/cool.jpg");
             }`;
             const outputCSS =
             `div {
                 background: no-repeat center/80% url(var(--icon-url-0));
+            }
+            button {
+                background: url(var(--icon-url-1));
             }`+
                 `
             :root {
                 --icon-url-0: "../img/image.png";
+                --icon-url-1: "/home/foo/bar/cool.jpg";
             }
             `;
             await run( inputCSS, outputCSS, { }, assert);
