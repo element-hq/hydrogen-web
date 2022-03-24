@@ -22,7 +22,6 @@ import type {CallViewModel, CallMemberViewModel} from "../../../../../domain/ses
 
 function bindVideoTracks<T>(t: TemplateBuilder<T>, video: HTMLVideoElement, propSelector: (vm: T) => Track[]) {
     t.mapSideEffect(propSelector, tracks => {
-        console.log("tracks", tracks);
         if (tracks.length) {
             video.srcObject = (tracks[0] as TrackWrapper).stream;
         }
@@ -33,8 +32,8 @@ function bindVideoTracks<T>(t: TemplateBuilder<T>, video: HTMLVideoElement, prop
 export class CallView extends TemplateView<CallViewModel> {
     render(t: TemplateBuilder<CallViewModel>, vm: CallViewModel): HTMLElement {
         return t.div({class: "CallView"}, [
-            t.p(["Call ", vm => vm.name, vm => ` (${vm.id})`]),
-            t.div({class: "CallView_me"}, bindVideoTracks(t, t.video({autoplay: true}), vm => vm.localTracks)),
+            t.p(vm => `Call ${vm.name} (${vm.id})`),
+            t.div({class: "CallView_me"}, bindVideoTracks(t, t.video({autoplay: true, width: 240}), vm => vm.localTracks)),
             t.view(new ListView({list: vm.memberViewModels}, vm => new MemberView(vm)))
         ]);
     }
@@ -42,6 +41,6 @@ export class CallView extends TemplateView<CallViewModel> {
 
 class MemberView extends TemplateView<CallMemberViewModel> {
     render(t: TemplateBuilder<CallMemberViewModel>, vm: CallMemberViewModel) {
-        return bindVideoTracks(t, t.video({autoplay: true}), vm => vm.tracks);
+        return bindVideoTracks(t, t.video({autoplay: true, width: 360}), vm => vm.tracks);
     }
 }

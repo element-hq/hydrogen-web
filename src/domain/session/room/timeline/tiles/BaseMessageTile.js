@@ -49,14 +49,6 @@ export class BaseMessageTile extends SimpleTile {
         return `https://matrix.to/#/${encodeURIComponent(this.sender)}`;
     }
 
-    get displayName() {
-        return this._entry.displayName || this.sender;
-    }
-
-    get sender() {
-        return this._entry.sender;
-    }
-
     get memberPanelLink() {
         return `${this.urlCreator.urlUntilSegment("room")}/member/${this.sender}`;
     }

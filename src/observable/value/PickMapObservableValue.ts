@@ -60,13 +60,11 @@ export class PickMapObservableValue<K, V> extends BaseObservableValue<V | undefi
     onRemove(key: K, value: V): void {
         if (key === this.key) {
             this.key = undefined;
-            let changed = false;
+            // try to see if there is another key that fullfills pickKey
             for (const [key] of this.map) {
-                changed = this.updateKey(key) || changed;
+                this.updateKey(key) || changed;
             }
-            if (changed) {
-                this.emit(this.get());
-            }
+            this.emit(this.get());
         }
     }
 

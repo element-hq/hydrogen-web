@@ -49,12 +49,17 @@ export class RoomViewModel extends ViewModel {
     _setupCallViewModel() {
         // pick call for this room with lowest key
         const calls = this.getOption("session").callHandler.calls;
-        this._callObservable = new PickMapObservableValue(calls.filterValues(c => c.roomId === this._room.id && c.hasJoined));
+        this._callObservable = new PickMapObservableValue(calls.filterValues(c => {
+            return c.roomId === this._room.id && c.hasJoined;
+        }));
         this._callViewModel = undefined;
         this.track(this._callObservable.subscribe(call => {
+            if (call && this._callViewModel && call.id === this._callViewModel.id) {
+                return;
+            }
             this._callViewModel = this.disposeTracked(this._callViewModel);
             if (call) {
-                this._callViewModel = new CallViewModel(this.childOptions({call}));
+                this._callViewModel = this.track(new CallViewModel(this.childOptions({call})));
             }
             this.emitChange("callViewModel");
         }));

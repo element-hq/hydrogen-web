@@ -748,6 +748,10 @@ export class PeerCall implements IDisposable {
         this.disposables.dispose();
         this.peerConnection.dispose();
     }
+
+    public close(): void {
+        this.peerConnection.close();
+    }
 }
 
 

@@ -66,6 +66,14 @@ export class Member {
     }
 
     /** @internal */
+    disconnect() {
+        this.peerCall?.close();
+        this.peerCall?.dispose();
+        this.peerCall = undefined;
+        this.localMedia = undefined;
+    }
+
+    /** @internal */
     updateCallInfo(memberCallInfo) {
         // m.calls object from the m.call.member event
     }

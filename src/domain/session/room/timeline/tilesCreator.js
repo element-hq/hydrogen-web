@@ -73,7 +73,9 @@ export function tilesCreator(baseOptions) {
                 case "m.room.encryption":
                     return new EncryptionEnabledTile(options);
                 case "m.call":
-                    return entry.stateKey ? new CallTile(options) : null;
+                    // if prevContent is present, it's an update to a call event, which we don't render
+                    // as the original event is updated through the call object which receive state event updates
+                    return entry.stateKey && !entry.prevContent ? new CallTile(options) : null;
                 default:
                     // unknown type not rendered
                     return null;

@@ -112,7 +112,7 @@ export class CallHandler {
         const callId = event.state_key;
         let call = this._calls.get(callId);
         if (call) {
-            call.updateCallEvent(event);
+            call.updateCallEvent(event.content);
             if (call.isTerminated) {
                 this._calls.remove(call.id);
             }
@@ -125,13 +125,13 @@ export class CallHandler {
     private handleCallMemberEvent(event: StateEvent) {
         const userId = event.state_key;
         const calls = event.content["m.calls"] ?? [];
-        const newCallIdsMemberOf = new Set<string>(calls.map(call => {
+        for (const call of calls) {
             const callId = call["m.call_id"];
             const groupCall = this._calls.get(callId);
             // TODO: also check the member when receiving the m.call event
             groupCall?.addMember(userId, call);
-            return callId;
-        }));
+        };
+        const newCallIdsMemberOf = new Set<string>(calls.map(call => call["m.call_id"]));
         let previousCallIdsMemberOf = this.memberToCallIds.get(userId);
         // remove user as member of any calls not present anymore
         if (previousCallIdsMemberOf) {

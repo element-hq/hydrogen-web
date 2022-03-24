@@ -451,7 +451,7 @@ export class Room extends BaseRoom {
     _updateCallHandler(roomResponse, log) {
         if (this._callHandler) {
             const stateEvents = roomResponse.state?.events;
-            if (stateEvents) {
+            if (stateEvents?.length) {
                 this._callHandler.handleRoomState(this, stateEvents, log);
             }
             let timelineEvents = roomResponse.timeline?.events;

@@ -86,7 +86,6 @@ export class Session {
                 // although we probably already fetched all devices to send messages in the likely e2ee room
                 await this._deviceTracker.trackRoom(this.rooms.get(roomId), log);
                 const devices = await this._deviceTracker.devicesForRoomMembers(roomId, [userId], this._hsApi, log);
-                console.log("devices", devices);
                 const encryptedMessage = await this._olmEncryption.encrypt(message.type, message.content, devices, this._hsApi, log);
                 return encryptedMessage;
             },

@@ -154,4 +154,12 @@ export class SimpleTile extends ViewModel {
     get _ownMember() {
         return this._options.timeline.me;
     }
+
+    get displayName() {
+        return this._entry.displayName || this.sender;
+    }
+
+    get sender() {
+        return this._entry.sender;
+    }
 }

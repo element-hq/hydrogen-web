@@ -22,9 +22,9 @@ export class CallTileView extends TemplateView<CallTile> {
         return t.li(
             {className: "AnnouncementView"},
             t.div([
-                "Call ",
-                vm => vm.name,
-                t.button({className: "CallTileView_join"}, "Join")
+                vm => vm.label,
+                t.button({className: "CallTileView_join", hidden: vm => !vm.canJoin}, "Join"),
+                t.button({className: "CallTileView_leave", hidden: vm => !vm.canLeave}, "Leave")
             ])
         );
     }
@@ -33,6 +33,8 @@ export class CallTileView extends TemplateView<CallTile> {
     onClick(evt) {
         if (evt.target.className === "CallTileView_join") {
             this.value.join();
+        } else if (evt.target.className === "CallTileView_leave") {
+            this.value.leave();
         }
     }
 }

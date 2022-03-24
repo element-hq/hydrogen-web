@@ -19,6 +19,7 @@ import {Member} from "./Member";
 import {LocalMedia} from "../LocalMedia";
 import {RoomMember} from "../../room/members/RoomMember";
 import {makeId} from "../../common";
+import {EventEmitter} from "../../../utils/EventEmitter";
 
 import type {Options as MemberOptions} from "./Member";
 import type {BaseObservableMap} from "../../../observable/map/BaseObservableMap";
@@ -30,6 +31,9 @@ import type {Platform} from "../../../platform/web/Platform";
 import type {EncryptedMessage} from "../../e2ee/olm/Encryption";
 import type {ILogItem} from "../../../logging/types";
 import type {Storage} from "../../storage/idb/Storage";
+
+const CALL_TYPE = "m.call";
+const CALL_MEMBER_TYPE = "m.call.member";
 
 export enum GroupCallState {
     Fledgling = "fledgling",
@@ -46,7 +50,7 @@ export type Options = Omit<MemberOptions, "emitUpdate" | "confId" | "encryptDevi
     ownDeviceId: string
 };
 
-export class GroupCall {
+export class GroupCall extends EventEmitter<{change: never}> {
     public readonly id: string;
     private readonly _members: ObservableMap<string, Member> = new ObservableMap();
     private _localMedia?: LocalMedia = undefined;
@@ -59,6 +63,7 @@ export class GroupCall {
         public readonly roomId: string,
         private readonly options: Options
     ) {
+        super();
         this.id = id ??  makeId("conf-");
         this._state = id ? GroupCallState.Created : GroupCallState.Fledgling;
         this._memberOptions = Object.assign({}, options, {
@@ -87,12 +92,12 @@ export class GroupCall {
         }
         this._state = GroupCallState.Joining;
         this._localMedia = localMedia;
-        this.options.emitUpdate(this);
-        const memberContent = await this._joinCallMemberContent();
+        this.emitChange();
+        const memberContent = await this._createJoinPayload();
         // send m.call.member state event
-        const request = this.options.hsApi.sendState(this.roomId, "m.call.member", this.options.ownUserId, memberContent);
+        const request = this.options.hsApi.sendState(this.roomId, CALL_MEMBER_TYPE, this.options.ownUserId, memberContent);
         await request.response();
-        this.options.emitUpdate(this);
+        this.emitChange();
         // send invite to all members that are < my userId
         for (const [,member] of this._members) {
             member.connect(this._localMedia);
@@ -107,9 +112,23 @@ export class GroupCall {
         const memberContent = await this._leaveCallMemberContent();
         // send m.call.member state event
         if (memberContent) {
-            const request = this.options.hsApi.sendState(this.roomId, "m.call.member", this.options.ownUserId, memberContent);
+            const request = this.options.hsApi.sendState(this.roomId, CALL_MEMBER_TYPE, this.options.ownUserId, memberContent);
             await request.response();
+            // our own user isn't included in members, so not in the count
+            if (this._members.size === 0) {
+                this.terminate();
+            }
         }
+    }
+
+    async terminate() {
+        if (this._state === GroupCallState.Fledgling) {
+            return;
+        }
+        const request = this.options.hsApi.sendState(this.roomId, CALL_TYPE, this.id, Object.assign({}, this.callContent, {
+            "m.terminated": true
+        }));
+        await request.response();
     }
 
     /** @internal */
@@ -118,14 +137,16 @@ export class GroupCall {
             return;
         }
         this._state = GroupCallState.Creating;
+        this.emitChange();
         this.callContent = {
             "m.type": localMedia.cameraTrack ? "m.video" : "m.voice",
             "m.name": name,
             "m.intent": "m.ring"
         };
-        const request = this.options.hsApi.sendState(this.roomId, "m.call", this.id, this.callContent);
+        const request = this.options.hsApi.sendState(this.roomId, CALL_TYPE, this.id, this.callContent);
         await request.response();
         this._state = GroupCallState.Created;
+        this.emitChange();
     }
 
     /** @internal */
@@ -134,6 +155,7 @@ export class GroupCall {
         if (this._state === GroupCallState.Creating) {
             this._state = GroupCallState.Created;
         }
+        this.emitChange();
     }
 
     /** @internal */
@@ -141,6 +163,7 @@ export class GroupCall {
         if (userId === this.options.ownUserId) {
             if (this._state === GroupCallState.Joining) {
                 this._state = GroupCallState.Joined;
+                this.emitChange();
             }
             return;
         }
@@ -160,11 +183,21 @@ export class GroupCall {
     removeMember(userId) {
         if (userId === this.options.ownUserId) {
             if (this._state === GroupCallState.Joined) {
+                this._localMedia?.dispose();
+                this._localMedia = undefined;
+                for (const [,member] of this._members) {
+                    member.disconnect();
+                }
                 this._state = GroupCallState.Created;
             }
-            return;
+        } else {
+            const member = this._members.get(userId);
+            if (member) {
+                this._members.remove(userId);
+                member.disconnect();
+            }
         }
-        this._members.remove(userId);
+        this.emitChange();
     }
 
     /** @internal */
@@ -179,10 +212,10 @@ export class GroupCall {
         }
     }
 
-    private async _joinCallMemberContent() {
+    private async _createJoinPayload() {
         const {storage} = this.options;
         const txn = await storage.readTxn([storage.storeNames.roomState]);
-        const stateEvent = await txn.roomState.get(this.roomId, "m.call.member", this.options.ownUserId);
+        const stateEvent = await txn.roomState.get(this.roomId, CALL_MEMBER_TYPE, this.options.ownUserId);
         const stateContent = stateEvent?.event?.content ?? {
             ["m.calls"]: []
         };
@@ -209,9 +242,18 @@ export class GroupCall {
     private async _leaveCallMemberContent(): Promise<Record<string, any> | undefined> {
         const {storage} = this.options;
         const txn = await storage.readTxn([storage.storeNames.roomState]);
-        const stateEvent = await txn.roomState.get(this.roomId, "m.call.member", this.options.ownUserId);
-        const callsInfo = stateEvent?.event?.content?.["m.calls"];
-        callsInfo?.filter(c => c["m.call_id"] === this.id);
-        return stateEvent?.event.content;
+        const stateEvent = await txn.roomState.get(this.roomId, CALL_MEMBER_TYPE, this.options.ownUserId);
+        if (stateEvent) {
+            const content = stateEvent.event.content;
+            const callsInfo = content["m.calls"];
+            content["m.calls"] = callsInfo?.filter(c => c["m.call_id"] !== this.id);
+            return content;
+
+        }
+    }
+
+    protected emitChange() {
+        this.emit("change");
+        this.options.emitUpdate(this);
     }
 }

@@ -60,4 +60,10 @@ export class LocalMedia {
         }
         return metadata;
     }
+
+    dispose() {
+        this.cameraTrack?.stop();
+        this.microphoneTrack?.stop();
+        this.screenShareTrack?.stop();
+    }
 }

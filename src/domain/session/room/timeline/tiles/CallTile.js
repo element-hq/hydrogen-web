@@ -23,6 +23,27 @@ import {LocalMedia} from "../../../../../matrix/calls/LocalMedia";
 // alternatively, we could just subscribe to the GroupCall and spontanously emit an update when it updates
 
 export class CallTile extends SimpleTile {
+
+    constructor(options) {
+        super(options);
+        const calls = this.getOption("session").callHandler.calls;
+        this._call = calls.get(this._entry.stateKey);
+        this._callSubscription = undefined;
+        if (this._call) {
+            this._callSubscription = this._call.disposableOn("change", () => {
+                // unsubscribe when terminated
+                if (this._call.isTerminated) {
+                    this._callSubscription = this._callSubscription();
+                    this._call = undefined;
+                }
+                this.emitChange();
+            });
+        }
+    }
+
+    get confId() {
+        return this._entry.stateKey;
+    }
     
     get shape() {
         return "call";
@@ -32,17 +53,43 @@ export class CallTile extends SimpleTile {
         return this._entry.content["m.name"];
     }
 
-    get _call() {
-        const calls = this.getOption("session").callHandler.calls;
-        return calls.get(this._entry.stateKey);
+    get canJoin() {
+        return this._call && !this._call.hasJoined;
+    }
+
+    get canLeave() {
+        return this._call && this._call.hasJoined;
+    }
+
+    get label() {
+        if (this._call) {
+            if (this._call.hasJoined) {
+                return `Ongoing call (${this.name}, ${this.confId})`;
+            } else {
+                return `${this.displayName} started a call (${this.name}, ${this.confId})`;
+            }
+        } else {
+            return `Call finished, started by ${this.displayName} (${this.name}, ${this.confId})`;
+        }
     }
 
     async join() {
-        const call = this._call;
-        if (call) {
+        if (this.canJoin) {
             const mediaTracks = await this.platform.mediaDevices.getMediaTracks(false, true);
             const localMedia = new LocalMedia().withTracks(mediaTracks);
-            await call.join(localMedia);
+            await this._call.join(localMedia);
+        }
+    }
+
+    async leave() {
+        if (this.canLeave) {
+            this._call.leave();
+        }
+    }
+
+    dispose() {
+        if (this._callSubscription) {
+            this._callSubscription = this._callSubscription();
         }
     }
 }

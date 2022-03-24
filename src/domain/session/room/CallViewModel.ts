@@ -33,16 +33,26 @@ export class CallViewModel extends ViewModel<Options> {
             .sortValues((a, b) => a.compare(b));
     }
 
+    private get call(): GroupCall {
+        return this.getOption("call");
+    }
+
     get name(): string {
-        return this.getOption("call").name;
+        return this.call.name;
     }
 
     get id(): string {
-        return this.getOption("call").id;
+        return this.call.id;
     }
 
     get localTracks(): Track[] {
-        return this.getOption("call").localMedia?.tracks ?? [];
+        return this.call.localMedia?.tracks ?? [];
+    }
+
+    leave() {
+        if (this.call.hasJoined) {
+            this.call.leave();
+        }
     }
 }
 
@@ -50,12 +60,16 @@ type MemberOptions = BaseOptions & {member: Member};
 
 export class CallMemberViewModel extends ViewModel<MemberOptions> {
     get tracks(): Track[] {
-        return this.getOption("member").remoteTracks;
+        return this.member.remoteTracks;
+    }
+
+    private get member(): Member {
+        return this.getOption("member");
     }
 
     compare(other: CallMemberViewModel): number {
-        const myUserId = this.getOption("member").member.userId;
-        const otherUserId = other.getOption("member").member.userId;
+        const myUserId = this.member.member.userId;
+        const otherUserId = other.member.member.userId;
         if(myUserId === otherUserId) {
             return 0;
         }
