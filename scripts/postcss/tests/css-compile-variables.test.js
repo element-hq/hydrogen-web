@@ -18,15 +18,7 @@ const offColor = require("off-color").offColor;
 const postcss = require("postcss");
 const plugin = require("../css-compile-variables");
 const derive = require("../color").derive;
-
-async function run(input, output, opts = {}, assert) {
-    let result = await postcss([plugin({ ...opts, derive })]).process(input, { from: undefined, });
-    assert.strictEqual(
-        result.css.replaceAll(/\s/g, ""),
-        output.replaceAll(/\s/g, "")
-    );
-    assert.strictEqual(result.warnings().length, 0);
-}
+const run = require("./common").createTestRunner(plugin);
 
 module.exports.tests = function tests() {
     return {
@@ -46,7 +38,7 @@ module.exports.tests = function tests() {
                 --foo-color--lighter-50: ${transformedColor.hex()};
             }
             `;
-            await run( inputCSS, outputCSS, {}, assert);
+            await run( inputCSS, outputCSS, {derive}, assert);
         },
 
         "derived variables work with alias": async (assert) => {
@@ -66,7 +58,7 @@ module.exports.tests = function tests() {
                 --my-alias--lighter-15: ${aliasLighter};
             }
             `;
-            await run(inputCSS, outputCSS, { }, assert);
+            await run(inputCSS, outputCSS, {derive}, assert);
         },
 
         "derived variable throws if base not present in config": async (assert) => {
@@ -94,7 +86,7 @@ module.exports.tests = function tests() {
                 --foo-color--darker-20: ${transformedColor2.hex()};
             }
             `;
-            await run( inputCSS, outputCSS, { }, assert);
+            await run( inputCSS, outputCSS, {derive}, assert);
         },
 
         "multiple aliased-derived variable in single declaration is parsed correctly": async (assert) => {

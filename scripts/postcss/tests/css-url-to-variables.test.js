@@ -14,17 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-const postcss = require("postcss");
 const plugin = require("../css-url-to-variables");
-
-async function run(input, output, opts = {}, assert) {
-    let result = await postcss([plugin(opts)]).process(input, { from: undefined, });
-    assert.strictEqual(
-        result.css.replaceAll(/\s/g, ""),
-        output.replaceAll(/\s/g, "")
-    );
-    assert.strictEqual(result.warnings().length, 0);
-}
+const run = require("./common").createTestRunner(plugin);
 
 module.exports.tests = function tests() {
     return {
