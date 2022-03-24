@@ -1133,6 +1133,13 @@ nth-check@^2.0.0:
   dependencies:
     boolbase "^1.0.0"
 
+off-color@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/off-color/-/off-color-2.0.0.tgz#ecf3bda52e9a78dde535db86361e048741a56631"
+  integrity sha512-JJ9ObbY2CzgT7F8PpdpHGNjQa7QbU8f4DkY3cCxYUq9NezYUMmL/oSofCc5MMaiUnNNBEFCc4w1unMA+R8syvw==
+  dependencies:
+    core-js "^3.6.5"
+
 once@^1.3.0:
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/once/-/once-1.4.0.tgz#583b1aa775961d4b113ac17d9c50baef9dd76bd1"
@@ -1214,6 +1221,11 @@ postcss-flexbugs-fixes@^5.0.2:
   version "5.0.2"
   resolved "https://registry.yarnpkg.com/postcss-flexbugs-fixes/-/postcss-flexbugs-fixes-5.0.2.tgz#2028e145313074fc9abe276cb7ca14e5401eb49d"
   integrity sha512-18f9voByak7bTktR2QgDveglpn9DTbBWPUzSOe9g0N4WR/2eSt6Vrcbf0hmspvMI6YWGywz6B9f7jzpFNJJgnQ==
+
+postcss-value-parser@^4.2.0:
+  version "4.2.0"
+  resolved "https://registry.yarnpkg.com/postcss-value-parser/-/postcss-value-parser-4.2.0.tgz#723c09920836ba6d3e5af019f92bc0971c02e514"
+  integrity sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ==
 
 postcss@^8.3.8:
   version "8.3.9"
