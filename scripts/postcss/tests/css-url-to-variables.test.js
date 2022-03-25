@@ -28,15 +28,15 @@ module.exports.tests = function tests() {
             }`;
             const outputCSS =
             `div {
-                background: no-repeat center/80% url(var(--icon-url-0));
+                background: no-repeat center/80% var(--icon-url-0);
             }
             button {
-                background: url(var(--icon-url-1));
+                background: var(--icon-url-1);
             }`+
                 `
             :root {
-                --icon-url-0: "../img/image.png";
-                --icon-url-1: "/home/foo/bar/cool.jpg";
+                --icon-url-0: url("../img/image.png");
+                --icon-url-1: url("/home/foo/bar/cool.jpg");
             }
             `;
             await run( inputCSS, outputCSS, { }, assert);

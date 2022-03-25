@@ -34,13 +34,8 @@ function extractUrl(decl) {
         const urlStringNode = node.nodes[0];
         const variableName = `${idToPrepend}-${counter++}`;
         urlVariables.set(variableName, urlStringNode.value);
-        const varNode = {
-            type: "function",
-            value: "var",
-            nodes: [{ type: "word", value: `--${variableName}` }],
-        };
-        // replace the url-string node with this var-node
-        node.nodes[0] = varNode;
+        node.value = "var";
+        node.nodes = [{ type: "word", value: `--${variableName}` }];
     });
     decl.assign({prop: decl.prop, value: parsed.toString()})
 }
@@ -49,7 +44,7 @@ function addResolvedVariablesToRootSelector(root, { Rule, Declaration }) {
     const newRule = new Rule({ selector: ":root", source: root.source });
     // Add derived css variables to :root
     urlVariables.forEach((value, key) => {
-        const declaration = new Declaration({ prop: `--${key}`, value: `"${value}"`});
+        const declaration = new Declaration({ prop: `--${key}`, value: `url("${value}")`});
         newRule.append(declaration);
     });
     root.append(newRule);
