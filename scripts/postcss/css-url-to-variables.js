@@ -33,7 +33,7 @@ function extractUrl(decl) {
         }
         const urlStringNode = node.nodes[0];
         const variableName = `${idToPrepend}-${counter++}`;
-        urlVariables.set(variableName, `"${urlStringNode.value}"`);
+        urlVariables.set(variableName, urlStringNode.value);
         const varNode = {
             type: "function",
             value: "var",
@@ -49,7 +49,7 @@ function addResolvedVariablesToRootSelector(root, { Rule, Declaration }) {
     const newRule = new Rule({ selector: ":root", source: root.source });
     // Add derived css variables to :root
     urlVariables.forEach((value, key) => {
-        const declaration = new Declaration({ prop: `--${key}`, value });
+        const declaration = new Declaration({ prop: `--${key}`, value: `"${value}"`});
         newRule.append(declaration);
     });
     root.append(newRule);
