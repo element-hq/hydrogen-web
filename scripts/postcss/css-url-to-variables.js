@@ -15,6 +15,10 @@ limitations under the License.
 */
 
 const valueParser = require("postcss-value-parser");
+/**
+ * This plugin extracts content inside url() into css variables.
+ * The extracted css variables are added to the :root section.
+ */
 let counter;
 const urlVariables = new Map();
 const idToPrepend = "icon-url";
