@@ -23,7 +23,7 @@ const path = require("path");
  * @param {string} secondaryColor Secondary color for the new svg
  */
 module.exports.buildColorizedSVG = function (svgLocation, primaryColor, secondaryColor) {
-    const svgCode = fs.readFileSync(svgLocation, { encoding: "utf-8"});
+    const svgCode = fs.readFileSync(svgLocation, { encoding: "utf8"});
     let coloredSVGCode = svgCode.replaceAll("#ff00ff", primaryColor);
     coloredSVGCode = coloredSVGCode.replaceAll("#00ffff", secondaryColor);
     const fileName = svgLocation.match(/.+\/(.+\.svg)/)[1];
