@@ -61,10 +61,12 @@ export class GroupCall extends EventEmitter<{change: never}> {
         id: string | undefined,
         private callContent: Record<string, any> | undefined,
         public readonly roomId: string,
-        private readonly options: Options
+        private readonly options: Options,
+        private readonly logItem: ILogItem,
     ) {
         super();
         this.id = id ??  makeId("conf-");
+        logItem.set("id", this.id);
         this._state = id ? GroupCallState.Created : GroupCallState.Fledgling;
         this._memberOptions = Object.assign({}, options, {
             confId: this.id,
@@ -86,130 +88,156 @@ export class GroupCall extends EventEmitter<{change: never}> {
         return this.callContent?.["m.name"];
     }
 
-    async join(localMedia: LocalMedia) {
-        if (this._state !== GroupCallState.Created) {
-            return;
-        }
-        this._state = GroupCallState.Joining;
-        this._localMedia = localMedia;
-        this.emitChange();
-        const memberContent = await this._createJoinPayload();
-        // send m.call.member state event
-        const request = this.options.hsApi.sendState(this.roomId, CALL_MEMBER_TYPE, this.options.ownUserId, memberContent);
-        await request.response();
-        this.emitChange();
-        // send invite to all members that are < my userId
-        for (const [,member] of this._members) {
-            member.connect(this._localMedia);
-        }
+    join(localMedia: LocalMedia): Promise<void> {
+        return this.logItem.wrap("join", async log => {
+            if (this._state !== GroupCallState.Created) {
+                return;
+            }
+            this._state = GroupCallState.Joining;
+            this._localMedia = localMedia;
+            this.emitChange();
+            const memberContent = await this._createJoinPayload();
+            // send m.call.member state event
+            const request = this.options.hsApi.sendState(this.roomId, CALL_MEMBER_TYPE, this.options.ownUserId, memberContent, {log});
+            await request.response();
+            this.emitChange();
+            // send invite to all members that are < my userId
+            for (const [,member] of this._members) {
+                member.connect(this._localMedia);
+            }
+        });
     }
 
     get hasJoined() {
         return this._state === GroupCallState.Joining || this._state === GroupCallState.Joined;
     }
 
-    async leave() {
-        const memberContent = await this._leaveCallMemberContent();
-        // send m.call.member state event
-        if (memberContent) {
-            const request = this.options.hsApi.sendState(this.roomId, CALL_MEMBER_TYPE, this.options.ownUserId, memberContent);
-            await request.response();
-            // our own user isn't included in members, so not in the count
-            if (this._members.size === 0) {
-                this.terminate();
-            }
-        }
-    }
-
-    async terminate() {
-        if (this._state === GroupCallState.Fledgling) {
-            return;
-        }
-        const request = this.options.hsApi.sendState(this.roomId, CALL_TYPE, this.id, Object.assign({}, this.callContent, {
-            "m.terminated": true
-        }));
-        await request.response();
-    }
-
-    /** @internal */
-    async create(localMedia: LocalMedia, name: string) {
-        if (this._state !== GroupCallState.Fledgling) {
-            return;
-        }
-        this._state = GroupCallState.Creating;
-        this.emitChange();
-        this.callContent = {
-            "m.type": localMedia.cameraTrack ? "m.video" : "m.voice",
-            "m.name": name,
-            "m.intent": "m.ring"
-        };
-        const request = this.options.hsApi.sendState(this.roomId, CALL_TYPE, this.id, this.callContent);
-        await request.response();
-        this._state = GroupCallState.Created;
-        this.emitChange();
-    }
-
-    /** @internal */
-    updateCallEvent(callContent: Record<string, any>) {
-        this.callContent = callContent;
-        if (this._state === GroupCallState.Creating) {
-            this._state = GroupCallState.Created;
-        }
-        this.emitChange();
-    }
-
-    /** @internal */
-    addMember(userId, memberCallInfo) {
-        if (userId === this.options.ownUserId) {
-            if (this._state === GroupCallState.Joining) {
-                this._state = GroupCallState.Joined;
-                this.emitChange();
-            }
-            return;
-        }
-        let member = this._members.get(userId);
-        if (member) {
-            member.updateCallInfo(memberCallInfo);
-        } else {
-            member = new Member(RoomMember.fromUserId(this.roomId, userId, "join"), memberCallInfo, this._memberOptions);
-            this._members.add(userId, member);
-            if (this._state === GroupCallState.Joining || this._state === GroupCallState.Joined) {
-                member.connect(this._localMedia!);
-            }
-        }
-    }
-
-    /** @internal */
-    removeMember(userId) {
-        if (userId === this.options.ownUserId) {
-            if (this._state === GroupCallState.Joined) {
-                this._localMedia?.dispose();
-                this._localMedia = undefined;
-                for (const [,member] of this._members) {
-                    member.disconnect();
+    leave(): Promise<void> {
+        return this.logItem.wrap("leave", async log => {
+            const memberContent = await this._leaveCallMemberContent();
+            // send m.call.member state event
+            if (memberContent) {
+                const request = this.options.hsApi.sendState(this.roomId, CALL_MEMBER_TYPE, this.options.ownUserId, memberContent, {log});
+                await request.response();
+                // our own user isn't included in members, so not in the count
+                if (this._members.size === 0) {
+                    await this.terminate();
                 }
+            }
+        });
+    }
+
+    terminate(): Promise<void> {
+        return this.logItem.wrap("terminate", async log => {
+            if (this._state === GroupCallState.Fledgling) {
+                return;
+            }
+            const request = this.options.hsApi.sendState(this.roomId, CALL_TYPE, this.id, Object.assign({}, this.callContent, {
+                "m.terminated": true
+            }), {log});
+            await request.response();
+        });
+    }
+
+    /** @internal */
+    create(localMedia: LocalMedia, name: string): Promise<void> {
+        return this.logItem.wrap("create", async log => {
+            if (this._state !== GroupCallState.Fledgling) {
+                return;
+            }
+            this._state = GroupCallState.Creating;
+            this.emitChange();
+            this.callContent = {
+                "m.type": localMedia.cameraTrack ? "m.video" : "m.voice",
+                "m.name": name,
+                "m.intent": "m.ring"
+            };
+            const request = this.options.hsApi.sendState(this.roomId, CALL_TYPE, this.id, this.callContent, {log});
+            await request.response();
+            this._state = GroupCallState.Created;
+            this.emitChange();
+        });
+    }
+
+    /** @internal */
+    updateCallEvent(callContent: Record<string, any>, syncLog: ILogItem) {
+        this.logItem.wrap("updateCallEvent", log => {
+            syncLog.refDetached(log);
+            this.callContent = callContent;
+            if (this._state === GroupCallState.Creating) {
                 this._state = GroupCallState.Created;
             }
-        } else {
-            const member = this._members.get(userId);
-            if (member) {
-                this._members.remove(userId);
-                member.disconnect();
-            }
-        }
-        this.emitChange();
+            log.set("status", this._state);
+            this.emitChange();
+        });
     }
 
     /** @internal */
-    handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, userId: string, deviceId: string, log: ILogItem) {
-        console.log("incoming to_device call signalling message from", userId, deviceId, message);
+    addMember(userId: string, memberCallInfo, syncLog: ILogItem) {
+        this.logItem.wrap({l: "addMember", id: userId}, log => {
+            syncLog.refDetached(log);
+
+            if (userId === this.options.ownUserId) {
+                if (this._state === GroupCallState.Joining) {
+                    this._state = GroupCallState.Joined;
+                    this.emitChange();
+                }
+                return;
+            }
+            let member = this._members.get(userId);
+            if (member) {
+                member.updateCallInfo(memberCallInfo);
+            } else {
+                const logItem = this.logItem.child("member");
+                member = new Member(RoomMember.fromUserId(this.roomId, userId, "join"), memberCallInfo, this._memberOptions, logItem);
+                this._members.add(userId, member);
+                if (this._state === GroupCallState.Joining || this._state === GroupCallState.Joined) {
+                    member.connect(this._localMedia!);
+                }
+            }
+        });
+    }
+
+    /** @internal */
+    removeMember(userId: string, syncLog: ILogItem) {
+        this.logItem.wrap({l: "removeMember", id: userId}, log => {
+            syncLog.refDetached(log);
+            if (userId === this.options.ownUserId) {
+                if (this._state === GroupCallState.Joined) {
+                    this._localMedia?.dispose();
+                    this._localMedia = undefined;
+                    for (const [,member] of this._members) {
+                        member.disconnect();
+                    }
+                    this._state = GroupCallState.Created;
+                }
+            } else {
+                const member = this._members.get(userId);
+                if (member) {
+                    this._members.remove(userId);
+                    member.disconnect();
+                }
+            }
+            this.emitChange();
+        });
+    }
+
+    /** @internal */
+    handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, userId: string, deviceId: string, syncLog: ILogItem) {
         // TODO: return if we are not membering to the call
         let member = this._members.get(userId);
         if (member) {
-            member.handleDeviceMessage(message, deviceId, log);
+            member.handleDeviceMessage(message, deviceId, syncLog);
         } else {
+            const item = this.logItem.log({l: "could not find member for signalling message", userId, deviceId});
+            syncLog.refDetached(item);
             // we haven't received the m.call.member yet for this caller. buffer the device messages or create the member/call anyway?
         }
+    }
+
+    /** @internal */
+    dispose() {
+        this.logItem.finish();
     }
 
     private async _createJoinPayload() {

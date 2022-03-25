@@ -44,8 +44,11 @@ export class Member {
     constructor(
         public readonly member: RoomMember,
         private memberCallInfo: Record<string, any>,
-        private readonly options: Options
-    ) {}
+        private readonly options: Options,
+        private readonly logItem: ILogItem,
+    ) {
+        logItem.set("id", member.userId);
+    }
 
     get remoteTracks(): Track[] {
         return this.peerCall?.remoteTracks ?? [];
@@ -57,6 +60,7 @@ export class Member {
 
     /** @internal */
     connect(localMedia: LocalMedia) {
+        this.logItem.log("connect");
         this.localMedia = localMedia;
         // otherwise wait for it to connect
         if (this.member.userId < this.options.ownUserId) {
@@ -71,6 +75,7 @@ export class Member {
         this.peerCall?.dispose();
         this.peerCall = undefined;
         this.localMedia = undefined;
+        this.logItem.log("disconnect");
     }
 
     /** @internal */
@@ -87,7 +92,7 @@ export class Member {
     }
 
     /** @internal */
-    sendSignallingMessage = async (message: SignallingMessage<MCallBase>, log: ILogItem) => {
+    sendSignallingMessage = async (message: SignallingMessage<MCallBase>, log: ILogItem): Promise<void> => {
         const groupMessage = message as SignallingMessage<MGroupCallBase>;
         groupMessage.content.conf_id = this.options.confId;
         const encryptedMessages = await this.options.encryptDeviceMessage(this.member.userId, groupMessage, log);
@@ -102,12 +107,13 @@ export class Member {
     }
 
     /** @internal */
-    handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, deviceId: string, log: ILogItem) {
+    handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, deviceId: string, syncLog: ILogItem) {
+        syncLog.refDetached(this.logItem);
         if (message.type === EventType.Invite && !this.peerCall) {
             this.peerCall = this._createPeerCall(message.content.call_id);
         }
         if (this.peerCall) {
-            this.peerCall.handleIncomingSignallingMessage(message, deviceId, log);
+            this.peerCall.handleIncomingSignallingMessage(message, deviceId);
         } else {
             // TODO: need to buffer events until invite comes?
         }
@@ -117,6 +123,6 @@ export class Member {
         return new PeerCall(callId, Object.assign({}, this.options, {
             emitUpdate: this.emitUpdate,
             sendSignallingMessage: this.sendSignallingMessage
-        }));
+        }), this.logItem);
     }
 }

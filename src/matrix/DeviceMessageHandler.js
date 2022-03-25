@@ -86,7 +86,6 @@ export class DeviceMessageHandler {
                 this._senderDeviceCache.set(device);
             }
         }
-        console.log("incoming device message", senderKey, device, this._senderDeviceCache);
         return device;
     }
 }

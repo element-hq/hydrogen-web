@@ -25,7 +25,7 @@ import type {LocalMedia} from "./LocalMedia";
 import type {Room} from "../room/Room";
 import type {MemberChange} from "../room/members/RoomMember";
 import type {StateEvent} from "../storage/types";
-import type {ILogItem} from "../../logging/types";
+import type {ILogItem, ILogger} from "../../logging/types";
 import type {Platform} from "../../platform/web/Platform";
 import type {BaseObservableMap} from "../../observable/map/BaseObservableMap";
 import type {SignallingMessage, MGroupCallBase} from "./callEventTypes";
@@ -35,7 +35,9 @@ const GROUP_CALL_TYPE = "m.call";
 const GROUP_CALL_MEMBER_TYPE = "m.call.member";
 const CALL_TERMINATED = "m.terminated";
 
-export type Options = Omit<GroupCallOptions, "emitUpdate">;
+export type Options = Omit<GroupCallOptions, "emitUpdate"> & {
+    logger: ILogger
+};
 
 export class CallHandler {
     // group calls by call id
@@ -51,7 +53,8 @@ export class CallHandler {
     }
 
     async createCall(roomId: string, localMedia: LocalMedia, name: string): Promise<GroupCall> {
-        const call = new GroupCall(undefined, undefined, roomId, this.groupCallOptions);
+        const logItem = this.options.logger.child({l: "call", incoming: false});
+        const call = new GroupCall(undefined, undefined, roomId, this.groupCallOptions, logItem);
         console.log("created call with id", call.id);
         this._calls.set(call.id, call);
         try {
@@ -59,6 +62,7 @@ export class CallHandler {
         } catch (err) {
             if (err.name === "ConnectionError") {
                 // if we're offline, give up and remove the call again
+                call.dispose();
                 this._calls.remove(call.id);
             }
             throw err;
@@ -79,13 +83,13 @@ export class CallHandler {
         // first update call events
         for (const event of events) {
             if (event.type === EventType.GroupCall) {
-                this.handleCallEvent(event, room.id);
+                this.handleCallEvent(event, room.id, log);
             }
         }
         // then update members
         for (const event of events) {
             if (event.type === EventType.GroupCallMember) {
-                this.handleCallMemberEvent(event);
+                this.handleCallMemberEvent(event, log);
             }
         }
     }
@@ -108,28 +112,30 @@ export class CallHandler {
         call?.handleDeviceMessage(message, userId, deviceId, log);
     }
 
-    private handleCallEvent(event: StateEvent, roomId: string) {
+    private handleCallEvent(event: StateEvent, roomId: string, log: ILogItem) {
         const callId = event.state_key;
         let call = this._calls.get(callId);
         if (call) {
-            call.updateCallEvent(event.content);
+            call.updateCallEvent(event.content, log);
             if (call.isTerminated) {
+                call.dispose();
                 this._calls.remove(call.id);
             }
         } else {
-            call = new GroupCall(event.state_key, event.content, roomId, this.groupCallOptions);
+            const logItem = this.options.logger.child({l: "call", incoming: true});
+            call = new GroupCall(event.state_key, event.content, roomId, this.groupCallOptions, logItem);
             this._calls.set(call.id, call);
         }
     }
 
-    private handleCallMemberEvent(event: StateEvent) {
+    private handleCallMemberEvent(event: StateEvent, log: ILogItem) {
         const userId = event.state_key;
         const calls = event.content["m.calls"] ?? [];
         for (const call of calls) {
             const callId = call["m.call_id"];
             const groupCall = this._calls.get(callId);
             // TODO: also check the member when receiving the m.call event
-            groupCall?.addMember(userId, call);
+            groupCall?.addMember(userId, call, log);
         };
         const newCallIdsMemberOf = new Set<string>(calls.map(call => call["m.call_id"]));
         let previousCallIdsMemberOf = this.memberToCallIds.get(userId);
@@ -138,7 +144,7 @@ export class CallHandler {
             for (const previousCallId of previousCallIdsMemberOf) {
                 if (!newCallIdsMemberOf.has(previousCallId)) {
                     const groupCall = this._calls.get(previousCallId);
-                    groupCall?.removeMember(userId);
+                    groupCall?.removeMember(userId, log);
                 }
             }
         }

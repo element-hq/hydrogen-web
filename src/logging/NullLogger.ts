@@ -23,6 +23,10 @@ export class NullLogger implements ILogger {
 
     log(): void {}
 
+    child(): ILogItem  {
+        return this.item;
+    }
+
     run<T>(_, callback: LogCallback<T>): T {
         return callback(this.item);    
     }
@@ -50,13 +54,13 @@ export class NullLogger implements ILogger {
 }
 
 export class NullLogItem implements ILogItem {
-    public readonly logger: NullLogger;
+    public readonly logger: ILogger;
     public readonly logLevel: LogLevel;
     public children?: Array<ILogItem>;
     public values: LogItemValues;
     public error?: Error;
 
-    constructor(logger: NullLogger) {
+    constructor(logger: ILogger) {
         this.logger = logger;
     }
 
@@ -99,6 +103,7 @@ export class NullLogItem implements ILogItem {
     }
 
     finish(): void {}
+    forceFinish(): void {}
 
     serialize(): undefined {
         return undefined;

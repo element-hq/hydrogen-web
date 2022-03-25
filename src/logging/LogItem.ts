@@ -25,7 +25,7 @@ export class LogItem implements ILogItem {
     public error?: Error;
     public end?: number;
     private _values: LogItemValues;
-    private _logger: BaseLogger;
+    protected _logger: BaseLogger;
     private _filterCreator?: FilterCreator;
     private _children?: Array<LogItem>;
 
@@ -221,6 +221,11 @@ export class LogItem implements ILogItem {
         }
     }
 
+    /** @internal */
+    forceFinish(): void {
+        this.finish();
+    }
+
     // expose log level without needing import everywhere
     get level(): typeof LogLevel {
         return LogLevel;
@@ -235,7 +240,7 @@ export class LogItem implements ILogItem {
 
     child(labelOrValues: LabelOrValues, logLevel?: LogLevel, filterCreator?: FilterCreator): LogItem {
         if (this.end) {
-            console.trace("log item is finished, additional logs will likely not be recorded");
+            console.trace(`log item ${this.values.l} finished, additional log ${JSON.stringify(labelOrValues)} will likely not be recorded`);
         }
         if (!logLevel) {
             logLevel = this.logLevel || LogLevel.Info;

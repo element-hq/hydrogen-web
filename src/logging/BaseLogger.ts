@@ -36,6 +36,15 @@ export abstract class BaseLogger implements ILogger {
         this._persistItem(item, undefined, false);
     }
 
+    /** Prefer `run()` or `log()` above this method; only use it if you have a long-running operation
+     *  *without* a single call stack that should be logged into one sub-tree.
+     *  You need to call `finish()` on the returned item or it will stay open until the app unloads. */
+    child(labelOrValues: LabelOrValues, logLevel: LogLevel = LogLevel.Info, filterCreator?: FilterCreator): ILogItem {
+        const item = new DeferredPersistRootLogItem(labelOrValues, logLevel, this, filterCreator);
+        this._openItems.add(item);
+        return item;
+    }
+
     /** if item is a log item, wrap the callback in a child of it, otherwise start a new root log item. */
     wrapOrRun<T>(item: ILogItem | undefined, labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T {
         if (item) {
@@ -127,7 +136,7 @@ export abstract class BaseLogger implements ILogger {
 
     _finishOpenItems() {
         for (const openItem of this._openItems) {
-            openItem.finish();
+            openItem.forceFinish();
             try {
                 // for now, serialize with an all-permitting filter
                 // as the createFilter function would get a distorted image anyway
@@ -156,5 +165,17 @@ export abstract class BaseLogger implements ILogger {
 
     _createRefId(): number {
         return Math.round(this._platform.random() * Number.MAX_SAFE_INTEGER);
+    }
+}
+
+class DeferredPersistRootLogItem extends LogItem {
+    finish() {
+        super.finish();
+        (this._logger as BaseLogger)._persistItem(this, undefined, false);
+    }
+
+    forceFinish() {
+        super.finish();
+        /// no need to persist when force-finishing as _finishOpenItems above will do it
     }
 }

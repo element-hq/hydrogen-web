@@ -51,11 +51,24 @@ export interface ILogItem {
     catch(err: Error): Error;
     serialize(filter: LogFilter, parentStartTime: number | undefined, forced: boolean): ISerializedItem | undefined;
     finish(): void;
+    forceFinish(): void;
     child(labelOrValues: LabelOrValues, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem;
 }
+/*
+extend both ILogger and ILogItem from this interface, but need to rename ILogger.run => wrap then. Or both to `span`?
+
+export interface ILogItemCreator {
+    child(labelOrValues: LabelOrValues, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem;
+    refDetached(logItem: ILogItem, logLevel?: LogLevel): void;
+    log(labelOrValues: LabelOrValues, logLevel?: LogLevel): ILogItem;
+    wrap<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T;
+    get level(): typeof LogLevel;
+}
+*/
 
 export interface ILogger {
     log(labelOrValues: LabelOrValues, logLevel?: LogLevel): void;
+    child(labelOrValues: LabelOrValues, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem;
     wrapOrRun<T>(item: ILogItem | undefined, labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T;
     runDetached<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem;
     run<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T;

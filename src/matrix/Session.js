@@ -84,8 +84,10 @@ export class Session {
                 }
                 // TODO: just get the devices we're sending the message to, not all the room devices
                 // although we probably already fetched all devices to send messages in the likely e2ee room
-                await this._deviceTracker.trackRoom(this.rooms.get(roomId), log);
-                const devices = await this._deviceTracker.devicesForRoomMembers(roomId, [userId], this._hsApi, log);
+                const devices = await log.wrap("get device keys", async log => {
+                    await this._deviceTracker.trackRoom(this.rooms.get(roomId), log);
+                    return this._deviceTracker.devicesForRoomMembers(roomId, [userId], this._hsApi, log);
+                });
                 const encryptedMessage = await this._olmEncryption.encrypt(message.type, message.content, devices, this._hsApi, log);
                 return encryptedMessage;
             },
@@ -93,6 +95,7 @@ export class Session {
             webRTC: this._platform.webRTC,
             ownDeviceId: sessionInfo.deviceId,
             ownUserId: sessionInfo.userId,
+            logger: this._platform.logger,
         });
         this._deviceMessageHandler = new DeviceMessageHandler({storage, callHandler: this._callHandler});
         this._olm = olm;
