@@ -53,6 +53,6 @@ export function viewClassForEntry(entry: SimpleTile): TileViewConstructor | unde
         case "redacted":
             return RedactedView;
         case "call":
-            return CallTileView;
+            return CallTileView as any as TileViewConstructor;
     }
 }

@@ -62,7 +62,7 @@ export class PickMapObservableValue<K, V> extends BaseObservableValue<V | undefi
             this.key = undefined;
             // try to see if there is another key that fullfills pickKey
             for (const [key] of this.map) {
-                this.updateKey(key) || changed;
+                this.updateKey(key);
             }
             this.emit(this.get());
         }
