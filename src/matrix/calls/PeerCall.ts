@@ -113,10 +113,10 @@ export class PeerCall implements IDisposable {
             },
             onDataChannelChanged(dataChannel: DataChannel | undefined) {},
             onNegotiationNeeded() {
-                const log = outer.logItem.child("onNegotiationNeeded");
-                const promiseCreator = async () => {
-                    await outer.handleNegotiation(log);
-                    log.finish();
+                const promiseCreator = () => {
+                    return outer.logItem.wrap("onNegotiationNeeded", log => {
+                        return outer.handleNegotiation(log);
+                    });
                 };
                 outer.responsePromiseChain = outer.responsePromiseChain?.then(promiseCreator) ?? promiseCreator();
             },
@@ -139,7 +139,7 @@ export class PeerCall implements IDisposable {
             }
             this.localMedia = localMedia;
             this.direction = CallDirection.Outbound;
-            this.setState(CallState.CreateOffer);
+            this.setState(CallState.CreateOffer, log);
             for (const t of this.localMedia.tracks) {
                 this.peerConnection.addTrack(t);
             }
@@ -155,7 +155,7 @@ export class PeerCall implements IDisposable {
                 return;
             }
             this.localMedia = localMedia;
-            this.setState(CallState.CreateAnswer);
+            this.setState(CallState.CreateAnswer, log);
             for (const t of this.localMedia.tracks) {
                 this.peerConnection.addTrack(t);
             }
@@ -173,7 +173,7 @@ export class PeerCall implements IDisposable {
 
             try {
                 await this.peerConnection.setLocalDescription(myAnswer);
-                this.setState(CallState.Connecting);
+                this.setState(CallState.Connecting, log);
             } catch (err) {
                 await log.wrap(`Error setting local description!`, log => {
                     log.catch(err);
@@ -305,7 +305,7 @@ export class PeerCall implements IDisposable {
             };
             if (this._state === CallState.CreateOffer) {
                 await this.sendSignallingMessage({type: EventType.Invite, content}, log);
-                this.setState(CallState.InviteSent);
+                this.setState(CallState.InviteSent, log);
             } else if (this._state === CallState.Connected || this._state === CallState.Connecting) {
                 // send Negotiate message
                 //await this.sendSignallingMessage({type: EventType.Invite, content});
@@ -317,14 +317,16 @@ export class PeerCall implements IDisposable {
 
         this.sendCandidateQueue(log);
 
-        if (this._state === CallState.InviteSent) {
-            try { await this.delay(CALL_TIMEOUT_MS); }
-            catch (err) { return; }
-            // @ts-ignore TS doesn't take the await above into account to know that the state could have changed in between
+        await log.wrap("invite timeout", async log => {
             if (this._state === CallState.InviteSent) {
-                this._hangup(CallErrorCode.InviteTimeout, log);
+                try { await this.delay(CALL_TIMEOUT_MS); }
+                catch (err) { return; }
+                // @ts-ignore TS doesn't take the await above into account to know that the state could have changed in between
+                if (this._state === CallState.InviteSent) {
+                    this._hangup(CallErrorCode.InviteTimeout, log);
+                }
             }
-        }
+        });
     };
 
     private async handleInviteGlare(content: MCallInvite<MCallBase>, partyId: PartyId, log: ILogItem): Promise<void> {
@@ -398,7 +400,7 @@ export class PeerCall implements IDisposable {
             return;
         }
 
-        this.setState(CallState.Ringing);
+        this.setState(CallState.Ringing, log);
 
         try { await this.delay(content.lifetime ?? CALL_TIMEOUT_MS); }
         catch (err) { return; }
@@ -406,7 +408,7 @@ export class PeerCall implements IDisposable {
         if (this._state === CallState.Ringing) {
             log.log(`Invite has expired. Hanging up.`);
             this.hangupParty = CallParty.Remote; // effectively
-            this.setState(CallState.Ended);
+            this.setState(CallState.Ended, log);
             this.stopAllMedia();
             if (this.peerConnection.signalingState != 'closed') {
                 this.peerConnection.close();
@@ -428,7 +430,7 @@ export class PeerCall implements IDisposable {
         this.opponentPartyId = partyId;
         await this.addBufferedIceCandidates(log);
 
-        this.setState(CallState.Connecting);
+        this.setState(CallState.Connecting, log);
 
         const sdpStreamMetadata = content[SDPStreamMetadataKey];
         if (sdpStreamMetadata) {
@@ -449,7 +451,6 @@ export class PeerCall implements IDisposable {
     }
 
     private handleIceGatheringState(state: RTCIceGatheringState, log: ILogItem) {
-        log.set("state", state);
         if (state === 'complete' && !this.sentEndOfCandidates) {
             // If we didn't get an empty-string candidate to signal the end of candidates,
             // create one ourselves now gathering has finished.
@@ -712,15 +713,12 @@ export class PeerCall implements IDisposable {
         if (this._state === CallState.Ended) {
             return; // because ICE can still complete as we're ending the call
         }
-        log.log(
-            "ICE connection state changed to: " + state,
-        );
         // ideally we'd consider the call to be connected when we get media but
         // chrome doesn't implement any of the 'onstarted' events yet
         if (state == 'connected') {
             this.iceDisconnectedTimeout?.abort();
             this.iceDisconnectedTimeout = undefined;
-            this.setState(CallState.Connected);
+            this.setState(CallState.Connected, log);
         } else if (state == 'failed') {
             this.iceDisconnectedTimeout?.abort();
             this.iceDisconnectedTimeout = undefined;
@@ -733,15 +731,18 @@ export class PeerCall implements IDisposable {
         }
     };
 
-    private setState(state: CallState): void {
-        const oldState = this._state;
-        this._state = state;
-        let deferred = this.statePromiseMap.get(state);
-        if (deferred) {
-            deferred.resolve();
-            this.statePromiseMap.delete(state);
+    private setState(state: CallState, log: ILogItem): void {
+        if (state !== this._state) {
+            log.log({l: "change state", status: state, oldState: this._state});
+            const oldState = this._state;
+            this._state = state;
+            let deferred = this.statePromiseMap.get(state);
+            if (deferred) {
+                deferred.resolve();
+                this.statePromiseMap.delete(state);
+            }
+            this.options.emitUpdate(this, undefined);
         }
-        this.options.emitUpdate(this, undefined);
     }
 
     private waitForState(states: CallState[]): Promise<void> {
