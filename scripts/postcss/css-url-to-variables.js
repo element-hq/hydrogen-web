@@ -26,7 +26,6 @@ const idToPrepend = "icon-url";
 function extractUrl(decl) {
     const value = decl.value;
     const parsed = valueParser(value);
-    const variables = [];
     parsed.walk(node => {
         if (node.type !== "function" || node.value !== "url") {
             return;
@@ -43,7 +42,6 @@ function extractUrl(decl) {
         node.nodes[0] = varNode;
     });
     decl.assign({prop: decl.prop, value: parsed.toString()})
-    return variables;
 }
 
 function addResolvedVariablesToRootSelector(root, { Rule, Declaration }) {
