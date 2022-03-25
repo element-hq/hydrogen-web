@@ -31,9 +31,12 @@ function findAndReplaceUrl(decl) {
         if (node.type !== "function" || node.value !== "url") {
             return;
         }
-        const urlStringNode = node.nodes[0];
+        const url = node.nodes[0].value;
+        if (!url.match(/\.svg\?primary=.+/)) {
+            return;
+        }
         const variableName = `${idToPrepend}-${counter++}`;
-        urlVariables.set(variableName, urlStringNode.value);
+        urlVariables.set(variableName, url);
         node.value = "var";
         node.nodes = [{ type: "word", value: `--${variableName}` }];
     });
@@ -61,7 +64,9 @@ module.exports = (opts = {}) => {
 
         Once(root, { Rule, Declaration }) {
             root.walkDecls(decl => findAndReplaceUrl(decl));
-            addResolvedVariablesToRootSelector(root, { Rule, Declaration });
+            if (urlVariables.size) {
+                addResolvedVariablesToRootSelector(root, { Rule, Declaration });
+            }
         },
     };
 };

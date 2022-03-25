@@ -21,10 +21,10 @@ module.exports.tests = function tests() {
     return {
         "url is replaced with variable": async (assert) => {
             const inputCSS = `div {
-                background: no-repeat center/80% url("../img/image.png");
+                background: no-repeat center/80% url("../img/image.svg?primary=main-color--darker-20");
             }
             button {
-                background: url("/home/foo/bar/cool.jpg");
+                background: url("/home/foo/bar/cool.svg?primary=blue&secondary=green");
             }`;
             const outputCSS =
             `div {
@@ -35,12 +35,18 @@ module.exports.tests = function tests() {
             }`+
                 `
             :root {
-                --icon-url-0: url("../img/image.png");
-                --icon-url-1: url("/home/foo/bar/cool.jpg");
+                --icon-url-0: url("../img/image.svg?primary=main-color--darker-20");
+                --icon-url-1: url("/home/foo/bar/cool.svg?primary=blue&secondary=green");
             }
             `;
-            await run( inputCSS, outputCSS, { }, assert);
+            await run(inputCSS, outputCSS, { }, assert);
         },
+        "non svg urls without query params are not replaced": async (assert) => {
+            const inputCSS = `div {
+                background: no-repeat url("./img/foo/bar/image.png");
+            }`;
+            await run(inputCSS, inputCSS, {}, assert);
+        }
     };
 };
 
