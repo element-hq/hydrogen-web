@@ -24,7 +24,7 @@ let counter;
 let urlVariables;
 const idToPrepend = "icon-url";
 
-function extractUrl(decl) {
+function findAndReplaceUrl(decl) {
     const value = decl.value;
     const parsed = valueParser(value);
     parsed.walk(node => {
@@ -60,7 +60,7 @@ module.exports = (opts = {}) => {
         postcssPlugin: "postcss-url-to-variable",
 
         Once(root, { Rule, Declaration }) {
-            root.walkDecls(decl => extractUrl(decl));
+            root.walkDecls(decl => findAndReplaceUrl(decl));
             addResolvedVariablesToRootSelector(root, { Rule, Declaration });
         },
     };
