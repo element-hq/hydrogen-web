@@ -17,25 +17,25 @@ limitations under the License.
 const valueParser = require("postcss-value-parser");
 const  resolve = require("path").resolve;
 
-function colorsFromURL(url, colorVariables) {
+function colorsFromURL(url, colorMap) {
     const params = new URL(`file://${url}`).searchParams;
     const primary = params.get("primary");
     if (!primary) {
         return null;
     }
     const secondary = params.get("secondary");
-    const primaryColor = colorVariables[primary];
-    const secondaryColor = colorVariables[secondary];
+    const primaryColor = colorMap.get(primary);
+    const secondaryColor = colorMap.get(secondary);
     if (!primaryColor) {
         throw new Error(`Variable ${primary} not found in resolved color variables!`);
     }
-    if (!secondaryColor) {
+    if (secondary && !secondaryColor) {
         throw new Error(`Variable ${secondary} not found in resolved color variables!`);
     }
     return [primaryColor, secondaryColor];
 }
 
-function processURL(decl, replacer, colorVariables) {
+function processURL(decl, replacer, colorMap) {
     const value = decl.value;
     const parsed = valueParser(value);
     parsed.walk(async node => {
@@ -46,7 +46,7 @@ function processURL(decl, replacer, colorVariables) {
         const oldURL = urlStringNode.value;
         const cssPath = decl.source?.input.file.replace(/[^/]*$/, "");
         const oldURLAbsolute = resolve(cssPath, oldURL);
-        const colors  = colorsFromURL(oldURLAbsolute, colorVariables);
+        const colors  = colorsFromURL(oldURLAbsolute, colorMap);
         if (!colors) {
             // If no primary color is provided via url params, then this url need not be handled.
             return;
@@ -67,15 +67,22 @@ module.exports = (opts = {}) => {
     return {
         postcssPlugin: "postcss-url-to-variable",
 
-        Once(root) {
+        Once(root, {result}) {
+            /*
+            postcss-compile-variables should have sent the list of resolved colours down via results
+            */
+            const {colorMap} = result.messages.find(m => m.type === "resolved-variable-map");
+            if (!colorMap) {
+                throw new Error("Postcss results do not contain resolved colors!");
+            }
             /*
             Go through each declaration and if it contains an URL, replace the url with the result
             of running replacer(url)
             */
-            root.walkDecls(decl => processURL(decl, opts.replacer, opts.colors));
+            root.walkDecls(decl => processURL(decl, opts.replacer, colorMap));
+            console.log("result", colorMap);
         },
     };
 };
 
 module.exports.postcss = true;
-
