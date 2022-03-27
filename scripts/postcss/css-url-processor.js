@@ -80,7 +80,6 @@ module.exports = (opts = {}) => {
             of running replacer(url)
             */
             root.walkDecls(decl => processURL(decl, opts.replacer, colorMap));
-            console.log("result", colorMap);
         },
     };
 };
