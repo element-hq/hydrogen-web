@@ -112,7 +112,7 @@ module.exports = (opts = {}) => {
     return {
         postcssPlugin: "postcss-compile-variables",
 
-        Once(root, {Rule, Declaration}) {
+        Once(root, {Rule, Declaration, result}) {
             /*
             Go through the CSS file once to extract all aliases and base variables.
             We use these when resolving derived variables later.
@@ -120,6 +120,13 @@ module.exports = (opts = {}) => {
             root.walkDecls(decl => extract(decl));
             root.walkDecls(decl => resolveDerivedVariable(decl, opts.derive));
             addResolvedVariablesToRootSelector(root, {Rule, Declaration});
+            // Publish both the base-variables and derived-variables to the other postcss-plugins
+            const combinedMap = new Map([...baseVariables, ...resolvedMap]);
+            result.messages.push({
+                type: "resolved-variable-map",
+                plugin: "postcss-compile-variables",
+                colorMap: combinedMap,
+            })
         },
     };
 };
