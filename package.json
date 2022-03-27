@@ -43,6 +43,7 @@
     "node-html-parser": "^4.0.0",
     "postcss-css-variables": "^0.18.0",
     "postcss-flexbugs-fixes": "^5.0.2",
+    "postcss-value-parser": "^4.2.0",
     "regenerator-runtime": "^0.13.7",
     "text-encoding": "^0.7.0",
     "typescript": "^4.3.5",
@@ -54,7 +55,6 @@
     "another-json": "^0.2.0",
     "base64-arraybuffer": "^0.2.0",
     "dompurify": "^2.3.0",
-    "off-color": "^2.0.0",
-    "postcss-value-parser": "^4.2.0"
+    "off-color": "^2.0.0"
   }
 }
