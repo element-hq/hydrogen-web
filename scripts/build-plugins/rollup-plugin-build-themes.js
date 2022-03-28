@@ -27,7 +27,7 @@ async function appendVariablesToCSS(variables, cssSource) {
 }
 
 module.exports = function buildThemes(options) {
-    let manifest, variants;
+    let manifest, variants, defaultDark, defaultLight;
 
     return {
         name: "build-themes",
@@ -38,13 +38,23 @@ module.exports = function buildThemes(options) {
             for (const location of manifestLocations) {
                 manifest = require(`${location}/manifest.json`);
                 variants = manifest.values.variants;
-                for (const [variant] of Object.entries(variants)) {
+                for (const [variant, details] of Object.entries(variants)) {
                     const themeName = manifest.name;
+                    const fileName = `theme-${themeName}-${variant}.css`;
+                    if (details.default) {
+                        // This theme is the default for when Hydrogen launches for the first time
+                        if (details.dark) {
+                            defaultDark = fileName;
+                        }
+                        else {
+                            defaultLight = fileName;
+                        }
+                    }
                     // emit the css as built theme bundle
                     this.emitFile({
                         type: "chunk",
                         id: `${location}/theme.css?variant=${variant}`,
-                        fileName: `theme-${themeName}-${variant}.css`,
+                        fileName,
                     });
                 }
             }
@@ -60,5 +70,37 @@ module.exports = function buildThemes(options) {
             }
             return null;
         },
+
+        transformIndexHtml(_, ctx) {
+            let darkThemeLocation, lightThemeLocation;
+            for (const [, bundle] of Object.entries(ctx.bundle)) {
+                if (bundle.name === defaultDark) {
+                    darkThemeLocation = bundle.fileName;
+                }
+                if (bundle.name === defaultLight) {
+                    lightThemeLocation = bundle.fileName;
+                }
+            }
+            return [
+                {
+                    tag: "link",
+                    attrs: {
+                        rel: "stylesheet",
+                        type: "text/css",
+                        media: "(prefers-color-scheme: dark)",
+                        href: `./${darkThemeLocation}`,
+                    }
+                },
+                {
+                    tag: "link",
+                    attrs: {
+                        rel: "stylesheet",
+                        type: "text/css",
+                        media: "(prefers-color-scheme: light)",
+                        href: `./${lightThemeLocation}`,
+                    }
+                },
+            ];
+        }
     }
 }
