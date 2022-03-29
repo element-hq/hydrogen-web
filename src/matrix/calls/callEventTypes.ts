@@ -22,6 +22,19 @@ export enum EventType {
 // TODO: Change to "sdp_stream_metadata" when MSC3077 is merged
 export const SDPStreamMetadataKey = "org.matrix.msc3077.sdp_stream_metadata";
 
+export interface CallDeviceMembership {
+    device_id: string
+}
+
+export interface CallMembership {
+    ["m.call_id"]: string,
+    ["m.devices"]: CallDeviceMembership[]
+}
+
+export interface CallMemberContent {
+    ["m.calls"]: CallMembership[];
+}
+
 export interface SessionDescription {
     sdp?: string;
     type: RTCSdpType

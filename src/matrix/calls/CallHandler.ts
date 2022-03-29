@@ -55,7 +55,6 @@ export class CallHandler {
     async createCall(roomId: string, localMedia: LocalMedia, name: string): Promise<GroupCall> {
         const logItem = this.options.logger.child({l: "call", incoming: false});
         const call = new GroupCall(undefined, undefined, roomId, this.groupCallOptions, logItem);
-        console.log("created call with id", call.id);
         this._calls.set(call.id, call);
         try {
             await call.create(localMedia, name);
@@ -67,9 +66,7 @@ export class CallHandler {
             }
             throw err;
         }
-        console.log("joining call I just created");
         await call.join(localMedia);
-        console.log("joined!");
         return call;
     }
 
@@ -79,7 +76,6 @@ export class CallHandler {
 
     /** @internal */
     handleRoomState(room: Room, events: StateEvent[], log: ILogItem) {
-        console.log("handling room state");
         // first update call events
         for (const event of events) {
             if (event.type === EventType.GroupCall) {
@@ -135,7 +131,7 @@ export class CallHandler {
             const callId = call["m.call_id"];
             const groupCall = this._calls.get(callId);
             // TODO: also check the member when receiving the m.call event
-            groupCall?.addMember(userId, call, log);
+            groupCall?.updateMember(userId, call, log);
         };
         const newCallIdsMemberOf = new Set<string>(calls.map(call => call["m.call_id"]));
         let previousCallIdsMemberOf = this.memberToCallIds.get(userId);

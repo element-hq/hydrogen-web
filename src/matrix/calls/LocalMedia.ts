@@ -61,6 +61,11 @@ export class LocalMedia {
         return metadata;
     }
 
+    clone() {
+        // TODO: implement
+        return this;
+    }
+
     dispose() {
         this.cameraTrack?.stop();
         this.microphoneTrack?.stop();

@@ -108,6 +108,7 @@ Expose call objects
 expose volume events from audiotrack to group call
 Write view model
 write view
+ - handle glare edge-cases (not yet sent): https://spec.matrix.org/latest/client-server-api/#glare
 
 ## Calls questions
  - how do we handle glare between group calls (e.g. different state events with different call ids?)

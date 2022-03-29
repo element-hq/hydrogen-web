@@ -23,7 +23,7 @@ import type {Options as PeerCallOptions} from "../PeerCall";
 import type {LocalMedia} from "../LocalMedia";
 import type {HomeServerApi} from "../../net/HomeServerApi";
 import type {Track} from "../../../platform/types/MediaDevices";
-import type {MCallBase, MGroupCallBase, SignallingMessage} from "../callEventTypes";
+import type {MCallBase, MGroupCallBase, SignallingMessage, CallDeviceMembership} from "../callEventTypes";
 import type {GroupCall} from "./GroupCall";
 import type {RoomMember} from "../../room/members/RoomMember";
 import type {EncryptedMessage} from "../../e2ee/olm/Encryption";
@@ -32,6 +32,7 @@ import type {ILogItem} from "../../../logging/types";
 export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessage"> & {
     confId: string,
     ownUserId: string,
+    ownDeviceId: string,
     hsApi: HomeServerApi,
     encryptDeviceMessage: (userId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage>,
     emitUpdate: (participant: Member, params?: any) => void,
@@ -43,7 +44,7 @@ export class Member {
 
     constructor(
         public readonly member: RoomMember,
-        private memberCallInfo: Record<string, any>,
+        private callDeviceMembership: CallDeviceMembership,
         private readonly options: Options,
         private readonly logItem: ILogItem,
     ) {
@@ -58,15 +59,30 @@ export class Member {
         return this.peerCall?.state === CallState.Connected;
     }
 
+    get userId(): string {
+        return this.member.userId;
+    }
+
+    get deviceId(): string {
+        return this.callDeviceMembership.device_id;
+    }
+
     /** @internal */
     connect(localMedia: LocalMedia) {
-        this.logItem.log("connect");
-        this.localMedia = localMedia;
-        // otherwise wait for it to connect
-        if (this.member.userId < this.options.ownUserId) {
-            this.peerCall = this._createPeerCall(makeId("c"));
-            this.peerCall.call(localMedia);
-        }
+        this.logItem.wrap("connect", () => {
+            this.localMedia = localMedia;
+            // otherwise wait for it to connect
+            let shouldInitiateCall;
+            if (this.member.userId === this.options.ownUserId) {
+                shouldInitiateCall = this.deviceId < this.options.ownDeviceId;
+            } else {
+                shouldInitiateCall = this.member.userId < this.options.ownUserId;
+            }
+            if (shouldInitiateCall) {
+                this.peerCall = this._createPeerCall(makeId("c"));
+                this.peerCall.call(localMedia);
+            }
+        });
     }
 
     /** @internal */
@@ -80,8 +96,8 @@ export class Member {
     }
 
     /** @internal */
-    updateCallInfo(memberCallInfo) {
-        // m.calls object from the m.call.member event
+    updateCallInfo(callDeviceMembership: CallDeviceMembership) {
+        this.callDeviceMembership = callDeviceMembership;
     }
 
     /** @internal */
