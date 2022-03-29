@@ -38,8 +38,8 @@ module.exports = function buildThemes(options) {
             for (const location of manifestLocations) {
                 manifest = require(`${location}/manifest.json`);
                 variants = manifest.values.variants;
+                const themeName = manifest.name;
                 for (const [variant, details] of Object.entries(variants)) {
-                    const themeName = manifest.name;
                     const fileName = `theme-${themeName}-${variant}.css`;
                     if (details.default) {
                         // This theme is the default for when Hydrogen launches for the first time
@@ -57,6 +57,12 @@ module.exports = function buildThemes(options) {
                         fileName,
                     });
                 }
+                // emit the css as runtime theme bundle
+                this.emitFile({
+                    type: "chunk",
+                    id: `${location}/theme.css`,
+                    fileName: `theme-${themeName}-runtime.css`,
+                });
             }
         },
 
