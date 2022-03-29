@@ -166,7 +166,7 @@ export class PeerCall implements IDisposable {
             } catch (err) {
                 await log.wrap(`Failed to create answer`, log => {
                     log.catch(err);
-                    this.terminate(CallParty.Local, CallErrorCode.CreateAnswer, true, log);
+                    this.terminate(CallParty.Local, CallErrorCode.CreateAnswer, log);
                 });
                 return;
             }
@@ -177,7 +177,7 @@ export class PeerCall implements IDisposable {
             } catch (err) {
                 await log.wrap(`Error setting local description!`, log => {
                     log.catch(err);
-                    this.terminate(CallParty.Local, CallErrorCode.SetLocalDescription, true, log);
+                    this.terminate(CallParty.Local, CallErrorCode.SetLocalDescription, log);
                 });
                 return;
             }
@@ -212,6 +212,7 @@ export class PeerCall implements IDisposable {
         });
     }
 
+    /** group calls would handle reject at the group call level, not at the peer call level */
     async reject() {
 
     }
@@ -223,10 +224,11 @@ export class PeerCall implements IDisposable {
     }
 
     private async _hangup(errorCode: CallErrorCode, log: ILogItem): Promise<void> {
-        if (this._state !== CallState.Ended) {
-            this._state = CallState.Ended;
-            await this.sendHangupWithCallId(this.callId, errorCode, log);
+        if (this._state === CallState.Ended) {
+            return;
         }
+        this.terminate(CallParty.Local, errorCode, log);
+        await this.sendHangupWithCallId(this.callId, errorCode, log);
     }
 
     handleIncomingSignallingMessage<B extends MCallBase>(message: SignallingMessage<B>, partyId: PartyId): Promise<void> {
@@ -257,6 +259,7 @@ export class PeerCall implements IDisposable {
             call_id: callId,
             version: 1,
         };
+        // TODO: Don't send UserHangup reason to older clients
         if (reason) {
             content["reason"] = reason;
         }
@@ -274,7 +277,7 @@ export class PeerCall implements IDisposable {
                 await this.peerConnection.setLocalDescription();
             } catch (err) {
                 log.log(`Error setting local description!`).catch(err);
-                this.terminate(CallParty.Local, CallErrorCode.SetLocalDescription, true, log);
+                this.terminate(CallParty.Local, CallErrorCode.SetLocalDescription, log);
                 return;
             }
 
@@ -385,7 +388,7 @@ export class PeerCall implements IDisposable {
         } catch (e) {
             await log.wrap(`Call failed to set remote description`, async log => {
                 log.catch(e);
-                return this.terminate(CallParty.Local, CallErrorCode.SetRemoteDescription, false, log);
+                return this.terminate(CallParty.Local, CallErrorCode.SetRemoteDescription, log);
             });
             return;
         }
@@ -395,7 +398,7 @@ export class PeerCall implements IDisposable {
         // (81 at time of writing), this is no longer a problem, so let's do it the correct way.
         if (this.peerConnection.remoteTracks.length === 0) {
             await log.wrap(`Call no remote stream or no tracks after setting remote description!`, async log => {
-                return this.terminate(CallParty.Local, CallErrorCode.SetRemoteDescription, false, log);
+                return this.terminate(CallParty.Local, CallErrorCode.SetRemoteDescription, log);
             });
             return;
         }
@@ -444,7 +447,7 @@ export class PeerCall implements IDisposable {
         } catch (e) {
             await log.wrap(`Failed to set remote description`, log => {
                 log.catch(e);
-                this.terminate(CallParty.Local, CallErrorCode.SetRemoteDescription, false, log);
+                this.terminate(CallParty.Local, CallErrorCode.SetRemoteDescription, log);
             });
             return;
         }
@@ -591,7 +594,7 @@ export class PeerCall implements IDisposable {
         try {
             await this.sendSignallingMessage({type: EventType.Answer, content: answerContent}, log);
         } catch (error) {
-            this.terminate(CallParty.Local, CallErrorCode.SendAnswer, false, log);
+            this.terminate(CallParty.Local, CallErrorCode.SendAnswer, log);
             throw error;
         }
 
@@ -656,7 +659,7 @@ export class PeerCall implements IDisposable {
                 // put all the candidates we failed to send back in the queue
 
                 // TODO: terminate doesn't seem to vibe with the comment above?
-                this.terminate(CallParty.Local, CallErrorCode.SignallingFailed, false, log);
+                this.terminate(CallParty.Local, CallErrorCode.SignallingFailed, log);
             }
         });
     }
@@ -761,8 +764,19 @@ export class PeerCall implements IDisposable {
         }));
     }
 
-    private async terminate(hangupParty: CallParty, hangupReason: CallErrorCode, shouldEmit: boolean, log: ILogItem): Promise<void> {
+    private terminate(hangupParty: CallParty, hangupReason: CallErrorCode, log: ILogItem): void {
+        if (this._state === CallState.Ended) {
+            return;
+        }
 
+        this.hangupParty = hangupParty;
+        // this.hangupReason = hangupReason;
+        this.setState(CallState.Ended, log);
+        this.stopAllMedia();
+
+        if (this.peerConnection && this.peerConnection.signalingState !== 'closed') {
+            this.peerConnection.close();
+        }
     }
 
     private stopAllMedia(): void {
@@ -791,8 +805,11 @@ export class PeerCall implements IDisposable {
         this.peerConnection.dispose();
     }
 
-    public close(): void {
-        this.peerConnection.close();
+    public close(reason: CallErrorCode | undefined, log: ILogItem): void {
+        if (reason === undefined) {
+            reason = CallErrorCode.UserHangup;
+        }
+        this.terminate(CallParty.Local, reason, log);
     }
 }
 

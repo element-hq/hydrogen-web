@@ -71,11 +71,12 @@ export class Member {
 
     /** @internal */
     disconnect() {
-        this.peerCall?.close();
-        this.peerCall?.dispose();
-        this.peerCall = undefined;
-        this.localMedia = undefined;
-        this.logItem.log("disconnect");
+        this.logItem.wrap("disconnect", log => {
+            this.peerCall?.close(undefined, log);
+            this.peerCall?.dispose();
+            this.peerCall = undefined;
+            this.localMedia = undefined;
+        });
     }
 
     /** @internal */
