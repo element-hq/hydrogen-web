@@ -111,6 +111,10 @@ export class TrackWrapper implements Track {
     stop() {
         this.track.stop();
     }
+
+    clone() {
+        return this.track.clone();
+    }
 }
 
 export class AudioTrackWrapper extends TrackWrapper {

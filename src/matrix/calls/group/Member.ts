@@ -47,9 +47,7 @@ export class Member {
         private callDeviceMembership: CallDeviceMembership,
         private readonly options: Options,
         private readonly logItem: ILogItem,
-    ) {
-        logItem.set("id", member.userId);
-    }
+    ) {}
 
     get remoteTracks(): Track[] {
         return this.peerCall?.remoteTracks ?? [];

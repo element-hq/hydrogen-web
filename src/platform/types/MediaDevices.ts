@@ -37,6 +37,7 @@ export interface Track {
     get muted(): boolean;
     setMuted(muted: boolean): void;
     stop(): void;
+    clone(): Track;
 }
 
 export interface AudioTrack extends Track {

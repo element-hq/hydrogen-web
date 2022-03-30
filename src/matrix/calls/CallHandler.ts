@@ -131,7 +131,7 @@ export class CallHandler {
             const callId = call["m.call_id"];
             const groupCall = this._calls.get(callId);
             // TODO: also check the member when receiving the m.call event
-            groupCall?.updateMember(userId, call, log);
+            groupCall?.updateMembership(userId, call, log);
         };
         const newCallIdsMemberOf = new Set<string>(calls.map(call => call["m.call_id"]));
         let previousCallIdsMemberOf = this.memberToCallIds.get(userId);
@@ -140,7 +140,7 @@ export class CallHandler {
             for (const previousCallId of previousCallIdsMemberOf) {
                 if (!newCallIdsMemberOf.has(previousCallId)) {
                     const groupCall = this._calls.get(previousCallId);
-                    groupCall?.removeMember(userId, log);
+                    groupCall?.removeMembership(userId, log);
                 }
             }
         }

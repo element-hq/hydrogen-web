@@ -95,8 +95,16 @@ export class GroupCall extends EventEmitter<{change: never}> {
         return this.callContent?.["m.terminated"] === true;
     }
 
+    get isRinging(): boolean {
+        return this._state === GroupCallState.Created && this.intent === "m.ring" && !this.isMember(this.options.ownUserId);
+    }
+
     get name(): string {
         return this.callContent?.["m.name"];
+    }
+
+    get intent(): string {
+        return this.callContent?.["m.intent"];
     }
 
     join(localMedia: LocalMedia): Promise<void> {
@@ -134,6 +142,8 @@ export class GroupCall extends EventEmitter<{change: never}> {
                 if (this._members.size === 0) {
                     await this.terminate();
                 }
+            } else {
+                log.set("already_left", true);
             }
         });
     }
@@ -184,7 +194,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     /** @internal */
-    updateMember(userId: string, callMembership: CallMembership, syncLog: ILogItem) {
+    updateMembership(userId: string, callMembership: CallMembership, syncLog: ILogItem) {
         this.logItem.wrap({l: "updateMember", id: userId}, log => {
             syncLog.refDetached(log);
             const devices = callMembership["m.devices"];
@@ -192,45 +202,62 @@ export class GroupCall extends EventEmitter<{change: never}> {
             for (const device of devices) {
                 const deviceId = device.device_id;
                 const memberKey = getMemberKey(userId, deviceId);
-                if (userId === this.options.ownUserId && deviceId === this.options.ownDeviceId) {
-                    if (this._state === GroupCallState.Joining) {
-                        this._state = GroupCallState.Joined;
-                        this.emitChange();
+                log.wrap({l: "update device member", id: memberKey}, log => {
+                    if (userId === this.options.ownUserId && deviceId === this.options.ownDeviceId) {
+                        if (this._state === GroupCallState.Joining) {
+                            log.set("update_own", true);
+                            this._state = GroupCallState.Joined;
+                            this.emitChange();
+                        }
+                    } else {
+                        let member = this._members.get(memberKey);
+                        if (member) {
+                            log.set("update", true);
+                            member!.updateCallInfo(device);
+                        } else {
+                            const logItem = this.logItem.child({l: "member", id: memberKey});
+                            log.set("add", true);
+                            log.refDetached(logItem);
+                            member = new Member(
+                                RoomMember.fromUserId(this.roomId, userId, "join"),
+                                device, this._memberOptions, logItem
+                            );
+                            this._members.add(memberKey, member);
+                            if (this._state === GroupCallState.Joining || this._state === GroupCallState.Joined) {
+                                member.connect(this._localMedia!.clone());
+                            }
+                        }
                     }
-                    return;
-                }
-                let member = this._members.get(memberKey);
-                if (member) {
-                    member.updateCallInfo(device);
-                } else {
-                    const logItem = this.logItem.child("member");
-                    member = new Member(
-                        RoomMember.fromUserId(this.roomId, userId, "join"),
-                        device, this._memberOptions, logItem
-                    );
-                    this._members.add(memberKey, member);
-                    if (this._state === GroupCallState.Joining || this._state === GroupCallState.Joined) {
-                        member.connect(this._localMedia!.clone());
-                    }
-                }
+                });
             }
 
             const newDeviceIds = new Set<string>(devices.map(call => call.device_id));
             // remove user as member of any calls not present anymore
             for (const previousDeviceId of previousDeviceIds) {
                 if (!newDeviceIds.has(previousDeviceId)) {
-                    this.removeMemberDevice(userId, previousDeviceId, syncLog);
+                    log.wrap({l: "remove device member", id: getMemberKey(userId, previousDeviceId)}, log => {
+                        this.removeMemberDevice(userId, previousDeviceId, log);
+                    });
                 }
+            }
+            if (userId === this.options.ownUserId && !newDeviceIds.has(this.options.ownDeviceId)) {
+                this.removeOwnDevice(log);
             }
         });
     }
 
     /** @internal */
-    removeMember(userId: string, syncLog: ILogItem) {
+    removeMembership(userId: string, syncLog: ILogItem) {
         const deviceIds = this.getDeviceIdsForUserId(userId);
-        for (const deviceId of deviceIds) {
-            this.removeMemberDevice(userId, deviceId, syncLog);
-        }
+        this.logItem.wrap("removeMember", log => {
+            syncLog.refDetached(log);
+            for (const deviceId of deviceIds) {
+                this.removeMemberDevice(userId, deviceId, log);
+            }
+            if (userId === this.options.ownUserId) {
+                this.removeOwnDevice(log);
+            }
+        });
     }
 
     private getDeviceIdsForUserId(userId: string): string[] {
@@ -239,26 +266,32 @@ export class GroupCall extends EventEmitter<{change: never}> {
             .map(key => getDeviceFromMemberKey(key));
     }
 
+    private isMember(userId: string): boolean {
+        return Array.from(this._members.keys()).some(key => memberKeyIsForUser(key, userId));
+    }
+
+    private removeOwnDevice(log: ILogItem) {
+        if (this._state === GroupCallState.Joined) {
+            log.set("leave_own", true);
+            this._localMedia?.dispose();
+            this._localMedia = undefined;
+            for (const [,member] of this._members) {
+                member.disconnect();
+            }
+            this._state = GroupCallState.Created;
+            this.emitChange();
+        }
+    }
+
     /** @internal */
-    private removeMemberDevice(userId: string, deviceId: string, syncLog: ILogItem) {
+    private removeMemberDevice(userId: string, deviceId: string, log: ILogItem) {
         const memberKey = getMemberKey(userId, deviceId);
-        this.logItem.wrap({l: "removeMemberDevice", id: memberKey}, log => {
-            syncLog.refDetached(log);
-            if (userId === this.options.ownUserId && deviceId === this.options.ownDeviceId) {
-                if (this._state === GroupCallState.Joined) {
-                    this._localMedia?.dispose();
-                    this._localMedia = undefined;
-                    for (const [,member] of this._members) {
-                        member.disconnect();
-                    }
-                    this._state = GroupCallState.Created;
-                }
-            } else {
-                const member = this._members.get(memberKey);
-                if (member) {
-                    this._members.remove(memberKey);
-                    member.disconnect();
-                }
+        log.wrap({l: "removeMemberDevice", id: memberKey}, log => {
+            const member = this._members.get(memberKey);
+            if (member) {
+                log.set("leave", true);
+                this._members.remove(memberKey);
+                member.disconnect();
             }
             this.emitChange();
         });
@@ -315,9 +348,15 @@ export class GroupCall extends EventEmitter<{change: never}> {
         const stateEvent = await txn.roomState.get(this.roomId, CALL_MEMBER_TYPE, this.options.ownUserId);
         if (stateEvent) {
             const content = stateEvent.event.content;
-            const callsInfo = content["m.calls"];
-            content["m.calls"] = callsInfo?.filter(c => c["m.call_id"] !== this.id);
-            return content;
+            const callInfo = content["m.calls"]?.find(c => c["m.call_id"] === this.id);
+            if (callInfo) {
+                const devicesInfo = callInfo["m.devices"];
+                const deviceIndex = devicesInfo.findIndex(d => d["device_id"] === this.options.ownDeviceId);
+                if (deviceIndex !== -1) {
+                    devicesInfo.splice(deviceIndex, 1);
+                    return content;
+                }
+            }
 
         }
     }

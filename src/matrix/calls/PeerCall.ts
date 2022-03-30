@@ -412,7 +412,8 @@ export class PeerCall implements IDisposable {
             log.log(`Invite has expired. Hanging up.`);
             this.hangupParty = CallParty.Remote; // effectively
             this.setState(CallState.Ended, log);
-            this.stopAllMedia();
+            //this.localMedia?.dispose();
+            //this.localMedia = undefined;
             if (this.peerConnection.signalingState != 'closed') {
                 this.peerConnection.close();
             }
@@ -772,18 +773,11 @@ export class PeerCall implements IDisposable {
         this.hangupParty = hangupParty;
         // this.hangupReason = hangupReason;
         this.setState(CallState.Ended, log);
-        this.stopAllMedia();
+        //this.localMedia?.dispose();
+        //this.localMedia = undefined;
 
         if (this.peerConnection && this.peerConnection.signalingState !== 'closed') {
             this.peerConnection.close();
-        }
-    }
-
-    private stopAllMedia(): void {
-        if (this.localMedia) {
-            for (const track of this.localMedia.tracks) {
-                track.stop();
-            }
         }
     }
 
