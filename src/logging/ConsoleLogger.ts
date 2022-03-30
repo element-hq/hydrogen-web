@@ -25,6 +25,12 @@ export class ConsoleLogger extends BaseLogger {
     async export(): Promise<ILogExport | undefined> {
         return undefined;
     }
+
+    printOpenItems(): void {
+        for (const item of this._openItems) {
+            this._persistItem(item);
+        }
+    }
 }
 
 const excludedKeysFromTable = ["l", "id"];
