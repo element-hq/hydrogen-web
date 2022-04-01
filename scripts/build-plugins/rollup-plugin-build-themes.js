@@ -26,6 +26,46 @@ async function appendVariablesToCSS(variables, cssSource) {
     return cssSource + `:root{\n${Object.entries(variables).reduce((acc, [key, value]) => acc + `--${key}: ${value};\n`, "")} }\n\n`;
 }
 
+function parseBundle(bundle) {
+    const chunkMap = new Map();
+    const assetMap = new Map();
+    let runtimeThemeChunk;
+    for (const [fileName, info] of Object.entries(bundle)) {
+        if (!fileName.endsWith(".css")) {
+            continue;
+        }
+        if (info.type === "asset") {
+            /**
+             * So this is the css assetInfo that contains the asset hashed file name.
+             * We'll store it in a separate map indexed via fileName (unhashed) to avoid
+             * searching through the bundle array later.
+             */
+            assetMap.set(info.name, info);
+            continue;
+        }
+        if (info.facadeModuleId?.includes("type=runtime")) {
+            /**
+             * We have a separate field in manifest.source just for the runtime theme,
+             * so store this separately.
+             */
+            runtimeThemeChunk = info;
+            continue;
+        }
+        const location = info.facadeModuleId?.match(/(.+)\/.+\.css/)?.[1];
+        if (!location) {
+            throw new Error("Cannot find location of css chunk!");
+        }
+        const array = chunkMap.get(location);
+        if (!array) {
+            chunkMap.set(location, [info]);
+        }
+        else {
+            array.push(info);
+        }
+    }
+    return { chunkMap, assetMap, runtimeThemeChunk };
+}
+
 module.exports = function buildThemes(options) {
     let manifest, variants, defaultDark, defaultLight;
 
@@ -60,7 +100,7 @@ module.exports = function buildThemes(options) {
                 // emit the css as runtime theme bundle
                 this.emitFile({
                     type: "chunk",
-                    id: `${location}/theme.css`,
+                    id: `${location}/theme.css?type=runtime`,
                     fileName: `theme-${themeName}-runtime.css`,
                 });
             }
@@ -107,6 +147,23 @@ module.exports = function buildThemes(options) {
                     }
                 },
             ];
+        },
+
+        generateBundle(_, bundle) {
+            const { assetMap, chunkMap, runtimeThemeChunk } = parseBundle(bundle);
+            for (const [location, chunkArray] of chunkMap) {
+                const manifest = require(`${location}/manifest.json`);
+                manifest.source = {
+                    "built-asset": chunkArray.map(chunk => assetMap.get(chunk.fileName).fileName),
+                    "runtime-asset": assetMap.get(runtimeThemeChunk.fileName).fileName,
+                };
+                const name = `theme-${manifest.name}.json`;
+                this.emitFile({
+                    type: "asset",
+                    name,
+                    source: JSON.stringify(manifest),
+                });
+            }
         }
     }
 }
