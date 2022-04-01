@@ -113,6 +113,11 @@ module.exports = (opts = {}) => {
         postcssPlugin: "postcss-compile-variables",
 
         Once(root, {Rule, Declaration, result}) {
+            const cssFileLocation = root.source.input.from;
+            if (cssFileLocation.includes("type=runtime")) {
+                // If this is a runtime theme, don't derive variables.
+                return;
+            }
             /*
             Go through the CSS file once to extract all aliases and base variables.
             We use these when resolving derived variables later.
