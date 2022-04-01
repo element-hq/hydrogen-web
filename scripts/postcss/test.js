@@ -96,6 +96,7 @@ module.exports.tests = function tests() {
             `;
             await run( inputCSS, outputCSS, { }, assert);
         },
+
         "multiple aliased-derived variable in single declaration is parsed correctly": async (assert) => {
             const inputCSS = `
             :root {
@@ -116,6 +117,23 @@ module.exports.tests = function tests() {
             }
             `;
             await run( inputCSS, outputCSS, { }, assert);
+        },
+
+        "compiledVariables map is populated": async (assert) => {
+            const compiledVariables = new Map();
+            const inputCSS = `
+            :root {
+                --icon-color: #fff;
+            }
+            div {
+                background: var(--icon-color--darker-20);
+                --my-alias: var(--icon-color--darker-20);
+                color: var(--my-alias--lighter-15);
+            }`;
+            await postcss([plugin({ derive, compiledVariables })]).process(inputCSS, { from: "/foo/bar/test.css", });
+            const actualSet = compiledVariables.get("/foo/bar")["derived-variables"];
+            const expectedSet = new Set(["icon-color--darker-20", "my-alias=icon-color--darker-20", "my-alias--lighter-15"]);
+            assert.deepEqual(actualSet, expectedSet);
         }
     };
 };
