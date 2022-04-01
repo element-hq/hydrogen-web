@@ -104,10 +104,10 @@ function populateMapWithDerivedVariables(map, cssFileLocation) {
          */
         return;
     }
-    const derivedVariables = new Set([
+    const derivedVariables = [
         ...([...resolvedMap.keys()].filter(v => !aliasMap.has(v))),
         ...([...aliasMap.entries()].map(([alias, variable]) => `${alias}=${variable}`))
-    ]);
+    ];
     map.set(location, { "derived-variables": derivedVariables });
 }
 

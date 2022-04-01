@@ -131,9 +131,9 @@ module.exports.tests = function tests() {
                 color: var(--my-alias--lighter-15);
             }`;
             await postcss([plugin({ derive, compiledVariables })]).process(inputCSS, { from: "/foo/bar/test.css", });
-            const actualSet = compiledVariables.get("/foo/bar")["derived-variables"];
-            const expectedSet = new Set(["icon-color--darker-20", "my-alias=icon-color--darker-20", "my-alias--lighter-15"]);
-            assert.deepEqual(actualSet, expectedSet);
+            const actualArray = compiledVariables.get("/foo/bar")["derived-variables"];
+            const expectedArray = ["icon-color--darker-20", "my-alias=icon-color--darker-20", "my-alias--lighter-15"];
+            assert.deepStrictEqual(actualArray.sort(), expectedArray.sort());
         }
     };
 };
