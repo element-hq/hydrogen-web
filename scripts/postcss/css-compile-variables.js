@@ -94,6 +94,23 @@ function addResolvedVariablesToRootSelector(root, {Rule, Declaration}) {
     root.append(newRule);
 }
 
+function populateMapWithDerivedVariables(map, cssFileLocation) {
+    const location = cssFileLocation.match(/(.+)\/.+\.css/)?.[1];
+    if (map.has(location)) {
+        /**
+         * This postcss plugin is going to run on all theme variants of a single theme.
+         * But we only really need to populate the map once since theme variants only differ
+         * by the values of the base-variables and we don't care about values here.
+         */
+        return;
+    }
+    const derivedVariables = new Set([
+        ...([...resolvedMap.keys()].filter(v => !aliasMap.has(v))),
+        ...([...aliasMap.entries()].map(([alias, variable]) => `${alias}=${variable}`))
+    ]);
+    map.set(location, { "derived-variables": derivedVariables });
+}
+
 /**
  * @callback derive
  * @param {string} value - The base value on which an operation is applied
@@ -104,6 +121,7 @@ function addResolvedVariablesToRootSelector(root, {Rule, Declaration}) {
  * 
  * @param {Object} opts - Options for the plugin
  * @param {derive} opts.derive - The callback which contains the logic for resolving derived variables
+ * @param {Map} opts.compiledVariables - A map that stores derived variables so that manifest source sections can be produced
  */
 module.exports = (opts = {}) => {
     aliasMap = new Map();
@@ -125,13 +143,16 @@ module.exports = (opts = {}) => {
             root.walkDecls(decl => extract(decl));
             root.walkDecls(decl => resolveDerivedVariable(decl, opts.derive));
             addResolvedVariablesToRootSelector(root, {Rule, Declaration});
+            if (opts.compiledVariables){
+                populateMapWithDerivedVariables(opts.compiledVariables, cssFileLocation);
+            }
             // Publish both the base-variables and derived-variables to the other postcss-plugins
             const combinedMap = new Map([...baseVariables, ...resolvedMap]);
             result.messages.push({
                 type: "resolved-variable-map",
                 plugin: "postcss-compile-variables",
                 colorMap: combinedMap,
-            })
+            });
         },
     };
 };
