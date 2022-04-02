@@ -16,6 +16,7 @@ limitations under the License.
 
 const plugin = require("../css-url-to-variables");
 const run = require("./common").createTestRunner(plugin);
+const postcss = require("postcss");
 
 module.exports.tests = function tests() {
     return {
@@ -46,6 +47,21 @@ module.exports.tests = function tests() {
                 background: no-repeat url("./img/foo/bar/image.png");
             }`;
             await run(inputCSS, inputCSS, {}, assert);
+        },
+        "map is populated with icons": async (assert) => {
+            const compiledVariables = new Map();
+            const inputCSS = `div {
+                background: no-repeat center/80% url("../img/image.svg?primary=main-color--darker-20");
+            }
+            button {
+                background: url("/home/foo/bar/cool.svg?primary=blue&secondary=green");
+            }`;
+            const expectedObject = {
+                "icon-url-0": "../img/image.svg?primary=main-color--darker-20",
+                "icon-url-1": "/home/foo/bar/cool.svg?primary=blue&secondary=green",
+            };
+            await postcss([plugin({compiledVariables})]).process(inputCSS, { from: "/foo/bar/test.css", });
+            assert.deepEqual(expectedObject, compiledVariables.get("/foo/bar")["icon"]);
         }
     };
 };

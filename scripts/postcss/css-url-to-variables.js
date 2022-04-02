@@ -53,6 +53,19 @@ function addResolvedVariablesToRootSelector(root, { Rule, Declaration }) {
     root.append(newRule);
 }
 
+function populateMapWithDerivedVariables(map, cssFileLocation) {
+    const location = cssFileLocation.match(/(.+)\/.+\.css/)?.[1];
+    if (map.has(location)) {
+        /**
+         * This postcss plugin is going to run on all theme variants of a single theme.
+         * But we only really need to populate the map once since theme variants only differ
+         * by the values of the base-variables and we don't care about values here.
+         */
+        return;
+    }
+    map.set(location, { "icon": Object.fromEntries(urlVariables) });
+}
+
 /* *
  * @type {import('postcss').PluginCreator}
  */
@@ -67,6 +80,11 @@ module.exports = (opts = {}) => {
             if (urlVariables.size) {
                 addResolvedVariablesToRootSelector(root, { Rule, Declaration });
             }
+            if (opts.compiledVariables){
+                const cssFileLocation = root.source.input.from;
+                populateMapWithDerivedVariables(opts.compiledVariables, cssFileLocation);
+            }
+            console.log(opts.compiledVariables);
         },
     };
 };
