@@ -153,11 +153,14 @@ module.exports = function buildThemes(options) {
             const { assetMap, chunkMap, runtimeThemeChunk } = parseBundle(bundle);
             for (const [location, chunkArray] of chunkMap) {
                 const manifest = require(`${location}/manifest.json`);
-                const derivedVariables = options.compiledVariables.get(location)["derived-variables"];
+                const compiledVariables = options.compiledVariables.get(location);
+                const derivedVariables = compiledVariables["derived-variables"];
+                const icon = compiledVariables["icon"];
                 manifest.source = {
                     "built-asset": chunkArray.map(chunk => assetMap.get(chunk.fileName).fileName),
                     "runtime-asset": assetMap.get(runtimeThemeChunk.fileName).fileName,
                     "derived-variables": derivedVariables,
+                    "icon": icon
                 };
                 const name = `theme-${manifest.name}.json`;
                 this.emitFile({
