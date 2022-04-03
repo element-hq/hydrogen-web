@@ -84,7 +84,6 @@ module.exports = (opts = {}) => {
                 const cssFileLocation = root.source.input.from;
                 populateMapWithDerivedVariables(opts.compiledVariables, cssFileLocation);
             }
-            console.log(opts.compiledVariables);
         },
     };
 };
