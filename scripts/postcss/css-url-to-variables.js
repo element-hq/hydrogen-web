@@ -17,8 +17,8 @@ limitations under the License.
 const valueParser = require("postcss-value-parser");
 
 /**
- * This plugin extracts content inside url() into css variables.
- * The extracted css variables are added to the :root section.
+ * This plugin extracts content inside url() into css variables and adds the variables to the root section.
+ * This plugin is used in conjunction with css-url-processor plugin to colorize svg icons.
  */
 let counter;
 let urlVariables;
