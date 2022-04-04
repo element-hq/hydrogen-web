@@ -53,7 +53,7 @@ function addResolvedVariablesToRootSelector(root, { Rule, Declaration }) {
     root.append(newRule);
 }
 
-function populateMapWithDerivedVariables(map, cssFileLocation) {
+function populateMapWithIcons(map, cssFileLocation) {
     const location = cssFileLocation.match(/(.+)\/.+\.css/)?.[1];
     if (map.has(location)) {
         /**
@@ -82,7 +82,7 @@ module.exports = (opts = {}) => {
             }
             if (opts.compiledVariables){
                 const cssFileLocation = root.source.input.from;
-                populateMapWithDerivedVariables(opts.compiledVariables, cssFileLocation);
+                populateMapWithIcons(opts.compiledVariables, cssFileLocation);
             }
         },
     };
