@@ -55,7 +55,8 @@ function addResolvedVariablesToRootSelector(root, { Rule, Declaration }) {
 
 function populateMapWithIcons(map, cssFileLocation) {
     const location = cssFileLocation.match(/(.+)\/.+\.css/)?.[1];
-    if (map.has(location)) {
+    const sharedObject = map.get(location);
+    if (sharedObject?.["icon"]) {
         /**
          * This postcss plugin is going to run on all theme variants of a single theme.
          * But we only really need to populate the map once since theme variants only differ
@@ -63,7 +64,7 @@ function populateMapWithIcons(map, cssFileLocation) {
          */
         return;
     }
-    map.set(location, { "icon": Object.fromEntries(urlVariables) });
+    map.set(location, { ...sharedObject, "icon": Object.fromEntries(urlVariables) });
 }
 
 /* *
