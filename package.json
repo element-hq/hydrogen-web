@@ -13,7 +13,8 @@
     "test:postcss": "impunity --entry-point  scripts/postcss/test.js ",
     "start": "vite --port 3000",
     "build": "vite build",
-    "build:sdk": "./scripts/sdk/build.sh"
+    "build:sdk": "./scripts/sdk/build.sh",
+    "watch:sdk": "./scripts/sdk/build.sh && yarn run vite build -c vite.sdk-lib-config.js --watch"
   },
   "repository": {
     "type": "git",
