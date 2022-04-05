@@ -82,7 +82,7 @@ module.exports = function buildThemes(options) {
                 for (const [variant, details] of Object.entries(variants)) {
                     const fileName = `theme-${themeName}-${variant}.css`;
                     if (details.default) {
-                        // This theme is the default for when Hydrogen launches for the first time
+                        // This is one of the default variants for this theme.
                         if (details.dark) {
                             defaultDark = fileName;
                         }
