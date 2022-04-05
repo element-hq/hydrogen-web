@@ -96,14 +96,6 @@ function addResolvedVariablesToRootSelector(root, {Rule, Declaration}) {
 
 function populateMapWithDerivedVariables(map, cssFileLocation) {
     const location = cssFileLocation.match(/(.+)\/.+\.css/)?.[1];
-    if (map.has(location)) {
-        /**
-         * This postcss plugin is going to run on all theme variants of a single theme.
-         * But we only really need to populate the map once since theme variants only differ
-         * by the values of the base-variables and we don't care about values here.
-         */
-        return;
-    }
     const derivedVariables = [
         ...([...resolvedMap.keys()].filter(v => !aliasMap.has(v))),
         ...([...aliasMap.entries()].map(([alias, variable]) => `${alias}=${variable}`))
