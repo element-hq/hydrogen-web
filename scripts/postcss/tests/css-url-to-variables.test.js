@@ -50,6 +50,7 @@ module.exports.tests = function tests() {
         },
         "map is populated with icons": async (assert) => {
             const compiledVariables = new Map();
+            compiledVariables.set("/foo/bar", { "derived-variables": ["background-color--darker-20", "accent-color--lighter-15"] });
             const inputCSS = `div {
                 background: no-repeat center/80% url("../img/image.svg?primary=main-color--darker-20");
             }
@@ -61,7 +62,9 @@ module.exports.tests = function tests() {
                 "icon-url-1": "/home/foo/bar/cool.svg?primary=blue&secondary=green",
             };
             await postcss([plugin({compiledVariables})]).process(inputCSS, { from: "/foo/bar/test.css", });
-            assert.deepEqual(expectedObject, compiledVariables.get("/foo/bar")["icon"]);
+            const sharedVariable = compiledVariables.get("/foo/bar");
+            assert.deepEqual(["background-color--darker-20", "accent-color--lighter-15"], sharedVariable["derived-variables"]);
+            assert.deepEqual(expectedObject, sharedVariable["icon"]);
         }
     };
 };
