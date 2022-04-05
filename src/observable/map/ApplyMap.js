@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableMap} from "./BaseObservableMap.js";
+import {BaseObservableMap} from "./BaseObservableMap";
 
 export class ApplyMap extends BaseObservableMap {
     constructor(source, apply) {

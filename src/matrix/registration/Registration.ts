@@ -18,6 +18,7 @@ import type {HomeServerApi} from "../net/HomeServerApi";
 import type {BaseRegistrationStage} from "./stages/BaseRegistrationStage";
 import {DummyAuth} from "./stages/DummyAuth";
 import {TermsAuth} from "./stages/TermsAuth";
+import {TokenAuth} from "./stages/TokenAuth";
 import type {
     AccountDetails,
     RegistrationFlow,
@@ -108,6 +109,9 @@ export class Registration {
                 return new DummyAuth(session, params?.[type]);
             case "m.login.terms":
                 return new TermsAuth(session, params?.[type]);
+            case "org.matrix.msc3231.login.registration_token":
+            case "m.login.registration_token":
+                return new TokenAuth(session, params?.[type], type);
             default:
                 throw new Error(`Unknown stage: ${type}`);
         }

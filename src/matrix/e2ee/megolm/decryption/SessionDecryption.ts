@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {DecryptionResult} from "../../DecryptionResult.js";
+import {DecryptionResult} from "../../DecryptionResult";
 import {DecryptionError} from "../../common.js";
 import {ReplayDetectionEntry} from "./ReplayDetectionEntry";
 import type {RoomKey} from "./RoomKey";

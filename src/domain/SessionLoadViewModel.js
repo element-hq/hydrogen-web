@@ -17,7 +17,7 @@ limitations under the License.
 import {AccountSetupViewModel} from "./AccountSetupViewModel.js";
 import {LoadStatus} from "../matrix/Client.js";
 import {SyncStatus} from "../matrix/Sync.js";
-import {ViewModel} from "./ViewModel.js";
+import {ViewModel} from "./ViewModel";
 
 export class SessionLoadViewModel extends ViewModel {
     constructor(options) {
@@ -43,7 +43,7 @@ export class SessionLoadViewModel extends ViewModel {
             this.emitChange("loading");
             this._waitHandle = this._client.loadStatus.waitFor(s => {
                 if (s === LoadStatus.AccountSetup) {
-                    this._accountSetupViewModel = new AccountSetupViewModel(this._client.accountSetup);
+                    this._accountSetupViewModel = new AccountSetupViewModel(this.childOptions({accountSetup: this._client.accountSetup}));
                 } else {
                     this._accountSetupViewModel = undefined;
                 }

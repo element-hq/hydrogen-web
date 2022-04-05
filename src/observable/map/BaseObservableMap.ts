@@ -16,7 +16,14 @@ limitations under the License.
 
 import {BaseObservable} from "../BaseObservable";
 
-export class BaseObservableMap extends BaseObservable {
+export interface IMapObserver<K, V> {
+    onReset(): void;
+    onAdd(key: K, value:V): void;
+    onUpdate(key: K, value: V, params: any): void;
+    onRemove(key: K, value: V): void
+}
+
+export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserver<K, V>> {
     emitReset() {
         for(let h of this._handlers) {
             h.onReset();
@@ -24,15 +31,15 @@ export class BaseObservableMap extends BaseObservable {
     }
     // we need batch events, mostly on index based collection though?
     // maybe we should get started without?
-    emitAdd(key, value) {
+    emitAdd(key: K, value: V) {
         for(let h of this._handlers) {
             h.onAdd(key, value);
         }
     }
 
-    emitUpdate(key, value, ...params) {
+    emitUpdate(key, value, params) {
         for(let h of this._handlers) {
-            h.onUpdate(key, value, ...params);
+            h.onUpdate(key, value, params);
         }
     }
 
@@ -42,16 +49,7 @@ export class BaseObservableMap extends BaseObservable {
         }
     }
 
-    [Symbol.iterator]() {
-        throw new Error("unimplemented");
-    }
-
-    get size() {
-        throw new Error("unimplemented");
-    }
-
-    // eslint-disable-next-line no-unused-vars
-    get(key) {
-        throw new Error("unimplemented");
-    }
+    abstract [Symbol.iterator](): Iterator<[K, V]>;
+    abstract get size(): number;
+    abstract get(key: K): V | undefined;
 }

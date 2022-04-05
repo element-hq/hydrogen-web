@@ -14,7 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export function createSessionEntry(olmSession, senderKey, timestamp, pickleKey) {
+import type {OlmSessionEntry} from "../../storage/idb/stores/OlmSessionStore";
+import type * as OlmNamespace from "@matrix-org/olm";
+type Olm = typeof OlmNamespace;
+
+export function createSessionEntry(olmSession: Olm.Session, senderKey: string, timestamp: number, pickleKey: string): OlmSessionEntry {
     return {
         session: olmSession.pickle(pickleKey),
         sessionId: olmSession.session_id(),
@@ -24,35 +28,38 @@ export function createSessionEntry(olmSession, senderKey, timestamp, pickleKey) 
 }
 
 export class Session {
-    constructor(data, pickleKey, olm, isNew = false) {
-        this.data = data;
-        this._olm = olm;
-        this._pickleKey = pickleKey;
-        this.isNew = isNew;
+    public isModified: boolean;
+
+    constructor(
+        public readonly data: OlmSessionEntry,
+        private readonly pickleKey: string,
+        private readonly olm: Olm,
+        public isNew: boolean = false
+    ) {
         this.isModified = isNew;
     }
 
-    static create(senderKey, olmSession, olm, pickleKey, timestamp) {
+    static create(senderKey: string, olmSession: Olm.Session, olm: Olm, pickleKey: string, timestamp: number): Session {
         const data = createSessionEntry(olmSession, senderKey, timestamp, pickleKey);
         return new Session(data, pickleKey, olm, true);
     }
 
-    get id() {
+    get id(): string {
         return this.data.sessionId;
     }
 
-    load() {
-        const session = new this._olm.Session();
-        session.unpickle(this._pickleKey, this.data.session);
+    load(): Olm.Session {
+        const session = new this.olm.Session();
+        session.unpickle(this.pickleKey, this.data.session);
         return session;
     }
 
-    unload(olmSession) {
+    unload(olmSession: Olm.Session): void {
         olmSession.free();
     }
 
-    save(olmSession) {
-        this.data.session = olmSession.pickle(this._pickleKey);
+    save(olmSession: Olm.Session): void {
+        this.data.session = olmSession.pickle(this.pickleKey);
         this.isModified = true;
     }
 }

@@ -10,6 +10,7 @@
     "lint-ts": "eslint src/ -c .ts-eslintrc.js --ext .ts",
     "lint-ci": "eslint src/",
     "test": "impunity --entry-point src/platform/web/main.js src/platform/web/Platform.js --force-esm-dirs lib/ src/ --root-dir src/",
+    "test:postcss": "impunity --entry-point  scripts/postcss/test.js ",
     "start": "vite --port 3000",
     "build": "vite build",
     "build:sdk": "./scripts/sdk/build.sh"
@@ -30,6 +31,7 @@
     "acorn": "^8.6.0",
     "acorn-walk": "^8.2.0",
     "aes-js": "^3.1.2",
+    "bs58": "^4.0.1",
     "core-js": "^3.6.5",
     "es6-promise": "https://github.com/bwindels/es6-promise.git#bwindels/expose-flush",
     "escodegen": "^2.0.0",
@@ -45,13 +47,14 @@
     "text-encoding": "^0.7.0",
     "typescript": "^4.3.5",
     "vite": "todo: wait for next Vite release",
-    "xxhashjs": "^0.2.2",
-    "bs58": "^4.0.1"
+    "xxhashjs": "^0.2.2"
   },
   "dependencies": {
     "@matrix-org/olm": "https://gitlab.matrix.org/api/v4/projects/27/packages/npm/@matrix-org/olm/-/@matrix-org/olm-3.2.3.tgz",
     "another-json": "^0.2.0",
     "base64-arraybuffer": "^0.2.0",
-    "dompurify": "^2.3.0"
+    "dompurify": "^2.3.0",
+    "off-color": "^2.0.0",
+    "postcss-value-parser": "^4.2.0"
   }
 }

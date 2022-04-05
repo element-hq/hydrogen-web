@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 import {SortedArray} from "../observable/index.js";
-import {ViewModel} from "./ViewModel.js";
-import {avatarInitials, getIdentifierColorNumber} from "./avatar.js";
+import {ViewModel} from "./ViewModel";
+import {avatarInitials, getIdentifierColorNumber} from "./avatar";
 
 class SessionItemViewModel extends ViewModel {
     constructor(options, pickerVM) {

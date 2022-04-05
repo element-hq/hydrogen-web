@@ -14,7 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export function avatarInitials(name) {
+import { Platform } from "../platform/web/Platform";
+import { MediaRepository } from "../matrix/net/MediaRepository";
+
+export function avatarInitials(name: string): string {
     let firstChar = name.charAt(0);
     if (firstChar === "!" || firstChar === "@" || firstChar === "#") {
         firstChar = name.charAt(1);
@@ -29,10 +32,10 @@ export function avatarInitials(name) {
  *
  * @return {number}
  */
-function hashCode(str) {
+function hashCode(str: string): number {
     let hash = 0;
-    let i;
-    let chr;
+    let i: number;
+    let chr: number;
     if (str.length === 0) {
         return hash;
     }
@@ -44,11 +47,11 @@ function hashCode(str) {
     return Math.abs(hash);
 }
 
-export function getIdentifierColorNumber(id) {
+export function getIdentifierColorNumber(id: string): number {
     return (hashCode(id) % 8) + 1;
 }
 
-export function getAvatarHttpUrl(avatarUrl, cssSize, platform, mediaRepository) {
+export function getAvatarHttpUrl(avatarUrl: string, cssSize: number, platform: Platform, mediaRepository: MediaRepository): string | null {
     if (avatarUrl) {
         const imageSize = cssSize * platform.devicePixelRatio;
         return mediaRepository.mxcUrlThumbnail(avatarUrl, imageSize, imageSize, "crop");

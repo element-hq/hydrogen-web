@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ViewModel} from "./ViewModel.js";
+import {ViewModel} from "./ViewModel";
 import {KeyType} from "../matrix/ssss/index";
 import {Status} from "./session/settings/KeyBackupViewModel.js";
 
 export class AccountSetupViewModel extends ViewModel {
-    constructor(accountSetup) {
-        super();
-        this._accountSetup = accountSetup;
+    constructor(options) {
+        super(options);
+        this._accountSetup = options.accountSetup;
         this._dehydratedDevice = undefined;
         this._decryptDehydratedDeviceViewModel = undefined;
         if (this._accountSetup.encryptedDehydratedDevice) {
@@ -53,7 +53,7 @@ export class AccountSetupViewModel extends ViewModel {
 // this vm adopts the same shape as KeyBackupViewModel so the same view can be reused.
 class DecryptDehydratedDeviceViewModel extends ViewModel {
     constructor(accountSetupViewModel, decryptedCallback) {
-        super();
+        super(accountSetupViewModel.options);
         this._accountSetupViewModel = accountSetupViewModel;
         this._isBusy = false;
         this._status = Status.SetupKey;

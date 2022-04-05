@@ -16,6 +16,7 @@ limitations under the License.
 
 export {Platform} from "./platform/web/Platform.js";
 export {Client, LoadStatus} from "./matrix/Client.js";
+export {RoomStatus} from "./matrix/room/common";
 // export main view & view models
 export {createNavigation, createRouter} from "./domain/navigation/index.js";
 export {RootViewModel} from "./domain/RootViewModel.js";
@@ -30,6 +31,23 @@ export {Navigation} from "./domain/navigation/Navigation.js";
 export {ComposerViewModel} from "./domain/session/room/ComposerViewModel.js";
 export {MessageComposer} from "./platform/web/ui/session/room/MessageComposer.js";
 export {TemplateView} from "./platform/web/ui/general/TemplateView";
-export {ViewModel} from "./domain/ViewModel.js";
+export {ViewModel} from "./domain/ViewModel";
 export {LoadingView} from "./platform/web/ui/general/LoadingView.js";
 export {AvatarView} from "./platform/web/ui/AvatarView.js";
+export {RoomType} from "./matrix/room/common";
+export {EventEmitter} from "./utils/EventEmitter";
+export {Disposables} from "./utils/Disposables";
+// these should eventually be moved to another library
+export {
+    ObservableArray,
+    SortedArray,
+    MappedList,
+    AsyncMappedList,
+    ConcatList,
+    ObservableMap
+} from "./observable/index";
+export {
+    BaseObservableValue,
+    ObservableValue,
+    RetainedObservableValue
+} from "./observable/ObservableValue";

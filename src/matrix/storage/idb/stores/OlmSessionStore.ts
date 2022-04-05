@@ -24,19 +24,19 @@ function decodeKey(key: string): { senderKey: string, sessionId: string } {
     return {senderKey, sessionId};
 }
 
-interface OlmSession {
+export type OlmSessionEntry = {
     session: string;
     sessionId: string;
     senderKey: string;
     lastUsed: number;
 }
 
-type OlmSessionEntry = OlmSession & { key: string };
+type OlmSessionStoredEntry = OlmSessionEntry & { key: string };
 
 export class OlmSessionStore {
-    private _store: Store<OlmSessionEntry>;
+    private _store: Store<OlmSessionStoredEntry>;
 
-    constructor(store: Store<OlmSessionEntry>) {
+    constructor(store: Store<OlmSessionStoredEntry>) {
         this._store = store;
     }
 
@@ -55,20 +55,20 @@ export class OlmSessionStore {
         return sessionIds;
     }
 
-    getAll(senderKey: string): Promise<OlmSession[]> {
+    getAll(senderKey: string): Promise<OlmSessionEntry[]> {
         const range = this._store.IDBKeyRange.lowerBound(encodeKey(senderKey, ""));
         return this._store.selectWhile(range, session => {
             return session.senderKey === senderKey;
         });
     }
 
-    get(senderKey: string, sessionId: string): Promise<OlmSession | undefined> {
+    get(senderKey: string, sessionId: string): Promise<OlmSessionEntry | undefined> {
         return this._store.get(encodeKey(senderKey, sessionId));
     }
 
-    set(session: OlmSession): void {
-        (session as OlmSessionEntry).key = encodeKey(session.senderKey, session.sessionId);
-        this._store.put(session as OlmSessionEntry);
+    set(session: OlmSessionEntry): void {
+        (session as OlmSessionStoredEntry).key = encodeKey(session.senderKey, session.sessionId);
+        this._store.put(session as OlmSessionStoredEntry);
     }
 
     remove(senderKey: string, sessionId: string): void {

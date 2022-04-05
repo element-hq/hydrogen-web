@@ -26,35 +26,41 @@ limitations under the License.
  *                                      see DeviceTracker
  */
 
+import type {DeviceIdentity} from "../storage/idb/stores/DeviceIdentityStore";
 
+type DecryptedEvent = {
+    type?: string,
+    content?: Record<string, any>
+}
 
 export class DecryptionResult {
-    constructor(event, senderCurve25519Key, claimedEd25519Key) {
-        this.event = event;
-        this.senderCurve25519Key = senderCurve25519Key;
-        this.claimedEd25519Key = claimedEd25519Key;
-        this._device = null;
-        this._roomTracked = true;
+    private device?: DeviceIdentity;
+    private roomTracked: boolean = true;
+
+    constructor(
+        public readonly event: DecryptedEvent,
+        public readonly senderCurve25519Key: string,
+        public readonly claimedEd25519Key: string
+    ) {}
+
+    setDevice(device: DeviceIdentity): void {
+        this.device = device;
     }
 
-    setDevice(device) {
-        this._device = device;
+    setRoomNotTrackedYet(): void {
+        this.roomTracked = false;
     }
 
-    setRoomNotTrackedYet() {
-        this._roomTracked = false;
-    }
-
-    get isVerified() {
-        if (this._device) {
-            const comesFromDevice = this._device.ed25519Key === this.claimedEd25519Key;
+    get isVerified(): boolean {
+        if (this.device) {
+            const comesFromDevice = this.device.ed25519Key === this.claimedEd25519Key;
             return comesFromDevice;
         }
         return false;
     }
 
-    get isUnverified() {
-        if (this._device) {
+    get isUnverified(): boolean {
+        if (this.device) {
             return !this.isVerified;
         } else if (this.isVerificationUnknown) {
             return false;
@@ -63,8 +69,8 @@ export class DecryptionResult {
         }
     }
 
-    get isVerificationUnknown() {
+    get isVerificationUnknown(): boolean {
         // verification is unknown if we haven't yet fetched the devices for the room
-        return !this._device && !this._roomTracked;
+        return !this.device && !this.roomTracked;
     }
 }
