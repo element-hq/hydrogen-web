@@ -11,6 +11,7 @@
     "lint-ci": "eslint src/",
     "test": "impunity --entry-point src/platform/web/main.js src/platform/web/Platform.js --force-esm-dirs lib/ src/ --root-dir src/",
     "test:postcss": "impunity --entry-point  scripts/postcss/test.js ",
+    "test:sdk": "cd ./scripts/sdk/test/ && yarn --no-lockfile && node test-sdk-in-esm-vite-build-env.js && node test-sdk-in-commonjs-env.js",
     "start": "vite --port 3000",
     "build": "vite build",
     "build:sdk": "./scripts/sdk/build.sh",
