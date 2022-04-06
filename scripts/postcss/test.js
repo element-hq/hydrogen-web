@@ -134,6 +134,31 @@ module.exports.tests = function tests() {
             const actualArray = compiledVariables.get("/foo/bar")["derived-variables"];
             const expectedArray = ["icon-color--darker-20", "my-alias=icon-color--darker-20", "my-alias--lighter-15"];
             assert.deepStrictEqual(actualArray.sort(), expectedArray.sort());
+        },
+
+        "derived variable are supported in urls": async (assert) => {
+            const inputCSS = `
+            :root {
+                --foo-color: #ff0;
+            }
+            div {
+                background-color: var(--foo-color--lighter-50);
+                background: url("./foo/bar/icon.svg?primary=foo-color--darker-5");
+            }
+            a {
+                background: url("foo/bar/icon.svg");
+            }`;
+            const transformedColorLighter = offColor("#ff0").lighten(0.5);
+            const transformedColorDarker = offColor("#ff0").darken(0.05);
+            const outputCSS =
+                inputCSS +
+                `
+            :root {
+                --foo-color--lighter-50: ${transformedColorLighter.hex()};
+                --foo-color--darker-5: ${transformedColorDarker.hex()};
+            }
+            `;
+            await run( inputCSS, outputCSS, {}, assert);
         }
     };
 };

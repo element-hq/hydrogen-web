@@ -43,17 +43,32 @@ function parseDeclarationValue(value) {
     const parsed = valueParser(value);
     const variables = [];
     parsed.walk(node => {
-        if (node.type !== "function" && node.value !== "var") {
+        if (node.type !== "function") {
             return;
         }
-        const variable = node.nodes[0];
-        variables.push(variable.value);
+        switch (node.value) {
+            case "var": {
+                const variable = node.nodes[0];
+                variables.push(variable.value);
+                break;
+            }
+            case "url": {
+                const url = node.nodes[0].value;
+                // resolve url with some absolute url so that we get the query params without using regex
+                const params = new URL(url, "file://foo/bar/").searchParams;
+                const primary = params.get("primary");
+                const secondary = params.get("secondary");
+                if (primary) { variables.push(primary); }
+                if (secondary) { variables.push(secondary); }
+                break;
+            }
+        }
     });
     return variables;
 }
 
 function resolveDerivedVariable(decl, derive) {
-    const RE_VARIABLE_VALUE = /--((.+)--(.+)-(.+))/;
+    const RE_VARIABLE_VALUE = /(?:--)?((.+)--(.+)-(.+))/;
     const variableCollection = parseDeclarationValue(decl.value);
     for (const variable of variableCollection) {
         const matches = variable.match(RE_VARIABLE_VALUE);
