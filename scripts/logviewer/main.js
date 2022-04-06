@@ -22,6 +22,7 @@ const main = document.querySelector("main");
 let selectedItemNode;
 let rootItem;
 let itemByRef;
+let itemsRefFrom;
 
 const logLevels = [undefined, "All", "Debug", "Detail", "Info", "Warn", "Error", "Fatal", "Off"];
 
@@ -49,6 +50,7 @@ window.addEventListener("hashchange", () => {
     const id = window.location.hash.substr(1);
     const itemNode = document.getElementById(id);
     if (itemNode && itemNode.closest("main")) {
+        ensureParentsExpanded(itemNode);
         selectNode(itemNode);
         itemNode.scrollIntoView({behavior: "smooth", block: "nearest"});
     }
@@ -68,6 +70,14 @@ function selectNode(itemNode) {
         item = itemChildren(item)[i];
     }
     showItemDetails(item, parent, selectedItemNode);
+}
+
+function ensureParentsExpanded(itemNode) {
+    let li = itemNode.parentElement.parentElement;
+    while (li.tagName === "LI") {
+        li.classList.add("expanded");
+        li = li.parentElement.parentElement;
+    }
 }
 
 function stringifyItemValue(value) {
@@ -102,6 +112,11 @@ function showItemDetails(item, parent, itemNode) {
                 } else {
                     valueNode = `unknown ref ${value}`;
                 }
+            } else if (key === "refId") {
+                const refSources = itemsRefFrom.get(value) ?? [];
+                valueNode = t.div([t.p([`${value}`, t.br(),`Found these references:`]),t.ul(refSources.map(item => {
+                    return t.li(t.a({href: `#${item.id}`}, itemCaption(item)));
+                }))]);
             } else {
                 valueNode = stringifyItemValue(value);
             }
@@ -153,7 +168,8 @@ async function loadFile() {
     logs.items.sort((a, b) => itemStart(a) - itemStart(b));
     rootItem = {c: logs.items};
     itemByRef = new Map();
-    preprocessRecursively(rootItem, null, itemByRef, []);
+    itemsRefFrom = new Map();
+    preprocessRecursively(rootItem, null, itemByRef, itemsRefFrom, []);
 
     const fragment = logs.items.reduce((fragment, item, i, items) => {
         const prevItem = i === 0 ? null : items[i - 1];
@@ -167,10 +183,18 @@ async function loadFile() {
 }
 
 // TODO: make this use processRecursively
-function preprocessRecursively(item, parentElement, refsMap, path) {
+function preprocessRecursively(item, parentElement, refsMap, refsFromMap, path) {
     item.s = (parentElement?.s || 0) + item.s;
     if (itemRefSource(item)) {
         refsMap.set(itemRefSource(item), item);
+    }
+    if (itemRef(item)) {
+        let refs = refsFromMap.get(itemRef(item));
+        if (!refs) {
+            refs = [];
+            refsFromMap.set(itemRef(item), refs);
+        }
+        refs.push(item);
     }
     if (itemChildren(item)) {
         for (let i = 0; i < itemChildren(item).length; i += 1) {
@@ -178,7 +202,7 @@ function preprocessRecursively(item, parentElement, refsMap, path) {
             const child = itemChildren(item)[i];
             const childPath = path.concat(i);
             child.id = childPath.join("/");
-            preprocessRecursively(child, item, refsMap, childPath);
+            preprocessRecursively(child, item, refsMap, refsFromMap, childPath);
         }
     }
 }
