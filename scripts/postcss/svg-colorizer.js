@@ -26,6 +26,9 @@ module.exports.buildColorizedSVG = function (svgLocation, primaryColor, secondar
     const svgCode = fs.readFileSync(svgLocation, { encoding: "utf8"});
     let coloredSVGCode = svgCode.replaceAll("#ff00ff", primaryColor);
     coloredSVGCode = coloredSVGCode.replaceAll("#00ffff", secondaryColor);
+    if (svgCode === coloredSVGCode) {
+        throw new Error("svg-colorizer made no color replacements! The input svg should only contain colors #ff00ff (primary, case-sensitive) and #00ffff (secondary, case-sensitive).");
+    }
     const fileName = svgLocation.match(/.+\/(.+\.svg)/)[1];
     const outputPath = path.resolve(__dirname, "../../.tmp");
     try {
