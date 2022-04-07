@@ -96,6 +96,7 @@ module.exports.tests = function tests() {
             `;
             await run( inputCSS, outputCSS, { }, assert);
         },
+
         "multiple aliased-derived variable in single declaration is parsed correctly": async (assert) => {
             const inputCSS = `
             :root {
@@ -116,6 +117,48 @@ module.exports.tests = function tests() {
             }
             `;
             await run( inputCSS, outputCSS, { }, assert);
+        },
+
+        "compiledVariables map is populated": async (assert) => {
+            const compiledVariables = new Map();
+            const inputCSS = `
+            :root {
+                --icon-color: #fff;
+            }
+            div {
+                background: var(--icon-color--darker-20);
+                --my-alias: var(--icon-color--darker-20);
+                color: var(--my-alias--lighter-15);
+            }`;
+            await postcss([plugin({ derive, compiledVariables })]).process(inputCSS, { from: "/foo/bar/test.css", });
+            const actualArray = compiledVariables.get("/foo/bar")["derived-variables"];
+            const expectedArray = ["icon-color--darker-20", "my-alias=icon-color--darker-20", "my-alias--lighter-15"];
+            assert.deepStrictEqual(actualArray.sort(), expectedArray.sort());
+        },
+
+        "derived variable are supported in urls": async (assert) => {
+            const inputCSS = `
+            :root {
+                --foo-color: #ff0;
+            }
+            div {
+                background-color: var(--foo-color--lighter-50);
+                background: url("./foo/bar/icon.svg?primary=foo-color--darker-5");
+            }
+            a {
+                background: url("foo/bar/icon.svg");
+            }`;
+            const transformedColorLighter = offColor("#ff0").lighten(0.5);
+            const transformedColorDarker = offColor("#ff0").darken(0.05);
+            const outputCSS =
+                inputCSS +
+                `
+            :root {
+                --foo-color--lighter-50: ${transformedColorLighter.hex()};
+                --foo-color--darker-5: ${transformedColorDarker.hex()};
+            }
+            `;
+            await run( inputCSS, outputCSS, {}, assert);
         }
     };
 };
