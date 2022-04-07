@@ -250,7 +250,8 @@ export class PeerCall implements IDisposable {
                     break;
                 case EventType.Hangup:
                 default:
-                    throw new Error(`Unknown event type for call: ${message.type}`);
+                    log.log(`Unknown event type for call: ${message.type}`);
+                    break;
             }
         });
     }
