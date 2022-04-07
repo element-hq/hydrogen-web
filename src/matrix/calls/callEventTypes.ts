@@ -69,10 +69,15 @@ export interface CallReplacesTarget {
 export type MCallBase = {
     call_id: string;
     version: string | number;
+    seq: number;
 }
 
 export type MGroupCallBase = MCallBase & {
     conf_id: string;
+    device_id: string;
+    sender_session_id: string;
+    dest_session_id: string;
+    party_id: string; // Should not need this?
 } 
 
 export type MCallAnswer<Base extends MCallBase> = Base & {

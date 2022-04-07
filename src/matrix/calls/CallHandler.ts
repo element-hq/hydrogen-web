@@ -50,11 +50,13 @@ export class CallHandler {
     // map of userId to set of conf_id's they are in
     private memberToCallIds: Map<string, Set<string>> = new Map();
     private groupCallOptions: GroupCallOptions;
+    private sessionId = makeId("s");
 
     constructor(private readonly options: Options) {
         this.groupCallOptions = Object.assign({}, this.options, {
             emitUpdate: (groupCall, params) => this._calls.update(groupCall.id, params),
             createTimeout: this.options.clock.createTimeout,
+            sessionId: this.sessionId
         });
     }
 

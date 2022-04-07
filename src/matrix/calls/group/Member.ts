@@ -33,6 +33,7 @@ export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessag
     confId: string,
     ownUserId: string,
     ownDeviceId: string,
+    sessionId: string,
     hsApi: HomeServerApi,
     encryptDeviceMessage: (userId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage>,
     emitUpdate: (participant: Member, params?: any) => void,
@@ -41,6 +42,7 @@ export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessag
 export class Member {
     private peerCall?: PeerCall;
     private localMedia?: LocalMedia;
+    private destSessionId?: string;
 
     constructor(
         public readonly member: RoomMember,
@@ -140,7 +142,13 @@ export class Member {
             this.peerCall = this._createPeerCall(message.content.call_id);
         }
         if (this.peerCall) {
+            const prevState = this.peerCall.state;
             this.peerCall.handleIncomingSignallingMessage(message, deviceId);
+            //if (prevState !== this.peerCall.state) {
+            if (!this.destSessionId) {
+                this.destSessionId = message.content.sender_session_id;
+            }
+            //}
         } else {
             // TODO: need to buffer events until invite comes?
         }

@@ -61,6 +61,7 @@ export class PeerCall implements IDisposable {
     private _state = CallState.Fledgling;
     private direction: CallDirection;
     private localMedia?: LocalMedia;
+    private seq: number = 0;
     // A queue for candidates waiting to go out.
     // We try to amalgamate candidates into a single candidate message where
     // possible
@@ -258,6 +259,7 @@ export class PeerCall implements IDisposable {
         const content = {
             call_id: callId,
             version: 1,
+            seq: this.seq++,
         };
         // TODO: Don't send UserHangup reason to older clients
         if (reason) {
@@ -304,6 +306,7 @@ export class PeerCall implements IDisposable {
                 offer,
                 [SDPStreamMetadataKey]: this.localMedia!.getSDPMetadata(),
                 version: 1,
+                seq: this.seq++,
                 lifetime: CALL_TIMEOUT_MS
             };
             if (this._state === CallState.CreateOffer) {
@@ -578,6 +581,7 @@ export class PeerCall implements IDisposable {
         const answerContent: MCallAnswer<MCallBase> = {
             call_id: this.callId,
             version: 1,
+            seq: this.seq++,
             answer: {
                 sdp: localDescription.sdp,
                 type: localDescription.type,
@@ -648,6 +652,7 @@ export class PeerCall implements IDisposable {
                     content: {
                         call_id: this.callId,
                         version: 1,
+                        seq: this.seq++,
                         candidates
                     },
                 }, log);
