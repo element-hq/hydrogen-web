@@ -110,10 +110,22 @@ export class Member {
     sendSignallingMessage = async (message: SignallingMessage<MCallBase>, log: ILogItem): Promise<void> => {
         const groupMessage = message as SignallingMessage<MGroupCallBase>;
         groupMessage.content.conf_id = this.options.confId;
-        const encryptedMessages = await this.options.encryptDeviceMessage(this.member.userId, groupMessage, log);
-        const payload = formatToDeviceMessagesPayload(encryptedMessages);
+        groupMessage.content.device_id = this.options.ownDeviceId;
+        groupMessage.content.party_id = this.options.ownDeviceId;
+        groupMessage.content.sender_session_id = this.options.sessionId;
+        groupMessage.content.dest_session_id = this.destSessionId!;
+        // const encryptedMessages = await this.options.encryptDeviceMessage(this.member.userId, groupMessage, log);
+        // const payload = formatToDeviceMessagesPayload(encryptedMessages);
+        const payload = {
+            messages: {
+                [this.member.userId]: {
+                    ['*']: groupMessage.content
+                }
+            }
+        };
         const request = this.options.hsApi.sendToDevice(
-            "m.room.encrypted",
+            message.type,
+            //"m.room.encrypted",
             payload,
             makeTxnId(),
             {log}
