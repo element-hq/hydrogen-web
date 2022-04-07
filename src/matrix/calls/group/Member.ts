@@ -73,10 +73,11 @@ export class Member {
             this.localMedia = localMedia;
             // otherwise wait for it to connect
             let shouldInitiateCall;
+            // the lexicographically lower side initiates the call
             if (this.member.userId === this.options.ownUserId) {
-                shouldInitiateCall = this.deviceId < this.options.ownDeviceId;
+                shouldInitiateCall = this.deviceId > this.options.ownDeviceId;
             } else {
-                shouldInitiateCall = this.member.userId < this.options.ownUserId;
+                shouldInitiateCall = this.member.userId > this.options.ownUserId;
             }
             if (shouldInitiateCall) {
                 this.peerCall = this._createPeerCall(makeId("c"));
