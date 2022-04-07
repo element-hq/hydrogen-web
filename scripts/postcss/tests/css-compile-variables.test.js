@@ -108,7 +108,7 @@ module.exports.tests = function tests() {
                 --my-alias--darker-20: ${transformedColor2.hex()};
             }
             `;
-            await run( inputCSS, outputCSS, { }, assert);
+            await run( inputCSS, outputCSS, {derive}, assert);
         },
 
         "compiledVariables map is populated": async (assert) => {
@@ -150,7 +150,7 @@ module.exports.tests = function tests() {
                 --foo-color--darker-5: ${transformedColorDarker.hex()};
             }
             `;
-            await run( inputCSS, outputCSS, {}, assert);
+            await run( inputCSS, outputCSS, {derive}, assert);
         }
     };
 };
