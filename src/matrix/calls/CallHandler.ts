@@ -97,9 +97,13 @@ export class CallHandler {
             }));
             const roomIds = Array.from(new Set(callEntries.map(e => e.roomId)));
             await Promise.all(roomIds.map(async roomId => {
-                const ownCallsMemberEvent = await txn.roomState.get(roomId, EventType.GroupCallMember, this.options.ownUserId);
-                if (ownCallsMemberEvent) {
-                    this.handleCallMemberEvent(ownCallsMemberEvent.event, log);
+                // const ownCallsMemberEvent = await txn.roomState.get(roomId, EventType.GroupCallMember, this.options.ownUserId);
+                // if (ownCallsMemberEvent) {
+                //     this.handleCallMemberEvent(ownCallsMemberEvent.event, log);
+                // }
+                const callsMemberEvents = await txn.roomState.getAllForType(roomId, EventType.GroupCallMember);
+                for (const entry of callsMemberEvents) {
+                    this.handleCallMemberEvent(entry.event, log);
                 }
                 // TODO: we should be loading the other members as well at some point
             }));
