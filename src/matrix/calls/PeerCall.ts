@@ -108,7 +108,7 @@ export class PeerCall implements IDisposable {
                 });
             },
             onRemoteTracksChanged(tracks: Track[]) {
-                outer.logItem.wrap("onRemoteTracksChanged", log => {
+                outer.logItem.wrap({l: "onRemoteTracksChanged", length: tracks.length}, log => {
                     outer.options.emitUpdate(outer, undefined);
                 });
             },
