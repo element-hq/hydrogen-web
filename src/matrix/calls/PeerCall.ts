@@ -400,12 +400,12 @@ export class PeerCall implements IDisposable {
         // According to previous comments in this file, firefox at some point did not
         // add streams until media started arriving on them. Testing latest firefox
         // (81 at time of writing), this is no longer a problem, so let's do it the correct way.
-        if (this.peerConnection.remoteTracks.length === 0) {
-            await log.wrap(`Call no remote stream or no tracks after setting remote description!`, async log => {
-                return this.terminate(CallParty.Local, CallErrorCode.SetRemoteDescription, log);
-            });
-            return;
-        }
+        // if (this.peerConnection.remoteTracks.length === 0) {
+        //     await log.wrap(`Call no remote stream or no tracks after setting remote description!`, async log => {
+        //         return this.terminate(CallParty.Local, CallErrorCode.SetRemoteDescription, log);
+        //     });
+        //     return;
+        // }
 
         this.setState(CallState.Ringing, log);
 
