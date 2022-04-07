@@ -18,8 +18,8 @@ import {ObservableMap} from "../../../observable/map/ObservableMap";
 import {Member} from "./Member";
 import {LocalMedia} from "../LocalMedia";
 import {RoomMember} from "../../room/members/RoomMember";
-import {makeId} from "../../common";
 import {EventEmitter} from "../../../utils/EventEmitter";
+import {EventType, CallIntent} from "../callEventTypes";
 
 import type {Options as MemberOptions} from "./Member";
 import type {BaseObservableMap} from "../../../observable/map/BaseObservableMap";
@@ -31,9 +31,6 @@ import type {Platform} from "../../../platform/web/Platform";
 import type {EncryptedMessage} from "../../e2ee/olm/Encryption";
 import type {ILogItem} from "../../../logging/types";
 import type {Storage} from "../../storage/idb/Storage";
-
-const CALL_TYPE = "m.call";
-const CALL_MEMBER_TYPE = "m.call.member";
 
 export enum GroupCallState {
     Fledgling = "fledgling",
@@ -62,23 +59,22 @@ export type Options = Omit<MemberOptions, "emitUpdate" | "confId" | "encryptDevi
 };
 
 export class GroupCall extends EventEmitter<{change: never}> {
-    public readonly id: string;
     private readonly _members: ObservableMap<string, Member> = new ObservableMap();
     private _localMedia?: LocalMedia = undefined;
     private _memberOptions: MemberOptions;
     private _state: GroupCallState;
 
     constructor(
-        id: string | undefined,
-        private callContent: Record<string, any> | undefined,
+        public readonly id: string,
+        newCall: boolean,
+        private callContent: Record<string, any>,
         public readonly roomId: string,
         private readonly options: Options,
         private readonly logItem: ILogItem,
     ) {
         super();
-        this.id = id ??  makeId("conf-");
         logItem.set("id", this.id);
-        this._state = id ? GroupCallState.Created : GroupCallState.Fledgling;
+        this._state = newCall ? GroupCallState.Fledgling : GroupCallState.Created;
         this._memberOptions = Object.assign({}, options, {
             confId: this.id,
             emitUpdate: member => this._members.update(getMemberKey(member.userId, member.deviceId), member),
@@ -103,7 +99,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
         return this.callContent?.["m.name"];
     }
 
-    get intent(): string {
+    get intent(): CallIntent {
         return this.callContent?.["m.intent"];
     }
 
@@ -117,7 +113,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
             this.emitChange();
             const memberContent = await this._createJoinPayload();
             // send m.call.member state event
-            const request = this.options.hsApi.sendState(this.roomId, CALL_MEMBER_TYPE, this.options.ownUserId, memberContent, {log});
+            const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCallMember, this.options.ownUserId, memberContent, {log});
             await request.response();
             this.emitChange();
             // send invite to all members that are < my userId
@@ -136,10 +132,10 @@ export class GroupCall extends EventEmitter<{change: never}> {
             const memberContent = await this._leaveCallMemberContent();
             // send m.call.member state event
             if (memberContent) {
-                const request = this.options.hsApi.sendState(this.roomId, CALL_MEMBER_TYPE, this.options.ownUserId, memberContent, {log});
+                const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCallMember, this.options.ownUserId, memberContent, {log});
                 await request.response();
                 // our own user isn't included in members, so not in the count
-                if (this._members.size === 0) {
+                if (this.intent === CallIntent.Ring && this._members.size === 0) {
                     await this.terminate();
                 }
             } else {
@@ -153,7 +149,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
             if (this._state === GroupCallState.Fledgling) {
                 return;
             }
-            const request = this.options.hsApi.sendState(this.roomId, CALL_TYPE, this.id, Object.assign({}, this.callContent, {
+            const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCall, this.id, Object.assign({}, this.callContent, {
                 "m.terminated": true
             }), {log});
             await request.response();
@@ -161,19 +157,17 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     /** @internal */
-    create(localMedia: LocalMedia, name: string): Promise<void> {
+    create(localMedia: LocalMedia): Promise<void> {
         return this.logItem.wrap("create", async log => {
             if (this._state !== GroupCallState.Fledgling) {
                 return;
             }
             this._state = GroupCallState.Creating;
             this.emitChange();
-            this.callContent = {
+            this.callContent = Object.assign({
                 "m.type": localMedia.cameraTrack ? "m.video" : "m.voice",
-                "m.name": name,
-                "m.intent": "m.ring"
-            };
-            const request = this.options.hsApi.sendState(this.roomId, CALL_TYPE, this.id, this.callContent, {log});
+            }, this.callContent);
+            const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCall, this.id, this.callContent!, {log});
             await request.response();
             this._state = GroupCallState.Created;
             this.emitChange();
@@ -318,7 +312,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
     private async _createJoinPayload() {
         const {storage} = this.options;
         const txn = await storage.readTxn([storage.storeNames.roomState]);
-        const stateEvent = await txn.roomState.get(this.roomId, CALL_MEMBER_TYPE, this.options.ownUserId);
+        const stateEvent = await txn.roomState.get(this.roomId, EventType.GroupCallMember, this.options.ownUserId);
         const stateContent = stateEvent?.event?.content ?? {
             ["m.calls"]: []
         };
@@ -335,7 +329,8 @@ export class GroupCall extends EventEmitter<{change: never}> {
         let deviceInfo = devicesInfo.find(d => d["device_id"] === this.options.ownDeviceId);
         if (!deviceInfo) {
             deviceInfo = {
-                ["device_id"]: this.options.ownDeviceId
+                ["device_id"]: this.options.ownDeviceId,
+                feeds: [{purpose: "m.usermedia"}]
             };
             devicesInfo.push(deviceInfo);
         }
@@ -345,7 +340,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
     private async _leaveCallMemberContent(): Promise<Record<string, any> | undefined> {
         const {storage} = this.options;
         const txn = await storage.readTxn([storage.storeNames.roomState]);
-        const stateEvent = await txn.roomState.get(this.roomId, CALL_MEMBER_TYPE, this.options.ownUserId);
+        const stateEvent = await txn.roomState.get(this.roomId, EventType.GroupCallMember, this.options.ownUserId);
         if (stateEvent) {
             const content = stateEvent.event.content;
             const callInfo = content["m.calls"]?.find(c => c["m.call_id"] === this.id);

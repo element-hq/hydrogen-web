@@ -72,7 +72,7 @@ export function tilesCreator(baseOptions) {
                     return new EncryptedEventTile(options);
                 case "m.room.encryption":
                     return new EncryptionEnabledTile(options);
-                case "m.call":
+                case "org.matrix.msc3401.call":
                     // if prevContent is present, it's an update to a call event, which we don't render
                     // as the original event is updated through the call object which receive state event updates
                     return entry.stateKey && !entry.prevContent ? new CallTile(options) : null;

@@ -1,10 +1,10 @@
 // allow non-camelcase as these are events type that go onto the wire
 /* eslint-disable camelcase */
-
+import type {StateEvent} from "../storage/types";
 
 export enum EventType {
-    GroupCall = "m.call",
-    GroupCallMember = "m.call.member",
+    GroupCall = "org.matrix.msc3401.call",
+    GroupCallMember = "org.matrix.msc3401.call.member",
     Invite = "m.call.invite",
     Candidates = "m.call.candidates",
     Answer = "m.call.answer",
@@ -211,3 +211,9 @@ export type SignallingMessage<Base extends MCallBase> =
     {type: EventType.SDPStreamMetadataChanged | EventType.SDPStreamMetadataChangedPrefix, content: MCallSDPStreamMetadataChanged<Base>} |
     {type: EventType.Candidates, content: MCallCandidates<Base>} |
     {type: EventType.Hangup | EventType.Reject, content: MCallHangupReject<Base>};
+
+export enum CallIntent {
+    Ring = "m.ring",
+    Prompt = "m.prompt",
+    Room = "m.room",
+};

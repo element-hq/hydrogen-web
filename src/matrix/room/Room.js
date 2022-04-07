@@ -93,8 +93,6 @@ export class Room extends BaseRoom {
             }
         }
 
-        this._updateCallHandler(roomResponse, log);
-
         return {
             roomEncryption,
             summaryChanges,
@@ -181,6 +179,7 @@ export class Room extends BaseRoom {
             removedPendingEvents = await this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn, log);
         }
         const powerLevelsEvent = this._getPowerLevelsEvent(roomResponse);
+        this._updateCallHandler(roomResponse, txn, log);
         return {
             summaryChanges,
             roomEncryption,
@@ -448,17 +447,17 @@ export class Room extends BaseRoom {
         return this._sendQueue.pendingEvents;
     }
 
-    _updateCallHandler(roomResponse, log) {
+    _updateCallHandler(roomResponse, txn, log) {
         if (this._callHandler) {
             const stateEvents = roomResponse.state?.events;
             if (stateEvents?.length) {
-                this._callHandler.handleRoomState(this, stateEvents, log);
+                this._callHandler.handleRoomState(this, stateEvents, txn, log);
             }
             let timelineEvents = roomResponse.timeline?.events;
             if (timelineEvents) {
                 const timelineStateEvents = timelineEvents.filter(e => typeof e.state_key === "string");
                 if (timelineEvents.length !== 0) {
-                    this._callHandler.handleRoomState(this, timelineStateEvents, log);
+                    this._callHandler.handleRoomState(this, timelineStateEvents, txn, log);
                 }
             }
         }

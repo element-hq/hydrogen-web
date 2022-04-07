@@ -18,8 +18,9 @@ import {ObservableMap} from "../../observable/map/ObservableMap";
 import {WebRTC, PeerConnection, PeerConnectionHandler} from "../../platform/types/WebRTC";
 import {MediaDevices, Track, AudioTrack, TrackType} from "../../platform/types/MediaDevices";
 import {handlesEventType} from "./PeerCall";
-import {EventType} from "./callEventTypes";
+import {EventType, CallIntent} from "./callEventTypes";
 import {GroupCall} from "./group/GroupCall";
+import {makeId} from "../common";
 
 import type {LocalMedia} from "./LocalMedia";
 import type {Room} from "../room/Room";
@@ -30,13 +31,17 @@ import type {Platform} from "../../platform/web/Platform";
 import type {BaseObservableMap} from "../../observable/map/BaseObservableMap";
 import type {SignallingMessage, MGroupCallBase} from "./callEventTypes";
 import type {Options as GroupCallOptions} from "./group/GroupCall";
+import type {Transaction} from "../storage/idb/Transaction";
+import type {CallEntry} from "../storage/idb/stores/CallStore";
+import type {Clock} from "../../platform/web/dom/Clock";
 
 const GROUP_CALL_TYPE = "m.call";
 const GROUP_CALL_MEMBER_TYPE = "m.call.member";
 const CALL_TERMINATED = "m.terminated";
 
-export type Options = Omit<GroupCallOptions, "emitUpdate"> & {
-    logger: ILogger
+export type Options = Omit<GroupCallOptions, "emitUpdate" | "createTimeout"> & {
+    logger: ILogger,
+    clock: Clock
 };
 
 export class CallHandler {
@@ -48,25 +53,86 @@ export class CallHandler {
 
     constructor(private readonly options: Options) {
         this.groupCallOptions = Object.assign({}, this.options, {
-            emitUpdate: (groupCall, params) => this._calls.update(groupCall.id, params)
+            emitUpdate: (groupCall, params) => this._calls.update(groupCall.id, params),
+            createTimeout: this.options.clock.createTimeout,
+        });
+    }
+
+    async loadCalls(intent: CallIntent = CallIntent.Ring) {
+        const txn = await this._getLoadTxn();
+        const callEntries = await txn.calls.getByIntent(intent);
+        this._loadCallEntries(callEntries, txn);
+    }
+
+    async loadCallsForRoom(intent: CallIntent, roomId: string) {
+        const txn = await this._getLoadTxn();
+        const callEntries = await txn.calls.getByIntentAndRoom(intent, roomId);
+        this._loadCallEntries(callEntries, txn);
+    }
+
+    private async _getLoadTxn(): Promise<Transaction> {
+        const names = this.options.storage.storeNames;
+        const txn = await this.options.storage.readTxn([
+            names.calls,
+            names.roomState
+        ]);
+        return txn;
+    }
+
+    private async _loadCallEntries(callEntries: CallEntry[], txn: Transaction): Promise<void> {
+        return this.options.logger.run("loading calls", async log => {
+            log.set("entries", callEntries.length);
+            await Promise.all(callEntries.map(async callEntry => {
+                if (this._calls.get(callEntry.callId)) {
+                    return;
+                }
+                const event = await txn.roomState.get(callEntry.roomId, EventType.GroupCall, callEntry.callId);
+                if (event) {
+                    const logItem = this.options.logger.child({l: "call", loaded: true});
+                    const call = new GroupCall(event.event.state_key, false, event.event.content, event.roomId, this.groupCallOptions, logItem);
+                    this._calls.set(call.id, call);
+                }
+            }));
+            const roomIds = Array.from(new Set(callEntries.map(e => e.roomId)));
+            await Promise.all(roomIds.map(async roomId => {
+                const ownCallsMemberEvent = await txn.roomState.get(roomId, EventType.GroupCallMember, this.options.ownUserId);
+                if (ownCallsMemberEvent) {
+                    this.handleCallMemberEvent(ownCallsMemberEvent.event, log);
+                }
+                // TODO: we should be loading the other members as well at some point
+            }));
+            log.set("newSize", this._calls.size);
         });
     }
 
     async createCall(roomId: string, localMedia: LocalMedia, name: string): Promise<GroupCall> {
         const logItem = this.options.logger.child({l: "call", incoming: false});
-        const call = new GroupCall(undefined, undefined, roomId, this.groupCallOptions, logItem);
+        const call = new GroupCall(makeId("conf-"), true, { 
+            "m.name": name,
+            "m.intent": CallIntent.Ring
+        }, roomId, this.groupCallOptions, logItem);
         this._calls.set(call.id, call);
+
         try {
-            await call.create(localMedia, name);
+            await call.create(localMedia);
+            await call.join(localMedia);
+            // store call info so it will ring again when reopening the app
+            const txn = await this.options.storage.readWriteTxn([this.options.storage.storeNames.calls]);
+            txn.calls.add({
+                intent: call.intent,
+                callId: call.id,
+                timestamp: this.options.clock.now(),
+                roomId: roomId
+            });
+            await txn.complete();
         } catch (err) {
-            if (err.name === "ConnectionError") {
+            //if (err.name === "ConnectionError") {
                 // if we're offline, give up and remove the call again
                 call.dispose();
                 this._calls.remove(call.id);
-            }
+            //}
             throw err;
         }
-        await call.join(localMedia);
         return call;
     }
 
@@ -75,11 +141,11 @@ export class CallHandler {
     // TODO: check and poll turn server credentials here
 
     /** @internal */
-    handleRoomState(room: Room, events: StateEvent[], log: ILogItem) {
+    handleRoomState(room: Room, events: StateEvent[], txn: Transaction, log: ILogItem) {
         // first update call events
         for (const event of events) {
             if (event.type === EventType.GroupCall) {
-                this.handleCallEvent(event, room.id, log);
+                this.handleCallEvent(event, room.id, txn, log);
             }
         }
         // then update members
@@ -108,7 +174,7 @@ export class CallHandler {
         call?.handleDeviceMessage(message, userId, deviceId, log);
     }
 
-    private handleCallEvent(event: StateEvent, roomId: string, log: ILogItem) {
+    private handleCallEvent(event: StateEvent, roomId: string, txn: Transaction, log: ILogItem) {
         const callId = event.state_key;
         let call = this._calls.get(callId);
         if (call) {
@@ -116,11 +182,18 @@ export class CallHandler {
             if (call.isTerminated) {
                 call.dispose();
                 this._calls.remove(call.id);
+                txn.calls.remove(call.intent, roomId, call.id);
             }
         } else {
             const logItem = this.options.logger.child({l: "call", incoming: true});
-            call = new GroupCall(event.state_key, event.content, roomId, this.groupCallOptions, logItem);
+            call = new GroupCall(event.state_key, false, event.content, roomId, this.groupCallOptions, logItem);
             this._calls.set(call.id, call);
+            txn.calls.add({
+                intent: call.intent,
+                callId: call.id,
+                timestamp: event.origin_server_ts,
+                roomId: roomId
+            });
         }
     }
 

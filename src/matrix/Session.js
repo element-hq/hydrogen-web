@@ -76,7 +76,7 @@ export class Session {
         this._roomsBeingCreated = new ObservableMap();
         this._user = new User(sessionInfo.userId);
         this._callHandler = new CallHandler({
-            createTimeout: this._platform.clock.createTimeout,
+            clock: this._platform.clock,
             hsApi: this._hsApi,
             encryptDeviceMessage: async (roomId, userId, message, log) => {
                 if (!this._deviceTracker || !this._olmEncryption) {

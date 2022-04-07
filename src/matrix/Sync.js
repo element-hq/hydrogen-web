@@ -344,6 +344,7 @@ export class Sync {
             // to decrypt and store new room keys
             storeNames.olmSessions,
             storeNames.inboundGroupSessions,
+            storeNames.calls,
         ]);
     }
     

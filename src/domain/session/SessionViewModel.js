@@ -99,6 +99,8 @@ export class SessionViewModel extends ViewModel {
 
     start() {
         this._sessionStatusViewModel.start();
+        //this._client.session.callHandler.loadCalls("m.prompt");
+        this._client.session.callHandler.loadCalls("m.ring");
     }
 
     get activeMiddleViewModel() {
