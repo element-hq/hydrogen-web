@@ -29,6 +29,7 @@ export class CallViewModel extends ViewModel<Options> {
     constructor(options: Options) {
         super(options);
         this.memberViewModels = this.getOption("call").members
+            .filterValues(member => member.isConnected)
             .mapValues(member => new CallMemberViewModel(this.childOptions({member})))
             .sortValues((a, b) => a.compare(b));
     }
