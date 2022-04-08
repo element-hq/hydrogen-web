@@ -26,6 +26,7 @@ import {BaseObservableList as ObservableList} from "../../../../../observable/li
 
 export interface TileView extends IView {
     readonly value: SimpleTile;
+    onClick(event: UIEvent);
 } 
 export type TileViewConstructor = new (tile: SimpleTile) => TileView;
 export type ViewClassForEntryFn = (tile: SimpleTile) => TileViewConstructor;
@@ -184,11 +185,10 @@ class TilesListView extends ListView<SimpleTile, TileView> {
     private onChanged: () => void;
 
     constructor(tiles: ObservableList<SimpleTile>, onChanged: () => void, private readonly viewClassForEntry: ViewClassForEntryFn) {
-        const options = {
+        super({
             list: tiles,
             onItemClick: (tileView, evt) => tileView.onClick(evt),
-        };
-        super(options, entry => {
+        }, entry => {
             const View = viewClassForEntry(entry);
             return new View(entry);
         });
