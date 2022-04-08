@@ -18,6 +18,11 @@ import {TemplateView} from "../../../general/TemplateView";
 import {spinner} from "../../../common.js";
 
 export class GapView extends TemplateView {
+    // ignore other argument
+    constructor(vm) {
+        super(vm);
+    }
+
     render(t) {
         const className = {
             GapView: true,

@@ -17,6 +17,11 @@ limitations under the License.
 import {TemplateView} from "../../../general/TemplateView";
 
 export class AnnouncementView extends TemplateView {
+    // ignore other arguments
+    constructor(vm) {
+        super(vm);
+    }
+
     render(t) {
         return t.li({className: "AnnouncementView"}, t.div(vm => vm.announcement));
     }
