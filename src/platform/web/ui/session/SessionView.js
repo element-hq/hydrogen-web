@@ -28,6 +28,7 @@ import {RoomGridView} from "./RoomGridView.js";
 import {SettingsView} from "./settings/SettingsView.js";
 import {CreateRoomView} from "./CreateRoomView.js";
 import {RightPanelView} from "./rightpanel/RightPanelView.js";
+import {viewClassForTile} from "./room/common";
 
 export class SessionView extends TemplateView {
     render(t, vm) {
@@ -42,7 +43,7 @@ export class SessionView extends TemplateView {
             t.view(new LeftPanelView(vm.leftPanelViewModel)),
             t.mapView(vm => vm.activeMiddleViewModel, () => {
                 if (vm.roomGridViewModel) {
-                    return new RoomGridView(vm.roomGridViewModel);
+                    return new RoomGridView(vm.roomGridViewModel, viewClassForTile);
                 } else if (vm.settingsViewModel) {
                     return new SettingsView(vm.settingsViewModel);
                 } else if (vm.createRoomViewModel) {
@@ -51,7 +52,7 @@ export class SessionView extends TemplateView {
                     if (vm.currentRoomViewModel.kind === "invite") {
                         return new InviteView(vm.currentRoomViewModel);
                     } else if (vm.currentRoomViewModel.kind === "room") {
-                        return new RoomView(vm.currentRoomViewModel);
+                        return new RoomView(vm.currentRoomViewModel, viewClassForTile);
                     } else if (vm.currentRoomViewModel.kind === "roomBeingCreated") {
                         return new RoomBeingCreatedView(vm.currentRoomViewModel);
                     } else {

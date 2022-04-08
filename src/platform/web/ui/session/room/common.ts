@@ -26,7 +26,7 @@ import {SimpleTile} from "../../../../../domain/session/room/timeline/tiles/Simp
 import {GapView} from "./timeline/GapView.js";
 import type {TileViewConstructor, ViewClassForEntryFn} from "./TimelineView";
 
-export function viewClassForEntry(vm: SimpleTile): TileViewConstructor {
+export function viewClassForTile(vm: SimpleTile): TileViewConstructor {
     switch (vm.shape) {
         case "gap":
             return GapView;

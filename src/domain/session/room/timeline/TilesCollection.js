@@ -311,7 +311,7 @@ export function tests() {
             }
             const entries = new ObservableArray([{n: 5}, {n: 10}]);
             const tileOptions = {
-                tileClassForEntry: entry => UpdateOnSiblingTile,
+                tileClassForEntry: () => UpdateOnSiblingTile,
             };
             const tiles = new TilesCollection(entries, tileOptions);
             let receivedAdd = false;
@@ -337,7 +337,7 @@ export function tests() {
             }
             const entries = new ObservableArray([{n: 5}, {n: 10}, {n: 15}]);
             const tileOptions = {
-                tileClassForEntry: entry => UpdateOnSiblingTile,
+                tileClassForEntry: () => UpdateOnSiblingTile,
             };
             const tiles = new TilesCollection(entries, tileOptions);
             const events = [];
