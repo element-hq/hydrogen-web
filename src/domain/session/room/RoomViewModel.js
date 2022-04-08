@@ -20,6 +20,9 @@ import {ComposerViewModel} from "./ComposerViewModel.js"
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {ViewModel} from "../../ViewModel";
 import {imageToInfo} from "../common.js";
+// TODO: remove fallback so default isn't included in bundle for SDK users that have their custom tileClassForEntry
+// this is a breaking SDK change though to make this option mandatory
+import {tileClassForEntry as defaultTileClassForEntry} from "./timeline/tiles/index";
 
 export class RoomViewModel extends ViewModel {
     constructor(options) {
@@ -27,7 +30,7 @@ export class RoomViewModel extends ViewModel {
         const {room, tileClassForEntry} = options;
         this._room = room;
         this._timelineVM = null;
-        this._tileClassForEntry = tileClassForEntry;
+        this._tileClassForEntry = tileClassForEntry ?? defaultTileClassForEntry;
         this._tileOptions = undefined;
         this._onRoomChange = this._onRoomChange.bind(this);
         this._timelineError = null;
