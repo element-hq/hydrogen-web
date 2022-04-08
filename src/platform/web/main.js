@@ -18,6 +18,7 @@ limitations under the License.
 // import {RecordRequester, ReplayRequester} from "./matrix/net/request/replay";
 import {RootViewModel} from "../../domain/RootViewModel.js";
 import {createNavigation, createRouter} from "../../domain/navigation/index.js";
+import {tileClassForEntry} from "../../domain/session/room/timeline/tiles/index";
 // Don't use a default export here, as we use multiple entries during legacy build,
 // which does not support default exports,
 // see https://github.com/rollup/plugins/tree/master/packages/multi-entry
@@ -42,6 +43,8 @@ export async function main(platform) {
             // so we call it that in the view models
             urlCreator: urlRouter,
             navigation,
+            // which tiles are supported by the timeline
+            tileClassForEntry
         });
         await vm.load();
         platform.createAndMountRootView(vm);

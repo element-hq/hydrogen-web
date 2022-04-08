@@ -18,17 +18,17 @@ limitations under the License.
 import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
 import {ComposerViewModel} from "./ComposerViewModel.js"
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
-import {tilesCreator} from "./timeline/tilesCreator.js";
 import {ViewModel} from "../../ViewModel";
 import {imageToInfo} from "../common.js";
 
 export class RoomViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {room} = options;
+        const {room, tileClassForEntry} = options;
         this._room = room;
         this._timelineVM = null;
-        this._tilesCreator = null;
+        this._tileClassForEntry = tileClassForEntry;
+        this._tileOptions = undefined;
         this._onRoomChange = this._onRoomChange.bind(this);
         this._timelineError = null;
         this._sendError = null;
@@ -46,12 +46,13 @@ export class RoomViewModel extends ViewModel {
         this._room.on("change", this._onRoomChange);
         try {
             const timeline = await this._room.openTimeline();
-            this._tilesCreator = tilesCreator(this.childOptions({
+            this._tileOptions = this.childOptions({
                 roomVM: this,
                 timeline,
-            }));
+                tileClassForEntry: this._tileClassForEntry,
+            });
             this._timelineVM = this.track(new TimelineViewModel(this.childOptions({
-                tilesCreator: this._tilesCreator,
+                tileOptions: this._tileOptions,
                 timeline,
             })));
             this.emitChange("timelineViewModel");
@@ -161,7 +162,12 @@ export class RoomViewModel extends ViewModel {
     }
 
     _createTile(entry) {
-        return this._tilesCreator(entry);
+        if (this._tileOptions) {
+            const Tile = this._tileOptions.tileClassForEntry(entry);
+            if (Tile) {
+                return new Tile(entry, this._tileOptions);
+            }
+        }
     }
     
     async _sendMessage(message, replyingTo) {

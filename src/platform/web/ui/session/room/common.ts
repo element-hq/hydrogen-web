@@ -48,6 +48,6 @@ export function viewClassForEntry(vm: SimpleTile): TileViewConstructor {
         case "redacted":
             return RedactedView;
         default:
-            throw new Error(`Tiles of shape "${vm.shape}" are not supported, check the tilesCreator function in the view model`);
+            throw new Error(`Tiles of shape "${vm.shape}" are not supported, check the tileClassForEntry function in the view model`);
     }
 }

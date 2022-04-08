@@ -19,9 +19,9 @@ import {ViewModel} from "../../../../ViewModel";
 import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent.js";
 
 export class SimpleTile extends ViewModel {
-    constructor(options) {
+    constructor(entry, options) {
         super(options);
-        this._entry = options.entry;
+        this._entry = entry;
     }
     // view model props for all subclasses
     // hmmm, could also do instanceof ... ?
