@@ -18,8 +18,8 @@ import {SimpleTile} from "./SimpleTile.js";
 import {UpdateAction} from "../UpdateAction.js";
 
 export class GapTile extends SimpleTile {
-    constructor(options) {
-        super(options);
+    constructor(entry, options) {
+        super(entry, options);
         this._loading = false;
         this._error = null;
         this._isAtTop = true;
@@ -81,8 +81,8 @@ export class GapTile extends SimpleTile {
         this._siblingChanged = true;
     }
 
-    updateEntry(entry, params, tilesCreator) {
-        super.updateEntry(entry, params, tilesCreator);
+    updateEntry(entry, params) {
+        super.updateEntry(entry, params);
         if (!entry.isGap) {
             return UpdateAction.Remove();
         } else {
@@ -125,7 +125,7 @@ export function tests() {
                     tile.updateEntry(newEntry);
                 }
             };
-            const tile = new GapTile({entry: new FragmentBoundaryEntry(fragment, true), roomVM: {room}});
+            const tile = new GapTile(new FragmentBoundaryEntry(fragment, true), {roomVM: {room}});
             await tile.fill();
             await tile.fill();
             await tile.fill();

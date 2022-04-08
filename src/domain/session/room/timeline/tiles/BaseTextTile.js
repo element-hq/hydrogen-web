@@ -21,8 +21,8 @@ import {createEnum} from "../../../../../utils/enum";
 export const BodyFormat = createEnum("Plain", "Html");
 
 export class BaseTextTile extends BaseMessageTile {
-    constructor(options) {
-        super(options);
+    constructor(entry, options) {
+        super(entry, options);
         this._messageBody = null;
         this._format = null
     }
