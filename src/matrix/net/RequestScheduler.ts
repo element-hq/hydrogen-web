@@ -27,8 +27,8 @@ class Request implements IHomeServerRequest {
     public readonly args: any[];
     private responseResolve: (result: any) => void;
     public responseReject: (error: Error) => void;
-    private responseCodeResolve: (result: any) => void;
-    private responseCodeReject: (result: any) => void;
+    private responseCodeResolve?: (result: any) => void;
+    private responseCodeReject?: (result: any) => void;
     private _requestResult?: IHomeServerRequest;
     private readonly _responsePromise: Promise<any>;
     private _responseCodePromise: Promise<any>;
@@ -73,7 +73,7 @@ class Request implements IHomeServerRequest {
         const response = await this._requestResult?.response();
         this.responseResolve(response);
         const responseCode = await this._requestResult?.responseCode();
-        this.responseCodeResolve(responseCode);
+        this.responseCodeResolve?.(responseCode);
     }
 
     get requestResult() {
