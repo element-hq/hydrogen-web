@@ -34,7 +34,7 @@ export class RoomView extends TemplateView {
     render(t, vm) {
         let bottomView;
         if (vm.composerViewModel.kind === "composer") {
-            bottomView = new MessageComposer(vm.composerViewModel);
+            bottomView = new MessageComposer(vm.composerViewModel, this._viewClassForTile);
         } else if (vm.composerViewModel.kind === "archived") {
             bottomView = new RoomArchivedView(vm.composerViewModel);
         }
