@@ -17,7 +17,7 @@ limitations under the License.
 import {TemplateView} from "../../general/TemplateView";
 import {Popup} from "../../general/Popup.js";
 import {Menu} from "../../general/Menu.js";
-import {viewClassForEntry} from "./common"
+import {viewClassForTile} from "./common"
 
 export class MessageComposer extends TemplateView {
     constructor(viewModel) {
@@ -45,7 +45,7 @@ export class MessageComposer extends TemplateView {
         this._focusInput = () => this._input.focus();
         this.value.on("focus", this._focusInput);
         const replyPreview = t.map(vm => vm.replyViewModel, (rvm, t) => {
-            const View = rvm && viewClassForEntry(rvm);
+            const View = rvm && viewClassForTile(rvm);
             if (!View) { return null; }
             return t.div({
                     className: "MessageComposer_replyPreview"

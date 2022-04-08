@@ -44,7 +44,7 @@ export {MissingAttachmentTile} from "./domain/session/room/timeline/tiles/Missin
 export {SimpleTile} from "./domain/session/room/timeline/tiles/SimpleTile.js";
 
 export {TimelineView} from "./platform/web/ui/session/room/TimelineView";
-export {viewClassForEntry} from "./platform/web/ui/session/room/common";
+export {viewClassForTile} from "./platform/web/ui/session/room/common";
 export type {TileViewConstructor, ViewClassForEntryFn} from "./platform/web/ui/session/room/TimelineView";
 // export timeline tile views
 export {AnnouncementView} from "./platform/web/ui/session/room/timeline/AnnouncementView.js";

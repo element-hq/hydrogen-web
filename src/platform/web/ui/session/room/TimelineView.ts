@@ -61,7 +61,7 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
     private tilesView?: TilesListView;
     private resizeObserver?: ResizeObserver;
 
-    constructor(vm: TimelineViewModel, private readonly viewClassForEntry: ViewClassForEntryFn) {
+    constructor(vm: TimelineViewModel, private readonly viewClassForTile: ViewClassForEntryFn) {
         super(vm);
     }
 
@@ -71,7 +71,7 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
             // do initial scroll positioning
             this.restoreScrollPosition();
         });
-        this.tilesView = new TilesListView(vm.tiles, () => this.restoreScrollPosition(), this.viewClassForEntry);
+        this.tilesView = new TilesListView(vm.tiles, () => this.restoreScrollPosition(), this.viewClassForTile);
         const root = t.div({className: "Timeline"}, [
             t.div({
                 className: "Timeline_scroller bottom-aligned-scroll",
@@ -184,12 +184,12 @@ class TilesListView extends ListView<SimpleTile, TileView> {
 
     private onChanged: () => void;
 
-    constructor(tiles: ObservableList<SimpleTile>, onChanged: () => void, private readonly viewClassForEntry: ViewClassForEntryFn) {
+    constructor(tiles: ObservableList<SimpleTile>, onChanged: () => void, private readonly viewClassForTile: ViewClassForEntryFn) {
         super({
             list: tiles,
             onItemClick: (tileView, evt) => tileView.onClick(evt),
         }, entry => {
-            const View = viewClassForEntry(entry);
+            const View = viewClassForTile(entry);
             return new View(entry);
         });
         this.onChanged = onChanged;
@@ -202,7 +202,7 @@ class TilesListView extends ListView<SimpleTile, TileView> {
 
     onUpdate(index: number, value: SimpleTile, param: any) {
         if (param === "shape") {
-            const ExpectedClass = this.viewClassForEntry(value);
+            const ExpectedClass = this.viewClassForTile(value);
             const child = this.getChildInstanceByIndex(index);
             if (!ExpectedClass || !(child instanceof ExpectedClass)) {
                 // shape was updated, so we need to recreate the tile view,
