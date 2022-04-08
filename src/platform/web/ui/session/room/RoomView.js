@@ -23,11 +23,11 @@ import {TimelineLoadingView} from "./TimelineLoadingView.js";
 import {MessageComposer} from "./MessageComposer.js";
 import {RoomArchivedView} from "./RoomArchivedView.js";
 import {AvatarView} from "../../AvatarView.js";
-import {viewClassForTile} from "./common";
 
 export class RoomView extends TemplateView {
-    constructor(options) {
-        super(options);
+    constructor(vm, viewClassForTile) {
+        super(vm);
+        this._viewClassForTile = viewClassForTile;
         this._optionsPopup = null;
     }
 
@@ -55,7 +55,7 @@ export class RoomView extends TemplateView {
                 t.div({className: "RoomView_error"}, vm => vm.error),
                 t.mapView(vm => vm.timelineViewModel, timelineViewModel => {
                     return timelineViewModel ?
-                        new TimelineView(timelineViewModel, viewClassForTile) :
+                        new TimelineView(timelineViewModel, this._viewClassForTile) :
                         new TimelineLoadingView(vm);    // vm is just needed for i18n
                 }),
                 t.view(bottomView),
