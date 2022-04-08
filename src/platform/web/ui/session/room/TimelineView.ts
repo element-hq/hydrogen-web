@@ -28,7 +28,11 @@ export interface TileView extends IView {
     readonly value: SimpleTile;
     onClick(event: UIEvent);
 } 
-export type TileViewConstructor = new (tile: SimpleTile) => TileView;
+export type TileViewConstructor = new (
+    tile: SimpleTile,
+    viewClassForTile: ViewClassForEntryFn,
+    renderFlags?: { reply?: boolean, interactive?: boolean }
+) => TileView;
 export type ViewClassForEntryFn = (tile: SimpleTile) => TileViewConstructor;
 
 //import {TimelineViewModel} from "../../../../../domain/session/room/timeline/TimelineViewModel.js";
@@ -188,9 +192,9 @@ class TilesListView extends ListView<SimpleTile, TileView> {
         super({
             list: tiles,
             onItemClick: (tileView, evt) => tileView.onClick(evt),
-        }, entry => {
-            const View = viewClassForTile(entry);
-            return new View(entry);
+        }, tile => {
+            const TileView = viewClassForTile(tile);
+            return new TileView(tile, viewClassForTile);
         });
         this.onChanged = onChanged;
     }

@@ -16,15 +16,18 @@ limitations under the License.
 
 import {renderStaticAvatar} from "../../../avatar";
 import {TemplateView} from "../../../general/TemplateView";
-import {viewClassForTile} from "../common";
 
 export class ReplyPreviewView extends TemplateView {
+    constructor(vm, viewClassForTile) {
+        super(vm);
+        this._viewClassForTile = viewClassForTile;
+    }
     render(t, vm) {
-        const viewClass = viewClassForTile(vm);
-        if (!viewClass) {
+        const TileView = this._viewClassForTile(vm);
+        if (!TileView) {
             throw new Error(`Shape ${vm.shape} is unrecognized.`)
         }
-        const view = new viewClass(vm, { reply: true, interactive: false });
+        const view = new TileView(vm, this._viewClassForTile, { reply: true, interactive: false });
         return t.div(
             { className: "ReplyPreviewView" },
             t.blockquote([
