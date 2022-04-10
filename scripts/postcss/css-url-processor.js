@@ -68,6 +68,11 @@ module.exports = (opts = {}) => {
         postcssPlugin: "postcss-url-to-variable",
 
         Once(root, {result}) {
+            const cssFileLocation = root.source.input.from;
+            if (cssFileLocation.includes("type=runtime")) {
+                // If this is a runtime theme, don't process urls.
+                return;
+            }
             /*
             postcss-compile-variables should have sent the list of resolved colours down via results
             */
