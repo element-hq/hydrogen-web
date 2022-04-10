@@ -187,64 +187,64 @@ module.exports = function buildThemes(options) {
                 }
                 return null;
             }
-},
+        },
 
-    transformIndexHtml(_, ctx) {
-        if (isDevelopment) {
-            // Don't add default stylesheets to index.html on dev
-            return;
-        } 
-        let darkThemeLocation, lightThemeLocation;
-        for (const [, bundle] of Object.entries(ctx.bundle)) {
-            if (bundle.name === defaultDark) {
-                darkThemeLocation = bundle.fileName;
-            }
-            if (bundle.name === defaultLight) {
-                lightThemeLocation = bundle.fileName;
-            }
-        }
-        return [
-            {
-                tag: "link",
-                attrs: {
-                    rel: "stylesheet",
-                    type: "text/css",
-                    media: "(prefers-color-scheme: dark)",
-                    href: `./${darkThemeLocation}`,
+        transformIndexHtml(_, ctx) {
+            if (isDevelopment) {
+                // Don't add default stylesheets to index.html on dev
+                return;
+            } 
+            let darkThemeLocation, lightThemeLocation;
+            for (const [, bundle] of Object.entries(ctx.bundle)) {
+                if (bundle.name === defaultDark) {
+                    darkThemeLocation = bundle.fileName;
                 }
-            },
-            {
-                tag: "link",
-                attrs: {
-                    rel: "stylesheet",
-                    type: "text/css",
-                    media: "(prefers-color-scheme: light)",
-                    href: `./${lightThemeLocation}`,
+                if (bundle.name === defaultLight) {
+                    lightThemeLocation = bundle.fileName;
                 }
-            },
-        ];
-},
+            }
+            return [
+                {
+                    tag: "link",
+                    attrs: {
+                        rel: "stylesheet",
+                        type: "text/css",
+                        media: "(prefers-color-scheme: dark)",
+                        href: `./${darkThemeLocation}`,
+                    }
+                },
+                {
+                    tag: "link",
+                    attrs: {
+                        rel: "stylesheet",
+                        type: "text/css",
+                        media: "(prefers-color-scheme: light)",
+                        href: `./${lightThemeLocation}`,
+                    }
+                },
+            ];
+        },
 
-generateBundle(_, bundle) {
-    const { assetMap, chunkMap, runtimeThemeChunk } = parseBundle(bundle);
-    for (const [location, chunkArray] of chunkMap) {
-        const manifest = require(`${location}/manifest.json`);
-        const compiledVariables = options.compiledVariables.get(location);
-        const derivedVariables = compiledVariables["derived-variables"];
-        const icon = compiledVariables["icon"];
-        manifest.source = {
-            "built-asset": chunkArray.map(chunk => assetMap.get(chunk.fileName).fileName),
-            "runtime-asset": assetMap.get(runtimeThemeChunk.fileName).fileName,
-            "derived-variables": derivedVariables,
-            "icon": icon
-        };
-        const name = `theme-${manifest.name}.json`;
-        this.emitFile({
-            type: "asset",
-            name,
-            source: JSON.stringify(manifest),
-        });
-    }
-}
+        generateBundle(_, bundle) {
+            const { assetMap, chunkMap, runtimeThemeChunk } = parseBundle(bundle);
+            for (const [location, chunkArray] of chunkMap) {
+                const manifest = require(`${location}/manifest.json`);
+                const compiledVariables = options.compiledVariables.get(location);
+                const derivedVariables = compiledVariables["derived-variables"];
+                const icon = compiledVariables["icon"];
+                manifest.source = {
+                    "built-asset": chunkArray.map(chunk => assetMap.get(chunk.fileName).fileName),
+                    "runtime-asset": assetMap.get(runtimeThemeChunk.fileName).fileName,
+                    "derived-variables": derivedVariables,
+                    "icon": icon
+                };
+                const name = `theme-${manifest.name}.json`;
+                this.emitFile({
+                    type: "asset",
+                    name,
+                    source: JSON.stringify(manifest),
+                });
+            }
+        },
     }
 }
