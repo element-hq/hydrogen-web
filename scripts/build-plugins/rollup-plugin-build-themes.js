@@ -13,17 +13,45 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+const path = require('path');
 
 async function readCSSSource(location) {
     const fs = require("fs").promises;
     const path = require("path");
-    const resolvedLocation = path.resolve(__dirname, "../../",  `${location}/theme.css`);
+    const resolvedLocation = path.resolve(__dirname, "../../", `${location}/theme.css`);
     const data = await fs.readFile(resolvedLocation);
     return data;
 }
 
-async function appendVariablesToCSS(variables, cssSource) {
-    return cssSource + `:root{\n${Object.entries(variables).reduce((acc, [key, value]) => acc + `--${key}: ${value};\n`, "")} }\n\n`;
+function getRootSectionWithVariables(variables) {
+    return `:root{\n${Object.entries(variables).reduce((acc, [key, value]) => acc + `--${key}: ${value};\n`, "")} }\n\n`;
+}
+
+function appendVariablesToCSS(variables, cssSource) {
+    return cssSource + getRootSectionWithVariables(variables);
+}
+
+function findLocationFromThemeName(name, locations) {
+    const themeLocation = locations.find(location => {
+        const manifest = require(`${location}/manifest.json`);
+        if (manifest.name === name) {
+            return true;
+        }
+    });
+    if (!themeLocation) {
+        throw new Error(`Cannot find location from theme name "${name}"`);
+    }
+    return themeLocation;
+}
+
+function findManifestFromThemeName(name, locations) {
+    for (const location of locations) {
+        const manifest = require(`${location}/manifest.json`);
+        if (manifest.name === name) {
+            return manifest;
+        }
+    }
+    throw new Error(`Cannot find manifest from theme name "${name}"`);
 }
 
 function parseBundle(bundle) {
@@ -68,10 +96,19 @@ function parseBundle(bundle) {
 
 module.exports = function buildThemes(options) {
     let manifest, variants, defaultDark, defaultLight;
+    let isDevelopment = false;
+    const virtualModuleId = '@theme/'
+    const resolvedVirtualModuleId = '\0' + virtualModuleId;
 
     return {
         name: "build-themes",
         enforce: "pre",
+
+        configResolved(config) {
+            if (config.command === "serve") {
+                isDevelopment = true;
+            }
+        },
 
         async buildStart() {
             const { manifestLocations } = options;
@@ -106,69 +143,108 @@ module.exports = function buildThemes(options) {
             }
         },
 
+        resolveId(id) {
+            if (id.startsWith(virtualModuleId)) {
+                return isDevelopment? '\0' + id: false;
+            }
+        },
+
         async load(id) {
-            const result = id.match(/(.+)\/theme.css\?variant=(.+)/);
-            if (result) {
-                const [, location, variant] = result;
-                const cssSource = await readCSSSource(location);
-                const config = variants[variant];
-                return await appendVariablesToCSS(config.variables, cssSource);
-            }
-            return null;
-        },
-
-        transformIndexHtml(_, ctx) {
-            let darkThemeLocation, lightThemeLocation;
-            for (const [, bundle] of Object.entries(ctx.bundle)) {
-                if (bundle.name === defaultDark) {
-                    darkThemeLocation = bundle.fileName;
-                }
-                if (bundle.name === defaultLight) {
-                    lightThemeLocation = bundle.fileName;
-                }
-            }
-            return [
-                {
-                    tag: "link",
-                    attrs: {
-                        rel: "stylesheet",
-                        type: "text/css",
-                        media: "(prefers-color-scheme: dark)",
-                        href: `./${darkThemeLocation}`,
+            if (isDevelopment) {
+                if (id.startsWith(resolvedVirtualModuleId)) {
+                    let [theme, variant, file] = id.substr(resolvedVirtualModuleId.length).split("/");
+                    if (theme === "default") {
+                        theme = "Element";
                     }
-                },
-                {
-                    tag: "link",
-                    attrs: {
-                        rel: "stylesheet",
-                        type: "text/css",
-                        media: "(prefers-color-scheme: light)",
-                        href: `./${lightThemeLocation}`,
+                    if (!variant || variant === "default") {
+                        variant = "light";
                     }
-                },
-            ];
-        },
+                    if (!file) {
+                        file = "index.js";
+                    }
+                    switch (file) {
+                        case "index.js": {
+                            const location = findLocationFromThemeName(theme, options.manifestLocations);
+                            return `import "${path.resolve(`${location}/theme.css`)}";` +
+                                `import "@theme/${theme}/${variant}/variables.css"`;
+                        }
+                        case "variables.css": { 
+                            const manifest = findManifestFromThemeName(theme, options.manifestLocations);
+                            const variables = manifest.values.variants[variant].variables;
+                            const css =  getRootSectionWithVariables(variables);
+                            return css;
+                        }
+                    }
+                }
+            }
+            else {
+                const result = id.match(/(.+)\/theme.css\?variant=(.+)/);
+                if (result) {
+                    const [, location, variant] = result;
+                    const cssSource = await readCSSSource(location);
+                    const config = variants[variant];
+                    return await appendVariablesToCSS(config.variables, cssSource);
+                }
+                return null;
+            }
+},
 
-        generateBundle(_, bundle) {
-            const { assetMap, chunkMap, runtimeThemeChunk } = parseBundle(bundle);
-            for (const [location, chunkArray] of chunkMap) {
-                const manifest = require(`${location}/manifest.json`);
-                const compiledVariables = options.compiledVariables.get(location);
-                const derivedVariables = compiledVariables["derived-variables"];
-                const icon = compiledVariables["icon"];
-                manifest.source = {
-                    "built-asset": chunkArray.map(chunk => assetMap.get(chunk.fileName).fileName),
-                    "runtime-asset": assetMap.get(runtimeThemeChunk.fileName).fileName,
-                    "derived-variables": derivedVariables,
-                    "icon": icon
-                };
-                const name = `theme-${manifest.name}.json`;
-                this.emitFile({
-                    type: "asset",
-                    name,
-                    source: JSON.stringify(manifest),
-                });
+    transformIndexHtml(_, ctx) {
+        if (isDevelopment) {
+            // Don't add default stylesheets to index.html on dev
+            return;
+        } 
+        let darkThemeLocation, lightThemeLocation;
+        for (const [, bundle] of Object.entries(ctx.bundle)) {
+            if (bundle.name === defaultDark) {
+                darkThemeLocation = bundle.fileName;
+            }
+            if (bundle.name === defaultLight) {
+                lightThemeLocation = bundle.fileName;
             }
         }
+        return [
+            {
+                tag: "link",
+                attrs: {
+                    rel: "stylesheet",
+                    type: "text/css",
+                    media: "(prefers-color-scheme: dark)",
+                    href: `./${darkThemeLocation}`,
+                }
+            },
+            {
+                tag: "link",
+                attrs: {
+                    rel: "stylesheet",
+                    type: "text/css",
+                    media: "(prefers-color-scheme: light)",
+                    href: `./${lightThemeLocation}`,
+                }
+            },
+        ];
+},
+
+generateBundle(_, bundle) {
+    const { assetMap, chunkMap, runtimeThemeChunk } = parseBundle(bundle);
+    for (const [location, chunkArray] of chunkMap) {
+        const manifest = require(`${location}/manifest.json`);
+        const compiledVariables = options.compiledVariables.get(location);
+        const derivedVariables = compiledVariables["derived-variables"];
+        const icon = compiledVariables["icon"];
+        manifest.source = {
+            "built-asset": chunkArray.map(chunk => assetMap.get(chunk.fileName).fileName),
+            "runtime-asset": assetMap.get(runtimeThemeChunk.fileName).fileName,
+            "derived-variables": derivedVariables,
+            "icon": icon
+        };
+        const name = `theme-${manifest.name}.json`;
+        this.emitFile({
+            type: "asset",
+            name,
+            source: JSON.stringify(manifest),
+        });
+    }
+}
     }
 }
