@@ -45,7 +45,7 @@ function filterValues(values: LogItemValues): LogItemValues | null {
 }
 
 function printToConsole(item: LogItem): void {
-    const label = `${itemCaption(item)} (${item.duration}ms)`;
+    const label = `${itemCaption(item)} (@${item.start}ms, duration: ${item.duration}ms)`;
     const filteredValues = filterValues(item.values);
     const shouldGroup = item.children || filteredValues;
     if (shouldGroup) {
