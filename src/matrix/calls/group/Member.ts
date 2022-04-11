@@ -125,7 +125,7 @@ export class Member {
         const payload = {
             messages: {
                 [this.member.userId]: {
-                    [this.callDeviceMembership.device_id]: groupMessage.content
+                    [this.deviceId]: groupMessage.content
                 }
             }
         };
