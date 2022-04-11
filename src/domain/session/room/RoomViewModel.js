@@ -363,7 +363,6 @@ export class RoomViewModel extends ViewModel {
             await call.join(localMedia);
         } catch (err) {
             console.error(err.stack);
-            alert(err.message);
         }
     }
 }
