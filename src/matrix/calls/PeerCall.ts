@@ -314,6 +314,7 @@ export class PeerCall implements IDisposable {
                 await this.sendSignallingMessage({type: EventType.Invite, content}, log);
                 this.setState(CallState.InviteSent, log);
             } else if (this._state === CallState.Connected || this._state === CallState.Connecting) {
+                log.log("would send renegotiation now but not implemented");
                 // send Negotiate message
                 //await this.sendSignallingMessage({type: EventType.Invite, content});
                 //this.setState(CallState.InviteSent);
