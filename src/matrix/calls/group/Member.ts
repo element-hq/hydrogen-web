@@ -42,7 +42,6 @@ export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessag
 export class Member {
     private peerCall?: PeerCall;
     private localMedia?: LocalMedia;
-    private destSessionId?: string;
 
     constructor(
         public readonly member: RoomMember,
@@ -116,7 +115,7 @@ export class Member {
         groupMessage.content.device_id = this.options.ownDeviceId;
         groupMessage.content.party_id = this.options.ownDeviceId;
         groupMessage.content.sender_session_id = this.options.sessionId;
-        groupMessage.content.dest_session_id = this.destSessionId!;
+        groupMessage.content.dest_session_id = this.callDeviceMembership.session_id;
         // const encryptedMessages = await this.options.encryptDeviceMessage(this.member.userId, groupMessage, log);
         // const payload = formatToDeviceMessagesPayload(encryptedMessages);
         const payload = {
@@ -145,11 +144,6 @@ export class Member {
         if (this.peerCall) {
             const prevState = this.peerCall.state;
             this.peerCall.handleIncomingSignallingMessage(message, deviceId);
-            //if (prevState !== this.peerCall.state) {
-            if (!this.destSessionId) {
-                this.destSessionId = message.content.sender_session_id;
-            }
-            //}
         } else {
             // TODO: need to buffer events until invite comes?
         }
