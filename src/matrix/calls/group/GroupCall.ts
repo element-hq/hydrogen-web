@@ -330,6 +330,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
         if (!deviceInfo) {
             deviceInfo = {
                 ["device_id"]: this.options.ownDeviceId,
+                ["session_id"]: this.options.sessionId,
                 feeds: [{purpose: "m.usermedia"}]
             };
             devicesInfo.push(deviceInfo);

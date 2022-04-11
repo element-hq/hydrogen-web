@@ -138,6 +138,11 @@ export class Member {
     /** @internal */
     handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, deviceId: string, syncLog: ILogItem) {
         syncLog.refDetached(this.logItem);
+        const destSessionId = message.content.dest_session_id;
+        if (destSessionId !== this.options.sessionId) {
+            this.logItem.log({l: "ignoring to_device event with wrong session_id", destSessionId, type: message.type});
+            return;
+        }
         if (message.type === EventType.Invite && !this.peerCall) {
             this.peerCall = this._createPeerCall(message.content.call_id);
         }
