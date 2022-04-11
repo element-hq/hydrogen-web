@@ -26,21 +26,15 @@ export interface PeerConnectionHandler {
     onLocalIceCandidate(candidate: RTCIceCandidate);
     onIceGatheringStateChange(state: RTCIceGatheringState);
     onRemoteTracksChanged(tracks: Track[]);
-    onDataChannelChanged(dataChannel: DataChannel | undefined);
+    onRemoteDataChannel(dataChannel: any | undefined);
     onNegotiationNeeded();
     // request the type of incoming stream
     getPurposeForStreamId(streamId: string): SDPStreamMetadataPurpose;
-}
-// does it make sense to wrap this?
-export interface DataChannel {
-    close();
-    send();
 }
 
 export interface PeerConnection {
     notifyStreamPurposeChanged(): void;
     get remoteTracks(): Track[];
-    get dataChannel(): DataChannel | undefined;
     get iceGatheringState(): RTCIceGatheringState;
     get signalingState(): RTCSignalingState;
     get localDescription(): RTCSessionDescription | undefined;
@@ -52,7 +46,7 @@ export interface PeerConnection {
     addTrack(track: Track): void;
     removeTrack(track: Track): boolean;
     replaceTrack(oldTrack: Track, newTrack: Track): Promise<boolean>;
-    createDataChannel(): DataChannel;
+    createDataChannel(options: RTCDataChannelInit): any;
     dispose(): void;
     close(): void;
 }

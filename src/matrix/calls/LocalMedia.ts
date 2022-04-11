@@ -22,7 +22,8 @@ export class LocalMedia {
     constructor(
         public readonly cameraTrack?: Track,
         public readonly screenShareTrack?: Track,
-        public readonly microphoneTrack?: AudioTrack
+        public readonly microphoneTrack?: AudioTrack,
+        public readonly dataChannelOptions?: RTCDataChannelInit,
     ) {}
 
     withTracks(tracks: Track[]) {
@@ -32,7 +33,11 @@ export class LocalMedia {
         if (cameraTrack && microphoneTrack && cameraTrack.streamId !== microphoneTrack.streamId) {
             throw new Error("The camera and audio track should have the same stream id");
         }
-        return new LocalMedia(cameraTrack, screenShareTrack, microphoneTrack as AudioTrack);
+        return new LocalMedia(cameraTrack, screenShareTrack, microphoneTrack as AudioTrack, this.dataChannelOptions);
+    }
+
+    withDataChannel(options: RTCDataChannelInit): LocalMedia {
+        return new LocalMedia(this.cameraTrack, this.screenShareTrack, this.microphoneTrack as AudioTrack, options);
     }
 
     get tracks(): Track[] {

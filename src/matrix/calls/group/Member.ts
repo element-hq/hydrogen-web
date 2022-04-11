@@ -66,6 +66,10 @@ export class Member {
         return this.callDeviceMembership.device_id;
     }
 
+    get dataChannel(): any | undefined {
+        return this.peerCall?.dataChannel;
+    }
+
     /** @internal */
     connect(localMedia: LocalMedia) {
         this.logItem.wrap("connect", () => {

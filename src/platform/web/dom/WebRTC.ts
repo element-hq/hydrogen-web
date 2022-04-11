@@ -46,7 +46,6 @@ class DOMPeerConnection implements PeerConnection {
     }
 
     get remoteTracks(): Track[] { return this._remoteTracks; }
-    get dataChannel(): DataChannel | undefined { return undefined; }
     get iceGatheringState(): RTCIceGatheringState { return this.peerConnection.iceGatheringState; }
     get localDescription(): RTCSessionDescription | undefined { return this.peerConnection.localDescription ?? undefined; }
     get signalingState(): RTCSignalingState { return this.peerConnection.signalingState; }
@@ -119,8 +118,8 @@ class DOMPeerConnection implements PeerConnection {
         }
     }
 
-    createDataChannel(): DataChannel {
-        return undefined as any;// new DataChannel(this.peerConnection.createDataChannel());
+    createDataChannel(options: RTCDataChannelInit): any {
+        return this.peerConnection.createDataChannel("channel", options);
     }
 
     private registerHandler() {
@@ -164,6 +163,7 @@ class DOMPeerConnection implements PeerConnection {
                 this.handler.onNegotiationNeeded();
                 break;
             case "datachannel":
+                this.handler.onRemoteDataChannel((evt as RTCDataChannelEvent).channel);
                 break;
         }
     }

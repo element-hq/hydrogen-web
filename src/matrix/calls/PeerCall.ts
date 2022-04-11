@@ -85,6 +85,8 @@ export class PeerCall implements IDisposable {
     private sentEndOfCandidates: boolean = false;
     private iceDisconnectedTimeout?: Timeout;
 
+    private _dataChannel?: any;
+
     constructor(
         private callId: string,
         private readonly options: Options,
@@ -112,7 +114,12 @@ export class PeerCall implements IDisposable {
                     outer.options.emitUpdate(outer, undefined);
                 });
             },
-            onDataChannelChanged(dataChannel: DataChannel | undefined) {},
+            onRemoteDataChannel(dataChannel: any | undefined) {
+                outer.logItem.wrap("onRemoteDataChannel", log => {
+                    outer._dataChannel = dataChannel;
+                    outer.options.emitUpdate(outer, undefined);
+                });
+            },
             onNegotiationNeeded() {
                 const promiseCreator = () => {
                     return outer.logItem.wrap("onNegotiationNeeded", log => {
@@ -126,6 +133,8 @@ export class PeerCall implements IDisposable {
             }
         });
     }
+
+    get dataChannel(): any | undefined { return this._dataChannel; }
 
     get state(): CallState { return this._state; }
 
@@ -144,6 +153,9 @@ export class PeerCall implements IDisposable {
             for (const t of this.localMedia.tracks) {
                 this.peerConnection.addTrack(t);
             }
+            if (this.localMedia.dataChannelOptions) {
+                this._dataChannel = this.peerConnection.createDataChannel(this.localMedia.dataChannelOptions);
+            }
             // after adding the local tracks, and wait for handleNegotiation to be called,
             // or invite glare where we give up our invite and answer instead
             await this.waitForState([CallState.InviteSent, CallState.CreateAnswer]);
@@ -160,7 +172,9 @@ export class PeerCall implements IDisposable {
             for (const t of this.localMedia.tracks) {
                 this.peerConnection.addTrack(t);
             }
-
+            if (this.localMedia.dataChannelOptions) {
+                this._dataChannel = this.peerConnection.createDataChannel(this.localMedia.dataChannelOptions);
+            }
             let myAnswer: RTCSessionDescriptionInit;
             try {
                 myAnswer = await this.peerConnection.createAnswer();
