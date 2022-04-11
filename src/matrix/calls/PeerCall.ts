@@ -23,7 +23,7 @@ import type {StateEvent} from "../storage/types";
 import type {ILogItem} from "../../logging/types";
 
 import type {TimeoutCreator, Timeout} from "../../platform/types/types";
-import {WebRTC, PeerConnection, PeerConnectionHandler, DataChannel} from "../../platform/types/WebRTC";
+import {WebRTC, PeerConnection, PeerConnectionHandler} from "../../platform/types/WebRTC";
 import {MediaDevices, Track, AudioTrack, TrackType} from "../../platform/types/MediaDevices";
 import type {LocalMedia} from "./LocalMedia";
 
