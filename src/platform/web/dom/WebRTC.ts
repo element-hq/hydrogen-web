@@ -188,10 +188,11 @@ class DOMPeerConnection implements PeerConnection {
     }
 
     private handleRemoteTrack(evt: RTCTrackEvent) {
+        // TODO: unit test this code somehow
         // the tracks on the new stream (with their stream)
         const updatedTracks = evt.streams.flatMap(stream => stream.getTracks().map(track => {return {stream, track};}));
         // of the tracks we already know about, filter the ones that aren't in the new stream
-        const withoutRemovedTracks = this._remoteTracks.filter(t => !updatedTracks.some(ut => t.track.id === ut.track.id));
+        const withoutRemovedTracks = this._remoteTracks.filter(t => updatedTracks.some(ut => t.track.id === ut.track.id));
         // of the new tracks, filter the ones that we didn't already knew about
         const addedTracks = updatedTracks.filter(ut => !this._remoteTracks.some(t => t.track.id === ut.track.id));
         // wrap them
