@@ -35,10 +35,6 @@ import type {Transaction} from "../storage/idb/Transaction";
 import type {CallEntry} from "../storage/idb/stores/CallStore";
 import type {Clock} from "../../platform/web/dom/Clock";
 
-const GROUP_CALL_TYPE = "m.call";
-const GROUP_CALL_MEMBER_TYPE = "m.call.member";
-const CALL_TERMINATED = "m.terminated";
-
 export type Options = Omit<GroupCallOptions, "emitUpdate" | "createTimeout"> & {
     logger: ILogger,
     clock: Clock
