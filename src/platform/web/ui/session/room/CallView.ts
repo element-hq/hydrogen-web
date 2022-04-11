@@ -34,7 +34,10 @@ export class CallView extends TemplateView<CallViewModel> {
         return t.div({class: "CallView"}, [
             t.p(vm => `Call ${vm.name} (${vm.id})`),
             t.div({class: "CallView_me"}, bindVideoTracks(t, t.video({autoplay: true, width: 240}), vm => vm.localTracks)),
-            t.view(new ListView({list: vm.memberViewModels}, vm => new MemberView(vm)))
+            t.view(new ListView({list: vm.memberViewModels}, vm => new MemberView(vm))),
+            t.div({class: "buttons"}, [
+                t.button({onClick: () => vm.leave()}, "Leave")
+            ])
         ]);
     }
 }
