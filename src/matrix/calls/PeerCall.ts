@@ -172,9 +172,6 @@ export class PeerCall implements IDisposable {
             for (const t of this.localMedia.tracks) {
                 this.peerConnection.addTrack(t);
             }
-            if (this.localMedia.dataChannelOptions) {
-                this._dataChannel = this.peerConnection.createDataChannel(this.localMedia.dataChannelOptions);
-            }
             let myAnswer: RTCSessionDescriptionInit;
             try {
                 myAnswer = await this.peerConnection.createAnswer();
