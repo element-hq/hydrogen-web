@@ -117,7 +117,6 @@ export class CallHandler {
 
         try {
             await call.create(localMedia);
-            await call.join(localMedia);
             // store call info so it will ring again when reopening the app
             const txn = await this.options.storage.readWriteTxn([this.options.storage.storeNames.calls]);
             txn.calls.add({
