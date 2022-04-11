@@ -28,7 +28,7 @@ import {LocalMedia} from "../../../matrix/calls/LocalMedia";
 export class RoomViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {room, session} = options;
+        const {room} = options;
         this._room = room;
         this._timelineVM = null;
         this._tilesCreator = null;
