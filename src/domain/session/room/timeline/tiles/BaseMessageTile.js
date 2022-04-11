@@ -19,8 +19,8 @@ import {ReactionsViewModel} from "../ReactionsViewModel.js";
 import {getIdentifierColorNumber, avatarInitials, getAvatarHttpUrl} from "../../../../avatar";
 
 export class BaseMessageTile extends SimpleTile {
-    constructor(options) {
-        super(options);
+    constructor(entry, options) {
+        super(entry, options);
         this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : null;
         this._isContinuation = false;
         this._reactions = null;
@@ -28,7 +28,7 @@ export class BaseMessageTile extends SimpleTile {
         if (this._entry.annotations || this._entry.pendingAnnotations) {
             this._updateReactions();
         }
-        this._updateReplyTileIfNeeded(options.tilesCreator, undefined);
+        this._updateReplyTileIfNeeded(undefined);
     }
 
     notifyVisible() {
@@ -114,23 +114,27 @@ export class BaseMessageTile extends SimpleTile {
         }
     }
 
-    updateEntry(entry, param, tilesCreator) {
-        const action = super.updateEntry(entry, param, tilesCreator);
+    updateEntry(entry, param) {
+        const action = super.updateEntry(entry, param);
         if (action.shouldUpdate) {
             this._updateReactions();
         }
-        this._updateReplyTileIfNeeded(tilesCreator, param);
+        this._updateReplyTileIfNeeded(param);
         return action;
     }
 
-    _updateReplyTileIfNeeded(tilesCreator, param) {
+    _updateReplyTileIfNeeded(param) {
         const replyEntry = this._entry.contextEntry;
         if (replyEntry) {
             // this is an update to contextEntry used for replyPreview
-            const action = this._replyTile?.updateEntry(replyEntry, param, tilesCreator);
+            const action = this._replyTile?.updateEntry(replyEntry, param);
             if (action?.shouldReplace || !this._replyTile) {
                 this.disposeTracked(this._replyTile);
-                this._replyTile = tilesCreator(replyEntry);
+                const tileClassForEntry = this._options.tileClassForEntry;
+                const ReplyTile = tileClassForEntry(replyEntry);
+                if (ReplyTile) {
+                    this._replyTile = new ReplyTile(replyEntry, this._options);
+                }
             }
             if(action?.shouldUpdate) {
                 this._replyTile?.emitChange();

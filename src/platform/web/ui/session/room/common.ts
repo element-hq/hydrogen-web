@@ -25,14 +25,10 @@ import {RedactedView} from "./timeline/RedactedView.js";
 import {SimpleTile} from "../../../../../domain/session/room/timeline/tiles/SimpleTile.js";
 import {GapView} from "./timeline/GapView.js";
 import {CallTileView} from "./timeline/CallTileView";
+import type {TileViewConstructor, ViewClassForEntryFn} from "./TimelineView";
 
-export type TileView = GapView | AnnouncementView | TextMessageView |
-    ImageView | VideoView | FileView | LocationView | MissingAttachmentView | RedactedView;
-
-// TODO: this is what works for a ctor but doesn't actually check we constrain the returned ctors to the types above
-type TileViewConstructor = (this: TileView, SimpleTile) => void;
-export function viewClassForEntry(entry: SimpleTile): TileViewConstructor | undefined {
-    switch (entry.shape) {
+export function viewClassForTile(vm: SimpleTile): TileViewConstructor {
+    switch (vm.shape) {
         case "gap":
             return GapView;
         case "announcement":
@@ -53,6 +49,8 @@ export function viewClassForEntry(entry: SimpleTile): TileViewConstructor | unde
         case "redacted":
             return RedactedView;
         case "call":
-            return CallTileView as any as TileViewConstructor;
+            return CallTileView;
+        default:
+            throw new Error(`Tiles of shape "${vm.shape}" are not supported, check the tileClassForEntry function in the view model`);
     }
 }

@@ -14,9 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type {TileView} from "./common";
-import {viewClassForEntry} from "./common";
 import {ListView} from "../../general/ListView";
+import type {IView} from "../../general/types";
 import {TemplateView, Builder} from "../../general/TemplateView";
 import {IObservableValue} from "../../general/BaseUpdateView";
 import {MissingAttachmentView} from "./timeline/MissingAttachmentView.js";
@@ -24,6 +23,17 @@ import {AnnouncementView} from "./timeline/AnnouncementView.js";
 import {RedactedView} from "./timeline/RedactedView.js";
 import {SimpleTile} from "../../../../../domain/session/room/timeline/tiles/SimpleTile.js";
 import {BaseObservableList as ObservableList} from "../../../../../observable/list/BaseObservableList";
+
+export interface TileView extends IView {
+    readonly value: SimpleTile;
+    onClick(event: UIEvent);
+} 
+export type TileViewConstructor = new (
+    tile: SimpleTile,
+    viewClassForTile: ViewClassForEntryFn,
+    renderFlags?: { reply?: boolean, interactive?: boolean }
+) => TileView;
+export type ViewClassForEntryFn = (tile: SimpleTile) => TileViewConstructor;
 
 //import {TimelineViewModel} from "../../../../../domain/session/room/timeline/TimelineViewModel.js";
 export interface TimelineViewModel extends IObservableValue {
@@ -55,13 +65,17 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
     private tilesView?: TilesListView;
     private resizeObserver?: ResizeObserver;
 
+    constructor(vm: TimelineViewModel, private readonly viewClassForTile: ViewClassForEntryFn) {
+        super(vm);
+    }
+
     render(t: Builder<TimelineViewModel>, vm: TimelineViewModel) {
         // assume this view will be mounted in the parent DOM straight away
         requestAnimationFrame(() => {
             // do initial scroll positioning
             this.restoreScrollPosition();
         });
-        this.tilesView = new TilesListView(vm.tiles, () => this.restoreScrollPosition());
+        this.tilesView = new TilesListView(vm.tiles, () => this.restoreScrollPosition(), this.viewClassForTile);
         const root = t.div({className: "Timeline"}, [
             t.div({
                 className: "Timeline_scroller bottom-aligned-scroll",
@@ -174,16 +188,13 @@ class TilesListView extends ListView<SimpleTile, TileView> {
 
     private onChanged: () => void;
 
-    constructor(tiles: ObservableList<SimpleTile>, onChanged: () => void) {
-        const options = {
+    constructor(tiles: ObservableList<SimpleTile>, onChanged: () => void, private readonly viewClassForTile: ViewClassForEntryFn) {
+        super({
             list: tiles,
             onItemClick: (tileView, evt) => tileView.onClick(evt),
-        };
-        super(options, entry => {
-            const View = viewClassForEntry(entry);
-            if (View) {
-                return new View(entry);
-            }
+        }, tile => {
+            const TileView = viewClassForTile(tile);
+            return new TileView(tile, viewClassForTile);
         });
         this.onChanged = onChanged;
     }
@@ -195,7 +206,7 @@ class TilesListView extends ListView<SimpleTile, TileView> {
 
     onUpdate(index: number, value: SimpleTile, param: any) {
         if (param === "shape") {
-            const ExpectedClass = viewClassForEntry(value);
+            const ExpectedClass = this.viewClassForTile(value);
             const child = this.getChildInstanceByIndex(index);
             if (!ExpectedClass || !(child instanceof ExpectedClass)) {
                 // shape was updated, so we need to recreate the tile view,

@@ -23,9 +23,8 @@ import {LocalMedia} from "../../../../../matrix/calls/LocalMedia";
 // alternatively, we could just subscribe to the GroupCall and spontanously emit an update when it updates
 
 export class CallTile extends SimpleTile {
-
-    constructor(options) {
-        super(options);
+    constructor(entry, options) {
+        super(entry, options);
         const calls = this.getOption("session").callHandler.calls;
         this._call = calls.get(this._entry.stateKey);
         this._callSubscription = undefined;

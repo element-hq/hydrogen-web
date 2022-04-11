@@ -8,3 +8,4 @@ target
 lib
 *.tar.gz
 .eslintcache
+.tmp

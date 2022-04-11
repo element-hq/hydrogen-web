@@ -26,15 +26,16 @@ import {AvatarView} from "../../AvatarView.js";
 import {CallView} from "./CallView";
 
 export class RoomView extends TemplateView {
-    constructor(options) {
-        super(options);
+    constructor(vm, viewClassForTile) {
+        super(vm);
+        this._viewClassForTile = viewClassForTile;
         this._optionsPopup = null;
     }
 
     render(t, vm) {
         let bottomView;
         if (vm.composerViewModel.kind === "composer") {
-            bottomView = new MessageComposer(vm.composerViewModel);
+            bottomView = new MessageComposer(vm.composerViewModel, this._viewClassForTile);
         } else if (vm.composerViewModel.kind === "archived") {
             bottomView = new RoomArchivedView(vm.composerViewModel);
         }
@@ -56,7 +57,7 @@ export class RoomView extends TemplateView {
                 t.mapView(vm => vm.callViewModel, callViewModel => callViewModel ? new CallView(callViewModel) : null),
                 t.mapView(vm => vm.timelineViewModel, timelineViewModel => {
                     return timelineViewModel ?
-                        new TimelineView(timelineViewModel) :
+                        new TimelineView(timelineViewModel, this._viewClassForTile) :
                         new TimelineLoadingView(vm);    // vm is just needed for i18n
                 }),
                 t.view(bottomView),
