@@ -45,6 +45,8 @@ import type {
 
 export type Options = {
     webRTC: WebRTC,
+    forceTURN: boolean,
+    turnServers: RTCIceServer[],
     createTimeout: TimeoutCreator,
     emitUpdate: (peerCall: PeerCall, params: any) => void;
     sendSignallingMessage: (message: SignallingMessage<MCallBase>, log: ILogItem) => Promise<void>;
@@ -132,7 +134,7 @@ export class PeerCall implements IDisposable {
             getPurposeForStreamId(streamId: string): SDPStreamMetadataPurpose {
                 return outer.remoteSDPStreamMetadata?.[streamId]?.purpose ?? SDPStreamMetadataPurpose.Usermedia;
             }
-        });
+        }, this.options.forceTURN, this.options.turnServers, 0);
     }
 
     get dataChannel(): any | undefined { return this._dataChannel; }

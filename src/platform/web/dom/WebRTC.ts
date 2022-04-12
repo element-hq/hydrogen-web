@@ -24,8 +24,8 @@ export const SPEAKING_THRESHOLD = -60; // dB
 const SPEAKING_SAMPLE_COUNT = 8; // samples
 
 export class DOMWebRTC implements WebRTC {
-    createPeerConnection(handler: PeerConnectionHandler): PeerConnection {
-        return new DOMPeerConnection(handler, false, []);
+    createPeerConnection(handler: PeerConnectionHandler, forceTURN: boolean, turnServers: RTCIceServer[], iceCandidatePoolSize): PeerConnection {
+        return new DOMPeerConnection(handler, forceTURN, turnServers, iceCandidatePoolSize);
     }
 }
 
@@ -35,7 +35,7 @@ class DOMPeerConnection implements PeerConnection {
     //private dataChannelWrapper?: DOMDataChannel;
     private _remoteTracks: TrackWrapper[] = [];
 
-    constructor(handler: PeerConnectionHandler, forceTURN: boolean, turnServers: RTCIceServer[], iceCandidatePoolSize = 0) {
+    constructor(handler: PeerConnectionHandler, forceTURN: boolean, turnServers: RTCIceServer[], iceCandidatePoolSize) {
         this.handler = handler;
         this.peerConnection = new RTCPeerConnection({
             iceTransportPolicy: forceTURN ? 'relay' : undefined,

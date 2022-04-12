@@ -18,7 +18,7 @@ import {Track, TrackType} from "./MediaDevices";
 import {SDPStreamMetadataPurpose} from "../../matrix/calls/callEventTypes";
 
 export interface WebRTC {
-    createPeerConnection(handler: PeerConnectionHandler): PeerConnection;
+    createPeerConnection(handler: PeerConnectionHandler, forceTURN: boolean, turnServers: RTCIceServer[], iceCandidatePoolSize): PeerConnection;
 }
 
 export interface PeerConnectionHandler {
