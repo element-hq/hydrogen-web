@@ -124,6 +124,7 @@ function populateMapWithDerivedVariables(map, cssFileLocation) {
  * @param {string} value - The base value on which an operation is applied
  * @param {string} operation - The operation to be applied (eg: darker, lighter...)
  * @param {string} argument - The argument for this operation
+ * @param {boolean} isDark - Indicates whether this theme is dark
  */
 /**
  * 
