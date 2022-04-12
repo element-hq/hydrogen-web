@@ -86,6 +86,7 @@ export class PeerCall implements IDisposable {
     private iceDisconnectedTimeout?: Timeout;
 
     private _dataChannel?: any;
+    private _hangupReason?: CallErrorCode;
 
     constructor(
         private callId: string,
@@ -137,6 +138,8 @@ export class PeerCall implements IDisposable {
     get dataChannel(): any | undefined { return this._dataChannel; }
 
     get state(): CallState { return this._state; }
+
+    get hangupReason(): CallErrorCode | undefined { return this._hangupReason; }
 
     get remoteTracks(): Track[] {
         return this.peerConnection.remoteTracks;
@@ -373,6 +376,17 @@ export class PeerCall implements IDisposable {
             await this.sendHangupWithCallId(newCallId, CallErrorCode.Replaced, log);
         }
     }
+
+    private handleHangupReceived(content: MCallHangupReject<MCallBase>, log: ILogItem) {
+        // party ID must match (our chosen partner hanging up the call) or be undefined (we haven't chosen
+        // a partner yet but we're treating the hangup as a reject as per VoIP v0)
+        // if (this.state === CallState.Ringing) {
+            // default reason is user_hangup
+        this.terminate(CallParty.Remote, content.reason || CallErrorCode.UserHangup, log);
+        // } else {
+        //     log.set("ignored", true);
+        // }
+    };
 
     private async handleFirstInvite(content: MCallInvite<MCallBase>, partyId: PartyId, log: ILogItem): Promise<void> {
         if (this._state !== CallState.Fledgling || this.opponentPartyId !== undefined) {
@@ -789,7 +803,7 @@ export class PeerCall implements IDisposable {
         }
 
         this.hangupParty = hangupParty;
-        // this.hangupReason = hangupReason;
+        this._hangupReason = hangupReason;
         this.setState(CallState.Ended, log);
         //this.localMedia?.dispose();
         //this.localMedia = undefined;

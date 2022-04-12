@@ -16,7 +16,7 @@ limitations under the License.
 
 import {PeerCall, CallState} from "../PeerCall";
 import {makeTxnId, makeId} from "../../common";
-import {EventType} from "../callEventTypes";
+import {EventType, CallErrorCode} from "../callEventTypes";
 import {formatToDeviceMessagesPayload} from "../../common";
 
 import type {Options as PeerCallOptions} from "../PeerCall";
@@ -39,9 +39,19 @@ export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessag
     emitUpdate: (participant: Member, params?: any) => void,
 }
 
+const errorCodesWithoutRetry = [
+    CallErrorCode.UserHangup,
+    CallErrorCode.AnsweredElsewhere,
+    CallErrorCode.Replaced,
+    CallErrorCode.UserBusy,
+    CallErrorCode.Transfered,
+    CallErrorCode.NewSession
+];
+
 export class Member {
     private peerCall?: PeerCall;
     private localMedia?: LocalMedia;
+    private retryCount: number = 0;
 
     constructor(
         public readonly member: RoomMember,
@@ -109,6 +119,17 @@ export class Member {
         if (peerCall.state === CallState.Ringing) {
             peerCall.answer(this.localMedia!);
         }
+        else if (peerCall.state === CallState.Ended) {
+            const hangupReason = peerCall.hangupReason;
+            peerCall.dispose();
+            this.peerCall = undefined;
+            if (hangupReason && !errorCodesWithoutRetry.includes(hangupReason)) {
+                this.retryCount += 1;
+                if (this.retryCount <= 3) {
+                    this.connect(this.localMedia!);
+                }
+            }
+        }
         this.options.emitUpdate(this, params);
     }
 
@@ -151,7 +172,6 @@ export class Member {
             this.peerCall = this._createPeerCall(message.content.call_id);
         }
         if (this.peerCall) {
-            const prevState = this.peerCall.state;
             this.peerCall.handleIncomingSignallingMessage(message, deviceId);
         } else {
             // TODO: need to buffer events until invite comes?
