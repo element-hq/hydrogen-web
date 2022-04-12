@@ -6,7 +6,25 @@
   - https://github.com/matrix-org/matrix-doc/pull/3291 Muting in VoIP calls
   - https://github.com/matrix-org/matrix-doc/pull/3401 Native Group VoIP Signalling
 
+
 ## TODO
+ - DONE: implement receiving hangup
+ - making logging better
+ - implement renegotiation
+ - implement to_device messages arriving before m.call(.member) state event
+ - implement muting tracks with m.call.sdp_stream_metadata_changed
+ - implement cloning the localMedia so it works in safari?
+ - DONE: implement 3 retries per peer
+ - reeable crypto & implement fetching olm keys before sending encrypted signalling message
+ - local echo for join/leave buttons?
+ - make UI pretsy
+    - figure out video layout
+    - figure out nav structure
+ - batch outgoing to_device messages in one request to homeserver for operations that will send out an event to all participants (e.g. mute)
+ - don't load all members when loading calls to know whether they are ringing and joined by ourself
+    - only load our own member once, then have a way to load additional members on a call.
+
+## TODO (old)
  - PeerCall
     - send invite
     - implement terminate
@@ -34,7 +52,7 @@
 
 ## Store ongoing calls
 
-Add store with all ongoing calls so when we quit and start again, we don't have to go through all the past calls to know which ones might still be ongoing.
+DONE: Add store with all ongoing calls so when we quit and start again, we don't have to go through all the past calls to know which ones might still be ongoing.
 
 
 ## Notes
@@ -104,10 +122,10 @@ Do work needed for state events
     - DONEish: receiving (almost done?)
     - DONEish: sending
 logging
-Expose call objects
-expose volume events from audiotrack to group call
-Write view model
-write view
+DONE: Expose call objects
+    expose volume events from audiotrack to group call
+DONE: Write view model
+DONE: write view
  - handle glare edge-cases (not yet sent): https://spec.matrix.org/latest/client-server-api/#glare
 
 ## Calls questions
