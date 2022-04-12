@@ -24,7 +24,7 @@ limitations under the License.
     border: 1px solid var(--background-color-secondary--darker-7);
     background-image: url("./icons/chevron-down.svg?primary=icon-color");
     background-position: center;
-    background-color: white;
+    background-color: var(--background-color-primary--darker-10);
     background-repeat: no-repeat;
     cursor: pointer;
 }
@@ -357,13 +357,14 @@ only loads when the top comes into view*/
     border: 1px solid var(--light-border);
     border-radius: 10px;
     background-color: var(--background-color-secondary);
+    color: inherit;
     cursor: pointer;
     user-select: none;
     vertical-align: middle;
 }
 
 .Timeline_messageReactions button.active {
-    background-color: var(--accent-color--lighter-60);
+    background-color: var(--background-color-secondary);
     border-color: var(--accent-color);
 }
 

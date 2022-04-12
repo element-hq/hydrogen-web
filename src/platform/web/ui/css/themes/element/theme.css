@@ -90,6 +90,8 @@ limitations under the License.
 
 .form-row.text textarea {
     font-family: "Inter", sans-serif;
+    background-color: var(--background-color-secondary);
+    color: inherit;
 }
 
 .form-group {
@@ -107,6 +109,8 @@ limitations under the License.
     margin-top: 5px;
     font-size: 1em;
     resize: vertical;
+    background-color: var(--background-color-secondary);
+    color: inherit;
 }
 
 .form-row.check {
@@ -388,7 +392,7 @@ a {
     padding: 4px;
     min-height: 22px;
     background-color: var(--accent-color);
-    color: var(--background-color-primary);
+    color: var(--fixed-white);
     align-items: center;
 }
 
@@ -702,6 +706,7 @@ button.link {
     cursor: pointer;
     margin: -12px;
     padding: 12px;
+    color: inherit;
 }
 
 .Settings a, .Settings .link {
@@ -761,7 +766,7 @@ button.link {
     display: block;
     grid-area: close;
     justify-self: end;
-    background-image: url('icons/dismiss.svg?primary=background-color-primary');
+    background-image: url('icons/dismiss.svg?primary=fixed-white');
     background-position: center;
     background-size: 16px;
     background-repeat: no-repeat;
