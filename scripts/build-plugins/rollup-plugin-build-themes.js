@@ -111,6 +111,7 @@ module.exports = function buildThemes(options) {
         },
 
         async buildStart() {
+            if (isDevelopment) { return; }
             const { manifestLocations } = options;
             for (const location of manifestLocations) {
                 manifest = require(`${location}/manifest.json`);
@@ -130,7 +131,7 @@ module.exports = function buildThemes(options) {
                     // emit the css as built theme bundle
                     this.emitFile({
                         type: "chunk",
-                        id: `${location}/theme.css?variant=${variant}`,
+                        id: `${location}/theme.css?variant=${variant}${details.dark? "&dark=true": ""}`,
                         fileName,
                     });
                 }
@@ -145,7 +146,7 @@ module.exports = function buildThemes(options) {
 
         resolveId(id) {
             if (id.startsWith(virtualModuleId)) {
-                return isDevelopment? '\0' + id: false;
+                return '\0' + id;
             }
         },
 
@@ -165,7 +166,9 @@ module.exports = function buildThemes(options) {
                     switch (file) {
                         case "index.js": {
                             const location = findLocationFromThemeName(theme, options.manifestLocations);
-                            return `import "${path.resolve(`${location}/theme.css`)}";` +
+                            const manifest = findManifestFromThemeName(theme, options.manifestLocations);
+                            const isDark = manifest.values.variants[variant].dark;
+                            return `import "${path.resolve(`${location}/theme.css`)}${isDark? "?dark=true": ""}";` +
                                 `import "@theme/${theme}/${variant}/variables.css"`;
                         }
                         case "variables.css": { 
@@ -178,7 +181,7 @@ module.exports = function buildThemes(options) {
                 }
             }
             else {
-                const result = id.match(/(.+)\/theme.css\?variant=(.+)/);
+                const result = id.match(/(.+)\/theme.css\?variant=([^&]+)/);
                 if (result) {
                     const [, location, variant] = result;
                     const cssSource = await readCSSSource(location);
@@ -186,6 +189,18 @@ module.exports = function buildThemes(options) {
                     return await appendVariablesToCSS(config.variables, cssSource);
                 }
                 return null;
+            }
+        },
+
+        transform(code, id) {
+            if (isDevelopment) {
+                return;
+            }
+            // Removes develop-only script tag; this cannot be done in transformIndexHtml hook.
+            const devScriptTag = /<script type="module"> import "@theme\/.+"; <\/script>/;
+            if (id.endsWith("index.html")) {
+                const htmlWithoutDevScript = code.replace(devScriptTag, "");
+                return htmlWithoutDevScript
             }
         },
 
@@ -223,7 +238,7 @@ module.exports = function buildThemes(options) {
                     }
                 },
             ];
-        },
+},
 
         generateBundle(_, bundle) {
             const { assetMap, chunkMap, runtimeThemeChunk } = parseBundle(bundle);
