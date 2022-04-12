@@ -33,6 +33,7 @@ const valueParser = require("postcss-value-parser");
 let aliasMap;
 let resolvedMap;
 let baseVariables;
+let isDark;
 
 function getValueFromAlias(alias) {
     const derivedVariable = aliasMap.get(alias);
@@ -78,7 +79,7 @@ function resolveDerivedVariable(decl, derive) {
             if (!value) {
                 throw new Error(`Cannot derive from ${baseVariable} because it is neither defined in config nor is it an alias!`);
             }
-            const derivedValue = derive(value, operation, argument);
+            const derivedValue = derive(value, operation, argument, isDark);
             resolvedMap.set(wholeVariable, derivedValue);
         }
     }
@@ -134,6 +135,8 @@ module.exports = (opts = {}) => {
     aliasMap = new Map();
     resolvedMap = new Map();
     baseVariables = new Map();
+    isDark = false;
+
     return {
         postcssPlugin: "postcss-compile-variables",
 
@@ -143,6 +146,7 @@ module.exports = (opts = {}) => {
                 // If this is a runtime theme, don't derive variables.
                 return;
             }
+            isDark = cssFileLocation.includes("dark=true");
             /*
             Go through the CSS file once to extract all aliases and base variables.
             We use these when resolving derived variables later.
