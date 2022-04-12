@@ -153,8 +153,13 @@ module.exports = (opts = {}) => {
             if (opts.compiledVariables){
                 populateMapWithDerivedVariables(opts.compiledVariables, cssFileLocation);
             }
-            // Publish both the base-variables and derived-variables to the other postcss-plugins
-            const combinedMap = new Map([...baseVariables, ...resolvedMap]);
+            // Also produce a mapping from alias to completely resolved color
+            const resolvedAliasMap = new Map();
+            aliasMap.forEach((value, key) => {
+                resolvedAliasMap.set(key, resolvedMap.get(value));
+            });
+            // Publish the base-variables, derived-variables and resolved aliases to the other postcss-plugins
+            const combinedMap = new Map([...baseVariables, ...resolvedMap, ...resolvedAliasMap]);
             result.messages.push({
                 type: "resolved-variable-map",
                 plugin: "postcss-compile-variables",
