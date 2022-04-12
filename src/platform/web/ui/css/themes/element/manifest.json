@@ -20,7 +20,8 @@
                     "accent-color": "#03b381",
                     "error-color": "#FF4B55",
                     "fixed-white": "#fff",
-                    "room-badge": "#61708b"
+                    "room-badge": "#61708b",
+                    "link-color": "#238cf5"
 				}
 			},
 			"dark": {
@@ -34,7 +35,8 @@
                     "accent-color": "#03B381",
                     "error-color": "#FF4B55",
                     "fixed-white": "#fff",
-                    "room-badge": "#61708b"
+                    "room-badge": "#61708b",
+                    "link-color": "#238cf5"
 				}
 			}
 		}
