@@ -11,6 +11,8 @@
  - DONE: implement receiving hangup
  - making logging better
  - implement renegotiation
+ - finish session id support
+    - call peers are essentially identified by (userid, deviceid, sessionid). If see a new session id, we first disconnect from the current member so we're ready to connect with a clean slate again (in a member event, also in to_device? no harm I suppose, given olm encryption ensures you can't spoof the deviceid).
  - implement to_device messages arriving before m.call(.member) state event
  - implement muting tracks with m.call.sdp_stream_metadata_changed
  - implement cloning the localMedia so it works in safari?
@@ -23,7 +25,7 @@
  - batch outgoing to_device messages in one request to homeserver for operations that will send out an event to all participants (e.g. mute)
  - don't load all members when loading calls to know whether they are ringing and joined by ourself
     - only load our own member once, then have a way to load additional members on a call.
-
+ - see if we remove partyId entirely, it is only used for detecting remote echo which is not an issue for group calls? see https://github.com/matrix-org/matrix-spec-proposals/blob/dbkr/msc2746/proposals/2746-reliable-voip.md#add-party_id-to-all-voip-events
 ## TODO (old)
  - PeerCall
     - send invite
