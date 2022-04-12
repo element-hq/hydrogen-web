@@ -16,6 +16,7 @@ limitations under the License.
 
 const fs = require("fs");
 const path = require("path");
+const {randomUUID} = require('crypto');
 /**
  * Builds a new svg with the colors replaced and returns its location.
  * @param {string} svgLocation The location of the input svg file
@@ -30,6 +31,8 @@ module.exports.buildColorizedSVG = function (svgLocation, primaryColor, secondar
         throw new Error("svg-colorizer made no color replacements! The input svg should only contain colors #ff00ff (primary, case-sensitive) and #00ffff (secondary, case-sensitive).");
     }
     const fileName = svgLocation.match(/.+\/(.+\.svg)/)[1];
+    // give unique names so that this svg does not replace other versions of the same svg
+    const outputName = `${fileName.substring(0, fileName.length - 4)}-${randomUUID()}.svg`;
     const outputPath = path.resolve(__dirname, "../../.tmp");
     try {
        fs.mkdirSync(outputPath);
@@ -39,7 +42,7 @@ module.exports.buildColorizedSVG = function (svgLocation, primaryColor, secondar
             throw e;
         }
     }
-    const outputFile = `${outputPath}/${fileName}`;
+    const outputFile = `${outputPath}/${outputName}`;
     fs.writeFileSync(outputFile, coloredSVGCode);
     return outputFile;
 }
