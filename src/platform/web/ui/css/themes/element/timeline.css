@@ -21,8 +21,8 @@ limitations under the License.
     bottom: 16px;
     right: 32px;
     border-radius: 100%;
-    border: 1px solid #8d99a5;
-    background-image: url("./icons/chevron-down.svg");
+    border: 1px solid var(--background-color-secondary--darker-7);
+    background-image: url("./icons/chevron-down.svg?primary=icon-color");
     background-position: center;
     background-color: white;
     background-repeat: no-repeat;
@@ -77,6 +77,7 @@ limitations under the License.
 }
 
 .Timeline_message:hover:not(.disabled), .Timeline_message.selected, .Timeline_message.menuOpen {
+    /* needs transparency support */
     background-color: rgba(141, 151, 165, 0.1);
     border-radius: 4px;
 }
@@ -119,10 +120,11 @@ limitations under the License.
     margin-top: -12px;
     margin-right: 4px;
     /* button visuals */
-    border: #ccc 1px solid;
+    border: var(--background-color-primary--darker-10) 1px solid;
     height: 24px;
     width: 24px;
-    background-color: #fff;
+    background-color: var(--background-color-primary);
+    color: inherit;
     border-radius: 4px;
     padding: 0;
     text-align: center;
@@ -142,12 +144,12 @@ limitations under the License.
 .Timeline_messageBody time, .Timeline_messageTime {
     font-size: 0.8em;
     line-height: normal;
-    color: #aaa;
+    color: var(--timeline-time-text-color);
 }
 
 .Timeline_messageBody.statusMessage {
     font-style: italic;
-    color: #777;
+    color: var(--light-text-color);
 }
 
 .Timeline_messageBody {
@@ -190,7 +192,7 @@ limitations under the License.
 }
 
 .Timeline_messageBody a.link {
-    color: #238cf5;
+    color: var(--link-color);
     text-decoration: none;
 }
 
@@ -221,6 +223,7 @@ so the timeline doesn't jump when the image loads */
     border-radius: 4px;
     display: block;
 }
+
 /* stretch the image (to the spacer) on platforms
 where we can trust the spacer to always have the correct height,
 otherwise the image starts with  height 0 and with loading=lazy
@@ -249,21 +252,24 @@ only loads when the top comes into view*/
 
 .Timeline_messageBody .media > time,
 .Timeline_messageBody .media > .sendStatus {
-    color: #2e2f32;
+    color: var(--text-color);
     display: block;
     padding: 2px;
     margin: 4px;
+    /* needs transparency support */
     background-color: rgba(255, 255, 255, 0.75);
     border-radius: 4px;
 }
+
 .Timeline_messageBody .media > .spacer {
     /* TODO: can we implement this with a pseudo element? or perhaps they are not grid items? */
     width: 100%;
     /* don't stretch height as it is a spacer, just in case it doesn't match with image height */
     align-self: start;
 }
+
 .Timeline_messageBody code, .Timeline_messageBody pre {
-    background-color: #f8f8f8;
+    background-color: var(--background-color-secondary);
     font-family: monospace;
     font-size: 0.9em;
 }
@@ -275,13 +281,13 @@ only loads when the top comes into view*/
 }
 
 .Timeline_messageBody pre {
-    border: 1px solid rgb(229, 229, 229);
+    border: 1px solid var(--light-border);
     padding: 0.5em;
     max-height: 30em;
     overflow: auto;
 }
 
-.Timeline_messageBody pre > code {
+.Timeline_messageBody pre>code {
     background-color: unset;
     border-radius: unset;
     display: block;
@@ -291,17 +297,17 @@ only loads when the top comes into view*/
 .Timeline_messageBody blockquote {
     margin-left: 0;
     padding-left: 20px;
-    border-left: 4px solid rgb(229, 229, 229);
+    border-left: 4px solid var(--light-border);
 }
 
 .Timeline_messageBody table {
-    border: 1px solid rgb(206, 206, 206);
+    border: 1px solid var(--background-color-secondary--darker-15);
     border-radius: 2px;
     border-spacing: 0;
 }
 
 .Timeline_messageBody thead th {
-    border-bottom: 1px solid rgb(206, 206, 206);
+    border-bottom: 1px solid var(--background-color-secondary--darker-15);
 }
 
 .Timeline_messageBody td, .Timeline_messageBody th {
@@ -309,14 +315,14 @@ only loads when the top comes into view*/
 }
 
 .Timeline_messageBody tbody tr:nth-child(2n) {
-    background-color: #f6f6f6;
+    background-color: var(--background-color-secondary);
 }
 
 .Timeline_messageBody .pill {
     padding: 0px 5px;
     border-radius: 15px;
-    background-color: #f6f6f6;
-    border: 1px solid rgb(206, 206, 206);
+    background-color: var(--background-color-secondary);
+    border: 1px solid var(--background-color-secondary--darker-10);
     text-decoration: none;
     display: inline-flex;
     align-items: center;
@@ -331,11 +337,11 @@ only loads when the top comes into view*/
 }
 
 .Timeline_message.unsent .Timeline_messageBody {
-    color: #ccc;
+    color: var(--light-text-color);
 }
 
 .Timeline_message.unverified .Timeline_messageBody {
-    color: #ff4b55;
+    color: var(--error-color);
 }
 
 .Timeline_messageReactions {
@@ -348,22 +354,27 @@ only loads when the top comes into view*/
     line-height: 2.0rem;
     margin-right: 6px;
     padding: 1px 6px;
-    border: 1px solid #e9edf1;
+    border: 1px solid var(--light-border);
     border-radius: 10px;
-    background-color: #f3f8fd;
+    background-color: var(--background-color-secondary);
     cursor: pointer;
     user-select: none;
     vertical-align: middle;
 }
 
 .Timeline_messageReactions button.active {
-    background-color: #e9fff9;
-    border-color: #0DBD8B;
+    background-color: var(--accent-color--lighter-60);
+    border-color: var(--accent-color);
 }
 
 @keyframes glow-reaction-border {
-    0% {   border-color: #e9edf1; }
-    100% { border-color: #0DBD8B; }
+    0% {
+        border-color: var(--background-color-secondary);
+    }
+
+    100% {
+        border-color: var(--accent-color);
+    }
 }
 
 .Timeline_messageReactions button.active.pending {
@@ -377,8 +388,8 @@ only loads when the top comes into view*/
 .Timeline_locationLink {
     padding: 0px 8px;
     border-radius: 16px;
-    border: 1px solid #e9edf1;
-    background-color: #f3f8fd;
+    border: 1px solid var(--light-border);
+    background-color: var(--background-color-secondary);
     text-decoration: none;
     display: inline-block;
     line-height: 2rem;
@@ -394,7 +405,7 @@ only loads when the top comes into view*/
 .AnnouncementView > div {
     margin: 0 auto;
     padding: 10px 20px;
-    background-color: rgba(245, 245, 245, 0.90);
+    background-color: var(--background-color-secondary);
     text-align: center;
     border-radius: 10px;
 }
