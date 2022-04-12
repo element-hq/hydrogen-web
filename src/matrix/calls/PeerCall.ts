@@ -701,8 +701,6 @@ export class PeerCall implements IDisposable {
 
     private updateRemoteSDPStreamMetadata(metadata: SDPStreamMetadata): void {
         this.remoteSDPStreamMetadata = recursivelyAssign(this.remoteSDPStreamMetadata || {}, metadata, true);
-        // will rerequest stream purpose for all tracks and set track.type accordingly
-        this.peerConnection.notifyStreamPurposeChanged();
         for (const track of this.peerConnection.remoteTracks) {
             const streamMetaData = this.remoteSDPStreamMetadata?.[track.streamId];
             if (streamMetaData) {
@@ -757,6 +755,8 @@ export class PeerCall implements IDisposable {
             this.iceDisconnectedTimeout?.abort();
             this.iceDisconnectedTimeout = undefined;
             this.setState(CallState.Connected, log);
+            const transceivers = this.peerConnection.peerConnection.getTransceivers();
+            console.log(transceivers);
         } else if (state == 'failed') {
             this.iceDisconnectedTimeout?.abort();
             this.iceDisconnectedTimeout = undefined;

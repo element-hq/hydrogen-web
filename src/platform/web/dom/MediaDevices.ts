@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {MediaDevices as IMediaDevices, TrackType, Track, AudioTrack} from "../../types/MediaDevices";
+import {MediaDevices as IMediaDevices, Stream, Track, TrackKind, AudioTrack} from "../../types/MediaDevices";
 
 const POLLING_INTERVAL = 200; // ms
 export const SPEAKING_THRESHOLD = -60; // dB
@@ -28,22 +28,14 @@ export class MediaDevicesWrapper implements IMediaDevices {
         return this.mediaDevices.enumerateDevices();
     }
 
-    async getMediaTracks(audio: true | MediaDeviceInfo, video: boolean | MediaDeviceInfo): Promise<Track[]> {
+    async getMediaTracks(audio: true | MediaDeviceInfo, video: boolean | MediaDeviceInfo): Promise<Stream> {
         const stream = await this.mediaDevices.getUserMedia(this.getUserMediaContraints(audio, video));
-        const tracks = stream.getTracks().map(t => {
-            const type = t.kind === "audio" ? TrackType.Microphone : TrackType.Camera;
-            return wrapTrack(t, stream, type);
-        });
-        return tracks;
+        return new StreamWrapper(stream);
     }
 
-    async getScreenShareTrack(): Promise<Track | undefined> {
+    async getScreenShareTrack(): Promise<Stream | undefined> {
         const stream = await this.mediaDevices.getDisplayMedia(this.getScreenshareContraints());
-        const videoTrack = stream.getTracks().find(t => t.kind === "video");
-        if (videoTrack) {
-            return wrapTrack(videoTrack, stream, TrackType.ScreenShare);
-        }
-        return;
+        return new StreamWrapper(stream);
     }
 
     private getUserMediaContraints(audio: boolean | MediaDeviceInfo, video: boolean | MediaDeviceInfo): MediaStreamConstraints {
@@ -78,43 +70,50 @@ export class MediaDevicesWrapper implements IMediaDevices {
     }
 }
 
-export function wrapTrack(track: MediaStreamTrack, stream: MediaStream, type: TrackType) {
-    if (track.kind === "audio") {
-        return new AudioTrackWrapper(track, stream, type);
-    } else {
-        return new TrackWrapper(track, stream, type);
+export class StreamWrapper implements Stream {
+
+    public audioTrack: AudioTrackWrapper | undefined;
+    public videoTrack: TrackWrapper | undefined;
+
+    constructor(public readonly stream: MediaStream) {
+        for (const track of stream.getTracks()) {
+            this.update(track);
+        }
+    }
+
+    get id(): string { return this.stream.id; }
+
+    clone(): Stream {
+        return new StreamWrapper(this.stream.clone());
+    }
+
+    update(track: MediaStreamTrack): TrackWrapper | undefined {
+        if (track.kind === "video") {
+            if (!this.videoTrack || track.id !== this.videoTrack.track.id) {
+                this.videoTrack = new TrackWrapper(track, this.stream);
+                return this.videoTrack;
+            }
+        } else if (track.kind === "audio") {
+            if (!this.audioTrack || track.id !== this.audioTrack.track.id) {
+                this.audioTrack = new AudioTrackWrapper(track, this.stream);
+                return this.audioTrack;
+            }
+        }
     }
 }
 
 export class TrackWrapper implements Track {
     constructor(
         public readonly track: MediaStreamTrack,
-        public readonly stream: MediaStream,
-        private _type: TrackType,
+        public readonly stream: MediaStream
     ) {}
 
-    get type(): TrackType { return this._type; }
+    get kind(): TrackKind { return this.track.kind as TrackKind; }
     get label(): string { return this.track.label; }
     get id(): string { return this.track.id; }
-    get streamId(): string { return this.stream.id; }
-    get muted(): boolean { return this.track.muted; }
     get settings(): MediaTrackSettings { return this.track.getSettings(); }
 
-    setMuted(muted: boolean): void {
-        this.track.enabled = !muted;
-    }
-
-    setType(type: TrackType): void {
-        this._type = type;
-    }
-
-    stop() {
-        this.track.stop();
-    }
-
-    clone() {
-        return this.track.clone();
-    }
+    stop() { this.track.stop(); }
 }
 
 export class AudioTrackWrapper extends TrackWrapper {
@@ -127,8 +126,8 @@ export class AudioTrackWrapper extends TrackWrapper {
     private volumeLooperTimeout: number;
     private speakingVolumeSamples: number[];
 
-    constructor(track: MediaStreamTrack, stream: MediaStream, type: TrackType) {
-        super(track, stream, type);
+    constructor(track: MediaStreamTrack, stream: MediaStream) {
+        super(track, stream);
         this.speakingVolumeSamples = new Array(SPEAKING_SAMPLE_COUNT).fill(-Infinity);
         this.initVolumeMeasuring();
         this.measureVolumeActivity(true);

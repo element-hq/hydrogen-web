@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TrackWrapper, wrapTrack} from "./MediaDevices";
-import {Track, TrackType} from "../../types/MediaDevices";
-import {WebRTC, PeerConnectionHandler, DataChannel, PeerConnection} from "../../types/WebRTC";
+import {StreamWrapper, TrackWrapper, AudioTrackWrapper} from "./MediaDevices";
+import {Stream, Track, AudioTrack, TrackKind} from "../../types/MediaDevices";
+import {WebRTC, PeerConnectionHandler, StreamSender, TrackSender, StreamReceiver, TrackReceiver, PeerConnection} from "../../types/WebRTC";
 import {SDPStreamMetadataPurpose} from "../../../matrix/calls/callEventTypes";
 
 const POLLING_INTERVAL = 200; // ms
@@ -29,11 +29,171 @@ export class DOMWebRTC implements WebRTC {
     }
 }
 
+export class RemoteStreamWrapper extends StreamWrapper {
+    constructor(stream: MediaStream, private readonly emptyCallback: (stream: RemoteStreamWrapper) => void) {
+        super(stream);
+        this.stream.addEventListener("removetrack", this.onTrackRemoved);
+    }
+
+    onTrackRemoved = (evt: MediaStreamTrackEvent) => {
+        if (evt.track.id === this.audioTrack?.track.id) {
+            this.audioTrack = undefined;
+        } else if (evt.track.id === this.videoTrack?.track.id) {
+            this.videoTrack = undefined;
+        }
+        if (!this.audioTrack && !this.videoTrack) {
+            this.emptyCallback(this);
+        }
+    };
+
+    dispose() {
+        this.stream.removeEventListener("removetrack", this.onTrackRemoved);
+    }
+}
+
+export class DOMStreamSender implements StreamSender {
+    public audioSender: DOMTrackSender | undefined;
+    public videoSender: DOMTrackSender | undefined;
+    
+    constructor(public readonly stream: StreamWrapper) {}
+
+    update(transceivers: ReadonlyArray<RTCRtpTransceiver>, sender: RTCRtpSender): DOMTrackSender | undefined {
+        const transceiver = transceivers.find(t => t.sender === sender);
+        if (transceiver && sender.track) {
+            const trackWrapper = this.stream.update(sender.track);
+            if (trackWrapper) {
+                if (trackWrapper.kind === TrackKind.Video) {
+                    this.videoSender = new DOMTrackSender(trackWrapper, transceiver);
+                    return this.videoSender;
+                } else {
+                    this.audioSender = new DOMTrackSender(trackWrapper, transceiver);
+                    return this.audioSender;
+                }
+            }
+        }
+    }
+}
+
+export class DOMStreamReceiver implements StreamReceiver {
+    public audioReceiver: DOMTrackReceiver | undefined;
+    public videoReceiver: DOMTrackReceiver | undefined;
+    
+    constructor(public readonly stream: RemoteStreamWrapper) {}
+
+    update(event: RTCTrackEvent): DOMTrackReceiver | undefined {
+        const {receiver} = event;
+        const {track} = receiver;
+        const trackWrapper = this.stream.update(track);
+        if (trackWrapper) {
+            if (trackWrapper.kind === TrackKind.Video) {
+                this.videoReceiver = new DOMTrackReceiver(trackWrapper, event.transceiver);
+                return this.videoReceiver;
+            } else {
+                this.audioReceiver = new DOMTrackReceiver(trackWrapper, event.transceiver);
+                return this.audioReceiver;
+            }
+        }
+    }
+}
+
+export class DOMTrackSenderOrReceiver implements TrackReceiver {
+    constructor(
+        public readonly track: TrackWrapper,
+        public readonly transceiver: RTCRtpTransceiver,
+        private readonly exclusiveValue: RTCRtpTransceiverDirection,
+        private readonly excludedValue: RTCRtpTransceiverDirection
+    ) {}
+
+    get enabled(): boolean {
+        return this.transceiver.currentDirection === "sendrecv" ||
+            this.transceiver.currentDirection === this.exclusiveValue;
+    }
+
+    enable(enabled: boolean) {
+        if (enabled !== this.enabled) {
+            if (enabled) {
+                if (this.transceiver.currentDirection === "inactive") {
+                    this.transceiver.direction = this.exclusiveValue;
+                } else {
+                    this.transceiver.direction = "sendrecv";
+                }
+            } else {
+                if (this.transceiver.currentDirection === "sendrecv") {
+                    this.transceiver.direction = this.excludedValue;
+                } else {
+                    this.transceiver.direction = "inactive";
+                }
+            }
+        }
+    }
+}
+
+export class DOMTrackReceiver extends DOMTrackSenderOrReceiver {
+    constructor(
+        track: TrackWrapper,
+        transceiver: RTCRtpTransceiver,
+    ) {
+        super(track, transceiver, "recvonly", "sendonly");
+    }
+}
+
+export class DOMTrackSender extends DOMTrackSenderOrReceiver {
+    constructor(
+        track: TrackWrapper,
+        transceiver: RTCRtpTransceiver,
+    ) {
+        super(track, transceiver, "sendonly", "recvonly");
+    }
+    /** replaces the track if possible without renegotiation. Can throw. */
+    replaceTrack(track: Track): Promise<void> {
+        return this.transceiver.sender.replaceTrack(track ? (track as TrackWrapper).track : null);
+    }
+
+    prepareForPurpose(purpose: SDPStreamMetadataPurpose): void {
+        if (purpose === SDPStreamMetadataPurpose.Screenshare) {
+            this.getRidOfRTXCodecs();
+        }
+    }
+
+    /**
+     * This method removes all video/rtx codecs from screensharing video
+     * transceivers. This is necessary since they can cause problems. Without
+     * this the following steps should produce an error:
+     *   Chromium calls Firefox
+     *   Firefox answers
+     *   Firefox starts screen-sharing
+     *   Chromium starts screen-sharing
+     *   Call crashes for Chromium with:
+     *       [96685:23:0518/162603.933321:ERROR:webrtc_video_engine.cc(3296)] RTX codec (PT=97) mapped to PT=96 which is not in the codec list.
+     *       [96685:23:0518/162603.933377:ERROR:webrtc_video_engine.cc(1171)] GetChangedRecvParameters called without any video codecs.
+     *       [96685:23:0518/162603.933430:ERROR:sdp_offer_answer.cc(4302)] Failed to set local video description recv parameters for m-section with mid='2'. (INVALID_PARAMETER)
+     */
+    private getRidOfRTXCodecs(): void {
+        // RTCRtpReceiver.getCapabilities and RTCRtpSender.getCapabilities don't seem to be supported on FF
+        if (!RTCRtpReceiver.getCapabilities || !RTCRtpSender.getCapabilities) return;
+
+        const recvCodecs = RTCRtpReceiver.getCapabilities("video")?.codecs ?? [];
+        const sendCodecs = RTCRtpSender.getCapabilities("video")?.codecs ?? [];
+        const codecs = [...sendCodecs, ...recvCodecs];
+
+        for (const codec of codecs) {
+            if (codec.mimeType === "video/rtx") {
+                const rtxCodecIndex = codecs.indexOf(codec);
+                codecs.splice(rtxCodecIndex, 1);
+            }
+        }
+        if (this.transceiver.sender.track?.kind === "video" ||
+            this.transceiver.receiver.track?.kind === "video") {
+            this.transceiver.setCodecPreferences(codecs);
+        }
+    }
+}
+
 class DOMPeerConnection implements PeerConnection {
     private readonly peerConnection: RTCPeerConnection;
     private readonly handler: PeerConnectionHandler;
-    //private dataChannelWrapper?: DOMDataChannel;
-    private _remoteTracks: TrackWrapper[] = [];
+    public readonly localStreams: DOMStreamSender[];
+    public readonly remoteStreams: DOMStreamReceiver[];
 
     constructor(handler: PeerConnectionHandler, forceTURN: boolean, turnServers: RTCIceServer[], iceCandidatePoolSize) {
         this.handler = handler;
@@ -45,7 +205,6 @@ class DOMPeerConnection implements PeerConnection {
         this.registerHandler();
     }
 
-    get remoteTracks(): Track[] { return this._remoteTracks; }
     get iceGatheringState(): RTCIceGatheringState { return this.peerConnection.iceGatheringState; }
     get localDescription(): RTCSessionDescription | undefined { return this.peerConnection.localDescription ?? undefined; }
     get signalingState(): RTCSignalingState { return this.peerConnection.signalingState; }
@@ -74,48 +233,26 @@ class DOMPeerConnection implements PeerConnection {
         return this.peerConnection.close();
     }
 
-    addTrack(track: Track): void {
+    addTrack(track: Track): DOMTrackSender | undefined {
         if (!(track instanceof TrackWrapper)) {
             throw new Error("Not a TrackWrapper");
         }
-        this.peerConnection.addTrack(track.track, track.stream);
-        if (track.type === TrackType.ScreenShare) {
-            this.getRidOfRTXCodecs(track);
+        const sender = this.peerConnection.addTrack(track.track, track.stream);
+        let streamSender: DOMStreamSender | undefined = this.localStreams.find(s => s.stream.id === track.stream.id);
+        if (!streamSender) {
+            streamSender = new DOMStreamSender(new StreamWrapper(track.stream));
+            this.localStreams.push(streamSender);
         }
+        const trackSender = streamSender.update(this.peerConnection.getTransceivers(), sender);
+        return trackSender;
     }
 
-    removeTrack(track: Track): boolean {
-        if (!(track instanceof TrackWrapper)) {
-            throw new Error("Not a TrackWrapper");
+    removeTrack(sender: TrackSender): void {
+        if (!(sender instanceof DOMTrackSender)) {
+            throw new Error("Not a DOMTrackSender");
         }
-        const sender = this.peerConnection.getSenders().find(s => s.track === track.track);
-        if (sender) {
-            this.peerConnection.removeTrack(sender);
-            return true;
-        }
-        return false;
-    }
-    
-    async replaceTrack(oldTrack: Track, newTrack: Track): Promise<boolean> {
-        if (!(oldTrack instanceof TrackWrapper) || !(newTrack instanceof TrackWrapper)) {
-            throw new Error("Not a TrackWrapper");
-        }
-        const sender = this.peerConnection.getSenders().find(s => s.track === oldTrack.track);
-        if (sender) {
-            await sender.replaceTrack(newTrack.track);
-            if (newTrack.type === TrackType.ScreenShare) {
-                this.getRidOfRTXCodecs(newTrack);
-            }
-            return true;
-        }
-        return false;
-    }
-
-    notifyStreamPurposeChanged(): void {
-        for (const track of this.remoteTracks) {
-            const wrapper = track as TrackWrapper;
-            wrapper.setType(this.getRemoteTrackType(wrapper.track, wrapper.streamId));
-        }
+        this.peerConnection.removeTrack((sender as DOMTrackSender).transceiver.sender);
+        // TODO: update localStreams
     }
 
     createDataChannel(options: RTCDataChannelInit): any {
@@ -170,6 +307,9 @@ class DOMPeerConnection implements PeerConnection {
 
     dispose(): void {
         this.deregisterHandler();
+        for (const r of this.remoteStreams) {
+            r.stream.dispose();
+        }
     }
 
     private handleLocalIceCandidate(event: RTCPeerConnectionIceEvent) {
@@ -187,67 +327,28 @@ class DOMPeerConnection implements PeerConnection {
         }
     }
 
+    onRemoteStreamEmpty = (stream: RemoteStreamWrapper): void => {
+        const idx = this.remoteStreams.findIndex(r => r.stream === stream);
+        if (idx !== -1) {
+            this.remoteStreams.splice(idx, 1);
+            this.handler.onRemoteStreamRemoved(stream);
+        }
+    }
+
     private handleRemoteTrack(evt: RTCTrackEvent) {
-        // TODO: unit test this code somehow
-        // the tracks on the new stream (with their stream)
-        const updatedTracks = evt.streams.flatMap(stream => stream.getTracks().map(track => {return {stream, track};}));
-        // of the tracks we already know about, filter the ones that aren't in the new stream
-        const withoutRemovedTracks = this._remoteTracks.filter(t => updatedTracks.some(ut => t.track.id === ut.track.id));
-        // of the new tracks, filter the ones that we didn't already knew about
-        const addedTracks = updatedTracks.filter(ut => !this._remoteTracks.some(t => t.track.id === ut.track.id));
-        // wrap them
-        const wrappedAddedTracks = addedTracks.map(t => wrapTrack(t.track, t.stream, this.getRemoteTrackType(t.track, t.stream.id)));
-        // and concat the tracks for other streams with the added tracks
-        this._remoteTracks = withoutRemovedTracks.concat(...wrappedAddedTracks);
-        this.handler.onRemoteTracksChanged(this.remoteTracks);
-    }
-
-    private getRemoteTrackType(track: MediaStreamTrack, streamId: string): TrackType {
-        if (track.kind === "video") {
-            const purpose = this.handler.getPurposeForStreamId(streamId);
-            return purpose === SDPStreamMetadataPurpose.Usermedia ? TrackType.Camera : TrackType.ScreenShare;
-        } else {
-            return TrackType.Microphone;
+        if (evt.streams.length !== 0) {
+            throw new Error("track in multiple streams is not supported");
         }
-    }
-
-    /**
-     * This method removes all video/rtx codecs from screensharing video
-     * transceivers. This is necessary since they can cause problems. Without
-     * this the following steps should produce an error:
-     *   Chromium calls Firefox
-     *   Firefox answers
-     *   Firefox starts screen-sharing
-     *   Chromium starts screen-sharing
-     *   Call crashes for Chromium with:
-     *       [96685:23:0518/162603.933321:ERROR:webrtc_video_engine.cc(3296)] RTX codec (PT=97) mapped to PT=96 which is not in the codec list.
-     *       [96685:23:0518/162603.933377:ERROR:webrtc_video_engine.cc(1171)] GetChangedRecvParameters called without any video codecs.
-     *       [96685:23:0518/162603.933430:ERROR:sdp_offer_answer.cc(4302)] Failed to set local video description recv parameters for m-section with mid='2'. (INVALID_PARAMETER)
-     */
-    private getRidOfRTXCodecs(screensharingTrack: TrackWrapper): void {
-        // RTCRtpReceiver.getCapabilities and RTCRtpSender.getCapabilities don't seem to be supported on FF
-        if (!RTCRtpReceiver.getCapabilities || !RTCRtpSender.getCapabilities) return;
-
-        const recvCodecs = RTCRtpReceiver.getCapabilities("video")?.codecs ?? [];
-        const sendCodecs = RTCRtpSender.getCapabilities("video")?.codecs ?? [];
-        const codecs = [...sendCodecs, ...recvCodecs];
-
-        for (const codec of codecs) {
-            if (codec.mimeType === "video/rtx") {
-                const rtxCodecIndex = codecs.indexOf(codec);
-                codecs.splice(rtxCodecIndex, 1);
-            }
+        const stream = evt.streams[0];
+        const transceivers = this.peerConnection.getTransceivers();
+        let streamReceiver: DOMStreamReceiver | undefined = this.remoteStreams.find(r => r.stream.id === stream.id);
+        if (!streamReceiver) {
+            streamReceiver = new DOMStreamReceiver(new RemoteStreamWrapper(stream, this.onRemoteStreamEmpty));
+            this.remoteStreams.push(streamReceiver);
         }
-
-        for (const trans of this.peerConnection.getTransceivers()) {
-            if (trans.sender.track === screensharingTrack.track &&
-                (
-                    trans.sender.track?.kind === "video" ||
-                    trans.receiver.track?.kind === "video"
-                )
-            ) {
-                trans.setCodecPreferences(codecs);
-            }
+        const trackReceiver = streamReceiver.update(evt);
+        if (trackReceiver) {
+            this.handler.onRemoteTracksAdded(trackReceiver);
         }
     }
 }

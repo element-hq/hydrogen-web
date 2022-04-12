@@ -18,29 +18,32 @@ export interface MediaDevices {
     // filter out audiooutput
     enumerate(): Promise<MediaDeviceInfo[]>;
     // to assign to a video element, we downcast to WrappedTrack and use the stream property. 
-    getMediaTracks(audio: true | MediaDeviceInfo, video: boolean | MediaDeviceInfo): Promise<Track[]>;
-    getScreenShareTrack(): Promise<Track | undefined>;
+    getMediaTracks(audio: true | MediaDeviceInfo, video: boolean | MediaDeviceInfo): Promise<Stream>;
+    getScreenShareTrack(): Promise<Stream | undefined>;
 }
 
-export enum TrackType {
-    ScreenShare,
-    Camera,
-    Microphone,
+export interface Stream {
+    readonly audioTrack: AudioTrack | undefined;
+    readonly videoTrack: Track | undefined;
+    readonly id: string;
+    clone(): Stream;
+}
+
+export enum TrackKind {
+    Video = "video",
+    Audio = "audio"
 }
 
 export interface Track {
-    get type(): TrackType;
-    get label(): string;
-    get id(): string;
-    get streamId(): string;
-    get settings(): MediaTrackSettings;
-    get muted(): boolean;
-    setMuted(muted: boolean): void;
+    readonly kind: TrackKind;
+    readonly label: string;
+    readonly id: string;
+    readonly settings: MediaTrackSettings;
     stop(): void;
-    clone(): Track;
 }
 
 export interface AudioTrack extends Track {
+    // TODO: how to emit updates on this?
     get isSpeaking(): boolean;
 }
 

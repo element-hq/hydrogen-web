@@ -14,38 +14,62 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {Track, TrackType} from "./MediaDevices";
+import {Track, Stream} from "./MediaDevices";
 import {SDPStreamMetadataPurpose} from "../../matrix/calls/callEventTypes";
 
 export interface WebRTC {
     createPeerConnection(handler: PeerConnectionHandler, forceTURN: boolean, turnServers: RTCIceServer[], iceCandidatePoolSize): PeerConnection;
 }
 
+export interface StreamSender {
+    get stream(): Stream;
+    get audioSender(): TrackSender | undefined;
+    get videoSender(): TrackSender | undefined;
+}
+
+export interface StreamReceiver {
+    get stream(): Stream;
+    get audioReceiver(): TrackReceiver | undefined;
+    get videoReceiver(): TrackReceiver | undefined;
+}
+
+export interface TrackReceiver {
+    get track(): Track;
+    get enabled(): boolean;
+    enable(enabled: boolean); // this modifies the transceiver direction
+}
+
+export interface TrackSender extends TrackReceiver {
+    /** replaces the track if possible without renegotiation. Can throw. */
+    replaceTrack(track: Track): Promise<void>;
+    /** make any needed adjustments to the sender or transceiver settings
+     * depending on the purpose, after adding the track to the connection */
+    prepareForPurpose(purpose: SDPStreamMetadataPurpose): void;
+}
+
 export interface PeerConnectionHandler {
     onIceConnectionStateChange(state: RTCIceConnectionState);
     onLocalIceCandidate(candidate: RTCIceCandidate);
     onIceGatheringStateChange(state: RTCIceGatheringState);
-    onRemoteTracksChanged(tracks: Track[]);
+    onRemoteStreamRemoved(stream: Stream);
+    onRemoteTracksAdded(receiver: TrackReceiver);
     onRemoteDataChannel(dataChannel: any | undefined);
     onNegotiationNeeded();
-    // request the type of incoming stream
-    getPurposeForStreamId(streamId: string): SDPStreamMetadataPurpose;
 }
 
 export interface PeerConnection {
-    notifyStreamPurposeChanged(): void;
-    get remoteTracks(): Track[];
     get iceGatheringState(): RTCIceGatheringState;
     get signalingState(): RTCSignalingState;
     get localDescription(): RTCSessionDescription | undefined;
+    get localStreams(): ReadonlyArray<StreamSender>;
+    get remoteStreams(): ReadonlyArray<StreamReceiver>;
     createOffer(): Promise<RTCSessionDescriptionInit>;
     createAnswer(): Promise<RTCSessionDescriptionInit>;
     setLocalDescription(description?: RTCSessionDescriptionInit): Promise<void>;
     setRemoteDescription(description: RTCSessionDescriptionInit): Promise<void>;
     addIceCandidate(candidate: RTCIceCandidate): Promise<void>;
-    addTrack(track: Track): void;
-    removeTrack(track: Track): boolean;
-    replaceTrack(oldTrack: Track, newTrack: Track): Promise<boolean>;
+    addTrack(track: Track): TrackSender | undefined;
+    removeTrack(track: TrackSender): void;
     createDataChannel(options: RTCDataChannelInit): any;
     dispose(): void;
     close(): void;

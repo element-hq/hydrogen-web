@@ -15,37 +15,26 @@ limitations under the License.
 */
 
 import {SDPStreamMetadataPurpose} from "./callEventTypes";
-import {Track, AudioTrack, TrackType} from "../../platform/types/MediaDevices";
+import {Stream} from "../../platform/types/MediaDevices";
 import {SDPStreamMetadata} from "./callEventTypes";
 
 export class LocalMedia {
     constructor(
-        public readonly cameraTrack?: Track,
-        public readonly screenShareTrack?: Track,
-        public readonly microphoneTrack?: AudioTrack,
+        public readonly userMedia?: Stream,
+        public readonly screenShare?: Stream,
         public readonly dataChannelOptions?: RTCDataChannelInit,
     ) {}
 
-    withTracks(tracks: Track[]) {
-        const cameraTrack = tracks.find(t => t.type === TrackType.Camera) ?? this.cameraTrack;
-        const screenShareTrack = tracks.find(t => t.type === TrackType.ScreenShare) ?? this.screenShareTrack;
-        const microphoneTrack = tracks.find(t => t.type === TrackType.Microphone) ?? this.microphoneTrack;
-        if (cameraTrack && microphoneTrack && cameraTrack.streamId !== microphoneTrack.streamId) {
-            throw new Error("The camera and audio track should have the same stream id");
-        }
-        return new LocalMedia(cameraTrack, screenShareTrack, microphoneTrack as AudioTrack, this.dataChannelOptions);
+    withUserMedia(stream: Stream) {
+        return new LocalMedia(stream, this.screenShare, this.dataChannelOptions);
+    }
+
+    withScreenShare(stream: Stream) {
+        return new LocalMedia(this.userMedia, stream, this.dataChannelOptions);
     }
 
     withDataChannel(options: RTCDataChannelInit): LocalMedia {
-        return new LocalMedia(this.cameraTrack, this.screenShareTrack, this.microphoneTrack as AudioTrack, options);
-    }
-
-    get tracks(): Track[] {
-        const tracks: Track[] = [];
-        if (this.cameraTrack) { tracks.push(this.cameraTrack); }
-        if (this.screenShareTrack) { tracks.push(this.screenShareTrack); }
-        if (this.microphoneTrack) { tracks.push(this.microphoneTrack); }
-        return tracks;
+        return new LocalMedia(this.userMedia, this.screenShare, options);
     }
 
     getSDPMetadata(): SDPStreamMetadata {
@@ -54,8 +43,8 @@ export class LocalMedia {
         if (userMediaTrack) {
             metadata[userMediaTrack.streamId] = {
                 purpose: SDPStreamMetadataPurpose.Usermedia,
-                audio_muted: this.microphoneTrack?.muted ?? false,
-                video_muted: this.cameraTrack?.muted ?? false,
+                audio_muted: this.microphoneTrack?.muted ?? true,
+                video_muted: this.cameraTrack?.muted ?? true,
             };
         }
         if (this.screenShareTrack) {
@@ -67,13 +56,12 @@ export class LocalMedia {
     }
 
     clone() {
-        // TODO: implement
-        return this;
+        return new LocalMedia(this.userMedia?.clone(), this.screenShare?.clone(), this.dataChannelOptions);
     }
 
     dispose() {
-        this.cameraTrack?.stop();
-        this.microphoneTrack?.stop();
-        this.screenShareTrack?.stop();
+        this.userMedia?.audioTrack?.stop();
+        this.userMedia?.videoTrack?.stop();
+        this.screenShare?.videoTrack?.stop();
     }
 }
