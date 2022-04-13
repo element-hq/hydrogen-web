@@ -31,29 +31,6 @@ function appendVariablesToCSS(variables, cssSource) {
     return cssSource + getRootSectionWithVariables(variables);
 }
 
-function findLocationFromThemeName(name, locations) {
-    const themeLocation = locations.find(location => {
-        const manifest = require(`${location}/manifest.json`);
-        if (manifest.name === name) {
-            return true;
-        }
-    });
-    if (!themeLocation) {
-        throw new Error(`Cannot find location from theme name "${name}"`);
-    }
-    return themeLocation;
-}
-
-function findManifestFromThemeName(name, locations) {
-    for (const location of locations) {
-        const manifest = require(`${location}/manifest.json`);
-        if (manifest.name === name) {
-            return manifest;
-        }
-    }
-    throw new Error(`Cannot find manifest from theme name "${name}"`);
-}
-
 function parseBundle(bundle) {
     const chunkMap = new Map();
     const assetMap = new Map();
@@ -112,15 +89,14 @@ module.exports = function buildThemes(options) {
 
         async buildStart() {
             if (isDevelopment) { return; }
-            const { manifestLocations } = options;
-            for (const location of manifestLocations) {
+            const { themeConfig } = options;
+            for (const [name, location] of Object.entries(themeConfig.themes)) {
                 manifest = require(`${location}/manifest.json`);
                 variants = manifest.values.variants;
-                const themeName = manifest.name;
                 for (const [variant, details] of Object.entries(variants)) {
-                    const fileName = `theme-${themeName}-${variant}.css`;
-                    if (details.default) {
-                        // This is one of the default variants for this theme.
+                    const fileName = `theme-${name}-${variant}.css`;
+                    if (name === themeConfig.default && details.default) {
+                        // This is the default theme, stash  the file name for later
                         if (details.dark) {
                             defaultDark = fileName;
                         }
@@ -139,7 +115,7 @@ module.exports = function buildThemes(options) {
                 this.emitFile({
                     type: "chunk",
                     id: `${location}/theme.css?type=runtime`,
-                    fileName: `theme-${themeName}-runtime.css`,
+                    fileName: `theme-${name}-runtime.css`,
                 });
             }
         },
@@ -155,7 +131,7 @@ module.exports = function buildThemes(options) {
                 if (id.startsWith(resolvedVirtualModuleId)) {
                     let [theme, variant, file] = id.substr(resolvedVirtualModuleId.length).split("/");
                     if (theme === "default") {
-                        theme = "Element";
+                        theme = "element";
                     }
                     if (!variant || variant === "default") {
                         variant = "light";
@@ -163,16 +139,15 @@ module.exports = function buildThemes(options) {
                     if (!file) {
                         file = "index.js";
                     }
+                    const location = options.themeConfig.themes[theme];
+                    const manifest = require(`${location}/manifest.json`);
                     switch (file) {
                         case "index.js": {
-                            const location = findLocationFromThemeName(theme, options.manifestLocations);
-                            const manifest = findManifestFromThemeName(theme, options.manifestLocations);
                             const isDark = manifest.values.variants[variant].dark;
                             return `import "${path.resolve(`${location}/theme.css`)}${isDark? "?dark=true": ""}";` +
                                 `import "@theme/${theme}/${variant}/variables.css"`;
                         }
                         case "variables.css": { 
-                            const manifest = findManifestFromThemeName(theme, options.manifestLocations);
                             const variables = manifest.values.variants[variant].variables;
                             const css =  getRootSectionWithVariables(variables);
                             return css;
@@ -238,7 +213,7 @@ module.exports = function buildThemes(options) {
                     }
                 },
             ];
-},
+        },
 
         generateBundle(_, bundle) {
             const { assetMap, chunkMap, runtimeThemeChunk } = parseBundle(bundle);
