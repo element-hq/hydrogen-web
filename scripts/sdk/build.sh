@@ -11,7 +11,11 @@ cp doc/SDK.md target/README.md
 pushd target
 pushd asset-build/assets
 mv main.*.js ../../main.js
-mv *light.*.css ../../style.css
+# Create a copy of light theme for backwards compatibility 
+cp theme-element-light.*.css ../../style.css
+# Remove asset hash from css files
+mv theme-element-light.*.css ../../theme-element-light.css
+mv theme-element-dark.*.css ../../theme-element-dark.css
 mv download-sandbox.*.html ../../download-sandbox.html
 rm *.js *.wasm
 mv ./* ../../
