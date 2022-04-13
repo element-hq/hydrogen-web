@@ -365,8 +365,9 @@ export class RoomViewModel extends ViewModel {
     async startCall() {
         try {
             const session = this.getOption("session");
-            const mediaTracks = await this.platform.mediaDevices.getMediaTracks(false, true);
-            const localMedia = new LocalMedia().withTracks(mediaTracks);
+            const stream = await this.platform.mediaDevices.getMediaTracks(false, true);
+            const localMedia = new LocalMedia().withUserMedia(stream);
+            await this._call.join(localMedia);
             // this will set the callViewModel above as a call will be added to callHandler.calls
             const call = await session.callHandler.createCall(this._room.id, localMedia, "A call " + Math.round(this.platform.random() * 100));
             await call.join(localMedia);

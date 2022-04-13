@@ -62,10 +62,10 @@ export class DOMStreamSender implements StreamSender {
         if (transceiver && sender.track) {
             const trackWrapper = this.stream.update(sender.track);
             if (trackWrapper) {
-                if (trackWrapper.kind === TrackKind.Video) {
+                if (trackWrapper.kind === TrackKind.Video && (!this.videoSender || this.videoSender.track.id !== trackWrapper.id)) {
                     this.videoSender = new DOMTrackSender(trackWrapper, transceiver);
                     return this.videoSender;
-                } else {
+                } else if (trackWrapper.kind === TrackKind.Audio && (!this.audioSender || this.audioSender.track.id !== trackWrapper.id)) {
                     this.audioSender = new DOMTrackSender(trackWrapper, transceiver);
                     return this.audioSender;
                 }
@@ -105,20 +105,20 @@ export class DOMTrackSenderOrReceiver implements TrackReceiver {
     ) {}
 
     get enabled(): boolean {
-        return this.transceiver.currentDirection === "sendrecv" ||
-            this.transceiver.currentDirection === this.exclusiveValue;
+        return this.transceiver.direction === "sendrecv" ||
+            this.transceiver.direction === this.exclusiveValue;
     }
 
     enable(enabled: boolean) {
         if (enabled !== this.enabled) {
             if (enabled) {
-                if (this.transceiver.currentDirection === "inactive") {
+                if (this.transceiver.direction === "inactive") {
                     this.transceiver.direction = this.exclusiveValue;
                 } else {
                     this.transceiver.direction = "sendrecv";
                 }
             } else {
-                if (this.transceiver.currentDirection === "sendrecv") {
+                if (this.transceiver.direction === "sendrecv") {
                     this.transceiver.direction = this.excludedValue;
                 } else {
                     this.transceiver.direction = "inactive";
@@ -145,7 +145,7 @@ export class DOMTrackSender extends DOMTrackSenderOrReceiver {
         super(track, transceiver, "sendonly", "recvonly");
     }
     /** replaces the track if possible without renegotiation. Can throw. */
-    replaceTrack(track: Track): Promise<void> {
+    replaceTrack(track: Track | undefined): Promise<void> {
         return this.transceiver.sender.replaceTrack(track ? (track as TrackWrapper).track : null);
     }
 
@@ -192,8 +192,8 @@ export class DOMTrackSender extends DOMTrackSenderOrReceiver {
 class DOMPeerConnection implements PeerConnection {
     private readonly peerConnection: RTCPeerConnection;
     private readonly handler: PeerConnectionHandler;
-    public readonly localStreams: DOMStreamSender[];
-    public readonly remoteStreams: DOMStreamReceiver[];
+    public readonly localStreams: Map<string, DOMStreamSender> = new Map();
+    public readonly remoteStreams: Map<string, DOMStreamReceiver> = new Map();
 
     constructor(handler: PeerConnectionHandler, forceTURN: boolean, turnServers: RTCIceServer[], iceCandidatePoolSize) {
         this.handler = handler;
@@ -238,10 +238,11 @@ class DOMPeerConnection implements PeerConnection {
             throw new Error("Not a TrackWrapper");
         }
         const sender = this.peerConnection.addTrack(track.track, track.stream);
-        let streamSender: DOMStreamSender | undefined = this.localStreams.find(s => s.stream.id === track.stream.id);
+        let streamSender = this.localStreams.get(track.stream.id);
         if (!streamSender) {
+            // TODO: reuse existing stream wrapper here?
             streamSender = new DOMStreamSender(new StreamWrapper(track.stream));
-            this.localStreams.push(streamSender);
+            this.localStreams.set(track.stream.id, streamSender);
         }
         const trackSender = streamSender.update(this.peerConnection.getTransceivers(), sender);
         return trackSender;
@@ -307,7 +308,7 @@ class DOMPeerConnection implements PeerConnection {
 
     dispose(): void {
         this.deregisterHandler();
-        for (const r of this.remoteStreams) {
+        for (const r of this.remoteStreams.values()) {
             r.stream.dispose();
         }
     }
@@ -328,23 +329,21 @@ class DOMPeerConnection implements PeerConnection {
     }
 
     onRemoteStreamEmpty = (stream: RemoteStreamWrapper): void => {
-        const idx = this.remoteStreams.findIndex(r => r.stream === stream);
-        if (idx !== -1) {
-            this.remoteStreams.splice(idx, 1);
+        if (this.remoteStreams.delete(stream.id)) {
             this.handler.onRemoteStreamRemoved(stream);
         }
     }
 
     private handleRemoteTrack(evt: RTCTrackEvent) {
-        if (evt.streams.length !== 0) {
+        if (evt.streams.length !== 1) {
             throw new Error("track in multiple streams is not supported");
         }
         const stream = evt.streams[0];
         const transceivers = this.peerConnection.getTransceivers();
-        let streamReceiver: DOMStreamReceiver | undefined = this.remoteStreams.find(r => r.stream.id === stream.id);
+        let streamReceiver: DOMStreamReceiver | undefined = this.remoteStreams.get(stream.id);
         if (!streamReceiver) {
             streamReceiver = new DOMStreamReceiver(new RemoteStreamWrapper(stream, this.onRemoteStreamEmpty));
-            this.remoteStreams.push(streamReceiver);
+            this.remoteStreams.set(stream.id, streamReceiver);
         }
         const trackReceiver = streamReceiver.update(evt);
         if (trackReceiver) {

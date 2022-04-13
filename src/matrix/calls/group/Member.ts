@@ -19,10 +19,9 @@ import {makeTxnId, makeId} from "../../common";
 import {EventType, CallErrorCode} from "../callEventTypes";
 import {formatToDeviceMessagesPayload} from "../../common";
 
-import type {Options as PeerCallOptions} from "../PeerCall";
+import type {Options as PeerCallOptions, RemoteMedia} from "../PeerCall";
 import type {LocalMedia} from "../LocalMedia";
 import type {HomeServerApi} from "../../net/HomeServerApi";
-import type {Track} from "../../../platform/types/MediaDevices";
 import type {MCallBase, MGroupCallBase, SignallingMessage, CallDeviceMembership} from "../callEventTypes";
 import type {GroupCall} from "./GroupCall";
 import type {RoomMember} from "../../room/members/RoomMember";
@@ -60,8 +59,8 @@ export class Member {
         private readonly logItem: ILogItem,
     ) {}
 
-    get remoteTracks(): Track[] {
-        return this.peerCall?.remoteTracks ?? [];
+    get remoteMedia(): RemoteMedia | undefined {
+        return this.peerCall?.remoteMedia;
     }
 
     get isConnected(): boolean {

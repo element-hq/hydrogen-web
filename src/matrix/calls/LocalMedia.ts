@@ -37,24 +37,6 @@ export class LocalMedia {
         return new LocalMedia(this.userMedia, this.screenShare, options);
     }
 
-    getSDPMetadata(): SDPStreamMetadata {
-        const metadata = {};
-        const userMediaTrack = this.microphoneTrack ?? this.cameraTrack;
-        if (userMediaTrack) {
-            metadata[userMediaTrack.streamId] = {
-                purpose: SDPStreamMetadataPurpose.Usermedia,
-                audio_muted: this.microphoneTrack?.muted ?? true,
-                video_muted: this.cameraTrack?.muted ?? true,
-            };
-        }
-        if (this.screenShareTrack) {
-            metadata[this.screenShareTrack.streamId] = {
-                purpose: SDPStreamMetadataPurpose.Screenshare
-            };
-        }
-        return metadata;
-    }
-
     clone() {
         return new LocalMedia(this.userMedia?.clone(), this.screenShare?.clone(), this.dataChannelOptions);
     }

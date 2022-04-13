@@ -165,7 +165,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
             this._state = GroupCallState.Creating;
             this.emitChange();
             this.callContent = Object.assign({
-                "m.type": localMedia.cameraTrack ? "m.video" : "m.voice",
+                "m.type": localMedia.userMedia?.videoTrack ? "m.video" : "m.voice",
             }, this.callContent);
             const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCall, this.id, this.callContent!, {log});
             await request.response();

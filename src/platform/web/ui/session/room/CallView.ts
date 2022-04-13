@@ -16,14 +16,14 @@ limitations under the License.
 
 import {TemplateView, TemplateBuilder} from "../../general/TemplateView";
 import {ListView} from "../../general/ListView";
-import {Track, TrackType} from "../../../../types/MediaDevices";
-import type {TrackWrapper} from "../../../dom/MediaDevices";
+import {Stream} from "../../../../types/MediaDevices";
+import type {StreamWrapper} from "../../../dom/MediaDevices";
 import type {CallViewModel, CallMemberViewModel} from "../../../../../domain/session/room/CallViewModel";
 
-function bindVideoTracks<T>(t: TemplateBuilder<T>, video: HTMLVideoElement, propSelector: (vm: T) => Track[]) {
-    t.mapSideEffect(propSelector, tracks => {
-        if (tracks.length) {
-            video.srcObject = (tracks[0] as TrackWrapper).stream;
+function bindVideoTracks<T>(t: TemplateBuilder<T>, video: HTMLVideoElement, propSelector: (vm: T) => Stream | undefined) {
+    t.mapSideEffect(propSelector, stream => {
+        if (stream) {
+            video.srcObject = (stream as StreamWrapper).stream;
         }
     });
     return video;
@@ -33,7 +33,7 @@ export class CallView extends TemplateView<CallViewModel> {
     render(t: TemplateBuilder<CallViewModel>, vm: CallViewModel): HTMLElement {
         return t.div({class: "CallView"}, [
             t.p(vm => `Call ${vm.name} (${vm.id})`),
-            t.div({class: "CallView_me"}, bindVideoTracks(t, t.video({autoplay: true, width: 240}), vm => vm.localTracks)),
+            t.div({class: "CallView_me"}, bindVideoTracks(t, t.video({autoplay: true, width: 240}), vm => vm.localStream)),
             t.view(new ListView({list: vm.memberViewModels}, vm => new MemberView(vm))),
             t.div({class: "buttons"}, [
                 t.button({onClick: () => vm.leave()}, "Leave")
@@ -44,6 +44,6 @@ export class CallView extends TemplateView<CallViewModel> {
 
 class MemberView extends TemplateView<CallMemberViewModel> {
     render(t: TemplateBuilder<CallMemberViewModel>, vm: CallMemberViewModel) {
-        return bindVideoTracks(t, t.video({autoplay: true, width: 360}), vm => vm.tracks);
+        return bindVideoTracks(t, t.video({autoplay: true, width: 360}), vm => vm.stream);
     }
 }

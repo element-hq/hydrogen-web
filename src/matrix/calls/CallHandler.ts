@@ -16,7 +16,7 @@ limitations under the License.
 
 import {ObservableMap} from "../../observable/map/ObservableMap";
 import {WebRTC, PeerConnection, PeerConnectionHandler} from "../../platform/types/WebRTC";
-import {MediaDevices, Track, AudioTrack, TrackType} from "../../platform/types/MediaDevices";
+import {MediaDevices, Track, AudioTrack} from "../../platform/types/MediaDevices";
 import {handlesEventType} from "./PeerCall";
 import {EventType, CallIntent} from "./callEventTypes";
 import {GroupCall} from "./group/GroupCall";

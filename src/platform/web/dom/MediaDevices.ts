@@ -72,8 +72,8 @@ export class MediaDevicesWrapper implements IMediaDevices {
 
 export class StreamWrapper implements Stream {
 
-    public audioTrack: AudioTrackWrapper | undefined;
-    public videoTrack: TrackWrapper | undefined;
+    public audioTrack: AudioTrackWrapper | undefined = undefined;
+    public videoTrack: TrackWrapper | undefined = undefined;
 
     constructor(public readonly stream: MediaStream) {
         for (const track of stream.getTracks()) {
@@ -91,13 +91,13 @@ export class StreamWrapper implements Stream {
         if (track.kind === "video") {
             if (!this.videoTrack || track.id !== this.videoTrack.track.id) {
                 this.videoTrack = new TrackWrapper(track, this.stream);
-                return this.videoTrack;
             }
+            return this.videoTrack;
         } else if (track.kind === "audio") {
             if (!this.audioTrack || track.id !== this.audioTrack.track.id) {
                 this.audioTrack = new AudioTrackWrapper(track, this.stream);
-                return this.audioTrack;
             }
+            return this.audioTrack;
         }
     }
 }

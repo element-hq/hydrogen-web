@@ -18,7 +18,7 @@ import {Track, Stream} from "./MediaDevices";
 import {SDPStreamMetadataPurpose} from "../../matrix/calls/callEventTypes";
 
 export interface WebRTC {
-    createPeerConnection(handler: PeerConnectionHandler, forceTURN: boolean, turnServers: RTCIceServer[], iceCandidatePoolSize): PeerConnection;
+    createPeerConnection(handler: PeerConnectionHandler, forceTURN: boolean, turnServers: RTCIceServer[], iceCandidatePoolSize: number): PeerConnection;
 }
 
 export interface StreamSender {
@@ -41,7 +41,7 @@ export interface TrackReceiver {
 
 export interface TrackSender extends TrackReceiver {
     /** replaces the track if possible without renegotiation. Can throw. */
-    replaceTrack(track: Track): Promise<void>;
+    replaceTrack(track: Track | undefined): Promise<void>;
     /** make any needed adjustments to the sender or transceiver settings
      * depending on the purpose, after adding the track to the connection */
     prepareForPurpose(purpose: SDPStreamMetadataPurpose): void;
@@ -61,8 +61,8 @@ export interface PeerConnection {
     get iceGatheringState(): RTCIceGatheringState;
     get signalingState(): RTCSignalingState;
     get localDescription(): RTCSessionDescription | undefined;
-    get localStreams(): ReadonlyArray<StreamSender>;
-    get remoteStreams(): ReadonlyArray<StreamReceiver>;
+    get localStreams(): ReadonlyMap<string, StreamSender>;
+    get remoteStreams(): ReadonlyMap<string, StreamReceiver>;
     createOffer(): Promise<RTCSessionDescriptionInit>;
     createAnswer(): Promise<RTCSessionDescriptionInit>;
     setLocalDescription(description?: RTCSessionDescriptionInit): Promise<void>;

@@ -18,7 +18,7 @@ import {ViewModel, Options as BaseOptions} from "../../ViewModel";
 import type {GroupCall} from "../../../matrix/calls/group/GroupCall";
 import type {Member} from "../../../matrix/calls/group/Member";
 import type {BaseObservableList} from "../../../observable/list/BaseObservableList";
-import type {Track} from "../../../platform/types/MediaDevices";
+import type {Stream} from "../../../platform/types/MediaDevices";
 
 type Options = BaseOptions & {call: GroupCall};
 
@@ -46,8 +46,8 @@ export class CallViewModel extends ViewModel<Options> {
         return this.call.id;
     }
 
-    get localTracks(): Track[] {
-        return this.call.localMedia?.tracks ?? [];
+    get localStream(): Stream | undefined {
+        return this.call.localMedia?.userMedia;
     }
 
     leave() {
@@ -60,8 +60,8 @@ export class CallViewModel extends ViewModel<Options> {
 type MemberOptions = BaseOptions & {member: Member};
 
 export class CallMemberViewModel extends ViewModel<MemberOptions> {
-    get tracks(): Track[] {
-        return this.member.remoteTracks;
+    get stream(): Stream | undefined {
+        return this.member.remoteMedia?.userMedia;
     }
 
     private get member(): Member {
