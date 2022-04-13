@@ -11,7 +11,7 @@ cp doc/SDK.md target/README.md
 pushd target
 pushd asset-build/assets
 mv main.*.js ../../main.js
-mv index.*.css ../../style.css
+mv *light.*.css ../../style.css
 mv download-sandbox.*.html ../../download-sandbox.html
 rm *.js *.wasm
 mv ./* ../../
