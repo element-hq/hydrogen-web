@@ -1,7 +1,6 @@
 const path = require("path");
 const mergeOptions = require('merge-options');
-const themeBuilder = require("./scripts/build-plugins/rollup-plugin-build-themes");
-const {commonOptions, compiledVariables} = require("./vite.common-config.js");
+const {commonOptions} = require("./vite.common-config.js");
 const manifest = require("./package.json");
 
 const externalDependencies = Object.keys(manifest.dependencies)
