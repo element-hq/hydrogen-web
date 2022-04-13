@@ -16,7 +16,13 @@ export default defineConfig(({mode}) => {
             sourcemap: true,
         },
         plugins: [
-            themeBuilder({manifestLocations: ["./src/platform/web/ui/css/themes/element"], compiledVariables}),
+            themeBuilder({
+                themeConfig: {
+                    themes: {"element": "./src/platform/web/ui/css/themes/element"},
+                    default: "element",
+                },
+                compiledVariables
+            }),
             // important this comes before service worker
             // otherwise the manifest and the icons it refers to won't be cached
             injectWebManifest("assets/manifest.json"),
