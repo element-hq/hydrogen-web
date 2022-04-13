@@ -131,24 +131,27 @@ module.exports = function buildThemes(options) {
                 if (id.startsWith(resolvedVirtualModuleId)) {
                     let [theme, variant, file] = id.substr(resolvedVirtualModuleId.length).split("/");
                     if (theme === "default") {
-                        theme = "element";
+                        theme = options.themeConfig.default;
                     }
+                    const location = options.themeConfig.themes[theme];
+                    const manifest = require(`${location}/manifest.json`);
+                    const variants = manifest.values.variants;
                     if (!variant || variant === "default") {
-                        variant = "light";
+                        // choose the first default variant for now
+                        // this will need to support light/dark variants as well
+                        variant = Object.keys(variants).find(variantName => variants[variantName].default);
                     }
                     if (!file) {
                         file = "index.js";
                     }
-                    const location = options.themeConfig.themes[theme];
-                    const manifest = require(`${location}/manifest.json`);
                     switch (file) {
                         case "index.js": {
-                            const isDark = manifest.values.variants[variant].dark;
+                            const isDark = variants[variant].dark;
                             return `import "${path.resolve(`${location}/theme.css`)}${isDark? "?dark=true": ""}";` +
                                 `import "@theme/${theme}/${variant}/variables.css"`;
                         }
                         case "variables.css": { 
-                            const variables = manifest.values.variants[variant].variables;
+                            const variables = variants[variant].variables;
                             const css =  getRootSectionWithVariables(variables);
                             return css;
                         }
@@ -161,7 +164,7 @@ module.exports = function buildThemes(options) {
                     const [, location, variant] = result;
                     const cssSource = await readCSSSource(location);
                     const config = variants[variant];
-                    return await appendVariablesToCSS(config.variables, cssSource);
+                    return appendVariablesToCSS(config.variables, cssSource);
                 }
                 return null;
             }
@@ -213,7 +216,7 @@ module.exports = function buildThemes(options) {
                     }
                 },
             ];
-        },
+},
 
         generateBundle(_, bundle) {
             const { assetMap, chunkMap, runtimeThemeChunk } = parseBundle(bundle);
