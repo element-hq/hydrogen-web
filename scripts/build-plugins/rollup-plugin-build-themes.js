@@ -128,6 +128,11 @@ module.exports = function buildThemes(options) {
 
         async load(id) {
             if (isDevelopment) {
+                /**
+                 * To load the theme during dev, we need to take a different approach because emitFile is not supported in dev.
+                 * We solve this by resolving virtual file "@theme/name/variant" into the necessary css import.
+                 * This virtual file import is removed when hydrogen is built (see transform hook).
+                 */
                 if (id.startsWith(resolvedVirtualModuleId)) {
                     let [theme, variant, file] = id.substr(resolvedVirtualModuleId.length).split("/");
                     if (theme === "default") {
@@ -174,11 +179,17 @@ module.exports = function buildThemes(options) {
             if (isDevelopment) {
                 return;
             }
-            // Removes develop-only script tag; this cannot be done in transformIndexHtml hook.
-            const devScriptTag = /<script type="module"> import "@theme\/.+"; <\/script>/;
+            /**
+             * Removes develop-only script tag; this cannot be done in transformIndexHtml hook because
+             * by the time that hook runs, the import is added to the bundled js file which would
+             * result in a runtime error.
+             */
+
+            const devScriptTag =
+                /<script type="module"> import "@theme\/.+"; <\/script>/;
             if (id.endsWith("index.html")) {
                 const htmlWithoutDevScript = code.replace(devScriptTag, "");
-                return htmlWithoutDevScript
+                return htmlWithoutDevScript;
             }
         },
 
