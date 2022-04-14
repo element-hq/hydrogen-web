@@ -15,17 +15,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+@import url('../../main.css');
 @import url('inter.css');
 @import url('timeline.css');
 
 :root {
     font-size: 10px;
+    /* Theme aliases */
+    --icon-color: var(--background-color-secondary--darker-40);
+    --light-border: var(--background-color-secondary--darker-5);
+    --light-text-color: var(--background-color-secondary--darker-55);
+    --timeline-time-text-color: var(--background-color-secondary--darker-35);
+    --icon-background: var(--background-color-secondary--darker-7);
+    --right-panel-text-color: var(--background-color-secondary--darker-35);
 }
 
 .hydrogen {
     font-family: 'Inter', sans-serif, 'emoji';
-    background-color: white;
-    color: #2e2f32;
+    background-color: var(--background-color-primary);
+    color: var(--text-color);
     font-size: 1.4rem;
     --usercolor1: #368BD6;
     --usercolor2: #AC3BA8;
@@ -43,8 +51,8 @@ limitations under the License.
 
 .avatar {
     border-radius: 100%;
-    background: #fff;
-    color: white;
+    background: var(--fixed-white);
+    color: var(--fixed-white);
 }
 
 .hydrogen .avatar.usercolor1 { background-color: var(--usercolor1); }
@@ -59,7 +67,7 @@ limitations under the License.
 .logo {
     height: 48px;
     min-width: 48px;
-    background-image: url('element-logo.svg');
+    background-image: url('element-logo.svg?primary=accent-color');
     background-repeat: no-repeat;
     background-position: center;
 }
@@ -82,6 +90,8 @@ limitations under the License.
 
 .form-row.text textarea {
     font-family: "Inter", sans-serif;
+    background-color: var(--background-color-secondary);
+    color: inherit;
 }
 
 .form-group {
@@ -94,11 +104,13 @@ limitations under the License.
 
 .form-row.text > input, .form-row.text > textarea {
     padding: 12px;
-    border: 1px solid rgba(141, 151, 165, 0.15);
+    border: 1px solid var(--light-border);
     border-radius: 8px;
     margin-top: 5px;
     font-size: 1em;
     resize: vertical;
+    background-color: var(--background-color-secondary);
+    color: inherit;
 }
 
 .form-row.check {
@@ -113,7 +125,7 @@ limitations under the License.
 
 .form-row .form-row-description {
     font-size: 1rem;
-    color: #777;
+    color: var(--light-text-color);
     margin: 8px 0 0 0;
 }
 
@@ -129,26 +141,26 @@ a.button-action {
 
 
 .button-action.secondary {
-    color: #03B381;
+    color: var(--accent-color);
 }
 
 .button-action.primary {
-    background-color: #03B381;
+    background-color: var(--accent-color);
     border-radius: 8px;
-    color: white;
+    color: var(--fixed-white);
     font-weight: bold;
 }
 
 .button-action.primary:disabled {
-    color: #fffa;
+    color: var(--fixed-white--darker-10);
 }
 
 .button-action.primary.destructive {
-    background-color: #FF4B55;
+    background-color: var(--error-color);
 }
 
 .button-action.secondary.destructive {
-    color: #FF4B55;
+    color: var(--error-color);
 }
 
 .button-action {
@@ -163,7 +175,7 @@ a.button-action {
     width: 32px;
     height: 32px;
     background-position: center;
-    background-color: #e1e3e6;
+    background-color: var(--icon-background);
     background-repeat: no-repeat;
     border: none;
     border-radius: 100%;
@@ -171,26 +183,26 @@ a.button-action {
 }
 
 .button-utility.grid {
-    background-image: url('icons/enable-grid.svg');
+    background-image: url('icons/enable-grid.svg?primary=icon-color');
 }
 
 .button-utility.settings {
-    background-image: url('icons/settings.svg');
+    background-image: url('icons/settings.svg?primary=icon-color');
 }
 
 .button-utility.create {
-    background-image: url('icons/plus.svg');
+    background-image: url('icons/plus.svg?primary=icon-color');
 }
 
 .button-utility.grid.on {
-    background-image: url('icons/disable-grid.svg');
+    background-image: url('icons/disable-grid.svg?primary=icon-color');
 }
 
 .FilterField {
-    background-image: url('icons/search.svg');
+    background-image: url('icons/search.svg?primary=icon-color');
     background-repeat: no-repeat;
     background-position: 8px center;
-    background-color: #e1e3e6;
+    background-color: var(--icon-background);
     /* to prevent jumps when adding a border on focus */
     border: 1px solid transparent;
     border-radius: 16px;
@@ -201,11 +213,12 @@ a.button-action {
 }
 
 .FilterField:focus-within {
-    border: 1px #e1e3e6 solid;
-    background-color: white;
+    border: 1px var(--icon-background) solid;
+    background-color: var(--background-color-primary);
 }
+
 .FilterField:focus-within button {
-    border-color: white;
+    border-color: var(--background-color-primary);
 }
 
 /*.FilterField:not(:focus-within) button {
@@ -221,15 +234,16 @@ a.button-action {
     border: none;
     background-color: transparent;
     height: 100%;
+    color: var(--text-color);
 }
 
 .FilterField button {
     width: 30px; /* 32 - 1 (top) - 1 (bottom) */
     height: 30px; /* 32 - 1 (top) - 1 (bottom) */
     background-position: center;
-    background-color: #e1e3e6;
+    background-color: var(--icon-background);
     background-repeat: no-repeat;
-    background-image: url('icons/clear.svg');
+    background-image: url('icons/clear.svg?primary=icon-color');
     border: 7px solid transparent; /* 8 - 1 */
     border-radius: 100%;
     box-sizing: border-box;
@@ -249,12 +263,12 @@ a.button-action {
 }
 
 .StartSSOLoginView_button {
-    border: 1px solid #03B381;
+    border: 1px solid var(--accent-color);
     border-radius: 8px;
 }
 
 .LoginView_back {
-    background-image: url("./icons/chevron-left.svg");
+    background-image: url("./icons/chevron-left.svg?primary=icon-color");
     background-color: transparent;
 }
 
@@ -266,7 +280,7 @@ a.button-action {
 .LoginView_forwardInfo {
     font-size: 0.9em;
     margin-left: 1em;
-    color: #777;
+    color: var(--light-text-color);
 }
 
 .CompleteSSOView_title {
@@ -275,6 +289,7 @@ a.button-action {
 
 @media screen and (min-width: 600px) {
     .PreSessionScreen {
+        /* needs transparency support */
         box-shadow: 0px 6px 32px rgba(0, 0, 0, 0.1);
         border-radius: 8px;
     }
@@ -286,7 +301,7 @@ a.button-action {
 }
 
 .LeftPanel {
-    background: rgba(245, 245, 245, 0.90);
+    background: var(--background-color-secondary);
     font-size: 1.5rem;
     padding: 12px 8px 0 8px;
 }
@@ -300,7 +315,7 @@ a.button-action {
 }
 
 .LeftPanel .filter {
-    border-bottom: 1px solid rgba(245, 245, 245, 0.90);
+    border-bottom: 1px solid var(--background-color-secondary);
 }
 
 .LeftPanel .filter input {
@@ -335,7 +350,7 @@ a.button-action {
 }
 
 .RoomList li.active {
-    background: rgba(141, 151, 165, 0.1);
+    background: var(--background-color-secondary--darker-7);
     border-radius: 5px;
 }
 
@@ -357,8 +372,8 @@ a.button-action {
     border-radius: 1.6rem;
     box-sizing: border-box;
     padding: 0.1rem 0.3rem;
-    background-color: #61708b;
-    color: white;
+    background-color: var(--room-badge);
+    color: var(--fixed-white);
     font-weight: bold;
     font-size: 1rem;
     line-height: 1.4rem;
@@ -366,7 +381,7 @@ a.button-action {
 }
 
 .RoomList .badge.highlighted {
-    background-color: #ff4b55;
+    background-color: var(--error-color);
 }
 
 a {
@@ -376,8 +391,8 @@ a {
 .SessionStatusView {
     padding: 4px;
     min-height: 22px;
-    background-color: #03B381;
-    color: white;
+    background-color: var(--accent-color);
+    color: var(--fixed-white);
     align-items: center;
 }
 
@@ -386,7 +401,7 @@ a {
     text-align: left;
 }
 
-.SessionStatusView > .end {
+.SessionStatusView>.end {
     flex: 1;
     display: flex;
     justify-content: flex-end;
@@ -397,7 +412,7 @@ a {
 .SessionStatusView .dismiss {
     border: none;
     background: none;
-    background-image: url('icons/dismiss.svg');
+    background-image: url('icons/dismiss.svg?primary=background-color-primary');
     background-position: center;
     background-repeat: no-repeat;
     width: 32px;
@@ -418,9 +433,9 @@ a {
 .SessionPickerView .session-info {
     text-decoration: none;
     padding: 12px;
-    border: 1px solid rgba(141, 151, 165, 0.15);
+    border: 1px solid var(--light-border);
     border-radius: 8px;
-    background-image: url('icons/chevron-right.svg');
+    background-image: url('./icons/chevron-right.svg?primary=icon-color');
     background-position: center right 30px;
     background-repeat: no-repeat;
     font-weight: 500;
@@ -445,12 +460,12 @@ a {
 }
 
 .SessionPickerView button.destructive {
-    color: #FF4B55;
+    color: var(--error-color);
 }
 
 .RoomGridView > div.container {
-    border-right: 1px solid rgba(245, 245, 245, 0.90);
-    border-bottom: 1px solid rgba(245, 245, 245, 0.90);
+    border-right: 1px solid var(--background-color-secondary);
+    border-bottom: 1px solid var(--background-color-secondary);
 }
 
 .RoomGridView > .focused > .room-placeholder .unfocused {
@@ -462,21 +477,21 @@ a {
 }
 
 .room-placeholder .unfocused {
-    color: #8D99A5;
+    color: var(--right-panel-text-color);
 }
 
 
 .RoomGridView > div.focus-ring {
-    border: 2px solid rgba(134, 193, 165, 1);
+    border: 2px solid var(--accent-color--darker-5);
     border-radius: 12px;
 }
 
 .middle-header {
     box-sizing: border-box;
     flex: 0 0 56px; /* 12 + 32 + 12 to align with filter field + margin */
-    background: white;
+    background: var(--background-color-primary);
     padding: 0 16px;
-    border-bottom: 1px solid rgba(245, 245, 245, 0.90);
+    border-bottom: 1px solid var(--background-color-secondary);
 }
 
 .middle-header h2 {
@@ -492,7 +507,7 @@ a {
 }
 
 .close-middle, .close-session {
-    background-image: url('icons/chevron-left.svg');
+    background-image: url('icons/chevron-left.svg?primary=icon-color');
     background-position-x: 10px;
 }
 
@@ -501,15 +516,11 @@ a {
 }
 
 .RoomHeader .room-options {
-    background-image: url("./icons/vertical-ellipsis.svg");
-}
-
-.RoomHeader .room-info {
-    background-image: url("./icons/info.svg");
+    background-image: url("./icons/vertical-ellipsis.svg?primary=icon-color");
 }
 
 .RoomView_error {
-    color: red;
+    color: var(--error-color);
 }
 
 .MessageComposer_replyPreview .Timeline_message {
@@ -520,9 +531,9 @@ a {
 }
 
 .MessageComposer_replyPreview {
-    background: rgba(245, 245, 245, 0.90);
+    background: var(--background-color-secondary);
     margin: 0px 10px 10px 10px;
-    box-shadow: 0px 0px 5px #91919169;
+    box-shadow: 0px 0px 5px var(--background-color-secondary--darker-15);
     border-radius: 5px;
 }
 
@@ -546,7 +557,7 @@ a {
     white-space: nowrap;
     overflow: hidden;
     background-color: transparent;
-    background-image: url('icons/clear.svg');
+    background-image: url('icons/clear.svg?primary=icon-color');
     background-repeat: no-repeat;
     background-position: center;
     background-size: 18px;
@@ -554,7 +565,7 @@ a {
 }
 
 .MessageComposer_input:first-child {
-    border-top: 1px solid rgba(245, 245, 245, 0.90);
+    border-top: 1px solid var(--background-color-secondary);
 }
 
 .MessageComposer_input > :not(:first-child) {
@@ -564,7 +575,8 @@ a {
 .MessageComposer_input > textarea {
     border: none;
     border-radius: 24px;
-    background: #F6F6F6;
+    background: var(--background-color-secondary);
+    color: inherit;
     font-size: 14px;
     font-family: "Inter", sans-serif;
     resize: none;
@@ -586,8 +598,8 @@ a {
     text-indent: 200%;
     overflow: hidden;
 
-    background-color: #03B381;
-    background-image: url('icons/send.svg');
+    background-color: var(--accent-color);
+    background-image: url('icons/send.svg?primary=background-color-primary');
     background-repeat: no-repeat;
     background-position: center;
     align-self: end;
@@ -603,7 +615,7 @@ a {
     white-space: nowrap;
     overflow: hidden;
     background-color: transparent;
-    background-image: url('icons/paperclip.svg');
+    background-image: url('icons/paperclip.svg?primary=icon-color');
     background-repeat: no-repeat;
     background-position: center;
 }
@@ -682,7 +694,7 @@ a {
 }
 
 .error {
-    color: red;
+    color: var(--error-color);
     font-weight: 600;
 }
 
@@ -694,21 +706,23 @@ button.link {
     cursor: pointer;
     margin: -12px;
     padding: 12px;
+    color: inherit;
 }
 
 .Settings a, .Settings .link {
-    color: #03B381;
+    color: var(--accent-color);
     font-weight: 600;
 }
 
 .lightbox {
-    background-color: rgba(0,0,0,0.75);
+    /* needs transparency support */
+    background-color: rgba(0, 0, 0, 0.75);
     display: grid;
     grid-template:
         "content close"   auto
         "content details" 1fr /
         1fr      auto;
-    color: white;
+    color: var(--background-color-primary);
     padding: 4px;
 }
 
@@ -752,7 +766,7 @@ button.link {
     display: block;
     grid-area: close;
     justify-self: end;
-    background-image: url('icons/dismiss.svg');
+    background-image: url('icons/dismiss.svg?primary=fixed-white');
     background-position: center;
     background-size: 16px;
     background-repeat: no-repeat;
@@ -770,15 +784,20 @@ button.link {
 
 .menu {
     border-radius: 8px;
+    /* needs transparency support */
     box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
     padding: 4px;
-    background-color: white;
+    background-color: var(--background-color-primary);
     list-style: none;
     margin: 0;
 }
 
 .menu li{
     margin-bottom: 10px;
+}
+
+.menu .menu-item {
+    color: var(--text-color);
 }
 
 .menu button {
@@ -793,7 +812,7 @@ button.link {
 }
 
 .menu .destructive button {
-    color: #FF4B55;
+    color: var(--error-color);
 }
 
 .menu .quick-reactions {
@@ -842,7 +861,7 @@ button.link {
     grid-area: description;
     font-size: 1.2rem;
     margin: 0;
-    color: #777;
+    color: var(--light-text-color);
 }
 
 .InviteView_roomAvatar {
@@ -877,7 +896,7 @@ button.link {
 
 .RoomArchivedView {
     padding: 12px;
-    background-color: rgba(245, 245, 245, 0.90);
+    background-color: var(--background-color-secondary);
 }
 
 .RoomArchivedView h3 {
@@ -914,7 +933,7 @@ button.link {
 /* Right Panel */
 
 .RightPanelView {
-    background: rgba(245, 245, 245, 0.90);
+    background: var(--background-color-secondary);
 }
 
 .RoomDetailsView {
@@ -923,7 +942,7 @@ button.link {
 }
 
 .RoomDetailsView_id, .MemberDetailsView_id {
-    color: #737D8C;
+    color: var(--right-panel-text-color);
     font-size: 12px;
 }
 
@@ -952,7 +971,7 @@ button.RoomDetailsView_row {
 }
 
 button.RoomDetailsView_row::after {
-    content: url("./icons/chevron-small.svg");
+    content: url("./icons/chevron-small.svg?primary=icon-color");
     margin-left: 12px;
 }
 
@@ -972,16 +991,16 @@ button.RoomDetailsView_row::after {
 }
 
 .RoomDetailsView_value {
-    color: #737D8C;
+    color: var(--right-panel-text-color);
     flex: 1;
 }
 
 .MemberCount::before {
-    content: url("./icons/room-members.svg");
+    content: url("./icons/room-members.svg?primary=icon-color");
 }
 
 .EncryptionStatus::before {
-    content: url("./icons/encryption-status.svg");
+    content: url("./icons/encryption-status.svg?primary=icon-color");
 }
 
 /* Encryption icon next to avatar */
@@ -990,8 +1009,8 @@ button.RoomDetailsView_row::after {
     width: 52px;
     height: 52px;
     border-radius: 100%;
-    background: #737D8C;
-    border: 3px solid #F2F5F8;
+    background: var(--right-panel-text-color);
+    border: 3px solid var(--background-color-secondary);
     margin-left: -16px;
 }
 
@@ -1001,11 +1020,11 @@ button.RoomDetailsView_row::after {
 }
 
 .EncryptionIconView_encrypted {
-    content: url("./icons/e2ee-normal.svg");
+    content: url("./icons/e2ee-normal.svg?primary=fixed-white");
 }
 
 .EncryptionIconView_unencrypted {
-    content: url("./icons/e2ee-disabled.svg");
+    content: url("./icons/e2ee-disabled.svg?primary=fixed-white");
 }
 
 .RightPanelView_buttons .button-utility {
@@ -1014,11 +1033,11 @@ button.RoomDetailsView_row::after {
 }
 
 .RightPanelView_buttons .close {
-    background-image: url("./icons/clear.svg");
+    background-image: url("./icons/clear.svg?primary=icon-color");
 }
 
 .RightPanelView_buttons .back {
-    background-image: url("./icons/chevron-thin-left.svg");
+    background-image: url("./icons/chevron-thin-left.svg?primary=icon-color");
 }
 
 /* Memberlist Panel */
@@ -1059,7 +1078,7 @@ button.RoomDetailsView_row::after {
 .MemberDetailsView_label {
     font-size: 12px;
     font-weight: 600;
-    color: #8d99a5;
+    color: var(--right-panel-text-color);
     text-transform: uppercase;
 }
 
@@ -1075,7 +1094,7 @@ button.RoomDetailsView_row::after {
 }
 
 .MemberDetailsView_options a, .MemberDetailsView_options button {
-    color: #0dbd8b;
+    color: var(--accent-color);
     text-decoration: none;
     margin: 0 0 3px 0;
     padding: 0;
@@ -1130,8 +1149,8 @@ button.RoomDetailsView_row::after {
     width: 64px;
     height: 64px;
     border-radius: 100%;
-    background-color: #e1e3e6;
-    background-image: url('icons/plus.svg');
+    background-color: var(--icon-background);
+    background-image: url('icons/plus.svg?primary=icon-color');
     background-repeat: no-repeat;
     background-position: center;
     background-size: 36px;

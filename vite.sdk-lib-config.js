@@ -1,6 +1,6 @@
 const path = require("path");
 const mergeOptions = require('merge-options');
-const commonOptions = require("./vite.common-config.js");
+const {commonOptions} = require("./vite.common-config.js");
 const manifest = require("./package.json");
 
 const externalDependencies = Object.keys(manifest.dependencies)
