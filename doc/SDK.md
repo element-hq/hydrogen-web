@@ -47,7 +47,8 @@ const assetPaths = {
         wasmBundle: olmJsPath
     }
 };
-import "hydrogen-view-sdk/style.css";
+import "hydrogen-view-sdk/theme-element-light.css";
+// OR import "hydrogen-view-sdk/theme-element-dark.css";
 
 async function main() {
     const app = document.querySelector<HTMLDivElement>('#app')!
