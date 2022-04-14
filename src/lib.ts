@@ -71,6 +71,7 @@ export {AvatarView} from "./platform/web/ui/AvatarView.js";
 export {RoomType} from "./matrix/room/common";
 export {EventEmitter} from "./utils/EventEmitter";
 export {Disposables} from "./utils/Disposables";
+export {LocalMedia} from "./matrix/calls/LocalMedia";
 // these should eventually be moved to another library
 export {
     ObservableArray,

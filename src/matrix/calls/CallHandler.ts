@@ -107,11 +107,11 @@ export class CallHandler {
         });
     }
 
-    async createCall(roomId: string, localMedia: LocalMedia, name: string): Promise<GroupCall> {
+    async createCall(roomId: string, localMedia: LocalMedia, name: string, intent: CallIntent = CallIntent.Ring): Promise<GroupCall> {
         const logItem = this.options.logger.child({l: "call", incoming: false});
         const call = new GroupCall(makeId("conf-"), true, { 
             "m.name": name,
-            "m.intent": CallIntent.Ring
+            "m.intent": intent
         }, roomId, this.groupCallOptions, logItem);
         this._calls.set(call.id, call);
 
