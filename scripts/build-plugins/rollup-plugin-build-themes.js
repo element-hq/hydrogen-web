@@ -13,17 +13,22 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+const path = require('path');
 
 async function readCSSSource(location) {
     const fs = require("fs").promises;
     const path = require("path");
-    const resolvedLocation = path.resolve(__dirname, "../../",  `${location}/theme.css`);
+    const resolvedLocation = path.resolve(__dirname, "../../", `${location}/theme.css`);
     const data = await fs.readFile(resolvedLocation);
     return data;
 }
 
-async function appendVariablesToCSS(variables, cssSource) {
-    return cssSource + `:root{\n${Object.entries(variables).reduce((acc, [key, value]) => acc + `--${key}: ${value};\n`, "")} }\n\n`;
+function getRootSectionWithVariables(variables) {
+    return `:root{\n${Object.entries(variables).reduce((acc, [key, value]) => acc + `--${key}: ${value};\n`, "")} }\n\n`;
+}
+
+function appendVariablesToCSS(variables, cssSource) {
+    return cssSource + getRootSectionWithVariables(variables);
 }
 
 function parseBundle(bundle) {
@@ -68,21 +73,30 @@ function parseBundle(bundle) {
 
 module.exports = function buildThemes(options) {
     let manifest, variants, defaultDark, defaultLight;
+    let isDevelopment = false;
+    const virtualModuleId = '@theme/'
+    const resolvedVirtualModuleId = '\0' + virtualModuleId;
 
     return {
         name: "build-themes",
         enforce: "pre",
 
+        configResolved(config) {
+            if (config.command === "serve") {
+                isDevelopment = true;
+            }
+        },
+
         async buildStart() {
-            const { manifestLocations } = options;
-            for (const location of manifestLocations) {
+            if (isDevelopment) { return; }
+            const { themeConfig } = options;
+            for (const [name, location] of Object.entries(themeConfig.themes)) {
                 manifest = require(`${location}/manifest.json`);
                 variants = manifest.values.variants;
-                const themeName = manifest.name;
                 for (const [variant, details] of Object.entries(variants)) {
-                    const fileName = `theme-${themeName}-${variant}.css`;
-                    if (details.default) {
-                        // This is one of the default variants for this theme.
+                    const fileName = `theme-${name}-${variant}.css`;
+                    if (name === themeConfig.default && details.default) {
+                        // This is the default theme, stash  the file name for later
                         if (details.dark) {
                             defaultDark = fileName;
                         }
@@ -93,7 +107,7 @@ module.exports = function buildThemes(options) {
                     // emit the css as built theme bundle
                     this.emitFile({
                         type: "chunk",
-                        id: `${location}/theme.css?variant=${variant}`,
+                        id: `${location}/theme.css?variant=${variant}${details.dark? "&dark=true": ""}`,
                         fileName,
                     });
                 }
@@ -101,23 +115,89 @@ module.exports = function buildThemes(options) {
                 this.emitFile({
                     type: "chunk",
                     id: `${location}/theme.css?type=runtime`,
-                    fileName: `theme-${themeName}-runtime.css`,
+                    fileName: `theme-${name}-runtime.css`,
                 });
             }
         },
 
-        async load(id) {
-            const result = id.match(/(.+)\/theme.css\?variant=(.+)/);
-            if (result) {
-                const [, location, variant] = result;
-                const cssSource = await readCSSSource(location);
-                const config = variants[variant];
-                return await appendVariablesToCSS(config.variables, cssSource);
+        resolveId(id) {
+            if (id.startsWith(virtualModuleId)) {
+                return '\0' + id;
             }
-            return null;
+        },
+
+        async load(id) {
+            if (isDevelopment) {
+                /**
+                 * To load the theme during dev, we need to take a different approach because emitFile is not supported in dev.
+                 * We solve this by resolving virtual file "@theme/name/variant" into the necessary css import.
+                 * This virtual file import is removed when hydrogen is built (see transform hook).
+                 */
+                if (id.startsWith(resolvedVirtualModuleId)) {
+                    let [theme, variant, file] = id.substr(resolvedVirtualModuleId.length).split("/");
+                    if (theme === "default") {
+                        theme = options.themeConfig.default;
+                    }
+                    const location = options.themeConfig.themes[theme];
+                    const manifest = require(`${location}/manifest.json`);
+                    const variants = manifest.values.variants;
+                    if (!variant || variant === "default") {
+                        // choose the first default variant for now
+                        // this will need to support light/dark variants as well
+                        variant = Object.keys(variants).find(variantName => variants[variantName].default);
+                    }
+                    if (!file) {
+                        file = "index.js";
+                    }
+                    switch (file) {
+                        case "index.js": {
+                            const isDark = variants[variant].dark;
+                            return `import "${path.resolve(`${location}/theme.css`)}${isDark? "?dark=true": ""}";` +
+                                `import "@theme/${theme}/${variant}/variables.css"`;
+                        }
+                        case "variables.css": { 
+                            const variables = variants[variant].variables;
+                            const css =  getRootSectionWithVariables(variables);
+                            return css;
+                        }
+                    }
+                }
+            }
+            else {
+                const result = id.match(/(.+)\/theme.css\?variant=([^&]+)/);
+                if (result) {
+                    const [, location, variant] = result;
+                    const cssSource = await readCSSSource(location);
+                    const config = variants[variant];
+                    return appendVariablesToCSS(config.variables, cssSource);
+                }
+                return null;
+            }
+        },
+
+        transform(code, id) {
+            if (isDevelopment) {
+                return;
+            }
+            /**
+             * Removes develop-only script tag; this cannot be done in transformIndexHtml hook because
+             * by the time that hook runs, the import is added to the bundled js file which would
+             * result in a runtime error.
+             */
+
+            const devScriptTag =
+                /<script type="module"> import "@theme\/.+"; <\/script>/;
+            if (id.endsWith("index.html")) {
+                const htmlWithoutDevScript = code.replace(devScriptTag, "");
+                return htmlWithoutDevScript;
+            }
         },
 
         transformIndexHtml(_, ctx) {
+            if (isDevelopment) {
+                // Don't add default stylesheets to index.html on dev
+                return;
+            } 
             let darkThemeLocation, lightThemeLocation;
             for (const [, bundle] of Object.entries(ctx.bundle)) {
                 if (bundle.name === defaultDark) {
@@ -147,7 +227,7 @@ module.exports = function buildThemes(options) {
                     }
                 },
             ];
-        },
+},
 
         generateBundle(_, bundle) {
             const { assetMap, chunkMap, runtimeThemeChunk } = parseBundle(bundle);
@@ -169,6 +249,6 @@ module.exports = function buildThemes(options) {
                     source: JSON.stringify(manifest),
                 });
             }
-        }
+        },
     }
 }

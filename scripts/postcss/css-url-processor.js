@@ -16,6 +16,7 @@ limitations under the License.
 
 const valueParser = require("postcss-value-parser");
 const  resolve = require("path").resolve;
+let cssPath;
 
 function colorsFromURL(url, colorMap) {
     const params = new URL(`file://${url}`).searchParams;
@@ -44,7 +45,6 @@ function processURL(decl, replacer, colorMap) {
         }
         const urlStringNode = node.nodes[0];
         const oldURL = urlStringNode.value;
-        const cssPath = decl.source?.input.file.replace(/[^/]*$/, "");
         const oldURLAbsolute = resolve(cssPath, oldURL);
         const colors  = colorsFromURL(oldURLAbsolute, colorMap);
         if (!colors) {
@@ -68,6 +68,11 @@ module.exports = (opts = {}) => {
         postcssPlugin: "postcss-url-to-variable",
 
         Once(root, {result}) {
+            const cssFileLocation = root.source.input.from;
+            if (cssFileLocation.includes("type=runtime")) {
+                // If this is a runtime theme, don't process urls.
+                return;
+            }
             /*
             postcss-compile-variables should have sent the list of resolved colours down via results
             */
@@ -79,6 +84,7 @@ module.exports = (opts = {}) => {
             Go through each declaration and if it contains an URL, replace the url with the result
             of running replacer(url)
             */
+            cssPath = root.source?.input.file.replace(/[^/]*$/, "");
             root.walkDecls(decl => processURL(decl, opts.replacer, colorMap));
         },
     };
