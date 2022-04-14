@@ -814,7 +814,6 @@ export class PeerCall implements IDisposable {
         this.hangupParty = hangupParty;
         this._hangupReason = hangupReason;
         this.setState(CallState.Ended, log);
-        this.localMedia?.dispose();
         this.localMedia = undefined;
 
         if (this.peerConnection && this.peerConnection.signalingState !== 'closed') {

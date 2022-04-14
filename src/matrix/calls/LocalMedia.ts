@@ -37,10 +37,10 @@ export class LocalMedia {
         return new LocalMedia(this.userMedia, this.screenShare, options);
     }
 
-    clone() {
+    clone(): LocalMedia {
         return new LocalMedia(this.userMedia?.clone(), this.screenShare?.clone(), this.dataChannelOptions);
     }
-
+    
     dispose() {
         this.userMedia?.audioTrack?.stop();
         this.userMedia?.videoTrack?.stop();

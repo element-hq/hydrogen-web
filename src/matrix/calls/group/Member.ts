@@ -104,6 +104,7 @@ export class Member {
             this.peerCall?.close(undefined, log);
             this.peerCall?.dispose();
             this.peerCall = undefined;
+            this.localMedia?.dispose();
             this.localMedia = undefined;
         });
     }

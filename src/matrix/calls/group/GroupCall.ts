@@ -118,7 +118,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
             this.emitChange();
             // send invite to all members that are < my userId
             for (const [,member] of this._members) {
-                member.connect(this._localMedia);
+                member.connect(this._localMedia!.clone());
             }
         });
     }
@@ -218,6 +218,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
                             );
                             this._members.add(memberKey, member);
                             if (this._state === GroupCallState.Joining || this._state === GroupCallState.Joined) {
+                                // Safari can't send a MediaStream to multiple sources, so clone it
                                 member.connect(this._localMedia!.clone());
                             }
                         }
@@ -267,11 +268,11 @@ export class GroupCall extends EventEmitter<{change: never}> {
     private removeOwnDevice(log: ILogItem) {
         if (this._state === GroupCallState.Joined) {
             log.set("leave_own", true);
-            this._localMedia?.dispose();
-            this._localMedia = undefined;
             for (const [,member] of this._members) {
                 member.disconnect();
             }
+            this._localMedia?.dispose();
+            this._localMedia = undefined;
             this._state = GroupCallState.Created;
             this.emitChange();
         }
