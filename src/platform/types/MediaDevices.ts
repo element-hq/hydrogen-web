@@ -39,6 +39,9 @@ export interface Track {
     readonly label: string;
     readonly id: string;
     readonly settings: MediaTrackSettings;
+    get enabled(): boolean;
+    set enabled(value: boolean);
+    equals(track: Track): boolean;
     stop(): void;
 }
 

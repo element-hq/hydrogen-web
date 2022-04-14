@@ -55,6 +55,12 @@ export class CallViewModel extends ViewModel<Options> {
             this.call.leave();
         }
     }
+
+    async toggleVideo() {
+        const localMedia = this.call.localMedia!;
+        const toggledMedia = localMedia.withMuted(localMedia.microphoneMuted, !localMedia.cameraMuted);
+        await this.call.setMedia(toggledMedia);
+    }
 }
 
 type MemberOptions = BaseOptions & {member: Member};

@@ -75,27 +75,37 @@ export class StreamWrapper implements Stream {
     public audioTrack: AudioTrackWrapper | undefined = undefined;
     public videoTrack: TrackWrapper | undefined = undefined;
 
-    constructor(public readonly stream: MediaStream) {
-        for (const track of stream.getTracks()) {
-            this.update(track);
+    constructor(public readonly stream: MediaStream, clonedTracks?: {audioTrack?: AudioTrackWrapper, videoTrack?: TrackWrapper}) {
+        if (clonedTracks) {
+            this.audioTrack = clonedTracks.audioTrack;
+            this.videoTrack = clonedTracks.videoTrack;
+        } else {
+            for (const track of stream.getTracks()) {
+                this.update(track);
+            }
         }
     }
 
     get id(): string { return this.stream.id; }
 
     clone(): Stream {
-        return new StreamWrapper(this.stream.clone());
+        const clonedStream = this.stream.clone();
+        const clonedTracks = {
+            audioTrack: this.audioTrack ? new AudioTrackWrapper(clonedStream.getAudioTracks()[0], clonedStream, this.audioTrack.id): undefined,
+            videoTrack: this.videoTrack ? new TrackWrapper(clonedStream.getVideoTracks()[0], clonedStream, this.videoTrack.id): undefined,
+        };
+        return new StreamWrapper(clonedStream, clonedTracks);
     }
 
     update(track: MediaStreamTrack): TrackWrapper | undefined {
         if (track.kind === "video") {
             if (!this.videoTrack || track.id !== this.videoTrack.track.id) {
-                this.videoTrack = new TrackWrapper(track, this.stream);
+                this.videoTrack = new TrackWrapper(track, this.stream, track.id);
             }
             return this.videoTrack;
         } else if (track.kind === "audio") {
             if (!this.audioTrack || track.id !== this.audioTrack.track.id) {
-                this.audioTrack = new AudioTrackWrapper(track, this.stream);
+                this.audioTrack = new AudioTrackWrapper(track, this.stream, track.id);
             }
             return this.audioTrack;
         }
@@ -105,14 +115,18 @@ export class StreamWrapper implements Stream {
 export class TrackWrapper implements Track {
     constructor(
         public readonly track: MediaStreamTrack,
-        public readonly stream: MediaStream
+        public readonly stream: MediaStream,
+        public readonly originalId: string,
     ) {}
 
     get kind(): TrackKind { return this.track.kind as TrackKind; }
     get label(): string { return this.track.label; }
     get id(): string { return this.track.id; }
     get settings(): MediaTrackSettings { return this.track.getSettings(); }
-
+    get enabled(): boolean { return this.track.enabled; }
+    set enabled(enabled: boolean) { this.track.enabled = enabled; }
+    // test equality across clones
+    equals(track: Track): boolean { return (track as TrackWrapper).originalId === this.originalId; }
     stop() { this.track.stop(); }
 }
 
@@ -126,8 +140,8 @@ export class AudioTrackWrapper extends TrackWrapper {
     private volumeLooperTimeout: number;
     private speakingVolumeSamples: number[];
 
-    constructor(track: MediaStreamTrack, stream: MediaStream) {
-        super(track, stream);
+    constructor(track: MediaStreamTrack, stream: MediaStream, originalId: string) {
+        super(track, stream, originalId);
         this.speakingVolumeSamples = new Array(SPEAKING_SAMPLE_COUNT).fill(-Infinity);
         this.initVolumeMeasuring();
         this.measureVolumeActivity(true);

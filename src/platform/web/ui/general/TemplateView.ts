@@ -364,17 +364,17 @@ export class TemplateBuilder<T extends IObservableValue> {
     event handlers, ...
     You should not call the TemplateBuilder (e.g. `t.xxx()`) at all from the side effect,
     instead use tags from html.ts to help you construct any DOM you need. */
-    mapSideEffect<R>(mapFn: (value: T) => R, sideEffect: (newV: R, oldV: R | undefined) => void) {
+    mapSideEffect<R>(mapFn: (value: T) => R, sideEffect: (newV: R, oldV: R | undefined, value: T) => void) {
         let prevValue = mapFn(this._value);
         const binding = () => {
             const newValue = mapFn(this._value);
             if (prevValue !== newValue) {
-                sideEffect(newValue, prevValue);
+                sideEffect(newValue, prevValue, this._value);
                 prevValue = newValue;
             }
         };
         this._addBinding(binding);
-        sideEffect(prevValue, undefined);
+        sideEffect(prevValue, undefined, this._value);
     }
 }
 

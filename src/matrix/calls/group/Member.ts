@@ -182,6 +182,14 @@ export class Member {
         }
     }
 
+    /** @internal */
+    async setMedia(localMedia: LocalMedia): Promise<void> {
+        const oldMedia = this.localMedia;
+        this.localMedia = localMedia;
+        await this.peerCall?.setMedia(localMedia);
+        oldMedia?.dispose();
+    }
+
     private _createPeerCall(callId: string): PeerCall {
         return new PeerCall(callId, Object.assign({}, this.options, {
             emitUpdate: this.emitUpdate,

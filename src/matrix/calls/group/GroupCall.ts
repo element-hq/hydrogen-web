@@ -123,6 +123,17 @@ export class GroupCall extends EventEmitter<{change: never}> {
         });
     }
 
+    async setMedia(localMedia: LocalMedia): Promise<void> {
+        if (this._state === GroupCallState.Joining || this._state === GroupCallState.Joined) {
+            const oldMedia = this._localMedia;
+            this._localMedia = localMedia;
+            await Promise.all(Array.from(this._members.values()).map(m => {
+                return m.setMedia(localMedia!.clone());
+            }));
+            oldMedia?.dispose();
+        }
+    }
+
     get hasJoined() {
         return this._state === GroupCallState.Joining || this._state === GroupCallState.Joined;
     }

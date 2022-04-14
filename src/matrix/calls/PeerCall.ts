@@ -31,6 +31,7 @@ import {
     SDPStreamMetadataKey,
     SDPStreamMetadataPurpose,
     EventType,
+    CallErrorCode,
 } from "./callEventTypes";
 import type {
     MCallBase,
@@ -66,6 +67,7 @@ export class PeerCall implements IDisposable {
     private readonly peerConnection: PeerConnection;
     private _state = CallState.Fledgling;
     private direction: CallDirection;
+    // we don't own localMedia and should hence not call dispose on it from here
     private localMedia?: LocalMedia;
     private seq: number = 0;
     // A queue for candidates waiting to go out.
@@ -151,7 +153,6 @@ export class PeerCall implements IDisposable {
 
     get hangupReason(): CallErrorCode | undefined { return this._hangupReason; }
 
-    // we should keep an object with streams by purpose ... e.g. RemoteMedia?
     get remoteMedia(): Readonly<RemoteMedia> {
         return this._remoteMedia;
     }
@@ -163,7 +164,7 @@ export class PeerCall implements IDisposable {
             }
             this.direction = CallDirection.Outbound;
             this.setState(CallState.CreateOffer, log);
-            this.setMedia(localMedia);
+            this.updateLocalMedia(localMedia, log);
             if (this.localMedia?.dataChannelOptions) {
                 this._dataChannel = this.peerConnection.createDataChannel(this.localMedia.dataChannelOptions);
             }
@@ -179,7 +180,7 @@ export class PeerCall implements IDisposable {
                 return;
             }
             this.setState(CallState.CreateAnswer, log);
-            this.setMedia(localMedia, log);
+            this.updateLocalMedia(localMedia, log);
             let myAnswer: RTCSessionDescriptionInit;
             try {
                 myAnswer = await this.peerConnection.createAnswer();
@@ -208,46 +209,30 @@ export class PeerCall implements IDisposable {
         });
     }
 
-    setMedia(localMedia: LocalMedia, logItem: ILogItem = this.logItem): Promise<void> {
-        return logItem.wrap("setMedia", async log => {
-            const oldMedia = this.localMedia;
-            this.localMedia = localMedia;
-            const applyStream = (oldStream: Stream | undefined, stream: Stream | undefined, logLabel: string) => {
-                const streamSender = oldMedia ? this.peerConnection.localStreams.get(oldStream!.id) : undefined;
+    setMedia(localMedia: LocalMedia): Promise<void> {
+        return this.logItem.wrap("setMedia", async log => {
+            log.set("userMedia_audio", !!localMedia.userMedia?.audioTrack);
+            log.set("userMedia_audio_muted", localMedia.microphoneMuted);
+            log.set("userMedia_video", !!localMedia.userMedia?.videoTrack);
+            log.set("userMedia_video_muted", localMedia.cameraMuted);
+            log.set("screenShare_video", !!localMedia.screenShare?.videoTrack);
+            log.set("datachannel", !!localMedia.dataChannelOptions);
 
-                const applyTrack = (oldTrack: Track | undefined, sender: TrackSender | undefined, track: Track | undefined) => {
-                    if (track) {
-                        if (oldTrack && sender) {
-                            log.wrap(`replacing ${logLabel} ${track.kind} track`, log => {
-                                sender.replaceTrack(track);
-                            });
-                        } else {
-                            log.wrap(`adding ${logLabel} ${track.kind} track`, log => {
-                                this.peerConnection.addTrack(track);
-                            });
-                        }
-                    } else {
-                        if (sender) {
-                            log.wrap(`replacing ${logLabel} ${sender.track.kind} track`, log => {
-                                this.peerConnection.removeTrack(sender);
-                            });
-                        }
-                    }
+            const oldMetaData = this.getSDPMetadata();
+            const willRenegotiate = await this.updateLocalMedia(localMedia, log);
+            if (!willRenegotiate) {
+                const newMetaData = this.getSDPMetadata();
+                if (JSON.stringify(oldMetaData) !== JSON.stringify(newMetaData)) {
+                    const content: MCallSDPStreamMetadataChanged<MCallBase> = {
+                        call_id: this.callId,
+                        version: 1,
+                        seq: this.seq++,
+                        [SDPStreamMetadataKey]: newMetaData
+                    };
+                    await this.sendSignallingMessage({type: EventType.SDPStreamMetadataChanged, content}, log);
                 }
-
-                applyTrack(oldStream?.audioTrack, streamSender?.audioSender, stream?.audioTrack);
-                applyTrack(oldStream?.videoTrack, streamSender?.videoSender, stream?.videoTrack);
             }
-
-            applyStream(oldMedia?.userMedia, localMedia?.userMedia, "userMedia");
-            applyStream(oldMedia?.screenShare, localMedia?.screenShare, "screenShare");
-            // TODO: datachannel, but don't do it here as we don't want to do it from answer, rather in different method
         });
-    }
-
-    /** group calls would handle reject at the group call level, not at the peer call level */
-    async reject() {
-
     }
 
     hangup(errorCode: CallErrorCode): Promise<void> {
@@ -280,7 +265,14 @@ export class PeerCall implements IDisposable {
                 case EventType.Candidates:
                     await this.handleRemoteIceCandidates(message.content, partyId, log);
                     break;
+                case EventType.SDPStreamMetadataChanged:
+                case EventType.SDPStreamMetadataChangedPrefix:
+                    this.updateRemoteSDPStreamMetadata(message.content[SDPStreamMetadataKey], log);
+                    break;
                 case EventType.Hangup:
+                    // TODO: this is a bit hacky, double check its what we need
+                    this.terminate(CallParty.Remote, message.content.reason ?? CallErrorCode.UserHangup, log);
+                    break;
                 default:
                     log.log(`Unknown event type for call: ${message.type}`);
                     break;
@@ -444,12 +436,12 @@ export class PeerCall implements IDisposable {
         // According to previous comments in this file, firefox at some point did not
         // add streams until media started arriving on them. Testing latest firefox
         // (81 at time of writing), this is no longer a problem, so let's do it the correct way.
-        // if (this.peerConnection.remoteTracks.length === 0) {
-        //     await log.wrap(`Call no remote stream or no tracks after setting remote description!`, async log => {
-        //         return this.terminate(CallParty.Local, CallErrorCode.SetRemoteDescription, log);
-        //     });
-        //     return;
-        // }
+        if (this.peerConnection.remoteStreams.size === 0) {
+            await log.wrap(`Call no remote stream or no tracks after setting remote description!`, async log => {
+                return this.terminate(CallParty.Local, CallErrorCode.SetRemoteDescription, log);
+            });
+            return;
+        }
 
         this.setState(CallState.Ringing, log);
 
@@ -719,7 +711,7 @@ export class PeerCall implements IDisposable {
         // this will accumulate all updates into one object, so we still have the old stream info when we change stream id
         this.remoteSDPStreamMetadata = recursivelyAssign(this.remoteSDPStreamMetadata || {}, metadata, true);
         this.updateRemoteMedia(log);
-        // TODO: apply muting
+        
     }
 
     private async addBufferedIceCandidates(log: ILogItem): Promise<void> {
@@ -828,10 +820,9 @@ export class PeerCall implements IDisposable {
             const streamSender = this.peerConnection.localStreams.get(streamId);
             metadata[streamId] = {
                 purpose: SDPStreamMetadataPurpose.Usermedia,
-                audio_muted: !(streamSender?.audioSender?.enabled),
-                video_muted: !(streamSender?.videoSender?.enabled),
+                audio_muted: !(streamSender?.audioSender?.enabled && streamSender?.audioSender?.track?.enabled),
+                video_muted: !(streamSender?.videoSender?.enabled && streamSender?.videoSender?.track?.enabled),
             };
-            console.log("video_muted", streamSender?.videoSender?.enabled, streamSender?.videoSender?.transceiver?.direction, streamSender?.videoSender?.transceiver?.currentDirection, JSON.stringify(metadata));
         }
         if (this.localMedia?.screenShare) {
             const streamId = this.localMedia.screenShare.id;
@@ -851,6 +842,8 @@ export class PeerCall implements IDisposable {
                 if (metaData) {
                     if (metaData.purpose === SDPStreamMetadataPurpose.Usermedia) {
                         this._remoteMedia.userMedia = streamReceiver.stream;
+                        streamReceiver.audioReceiver?.enable(!metaData.audio_muted);
+                        streamReceiver.videoReceiver?.enable(!metaData.video_muted);
                     } else if (metaData.purpose === SDPStreamMetadataPurpose.Screenshare) {
                         this._remoteMedia.screenShare = streamReceiver.stream;
                     }
@@ -858,6 +851,77 @@ export class PeerCall implements IDisposable {
             }
         }
         this.options.emitUpdate(this, undefined);
+    }
+
+    private updateLocalMedia(localMedia: LocalMedia, logItem: ILogItem): Promise<boolean> {
+        return logItem.wrap("updateLocalMedia", async log => {
+            let willRenegotiate = false;
+            const oldMedia = this.localMedia;
+            this.localMedia = localMedia;
+            const applyStream = async (oldStream: Stream | undefined, stream: Stream | undefined, oldMuteSettings: LocalMedia | undefined, mutedSettings: LocalMedia | undefined, logLabel: string) => {
+                const streamSender = oldStream ? this.peerConnection.localStreams.get(oldStream.id) : undefined;
+
+                const applyTrack = async (oldTrack: Track | undefined, sender: TrackSender | undefined, track: Track | undefined, wasMuted: boolean | undefined, muted: boolean | undefined) => {
+                    const changed = (!track && oldTrack) ||
+                        (track && !oldTrack) ||
+                        (track && oldTrack && !track.equals(oldTrack));
+                    if (changed) {
+                        if (track) {
+                            if (oldTrack && sender && !track.equals(oldTrack)) {
+                                try {
+                                    await log.wrap(`replacing ${logLabel} ${track.kind} track`, log => {
+                                        return sender.replaceTrack(track);
+                                    });
+                                } catch (err) {
+                                    // can't replace the track without renegotiating
+                                    log.wrap(`adding and removing ${logLabel} ${track.kind} track`, log => {
+                                        this.peerConnection.removeTrack(sender);
+                                        this.peerConnection.addTrack(track);
+                                        willRenegotiate = true;
+                                    });
+                                }
+                            } else {
+                                log.wrap(`adding ${logLabel} ${track.kind} track`, log => {
+                                    this.peerConnection.addTrack(track);
+                                    willRenegotiate = true;
+                                });
+                            }
+                        } else {
+                            if (sender) {
+                                // this will be used for muting, do we really want to trigger renegotiation here?
+                                // we want to disable the sender, but also remove the track as we don't want to keep
+                                // using the webcam if we don't need to
+                                log.wrap(`removing ${logLabel} ${sender.track.kind} track`, log => {
+                                    sender.track.enabled = false;
+                                    this.peerConnection.removeTrack(sender);
+                                    willRenegotiate = true;
+                                });
+                            }
+                        }
+                    } else if (track) {
+                        console.log({muted, wasMuted, wasCameraMuted: oldMedia?.cameraMuted});
+                        if (sender && muted !== wasMuted) {
+                            // TODO: why does unmuting not work? wasMuted is false
+                            log.wrap(`${logLabel} ${track.kind} ${muted ? "muting" : "unmuting"}`, log => {
+                                sender.track.enabled = !muted;
+                                sender.enable(!muted);
+                                willRenegotiate = true;
+                            });
+                        } else {
+                            log.log(`${logLabel} ${track.kind} track hasn't changed`);
+                        }
+                    }
+                }
+
+                await applyTrack(oldStream?.audioTrack, streamSender?.audioSender, stream?.audioTrack, oldMuteSettings?.microphoneMuted, mutedSettings?.microphoneMuted);
+                await applyTrack(oldStream?.videoTrack, streamSender?.videoSender, stream?.videoTrack, oldMuteSettings?.cameraMuted, mutedSettings?.cameraMuted);
+            }
+
+            await applyStream(oldMedia?.userMedia, localMedia?.userMedia, oldMedia, localMedia, "userMedia");
+            applyStream(oldMedia?.screenShare, localMedia?.screenShare, undefined, undefined, "screenShare");
+            return willRenegotiate;
+            // TODO: datachannel, but don't do it here as we don't want to do it from answer, rather in different method
+        });
     }
 
     private async delay(timeoutMs: number): Promise<void> {
@@ -915,99 +979,10 @@ export enum CallDirection {
     Outbound = 'outbound',
 }
 
-export enum CallErrorCode {
-    /** The user chose to end the call */
-    UserHangup = 'user_hangup',
-
-    /** An error code when the local client failed to create an offer. */
-    LocalOfferFailed = 'local_offer_failed',
-    /**
-     * An error code when there is no local mic/camera to use. This may be because
-     * the hardware isn't plugged in, or the user has explicitly denied access.
-     */
-    NoUserMedia = 'no_user_media',
-
-    /**
-     * Error code used when a call event failed to send
-     * because unknown devices were present in the room
-     */
-    UnknownDevices = 'unknown_devices',
-
-    /**
-     * Error code used when we fail to send the invite
-     * for some reason other than there being unknown devices
-     */
-    SendInvite = 'send_invite',
-
-    /**
-     * An answer could not be created
-     */
-    CreateAnswer = 'create_answer',
-
-    /**
-     * Error code used when we fail to send the answer
-     * for some reason other than there being unknown devices
-     */
-    SendAnswer = 'send_answer',
-
-    /**
-     * The session description from the other side could not be set
-     */
-    SetRemoteDescription = 'set_remote_description',
-
-    /**
-     * The session description from this side could not be set
-     */
-    SetLocalDescription = 'set_local_description',
-
-    /**
-     * A different device answered the call
-     */
-    AnsweredElsewhere = 'answered_elsewhere',
-
-    /**
-     * No media connection could be established to the other party
-     */
-    IceFailed = 'ice_failed',
-
-    /**
-     * The invite timed out whilst waiting for an answer
-     */
-    InviteTimeout = 'invite_timeout',
-
-    /**
-     * The call was replaced by another call
-     */
-    Replaced = 'replaced',
-
-    /**
-     * Signalling for the call could not be sent (other than the initial invite)
-     */
-    SignallingFailed = 'signalling_timeout',
-
-    /**
-     * The remote party is busy
-     */
-    UserBusy = 'user_busy',
-
-    /**
-     * We transferred the call off to somewhere else
-     */
-    Transfered = 'transferred',
-
-    /**
-     * A call from the same user was found with a new session id
-     */
-    NewSession = 'new_session',
-}
-
 /**
  * The version field that we set in m.call.* events
  */
 const VOIP_PROTO_VERSION = 1;
-
-/** The fallback ICE server to use for STUN or TURN protocols. */
-const FALLBACK_ICE_SERVER = 'stun:turn.matrix.org';
 
 /** The length of time a call can be ringing for. */
 const CALL_TIMEOUT_MS = 60000;
@@ -1029,7 +1004,10 @@ export function handlesEventType(eventType: string): boolean {
     return  eventType === EventType.Invite ||
             eventType === EventType.Candidates ||
             eventType === EventType.Answer ||
-            eventType === EventType.Hangup;
+            eventType === EventType.Hangup ||
+            eventType === EventType.SDPStreamMetadataChanged ||
+            eventType === EventType.SDPStreamMetadataChangedPrefix ||
+            eventType === EventType.Negotiate;
 }
 
 export function tests() {

@@ -21,24 +21,30 @@ import {SDPStreamMetadata} from "./callEventTypes";
 export class LocalMedia {
     constructor(
         public readonly userMedia?: Stream,
+        public readonly microphoneMuted: boolean = false,
+        public readonly cameraMuted: boolean = false,
         public readonly screenShare?: Stream,
         public readonly dataChannelOptions?: RTCDataChannelInit,
     ) {}
 
+    withMuted(microphone: boolean, camera: boolean) {
+        return new LocalMedia(this.userMedia, microphone, camera, this.screenShare, this.dataChannelOptions);
+    }
+
     withUserMedia(stream: Stream) {
-        return new LocalMedia(stream, this.screenShare, this.dataChannelOptions);
+        return new LocalMedia(stream, this.microphoneMuted, this.cameraMuted, this.screenShare, this.dataChannelOptions);
     }
 
     withScreenShare(stream: Stream) {
-        return new LocalMedia(this.userMedia, stream, this.dataChannelOptions);
+        return new LocalMedia(this.userMedia, this.microphoneMuted, this.cameraMuted, stream, this.dataChannelOptions);
     }
 
     withDataChannel(options: RTCDataChannelInit): LocalMedia {
-        return new LocalMedia(this.userMedia, this.screenShare, options);
+        return new LocalMedia(this.userMedia, this.microphoneMuted, this.cameraMuted, this.screenShare, options);
     }
 
     clone(): LocalMedia {
-        return new LocalMedia(this.userMedia?.clone(), this.screenShare?.clone(), this.dataChannelOptions);
+        return new LocalMedia(this.userMedia?.clone(), this.microphoneMuted, this.cameraMuted, this.screenShare?.clone(), this.dataChannelOptions);
     }
     
     dispose() {

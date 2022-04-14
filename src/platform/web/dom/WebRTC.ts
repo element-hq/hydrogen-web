@@ -109,8 +109,16 @@ export class DOMTrackSenderOrReceiver implements TrackReceiver {
             this.transceiver.direction === this.exclusiveValue;
     }
 
+    enableWithoutRenegotiation(enabled: boolean) {
+        this.track.track.enabled = enabled;
+    }
+
     enable(enabled: boolean) {
         if (enabled !== this.enabled) {
+            // do this first, so we stop sending track data immediately.
+            // this will still consume bandwidth though, so also disable the transceiver,
+            // which will trigger a renegotiation though.
+            this.enableWithoutRenegotiation(enabled);
             if (enabled) {
                 if (this.transceiver.direction === "inactive") {
                     this.transceiver.direction = this.exclusiveValue;
