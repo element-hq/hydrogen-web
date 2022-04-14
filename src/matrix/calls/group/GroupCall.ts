@@ -269,7 +269,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
         if (this._state === GroupCallState.Joined) {
             log.set("leave_own", true);
             for (const [,member] of this._members) {
-                member.disconnect();
+                member.disconnect(true);
             }
             this._localMedia?.dispose();
             this._localMedia = undefined;
@@ -286,7 +286,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
             if (member) {
                 log.set("leave", true);
                 this._members.remove(memberKey);
-                member.disconnect();
+                member.disconnect(false);
             }
             this.emitChange();
         });

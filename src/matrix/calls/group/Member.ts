@@ -99,9 +99,13 @@ export class Member {
     }
 
     /** @internal */
-    disconnect() {
+    disconnect(hangup: boolean) {
         this.logItem.wrap("disconnect", log => {
-            this.peerCall?.close(undefined, log);
+            if (hangup) {
+                this.peerCall?.hangup(CallErrorCode.UserHangup);
+            } else {
+                this.peerCall?.close(undefined, log);
+            }
             this.peerCall?.dispose();
             this.peerCall = undefined;
             this.localMedia?.dispose();
