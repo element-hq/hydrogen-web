@@ -16,25 +16,33 @@ export default defineConfig(({mode}) => {
             sourcemap: true,
             rollupOptions: {
                 output: {
-                    assetFileNames: (asset) => asset.name.includes("config.json") ? "assets/[name][extname]": "assets/[name].[hash][extname]",
+                    assetFileNames: (asset) =>
+                        asset.name.includes("config.json") ||
+                        asset.name.match(/theme-.+\.json/)
+                            ? "assets/[name][extname]"
+                            : "assets/[name].[hash][extname]",
                 },
             },
         },
         plugins: [
             themeBuilder({
                 themeConfig: {
-                    themes: {"element": "./src/platform/web/ui/css/themes/element"},
+                    themes: {
+                        element: "./src/platform/web/ui/css/themes/element",
+                    },
                     default: "element",
                 },
-                compiledVariables
+                compiledVariables,
             }),
             // important this comes before service worker
             // otherwise the manifest and the icons it refers to won't be cached
             injectWebManifest("assets/manifest.json"),
             injectServiceWorker("./src/platform/web/sw.js", ["index.html"], {
                 // placeholders to replace at end of build by chunk name
-                "index": {DEFINE_GLOBAL_HASH: definePlaceholders.DEFINE_GLOBAL_HASH},
-                "sw": definePlaceholders
+                index: {
+                    DEFINE_GLOBAL_HASH: definePlaceholders.DEFINE_GLOBAL_HASH,
+                },
+                sw: definePlaceholders,
             }),
         ],
         define: definePlaceholders,
