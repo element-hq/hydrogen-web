@@ -1,11 +1,13 @@
 const path = require("path");
 const mergeOptions = require('merge-options');
-const commonOptions = require("./vite.common-config.js");
+const themeBuilder = require("./scripts/build-plugins/rollup-plugin-build-themes");
+const {commonOptions, compiledVariables} = require("./vite.common-config.js");
 
 const pathsToExport = [
     "main.js",
-    "index.css",
-    "download-sandbox.html"
+    "download-sandbox.html",
+    "theme-element-light.css",
+    "theme-element-dark.css",
 ];
 
 export default mergeOptions(commonOptions, {
@@ -27,4 +29,13 @@ export default mergeOptions(commonOptions, {
             }
         }
     },
+    plugins: [
+        themeBuilder({
+            themeConfig: {
+                themes: { element: "./src/platform/web/ui/css/themes/element" },
+                default: "element",
+            },
+            compiledVariables,
+        }),
+    ],
 });

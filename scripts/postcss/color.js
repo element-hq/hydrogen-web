@@ -16,8 +16,17 @@ limitations under the License.
 
 const offColor = require("off-color").offColor;
 
-module.exports.derive = function (value, operation, argument) {
+module.exports.derive = function (value, operation, argument, isDark) {
     const argumentAsNumber = parseInt(argument);
+    if (isDark) {
+        // For dark themes, invert the operation
+        if (operation === 'darker') {
+            operation = "lighter";
+        }
+        else if (operation === 'lighter') {
+            operation = "darker";
+        }
+    }
     switch (operation) {
         case "darker": {
             const newColorString = offColor(value).darken(argumentAsNumber / 100).hex();

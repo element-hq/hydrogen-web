@@ -24,10 +24,11 @@ import {Menu} from "../../../general/Menu.js";
 import {ReactionsView} from "./ReactionsView.js";
 
 export class BaseMessageView extends TemplateView {
-    constructor(value, renderFlags, tagName = "li") {
+    constructor(value, viewClassForTile, renderFlags, tagName = "li") {
         super(value);
         this._menuPopup = null;
         this._tagName = tagName;
+        this._viewClassForTile = viewClassForTile;
         // TODO An enum could be nice to make code easier to read at call sites.
         this._renderFlags = renderFlags;
     }

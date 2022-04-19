@@ -21,6 +21,11 @@ import {TemplateView} from "../general/TemplateView";
 import {StaticView} from "../general/StaticView.js";
 
 export class RoomGridView extends TemplateView {
+    constructor(vm, viewClassForTile) {
+        super(vm);
+        this._viewClassForTile = viewClassForTile;
+    }
+
     render(t, vm) {
         const children = [];
         for (let i = 0; i < (vm.height * vm.width); i+=1) {
@@ -39,7 +44,7 @@ export class RoomGridView extends TemplateView {
                     } else if (roomVM.kind === "invite") {
                         return new InviteView(roomVM);
                     } else {
-                        return new RoomView(roomVM);
+                        return new RoomView(roomVM, this._viewClassForTile);
                     }
                 } else {
                     return new StaticView(t => t.div({className: "room-placeholder"}, [

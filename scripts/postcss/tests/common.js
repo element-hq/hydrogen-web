@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,18 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../../general/TemplateView";
+const postcss = require("postcss");
 
-export class AnnouncementView extends TemplateView {
-    // ignore other arguments
-    constructor(vm) {
-        super(vm);
-    }
-
-    render(t) {
-        return t.li({className: "AnnouncementView"}, t.div(vm => vm.announcement));
-    }
-    
-    /* This is called by the parent ListView, which just has 1 listener for the whole list */
-    onClick() {}
+module.exports.createTestRunner = function (plugin) {
+    return async function run(input, output, opts = {}, assert) {
+        let result = await postcss([plugin(opts)]).process(input, { from: undefined, });
+        assert.strictEqual(
+            result.css.replaceAll(/\s/g, ""),
+            output.replaceAll(/\s/g, "")
+        );
+        assert.strictEqual(result.warnings().length, 0);
+    };
 }
+
+

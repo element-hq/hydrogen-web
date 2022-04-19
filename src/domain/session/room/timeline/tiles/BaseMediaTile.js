@@ -21,8 +21,8 @@ const MAX_HEIGHT = 300;
 const MAX_WIDTH = 400;
 
 export class BaseMediaTile extends BaseMessageTile {
-    constructor(options) {
-        super(options);
+    constructor(entry, options) {
+        super(entry, options);
         this._decryptedThumbnail = null;
         this._decryptedFile = null;
         this._isVisible = false;
