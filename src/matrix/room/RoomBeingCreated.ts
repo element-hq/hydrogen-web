@@ -38,6 +38,7 @@ type CreateRoomPayload = {
     room_alias_name?: string;
     creation_content?: {"m.federate": boolean};
     initial_state: {type: string; state_key: string; content: Record<string, any>}[]
+    power_level_content_override?: any;
 }
 
 type ImageInfo = {
@@ -62,6 +63,7 @@ type Options = {
     invites?: string[];
     avatar?: Avatar;
     alias?: string;
+    powerLevelContentOverride?: any;
 }
 
 function defaultE2EEStatusForType(type: RoomType): boolean {
@@ -160,6 +162,9 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
                     state_key: "",
                     content: avatarEventContent
                 });
+            }
+            if (this.options.powerLevelContentOverride) {
+                createOptions.power_level_content_override = this.options.powerLevelContentOverride;
             }
             const response = await hsApi.createRoom(createOptions, {log}).response();
             this._roomId = response["room_id"];
