@@ -231,6 +231,7 @@ module.exports = function buildThemes(options) {
 
         generateBundle(_, bundle) {
             const { assetMap, chunkMap, runtimeThemeChunk } = parseBundle(bundle);
+            const themeSummary = {};
             for (const [location, chunkArray] of chunkMap) {
                 const manifest = require(`${location}/manifest.json`);
                 const compiledVariables = options.compiledVariables.get(location);
@@ -249,6 +250,22 @@ module.exports = function buildThemes(options) {
                     source: JSON.stringify(manifest),
                 });
             }
+            /**
+             * Generate a mapping from theme name to asset hashed location of said theme in build output.
+             * This can be used to enumerate themes during runtime.
+             */
+            for (const [, chunkArray] of chunkMap) {
+                chunkArray.forEach((chunk) => {
+                    const [, name, variant] = chunk.fileName.match(/theme-(.+)-(.+)\.css/);
+                    const assetHashedFileName = assetMap.get(chunk.fileName).fileName;
+                    themeSummary[`${name}-${variant}`] = assetHashedFileName;
+                });
+            }
+            this.emitFile({
+                type: "asset",
+                name: "theme-summary.json",
+                source: JSON.stringify(themeSummary),
+            });
         },
     }
 }
