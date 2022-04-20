@@ -22,11 +22,12 @@
             if (import.meta.env.PROD) {
                 assetPaths.serviceWorker = "sw.js";
             }
-            const platform = new Platform(
-                document.body,
+            const platform = new Platform({
+                container: document.body,
                 assetPaths,
-                JSON.parse(configJSON),
-                {development: import.meta.env.DEV}
+                config: JSON.parse(configJSON),
+                options: {development: import.meta.env.DEV}
+            }
             );
             main(platform);
         </script>

@@ -126,7 +126,7 @@ function adaptUIOnVisualViewportResize(container) {
 }
 
 export class Platform {
-    constructor(container, assetPaths, config, options = null, cryptoExtras = null) {
+    constructor({ container, assetPaths, config, options = null, cryptoExtras = null }) {
         this._container = container;
         this._assetPaths = assetPaths;
         this._config = config;
