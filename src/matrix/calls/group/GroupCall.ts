@@ -64,6 +64,9 @@ export class GroupCall extends EventEmitter<{change: never}> {
     private _memberOptions: MemberOptions;
     private _state: GroupCallState;
 
+    private _deviceIndex?: number;
+    private _eventTimestamp?: number;
+
     constructor(
         public readonly id: string,
         newCall: boolean,
@@ -101,6 +104,14 @@ export class GroupCall extends EventEmitter<{change: never}> {
 
     get intent(): CallIntent {
         return this.callContent?.["m.intent"];
+    }
+
+    get deviceIndex(): number | undefined {
+        return this._deviceIndex;
+    }
+
+    get eventTimestamp(): number | undefined {
+        return this._eventTimestamp;
     }
 
     join(localMedia: LocalMedia): Promise<void> {
@@ -188,16 +199,21 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     /** @internal */
-    updateMembership(userId: string, callMembership: CallMembership, syncLog: ILogItem) {
+    updateMembership(userId: string, callMembership: CallMembership, eventTimestamp: number, syncLog: ILogItem) {
         this.logItem.wrap({l: "updateMember", id: userId}, log => {
             syncLog.refDetached(log);
             const devices = callMembership["m.devices"];
             const previousDeviceIds = this.getDeviceIdsForUserId(userId);
-            for (const device of devices) {
+            for (let deviceIndex = 0; deviceIndex < devices.length; deviceIndex++) {
+                const device = devices[deviceIndex];
                 const deviceId = device.device_id;
                 const memberKey = getMemberKey(userId, deviceId);
                 log.wrap({l: "update device member", id: memberKey}, log => {
                     if (userId === this.options.ownUserId && deviceId === this.options.ownDeviceId) {
+
+                        this._deviceIndex = deviceIndex;
+                        this._eventTimestamp = eventTimestamp;
+
                         if (this._state === GroupCallState.Joining) {
                             log.set("update_own", true);
                             this._state = GroupCallState.Joined;
@@ -207,14 +223,14 @@ export class GroupCall extends EventEmitter<{change: never}> {
                         let member = this._members.get(memberKey);
                         if (member) {
                             log.set("update", true);
-                            member!.updateCallInfo(device);
+                            member!.updateCallInfo(device, deviceIndex, eventTimestamp);
                         } else {
                             const logItem = this.logItem.child({l: "member", id: memberKey});
                             log.set("add", true);
                             log.refDetached(logItem);
                             member = new Member(
                                 RoomMember.fromUserId(this.roomId, userId, "join"),
-                                device, this._memberOptions, logItem
+                                device, deviceIndex, eventTimestamp, this._memberOptions, logItem
                             );
                             this._members.add(memberKey, member);
                             if (this._state === GroupCallState.Joining || this._state === GroupCallState.Joined) {
@@ -332,6 +348,10 @@ export class GroupCall extends EventEmitter<{change: never}> {
             ["session_id"]: this.options.sessionId,
             feeds: [{purpose: "m.usermedia"}]
         });
+
+        this._deviceIndex = callInfo["m.devices"].length;
+        this._eventTimestamp = Date.now();
+
         return stateContent;
     }
 

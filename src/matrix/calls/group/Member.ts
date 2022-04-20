@@ -55,6 +55,8 @@ export class Member {
     constructor(
         public readonly member: RoomMember,
         private callDeviceMembership: CallDeviceMembership,
+        private _deviceIndex: number,
+        private _eventTimestamp: number,
         private readonly options: Options,
         private readonly logItem: ILogItem,
     ) {}
@@ -77,6 +79,14 @@ export class Member {
 
     get dataChannel(): any | undefined {
         return this.peerCall?.dataChannel;
+    }
+
+    get deviceIndex(): number {
+        return this._deviceIndex;
+    }
+
+    get eventTimestamp(): number {
+        return this._eventTimestamp;
     }
 
     /** @internal */
@@ -114,8 +124,10 @@ export class Member {
     }
 
     /** @internal */
-    updateCallInfo(callDeviceMembership: CallDeviceMembership) {
+    updateCallInfo(callDeviceMembership: CallDeviceMembership, deviceIndex: number, eventTimestamp: number) {
         this.callDeviceMembership = callDeviceMembership;
+        this._deviceIndex = deviceIndex;
+        this._eventTimestamp = eventTimestamp;
     }
 
     /** @internal */
