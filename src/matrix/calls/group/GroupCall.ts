@@ -326,16 +326,12 @@ export class GroupCall extends EventEmitter<{change: never}> {
             };
             callsInfo.push(callInfo);
         }
-        const devicesInfo = callInfo["m.devices"];
-        let deviceInfo = devicesInfo.find(d => d["device_id"] === this.options.ownDeviceId);
-        if (!deviceInfo) {
-            deviceInfo = {
-                ["device_id"]: this.options.ownDeviceId,
-                ["session_id"]: this.options.sessionId,
-                feeds: [{purpose: "m.usermedia"}]
-            };
-            devicesInfo.push(deviceInfo);
-        }
+        callInfo["m.devices"] = callInfo["m.devices"].filter(d => d["device_id"] !== this.options.ownDeviceId);
+        callInfo["m.devices"].push({
+            ["device_id"]: this.options.ownDeviceId,
+            ["session_id"]: this.options.sessionId,
+            feeds: [{purpose: "m.usermedia"}]
+        });
         return stateContent;
     }
 
