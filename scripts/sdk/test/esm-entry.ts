@@ -13,7 +13,7 @@ const assetPaths = {
       wasmBundle: olmJsPath
   }
 };
-import "hydrogen-view-sdk/style.css";
+import "hydrogen-view-sdk/theme-element-light.css";
 
 console.log('hydrogenViewSdk', hydrogenViewSdk);
 console.log('assetPaths', assetPaths);
