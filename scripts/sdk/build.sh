@@ -1,6 +1,10 @@
 #!/bin/bash
+# Exit whenever one of the commands fail with a non-zero exit code
+set -e
+set -o pipefail
 # Enable extended globs so we can use the `!(filename)` glob syntax
 shopt -s extglob
+
 
 rm -rf target/*
 yarn run vite build -c vite.sdk-assets-config.js
