@@ -154,6 +154,8 @@ export class Member {
                 }
             }
         };
+        // TODO: remove this for release
+        log.set("payload", groupMessage.content);
         const request = this.options.hsApi.sendToDevice(
             message.type,
             //"m.room.encrypted",
