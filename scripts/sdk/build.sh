@@ -5,7 +5,6 @@ set -o pipefail
 # Enable extended globs so we can use the `!(filename)` glob syntax
 shopt -s extglob
 
-
 rm -rf target/*
 yarn run vite build -c vite.sdk-assets-config.js
 yarn run vite build -c vite.sdk-lib-config.js
