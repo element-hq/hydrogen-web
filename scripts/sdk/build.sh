@@ -17,6 +17,7 @@ mkdir target/paths
 cp doc/SDK.md target/README.md
 pushd target
 pushd asset-build/assets
+# Remove all `*.wasm` and `*.js` files except for `main.js`
 rm !(main).js *.wasm
 popd
 rm index.html
