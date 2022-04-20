@@ -17,7 +17,7 @@
         <script id="main" type="module">
             import {main} from "./main";
             import {Platform} from "./Platform";
-            import configJSON from "./assets/config.json?raw";
+            import configURL from "./assets/config.json?url";
             import assetPaths from "./sdk/paths/vite";
             if (import.meta.env.PROD) {
                 assetPaths.serviceWorker = "sw.js";
@@ -25,10 +25,9 @@
             const platform = new Platform({
                 container: document.body,
                 assetPaths,
-                config: JSON.parse(configJSON),
+                configURL, 
                 options: {development: import.meta.env.DEV}
-            }
-            );
+            });
             main(platform);
         </script>
     </body>
