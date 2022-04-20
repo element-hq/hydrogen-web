@@ -20,11 +20,14 @@ export interface MediaDevices {
     // to assign to a video element, we downcast to WrappedTrack and use the stream property. 
     getMediaTracks(audio: true | MediaDeviceInfo, video: boolean | MediaDeviceInfo): Promise<Stream>;
     getScreenShareTrack(): Promise<Stream | undefined>;
+    createVolumeMeasurer(stream: Stream): VolumeMeasurer;
 }
 
+
 export interface Stream {
-    readonly audioTrack: AudioTrack | undefined;
-    readonly videoTrack: Track | undefined;
+    getTracks(): ReadonlyArray<Track>;
+    getAudioTracks(): ReadonlyArray<Track>;
+    getVideoTracks(): ReadonlyArray<Track>;
     readonly id: string;
     clone(): Stream;
 }
@@ -38,15 +41,11 @@ export interface Track {
     readonly kind: TrackKind;
     readonly label: string;
     readonly id: string;
-    readonly settings: MediaTrackSettings;
-    get enabled(): boolean;
-    set enabled(value: boolean);
-    equals(track: Track): boolean;
+    enabled: boolean;
+    // getSettings(): MediaTrackSettings;
     stop(): void;
 }
 
-export interface AudioTrack extends Track {
-    // TODO: how to emit updates on this?
-    get isSpeaking(): boolean;
+export interface VolumeMeasurer {
+    
 }
-

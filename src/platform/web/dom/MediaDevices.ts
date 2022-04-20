@@ -98,6 +98,7 @@ export class StreamWrapper implements Stream {
     }
 
     update(track: MediaStreamTrack): TrackWrapper | undefined {
+        //console.trace("Stream.update " + JSON.stringify({id: track.id, vid: this.videoTrack?.id, aid: this.audioTrack?.id}));
         if (track.kind === "video") {
             if (!this.videoTrack || track.id !== this.videoTrack.track.id) {
                 this.videoTrack = new TrackWrapper(track, this.stream, track.id);
