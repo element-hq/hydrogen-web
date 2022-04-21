@@ -18,24 +18,24 @@ import {ObservableMap} from "../../observable/map/ObservableMap";
 import {recursivelyAssign} from "../../utils/recursivelyAssign";
 import {AsyncQueue} from "../../utils/AsyncQueue";
 import {Disposables, IDisposable} from "../../utils/Disposables";
-import type {Room} from "../room/Room";
-import type {StateEvent} from "../storage/types";
-import type {ILogItem} from "../../logging/types";
-
-import type {TimeoutCreator, Timeout} from "../../platform/types/types";
 import {WebRTC, PeerConnection, PeerConnectionHandler, TrackSender, TrackReceiver} from "../../platform/types/WebRTC";
 import {MediaDevices, Track, AudioTrack, Stream} from "../../platform/types/MediaDevices";
-import type {LocalMedia} from "./LocalMedia";
-
 import {
     SDPStreamMetadataKey,
     SDPStreamMetadataPurpose,
     EventType,
     CallErrorCode,
 } from "./callEventTypes";
+
+import type {Room} from "../room/Room";
+import type {StateEvent} from "../storage/types";
+import type {ILogItem} from "../../logging/types";
+import type {TimeoutCreator, Timeout} from "../../platform/types/types";
+import type {LocalMedia} from "./LocalMedia";
 import type {
     MCallBase,
     MCallInvite,
+    MCallNegotiate,
     MCallAnswer,
     MCallSDPStreamMetadataChanged,
     MCallCandidates,
@@ -265,6 +265,9 @@ export class PeerCall implements IDisposable {
                 case EventType.Answer:
                     await this.handleAnswer(message.content, partyId, log);
                     break;
+                case EventType.Negotiate:
+                    await this.handleRemoteNegotiate(message.content, partyId, log);
+                    break;
                 case EventType.Candidates:
                     await this.handleRemoteIceCandidates(message.content, partyId, log);
                     break;
@@ -341,10 +344,10 @@ export class PeerCall implements IDisposable {
                 await this.sendSignallingMessage({type: EventType.Invite, content}, log);
                 this.setState(CallState.InviteSent, log);
             } else if (this._state === CallState.Connected || this._state === CallState.Connecting) {
-                log.log("would send renegotiation now but not implemented");
                 // send Negotiate message
-                //await this.sendSignallingMessage({type: EventType.Invite, content});
-                //this.setState(CallState.InviteSent);
+                content.description = content.offer;
+                delete content.offer;
+                await this.sendSignallingMessage({type: EventType.Negotiate, content}, log);
             }
         } finally {
             this.makingOffer = false;
@@ -488,6 +491,36 @@ export class PeerCall implements IDisposable {
 
         try {
             await this.peerConnection.setRemoteDescription(content.answer);
+        } catch (e) {
+            await log.wrap(`Failed to set remote description`, log => {
+                log.catch(e);
+                this.terminate(CallParty.Local, CallErrorCode.SetRemoteDescription, log);
+            });
+            return;
+        }
+    }
+
+
+    private async handleRemoteNegotiate(content: MCallNegotiate<MCallBase>, partyId: PartyId, log: ILogItem): Promise<void> {
+        if (this._state !== CallState.Connected) {
+            log.log({l: `Ignoring renegotiate because not connected`, status: this._state});
+            return;
+        }
+
+        if (this.opponentPartyId !== partyId) {
+            log.log(`Ignoring answer: we already have an answer/reject from ${this.opponentPartyId}`);
+            return;
+        }
+
+        const sdpStreamMetadata = content[SDPStreamMetadataKey];
+        if (sdpStreamMetadata) {
+            this.updateRemoteSDPStreamMetadata(sdpStreamMetadata, log);
+        } else {
+            log.log(`Did not get any SDPStreamMetadata! Can not send/receive multiple streams`);
+        }
+
+        try {
+            await this.peerConnection.setRemoteDescription(content.description);
         } catch (e) {
             await log.wrap(`Failed to set remote description`, log => {
                 log.catch(e);
