@@ -171,7 +171,7 @@ export class Platform {
             if (!this._configURL) {
                 throw new Error("Neither config nor configURL was provided!");
             }
-            const {body}= await this.request(this._configURL, {method: "GET", format: "json"}).response();
+            const {body}= await this.request(this._configURL, {method: "GET", format: "json", cache: true}).response();
             this._config = body;
         }
         this._notificationService = new NotificationService(

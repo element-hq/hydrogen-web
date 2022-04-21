@@ -75,7 +75,14 @@ self.addEventListener('fetch', (event) => {
     This has to do with xhr not being supported in service workers.
     */
     if (event.request.method === "GET") {
-        event.respondWith(handleRequest(event.request));
+        if (event.request.url.includes("config.json")) {
+            /**
+             * Use a different strategy for this file.
+             */
+            event.respondWith(handleConfigRequest(event.request));
+        } else {
+            event.respondWith(handleRequest(event.request));
+        }
     }
 });
 
@@ -117,6 +124,32 @@ async function handleRequest(request) {
         }
         throw err;
     }
+}
+
+async function handleConfigRequest(request) {
+    const url = new URL(request.url);
+    // rewrite / to /index.html so it hits the cache
+    if (url.origin === baseURL.origin && url.pathname === baseURL.pathname) {
+        request = new Request(new URL("index.html", baseURL.href));
+    }
+    let response = await readCache(request);
+    if (response) {
+        fetchAndUpdateConfig(request);
+        return response;
+    }
+    response = await fetchAndUpdateConfig(request);
+    return response;
+}
+
+async function fetchAndUpdateConfig(request) {
+    const response = await fetch(request, {
+        signal: pendingFetchAbortController.signal,
+        headers: {
+            "Cache-Control": "no-cache",
+        },
+    });
+    updateCache(request, response.clone());
+    return response;
 }
 
 async function updateCache(request, response) {
