@@ -217,24 +217,14 @@ export class PeerCall implements IDisposable {
             log.set("userMedia_video_muted", localMedia.cameraMuted);
             log.set("screenShare_video", !!localMedia.screenShare?.videoTrack);
             log.set("datachannel", !!localMedia.dataChannelOptions);
-
-            const oldMetaData = this.getSDPMetadata();
-            const willRenegotiate = await this.updateLocalMedia(localMedia, log);
-            // TODO: if we will renegotiate, we don't bother sending the metadata changed event
-            // because the renegotiate event will send new metadata anyway, but is that the right
-            // call?
-            if (!willRenegotiate) {
-                const newMetaData = this.getSDPMetadata();
-                if (JSON.stringify(oldMetaData) !== JSON.stringify(newMetaData)) {
-                    const content: MCallSDPStreamMetadataChanged<MCallBase> = {
-                        call_id: this.callId,
-                        version: 1,
-                        seq: this.seq++,
-                        [SDPStreamMetadataKey]: newMetaData
-                    };
-                    await this.sendSignallingMessage({type: EventType.SDPStreamMetadataChangedPrefix, content}, log);
-                }
-            }
+            await this.updateLocalMedia(localMedia, log);
+            const content: MCallSDPStreamMetadataChanged<MCallBase> = {
+                call_id: this.callId,
+                version: 1,
+                seq: this.seq++,
+                [SDPStreamMetadataKey]: this.getSDPMetadata()
+            };
+            await this.sendSignallingMessage({type: EventType.SDPStreamMetadataChangedPrefix, content}, log);
         });
     }
 
@@ -856,8 +846,8 @@ export class PeerCall implements IDisposable {
             const streamSender = this.peerConnection.localStreams.get(streamId);
             metadata[streamId] = {
                 purpose: SDPStreamMetadataPurpose.Usermedia,
-                audio_muted: !(streamSender?.audioSender?.enabled && streamSender?.audioSender?.track?.enabled),
-                video_muted: !(streamSender?.videoSender?.enabled && streamSender?.videoSender?.track?.enabled),
+                audio_muted: this.localMedia.microphoneMuted || !this.localMedia.userMedia.audioTrack,
+                video_muted: this.localMedia.cameraMuted || !this.localMedia.userMedia.videoTrack,
             };
         }
         if (this.localMedia?.screenShare) {
@@ -889,9 +879,8 @@ export class PeerCall implements IDisposable {
         this.options.emitUpdate(this, undefined);
     }
 
-    private updateLocalMedia(localMedia: LocalMedia, logItem: ILogItem): Promise<boolean> {
+    private updateLocalMedia(localMedia: LocalMedia, logItem: ILogItem): Promise<void> {
         return logItem.wrap("updateLocalMedia", async log => {
-            let willRenegotiate = false;
             const oldMedia = this.localMedia;
             this.localMedia = localMedia;
             const applyStream = async (oldStream: Stream | undefined, stream: Stream | undefined, oldMuteSettings: LocalMedia | undefined, mutedSettings: LocalMedia | undefined, logLabel: string) => {
@@ -920,13 +909,11 @@ export class PeerCall implements IDisposable {
                                     log.wrap(`adding and removing ${logLabel} ${track.kind} track`, log => {
                                         this.peerConnection.removeTrack(sender);
                                         this.peerConnection.addTrack(track);
-                                        willRenegotiate = true;
                                     });
                                 }
                             } else {
                                 log.wrap(`adding ${logLabel} ${track.kind} track`, log => {
                                     this.peerConnection.addTrack(track);
-                                    willRenegotiate = true;
                                 });
                             }
                         } else {
@@ -937,20 +924,17 @@ export class PeerCall implements IDisposable {
                                 log.wrap(`removing ${logLabel} ${sender.track.kind} track`, log => {
                                     sender.track.enabled = false;
                                     this.peerConnection.removeTrack(sender);
-                                    willRenegotiate = true;
                                 });
                             }
                         }
                     } else if (track) {
                         log.log({l: "checking mute status", muted, wasMuted, wasCameraMuted: oldMedia?.cameraMuted, sender: !!sender, streamSender: !!streamSender, oldStream: oldStream?.id, stream: stream?.id});
                         if (sender && muted !== wasMuted) {
-                            // TODO: why does unmuting not work? wasMuted is false
                             log.wrap(`${logLabel} ${track.kind} ${muted ? "muting" : "unmuting"}`, log => {
                                 // sender.track.enabled = !muted;
                                 // This doesn't always seem to trigger renegotiation??
                                 // We should probably always send the new metadata first ...
                                 sender.enable(!muted);
-                                willRenegotiate = true;
                             });
                         } else {
                             log.log(`${logLabel} ${track.kind} track hasn't changed`);
@@ -964,7 +948,6 @@ export class PeerCall implements IDisposable {
 
             await applyStream(oldMedia?.userMedia, localMedia?.userMedia, oldMedia, localMedia, "userMedia");
             await applyStream(oldMedia?.screenShare, localMedia?.screenShare, undefined, undefined, "screenShare");
-            return willRenegotiate;
             // TODO: datachannel, but don't do it here as we don't want to do it from answer, rather in different method
         });
     }
