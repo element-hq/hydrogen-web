@@ -97,6 +97,12 @@ export type MCallInvite<Base extends MCallBase> = Base & {
     [SDPStreamMetadataKey]: SDPStreamMetadata;
 }
 
+export type MCallNegotiate<Base extends MCallBase> = Base & {
+    description: SessionDescription;
+    lifetime: number;
+    [SDPStreamMetadataKey]: SDPStreamMetadata;
+}
+
 export type MCallSDPStreamMetadataChanged<Base extends MCallBase> = Base & {
     [SDPStreamMetadataKey]: SDPStreamMetadata;
 }
@@ -213,6 +219,7 @@ export enum CallErrorCode {
 
 export type SignallingMessage<Base extends MCallBase> =
     {type: EventType.Invite, content: MCallInvite<Base>} |
+    {type: EventType.Negotiate, content: MCallNegotiate<Base>} |
     {type: EventType.Answer, content: MCallAnswer<Base>} |
     {type: EventType.SDPStreamMetadataChanged | EventType.SDPStreamMetadataChangedPrefix, content: MCallSDPStreamMetadataChanged<Base>} |
     {type: EventType.Candidates, content: MCallCandidates<Base>} |
