@@ -76,9 +76,6 @@ self.addEventListener('fetch', (event) => {
     */
     if (event.request.method === "GET") {
         if (event.request.url.includes("config.json")) {
-            /**
-             * Use a different strategy for this file.
-             */
             event.respondWith(handleConfigRequest(event.request));
         } else {
             event.respondWith(handleRequest(event.request));
