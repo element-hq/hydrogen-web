@@ -43,13 +43,43 @@ export class LocalMedia {
         return new LocalMedia(this.userMedia, this.microphoneMuted, this.cameraMuted, this.screenShare, options);
     }
 
+    replaceClone(oldClone: LocalMedia | undefined, oldOriginal: LocalMedia | undefined): LocalMedia {
+        let userMedia;
+        let screenShare;
+        const cloneOrAdoptStream = (oldOriginalStream: Stream | undefined, oldCloneStream: Stream | undefined, newStream: Stream | undefined): Stream | undefined => {
+            let stream;
+            if (oldOriginalStream?.id === newStream?.id) {
+                stream = oldCloneStream;
+            } else {
+                stream = newStream?.clone();
+                oldCloneStream?.audioTrack?.stop();
+                oldCloneStream?.videoTrack?.stop();
+            }
+            return stream;
+        }
+        return new LocalMedia(
+            cloneOrAdoptStream(oldOriginal?.userMedia, oldClone?.userMedia, this.userMedia),
+            this.microphoneMuted, this.cameraMuted,
+            cloneOrAdoptStream(oldOriginal?.screenShare, oldClone?.screenShare, this.screenShare),
+            this.dataChannelOptions
+        );
+    }
+
     clone(): LocalMedia {
         return new LocalMedia(this.userMedia?.clone(), this.microphoneMuted, this.cameraMuted, this.screenShare?.clone(), this.dataChannelOptions);
     }
     
     dispose() {
-        this.userMedia?.audioTrack?.stop();
-        this.userMedia?.videoTrack?.stop();
-        this.screenShare?.videoTrack?.stop();
+        this.stopExcept(undefined);
+    }
+
+    stopExcept(newMedia: LocalMedia | undefined) {
+        if(newMedia?.userMedia?.id !== this.userMedia?.id) {
+            this.userMedia?.audioTrack?.stop();
+            this.userMedia?.videoTrack?.stop();
+        }
+        if(newMedia?.screenShare?.id !== this.screenShare?.id) {
+            this.screenShare?.videoTrack?.stop();
+        }
     }
 }

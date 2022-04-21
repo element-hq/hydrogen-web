@@ -185,11 +185,9 @@ export class Member {
     }
 
     /** @internal */
-    async setMedia(localMedia: LocalMedia): Promise<void> {
-        const oldMedia = this.localMedia;
-        this.localMedia = localMedia;
-        await this.peerCall?.setMedia(localMedia);
-        oldMedia?.dispose();
+    async setMedia(localMedia: LocalMedia, previousMedia: LocalMedia): Promise<void> {
+        this.localMedia = localMedia.replaceClone(this.localMedia, previousMedia);
+        await this.peerCall?.setMedia(this.localMedia);
     }
 
     private _createPeerCall(callId: string): PeerCall {
