@@ -143,7 +143,7 @@ export class Platform {
             this._serviceWorkerHandler = new ServiceWorkerHandler();
             this._serviceWorkerHandler.registerAndStart(assetPaths.serviceWorker);
         }
-        this.notificationService = null;
+        this.notificationService = undefined;
         // Only try to use crypto when olm is provided
         if(this._assetPaths.olm) {
             this.crypto = new Crypto(cryptoExtras);
