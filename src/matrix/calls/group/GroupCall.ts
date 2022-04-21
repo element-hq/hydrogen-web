@@ -168,7 +168,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     /** @internal */
-    create(localMedia: LocalMedia): Promise<void> {
+    create(type: "m.video" | "m.voice"): Promise<void> {
         return this.logItem.wrap("create", async log => {
             if (this._state !== GroupCallState.Fledgling) {
                 return;
@@ -176,7 +176,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
             this._state = GroupCallState.Creating;
             this.emitChange();
             this.callContent = Object.assign({
-                "m.type": localMedia.userMedia?.videoTrack ? "m.video" : "m.voice",
+                "m.type": type,
             }, this.callContent);
             const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCall, this.id, this.callContent!, {log});
             await request.response();

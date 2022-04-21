@@ -57,9 +57,7 @@ export class CallViewModel extends ViewModel<Options> {
     }
 
     async toggleVideo() {
-        const localMedia = this.call.localMedia!;
-        const toggledMedia = localMedia.withMuted(localMedia.microphoneMuted, !localMedia.cameraMuted);
-        await this.call.setMedia(toggledMedia);
+        //this.call.setMuted();
     }
 }
 

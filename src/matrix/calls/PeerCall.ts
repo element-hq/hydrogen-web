@@ -16,10 +16,10 @@ limitations under the License.
 
 import {ObservableMap} from "../../observable/map/ObservableMap";
 import {recursivelyAssign} from "../../utils/recursivelyAssign";
-import {AsyncQueue} from "../../utils/AsyncQueue";
-import {Disposables, IDisposable} from "../../utils/Disposables";
-import {WebRTC, PeerConnection, PeerConnectionHandler, TrackSender, TrackReceiver} from "../../platform/types/WebRTC";
-import {MediaDevices, Track, AudioTrack, Stream} from "../../platform/types/MediaDevices";
+import {Disposables, Disposable, IDisposable} from "../../utils/Disposables";
+import {WebRTC, PeerConnection, Receiver, PeerConnectionEventMap} from "../../platform/types/WebRTC";
+import {MediaDevices, Track, TrackKind, Stream, StreamTrackEvent} from "../../platform/types/MediaDevices";
+import {getStreamVideoTrack, getStreamAudioTrack, MuteSettings} from "./common";
 import {
     SDPStreamMetadataKey,
     SDPStreamMetadataPurpose,
@@ -69,6 +69,7 @@ export class PeerCall implements IDisposable {
     private direction: CallDirection;
     // we don't own localMedia and should hence not call dispose on it from here
     private localMedia?: LocalMedia;
+    private localMuteSettings?: MuteSettings;
     private seq: number = 0;
     // A queue for candidates waiting to go out.
     // We try to amalgamate candidates into a single candidate message where
@@ -85,7 +86,8 @@ export class PeerCall implements IDisposable {
     private hangupParty: CallParty;
     private disposables = new Disposables();
     private statePromiseMap = new Map<CallState, {resolve: () => void, promise: Promise<void>}>();
-
+    private _remoteTrackToStreamId = new Map<string, string>();
+    private _remoteStreams = new Map<string, {stream: Stream, disposeListener: Disposable}>();
     // perfect negotiation flags
     private makingOffer: boolean = false;
     private ignoreOffer: boolean = false;
@@ -96,55 +98,62 @@ export class PeerCall implements IDisposable {
     private _dataChannel?: any;
     private _hangupReason?: CallErrorCode;
     private _remoteMedia: RemoteMedia;
+    private remoteMuteSettings?: MuteSettings;
 
     constructor(
         private callId: string,
         private readonly options: Options,
         private readonly logItem: ILogItem,
     ) {
-        const outer = this;
         this._remoteMedia = new RemoteMedia();
-        this.peerConnection = options.webRTC.createPeerConnection({
-            onIceConnectionStateChange(state: RTCIceConnectionState) {
-                outer.logItem.wrap({l: "onIceConnectionStateChange", status: state}, log => {
-                    outer.onIceConnectionStateChange(state, log);
+        this.peerConnection = options.webRTC.createPeerConnection(this.options.forceTURN, this.options.turnServers, 0);
+        
+        const listen = <K extends keyof PeerConnectionEventMap>(type: K, listener: (this: PeerConnection, ev: PeerConnectionEventMap[K]) => any, options?: boolean | EventListenerOptions): void => {
+            this.peerConnection.addEventListener(type, listener);
+            const dispose = () => {
+                this.peerConnection.removeEventListener(type, listener);
+            };
+            this.disposables.track(dispose);
+        };
+
+        listen("iceconnectionstatechange", () => {
+            const state = this.peerConnection.iceConnectionState;
+            this.logItem.wrap({l: "onIceConnectionStateChange", status: state}, log => {
+                this.onIceConnectionStateChange(state, log);
+            });
+        });
+        listen("icecandidate", event => {
+            this.logItem.wrap("onLocalIceCandidate", log => {
+                if (event.candidate) {
+                    this.handleLocalIceCandidate(event.candidate, log);
+                }
+            });
+        });
+        listen("icegatheringstatechange", () => {
+            const state = this.peerConnection.iceGatheringState;
+            this.logItem.wrap({l: "onIceGatheringStateChange", status: state}, log => {
+                this.handleIceGatheringState(state, log);
+            });
+        });
+        listen("track", event => {
+            this.logItem.wrap("onRemoteTrack", log => {
+                this.onRemoteTrack(event.track, event.streams, log);
+            });
+        });
+        listen("datachannel", event => {
+            this.logItem.wrap("onRemoteDataChannel", log => {
+                this._dataChannel = event.channel;
+                this.options.emitUpdate(this, undefined);
+            });
+        });
+        listen("negotiationneeded", () => {
+            const promiseCreator = () => {
+                return this.logItem.wrap("onNegotiationNeeded", log => {
+                    return this.handleNegotiation(log);
                 });
-            },
-            onLocalIceCandidate(candidate: RTCIceCandidate) {
-                outer.logItem.wrap("onLocalIceCandidate", log => {
-                    outer.handleLocalIceCandidate(candidate, log);
-                });
-            },
-            onIceGatheringStateChange(state: RTCIceGatheringState) {
-                outer.logItem.wrap({l: "onIceGatheringStateChange", status: state}, log => {
-                    outer.handleIceGatheringState(state, log);
-                });
-            },
-            onRemoteStreamRemoved(stream: Stream) {
-                outer.logItem.wrap("onRemoteStreamRemoved", log => {
-                    outer.updateRemoteMedia(log);
-                });
-            },
-            onRemoteTracksAdded(trackReceiver: TrackReceiver) {
-                outer.logItem.wrap("onRemoteTracksAdded", log => {
-                    outer.updateRemoteMedia(log);
-                });
-            },
-            onRemoteDataChannel(dataChannel: any | undefined) {
-                outer.logItem.wrap("onRemoteDataChannel", log => {
-                    outer._dataChannel = dataChannel;
-                    outer.options.emitUpdate(outer, undefined);
-                });
-            },
-            onNegotiationNeeded() {
-                const promiseCreator = () => {
-                    return outer.logItem.wrap("onNegotiationNeeded", log => {
-                        return outer.handleNegotiation(log);
-                    });
-                };
-                outer.responsePromiseChain = outer.responsePromiseChain?.then(promiseCreator) ?? promiseCreator();
-            }
-        }, this.options.forceTURN, this.options.turnServers, 0);
+            };
+            this.responsePromiseChain = this.responsePromiseChain?.then(promiseCreator) ?? promiseCreator();
+        });
     }
 
     get dataChannel(): any | undefined { return this._dataChannel; }
@@ -166,7 +175,7 @@ export class PeerCall implements IDisposable {
             this.setState(CallState.CreateOffer, log);
             await this.updateLocalMedia(localMedia, log);
             if (this.localMedia?.dataChannelOptions) {
-                this._dataChannel = this.peerConnection.createDataChannel(this.localMedia.dataChannelOptions);
+                this._dataChannel = this.peerConnection.createDataChannel("channel", this.localMedia.dataChannelOptions);
             }
             // after adding the local tracks, and wait for handleNegotiation to be called,
             // or invite glare where we give up our invite and answer instead
@@ -211,11 +220,9 @@ export class PeerCall implements IDisposable {
 
     setMedia(localMedia: LocalMedia): Promise<void> {
         return this.logItem.wrap("setMedia", async log => {
-            log.set("userMedia_audio", !!localMedia.userMedia?.audioTrack);
-            log.set("userMedia_audio_muted", localMedia.microphoneMuted);
-            log.set("userMedia_video", !!localMedia.userMedia?.videoTrack);
-            log.set("userMedia_video_muted", localMedia.cameraMuted);
-            log.set("screenShare_video", !!localMedia.screenShare?.videoTrack);
+            log.set("userMedia_audio", !!getStreamAudioTrack(localMedia.userMedia));
+            log.set("userMedia_video", !!getStreamVideoTrack(localMedia.userMedia));
+            log.set("screenShare_video", !!getStreamVideoTrack(localMedia.screenShare));
             log.set("datachannel", !!localMedia.dataChannelOptions);
             await this.updateLocalMedia(localMedia, log);
             const content: MCallSDPStreamMetadataChanged<MCallBase> = {
@@ -322,21 +329,26 @@ export class PeerCall implements IDisposable {
             this.candidateSendQueue = [];
 
             // need to queue this
-            const content = {
-                call_id: this.callId,
-                offer,
-                [SDPStreamMetadataKey]: this.getSDPMetadata(),
-                version: 1,
-                seq: this.seq++,
-                lifetime: CALL_TIMEOUT_MS
-            };
             if (this._state === CallState.CreateOffer) {
+                const content = {
+                    call_id: this.callId,
+                    offer,
+                    [SDPStreamMetadataKey]: this.getSDPMetadata(),
+                    version: 1,
+                    seq: this.seq++,
+                    lifetime: CALL_TIMEOUT_MS
+                };
                 await this.sendSignallingMessage({type: EventType.Invite, content}, log);
                 this.setState(CallState.InviteSent, log);
             } else if (this._state === CallState.Connected || this._state === CallState.Connecting) {
-                // send Negotiate message
-                content.description = content.offer;
-                delete content.offer;
+                const content = {
+                    call_id: this.callId,
+                    description: offer,
+                    [SDPStreamMetadataKey]: this.getSDPMetadata(),
+                    version: 1,
+                    seq: this.seq++,
+                    lifetime: CALL_TIMEOUT_MS
+                };
                 await this.sendSignallingMessage({type: EventType.Negotiate, content}, log);
             }
         } finally {
@@ -432,7 +444,7 @@ export class PeerCall implements IDisposable {
         // According to previous comments in this file, firefox at some point did not
         // add streams until media started arriving on them. Testing latest firefox
         // (81 at time of writing), this is no longer a problem, so let's do it the correct way.
-        if (this.peerConnection.remoteStreams.size === 0) {
+        if (this.peerConnection.getReceivers().length === 0) {
             await log.wrap(`Call no remote stream or no tracks after setting remote description!`, async log => {
                 return this.terminate(CallParty.Local, CallErrorCode.SetRemoteDescription, log);
             });
@@ -843,11 +855,10 @@ export class PeerCall implements IDisposable {
         const metadata = {};
         if (this.localMedia?.userMedia) {
             const streamId = this.localMedia.userMedia.id;
-            const streamSender = this.peerConnection.localStreams.get(streamId);
             metadata[streamId] = {
                 purpose: SDPStreamMetadataPurpose.Usermedia,
-                audio_muted: this.localMedia.microphoneMuted || !this.localMedia.userMedia.audioTrack,
-                video_muted: this.localMedia.cameraMuted || !this.localMedia.userMedia.videoTrack,
+                audio_muted: this.localMuteSettings?.microphone || !getStreamAudioTrack(this.localMedia.userMedia),
+                video_muted: this.localMuteSettings?.camera || !getStreamVideoTrack(this.localMedia.userMedia),
             };
         }
         if (this.localMedia?.screenShare) {
@@ -859,19 +870,67 @@ export class PeerCall implements IDisposable {
         return metadata;
     }
 
-    private updateRemoteMedia(log: ILogItem) {
+    private findReceiverForStream(kind: TrackKind, streamId: string): Receiver | undefined {
+        return this.peerConnection.getReceivers().find(r => {
+            return r.track.kind === "audio" && this._remoteTrackToStreamId.get(r.track.id) === streamId;
+        });
+    }
+
+    private onRemoteTrack(track: Track, streams: ReadonlyArray<Stream>, log: ILogItem) {
+        if (streams.length === 0) {
+            log.log({l: `ignoring ${track.kind} streamless track`, id: track.id});
+            return;
+        }
+        const stream = streams[0];
+        this._remoteTrackToStreamId.set(track.id, stream.id);
+        if (!this._remoteStreams.has(stream.id)) {
+            const listener = (event: StreamTrackEvent): void => {
+                this.logItem.wrap({l: "removetrack", id: event.track.id}, log => {
+                    const streamId = this._remoteTrackToStreamId.get(event.track.id);
+                    if (streamId) {
+                        this._remoteTrackToStreamId.delete(event.track.id);
+                        const streamDetails = this._remoteStreams.get(streamId);
+                        if (streamDetails && streamDetails.stream.getTracks().length === 0) {
+                            this.disposables.disposeTracked(disposeListener);
+                            this._remoteStreams.delete(stream.id);
+                            this.updateRemoteMedia(log);
+                        }
+                    }
+                })
+            };
+            stream.addEventListener("removetrack", listener);
+            const disposeListener = () => {
+                stream.removeEventListener("removetrack", listener);
+            };
+            this.disposables.track(disposeListener);
+            this._remoteStreams.set(stream.id, {
+                disposeListener,
+                stream
+            });
+            this.updateRemoteMedia(log);
+        }
+    }
+
+    private updateRemoteMedia(log: ILogItem): void {
         this._remoteMedia.userMedia = undefined;
         this._remoteMedia.screenShare = undefined;
         if (this.remoteSDPStreamMetadata) {
-            for (const [streamId, streamReceiver] of this.peerConnection.remoteStreams.entries()) {
-                const metaData = this.remoteSDPStreamMetadata[streamId];
+            for (const streamDetails of this._remoteStreams.values()) {
+                const {stream} = streamDetails;
+                const metaData = this.remoteSDPStreamMetadata[stream.id];
                 if (metaData) {
                     if (metaData.purpose === SDPStreamMetadataPurpose.Usermedia) {
-                        this._remoteMedia.userMedia = streamReceiver.stream;
-                        streamReceiver.audioReceiver?.enable(!metaData.audio_muted);
-                        streamReceiver.videoReceiver?.enable(!metaData.video_muted);
+                        this._remoteMedia.userMedia = stream;
+                        const audioReceiver = this.findReceiverForStream(TrackKind.Audio, stream.id);
+                        if (audioReceiver) {
+                            audioReceiver.track.enabled = !metaData.audio_muted;
+                        }
+                        const videoReceiver = this.findReceiverForStream(TrackKind.Video, stream.id);
+                        if (videoReceiver) {
+                            videoReceiver.track.enabled = !metaData.audio_muted;
+                        }
                     } else if (metaData.purpose === SDPStreamMetadataPurpose.Screenshare) {
-                        this._remoteMedia.screenShare = streamReceiver.stream;
+                        this._remoteMedia.screenShare = stream;
                     }
                 }
             }
@@ -883,71 +942,46 @@ export class PeerCall implements IDisposable {
         return logItem.wrap("updateLocalMedia", async log => {
             const oldMedia = this.localMedia;
             this.localMedia = localMedia;
-            const applyStream = async (oldStream: Stream | undefined, stream: Stream | undefined, oldMuteSettings: LocalMedia | undefined, mutedSettings: LocalMedia | undefined, logLabel: string) => {
-                let streamSender;
-                if (oldStream) {
-                    streamSender = this.peerConnection.localStreams.get(oldStream.id);
-                    if (stream && stream.id !== oldStream.id) {
-                        this.peerConnection.localStreams.set(stream.id, streamSender);
-                        this.peerConnection.localStreams.delete(oldStream.id);
-                    }
-                }
-
-                const applyTrack = async (oldTrack: Track | undefined, sender: TrackSender | undefined, track: Track | undefined, wasMuted: boolean | undefined, muted: boolean | undefined) => {
-                    const changed = (!track && oldTrack) ||
-                        (track && !oldTrack) ||
-                        (track && oldTrack && !track.equals(oldTrack));
-                    if (changed) {
-                        if (track) {
-                            if (oldTrack && sender && !track.equals(oldTrack)) {
+            const applyStream = async (oldStream: Stream | undefined, stream: Stream | undefined, streamPurpose: SDPStreamMetadataPurpose) => {
+                const applyTrack = async (oldTrack: Track | undefined, newTrack: Track | undefined) => {
+                    if (!oldTrack && newTrack) {
+                        log.wrap(`adding ${streamPurpose} ${newTrack.kind} track`, log => {
+                            const sender = this.peerConnection.addTrack(newTrack, stream!);
+                            this.options.webRTC.prepareSenderForPurpose(this.peerConnection, sender, streamPurpose);
+                        });
+                    } else if (oldTrack) {
+                        const sender = this.peerConnection.getSenders().find(s => s.track && s.track.id === oldTrack.id);
+                        if (sender) {
+                            if (newTrack && oldTrack.id !== newTrack.id) {
                                 try {
-                                    await log.wrap(`replacing ${logLabel} ${track.kind} track`, log => {
-                                        return sender.replaceTrack(track);
+                                    await log.wrap(`replacing ${streamPurpose} ${newTrack.kind} track`, log => {
+                                        return sender.replaceTrack(newTrack);
                                     });
                                 } catch (err) {
-                                    // can't replace the track without renegotiating
-                                    log.wrap(`adding and removing ${logLabel} ${track.kind} track`, log => {
+                                    // can't replace the track without renegotiating{
+                                    log.wrap(`adding and removing ${streamPurpose} ${newTrack.kind} track`, log => {
                                         this.peerConnection.removeTrack(sender);
-                                        this.peerConnection.addTrack(track);
+                                        this.peerConnection.addTrack(newTrack);
                                     });
                                 }
-                            } else {
-                                log.wrap(`adding ${logLabel} ${track.kind} track`, log => {
-                                    this.peerConnection.addTrack(track);
-                                });
-                            }
-                        } else {
-                            if (sender) {
-                                // this will be used for muting, do we really want to trigger renegotiation here?
-                                // we want to disable the sender, but also remove the track as we don't want to keep
-                                // using the webcam if we don't need to
-                                log.wrap(`removing ${logLabel} ${sender.track.kind} track`, log => {
-                                    sender.track.enabled = false;
+                            } else if (!newTrack) {
+                                log.wrap(`removing ${streamPurpose} ${sender.track!.kind} track`, log => {
                                     this.peerConnection.removeTrack(sender);
                                 });
+                            } else {
+                                log.log(`${streamPurpose} ${oldTrack.kind} track hasn't changed`);
                             }
                         }
-                    } else if (track) {
-                        log.log({l: "checking mute status", muted, wasMuted, wasCameraMuted: oldMedia?.cameraMuted, sender: !!sender, streamSender: !!streamSender, oldStream: oldStream?.id, stream: stream?.id});
-                        if (sender && muted !== wasMuted) {
-                            log.wrap(`${logLabel} ${track.kind} ${muted ? "muting" : "unmuting"}`, log => {
-                                // sender.track.enabled = !muted;
-                                // This doesn't always seem to trigger renegotiation??
-                                // We should probably always send the new metadata first ...
-                                sender.enable(!muted);
-                            });
-                        } else {
-                            log.log(`${logLabel} ${track.kind} track hasn't changed`);
-                        }
+                        // TODO: should we do something if we didn't find the sender? e.g. some other code already removed the sender but didn't update localMedia
                     }
                 }
 
-                await applyTrack(oldStream?.audioTrack, streamSender?.audioSender, stream?.audioTrack, oldMuteSettings?.microphoneMuted, mutedSettings?.microphoneMuted);
-                await applyTrack(oldStream?.videoTrack, streamSender?.videoSender, stream?.videoTrack, oldMuteSettings?.cameraMuted, mutedSettings?.cameraMuted);
-            }
+                await applyTrack(getStreamAudioTrack(oldStream), getStreamAudioTrack(stream));
+                await applyTrack(getStreamVideoTrack(oldStream), getStreamVideoTrack(stream));
+            };
 
-            await applyStream(oldMedia?.userMedia, localMedia?.userMedia, oldMedia, localMedia, "userMedia");
-            await applyStream(oldMedia?.screenShare, localMedia?.screenShare, undefined, undefined, "screenShare");
+            await applyStream(oldMedia?.userMedia, localMedia?.userMedia, SDPStreamMetadataPurpose.Usermedia);
+            await applyStream(oldMedia?.screenShare, localMedia?.screenShare, SDPStreamMetadataPurpose.Screenshare);
             // TODO: datachannel, but don't do it here as we don't want to do it from answer, rather in different method
         });
     }
@@ -967,7 +1001,7 @@ export class PeerCall implements IDisposable {
 
     public dispose(): void {
         this.disposables.dispose();
-        this.peerConnection.dispose();
+        this.peerConnection.close();
     }
 
     public close(reason: CallErrorCode | undefined, log: ILogItem): void {
@@ -1037,6 +1071,7 @@ export function handlesEventType(eventType: string): boolean {
             eventType === EventType.SDPStreamMetadataChangedPrefix ||
             eventType === EventType.Negotiate;
 }
+
 
 export function tests() {
 

@@ -17,15 +17,15 @@ limitations under the License.
 import {TemplateView, TemplateBuilder} from "../../general/TemplateView";
 import {ListView} from "../../general/ListView";
 import {Stream} from "../../../../types/MediaDevices";
-import type {StreamWrapper} from "../../../dom/MediaDevices";
+import {getStreamVideoTrack, getStreamAudioTrack} from "../../../../../matrix/calls/common";
 import type {CallViewModel, CallMemberViewModel} from "../../../../../domain/session/room/CallViewModel";
 
 function bindStream<T>(t: TemplateBuilder<T>, video: HTMLVideoElement, propSelector: (vm: T) => Stream | undefined) {
-    t.mapSideEffect(vm => propSelector(vm)?.videoTrack?.enabled, (_,__, vm) => {
+    t.mapSideEffect(vm => getStreamVideoTrack(propSelector(vm))?.enabled, (_,__, vm) => {
         const stream = propSelector(vm);
         if (stream) {
-            video.srcObject = (stream as StreamWrapper).stream;
-            if (stream.videoTrack?.enabled) {
+            video.srcObject = stream as MediaStream;
+            if (getStreamVideoTrack(stream)?.enabled) {
                 video.classList.remove("hidden");
             } else {
                 video.classList.add("hidden");

@@ -17,32 +17,28 @@ limitations under the License.
 import {SDPStreamMetadataPurpose} from "./callEventTypes";
 import {Stream} from "../../platform/types/MediaDevices";
 import {SDPStreamMetadata} from "./callEventTypes";
+import {getStreamVideoTrack, getStreamAudioTrack} from "./common";
 
 export class LocalMedia {
     constructor(
         public readonly userMedia?: Stream,
-        public readonly microphoneMuted: boolean = false,
-        public readonly cameraMuted: boolean = false,
         public readonly screenShare?: Stream,
         public readonly dataChannelOptions?: RTCDataChannelInit,
     ) {}
 
-    withMuted(microphone: boolean, camera: boolean) {
-        return new LocalMedia(this.userMedia, microphone, camera, this.screenShare, this.dataChannelOptions);
-    }
-
     withUserMedia(stream: Stream) {
-        return new LocalMedia(stream, this.microphoneMuted, this.cameraMuted, this.screenShare, this.dataChannelOptions);
+        return new LocalMedia(stream, this.screenShare, this.dataChannelOptions);
     }
 
     withScreenShare(stream: Stream) {
-        return new LocalMedia(this.userMedia, this.microphoneMuted, this.cameraMuted, stream, this.dataChannelOptions);
+        return new LocalMedia(this.userMedia, stream, this.dataChannelOptions);
     }
 
     withDataChannel(options: RTCDataChannelInit): LocalMedia {
-        return new LocalMedia(this.userMedia, this.microphoneMuted, this.cameraMuted, this.screenShare, options);
+        return new LocalMedia(this.userMedia, this.screenShare, options);
     }
 
+    /** @internal */
     replaceClone(oldClone: LocalMedia | undefined, oldOriginal: LocalMedia | undefined): LocalMedia {
         let userMedia;
         let screenShare;
@@ -52,21 +48,21 @@ export class LocalMedia {
                 stream = oldCloneStream;
             } else {
                 stream = newStream?.clone();
-                oldCloneStream?.audioTrack?.stop();
-                oldCloneStream?.videoTrack?.stop();
+                getStreamAudioTrack(oldCloneStream)?.stop();
+                getStreamVideoTrack(oldCloneStream)?.stop();
             }
             return stream;
         }
         return new LocalMedia(
             cloneOrAdoptStream(oldOriginal?.userMedia, oldClone?.userMedia, this.userMedia),
-            this.microphoneMuted, this.cameraMuted,
             cloneOrAdoptStream(oldOriginal?.screenShare, oldClone?.screenShare, this.screenShare),
             this.dataChannelOptions
         );
     }
 
+    /** @internal */
     clone(): LocalMedia {
-        return new LocalMedia(this.userMedia?.clone(), this.microphoneMuted, this.cameraMuted, this.screenShare?.clone(), this.dataChannelOptions);
+        return new LocalMedia(this.userMedia?.clone(),this.screenShare?.clone(), this.dataChannelOptions);
     }
     
     dispose() {
@@ -75,11 +71,11 @@ export class LocalMedia {
 
     stopExcept(newMedia: LocalMedia | undefined) {
         if(newMedia?.userMedia?.id !== this.userMedia?.id) {
-            this.userMedia?.audioTrack?.stop();
-            this.userMedia?.videoTrack?.stop();
+            getStreamAudioTrack(this.userMedia)?.stop();
+            getStreamVideoTrack(this.userMedia)?.stop();
         }
         if(newMedia?.screenShare?.id !== this.screenShare?.id) {
-            this.screenShare?.videoTrack?.stop();
+            getStreamVideoTrack(this.screenShare)?.stop();
         }
     }
 }
