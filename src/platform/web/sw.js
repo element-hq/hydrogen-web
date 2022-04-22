@@ -96,7 +96,7 @@ let pendingFetchAbortController = new AbortController();
 async function handleRequest(request) {
     try {
         if (request.url.includes("config.json")) {
-            return handleConfigRequest(request);
+            return await handleConfigRequest(request);
         }
         const url = new URL(request.url);
         // rewrite / to /index.html so it hits the cache
