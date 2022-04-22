@@ -57,7 +57,7 @@ export class CallViewModel extends ViewModel<Options> {
     }
 
     async toggleVideo() {
-        //this.call.setMuted();
+        this.call.setMuted(this.call.muteSettings.toggleCamera());
     }
 }
 

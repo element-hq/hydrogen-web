@@ -17,7 +17,7 @@ limitations under the License.
 import {ObservableMap} from "../../observable/map/ObservableMap";
 import {recursivelyAssign} from "../../utils/recursivelyAssign";
 import {Disposables, Disposable, IDisposable} from "../../utils/Disposables";
-import {WebRTC, PeerConnection, Receiver, PeerConnectionEventMap} from "../../platform/types/WebRTC";
+import {WebRTC, PeerConnection, Transceiver, TransceiverDirection, Sender, Receiver, PeerConnectionEventMap} from "../../platform/types/WebRTC";
 import {MediaDevices, Track, TrackKind, Stream, StreamTrackEvent} from "../../platform/types/MediaDevices";
 import {getStreamVideoTrack, getStreamAudioTrack, MuteSettings} from "./common";
 import {
@@ -166,13 +166,14 @@ export class PeerCall implements IDisposable {
         return this._remoteMedia;
     }
 
-    call(localMedia: LocalMedia): Promise<void> {
+    call(localMedia: LocalMedia, localMuteSettings: MuteSettings): Promise<void> {
         return this.logItem.wrap("call", async log => {
             if (this._state !== CallState.Fledgling) {
                 return;
             }
             this.direction = CallDirection.Outbound;
             this.setState(CallState.CreateOffer, log);
+            this.localMuteSettings = localMuteSettings;
             await this.updateLocalMedia(localMedia, log);
             if (this.localMedia?.dataChannelOptions) {
                 this._dataChannel = this.peerConnection.createDataChannel("channel", this.localMedia.dataChannelOptions);
@@ -183,12 +184,13 @@ export class PeerCall implements IDisposable {
         });
     }
 
-    answer(localMedia: LocalMedia): Promise<void> {
+    answer(localMedia: LocalMedia, localMuteSettings: MuteSettings): Promise<void> {
         return this.logItem.wrap("answer", async log => {
             if (this._state !== CallState.Ringing) {
                 return;
             }
             this.setState(CallState.CreateAnswer, log);
+            this.localMuteSettings = localMuteSettings;
             await this.updateLocalMedia(localMedia, log);
             let myAnswer: RTCSessionDescriptionInit;
             try {
@@ -235,9 +237,51 @@ export class PeerCall implements IDisposable {
         });
     }
 
+    setMuted(localMuteSettings: MuteSettings) {
+        return this.logItem.wrap("setMuted", async log => {
+            this.localMuteSettings = localMuteSettings;
+            log.set("cameraMuted", localMuteSettings.camera);
+            log.set("microphoneMuted", localMuteSettings.microphone);
+
+            if (this.localMedia) {
+                const userMediaAudio = getStreamAudioTrack(this.localMedia.userMedia);
+                if (userMediaAudio) {
+                    this.muteTrack(userMediaAudio, this.localMuteSettings.microphone, log);
+                }
+                const userMediaVideo = getStreamVideoTrack(this.localMedia.userMedia);
+                if (userMediaVideo) {
+                    this.muteTrack(userMediaVideo, this.localMuteSettings.camera, log);
+                }
+                const content: MCallSDPStreamMetadataChanged<MCallBase> = {
+                    call_id: this.callId,
+                    version: 1,
+                    seq: this.seq++,
+                    [SDPStreamMetadataKey]: this.getSDPMetadata()
+                };
+                await this.sendSignallingMessage({type: EventType.SDPStreamMetadataChangedPrefix, content}, log);
+            }
+        });
+    }
+
     hangup(errorCode: CallErrorCode): Promise<void> {
         return this.logItem.wrap("hangup", log => {
             return this._hangup(errorCode, log);
+        });
+    }
+
+    private muteTrack(track: Track, muted: boolean, log: ILogItem): void {
+        log.wrap({l: "track", kind: track.kind, id: track.id}, log => {
+            const enabled = !muted;
+            log.set("enabled", enabled);
+            const transceiver = this.findTransceiverForTrack(track);
+            if (transceiver) {
+                if (transceiver.sender.track) {
+                    transceiver.sender.track.enabled = enabled;
+                }
+                log.set("fromDirection", transceiver.direction);
+                enableSenderOnTransceiver(transceiver, enabled);
+                log.set("toDirection", transceiver.direction);
+            }
         });
     }
 
@@ -872,9 +916,16 @@ export class PeerCall implements IDisposable {
 
     private findReceiverForStream(kind: TrackKind, streamId: string): Receiver | undefined {
         return this.peerConnection.getReceivers().find(r => {
-            return r.track.kind === "audio" && this._remoteTrackToStreamId.get(r.track.id) === streamId;
+            return r.track.kind === kind && this._remoteTrackToStreamId.get(r.track.id) === streamId;
         });
     }
+
+    private findTransceiverForTrack(track: Track): Transceiver | undefined {
+        return this.peerConnection.getTransceivers().find(t => {
+            return t.sender.track?.id === track.id;
+        });
+    }
+
 
     private onRemoteTrack(track: Track, streams: ReadonlyArray<Stream>, log: ILogItem) {
         if (streams.length === 0) {
@@ -1072,7 +1123,22 @@ export function handlesEventType(eventType: string): boolean {
             eventType === EventType.Negotiate;
 }
 
+function enableSenderOnTransceiver(transceiver: Transceiver, enabled: boolean) {
+    return enableTransceiver(transceiver, enabled, "sendonly", "recvonly");
+}
 
-export function tests() {
-
+function enableTransceiver(transceiver: Transceiver, enabled: boolean, exclusiveValue: TransceiverDirection, excludedValue: TransceiverDirection) {
+    if (enabled) {
+        if (transceiver.direction === "inactive") {
+            transceiver.direction = exclusiveValue;
+        } else {
+            transceiver.direction = "sendrecv";
+        }
+    } else {
+        if (transceiver.direction === "sendrecv") {
+            transceiver.direction = excludedValue;
+        } else {
+            transceiver.direction = "inactive";
+        }
+    }
 }

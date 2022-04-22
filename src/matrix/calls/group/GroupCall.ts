@@ -17,6 +17,7 @@ limitations under the License.
 import {ObservableMap} from "../../../observable/map/ObservableMap";
 import {Member} from "./Member";
 import {LocalMedia} from "../LocalMedia";
+import {MuteSettings} from "../common";
 import {RoomMember} from "../../room/members/RoomMember";
 import {EventEmitter} from "../../../utils/EventEmitter";
 import {EventType, CallIntent} from "../callEventTypes";
@@ -63,6 +64,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
     private _localMedia?: LocalMedia = undefined;
     private _memberOptions: MemberOptions;
     private _state: GroupCallState;
+    private localMuteSettings: MuteSettings = new MuteSettings(false, false);
 
     constructor(
         public readonly id: string,
@@ -118,7 +120,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
             this.emitChange();
             // send invite to all members that are < my userId
             for (const [,member] of this._members) {
-                member.connect(this._localMedia!.clone());
+                member.connect(this._localMedia!.clone(), this.localMuteSettings);
             }
         });
     }
@@ -132,6 +134,19 @@ export class GroupCall extends EventEmitter<{change: never}> {
             }));
             oldMedia?.stopExcept(localMedia);
         }
+    }
+
+    setMuted(muteSettings: MuteSettings) {
+        this.localMuteSettings = muteSettings;
+        if (this._state === GroupCallState.Joining || this._state === GroupCallState.Joined) {
+            for (const [,member] of this._members) {
+                member.setMuted(this.localMuteSettings);
+            }
+        }
+    }
+
+    get muteSettings(): MuteSettings {
+        return this.localMuteSettings;
     }
 
     get hasJoined() {
@@ -230,7 +245,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
                             this._members.add(memberKey, member);
                             if (this._state === GroupCallState.Joining || this._state === GroupCallState.Joined) {
                                 // Safari can't send a MediaStream to multiple sources, so clone it
-                                member.connect(this._localMedia!.clone());
+                                member.connect(this._localMedia!.clone(), this.localMuteSettings);
                             }
                         }
                     }

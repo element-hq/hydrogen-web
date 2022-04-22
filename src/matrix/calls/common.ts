@@ -26,4 +26,12 @@ export function getStreamVideoTrack(stream: Stream | undefined): Track | undefin
 
 export class MuteSettings {
     constructor (public readonly microphone: boolean, public readonly camera: boolean) {}
+
+    toggleCamera(): MuteSettings {
+        return new MuteSettings(this.microphone, !this.camera);
+    }
+
+    toggleMicrophone(): MuteSettings {
+        return new MuteSettings(!this.microphone, this.camera);
+    }
 }
