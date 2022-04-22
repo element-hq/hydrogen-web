@@ -75,11 +75,7 @@ self.addEventListener('fetch', (event) => {
     This has to do with xhr not being supported in service workers.
     */
     if (event.request.method === "GET") {
-        if (event.request.url.includes("config.json")) {
-            event.respondWith(handleConfigRequest(event.request));
-        } else {
-            event.respondWith(handleRequest(event.request));
-        }
+        event.respondWith(handleRequest(event.request));
     }
 });
 
@@ -96,8 +92,12 @@ function isCacheableThumbnail(url) {
 
 const baseURL = new URL(self.registration.scope);
 let pendingFetchAbortController = new AbortController();
+
 async function handleRequest(request) {
     try {
+        if (request.url.includes("config.json")) {
+            return handleConfigRequest(request);
+        }
         const url = new URL(request.url);
         // rewrite / to /index.html so it hits the cache
         if (url.origin === baseURL.origin && url.pathname === baseURL.pathname) {
