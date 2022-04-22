@@ -125,12 +125,12 @@ async function handleRequest(request) {
 
 async function handleConfigRequest(request) {
     let response = await readCache(request);
+    const networkResponsePromise = fetchAndUpdateConfig(request);
     if (response) {
-        fetchAndUpdateConfig(request);
         return response;
+    } else {
+        return await networkResponsePromise;
     }
-    response = await fetchAndUpdateConfig(request);
-    return response;
 }
 
 async function fetchAndUpdateConfig(request) {
