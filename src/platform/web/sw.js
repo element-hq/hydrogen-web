@@ -124,11 +124,6 @@ async function handleRequest(request) {
 }
 
 async function handleConfigRequest(request) {
-    const url = new URL(request.url);
-    // rewrite / to /index.html so it hits the cache
-    if (url.origin === baseURL.origin && url.pathname === baseURL.pathname) {
-        request = new Request(new URL("index.html", baseURL.href));
-    }
     let response = await readCache(request);
     if (response) {
         fetchAndUpdateConfig(request);
