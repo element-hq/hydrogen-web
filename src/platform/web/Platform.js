@@ -128,10 +128,11 @@ function adaptUIOnVisualViewportResize(container) {
 }
 
 export class Platform {
-    constructor(container, assetPaths, config, options = null, cryptoExtras = null) {
+    constructor({ container, assetPaths, config, configURL, options = null, cryptoExtras = null }) {
         this._container = container;
         this._assetPaths = assetPaths;
         this._config = config;
+        this._configURL = configURL;
         this.settingsStorage = new SettingsStorage("hydrogen_setting_v1_");
         this.clock = new Clock();
         this.encoding = new Encoding();
@@ -144,7 +145,7 @@ export class Platform {
             this._serviceWorkerHandler = new ServiceWorkerHandler();
             this._serviceWorkerHandler.registerAndStart(assetPaths.serviceWorker);
         }
-        this.notificationService = new NotificationService(this._serviceWorkerHandler, config.push);
+        this.notificationService = undefined;
         // Only try to use crypto when olm is provided
         if(this._assetPaths.olm) {
             this.crypto = new Crypto(cryptoExtras);
@@ -167,6 +168,20 @@ export class Platform {
         this._workerPromise = undefined;
         this.mediaDevices = new MediaDevicesWrapper(navigator.mediaDevices);
         this.webRTC = new DOMWebRTC();
+    }
+
+    async init() {
+        if (!this._config) {
+            if (!this._configURL) {
+                throw new Error("Neither config nor configURL was provided!");
+            }
+            const {body}= await this.request(this._configURL, {method: "GET", format: "json", cache: true}).response();
+            this._config = body;
+        }
+        this._notificationService = new NotificationService(
+            this._serviceWorkerHandler,
+            this._config.push
+        );
     }
 
     _createLogger(isDevelopment) {

@@ -37,7 +37,7 @@ module.exports.buildColorizedSVG = function (svgLocation, primaryColor, secondar
     if (svgCode === coloredSVGCode) {
         throw new Error("svg-colorizer made no color replacements! The input svg should only contain colors #ff00ff (primary, case-sensitive) and #00ffff (secondary, case-sensitive).");
     }
-    const fileName = svgLocation.match(/.+\/(.+\.svg)/)[1];
+    const fileName = svgLocation.match(/.+[/\\](.+\.svg)/)[1];
     const outputName = `${fileName.substring(0, fileName.length - 4)}-${createHash(coloredSVGCode)}.svg`;
     const outputPath = path.resolve(__dirname, "../../.tmp");
     try {
