@@ -178,7 +178,7 @@ export class Platform {
             const {body}= await this.request(this._configURL, {method: "GET", format: "json", cache: true}).response();
             this._config = body;
         }
-        this._notificationService = new NotificationService(
+        this.notificationService = new NotificationService(
             this._serviceWorkerHandler,
             this._config.push
         );
