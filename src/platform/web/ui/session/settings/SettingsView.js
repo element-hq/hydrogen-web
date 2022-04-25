@@ -93,12 +93,12 @@ export class SettingsView extends TemplateView {
                 ]);
             })
         );
-
+        
         settingNodes.push(
             t.h3("Preferences"),
             row(t, vm.i18n`Scale down images when sending`, this._imageCompressionRange(t, vm)),
             t.map(vm => vm.activeTheme, (theme, t) => {
-                return row(t, vm.i18n`Use the following theme`, this._themeOptions(t, vm, theme));
+                return !import.meta.env.DEV? row(t, vm.i18n`Use the following theme`, this._themeOptions(t, vm, theme)): null;
             }),
         );
         settingNodes.push(

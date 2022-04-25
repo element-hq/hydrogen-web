@@ -77,7 +77,9 @@ export class SettingsViewModel extends ViewModel {
         this.sentImageSizeLimit = await this.platform.settingsStorage.getInt("sentImageSizeLimit");
         this.pushNotifications.supported = await this.platform.notificationService.supportsPush();
         this.pushNotifications.enabled = await this._session.arePushNotificationsEnabled();
-        this._activeTheme = await this.platform.getActiveTheme();
+        if (!import.meta.env.DEV) {
+            this._activeTheme = await this.platform.getActiveTheme();
+        }
         this.emitChange("");
     }
 
