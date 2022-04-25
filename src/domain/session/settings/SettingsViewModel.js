@@ -127,6 +127,14 @@ export class SettingsViewModel extends ViewModel {
         return this._formatBytes(this._estimate?.usage);
     }
 
+    get themes() {
+        return this.platform.themes;
+    }
+
+    setTheme(name) {
+        this.platform.setTheme(name);
+    }
+
     _formatBytes(n) {
         if (typeof n === "number") {
             return Math.round(n / (1024 * 1024)).toFixed(1) + " MB";

@@ -31,6 +31,17 @@ function appendVariablesToCSS(variables, cssSource) {
     return cssSource + getRootSectionWithVariables(variables);
 }
 
+function addThemesToConfig(bundle, themeSummary) {
+    for (const [fileName, info] of Object.entries(bundle)) {
+        if (fileName === "assets/config.json") {
+            const source = new TextDecoder().decode(info.source);
+            const config = JSON.parse(source);
+            config["themes"] = themeSummary;
+            info.source = new TextEncoder().encode(JSON.stringify(config));
+        }
+    }
+}
+
 function parseBundle(bundle) {
     const chunkMap = new Map();
     const assetMap = new Map();
@@ -215,6 +226,7 @@ module.exports = function buildThemes(options) {
                         type: "text/css",
                         media: "(prefers-color-scheme: dark)",
                         href: `./${darkThemeLocation}`,
+                        class: "default-theme",
                     }
                 },
                 {
@@ -224,6 +236,7 @@ module.exports = function buildThemes(options) {
                         type: "text/css",
                         media: "(prefers-color-scheme: light)",
                         href: `./${lightThemeLocation}`,
+                        class: "default-theme",
                     }
                 },
             ];
@@ -261,6 +274,7 @@ module.exports = function buildThemes(options) {
                     themeSummary[`${name}-${variant}`] = assetHashedFileName;
                 });
             }
+            addThemesToConfig(bundle, themeSummary);
             this.emitFile({
                 type: "asset",
                 name: "theme-summary.json",

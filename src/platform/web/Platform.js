@@ -307,6 +307,33 @@ export class Platform {
         return DEFINE_VERSION;
     }
 
+    get themes() {
+        return Object.keys(this.config["themes"]);
+    }
+
+    setTheme(themeName) {
+        const themeLocation = this.config["themes"][themeName];
+        if (!themeLocation) {
+            throw new Error(`Cannot find theme location for theme "${themeName}"!`);
+        }
+        this._replaceStylesheet(themeLocation);
+    }
+
+    _replaceStylesheet(newPath) {
+        // remove default theme 
+        const defaultStylesheets = document.getElementsByClassName("default-theme");
+        for (const tag of defaultStylesheets) {
+            tag.remove();
+        }
+        // add new theme
+        const head = document.querySelector("head");
+        const styleTag = document.createElement("link");
+        styleTag.href = `./${newPath}`;
+        styleTag.rel = "stylesheet";
+        styleTag.type = "text/css";
+        head.appendChild(styleTag);
+    }
+
     dispose() {
         this._disposables.dispose();
     }
