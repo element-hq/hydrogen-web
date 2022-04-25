@@ -129,6 +129,10 @@ export class URLRouter {
         return window.location.origin;
     }
 
+    absoluteUrlForAsset(asset) {
+        return (new URL('/assets/' + asset, window.location.origin)).toString();
+    }
+
     normalizeUrl() {
         // Remove any queryParameters from the URL
         // Gets rid of the loginToken after SSO

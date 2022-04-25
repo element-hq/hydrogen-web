@@ -24,11 +24,11 @@ export class StartOIDCLoginViewModel extends ViewModel {
         this._issuer = options.loginOptions.oidc.issuer;
         this._homeserver = options.loginOptions.homeserver;
         this._api = new OidcApi({
-            clientId: "hydrogen-web",
             issuer: this._issuer,
             request: this.platform.request,
             encoding: this.platform.encoding,
             crypto: this.platform.crypto,
+            urlCreator: this.urlCreator,
         });
     }
 
@@ -42,6 +42,7 @@ export class StartOIDCLoginViewModel extends ViewModel {
     async discover() {
         // Ask for the metadata once so it gets discovered and cached
         await this._api.metadata()
+        await this._api.ensureRegistered();
     }
 
     async startOIDCLogin() {
@@ -49,6 +50,7 @@ export class StartOIDCLoginViewModel extends ViewModel {
             scope: "openid",
             redirectUri: this.urlCreator.createOIDCRedirectURL(),
         });
+        const clientId = await this._api.clientId();
         await Promise.all([
             this.platform.settingsStorage.setInt(`oidc_${p.state}_started_at`, Date.now()),
             this.platform.settingsStorage.setString(`oidc_${p.state}_nonce`, p.nonce),
@@ -56,6 +58,7 @@ export class StartOIDCLoginViewModel extends ViewModel {
             this.platform.settingsStorage.setString(`oidc_${p.state}_redirect_uri`, p.redirectUri),
             this.platform.settingsStorage.setString(`oidc_${p.state}_homeserver`, this._homeserver),
             this.platform.settingsStorage.setString(`oidc_${p.state}_issuer`, this._issuer),
+            this.platform.settingsStorage.setString(`oidc_${p.state}_client_id`, clientId),
         ]);
 
         const link = await this._api.authorizationEndpoint(p);

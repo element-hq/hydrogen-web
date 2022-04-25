@@ -66,7 +66,8 @@ export class OIDCLoginMethod implements ILoginMethod {
         }).response();
 
         const oidc_issuer = this._oidcApi.issuer;
+        const oidc_client_id = await this._oidcApi.clientId();
 
-        return { oidc_issuer, access_token, refresh_token, expires_in, user_id, device_id };
+        return { oidc_issuer, oidc_client_id, access_token, refresh_token, expires_in, user_id, device_id };
     }
 }
