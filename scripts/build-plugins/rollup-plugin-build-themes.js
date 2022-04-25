@@ -31,12 +31,13 @@ function appendVariablesToCSS(variables, cssSource) {
     return cssSource + getRootSectionWithVariables(variables);
 }
 
-function addThemesToConfig(bundle, themeSummary) {
+function addThemesToConfig(bundle, themeSummary, defaultThemes) {
     for (const [fileName, info] of Object.entries(bundle)) {
         if (fileName === "assets/config.json") {
             const source = new TextDecoder().decode(info.source);
             const config = JSON.parse(source);
             config["themes"] = themeSummary;
+            config["defaultTheme"] = defaultThemes;
             info.source = new TextEncoder().encode(JSON.stringify(config));
         }
     }
@@ -83,7 +84,7 @@ function parseBundle(bundle) {
 }
 
 module.exports = function buildThemes(options) {
-    let manifest, variants, defaultDark, defaultLight;
+    let manifest, variants, defaultDark, defaultLight,defaultThemes = {};
     let isDevelopment = false;
     const virtualModuleId = '@theme/'
     const resolvedVirtualModuleId = '\0' + virtualModuleId;
@@ -110,9 +111,11 @@ module.exports = function buildThemes(options) {
                         // This is the default theme, stash  the file name for later
                         if (details.dark) {
                             defaultDark = fileName;
+                            defaultThemes["dark"] = `${name}-${variant}`;
                         }
                         else {
                             defaultLight = fileName;
+                            defaultThemes["light"] = `${name}-${variant}`;
                         }
                     }
                     // emit the css as built theme bundle
@@ -274,7 +277,7 @@ module.exports = function buildThemes(options) {
                     themeSummary[`${name}-${variant}`] = assetHashedFileName;
                 });
             }
-            addThemesToConfig(bundle, themeSummary);
+            addThemesToConfig(bundle, themeSummary, defaultThemes);
             this.emitFile({
                 type: "asset",
                 name: "theme-summary.json",

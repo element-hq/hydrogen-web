@@ -319,6 +319,23 @@ export class Platform {
         return Object.keys(this.config["themes"]);
     }
 
+    async getActiveTheme() {
+        // check if theme is set via settings
+        let theme = await this.settingsStorage.getString("theme");
+        if (theme) {
+            return theme;
+        }
+        // return default theme
+        if (window.matchMedia) {
+            if (window.matchMedia("(prefers-color-scheme: dark)")) {
+                return this.config["defaultTheme"].dark;
+            } else if (window.matchMedia("(prefers-color-scheme: light)")) {
+                return this.config["defaultTheme"].light;
+            }
+        }
+        return undefined;
+    }
+
     setTheme(themeName) {
         const themeLocation = this.config["themes"][themeName];
         if (!themeLocation) {

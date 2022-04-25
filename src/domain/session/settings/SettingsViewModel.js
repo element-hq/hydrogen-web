@@ -50,6 +50,7 @@ export class SettingsViewModel extends ViewModel {
         this.minSentImageSizeLimit = 400;
         this.maxSentImageSizeLimit = 4000;
         this.pushNotifications = new PushNotificationStatus();
+        this._activeTheme = undefined;
     }
 
     get _session() {
@@ -76,6 +77,7 @@ export class SettingsViewModel extends ViewModel {
         this.sentImageSizeLimit = await this.platform.settingsStorage.getInt("sentImageSizeLimit");
         this.pushNotifications.supported = await this.platform.notificationService.supportsPush();
         this.pushNotifications.enabled = await this._session.arePushNotificationsEnabled();
+        this._activeTheme = await this.platform.getActiveTheme();
         this.emitChange("");
     }
 
@@ -129,6 +131,10 @@ export class SettingsViewModel extends ViewModel {
 
     get themes() {
         return this.platform.themes;
+    }
+
+    get activeTheme() {
+        return this._activeTheme;
     }
 
     setTheme(name) {

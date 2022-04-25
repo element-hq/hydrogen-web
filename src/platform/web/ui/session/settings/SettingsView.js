@@ -97,7 +97,9 @@ export class SettingsView extends TemplateView {
         settingNodes.push(
             t.h3("Preferences"),
             row(t, vm.i18n`Scale down images when sending`, this._imageCompressionRange(t, vm)),
-            row(t, vm.i18n`Use the following theme`, this._themeOptions(t, vm)),
+            t.map(vm => vm.activeTheme, (theme, t) => {
+                return row(t, vm.i18n`Use the following theme`, this._themeOptions(t, vm, theme));
+            }),
         );
         settingNodes.push(
             t.h3("Application"),
@@ -137,10 +139,10 @@ export class SettingsView extends TemplateView {
         })];
     }
 
-    _themeOptions(t, vm) {
+    _themeOptions(t, vm, activeTheme) {
         const optionTags = [];
         for (const name of vm.themes) {
-            optionTags.push(t.option({value: name}, name));
+            optionTags.push(t.option({value: name, selected: name === activeTheme}, name));
         }
         return t.select({onChange: (e) => vm.setTheme(e.target.value)}, optionTags);
     }
