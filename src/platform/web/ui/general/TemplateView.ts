@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { setAttribute, text, isChildren, classNames, TAG_NAMES, HTML_NS, ClassNames, Child} from "./html";
+import { setAttribute, text, isChildren, classNames, TAG_NAMES, HTML_NS, ClassNames, Child as NonBoundChild} from "./html";
 import {mountView} from "./utils";
 import {BaseUpdateView, IObservableValue} from "./BaseUpdateView";
 import {IMountArgs, ViewNode, IView} from "./types";
@@ -30,12 +30,15 @@ function objHasFns(obj: ClassNames<unknown>): obj is { [className: string]: bool
 }
 
 export type RenderFn<T> = (t: Builder<T>, vm: T) => ViewNode;
+type TextBinding<T> = (T) => string | number | boolean | undefined | null;
+type Child<T> = NonBoundChild | TextBinding<T>;
+type Children<T> = Child<T> | Child<T>[];
 type EventHandler = ((event: Event) => void);
 type AttributeStaticValue = string | boolean;
 type AttributeBinding<T> = (value: T) => AttributeStaticValue;
 export type AttrValue<T> = AttributeStaticValue | AttributeBinding<T> | EventHandler | ClassNames<T>;
 export type Attributes<T> = { [attribute: string]: AttrValue<T> };
-type ElementFn<T> = (attributes?: Attributes<T> | Child | Child[], children?: Child | Child[]) => Element;
+type ElementFn<T> = (attributes?: Attributes<T> | Children<T>, children?: Children<T>) => Element;
 export type Builder<T> = TemplateBuilder<T> & { [tagName in typeof TAG_NAMES[string][number]]: ElementFn<T> };
 
 /**
@@ -195,15 +198,15 @@ export class TemplateBuilder<T extends IObservableValue> {
         this._addAttributeBinding(node, "className", value => classNames(obj, value));
     }
 
-    _addTextBinding(fn: (value: T) => string): Text {
-        const initialValue = fn(this._value);
+    _addTextBinding(fn: (value: T) => ReturnType<TextBinding<T>>): Text {
+        const initialValue = fn(this._value)+"";
         const node = text(initialValue);
         let prevValue = initialValue;
         const binding = () => {
-            const newValue = fn(this._value);
+            const newValue = fn(this._value)+"";
             if (prevValue !== newValue) {
                 prevValue = newValue;
-                node.textContent = newValue+"";
+                node.textContent = newValue;
             }
         };
 
@@ -242,7 +245,7 @@ export class TemplateBuilder<T extends IObservableValue> {
         }
     }
 
-    _setNodeChildren(node: Element, children: Child | Child[]): void{
+    _setNodeChildren(node: Element, children: Children<T>): void{
         if (!Array.isArray(children)) {
             children = [children];
         }
@@ -276,14 +279,17 @@ export class TemplateBuilder<T extends IObservableValue> {
         return node;
     }
 
-    el(name: string, attributes?: Attributes<T> | Child | Child[], children?: Child | Child[]): ViewNode {
+    el(name: string, attributes?: Attributes<T> | Children<T>, children?: Children<T>): ViewNode {
         return this.elNS(HTML_NS, name, attributes, children);
     }
 
-    elNS(ns: string, name: string, attributes?: Attributes<T> | Child | Child[], children?: Child | Child[]): ViewNode {
+    elNS(ns: string, name: string, attributesOrChildren?: Attributes<T> | Children<T>, children?: Children<T>): ViewNode {
+        let attributes: Attributes<T> | undefined;
         if (attributes !== undefined && isChildren(attributes)) {
             children = attributes;
             attributes = undefined;
+        } else {
+            attributes = attributesOrChildren as Attributes<T>;
         }
 
         const node = document.createElementNS(ns, name);
