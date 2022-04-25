@@ -136,7 +136,6 @@ export class Client {
                 try {
                     const oidcApi = new OidcApi({
                         issuer,
-                        clientId: "hydrogen-web",
                         request: this._platform.request,
                         encoding: this._platform.encoding,
                         crypto: this._platform.crypto,
@@ -200,6 +199,20 @@ export class Client {
                     homeserver: loginMethod.homeserver,
                     accessToken: loginData.access_token,
                 };
+
+                if (loginData.refresh_token) {
+                    sessionInfo.refreshToken = loginData.refresh_token;
+                }
+
+                if (loginData.expires_in) {
+                    sessionInfo.accessTokenExpiresAt = clock.now() + loginData.expires_in * 1000;
+                }
+
+                if (loginData.oidc_issuer) {
+                    sessionInfo.oidcIssuer = loginData.oidc_issuer;
+                    sessionInfo.oidcClientId = loginData.oidc_client_id;
+                }
+
                 log.set("id", sessionId);
             } catch (err) {
                 this._error = err;
@@ -259,7 +272,7 @@ export class Client {
         if (sessionInfo.oidcIssuer) {
             const oidcApi = new OidcApi({
                 issuer: sessionInfo.oidcIssuer,
-                clientId: "hydrogen-web",
+                clientId: sessionInfo.oidcClientId,
                 request: this._platform.request,
                 encoding: this._platform.encoding,
                 crypto: this._platform.crypto,

@@ -50,18 +50,19 @@ export class CompleteOIDCLoginViewModel extends ViewModel {
         }
         const code = this._code;
         // TODO: cleanup settings storage
-        const [startedAt, nonce, codeVerifier, redirectUri, homeserver, issuer] = await Promise.all([
+        const [startedAt, nonce, codeVerifier, redirectUri, homeserver, issuer, clientId] = await Promise.all([
             this.platform.settingsStorage.getInt(`oidc_${this._state}_started_at`),
             this.platform.settingsStorage.getString(`oidc_${this._state}_nonce`),
             this.platform.settingsStorage.getString(`oidc_${this._state}_code_verifier`),
             this.platform.settingsStorage.getString(`oidc_${this._state}_redirect_uri`),
             this.platform.settingsStorage.getString(`oidc_${this._state}_homeserver`),
             this.platform.settingsStorage.getString(`oidc_${this._state}_issuer`),
+            this.platform.settingsStorage.getString(`oidc_${this._state}_client_id`),
         ]);
 
         const oidcApi = new OidcApi({
             issuer,
-            clientId: "hydrogen-web",
+            clientId,
             request: this._request,
             encoding: this._encoding,
             crypto: this._crypto,
