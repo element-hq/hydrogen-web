@@ -84,7 +84,7 @@ function parseBundle(bundle) {
 }
 
 module.exports = function buildThemes(options) {
-    let manifest, variants, defaultDark, defaultLight,defaultThemes = {};
+    let manifest, variants, defaultDark, defaultLight, defaultThemes = {};
     let isDevelopment = false;
     const virtualModuleId = '@theme/'
     const resolvedVirtualModuleId = '\0' + virtualModuleId;
