@@ -285,10 +285,12 @@ export class TemplateBuilder<T extends IObservableValue> {
 
     elNS(ns: string, name: string, attributesOrChildren?: Attributes<T> | Children<T>, children?: Children<T>): ViewNode {
         let attributes: Attributes<T> | undefined;
-        if (attributes !== undefined && isChildren(attributes)) {
-            children = attributes;
-        } else {
-            attributes = attributesOrChildren as Attributes<T>;
+        if (attributesOrChildren) {
+            if (isChildren(attributesOrChildren)) {
+                children = attributesOrChildren as Children<T>;
+            } else {
+                attributes = attributesOrChildren as Attributes<T>;
+            }
         }
 
         const node = document.createElementNS(ns, name);
