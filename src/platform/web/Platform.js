@@ -178,6 +178,14 @@ export class Platform {
             this._serviceWorkerHandler,
             this._config.push
         );
+        await this._loadThemeFromSetting();
+    }
+
+    async _loadThemeFromSetting() {
+        const themeName = await this.settingsStorage.getString("theme");
+        if (themeName) {
+            this.setTheme(themeName);
+        }
     }
 
     _createLogger(isDevelopment) {

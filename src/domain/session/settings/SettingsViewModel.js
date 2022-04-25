@@ -133,6 +133,7 @@ export class SettingsViewModel extends ViewModel {
 
     setTheme(name) {
         this.platform.setTheme(name);
+        this.platform.settingsStorage.setString("theme", name);
     }
 
     _formatBytes(n) {
