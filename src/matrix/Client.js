@@ -134,7 +134,6 @@ export class Client {
                 try {
                     const oidcApi = new OidcApi({
                         issuer,
-                        clientId: "hydrogen-web",
                         request: this._platform.request,
                         encoding: this._platform.encoding,
                         crypto: this._platform.crypto,
@@ -204,6 +203,7 @@ export class Client {
 
                 if (loginData.oidc_issuer) {
                     sessionInfo.oidcIssuer = loginData.oidc_issuer;
+                    sessionInfo.oidcClientId = loginData.oidc_client_id;
                 }
 
                 log.set("id", sessionId);
@@ -265,7 +265,7 @@ export class Client {
         if (sessionInfo.oidcIssuer) {
             const oidcApi = new OidcApi({
                 issuer: sessionInfo.oidcIssuer,
-                clientId: "hydrogen-web",
+                clientId: sessionInfo.oidcClientId,
                 request: this._platform.request,
                 encoding: this._platform.encoding,
                 crypto: this._platform.crypto,

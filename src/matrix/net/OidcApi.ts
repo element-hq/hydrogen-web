@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import type {RequestFunction} from "../../platform/types/types";
+import type {URLRouter} from "../../domain/navigation/URLRouter.js";
 
 const WELL_KNOWN = ".well-known/openid-configuration";
 
@@ -54,18 +55,35 @@ function assert(condition: any, message: string): asserts condition {
 
 export class OidcApi {
     _issuer: string;
-    _clientId: string;
     _requestFn: RequestFunction;
     _encoding: any;
     _crypto: any;
+    _urlCreator: URLRouter;
     _metadataPromise: Promise<any>;
+    _registrationPromise: Promise<any>;
 
-    constructor({ issuer, clientId, request, encoding, crypto }) {
+    constructor({ issuer, request, encoding, crypto, urlCreator, clientId }) {
         this._issuer = issuer;
-        this._clientId = clientId;
         this._requestFn = request;
         this._encoding = encoding;
         this._crypto = crypto;
+        this._urlCreator = urlCreator;
+
+        if (clientId) {
+            this._registrationPromise = Promise.resolve({ client_id: clientId });
+        }
+    }
+
+    get clientMetadata() {
+        return {
+            client_name: "Hydrogen Web",
+            logo_uri: this._urlCreator.absoluteUrlForAsset("icon.png"),
+            response_types: ["code"],
+            grant_types: ["authorization_code", "refresh_token"],
+            redirect_uris: [this._urlCreator.createOIDCRedirectURL()],
+            id_token_signed_response_alg: "RS256",
+            token_endpoint_auth_method: "none",
+        };
     }
 
     get metadataUrl() {
@@ -76,11 +94,35 @@ export class OidcApi {
         return this._issuer;
     }
 
-    get redirectUri() {
-        return window.location.origin;
+    async clientId(): Promise<string> {
+        return (await this.registration())["client_id"];
     }
 
-    metadata() {
+    registration(): Promise<any> {
+        if (!this._registrationPromise) {
+            this._registrationPromise = (async () => {
+                const headers = new Map();
+                headers.set("Accept", "application/json");
+                headers.set("Content-Type", "application/json");
+                const req = this._requestFn(await this.registrationEndpoint(), {
+                    method: "POST",
+                    headers,
+                    format: "json",
+                    body: JSON.stringify(this.clientMetadata),
+                });
+                const res = await req.response();
+                if (res.status >= 400) {
+                    throw new Error("failed to register client");
+                }
+
+                return res.body;
+            })();
+        }
+
+        return this._registrationPromise;
+    }
+
+    metadata(): Promise<any> {
         if (!this._metadataPromise) {
             this._metadataPromise = (async () => {
                 const headers = new Map();
@@ -105,6 +147,7 @@ export class OidcApi {
         const m = await this.metadata();
         assert(typeof m.authorization_endpoint === "string", "Has an authorization endpoint");
         assert(typeof m.token_endpoint === "string", "Has a token endpoint");
+        assert(typeof m.registration_endpoint === "string", "Has a registration endpoint");
         assert(Array.isArray(m.response_types_supported) && m.response_types_supported.includes("code"), "Supports the code response type");
         assert(Array.isArray(m.response_modes_supported) && m.response_modes_supported.includes("fragment"), "Supports the fragment response mode");
         assert(Array.isArray(m.grant_types_supported) && m.grant_types_supported.includes("authorization_code"), "Supports the authorization_code grant type");
@@ -126,13 +169,13 @@ export class OidcApi {
         scope,
         nonce,
         codeVerifier,
-    }: AuthorizationParams) {
+    }: AuthorizationParams): Promise<string> {
         const metadata = await this.metadata();
         const url = new URL(metadata["authorization_endpoint"]);
         url.searchParams.append("response_mode", "fragment");
         url.searchParams.append("response_type", "code");
         url.searchParams.append("redirect_uri", redirectUri);
-        url.searchParams.append("client_id", this._clientId);
+        url.searchParams.append("client_id", await this.clientId());
         url.searchParams.append("state", state);
         url.searchParams.append("scope", scope);
         if (nonce) {
@@ -147,9 +190,14 @@ export class OidcApi {
         return url.toString();
     }
 
-    async tokenEndpoint() {
+    async tokenEndpoint(): Promise<string> {
         const metadata = await this.metadata();
         return metadata["token_endpoint"];
+    }
+
+    async registrationEndpoint(): Promise<string> {
+        const metadata = await this.metadata();
+        return metadata["registration_endpoint"];
     }
 
     generateParams({ scope, redirectUri }: { scope: string, redirectUri: string }): AuthorizationParams {
@@ -169,7 +217,7 @@ export class OidcApi {
     }: { codeVerifier: string, code: string, redirectUri: string }): Promise<BearerToken> {
         const params = new URLSearchParams();
         params.append("grant_type", "authorization_code");
-        params.append("client_id", this._clientId);
+        params.append("client_id", await this.clientId());
         params.append("code_verifier", codeVerifier);
         params.append("redirect_uri", redirectUri);
         params.append("code", code);
@@ -201,7 +249,7 @@ export class OidcApi {
     }: { refreshToken: string }): Promise<BearerToken> {
         const params = new URLSearchParams();
         params.append("grant_type", "refresh_token");
-        params.append("client_id", this._clientId);
+        params.append("client_id", await this.clientId());
         params.append("refresh_token", refreshToken);
         const body = params.toString();
 

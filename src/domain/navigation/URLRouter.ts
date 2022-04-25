@@ -156,6 +156,10 @@ export class URLRouter<T extends {session: string | boolean}> implements IURLRou
         return window.location.origin;
     }
 
+    absoluteUrlForAsset(asset: string): string {
+        return (new URL('/assets/' + asset, window.location.origin)).toString();
+    }
+
     normalizeUrl(): void {
         // Remove any queryParameters from the URL
         // Gets rid of the loginToken after SSO
