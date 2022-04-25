@@ -287,7 +287,6 @@ export class TemplateBuilder<T extends IObservableValue> {
         let attributes: Attributes<T> | undefined;
         if (attributes !== undefined && isChildren(attributes)) {
             children = attributes;
-            attributes = undefined;
         } else {
             attributes = attributesOrChildren as Attributes<T>;
         }
