@@ -181,7 +181,7 @@ export class TemplateBuilder<T extends IObservableValue> {
         this._templateView._addEventListener(node, name, fn, useCapture);
     }
 
-    _addAttributeBinding(node: Element, name: string, fn: (value: T) => boolean | string): void {
+    _addAttributeBinding(node: Element, name: string, fn: AttributeBinding<T>): void {
         let prevValue: string | boolean | undefined = undefined;
         const binding = () => {
             const newValue = fn(this._value);
