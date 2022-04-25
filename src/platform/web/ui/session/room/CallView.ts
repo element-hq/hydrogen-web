@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView, TemplateBuilder} from "../../general/TemplateView";
+import {TemplateView, Builder} from "../../general/TemplateView";
 import {ListView} from "../../general/ListView";
 import {Stream} from "../../../../types/MediaDevices";
 import {getStreamVideoTrack, getStreamAudioTrack} from "../../../../../matrix/calls/common";
@@ -38,7 +38,7 @@ function bindStream<T>(t: TemplateBuilder<T>, video: HTMLVideoElement, propSelec
 }
 
 export class CallView extends TemplateView<CallViewModel> {
-    render(t: TemplateBuilder<CallViewModel>, vm: CallViewModel): HTMLElement {
+    render(t: Builder<CallViewModel>, vm: CallViewModel): Element {
         return t.div({class: "CallView"}, [
             t.p(vm => `Call ${vm.name} (${vm.id})`),
             t.div({class: "CallView_me"}, bindStream(t, t.video({autoplay: true, width: 240}), vm => vm.localStream)),
