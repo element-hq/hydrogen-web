@@ -345,17 +345,15 @@ export class Platform {
     }
 
     _replaceStylesheet(newPath) {
-        // remove default theme 
-        const defaultStylesheets = document.getElementsByClassName("default-theme");
-        for (const tag of defaultStylesheets) {
-            tag.remove();
-        }
-        // add new theme
         const head = document.querySelector("head");
+        // remove default theme 
+        document.querySelectorAll(".theme").forEach(e => e.remove());
+        // add new theme
         const styleTag = document.createElement("link");
         styleTag.href = `./${newPath}`;
         styleTag.rel = "stylesheet";
         styleTag.type = "text/css";
+        styleTag.className = "theme";
         head.appendChild(styleTag);
     }
 

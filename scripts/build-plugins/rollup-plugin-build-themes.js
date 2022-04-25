@@ -229,7 +229,7 @@ module.exports = function buildThemes(options) {
                         type: "text/css",
                         media: "(prefers-color-scheme: dark)",
                         href: `./${darkThemeLocation}`,
-                        class: "default-theme",
+                        class: "theme",
                     }
                 },
                 {
@@ -239,7 +239,7 @@ module.exports = function buildThemes(options) {
                         type: "text/css",
                         media: "(prefers-color-scheme: light)",
                         href: `./${lightThemeLocation}`,
-                        class: "default-theme",
+                        class: "theme",
                     }
                 },
             ];
