@@ -952,7 +952,7 @@ export class PeerCall implements IDisposable {
                         }
                         const videoReceiver = this.findReceiverForStream(TrackKind.Video, stream.id);
                         if (videoReceiver) {
-                            videoReceiver.track.enabled = !metaData.audio_muted;
+                            videoReceiver.track.enabled = !metaData.video_muted;
                         }
                         this._remoteMuteSettings = new MuteSettings(
                             metaData.audio_muted || !audioReceiver?.track,
