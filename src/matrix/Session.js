@@ -21,7 +21,7 @@ import {RoomStatus} from "./room/common";
 import {RoomBeingCreated} from "./room/RoomBeingCreated";
 import {Invite} from "./room/Invite.js";
 import {Pusher} from "./push/Pusher";
-import { ObservableMap } from "../observable/index.js";
+import { ObservableMap } from "../observable/index";
 import {User} from "./User.js";
 import {DeviceMessageHandler} from "./DeviceMessageHandler.js";
 import {Account as E2EEAccount} from "./e2ee/Account.js";

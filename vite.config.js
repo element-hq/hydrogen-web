@@ -14,6 +14,11 @@ export default defineConfig(({mode}) => {
             outDir: "../../../target",
             minify: true,
             sourcemap: true,
+            rollupOptions: {
+                output: {
+                    assetFileNames: (asset) => asset.name.includes("config.json") ? "assets/[name][extname]": "assets/[name].[hash][extname]",
+                },
+            },
         },
         plugins: [
             themeBuilder({

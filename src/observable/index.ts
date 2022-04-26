@@ -46,3 +46,12 @@ Object.assign(BaseObservableMap.prototype, {
         return new JoinedMap([this].concat(otherMaps));
     }
 });
+
+declare module "./map/BaseObservableMap" {
+    interface BaseObservableMap<K, V> {
+        sortValues(comparator: (a: V, b: V) => number): SortedMapList<V>;
+        mapValues<M>(mapper: (V, emitSpontaneousUpdate: (params: any) => void) => M, updater: (mappedValue: M, params: any, value: V) => void): MappedMap<K, M>;
+        filterValues(filter: (V, K) => boolean): FilteredMap<K, V>;
+        join(...otherMaps: BaseObservableMap<K, V>[]): JoinedMap<K, V>;
+    }
+}

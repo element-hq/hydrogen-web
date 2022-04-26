@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 import {ObservableMap} from "../../observable/map/ObservableMap";
-import {WebRTC, PeerConnection, PeerConnectionHandler} from "../../platform/types/WebRTC";
-import {MediaDevices, Track, AudioTrack} from "../../platform/types/MediaDevices";
+import {WebRTC, PeerConnection} from "../../platform/types/WebRTC";
+import {MediaDevices, Track} from "../../platform/types/MediaDevices";
 import {handlesEventType} from "./PeerCall";
 import {EventType, CallIntent} from "./callEventTypes";
 import {GroupCall} from "./group/GroupCall";
@@ -107,7 +107,7 @@ export class CallHandler {
         });
     }
 
-    async createCall(roomId: string, callType: "m.video" | "m.voice", name: string, intent: CallIntent = CallIntent.Ring): Promise<GroupCall> {
+    async createCall(roomId: string, type: "m.video" | "m.voice", name: string, intent: CallIntent = CallIntent.Ring): Promise<GroupCall> {
         const logItem = this.options.logger.child({l: "call", incoming: false});
         const call = new GroupCall(makeId("conf-"), true, { 
             "m.name": name,
@@ -116,7 +116,7 @@ export class CallHandler {
         this._calls.set(call.id, call);
 
         try {
-            await call.create(callType);
+            await call.create(type);
             // store call info so it will ring again when reopening the app
             const txn = await this.options.storage.readWriteTxn([this.options.storage.storeNames.calls]);
             txn.calls.add({

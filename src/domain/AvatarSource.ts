@@ -1,5 +1,6 @@
 /*
-Copyright 2020 The Matrix.org Foundation C.I.C.
+Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020, 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,11 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import aesjs from "aes-js";
-import {hkdf} from "../../utils/crypto/hkdf";
-
-import {Platform as ModernPlatform} from "./Platform.js";
-
-export function Platform({ container, assetPaths, config, configURL, options = null }) {
-    return new ModernPlatform({ container, assetPaths, config, configURL, options, cryptoExtras: { aesjs, hkdf }});
+export interface AvatarSource {
+    get avatarLetter(): string;
+    get avatarColorNumber(): number;
+    avatarUrl(size: number): string | undefined;
+    get avatarTitle(): string;
 }

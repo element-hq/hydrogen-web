@@ -31,6 +31,7 @@ const commonOptions = {
         assetsInlineLimit: 0,
         polyfillModulePreload: false,
     },
+    assetsInclude: ['**/config.json'],
     define: {
         DEFINE_VERSION: JSON.stringify(version),
         DEFINE_GLOBAL_HASH: JSON.stringify(null),

@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {MediaDevices as IMediaDevices, Stream, Track, TrackKind, AudioTrack} from "../../types/MediaDevices";
+import {MediaDevices as IMediaDevices, Stream, Track, TrackKind, VolumeMeasurer} from "../../types/MediaDevices";
 
 const POLLING_INTERVAL = 200; // ms
 export const SPEAKING_THRESHOLD = -60; // dB
@@ -30,12 +30,12 @@ export class MediaDevicesWrapper implements IMediaDevices {
 
     async getMediaTracks(audio: true | MediaDeviceInfo, video: boolean | MediaDeviceInfo): Promise<Stream> {
         const stream = await this.mediaDevices.getUserMedia(this.getUserMediaContraints(audio, video));
-        return new StreamWrapper(stream);
+        return stream as Stream;
     }
 
     async getScreenShareTrack(): Promise<Stream | undefined> {
         const stream = await this.mediaDevices.getDisplayMedia(this.getScreenshareContraints());
-        return new StreamWrapper(stream);
+        return stream as Stream;
     }
 
     private getUserMediaContraints(audio: boolean | MediaDeviceInfo, video: boolean | MediaDeviceInfo): MediaStreamConstraints {
@@ -68,55 +68,13 @@ export class MediaDevicesWrapper implements IMediaDevices {
             video: true,
         };
     }
-}
 
-export class StreamWrapper implements Stream {
-
-    public audioTrack: AudioTrackWrapper | undefined = undefined;
-    public videoTrack: TrackWrapper | undefined = undefined;
-
-    constructor(public readonly stream: MediaStream) {
-        for (const track of stream.getTracks()) {
-            this.update(track);
-        }
-    }
-
-    get id(): string { return this.stream.id; }
-
-    clone(): Stream {
-        return new StreamWrapper(this.stream.clone());
-    }
-
-    update(track: MediaStreamTrack): TrackWrapper | undefined {
-        if (track.kind === "video") {
-            if (!this.videoTrack || track.id !== this.videoTrack.track.id) {
-                this.videoTrack = new TrackWrapper(track, this.stream);
-            }
-            return this.videoTrack;
-        } else if (track.kind === "audio") {
-            if (!this.audioTrack || track.id !== this.audioTrack.track.id) {
-                this.audioTrack = new AudioTrackWrapper(track, this.stream);
-            }
-            return this.audioTrack;
-        }
+    createVolumeMeasurer(stream: Stream, callback: () => void): VolumeMeasurer {
+        return new WebAudioVolumeMeasurer(stream as MediaStream, callback);
     }
 }
 
-export class TrackWrapper implements Track {
-    constructor(
-        public readonly track: MediaStreamTrack,
-        public readonly stream: MediaStream
-    ) {}
-
-    get kind(): TrackKind { return this.track.kind as TrackKind; }
-    get label(): string { return this.track.label; }
-    get id(): string { return this.track.id; }
-    get settings(): MediaTrackSettings { return this.track.getSettings(); }
-
-    stop() { this.track.stop(); }
-}
-
-export class AudioTrackWrapper extends TrackWrapper {
+export class WebAudioVolumeMeasurer implements VolumeMeasurer {
     private measuringVolumeActivity = false;
     private audioContext?: AudioContext;
     private analyser: AnalyserNode;
@@ -125,9 +83,12 @@ export class AudioTrackWrapper extends TrackWrapper {
     private speaking = false;
     private volumeLooperTimeout: number;
     private speakingVolumeSamples: number[];
+    private callback: () => void;
+    private stream: MediaStream;
 
-    constructor(track: MediaStreamTrack, stream: MediaStream) {
-        super(track, stream);
+    constructor(stream: MediaStream, callback: () => void) {
+        this.stream = stream;
+        this.callback = callback;
         this.speakingVolumeSamples = new Array(SPEAKING_SAMPLE_COUNT).fill(-Infinity);
         this.initVolumeMeasuring();
         this.measureVolumeActivity(true);
@@ -147,6 +108,7 @@ export class AudioTrackWrapper extends TrackWrapper {
         } else {
             this.measuringVolumeActivity = false;
             this.speakingVolumeSamples.fill(-Infinity);
+            this.callback();
             // this.emit(CallFeedEvent.VolumeChanged, -Infinity);
         }
     }
@@ -166,7 +128,6 @@ export class AudioTrackWrapper extends TrackWrapper {
 
         this.frequencyBinCount = new Float32Array(this.analyser.frequencyBinCount);
     }
-
 
     public setSpeakingThreshold(threshold: number) {
         this.speakingThreshold = threshold;
@@ -189,6 +150,7 @@ export class AudioTrackWrapper extends TrackWrapper {
         this.speakingVolumeSamples.shift();
         this.speakingVolumeSamples.push(maxVolume);
 
+        this.callback();
         // this.emit(CallFeedEvent.VolumeChanged, maxVolume);
 
         let newSpeaking = false;
@@ -204,267 +166,16 @@ export class AudioTrackWrapper extends TrackWrapper {
 
         if (this.speaking !== newSpeaking) {
             this.speaking = newSpeaking;
+            this.callback();
             // this.emit(CallFeedEvent.Speaking, this.speaking);
         }
 
         this.volumeLooperTimeout = setTimeout(this.volumeLooper, POLLING_INTERVAL) as unknown as number;
     };
 
-    public dispose(): void {
+    public stop(): void {
         clearTimeout(this.volumeLooperTimeout);
+        this.analyser.disconnect();
+        this.audioContext?.close();
     }
 }
-
-// export interface ICallFeedOpts {
-//     client: MatrixClient;
-//     roomId: string;
-//     userId: string;
-//     stream: MediaStream;
-//     purpose: SDPStreamMetadataPurpose;
-//     audioMuted: boolean;
-//     videoMuted: boolean;
-// }
-
-// export enum CallFeedEvent {
-//     NewStream = "new_stream",
-//     MuteStateChanged = "mute_state_changed",
-//     VolumeChanged = "volume_changed",
-//     Speaking = "speaking",
-// }
-
-// export class CallFeed extends EventEmitter {
-//     public stream: MediaStream;
-//     public sdpMetadataStreamId: string;
-//     public userId: string;
-//     public purpose: SDPStreamMetadataPurpose;
-//     public speakingVolumeSamples: number[];
-
-//     private client: MatrixClient;
-//     private roomId: string;
-//     private audioMuted: boolean;
-//     private videoMuted: boolean;
-//     private measuringVolumeActivity = false;
-//     private audioContext: AudioContext;
-//     private analyser: AnalyserNode;
-//     private frequencyBinCount: Float32Array;
-//     private speakingThreshold = SPEAKING_THRESHOLD;
-//     private speaking = false;
-//     private volumeLooperTimeout: number;
-
-//     constructor(opts: ICallFeedOpts) {
-//         super();
-
-//         this.client = opts.client;
-//         this.roomId = opts.roomId;
-//         this.userId = opts.userId;
-//         this.purpose = opts.purpose;
-//         this.audioMuted = opts.audioMuted;
-//         this.videoMuted = opts.videoMuted;
-//         this.speakingVolumeSamples = new Array(SPEAKING_SAMPLE_COUNT).fill(-Infinity);
-//         this.sdpMetadataStreamId = opts.stream.id;
-
-//         this.updateStream(null, opts.stream);
-
-//         if (this.hasAudioTrack) {
-//             this.initVolumeMeasuring();
-//         }
-//     }
-
-//     private get hasAudioTrack(): boolean {
-//         return this.stream.getAudioTracks().length > 0;
-//     }
-
-//     private updateStream(oldStream: MediaStream, newStream: MediaStream): void {
-//         if (newStream === oldStream) return;
-
-//         if (oldStream) {
-//             oldStream.removeEventListener("addtrack", this.onAddTrack);
-//             this.measureVolumeActivity(false);
-//         }
-//         if (newStream) {
-//             this.stream = newStream;
-//             newStream.addEventListener("addtrack", this.onAddTrack);
-
-//             if (this.hasAudioTrack) {
-//                 this.initVolumeMeasuring();
-//             } else {
-//                 this.measureVolumeActivity(false);
-//             }
-//         }
-
-//         this.emit(CallFeedEvent.NewStream, this.stream);
-//     }
-
-//     private initVolumeMeasuring(): void {
-//         const AudioContext = window.AudioContext || window.webkitAudioContext;
-//         if (!this.hasAudioTrack || !AudioContext) return;
-
-//         this.audioContext = new AudioContext();
-
-//         this.analyser = this.audioContext.createAnalyser();
-//         this.analyser.fftSize = 512;
-//         this.analyser.smoothingTimeConstant = 0.1;
-
-//         const mediaStreamAudioSourceNode = this.audioContext.createMediaStreamSource(this.stream);
-//         mediaStreamAudioSourceNode.connect(this.analyser);
-
-//         this.frequencyBinCount = new Float32Array(this.analyser.frequencyBinCount);
-//     }
-
-//     private onAddTrack = (): void => {
-//         this.emit(CallFeedEvent.NewStream, this.stream);
-//     };
-
-//     /**
-//      * Returns callRoom member
-//      * @returns member of the callRoom
-//      */
-//     public getMember(): RoomMember {
-//         const callRoom = this.client.getRoom(this.roomId);
-//         return callRoom.getMember(this.userId);
-//     }
-
-//     /**
-//      * Returns true if CallFeed is local, otherwise returns false
-//      * @returns {boolean} is local?
-//      */
-//     public isLocal(): boolean {
-//         return this.userId === this.client.getUserId();
-//     }
-
-//     /**
-//      * Returns true if audio is muted or if there are no audio
-//      * tracks, otherwise returns false
-//      * @returns {boolean} is audio muted?
-//      */
-//     public isAudioMuted(): boolean {
-//         return this.stream.getAudioTracks().length === 0 || this.audioMuted;
-//     }
-
-//     *
-//      * Returns true video is muted or if there are no video
-//      * tracks, otherwise returns false
-//      * @returns {boolean} is video muted?
-     
-//     public isVideoMuted(): boolean {
-//         // We assume only one video track
-//         return this.stream.getVideoTracks().length === 0 || this.videoMuted;
-//     }
-
-//     public isSpeaking(): boolean {
-//         return this.speaking;
-//     }
-
-//     /**
-//      * Replaces the current MediaStream with a new one.
-//      * This method should be only used by MatrixCall.
-//      * @param newStream new stream with which to replace the current one
-//      */
-//     public setNewStream(newStream: MediaStream): void {
-//         this.updateStream(this.stream, newStream);
-//     }
-
-//     /**
-//      * Set feed's internal audio mute state
-//      * @param muted is the feed's audio muted?
-//      */
-//     public setAudioMuted(muted: boolean): void {
-//         this.audioMuted = muted;
-//         this.speakingVolumeSamples.fill(-Infinity);
-//         this.emit(CallFeedEvent.MuteStateChanged, this.audioMuted, this.videoMuted);
-//     }
-
-//     /**
-//      * Set feed's internal video mute state
-//      * @param muted is the feed's video muted?
-//      */
-//     public setVideoMuted(muted: boolean): void {
-//         this.videoMuted = muted;
-//         this.emit(CallFeedEvent.MuteStateChanged, this.audioMuted, this.videoMuted);
-//     }
-
-//     /**
-//      * Starts emitting volume_changed events where the emitter value is in decibels
-//      * @param enabled emit volume changes
-//      */
-//     public measureVolumeActivity(enabled: boolean): void {
-//         if (enabled) {
-//             if (!this.audioContext || !this.analyser || !this.frequencyBinCount || !this.hasAudioTrack) return;
-
-//             this.measuringVolumeActivity = true;
-//             this.volumeLooper();
-//         } else {
-//             this.measuringVolumeActivity = false;
-//             this.speakingVolumeSamples.fill(-Infinity);
-//             this.emit(CallFeedEvent.VolumeChanged, -Infinity);
-//         }
-//     }
-
-//     public setSpeakingThreshold(threshold: number) {
-//         this.speakingThreshold = threshold;
-//     }
-
-//     private volumeLooper = () => {
-//         if (!this.analyser) return;
-
-//         if (!this.measuringVolumeActivity) return;
-
-//         this.analyser.getFloatFrequencyData(this.frequencyBinCount);
-
-//         let maxVolume = -Infinity;
-//         for (let i = 0; i < this.frequencyBinCount.length; i++) {
-//             if (this.frequencyBinCount[i] > maxVolume) {
-//                 maxVolume = this.frequencyBinCount[i];
-//             }
-//         }
-
-//         this.speakingVolumeSamples.shift();
-//         this.speakingVolumeSamples.push(maxVolume);
-
-//         this.emit(CallFeedEvent.VolumeChanged, maxVolume);
-
-//         let newSpeaking = false;
-
-//         for (let i = 0; i < this.speakingVolumeSamples.length; i++) {
-//             const volume = this.speakingVolumeSamples[i];
-
-//             if (volume > this.speakingThreshold) {
-//                 newSpeaking = true;
-//                 break;
-//             }
-//         }
-
-//         if (this.speaking !== newSpeaking) {
-//             this.speaking = newSpeaking;
-//             this.emit(CallFeedEvent.Speaking, this.speaking);
-//         }
-
-//         this.volumeLooperTimeout = setTimeout(this.volumeLooper, POLLING_INTERVAL);
-//     };
-
-//     public clone(): CallFeed {
-//         const mediaHandler = this.client.getMediaHandler();
-//         const stream = this.stream.clone();
-
-//         if (this.purpose === SDPStreamMetadataPurpose.Usermedia) {
-//             mediaHandler.userMediaStreams.push(stream);
-//         } else {
-//             mediaHandler.screensharingStreams.push(stream);
-//         }
-
-//         return new CallFeed({
-//             client: this.client,
-//             roomId: this.roomId,
-//             userId: this.userId,
-//             stream,
-//             purpose: this.purpose,
-//             audioMuted: this.audioMuted,
-//             videoMuted: this.videoMuted,
-//         });
-//     }
-
-//     public dispose(): void {
-//         clearTimeout(this.volumeLooperTimeout);
-//         this.measureVolumeActivity(false);
-//     }
-// }

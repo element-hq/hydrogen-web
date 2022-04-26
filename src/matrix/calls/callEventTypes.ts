@@ -1,7 +1,7 @@
 // allow non-camelcase as these are events type that go onto the wire
 /* eslint-disable camelcase */
 import type {StateEvent} from "../storage/types";
-
+import type {SessionDescription} from "../../platform/types/WebRTC";
 export enum EventType {
     GroupCall = "org.matrix.msc3401.call",
     GroupCallMember = "org.matrix.msc3401.call.member",
@@ -34,11 +34,6 @@ export interface CallMembership {
 
 export interface CallMemberContent {
     ["m.calls"]: CallMembership[];
-}
-
-export interface SessionDescription {
-    sdp?: string;
-    type: RTCSdpType
 }
 
 export enum SDPStreamMetadataPurpose {
@@ -93,6 +88,12 @@ export type MCallSelectAnswer<Base extends MCallBase> = Base & {
 
 export type MCallInvite<Base extends MCallBase> = Base & {
     offer: SessionDescription;
+    lifetime: number;
+    [SDPStreamMetadataKey]: SDPStreamMetadata;
+}
+
+export type MCallNegotiate<Base extends MCallBase> = Base & {
+    description: SessionDescription;
     lifetime: number;
     [SDPStreamMetadataKey]: SDPStreamMetadata;
 }
@@ -213,6 +214,7 @@ export enum CallErrorCode {
 
 export type SignallingMessage<Base extends MCallBase> =
     {type: EventType.Invite, content: MCallInvite<Base>} |
+    {type: EventType.Negotiate, content: MCallNegotiate<Base>} |
     {type: EventType.Answer, content: MCallAnswer<Base>} |
     {type: EventType.SDPStreamMetadataChanged | EventType.SDPStreamMetadataChangedPrefix, content: MCallSDPStreamMetadataChanged<Base>} |
     {type: EventType.Candidates, content: MCallCandidates<Base>} |

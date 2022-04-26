@@ -17,6 +17,7 @@ limitations under the License.
 import {ObservableMap} from "../../../observable/map/ObservableMap";
 import {Member} from "./Member";
 import {LocalMedia} from "../LocalMedia";
+import {MuteSettings} from "../common";
 import {RoomMember} from "../../room/members/RoomMember";
 import {EventEmitter} from "../../../utils/EventEmitter";
 import {EventType, CallIntent} from "../callEventTypes";
@@ -63,6 +64,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
     private _localMedia?: LocalMedia = undefined;
     private _memberOptions: MemberOptions;
     private _state: GroupCallState;
+    private localMuteSettings: MuteSettings = new MuteSettings(false, false);
 
     private _deviceIndex?: number;
     private _eventTimestamp?: number;
@@ -129,9 +131,34 @@ export class GroupCall extends EventEmitter<{change: never}> {
             this.emitChange();
             // send invite to all members that are < my userId
             for (const [,member] of this._members) {
-                member.connect(this._localMedia!.clone());
+                member.connect(this._localMedia!.clone(), this.localMuteSettings);
             }
         });
+    }
+
+    async setMedia(localMedia: LocalMedia): Promise<void> {
+        if (this._state === GroupCallState.Joining || this._state === GroupCallState.Joined && this._localMedia) {
+            const oldMedia = this._localMedia!;
+            this._localMedia = localMedia;
+            await Promise.all(Array.from(this._members.values()).map(m => {
+                return m.setMedia(localMedia, oldMedia);
+            }));
+            oldMedia?.stopExcept(localMedia);
+        }
+    }
+
+    setMuted(muteSettings: MuteSettings) {
+        this.localMuteSettings = muteSettings;
+        if (this._state === GroupCallState.Joining || this._state === GroupCallState.Joined) {
+            for (const [,member] of this._members) {
+                member.setMuted(this.localMuteSettings);
+            }
+        }
+        this.emitChange();
+    }
+
+    get muteSettings(): MuteSettings {
+        return this.localMuteSettings;
     }
 
     get hasJoined() {
@@ -168,7 +195,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     /** @internal */
-    create(callType: "m.video" | "m.voice"): Promise<void> {
+    create(type: "m.video" | "m.voice"): Promise<void> {
         return this.logItem.wrap("create", async log => {
             if (this._state !== GroupCallState.Fledgling) {
                 return;
@@ -176,7 +203,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
             this._state = GroupCallState.Creating;
             this.emitChange();
             this.callContent = Object.assign({
-                "m.type": callType,
+                "m.type": type,
             }, this.callContent);
             const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCall, this.id, this.callContent!, {log});
             await request.response();
@@ -235,7 +262,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
                             this._members.add(memberKey, member);
                             if (this._state === GroupCallState.Joining || this._state === GroupCallState.Joined) {
                                 // Safari can't send a MediaStream to multiple sources, so clone it
-                                member.connect(this._localMedia!.clone());
+                                member.connect(this._localMedia!.clone(), this.localMuteSettings);
                             }
                         }
                     }

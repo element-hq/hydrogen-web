@@ -9,14 +9,14 @@
 
 ## TODO
  - DONE: implement receiving hangup
- - making logging better
+ - DONE: implement cloning the localMedia so it works in safari?
+ - DONE: implement 3 retries per peer
+ - implement muting tracks with m.call.sdp_stream_metadata_changed
  - implement renegotiation
+ - making logging better
  - finish session id support
     - call peers are essentially identified by (userid, deviceid, sessionid). If see a new session id, we first disconnect from the current member so we're ready to connect with a clean slate again (in a member event, also in to_device? no harm I suppose, given olm encryption ensures you can't spoof the deviceid).
  - implement to_device messages arriving before m.call(.member) state event
- - implement muting tracks with m.call.sdp_stream_metadata_changed
- - implement cloning the localMedia so it works in safari?
- - DONE: implement 3 retries per peer
  - reeable crypto & implement fetching olm keys before sending encrypted signalling message
  - local echo for join/leave buttons?
  - make UI pretsy

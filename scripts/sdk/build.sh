@@ -1,4 +1,8 @@
 #!/bin/bash
+# Exit whenever one of the commands fail with a non-zero exit code
+set -e
+set -o pipefail
+
 rm -rf target
 yarn run vite build -c vite.sdk-assets-config.js
 yarn run vite build -c vite.sdk-lib-config.js

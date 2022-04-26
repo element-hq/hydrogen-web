@@ -19,6 +19,7 @@ import {makeTxnId, makeId} from "../../common";
 import {EventType, CallErrorCode} from "../callEventTypes";
 import {formatToDeviceMessagesPayload} from "../../common";
 
+import type {MuteSettings} from "../common";
 import type {Options as PeerCallOptions, RemoteMedia} from "../PeerCall";
 import type {LocalMedia} from "../LocalMedia";
 import type {HomeServerApi} from "../../net/HomeServerApi";
@@ -50,6 +51,7 @@ const errorCodesWithoutRetry = [
 export class Member {
     private peerCall?: PeerCall;
     private localMedia?: LocalMedia;
+    private localMuteSettings?: MuteSettings;
     private retryCount: number = 0;
 
     constructor(
@@ -63,6 +65,10 @@ export class Member {
 
     get remoteMedia(): RemoteMedia | undefined {
         return this.peerCall?.remoteMedia;
+    }
+
+    get remoteMuteSettings(): MuteSettings | undefined {
+        return this.peerCall?.remoteMuteSettings;
     }
 
     get isConnected(): boolean {
@@ -90,9 +96,10 @@ export class Member {
     }
 
     /** @internal */
-    connect(localMedia: LocalMedia) {
+    connect(localMedia: LocalMedia, localMuteSettings: MuteSettings) {
         this.logItem.wrap("connect", () => {
             this.localMedia = localMedia;
+            this.localMuteSettings = localMuteSettings;
             // otherwise wait for it to connect
             let shouldInitiateCall;
             // the lexicographically lower side initiates the call
@@ -103,7 +110,7 @@ export class Member {
             }
             if (shouldInitiateCall) {
                 this.peerCall = this._createPeerCall(makeId("c"));
-                this.peerCall.call(localMedia);
+                this.peerCall.call(localMedia, localMuteSettings);
             }
         });
     }
@@ -133,7 +140,7 @@ export class Member {
     /** @internal */
     emitUpdate = (peerCall: PeerCall, params: any) => {
         if (peerCall.state === CallState.Ringing) {
-            peerCall.answer(this.localMedia!);
+            peerCall.answer(this.localMedia!, this.localMuteSettings!);
         }
         else if (peerCall.state === CallState.Ended) {
             const hangupReason = peerCall.hangupReason;
@@ -142,7 +149,7 @@ export class Member {
             if (hangupReason && !errorCodesWithoutRetry.includes(hangupReason)) {
                 this.retryCount += 1;
                 if (this.retryCount <= 3) {
-                    this.connect(this.localMedia!);
+                    this.connect(this.localMedia!, this.localMuteSettings!);
                 }
             }
         }
@@ -166,6 +173,8 @@ export class Member {
                 }
             }
         };
+        // TODO: remove this for release
+        log.set("payload", groupMessage.content);
         const request = this.options.hsApi.sendToDevice(
             message.type,
             //"m.room.encrypted",
@@ -192,6 +201,17 @@ export class Member {
         } else {
             // TODO: need to buffer events until invite comes?
         }
+    }
+
+    /** @internal */
+    async setMedia(localMedia: LocalMedia, previousMedia: LocalMedia): Promise<void> {
+        this.localMedia = localMedia.replaceClone(this.localMedia, previousMedia);
+        await this.peerCall?.setMedia(this.localMedia);
+    }
+
+    setMuted(muteSettings: MuteSettings) {
+        this.localMuteSettings = muteSettings;
+        this.peerCall?.setMuted(muteSettings);
     }
 
     private _createPeerCall(callId: string): PeerCall {
