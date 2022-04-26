@@ -98,7 +98,7 @@ export class PeerCall implements IDisposable {
     private _dataChannel?: any;
     private _hangupReason?: CallErrorCode;
     private _remoteMedia: RemoteMedia;
-    private remoteMuteSettings?: MuteSettings;
+    private _remoteMuteSettings = new MuteSettings();
 
     constructor(
         private callId: string,
@@ -164,6 +164,10 @@ export class PeerCall implements IDisposable {
 
     get remoteMedia(): Readonly<RemoteMedia> {
         return this._remoteMedia;
+    }
+
+    get remoteMuteSettings(): MuteSettings {
+        return this._remoteMuteSettings;
     }
 
     call(localMedia: LocalMedia, localMuteSettings: MuteSettings): Promise<void> {
@@ -279,7 +283,7 @@ export class PeerCall implements IDisposable {
                     transceiver.sender.track.enabled = enabled;
                 }
                 log.set("fromDirection", transceiver.direction);
-                enableSenderOnTransceiver(transceiver, enabled);
+                // enableSenderOnTransceiver(transceiver, enabled);
                 log.set("toDirection", transceiver.direction);
             }
         });
@@ -307,7 +311,7 @@ export class PeerCall implements IDisposable {
                     await this.handleAnswer(message.content, partyId, log);
                     break;
                 case EventType.Negotiate:
-                    await this.handleRemoteNegotiate(message.content, partyId, log);
+                    await this.onNegotiateReceived(message.content, log);
                     break;
                 case EventType.Candidates:
                     await this.handleRemoteIceCandidates(message.content, partyId, log);
@@ -344,7 +348,7 @@ export class PeerCall implements IDisposable {
     }
 
     // calls are serialized and deduplicated by responsePromiseChain
-    private handleNegotiation = async (log: ILogItem): Promise<void> => {
+    private async handleNegotiation(log: ILogItem): Promise<void> {
         this.makingOffer = true;
         try {
             try {
@@ -429,7 +433,7 @@ export class PeerCall implements IDisposable {
             }
             await this.handleInvite(content, partyId, log);
             // TODO: need to skip state check
-            await this.answer(this.localMedia!);
+            await this.answer(this.localMedia!, this.localMuteSettings!);
         } else {
             log.log(
                 "Glare detected: rejecting incoming call " + newCallId +
@@ -546,36 +550,6 @@ export class PeerCall implements IDisposable {
         }
     }
 
-
-    private async handleRemoteNegotiate(content: MCallNegotiate<MCallBase>, partyId: PartyId, log: ILogItem): Promise<void> {
-        if (this._state !== CallState.Connected) {
-            log.log({l: `Ignoring renegotiate because not connected`, status: this._state});
-            return;
-        }
-
-        if (this.opponentPartyId !== partyId) {
-            log.log(`Ignoring answer: we already have an answer/reject from ${this.opponentPartyId}`);
-            return;
-        }
-
-        const sdpStreamMetadata = content[SDPStreamMetadataKey];
-        if (sdpStreamMetadata) {
-            this.updateRemoteSDPStreamMetadata(sdpStreamMetadata, log);
-        } else {
-            log.log(`Did not get any SDPStreamMetadata! Can not send/receive multiple streams`);
-        }
-
-        try {
-            await this.peerConnection.setRemoteDescription(content.description);
-        } catch (e) {
-            await log.wrap(`Failed to set remote description`, log => {
-                log.catch(e);
-                this.terminate(CallParty.Local, CallErrorCode.SetRemoteDescription, log);
-            });
-            return;
-        }
-    }
-
     private handleIceGatheringState(state: RTCIceGatheringState, log: ILogItem) {
         if (state === 'complete' && !this.sentEndOfCandidates) {
             // If we didn't get an empty-string candidate to signal the end of candidates,
@@ -645,55 +619,55 @@ export class PeerCall implements IDisposable {
         await this.addIceCandidates(candidates, log);
     }
 
-    // private async onNegotiateReceived(event: MatrixEvent): Promise<void> {
-    //     const content = event.getContent<MCallNegotiate>();
-    //     const description = content.description;
-    //     if (!description || !description.sdp || !description.type) {
-    //         this.logger.info(`Ignoring invalid m.call.negotiate event`);
-    //         return;
-    //     }
-    //     // Politeness always follows the direction of the call: in a glare situation,
-    //     // we pick either the inbound or outbound call, so one side will always be
-    //     // inbound and one outbound
-    //     const polite = this.direction === CallDirection.Inbound;
+    private async onNegotiateReceived(content: MCallNegotiate<MCallBase>, log: ILogItem): Promise<void> {
+        const description = content.description;
+        if (!description || !description.sdp || !description.type) {
+            log.log(`Ignoring invalid m.call.negotiate event`);
+            return;
+        }
+        // Politeness always follows the direction of the call: in a glare situation,
+        // we pick either the inbound or outbound call, so one side will always be
+        // inbound and one outbound
+        const polite = this.direction === CallDirection.Inbound;
 
-    //     // Here we follow the perfect negotiation logic from
-    //     // https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Perfect_negotiation
-    //     const offerCollision = (
-    //         (description.type === 'offer') &&
-    //         (this.makingOffer || this.peerConnection.signalingState !== 'stable')
-    //     );
+        // Here we follow the perfect negotiation logic from
+        // https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Perfect_negotiation
+        const offerCollision = (
+            (description.type === 'offer') &&
+            (this.makingOffer || this.peerConnection.signalingState !== 'stable')
+        );
 
-    //     this.ignoreOffer = !polite && offerCollision;
-    //     if (this.ignoreOffer) {
-    //         this.logger.info(`Ignoring colliding negotiate event because we're impolite`);
-    //         return;
-    //     }
+        this.ignoreOffer = !polite && offerCollision;
+        if (this.ignoreOffer) {
+            log.log(`Ignoring colliding negotiate event because we're impolite`);
+            return;
+        }
 
-    //     const sdpStreamMetadata = content[SDPStreamMetadataKey];
-    //     if (sdpStreamMetadata) {
-    //         this.updateRemoteSDPStreamMetadata(sdpStreamMetadata);
-    //     } else {
-    //         this.logger.warn(`Received negotiation event without SDPStreamMetadata!`);
-    //     }
+        const sdpStreamMetadata = content[SDPStreamMetadataKey];
+        if (sdpStreamMetadata) {
+            this.updateRemoteSDPStreamMetadata(sdpStreamMetadata, log);
+        } else {
+            log.log(`Received negotiation event without SDPStreamMetadata!`);
+        }
 
-    //     try {
-    //         await this.peerConnection.setRemoteDescription(description);
-
-    //         if (description.type === 'offer') {
-    //             await this.peerConnection.setLocalDescription();
-    //             await this.sendSignallingMessage({
-    //                 type: EventType.CallNegotiate,
-    //                 content: {
-    //                     description: this.peerConnection.localDescription!,
-    //                     [SDPStreamMetadataKey]: this.getSDPMetadata(),
-    //                 }
-    //             });
-    //         }
-    //     } catch (err) {
-    //         this.logger.warn(`Failed to complete negotiation`, err);
-    //     }
-    // }
+        try {
+            await this.peerConnection.setRemoteDescription(description);
+            if (description.type === 'offer') {
+                await this.peerConnection.setLocalDescription();
+                const content = {
+                    call_id: this.callId,
+                    description: this.peerConnection.localDescription!,
+                    [SDPStreamMetadataKey]: this.getSDPMetadata(),
+                    version: 1,
+                    seq: this.seq++,
+                    lifetime: CALL_TIMEOUT_MS
+                };
+                await this.sendSignallingMessage({type: EventType.Negotiate, content}, log);
+            }
+        } catch (err) {
+            log.log(`Failed to complete negotiation`, err);
+        }
+    }
 
     private async sendAnswer(log: ILogItem): Promise<void> {
         const localDescription = this.peerConnection.localDescription!;
@@ -980,6 +954,10 @@ export class PeerCall implements IDisposable {
                         if (videoReceiver) {
                             videoReceiver.track.enabled = !metaData.audio_muted;
                         }
+                        this._remoteMuteSettings = new MuteSettings(
+                            metaData.audio_muted || !audioReceiver?.track,
+                            metaData.video_muted || !videoReceiver?.track
+                        );
                     } else if (metaData.purpose === SDPStreamMetadataPurpose.Screenshare) {
                         this._remoteMedia.screenShare = stream;
                     }
@@ -1012,7 +990,8 @@ export class PeerCall implements IDisposable {
                                     // can't replace the track without renegotiating{
                                     log.wrap(`adding and removing ${streamPurpose} ${newTrack.kind} track`, log => {
                                         this.peerConnection.removeTrack(sender);
-                                        this.peerConnection.addTrack(newTrack);
+                                        const newSender = this.peerConnection.addTrack(newTrack);
+                                        this.options.webRTC.prepareSenderForPurpose(this.peerConnection, newSender, streamPurpose);
                                     });
                                 }
                             } else if (!newTrack) {

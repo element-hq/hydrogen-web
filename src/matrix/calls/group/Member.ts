@@ -65,6 +65,10 @@ export class Member {
         return this.peerCall?.remoteMedia;
     }
 
+    get remoteMuteSettings(): MuteSettings | undefined {
+        return this.peerCall?.remoteMuteSettings;
+    }
+
     get isConnected(): boolean {
         return this.peerCall?.state === CallState.Connected;
     }

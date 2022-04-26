@@ -1,7 +1,7 @@
 // allow non-camelcase as these are events type that go onto the wire
 /* eslint-disable camelcase */
 import type {StateEvent} from "../storage/types";
-
+import type {SessionDescription} from "../../platform/types/WebRTC";
 export enum EventType {
     GroupCall = "org.matrix.msc3401.call",
     GroupCallMember = "org.matrix.msc3401.call.member",
@@ -34,11 +34,6 @@ export interface CallMembership {
 
 export interface CallMemberContent {
     ["m.calls"]: CallMembership[];
-}
-
-export interface SessionDescription {
-    sdp?: string;
-    type: RTCSdpType
 }
 
 export enum SDPStreamMetadataPurpose {

@@ -104,7 +104,6 @@ export type TransceiverDirection = "inactive" | "recvonly" | "sendonly" | "sendr
 export interface SessionDescription {
     readonly sdp: string;
     readonly type: SdpType;
-    toJSON(): any;
 }
 
 export interface AnswerOptions {}
