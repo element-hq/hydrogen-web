@@ -62,7 +62,7 @@ export class RoomViewModel extends ViewModel {
             }
             this._callViewModel = this.disposeTracked(this._callViewModel);
             if (call) {
-                this._callViewModel = this.track(new CallViewModel(this.childOptions({call})));
+                this._callViewModel = this.track(new CallViewModel(this.childOptions({call, mediaRepository: this._room.mediaRepository})));
             }
             this.emitChange("callViewModel");
         }));

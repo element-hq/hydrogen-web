@@ -15,34 +15,16 @@ limitations under the License.
 */
 
 import {TemplateView, Builder} from "../../general/TemplateView";
+import {AvatarView} from "../../AvatarView";
 import {ListView} from "../../general/ListView";
 import {Stream} from "../../../../types/MediaDevices";
-import {getStreamVideoTrack, getStreamAudioTrack} from "../../../../../matrix/calls/common";
-import type {CallViewModel, CallMemberViewModel} from "../../../../../domain/session/room/CallViewModel";
-
-function bindStream<T>(t: TemplateBuilder<T>, video: HTMLVideoElement, propSelector: (vm: T) => Stream | undefined) {
-    t.mapSideEffect(vm => getStreamVideoTrack(propSelector(vm))?.enabled, (_,__, vm) => {
-        const stream = propSelector(vm);
-        if (stream) {
-            video.srcObject = stream as MediaStream;
-            if (getStreamVideoTrack(stream)?.enabled) {
-                video.classList.remove("hidden");
-            } else {
-                video.classList.add("hidden");
-            }
-        } else {
-            video.classList.add("hidden");
-        }
-    });
-    return video;
-}
+import type {CallViewModel, CallMemberViewModel, IStreamViewModel} from "../../../../../domain/session/room/CallViewModel";
 
 export class CallView extends TemplateView<CallViewModel> {
     render(t: Builder<CallViewModel>, vm: CallViewModel): Element {
         return t.div({class: "CallView"}, [
             t.p(vm => `Call ${vm.name} (${vm.id})`),
-            t.div({class: "CallView_me"}, bindStream(t, t.video({autoplay: true, width: 240}), vm => vm.localStream)),
-            t.view(new ListView({list: vm.memberViewModels}, vm => new MemberView(vm))),
+            t.view(new ListView({list: vm.memberViewModels}, vm => new StreamView(vm))),
             t.div({class: "buttons"}, [
                 t.button({onClick: () => vm.leave()}, "Leave"),
                 t.button({onClick: () => vm.toggleVideo()}, "Toggle video"),
@@ -51,12 +33,31 @@ export class CallView extends TemplateView<CallViewModel> {
     }
 }
 
-class MemberView extends TemplateView<CallMemberViewModel> {
-    render(t: TemplateBuilder<CallMemberViewModel>, vm: CallMemberViewModel) {
-        return bindStream(t, t.video({autoplay: true, width: 360}), vm => vm.stream);
+class StreamView extends TemplateView<IStreamViewModel> {
+    render(t: Builder<IStreamViewModel>, vm: IStreamViewModel): Element {
+        const video = t.video({
+            autoplay: true,
+            className: {
+                hidden: vm => vm.isCameraMuted
+            }
+        }) as HTMLVideoElement;
+        t.mapSideEffect(vm => vm.stream, stream => {
+            video.srcObject = stream as MediaStream;
+        });
+        return t.div({className: "StreamView"}, [
+            video,
+            t.div({className: {
+                StreamView_avatar: true,
+                hidden: vm => !vm.isCameraMuted
+            }}, t.view(new AvatarView(vm, 64), {parentProvidesUpdates: true})),
+            t.div({
+                className: {
+                    StreamView_muteStatus: true,
+                    hidden: vm => !vm.isCameraMuted && !vm.isMicrophoneMuted,
+                    microphoneMuted: vm => vm.isMicrophoneMuted && !vm.isCameraMuted,
+                    cameraMuted: vm => vm.isCameraMuted,
+                }
+            })
+        ]);
     }
 }
-
-// class StreamView extends TemplateView<Stream> {
-//     render(t: TemplateBuilder<Stream)
-// }
