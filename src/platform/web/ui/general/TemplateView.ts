@@ -337,7 +337,7 @@ export class TemplateBuilder<T extends IObservableValue> {
     // Special case of mapView for a TemplateView.
     // Always creates a TemplateView, if this is optional depending
     // on mappedValue, use `if` or `mapView`
-    map<R>(mapFn: (value: T) => R, renderFn: (mapped: R, t: Builder<T>, vm: T) => ViewNode): ViewNode {
+    map<R>(mapFn: (value: T) => R, renderFn: (mapped: R, t: Builder<T>, vm: T) => ViewNode | undefined): ViewNode {
         return this.mapView(mapFn, mappedValue => {
             return new InlineTemplateView(this._value, (t, vm) => {
                 const rootNode = renderFn(mappedValue, t, vm);
