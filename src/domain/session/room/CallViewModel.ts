@@ -18,11 +18,11 @@ import {AvatarSource} from "../../AvatarSource";
 import {ViewModel, Options as BaseOptions} from "../../ViewModel";
 import {getStreamVideoTrack, getStreamAudioTrack} from "../../../matrix/calls/common";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
+import {EventObservableValue} from "../../../observable/value/EventObservableValue";
+import {ObservableValueMap} from "../../../observable/map/ObservableValueMap";
 import type {GroupCall} from "../../../matrix/calls/group/GroupCall";
 import type {Member} from "../../../matrix/calls/group/Member";
 import type {BaseObservableList} from "../../../observable/list/BaseObservableList";
-import {EventObservableValue} from "../../../observable/value/EventObservableValue";
-import {ObservableValueMap} from "../../../observable/map/ObservableValueMap";
 import type {Stream} from "../../../platform/types/MediaDevices";
 import type {MediaRepository} from "../../../matrix/net/MediaRepository";
 
@@ -32,7 +32,7 @@ type Options = BaseOptions & {
 };
 
 export class CallViewModel extends ViewModel<Options> {
-    public readonly memberViewModels: BaseObservableList<CallMemberViewModel>;
+    public readonly memberViewModels: BaseObservableList<IStreamViewModel>;
 
     constructor(options: Options) {
         super(options);
@@ -115,7 +115,7 @@ class OwnMemberViewModel extends ViewModel<OwnMemberOptions> implements IStreamV
     }
 
     get avatarTitle(): string {
-        return "ikke";
+        return "Me";
     }
 
     compare(other: OwnMemberViewModel | CallMemberViewModel): number {
