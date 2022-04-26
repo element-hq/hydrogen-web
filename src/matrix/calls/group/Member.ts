@@ -33,6 +33,7 @@ export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessag
     confId: string,
     ownUserId: string,
     ownDeviceId: string,
+    // local session id of our client
     sessionId: string,
     hsApi: HomeServerApi,
     encryptDeviceMessage: (userId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage>,
@@ -81,6 +82,11 @@ export class Member {
         return this.callDeviceMembership.device_id;
     }
 
+    /** session id of the member */
+    get sessionId(): string {
+        return this.callDeviceMembership.session_id;
+    }
+
     get dataChannel(): any | undefined {
         return this.peerCall?.dataChannel;
     }
@@ -106,8 +112,8 @@ export class Member {
     }
 
     /** @internal */
-    disconnect(hangup: boolean) {
-        this.logItem.wrap("disconnect", log => {
+    disconnect(hangup: boolean, log?: ILogItem) {
+        (log ?? this.logItem).wrap("disconnect", log => {
             if (hangup) {
                 this.peerCall?.hangup(CallErrorCode.UserHangup);
             } else {
@@ -121,8 +127,20 @@ export class Member {
     }
 
     /** @internal */
-    updateCallInfo(callDeviceMembership: CallDeviceMembership) {
-        this.callDeviceMembership = callDeviceMembership;
+    updateCallInfo(callDeviceMembership: CallDeviceMembership, log: ILogItem) {
+        log.wrap({l: "updateing device membership", deviceId: this.deviceId}, log => {
+            // session id is changing, disconnect so we start with a new slate for the new session
+            if (callDeviceMembership.session_id !== this.sessionId) {
+                log.wrap({
+                    l: "member event changes session id",
+                    oldSessionId: this.sessionId,
+                    newSessionId: callDeviceMembership.session_id
+                }, log => {
+                    this.disconnect(false, log);
+                });
+            }
+            this.callDeviceMembership = callDeviceMembership;
+        });
     }
 
     /** @internal */
@@ -151,7 +169,7 @@ export class Member {
         groupMessage.content.device_id = this.options.ownDeviceId;
         groupMessage.content.party_id = this.options.ownDeviceId;
         groupMessage.content.sender_session_id = this.options.sessionId;
-        groupMessage.content.dest_session_id = this.callDeviceMembership.session_id;
+        groupMessage.content.dest_session_id = this.sessionId;
         // const encryptedMessages = await this.options.encryptDeviceMessage(this.member.userId, groupMessage, log);
         // const payload = formatToDeviceMessagesPayload(encryptedMessages);
         const payload = {
@@ -174,7 +192,7 @@ export class Member {
     }
 
     /** @internal */
-    handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, deviceId: string, syncLog: ILogItem) {
+    handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, syncLog: ILogItem): void {
         syncLog.refDetached(this.logItem);
         const destSessionId = message.content.dest_session_id;
         if (destSessionId !== this.options.sessionId) {
@@ -185,7 +203,7 @@ export class Member {
             this.peerCall = this._createPeerCall(message.content.call_id);
         }
         if (this.peerCall) {
-            this.peerCall.handleIncomingSignallingMessage(message, deviceId);
+            this.peerCall.handleIncomingSignallingMessage(message, this.deviceId);
         } else {
             // TODO: need to buffer events until invite comes?
         }
