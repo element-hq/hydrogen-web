@@ -143,6 +143,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
                 member.setMuted(this.localMuteSettings);
             }
         }
+        this.emitChange();
     }
 
     get muteSettings(): MuteSettings {
