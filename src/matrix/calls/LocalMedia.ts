@@ -17,6 +17,7 @@ limitations under the License.
 import {SDPStreamMetadataPurpose} from "./callEventTypes";
 import {Stream} from "../../platform/types/MediaDevices";
 import {SDPStreamMetadata} from "./callEventTypes";
+import {getStreamVideoTrack, getStreamAudioTrack} from "./common";
 
 export class LocalMedia {
     constructor(
@@ -37,13 +38,44 @@ export class LocalMedia {
         return new LocalMedia(this.userMedia, this.screenShare, options);
     }
 
+    /** @internal */
+    replaceClone(oldClone: LocalMedia | undefined, oldOriginal: LocalMedia | undefined): LocalMedia {
+        let userMedia;
+        let screenShare;
+        const cloneOrAdoptStream = (oldOriginalStream: Stream | undefined, oldCloneStream: Stream | undefined, newStream: Stream | undefined): Stream | undefined => {
+            let stream;
+            if (oldOriginalStream?.id === newStream?.id) {
+                stream = oldCloneStream;
+            } else {
+                stream = newStream?.clone();
+                getStreamAudioTrack(oldCloneStream)?.stop();
+                getStreamVideoTrack(oldCloneStream)?.stop();
+            }
+            return stream;
+        }
+        return new LocalMedia(
+            cloneOrAdoptStream(oldOriginal?.userMedia, oldClone?.userMedia, this.userMedia),
+            cloneOrAdoptStream(oldOriginal?.screenShare, oldClone?.screenShare, this.screenShare),
+            this.dataChannelOptions
+        );
+    }
+
+    /** @internal */
     clone(): LocalMedia {
-        return new LocalMedia(this.userMedia?.clone(), this.screenShare?.clone(), this.dataChannelOptions);
+        return new LocalMedia(this.userMedia?.clone(),this.screenShare?.clone(), this.dataChannelOptions);
     }
     
     dispose() {
-        this.userMedia?.audioTrack?.stop();
-        this.userMedia?.videoTrack?.stop();
-        this.screenShare?.videoTrack?.stop();
+        this.stopExcept(undefined);
+    }
+
+    stopExcept(newMedia: LocalMedia | undefined) {
+        if(newMedia?.userMedia?.id !== this.userMedia?.id) {
+            getStreamAudioTrack(this.userMedia)?.stop();
+            getStreamVideoTrack(this.userMedia)?.stop();
+        }
+        if(newMedia?.screenShare?.id !== this.screenShare?.id) {
+            getStreamVideoTrack(this.screenShare)?.stop();
+        }
     }
 }

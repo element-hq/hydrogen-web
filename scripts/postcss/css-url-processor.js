@@ -39,7 +39,7 @@ function colorsFromURL(url, colorMap) {
 function processURL(decl, replacer, colorMap) {
     const value = decl.value;
     const parsed = valueParser(value);
-    parsed.walk(async node => {
+    parsed.walk(node => {
         if (node.type !== "function" || node.value !== "url") {
             return;
         }

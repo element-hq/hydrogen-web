@@ -32,6 +32,7 @@ export async function main(platform) {
         // const recorder = new RecordRequester(createFetchRequest(clock.createTimeout));
         // const request = recorder.request;
         // window.getBrawlFetchLog = () => recorder.log();
+        await platform.init();
         const navigation = createNavigation();
         platform.setNavigation(navigation);
         const urlRouter = createRouter({navigation, history: platform.history});

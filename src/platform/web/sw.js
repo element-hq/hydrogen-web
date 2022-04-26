@@ -92,8 +92,12 @@ function isCacheableThumbnail(url) {
 
 const baseURL = new URL(self.registration.scope);
 let pendingFetchAbortController = new AbortController();
+
 async function handleRequest(request) {
     try {
+        if (request.url.includes("config.json")) {
+            return handleConfigRequest(request);
+        }
         const url = new URL(request.url);
         // rewrite / to /index.html so it hits the cache
         if (url.origin === baseURL.origin && url.pathname === baseURL.pathname) {
@@ -117,6 +121,27 @@ async function handleRequest(request) {
         }
         throw err;
     }
+}
+
+async function handleConfigRequest(request) {
+    let response = await readCache(request);
+    const networkResponsePromise = fetchAndUpdateConfig(request);
+    if (response) {
+        return response;
+    } else {
+        return await networkResponsePromise;
+    }
+}
+
+async function fetchAndUpdateConfig(request) {
+    const response = await fetch(request, {
+        signal: pendingFetchAbortController.signal,
+        headers: {
+            "Cache-Control": "no-cache",
+        },
+    });
+    updateCache(request, response.clone());
+    return response;
 }
 
 async function updateCache(request, response) {

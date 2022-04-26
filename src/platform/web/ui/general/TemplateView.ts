@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { setAttribute, text, isChildren, classNames, TAG_NAMES, HTML_NS, ClassNames, Child} from "./html";
+import { setAttribute, text, isChildren, classNames, TAG_NAMES, HTML_NS, ClassNames, Child as NonBoundChild} from "./html";
 import {mountView} from "./utils";
 import {BaseUpdateView, IObservableValue} from "./BaseUpdateView";
 import {IMountArgs, ViewNode, IView} from "./types";
@@ -30,12 +30,15 @@ function objHasFns(obj: ClassNames<unknown>): obj is { [className: string]: bool
 }
 
 export type RenderFn<T> = (t: Builder<T>, vm: T) => ViewNode;
+type TextBinding<T> = (T) => string | number | boolean | undefined | null;
+type Child<T> = NonBoundChild | TextBinding<T>;
+type Children<T> = Child<T> | Child<T>[];
 type EventHandler = ((event: Event) => void);
 type AttributeStaticValue = string | boolean;
 type AttributeBinding<T> = (value: T) => AttributeStaticValue;
 export type AttrValue<T> = AttributeStaticValue | AttributeBinding<T> | EventHandler | ClassNames<T>;
 export type Attributes<T> = { [attribute: string]: AttrValue<T> };
-type ElementFn<T> = (attributes?: Attributes<T> | Child | Child[], children?: Child | Child[]) => Element;
+type ElementFn<T> = (attributes?: Attributes<T> | Children<T>, children?: Children<T>) => Element;
 export type Builder<T> = TemplateBuilder<T> & { [tagName in typeof TAG_NAMES[string][number]]: ElementFn<T> };
 
 /**
@@ -178,7 +181,7 @@ export class TemplateBuilder<T extends IObservableValue> {
         this._templateView._addEventListener(node, name, fn, useCapture);
     }
 
-    _addAttributeBinding(node: Element, name: string, fn: (value: T) => boolean | string): void {
+    _addAttributeBinding(node: Element, name: string, fn: AttributeBinding<T>): void {
         let prevValue: string | boolean | undefined = undefined;
         const binding = () => {
             const newValue = fn(this._value);
@@ -195,15 +198,15 @@ export class TemplateBuilder<T extends IObservableValue> {
         this._addAttributeBinding(node, "className", value => classNames(obj, value));
     }
 
-    _addTextBinding(fn: (value: T) => string): Text {
-        const initialValue = fn(this._value);
+    _addTextBinding(fn: (value: T) => ReturnType<TextBinding<T>>): Text {
+        const initialValue = fn(this._value)+"";
         const node = text(initialValue);
         let prevValue = initialValue;
         const binding = () => {
-            const newValue = fn(this._value);
+            const newValue = fn(this._value)+"";
             if (prevValue !== newValue) {
                 prevValue = newValue;
-                node.textContent = newValue+"";
+                node.textContent = newValue;
             }
         };
 
@@ -242,7 +245,7 @@ export class TemplateBuilder<T extends IObservableValue> {
         }
     }
 
-    _setNodeChildren(node: Element, children: Child | Child[]): void{
+    _setNodeChildren(node: Element, children: Children<T>): void{
         if (!Array.isArray(children)) {
             children = [children];
         }
@@ -276,14 +279,18 @@ export class TemplateBuilder<T extends IObservableValue> {
         return node;
     }
 
-    el(name: string, attributes?: Attributes<T> | Child | Child[], children?: Child | Child[]): ViewNode {
+    el(name: string, attributes?: Attributes<T> | Children<T>, children?: Children<T>): ViewNode {
         return this.elNS(HTML_NS, name, attributes, children);
     }
 
-    elNS(ns: string, name: string, attributes?: Attributes<T> | Child | Child[], children?: Child | Child[]): ViewNode {
-        if (attributes !== undefined && isChildren(attributes)) {
-            children = attributes;
-            attributes = undefined;
+    elNS(ns: string, name: string, attributesOrChildren?: Attributes<T> | Children<T>, children?: Children<T>): ViewNode {
+        let attributes: Attributes<T> | undefined;
+        if (attributesOrChildren) {
+            if (isChildren(attributesOrChildren)) {
+                children = attributesOrChildren as Children<T>;
+            } else {
+                attributes = attributesOrChildren as Attributes<T>;
+            }
         }
 
         const node = document.createElementNS(ns, name);
@@ -330,7 +337,7 @@ export class TemplateBuilder<T extends IObservableValue> {
     // Special case of mapView for a TemplateView.
     // Always creates a TemplateView, if this is optional depending
     // on mappedValue, use `if` or `mapView`
-    map<R>(mapFn: (value: T) => R, renderFn: (mapped: R, t: Builder<T>, vm: T) => ViewNode): ViewNode {
+    map<R>(mapFn: (value: T) => R, renderFn: (mapped: R, t: Builder<T>, vm: T) => ViewNode | undefined): ViewNode {
         return this.mapView(mapFn, mappedValue => {
             return new InlineTemplateView(this._value, (t, vm) => {
                 const rootNode = renderFn(mappedValue, t, vm);
@@ -364,17 +371,17 @@ export class TemplateBuilder<T extends IObservableValue> {
     event handlers, ...
     You should not call the TemplateBuilder (e.g. `t.xxx()`) at all from the side effect,
     instead use tags from html.ts to help you construct any DOM you need. */
-    mapSideEffect<R>(mapFn: (value: T) => R, sideEffect: (newV: R, oldV: R | undefined) => void) {
+    mapSideEffect<R>(mapFn: (value: T) => R, sideEffect: (newV: R, oldV: R | undefined, value: T) => void) {
         let prevValue = mapFn(this._value);
         const binding = () => {
             const newValue = mapFn(this._value);
             if (prevValue !== newValue) {
-                sideEffect(newValue, prevValue);
+                sideEffect(newValue, prevValue, this._value);
                 prevValue = newValue;
             }
         };
         this._addBinding(binding);
-        sideEffect(prevValue, undefined);
+        sideEffect(prevValue, undefined, this._value);
     }
 }
 

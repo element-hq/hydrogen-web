@@ -62,7 +62,7 @@ export class RoomViewModel extends ViewModel {
             }
             this._callViewModel = this.disposeTracked(this._callViewModel);
             if (call) {
-                this._callViewModel = this.track(new CallViewModel(this.childOptions({call})));
+                this._callViewModel = this.track(new CallViewModel(this.childOptions({call, mediaRepository: this._room.mediaRepository})));
             }
             this.emitChange("callViewModel");
         }));
@@ -367,9 +367,8 @@ export class RoomViewModel extends ViewModel {
             const session = this.getOption("session");
             const stream = await this.platform.mediaDevices.getMediaTracks(false, true);
             const localMedia = new LocalMedia().withUserMedia(stream);
-            await this._call.join(localMedia);
             // this will set the callViewModel above as a call will be added to callHandler.calls
-            const call = await session.callHandler.createCall(this._room.id, localMedia, "A call " + Math.round(this.platform.random() * 100));
+            const call = await session.callHandler.createCall(this._room.id, "m.video", "A call " + Math.round(this.platform.random() * 100));
             await call.join(localMedia);
         } catch (err) {
             console.error(err.stack);
