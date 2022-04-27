@@ -224,7 +224,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
             for (const device of devices) {
                 const deviceId = device.device_id;
                 const memberKey = getMemberKey(userId, deviceId);
-                log.wrap({l: "update device member", id: memberKey}, log => {
+                log.wrap({l: "update device member", id: memberKey, sessionId: device.session_id}, log => {
                     if (userId === this.options.ownUserId && deviceId === this.options.ownDeviceId) {
                         if (this._state === GroupCallState.Joining) {
                             log.set("update_own", true);
@@ -348,7 +348,13 @@ export class GroupCall extends EventEmitter<{change: never}> {
         if (member && message.content.sender_session_id === member.sessionId) {
             member.handleDeviceMessage(message, syncLog);
         } else {
-            const item = this.logItem.log({l: "member not found, buffering", userId, deviceId, sessionId: message.content.sender_session_id});
+            const item = this.logItem.log({
+                l: "buffering to_device message, member not found",
+                userId,
+                deviceId,
+                sessionId: message.content.sender_session_id,
+                type: message.type
+            });
             syncLog.refDetached(item);
             // we haven't received the m.call.member yet for this caller (or with this session id).
             // buffer the device messages or create the member/call as it should arrive in a moment
