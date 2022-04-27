@@ -902,6 +902,9 @@ export class PeerCall implements IDisposable {
 
 
     private onRemoteTrack(track: Track, streams: ReadonlyArray<Stream>, log: ILogItem) {
+        log.set("kind", track.kind);
+        log.set("id", track.id);
+        log.set("streams", streams.map(s => s.id));
         if (streams.length === 0) {
             log.log({l: `ignoring ${track.kind} streamless track`, id: track.id});
             return;
@@ -932,39 +935,49 @@ export class PeerCall implements IDisposable {
                 disposeListener,
                 stream
             });
-            this.updateRemoteMedia(log);
         }
+        this.updateRemoteMedia(log);
     }
 
     private updateRemoteMedia(log: ILogItem): void {
-        this._remoteMedia.userMedia = undefined;
-        this._remoteMedia.screenShare = undefined;
-        if (this.remoteSDPStreamMetadata) {
-            for (const streamDetails of this._remoteStreams.values()) {
-                const {stream} = streamDetails;
-                const metaData = this.remoteSDPStreamMetadata[stream.id];
-                if (metaData) {
-                    if (metaData.purpose === SDPStreamMetadataPurpose.Usermedia) {
-                        this._remoteMedia.userMedia = stream;
-                        const audioReceiver = this.findReceiverForStream(TrackKind.Audio, stream.id);
-                        if (audioReceiver) {
-                            audioReceiver.track.enabled = !metaData.audio_muted;
+        log.wrap("reevaluating remote media", log => {
+            this._remoteMedia.userMedia = undefined;
+            this._remoteMedia.screenShare = undefined;
+            if (this.remoteSDPStreamMetadata) {
+                for (const streamDetails of this._remoteStreams.values()) {
+                    const {stream} = streamDetails;
+                    const metaData = this.remoteSDPStreamMetadata[stream.id];
+                    if (metaData) {
+                        if (metaData.purpose === SDPStreamMetadataPurpose.Usermedia) {
+                            this._remoteMedia.userMedia = stream;
+                            const audioReceiver = this.findReceiverForStream(TrackKind.Audio, stream.id);
+                            if (audioReceiver) {
+                                audioReceiver.track.enabled = !metaData.audio_muted;
+                            }
+                            const videoReceiver = this.findReceiverForStream(TrackKind.Video, stream.id);
+                            if (videoReceiver) {
+                                videoReceiver.track.enabled = !metaData.video_muted;
+                            }
+                            this._remoteMuteSettings = new MuteSettings(
+                                metaData.audio_muted || !audioReceiver?.track,
+                                metaData.video_muted || !videoReceiver?.track
+                            );
+                            log.log({
+                                l: "setting userMedia",
+                                micMuted: this._remoteMuteSettings.microphone,
+                                cameraMuted: this._remoteMuteSettings.camera
+                            });
+                        } else if (metaData.purpose === SDPStreamMetadataPurpose.Screenshare) {
+                            this._remoteMedia.screenShare = stream;
+                            log.log("setting screenShare");
                         }
-                        const videoReceiver = this.findReceiverForStream(TrackKind.Video, stream.id);
-                        if (videoReceiver) {
-                            videoReceiver.track.enabled = !metaData.video_muted;
-                        }
-                        this._remoteMuteSettings = new MuteSettings(
-                            metaData.audio_muted || !audioReceiver?.track,
-                            metaData.video_muted || !videoReceiver?.track
-                        );
-                    } else if (metaData.purpose === SDPStreamMetadataPurpose.Screenshare) {
-                        this._remoteMedia.screenShare = stream;
+                    } else {
+                        log.log({l: "no metadata yet for stream, ignoring for now", id: stream.id});
                     }
                 }
             }
-        }
-        this.options.emitUpdate(this, undefined);
+            this.options.emitUpdate(this, undefined);
+        });
     }
 
     private updateLocalMedia(localMedia: LocalMedia, logItem: ILogItem): Promise<void> {
