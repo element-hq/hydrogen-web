@@ -67,14 +67,6 @@ export class CallViewModel extends ViewModel<Options> {
         }
     }
 
-    get isCameraMuted(): boolean {
-        return this.call.muteSettings.camera;
-    }
-
-    get isMicrophoneMuted(): boolean {
-        return this.call.muteSettings.microphone;
-    }
-
     async toggleVideo() {
         this.call.setMuted(this.call.muteSettings.toggleCamera());
     }
@@ -95,11 +87,11 @@ class OwnMemberViewModel extends ViewModel<OwnMemberOptions> implements IStreamV
     }
 
     get isCameraMuted(): boolean {
-        return this.call.muteSettings.camera ?? !!getStreamVideoTrack(this.stream);
+        return isMuted(this.call.muteSettings.camera, !!getStreamVideoTrack(this.stream));
     }
 
     get isMicrophoneMuted(): boolean {
-        return this.call.muteSettings.microphone ?? !!getStreamAudioTrack(this.stream);
+        return isMuted(this.call.muteSettings.microphone, !!getStreamAudioTrack(this.stream));
     }
 
     get avatarLetter(): string {
@@ -135,11 +127,11 @@ export class CallMemberViewModel extends ViewModel<MemberOptions> implements ISt
     }
 
     get isCameraMuted(): boolean {
-        return this.member.remoteMuteSettings?.camera ?? !getStreamVideoTrack(this.stream);
+        return isMuted(this.member.remoteMuteSettings?.camera, !!getStreamVideoTrack(this.stream));
     }
 
     get isMicrophoneMuted(): boolean {
-        return this.member.remoteMuteSettings?.microphone ?? !getStreamAudioTrack(this.stream);
+        return isMuted(this.member.remoteMuteSettings?.microphone, !!getStreamAudioTrack(this.stream));
     }
 
     get avatarLetter(): string {
@@ -177,4 +169,12 @@ export interface IStreamViewModel extends AvatarSource, ViewModel {
     get stream(): Stream | undefined;
     get isCameraMuted(): boolean;
     get isMicrophoneMuted(): boolean;
+}
+
+function isMuted(muted: boolean | undefined, hasTrack: boolean) {
+    if (muted) {
+        return true;
+    } else {
+        return !hasTrack;
+    }
 }
