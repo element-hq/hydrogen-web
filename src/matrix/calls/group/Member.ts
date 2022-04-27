@@ -112,8 +112,8 @@ export class Member {
     }
 
     /** @internal */
-    disconnect(hangup: boolean, log?: ILogItem) {
-        (log ?? this.logItem).wrap("disconnect", log => {
+    disconnect(hangup: boolean) {
+        this.logItem.wrap("disconnect", log => {
             if (hangup) {
                 this.peerCall?.hangup(CallErrorCode.UserHangup);
             } else {
@@ -136,7 +136,13 @@ export class Member {
                     oldSessionId: this.sessionId,
                     newSessionId: callDeviceMembership.session_id
                 }, log => {
-                    this.disconnect(false, log);
+                    // prevent localMedia from being stopped
+                    // as connect won't be called again when reconnecting
+                    // to the new session
+                    const localMedia = this.localMedia;
+                    this.localMedia = undefined;
+                    this.disconnect(false);
+                    this.localMedia = localMedia;
                 });
             }
             this.callDeviceMembership = callDeviceMembership;
