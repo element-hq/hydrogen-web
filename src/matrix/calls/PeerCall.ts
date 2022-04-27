@@ -184,6 +184,7 @@ export class PeerCall implements IDisposable {
             }
             // after adding the local tracks, and wait for handleNegotiation to be called,
             // or invite glare where we give up our invite and answer instead
+            // TODO: we don't actually use this
             await this.waitForState([CallState.InviteSent, CallState.CreateAnswer]);
         });
     }
