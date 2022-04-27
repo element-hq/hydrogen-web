@@ -65,6 +65,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
     private _memberOptions: MemberOptions;
     private _state: GroupCallState;
     private localMuteSettings: MuteSettings = new MuteSettings(false, false);
+    private bufferedDeviceMessages = new Map<string, Set<SignallingMessage<MGroupCallBase>>>();
 
     private _deviceIndex?: number;
     private _eventTimestamp?: number;
@@ -235,7 +236,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
                 const device = devices[deviceIndex];
                 const deviceId = device.device_id;
                 const memberKey = getMemberKey(userId, deviceId);
-                log.wrap({l: "update device member", id: memberKey}, log => {
+                log.wrap({l: "update device member", id: memberKey, sessionId: device.session_id}, log => {
                     if (userId === this.options.ownUserId && deviceId === this.options.ownDeviceId) {
 
                         this._deviceIndex = deviceIndex;
@@ -250,7 +251,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
                         let member = this._members.get(memberKey);
                         if (member) {
                             log.set("update", true);
-                            member!.updateCallInfo(device, deviceIndex, eventTimestamp);
+                            member!.updateCallInfo(device, deviceIndex, eventTimestamp, log);
                         } else {
                             const logItem = this.logItem.child({l: "member", id: memberKey});
                             log.set("add", true);
@@ -265,6 +266,9 @@ export class GroupCall extends EventEmitter<{change: never}> {
                                 member.connect(this._localMedia!.clone(), this.localMuteSettings);
                             }
                         }
+                        // flush pending messages, either after having created the member,
+                        // or updated the session id with updateCallInfo
+                        this.flushPendingDeviceMessages(member, log);
                     }
                 });
             }
@@ -296,6 +300,23 @@ export class GroupCall extends EventEmitter<{change: never}> {
                 this.removeOwnDevice(log);
             }
         });
+    }
+
+    private flushPendingDeviceMessages(member: Member, log: ILogItem) {
+        const memberKey = getMemberKey(member.userId, member.deviceId);
+        const bufferedMessages = this.bufferedDeviceMessages.get(memberKey);
+        // check if we have any pending message for the member with (userid, deviceid, sessionid)
+        if (bufferedMessages) {
+            for (const message of bufferedMessages) {
+                if (message.content.sender_session_id === member.sessionId) {
+                    member.handleDeviceMessage(message, log);
+                    bufferedMessages.delete(message);
+                }
+            }
+            if (bufferedMessages.size === 0) {
+                this.bufferedDeviceMessages.delete(memberKey);
+            }
+        }
     }
 
     private getDeviceIdsForUserId(userId: string): string[] {
@@ -338,13 +359,27 @@ export class GroupCall extends EventEmitter<{change: never}> {
     /** @internal */
     handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, userId: string, deviceId: string, syncLog: ILogItem) {
         // TODO: return if we are not membering to the call
-        let member = this._members.get(getMemberKey(userId, deviceId));
-        if (member) {
-            member.handleDeviceMessage(message, deviceId, syncLog);
+        const key = getMemberKey(userId, deviceId);
+        let member = this._members.get(key);
+        if (member && message.content.sender_session_id === member.sessionId) {
+            member.handleDeviceMessage(message, syncLog);
         } else {
-            const item = this.logItem.log({l: "could not find member for signalling message", userId, deviceId});
+            const item = this.logItem.log({
+                l: "buffering to_device message, member not found",
+                userId,
+                deviceId,
+                sessionId: message.content.sender_session_id,
+                type: message.type
+            });
             syncLog.refDetached(item);
-            // we haven't received the m.call.member yet for this caller. buffer the device messages or create the member/call anyway?
+            // we haven't received the m.call.member yet for this caller (or with this session id).
+            // buffer the device messages or create the member/call as it should arrive in a moment
+            let messages = this.bufferedDeviceMessages.get(key);
+            if (!messages) {
+                messages = new Set();
+                this.bufferedDeviceMessages.set(key, messages);
+            }
+            messages.add(message);
         }
     }
 

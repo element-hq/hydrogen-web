@@ -1197,6 +1197,7 @@ button.RoomDetailsView_row::after {
 .StreamView_muteStatus {
     align-self: end;
     justify-self: start;
+    color: var(--text-color--lighter-80);
 }
 
 .StreamView_muteStatus.microphoneMuted::before {

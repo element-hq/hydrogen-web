@@ -33,6 +33,7 @@ export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessag
     confId: string,
     ownUserId: string,
     ownDeviceId: string,
+    // local session id of our client
     sessionId: string,
     hsApi: HomeServerApi,
     encryptDeviceMessage: (userId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage>,
@@ -83,6 +84,11 @@ export class Member {
         return this.callDeviceMembership.device_id;
     }
 
+    /** session id of the member */
+    get sessionId(): string {
+        return this.callDeviceMembership.session_id;
+    }
+
     get dataChannel(): any | undefined {
         return this.peerCall?.dataChannel;
     }
@@ -127,14 +133,35 @@ export class Member {
             this.peerCall = undefined;
             this.localMedia?.dispose();
             this.localMedia = undefined;
+            this.retryCount = 0;
         });
     }
 
     /** @internal */
-    updateCallInfo(callDeviceMembership: CallDeviceMembership, deviceIndex: number, eventTimestamp: number) {
-        this.callDeviceMembership = callDeviceMembership;
-        this._deviceIndex = deviceIndex;
-        this._eventTimestamp = eventTimestamp;
+    updateCallInfo(callDeviceMembership: CallDeviceMembership, deviceIndex: number, eventTimestamp: number,  log: ILogItem) {
+        log.wrap({l: "updateing device membership", deviceId: this.deviceId}, log => {
+            // session id is changing, disconnect so we start with a new slate for the new session
+            if (callDeviceMembership.session_id !== this.sessionId) {
+                log.wrap({
+                    l: "member event changes session id",
+                    oldSessionId: this.sessionId,
+                    newSessionId: callDeviceMembership.session_id
+                }, log => {
+                    // prevent localMedia from being stopped
+                    // as connect won't be called again when reconnecting
+                    // to the new session
+                    const localMedia = this.localMedia;
+                    this.localMedia = undefined;
+                    this.disconnect(false);
+                    // connect again, as the other side might be waiting for our invite
+                    // after refreshing
+                    this.connect(localMedia!, this.localMuteSettings!);
+                });
+            }
+            this.callDeviceMembership = callDeviceMembership;
+            this._deviceIndex = deviceIndex;
+            this._eventTimestamp = eventTimestamp;
+        });
     }
 
     /** @internal */
@@ -163,7 +190,7 @@ export class Member {
         groupMessage.content.device_id = this.options.ownDeviceId;
         groupMessage.content.party_id = this.options.ownDeviceId;
         groupMessage.content.sender_session_id = this.options.sessionId;
-        groupMessage.content.dest_session_id = this.callDeviceMembership.session_id;
+        groupMessage.content.dest_session_id = this.sessionId;
         // const encryptedMessages = await this.options.encryptDeviceMessage(this.member.userId, groupMessage, log);
         // const payload = formatToDeviceMessagesPayload(encryptedMessages);
         const payload = {
@@ -186,7 +213,7 @@ export class Member {
     }
 
     /** @internal */
-    handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, deviceId: string, syncLog: ILogItem) {
+    handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, syncLog: ILogItem): void {
         syncLog.refDetached(this.logItem);
         const destSessionId = message.content.dest_session_id;
         if (destSessionId !== this.options.sessionId) {
@@ -197,7 +224,7 @@ export class Member {
             this.peerCall = this._createPeerCall(message.content.call_id);
         }
         if (this.peerCall) {
-            this.peerCall.handleIncomingSignallingMessage(message, deviceId);
+            this.peerCall.handleIncomingSignallingMessage(message, this.deviceId);
         } else {
             // TODO: need to buffer events until invite comes?
         }
