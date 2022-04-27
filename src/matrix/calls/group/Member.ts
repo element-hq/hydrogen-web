@@ -143,7 +143,9 @@ export class Member {
                     const localMedia = this.localMedia;
                     this.localMedia = undefined;
                     this.disconnect(false);
-                    this.localMedia = localMedia;
+                    // connect again, as the other side might be waiting for our invite
+                    // after refreshing
+                    this.connect(localMedia!, this.localMuteSettings!);
                 });
             }
             this.callDeviceMembership = callDeviceMembership;
