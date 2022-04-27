@@ -123,6 +123,7 @@ export class Member {
             this.peerCall = undefined;
             this.localMedia?.dispose();
             this.localMedia = undefined;
+            this.retryCount = 0;
         });
     }
 
