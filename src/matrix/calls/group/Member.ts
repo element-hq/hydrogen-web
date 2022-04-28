@@ -131,24 +131,28 @@ export class Member {
     updateCallInfo(callDeviceMembership: CallDeviceMembership, log: ILogItem) {
         log.wrap({l: "updateing device membership", deviceId: this.deviceId}, log => {
             // session id is changing, disconnect so we start with a new slate for the new session
-            if (callDeviceMembership.session_id !== this.sessionId) {
+            const oldSessionId = this.sessionId;
+            this.callDeviceMembership = callDeviceMembership;
+            if (oldSessionId !== this.sessionId) {
                 log.wrap({
                     l: "member event changes session id",
-                    oldSessionId: this.sessionId,
-                    newSessionId: callDeviceMembership.session_id
+                    oldSessionId,
+                    newSessionId: this.sessionId
                 }, log => {
                     // prevent localMedia from being stopped
                     // as connect won't be called again when reconnecting
                     // to the new session
-                    const localMedia = this.localMedia;
+                    const localMedia = this.localMedia!;
                     this.localMedia = undefined;
+                    // don't send a hangup event, as the old session id client is offline already
+                    // and we'd send it with the wrong session id anyway as callDeviceMembership
+                    // has already been replaced.
                     this.disconnect(false);
                     // connect again, as the other side might be waiting for our invite
                     // after refreshing
-                    this.connect(localMedia!, this.localMuteSettings!);
+                    this.connect(localMedia, this.localMuteSettings!);
                 });
             }
-            this.callDeviceMembership = callDeviceMembership;
         });
     }
 
