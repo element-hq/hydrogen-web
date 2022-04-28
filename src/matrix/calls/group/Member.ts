@@ -125,7 +125,6 @@ export class Member {
             this.localMedia = undefined;
             this.localMuteSettings = undefined;
             this.retryCount = 0;
-            this.logItem.finish();
         });
     }
 
