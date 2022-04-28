@@ -329,15 +329,14 @@ export class GroupCall extends EventEmitter<{change: never}> {
     /** @internal */
     private removeMemberDevice(userId: string, deviceId: string, log: ILogItem) {
         const memberKey = getMemberKey(userId, deviceId);
-        log.wrap({l: "removeMemberDevice", id: memberKey}, log => {
-            const member = this._members.get(memberKey);
-            if (member) {
-                log.set("leave", true);
-                this._members.remove(memberKey);
-                member.disconnect(false);
-            }
-            this.emitChange();
-        });
+        log.set("id", memberKey);
+        const member = this._members.get(memberKey);
+        if (member) {
+            log.set("leave", true);
+            this._members.remove(memberKey);
+            member.disconnect(false);
+        }
+        this.emitChange();
     }
 
     /** @internal */
