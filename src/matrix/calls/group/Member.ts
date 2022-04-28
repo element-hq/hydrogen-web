@@ -123,7 +123,9 @@ export class Member {
             this.peerCall = undefined;
             this.localMedia?.dispose();
             this.localMedia = undefined;
+            this.localMuteSettings = undefined;
             this.retryCount = 0;
+            this.logItem.finish();
         });
     }
 
@@ -158,8 +160,12 @@ export class Member {
 
     /** @internal */
     emitUpdate = (peerCall: PeerCall, params: any) => {
+        // these must be set as the update comes from the peerCall,
+        // which only exists when these are set
+        const localMedia = this.localMedia!;
+        const localMuteSettings = this.localMuteSettings!;
         if (peerCall.state === CallState.Ringing) {
-            peerCall.answer(this.localMedia!, this.localMuteSettings!);
+            peerCall.answer(localMedia, localMuteSettings);
         }
         else if (peerCall.state === CallState.Ended) {
             const hangupReason = peerCall.hangupReason;
@@ -168,7 +174,7 @@ export class Member {
             if (hangupReason && !errorCodesWithoutRetry.includes(hangupReason)) {
                 this.retryCount += 1;
                 if (this.retryCount <= 3) {
-                    this.connect(this.localMedia!, this.localMuteSettings!);
+                    this.connect(localMedia, localMuteSettings);
                 }
             }
         }
