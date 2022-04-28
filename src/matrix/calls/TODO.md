@@ -11,23 +11,59 @@
  - DONE: implement receiving hangup
  - DONE: implement cloning the localMedia so it works in safari?
  - DONE: implement 3 retries per peer
- - implement muting tracks with m.call.sdp_stream_metadata_changed
- - implement renegotiation
- - making logging better
+ - DONE: implement muting tracks with m.call.sdp_stream_metadata_changed
+ - DONE: implement renegotiation
  - DONE: finish session id support
     - call peers are essentially identified by (userid, deviceid, sessionid). If see a new session id, we first disconnect from the current member so we're ready to connect with a clean slate again (in a member event, also in to_device? no harm I suppose, given olm encryption ensures you can't spoof the deviceid).
+ - making logging better
+ - figure out why sometimes leave button does not work
+ - get correct members and avatars in call
+ - improve UI while in a call
+    - allow toggling audio
+    - support active speaker, sort speakers by last active
+    - close muted media stream after a while
+    - support highlight mode where we show active speaker and thumbnails for other participants
+    - better grid mode:
+        - we report the call view size to the view model with ResizeObserver, we calculate the A/R
+        - we calculate the grid based on view A/R, taking into account minimal stream size
+    - show name on stream view
+ - when you start a call, or join one, first you go to a SelectCallMedia screen where you can pick whether you want to use camera, audio or both:
+    - if you are joining a call, we'll default to the call intent
+    - if you are creating a call, we'll default to video
+    - when creating a call, adjust the navigation path to room/room_id/call
+    - when selecting a call, adjust the navigation path to room/room_id/call/call_id
  - implement to_device messages arriving before m.call(.member) state event
+    - DONE for m.call.member, not for m.call and not for to_device other than m.call.invite arriving before invite
  - reeable crypto & implement fetching olm keys before sending encrypted signalling message
  - local echo for join/leave buttons?
- - make UI pretsy
-    - figure out video layout
-    - figure out nav structure
  - batch outgoing to_device messages in one request to homeserver for operations that will send out an event to all participants (e.g. mute)
+ - implement call ringing and rejecting a ringing call
+ - support screen sharing
+    - add button to enable, disable
+    - support showing stream view with large screen share video element and small camera video element (if present)
  - don't load all members when loading calls to know whether they are ringing and joined by ourself
     - only load our own member once, then have a way to load additional members on a call.
  - see if we remove partyId entirely, it is only used for detecting remote echo which is not an issue for group calls? see https://github.com/matrix-org/matrix-spec-proposals/blob/dbkr/msc2746/proposals/2746-reliable-voip.md#add-party_id-to-all-voip-events
+ - remove PeerCall.waitForState ?
+ - invite glare is completely untested, does it work?
+ - how to remove call from m.call.member when just closing client?
+    - when closing client and still in call, tell service worker to send event on our behalf?
+        ```js
+            // dispose when leaving call
+            this.track(platform.registerExitHandler(unloadActions => {
+                // batch requests will resolve immediately,
+                // so we can reuse the same send code that does awaits without awaiting?
+                const batch = new RequestBatch();
+                const hsApi = this.hsApi.withBatch(batch);
+                // _leaveCallMemberContent will need to become sync,
+                // so we'll need to keep track of own member event rather than rely on storage
+                hsApi.sendStateEvent("m.call.member", this._leaveCallMemberContent());
+                // does this internally: serviceWorkerHandler.trySend("sendRequestBatch", batch.toJSON());
+                unloadActions.sendRequestBatch(batch);
+            }));
+        ```
 ## TODO (old)
- - PeerCall
+ - DONE: PeerCall
     - send invite
     - implement terminate
     - implement waitForState
@@ -46,7 +82,7 @@
     - handle remote track being muted
     - handle adding/removing tracks to an ongoing call
     - handle sdp metadata
- - Participant
+ - DONE: Participant
     - handle glare
     - encrypt to_device message with olm
     - batch outgoing to_device messages in one request to homeserver for operations that will send out an event to all participants (e.g. mute)
