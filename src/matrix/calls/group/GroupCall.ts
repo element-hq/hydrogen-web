@@ -233,10 +233,17 @@ export class GroupCall extends EventEmitter<{change: never}> {
                         }
                     } else {
                         let member = this._members.get(memberKey);
-                        if (member) {
+                        const sessionIdChanged = member && member.sessionId !== device.session_id;
+                        if (member && !sessionIdChanged) {
                             log.set("update", true);
-                            member!.updateCallInfo(device, log);
+                            member.updateCallInfo(device, log);
                         } else {
+                            if (member && sessionIdChanged) {
+                                log.set("removedSessionId", member.sessionId);
+                                member.disconnect(false);
+                                this._members.remove(memberKey);
+                                member = undefined;                                
+                            }
                             const logItem = this.logItem.child({l: "member", id: memberKey});
                             log.set("add", true);
                             log.refDetached(logItem);
