@@ -78,6 +78,9 @@ export class OidcApi {
         return {
             client_name: "Hydrogen Web",
             logo_uri: this._urlCreator.absoluteUrlForAsset("icon.png"),
+            client_uri: this._urlCreator.absoluteAppUrl(),
+            tos_uri: "https://element.io/terms-of-service",
+            policy_uri: "https://element.io/privacy",
             response_types: ["code"],
             grant_types: ["authorization_code", "refresh_token"],
             redirect_uris: [this._urlCreator.createOIDCRedirectURL()],
