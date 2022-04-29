@@ -129,6 +129,10 @@ export class URLRouter {
         return window.location.origin;
     }
 
+    absoluteAppUrl() {
+        return window.location.origin;
+    }
+
     absoluteUrlForAsset(asset) {
         return (new URL('/assets/' + asset, window.location.origin)).toString();
     }
