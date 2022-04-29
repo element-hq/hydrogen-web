@@ -1045,6 +1045,7 @@ export class PeerCall implements IDisposable {
 
     public dispose(): void {
         this.disposables.dispose();
+        this.iceDisconnectedTimeout?.abort();
         this.peerConnection.close();
     }
 
