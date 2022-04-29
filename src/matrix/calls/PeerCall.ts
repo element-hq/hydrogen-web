@@ -105,6 +105,7 @@ export class PeerCall implements IDisposable {
         private readonly options: Options,
         private readonly logItem: ILogItem,
     ) {
+        logItem.log({l: "create PeerCall", callId});
         this._remoteMedia = new RemoteMedia();
         this.peerConnection = options.webRTC.createPeerConnection(this.options.forceTURN, this.options.turnServers, 0);
         
@@ -299,7 +300,7 @@ export class PeerCall implements IDisposable {
     }
 
     handleIncomingSignallingMessage<B extends MCallBase>(message: SignallingMessage<B>, partyId: PartyId): Promise<void> {
-        return this.logItem.wrap({l: "receive", id: message.type, partyId}, async log => {
+        return this.logItem.wrap({l: "receive", id: message.type, callId: message.content.call_id}, async log => {
             switch (message.type) {
                 case EventType.Invite:
                     if (this.callId !== message.content.call_id) {
@@ -323,6 +324,7 @@ export class PeerCall implements IDisposable {
                     break;
                 case EventType.Hangup:
                     // TODO: this is a bit hacky, double check its what we need
+                    log.set("reason", message.content.reason);
                     this.terminate(CallParty.Remote, message.content.reason ?? CallErrorCode.UserHangup, log);
                     break;
                 default:

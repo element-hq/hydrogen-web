@@ -130,6 +130,10 @@ export class Member {
         });
     }
 
+    dispose() {
+        this.logItem.finish();
+    }
+
     /** @internal */
     updateCallInfo(callDeviceMembership: CallDeviceMembership, log: ILogItem) {
         log.wrap({l: "updateing device membership", deviceId: this.deviceId}, log => {

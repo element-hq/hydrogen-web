@@ -242,6 +242,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
                             if (member && sessionIdChanged) {
                                 log.set("removedSessionId", member.sessionId);
                                 member.disconnect(false);
+                                member.dispose();
                                 this._members.remove(memberKey);
                                 member = undefined;                                
                             }
