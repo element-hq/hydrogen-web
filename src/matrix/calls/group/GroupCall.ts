@@ -77,6 +77,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
     ) {
         super();
         logItem.set("id", this.id);
+        logItem.set("sessionId", this.options.sessionId);
         this._state = newCall ? GroupCallState.Fledgling : GroupCallState.Created;
         this._memberOptions = Object.assign({}, options, {
             confId: this.id,
@@ -244,7 +245,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
                                 this._members.remove(memberKey);
                                 member = undefined;                                
                             }
-                            const logItem = this.logItem.child({l: "member", id: memberKey, sessionId: device.session_id});
+                            const logItem = this.logItem.child({l: "member", id: memberKey});
                             log.set("add", true);
                             log.refDetached(logItem);
                             member = new Member(

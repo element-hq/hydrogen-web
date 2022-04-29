@@ -60,7 +60,9 @@ export class Member {
         private callDeviceMembership: CallDeviceMembership,
         private readonly options: Options,
         private readonly logItem: ILogItem,
-    ) {}
+    ) {
+        this.logItem.set("sessionId", this.sessionId);
+    }
 
     get remoteMedia(): RemoteMedia | undefined {
         return this.peerCall?.remoteMedia;
