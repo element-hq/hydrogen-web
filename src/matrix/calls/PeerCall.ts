@@ -300,7 +300,7 @@ export class PeerCall implements IDisposable {
     }
 
     handleIncomingSignallingMessage<B extends MCallBase>(message: SignallingMessage<B>, partyId: PartyId): Promise<void> {
-        return this.logItem.wrap({l: "receive", id: message.type, callId: message.content.call_id}, async log => {
+        return this.logItem.wrap({l: "receive", id: message.type, callId: message.content.call_id, payload: message}, async log => {
             switch (message.type) {
                 case EventType.Invite:
                     if (this.callId !== message.content.call_id) {
