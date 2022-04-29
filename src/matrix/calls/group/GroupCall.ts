@@ -244,7 +244,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
                                 this._members.remove(memberKey);
                                 member = undefined;                                
                             }
-                            const logItem = this.logItem.child({l: "member", id: memberKey});
+                            const logItem = this.logItem.child({l: "member", id: memberKey, sessionId: device.session_id});
                             log.set("add", true);
                             log.refDetached(logItem);
                             member = new Member(
