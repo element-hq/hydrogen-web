@@ -163,6 +163,7 @@ function getRootItemHeader(prevItem, item) {
 
 async function loadFile() {
     const file = await openFile();
+    document.getElementById("filename").innerText = file.name;
     const json = await readFileAsText(file);
     const logs = JSON.parse(json);
     logs.items.sort((a, b) => itemStart(a) - itemStart(b));
@@ -257,14 +258,16 @@ function itemShortErrorMessage(item) {
 }
 
 function itemCaption(item) {
-    if (itemType(item) === "network") {
+     if (itemLabel(item) && itemError(item)) {
+        return `${itemLabel(item)} (${itemShortErrorMessage(item)})`;
+    } if (itemType(item) === "network") {
         return `${itemValues(item)?.method} ${itemValues(item)?.url}`;
     } else if (itemLabel(item) && itemValues(item)?.id) {
         return `${itemLabel(item)} ${itemValues(item).id}`;
     } else if (itemLabel(item) && itemValues(item)?.status) {
         return `${itemLabel(item)} (${itemValues(item).status})`;
-    } else if (itemLabel(item) && itemError(item)) {
-        return `${itemLabel(item)} (${itemShortErrorMessage(item)})`;
+    } else if (itemLabel(item) && itemValues(item)?.type) {
+        return `${itemLabel(item)} (${itemValues(item)?.type})`;
     } else if (itemRef(item)) {
         const refItem = itemByRef.get(itemRef(item));
         if (refItem) {

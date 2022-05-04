@@ -35,3 +35,5 @@ export class MuteSettings {
         return new MuteSettings(!this.microphone, this.camera);
     }
 }
+
+export const CALL_LOG_TYPE = "call";

@@ -84,6 +84,8 @@ function itemCaption(item: ILogItem): string {
         return `${item.values.l} ${item.values.id}`;
     } else if (item.values.l && typeof item.values.status !== "undefined") {
         return `${item.values.l} (${item.values.status})`;
+    } else if (item.values.l && typeof item.values.type !== "undefined") {
+        return `${item.values.l} (${item.values.type})`;
     } else if (item.values.l && item.error) {
         return `${item.values.l} failed`;
     } else if (typeof item.values.ref !== "undefined") {

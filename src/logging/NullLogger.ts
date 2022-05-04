@@ -65,12 +65,18 @@ export class NullLogItem implements ILogItem {
     }
 
     wrap<T>(_: LabelOrValues, callback: LogCallback<T>): T {
+        return this.run(callback);
+    }
+
+    run<T>(callback: LogCallback<T>): T {
         return callback(this);
     }
+
 
     log(): ILogItem {
         return this;
     }
+    
     set(): ILogItem { return this; }
 
     runDetached(_: LabelOrValues, callback: LogCallback<unknown>): ILogItem {

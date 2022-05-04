@@ -17,7 +17,7 @@ limitations under the License.
 import {ObservableMap} from "../../../observable/map/ObservableMap";
 import {Member} from "./Member";
 import {LocalMedia} from "../LocalMedia";
-import {MuteSettings} from "../common";
+import {MuteSettings, CALL_LOG_TYPE} from "../common";
 import {RoomMember} from "../../room/members/RoomMember";
 import {EventEmitter} from "../../../utils/EventEmitter";
 import {EventType, CallIntent} from "../callEventTypes";
@@ -30,7 +30,7 @@ import type {Room} from "../../room/Room";
 import type {StateEvent} from "../../storage/types";
 import type {Platform} from "../../../platform/web/Platform";
 import type {EncryptedMessage} from "../../e2ee/olm/Encryption";
-import type {ILogItem} from "../../../logging/types";
+import type {ILogItem, ILogger} from "../../../logging/types";
 import type {Storage} from "../../storage/idb/Storage";
 
 export enum GroupCallState {
@@ -57,15 +57,29 @@ export type Options = Omit<MemberOptions, "emitUpdate" | "confId" | "encryptDevi
     emitUpdate: (call: GroupCall, params?: any) => void;
     encryptDeviceMessage: (roomId: string, userId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage>,
     storage: Storage,
+    logger: ILogger,
 };
+
+class JoinedData {
+    constructor(
+        public readonly logItem: ILogItem,
+        public readonly membersLogItem: ILogItem,
+        public localMedia: LocalMedia,
+        public localMuteSettings: MuteSettings
+    ) {}
+
+    dispose() {
+        this.localMedia.dispose();
+        this.logItem.finish();
+    }
+}
 
 export class GroupCall extends EventEmitter<{change: never}> {
     private readonly _members: ObservableMap<string, Member> = new ObservableMap();
-    private _localMedia?: LocalMedia = undefined;
     private _memberOptions: MemberOptions;
     private _state: GroupCallState;
-    private localMuteSettings: MuteSettings = new MuteSettings(false, false);
     private bufferedDeviceMessages = new Map<string, Set<SignallingMessage<MGroupCallBase>>>();
+    private joinedData?: JoinedData;
 
     constructor(
         public readonly id: string,
@@ -73,11 +87,8 @@ export class GroupCall extends EventEmitter<{change: never}> {
         private callContent: Record<string, any>,
         public readonly roomId: string,
         private readonly options: Options,
-        private readonly logItem: ILogItem,
     ) {
         super();
-        logItem.set("id", this.id);
-        logItem.set("sessionId", this.options.sessionId);
         this._state = newCall ? GroupCallState.Fledgling : GroupCallState.Created;
         this._memberOptions = Object.assign({}, options, {
             confId: this.id,
@@ -88,7 +99,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
         });
     }
 
-    get localMedia(): LocalMedia | undefined { return this._localMedia; }
+    get localMedia(): LocalMedia | undefined { return this.joinedData?.localMedia; }
     get members(): BaseObservableMap<string, Member> { return this._members; }
 
     get isTerminated(): boolean {
@@ -107,13 +118,26 @@ export class GroupCall extends EventEmitter<{change: never}> {
         return this.callContent?.["m.intent"];
     }
 
-    join(localMedia: LocalMedia): Promise<void> {
-        return this.logItem.wrap("join", async log => {
-            if (this._state !== GroupCallState.Created) {
-                return;
-            }
+    async join(localMedia: LocalMedia): Promise<void> {
+        if (this._state !== GroupCallState.Created || this.joinedData) {
+            return;
+        }
+        const logItem = this.options.logger.child({
+            l: "answer call",
+            t: CALL_LOG_TYPE,
+            id: this.id,
+            ownSessionId: this.options.sessionId
+        });
+        const membersLogItem = logItem.child("member connections");
+        const joinedData = new JoinedData(
+            logItem,
+            membersLogItem,
+            localMedia,
+            new MuteSettings()
+        );
+        this.joinedData = joinedData;
+        await joinedData.logItem.wrap("join", async log => {
             this._state = GroupCallState.Joining;
-            this._localMedia = localMedia;
             this.emitChange();
             const memberContent = await this._createJoinPayload();
             // send m.call.member state event
@@ -122,15 +146,15 @@ export class GroupCall extends EventEmitter<{change: never}> {
             this.emitChange();
             // send invite to all members that are < my userId
             for (const [,member] of this._members) {
-                member.connect(this._localMedia!.clone(), this.localMuteSettings);
+                this.connectToMember(member, joinedData, log);
             }
         });
     }
 
     async setMedia(localMedia: LocalMedia): Promise<void> {
-        if (this._state === GroupCallState.Joining || this._state === GroupCallState.Joined && this._localMedia) {
-            const oldMedia = this._localMedia!;
-            this._localMedia = localMedia;
+        if ((this._state === GroupCallState.Joining || this._state === GroupCallState.Joined) && this.joinedData) {
+            const oldMedia = this.joinedData.localMedia;
+            this.joinedData.localMedia = localMedia;
             await Promise.all(Array.from(this._members.values()).map(m => {
                 return m.setMedia(localMedia, oldMedia);
             }));
@@ -138,43 +162,53 @@ export class GroupCall extends EventEmitter<{change: never}> {
         }
     }
 
-    setMuted(muteSettings: MuteSettings) {
-        this.localMuteSettings = muteSettings;
-        if (this._state === GroupCallState.Joining || this._state === GroupCallState.Joined) {
-            for (const [,member] of this._members) {
-                member.setMuted(this.localMuteSettings);
-            }
+    async setMuted(muteSettings: MuteSettings): Promise<void> {
+        const {joinedData} = this;
+        if (!joinedData) {
+            return;
         }
+        joinedData.localMuteSettings = muteSettings;
+        await Promise.all(Array.from(this._members.values()).map(m => {
+            return m.setMuted(joinedData.localMuteSettings);
+        }));
         this.emitChange();
     }
 
-    get muteSettings(): MuteSettings {
-        return this.localMuteSettings;
+    get muteSettings(): MuteSettings | undefined {
+        return this.joinedData?.localMuteSettings;
     }
 
     get hasJoined() {
         return this._state === GroupCallState.Joining || this._state === GroupCallState.Joined;
     }
 
-    leave(): Promise<void> {
-        return this.logItem.wrap("leave", async log => {
-            const memberContent = await this._leaveCallMemberContent();
-            // send m.call.member state event
-            if (memberContent) {
-                const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCallMember, this.options.ownUserId, memberContent, {log});
-                await request.response();
-                // our own user isn't included in members, so not in the count
-                if (this.intent === CallIntent.Ring && this._members.size === 0) {
-                    await this.terminate();
+    async leave(): Promise<void> {
+        const {joinedData} = this;
+        if (!joinedData) {
+            return;
+        }
+        await joinedData.logItem.wrap("leave", async log => {
+            try {
+                const memberContent = await this._leaveCallMemberContent();
+                // send m.call.member state event
+                if (memberContent) {
+                    const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCallMember, this.options.ownUserId, memberContent, {log});
+                    await request.response();
+                    // our own user isn't included in members, so not in the count
+                    if (this.intent === CallIntent.Ring && this._members.size === 0) {
+                        await this.terminate(log);
+                    }
+                } else {
+                    log.set("already_left", true);
                 }
-            } else {
-                log.set("already_left", true);
+            } finally {
+                this.disconnect(log);
             }
         });
     }
 
-    terminate(): Promise<void> {
-        return this.logItem.wrap("terminate", async log => {
+    terminate(log?: ILogItem): Promise<void> {
+        return this.options.logger.wrapOrRun(log, {l: "terminate call", t: CALL_LOG_TYPE}, async log => {
             if (this._state === GroupCallState.Fledgling) {
                 return;
             }
@@ -186,8 +220,8 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     /** @internal */
-    create(type: "m.video" | "m.voice"): Promise<void> {
-        return this.logItem.wrap("create", async log => {
+    create(type: "m.video" | "m.voice", log?: ILogItem): Promise<void> {
+        return this.options.logger.wrapOrRun(log, {l: "create call", t: CALL_LOG_TYPE}, async log => {
             if (this._state !== GroupCallState.Fledgling) {
                 return;
             }
@@ -205,8 +239,8 @@ export class GroupCall extends EventEmitter<{change: never}> {
 
     /** @internal */
     updateCallEvent(callContent: Record<string, any>, syncLog: ILogItem) {
-        this.logItem.wrap("updateCallEvent", log => {
-            syncLog.refDetached(log);
+        syncLog.wrap({l: "update call", t: CALL_LOG_TYPE}, log => {
+            log.set("id", this.id);
             this.callContent = callContent;
             if (this._state === GroupCallState.Creating) {
                 this._state = GroupCallState.Created;
@@ -218,14 +252,13 @@ export class GroupCall extends EventEmitter<{change: never}> {
 
     /** @internal */
     updateMembership(userId: string, callMembership: CallMembership, syncLog: ILogItem) {
-        this.logItem.wrap({l: "updateMember", id: userId}, log => {
-            syncLog.refDetached(log);
+        syncLog.wrap({l: "update call membership", t: CALL_LOG_TYPE, id: this.id, userId}, log => {
             const devices = callMembership["m.devices"];
             const previousDeviceIds = this.getDeviceIdsForUserId(userId);
             for (const device of devices) {
                 const deviceId = device.device_id;
                 const memberKey = getMemberKey(userId, deviceId);
-                log.wrap({l: "update device member", id: memberKey, sessionId: device.session_id}, log => {
+                log.wrap({l: "update device membership", id: memberKey, sessionId: device.session_id}, log => {
                     if (userId === this.options.ownUserId && deviceId === this.options.ownDeviceId) {
                         if (this._state === GroupCallState.Joining) {
                             log.set("update_own", true);
@@ -241,27 +274,23 @@ export class GroupCall extends EventEmitter<{change: never}> {
                         } else {
                             if (member && sessionIdChanged) {
                                 log.set("removedSessionId", member.sessionId);
-                                member.disconnect(false);
-                                member.dispose();
+                                member.disconnect(false, log);
                                 this._members.remove(memberKey);
-                                member = undefined;                                
+                                member = undefined;
                             }
-                            const logItem = this.logItem.child({l: "member", id: memberKey});
                             log.set("add", true);
-                            log.refDetached(logItem);
                             member = new Member(
                                 RoomMember.fromUserId(this.roomId, userId, "join"),
-                                device, this._memberOptions, logItem
+                                device, this._memberOptions,
                             );
                             this._members.add(memberKey, member);
-                            if (this._state === GroupCallState.Joining || this._state === GroupCallState.Joined) {
-                                // Safari can't send a MediaStream to multiple sources, so clone it
-                                member.connect(this._localMedia!.clone(), this.localMuteSettings);
+                            if (this.joinedData) {
+                                this.connectToMember(member, this.joinedData, log);
                             }
                         }
                         // flush pending messages, either after having created the member,
                         // or updated the session id with updateCallInfo
-                        this.flushPendingDeviceMessages(member, log);
+                        this.flushPendingIncomingDeviceMessages(member, log);
                     }
                 });
             }
@@ -284,8 +313,11 @@ export class GroupCall extends EventEmitter<{change: never}> {
     /** @internal */
     removeMembership(userId: string, syncLog: ILogItem) {
         const deviceIds = this.getDeviceIdsForUserId(userId);
-        this.logItem.wrap("removeMember", log => {
-            syncLog.refDetached(log);
+        syncLog.wrap({
+            l: "remove call member",
+            t: CALL_LOG_TYPE,
+            id: this.id
+        }, log => {
             for (const deviceId of deviceIds) {
                 this.removeMemberDevice(userId, deviceId, log);
             }
@@ -295,7 +327,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
         });
     }
 
-    private flushPendingDeviceMessages(member: Member, log: ILogItem) {
+    private flushPendingIncomingDeviceMessages(member: Member, log: ILogItem) {
         const memberKey = getMemberKey(member.userId, member.deviceId);
         const bufferedMessages = this.bufferedDeviceMessages.get(memberKey);
         // check if we have any pending message for the member with (userid, deviceid, sessionid)
@@ -323,16 +355,21 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     private removeOwnDevice(log: ILogItem) {
+        log.set("leave_own", true);
+        this.disconnect(log);
+    }
+
+    /** @internal */
+    disconnect(log: ILogItem) {
         if (this._state === GroupCallState.Joined) {
-            log.set("leave_own", true);
             for (const [,member] of this._members) {
-                member.disconnect(true);
+                member.disconnect(true, log);
             }
-            this._localMedia?.dispose();
-            this._localMedia = undefined;
             this._state = GroupCallState.Created;
-            this.emitChange();
         }
+        this.joinedData?.dispose();
+        this.joinedData = undefined;
+        this.emitChange();
     }
 
     /** @internal */
@@ -343,7 +380,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
         if (member) {
             log.set("leave", true);
             this._members.remove(memberKey);
-            member.disconnect(false);
+            member.disconnect(false, log);
         }
         this.emitChange();
     }
@@ -356,8 +393,10 @@ export class GroupCall extends EventEmitter<{change: never}> {
         if (member && message.content.sender_session_id === member.sessionId) {
             member.handleDeviceMessage(message, syncLog);
         } else {
-            const item = this.logItem.log({
-                l: "buffering to_device message, member not found",
+            const item = syncLog.log({
+                l: "call: buffering to_device message, member not found",
+                t: CALL_LOG_TYPE,
+                id: this.id,
                 userId,
                 deviceId,
                 sessionId: message.content.sender_session_id,
@@ -373,11 +412,6 @@ export class GroupCall extends EventEmitter<{change: never}> {
             }
             messages.add(message);
         }
-    }
-
-    /** @internal */
-    dispose() {
-        this.logItem.finish();
     }
 
     private async _createJoinPayload() {
@@ -422,6 +456,14 @@ export class GroupCall extends EventEmitter<{change: never}> {
             }
 
         }
+    }
+
+    private connectToMember(member: Member, joinedData: JoinedData, log: ILogItem) {
+        const logItem = joinedData.membersLogItem.child({l: "member", id: getMemberKey(member.userId, member.deviceId)});
+        logItem.set("sessionId", member.sessionId);
+        log.refDetached(logItem);
+        // Safari can't send a MediaStream to multiple sources, so clone it
+        member.connect(joinedData.localMedia.clone(), joinedData.localMuteSettings, logItem);
     }
 
     protected emitChange() {

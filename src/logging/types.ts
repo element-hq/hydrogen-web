@@ -42,6 +42,8 @@ export interface ILogItem {
     readonly start?: number;
     readonly values: LogItemValues;
     wrap<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T;
+    /*** This is sort of low-level, you probably want to use wrap. If you do use it, it should only be called once. */
+    run<T>(callback: LogCallback<T>): T;
     log(labelOrValues: LabelOrValues, logLevel?: LogLevel): ILogItem;
     set(key: string | object, value: unknown): ILogItem;
     runDetached(labelOrValues: LabelOrValues, callback: LogCallback<unknown>, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem;

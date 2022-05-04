@@ -49,7 +49,7 @@ export type Options = {
     forceTURN: boolean,
     turnServers: RTCIceServer[],
     createTimeout: TimeoutCreator,
-    emitUpdate: (peerCall: PeerCall, params: any) => void;
+    emitUpdate: (peerCall: PeerCall, params: any, log: ILogItem) => void;
     sendSignallingMessage: (message: SignallingMessage<MCallBase>, log: ILogItem) => Promise<void>;
 };
 
@@ -70,6 +70,7 @@ export class PeerCall implements IDisposable {
     // we don't own localMedia and should hence not call dispose on it from here
     private localMedia?: LocalMedia;
     private localMuteSettings?: MuteSettings;
+    // TODO: this should go in member
     private seq: number = 0;
     // A queue for candidates waiting to go out.
     // We try to amalgamate candidates into a single candidate message where
@@ -99,13 +100,14 @@ export class PeerCall implements IDisposable {
     private _hangupReason?: CallErrorCode;
     private _remoteMedia: RemoteMedia;
     private _remoteMuteSettings = new MuteSettings();
-
+    private flushCandidatesLog?: ILogItem;
+    
     constructor(
         private callId: string,
         private readonly options: Options,
         private readonly logItem: ILogItem,
     ) {
-        logItem.log({l: "create PeerCall", callId});
+        logItem.log({l: "create PeerCall", id: callId});
         this._remoteMedia = new RemoteMedia();
         this.peerConnection = options.webRTC.createPeerConnection(this.options.forceTURN, this.options.turnServers, 0);
         
@@ -119,12 +121,12 @@ export class PeerCall implements IDisposable {
 
         listen("iceconnectionstatechange", () => {
             const state = this.peerConnection.iceConnectionState;
-            this.logItem.wrap({l: "onIceConnectionStateChange", status: state}, log => {
+            logItem.wrap({l: "onIceConnectionStateChange", status: state}, log => {
                 this.onIceConnectionStateChange(state, log);
             });
         });
         listen("icecandidate", event => {
-            this.logItem.wrap("onLocalIceCandidate", log => {
+            logItem.wrap("onLocalIceCandidate", log => {
                 if (event.candidate) {
                     this.handleLocalIceCandidate(event.candidate, log);
                 }
@@ -132,24 +134,24 @@ export class PeerCall implements IDisposable {
         });
         listen("icegatheringstatechange", () => {
             const state = this.peerConnection.iceGatheringState;
-            this.logItem.wrap({l: "onIceGatheringStateChange", status: state}, log => {
+            logItem.wrap({l: "onIceGatheringStateChange", status: state}, log => {
                 this.handleIceGatheringState(state, log);
             });
         });
         listen("track", event => {
-            this.logItem.wrap("onRemoteTrack", log => {
+            logItem.wrap("onRemoteTrack", log => {
                 this.onRemoteTrack(event.track, event.streams, log);
             });
         });
         listen("datachannel", event => {
-            this.logItem.wrap("onRemoteDataChannel", log => {
+            logItem.wrap("onRemoteDataChannel", log => {
                 this._dataChannel = event.channel;
-                this.options.emitUpdate(this, undefined);
+                this.options.emitUpdate(this, undefined, log);
             });
         });
         listen("negotiationneeded", () => {
             const promiseCreator = () => {
-                return this.logItem.wrap("onNegotiationNeeded", log => {
+                return logItem.wrap("onNegotiationNeeded", log => {
                     return this.handleNegotiation(log);
                 });
             };
@@ -171,8 +173,8 @@ export class PeerCall implements IDisposable {
         return this._remoteMuteSettings;
     }
 
-    call(localMedia: LocalMedia, localMuteSettings: MuteSettings): Promise<void> {
-        return this.logItem.wrap("call", async log => {
+    call(localMedia: LocalMedia, localMuteSettings: MuteSettings, log: ILogItem): Promise<void> {
+        return log.wrap("call", async log => {
             if (this._state !== CallState.Fledgling) {
                 return;
             }
@@ -190,8 +192,8 @@ export class PeerCall implements IDisposable {
         });
     }
 
-    answer(localMedia: LocalMedia, localMuteSettings: MuteSettings): Promise<void> {
-        return this.logItem.wrap("answer", async log => {
+    answer(localMedia: LocalMedia, localMuteSettings: MuteSettings, log: ILogItem): Promise<void> {
+        return log.wrap("answer", async log => {
             if (this._state !== CallState.Ringing) {
                 return;
             }
@@ -226,8 +228,8 @@ export class PeerCall implements IDisposable {
         });
     }
 
-    setMedia(localMedia: LocalMedia): Promise<void> {
-        return this.logItem.wrap("setMedia", async log => {
+    setMedia(localMedia: LocalMedia, log: ILogItem): Promise<void> {
+        return log.wrap("setMedia", async log => {
             log.set("userMedia_audio", !!getStreamAudioTrack(localMedia.userMedia));
             log.set("userMedia_video", !!getStreamVideoTrack(localMedia.userMedia));
             log.set("screenShare_video", !!getStreamVideoTrack(localMedia.screenShare));
@@ -243,8 +245,8 @@ export class PeerCall implements IDisposable {
         });
     }
 
-    setMuted(localMuteSettings: MuteSettings) {
-        return this.logItem.wrap("setMuted", async log => {
+    setMuted(localMuteSettings: MuteSettings, log: ILogItem): Promise<void> {
+        return log.wrap("setMuted", async log => {
             this.localMuteSettings = localMuteSettings;
             log.set("cameraMuted", localMuteSettings.camera);
             log.set("microphoneMuted", localMuteSettings.microphone);
@@ -269,8 +271,8 @@ export class PeerCall implements IDisposable {
         });
     }
 
-    hangup(errorCode: CallErrorCode): Promise<void> {
-        return this.logItem.wrap("hangup", log => {
+    hangup(errorCode: CallErrorCode, log: ILogItem): Promise<void> {
+        return log.wrap("hangup", log => {
             return this._hangup(errorCode, log);
         });
     }
@@ -299,8 +301,17 @@ export class PeerCall implements IDisposable {
         await this.sendHangupWithCallId(this.callId, errorCode, log);
     }
 
-    handleIncomingSignallingMessage<B extends MCallBase>(message: SignallingMessage<B>, partyId: PartyId): Promise<void> {
-        return this.logItem.wrap({l: "receive", id: message.type, callId: message.content.call_id, payload: message}, async log => {
+    handleIncomingSignallingMessage<B extends MCallBase>(message: SignallingMessage<B>, partyId: PartyId, log: ILogItem): ILogItem {
+        // return logItem item immediately so it can be references in sync manner
+        let logItem;
+        log.wrap({
+            l: "receive signalling message",
+            type: message.type,
+            callId: message.content.call_id,
+            payload: message.content
+        }, async log => {
+            logItem = log;
+
             switch (message.type) {
                 case EventType.Invite:
                     if (this.callId !== message.content.call_id) {
@@ -332,6 +343,7 @@ export class PeerCall implements IDisposable {
                     break;
             }
         });
+        return logItem;
     }
 
     private sendHangupWithCallId(callId: string, reason: CallErrorCode | undefined, log: ILogItem): Promise<void> {
@@ -436,7 +448,7 @@ export class PeerCall implements IDisposable {
             }
             await this.handleInvite(content, partyId, log);
             // TODO: need to skip state check
-            await this.answer(this.localMedia!, this.localMuteSettings!);
+            await this.answer(this.localMedia!, this.localMuteSettings!, log);
         } else {
             log.log(
                 "Glare detected: rejecting incoming call " + newCallId +
@@ -704,7 +716,7 @@ export class PeerCall implements IDisposable {
         this.sendCandidateQueue(log);
     }
 
-    private queueCandidate(content: RTCIceCandidate, log: ILogItem): void {
+    private async queueCandidate(content: RTCIceCandidate, log: ILogItem): Promise<void> {
         // We partially de-trickle candidates by waiting for `delay` before sending them
         // amalgamated, in order to avoid sending too many m.call.candidates events and hitting
         // rate limits in Matrix.
@@ -719,29 +731,24 @@ export class PeerCall implements IDisposable {
         // Don't send the ICE candidates yet if the call is in the ringing state
         if (this._state === CallState.Ringing) return;
 
+
+        this.flushCandidatesLog = this.flushCandidatesLog ?? this.logItem.child("flush candidate queue");
+        log.refDetached(this.flushCandidatesLog);
+        const {flushCandidatesLog} = this;
         // MSC2746 recommends these values (can be quite long when calling because the
         // callee will need a while to answer the call)
-        const sendLogItem = this.logItem.child("wait to send candidates");
-        log.refDetached(sendLogItem);
-        this.delay(this.direction === CallDirection.Inbound ? 500 : 2000)
-            .then(() => {
-                return this.sendCandidateQueue(sendLogItem);
-            }, err => {}) // swallow delay AbortError
-            .finally(() => {
-                sendLogItem.finish();
-            });
+        await this.delay(this.direction === CallDirection.Inbound ? 500 : 2000);
+        this.sendCandidateQueue(flushCandidatesLog);
+        this.flushCandidatesLog = undefined;
     }
 
     private async sendCandidateQueue(log: ILogItem): Promise<void> {
-        return log.wrap("send candidates queue", async log => {
-            log.set("queueLength", this.candidateSendQueue.length);
-
-            if (this.candidateSendQueue.length === 0 || this._state === CallState.Ended) {
-                return;
-            }
-
-            const candidates = this.candidateSendQueue;
-            this.candidateSendQueue = [];
+        if (this.candidateSendQueue.length === 0 || this._state === CallState.Ended) {
+            return;
+        }
+        const candidates = this.candidateSendQueue;
+        this.candidateSendQueue = [];
+        return log.wrap({l: "send candidates", size: candidates.length}, async log => {
             try {
                 await this.sendSignallingMessage({
                     type: EventType.Candidates,
@@ -753,7 +760,7 @@ export class PeerCall implements IDisposable {
                     },
                 }, log);
                 // Try to send candidates again just in case we received more candidates while sending.
-                this.sendCandidateQueue(log);
+                await this.sendCandidateQueue(log);
             } catch (error) {
                 log.catch(error);
                 // don't retry this event: we'll send another one later as we might
@@ -805,10 +812,11 @@ export class PeerCall implements IDisposable {
         }
     }
 
-    private onIceConnectionStateChange = (state: RTCIceConnectionState, log: ILogItem): void => {
+    private onIceConnectionStateChange = async (state: RTCIceConnectionState, log: ILogItem): Promise<void> => {
         if (this._state === CallState.Ended) {
             return; // because ICE can still complete as we're ending the call
         }
+        let logStats = false;
         // ideally we'd consider the call to be connected when we get media but
         // chrome doesn't implement any of the 'onstarted' events yet
         if (state == 'connected') {
@@ -816,14 +824,24 @@ export class PeerCall implements IDisposable {
             this.iceDisconnectedTimeout = undefined;
             this.setState(CallState.Connected, log);
         } else if (state == 'failed') {
+            logStats = true;
             this.iceDisconnectedTimeout?.abort();
             this.iceDisconnectedTimeout = undefined;
             this._hangup(CallErrorCode.IceFailed, log);
         } else if (state == 'disconnected') {
+            logStats = true;
             this.iceDisconnectedTimeout = this.options.createTimeout(30 * 1000);
             this.iceDisconnectedTimeout.elapsed().then(() => {
                 this._hangup(CallErrorCode.IceFailed, log);
             }, () => { /* ignore AbortError */ });
+        }
+        if (logStats) {
+            const stats = await this.peerConnection.getStats();
+            const statsObj = {};
+            stats.forEach((value, key) => {
+                statsObj[key] = value;
+            });
+            log.set("peerConnectionStats", statsObj);
         }
     };
 
@@ -837,7 +855,7 @@ export class PeerCall implements IDisposable {
                 deferred.resolve();
                 this.statePromiseMap.delete(state);
             }
-            this.options.emitUpdate(this, undefined);
+            this.options.emitUpdate(this, undefined, log);
         }
     }
 
@@ -979,7 +997,7 @@ export class PeerCall implements IDisposable {
                     }
                 }
             }
-            this.options.emitUpdate(this, undefined);
+            this.options.emitUpdate(this, undefined, log);
         });
     }
 
@@ -1049,6 +1067,12 @@ export class PeerCall implements IDisposable {
         this.disposables.dispose();
         this.iceDisconnectedTimeout?.abort();
         this.peerConnection.close();
+        // replace emitUpdate in case any eventhandler in here is still attached
+        // we really don't want to trigger any code in Member after this
+        this.options.emitUpdate = (_, __, log) => {
+            log.log("emitting update from PeerCall after disposal", this.logItem.level.Error);
+            console.trace("emitting update from PeerCall after disposal");
+        };
     }
 
     public close(reason: CallErrorCode | undefined, log: ILogItem): void {
