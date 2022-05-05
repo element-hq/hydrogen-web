@@ -31,7 +31,8 @@ import {
     createNavigation,
     createRouter,
     RoomViewModel,
-    TimelineView
+    TimelineView,
+    viewClassForTile
 } from "hydrogen-view-sdk";
 import downloadSandboxPath from 'hydrogen-view-sdk/download-sandbox.html?url';
 import workerPath from 'hydrogen-view-sdk/main.js?url';
@@ -53,7 +54,7 @@ import "hydrogen-view-sdk/theme-element-light.css";
 async function main() {
     const app = document.querySelector<HTMLDivElement>('#app')!
     const config = {};
-    const platform = new Platform(app, assetPaths, config, { development: import.meta.env.DEV });
+    const platform = new Platform({container: app, assetPaths, config, options: { development: import.meta.env.DEV }});
     const navigation = createNavigation();
     platform.setNavigation(navigation);
     const urlRouter = createRouter({
@@ -88,7 +89,7 @@ async function main() {
             navigation,
         });
         await vm.load();
-        const view = new TimelineView(vm.timelineViewModel);
+        const view = new TimelineView(vm.timelineViewModel, viewClassForTile);
         app.appendChild(view.mount());
     }
 }
