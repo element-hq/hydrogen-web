@@ -21,6 +21,7 @@ import {handlesEventType} from "./PeerCall";
 import {EventType, CallIntent} from "./callEventTypes";
 import {GroupCall} from "./group/GroupCall";
 import {makeId} from "../common";
+import {CALL_LOG_TYPE} from "./common";
 
 import type {LocalMedia} from "./LocalMedia";
 import type {Room} from "../room/Room";
@@ -36,7 +37,6 @@ import type {CallEntry} from "../storage/idb/stores/CallStore";
 import type {Clock} from "../../platform/web/dom/Clock";
 
 export type Options = Omit<GroupCallOptions, "emitUpdate" | "createTimeout"> & {
-    logger: ILogger,
     clock: Clock
 };
 
@@ -78,7 +78,7 @@ export class CallHandler {
     }
 
     private async _loadCallEntries(callEntries: CallEntry[], txn: Transaction): Promise<void> {
-        return this.options.logger.run("loading calls", async log => {
+        return this.options.logger.run({l: "loading calls", t: CALL_LOG_TYPE}, async log => {
             log.set("entries", callEntries.length);
             await Promise.all(callEntries.map(async callEntry => {
                 if (this._calls.get(callEntry.callId)) {
@@ -86,8 +86,7 @@ export class CallHandler {
                 }
                 const event = await txn.roomState.get(callEntry.roomId, EventType.GroupCall, callEntry.callId);
                 if (event) {
-                    const logItem = this.options.logger.child({l: "call", loaded: true});
-                    const call = new GroupCall(event.event.state_key, false, event.event.content, event.roomId, this.groupCallOptions, logItem);
+                    const call = new GroupCall(event.event.state_key, false, event.event.content, event.roomId, this.groupCallOptions);
                     this._calls.set(call.id, call);
                 }
             }));
@@ -108,11 +107,10 @@ export class CallHandler {
     }
 
     async createCall(roomId: string, type: "m.video" | "m.voice", name: string, intent: CallIntent = CallIntent.Ring): Promise<GroupCall> {
-        const logItem = this.options.logger.child({l: "call", incoming: false});
         const call = new GroupCall(makeId("conf-"), true, { 
             "m.name": name,
             "m.intent": intent
-        }, roomId, this.groupCallOptions, logItem);
+        }, roomId, this.groupCallOptions);
         this._calls.set(call.id, call);
 
         try {
@@ -129,7 +127,6 @@ export class CallHandler {
         } catch (err) {
             //if (err.name === "ConnectionError") {
                 // if we're offline, give up and remove the call again
-                call.dispose();
                 this._calls.remove(call.id);
             //}
             throw err;
@@ -181,13 +178,12 @@ export class CallHandler {
         if (call) {
             call.updateCallEvent(event.content, log);
             if (call.isTerminated) {
-                call.dispose();
+                call.disconnect(log);
                 this._calls.remove(call.id);
                 txn.calls.remove(call.intent, roomId, call.id);
             }
         } else {
-            const logItem = this.options.logger.child({l: "call", incoming: true});
-            call = new GroupCall(event.state_key, false, event.content, roomId, this.groupCallOptions, logItem);
+            call = new GroupCall(event.state_key, false, event.content, roomId, this.groupCallOptions);
             this._calls.set(call.id, call);
             txn.calls.add({
                 intent: call.intent,

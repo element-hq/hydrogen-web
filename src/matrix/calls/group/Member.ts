@@ -49,11 +49,20 @@ const errorCodesWithoutRetry = [
     CallErrorCode.NewSession
 ];
 
+/** @internal */
+class MemberConnection {
+    public retryCount: number = 0;
+    public peerCall?: PeerCall;
+
+    constructor(
+        public localMedia: LocalMedia,
+        public localMuteSettings: MuteSettings,
+        public readonly logItem: ILogItem
+    ) {}
+}
+
 export class Member {
-    private peerCall?: PeerCall;
-    private localMedia?: LocalMedia;
-    private localMuteSettings?: MuteSettings;
-    private retryCount: number = 0;
+    private connection?: MemberConnection;
 
     constructor(
         public readonly member: RoomMember,
@@ -61,19 +70,18 @@ export class Member {
         private _deviceIndex: number,
         private _eventTimestamp: number,
         private readonly options: Options,
-        private readonly logItem: ILogItem,
     ) {}
 
     get remoteMedia(): RemoteMedia | undefined {
-        return this.peerCall?.remoteMedia;
+        return this.connection?.peerCall?.remoteMedia;
     }
 
     get remoteMuteSettings(): MuteSettings | undefined {
-        return this.peerCall?.remoteMuteSettings;
+        return this.connection?.peerCall?.remoteMuteSettings;
     }
 
     get isConnected(): boolean {
-        return this.peerCall?.state === CallState.Connected;
+        return this.connection?.peerCall?.state === CallState.Connected;
     }
 
     get userId(): string {
@@ -90,7 +98,7 @@ export class Member {
     }
 
     get dataChannel(): any | undefined {
-        return this.peerCall?.dataChannel;
+        return this.connection?.peerCall?.dataChannel;
     }
 
     get deviceIndex(): number {
@@ -102,10 +110,19 @@ export class Member {
     }
 
     /** @internal */
-    connect(localMedia: LocalMedia, localMuteSettings: MuteSettings) {
-        this.logItem.wrap("connect", () => {
-            this.localMedia = localMedia;
-            this.localMuteSettings = localMuteSettings;
+    connect(localMedia: LocalMedia, localMuteSettings: MuteSettings, memberLogItem: ILogItem) {
+        if (this.connection) {
+            return;
+        }
+        const connection = new MemberConnection(localMedia, localMuteSettings, memberLogItem);
+        this.connection = connection;
+        connection.logItem.wrap("connect", async log => {
+            await this.callIfNeeded(log);
+        });
+    }
+
+    private callIfNeeded(log: ILogItem): Promise<void> {
+        return log.wrap("callIfNeeded", async log => {
             // otherwise wait for it to connect
             let shouldInitiateCall;
             // the lexicographically lower side initiates the call
@@ -115,69 +132,79 @@ export class Member {
                 shouldInitiateCall = this.member.userId > this.options.ownUserId;
             }
             if (shouldInitiateCall) {
-                this.peerCall = this._createPeerCall(makeId("c"));
-                this.peerCall.call(localMedia, localMuteSettings);
-            }
-        });
-    }
-
-    /** @internal */
-    disconnect(hangup: boolean) {
-        this.logItem.wrap("disconnect", log => {
-            if (hangup) {
-                this.peerCall?.hangup(CallErrorCode.UserHangup);
+                const connection = this.connection!;
+                connection.peerCall = this._createPeerCall(makeId("c"));
+                await connection.peerCall.call(
+                    connection.localMedia,
+                    connection.localMuteSettings,
+                    log
+                );
             } else {
-                this.peerCall?.close(undefined, log);
+                log.set("wait_for_invite", true);
             }
-            this.peerCall?.dispose();
-            this.peerCall = undefined;
-            this.localMedia?.dispose();
-            this.localMedia = undefined;
-            this.retryCount = 0;
         });
     }
 
     /** @internal */
-    updateCallInfo(callDeviceMembership: CallDeviceMembership, deviceIndex: number, eventTimestamp: number,  log: ILogItem) {
-        log.wrap({l: "updateing device membership", deviceId: this.deviceId}, log => {
-            // session id is changing, disconnect so we start with a new slate for the new session
-            if (callDeviceMembership.session_id !== this.sessionId) {
-                log.wrap({
-                    l: "member event changes session id",
-                    oldSessionId: this.sessionId,
-                    newSessionId: callDeviceMembership.session_id
-                }, log => {
-                    // prevent localMedia from being stopped
-                    // as connect won't be called again when reconnecting
-                    // to the new session
-                    const localMedia = this.localMedia;
-                    this.localMedia = undefined;
-                    this.disconnect(false);
-                    // connect again, as the other side might be waiting for our invite
-                    // after refreshing
-                    this.connect(localMedia!, this.localMuteSettings!);
-                });
+    disconnect(hangup: boolean, causeItem: ILogItem) {
+        const {connection} = this;
+        if (!connection) {
+            return;
+        }
+        connection.logItem.wrap("disconnect", async log => {
+            log.refDetached(causeItem);
+            if (hangup) {
+                connection.peerCall?.hangup(CallErrorCode.UserHangup, log);
+            } else {
+                await connection.peerCall?.close(undefined, log);
             }
-            this.callDeviceMembership = callDeviceMembership;
-            this._deviceIndex = deviceIndex;
-            this._eventTimestamp = eventTimestamp;
+            connection.peerCall?.dispose();
+            connection.localMedia?.dispose();
+            this.connection = undefined;
         });
+        connection.logItem.finish();
     }
 
     /** @internal */
-    emitUpdate = (peerCall: PeerCall, params: any) => {
+    updateCallInfo(
+        callDeviceMembership: CallDeviceMembership,
+        deviceIndex: number,
+        eventTimestamp: number, 
+        causeItem: ILogItem
+    ) {
+        this.callDeviceMembership = callDeviceMembership;
+        this._deviceIndex = deviceIndex;
+        this._eventTimestamp = eventTimestamp;
+
+        if (this.connection) {
+            this.connection.logItem.refDetached(causeItem);
+        }
+    }
+
+    /** @internal */
+    emitUpdateFromPeerCall = (peerCall: PeerCall, params: any, log: ILogItem): void => {
+        const connection = this.connection!;
         if (peerCall.state === CallState.Ringing) {
-            peerCall.answer(this.localMedia!, this.localMuteSettings!);
+            connection.logItem.wrap("ringing, answer peercall", answerLog => {
+                log.refDetached(answerLog);
+                return peerCall.answer(connection.localMedia, connection.localMuteSettings, answerLog);
+            });
         }
         else if (peerCall.state === CallState.Ended) {
             const hangupReason = peerCall.hangupReason;
             peerCall.dispose();
-            this.peerCall = undefined;
+            connection.peerCall = undefined;
             if (hangupReason && !errorCodesWithoutRetry.includes(hangupReason)) {
-                this.retryCount += 1;
-                if (this.retryCount <= 3) {
-                    this.connect(this.localMedia!, this.localMuteSettings!);
-                }
+                connection.retryCount += 1;
+                const {retryCount} = connection;
+                connection.logItem.wrap({l: "retry connection", retryCount}, async retryLog => {
+                    log.refDetached(retryLog);
+                    if (retryCount <= 3) {
+                        await this.callIfNeeded(retryLog);
+                    } else {
+                        this.disconnect(false, retryLog);
+                    }
+                });
             }
         }
         this.options.emitUpdate(this, params);
@@ -213,38 +240,50 @@ export class Member {
     }
 
     /** @internal */
-    handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, syncLog: ILogItem): void {
-        syncLog.refDetached(this.logItem);
-        const destSessionId = message.content.dest_session_id;
-        if (destSessionId !== this.options.sessionId) {
-            this.logItem.log({l: "ignoring to_device event with wrong session_id", destSessionId, type: message.type});
-            return;
-        }
-        if (message.type === EventType.Invite && !this.peerCall) {
-            this.peerCall = this._createPeerCall(message.content.call_id);
-        }
-        if (this.peerCall) {
-            this.peerCall.handleIncomingSignallingMessage(message, this.deviceId);
+    handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, syncLog: ILogItem): void{
+        const {connection} = this;
+        if (connection) {
+            const destSessionId = message.content.dest_session_id;
+            if (destSessionId !== this.options.sessionId) {
+                const logItem = connection.logItem.log({l: "ignoring to_device event with wrong session_id", destSessionId, type: message.type});
+                syncLog.refDetached(logItem);
+                return;
+            }
+            if (message.type === EventType.Invite && !connection.peerCall) {
+                connection.peerCall = this._createPeerCall(message.content.call_id);
+            }
+            if (connection.peerCall) {
+                const item = connection.peerCall.handleIncomingSignallingMessage(message, this.deviceId, connection.logItem);
+                syncLog.refDetached(item);
+            } else {
+                // TODO: need to buffer events until invite comes?
+            }
         } else {
-            // TODO: need to buffer events until invite comes?
+            syncLog.log({l: "member not connected", userId: this.userId, deviceId: this.deviceId});
         }
     }
 
     /** @internal */
     async setMedia(localMedia: LocalMedia, previousMedia: LocalMedia): Promise<void> {
-        this.localMedia = localMedia.replaceClone(this.localMedia, previousMedia);
-        await this.peerCall?.setMedia(this.localMedia);
+        const {connection} = this;
+        if (connection) {
+            connection.localMedia = connection.localMedia.replaceClone(connection.localMedia, previousMedia);
+            await connection.peerCall?.setMedia(connection.localMedia, connection.logItem);
+        }
     }
 
-    setMuted(muteSettings: MuteSettings) {
-        this.localMuteSettings = muteSettings;
-        this.peerCall?.setMuted(muteSettings);
+    async setMuted(muteSettings: MuteSettings): Promise<void> {
+        const {connection} = this;
+        if (connection) {
+            connection.localMuteSettings = muteSettings;
+            await connection.peerCall?.setMuted(muteSettings, connection.logItem);
+        }
     }
 
     private _createPeerCall(callId: string): PeerCall {
         return new PeerCall(callId, Object.assign({}, this.options, {
-            emitUpdate: this.emitUpdate,
+            emitUpdate: this.emitUpdateFromPeerCall,
             sendSignallingMessage: this.sendSignallingMessage
-        }), this.logItem);
+        }), this.connection!.logItem);
     }
 }

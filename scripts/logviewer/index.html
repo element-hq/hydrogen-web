@@ -162,6 +162,10 @@
                 --hue: 30deg;
             }
 
+            .timeline .item.type-call {
+                --hue: 50deg;
+            }
+
             .timeline .item.type-navigation {
                 --hue: 200deg;
             }
@@ -188,19 +192,28 @@
             nav form {
                 display: inline;
             }
+
+            #filename {
+                margin: 0;
+                font-size: 1rem;
+                padding: 4px 0;
+            }
         </style>
     </head>
     <body>
         <nav>
-            <button id="openFile">Open log file</button>
-            <button id="collapseAll">Collapse all</button>
-            <button id="hideCollapsed">Hide collapsed root items</button>
-            <button id="hideHighlightedSiblings" title="Hide collapsed siblings of highlighted">Hide non-highlighted</button>
-            <button id="showAll">Show all</button>
-            <form id="highlightForm">
-                <input type="text" id="highlight" name="highlight" placeholder="Highlight a search term" autocomplete="on">
-                <output id="highlightMatches"></output>
-            </form>
+            <div>
+                <button id="openFile">Open log file</button>
+                <button id="collapseAll">Collapse all</button>
+                <button id="hideCollapsed">Hide collapsed root items</button>
+                <button id="hideHighlightedSiblings" title="Hide collapsed siblings of highlighted">Hide non-highlighted</button>
+                <button id="showAll">Show all</button>
+                <form id="highlightForm">
+                    <input type="text" id="highlight" name="highlight" placeholder="Highlight a search term" autocomplete="on">
+                    <output id="highlightMatches"></output>
+                </form>
+            </div>
+            <h2 id="filename"></h2>
         </nav>
         <main></main>
         <aside></aside>

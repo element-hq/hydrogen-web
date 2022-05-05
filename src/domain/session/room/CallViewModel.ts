@@ -68,7 +68,9 @@ export class CallViewModel extends ViewModel<Options> {
     }
 
     async toggleVideo() {
-        this.call.setMuted(this.call.muteSettings.toggleCamera());
+        if (this.call.muteSettings) {
+            this.call.setMuted(this.call.muteSettings.toggleCamera());
+        }
     }
 }
 
@@ -87,11 +89,11 @@ class OwnMemberViewModel extends ViewModel<OwnMemberOptions> implements IStreamV
     }
 
     get isCameraMuted(): boolean {
-        return isMuted(this.call.muteSettings.camera, !!getStreamVideoTrack(this.stream));
+        return isMuted(this.call.muteSettings?.camera, !!getStreamVideoTrack(this.stream));
     }
 
     get isMicrophoneMuted(): boolean {
-        return isMuted(this.call.muteSettings.microphone, !!getStreamAudioTrack(this.stream));
+        return isMuted(this.call.muteSettings?.microphone, !!getStreamAudioTrack(this.stream));
     }
 
     get avatarLetter(): string {
