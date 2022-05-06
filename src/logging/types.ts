@@ -16,7 +16,6 @@ limitations under the License.
 */
 
 import {LogLevel, LogFilter} from "./LogFilter";
-import type {BaseLogger} from "./BaseLogger";
 import type {BlobHandle} from "../platform/web/dom/BlobHandle.js";
 
 export interface ISerializedItem {
@@ -40,7 +39,7 @@ export interface ILogItem {
     readonly level: typeof LogLevel;
     readonly end?: number;
     readonly start?: number;
-    readonly values: LogItemValues;
+    readonly values: Readonly<LogItemValues>;
     wrap<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T;
     /*** This is sort of low-level, you probably want to use wrap. If you do use it, it should only be called once. */
     run<T>(callback: LogCallback<T>): T;
@@ -74,14 +73,20 @@ export interface ILogger {
     wrapOrRun<T>(item: ILogItem | undefined, labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T;
     runDetached<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem;
     run<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T;
-    export(): Promise<ILogExport | undefined>;
     get level(): typeof LogLevel;
+    getOpenRootItems(): Iterable<ILogItem>;
+    addReporter(reporter: ILogReporter): void;
+    get reporters(): ReadonlyArray<ILogReporter>;
+    /**
+     * force-finishes any open items and passes them to the reporter, with the forced flag set.
+     * Good think to do when the page is being closed to not lose any logs.
+     **/
+    forceFinish(): void;
 }
 
-export interface ILogExport {
-    get count(): number;
-    removeFromStore(): Promise<void>;
-    asBlob(): BlobHandle;
+export interface ILogReporter {
+    setLogger(logger: ILogger): void;
+    reportItem(item: ILogItem, filter?: LogFilter, forced?: boolean): void;
 }
 
 export type LogItemValues = {

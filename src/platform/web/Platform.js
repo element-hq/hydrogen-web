@@ -21,8 +21,9 @@ import {SessionInfoStorage} from "../../matrix/sessioninfo/localstorage/SessionI
 import {SettingsStorage} from "./dom/SettingsStorage.js";
 import {Encoding} from "./utils/Encoding.js";
 import {OlmWorker} from "../../matrix/e2ee/OlmWorker.js";
-import {IDBLogger} from "../../logging/IDBLogger";
-import {ConsoleLogger} from "../../logging/ConsoleLogger";
+import {IDBLogPersister} from "../../logging/IDBLogPersister";
+import {ConsoleReporter} from "../../logging/ConsoleReporter";
+import {Logger} from "../../logging/Logger";
 import {RootView} from "./ui/RootView.js";
 import {Clock} from "./dom/Clock.js";
 import {ServiceWorkerHandler} from "./dom/ServiceWorkerHandler.js";
@@ -128,7 +129,7 @@ function adaptUIOnVisualViewportResize(container) {
 }
 
 export class Platform {
-    constructor({ container, assetPaths, config, configURL, options = null, cryptoExtras = null }) {
+    constructor({ container, assetPaths, config, configURL, logger, options = null, cryptoExtras = null }) {
         this._container = container;
         this._assetPaths = assetPaths;
         this._config = config;
@@ -137,7 +138,7 @@ export class Platform {
         this.clock = new Clock();
         this.encoding = new Encoding();
         this.random = Math.random;
-        this._createLogger(options?.development);
+        this.logger = logger ?? this._createLogger(options?.development);
         this.history = new History();
         this.onlineStatus = new OnlineStatus();
         this._serviceWorkerHandler = null;
@@ -185,6 +186,7 @@ export class Platform {
     }
 
     _createLogger(isDevelopment) {
+        const logger = new Logger({platform: this});
         // Make sure that loginToken does not end up in the logs
         const transformer = (item) => {
             if (item.e?.stack) {
@@ -192,11 +194,12 @@ export class Platform {
             }
             return item;
         };
+        const logPersister = new IDBLogPersister({name: "hydrogen_logs", platform: this, serializedTransformer: transformer});
+        logger.addReporter(logPersister);
         if (isDevelopment) {
-            this.logger = new ConsoleLogger({platform: this});
-        } else {
-            this.logger = new IDBLogger({name: "hydrogen_logs", platform: this, serializedTransformer: transformer});
+            logger.addReporter(new ConsoleReporter());
         }
+        return logger;
     }
 
     get updateService() {

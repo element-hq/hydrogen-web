@@ -13,22 +13,27 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {BaseLogger} from "./BaseLogger";
-import {LogItem} from "./LogItem";
-import type {ILogItem, LogItemValues, ILogExport} from "./types";
 
-export class ConsoleLogger extends BaseLogger {
-    _persistItem(item: LogItem): void {
-        printToConsole(item);
+import type {ILogger, ILogItem, LogItemValues, ILogReporter} from "./types";
+import type {LogItem} from "./LogItem";
+
+export class ConsoleReporter implements ILogReporter {
+    private logger?: ILogger;
+
+    reportItem(item: ILogItem): void {
+        printToConsole(item as LogItem);
     }
 
-    async export(): Promise<ILogExport | undefined> {
-        return undefined;
+    setLogger(logger: ILogger) {
+        this.logger = logger;
     }
 
     printOpenItems(): void {
-        for (const item of this._openItems) {
-            this._persistItem(item);
+        if (!this.logger) {
+            return;
+        }
+        for (const item of this.logger.getOpenRootItems()) {
+            this.reportItem(item);
         }
     }
 }

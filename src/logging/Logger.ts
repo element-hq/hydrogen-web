@@ -17,17 +17,17 @@ limitations under the License.
 
 import {LogItem} from "./LogItem";
 import {LogLevel, LogFilter} from "./LogFilter";
-import type {ILogger, ILogExport, FilterCreator, LabelOrValues, LogCallback, ILogItem, ISerializedItem} from "./types";
+import type {ILogger, ILogReporter, FilterCreator, LabelOrValues, LogCallback, ILogItem, ISerializedItem} from "./types";
 import type {Platform} from "../platform/web/Platform.js";
 
-export abstract class BaseLogger implements ILogger {
+export class Logger implements ILogger {
     protected _openItems: Set<LogItem> = new Set();
     protected _platform: Platform;
     protected _serializedTransformer: (item: ISerializedItem) => ISerializedItem;
+    public readonly reporters: ILogReporter[] = [];
 
-    constructor({platform, serializedTransformer = (item: ISerializedItem) => item}) {
+    constructor({platform}) {
         this._platform = platform;
-        this._serializedTransformer = serializedTransformer;
     }
 
     log(labelOrValues: LabelOrValues, logLevel: LogLevel = LogLevel.Info): void {
@@ -79,10 +79,10 @@ export abstract class BaseLogger implements ILogger {
         return this._run(item, callback, logLevel, true, filterCreator);
     }
 
-    _run<T>(item: LogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: true, filterCreator?: FilterCreator): T;
+    private _run<T>(item: LogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: true, filterCreator?: FilterCreator): T;
     // we don't return if we don't throw, as we don't have anything to return when an error is caught but swallowed for the fire-and-forget case.
-    _run<T>(item: LogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: false, filterCreator?: FilterCreator): void;
-    _run<T>(item: LogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: boolean, filterCreator?: FilterCreator): T | void {
+    private _run<T>(item: LogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: false, filterCreator?: FilterCreator): void;
+    private _run<T>(item: LogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: boolean, filterCreator?: FilterCreator): T | void {
         this._openItems.add(item);
 
         const finishItem = () => {
@@ -134,7 +134,16 @@ export abstract class BaseLogger implements ILogger {
         }
     }
 
-    _finishOpenItems() {
+    addReporter(reporter: ILogReporter): void {
+        reporter.setLogger(this);
+        this.reporters.push(reporter);
+    }
+
+    getOpenRootItems(): Iterable<ILogItem> {
+        return this._openItems;
+    }
+
+    forceFinish() {
         for (const openItem of this._openItems) {
             openItem.forceFinish();
             try {
@@ -150,19 +159,24 @@ export abstract class BaseLogger implements ILogger {
         this._openItems.clear();
     }
 
-    abstract _persistItem(item: LogItem, filter?: LogFilter, forced?: boolean): void;
-
-    abstract export(): Promise<ILogExport | undefined>;
+    /** @internal */
+    _persistItem(item: LogItem, filter?: LogFilter, forced?: boolean): void {
+        for (var i = 0; i < this.reporters.length; i += 1) {
+            this.reporters[i].reportItem(item, filter, forced);
+        }
+    }
 
     // expose log level without needing 
     get level(): typeof LogLevel {
         return LogLevel;
     }
 
+    /** @internal */
     _now(): number {
         return this._platform.clock.now();
     }
 
+    /** @internal */
     _createRefId(): number {
         return Math.round(this._platform.random() * Number.MAX_SAFE_INTEGER);
     }
@@ -171,7 +185,7 @@ export abstract class BaseLogger implements ILogger {
 class DeferredPersistRootLogItem extends LogItem {
     finish() {
         super.finish();
-        (this._logger as BaseLogger)._persistItem(this, undefined, false);
+        (this._logger as Logger)._persistItem(this, undefined, false);
     }
 
     forceFinish() {
