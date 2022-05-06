@@ -118,6 +118,14 @@ export class GroupCall extends EventEmitter<{change: never}> {
         return this.callContent?.["m.intent"];
     }
 
+    /**
+     * Gives access the log item for this call while joined.
+     * Can be used for call diagnostics while in the call.
+     **/
+    get logItem(): ILogItem | undefined {
+        return this.joinedData?.logItem;
+    }
+
     async join(localMedia: LocalMedia): Promise<void> {
         if (this._state !== GroupCallState.Created || this.joinedData) {
             return;

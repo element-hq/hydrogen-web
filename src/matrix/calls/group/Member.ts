@@ -70,6 +70,15 @@ export class Member {
         private readonly options: Options,
     ) {}
 
+    /**
+     * Gives access the log item for this item once joined to the group call.
+     * The signalling for this member will be log in this item.
+     * Can be used for call diagnostics while in the call.
+     **/
+    get logItem(): ILogItem | undefined {
+        return this.connection?.logItem;
+    }
+
     get remoteMedia(): RemoteMedia | undefined {
         return this.connection?.peerCall?.remoteMedia;
     }
