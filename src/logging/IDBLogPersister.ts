@@ -237,13 +237,13 @@ export class IDBLogExport {
     }
 
     asBlob(): BlobHandle {
-        const json = this.asJSON();
+        const json = this.toJSON();
         const buffer: Uint8Array = this._platform.encoding.utf8.encode(json);
         const blob: BlobHandle = this._platform.createBlob(buffer, "application/json");
         return blob;
     }
 
-    asJSON(): string {
+    toJSON(): string {
         const log = {
             formatVersion: 1,
             appVersion: this._platform.updateService?.version,
