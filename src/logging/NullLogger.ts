@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {LogLevel} from "./LogFilter";
-import type {ILogger, ILogItem, LabelOrValues, LogCallback, LogItemValues} from "./types";
+import type {ILogger, ILogItem, ILogReporter, LabelOrValues, LogCallback, LogItemValues} from "./types";
 
 function noop (): void {}
 
@@ -24,6 +24,10 @@ export class NullLogger implements ILogger {
     log(): void {}
 
     addReporter() {}
+
+    get reporters(): ReadonlyArray<ILogReporter> {
+        return [];
+    }
 
     getOpenRootItems(): Iterable<ILogItem> {
         return [];
@@ -58,13 +62,13 @@ export class NullLogger implements ILogger {
 }
 
 export class NullLogItem implements ILogItem {
-    public readonly logger: ILogger;
+    public readonly logger: NullLogger;
     public readonly logLevel: LogLevel;
     public children?: Array<ILogItem>;
     public values: LogItemValues;
     public error?: Error;
 
-    constructor(logger: ILogger) {
+    constructor(logger: NullLogger) {
         this.logger = logger;
     }
 
