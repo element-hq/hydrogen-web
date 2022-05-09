@@ -323,24 +323,22 @@ import {LogItem} from "../../logging/LogItem";
 export function tests() {
     return {
         "loginToken should not be in logs": (assert) => {
-            const transformer = (item) => {
-                if (item.e?.stack) {
-                    item.e.stack = item.e.stack.replace(/(?<=\/\?loginToken=).+/, "<snip>");
+            const logPersister = Object.create(IDBLogPersister.prototype);
+            logPersister._queuedItems = [];
+            logPersister.options = {
+                serializedTransformer: (item) => {
+                    if (item.e?.stack) {
+                        item.e.stack = item.e.stack.replace(/(?<=\/\?loginToken=).+/, "<snip>");
+                    }
+                    return item;
                 }
-                return item;
             };
-            const logger = {
-                _queuedItems: [],
-                _serializedTransformer: transformer,
-                _now: () => {}
-            };
-            logger.persist = IDBLogger.prototype._persistItem.bind(logger);
+            const logger = { _now() {return 5;} };
             const logItem = new LogItem("test", 1, logger);
             logItem.error = new Error();
             logItem.error.stack = "main http://localhost:3000/src/main.js:55\n<anonymous> http://localhost:3000/?loginToken=secret:26"
-            logger.persist(logItem, null, false);
-            const item = logger._queuedItems.pop();
-            console.log(item);
+            logPersister.reportItem(logItem, null, false);
+            const item = logPersister._queuedItems.pop();
             assert.strictEqual(item.json.search("secret"), -1);
         }
     };
