@@ -40,9 +40,9 @@ export type Options = {
 export class ViewModel<O extends Options = Options> extends EventEmitter<{change: never}> {
     private disposables?: Disposables;
     private _isDisposed = false;
-    private _options: O;
+    private _options: Readonly<O>;
 
-    constructor(options: O) {
+    constructor(options: Readonly<O>) {
         super();
         this._options = options;
     }
@@ -51,7 +51,7 @@ export class ViewModel<O extends Options = Options> extends EventEmitter<{change
         return Object.assign({}, this._options, explicitOptions);
     }
 
-    get options(): O { return this._options; }
+    get options(): Readonly<O> { return this._options; }
 
     // makes it easier to pass through dependencies of a sub-view model
     getOption<N extends keyof O>(name: N): O[N]  {
