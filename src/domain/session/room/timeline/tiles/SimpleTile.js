@@ -22,6 +22,7 @@ export class SimpleTile extends ViewModel {
     constructor(entry, options) {
         super(options);
         this._entry = entry;
+        this._emitUpdate = undefined;
     }
     // view model props for all subclasses
     // hmmm, could also do instanceof ... ?
@@ -67,16 +68,20 @@ export class SimpleTile extends ViewModel {
 
     // TilesCollection contract below
     setUpdateEmit(emitUpdate) {
-        this.updateOptions({emitChange: paramName => {
+        this._emitUpdate = emitUpdate;
+    }
+
+    /** overrides the emitChange in ViewModel to also emit the update over the tiles collection */
+    emitChange(changedProps) {
+        if (this._emitUpdate) {
             // it can happen that after some network call
             // we switched away from the room and the response
             // comes in, triggering an emitChange in a tile that
             // has been disposed already (and hence the change
             // callback has been cleared by dispose) We should just ignore this.
-            if (emitUpdate) {
-                emitUpdate(this, paramName);
-            }
-        }});
+            this._emitUpdate(this, changedProps);
+        }
+        super.emitChange(changedProps);
     }
 
     get upperEntry() {
