@@ -146,18 +146,24 @@ async function openLogs(vm) {
     const logviewerUrl = (await import("../../../../../../scripts/logviewer/index.html?url")).default;
     const win = window.open(logviewerUrl);
     await new Promise((resolve, reject) => {
-        let receivedPong = false;
+        let shouldSendPings = true;
+        const cleanup = () => {
+            shouldSendPings = false;
+            window.removeEventListener("message", waitForPong);
+        };
         const waitForPong = event => {
             if (event.data.type === "pong") {
-                window.removeEventListener("message", waitForPong);
-                receivedPong = true;
+                cleanup();
                 resolve();
             }
         };
         const sendPings = async () => {
-            while (!receivedPong) {
+            while (shouldSendPings) {
                 win.postMessage({type: "ping"});
-                await new Promise(rr => setTimeout(rr), 100);
+                await new Promise(rr => setTimeout(rr, 50));
+                if (win.closed) {
+                    cleanup();
+                }
             }
         };
         window.addEventListener("message", waitForPong);
