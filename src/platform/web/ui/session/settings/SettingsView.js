@@ -143,7 +143,7 @@ export class SettingsView extends TemplateView {
 }
 
 async function openLogs(vm) {
-    const logviewerUrl = (await import("../../../../../../scripts/logviewer/index.html?url")).default;
+    const logviewerUrl = (await import("@matrixdotorg/structured-logviewer/index.html?url")).default;
     const win = window.open(logviewerUrl);
     await new Promise((resolve, reject) => {
         let shouldSendPings = true;
