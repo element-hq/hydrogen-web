@@ -164,7 +164,11 @@ function getRootItemHeader(prevItem, item) {
 async function loadFile() {
     const file = await openFile();
     document.getElementById("filename").innerText = file.name;
-    const json = await readFileAsText(file);
+    await loadBlob(file);
+}
+
+export async function loadBlob(blob) {
+    const json = await readFileAsText(blob);
     const logs = JSON.parse(json);
     logs.items.sort((a, b) => itemStart(a) - itemStart(b));
     rootItem = {c: logs.items};
@@ -181,6 +185,7 @@ async function loadFile() {
         return fragment;
     }, document.createDocumentFragment());
     main.replaceChildren(fragment);
+    main.scrollTop = main.scrollHeight;
 }
 
 // TODO: make this use processRecursively

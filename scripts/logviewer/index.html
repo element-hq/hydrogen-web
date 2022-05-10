@@ -218,5 +218,20 @@
         <main></main>
         <aside></aside>
         <script type="module" src="main.js"></script>
+        <script type="module">
+            import {loadBlob} from "./main.js";
+            window.addEventListener("message", event => {
+                console.log("message", event);
+                if (event.data.type === "open") {
+                    document.getElementById("filename").innerText = "Loading logs from other tab...";
+                    loadBlob(event.data.logs).then(() => {
+                        document.getElementById("filename").innerText = "Logs from other tab at " + new Date();
+                    });
+                } else if (event.data.type === "ping") {
+                    document.getElementById("filename").innerText = "Waiting for logs from other tab...";
+                    event.source.postMessage({type: "pong"});
+                }
+            });
+        </script>
     </body>
 </html>
