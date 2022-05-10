@@ -98,13 +98,18 @@ export class SettingsView extends TemplateView {
             t.h3("Preferences"),
             row(t, vm.i18n`Scale down images when sending`, this._imageCompressionRange(t, vm)),
         );
+        const logButtons = [t.button({onClick: () => vm.exportLogs()}, "Export")];
+        if (import.meta.env.DEV) {
+            logButtons.push(t.button({onClick: () => openLogs(vm)}, "Open logs"));
+        }
         settingNodes.push(
             t.h3("Application"),
             row(t, vm.i18n`Version`, version),
             row(t, vm.i18n`Storage usage`, vm => `${vm.storageUsage} / ${vm.storageQuota}`),
-            row(t, vm.i18n`Debug logs`, t.button({onClick: () => vm.exportLogs()}, "Export")),
+            row(t, vm.i18n`Debug logs`, logButtons),
             t.p(["Debug logs contain application usage data including your username, the IDs or aliases of the rooms or groups you have visited, the usernames of other users and the names of files you send. They do not contain messages. For more information, review our ",
                 t.a({href: "https://element.io/privacy", target: "_blank", rel: "noopener"}, "privacy policy"), "."]),
+            t.p([])
         );
 
         return t.main({className: "Settings middle"}, [
@@ -135,4 +140,26 @@ export class SettingsView extends TemplateView {
                 vm.i18n`no resizing`;
         })];
     }
+}
+
+async function openLogs(vm) {
+    const logviewerUrl = (await import("../../../../../../scripts/logviewer/index.html?url")).default;
+    const win = window.open(logviewerUrl);
+    await new Promise(async r => {
+        let receivedPong = false;
+        const waitForPong = event => {
+            if (event.data.type === "pong") {
+                window.removeEventListener("message", waitForPong);
+                receivedPong = true;
+                r();
+            }
+        };
+        window.addEventListener("message", waitForPong);
+        while (!receivedPong) {
+            win.postMessage({type: "ping"});
+            await new Promise(rr => setTimeout(rr), 100);
+        }
+    });
+    const logs = await vm.exportLogsBlob();
+    win.postMessage({type: "open", logs: logs.nativeBlob});
 }
