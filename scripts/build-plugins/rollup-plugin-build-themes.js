@@ -278,11 +278,6 @@ module.exports = function buildThemes(options) {
                 });
             }
             addThemesToConfig(bundle, themeSummary, defaultThemes);
-            this.emitFile({
-                type: "asset",
-                name: "theme-summary.json",
-                source: JSON.stringify(themeSummary),
-            });
         },
     }
 }
