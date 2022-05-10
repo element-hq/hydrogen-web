@@ -145,20 +145,23 @@ export class SettingsView extends TemplateView {
 async function openLogs(vm) {
     const logviewerUrl = (await import("../../../../../../scripts/logviewer/index.html?url")).default;
     const win = window.open(logviewerUrl);
-    await new Promise(async r => {
+    await new Promise((resolve, reject) => {
         let receivedPong = false;
         const waitForPong = event => {
             if (event.data.type === "pong") {
                 window.removeEventListener("message", waitForPong);
                 receivedPong = true;
-                r();
+                resolve();
+            }
+        };
+        const sendPings = async () => {
+            while (!receivedPong) {
+                win.postMessage({type: "ping"});
+                await new Promise(rr => setTimeout(rr), 100);
             }
         };
         window.addEventListener("message", waitForPong);
-        while (!receivedPong) {
-            win.postMessage({type: "ping"});
-            await new Promise(rr => setTimeout(rr), 100);
-        }
+        sendPings().catch(reject);
     });
     const logs = await vm.exportLogsBlob();
     win.postMessage({type: "open", logs: logs.nativeBlob});
