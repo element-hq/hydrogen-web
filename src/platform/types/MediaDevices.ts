@@ -14,13 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import type {BaseObservableMap} from "../../observable/map/BaseObservableMap";
+
 export interface Event {}
+
+export type DeviceFilter = {
+    deviceId: string
+};
 
 export interface MediaDevices {
     // filter out audiooutput
-    enumerate(): Promise<MediaDeviceInfo[]>;
+    observeDevices(): Promise<BaseObservableMap<string, MediaDeviceInfo>>;
     // to assign to a video element, we downcast to WrappedTrack and use the stream property. 
-    getMediaTracks(audio: true | MediaDeviceInfo, video: boolean | MediaDeviceInfo): Promise<Stream>;
+    getMediaTracks(audio: boolean | DeviceFilter, video: boolean | DeviceFilter): Promise<Stream>;
     getScreenShareTrack(): Promise<Stream | undefined>;
     createVolumeMeasurer(stream: Stream, callback: () => void): VolumeMeasurer;
 }
@@ -74,6 +80,7 @@ export interface Track {
 
 export interface VolumeMeasurer {
     get isSpeaking(): boolean;
+    get volume(): number;
     setSpeakingThreshold(threshold: number): void;
-    stop();
+    dispose();
 }

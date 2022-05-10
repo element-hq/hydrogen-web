@@ -16,8 +16,8 @@ limitations under the License.
 */
 
 import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
-import {ComposerViewModel} from "./ComposerViewModel.js"
-import {CallViewModel} from "./CallViewModel"
+import {ComposerViewModel} from "./ComposerViewModel.js";
+import {CallViewModel} from "./call/CallViewModel";
 import {PickMapObservableValue} from "../../../observable/value/PickMapObservableValue";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {ViewModel} from "../../ViewModel";

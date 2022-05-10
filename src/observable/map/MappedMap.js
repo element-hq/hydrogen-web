@@ -20,11 +20,12 @@ so a mapped value can emit updates on it's own with this._emitSpontaneousUpdate 
 how should the mapped value be notified of an update though? and can it then decide to not propagate the update?
 */
 export class MappedMap extends BaseObservableMap {
-    constructor(source, mapper, updater) {
+    constructor(source, mapper, updater, remover) {
         super();
         this._source = source;
         this._mapper = mapper;
         this._updater = updater;
+        this._remover = remover;
         this._mappedValues = new Map();
     }
 
@@ -45,6 +46,9 @@ export class MappedMap extends BaseObservableMap {
     onRemove(key/*, _value*/) {
         const mappedValue = this._mappedValues.get(key);
         if (this._mappedValues.delete(key)) {
+            if (this._remover) {
+                this._remover(mappedValue);
+            }
             this.emitRemove(key, mappedValue);
         }
     }

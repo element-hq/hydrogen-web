@@ -15,7 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {MediaDevices as IMediaDevices, Stream, Track, TrackKind, VolumeMeasurer} from "../../types/MediaDevices";
+import {MediaDevices as IMediaDevices, Stream, Track, TrackKind, VolumeMeasurer, DeviceFilter} from "../../types/MediaDevices";
+import type {BaseObservableMap} from "../../../observable/map/BaseObservableMap";
+import {ObservableMap} from "../../../observable/map/ObservableMap";
 
 const POLLING_INTERVAL = 200; // ms
 export const SPEAKING_THRESHOLD = -60; // dB
@@ -24,11 +26,12 @@ const SPEAKING_SAMPLE_COUNT = 8; // samples
 export class MediaDevicesWrapper implements IMediaDevices {
     constructor(private readonly mediaDevices: MediaDevices) {}
 
-    enumerate(): Promise<MediaDeviceInfo[]> {
-        return this.mediaDevices.enumerateDevices();
+    async observeDevices(): Promise<BaseObservableMap<string, MediaDeviceInfo>> {
+        const initialDevices = await this.mediaDevices.enumerateDevices();
+        return new DeviceObservableMap(initialDevices, this.mediaDevices);
     }
 
-    async getMediaTracks(audio: true | MediaDeviceInfo, video: boolean | MediaDeviceInfo): Promise<Stream> {
+    async getMediaTracks(audio: boolean | DeviceFilter, video: boolean | DeviceFilter): Promise<Stream> {
         const stream = await this.mediaDevices.getUserMedia(this.getUserMediaContraints(audio, video));
         return stream as Stream;
     }
@@ -38,7 +41,7 @@ export class MediaDevicesWrapper implements IMediaDevices {
         return stream as Stream;
     }
 
-    private getUserMediaContraints(audio: boolean | MediaDeviceInfo, video: boolean | MediaDeviceInfo): MediaStreamConstraints {
+    private getUserMediaContraints(audio: boolean | DeviceFilter, video: boolean | DeviceFilter): MediaStreamConstraints {
         const isWebkit = !!navigator["webkitGetUserMedia"];
 
         return {
@@ -109,7 +112,6 @@ export class WebAudioVolumeMeasurer implements VolumeMeasurer {
             this.measuringVolumeActivity = false;
             this.speakingVolumeSamples.fill(-Infinity);
             this.callback();
-            // this.emit(CallFeedEvent.VolumeChanged, -Infinity);
         }
     }
 
@@ -133,6 +135,16 @@ export class WebAudioVolumeMeasurer implements VolumeMeasurer {
         this.speakingThreshold = threshold;
     }
 
+    get volume(): number {
+        for (let i = SPEAKING_SAMPLE_COUNT -1; i <= 0; i -= 1) {
+            const sample = this.speakingVolumeSamples[i];
+            if (Number.isSafeInteger(sample)) {
+                return sample;
+            }
+        }
+        return 0;
+    }
+
     private volumeLooper = () => {
         if (!this.analyser) return;
 
@@ -151,7 +163,6 @@ export class WebAudioVolumeMeasurer implements VolumeMeasurer {
         this.speakingVolumeSamples.push(maxVolume);
 
         this.callback();
-        // this.emit(CallFeedEvent.VolumeChanged, maxVolume);
 
         let newSpeaking = false;
 
@@ -167,15 +178,58 @@ export class WebAudioVolumeMeasurer implements VolumeMeasurer {
         if (this.speaking !== newSpeaking) {
             this.speaking = newSpeaking;
             this.callback();
-            // this.emit(CallFeedEvent.Speaking, this.speaking);
         }
 
         this.volumeLooperTimeout = setTimeout(this.volumeLooper, POLLING_INTERVAL) as unknown as number;
     };
 
-    public stop(): void {
+    public dispose(): void {
         clearTimeout(this.volumeLooperTimeout);
         this.analyser.disconnect();
         this.audioContext?.close();
+    }
+}
+
+class DeviceObservableMap extends ObservableMap<string, MediaDeviceInfo> {
+    private updatePromise?: Promise<void> = undefined;
+
+    constructor(initialDevices: ReadonlyArray<MediaDeviceInfo>, private readonly mediaDevices: MediaDevices) {
+        super();
+        this.processDevices(initialDevices);
+    }
+
+    handleEvent(evt) {
+        if (evt.type === "devicechange") {
+            // serialize updates
+            this.updatePromise = (this.updatePromise ?? Promise.resolve()).then(() => this.updateDevices());
+        }
+    }
+
+    private async updateDevices() {
+        const devices = await this.mediaDevices.enumerateDevices();
+        this.processDevices(devices);
+    }
+
+    private processDevices(devices: ReadonlyArray<MediaDeviceInfo>) {
+        const inputDevices = devices.filter(d => d.kind === "videoinput" || d.kind === "audioinput");
+        for (const [,device] of this) {
+            const stillPresent = inputDevices.some(d => d.deviceId === device.deviceId);
+            if (!stillPresent) {
+                this.remove(device.deviceId);
+            }
+        }
+        for (const device of inputDevices) {
+            this.add(device.deviceId, device);
+        }
+    }
+
+    onSubscribeFirst() {
+        super.onSubscribeFirst();
+        this.mediaDevices.addEventListener("devicechange", this);
+    }
+
+    onUnsubscribeLast() {
+        this.mediaDevices.removeEventListener("devicechange", this);
+        super.onUnsubscribeLast();
     }
 }
