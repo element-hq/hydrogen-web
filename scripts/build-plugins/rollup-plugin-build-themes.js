@@ -253,8 +253,13 @@ module.exports = function buildThemes(options) {
                 const compiledVariables = options.compiledVariables.get(location);
                 const derivedVariables = compiledVariables["derived-variables"];
                 const icon = compiledVariables["icon"];
+                const builtAsset = {};
+                for (const chunk of chunkArray) {
+                    const [, name, variant] = chunk.fileName.match(/theme-(.+)-(.+)\.css/);
+                    builtAsset[`${name}-${variant}`] = assetMap.get(chunk.fileName).fileName;
+                }
                 manifest.source = {
-                    "built-asset": chunkArray.map(chunk => assetMap.get(chunk.fileName).fileName),
+                    "built-asset": builtAsset,
                     "runtime-asset": assetMap.get(runtimeThemeChunk.fileName).fileName,
                     "derived-variables": derivedVariables,
                     "icon": icon
