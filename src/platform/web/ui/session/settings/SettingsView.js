@@ -142,9 +142,12 @@ export class SettingsView extends TemplateView {
     }
 }
 
+
 async function openLogs(vm) {
-    const logviewerUrl = (await import("@matrixdotorg/structured-logviewer/index.html?url")).default;
-    const win = window.open(logviewerUrl);
+    // Use vite-specific url so this asset doesn't get picked up by vite and included in the production build,
+    // as opening the logs is only available during dev time, and @matrixdotorg/structured-logviewer is a dev dependency
+    // This url is what import "@matrixdotorg/structured-logviewer/index.html?url" resolves to with vite.
+    const win = window.open(`/@fs/${DEFINE_PROJECT_DIR}/node_modules/@matrixdotorg/structured-logviewer/index.html`);
     await new Promise((resolve, reject) => {
         let shouldSendPings = true;
         const cleanup = () => {
