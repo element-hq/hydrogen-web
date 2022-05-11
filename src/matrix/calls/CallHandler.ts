@@ -40,11 +40,15 @@ export type Options = Omit<GroupCallOptions, "emitUpdate" | "createTimeout"> & {
     clock: Clock
 };
 
+function getRoomMemberKey(roomId: string, userId: string) {
+    return JSON.stringify(roomId)+`,`+JSON.stringify(userId);
+}
+
 export class CallHandler {
     // group calls by call id
     private readonly _calls: ObservableMap<string, GroupCall> = new ObservableMap<string, GroupCall>();
-    // map of userId to set of conf_id's they are in
-    private memberToCallIds: Map<string, Set<string>> = new Map();
+    // map of `"roomId","userId"` to set of conf_id's they are in
+    private roomMemberToCallIds: Map<string, Set<string>> = new Map();
     private groupCallOptions: GroupCallOptions;
     private sessionId = makeId("s");
 
@@ -98,7 +102,7 @@ export class CallHandler {
                 // }
                 const callsMemberEvents = await txn.roomState.getAllForType(roomId, EventType.GroupCallMember);
                 for (const entry of callsMemberEvents) {
-                    this.handleCallMemberEvent(entry.event, log);
+                    this.handleCallMemberEvent(entry.event, roomId, log);
                 }
                 // TODO: we should be loading the other members as well at some point
             }));
@@ -149,7 +153,7 @@ export class CallHandler {
         // then update members
         for (const event of events) {
             if (event.type === EventType.GroupCallMember) {
-                this.handleCallMemberEvent(event, log);
+                this.handleCallMemberEvent(event, room.id, log);
             }
         }
     }
@@ -194,8 +198,9 @@ export class CallHandler {
         }
     }
 
-    private handleCallMemberEvent(event: StateEvent, log: ILogItem) {
+    private handleCallMemberEvent(event: StateEvent, roomId: string, log: ILogItem) {
         const userId = event.state_key;
+        const roomMemberKey = getRoomMemberKey(roomId, userId)
         const calls = event.content["m.calls"] ?? [];
         const eventTimestamp = event.origin_server_ts;
         for (const call of calls) {
@@ -205,7 +210,8 @@ export class CallHandler {
             groupCall?.updateMembership(userId, call, eventTimestamp, log);
         };
         const newCallIdsMemberOf = new Set<string>(calls.map(call => call["m.call_id"]));
-        let previousCallIdsMemberOf = this.memberToCallIds.get(userId);
+        let previousCallIdsMemberOf = this.roomMemberToCallIds.get(roomMemberKey);
+
         // remove user as member of any calls not present anymore
         if (previousCallIdsMemberOf) {
             for (const previousCallId of previousCallIdsMemberOf) {
@@ -216,9 +222,9 @@ export class CallHandler {
             }
         }
         if (newCallIdsMemberOf.size === 0) {
-            this.memberToCallIds.delete(userId);
+            this.roomMemberToCallIds.delete(roomMemberKey);
         } else {
-            this.memberToCallIds.set(userId, newCallIdsMemberOf);
+            this.roomMemberToCallIds.set(roomMemberKey, newCallIdsMemberOf);
         }
     }
 }

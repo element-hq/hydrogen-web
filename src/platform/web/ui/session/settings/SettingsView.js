@@ -98,13 +98,18 @@ export class SettingsView extends TemplateView {
             t.h3("Preferences"),
             row(t, vm.i18n`Scale down images when sending`, this._imageCompressionRange(t, vm)),
         );
+        const logButtons = [t.button({onClick: () => vm.exportLogs()}, "Export")];
+        if (import.meta.env.DEV) {
+            logButtons.push(t.button({onClick: () => openLogs(vm)}, "Open logs"));
+        }
         settingNodes.push(
             t.h3("Application"),
             row(t, vm.i18n`Version`, version),
             row(t, vm.i18n`Storage usage`, vm => `${vm.storageUsage} / ${vm.storageQuota}`),
-            row(t, vm.i18n`Debug logs`, t.button({onClick: () => vm.exportLogs()}, "Export")),
+            row(t, vm.i18n`Debug logs`, logButtons),
             t.p(["Debug logs contain application usage data including your username, the IDs or aliases of the rooms or groups you have visited, the usernames of other users and the names of files you send. They do not contain messages. For more information, review our ",
                 t.a({href: "https://element.io/privacy", target: "_blank", rel: "noopener"}, "privacy policy"), "."]),
+            t.p([])
         );
 
         return t.main({className: "Settings middle"}, [
@@ -135,4 +140,38 @@ export class SettingsView extends TemplateView {
                 vm.i18n`no resizing`;
         })];
     }
+}
+
+
+async function openLogs(vm) {
+    // Use vite-specific url so this asset doesn't get picked up by vite and included in the production build,
+    // as opening the logs is only available during dev time, and @matrixdotorg/structured-logviewer is a dev dependency
+    // This url is what import "@matrixdotorg/structured-logviewer/index.html?url" resolves to with vite.
+    const win = window.open(`/@fs/${DEFINE_PROJECT_DIR}/node_modules/@matrixdotorg/structured-logviewer/index.html`);
+    await new Promise((resolve, reject) => {
+        let shouldSendPings = true;
+        const cleanup = () => {
+            shouldSendPings = false;
+            window.removeEventListener("message", waitForPong);
+        };
+        const waitForPong = event => {
+            if (event.data.type === "pong") {
+                cleanup();
+                resolve();
+            }
+        };
+        const sendPings = async () => {
+            while (shouldSendPings) {
+                win.postMessage({type: "ping"});
+                await new Promise(rr => setTimeout(rr, 50));
+                if (win.closed) {
+                    cleanup();
+                }
+            }
+        };
+        window.addEventListener("message", waitForPong);
+        sendPings().catch(reject);
+    });
+    const logs = await vm.exportLogsBlob();
+    win.postMessage({type: "open", logs: logs.nativeBlob});
 }

@@ -129,6 +129,14 @@ export class GroupCall extends EventEmitter<{change: never}> {
         return this._eventTimestamp;
     }
 
+    /**
+     * Gives access the log item for this call while joined.
+     * Can be used for call diagnostics while in the call.
+     **/
+    get logItem(): ILogItem | undefined {
+        return this.joinedData?.logItem;
+    }
+
     async join(localMedia: LocalMedia): Promise<void> {
         if (this._state !== GroupCallState.Created || this.joinedData) {
             return;
@@ -250,8 +258,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
 
     /** @internal */
     updateCallEvent(callContent: Record<string, any>, syncLog: ILogItem) {
-        syncLog.wrap({l: "update call", t: CALL_LOG_TYPE}, log => {
-            log.set("id", this.id);
+        syncLog.wrap({l: "update call", t: CALL_LOG_TYPE, id: this.id}, log => {
             this.callContent = callContent;
             if (this._state === GroupCallState.Creating) {
                 this._state = GroupCallState.Created;
@@ -290,7 +297,10 @@ export class GroupCall extends EventEmitter<{change: never}> {
                         } else {
                             if (member && sessionIdChanged) {
                                 log.set("removedSessionId", member.sessionId);
-                                member.disconnect(false, log);
+                                const disconnectLogItem = member.disconnect(false);
+                                if (disconnectLogItem) {
+                                    log.refDetached(disconnectLogItem);
+                                }
                                 this._members.remove(memberKey);
                                 member = undefined;
                             }
@@ -315,9 +325,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
             // remove user as member of any calls not present anymore
             for (const previousDeviceId of previousDeviceIds) {
                 if (!newDeviceIds.has(previousDeviceId)) {
-                    log.wrap({l: "remove device member", id: getMemberKey(userId, previousDeviceId)}, log => {
-                        this.removeMemberDevice(userId, previousDeviceId, log);
-                    });
+                    this.removeMemberDevice(userId, previousDeviceId, log);
                 }
             }
             if (userId === this.options.ownUserId && !newDeviceIds.has(this.options.ownDeviceId)) {
@@ -332,7 +340,8 @@ export class GroupCall extends EventEmitter<{change: never}> {
         syncLog.wrap({
             l: "remove call member",
             t: CALL_LOG_TYPE,
-            id: this.id
+            id: this.id,
+            userId
         }, log => {
             for (const deviceId of deviceIds) {
                 this.removeMemberDevice(userId, deviceId, log);
@@ -379,7 +388,10 @@ export class GroupCall extends EventEmitter<{change: never}> {
     disconnect(log: ILogItem) {
         if (this._state === GroupCallState.Joined) {
             for (const [,member] of this._members) {
-                member.disconnect(true, log);
+                const disconnectLogItem = member.disconnect(true);
+                if (disconnectLogItem) {
+                    log.refDetached(disconnectLogItem);
+                }
             }
             this._state = GroupCallState.Created;
         }
@@ -391,14 +403,18 @@ export class GroupCall extends EventEmitter<{change: never}> {
     /** @internal */
     private removeMemberDevice(userId: string, deviceId: string, log: ILogItem) {
         const memberKey = getMemberKey(userId, deviceId);
-        log.set("id", memberKey);
-        const member = this._members.get(memberKey);
-        if (member) {
-            log.set("leave", true);
-            this._members.remove(memberKey);
-            member.disconnect(false, log);
-        }
-        this.emitChange();
+        log.wrap({l: "remove device member", id: memberKey}, log => {
+            const member = this._members.get(memberKey);
+            if (member) {
+                log.set("leave", true);
+                this._members.remove(memberKey);
+                const disconnectLogItem = member.disconnect(false);
+                if (disconnectLogItem) {
+                    log.refDetached(disconnectLogItem);
+                }
+            }
+            this.emitChange();
+        });
     }
 
     /** @internal */
@@ -479,11 +495,16 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     private connectToMember(member: Member, joinedData: JoinedData, log: ILogItem) {
-        const logItem = joinedData.membersLogItem.child({l: "member", id: getMemberKey(member.userId, member.deviceId)});
+        const memberKey = getMemberKey(member.userId, member.deviceId);
+        const logItem = joinedData.membersLogItem.child({l: "member", id: memberKey});
         logItem.set("sessionId", member.sessionId);
-        log.refDetached(logItem);
-        // Safari can't send a MediaStream to multiple sources, so clone it
-        member.connect(joinedData.localMedia.clone(), joinedData.localMuteSettings, logItem);
+        log.wrap({l: "connect", id: memberKey}, log => {
+            // Safari can't send a MediaStream to multiple sources, so clone it
+            const connectItem = member.connect(joinedData.localMedia.clone(), joinedData.localMuteSettings, logItem);
+            if (connectItem) {
+                log.refDetached(connectItem);
+            }
+        })
     }
 
     protected emitChange() {

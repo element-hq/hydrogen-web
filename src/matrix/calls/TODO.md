@@ -15,7 +15,7 @@
  - DONE: implement renegotiation
  - DONE: finish session id support
     - call peers are essentially identified by (userid, deviceid, sessionid). If see a new session id, we first disconnect from the current member so we're ready to connect with a clean slate again (in a member event, also in to_device? no harm I suppose, given olm encryption ensures you can't spoof the deviceid).
- - making logging better
+ - DONE: making logging better
  - figure out why sometimes leave button does not work
  - get correct members and avatars in call
  - improve UI while in a call

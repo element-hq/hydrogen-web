@@ -72,6 +72,15 @@ export class Member {
         private readonly options: Options,
     ) {}
 
+    /**
+     * Gives access the log item for this item once joined to the group call.
+     * The signalling for this member will be log in this item.
+     * Can be used for call diagnostics while in the call.
+     **/
+    get logItem(): ILogItem | undefined {
+        return this.connection?.logItem;
+    }
+
     get remoteMedia(): RemoteMedia | undefined {
         return this.connection?.peerCall?.remoteMedia;
     }
@@ -110,15 +119,18 @@ export class Member {
     }
 
     /** @internal */
-    connect(localMedia: LocalMedia, localMuteSettings: MuteSettings, memberLogItem: ILogItem) {
+    connect(localMedia: LocalMedia, localMuteSettings: MuteSettings, memberLogItem: ILogItem): ILogItem | undefined {
         if (this.connection) {
             return;
         }
         const connection = new MemberConnection(localMedia, localMuteSettings, memberLogItem);
         this.connection = connection;
+        let connectLogItem;
         connection.logItem.wrap("connect", async log => {
+            connectLogItem = log;
             await this.callIfNeeded(log);
         });
+        return connectLogItem;
     }
 
     private callIfNeeded(log: ILogItem): Promise<void> {
@@ -146,13 +158,14 @@ export class Member {
     }
 
     /** @internal */
-    disconnect(hangup: boolean, causeItem: ILogItem) {
+    disconnect(hangup: boolean): ILogItem | undefined {
         const {connection} = this;
         if (!connection) {
             return;
         }
+        let disconnectLogItem;
         connection.logItem.wrap("disconnect", async log => {
-            log.refDetached(causeItem);
+            disconnectLogItem = log;
             if (hangup) {
                 connection.peerCall?.hangup(CallErrorCode.UserHangup, log);
             } else {
@@ -163,6 +176,7 @@ export class Member {
             this.connection = undefined;
         });
         connection.logItem.finish();
+        return disconnectLogItem;
     }
 
     /** @internal */
@@ -202,7 +216,10 @@ export class Member {
                     if (retryCount <= 3) {
                         await this.callIfNeeded(retryLog);
                     } else {
-                        this.disconnect(false, retryLog);
+                        const disconnectLogItem = this.disconnect(false);
+                        if (disconnectLogItem) {
+                            retryLog.refDetached(disconnectLogItem);
+                        }
                     }
                 });
             }
