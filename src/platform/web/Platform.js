@@ -165,7 +165,7 @@ export class Platform {
         this._disposables = new Disposables();
         this._olmPromise = undefined;
         this._workerPromise = undefined;
-        this._themeLoader = new ThemeLoader(this);
+        this._themeLoader = import.meta.env.DEV? null: new ThemeLoader(this);
     }
 
     async init() {
@@ -181,8 +181,8 @@ export class Platform {
             this._config.push
         );
         const manifests = this.config["themeManifests"];
-        await this._themeLoader.init(manifests);
-        await this._themeLoader.loadThemeFromSetting();
+        await this._themeLoader?.init(manifests);
+        await this._themeLoader?.loadThemeFromSetting();
     }
 
     _createLogger(isDevelopment) {
