@@ -38,6 +38,7 @@ import {downloadInIframe} from "./dom/download.js";
 import {Disposables} from "../../utils/Disposables";
 import {parseHTML} from "./parsehtml.js";
 import {handleAvatarError} from "./ui/avatar";
+import {ThemeLoader} from "./ThemeLoader";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -164,8 +165,7 @@ export class Platform {
         this._disposables = new Disposables();
         this._olmPromise = undefined;
         this._workerPromise = undefined;
-        // Mapping from theme-name to asset hashed location of css file
-        this._themeMapping = {};
+        this._themeLoader = new ThemeLoader(this);
     }
 
     async init() {
@@ -180,25 +180,9 @@ export class Platform {
             this._serviceWorkerHandler,
             this._config.push
         );
-        this._themeMapping = await this._createThemeMappingFromManifests();
-        await this._loadThemeFromSetting();
-    }
-
-    async _createThemeMappingFromManifests() {
-        const mapping = {};
         const manifests = this.config["themeManifests"];
-        for (const manifestLocation of manifests) {
-            const {body}= await this.request(manifestLocation, {method: "GET", format: "json", cache: true}).response();
-            Object.assign(mapping, body["source"]["built-asset"]);
-        }
-        return mapping;
-    }
-
-    async _loadThemeFromSetting() {
-        const themeName = await this.settingsStorage.getString("theme");
-        if (themeName) {
-            this.setTheme(themeName);
-        }
+        await this._themeLoader.init(manifests);
+        await this._themeLoader.loadThemeFromSetting();
     }
 
     _createLogger(isDevelopment) {
@@ -328,36 +312,11 @@ export class Platform {
         return DEFINE_VERSION;
     }
 
-    get themes() {
-        return Object.keys(this._themeMapping);
+    get themeLoader() {
+        return this._themeLoader;
     }
 
-    async getActiveTheme() {
-        // check if theme is set via settings
-        let theme = await this.settingsStorage.getString("theme");
-        if (theme) {
-            return theme;
-        }
-        // return default theme
-        if (window.matchMedia) {
-            if (window.matchMedia("(prefers-color-scheme: dark)")) {
-                return this.config["defaultTheme"].dark;
-            } else if (window.matchMedia("(prefers-color-scheme: light)")) {
-                return this.config["defaultTheme"].light;
-            }
-        }
-        return undefined;
-    }
-
-    setTheme(themeName) {
-        const themeLocation = this._themeMapping[themeName];
-        if (!themeLocation) {
-            throw new Error(`Cannot find theme location for theme "${themeName}"!`);
-        }
-        this._replaceStylesheet(themeLocation);
-    }
-
-    _replaceStylesheet(newPath) {
+    replaceStylesheet(newPath) {
         const head = document.querySelector("head");
         // remove default theme 
         document.querySelectorAll(".theme").forEach(e => e.remove());

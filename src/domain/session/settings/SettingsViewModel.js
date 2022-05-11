@@ -78,7 +78,7 @@ export class SettingsViewModel extends ViewModel {
         this.pushNotifications.supported = await this.platform.notificationService.supportsPush();
         this.pushNotifications.enabled = await this._session.arePushNotificationsEnabled();
         if (!import.meta.env.DEV) {
-            this._activeTheme = await this.platform.getActiveTheme();
+            this._activeTheme = await this.platform.themeLoader.getActiveTheme();
         }
         this.emitChange("");
     }
@@ -132,7 +132,7 @@ export class SettingsViewModel extends ViewModel {
     }
 
     get themes() {
-        return this.platform.themes;
+        return this.platform.themeLoader.themes;
     }
 
     get activeTheme() {
@@ -140,8 +140,7 @@ export class SettingsViewModel extends ViewModel {
     }
 
     setTheme(name) {
-        this.platform.setTheme(name);
-        this.platform.settingsStorage.setString("theme", name);
+        this.platform.themeLoader.setTheme(name);
     }
 
     _formatBytes(n) {
