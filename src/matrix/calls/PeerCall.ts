@@ -438,7 +438,7 @@ export class PeerCall implements IDisposable {
         if (this.callId! > newCallId) {
             log.log(
                 "Glare detected: answering incoming call " + newCallId +
-                " and canceling outgoing call ",
+                " and canceling outgoing call "
             );
             // How do we interrupt `call()`? well, perhaps we need to not just await InviteSent but also CreateAnswer?
             if (this._state === CallState.Fledgling || this._state === CallState.CreateOffer) {
@@ -452,7 +452,7 @@ export class PeerCall implements IDisposable {
         } else {
             log.log(
                 "Glare detected: rejecting incoming call " + newCallId +
-                " and keeping outgoing call ",
+                " and keeping outgoing call "
             );
             await this.sendHangupWithCallId(newCallId, CallErrorCode.Replaced, log);
         }
@@ -625,7 +625,7 @@ export class PeerCall implements IDisposable {
         if (this.opponentPartyId !== partyId) {
             log.log(
                 `Ignoring candidates from party ID ${partyId}: ` +
-                `we have chosen party ID ${this.opponentPartyId}`,
+                `we have chosen party ID ${this.opponentPartyId}`
             );
 
             return;
@@ -680,7 +680,7 @@ export class PeerCall implements IDisposable {
                 await this.sendSignallingMessage({type: EventType.Negotiate, content}, log);
             }
         } catch (err) {
-            log.log(`Failed to complete negotiation`, err);
+            log.log(`Failed to complete negotiation`).catch(err);
         }
     }
 
@@ -801,12 +801,12 @@ export class PeerCall implements IDisposable {
                 log.log(`Ignoring remote ICE candidate with no sdpMid or sdpMLineIndex`);
                 continue;
             }
-            log.log(`Got remote ICE ${candidate.sdpMid} candidate: ${candidate.candidate}`);
+            const logItem = log.log(`Adding remote ICE ${candidate.sdpMid} candidate: ${candidate.candidate}`);
             try {
                 await this.peerConnection.addIceCandidate(candidate);
             } catch (err) {
                 if (!this.ignoreOffer) {
-                    log.log(`Failed to add remote ICE candidate`, err);
+                    logItem.catch(err);
                 }
             }
         }
