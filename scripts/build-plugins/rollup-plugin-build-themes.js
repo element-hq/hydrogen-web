@@ -31,12 +31,12 @@ function appendVariablesToCSS(variables, cssSource) {
     return cssSource + getRootSectionWithVariables(variables);
 }
 
-function addThemesToConfig(bundle, themeSummary, defaultThemes) {
+function addThemesToConfig(bundle, manifestLocations, defaultThemes) {
     for (const [fileName, info] of Object.entries(bundle)) {
         if (fileName === "assets/config.json") {
             const source = new TextDecoder().decode(info.source);
             const config = JSON.parse(source);
-            config["themes"] = themeSummary;
+            config["themeManifests"] = manifestLocations;
             config["defaultTheme"] = defaultThemes;
             info.source = new TextEncoder().encode(JSON.stringify(config));
         }
@@ -247,13 +247,17 @@ module.exports = function buildThemes(options) {
 
         generateBundle(_, bundle) {
             const { assetMap, chunkMap, runtimeThemeChunk } = parseBundle(bundle);
-            const themeSummary = {};
+            const manifestLocations = [];
             for (const [location, chunkArray] of chunkMap) {
                 const manifest = require(`${location}/manifest.json`);
                 const compiledVariables = options.compiledVariables.get(location);
                 const derivedVariables = compiledVariables["derived-variables"];
                 const icon = compiledVariables["icon"];
                 const builtAsset = {};
+                /**
+                 * Generate a mapping from theme name to asset hashed location of said theme in build output.
+                 * This can be used to enumerate themes during runtime.
+                 */
                 for (const chunk of chunkArray) {
                     const [, name, variant] = chunk.fileName.match(/theme-(.+)-(.+)\.css/);
                     builtAsset[`${name}-${variant}`] = assetMap.get(chunk.fileName).fileName;
@@ -265,24 +269,14 @@ module.exports = function buildThemes(options) {
                     "icon": icon
                 };
                 const name = `theme-${manifest.name}.json`;
+                manifestLocations.push(`assets/${name}`);
                 this.emitFile({
                     type: "asset",
                     name,
                     source: JSON.stringify(manifest),
                 });
             }
-            /**
-             * Generate a mapping from theme name to asset hashed location of said theme in build output.
-             * This can be used to enumerate themes during runtime.
-             */
-            for (const [, chunkArray] of chunkMap) {
-                chunkArray.forEach((chunk) => {
-                    const [, name, variant] = chunk.fileName.match(/theme-(.+)-(.+)\.css/);
-                    const assetHashedFileName = assetMap.get(chunk.fileName).fileName;
-                    themeSummary[`${name}-${variant}`] = assetHashedFileName;
-                });
-            }
-            addThemesToConfig(bundle, themeSummary, defaultThemes);
+            addThemesToConfig(bundle, manifestLocations, defaultThemes);
         },
     }
 }

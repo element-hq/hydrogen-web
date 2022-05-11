@@ -164,6 +164,8 @@ export class Platform {
         this._disposables = new Disposables();
         this._olmPromise = undefined;
         this._workerPromise = undefined;
+        // Mapping from theme-name to asset hashed location of css file
+        this._themeMapping = {};
     }
 
     async init() {
@@ -178,7 +180,18 @@ export class Platform {
             this._serviceWorkerHandler,
             this._config.push
         );
+        this._themeMapping = await this._createThemeMappingFromManifests();
         await this._loadThemeFromSetting();
+    }
+
+    async _createThemeMappingFromManifests() {
+        const mapping = {};
+        const manifests = this.config["themeManifests"];
+        for (const manifestLocation of manifests) {
+            const {body}= await this.request(manifestLocation, {method: "GET", format: "json", cache: true}).response();
+            Object.assign(mapping, body["source"]["built-asset"]);
+        }
+        return mapping;
     }
 
     async _loadThemeFromSetting() {
@@ -316,7 +329,7 @@ export class Platform {
     }
 
     get themes() {
-        return Object.keys(this.config["themes"]);
+        return Object.keys(this._themeMapping);
     }
 
     async getActiveTheme() {
@@ -337,7 +350,7 @@ export class Platform {
     }
 
     setTheme(themeName) {
-        const themeLocation = this.config["themes"][themeName];
+        const themeLocation = this._themeMapping[themeName];
         if (!themeLocation) {
             throw new Error(`Cannot find theme location for theme "${themeName}"!`);
         }
