@@ -40,7 +40,7 @@ export type Options = Omit<GroupCallOptions, "emitUpdate" | "createTimeout"> & {
     clock: Clock
 };
 
-function getRoomMemberKey(roomId: string, userId: string) {
+function getRoomMemberKey(roomId: string, userId: string): string {
     return JSON.stringify(roomId)+`,`+JSON.stringify(userId);
 }
 
