@@ -38,7 +38,7 @@ import {downloadInIframe} from "./dom/download.js";
 import {Disposables} from "../../utils/Disposables";
 import {parseHTML} from "./parsehtml.js";
 import {handleAvatarError} from "./ui/avatar";
-import {ThemeLoader} from "./ThemeLoader";
+import {ThemeLoader, COLOR_SCHEME_PREFERENCE} from "./ThemeLoader";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -315,6 +315,15 @@ export class Platform {
     get themeLoader() {
         return this._themeLoader;
     }
+
+    get preferredColorScheme() {
+        if (window.matchMedia("(prefers-color-scheme: dark)")) {
+            return COLOR_SCHEME_PREFERENCE.DARK;
+        } else if (window.matchMedia("(prefers-color-scheme: light)")) {
+            return COLOR_SCHEME_PREFERENCE.LIGHT;
+        }
+        return undefined;
+    } 
 
     replaceStylesheet(newPath) {
         const head = document.querySelector("head");

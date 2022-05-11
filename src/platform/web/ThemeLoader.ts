@@ -16,6 +16,8 @@ limitations under the License.
 
 import type {Platform} from "./Platform.js";
 
+export enum COLOR_SCHEME_PREFERENCE { DARK, LIGHT, }
+
 export class ThemeLoader {
     private _platform: Platform;
     private _themeMapping: Record<string, string> = {};
@@ -64,12 +66,12 @@ export class ThemeLoader {
             return theme;
         }
         // return default theme
-        if (window.matchMedia) {
-            if (window.matchMedia("(prefers-color-scheme: dark)")) {
+        const preference  = this._platform.preferredColorScheme;
+        switch (preference) {
+            case COLOR_SCHEME_PREFERENCE.DARK:
                 return this._platform.config["defaultTheme"].dark;
-            } else if (window.matchMedia("(prefers-color-scheme: light)")) {
+            case COLOR_SCHEME_PREFERENCE.LIGHT:
                 return this._platform.config["defaultTheme"].light;
-            }
         }
         return undefined;
     }
