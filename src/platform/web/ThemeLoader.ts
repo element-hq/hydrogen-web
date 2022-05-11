@@ -24,7 +24,7 @@ export class ThemeLoader {
         this._platform = platform;
     }
 
-    async init(manifestLocations: Iterable<Record<string, string>>): Promise<void> {
+    async init(manifestLocations: string[]): Promise<void> {
         for (const manifestLocation of manifestLocations) {
             const { body } = await this._platform
                 .request(manifestLocation, {
