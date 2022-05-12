@@ -53,3 +53,52 @@ export class ObservedStateKeyValue extends BaseObservableValue<StateEvent | unde
         this.removeCallback?.();
     }
 }
+
+import {createMockStorage} from "../../../mocks/Storage";
+
+export async function tests() {
+    return {
+        "test load and update": async assert => {
+            const storage = await createMockStorage();
+            const writeTxn = await storage.readWriteTxn([storage.storeNames.roomState]);
+            writeTxn.roomState.set("!abc", {
+                event_id: "$abc",
+                type: "m.room.member",
+                state_key: "@alice",
+                sender: "@alice",
+                origin_server_ts: 5,
+                content: {}
+            });
+            await writeTxn.complete();
+            const txn = await storage.readTxn([storage.storeNames.roomState]);
+            const value = new ObservedStateKeyValue("m.room.member", "@alice");
+            await value.load("!abc", txn);
+            const updates: Array<StateEvent | undefined> = [];
+            assert.strictEqual(value.get()?.origin_server_ts, 5);
+            const unsubscribe = value.subscribe(value => updates.push(value));
+            value.handleStateEvent({
+                event_id: "$abc",
+                type: "m.room.member",
+                state_key: "@bob",
+                sender: "@alice",
+                origin_server_ts: 10,
+                content: {}
+            });
+            assert.strictEqual(updates.length, 0);
+            value.handleStateEvent({
+                event_id: "$abc",
+                type: "m.room.member",
+                state_key: "@alice",
+                sender: "@alice",
+                origin_server_ts: 10,
+                content: {}
+            });
+            assert.strictEqual(updates.length, 1);
+            assert.strictEqual(updates[0]?.origin_server_ts, 10);
+            let removed = false;
+            value.setRemoveCallback(() => removed = true);
+            unsubscribe();
+            assert(removed);
+        }
+    }
+}
