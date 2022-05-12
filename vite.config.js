@@ -16,11 +16,17 @@ export default defineConfig(({mode}) => {
             sourcemap: true,
             rollupOptions: {
                 output: {
-                    assetFileNames: (asset) =>
-                        asset.name.includes("config.json") ||
-                        asset.name.match(/theme-.+\.json/)
-                            ? "assets/[name][extname]"
-                            : "assets/[name].[hash][extname]",
+                    assetFileNames: (asset) => {
+                        if (asset.name.includes("config.json")) {
+                            return "[name][extname]";
+                        }
+                        else if (asset.name.match(/theme-.+\.json/)) {
+                            return "assets/[name][extname]";
+                        }
+                        else {
+                            return "assets/[name].[hash][extname]";
+                        }
+                    }
                 },
             },
         },
