@@ -97,8 +97,8 @@ export class SettingsView extends TemplateView {
         settingNodes.push(
             t.h3("Preferences"),
             row(t, vm.i18n`Scale down images when sending`, this._imageCompressionRange(t, vm)),
-            t.if(vm => vm.activeTheme, (t, vm) => {
-                return !import.meta.env.DEV? row(t, vm.i18n`Use the following theme`, this._themeOptions(t, vm)): null;
+            t.if(vm => !import.meta.env.DEV && vm.activeTheme, (t, vm) => {
+                return row(t, vm.i18n`Use the following theme`, this._themeOptions(t, vm));
             }),
         );
         settingNodes.push(
