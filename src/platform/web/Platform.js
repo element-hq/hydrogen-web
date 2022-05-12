@@ -182,7 +182,7 @@ export class Platform {
         );
         const manifests = this.config["themeManifests"];
         await this._themeLoader?.init(manifests);
-        await this._themeLoader?.loadThemeFromSetting();
+        this._themeLoader?.setTheme(await this._themeLoader.getActiveTheme());
     }
 
     _createLogger(isDevelopment) {

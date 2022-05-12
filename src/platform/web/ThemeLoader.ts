@@ -44,13 +44,6 @@ export class ThemeLoader {
         }
     }
 
-    async loadThemeFromSetting() {
-        const themeName = await this._platform.settingsStorage.getString( "theme");
-        if (themeName) {
-            this.setTheme(themeName);
-        }
-    }
-
     setTheme(themeName: string) {
         const themeLocation = this._themeMapping[themeName];
         if (!themeLocation) {
