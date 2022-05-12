@@ -182,6 +182,7 @@ export class Room extends BaseRoom {
         const powerLevelsEvent = this._getPowerLevelsEvent(roomResponse);
         this._runRoomStateHandlers(roomResponse, txn, log);
         return {
+            roomResponse,
             summaryChanges,
             roomEncryption,
             newEntries,
@@ -204,7 +205,7 @@ export class Room extends BaseRoom {
         const {
             summaryChanges, newEntries, updatedEntries, newLiveKey,
             removedPendingEvents, memberChanges, powerLevelsEvent,
-            heroChanges, roomEncryption
+            heroChanges, roomEncryption, roomResponse
         } = changes;
         log.set("id", this.id);
         this._syncWriter.afterSync(newLiveKey);
@@ -264,6 +265,7 @@ export class Room extends BaseRoom {
         if (removedPendingEvents) {
             this._sendQueue.emitRemovals(removedPendingEvents);
         }
+        this._emitSyncRoomState(roomResponse);
     }
 
     _updateObservedMembers(memberChanges) {
@@ -457,8 +459,14 @@ export class Room extends BaseRoom {
             this._roomStateHandler.handleRoomState(this, event, txn, log);
         });
     }
+
+    /** local room state observers, run during after sync step */
+    _emitSyncRoomState(roomResponse) {
+        iterateResponseStateEvents(roomResponse, event => {
+            for (const handler of this._roomStateObservers) {
+                handler.handleStateEvent(event);
             }
-        }
+        });
     }
 
     /** @package */

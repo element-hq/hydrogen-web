@@ -22,7 +22,7 @@ export {Platform} from "./platform/web/Platform.js";
 export {Client, LoadStatus} from "./matrix/Client.js";
 export {RoomStatus} from "./matrix/room/common";
 // export everything needed to observe state events on all rooms using session.observeRoomState
-export type {RoomStateHandler} from "./matrix/room/common";
+export type {RoomStateHandler} from "./matrix/room/state/types";
 export type {MemberChange} from "./matrix/room/members/RoomMember";
 export type {Transaction} from "./matrix/storage/idb/Transaction";
 export type {Room} from "./matrix/room/Room";

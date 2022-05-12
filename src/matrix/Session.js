@@ -48,7 +48,7 @@ import {SecretStorage} from "./ssss/SecretStorage";
 import {ObservableValue} from "../observable/value/ObservableValue";
 import {RetainedObservableValue} from "../observable/value/RetainedObservableValue";
 import {CallHandler} from "./calls/CallHandler";
-import {RoomStateHandlerSet} from "./RoomStateHandlerSet";
+import {RoomStateHandlerSet} from "./room/state/RoomStateHandlerSet";
 
 const PICKLE_KEY = "DEFAULT_KEY";
 const PUSHER_KEY = "pusher";

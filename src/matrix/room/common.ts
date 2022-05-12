@@ -47,9 +47,6 @@ export enum RoomType {
     Public
 }
 
-export interface RoomStateHandler {
-    handleRoomState(room: Room, stateEvent: StateEvent, txn: Transaction, log: ILogItem);
-    updateRoomMembers(room: Room, memberChanges: Map<string, MemberChange>);
 type RoomResponse = {
     state?: {
         events?: Array<StateEvent>

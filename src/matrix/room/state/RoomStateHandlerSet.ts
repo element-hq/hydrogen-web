@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type {ILogItem} from "../logging/types";
-import type {StateEvent} from "./storage/types";
-import type {Transaction} from "./storage/idb/Transaction";
-import type {Room} from "./room/Room";
-import type {MemberChange} from "./room/members/RoomMember";
-import type {RoomStateHandler} from "./room/common";
-import {BaseObservable} from "../observable/BaseObservable";
+import type {ILogItem} from "../../../logging/types";
+import type {StateEvent} from "../../storage/types";
+import type {Transaction} from "../../storage/idb/Transaction";
+import type {Room} from "../Room";
+import type {MemberChange} from "../members/RoomMember";
+import type {RoomStateHandler} from "./types";
+import {BaseObservable} from "../../../observable/BaseObservable";
 
 /** keeps track of all handlers registered with Session.observeRoomState */
 export class RoomStateHandlerSet extends BaseObservable<RoomStateHandler> implements RoomStateHandler {

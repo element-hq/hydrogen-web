@@ -35,7 +35,7 @@ import type {Options as GroupCallOptions} from "./group/GroupCall";
 import type {Transaction} from "../storage/idb/Transaction";
 import type {CallEntry} from "../storage/idb/stores/CallStore";
 import type {Clock} from "../../platform/web/dom/Clock";
-import type {RoomStateHandler} from "../room/common";
+import type {RoomStateHandler} from "../room/state/types";
 
 export type Options = Omit<GroupCallOptions, "emitUpdate" | "createTimeout"> & {
     clock: Clock
