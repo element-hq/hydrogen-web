@@ -64,12 +64,10 @@ export class ThemeLoader {
             return theme;
         }
         // return default theme
-        const preference  = this._platform.preferredColorScheme;
-        switch (preference) {
-            case COLOR_SCHEME_PREFERENCE.DARK:
-                return this._platform.config["defaultTheme"].dark;
-            case COLOR_SCHEME_PREFERENCE.LIGHT:
-                return this._platform.config["defaultTheme"].light;
+        if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+            return this._platform.config["defaultTheme"].dark;
+        } else if (window.matchMedia("(prefers-color-scheme: light)").matches) {
+            return this._platform.config["defaultTheme"].light;
         }
         return undefined;
     }

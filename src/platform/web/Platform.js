@@ -316,15 +316,6 @@ export class Platform {
         return this._themeLoader;
     }
 
-    get preferredColorScheme() {
-        if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-            return COLOR_SCHEME_PREFERENCE.DARK;
-        } else if (window.matchMedia("(prefers-color-scheme: light)").matches) {
-            return COLOR_SCHEME_PREFERENCE.LIGHT;
-        }
-        return undefined;
-    } 
-
     replaceStylesheet(newPath) {
         const head = document.querySelector("head");
         // remove default theme 
