@@ -35,6 +35,7 @@ import type {Options as GroupCallOptions} from "./group/GroupCall";
 import type {Transaction} from "../storage/idb/Transaction";
 import type {CallEntry} from "../storage/idb/stores/CallStore";
 import type {Clock} from "../../platform/web/dom/Clock";
+import type {RoomStateHandler} from "../room/common";
 
 export type Options = Omit<GroupCallOptions, "emitUpdate" | "createTimeout"> & {
     clock: Clock
@@ -44,7 +45,7 @@ function getRoomMemberKey(roomId: string, userId: string): string {
     return JSON.stringify(roomId)+`,`+JSON.stringify(userId);
 }
 
-export class CallHandler {
+export class CallHandler implements RoomStateHandler {
     // group calls by call id
     private readonly _calls: ObservableMap<string, GroupCall> = new ObservableMap<string, GroupCall>();
     // map of `"roomId","userId"` to set of conf_id's they are in
@@ -143,18 +144,12 @@ export class CallHandler {
     // TODO: check and poll turn server credentials here
 
     /** @internal */
-    handleRoomState(room: Room, events: StateEvent[], txn: Transaction, log: ILogItem) {
-        // first update call events
-        for (const event of events) {
-            if (event.type === EventType.GroupCall) {
-                this.handleCallEvent(event, room.id, txn, log);
-            }
+    handleRoomState(room: Room, event: StateEvent, txn: Transaction, log: ILogItem) {
+        if (event.type === EventType.GroupCall) {
+            this.handleCallEvent(event, room.id, txn, log);
         }
-        // then update members
-        for (const event of events) {
-            if (event.type === EventType.GroupCallMember) {
-                this.handleCallMemberEvent(event, room.id, log);
-            }
+        if (event.type === EventType.GroupCallMember) {
+            this.handleCallMemberEvent(event, room.id, log);
         }
     }
 

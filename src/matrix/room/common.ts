@@ -14,6 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import type {Room} from "./Room";
+import type {StateEvent} from "../storage/types";
+import type {Transaction} from "../storage/idb/Transaction";
+import type {ILogItem} from "../../logging/types";
+import type {MemberChange} from "./members/RoomMember";
+
 export function getPrevContentFromStateEvent(event) {
     // where to look for prev_content is a bit of a mess,
     // see https://matrix.to/#/!NasysSDfxKxZBzJJoE:matrix.org/$DvrAbZJiILkOmOIuRsNoHmh2v7UO5CWp_rYhlGk34fQ?via=matrix.org&via=pixie.town&via=amorgan.xyz
@@ -39,4 +45,9 @@ export enum RoomType {
     DirectMessage,
     Private,
     Public
+}
+
+export interface RoomStateHandler {
+    handleRoomState(room: Room, stateEvent: StateEvent, txn: Transaction, log: ILogItem);
+    updateRoomMembers(room: Room, memberChanges: Map<string, MemberChange>);
 }
