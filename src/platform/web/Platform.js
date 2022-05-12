@@ -317,7 +317,7 @@ export class Platform {
     }
 
     get preferredColorScheme() {
-        if (window.matchMedia("(prefers-color-scheme: dark)")) {
+        if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
             return COLOR_SCHEME_PREFERENCE.DARK;
         } else if (window.matchMedia("(prefers-color-scheme: light)")) {
             return COLOR_SCHEME_PREFERENCE.LIGHT;
