@@ -35,6 +35,11 @@ export class ThemeLoader {
                     cache: true,
                 })
                 .response();
+            /*
+            After build has finished, the source section of each theme manifest
+            contains `built-asset` which is a mapping from the theme-name to the
+            location of the css file in build.
+            */
             Object.assign(this._themeMapping, body["source"]["built-asset"]);
         }
     }
