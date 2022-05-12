@@ -38,7 +38,7 @@ import {downloadInIframe} from "./dom/download.js";
 import {Disposables} from "../../utils/Disposables";
 import {parseHTML} from "./parsehtml.js";
 import {handleAvatarError} from "./ui/avatar";
-import {ThemeLoader, COLOR_SCHEME_PREFERENCE} from "./ThemeLoader";
+import {ThemeLoader} from "./ThemeLoader";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
