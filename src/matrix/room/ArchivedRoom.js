@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {reduceStateEvents} from "./RoomSummary.js";
+import {iterateResponseStateEvents} from "./common";
 import {BaseRoom} from "./BaseRoom.js";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "./members/RoomMember.js";
 
@@ -173,15 +173,15 @@ export class ArchivedRoom extends BaseRoom {
 }
 
 function findKickDetails(roomResponse, ownUserId) {
-    const kickEvent = reduceStateEvents(roomResponse, (kickEvent, event) => {
+    let kickEvent;
+    iterateResponseStateEvents(roomResponse, event => {
         if (event.type === MEMBER_EVENT_TYPE) {
             // did we get kicked?
             if (event.state_key === ownUserId && event.sender !== event.state_key) {
                 kickEvent = event;
             }
         }
-        return kickEvent;
-    }, null);
+    });
     if (kickEvent) {
         return {
             // this is different from the room membership in the sync section, which can only be leave

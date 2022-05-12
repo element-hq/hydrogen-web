@@ -23,6 +23,7 @@ import {WrappedError} from "../error.js"
 import {Heroes} from "./members/Heroes.js";
 import {AttachmentUpload} from "./AttachmentUpload.js";
 import {DecryptionSource} from "../e2ee/common.js";
+import {iterateResponseStateEvents} from "./common.js";
 import {PowerLevels, EVENT_TYPE as POWERLEVELS_EVENT_TYPE } from "./PowerLevels.js";
 
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
@@ -179,7 +180,7 @@ export class Room extends BaseRoom {
             removedPendingEvents = await this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn, log);
         }
         const powerLevelsEvent = this._getPowerLevelsEvent(roomResponse);
-        this._updateRoomStateHandler(roomResponse, txn, log);
+        this._runRoomStateHandlers(roomResponse, txn, log);
         return {
             summaryChanges,
             roomEncryption,
@@ -275,8 +276,13 @@ export class Room extends BaseRoom {
     }
 
     _getPowerLevelsEvent(roomResponse) {
-        const isPowerlevelEvent = event => event.state_key === "" && event.type === POWERLEVELS_EVENT_TYPE;
-        const powerLevelEvent = roomResponse.timeline?.events.find(isPowerlevelEvent) ?? roomResponse.state?.events.find(isPowerlevelEvent);
+        let powerLevelEvent;
+        iterateResponseStateEvents(roomResponse, event => {
+            if(event.state_key === "" && event.type === POWERLEVELS_EVENT_TYPE) {
+                powerLevelEvent = event;
+            }
+
+        });
         return powerLevelEvent;
     }
 
@@ -445,20 +451,12 @@ export class Room extends BaseRoom {
         return this._sendQueue.pendingEvents;
     }
 
-    _updateRoomStateHandler(roomResponse, txn, log) {
-        const stateEvents = roomResponse.state?.events;
-        if (stateEvents) {
-            for (let i = 0; i < stateEvents.length; i++) {
-                this._roomStateHandler.handleRoomState(this, stateEvents[i], txn, log);
-            }
-        }
-        let timelineEvents = roomResponse.timeline?.events;
-        if (timelineEvents) {
-            for (let i = 0; i < timelineEvents.length; i++) {
-                const event = timelineEvents[i];
-                if (typeof event.state_key === "string") {
-                    this._roomStateHandler.handleRoomState(this, event, txn, log);
-                }
+    /** global room state handlers, run during write sync step */
+    _runRoomStateHandlers(roomResponse, txn, log) {
+        iterateResponseStateEvents(roomResponse, event => {
+            this._roomStateHandler.handleRoomState(this, event, txn, log);
+        });
+    }
             }
         }
     }

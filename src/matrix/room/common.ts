@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import type {Room} from "./Room";
-import type {StateEvent} from "../storage/types";
+import type {StateEvent, TimelineEvent} from "../storage/types";
 import type {Transaction} from "../storage/idb/Transaction";
 import type {ILogItem} from "../../logging/types";
 import type {MemberChange} from "./members/RoomMember";
@@ -50,4 +50,71 @@ export enum RoomType {
 export interface RoomStateHandler {
     handleRoomState(room: Room, stateEvent: StateEvent, txn: Transaction, log: ILogItem);
     updateRoomMembers(room: Room, memberChanges: Map<string, MemberChange>);
+type RoomResponse = {
+    state?: {
+        events?: Array<StateEvent>
+    },
+    timeline?: {
+        events?: Array<StateEvent>
+    }
+}
+
+/** iterates over any state events in a sync room response, in the order that they should be applied (from older to younger events) */
+export function iterateResponseStateEvents(roomResponse: RoomResponse, callback: (StateEvent) => void) {
+    // first iterate over state events, they precede the timeline
+    const stateEvents = roomResponse.state?.events;
+    if (stateEvents) {
+        for (let i = 0; i < stateEvents.length; i++) {
+            callback(stateEvents[i]);
+        }
+    }
+    // now see if there are any state events within the timeline
+    let timelineEvents = roomResponse.timeline?.events;
+    if (timelineEvents) {
+        for (let i = 0; i < timelineEvents.length; i++) {
+            const event = timelineEvents[i];
+            if (typeof event.state_key === "string") {
+                callback(event);
+            }
+        }
+    }
+}
+
+export function tests() {
+    return {
+        "test iterateResponseStateEvents with both state and timeline sections": assert => {
+            const roomResponse = {
+                state: {
+                    events: [
+                        {type: "m.room.member", state_key: "1"},
+                        {type: "m.room.member", state_key: "2", content: {a: 1}},
+                    ]
+                },
+                timeline: {
+                    events: [
+                        {type: "m.room.message"},
+                        {type: "m.room.member", state_key: "3"},
+                        {type: "m.room.message"},
+                        {type: "m.room.member", state_key: "2", content: {a: 2}},
+                    ]
+                }
+            } as unknown as RoomResponse;
+            const expectedStateKeys = ["1", "2", "3", "2"];
+            const expectedAForMember2 = [1, 2];
+            iterateResponseStateEvents(roomResponse, event => {
+                assert.strictEqual(event.type, "m.room.member");
+                assert.strictEqual(expectedStateKeys.shift(), event.state_key);
+                if (event.state_key === "2") {
+                    assert.strictEqual(expectedAForMember2.shift(), event.content.a);
+                }
+            });
+            assert.strictEqual(expectedStateKeys.length, 0);
+            assert.strictEqual(expectedAForMember2.length, 0);
+        },
+        "test iterateResponseStateEvents with empty response": assert => {
+            iterateResponseStateEvents({}, () => {
+                assert.fail("no events expected");
+            });
+        }
+    }
 }
