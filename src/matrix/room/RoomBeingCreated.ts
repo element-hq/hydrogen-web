@@ -20,7 +20,7 @@ import {MediaRepository} from "../net/MediaRepository";
 import {EventEmitter} from "../../utils/EventEmitter";
 import {AttachmentUpload} from "./AttachmentUpload";
 import {loadProfiles, Profile, UserIdProfile} from "../profile";
-import {RoomType} from "./common";
+import {RoomType, RoomVisibility} from "./common";
 
 import type {HomeServerApi} from "../net/HomeServerApi";
 import type {ILogItem} from "../../logging/types";
@@ -36,7 +36,7 @@ type CreateRoomPayload = {
     topic?: string;
     invite?: string[];
     room_alias_name?: string;
-    creation_content?: {"m.federate": boolean};
+    creation_content?: {"m.federate": boolean, type?: string};
     initial_state: {type: string; state_key: string; content: Record<string, any>}[]
     power_level_content_override?: any;
 }
@@ -55,7 +55,8 @@ type Avatar = {
 }
 
 type Options = {
-    type: RoomType;
+    type?: RoomType;
+    visibility: RoomVisibility;
     isEncrypted?: boolean;
     isFederationDisabled?: boolean;
     name?: string;
@@ -64,25 +65,26 @@ type Options = {
     avatar?: Avatar;
     alias?: string;
     powerLevelContentOverride?: any;
+    initialState?: any[];
 }
 
-function defaultE2EEStatusForType(type: RoomType): boolean {
+function defaultE2EEStatusForType(type: RoomVisibility): boolean {
     switch (type) {
-        case RoomType.DirectMessage:
-        case RoomType.Private:
+        case RoomVisibility.DirectMessage:
+        case RoomVisibility.Private:
             return true;
-        case RoomType.Public:
+        case RoomVisibility.Public:
             return false;
     }
 }
 
-function presetForType(type: RoomType): string {
+function presetForType(type: RoomVisibility): string {
     switch (type) {
-        case RoomType.DirectMessage:
+        case RoomVisibility.DirectMessage:
             return "trusted_private_chat";
-        case RoomType.Private:
+        case RoomVisibility.Private:
             return "private_chat";
-        case RoomType.Public:
+        case RoomVisibility.Public:
             return "public_chat";
     }
 }
@@ -105,7 +107,7 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
         log: ILogItem
     ) {
         super();
-        this.isEncrypted = options.isEncrypted === undefined ? defaultE2EEStatusForType(options.type) : options.isEncrypted;
+        this.isEncrypted = options.isEncrypted === undefined ? defaultE2EEStatusForType(options.visibility) : options.isEncrypted;
         if (options.name) {
             this._calculatedName = options.name;
         } else {
@@ -132,8 +134,8 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
                 attachment.applyToContent("url", avatarEventContent);
             }
             const createOptions: CreateRoomPayload = {
-                is_direct: this.options.type === RoomType.DirectMessage,
-                preset: presetForType(this.options.type),
+                is_direct: this.options.visibility === RoomVisibility.DirectMessage,
+                preset: presetForType(this.options.visibility),
                 initial_state: []
             };
             if (this.options.name) {
@@ -150,6 +152,7 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
             }
             if (this.options.isFederationDisabled === true) {
                 createOptions.creation_content = {
+                    type: this.options.type === RoomType.World ? "org.matrix.msc3815.world" : undefined,
                     "m.federate": false
                 };
             }
@@ -166,6 +169,11 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
             if (this.options.powerLevelContentOverride) {
                 createOptions.power_level_content_override = this.options.powerLevelContentOverride;
             }
+
+            if (this.options.initialState) {
+                createOptions.initial_state.push(...this.options.initialState);
+            }
+
             const response = await hsApi.createRoom(createOptions, {log}).response();
             this._roomId = response["room_id"];
         } catch (err) {
@@ -226,7 +234,7 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
     }
 
     async adjustDirectMessageMapIfNeeded(user: User, storage: Storage, hsApi: HomeServerApi, log: ILogItem): Promise<void> {
-        if (!this.options.invites || this.options.type !== RoomType.DirectMessage) {
+        if (!this.options.invites || this.options.visibility !== RoomVisibility.DirectMessage) {
             return;
         }
         const userId = this.options.invites[0];
