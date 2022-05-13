@@ -48,6 +48,7 @@ import {SecretStorage} from "./ssss/SecretStorage";
 import {ObservableValue} from "../observable/value/ObservableValue";
 import {RetainedObservableValue} from "../observable/value/RetainedObservableValue";
 import {CallHandler} from "./calls/CallHandler";
+import {RoomStateHandlerSet} from "./room/state/RoomStateHandlerSet";
 
 const PICKLE_KEY = "DEFAULT_KEY";
 const PUSHER_KEY = "pusher";
@@ -101,6 +102,8 @@ export class Session {
             }],
             forceTURN: false,
         });
+        this._roomStateHandler = new RoomStateHandlerSet();
+        this.observeRoomState(this._callHandler);
         this._deviceMessageHandler = new DeviceMessageHandler({storage, callHandler: this._callHandler});
         this._olm = olm;
         this._olmUtil = null;
@@ -595,7 +598,7 @@ export class Session {
             user: this._user,
             createRoomEncryption: this._createRoomEncryption,
             platform: this._platform,
-            callHandler: this._callHandler
+            roomStateHandler: this._roomStateHandler
         });
     }
 
@@ -935,6 +938,10 @@ export class Session {
             this._observedRoomStatus.set(roomId, observable);
         }
         return observable;
+    }
+
+    observeRoomState(roomStateHandler) {
+        return this._roomStateHandler.subscribe(roomStateHandler);
     }
 
     /**

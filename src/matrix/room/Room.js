@@ -23,6 +23,7 @@ import {WrappedError} from "../error.js"
 import {Heroes} from "./members/Heroes.js";
 import {AttachmentUpload} from "./AttachmentUpload.js";
 import {DecryptionSource} from "../e2ee/common.js";
+import {iterateResponseStateEvents} from "./common.js";
 import {PowerLevels, EVENT_TYPE as POWERLEVELS_EVENT_TYPE } from "./PowerLevels.js";
 
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
@@ -30,7 +31,7 @@ const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 export class Room extends BaseRoom {
     constructor(options) {
         super(options);
-        this._callHandler = options.callHandler;
+        this._roomStateHandler = options.roomStateHandler;
         // TODO: pass pendingEvents to start like pendingOperations?
         const {pendingEvents} = options;
         const relationWriter = new RelationWriter({
@@ -179,8 +180,9 @@ export class Room extends BaseRoom {
             removedPendingEvents = await this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn, log);
         }
         const powerLevelsEvent = this._getPowerLevelsEvent(roomResponse);
-        this._updateCallHandler(roomResponse, txn, log);
+        this._runRoomStateHandlers(roomResponse, txn, log);
         return {
+            roomResponse,
             summaryChanges,
             roomEncryption,
             newEntries,
@@ -203,7 +205,7 @@ export class Room extends BaseRoom {
         const {
             summaryChanges, newEntries, updatedEntries, newLiveKey,
             removedPendingEvents, memberChanges, powerLevelsEvent,
-            heroChanges, roomEncryption
+            heroChanges, roomEncryption, roomResponse
         } = changes;
         log.set("id", this.id);
         this._syncWriter.afterSync(newLiveKey);
@@ -217,9 +219,7 @@ export class Room extends BaseRoom {
             if (this._memberList) {
                 this._memberList.afterSync(memberChanges);
             }
-            if (this._callHandler) {
-                this._callHandler.updateRoomMembers(this, memberChanges);
-            }
+            this._roomStateHandler.updateRoomMembers(this, memberChanges);
             if (this._observedMembers) {
                 this._updateObservedMembers(memberChanges);
             }
@@ -265,6 +265,7 @@ export class Room extends BaseRoom {
         if (removedPendingEvents) {
             this._sendQueue.emitRemovals(removedPendingEvents);
         }
+        this._emitSyncRoomState(roomResponse);
     }
 
     _updateObservedMembers(memberChanges) {
@@ -277,8 +278,13 @@ export class Room extends BaseRoom {
     }
 
     _getPowerLevelsEvent(roomResponse) {
-        const isPowerlevelEvent = event => event.state_key === "" && event.type === POWERLEVELS_EVENT_TYPE;
-        const powerLevelEvent = roomResponse.timeline?.events.find(isPowerlevelEvent) ?? roomResponse.state?.events.find(isPowerlevelEvent);
+        let powerLevelEvent;
+        iterateResponseStateEvents(roomResponse, event => {
+            if(event.state_key === "" && event.type === POWERLEVELS_EVENT_TYPE) {
+                powerLevelEvent = event;
+            }
+
+        });
         return powerLevelEvent;
     }
 
@@ -447,20 +453,20 @@ export class Room extends BaseRoom {
         return this._sendQueue.pendingEvents;
     }
 
-    _updateCallHandler(roomResponse, txn, log) {
-        if (this._callHandler) {
-            const stateEvents = roomResponse.state?.events;
-            if (stateEvents?.length) {
-                this._callHandler.handleRoomState(this, stateEvents, txn, log);
+    /** global room state handlers, run during write sync step */
+    _runRoomStateHandlers(roomResponse, txn, log) {
+        iterateResponseStateEvents(roomResponse, event => {
+            this._roomStateHandler.handleRoomState(this, event, txn, log);
+        });
+    }
+
+    /** local room state observers, run during after sync step */
+    _emitSyncRoomState(roomResponse) {
+        iterateResponseStateEvents(roomResponse, event => {
+            for (const handler of this._roomStateObservers) {
+                handler.handleStateEvent(event);
             }
-            let timelineEvents = roomResponse.timeline?.events;
-            if (timelineEvents) {
-                const timelineStateEvents = timelineEvents.filter(e => typeof e.state_key === "string");
-                if (timelineEvents.length !== 0) {
-                    this._callHandler.handleRoomState(this, timelineStateEvents, txn, log);
-                }
-            }
-        }
+        });
     }
 
     /** @package */

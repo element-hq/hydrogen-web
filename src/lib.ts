@@ -15,12 +15,20 @@ limitations under the License.
 */
 
 export {Logger} from "./logging/Logger";
+export type {ILogItem} from "./logging/types";
 export {IDBLogPersister} from "./logging/IDBLogPersister";
 export {ConsoleReporter} from "./logging/ConsoleReporter";
 export {Platform} from "./platform/web/Platform.js";
 export {Client, LoadStatus} from "./matrix/Client.js";
 export {RoomStatus} from "./matrix/room/common";
 export {CallIntent} from "./matrix/calls/callEventTypes";
+// export everything needed to observe state events on all rooms using session.observeRoomState
+export type {RoomStateHandler} from "./matrix/room/state/types";
+export type {MemberChange} from "./matrix/room/members/RoomMember";
+export type {Transaction} from "./matrix/storage/idb/Transaction";
+export type {Room} from "./matrix/room/Room";
+export type {StateEvent} from "./matrix/storage/types";
+
 // export main view & view models
 export {createNavigation, createRouter} from "./domain/navigation/index.js";
 export {RootViewModel} from "./domain/RootViewModel.js";

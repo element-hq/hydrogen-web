@@ -132,14 +132,15 @@ export class Client {
         });
     }
 
-    async startRegistration(homeserver, username, password, initialDeviceDisplayName) {
+    async startRegistration(homeserver, username, password, initialDeviceDisplayName, flowSelector) {
         const request = this._platform.request;
         const hsApi = new HomeServerApi({homeserver, request});
         const registration = new Registration(hsApi, {
             username, 
             password,
             initialDeviceDisplayName,
-        });
+        },
+        flowSelector);
         return registration;
     }
 
