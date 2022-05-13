@@ -36,7 +36,7 @@ type CreateRoomPayload = {
     topic?: string;
     invite?: string[];
     room_alias_name?: string;
-    creation_content?: {"m.federate": boolean, type?: string};
+    creation_content?: {"m.federate"?: boolean, type?: string};
     initial_state: {type: string; state_key: string; content: Record<string, any>}[]
     power_level_content_override?: any;
 }
@@ -150,11 +150,14 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
             if (this.options.alias) {
                 createOptions.room_alias_name = this.options.alias;
             }
-            if (this.options.isFederationDisabled === true) {
+            if (this.options.type !== undefined) {
                 createOptions.creation_content = {
                     type: this.options.type === RoomType.World ? "org.matrix.msc3815.world" : undefined,
-                    "m.federate": false
                 };
+            }
+            if (this.options.isFederationDisabled === true) {
+                if (createOptions.creation_content === undefined) createOptions.creation_content = {};
+                createOptions.creation_content["m.federate"] = false;
             }
             if (this.isEncrypted) {
                 createOptions.initial_state.push(createRoomEncryptionEvent());
