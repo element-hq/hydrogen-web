@@ -56,6 +56,7 @@ const PUSHER_KEY = "pusher";
 export class Session {
     // sessionInfo contains deviceId, userId and homeserver
     constructor({storage, hsApi, sessionInfo, olm, olmWorker, platform, mediaRepository}) {
+        window.session = this
         this._platform = platform;
         this._storage = storage;
         this._hsApi = hsApi;
