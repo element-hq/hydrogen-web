@@ -455,6 +455,10 @@ export class BaseRoom extends EventEmitter {
         return this._summary.data.membership;
     }
 
+    get isDirectMessage() {
+        return this._summary.data.isDirectMessage;
+    }
+
     isDirectMessageForUserId(userId) {
         if (this._summary.data.dmUserId === userId) {
             return true;
