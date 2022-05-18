@@ -169,22 +169,32 @@ export class Platform {
     }
 
     async init() {
-        await this.logger.run("Platform init", async (log) => {
-            if (!this._config) {
-                if (!this._configURL) {
-                    throw new Error("Neither config nor configURL was provided!");
+        try {
+            await this.logger.run("Platform init", async (log) => {
+                if (!this._config) {
+                    if (!this._configURL) {
+                        throw new Error("Neither config nor configURL was provided!");
+                    }
+                    const {status, body}= await this.request(this._configURL, {method: "GET", format: "json", cache: true}).response();
+                    if (status === 404) {
+                        throw new Error(`Could not find ${this._configURL}. Did you copy over config.sample.json?`);
+                    } else if (status >= 400) {
+                        throw new Error(`Got status ${status} while trying to fetch ${this._configURL}`);
+                    }
+                    this._config = body;
                 }
-                const {body}= await this.request(this._configURL, {method: "GET", format: "json", cache: true}).response();
-                this._config = body;
-            }
-            this.notificationService = new NotificationService(
-                this._serviceWorkerHandler,
-                this._config.push
-            );
-            const manifests = this.config["themeManifests"];
-            await this._themeLoader?.init(manifests);
-            this._themeLoader?.setTheme(await this._themeLoader.getActiveTheme(), log);
-        });
+                this.notificationService = new NotificationService(
+                    this._serviceWorkerHandler,
+                    this._config.push
+                );
+                const manifests = this.config["themeManifests"];
+                await this._themeLoader?.init(manifests);
+                this._themeLoader?.setTheme(await this._themeLoader.getActiveTheme(), log);
+            });
+        } catch (err) {
+            this._container.innerText = err.message;
+            throw err;
+        }
     }
 
     _createLogger(isDevelopment) {
