@@ -16,10 +16,10 @@ mkdir target/paths
 # this doesn't work, the ?url imports need to be in the consuming project, so disable for now
 # ./scripts/sdk/transform-paths.js ./src/platform/web/sdk/paths/vite.js ./target/paths/vite.js
 cp doc/SDK.md target/README.md
-pushd target
-pushd asset-build/assets
+pushd target/asset-build
+rm index.html
+popd
+pushd target/asset-build/assets
 # Remove all `*.wasm` and `*.js` files except for `main.js`
 rm !(main).js *.wasm
-popd
-rm index.html
 popd
