@@ -21,7 +21,7 @@ Hydrogen is deployed to [hydrogen.element.io](https://hydrogen.element.io). You 
  1. Download the [latest release package](https://github.com/vector-im/hydrogen-web/releases).
  1. Extract the package to the public directory of your web server.
  1. If this is your first deploy:
-    1. copy `config.sample.json` to `config.json` and if needed, make any modifications.
+    1. copy `config.sample.json` to `config.json` and if needed, make any modifications (unless you've set up your own [sygnal](https://github.com/matrix-org/sygnal) instance, you don't need to change anything in the `push` section).
     1. Disable caching entirely on the server (they will still be cached client-side by the service worker) for:
         - `index.html`
         - `sw.js`
