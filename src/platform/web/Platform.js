@@ -169,20 +169,22 @@ export class Platform {
     }
 
     async init() {
-        if (!this._config) {
-            if (!this._configURL) {
-                throw new Error("Neither config nor configURL was provided!");
+        await this.logger.run("Platform init", async () => {
+            if (!this._config) {
+                if (!this._configURL) {
+                    throw new Error("Neither config nor configURL was provided!");
+                }
+                const {body}= await this.request(this._configURL, {method: "GET", format: "json", cache: true}).response();
+                this._config = body;
             }
-            const {body}= await this.request(this._configURL, {method: "GET", format: "json", cache: true}).response();
-            this._config = body;
-        }
-        this.notificationService = new NotificationService(
-            this._serviceWorkerHandler,
-            this._config.push
-        );
-        const manifests = this.config["themeManifests"];
-        await this._themeLoader?.init(manifests);
-        this._themeLoader?.setTheme(await this._themeLoader.getActiveTheme());
+            this.notificationService = new NotificationService(
+                this._serviceWorkerHandler,
+                this._config.push
+            );
+            const manifests = this.config["themeManifests"];
+            await this._themeLoader?.init(manifests);
+            this._themeLoader?.setTheme(await this._themeLoader.getActiveTheme());
+        });
     }
 
     _createLogger(isDevelopment) {

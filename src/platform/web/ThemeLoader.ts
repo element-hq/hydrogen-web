@@ -27,30 +27,34 @@ export class ThemeLoader {
     }
 
     async init(manifestLocations: string[]): Promise<void> {
-        for (const manifestLocation of manifestLocations) {
-            const { body } = await this._platform
-                .request(manifestLocation, {
-                    method: "GET",
-                    format: "json",
-                    cache: true,
-                })
-                .response();
-            /*
-            After build has finished, the source section of each theme manifest
-            contains `built-assets` which is a mapping from the theme-name to the
-            location of the css file in build.
-            */
-            Object.assign(this._themeMapping, body["source"]["built-assets"]);
-        }
+        await this._platform.logger.run("ThemeLoader.init", async () => {
+            for (const manifestLocation of manifestLocations) {
+                const { body } = await this._platform
+                    .request(manifestLocation, {
+                        method: "GET",
+                        format: "json",
+                        cache: true,
+                    })
+                    .response();
+                /*
+                After build has finished, the source section of each theme manifest
+                contains `built-assets` which is a mapping from the theme-name to the
+                location of the css file in build.
+                */
+                Object.assign(this._themeMapping, body["source"]["built-assets"]);
+            }
+        });
     }
 
     setTheme(themeName: string) {
-        const themeLocation = this._themeMapping[themeName];
-        if (!themeLocation) {
-            throw new Error( `Cannot find theme location for theme "${themeName}"!`);
-        }
-        this._platform.replaceStylesheet(themeLocation);
-        this._platform.settingsStorage.setString("theme", themeName);
+        this._platform.logger.run("ThemeLoader.setTheme", () => {
+            const themeLocation = this._themeMapping[themeName];
+            if (!themeLocation) {
+                throw new Error( `Cannot find theme location for theme "${themeName}"!`);
+            }
+            this._platform.replaceStylesheet(themeLocation);
+            this._platform.settingsStorage.setString("theme", themeName);
+         });
     }
 
     get themes(): string[] {
@@ -58,17 +62,19 @@ export class ThemeLoader {
     }
 
     async getActiveTheme(): Promise<string|undefined> {
-        // check if theme is set via settings
-        let theme = await this._platform.settingsStorage.getString("theme");
-        if (theme) {
-            return theme;
-        }
-        // return default theme
-        if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-            return this._platform.config["defaultTheme"].dark;
-        } else if (window.matchMedia("(prefers-color-scheme: light)").matches) {
-            return this._platform.config["defaultTheme"].light;
-        }
-        return undefined;
+        return await this._platform.logger.run("ThemeLoader.getActiveTheme", async () => {
+            // check if theme is set via settings
+            let theme = await this._platform.settingsStorage.getString("theme");
+            if (theme) {
+                return theme;
+            }
+            // return default theme
+            if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+                return this._platform.config["defaultTheme"].dark;
+            } else if (window.matchMedia("(prefers-color-scheme: light)").matches) {
+                return this._platform.config["defaultTheme"].light;
+            }
+            return undefined;
+         });
     }
 }
