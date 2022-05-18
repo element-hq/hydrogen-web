@@ -38,7 +38,7 @@ function addThemesToConfig(bundle, manifestLocations, defaultThemes) {
             const config = JSON.parse(source);
             config["themeManifests"] = manifestLocations;
             config["defaultTheme"] = defaultThemes;
-            info.source = new TextEncoder().encode(JSON.stringify(config));
+            info.source = new TextEncoder().encode(JSON.stringify(config, undefined, 2));
         }
     }
 }
