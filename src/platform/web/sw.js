@@ -96,7 +96,7 @@ let pendingFetchAbortController = new AbortController();
 async function handleRequest(request) {
     try {
         if (request.url.includes("config.json") || /theme-.+\.json/.test(request.url)) {
-            return handleSpecialRequest(request);
+            return handleStaleWhileRevalidateRequest(request);
         }
         const url = new URL(request.url);
         // rewrite / to /index.html so it hits the cache
@@ -124,10 +124,10 @@ async function handleRequest(request) {
 }
 
 /**
- * For some files (config.json and theme manifests) we satisfy the request from cache,
- * but at the same time we refresh the cache with up-to-date content of the file
+ * Stale-while-revalidate caching for certain files
+ * see https://developer.chrome.com/docs/workbox/caching-strategies-overview/#stale-while-revalidate
  */
-async function handleSpecialRequest(request) {
+async function handleStaleWhileRevalidateRequest(request) {
     let response = await readCache(request);
     const networkResponsePromise = fetchAndUpdateCache(request);
     if (response) {
