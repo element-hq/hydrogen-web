@@ -95,8 +95,8 @@ let pendingFetchAbortController = new AbortController();
 
 async function handleRequest(request) {
     try {
-        if (request.url.includes("config.json")) {
-            return handleConfigRequest(request);
+        if (request.url.includes("config.json") || /theme-.+\.json/.test(request.url)) {
+            return handleSpecialRequest(request);
         }
         const url = new URL(request.url);
         // rewrite / to /index.html so it hits the cache
@@ -123,9 +123,13 @@ async function handleRequest(request) {
     }
 }
 
-async function handleConfigRequest(request) {
+/**
+ * For some files (config.json and theme manifests) we satisfy the request from cache,
+ * but at the same time we refresh the cache with up-to-date content of the file
+ */
+async function handleSpecialRequest(request) {
     let response = await readCache(request);
-    const networkResponsePromise = fetchAndUpdateConfig(request);
+    const networkResponsePromise = fetchAndUpdateCache(request);
     if (response) {
         return response;
     } else {
@@ -133,7 +137,7 @@ async function handleConfigRequest(request) {
     }
 }
 
-async function fetchAndUpdateConfig(request) {
+async function fetchAndUpdateCache(request) {
     const response = await fetch(request, {
         signal: pendingFetchAbortController.signal,
         headers: {
