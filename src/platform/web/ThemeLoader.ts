@@ -44,7 +44,7 @@ export class ThemeLoader {
     }
 
     setTheme(themeName: string, log?: ILogItem) {
-        this._platform.logger.wrapOrRun(log, "setTheme", () => {
+        this._platform.logger.wrapOrRun(log, {l: "change theme", id: themeName}, () => {
             const themeLocation = this._themeMapping[themeName];
             if (!themeLocation) {
                 throw new Error( `Cannot find theme location for theme "${themeName}"!`);
