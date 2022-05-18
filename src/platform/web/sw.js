@@ -160,8 +160,14 @@ async function updateCache(request, response) {
         cache.put(request, response.clone());
     } else if (request.url.startsWith(baseURL)) {
         let assetName = request.url.substr(baseURL.length);
+        let cacheName;
         if (HASHED_CACHED_ON_REQUEST_ASSETS.includes(assetName)) {
-            const cache = await caches.open(hashedCacheName);
+            cacheName = hashedCacheName;
+        } else if (UNHASHED_PRECACHED_ASSETS.includes(assetName)) {
+            cacheName = unhashedCacheName;
+        }
+        if (cacheName) {
+            const cache = await caches.open(cacheName);
             await cache.put(request, response.clone());
         }
     }
