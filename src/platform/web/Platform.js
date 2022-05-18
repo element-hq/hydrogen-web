@@ -169,7 +169,7 @@ export class Platform {
     }
 
     async init() {
-        await this.logger.run("Platform init", async () => {
+        await this.logger.run("Platform init", async (log) => {
             if (!this._config) {
                 if (!this._configURL) {
                     throw new Error("Neither config nor configURL was provided!");
@@ -183,7 +183,7 @@ export class Platform {
             );
             const manifests = this.config["themeManifests"];
             await this._themeLoader?.init(manifests);
-            this._themeLoader?.setTheme(await this._themeLoader.getActiveTheme());
+            this._themeLoader?.setTheme(await this._themeLoader.getActiveTheme(), log);
         });
     }
 

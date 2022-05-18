@@ -14,9 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import type {ILogItem} from "../../logging/types.js";
 import type {Platform} from "./Platform.js";
-
-export enum COLOR_SCHEME_PREFERENCE { DARK, LIGHT, }
 
 export class ThemeLoader {
     private _platform: Platform;
@@ -27,27 +26,25 @@ export class ThemeLoader {
     }
 
     async init(manifestLocations: string[]): Promise<void> {
-        await this._platform.logger.run("ThemeLoader.init", async () => {
-            for (const manifestLocation of manifestLocations) {
-                const { body } = await this._platform
-                    .request(manifestLocation, {
-                        method: "GET",
-                        format: "json",
-                        cache: true,
-                    })
-                    .response();
-                /*
-                After build has finished, the source section of each theme manifest
-                contains `built-assets` which is a mapping from the theme-name to the
-                location of the css file in build.
-                */
-                Object.assign(this._themeMapping, body["source"]["built-assets"]);
-            }
-        });
+        for (const manifestLocation of manifestLocations) {
+            const { body } = await this._platform
+                .request(manifestLocation, {
+                    method: "GET",
+                    format: "json",
+                    cache: true,
+                })
+                .response();
+            /*
+            After build has finished, the source section of each theme manifest
+            contains `built-assets` which is a mapping from the theme-name to the
+            location of the css file in build.
+            */
+            Object.assign(this._themeMapping, body["source"]["built-assets"]);
+        }
     }
 
-    setTheme(themeName: string) {
-        this._platform.logger.run("ThemeLoader.setTheme", () => {
+    setTheme(themeName: string, log?: ILogItem) {
+        this._platform.logger.wrapOrRun(log, "setTheme", () => {
             const themeLocation = this._themeMapping[themeName];
             if (!themeLocation) {
                 throw new Error( `Cannot find theme location for theme "${themeName}"!`);
@@ -62,19 +59,17 @@ export class ThemeLoader {
     }
 
     async getActiveTheme(): Promise<string|undefined> {
-        return await this._platform.logger.run("ThemeLoader.getActiveTheme", async () => {
-            // check if theme is set via settings
-            let theme = await this._platform.settingsStorage.getString("theme");
-            if (theme) {
-                return theme;
-            }
-            // return default theme
-            if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-                return this._platform.config["defaultTheme"].dark;
-            } else if (window.matchMedia("(prefers-color-scheme: light)").matches) {
-                return this._platform.config["defaultTheme"].light;
-            }
-            return undefined;
-         });
+        // check if theme is set via settings
+        let theme = await this._platform.settingsStorage.getString("theme");
+        if (theme) {
+            return theme;
+        }
+        // return default theme
+        if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+            return this._platform.config["defaultTheme"].dark;
+        } else if (window.matchMedia("(prefers-color-scheme: light)").matches) {
+            return this._platform.config["defaultTheme"].light;
+        }
+        return undefined;
     }
 }
