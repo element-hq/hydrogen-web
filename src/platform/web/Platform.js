@@ -38,6 +38,7 @@ import {downloadInIframe} from "./dom/download.js";
 import {Disposables} from "../../utils/Disposables";
 import {parseHTML} from "./parsehtml.js";
 import {handleAvatarError} from "./ui/avatar";
+import {ThemeLoader} from "./ThemeLoader";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -164,20 +165,26 @@ export class Platform {
         this._disposables = new Disposables();
         this._olmPromise = undefined;
         this._workerPromise = undefined;
+        this._themeLoader = import.meta.env.DEV? null: new ThemeLoader(this);
     }
 
     async init() {
-        if (!this._config) {
-            if (!this._configURL) {
-                throw new Error("Neither config nor configURL was provided!");
+        await this.logger.run("Platform init", async (log) => {
+            if (!this._config) {
+                if (!this._configURL) {
+                    throw new Error("Neither config nor configURL was provided!");
+                }
+                const {body}= await this.request(this._configURL, {method: "GET", format: "json", cache: true}).response();
+                this._config = body;
             }
-            const {body}= await this.request(this._configURL, {method: "GET", format: "json", cache: true}).response();
-            this._config = body;
-        }
-        this.notificationService = new NotificationService(
-            this._serviceWorkerHandler,
-            this._config.push
-        );
+            this.notificationService = new NotificationService(
+                this._serviceWorkerHandler,
+                this._config.push
+            );
+            const manifests = this.config["themeManifests"];
+            await this._themeLoader?.init(manifests);
+            this._themeLoader?.setTheme(await this._themeLoader.getActiveTheme(), log);
+        });
     }
 
     _createLogger(isDevelopment) {
@@ -305,6 +312,23 @@ export class Platform {
 
     get version() {
         return DEFINE_VERSION;
+    }
+
+    get themeLoader() {
+        return this._themeLoader;
+    }
+
+    replaceStylesheet(newPath) {
+        const head = document.querySelector("head");
+        // remove default theme 
+        document.querySelectorAll(".theme").forEach(e => e.remove());
+        // add new theme
+        const styleTag = document.createElement("link");
+        styleTag.href = `./${newPath}`;
+        styleTag.rel = "stylesheet";
+        styleTag.type = "text/css";
+        styleTag.className = "theme";
+        head.appendChild(styleTag);
     }
 
     dispose() {
