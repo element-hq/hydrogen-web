@@ -22,12 +22,14 @@ Hydrogen is deployed to [hydrogen.element.io](https://hydrogen.element.io). You 
  1. Extract the package to the public directory of your web server.
  1. If this is your first deploy:
     1. copy `config.sample.json` to `config.json` and if needed, make any modifications (unless you've set up your own [sygnal](https://github.com/matrix-org/sygnal) instance, you don't need to change anything in the `push` section).
-    1. Disable caching entirely on the server (they will still be cached client-side by the service worker) for:
+    1. Disable caching entirely on the server for:
         - `index.html`
         - `sw.js`
         - `config.json`
         - All theme manifests referenced in the `themeManifests` of `config.json`, these files are typically called `theme-{name}.json`.
- 
+
+        These resources will still be cached client-side by the service worker. Because of this; you'll still need to refresh the app twice before config.json changes are applied.
+
 ## Set up a dev environment
 
 You can run Hydrogen locally by the following commands in the terminal:
