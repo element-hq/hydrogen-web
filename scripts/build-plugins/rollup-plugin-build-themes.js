@@ -33,7 +33,7 @@ function appendVariablesToCSS(variables, cssSource) {
 
 function addThemesToConfig(bundle, manifestLocations, defaultThemes) {
     for (const [fileName, info] of Object.entries(bundle)) {
-        if (fileName === "assets/config.json") {
+        if (fileName === "config.json") {
             const source = new TextDecoder().decode(info.source);
             const config = JSON.parse(source);
             config["themeManifests"] = manifestLocations;
