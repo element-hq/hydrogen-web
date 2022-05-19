@@ -21,6 +21,7 @@ export {ConsoleReporter} from "./logging/ConsoleReporter";
 export {Platform} from "./platform/web/Platform.js";
 export {Client, LoadStatus} from "./matrix/Client.js";
 export {RoomStatus} from "./matrix/room/common";
+export {AttachmentUpload} from "./matrix/room/AttachmentUpload";
 export {CallIntent} from "./matrix/calls/callEventTypes";
 // export everything needed to observe state events on all rooms using session.observeRoomState
 export type {RoomStateHandler} from "./matrix/room/state/types";
