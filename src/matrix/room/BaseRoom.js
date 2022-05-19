@@ -73,6 +73,11 @@ export class BaseRoom extends EventEmitter {
         return value;
     }
 
+    async getStateEvent(type, key = '') {
+        const txn = await this._storage.readTxn(['roomState']);
+        return txn.roomState.get(this.id, type, key);
+    }
+
     async _addStateObserver(stateObserver, txn) {
         if (!txn) {
             txn = await this._storage.readTxn([this._storage.storeNames.roomState]);
@@ -409,6 +414,10 @@ export class BaseRoom extends EventEmitter {
         return this._roomId;
     }
 
+    get type() {
+        return this._summary.data.type;
+    }
+
     get lastMessageTimestamp() {
         return this._summary.data.lastMessageTimestamp;
     }
@@ -444,6 +453,10 @@ export class BaseRoom extends EventEmitter {
 
     get membership() {
         return this._summary.data.membership;
+    }
+
+    get isDirectMessage() {
+        return this._summary.data.isDirectMessage;
     }
 
     isDirectMessageForUserId(userId) {
