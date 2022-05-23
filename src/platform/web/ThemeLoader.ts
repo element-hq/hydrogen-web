@@ -58,7 +58,7 @@ export class ThemeLoader {
         return Object.keys(this._themeMapping);
     }
 
-    async getActiveTheme(): Promise<string|undefined> {
+    async getActiveTheme(): Promise<string> {
         // check if theme is set via settings
         let theme = await this._platform.settingsStorage.getString("theme");
         if (theme) {
@@ -70,6 +70,6 @@ export class ThemeLoader {
         } else if (window.matchMedia("(prefers-color-scheme: light)").matches) {
             return this._platform.config["defaultTheme"].light;
         }
-        return undefined;
+        throw new Error("Cannot find active theme!");
     }
 }
