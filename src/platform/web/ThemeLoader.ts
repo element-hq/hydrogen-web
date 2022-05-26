@@ -17,15 +17,35 @@ limitations under the License.
 import type {ILogItem} from "../../logging/types.js";
 import type {Platform} from "./Platform.js";
 
+type NormalVariant = {
+    id: string;
+    cssLocation: string;
+};
+
+type DefaultVariant = {
+    dark: {
+        id: string;
+        cssLocation: string;
+        themeDisplayName: string;
+    };
+    light: {
+        id: string;
+        cssLocation: string;
+        themeDisplayName: string;
+    };
+}
+type ThemeInformation = NormalVariant | DefaultVariant; 
+
 export class ThemeLoader {
     private _platform: Platform;
-    private _themeMapping: Record<string, string> = {};
+    private _themeMapping: Record<string, ThemeInformation>;
 
     constructor(platform: Platform) {
         this._platform = platform;
     }
 
     async init(manifestLocations: string[]): Promise<void> {
+        this._themeMapping = {};
         for (const manifestLocation of manifestLocations) {
             const { body } = await this._platform
                 .request(manifestLocation, {
@@ -36,8 +56,8 @@ export class ThemeLoader {
                 .response();
             /*
             After build has finished, the source section of each theme manifest
-            contains `built-assets` which is a mapping from the theme-name to the
-            location of the css file in build.
+            contains `built-assets` which is a mapping from the theme-name to theme
+            details which includes the location of the CSS file.
             */
             Object.assign(this._themeMapping, body["source"]["built-assets"]);
         }
@@ -45,7 +65,7 @@ export class ThemeLoader {
 
     setTheme(themeName: string, log?: ILogItem) {
         this._platform.logger.wrapOrRun(log, {l: "change theme", id: themeName}, () => {
-            const themeLocation = this._themeMapping[themeName];
+            const themeLocation = this._findThemeLocationFromId(themeName);
             if (!themeLocation) {
                 throw new Error( `Cannot find theme location for theme "${themeName}"!`);
             }
@@ -54,8 +74,8 @@ export class ThemeLoader {
          });
     }
 
-    get themes(): string[] {
-        return Object.keys(this._themeMapping);
+    get themeMapping(): Record<string, ThemeInformation> {
+        return this._themeMapping;
     }
 
     async getActiveTheme(): Promise<string> {
@@ -71,5 +91,19 @@ export class ThemeLoader {
             return this._platform.config["defaultTheme"].light;
         }
         throw new Error("Cannot find active theme!");
+    }
+
+    private _findThemeLocationFromId(themeId: string) {
+        for (const themeData of Object.values(this._themeMapping)) {
+            if ("id" in themeData && themeData.id === themeId) {
+                return themeData.cssLocation;
+            }
+            else if ("light" in themeData && themeData.light?.id === themeId) {
+                return themeData.light.cssLocation;
+            }
+            else if ("dark" in themeData && themeData.dark?.id === themeId) {
+                return themeData.dark.cssLocation;
+            }
+        }
     }
 }
