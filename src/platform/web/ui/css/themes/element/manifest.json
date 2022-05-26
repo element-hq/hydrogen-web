@@ -1,6 +1,7 @@
 {
 	"version": 1,
-	"name": "element",
+    "name": "Element",
+	"id": "element",
 	"values": {
 		"font-faces": [
 			{
@@ -9,37 +10,51 @@
 			}
 		],
 		"variants": {
-			"light": {
-				"base": true,
-				"default": true,
-				"name": "Light",
-				"variables": {
-					"background-color-primary": "#fff",
+            "light": {
+                "base": true,
+                "default": true,
+                "name": "Light",
+                "variables": {
+                    "background-color-primary": "#fff",
                     "background-color-secondary": "#f6f6f6",
-					"text-color": "#2E2F32",
+                    "text-color": "#2E2F32",
                     "accent-color": "#03b381",
                     "error-color": "#FF4B55",
                     "fixed-white": "#fff",
                     "room-badge": "#61708b",
                     "link-color": "#238cf5"
-				}
-			},
-			"dark": {
-				"dark": true,
-				"default": true,
-				"name": "Dark",
-				"variables": {
-					"background-color-primary": "#21262b",
+                }
+            },
+            "dark": {
+                "dark": true,
+                "default": true,
+                "name": "Dark",
+                "variables": {
+                    "background-color-primary": "#21262b",
                     "background-color-secondary": "#2D3239",
-					"text-color": "#fff",
+                    "text-color": "#fff",
                     "accent-color": "#03B381",
                     "error-color": "#FF4B55",
                     "fixed-white": "#fff",
                     "room-badge": "#61708b",
                     "link-color": "#238cf5"
-				}
-			}
-		}
+                }
+            },
+            "violet": {
+                "dark": true,
+                "name": "Violet",
+                "variables": {
+                    "background-color-primary": "#21262b",
+                    "background-color-secondary": "#2D3239",
+                    "text-color": "#fff",
+                    "accent-color": "#03B381",
+                    "error-color": "#FF4B55",
+                    "fixed-white": "#fff",
+                    "room-badge": "#61708b",
+                    "link-color": "#238cf5"
+                }
+            }
+        }
 	}
 }
 
