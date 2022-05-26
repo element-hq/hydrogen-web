@@ -254,13 +254,50 @@ module.exports = function buildThemes(options) {
                 const derivedVariables = compiledVariables["derived-variables"];
                 const icon = compiledVariables["icon"];
                 const builtAssets = {};
-                /**
-                 * Generate a mapping from theme name to asset hashed location of said theme in build output.
-                 * This can be used to enumerate themes during runtime.
-                 */
+                let defaultDarkVariant = {}, defaultLightVariant = {};
+                const themeName = manifest.name;
                 for (const chunk of chunkArray) {
                     const [, name, variant] = chunk.fileName.match(/theme-(.+)-(.+)\.css/);
-                    builtAssets[`${name}-${variant}`] = assetMap.get(chunk.fileName).fileName;
+                    const {name: variantName, default: isDefault, dark} = manifest.values.variants[variant];
+                    const themeId = `${name}-${variant}`;
+                    const themeDisplayName = `${themeName} ${variantName}`;
+                    if (isDefault) {
+                        /**
+                         * This is a default variant!
+                         * We'll add these to the builtAssets keyed with just the
+                         * theme-name (i.e "Element" instead of "Element Dark")
+                         * so that we can distinguish them from other variants!
+                         * 
+                         * This allows us to render a radio-button with "dark" and
+                         * "light" options.
+                        */ 
+                        const defaultVariant = dark ? defaultDarkVariant : defaultLightVariant;
+                        defaultVariant.themeDisplayName = variantName;
+                        defaultVariant.id = themeId
+                        defaultVariant.cssLocation = assetMap.get(chunk.fileName).fileName;
+                        continue;
+                    }
+                    // Non-default variants are keyed in builtAssets with "theme_name variant_name"
+                    // eg: "Element Dark"
+                    builtAssets[themeDisplayName] = {
+                        cssLocation: assetMap.get(chunk.fileName).fileName,
+                        id: themeId
+                    };
+                }
+                if (defaultDarkVariant.id && defaultLightVariant.id) {
+                    /**
+                     * As mentioned above, if there's both a default dark and a default light variant,
+                     * add them to builtAsset separately.
+                     */
+                    builtAssets[themeName] = { dark: defaultDarkVariant, light: defaultLightVariant };
+                }
+                else {
+                    /**
+                     * If only one default variant is found (i.e only dark default or light default but not both),
+                     * treat it like any other variant.
+                     */
+                    const variant = defaultDarkVariant.id ? defaultDarkVariant : defaultLightVariant;
+                    builtAssets[`${themeName} ${variant.themeDisplayName}`] = { id: variant.id, cssLocation: variant.cssLocation };
                 }
                 manifest.source = {
                     "built-assets": builtAssets,
