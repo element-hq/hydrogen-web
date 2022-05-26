@@ -131,8 +131,8 @@ export class SettingsViewModel extends ViewModel {
         return this._formatBytes(this._estimate?.usage);
     }
 
-    get themes() {
-        return this.platform.themeLoader.themes;
+    get themeMapping() {
+        return this.platform.themeLoader.themeMapping;
     }
 
     get activeTheme() {
@@ -185,5 +185,15 @@ export class SettingsViewModel extends ViewModel {
             this.emitChange("pushNotifications.serverError");
         }
     }
+
+    themeOptionChanged(themeId) {
+        if (themeId) {
+            this.setTheme(themeId);
+        }
+        // if there's no themeId, then the theme is going to be set via radio-buttons
+        // emit so that radio-buttons become displayed/hidden
+        this.emitChange("themeOption");
+    }
+
 }
 
