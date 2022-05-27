@@ -60,6 +60,14 @@ export class ThemeLoader {
             details which includes the location of the CSS file.
             */
             Object.assign(this._themeMapping, body["source"]["built-assets"]);
+            //Add the default-theme as an additional option to the mapping
+            const defaultThemeId = this.getDefaultTheme();
+            if (defaultThemeId) {
+                const cssLocation = this._findThemeLocationFromId(defaultThemeId);
+                if (cssLocation) {
+                    this._themeMapping["Default"] = { id: "default", cssLocation };
+                }
+            }
         }
     }
 
