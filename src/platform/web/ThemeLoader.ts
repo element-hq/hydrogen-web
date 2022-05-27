@@ -79,18 +79,19 @@ export class ThemeLoader {
     }
 
     async getActiveTheme(): Promise<string> {
-        // check if theme is set via settings
-        let theme = await this._platform.settingsStorage.getString("theme");
+        const theme = await this._platform.settingsStorage.getString("theme") ?? this.getDefaultTheme();
         if (theme) {
             return theme;
         }
-        // return default theme
+        throw new Error("Cannot find active theme!");
+    }
+
+    getDefaultTheme(): string | undefined {
         if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
             return this._platform.config["defaultTheme"].dark;
         } else if (window.matchMedia("(prefers-color-scheme: light)").matches) {
             return this._platform.config["defaultTheme"].light;
         }
-        throw new Error("Cannot find active theme!");
     }
 
     private _findThemeLocationFromId(themeId: string) {
