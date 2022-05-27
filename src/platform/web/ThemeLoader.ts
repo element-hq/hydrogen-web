@@ -94,7 +94,7 @@ export class ThemeLoader {
         }
     }
 
-    private _findThemeLocationFromId(themeId: string) {
+    private _findThemeLocationFromId(themeId: string): string | undefined {
         for (const themeData of Object.values(this._themeMapping)) {
             if ("id" in themeData && themeData.id === themeId) {
                 return themeData.cssLocation;
