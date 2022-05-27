@@ -87,7 +87,7 @@ export class ThemeLoader {
     }
 
     async getActiveTheme(): Promise<string> {
-        const theme = await this._platform.settingsStorage.getString("theme") ?? this.getDefaultTheme();
+        const theme = await this._platform.settingsStorage.getString("theme") ?? "default";
         if (theme) {
             return theme;
         }
