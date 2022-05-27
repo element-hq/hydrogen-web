@@ -21,7 +21,21 @@ import type {SubscriptionHandle} from "../../observable/BaseObservable";
 type ParseURLPath<T> = (urlPath: string, currentNavPath: Path<T>, defaultSessionId?: string) => Segment<T>[];
 type StringifyPath<T> = (path: Path<T>) => string;
 
-export class URLRouter<T extends {session: string}> {
+export interface IURLRouter<T> {
+    attach(): void;
+    dispose(): void;
+    pushUrl(url: string): void;
+    tryRestoreLastUrl(): boolean;
+    urlForSegments(segments: Segment<T>[]): string | undefined;
+    urlForSegment<K extends keyof T>(type: K, ...value: OptionalValue<T[K]>): string | undefined;
+    urlUntilSegment(type: keyof T): string;
+    urlForPath(path: Path<T>): string;
+    openRoomActionUrl(roomId: string): string;
+    createSSOCallbackURL(): string;
+    normalizeUrl(): void;
+}
+
+export class URLRouter<T extends {session: string | boolean}> implements IURLRouter<T> {
     private readonly _history: History;
     private readonly _navigation: Navigation<T>;
     private readonly _parseUrlPath: ParseURLPath<T>;
@@ -128,7 +142,7 @@ export class URLRouter<T extends {session: string}> {
         return this._history.pathAsUrl(this._stringifyPath(path));
     }
 
-    openRoomActionUrl(roomId: string) {
+    openRoomActionUrl(roomId: string): string {
         // not a segment to navigation knowns about, so append it manually
         const urlPath = `${this._stringifyPath(this._navigation.path.until("session"))}/open-room/${roomId}`;
         return this._history.pathAsUrl(urlPath);

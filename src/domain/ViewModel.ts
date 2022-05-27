@@ -28,17 +28,16 @@ import type {Clock} from "../platform/web/dom/Clock";
 import type {ILogger} from "../logging/types";
 import type {Navigation} from "./navigation/Navigation";
 import type {SegmentType} from "./navigation/index";
-import type {URLRouter} from "./navigation/URLRouter";
+import type {IURLRouter} from "./navigation/URLRouter";
 
-type OptionsWithoutUrlCreator<N extends object> = {
-    platform: Platform
-    logger: ILogger
-    navigation: Navigation<N>
-    emitChange?: (params: any) => void
+export type Options<T extends object = SegmentType> = {
+    platform: Platform;
+    logger: ILogger;
+    urlCreator: IURLRouter<T>;
+    navigation: Navigation<T>;
+    emitChange?: (params: any) => void;
 }
-type OptionsWithUrlCreator<N extends { session: string }> = OptionsWithoutUrlCreator<N> & {urlCreator: URLRouter<N>}; 
 
-type Options<N extends object> = N extends { session: string } ? OptionsWithUrlCreator<N> : OptionsWithoutUrlCreator<N>;
 
 export class ViewModel<N extends object = SegmentType, O extends Options<N> = Options<N>> extends EventEmitter<{change: never}> {
     private disposables?: Disposables;
@@ -138,9 +137,8 @@ export class ViewModel<N extends object = SegmentType, O extends Options<N> = Op
         return this.platform.logger;
     }
 
-    get urlCreator(): N extends { session: string }? URLRouter<N>: undefined {
-        // typescript needs a little help here
-        return (this._options as unknown as {urlCreator: any}).urlCreator;
+    get urlCreator(): IURLRouter<N> {
+        return this._options.urlCreator;
     }
 
     get navigation(): Navigation<N> {

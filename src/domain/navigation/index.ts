@@ -20,7 +20,7 @@ import type {Path, OptionalValue} from "./Navigation";
 
 export type SegmentType = {
     "login": true;
-    "session": string;
+    "session": string | boolean;
     "sso": string;
     "logout": true;
     "room": string;
