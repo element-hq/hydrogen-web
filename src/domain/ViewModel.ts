@@ -60,9 +60,9 @@ export class ViewModel<N extends object = SegmentType, O extends Options<N> = Op
         return this._options[name];
     }
 
-    observeNavigation(type: string, onChange: (value: string | true | undefined, type: string) => void) {
+    observeNavigation<T extends keyof N>(type: T, onChange: (value: N[T], type: T) => void) {
       const segmentObservable = this.navigation.observe(type);
-      const unsubscribe = segmentObservable.subscribe((value: string | true | undefined) => {
+      const unsubscribe = segmentObservable.subscribe((value: N[T]) => {
         onChange(value, type);
       })
       this.track(unsubscribe);
