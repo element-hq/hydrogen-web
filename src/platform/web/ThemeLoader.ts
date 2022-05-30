@@ -26,12 +26,12 @@ type DefaultVariant = {
     dark: {
         id: string;
         cssLocation: string;
-        themeDisplayName: string;
+        variantName: string;
     };
     light: {
         id: string;
         cssLocation: string;
-        themeDisplayName: string;
+        variantName: string;
     };
 }
 type ThemeInformation = NormalVariant | DefaultVariant; 

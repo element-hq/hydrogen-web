@@ -272,7 +272,7 @@ module.exports = function buildThemes(options) {
                          * "light" options.
                         */ 
                         const defaultVariant = dark ? defaultDarkVariant : defaultLightVariant;
-                        defaultVariant.themeDisplayName = variantName;
+                        defaultVariant.variantName = variantName;
                         defaultVariant.id = themeId
                         defaultVariant.cssLocation = assetMap.get(chunk.fileName).fileName;
                         continue;
@@ -297,7 +297,7 @@ module.exports = function buildThemes(options) {
                      * treat it like any other variant.
                      */
                     const variant = defaultDarkVariant.id ? defaultDarkVariant : defaultLightVariant;
-                    builtAssets[`${themeName} ${variant.themeDisplayName}`] = { id: variant.id, cssLocation: variant.cssLocation };
+                    builtAssets[`${themeName} ${variant.variantName}`] = { id: variant.id, cssLocation: variant.cssLocation };
                 }
                 manifest.source = {
                     "built-assets": builtAssets,
