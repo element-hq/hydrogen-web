@@ -158,13 +158,13 @@ export class SettingsView extends TemplateView {
             }
             optionTags.push( t.option({ value: details.id ?? "", selected: isSelected} , name));
         }
-        const select = t.select({ onChange: (e) => vm.themeOptionChanged(e.target.value) }, optionTags);
+        const select = t.select({ onChange: (e) => vm.changeThemeOption(e.target.value) }, optionTags);
         const radioButtons = t.form({
             className: { hidden: () => select.options[select.selectedIndex].value !== "" },
             onChange: (e) => {
                 const selectedThemeName = select.options[select.selectedIndex].text;
                 const themeId = vm.themeMapping[selectedThemeName][e.target.value].id;
-                vm.themeOptionChanged(themeId);
+                vm.changeThemeOption(themeId);
             }
         },
         [

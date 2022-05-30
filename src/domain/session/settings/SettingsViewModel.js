@@ -186,7 +186,7 @@ export class SettingsViewModel extends ViewModel {
         }
     }
 
-    themeOptionChanged(themeId) {
+    changeThemeOption(themeId) {
         if (themeId) {
             this.setTheme(themeId);
         }
