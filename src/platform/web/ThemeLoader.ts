@@ -73,14 +73,14 @@ export class ThemeLoader {
         }
     }
 
-    setTheme(themeName: string, log?: ILogItem) {
-        this._platform.logger.wrapOrRun(log, {l: "change theme", id: themeName}, () => {
-            const themeLocation = this._findThemeLocationFromId(themeName);
+    setTheme(themeId: string, log?: ILogItem) {
+        this._platform.logger.wrapOrRun(log, {l: "change theme", id: themeId}, () => {
+            const themeLocation = this._findThemeLocationFromId(themeId);
             if (!themeLocation) {
-                throw new Error( `Cannot find theme location for theme "${themeName}"!`);
+                throw new Error( `Cannot find theme location for theme "${themeId}"!`);
             }
             this._platform.replaceStylesheet(themeLocation);
-            this._platform.settingsStorage.setString("theme", themeName);
+            this._platform.settingsStorage.setString("theme", themeId);
          });
     }
 
