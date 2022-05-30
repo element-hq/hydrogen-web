@@ -34,6 +34,7 @@ type DefaultVariant = {
         variantName: string;
     };
 }
+
 type ThemeInformation = NormalVariant | DefaultVariant; 
 
 export class ThemeLoader {
@@ -57,7 +58,8 @@ export class ThemeLoader {
             /*
             After build has finished, the source section of each theme manifest
             contains `built-assets` which is a mapping from the theme-name to theme
-            details which includes the location of the CSS file.
+            information which includes the location of the CSS file.
+            (see type ThemeInformation above)
             */
             Object.assign(this._themeMapping, body["source"]["built-assets"]);
             //Add the default-theme as an additional option to the mapping
