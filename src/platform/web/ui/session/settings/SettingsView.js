@@ -93,10 +93,13 @@ export class SettingsView extends TemplateView {
                 ]);
             })
         );
-
+        
         settingNodes.push(
             t.h3("Preferences"),
             row(t, vm.i18n`Scale down images when sending`, this._imageCompressionRange(t, vm)),
+            t.if(vm => !import.meta.env.DEV && vm.activeTheme, (t, vm) => {
+                return row(t, vm.i18n`Use the following theme`, this._themeOptions(t, vm));
+            }),
         );
         settingNodes.push(
             t.h3("Application"),
@@ -134,5 +137,14 @@ export class SettingsView extends TemplateView {
                 vm.i18n`resize to ${vm.sentImageSizeLimit}px` :
                 vm.i18n`no resizing`;
         })];
+    }
+
+    _themeOptions(t, vm) {
+        const activeTheme = vm.activeTheme;
+        const optionTags = [];
+        for (const name of vm.themes) {
+            optionTags.push(t.option({value: name, selected: name === activeTheme}, name));
+        }
+        return t.select({onChange: (e) => vm.setTheme(e.target.value)}, optionTags);
     }
 }

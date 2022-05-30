@@ -8,7 +8,7 @@ function contentHash(str) {
     return hasher.digest();
 }
 
-function injectServiceWorker(swFile, otherUnhashedFiles, placeholdersPerChunk) {
+function injectServiceWorker(swFile, findUnhashedFileNamesFromBundle, placeholdersPerChunk) {
     const swName = path.basename(swFile);
     let root;
     let version;
@@ -31,6 +31,7 @@ function injectServiceWorker(swFile, otherUnhashedFiles, placeholdersPerChunk) {
             logger = config.logger;
         },
         generateBundle: async function(options, bundle) {
+            const otherUnhashedFiles = findUnhashedFileNamesFromBundle(bundle);
             const unhashedFilenames = [swName].concat(otherUnhashedFiles);
             const unhashedFileContentMap = unhashedFilenames.reduce((map, fileName) => {
                 const chunkOrAsset = bundle[fileName];
