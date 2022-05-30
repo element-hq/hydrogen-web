@@ -264,11 +264,11 @@ module.exports = function buildThemes(options) {
                     if (isDefault) {
                         /**
                          * This is a default variant!
-                         * We'll add these to the builtAssets keyed with just the
-                         * theme-name (i.e "Element" instead of "Element Dark")
-                         * so that we can distinguish them from other variants!
+                         * We'll add these to the builtAssets (separately) keyed with just the
+                         * theme-name (i.e "Element" instead of "Element Dark").
+                         * We need to be able to distinguish them from other variants!
                          * 
-                         * This allows us to render a radio-button with "dark" and
+                         * This allows us to render radio-buttons with "dark" and
                          * "light" options.
                         */ 
                         const defaultVariant = dark ? defaultDarkVariant : defaultLightVariant;
