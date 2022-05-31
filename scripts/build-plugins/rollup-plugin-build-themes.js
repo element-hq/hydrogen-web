@@ -31,6 +31,18 @@ function appendVariablesToCSS(variables, cssSource) {
     return cssSource + getRootSectionWithVariables(variables);
 }
 
+function addThemesToConfig(bundle, manifestLocations, defaultThemes) {
+    for (const [fileName, info] of Object.entries(bundle)) {
+        if (fileName === "config.json") {
+            const source = new TextDecoder().decode(info.source);
+            const config = JSON.parse(source);
+            config["themeManifests"] = manifestLocations;
+            config["defaultTheme"] = defaultThemes;
+            info.source = new TextEncoder().encode(JSON.stringify(config, undefined, 2));
+        }
+    }
+}
+
 function parseBundle(bundle) {
     const chunkMap = new Map();
     const assetMap = new Map();
@@ -72,7 +84,7 @@ function parseBundle(bundle) {
 }
 
 module.exports = function buildThemes(options) {
-    let manifest, variants, defaultDark, defaultLight;
+    let manifest, variants, defaultDark, defaultLight, defaultThemes = {};
     let isDevelopment = false;
     const virtualModuleId = '@theme/'
     const resolvedVirtualModuleId = '\0' + virtualModuleId;
@@ -99,9 +111,11 @@ module.exports = function buildThemes(options) {
                         // This is the default theme, stash  the file name for later
                         if (details.dark) {
                             defaultDark = fileName;
+                            defaultThemes["dark"] = `${name}-${variant}`;
                         }
                         else {
                             defaultLight = fileName;
+                            defaultThemes["light"] = `${name}-${variant}`;
                         }
                     }
                     // emit the css as built theme bundle
@@ -215,6 +229,7 @@ module.exports = function buildThemes(options) {
                         type: "text/css",
                         media: "(prefers-color-scheme: dark)",
                         href: `./${darkThemeLocation}`,
+                        class: "theme",
                     }
                 },
                 {
@@ -224,6 +239,7 @@ module.exports = function buildThemes(options) {
                         type: "text/css",
                         media: "(prefers-color-scheme: light)",
                         href: `./${lightThemeLocation}`,
+                        class: "theme",
                     }
                 },
             ];
@@ -231,24 +247,36 @@ module.exports = function buildThemes(options) {
 
         generateBundle(_, bundle) {
             const { assetMap, chunkMap, runtimeThemeChunk } = parseBundle(bundle);
+            const manifestLocations = [];
             for (const [location, chunkArray] of chunkMap) {
                 const manifest = require(`${location}/manifest.json`);
                 const compiledVariables = options.compiledVariables.get(location);
                 const derivedVariables = compiledVariables["derived-variables"];
                 const icon = compiledVariables["icon"];
+                const builtAssets = {};
+                /**
+                 * Generate a mapping from theme name to asset hashed location of said theme in build output.
+                 * This can be used to enumerate themes during runtime.
+                 */
+                for (const chunk of chunkArray) {
+                    const [, name, variant] = chunk.fileName.match(/theme-(.+)-(.+)\.css/);
+                    builtAssets[`${name}-${variant}`] = assetMap.get(chunk.fileName).fileName;
+                }
                 manifest.source = {
-                    "built-asset": chunkArray.map(chunk => assetMap.get(chunk.fileName).fileName),
+                    "built-assets": builtAssets,
                     "runtime-asset": assetMap.get(runtimeThemeChunk.fileName).fileName,
                     "derived-variables": derivedVariables,
                     "icon": icon
                 };
                 const name = `theme-${manifest.name}.json`;
+                manifestLocations.push(`assets/${name}`);
                 this.emitFile({
                     type: "asset",
                     name,
                     source: JSON.stringify(manifest),
                 });
             }
+            addThemesToConfig(bundle, manifestLocations, defaultThemes);
         },
     }
 }
