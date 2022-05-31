@@ -483,5 +483,34 @@ export function tests() {
             assert.equal(devices.find(d => d.userId === "@alice:hs.tld").ed25519Key, "ed25519:@alice:hs.tld:device1:key");
             assert.equal(devices.find(d => d.userId === "@bob:hs.tld").ed25519Key, "ed25519:@bob:hs.tld:device1:key");
         },
+        "device with changed key is ignored": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            const room = createUntrackedRoomMock(roomId, ["@alice:hs.tld", "@bob:hs.tld"]);
+            await tracker.trackRoom(room, NullLoggerInstance.item);
+            const hsApi = createQueryKeysHSApiMock();
+            // query devices first time
+            await tracker.devicesForRoomMembers(roomId, ["@alice:hs.tld", "@bob:hs.tld"], hsApi, NullLoggerInstance.item);
+            const txn = await storage.readWriteTxn([storage.storeNames.userIdentities]);
+            // mark alice as outdated, so keys will be fetched again
+            tracker.writeDeviceChanges(["@alice:hs.tld"], txn, NullLoggerInstance.item);
+            await txn.complete();
+            const hsApiWithChangedAliceKey = createQueryKeysHSApiMock((algo, userId, deviceId) => {
+                return `${algo}:${userId}:${deviceId}:${userId === "@alice:hs.tld" ? "newKey" : "key"}`;
+            });
+            const devices = await tracker.devicesForRoomMembers(roomId, ["@alice:hs.tld", "@bob:hs.tld"], hsApiWithChangedAliceKey, NullLoggerInstance.item);
+            assert.equal(devices.length, 2);
+            assert.equal(devices.find(d => d.userId === "@alice:hs.tld").ed25519Key, "ed25519:@alice:hs.tld:device1:key");
+            assert.equal(devices.find(d => d.userId === "@bob:hs.tld").ed25519Key, "ed25519:@bob:hs.tld:device1:key");
+            const txn2 = await storage.readTxn([storage.storeNames.deviceIdentities]);
+            // also check the modified key was not stored
+            assert.equal((await txn2.deviceIdentities.get("@alice:hs.tld", "device1")).ed25519Key, "ed25519:@alice:hs.tld:device1:key");
+        }
     }
 }
