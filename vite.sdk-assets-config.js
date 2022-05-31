@@ -3,8 +3,8 @@ const mergeOptions = require('merge-options');
 const themeBuilder = require("./scripts/build-plugins/rollup-plugin-build-themes");
 const {commonOptions, compiledVariables} = require("./vite.common-config.js");
 
-// These paths will be saved without their hash so they havea  consisent path to
-// reference
+// These paths will be saved without their hash so they have a consisent path to
+// reference in imports.
 const pathsToExport = [
     "main.js",
     "download-sandbox.html",
