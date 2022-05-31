@@ -214,7 +214,7 @@ export class DeviceTracker {
         const allDeviceIdentities = [];
         const deviceIdentitiesToStore = [];
         // filter out devices that have changed their ed25519 key since last time we queried them
-        deviceIdentities = await Promise.all(deviceIdentities.map(async deviceIdentity => {
+        await Promise.all(deviceIdentities.map(async deviceIdentity => {
             if (knownDeviceIds.includes(deviceIdentity.deviceId)) {
                 const existingDevice = await txn.deviceIdentities.get(deviceIdentity.userId, deviceIdentity.deviceId);
                 if (existingDevice.ed25519Key !== deviceIdentity.ed25519Key) {
