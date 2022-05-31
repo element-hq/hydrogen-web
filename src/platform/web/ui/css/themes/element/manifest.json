@@ -1,7 +1,6 @@
 {
 	"version": 1,
     "name": "Element",
-	"id": "element",
 	"values": {
 		"font-faces": [
 			{
