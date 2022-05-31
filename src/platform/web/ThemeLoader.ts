@@ -55,13 +55,14 @@ export class ThemeLoader {
                     cache: true,
                 })
                 .response();
+            this._populateThemeMap(body);
             /*
             After build has finished, the source section of each theme manifest
             contains `built-assets` which is a mapping from the theme-name to theme
             information which includes the location of the CSS file.
             (see type ThemeInformation above)
             */
-            Object.assign(this._themeMapping, body["source"]["built-assets"]);
+            // Object.assign(this._themeMapping, body["source"]["built-assets"]);
             //Add the default-theme as an additional option to the mapping
             const defaultThemeId = this.getDefaultTheme();
             if (defaultThemeId) {
@@ -70,6 +71,54 @@ export class ThemeLoader {
                     this._themeMapping["Default"] = { id: "default", cssLocation };
                 }
             }
+        }
+    }
+
+    private _populateThemeMap(manifest) {
+        const builtAssets: Record<string, string> = manifest.source?.["built-assets"];
+        const themeName = manifest.name;
+        let defaultDarkVariant: any = {}, defaultLightVariant: any = {};
+        for (const [themeId, cssLocation] of Object.entries(builtAssets)) {
+            const variant = themeId.match(/.+-(.+)/)?.[1];
+            const { name: variantName, default: isDefault, dark } = manifest.values.variants[variant!];
+            const themeDisplayName = `${themeName} ${variantName}`;
+            if (isDefault) {
+                /**
+                 * This is a default variant!
+                 * We'll add these to the themeMapping (separately) keyed with just the
+                 * theme-name (i.e "Element" instead of "Element Dark").
+                 * We need to be able to distinguish them from other variants!
+                 * 
+                 * This allows us to render radio-buttons with "dark" and
+                 * "light" options.
+                */
+                const defaultVariant = dark ? defaultDarkVariant : defaultLightVariant;
+                defaultVariant.variantName = variantName;
+                defaultVariant.id = themeId
+                defaultVariant.cssLocation = cssLocation;
+                continue;
+            }
+            // Non-default variants are keyed in themeMapping with "theme_name variant_name"
+            // eg: "Element Dark"
+            this._themeMapping[themeDisplayName] = {
+                cssLocation,
+                id: themeId
+            };
+        }        
+        if (defaultDarkVariant.id && defaultLightVariant.id) {
+            /**
+             * As mentioned above, if there's both a default dark and a default light variant,
+             * add them to themeMapping separately.
+             */
+            this._themeMapping[themeName] = { dark: defaultDarkVariant, light: defaultLightVariant };
+        }
+        else {
+            /**
+             * If only one default variant is found (i.e only dark default or light default but not both),
+             * treat it like any other variant.
+             */
+            const variant = defaultDarkVariant.id ? defaultDarkVariant : defaultLightVariant;
+            this._themeMapping[`${themeName} ${variant.variantName}`] = { id: variant.id, cssLocation: variant.cssLocation };
         }
     }
 
