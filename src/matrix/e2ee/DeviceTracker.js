@@ -219,6 +219,7 @@ export class DeviceTracker {
                 const existingDevice = await txn.deviceIdentities.get(deviceIdentity.userId, deviceIdentity.deviceId);
                 if (existingDevice.ed25519Key !== deviceIdentity.ed25519Key) {
                     allDeviceIdentities.push(existingDevice);
+                    return;
                 }
             }
             allDeviceIdentities.push(deviceIdentity);
