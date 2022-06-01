@@ -309,11 +309,63 @@ export class DeviceTracker {
         return await this._devicesForUserIds(roomId, userIds, txn, hsApi, log);
     }
 
+    /** gets devices for the given user ids that are in the given room */
     async devicesForRoomMembers(roomId, userIds, hsApi, log) {
         const txn = await this._storage.readTxn([
             this._storage.storeNames.userIdentities,
         ]);
         return await this._devicesForUserIds(roomId, userIds, txn, hsApi, log);
+    }
+
+    /** gets a single device */
+    async deviceForId(userId, deviceId, hsApi, log) {
+        const txn = await this._storage.readTxn([
+            this._storage.storeNames.deviceIdentities,
+        ]);
+        let device = await txn.deviceIdentities.get(userId, deviceId);
+        if (device) {
+            log.set("existingDevice", true);
+        } else {
+            //// BEGIN EXTRACT (deviceKeysMap)
+            const deviceKeyResponse = await hsApi.queryKeys({
+                "timeout": 10000,
+                "device_keys": {
+                    [userId]: [deviceId]
+                },
+                "token": this._getSyncToken()
+            }, {log}).response();
+            // verify signature
+            const verifiedKeysPerUser = log.wrap("verify", log => this._filterVerifiedDeviceKeys(deviceKeyResponse["device_keys"], log));
+            //// END EXTRACT
+
+            // there should only be one device in here, but still check the HS sends us the right one
+            const verifiedKeys = verifiedKeysPerUser
+                .find(vkpu => vkpu.userId === userId).verifiedKeys
+                .find(vk => vk["device_id"] === deviceId);
+            device = deviceKeysAsDeviceIdentity(verifiedKeys);
+            const txn = await this._storage.readWriteTxn([
+                this._storage.storeNames.deviceIdentities,
+            ]);
+            // check again we don't have the device already.
+            // when updating all keys for a user we allow updating the
+            // device when the key hasn't changed so the device display name
+            // can be updated, but here we don't.
+            const existingDevice = await txn.deviceIdentities.get(userId, deviceId);
+            if (existingDevice) {
+                device = existingDevice;
+                log.set("existingDeviceAfterFetch", true);
+            } else {
+                try {
+                    txn.deviceIdentities.set(device);
+                    log.set("newDevice", true);
+                } catch (err) {
+                    txn.abort();
+                    throw err;
+                }
+                await txn.complete();
+            }
+        }
+        return device;
     }
 
     /**
