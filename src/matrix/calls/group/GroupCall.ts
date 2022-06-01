@@ -55,7 +55,7 @@ function getDeviceFromMemberKey(key: string): string {
 
 export type Options = Omit<MemberOptions, "emitUpdate" | "confId" | "encryptDeviceMessage"> & {
     emitUpdate: (call: GroupCall, params?: any) => void;
-    encryptDeviceMessage: (roomId: string, userId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage>,
+    encryptDeviceMessage: (roomId: string, userId: string, deviceId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage>,
     storage: Storage,
     logger: ILogger,
 };
@@ -93,8 +93,8 @@ export class GroupCall extends EventEmitter<{change: never}> {
         this._memberOptions = Object.assign({}, options, {
             confId: this.id,
             emitUpdate: member => this._members.update(getMemberKey(member.userId, member.deviceId), member),
-            encryptDeviceMessage: (userId: string, message: SignallingMessage<MGroupCallBase>, log) => {
-                return this.options.encryptDeviceMessage(this.roomId, userId, message, log);
+            encryptDeviceMessage: (userId: string, deviceId: string, message: SignallingMessage<MGroupCallBase>, log) => {
+                return this.options.encryptDeviceMessage(this.roomId, userId, deviceId, message, log);
             }
         });
     }

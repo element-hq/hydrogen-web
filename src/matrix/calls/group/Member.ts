@@ -36,7 +36,7 @@ export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessag
     // local session id of our client
     sessionId: string,
     hsApi: HomeServerApi,
-    encryptDeviceMessage: (userId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage>,
+    encryptDeviceMessage: (userId: string, deviceId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage>,
     emitUpdate: (participant: Member, params?: any) => void,
 }
 
@@ -217,20 +217,20 @@ export class Member {
         groupMessage.content.party_id = this.options.ownDeviceId;
         groupMessage.content.sender_session_id = this.options.sessionId;
         groupMessage.content.dest_session_id = this.sessionId;
-        // const encryptedMessages = await this.options.encryptDeviceMessage(this.member.userId, groupMessage, log);
-        // const payload = formatToDeviceMessagesPayload(encryptedMessages);
-        const payload = {
-            messages: {
-                [this.member.userId]: {
-                    [this.deviceId]: groupMessage.content
-                }
-            }
-        };
+        let payload;
+        let type: string = message.type;
+        const encryptedMessages = await this.options.encryptDeviceMessage(this.member.userId, this.deviceId, groupMessage, log);
+        if (encryptedMessages) {
+            payload = formatToDeviceMessagesPayload(encryptedMessages);
+            type = "m.room.encrypted";
+        } else {
+            // device needs deviceId and userId
+            payload = formatToDeviceMessagesPayload([{content: groupMessage.content, device: this}]);
+        }
         // TODO: remove this for release
         log.set("payload", groupMessage.content);
         const request = this.options.hsApi.sendToDevice(
-            message.type,
-            //"m.room.encrypted",
+            type,
             payload,
             makeTxnId(),
             {log}

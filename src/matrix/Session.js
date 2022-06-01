@@ -79,18 +79,18 @@ export class Session {
         this._callHandler = new CallHandler({
             clock: this._platform.clock,
             hsApi: this._hsApi,
-            encryptDeviceMessage: async (roomId, userId, message, log) => {
+            encryptDeviceMessage: async (roomId, userId, deviceId, message, log) => {
                 if (!this._deviceTracker || !this._olmEncryption) {
                     throw new Error("encryption is not enabled");
                 }
-                // TODO: just get the devices we're sending the message to, not all the room devices
-                // although we probably already fetched all devices to send messages in the likely e2ee room
-                const devices = await log.wrap("get device keys", async log => {
-                    await this._deviceTracker.trackRoom(this.rooms.get(roomId), log);
-                    return this._deviceTracker.devicesForRoomMembers(roomId, [userId], this._hsApi, log);
+                const device = await log.wrap("get device key", async log => {
+                    return this._deviceTracker.deviceForId(userId, deviceId, this._hsApi, log);
                 });
-                const encryptedMessage = await this._olmEncryption.encrypt(message.type, message.content, devices, this._hsApi, log);
-                return encryptedMessage;
+                if (!device) {
+                    throw new Error(`Could not find device key ${deviceId} for ${userId} in ${roomId}`);
+                }
+                const encryptedMessages = await this._olmEncryption.encrypt(message.type, message.content, [device], this._hsApi, log);
+                return encryptedMessages;
             },
             storage: this._storage,
             webRTC: this._platform.webRTC,
