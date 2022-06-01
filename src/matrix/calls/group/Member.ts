@@ -157,7 +157,7 @@ export class Member {
         connection.logItem.wrap("disconnect", async log => {
             disconnectLogItem = log;
             if (hangup) {
-                connection.peerCall?.hangup(CallErrorCode.UserHangup, log);
+                await connection.peerCall?.hangup(CallErrorCode.UserHangup, log);
             } else {
                 await connection.peerCall?.close(undefined, log);
             }
