@@ -41,5 +41,8 @@ Runs before any room.prepareSync, so the new room keys can be passed to each roo
         - e2ee account
             - generate more otks if needed
             - upload new otks if needed or device keys if not uploaded before
+        - device message handler:
+            - fetch keys we don't know about yet for (call) to_device messages identity
+            - pass signalling messages to call handler
     - rooms
         - share new room keys if needed
