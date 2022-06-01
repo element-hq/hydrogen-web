@@ -81,16 +81,20 @@ export class Session {
             hsApi: this._hsApi,
             encryptDeviceMessage: async (roomId, userId, deviceId, message, log) => {
                 if (!this._deviceTracker || !this._olmEncryption) {
-                    throw new Error("encryption is not enabled");
+                    log.set("encryption_disabled", true);
+                    return;
                 }
                 const device = await log.wrap("get device key", async log => {
-                    return this._deviceTracker.deviceForId(userId, deviceId, this._hsApi, log);
+                    const device = this._deviceTracker.deviceForId(userId, deviceId, this._hsApi, log);
+                    if (!device) {
+                        log.set("not_found", true);
+                    }
+                    return device;
                 });
-                if (!device) {
-                    throw new Error(`Could not find device key ${deviceId} for ${userId} in ${roomId}`);
+                if (device) {
+                    const encryptedMessages = await this._olmEncryption.encrypt(message.type, message.content, [device], this._hsApi, log);
+                    return encryptedMessages;
                 }
-                const encryptedMessages = await this._olmEncryption.encrypt(message.type, message.content, [device], this._hsApi, log);
-                return encryptedMessages;
             },
             storage: this._storage,
             webRTC: this._platform.webRTC,

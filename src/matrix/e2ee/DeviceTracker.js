@@ -338,10 +338,13 @@ export class DeviceTracker {
             const verifiedKeysPerUser = log.wrap("verify", log => this._filterVerifiedDeviceKeys(deviceKeyResponse["device_keys"], log));
             //// END EXTRACT
 
-            // there should only be one device in here, but still check the HS sends us the right one
             const verifiedKeys = verifiedKeysPerUser
                 .find(vkpu => vkpu.userId === userId).verifiedKeys
                 .find(vk => vk["device_id"] === deviceId);
+            // user hasn't uploaded keys for device?
+            if (!verifiedKeys) {
+                return undefined;
+            }
             device = deviceKeysAsDeviceIdentity(verifiedKeys);
             const txn = await this._storage.readWriteTxn([
                 this._storage.storeNames.deviceIdentities,
