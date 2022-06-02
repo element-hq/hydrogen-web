@@ -49,7 +49,7 @@ class StreamView extends TemplateView<IStreamViewModel> {
             t.div({className: {
                 StreamView_avatar: true,
                 hidden: vm => !vm.isCameraMuted
-            }}, t.view(new AvatarView(vm, 64), {parentProvidesUpdates: true})),
+            }}, t.view(new AvatarView(vm, 96), {parentProvidesUpdates: true})),
             t.div({
                 className: {
                     StreamView_muteStatus: true,
@@ -59,5 +59,11 @@ class StreamView extends TemplateView<IStreamViewModel> {
                 }
             })
         ]);
+    }
+
+    update(value, props) {
+        super.update(value);
+        // update the AvatarView as we told it to not subscribe itself with parentProvidesUpdates
+        this.updateSubViews(value, props);
     }
 }
