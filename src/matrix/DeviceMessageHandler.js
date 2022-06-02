@@ -91,7 +91,8 @@ export class DeviceMessageHandler {
                             l: "could not verify olm fingerprint key matches, ignoring",
                             ed25519Key: dr.device.ed25519Key,
                             claimedEd25519Key: dr.claimedEd25519Key,
-                            deviceId, userId,
+                            deviceId: device.deviceId,
+                            userId: device.userId,
                         });
                     }
                 }
