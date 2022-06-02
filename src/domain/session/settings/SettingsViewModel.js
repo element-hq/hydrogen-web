@@ -51,6 +51,7 @@ export class SettingsViewModel extends ViewModel {
         this.maxSentImageSizeLimit = 4000;
         this.pushNotifications = new PushNotificationStatus();
         this._activeTheme = undefined;
+        this._activeVariant = undefined;
     }
 
     get _session() {
@@ -79,6 +80,7 @@ export class SettingsViewModel extends ViewModel {
         this.pushNotifications.enabled = await this._session.arePushNotificationsEnabled();
         if (!import.meta.env.DEV) {
             this._activeTheme = await this.platform.themeLoader.getActiveTheme();
+            this._activeVariant = await this.platform.themeLoader.getCurrentVariant();
         }
         this.emitChange("");
     }
@@ -139,6 +141,10 @@ export class SettingsViewModel extends ViewModel {
         return this._activeTheme;
     }
 
+    get activeVariant() {
+        return this._activeVariant;
+    }
+
     setTheme(name) {
         this.platform.themeLoader.setTheme(name);
     }
@@ -195,5 +201,16 @@ export class SettingsViewModel extends ViewModel {
         this.emitChange("themeOption");
     }
 
+    get preferredColorScheme() {
+        return this.platform.themeLoader.preferredColorScheme;
+    } 
+
+    persistVariantToStorage(variant) {
+        this.platform.themeLoader.persistVariantToStorage(variant);
+    }
+
+    removeVariantFromStorage() {
+        this.platform.themeLoader.removeVariantFromStorage();
+    }
 }
 

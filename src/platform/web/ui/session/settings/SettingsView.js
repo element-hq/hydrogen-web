@@ -16,6 +16,7 @@ limitations under the License.
 
 import {TemplateView} from "../../general/TemplateView";
 import {KeyBackupSettingsView} from "./KeyBackupSettingsView.js"
+import {ColorSchemePreference} from "../../../ThemeLoader";
 
 export class SettingsView extends TemplateView {
     render(t, vm) {
@@ -142,38 +143,49 @@ export class SettingsView extends TemplateView {
     _themeOptions(t, vm) {
         const activeTheme = vm.activeTheme;
         const optionTags = [];
-        let isDarkSelected = null, isLightSelected = null; 
+        const isDarkSelected = vm.activeVariant === "dark";
+        const isLightSelected = vm.activeVariant === "light";
+        // 1. render the dropdown containing the themes
         for (const [name, details] of Object.entries(vm.themeMapping)) {
-            let isSelected = null;
-            if (details.id === activeTheme) {
-                isSelected = true;
-            }
-            else if (details.dark?.id === activeTheme) {
-                isSelected = true;
-                isDarkSelected = true;
-            }
-            else if (details.light?.id === activeTheme) {
-                isSelected = true;
-                isLightSelected = true;
-            }
+            const isSelected = (details.id ?? details.dark?.id ?? details.light?.id) === activeTheme;
             optionTags.push( t.option({ value: details.id ?? "", selected: isSelected} , name));
         }
         const select = t.select({
             onChange: (e) => {
                 const themeId = e.target.value;
-                vm.changeThemeOption(themeId)
-            }
-        }, optionTags);
-        const radioButtons = t.form({
-            className: { hidden: () => select.options[select.selectedIndex].value !== "" },
-            onChange: (e) => {
-                const selectedThemeName = select.options[select.selectedIndex].text;
-                const colorScheme = e.target.value;
-                const themeId = vm.themeMapping[selectedThemeName][colorScheme].id;
+                if (themeId) {
+                    /* if the <option ..> has a value then this is not a theme
+                     that has dark and light default variants.
+                     remove any stored variant from localStorage.
+                    */
+                    vm.removeVariantFromStorage();
+                }
+                else {
+                    const colorScheme = isDarkSelected ? "dark" : isLightSelected ? "light" : "default";
+                    // execute the radio-button callback so that the theme actually changes!
+                    // otherwise the theme would only change when another radio-button is selected.
+                    radioButtonCallback(colorScheme);
+                }
                 vm.changeThemeOption(themeId);
             }
+        }, optionTags);
+        // 2. render the radio-buttons used to choose variant
+        const radioButtonCallback = (colorScheme) => {
+            const selectedThemeName = select.options[select.selectedIndex].text;
+            vm.persistVariantToStorage(colorScheme);
+            if (colorScheme === "default") {
+                colorScheme = vm.preferredColorScheme === ColorSchemePreference.Dark ? "dark" : "light";
+            }
+            const themeId = vm.themeMapping[selectedThemeName][colorScheme].id;
+            vm.changeThemeOption(themeId);
+        };
+        const radioButtons = t.form({
+            className: { hidden: () => select.options[select.selectedIndex].value !== "" },
+            onChange: (e) => radioButtonCallback(e.target.value)
         },
         [
+            t.input({ type: "radio", name: "radio-chooser", value: "default", id: "default", checked: !(isDarkSelected || isLightSelected)}),
+            t.label({for: "default"}, "default"),
             t.input({ type: "radio", name: "radio-chooser", value: "dark", id: "dark", checked: isDarkSelected }),
             t.label({for: "dark"}, "dark"),
             t.input({ type: "radio", name: "radio-chooser", value: "light", id: "light", checked: isLightSelected }),
