@@ -37,6 +37,11 @@ type DefaultVariant = {
 
 type ThemeInformation = NormalVariant | DefaultVariant; 
 
+export enum ColorSchemePreference {
+    Dark,
+    Light
+};
+
 export class ThemeLoader {
     private _platform: Platform;
     private _themeMapping: Record<string, ThemeInformation>;
@@ -104,7 +109,7 @@ export class ThemeLoader {
                 cssLocation,
                 id: themeId
             };
-        }        
+        }
         if (defaultDarkVariant.id && defaultLightVariant.id) {
             /**
              * As mentioned above, if there's both a default dark and a default light variant,
@@ -123,14 +128,14 @@ export class ThemeLoader {
     }
 
     setTheme(themeId: string, log?: ILogItem) {
-        this._platform.logger.wrapOrRun(log, {l: "change theme", id: themeId}, () => {
+        this._platform.logger.wrapOrRun(log, { l: "change theme", id: themeId }, () => {
             const themeLocation = this._findThemeLocationFromId(themeId);
             if (!themeLocation) {
-                throw new Error( `Cannot find theme location for theme "${themeId}"!`);
+                throw new Error(`Cannot find theme location for theme "${themeId}"!`);
             }
             this._platform.replaceStylesheet(themeLocation);
             this._platform.settingsStorage.setString("theme", themeId);
-         });
+        });
     }
 
     get themeMapping(): Record<string, ThemeInformation> {
@@ -146,10 +151,11 @@ export class ThemeLoader {
     }
 
     getDefaultTheme(): string | undefined {
-        if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-            return this._platform.config["defaultTheme"].dark;
-        } else if (window.matchMedia("(prefers-color-scheme: light)").matches) {
-            return this._platform.config["defaultTheme"].light;
+        switch (this.preferredColorScheme) {
+            case ColorSchemePreference.Dark:
+                return this._platform.config["defaultTheme"].dark;
+            case ColorSchemePreference.Light:
+                return this._platform.config["defaultTheme"].light;
         }
     }
 
@@ -165,5 +171,27 @@ export class ThemeLoader {
                 return themeData.dark.cssLocation;
             }
         }
+    }
+
+    get preferredColorScheme(): ColorSchemePreference {
+        if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+            return ColorSchemePreference.Dark;
+        }
+        else if (window.matchMedia("(prefers-color-scheme: light)").matches) {
+            return ColorSchemePreference.Light;
+        }
+        throw new Error("Cannot find preferred colorscheme!");
+    }
+
+    async persistVariantToStorage(variant: string) {
+        await this._platform.settingsStorage.setString("theme-variant", variant);
+    }
+
+    async getCurrentVariant(): Promise<string> {
+        return await this._platform.settingsStorage.getString("theme-variant");
+    }
+
+    async removeVariantFromStorage(): Promise<void> {
+        await this._platform.settingsStorage.remove("theme-variant");
     }
 }
