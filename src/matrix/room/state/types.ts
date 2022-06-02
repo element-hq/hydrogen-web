@@ -19,12 +19,13 @@ import type {StateEvent} from "../../storage/types";
 import type {Transaction} from "../../storage/idb/Transaction";
 import type {ILogItem} from "../../../logging/types";
 import type {MemberChange} from "../members/RoomMember";
+import type {MemberSync} from "../timeline/persistence/MemberWriter";
 
 /** used for Session.observeRoomState, which observes in all room, but without loading from storage
  * It receives the sync write transaction, so other stores can be updated as part of the same transaction. */
 export interface RoomStateHandler {
-    handleRoomState(room: Room, stateEvent: StateEvent, syncWriteTxn: Transaction, log: ILogItem);
-    updateRoomMembers(room: Room, memberChanges: Map<string, MemberChange>);
+    handleRoomState(room: Room, stateEvent: StateEvent, memberSync: MemberSync, syncWriteTxn: Transaction, log: ILogItem): Promise<void>;
+    updateRoomMembers(room: Room, memberChanges: Map<string, MemberChange>): void;
 }
 
 /**
