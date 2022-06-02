@@ -47,7 +47,7 @@ export class ViewModel<O extends Options = Options> extends EventEmitter<{change
         this._options = options;
     }
 
-    childOptions<T extends Object>(explicitOptions: T): T & Options {
+    childOptions<T extends Object>(explicitOptions: T): T & O {
         return Object.assign({}, this._options, explicitOptions);
     }
 
