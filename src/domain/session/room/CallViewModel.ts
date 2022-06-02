@@ -20,15 +20,18 @@ import {getStreamVideoTrack, getStreamAudioTrack} from "../../../matrix/calls/co
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {EventObservableValue} from "../../../observable/value/EventObservableValue";
 import {ObservableValueMap} from "../../../observable/map/ObservableValueMap";
+import type {Room} from "../../../matrix/room/Room";
 import type {GroupCall} from "../../../matrix/calls/group/GroupCall";
 import type {Member} from "../../../matrix/calls/group/Member";
+import type {RoomMember} from "../../../matrix/room/members/RoomMember";
 import type {BaseObservableList} from "../../../observable/list/BaseObservableList";
+import type {BaseObservableValue} from "../../../observable/value/BaseObservableValue";
 import type {Stream} from "../../../platform/types/MediaDevices";
 import type {MediaRepository} from "../../../matrix/net/MediaRepository";
 
 type Options = BaseOptions & {
     call: GroupCall,
-    mediaRepository: MediaRepository
+    room: Room,
 };
 
 export class CallViewModel extends ViewModel<Options> {
@@ -37,10 +40,10 @@ export class CallViewModel extends ViewModel<Options> {
     constructor(options: Options) {
         super(options);
         const ownMemberViewModelMap = new ObservableValueMap("self", new EventObservableValue(this.call, "change"))
-            .mapValues(call => new OwnMemberViewModel(this.childOptions({call: this.call, mediaRepository: this.getOption("mediaRepository")})), () => {});
+            .mapValues((call, emitChange) => new OwnMemberViewModel(this.childOptions({call, emitChange})), () => {});
         this.memberViewModels = this.call.members
             .filterValues(member => member.isConnected)
-            .mapValues(member => new CallMemberViewModel(this.childOptions({member, mediaRepository: this.getOption("mediaRepository")})))
+            .mapValues(member => new CallMemberViewModel(this.childOptions({member, mediaRepository: this.getOption("room").mediaRepository})))
             .join(ownMemberViewModelMap)
             .sortValues((a, b) => a.compare(b));
     }
@@ -74,12 +77,22 @@ export class CallViewModel extends ViewModel<Options> {
     }
 }
 
-type OwnMemberOptions = BaseOptions & {
-    call: GroupCall,
-    mediaRepository: MediaRepository
-}
+class OwnMemberViewModel extends ViewModel<Options> implements IStreamViewModel {
+    private memberObservable: undefined | BaseObservableValue<RoomMember>;
+    
+    constructor(options: Options) {
+        super(options);
+        this.init();
+    }
 
-class OwnMemberViewModel extends ViewModel<OwnMemberOptions> implements IStreamViewModel {
+    async init() {
+        const room = this.getOption("room");
+        this.memberObservable = await room.observeMember(room.user.id);
+        this.track(this.memberObservable!.subscribe(() => {
+            this.emitChange(undefined);
+        }));
+    }
+
     get stream(): Stream | undefined {
         return this.call.localMedia?.userMedia;
     }
@@ -97,19 +110,37 @@ class OwnMemberViewModel extends ViewModel<OwnMemberOptions> implements IStreamV
     }
 
     get avatarLetter(): string {
-        return "I";
+        const member = this.memberObservable?.get();
+        if (member) {
+            return avatarInitials(member.name);
+        } else {
+            return "";
+        }
     }
 
     get avatarColorNumber(): number {
-        return 3;
+        const member = this.memberObservable?.get();
+        if (member) {
+            return getIdentifierColorNumber(member.userId);
+        } else {
+            return 0;
+        }
     }
 
     avatarUrl(size: number): string | undefined {
-        return undefined;
+        const member = this.memberObservable?.get();
+        if (member) {
+            return getAvatarHttpUrl(member.avatarUrl, size, this.platform, this.getOption("room").mediaRepository);
+        }
     }
 
     get avatarTitle(): string {
-        return "Me";
+        const member = this.memberObservable?.get();
+        if (member) {
+            return member.name;
+        } else {
+            return "";
+        }
     }
 
     compare(other: OwnMemberViewModel | CallMemberViewModel): number {
