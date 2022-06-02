@@ -71,7 +71,6 @@ export class PeerCall implements IDisposable {
     private localMedia?: LocalMedia;
     private localMuteSettings?: MuteSettings;
     // TODO: this should go in member
-    private seq: number = 0;
     // A queue for candidates waiting to go out.
     // We try to amalgamate candidates into a single candidate message where
     // possible
@@ -238,7 +237,6 @@ export class PeerCall implements IDisposable {
             const content: MCallSDPStreamMetadataChanged<MCallBase> = {
                 call_id: this.callId,
                 version: 1,
-                seq: this.seq++,
                 [SDPStreamMetadataKey]: this.getSDPMetadata()
             };
             await this.sendSignallingMessage({type: EventType.SDPStreamMetadataChangedPrefix, content}, log);
@@ -263,7 +261,6 @@ export class PeerCall implements IDisposable {
                 const content: MCallSDPStreamMetadataChanged<MCallBase> = {
                     call_id: this.callId,
                     version: 1,
-                    seq: this.seq++,
                     [SDPStreamMetadataKey]: this.getSDPMetadata()
                 };
                 await this.sendSignallingMessage({type: EventType.SDPStreamMetadataChangedPrefix, content}, log);
@@ -350,7 +347,6 @@ export class PeerCall implements IDisposable {
         const content = {
             call_id: callId,
             version: 1,
-            seq: this.seq++,
         };
         // TODO: Don't send UserHangup reason to older clients
         if (reason) {
@@ -398,7 +394,6 @@ export class PeerCall implements IDisposable {
                     offer,
                     [SDPStreamMetadataKey]: this.getSDPMetadata(),
                     version: 1,
-                    seq: this.seq++,
                     lifetime: CALL_TIMEOUT_MS
                 };
                 await this.sendSignallingMessage({type: EventType.Invite, content}, log);
@@ -409,7 +404,6 @@ export class PeerCall implements IDisposable {
                     description: offer,
                     [SDPStreamMetadataKey]: this.getSDPMetadata(),
                     version: 1,
-                    seq: this.seq++,
                     lifetime: CALL_TIMEOUT_MS
                 };
                 await this.sendSignallingMessage({type: EventType.Negotiate, content}, log);
@@ -674,7 +668,6 @@ export class PeerCall implements IDisposable {
                     description: this.peerConnection.localDescription!,
                     [SDPStreamMetadataKey]: this.getSDPMetadata(),
                     version: 1,
-                    seq: this.seq++,
                     lifetime: CALL_TIMEOUT_MS
                 };
                 await this.sendSignallingMessage({type: EventType.Negotiate, content}, log);
@@ -689,7 +682,6 @@ export class PeerCall implements IDisposable {
         const answerContent: MCallAnswer<MCallBase> = {
             call_id: this.callId,
             version: 1,
-            seq: this.seq++,
             answer: {
                 sdp: localDescription.sdp,
                 type: localDescription.type,
@@ -755,7 +747,6 @@ export class PeerCall implements IDisposable {
                     content: {
                         call_id: this.callId,
                         version: 1,
-                        seq: this.seq++,
                         candidates
                     },
                 }, log);

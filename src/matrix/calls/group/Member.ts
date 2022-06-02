@@ -53,6 +53,7 @@ const errorCodesWithoutRetry = [
 class MemberConnection {
     public retryCount: number = 0;
     public peerCall?: PeerCall;
+    public outboundSeqCounter: number = 0;
 
     constructor(
         public localMedia: LocalMedia,
@@ -212,6 +213,7 @@ export class Member {
     /** @internal */
     sendSignallingMessage = async (message: SignallingMessage<MCallBase>, log: ILogItem): Promise<void> => {
         const groupMessage = message as SignallingMessage<MGroupCallBase>;
+        groupMessage.content.seq = ++this.connection!.outboundSeqCounter;
         groupMessage.content.conf_id = this.options.confId;
         groupMessage.content.device_id = this.options.ownDeviceId;
         groupMessage.content.party_id = this.options.ownDeviceId;
