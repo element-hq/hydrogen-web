@@ -18,7 +18,7 @@ import {ObservableMap} from "../../../observable/map/ObservableMap";
 import {Member} from "./Member";
 import {LocalMedia} from "../LocalMedia";
 import {MuteSettings, CALL_LOG_TYPE} from "../common";
-import {RoomMember} from "../../room/members/RoomMember";
+import {MemberChange, RoomMember} from "../../room/members/RoomMember";
 import {EventEmitter} from "../../../utils/EventEmitter";
 import {EventType, CallIntent} from "../callEventTypes";
 
@@ -258,7 +258,20 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     /** @internal */
-    updateMembership(userId: string, callMembership: CallMembership, syncLog: ILogItem) {
+    updateRoomMembers(memberChanges: Map<string, MemberChange>) {
+        for (const change of memberChanges.values()) {
+            const {member} = change;
+            for (const callMember of this._members.values()) {
+                // find all call members for a room member (can be multiple, for every device)
+                if (callMember.userId === member.userId) {
+                    callMember.updateRoomMember(member);
+                }
+            }
+        }
+    }
+
+    /** @internal */
+    updateMembership(userId: string, roomMember: RoomMember, callMembership: CallMembership, syncLog: ILogItem) {
         syncLog.wrap({l: "update call membership", t: CALL_LOG_TYPE, id: this.id, userId}, log => {
             const devices = callMembership["m.devices"];
             const previousDeviceIds = this.getDeviceIdsForUserId(userId);
@@ -290,7 +303,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
                             }
                             log.set("add", true);
                             member = new Member(
-                                RoomMember.fromUserId(this.roomId, userId, "join"),
+                                roomMember,
                                 device, this._memberOptions,
                             );
                             this._members.add(memberKey, member);

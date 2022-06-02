@@ -68,7 +68,7 @@ export class Member {
     private connection?: MemberConnection;
 
     constructor(
-        public readonly member: RoomMember,
+        public member: RoomMember,
         private callDeviceMembership: CallDeviceMembership,
         private readonly options: Options,
     ) {}
@@ -178,6 +178,13 @@ export class Member {
         if (this.connection) {
             this.connection.logItem.refDetached(causeItem);
         }
+    }
+    
+    /** @internal */
+    updateRoomMember(roomMember: RoomMember) {
+        this.member = roomMember;
+        // TODO: this emits an update during the writeSync phase, which we usually try to avoid
+        this.options.emitUpdate(this);
     }
 
     /** @internal */

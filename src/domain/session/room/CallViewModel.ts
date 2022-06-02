@@ -117,7 +117,10 @@ class OwnMemberViewModel extends ViewModel<OwnMemberOptions> implements IStreamV
     }
 }
 
-type MemberOptions = BaseOptions & {member: Member, mediaRepository: MediaRepository};
+type MemberOptions = BaseOptions & {
+    member: Member,
+    mediaRepository: MediaRepository
+};
 
 export class CallMemberViewModel extends ViewModel<MemberOptions> implements IStreamViewModel {
     get stream(): Stream | undefined {
