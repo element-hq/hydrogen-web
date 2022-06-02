@@ -18,7 +18,7 @@ import {PeerCall, CallState} from "../PeerCall";
 import {makeTxnId, makeId} from "../../common";
 import {EventType, CallErrorCode} from "../callEventTypes";
 import {formatToDeviceMessagesPayload} from "../../common";
-
+import {sortedIndex} from "../../../utils/sortedIndex";
 import type {MuteSettings} from "../common";
 import type {Options as PeerCallOptions, RemoteMedia} from "../PeerCall";
 import type {LocalMedia} from "../LocalMedia";
@@ -53,6 +53,8 @@ const errorCodesWithoutRetry = [
 class MemberConnection {
     public retryCount: number = 0;
     public peerCall?: PeerCall;
+    public lastProcessedSeqNr: number | undefined;
+    public queuedSignallingMessages: SignallingMessage<MGroupCallBase>[] = [];
     public outboundSeqCounter: number = 0;
 
     constructor(
@@ -253,11 +255,19 @@ export class Member {
             if (message.type === EventType.Invite && !connection.peerCall) {
                 connection.peerCall = this._createPeerCall(message.content.call_id);
             }
+            const idx = sortedIndex(connection.queuedSignallingMessages, message, (a, b) => a.content.seq - b.content.seq);
+            connection.queuedSignallingMessages.splice(idx, 0, message);
             if (connection.peerCall) {
-                const item = connection.peerCall.handleIncomingSignallingMessage(message, this.deviceId, connection.logItem);
-                syncLog.refDetached(item);
-            } else {
-                // TODO: need to buffer events until invite comes?
+                while (
+                    connection.queuedSignallingMessages.length && (
+                    connection.lastProcessedSeqNr === undefined ||
+                    connection.queuedSignallingMessages[0].content.seq === connection.lastProcessedSeqNr + 1
+                )) {
+                    const dequeuedMessage = connection.queuedSignallingMessages.shift()!;
+                    const item = connection.peerCall!.handleIncomingSignallingMessage(dequeuedMessage, this.deviceId, connection.logItem);
+                    connection.lastProcessedSeqNr = dequeuedMessage.content.seq;
+                    syncLog.refDetached(item);
+                }
             }
         } else {
             syncLog.log({l: "member not connected", userId: this.userId, deviceId: this.deviceId});
