@@ -257,17 +257,25 @@ export class Member {
             }
             const idx = sortedIndex(connection.queuedSignallingMessages, message, (a, b) => a.content.seq - b.content.seq);
             connection.queuedSignallingMessages.splice(idx, 0, message);
+            let hasBeenDequeued = false;
             if (connection.peerCall) {
                 while (
                     connection.queuedSignallingMessages.length && (
-                    connection.lastProcessedSeqNr === undefined ||
-                    connection.queuedSignallingMessages[0].content.seq === connection.lastProcessedSeqNr + 1
-                )) {
+                        connection.lastProcessedSeqNr === undefined ||
+                        connection.queuedSignallingMessages[0].content.seq === connection.lastProcessedSeqNr + 1
+                    )
+               ) {
                     const dequeuedMessage = connection.queuedSignallingMessages.shift()!;
+                    if (dequeuedMessage === message) {
+                        hasBeenDequeued = true;
+                    }
                     const item = connection.peerCall!.handleIncomingSignallingMessage(dequeuedMessage, this.deviceId, connection.logItem);
-                    connection.lastProcessedSeqNr = dequeuedMessage.content.seq;
                     syncLog.refDetached(item);
+                    connection.lastProcessedSeqNr = dequeuedMessage.content.seq;
                 }
+            }
+            if (!hasBeenDequeued) {
+                syncLog.refDetached(connection.logItem.log({l: "queued signalling message", type: message.type}));
             }
         } else {
             syncLog.log({l: "member not connected", userId: this.userId, deviceId: this.deviceId});
