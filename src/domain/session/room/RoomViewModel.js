@@ -67,8 +67,9 @@ export class RoomViewModel extends ViewModel {
             this.emitChange("callViewModel");
         }));
         const call = this._callObservable.get();
+        // TODO: cleanup this duplication to create CallViewModel
         if (call) {
-            this._callViewModel = new CallViewModel(this.childOptions({call}));
+            this._callViewModel = this.track(new CallViewModel(this.childOptions({call, mediaRepository: this._room.mediaRepository})));
         }
     }
 
