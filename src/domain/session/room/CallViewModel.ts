@@ -114,17 +114,12 @@ class OwnMemberViewModel extends ViewModel<Options> implements IStreamViewModel 
         if (member) {
             return avatarInitials(member.name);
         } else {
-            return "";
+            return this.getOption("room").user.id;
         }
     }
 
     get avatarColorNumber(): number {
-        const member = this.memberObservable?.get();
-        if (member) {
-            return getIdentifierColorNumber(member.userId);
-        } else {
-            return 0;
-        }
+        return getIdentifierColorNumber(this.getOption("room").user.id);
     }
 
     avatarUrl(size: number): string | undefined {
@@ -139,7 +134,7 @@ class OwnMemberViewModel extends ViewModel<Options> implements IStreamViewModel 
         if (member) {
             return member.name;
         } else {
-            return "";
+            return this.getOption("room").user.id;
         }
     }
 
