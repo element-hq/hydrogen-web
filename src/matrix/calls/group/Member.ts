@@ -222,7 +222,7 @@ export class Member {
     /** @internal */
     sendSignallingMessage = async (message: SignallingMessage<MCallBase>, log: ILogItem): Promise<void> => {
         const groupMessage = message as SignallingMessage<MGroupCallBase>;
-        groupMessage.content.seq = ++this.connection!.outboundSeqCounter;
+        groupMessage.content.seq = this.connection!.outboundSeqCounter++;
         groupMessage.content.conf_id = this.options.confId;
         groupMessage.content.device_id = this.options.ownDeviceId;
         groupMessage.content.party_id = this.options.ownDeviceId;
