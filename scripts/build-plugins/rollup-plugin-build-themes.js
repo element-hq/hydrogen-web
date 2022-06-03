@@ -246,6 +246,9 @@ module.exports = function buildThemes(options) {
 },
 
         generateBundle(_, bundle) {
+            // assetMap: Mapping from asset-name (eg: element-dark.css) to AssetInfo
+            // chunkMap: Mapping from theme-location (eg: hydrogen-web/src/.../css/themes/element) to a list of ChunkInfo 
+            // types of AssetInfo and ChunkInfo can be found at https://rollupjs.org/guide/en/#generatebundle
             const { assetMap, chunkMap, runtimeThemeChunk } = parseBundle(bundle);
             const manifestLocations = [];
             for (const [location, chunkArray] of chunkMap) {
