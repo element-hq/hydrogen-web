@@ -102,13 +102,18 @@ export class CallHandler implements RoomStateHandler {
                 // TODO: don't load all members until we need them
                 const callsMemberEvents = await txn.roomState.getAllForType(roomId, EventType.GroupCallMember);
                 await Promise.all(callsMemberEvents.map(async entry => {
-                    const roomMemberState = await txn.roomState.get(roomId, MEMBER_EVENT_TYPE, entry.event.sender);
+                    const userId = entry.event.sender;
+                    const roomMemberState = await txn.roomState.get(roomId, MEMBER_EVENT_TYPE, userId);
+                    let roomMember;
                     if (roomMemberState) {
-                        const roomMember = RoomMember.fromMemberEvent(roomMemberState.event);
-                        if (roomMember) {
-                            this.handleCallMemberEvent(entry.event, roomMember, roomId, log);
-                        }
+                        roomMember = RoomMember.fromMemberEvent(roomMemberState.event);
                     }
+                    if (!roomMember) {
+                        // we'll be missing the member here if we received a call and it's members
+                        // as pre-gap state and the members weren't active in the timeline we got.
+                        roomMember = RoomMember.fromUserId(roomId, userId, "join");
+                    }
+                    this.handleCallMemberEvent(entry.event, roomMember, roomId, log);
                 }));
             }));
             log.set("newSize", this._calls.size);
@@ -153,10 +158,13 @@ export class CallHandler implements RoomStateHandler {
             this.handleCallEvent(event, room.id, txn, log);
         }
         if (event.type === EventType.GroupCallMember) {
-            const member: RoomMember | undefined = await memberSync.lookupMemberAtEvent(event.sender, event, txn);
-            if (member) { // should always have a member?
-                this.handleCallMemberEvent(event, member, room.id, log);
+            let member = await memberSync.lookupMemberAtEvent(event.sender, event, txn);
+            if (!member) {
+                // we'll be missing the member here if we received a call and it's members
+                // as pre-gap state and the members weren't active in the timeline we got.
+                member = RoomMember.fromUserId(room.id, event.sender, "join");
             }
+            this.handleCallMemberEvent(event, member, room.id, log);
         }
     }
 
