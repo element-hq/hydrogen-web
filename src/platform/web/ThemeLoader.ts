@@ -33,6 +33,11 @@ type DefaultVariant = {
         cssLocation: string;
         variantName: string;
     };
+    default: {
+        id: string;
+        cssLocation: string;
+        variantName: string;
+    };
 }
 
 type ThemeInformation = NormalVariant | DefaultVariant; 
@@ -67,13 +72,12 @@ export class ThemeLoader {
             information which includes the location of the CSS file.
             (see type ThemeInformation above)
             */
-            // Object.assign(this._themeMapping, body["source"]["built-assets"]);
             //Add the default-theme as an additional option to the mapping
             const defaultThemeId = this.getDefaultTheme();
             if (defaultThemeId) {
-                const cssLocation = this._findThemeLocationFromId(defaultThemeId);
-                if (cssLocation) {
-                    this._themeMapping["Default"] = { id: "default", cssLocation };
+                const themeDetails = this._findThemeDetailsFromId(defaultThemeId);
+                if (themeDetails) {
+                    this._themeMapping["Default"] = { id: "default", cssLocation: themeDetails.cssLocation };
                 }
             }
         }
@@ -115,7 +119,8 @@ export class ThemeLoader {
              * As mentioned above, if there's both a default dark and a default light variant,
              * add them to themeMapping separately.
              */
-            this._themeMapping[themeName] = { dark: defaultDarkVariant, light: defaultLightVariant };
+            const defaultVariant = this.preferredColorScheme === ColorSchemePreference.Dark ? defaultDarkVariant : defaultLightVariant;
+            this._themeMapping[themeName] = { dark: defaultDarkVariant, light: defaultLightVariant, default: defaultVariant };
         }
         else {
             /**
@@ -127,14 +132,24 @@ export class ThemeLoader {
         }
     }
 
-    setTheme(themeId: string, log?: ILogItem) {
-        this._platform.logger.wrapOrRun(log, { l: "change theme", id: themeId }, () => {
-            const themeLocation = this._findThemeLocationFromId(themeId);
-            if (!themeLocation) {
-                throw new Error(`Cannot find theme location for theme "${themeId}"!`);
+    setTheme(themeName: string, themeVariant: "light" | "dark" | "default", log?: ILogItem) {
+        this._platform.logger.wrapOrRun(log, { l: "change theme", name: themeName, variant: themeVariant }, () => {
+            let cssLocation: string;
+            let themeDetails = this._themeMapping[themeName];
+            if ("id" in themeDetails) {
+                cssLocation = themeDetails.cssLocation;
             }
-            this._platform.replaceStylesheet(themeLocation);
-            this._platform.settingsStorage.setString("theme", themeId);
+            else {
+                cssLocation = themeDetails[themeVariant ?? "default"].cssLocation;
+            }
+            this._platform.replaceStylesheet(cssLocation);
+            this._platform.settingsStorage.setString("theme-name", themeName);
+            if (themeVariant) {
+                this._platform.settingsStorage.setString("theme-variant", themeVariant);
+            }
+            else {
+                this._platform.settingsStorage.remove("theme-variant");
+            }
         });
     }
 
@@ -142,12 +157,10 @@ export class ThemeLoader {
         return this._themeMapping;
     }
 
-    async getActiveTheme(): Promise<string> {
-        const theme = await this._platform.settingsStorage.getString("theme") ?? "default";
-        if (theme) {
-            return theme;
-        }
-        throw new Error("Cannot find active theme!");
+    async getActiveTheme(): Promise<{themeName: string, themeVariant?: string}> {
+        const themeName = await this._platform.settingsStorage.getString("theme-name") ?? "Default";
+        const themeVariant = await this._platform.settingsStorage.getString("theme-variant");
+        return { themeName, themeVariant };
     }
 
     getDefaultTheme(): string | undefined {
@@ -159,16 +172,16 @@ export class ThemeLoader {
         }
     }
 
-    private _findThemeLocationFromId(themeId: string): string | undefined {
-        for (const themeData of Object.values(this._themeMapping)) {
+    private _findThemeDetailsFromId(themeId: string): {themeName: string, cssLocation: string, variant?: string} | undefined {
+        for (const [themeName, themeData] of Object.entries(this._themeMapping)) {
             if ("id" in themeData && themeData.id === themeId) {
-                return themeData.cssLocation;
+                return { themeName, cssLocation: themeData.cssLocation };
             }
             else if ("light" in themeData && themeData.light?.id === themeId) {
-                return themeData.light.cssLocation;
+                return { themeName, cssLocation: themeData.light.cssLocation, variant: "light" };
             }
             else if ("dark" in themeData && themeData.dark?.id === themeId) {
-                return themeData.dark.cssLocation;
+                return { themeName, cssLocation: themeData.dark.cssLocation, variant: "dark" };
             }
         }
     }
@@ -181,17 +194,5 @@ export class ThemeLoader {
             return ColorSchemePreference.Light;
         }
         throw new Error("Cannot find preferred colorscheme!");
-    }
-
-    async persistVariantToStorage(variant: string) {
-        await this._platform.settingsStorage.setString("theme-variant", variant);
-    }
-
-    async getCurrentVariant(): Promise<string> {
-        return await this._platform.settingsStorage.getString("theme-variant");
-    }
-
-    async removeVariantFromStorage(): Promise<void> {
-        await this._platform.settingsStorage.remove("theme-variant");
     }
 }

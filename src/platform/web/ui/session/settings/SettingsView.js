@@ -141,56 +141,47 @@ export class SettingsView extends TemplateView {
     }
 
     _themeOptions(t, vm) {
-        const activeTheme = vm.activeTheme;
+        const { themeName: activeThemeName, themeVariant: activeThemeVariant } = vm.activeTheme;
         const optionTags = [];
-        const isDarkSelected = vm.activeVariant === "dark";
-        const isLightSelected = vm.activeVariant === "light";
         // 1. render the dropdown containing the themes
-        for (const [name, details] of Object.entries(vm.themeMapping)) {
-            const isSelected = details.id === activeTheme || 
-                            details.dark?.id === activeTheme ||
-                            details.light?.id === activeTheme;
-            optionTags.push( t.option({ value: details.id ?? "", selected: isSelected} , name));
+        for (const name of Object.keys(vm.themeMapping)) {
+            optionTags.push( t.option({ value: name, selected: name === activeThemeName} , name));
         }
         const select = t.select({
             onChange: (e) => {
-                const themeId = e.target.value;
-                if (themeId) {
-                    /* if the <option ..> has a value then this is not a theme
-                     that has dark and light default variants.
-                     remove any stored variant from localStorage.
-                    */
-                    vm.removeVariantFromStorage();
-                }
-                else {
+                const themeName = e.target.value;
+                if(!("id" in vm.themeMapping[themeName])) {
                     const colorScheme = darkRadioButton.checked ? "dark" : lightRadioButton.checked ? "light" : "default";
                     // execute the radio-button callback so that the theme actually changes!
                     // otherwise the theme would only change when another radio-button is selected.
                     radioButtonCallback(colorScheme);
+                    return;
                 }
-                vm.changeThemeOption(themeId);
+                vm.changeThemeOption(themeName);
             }
         }, optionTags);
         // 2. render the radio-buttons used to choose variant
         const radioButtonCallback = (colorScheme) => {
-            const selectedThemeName = select.options[select.selectedIndex].text;
-            vm.persistVariantToStorage(colorScheme);
-            if (colorScheme === "default") {
-                colorScheme = vm.preferredColorScheme === ColorSchemePreference.Dark ? "dark" : "light";
-            }
-            const themeId = vm.themeMapping[selectedThemeName][colorScheme].id;
-            vm.changeThemeOption(themeId);
+            const selectedThemeName = select.options[select.selectedIndex].value;
+            vm.changeThemeOption(selectedThemeName, colorScheme);
         };
+        const isDarkSelected = activeThemeVariant === "dark";
+        const isLightSelected = activeThemeVariant === "light";
         const darkRadioButton = t.input({ type: "radio", name: "radio-chooser", value: "dark", id: "dark", checked: isDarkSelected });
         const defaultRadioButton = t.input({ type: "radio", name: "radio-chooser", value: "default", id: "default", checked: !(isDarkSelected || isLightSelected) });
         const lightRadioButton = t.input({ type: "radio", name: "radio-chooser", value: "light", id: "light", checked: isLightSelected });
         const radioButtons = t.form({
-            className: { hidden: () => select.options[select.selectedIndex].value !== "" },
+            className: {
+                hidden: () => {
+                    const themeName = select.options[select.selectedIndex].value;
+                    return "id" in vm.themeMapping[themeName];
+                }
+            },
             onChange: (e) => radioButtonCallback(e.target.value)
         },
         [
             defaultRadioButton,
-            t.label({for: "default"}, "default"),
+            t.label({for: "default"}, "Match System Theme"),
             darkRadioButton,
             t.label({for: "dark"}, "dark"),
             lightRadioButton,
