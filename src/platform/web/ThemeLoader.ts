@@ -165,9 +165,9 @@ export class ThemeLoader {
     getDefaultTheme(): string | undefined {
         switch (this.preferredColorScheme) {
             case ColorSchemePreference.Dark:
-                return this._platform.config["defaultTheme"].dark;
+                return this._platform.config["defaultTheme"]?.dark;
             case ColorSchemePreference.Light:
-                return this._platform.config["defaultTheme"].light;
+                return this._platform.config["defaultTheme"]?.light;
         }
     }
 
