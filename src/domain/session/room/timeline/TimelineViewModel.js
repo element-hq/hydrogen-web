@@ -50,7 +50,7 @@ export class TimelineViewModel extends ViewModel {
         this._showJumpDown = false;
     }
 
-    /** if this.tiles is empty, call this with undefined for both startTile and endTile */
+    /** if this._tiles is empty, call this with undefined for both startTile and endTile */
     setVisibleTileRange(startTile, endTile) {
         // don't clear these once done as they are used to check
         // for more tiles once loadAtTop finishes
