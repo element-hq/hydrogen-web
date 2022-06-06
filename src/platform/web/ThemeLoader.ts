@@ -131,7 +131,7 @@ export class ThemeLoader {
         }
     }
 
-    setTheme(themeName: string, themeVariant: "light" | "dark" | "default", log?: ILogItem) {
+    setTheme(themeName: string, themeVariant?: "light" | "dark" | "default", log?: ILogItem) {
         this._platform.logger.wrapOrRun(log, { l: "change theme", name: themeName, variant: themeVariant }, () => {
             let cssLocation: string;
             let themeDetails = this._themeMapping[themeName];
@@ -139,7 +139,10 @@ export class ThemeLoader {
                 cssLocation = themeDetails.cssLocation;
             }
             else {
-                cssLocation = themeDetails[themeVariant ?? "default"].cssLocation;
+                if (!themeVariant) {
+                    throw new Error("themeVariant is undefined!");
+                }
+                cssLocation = themeDetails[themeVariant].cssLocation;
             }
             this._platform.replaceStylesheet(cssLocation);
             this._platform.settingsStorage.setString("theme-name", themeName);
