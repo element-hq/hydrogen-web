@@ -20,8 +20,8 @@ import {formatSize} from "../../../../../utils/formatSize";
 import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent.js";
 
 export class FileTile extends BaseMessageTile {
-    constructor(options) {
-        super(options);
+    constructor(entry, options) {
+        super(entry, options);
         this._downloadError = null;
         this._downloading = false;
     }

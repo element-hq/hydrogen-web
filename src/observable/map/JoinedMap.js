@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableMap} from "./BaseObservableMap.js";
+import {BaseObservableMap} from "./BaseObservableMap";
 
 export class JoinedMap extends BaseObservableMap {
     constructor(sources) {
@@ -191,7 +191,7 @@ class SourceSubscriptionHandler {
 }
 
 
-import { ObservableMap } from "./ObservableMap.js";
+import { ObservableMap } from "./ObservableMap";
 
 export function tests() {
 

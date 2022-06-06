@@ -37,7 +37,7 @@ export class TextMessageView extends BaseMessageView {
                 return new ReplyPreviewError();
             }
             else if (replyTile) {
-                return new ReplyPreviewView(replyTile);
+                return new ReplyPreviewView(replyTile, this._viewClassForTile);
             }
             else {
                 return null;

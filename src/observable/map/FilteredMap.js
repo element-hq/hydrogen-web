@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableMap} from "./BaseObservableMap.js";
+import {BaseObservableMap} from "./BaseObservableMap";
 
 export class FilteredMap extends BaseObservableMap {
     constructor(source, filter) {
@@ -166,7 +166,7 @@ class FilterIterator {
     }
 }
 
-import {ObservableMap} from "./ObservableMap.js";
+import {ObservableMap} from "./ObservableMap";
 export function tests() {
     return {
         "filter preloaded list": assert => {

@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2022 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,54 +22,80 @@ limitations under the License.
 import {EventEmitter} from "../utils/EventEmitter";
 import {Disposables} from "../utils/Disposables";
 
-export class ViewModel extends EventEmitter {
-    constructor(options = {}) {
+import type {Disposable} from "../utils/Disposables";
+import type {Platform} from "../platform/web/Platform";
+import type {Clock} from "../platform/web/dom/Clock";
+import type {ILogger} from "../logging/types";
+import type {Navigation} from "./navigation/Navigation";
+import type {URLRouter} from "./navigation/URLRouter";
+
+export type Options = {
+    platform: Platform
+    logger: ILogger
+    urlCreator: URLRouter
+    navigation: Navigation
+    emitChange?: (params: any) => void
+}
+
+export class ViewModel<O extends Options = Options> extends EventEmitter<{change: never}> {
+    private disposables?: Disposables;
+    private _isDisposed = false;
+    private _options: Readonly<O>;
+
+    constructor(options: Readonly<O>) {
         super();
-        this.disposables = null;
-        this._isDisposed = false;
         this._options = options;
     }
 
-    childOptions(explicitOptions) {
-        const {navigation, urlCreator, platform} = this._options;
-        return Object.assign({navigation, urlCreator, platform}, explicitOptions);
+    childOptions<T extends Object>(explicitOptions: T): T & Options {
+        return Object.assign({}, this._options, explicitOptions);
     }
 
+    get options(): Readonly<O> { return this._options; }
+
     // makes it easier to pass through dependencies of a sub-view model
-    getOption(name) {
+    getOption<N extends keyof O>(name: N): O[N]  {
         return this._options[name];
     }
 
-    track(disposable) {
+    observeNavigation(type: string, onChange: (value: string | true | undefined, type: string) => void) {
+      const segmentObservable = this.navigation.observe(type);
+      const unsubscribe = segmentObservable.subscribe((value: string | true | undefined) => {
+        onChange(value, type);
+      })
+      this.track(unsubscribe);
+    }
+
+    track<D extends Disposable>(disposable: D): D {
         if (!this.disposables) {
             this.disposables = new Disposables();
         }
         return this.disposables.track(disposable);
     }
 
-    untrack(disposable) {
+    untrack(disposable: Disposable): undefined {
         if (this.disposables) {
             return this.disposables.untrack(disposable);
         }
-        return null;
+        return undefined;
     }
 
-    dispose() {
+    dispose(): void {
         if (this.disposables) {
             this.disposables.dispose();
         }
         this._isDisposed = true;
     }
 
-    get isDisposed() {
+    get isDisposed(): boolean {
         return this._isDisposed;
     }
 
-    disposeTracked(disposable) {
+    disposeTracked(disposable: Disposable | undefined): undefined {
         if (this.disposables) {
             return this.disposables.disposeTracked(disposable);
         }
-        return null;
+        return undefined;
     }
 
     // TODO: this will need to support binding
@@ -76,7 +103,7 @@ export class ViewModel extends EventEmitter {
     // 
     // translated string should probably always be bindings, unless we're fine with a refresh when changing the language?
     // we probably are, if we're using routing with a url, we could just refresh.
-    i18n(parts, ...expr) {
+    i18n(parts: TemplateStringsArray, ...expr: any[]) {
         // just concat for now
         let result = "";
         for (let i = 0; i < parts.length; ++i) {
@@ -88,11 +115,7 @@ export class ViewModel extends EventEmitter {
         return result;
     }
 
-    updateOptions(options) {
-        this._options = Object.assign(this._options, options);
-    }
-
-    emitChange(changedProps) {
+    emitChange(changedProps: any): void {
         if (this._options.emitChange) {
             this._options.emitChange(changedProps);
         } else {
@@ -100,27 +123,23 @@ export class ViewModel extends EventEmitter {
         }
     }
 
-    get platform() {
+    get platform(): Platform {
         return this._options.platform;
     }
 
-    get clock() {
+    get clock(): Clock {
         return this._options.platform.clock;
     }
 
-    get logger() {
+    get logger(): ILogger {
         return this.platform.logger;
     }
 
-    /**
-     * The url router, only meant to be used to create urls with from view models.
-     * @return {URLRouter}
-     */
-    get urlCreator() {
+    get urlCreator(): URLRouter {
         return this._options.urlCreator;
     }
 
-    get navigation() {
+    get navigation(): Navigation {
         return this._options.navigation;
     }
 }

@@ -18,18 +18,25 @@ import {BaseObservableList} from "../../../../observable/list/BaseObservableList
 import {sortedIndex} from "../../../../utils/sortedIndex";
 
 // maps 1..n entries to 0..1 tile. Entries are what is stored in the timeline, either an event or fragmentboundary
-// for now, tileCreator should be stable in whether it returns a tile or not.
+// for now, tileClassForEntry should be stable in whether it returns a tile or not.
 // e.g. the decision to create a tile or not should be based on properties
 // not updated later on (e.g. event type)
 // also see big comment in onUpdate
 export class TilesCollection extends BaseObservableList {
-    constructor(entries, tileCreator) {
+    constructor(entries, tileOptions) {
         super();
         this._entries = entries;
         this._tiles = null;
         this._entrySubscription = null;
-        this._tileCreator = tileCreator;
+        this._tileOptions = tileOptions;
         this._emitSpontanousUpdate = this._emitSpontanousUpdate.bind(this);
+    }
+
+    _createTile(entry) {
+        const Tile = this._tileOptions.tileClassForEntry(entry);
+        if (Tile) {
+            return new Tile(entry, this._tileOptions);
+        }
     }
 
     _emitSpontanousUpdate(tile, params) {
@@ -48,7 +55,7 @@ export class TilesCollection extends BaseObservableList {
         let currentTile = null;
         for (let entry of this._entries) {
             if (!currentTile || !currentTile.tryIncludeEntry(entry)) {
-                currentTile = this._tileCreator(entry);
+                currentTile = this._createTile(entry);
                 if (currentTile) {
                     this._tiles.push(currentTile);
                 }
@@ -121,7 +128,7 @@ export class TilesCollection extends BaseObservableList {
             return;
         }
 
-        const newTile = this._tileCreator(entry);
+        const newTile = this._createTile(entry);
         if (newTile) {
             if (prevTile) {
                 prevTile.updateNextSibling(newTile);
@@ -150,9 +157,9 @@ export class TilesCollection extends BaseObservableList {
         const tileIdx = this._findTileIdx(entry);
         const tile = this._findTileAtIdx(entry, tileIdx);
         if (tile) {
-            const action = tile.updateEntry(entry, params, this._tileCreator);
+            const action = tile.updateEntry(entry, params);
             if (action.shouldReplace) {
-                const newTile = this._tileCreator(entry);
+                const newTile = this._createTile(entry);
                 if (newTile) {
                     this._replaceTile(tileIdx, tile, newTile, action.updateParams);
                     newTile.setUpdateEmit(this._emitSpontanousUpdate);
@@ -303,7 +310,10 @@ export function tests() {
                 }
             }
             const entries = new ObservableArray([{n: 5}, {n: 10}]);
-            const tiles = new TilesCollection(entries, entry => new UpdateOnSiblingTile(entry));
+            const tileOptions = {
+                tileClassForEntry: () => UpdateOnSiblingTile,
+            };
+            const tiles = new TilesCollection(entries, tileOptions);
             let receivedAdd = false;
             tiles.subscribe({
                 onAdd(idx, tile) {
@@ -326,7 +336,10 @@ export function tests() {
                 }
             }
             const entries = new ObservableArray([{n: 5}, {n: 10}, {n: 15}]);
-            const tiles = new TilesCollection(entries, entry => new UpdateOnSiblingTile(entry));
+            const tileOptions = {
+                tileClassForEntry: () => UpdateOnSiblingTile,
+            };
+            const tiles = new TilesCollection(entries, tileOptions);
             const events = [];
             tiles.subscribe({
                 onUpdate(idx, tile) {

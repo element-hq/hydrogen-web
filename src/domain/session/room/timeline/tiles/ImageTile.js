@@ -18,8 +18,8 @@ limitations under the License.
 import {BaseMediaTile} from "./BaseMediaTile.js";
 
 export class ImageTile extends BaseMediaTile {
-    constructor(options) {
-        super(options);
+    constructor(entry, options) {
+        super(entry, options);
         this._lightboxUrl = this.urlCreator.urlForSegments([
             // ensure the right room is active if in grid view
             this.navigation.segment("room", this._room.id),

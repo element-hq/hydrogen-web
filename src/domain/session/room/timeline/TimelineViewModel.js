@@ -32,15 +32,15 @@ to the room timeline, which unload entries from memory.
 when loading, it just reads events from a sortkey backwards or forwards...
 */
 import {TilesCollection} from "./TilesCollection.js";
-import {ViewModel} from "../../../ViewModel.js";
+import {ViewModel} from "../../../ViewModel";
 
 export class TimelineViewModel extends ViewModel {
     constructor(options) {
         console.log('TimelineViewModel asdf', options)
         super(options);
-        const {timeline, tilesCreator} = options;
+        const {timeline, tileOptions} = options;
         this._timeline = this.track(timeline);
-        this._tiles = new TilesCollection(timeline.entries, tilesCreator);
+        this._tiles = new TilesCollection(timeline.entries, tileOptions);
         this._startTile = null;
         this._endTile = null;
         this._topLoadingPromise = null;

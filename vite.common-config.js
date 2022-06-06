@@ -1,9 +1,15 @@
 const cssvariables = require("postcss-css-variables");
 const flexbugsFixes = require("postcss-flexbugs-fixes");
+const compileVariables = require("./scripts/postcss/css-compile-variables");
+const urlVariables = require("./scripts/postcss/css-url-to-variables");
+const urlProcessor = require("./scripts/postcss/css-url-processor");
 const fs = require("fs");
 const path = require("path");
 const manifest = require("./package.json");
 const version = manifest.version;
+const compiledVariables = new Map();
+const derive = require("./scripts/postcss/color").derive;
+const replacer = require("./scripts/postcss/svg-colorizer").buildColorizedSVG;
 
 const commonOptions = {
     logLevel: "warn",
@@ -25,6 +31,7 @@ const commonOptions = {
         assetsInlineLimit: 0,
         polyfillModulePreload: false,
     },
+    assetsInclude: ['**/config.json'],
     define: {
         DEFINE_VERSION: JSON.stringify(version),
         DEFINE_GLOBAL_HASH: JSON.stringify(null),
@@ -32,11 +39,14 @@ const commonOptions = {
     css: {
         postcss: {
             plugins: [
-                cssvariables({
-                    preserve: (declaration) => {
-                        return declaration.value.indexOf("var(--ios-") == 0;
-                    }
-                }),
+                compileVariables({derive, compiledVariables}),
+                urlVariables({compileVariables}),
+                urlProcessor({replacer}),
+                // cssvariables({
+                //     preserve: (declaration) => {
+                //         return declaration.value.indexOf("var(--ios-") == 0;
+                //     }
+                // }),
                 // the grid option creates some source fragment that causes the vite warning reporter to crash because
                 // it wants to log a warning on a line that does not exist in the source fragment.
                 // autoprefixer({overrideBrowserslist: ["IE 11"], grid: "no-autoplace"}),
@@ -46,4 +56,4 @@ const commonOptions = {
     }
 };
 
-module.exports = commonOptions;
+module.exports = { commonOptions, compiledVariables };

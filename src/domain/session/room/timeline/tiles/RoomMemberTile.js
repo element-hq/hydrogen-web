@@ -66,23 +66,25 @@ export class RoomMemberTile extends SimpleTile {
 export function tests() {
     return {
         "user removes display name": (assert) => {
-            const tile = new RoomMemberTile({
-                entry: {
+            const tile = new RoomMemberTile(
+                {
                     prevContent: {displayname: "foo", membership: "join"},
                     content: {membership: "join"},
                     stateKey: "foo@bar.com",
                 },
-            });
+                {}
+            );
             assert.strictEqual(tile.announcement, "foo@bar.com removed their name (foo)");
         },
         "user without display name sets a new display name": (assert) => {
-            const tile = new RoomMemberTile({
-                entry: {
+            const tile = new RoomMemberTile(
+                {
                     prevContent: {membership: "join"},
                     content: {displayname: "foo", membership: "join" },
                     stateKey: "foo@bar.com",
                 },
-            });
+                {}
+            );
             assert.strictEqual(tile.announcement, "foo@bar.com changed their name to foo");
         },
     };

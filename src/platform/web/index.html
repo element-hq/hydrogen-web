@@ -11,24 +11,23 @@
         <meta name="description" content="A matrix chat application">
         <link rel="apple-touch-icon" href="./assets/icon-maskable.png">
         <link rel="icon" type="image/png" href="assets/icon-maskable.png">
-        <link rel="stylesheet" type="text/css" href="./ui/css/main.css">
-        <link rel="stylesheet" type="text/css" href="./ui/css/themes/element/theme.css">
+        <script type="module"> import "@theme/default"; </script>
     </head>
     <body class="hydrogen">
         <script id="main" type="module">
             import {main} from "./main";
             import {Platform} from "./Platform";
-            import configJSON from "./assets/config.json?raw";
+            import configURL from "./assets/config.json?url";
             import assetPaths from "./sdk/paths/vite";
             if (import.meta.env.PROD) {
                 assetPaths.serviceWorker = "sw.js";
             }
-            const platform = new Platform(
-                document.body,
+            const platform = new Platform({
+                container: document.body,
                 assetPaths,
-                JSON.parse(configJSON),
-                {development: import.meta.env.DEV}
-            );
+                configURL, 
+                options: {development: import.meta.env.DEV}
+            });
             main(platform);
         </script>
     </body>

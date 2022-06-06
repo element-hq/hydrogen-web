@@ -15,13 +15,14 @@ limitations under the License.
 */
 
 import {UpdateAction} from "../UpdateAction.js";
-import {ViewModel} from "../../../../ViewModel.js";
+import {ViewModel} from "../../../../ViewModel";
 import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent.js";
 
 export class SimpleTile extends ViewModel {
-    constructor(options) {
+    constructor(entry, options) {
         super(options);
-        this._entry = options.entry;
+        this._entry = entry;
+        this._emitUpdate = undefined;
     }
     // view model props for all subclasses
     // hmmm, could also do instanceof ... ?
@@ -44,6 +45,10 @@ export class SimpleTile extends ViewModel {
         return this._entry.asEventKey();
     }
 
+    get eventId() {
+        return this._entry.id;
+    }
+
     get isPending() {
         return this._entry.isPending;
     }
@@ -63,16 +68,20 @@ export class SimpleTile extends ViewModel {
 
     // TilesCollection contract below
     setUpdateEmit(emitUpdate) {
-        this.updateOptions({emitChange: paramName => {
+        this._emitUpdate = emitUpdate;
+    }
+
+    /** overrides the emitChange in ViewModel to also emit the update over the tiles collection */
+    emitChange(changedProps) {
+        if (this._emitUpdate) {
             // it can happen that after some network call
             // we switched away from the room and the response
             // comes in, triggering an emitChange in a tile that
             // has been disposed already (and hence the change
             // callback has been cleared by dispose) We should just ignore this.
-            if (emitUpdate) {
-                emitUpdate(this, paramName);
-            }
-        }});
+            this._emitUpdate(this, changedProps);
+        }
+        super.emitChange(changedProps);
     }
 
     get upperEntry() {

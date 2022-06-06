@@ -92,8 +92,12 @@ function isCacheableThumbnail(url) {
 
 const baseURL = new URL(self.registration.scope);
 let pendingFetchAbortController = new AbortController();
+
 async function handleRequest(request) {
     try {
+        if (request.url.includes("config.json") || /theme-.+\.json/.test(request.url)) {
+            return handleStaleWhileRevalidateRequest(request);
+        }
         const url = new URL(request.url);
         // rewrite / to /index.html so it hits the cache
         if (url.origin === baseURL.origin && url.pathname === baseURL.pathname) {
@@ -119,6 +123,31 @@ async function handleRequest(request) {
     }
 }
 
+/**
+ * Stale-while-revalidate caching for certain files
+ * see https://developer.chrome.com/docs/workbox/caching-strategies-overview/#stale-while-revalidate
+ */
+async function handleStaleWhileRevalidateRequest(request) {
+    let response = await readCache(request);
+    const networkResponsePromise = fetchAndUpdateCache(request);
+    if (response) {
+        return response;
+    } else {
+        return await networkResponsePromise;
+    }
+}
+
+async function fetchAndUpdateCache(request) {
+    const response = await fetch(request, {
+        signal: pendingFetchAbortController.signal,
+        headers: {
+            "Cache-Control": "no-cache",
+        },
+    });
+    updateCache(request, response.clone());
+    return response;
+}
+
 async function updateCache(request, response) {
     // don't write error responses to the cache
     if (response.status >= 400) {
@@ -131,8 +160,14 @@ async function updateCache(request, response) {
         cache.put(request, response.clone());
     } else if (request.url.startsWith(baseURL)) {
         let assetName = request.url.substr(baseURL.length);
+        let cacheName;
         if (HASHED_CACHED_ON_REQUEST_ASSETS.includes(assetName)) {
-            const cache = await caches.open(hashedCacheName);
+            cacheName = hashedCacheName;
+        } else if (UNHASHED_PRECACHED_ASSETS.includes(assetName)) {
+            cacheName = unhashedCacheName;
+        }
+        if (cacheName) {
+            const cache = await caches.open(cacheName);
             await cache.put(request, response.clone());
         }
     }

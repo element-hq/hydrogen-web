@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ObservableMap} from "../../../observable/map/ObservableMap.js";
+import {ObservableMap} from "../../../observable/map/ObservableMap";
 import {RetainedValue} from "../../../utils/RetainedValue";
 
 export class MemberList extends RetainedValue {

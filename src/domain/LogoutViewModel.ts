@@ -14,11 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ViewModel} from "./ViewModel.js";
+import {Options, ViewModel} from "./ViewModel";
 import {Client} from "../matrix/Client.js";
 
-export class LogoutViewModel extends ViewModel {
-    constructor(options) {
+type LogoutOptions = { sessionId: string; } & Options;
+
+export class LogoutViewModel extends ViewModel<LogoutOptions> {
+    private _sessionId: string;
+    private _busy: boolean;
+    private _showConfirm: boolean;
+    private _error?: Error;
+
+    constructor(options: LogoutOptions) {
         super(options);
         this._sessionId = options.sessionId;
         this._busy = false;
@@ -26,19 +33,19 @@ export class LogoutViewModel extends ViewModel {
         this._error = undefined;
     }
 
-    get showConfirm() {
+    get showConfirm(): boolean {
         return this._showConfirm;
     }
 
-    get busy() {
+    get busy(): boolean {
         return this._busy;
     }
 
-    get cancelUrl() {
+    get cancelUrl(): string {
         return this.urlCreator.urlForSegment("session", true);
     }
 
-    async logout() {
+    async logout(): Promise<void> {
         this._busy = true;
         this._showConfirm = false;
         this.emitChange("busy");
@@ -53,7 +60,7 @@ export class LogoutViewModel extends ViewModel {
         }
     }
 
-    get status() {
+    get status(): string {
         if (this._error) {
             return this.i18n`Could not log out of device: ${this._error.message}`;
         } else {

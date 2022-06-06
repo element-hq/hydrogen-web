@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {Client} from "../../matrix/Client.js";
-import {ViewModel} from "../ViewModel.js";
+import {ViewModel} from "../ViewModel";
 import {PasswordLoginViewModel} from "./PasswordLoginViewModel.js";
 import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel.js";
 import {CompleteSSOLoginViewModel} from "./CompleteSSOLoginViewModel.js";

@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {ObservableMap} from "../../../../observable/map/ObservableMap.js";
+import {ObservableMap} from "../../../../observable/map/ObservableMap";
 
 export class ReactionsViewModel {
     constructor(parentTile) {
@@ -222,7 +222,7 @@ export function tests() {
         };
         const tiles = new MappedList(timeline.entries, entry => {
             if (entry.eventType === "m.room.message") {
-                return new BaseMessageTile({entry, roomVM: {room}, timeline, platform: {logger}});
+                return new BaseMessageTile(entry, {roomVM: {room}, timeline, platform: {logger}});
             }
             return null;
         }, (tile, params, entry) => tile?.updateEntry(entry, params, function () {}));

@@ -24,7 +24,6 @@ import {RoomMember} from "../members/RoomMember.js";
 import {getRelation, ANNOTATION_RELATION_TYPE} from "./relations.js";
 import {REDACTION_TYPE} from "../common";
 import {NonPersistedEventEntry} from "./entries/NonPersistedEventEntry.js";
-import {DecryptionSource} from "../../e2ee/common.js";
 import {EVENT_TYPE as MEMBER_EVENT_TYPE} from "../members/RoomMember.js";
 
 export class Timeline {

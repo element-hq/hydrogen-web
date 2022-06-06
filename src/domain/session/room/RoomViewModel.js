@@ -17,18 +17,21 @@ limitations under the License.
 
 import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
 import {ComposerViewModel} from "./ComposerViewModel.js"
-import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar.js";
-import {tilesCreator} from "./timeline/tilesCreator.js";
-import {ViewModel} from "../../ViewModel.js";
+import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
+import {ViewModel} from "../../ViewModel";
 import {imageToInfo} from "../common.js";
+// TODO: remove fallback so default isn't included in bundle for SDK users that have their custom tileClassForEntry
+// this is a breaking SDK change though to make this option mandatory
+import {tileClassForEntry as defaultTileClassForEntry} from "./timeline/tiles/index";
 
 export class RoomViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {room} = options;
+        const {room, tileClassForEntry} = options;
         this._room = room;
         this._timelineVM = null;
-        this._tilesCreator = null;
+        this._tileClassForEntry = tileClassForEntry ?? defaultTileClassForEntry;
+        this._tileOptions = undefined;
         this._onRoomChange = this._onRoomChange.bind(this);
         this._timelineError = null;
         this._sendError = null;
@@ -47,12 +50,13 @@ export class RoomViewModel extends ViewModel {
         try {
             const timeline = await this._room.openTimeline();
             console.log('timeline', timeline.entries);
-            this._tilesCreator = tilesCreator(this.childOptions({
+            this._tileOptions = this.childOptions({
                 roomVM: this,
                 timeline,
-            }));
+                tileClassForEntry: this._tileClassForEntry,
+            });
             this._timelineVM = this.track(new TimelineViewModel(this.childOptions({
-                tilesCreator: this._tilesCreator,
+                tileOptions: this._tileOptions,
                 timeline,
             })));
             this.emitChange("timelineViewModel");
@@ -162,7 +166,12 @@ export class RoomViewModel extends ViewModel {
     }
 
     _createTile(entry) {
-        return this._tilesCreator(entry);
+        if (this._tileOptions) {
+            const Tile = this._tileOptions.tileClassForEntry(entry);
+            if (Tile) {
+                return new Tile(entry, this._tileOptions);
+            }
+        }
     }
     
     async _sendMessage(message, replyingTo) {
