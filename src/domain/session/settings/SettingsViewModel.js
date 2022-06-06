@@ -183,13 +183,7 @@ export class SettingsViewModel extends ViewModel {
     }
 
     changeThemeOption(themeName, themeVariant) {
-        if (themeName && "id" in this.themeMapping[themeName]) {
-            this.platform.themeLoader.setTheme(themeName);
-        }
-        else {
-            this.platform.themeLoader.setTheme(themeName, themeVariant);
-        }
-        // if there's no themeId, then the theme is going to be set via radio-buttons
+        this.platform.themeLoader.setTheme(themeName, themeVariant);
         // emit so that radio-buttons become displayed/hidden
         this.emitChange("themeOption");
     }
