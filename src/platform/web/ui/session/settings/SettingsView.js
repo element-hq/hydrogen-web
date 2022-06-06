@@ -16,7 +16,6 @@ limitations under the License.
 
 import {TemplateView} from "../../general/TemplateView";
 import {KeyBackupSettingsView} from "./KeyBackupSettingsView.js"
-import {ColorSchemePreference} from "../../../ThemeLoader";
 
 export class SettingsView extends TemplateView {
     render(t, vm) {
