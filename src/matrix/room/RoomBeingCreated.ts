@@ -151,9 +151,10 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
                 createOptions.room_alias_name = this.options.alias;
             }
             if (this.options.type !== undefined) {
-                createOptions.creation_content = {
-                    type: this.options.type === RoomType.World ? "org.matrix.msc3815.world" : undefined,
-                };
+                let type: string | undefined = undefined;
+                if (this.options.type === RoomType.World) type =  "org.matrix.msc3815.world";
+                if (this.options.type === RoomType.Profile) type =  "org.matrix.msc3815.profile";
+                createOptions.creation_content = { type };
             }
             if (this.options.isFederationDisabled === true) {
                 if (createOptions.creation_content === undefined) createOptions.creation_content = {};
