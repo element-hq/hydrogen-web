@@ -66,24 +66,15 @@ export class ThemeLoader {
                 })
                 .response();
             this._populateThemeMap(body);
-            /*
-            After build has finished, the source section of each theme manifest
-            contains `built-assets` which is a mapping from the theme-name to theme
-            information which includes the location of the CSS file.
-            (see type ThemeInformation above)
-            */
-            //Add the default-theme as an additional option to the mapping
-            const defaultThemeId = this.getDefaultTheme();
-            if (defaultThemeId) {
-                const themeDetails = this._findThemeDetailsFromId(defaultThemeId);
-                if (themeDetails) {
-                    this._themeMapping["Default"] = { id: "default", cssLocation: themeDetails.cssLocation };
-                }
-            }
         }
     }
 
     private _populateThemeMap(manifest) {
+        /*
+        After build has finished, the source section of each theme manifest
+        contains `built-assets` which is a mapping from the theme-id to
+        cssLocation of theme
+        */
         const builtAssets: Record<string, string> = manifest.source?.["built-assets"];
         const themeName = manifest.name;
         let defaultDarkVariant: any = {}, defaultLightVariant: any = {};
@@ -129,6 +120,14 @@ export class ThemeLoader {
              */
             const variant = defaultDarkVariant.id ? defaultDarkVariant : defaultLightVariant;
             this._themeMapping[`${themeName} ${variant.variantName}`] = { id: variant.id, cssLocation: variant.cssLocation };
+        }
+        //Add the default-theme as an additional option to the mapping
+        const defaultThemeId = this.getDefaultTheme();
+        if (defaultThemeId) {
+            const themeDetails = this._findThemeDetailsFromId(defaultThemeId);
+            if (themeDetails) {
+                this._themeMapping["Default"] = { id: "default", cssLocation: themeDetails.cssLocation };
+            }
         }
     }
 
