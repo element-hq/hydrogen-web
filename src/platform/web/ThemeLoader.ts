@@ -157,8 +157,14 @@ export class ThemeLoader {
     }
 
     async getActiveTheme(): Promise<{themeName: string, themeVariant?: string}> {
-        const themeName = await this._platform.settingsStorage.getString("theme-name") ?? "Default";
-        const themeVariant = await this._platform.settingsStorage.getString("theme-variant");
+        let themeName = await this._platform.settingsStorage.getString("theme-name");
+        let themeVariant = await this._platform.settingsStorage.getString("theme-variant");
+        if (!themeName || !this._themeMapping[themeName]) {
+            themeName = "Default" in this._themeMapping ? "Default" : Object.keys(this._themeMapping)[0];
+            if (!this._themeMapping[themeName][themeVariant]) {
+                themeVariant = "default" in this._themeMapping[themeName] ? "default" : undefined;
+            }
+        }
         return { themeName, themeVariant };
     }
 
