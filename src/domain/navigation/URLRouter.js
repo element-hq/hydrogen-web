@@ -36,6 +36,7 @@ export class URLRouter {
     }
 
     attach() {
+        console.log('attach');
         this._subscription = this._history.subscribe(url => this._applyUrl(url));
         // subscribe to path before applying initial url
         // so redirects in _applyNavPathToHistory are reflected in url bar
@@ -75,6 +76,7 @@ export class URLRouter {
     }
 
     _applyUrl(url) {
+        console.log('URLRouter _applyUrl', url);
         const navPath = this._urlAsNavPath(url);
         this._applyNavPathToNavigation(navPath);
     }

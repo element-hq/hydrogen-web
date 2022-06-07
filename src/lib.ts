@@ -25,6 +25,8 @@ export {SessionViewModel} from "./domain/session/SessionViewModel.js";
 export {SessionView} from "./platform/web/ui/session/SessionView.js";
 export {RoomViewModel} from "./domain/session/room/RoomViewModel.js";
 export {RoomView} from "./platform/web/ui/session/room/RoomView.js";
+export {LightboxView} from "./platform/web/ui/session/room/LightboxView.js";
+export {setupLightboxNavigation, updateLightboxViewModel} from "./domain/session/room/lightbox-navigation.js";
 export {RightPanelView} from "./platform/web/ui/session/rightpanel/RightPanelView.js";
 export {MediaRepository} from "./matrix/net/MediaRepository";
 export {TilesCollection} from "./domain/session/room/timeline/TilesCollection.js";
