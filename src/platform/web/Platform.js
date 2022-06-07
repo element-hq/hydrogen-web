@@ -188,8 +188,9 @@ export class Platform {
                     this._config.push
                 );
                 const manifests = this.config["themeManifests"];
-                await this._themeLoader?.init(manifests);
+                await this._themeLoader?.init(manifests, log);
                 const { themeName, themeVariant } = await this._themeLoader.getActiveTheme();
+                log.log({ l: "Active theme", name: themeName, variant: themeVariant });
                 this._themeLoader?.setTheme(themeName, themeVariant, log);
             });
         } catch (err) {

@@ -55,80 +55,87 @@ export class ThemeLoader {
         this._platform = platform;
     }
 
-    async init(manifestLocations: string[]): Promise<void> {
-        this._themeMapping = {};
-        for (const manifestLocation of manifestLocations) {
-            const { body } = await this._platform
-                .request(manifestLocation, {
-                    method: "GET",
-                    format: "json",
-                    cache: true,
-                })
-                .response();
-            this._populateThemeMap(body);
-        }
+    async init(manifestLocations: string[], log?: ILogItem): Promise<void> {
+        await this._platform.logger.wrapOrRun(log, "ThemeLoader.init", async (log) => {
+            this._themeMapping = {};
+            for (const manifestLocation of manifestLocations) {
+                const { body } = await this._platform
+                    .request(manifestLocation, {
+                        method: "GET",
+                        format: "json",
+                        cache: true,
+                    })
+                    .response();
+                this._populateThemeMap(body, log);
+            }
+        });
     }
 
-    private _populateThemeMap(manifest) {
-        /*
-        After build has finished, the source section of each theme manifest
-        contains `built-assets` which is a mapping from the theme-id to
-        cssLocation of theme
-        */
-        const builtAssets: Record<string, string> = manifest.source?.["built-assets"];
-        const themeName = manifest.name;
-        let defaultDarkVariant: any = {}, defaultLightVariant: any = {};
-        for (const [themeId, cssLocation] of Object.entries(builtAssets)) {
-            const variant = themeId.match(/.+-(.+)/)?.[1];
-            const { name: variantName, default: isDefault, dark } = manifest.values.variants[variant!];
-            const themeDisplayName = `${themeName} ${variantName}`;
-            if (isDefault) {
+    private _populateThemeMap(manifest, log: ILogItem) {
+        log.wrap("populateThemeMap", (l) => {
+            /*
+            After build has finished, the source section of each theme manifest
+            contains `built-assets` which is a mapping from the theme-id to
+            cssLocation of theme
+            */
+            const builtAssets: Record<string, string> = manifest.source?.["built-assets"];
+            const themeName = manifest.name;
+            let defaultDarkVariant: any = {}, defaultLightVariant: any = {};
+            for (const [themeId, cssLocation] of Object.entries(builtAssets)) {
+                const variant = themeId.match(/.+-(.+)/)?.[1];
+                const { name: variantName, default: isDefault, dark } = manifest.values.variants[variant!];
+                const themeDisplayName = `${themeName} ${variantName}`;
+                if (isDefault) {
+                    /**
+                     * This is a default variant!
+                     * We'll add these to the themeMapping (separately) keyed with just the
+                     * theme-name (i.e "Element" instead of "Element Dark").
+                     * We need to be able to distinguish them from other variants!
+                     * 
+                     * This allows us to render radio-buttons with "dark" and
+                     * "light" options.
+                    */
+                    const defaultVariant = dark ? defaultDarkVariant : defaultLightVariant;
+                    defaultVariant.variantName = variantName;
+                    defaultVariant.id = themeId
+                    defaultVariant.cssLocation = cssLocation;
+                    continue;
+                }
+                // Non-default variants are keyed in themeMapping with "theme_name variant_name"
+                // eg: "Element Dark"
+                this._themeMapping[themeDisplayName] = {
+                    cssLocation,
+                    id: themeId
+                };
+            }
+            if (defaultDarkVariant.id && defaultLightVariant.id) {
                 /**
-                 * This is a default variant!
-                 * We'll add these to the themeMapping (separately) keyed with just the
-                 * theme-name (i.e "Element" instead of "Element Dark").
-                 * We need to be able to distinguish them from other variants!
-                 * 
-                 * This allows us to render radio-buttons with "dark" and
-                 * "light" options.
-                */
-                const defaultVariant = dark ? defaultDarkVariant : defaultLightVariant;
-                defaultVariant.variantName = variantName;
-                defaultVariant.id = themeId
-                defaultVariant.cssLocation = cssLocation;
-                continue;
+                 * As mentioned above, if there's both a default dark and a default light variant,
+                 * add them to themeMapping separately.
+                 */
+                const defaultVariant = this.preferredColorScheme === ColorSchemePreference.Dark ? defaultDarkVariant : defaultLightVariant;
+                this._themeMapping[themeName] = { dark: defaultDarkVariant, light: defaultLightVariant, default: defaultVariant };
             }
-            // Non-default variants are keyed in themeMapping with "theme_name variant_name"
-            // eg: "Element Dark"
-            this._themeMapping[themeDisplayName] = {
-                cssLocation,
-                id: themeId
-            };
-        }
-        if (defaultDarkVariant.id && defaultLightVariant.id) {
-            /**
-             * As mentioned above, if there's both a default dark and a default light variant,
-             * add them to themeMapping separately.
-             */
-            const defaultVariant = this.preferredColorScheme === ColorSchemePreference.Dark ? defaultDarkVariant : defaultLightVariant;
-            this._themeMapping[themeName] = { dark: defaultDarkVariant, light: defaultLightVariant, default: defaultVariant };
-        }
-        else {
-            /**
-             * If only one default variant is found (i.e only dark default or light default but not both),
-             * treat it like any other variant.
-             */
-            const variant = defaultDarkVariant.id ? defaultDarkVariant : defaultLightVariant;
-            this._themeMapping[`${themeName} ${variant.variantName}`] = { id: variant.id, cssLocation: variant.cssLocation };
-        }
-        //Add the default-theme as an additional option to the mapping
-        const defaultThemeId = this.getDefaultTheme();
-        if (defaultThemeId) {
-            const themeDetails = this._findThemeDetailsFromId(defaultThemeId);
-            if (themeDetails) {
-                this._themeMapping["Default"] = { id: "default", cssLocation: themeDetails.cssLocation };
+            else {
+                /**
+                 * If only one default variant is found (i.e only dark default or light default but not both),
+                 * treat it like any other variant.
+                 */
+                const variant = defaultDarkVariant.id ? defaultDarkVariant : defaultLightVariant;
+                this._themeMapping[`${themeName} ${variant.variantName}`] = { id: variant.id, cssLocation: variant.cssLocation };
             }
-        }
+            //Add the default-theme as an additional option to the mapping
+            const defaultThemeId = this.getDefaultTheme();
+            if (defaultThemeId) {
+                const themeDetails = this._findThemeDetailsFromId(defaultThemeId);
+                if (themeDetails) {
+                    this._themeMapping["Default"] = { id: "default", cssLocation: themeDetails.cssLocation };
+                }
+            }
+            l.log({ l: "Default Theme", theme: defaultThemeId});
+            l.log({ l: "Preferred colorscheme", scheme: this.preferredColorScheme === ColorSchemePreference.Dark ? "dark" : "light" });
+            l.log({ l: "Result", themeMapping: this._themeMapping });
+         });
     }
 
     setTheme(themeName: string, themeVariant?: "light" | "dark" | "default", log?: ILogItem) {
