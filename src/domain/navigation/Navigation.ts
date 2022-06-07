@@ -19,6 +19,16 @@ import {BaseObservableValue, ObservableValue} from "../../observable/ObservableV
 
 type AllowsChild<T> = (parent: Segment<T> | undefined, child: Segment<T>) => boolean;
 
+/**
+ * OptionalValue is basically stating that if SegmentType[type] = true:
+ * - Allow this type to be optional
+ * - Give it a default value of undefined
+ * - Also allow it to be true
+ * This lets us do:
+ * const s: Segment<SegmentType> = new Segment("create-room");
+ * instead of
+ * const s: Segment<SegmentType> = new Segment("create-room", undefined);
+ */
 export type OptionalValue<T> = T extends true? [(undefined | true)?]: [T];
 
 export class Navigation<T extends object> {
