@@ -81,7 +81,12 @@ export class SessionViewModel extends ViewModel {
         }));
         this._updateCreateRoom(createRoom.get());
 
-        setupLightboxNavigation(this, 'lightboxViewModel');
+        setupLightboxNavigation(this, 'lightboxViewModel', (eventId) => {
+            return {
+                room,
+                eventId,
+            };
+        });
 
         const rightpanel = this.navigation.observe("right-panel");
         this.track(rightpanel.subscribe(() => this._updateRightPanel()));

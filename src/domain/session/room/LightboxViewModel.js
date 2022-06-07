@@ -19,11 +19,11 @@ import {ViewModel} from "../../ViewModel";
 export class LightboxViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        this._eventId = options.eventId;
+        this._eventEntry = options.eventEntry;
+        this._eventId = options.eventId || options.eventEntry.id;
         this._unencryptedImageUrl = null;
         this._decryptedImage = null;
         this._closeUrl = this.urlCreator.urlUntilSegment("room");
-        this._eventEntry = options.eventEntry;
         this._date = null;
         this._subscribeToEvent(options.room, options.eventId);
     }
