@@ -96,6 +96,6 @@ export class LightboxViewModel extends ViewModel {
     }
 
     close() {
-        this.platform.history.pushUrl(this.closeUrl);
+        this.history.pushUrl(this.closeUrl);
     }
 }

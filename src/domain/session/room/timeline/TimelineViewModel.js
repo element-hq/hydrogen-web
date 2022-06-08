@@ -36,7 +36,6 @@ import {ViewModel} from "../../../ViewModel";
 
 export class TimelineViewModel extends ViewModel {
     constructor(options) {
-        console.log('TimelineViewModel asdf', options)
         super(options);
         const {timeline, tileOptions} = options;
         this._timeline = this.track(timeline);
