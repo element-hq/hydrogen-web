@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-const path = require('path');
+const path = require('path').posix;
 
 async function readCSSSource(location) {
     const fs = require("fs").promises;
@@ -103,6 +103,7 @@ module.exports = function buildThemes(options) {
             if (isDevelopment) { return; }
             const { themeConfig } = options;
             for (const [name, location] of Object.entries(themeConfig.themes)) {
+                console.log('build', location);
                 manifest = require(`${location}/manifest.json`);
                 variants = manifest.values.variants;
                 for (const [variant, details] of Object.entries(variants)) {
@@ -142,6 +143,7 @@ module.exports = function buildThemes(options) {
 
         async load(id) {
             if (isDevelopment) {
+                //console.log('load', id);
                 /**
                  * To load the theme during dev, we need to take a different approach because emitFile is not supported in dev.
                  * We solve this by resolving virtual file "@theme/name/variant" into the necessary css import.
