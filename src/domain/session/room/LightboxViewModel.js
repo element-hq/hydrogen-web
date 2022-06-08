@@ -19,21 +19,25 @@ import {ViewModel} from "../../ViewModel";
 export class LightboxViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        this._eventId = options.eventId;
+        this._eventEntry = options.eventEntry;
+        this._eventId = options.eventId || options.eventEntry.id;
         this._unencryptedImageUrl = null;
         this._decryptedImage = null;
         this._closeUrl = this.urlCreator.urlUntilSegment("room");
-        this._eventEntry = null;
         this._date = null;
         this._subscribeToEvent(options.room, options.eventId);
     }
 
     _subscribeToEvent(room, eventId) {
-        const eventObservable = room.observeEvent(eventId);
-        this.track(eventObservable.subscribe(eventEntry => {
-            this._loadEvent(room, eventEntry);
-        }));
-        this._loadEvent(room, eventObservable.get());
+        let event = this._eventEntry;
+        if (!this._eventEntry) {
+            const eventObservable = room.observeEvent(eventId);
+            this.track(eventObservable.subscribe(eventEntry => {
+                this._loadEvent(room, eventEntry);
+            }));
+            event = eventObservable.get();
+        }
+        this._loadEvent(room, event);
     }
 
     async _loadEvent(room, eventEntry) {
@@ -92,6 +96,6 @@ export class LightboxViewModel extends ViewModel {
     }
 
     close() {
-        this.platform.history.pushUrl(this.closeUrl);
+        this.history.pushUrl(this.closeUrl);
     }
 }
