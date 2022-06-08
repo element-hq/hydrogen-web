@@ -103,7 +103,6 @@ module.exports = function buildThemes(options) {
             if (isDevelopment) { return; }
             const { themeConfig } = options;
             for (const [name, location] of Object.entries(themeConfig.themes)) {
-                console.log('build', location);
                 manifest = require(`${location}/manifest.json`);
                 variants = manifest.values.variants;
                 for (const [variant, details] of Object.entries(variants)) {
@@ -143,7 +142,6 @@ module.exports = function buildThemes(options) {
 
         async load(id) {
             if (isDevelopment) {
-                //console.log('load', id);
                 /**
                  * To load the theme during dev, we need to take a different approach because emitFile is not supported in dev.
                  * We solve this by resolving virtual file "@theme/name/variant" into the necessary css import.
