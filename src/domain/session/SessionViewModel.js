@@ -83,7 +83,7 @@ export class SessionViewModel extends ViewModel {
 
         setupLightboxNavigation(this, 'lightboxViewModel', (eventId) => {
             return {
-                room,
+                room: this._roomFromNavigation(),
                 eventId,
             };
         });
