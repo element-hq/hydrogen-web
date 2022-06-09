@@ -18,6 +18,7 @@ limitations under the License.
 @import url('../../main.css');
 @import url('inter.css');
 @import url('timeline.css');
+@import url('call.css');
 
 :root {
     font-size: 10px;
@@ -1155,56 +1156,3 @@ button.RoomDetailsView_row::after {
     background-position: center;
     background-size: 36px;
 }
-
-.CallView {
-    max-height: 50vh;
-    overflow-y: auto;
-}
-
-.CallView ul {
-    display: flex;
-    margin: 0;
-    gap: 12px;
-    padding: 0;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-
-.StreamView {
-    width: 360px;
-    min-height: 200px;
-    border: 2px var(--accent-color) solid;
-    display: grid;
-    border-radius: 8px;
-    overflow: hidden;
-    background-color: black;
-}
-
-.StreamView > * {
-    grid-column: 1;
-    grid-row: 1;
-} 
-
-.StreamView video {
-    width: 100%;
-}
-
-.StreamView_avatar {
-    align-self: center;
-    justify-self: center;
-}
-
-.StreamView_muteStatus {
-    align-self: end;
-    justify-self: start;
-    color: var(--text-color--lighter-80);
-}
-
-.StreamView_muteStatus.microphoneMuted::before {
-    content: "mic muted";
-}
-
-.StreamView_muteStatus.cameraMuted::before {
-    content: "cam muted";
-}
-

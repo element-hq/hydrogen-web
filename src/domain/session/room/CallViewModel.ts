@@ -46,11 +46,31 @@ export class CallViewModel extends ViewModel<Options> {
             .mapValues(member => new CallMemberViewModel(this.childOptions({member, mediaRepository: this.getOption("room").mediaRepository})))
             .join(ownMemberViewModelMap)
             .sortValues((a, b) => a.compare(b));
+        this.track(this.memberViewModels.subscribe({
+            onRemove: () => {
+                this.emitChange(); // update memberCount
+            },
+            onAdd: () => {
+                this.emitChange(); // update memberCount
+            },
+            onUpdate: () => {},
+            onReset: () => {},
+            onMove: () => {}
+        }))
     }
 
-    private get call(): GroupCall {
-        return this.getOption("call");
+    get isCameraMuted(): boolean {
+        return isLocalCameraMuted(this.call);
     }
+
+    get isMicrophoneMuted(): boolean {
+        return isLocalMicrophoneMuted(this.call);
+    }
+
+    get memberCount(): number {
+        return this.memberViewModels.length;
+    }
+
 
     get name(): string {
         return this.call.name;
@@ -60,19 +80,27 @@ export class CallViewModel extends ViewModel<Options> {
         return this.call.id;
     }
 
-    get stream(): Stream | undefined {
-        return this.call.localMedia?.userMedia;
+    private get call(): GroupCall {
+        return this.getOption("call");
     }
 
-    leave() {
+    hangup() {
         if (this.call.hasJoined) {
             this.call.leave();
         }
     }
 
-    async toggleVideo() {
+    async toggleCamera() {
         if (this.call.muteSettings) {
             this.call.setMuted(this.call.muteSettings.toggleCamera());
+            this.emitChange();
+        }
+    }
+
+    async toggleMicrophone() {
+        if (this.call.muteSettings) {
+            this.call.setMuted(this.call.muteSettings.toggleMicrophone());
+            this.emitChange();
         }
     }
 }
@@ -102,11 +130,11 @@ class OwnMemberViewModel extends ViewModel<Options> implements IStreamViewModel 
     }
 
     get isCameraMuted(): boolean {
-        return isMuted(this.call.muteSettings?.camera, !!getStreamVideoTrack(this.stream));
+        return isLocalCameraMuted(this.call);
     }
 
     get isMicrophoneMuted(): boolean {
-        return isMuted(this.call.muteSettings?.microphone, !!getStreamAudioTrack(this.stream));
+        return isLocalMicrophoneMuted(this.call);
     }
 
     get avatarLetter(): string {
@@ -208,4 +236,12 @@ function isMuted(muted: boolean | undefined, hasTrack: boolean) {
     } else {
         return !hasTrack;
     }
+}
+
+function isLocalCameraMuted(call: GroupCall): boolean {
+    return isMuted(call.muteSettings?.camera, !!getStreamVideoTrack(call.localMedia?.userMedia));
+}
+
+function isLocalMicrophoneMuted(call: GroupCall): boolean {
+    return isMuted(call.muteSettings?.microphone, !!getStreamAudioTrack(call.localMedia?.userMedia));
 }
