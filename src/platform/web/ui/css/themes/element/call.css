@@ -40,6 +40,7 @@ limitations under the License.
     border-radius: 8px;
     overflow: hidden;
     background-color: black;
+    display: block;
 }
 
 .StreamView > * {
@@ -98,9 +99,17 @@ limitations under the License.
     background-repeat: no-repeat;
 }
 
+.CallView_buttons button:disabled {
+    background-color: var(--accent-color--lighter-10);
+}
+
 .CallView_buttons .CallView_hangup {
     background-color: var(--error-color);
     background-image: url("./icons/hangup.svg?primary=background-color-primary");
+}
+
+.CallView_buttons .CallView_hangup:disabled {
+    background-color: var(--error-color--lighter-10);
 }
 
 .CallView_buttons .CallView_mutedMicrophone {

@@ -137,11 +137,13 @@ export class GroupCall extends EventEmitter<{change: never}> {
             ownSessionId: this.options.sessionId
         });
         const membersLogItem = logItem.child("member connections");
+        const localMuteSettings = new MuteSettings();
+        localMuteSettings.updateTrackInfo(localMedia.userMedia);
         const joinedData = new JoinedData(
             logItem,
             membersLogItem,
             localMedia,
-            new MuteSettings()
+            localMuteSettings
         );
         this.joinedData = joinedData;
         await joinedData.logItem.wrap("join", async log => {
@@ -163,9 +165,14 @@ export class GroupCall extends EventEmitter<{change: never}> {
         if ((this._state === GroupCallState.Joining || this._state === GroupCallState.Joined) && this.joinedData) {
             const oldMedia = this.joinedData.localMedia;
             this.joinedData.localMedia = localMedia;
+            // reflect the fact we gained or lost local tracks in the local mute settings
+            // and update the track info so PeerCall can use it to send up to date metadata,
+            this.joinedData.localMuteSettings.updateTrackInfo(localMedia.userMedia);
+            this.emitChange(); //allow listeners to see new media/mute settings
             await Promise.all(Array.from(this._members.values()).map(m => {
                 return m.setMedia(localMedia, oldMedia);
             }));
+
             oldMedia?.stopExcept(localMedia);
         }
     }
@@ -175,11 +182,19 @@ export class GroupCall extends EventEmitter<{change: never}> {
         if (!joinedData) {
             return;
         }
+        const prevMuteSettings = joinedData.localMuteSettings;
+        // we still update the mute settings if nothing changed because
+        // you might be muted because you don't have a track or because
+        // you actively chosen to mute
+        // (which we want to respect in the future when you add a track)
         joinedData.localMuteSettings = muteSettings;
-        await Promise.all(Array.from(this._members.values()).map(m => {
-            return m.setMuted(joinedData.localMuteSettings);
-        }));
-        this.emitChange();
+        joinedData.localMuteSettings.updateTrackInfo(joinedData.localMedia.userMedia);
+        if (!prevMuteSettings.equals(muteSettings)) {
+            await Promise.all(Array.from(this._members.values()).map(m => {
+                return m.setMuted(joinedData.localMuteSettings);
+            }));
+            this.emitChange();
+        }
     }
 
     get muteSettings(): MuteSettings | undefined {

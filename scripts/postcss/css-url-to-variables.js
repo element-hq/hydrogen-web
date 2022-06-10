@@ -26,7 +26,13 @@ const idToPrepend = "icon-url";
 
 function findAndReplaceUrl(decl) {
     const value = decl.value;
-    const parsed = valueParser(value);
+    let parsed;
+    try {
+        parsed = valueParser(value);
+    } catch (err) {
+        console.log(`Error trying to parse ${decl}`);
+        throw err;
+    }
     parsed.walk(node => {
         if (node.type !== "function" || node.value !== "url") {
             return;

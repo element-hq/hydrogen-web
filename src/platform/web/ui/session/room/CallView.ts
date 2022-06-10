@@ -37,12 +37,12 @@ export class CallView extends TemplateView<CallViewModel> {
                 t.button({className: {
                     "CallView_mutedMicrophone": vm => vm.isMicrophoneMuted,
                     "CallView_unmutedMicrophone": vm => !vm.isMicrophoneMuted,
-                }, onClick: () => vm.toggleMicrophone()}),
+                }, onClick: disableTargetCallback(() => vm.toggleMicrophone())}),
                 t.button({className: {
                     "CallView_mutedCamera": vm => vm.isCameraMuted,
                     "CallView_unmutedCamera": vm => !vm.isCameraMuted,
-                }, onClick: () => vm.toggleCamera()}),
-                t.button({className: "CallView_hangup", onClick: () => vm.hangup()}),
+                }, onClick: disableTargetCallback(() => vm.toggleCamera())}),
+                t.button({className: "CallView_hangup", onClick: disableTargetCallback(() => vm.hangup())}),
             ])
         ]);
     }
@@ -120,5 +120,13 @@ class StreamView extends TemplateView<IStreamViewModel> {
         super.update(value);
         // update the AvatarView as we told it to not subscribe itself with parentProvidesUpdates
         this.updateSubViews(value, props);
+    }
+}
+
+function disableTargetCallback(callback: (evt: Event) => Promise<void>): (evt: Event) => Promise<void> {
+    return async (evt: Event) => {
+        (evt.target as HTMLElement)?.setAttribute("disabled", "disabled");
+        await callback(evt);
+        (evt.target as HTMLElement)?.removeAttribute("disabled");
     }
 }

@@ -887,8 +887,8 @@ export class PeerCall implements IDisposable {
             const streamId = this.localMedia.userMedia.id;
             metadata[streamId] = {
                 purpose: SDPStreamMetadataPurpose.Usermedia,
-                audio_muted: this.localMuteSettings?.microphone || !getStreamAudioTrack(this.localMedia.userMedia),
-                video_muted: this.localMuteSettings?.camera || !getStreamVideoTrack(this.localMedia.userMedia),
+                audio_muted: this.localMuteSettings?.microphone ?? false,
+                video_muted: this.localMuteSettings?.camera ?? false,
             };
         }
         if (this.localMedia?.screenShare) {
@@ -936,7 +936,7 @@ export class PeerCall implements IDisposable {
                             this.updateRemoteMedia(log);
                         }
                     }
-                })
+                });
             };
             stream.addEventListener("removetrack", listener);
             const disposeListener = () => {
@@ -971,8 +971,10 @@ export class PeerCall implements IDisposable {
                                 videoReceiver.track.enabled = !metaData.video_muted;
                             }
                             this._remoteMuteSettings = new MuteSettings(
-                                metaData.audio_muted || !audioReceiver?.track,
-                                metaData.video_muted || !videoReceiver?.track
+                                metaData.audio_muted ?? false,
+                                metaData.video_muted ?? false,
+                                !!audioReceiver?.track ?? false,
+                                !!videoReceiver?.track ?? false
                             );
                             log.log({
                                 l: "setting userMedia",
