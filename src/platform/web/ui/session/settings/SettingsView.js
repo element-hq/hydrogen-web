@@ -180,7 +180,7 @@ export class SettingsView extends TemplateView {
         },
         [
             defaultRadioButton,
-            t.label({for: "default"}, "Match System Theme"),
+            t.label({for: "default"}, "Match system theme"),
             darkRadioButton,
             t.label({for: "dark"}, "dark"),
             lightRadioButton,
