@@ -162,6 +162,7 @@ export class ThemeLoader {
         });
     }
 
+    /** Maps theme display name to theme information */
     get themeMapping(): Record<string, ThemeInformation> {
         return this._themeMapping;
     }
