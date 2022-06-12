@@ -58,16 +58,10 @@ export class ThemeLoader {
     async init(manifestLocations: string[], log?: ILogItem): Promise<void> {
         await this._platform.logger.wrapOrRun(log, "ThemeLoader.init", async (log) => {
             this._themeMapping = {};
-            for (const manifestLocation of manifestLocations) {
-                const { body } = await this._platform
-                    .request(manifestLocation, {
-                        method: "GET",
-                        format: "json",
-                        cache: true,
-                    })
-                    .response();
-                this._populateThemeMap(body, log);
-            }
+            const results = await Promise.all(
+                manifestLocations.map( location => this._platform.request(location, { method: "GET", format: "json", cache: true, }).response())
+            );
+            results.forEach(({ body }) => this._populateThemeMap(body, log));
         });
     }
 
