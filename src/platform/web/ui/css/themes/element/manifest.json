@@ -2,12 +2,6 @@
 	"version": 1,
     "name": "Element",
 	"values": {
-		"font-faces": [
-			{
-				"font-family": "Inter",
-				"src": [{"asset": "/fonts/Inter.ttf", "format": "ttf"}]
-			}
-		],
 		"variants": {
             "light": {
                 "base": true,
