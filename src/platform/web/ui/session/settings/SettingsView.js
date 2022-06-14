@@ -140,11 +140,52 @@ export class SettingsView extends TemplateView {
     }
 
     _themeOptions(t, vm) {
-        const activeTheme = vm.activeTheme;
+        const { themeName: activeThemeName, themeVariant: activeThemeVariant } = vm.activeTheme;
         const optionTags = [];
-        for (const name of vm.themes) {
-            optionTags.push(t.option({value: name, selected: name === activeTheme}, name));
+        // 1. render the dropdown containing the themes
+        for (const name of Object.keys(vm.themeMapping)) {
+            optionTags.push( t.option({ value: name, selected: name === activeThemeName} , name));
         }
-        return t.select({onChange: (e) => vm.setTheme(e.target.value)}, optionTags);
+        const select = t.select({
+            onChange: (e) => {
+                const themeName = e.target.value;
+                if(!("id" in vm.themeMapping[themeName])) {
+                    const colorScheme = darkRadioButton.checked ? "dark" : lightRadioButton.checked ? "light" : "default";
+                    // execute the radio-button callback so that the theme actually changes!
+                    // otherwise the theme would only change when another radio-button is selected.
+                    radioButtonCallback(colorScheme);
+                    return;
+                }
+                vm.changeThemeOption(themeName);
+            }
+        }, optionTags);
+        // 2. render the radio-buttons used to choose variant
+        const radioButtonCallback = (colorScheme) => {
+            const selectedThemeName = select.options[select.selectedIndex].value;
+            vm.changeThemeOption(selectedThemeName, colorScheme);
+        };
+        const isDarkSelected = activeThemeVariant === "dark";
+        const isLightSelected = activeThemeVariant === "light";
+        const darkRadioButton = t.input({ type: "radio", name: "radio-chooser", value: "dark", id: "dark", checked: isDarkSelected });
+        const defaultRadioButton = t.input({ type: "radio", name: "radio-chooser", value: "default", id: "default", checked: !(isDarkSelected || isLightSelected) });
+        const lightRadioButton = t.input({ type: "radio", name: "radio-chooser", value: "light", id: "light", checked: isLightSelected });
+        const radioButtons = t.form({
+            className: {
+                hidden: () => {
+                    const themeName = select.options[select.selectedIndex].value;
+                    return "id" in vm.themeMapping[themeName];
+                }
+            },
+            onChange: (e) => radioButtonCallback(e.target.value)
+        },
+        [
+            defaultRadioButton,
+            t.label({for: "default"}, "Match system theme"),
+            darkRadioButton,
+            t.label({for: "dark"}, "dark"),
+            lightRadioButton,
+            t.label({for: "light"}, "light"),
+        ]);
+        return t.div({ className: "theme-chooser" }, [select, radioButtons]);
     }
 }
