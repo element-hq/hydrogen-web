@@ -187,9 +187,5 @@ export class SettingsViewModel extends ViewModel {
         // emit so that radio-buttons become displayed/hidden
         this.emitChange("themeOption");
     }
-
-    get preferredColorScheme() {
-        return this.platform.themeLoader.preferredColorScheme;
-    } 
 }
 
