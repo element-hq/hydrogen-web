@@ -48,7 +48,8 @@ export enum RoomVisibility {
 }
 
 export enum RoomType {
-    World
+    World,
+    Profile,
 }
 
 type RoomResponse = {

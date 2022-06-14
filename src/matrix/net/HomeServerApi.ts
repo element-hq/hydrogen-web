@@ -302,6 +302,14 @@ export class HomeServerApi {
         return this._get(`/profile/${encodeURIComponent(userId)}`);
     }
 
+    setProfileDisplayName(userId, displayName, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._put(`/profile/${encodeURIComponent(userId)}/displayname`, {}, { displayname: displayName }, options);
+    }
+
+    setProfileAvatarUrl(userId, avatarUrl, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._put(`/profile/${encodeURIComponent(userId)}/avatar_url`, {}, { avatar_url: avatarUrl }, options);
+    }
+
     createRoom(payload: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._post(`/createRoom`, {}, payload, options);
     }

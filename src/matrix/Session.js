@@ -133,6 +133,14 @@ export class Session {
         this.needsKeyBackup = new ObservableValue(false);
     }
 
+    get hsApi() {
+        return this._hsApi;
+    }
+
+    get sessionInfo() {
+        return this._sessionInfo;
+    }
+
     get fingerprintKey() {
         return this._e2eeAccount?.identityKeys.ed25519;
     }
