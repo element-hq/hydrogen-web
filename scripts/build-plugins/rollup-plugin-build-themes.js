@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-const path = require('path');
+const path = require('path').posix;
 
 async function readCSSSource(location) {
     const fs = require("fs").promises;
@@ -246,6 +246,9 @@ module.exports = function buildThemes(options) {
 },
 
         generateBundle(_, bundle) {
+            // assetMap: Mapping from asset-name (eg: element-dark.css) to AssetInfo
+            // chunkMap: Mapping from theme-location (eg: hydrogen-web/src/.../css/themes/element) to a list of ChunkInfo 
+            // types of AssetInfo and ChunkInfo can be found at https://rollupjs.org/guide/en/#generatebundle
             const { assetMap, chunkMap, runtimeThemeChunk } = parseBundle(bundle);
             const manifestLocations = [];
             for (const [location, chunkArray] of chunkMap) {
@@ -254,10 +257,6 @@ module.exports = function buildThemes(options) {
                 const derivedVariables = compiledVariables["derived-variables"];
                 const icon = compiledVariables["icon"];
                 const builtAssets = {};
-                /**
-                 * Generate a mapping from theme name to asset hashed location of said theme in build output.
-                 * This can be used to enumerate themes during runtime.
-                 */
                 for (const chunk of chunkArray) {
                     const [, name, variant] = chunk.fileName.match(/theme-(.+)-(.+)\.css/);
                     builtAssets[`${name}-${variant}`] = assetMap.get(chunk.fileName).fileName;

@@ -131,16 +131,12 @@ export class SettingsViewModel extends ViewModel {
         return this._formatBytes(this._estimate?.usage);
     }
 
-    get themes() {
-        return this.platform.themeLoader.themes;
+    get themeMapping() {
+        return this.platform.themeLoader.themeMapping;
     }
 
     get activeTheme() {
         return this._activeTheme;
-    }
-
-    setTheme(name) {
-        this.platform.themeLoader.setTheme(name);
     }
 
     _formatBytes(n) {
@@ -191,5 +187,15 @@ export class SettingsViewModel extends ViewModel {
             this.emitChange("pushNotifications.serverError");
         }
     }
+
+    changeThemeOption(themeName, themeVariant) {
+        this.platform.themeLoader.setTheme(themeName, themeVariant);
+        // emit so that radio-buttons become displayed/hidden
+        this.emitChange("themeOption");
+    }
+
+    get preferredColorScheme() {
+        return this.platform.themeLoader.preferredColorScheme;
+    } 
 }
 
