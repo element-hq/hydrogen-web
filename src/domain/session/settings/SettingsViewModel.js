@@ -16,6 +16,7 @@ limitations under the License.
 
 import {ViewModel} from "../../ViewModel";
 import {KeyBackupViewModel} from "./KeyBackupViewModel.js";
+import {submitLogsToRageshakeServer} from "../../../domain/rageshake";
 
 class PushNotificationStatus {
     constructor() {
@@ -150,6 +151,21 @@ export class SettingsViewModel extends ViewModel {
     async exportLogs() {
         const logExport = await this.logger.export();
         this.platform.saveFileAs(logExport.asBlob(), `hydrogen-logs-${this.platform.clock.now()}.json`);
+    }
+
+    async sendLogsToServer() {
+        const logExport = await this.logger.export();
+        await submitLogsToRageshakeServer(
+            {
+                app: "hydrogen",
+                userAgent: "<missing>",
+                version: DEFINE_VERSION,
+                text: "Submit logs from settings",
+            },
+            logExport.asBlob(),
+            this.platform.config.bugReportEndpointUrl,
+            this.platform.request
+        );
     }
 
     async togglePushNotifications() {

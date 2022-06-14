@@ -64,11 +64,25 @@ export function createFetchRequest(createTimeout, serviceWorkerHandler) {
         if (requestOptions?.uploadProgress) {
             return xhrRequest(url, requestOptions);
         }
-        let {method, headers, body, timeout, format, cache = false} = requestOptions;
+        let {method, headers, body, formData, timeout, format, cache = false} = requestOptions;
         const controller = typeof AbortController === "function" ? new AbortController() : null;
         // if a BlobHandle, take native blob
         if (body?.nativeBlob) {
             body = body.nativeBlob;
+        }
+        if (body instanceof Map) {
+            const formData = new FormData();
+            for (const [name, value] of body) {
+                let filename;
+                // Special case {name: string, blob: BlobHandle} to set a filename.
+                // This is the format returned by platform.openFile
+                if (value.blob?.nativeBlob && value.name) {
+                    formData.set(name, value.blob.nativeBlob, value.name);
+                } else {
+                    formData.set(name, value);
+                }
+            }
+            body = formData;
         }
         let options = {method, body};
         if (controller) {
