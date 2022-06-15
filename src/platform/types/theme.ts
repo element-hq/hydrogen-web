@@ -63,6 +63,6 @@ type Variant = {
     /**
      * Mapping from css variable to its value.
      * eg: {"background-color-primary": "#21262b", ...} 
-     * */
+     */
     variables: Record<string, string>;
 }
