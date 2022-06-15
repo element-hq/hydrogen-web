@@ -64,7 +64,7 @@ export function createFetchRequest(createTimeout, serviceWorkerHandler) {
         if (requestOptions?.uploadProgress) {
             return xhrRequest(url, requestOptions);
         }
-        let {method, headers, body, formData, timeout, format, cache = false} = requestOptions;
+        let {method, headers, body, timeout, format, cache = false} = requestOptions;
         const controller = typeof AbortController === "function" ? new AbortController() : null;
         // if a BlobHandle, take native blob
         if (body?.nativeBlob) {

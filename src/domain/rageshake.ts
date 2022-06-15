@@ -61,9 +61,7 @@ export async function submitLogsToRageshakeServer(data: RageshakeData, logsBlob:
         throw new Error(`Could not submit logs to ${submitUrl}, got error ${err.message}`);
     }
     const {status, body} = response;
-    if (status >= 200 && status < 300) {
-        return body.report_url;
-    } else {
+    if (status < 200 || status >= 300) {
         throw new Error(`Could not submit logs to ${submitUrl}, got status code ${status} with body ${body}`);
     }
 }
