@@ -15,7 +15,10 @@ limitations under the License.
 */
 
 export type ThemeManifest = {
-    // Version number of theme; must be incremented on each change!
+    /**
+     * Version number of the theme manifest.
+     * This must be incremented when backwards incompatible changes are introduced.
+     */
     version: number;
     // A user-facing string that is the name for this theme-collection.
     name: string;
