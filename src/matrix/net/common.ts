@@ -17,10 +17,12 @@ limitations under the License.
 
 import {BlobHandle} from "../../platform/web/dom/BlobHandle.js";
 
+export type RequestBody = BlobHandle | string | Map<string, string | {blob: BlobHandle, name: string}>;
+
 export type EncodedBody = {
     mimeType: string;
     // the map gets transformed to a FormData object on the web
-    body: BlobHandle | string | Map<string, string | {blob: BlobHandle, name: string}>;
+    body: RequestBody
 }
 
 export function encodeQueryParams(queryParams?: object): string {
