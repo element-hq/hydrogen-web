@@ -345,6 +345,10 @@ export class Platform {
         head.appendChild(styleTag);
     }
 
+    get description() {
+        return navigator.userAgent ?? "<unknown>";
+    }
+
     dispose() {
         this._disposables.dispose();
     }

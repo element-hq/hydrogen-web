@@ -15,13 +15,13 @@ limitations under the License.
 */
 
 import type {RequestResult} from "../web/dom/request/fetch.js";
-import type {EncodedBody} from "../../matrix/net/common";
+import type {RequestBody} from "../../matrix/net/common";
 import type {ILogItem} from "../../logging/types";
 
 export interface IRequestOptions {
     uploadProgress?: (loadedBytes: number) => void;
     timeout?: number;
-    body?: EncodedBody;
+    body?: RequestBody;
     headers?: Map<string, string|number>;
     cache?: boolean;
     method?: string;
