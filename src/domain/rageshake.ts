@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {encodeBody} from "../matrix/net/common";
-
 import type {BlobHandle} from "../platform/web/dom/BlobHandle";
 import type {RequestFunction} from "../platform/types/types";
 
@@ -45,13 +43,11 @@ export async function submitLogsToRageshakeServer(data: RageshakeData, logsBlob:
         formData.set("label", data.label);
     }
     formData.set("file", {name: "logs.json", blob: logsBlob});
-    const encoded = encodeBody(formData);
     const headers: Map<string, string> = new Map();
     headers.set("Accept", "application/json");
-    //headers.set("Content-Type", encoded.mimeType);
     const result = request(submitUrl, {
         method: "POST",
-        body: encoded.body,
+        body: formData,
         headers
     });
     let response;
@@ -64,4 +60,6 @@ export async function submitLogsToRageshakeServer(data: RageshakeData, logsBlob:
     if (status < 200 || status >= 300) {
         throw new Error(`Could not submit logs to ${submitUrl}, got status code ${status} with body ${body}`);
     }
+    // we don't bother with reading report_url from the body as the rageshake server doesn't always return it
+    // and would have to have CORS setup properly for us to be able to read it.
 }
