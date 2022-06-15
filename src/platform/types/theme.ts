@@ -23,7 +23,7 @@ export type ThemeManifest = {
     // A user-facing string that is the name for this theme-collection.
     name: string;
     /**
-     * This is produced during the build process and includes data
+     * This is added to the manifest during the build process and includes data
      * that is needed to load themes at runtime.
      */
     source?: {
