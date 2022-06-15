@@ -20,7 +20,7 @@ import {
     ConnectionError
 } from "../../../../matrix/error.js";
 import {abortOnTimeout} from "../../../../utils/timeout";
-import {addCacheBuster} from "./common.js";
+import {addCacheBuster, mapAsFormData} from "./common.js";
 import {xhrRequest} from "./xhr.js";
 
 class RequestResult {
@@ -71,18 +71,7 @@ export function createFetchRequest(createTimeout, serviceWorkerHandler) {
             body = body.nativeBlob;
         }
         if (body instanceof Map) {
-            const formData = new FormData();
-            for (const [name, value] of body) {
-                let filename;
-                // Special case {name: string, blob: BlobHandle} to set a filename.
-                // This is the format returned by platform.openFile
-                if (value.blob?.nativeBlob && value.name) {
-                    formData.set(name, value.blob.nativeBlob, value.name);
-                } else {
-                    formData.set(name, value);
-                }
-            }
-            body = formData;
+            body = mapAsFormData(body);
         }
         let options = {method, body};
         if (controller) {
