@@ -52,7 +52,6 @@ export type ThemeManifest = {
 };
 
 type Variant = {
-    base: boolean;
     /**
      * If true, this variant is used a default dark/light variant and will be the selected theme
      * when "Match system theme" is selected for this theme collection in settings.
