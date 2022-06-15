@@ -31,7 +31,7 @@ type RageshakeData = {
     label: string | undefined;
 };
 
-export async function submitLogsToRageshakeServer(data: RageshakeData, logsBlob: BlobHandle, submitUrl: string, request: RequestFunction): Promise<string> {
+export async function submitLogsToRageshakeServer(data: RageshakeData, logsBlob: BlobHandle, submitUrl: string, request: RequestFunction): Promise<void> {
     const formData = new Map<string, string | {name: string, blob: BlobHandle}>();
     if (data.text) {
         formData.set("text", data.text);
