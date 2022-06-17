@@ -167,5 +167,3 @@ To find the theme-id of some theme, you can look at the built-asset section of t
 This default theme will render as "Default" option in the theme-chooser dropdown. If the device preference is for dark theme, the dark default is selected and vice versa.
 
 **You'll need to reload twice so that Hydrogen picks up the config changes!**
-
-
