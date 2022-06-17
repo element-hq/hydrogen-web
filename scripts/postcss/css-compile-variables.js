@@ -30,12 +30,7 @@ const valueParser = require("postcss-value-parser");
  * The actual derivation is done outside the plugin in a callback.
  */
 
-let aliasMap;
-let resolvedMap;
-let baseVariables;
-let isDark;
-
-function getValueFromAlias(alias) {
+function getValueFromAlias(alias, {aliasMap, baseVariables, resolvedMap}) {
     const derivedVariable = aliasMap.get(alias);
     return baseVariables.get(derivedVariable) ?? resolvedMap.get(derivedVariable);
 }
@@ -68,14 +63,15 @@ function parseDeclarationValue(value) {
     return variables;
 }
 
-function resolveDerivedVariable(decl, derive) {
+function resolveDerivedVariable(decl, derive, maps, isDark) {
+    const { baseVariables, resolvedMap } = maps;
     const RE_VARIABLE_VALUE = /(?:--)?((.+)--(.+)-(.+))/;
     const variableCollection = parseDeclarationValue(decl.value);
     for (const variable of variableCollection) {
         const matches = variable.match(RE_VARIABLE_VALUE);
         if (matches) {
             const [, wholeVariable, baseVariable, operation, argument] = matches;
-            const value = baseVariables.get(baseVariable) ?? getValueFromAlias(baseVariable);
+            const value = baseVariables.get(baseVariable) ?? getValueFromAlias(baseVariable, maps);
             if (!value) {
                 throw new Error(`Cannot derive from ${baseVariable} because it is neither defined in config nor is it an alias!`);
             }
@@ -85,7 +81,7 @@ function resolveDerivedVariable(decl, derive) {
     }
 }
 
-function extract(decl) {
+function extract(decl, {aliasMap, baseVariables}) {
     if (decl.variable) {
         // see if right side is of form "var(--foo)"
         const wholeVariable = decl.value.match(/var\(--(.+)\)/)?.[1];
@@ -100,7 +96,7 @@ function extract(decl) {
     }
 }
 
-function addResolvedVariablesToRootSelector(root, {Rule, Declaration}) {
+function addResolvedVariablesToRootSelector(root, {Rule, Declaration}, {resolvedMap}) {
     const newRule = new Rule({ selector: ":root", source: root.source });
     // Add derived css variables to :root
     resolvedMap.forEach((value, key) => {
@@ -110,7 +106,7 @@ function addResolvedVariablesToRootSelector(root, {Rule, Declaration}) {
     root.append(newRule);
 }
 
-function populateMapWithDerivedVariables(map, cssFileLocation) {
+function populateMapWithDerivedVariables(map, cssFileLocation, {resolvedMap, aliasMap}) {
     const location = cssFileLocation.match(/(.+)\/.+\.css/)?.[1];
     const derivedVariables = [
         ...([...resolvedMap.keys()].filter(v => !aliasMap.has(v))),
@@ -133,10 +129,10 @@ function populateMapWithDerivedVariables(map, cssFileLocation) {
  * @param {Map} opts.compiledVariables - A map that stores derived variables so that manifest source sections can be produced
  */
 module.exports = (opts = {}) => {
-    aliasMap = new Map();
-    resolvedMap = new Map();
-    baseVariables = new Map();
-    isDark = false;
+    const aliasMap = new Map();
+    const resolvedMap = new Map();
+    const baseVariables = new Map();
+    const maps = { aliasMap, resolvedMap, baseVariables };
 
     return {
         postcssPlugin: "postcss-compile-variables",
@@ -147,16 +143,16 @@ module.exports = (opts = {}) => {
                 // If this is a runtime theme, don't derive variables.
                 return;
             }
-            isDark = cssFileLocation.includes("dark=true");
+            const isDark = cssFileLocation.includes("dark=true");
             /*
             Go through the CSS file once to extract all aliases and base variables.
             We use these when resolving derived variables later.
             */
-            root.walkDecls(decl => extract(decl));
-            root.walkDecls(decl => resolveDerivedVariable(decl, opts.derive));
-            addResolvedVariablesToRootSelector(root, {Rule, Declaration});
+            root.walkDecls(decl => extract(decl, maps));
+            root.walkDecls(decl => resolveDerivedVariable(decl, opts.derive, maps, isDark));
+            addResolvedVariablesToRootSelector(root, {Rule, Declaration}, maps);
             if (opts.compiledVariables){
-                populateMapWithDerivedVariables(opts.compiledVariables, cssFileLocation);
+                populateMapWithDerivedVariables(opts.compiledVariables, cssFileLocation, maps);
             }
             // Also produce a mapping from alias to completely resolved color
             const resolvedAliasMap = new Map();
