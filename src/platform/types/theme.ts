@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export type ThemeManifest = {
+export type ThemeManifest = Partial<{
     /**
      * Version number of the theme manifest.
      * This must be incremented when backwards incompatible changes are introduced.
@@ -26,7 +26,7 @@ export type ThemeManifest = {
      * This is added to the manifest during the build process and includes data
      * that is needed to load themes at runtime.
      */
-    source?: {
+    source: {
         /**
          * This is mapping from theme-id to location of css file relative to build-output root.
          * eg: {"element-light": "assets/theme-element-light.10f9bb22.css", ...}
@@ -49,9 +49,9 @@ export type ThemeManifest = {
          */
         variants: Record<string, Variant>;
     };
-};
+}>;
 
-type Variant = {
+type Variant = Partial<{
     /**
      * If true, this variant is used a default dark/light variant and will be the selected theme
      * when "Match system theme" is selected for this theme collection in settings.
@@ -64,4 +64,4 @@ type Variant = {
      * eg: {"background-color-primary": "#21262b", ...} 
      */
     variables: Record<string, string>;
-}
+}>;
