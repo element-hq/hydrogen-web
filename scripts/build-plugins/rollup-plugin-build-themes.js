@@ -43,10 +43,39 @@ function addThemesToConfig(bundle, manifestLocations, defaultThemes) {
     }
 }
 
-function parseBundle(bundle) {
+/**
+ * Returns a mapping from location (of manifest file) to an array containing all the chunks (of css files) generated from that location.
+ * To understand what chunk means in this context, see https://rollupjs.org/guide/en/#generatebundle.
+ * @param {*} bundle Mapping from fileName to AssetInfo | ChunkInfo
+ */
+function getMappingFromLocationToChunkArray(bundle) {
     const chunkMap = new Map();
+    for (const [fileName, info] of Object.entries(bundle)) {
+        if (!fileName.endsWith(".css") || info.type === "asset" || info.facadeModuleId?.includes("type=runtime")) {
+            continue;
+        }
+        const location = info.facadeModuleId?.match(/(.+)\/.+\.css/)?.[1];
+        if (!location) {
+            throw new Error("Cannot find location of css chunk!");
+        }
+        const array = chunkMap.get(location);
+        if (!array) {
+            chunkMap.set(location, [info]);
+        }
+        else {
+            array.push(info);
+        }
+    }
+    return chunkMap;
+}
+
+/**
+ * Returns a mapping from unhashed file name (of css files) to AssetInfo.
+ * To understand what AssetInfo means in this context, see https://rollupjs.org/guide/en/#generatebundle.
+ * @param {*} bundle Mapping from fileName to AssetInfo | ChunkInfo 
+ */
+function getMappingFromFileNameToAssetInfo(bundle) {
     const assetMap = new Map();
-    let runtimeThemeChunkMap = new Map();
     for (const [fileName, info] of Object.entries(bundle)) {
         if (!fileName.endsWith(".css")) {
             continue;
@@ -58,6 +87,20 @@ function parseBundle(bundle) {
              * searching through the bundle array later.
              */
             assetMap.set(info.name, info);
+        }
+    }
+    return assetMap;
+}
+
+/**
+ * Returns a mapping from location (of manifest file) to ChunkInfo of the runtime css asset
+ * To understand what ChunkInfo means in this context, see https://rollupjs.org/guide/en/#generatebundle.
+ * @param {*} bundle Mapping from fileName to AssetInfo | ChunkInfo
+ */
+function getMappingFromLocationToRuntimeChunk(bundle) {
+    let runtimeThemeChunkMap = new Map();
+    for (const [fileName, info] of Object.entries(bundle)) {
+        if (!fileName.endsWith(".css") || info.type === "asset") {
             continue;
         }
         const location = info.facadeModuleId?.match(/(.+)\/.+\.css/)?.[1];
@@ -70,17 +113,9 @@ function parseBundle(bundle) {
              * so store this separately.
              */
             runtimeThemeChunkMap.set(location, info);
-            continue;
-        }
-        const array = chunkMap.get(location);
-        if (!array) {
-            chunkMap.set(location, [info]);
-        }
-        else {
-            array.push(info);
         }
     }
-    return { chunkMap, assetMap, runtimeThemeChunkMap };
+    return runtimeThemeChunkMap;
 }
 
 module.exports = function buildThemes(options) {
@@ -246,10 +281,9 @@ module.exports = function buildThemes(options) {
 },
 
         generateBundle(_, bundle) {
-            // assetMap: Mapping from asset-name (eg: element-dark.css) to AssetInfo
-            // chunkMap: Mapping from theme-location (eg: hydrogen-web/src/.../css/themes/element) to a list of ChunkInfo 
-            // types of AssetInfo and ChunkInfo can be found at https://rollupjs.org/guide/en/#generatebundle
-            const { assetMap, chunkMap, runtimeThemeChunkMap } = parseBundle(bundle);
+            const assetMap = getMappingFromFileNameToAssetInfo(bundle);
+            const chunkMap = getMappingFromLocationToChunkArray(bundle);
+            const runtimeThemeChunkMap = getMappingFromLocationToRuntimeChunk(bundle);
             const manifestLocations = [];
             // Location of the directory containing manifest relative to the root of the build output
             const manifestLocation = "assets";
