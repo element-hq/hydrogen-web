@@ -60,7 +60,7 @@ body {
 ```
 
 ## Derived Variables
-In addition to simple substituion of variables in the stylesheet, it is also possible to instruct the build system to first produce a new value from the base variable value before the substitution.
+In addition to simple substitution of variables in the stylesheet, it is also possible to instruct the build system to first produce a new value from the base variable value before the substitution.
 
 Such derived variables have the form `base_css_variable--operation-arg` and can be read as:
 apply `operation` to `base_css_variable` with argument `arg`.
