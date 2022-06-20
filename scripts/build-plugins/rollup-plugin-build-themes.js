@@ -251,6 +251,8 @@ module.exports = function buildThemes(options) {
             // types of AssetInfo and ChunkInfo can be found at https://rollupjs.org/guide/en/#generatebundle
             const { assetMap, chunkMap, runtimeThemeChunkMap } = parseBundle(bundle);
             const manifestLocations = [];
+            // Location of the directory containing manifest relative to the root of the build output
+            const manifestLocation = "assets";
             for (const [location, chunkArray] of chunkMap) {
                 const manifest = require(`${location}/manifest.json`);
                 const compiledVariables = options.compiledVariables.get(location);
@@ -261,17 +263,20 @@ module.exports = function buildThemes(options) {
                 for (const chunk of chunkArray) {
                     const [, name, variant] = chunk.fileName.match(/theme-(.+)-(.+)\.css/);
                     themeKey = name;
-                    builtAssets[`${name}-${variant}`] = assetMap.get(chunk.fileName).fileName;
+                    const locationRelativeToBuildRoot = assetMap.get(chunk.fileName).fileName;
+                    const locationRelativeToManifest = path.relative(manifestLocation, locationRelativeToBuildRoot);
+                    builtAssets[`${name}-${variant}`] = locationRelativeToManifest;
                 }
                 const runtimeThemeChunk = runtimeThemeChunkMap.get(location);
+                const runtimeAssetLocation = path.relative(manifestLocation, assetMap.get(runtimeThemeChunk.fileName).fileName); 
                 manifest.source = {
                     "built-assets": builtAssets,
-                    "runtime-asset": assetMap.get(runtimeThemeChunk.fileName).fileName,
+                    "runtime-asset": runtimeAssetLocation,
                     "derived-variables": derivedVariables,
                     "icon": icon
                 };
                 const name = `theme-${themeKey}.json`;
-                manifestLocations.push(`assets/${name}`);
+                manifestLocations.push(`${manifestLocation}/${name}`);
                 this.emitFile({
                     type: "asset",
                     name,

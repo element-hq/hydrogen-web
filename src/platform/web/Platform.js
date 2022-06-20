@@ -338,7 +338,7 @@ export class Platform {
         document.querySelectorAll(".theme").forEach(e => e.remove());
         // add new theme
         const styleTag = document.createElement("link");
-        styleTag.href = `./${newPath}`;
+        styleTag.href = newPath;
         styleTag.rel = "stylesheet";
         styleTag.type = "text/css";
         styleTag.className = "theme";
