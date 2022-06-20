@@ -46,7 +46,7 @@ function addThemesToConfig(bundle, manifestLocations, defaultThemes) {
 function parseBundle(bundle) {
     const chunkMap = new Map();
     const assetMap = new Map();
-    let runtimeThemeChunk;
+    let runtimeThemeChunkMap = new Map();
     for (const [fileName, info] of Object.entries(bundle)) {
         if (!fileName.endsWith(".css")) {
             continue;
@@ -60,17 +60,17 @@ function parseBundle(bundle) {
             assetMap.set(info.name, info);
             continue;
         }
+        const location = info.facadeModuleId?.match(/(.+)\/.+\.css/)?.[1];
+        if (!location) {
+            throw new Error("Cannot find location of css chunk!");
+        }
         if (info.facadeModuleId?.includes("type=runtime")) {
             /**
              * We have a separate field in manifest.source just for the runtime theme,
              * so store this separately.
              */
-            runtimeThemeChunk = info;
+            runtimeThemeChunkMap.set(location, info);
             continue;
-        }
-        const location = info.facadeModuleId?.match(/(.+)\/.+\.css/)?.[1];
-        if (!location) {
-            throw new Error("Cannot find location of css chunk!");
         }
         const array = chunkMap.get(location);
         if (!array) {
@@ -80,7 +80,7 @@ function parseBundle(bundle) {
             array.push(info);
         }
     }
-    return { chunkMap, assetMap, runtimeThemeChunk };
+    return { chunkMap, assetMap, runtimeThemeChunkMap };
 }
 
 module.exports = function buildThemes(options) {
@@ -249,7 +249,7 @@ module.exports = function buildThemes(options) {
             // assetMap: Mapping from asset-name (eg: element-dark.css) to AssetInfo
             // chunkMap: Mapping from theme-location (eg: hydrogen-web/src/.../css/themes/element) to a list of ChunkInfo 
             // types of AssetInfo and ChunkInfo can be found at https://rollupjs.org/guide/en/#generatebundle
-            const { assetMap, chunkMap, runtimeThemeChunk } = parseBundle(bundle);
+            const { assetMap, chunkMap, runtimeThemeChunkMap } = parseBundle(bundle);
             const manifestLocations = [];
             for (const [location, chunkArray] of chunkMap) {
                 const manifest = require(`${location}/manifest.json`);
@@ -263,6 +263,7 @@ module.exports = function buildThemes(options) {
                     themeKey = name;
                     builtAssets[`${name}-${variant}`] = assetMap.get(chunk.fileName).fileName;
                 }
+                const runtimeThemeChunk = runtimeThemeChunkMap.get(location);
                 manifest.source = {
                     "built-assets": builtAssets,
                     "runtime-asset": assetMap.get(runtimeThemeChunk.fileName).fileName,
