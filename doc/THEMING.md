@@ -90,7 +90,7 @@ It is possible give aliases to variables in the `theme.css` file:
     --icon-color: var(--background-color-secondary--darker-40);
 }
 ```
-It is possible to derive from these aliased variables:
+It is possible to further derive from these aliased variables:
 ```css=
 div {
     background: var(--icon-color--darker-20);
