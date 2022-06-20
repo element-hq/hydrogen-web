@@ -5,7 +5,7 @@ The manifest specifies variants (eg: dark,light ...) each of which is a **theme*
 
 Each such theme is produced by changing the values of variables in the base `theme.css` file with those specified in the variant section of the manifest:
 
-![](https://i.imgur.com/xepi7sx.png)
+![](images/theming-architecture.png)
 
 More in depth explanations can be found in later sections.
 
@@ -113,7 +113,7 @@ For colorizing svgs, the source svg must use `#ff00ff` as the primary color and 
 
   
 
-| ![](https://i.imgur.com/Mda5YmQ.png) | ![](https://i.imgur.com/TENQIeK.png) |
+| ![](images/svg-icon-example.png) | ![](images/coloring-process.png) |
 | :--: |:--: |
 | **original source image** | **transformation process** |
 
