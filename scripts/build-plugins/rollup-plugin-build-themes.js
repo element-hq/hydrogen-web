@@ -257,8 +257,10 @@ module.exports = function buildThemes(options) {
                 const derivedVariables = compiledVariables["derived-variables"];
                 const icon = compiledVariables["icon"];
                 const builtAssets = {};
+                let themeKey;
                 for (const chunk of chunkArray) {
                     const [, name, variant] = chunk.fileName.match(/theme-(.+)-(.+)\.css/);
+                    themeKey = name;
                     builtAssets[`${name}-${variant}`] = assetMap.get(chunk.fileName).fileName;
                 }
                 manifest.source = {
@@ -267,7 +269,7 @@ module.exports = function buildThemes(options) {
                     "derived-variables": derivedVariables,
                     "icon": icon
                 };
-                const name = `theme-${manifest.name}.json`;
+                const name = `theme-${themeKey}.json`;
                 manifestLocations.push(`assets/${name}`);
                 this.emitFile({
                     type: "asset",
