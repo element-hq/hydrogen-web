@@ -28,8 +28,9 @@ export type ThemeManifest = Partial<{
      */
     source: {
         /**
-         * This is mapping from theme-id to location of css file relative to build-output root.
-         * eg: {"element-light": "assets/theme-element-light.10f9bb22.css", ...}
+         * This is a mapping from theme-id to location of css file relative to the location of the
+         * manifest.
+         * eg: {"element-light": "theme-element-light.10f9bb22.css", ...}
          *
          * Here theme-id is 'theme-variant' where 'theme' is the key used to specify the manifest
          * location for this theme-collection in vite.config.js (where the themeBuilder plugin is
