@@ -123,6 +123,7 @@ module.exports = function buildThemes(options) {
     let isDevelopment = false;
     const virtualModuleId = '@theme/'
     const resolvedVirtualModuleId = '\0' + virtualModuleId;
+    const themeToManifestLocation = new Map();
 
     return {
         name: "build-themes",
@@ -137,20 +138,22 @@ module.exports = function buildThemes(options) {
         async buildStart() {
             if (isDevelopment) { return; }
             const { themeConfig } = options;
-            for (const [name, location] of Object.entries(themeConfig.themes)) {
+            for (const location of themeConfig.themes) {
                 manifest = require(`${location}/manifest.json`);
+                const themeCollectionId = manifest.id;
+                themeToManifestLocation.set(themeCollectionId, location);
                 variants = manifest.values.variants;
                 for (const [variant, details] of Object.entries(variants)) {
-                    const fileName = `theme-${name}-${variant}.css`;
-                    if (name === themeConfig.default && details.default) {
+                    const fileName = `theme-${themeCollectionId}-${variant}.css`;
+                    if (themeCollectionId === themeConfig.default && details.default) {
                         // This is the default theme, stash  the file name for later
                         if (details.dark) {
                             defaultDark = fileName;
-                            defaultThemes["dark"] = `${name}-${variant}`;
+                            defaultThemes["dark"] = `${themeCollectionId}-${variant}`;
                         }
                         else {
                             defaultLight = fileName;
-                            defaultThemes["light"] = `${name}-${variant}`;
+                            defaultThemes["light"] = `${themeCollectionId}-${variant}`;
                         }
                     }
                     // emit the css as built theme bundle
@@ -164,7 +167,7 @@ module.exports = function buildThemes(options) {
                 this.emitFile({
                     type: "chunk",
                     id: `${location}/theme.css?type=runtime`,
-                    fileName: `theme-${name}-runtime.css`,
+                    fileName: `theme-${themeCollectionId}-runtime.css`,
                 });
             }
         },
@@ -187,7 +190,7 @@ module.exports = function buildThemes(options) {
                     if (theme === "default") {
                         theme = options.themeConfig.default;
                     }
-                    const location = options.themeConfig.themes[theme];
+                    const location = themeToManifestLocation.get(theme);
                     const manifest = require(`${location}/manifest.json`);
                     const variants = manifest.values.variants;
                     if (!variant || variant === "default") {
