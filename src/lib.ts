@@ -27,6 +27,8 @@ export {RoomViewModel} from "./domain/session/room/RoomViewModel.js";
 export {RoomView} from "./platform/web/ui/session/room/RoomView.js";
 export {TimelineViewModel} from "./domain/session/room/timeline/TimelineViewModel.js";
 export {tileClassForEntry} from "./domain/session/room/timeline/tiles/index";
+export {TilesCollection} from "./domain/session/room/timeline/TilesCollection";
+
 export type {TimelineEntry, TileClassForEntryFn, Options, TileConstructor} from "./domain/session/room/timeline/tiles/index";
 // export timeline tile view models
 export {GapTile} from "./domain/session/room/timeline/tiles/GapTile.js";
@@ -71,6 +73,7 @@ export {AvatarView} from "./platform/web/ui/AvatarView.js";
 export {RoomType} from "./matrix/room/common";
 export {EventEmitter} from "./utils/EventEmitter";
 export {Disposables} from "./utils/Disposables";
+export {EventEntry} from "./matrix/room/timeline/entries/EventEntry";
 // these should eventually be moved to another library
 export {
     ObservableArray,
