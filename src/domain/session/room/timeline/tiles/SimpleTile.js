@@ -22,6 +22,7 @@ export class SimpleTile extends ViewModel {
     constructor(entry, options) {
         super(options);
         this._entry = entry;
+        this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : null;
         this._emitUpdate = undefined;
     }
     // view model props for all subclasses
@@ -43,6 +44,10 @@ export class SimpleTile extends ViewModel {
 
     get id() {
         return this._entry.asEventKey();
+    }
+
+    get date() {
+        return this._date && this._date.toLocaleDateString({}, {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
     }
 
     get eventId() {
