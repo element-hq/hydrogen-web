@@ -23,6 +23,7 @@ export class SimpleTile extends ViewModel {
         super(options);
         this._entry = entry;
         this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : null;
+        this._hasDateSeparator = false;
         this._emitUpdate = undefined;
     }
     // view model props for all subclasses
@@ -39,7 +40,25 @@ export class SimpleTile extends ViewModel {
     }
 
     get hasDateSeparator() {
-        return false;
+        return this._hasDateSeparator;
+    }
+
+    _updateDateSeparator(prev) {
+        let hasDateSeparator;
+        if (prev instanceof SimpleTile) {
+            if (prev && prev._date) {
+                hasDateSeparator = prev._date.getFullYear() !== this._date.getFullYear() ||
+                    prev._date.getMonth() !== this._date.getMonth() ||
+                    prev._date.getDate() !== this._date.getDate();
+            } else {
+                hasDateSeparator = !!this._date;
+            }
+        } else {
+            hasDateSeparator = true;
+        }
+        const changed = hasDateSeparator !== this._hasDateSeparator;
+        this._hasDateSeparator = hasDateSeparator;
+        return changed;
     }
 
     get id() {
@@ -127,9 +146,12 @@ export class SimpleTile extends ViewModel {
     tryIncludeEntry() {
         return false;
     }
-    // let item know it has a new sibling
-    updatePreviousSibling(/*prev*/) {
 
+    // let item know it has a new sibling
+    updatePreviousSibling(prev) {
+        if (this._updateDateSeparator(prev)) {
+            this.emitChange();
+        }
     }
 
     // let item know it has a new sibling
