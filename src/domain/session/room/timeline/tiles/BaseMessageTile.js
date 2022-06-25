@@ -133,8 +133,7 @@ export class BaseMessageTile extends SimpleTile {
             const action = this._replyTile?.updateEntry(replyEntry, param);
             if (action?.shouldReplace || !this._replyTile) {
                 this.disposeTracked(this._replyTile);
-                const tileClassForEntry = this._options.tileClassForEntry;
-                const ReplyTile = tileClassForEntry(replyEntry);
+                const ReplyTile = this._options.tileClassForEntry(replyEntry);
                 if (ReplyTile) {
                     this._replyTile = new ReplyTile(replyEntry, this._options);
                 }
