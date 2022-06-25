@@ -103,7 +103,7 @@ limitations under the License.
     /* reset body margin */
     margin: 0;
     /* first try break-all, then break-word, which isn't supported everywhere */
-    word-break: break-all;  
+    word-break: break-all;
     word-break: break-word;
 }
 
@@ -422,3 +422,17 @@ only loads when the top comes into view*/
 .GapView.isAtTop {
     padding: 52px 20px 12px 20px;
 }
+
+.DateSeparator {
+    display: flex;
+    justify-content: center;
+    margin: 8px 0;
+}
+
+.DateSeparator > time {
+    background-color: var(--background-color-primary--darker-10);
+    border-radius: 16px;
+    padding: 4px 16px;
+}
+
+
