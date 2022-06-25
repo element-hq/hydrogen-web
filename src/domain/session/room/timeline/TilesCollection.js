@@ -130,15 +130,11 @@ export class TilesCollection extends BaseObservableList {
 
         const newTile = this._createTile(entry);
         if (newTile) {
-            if (prevTile) {
-                prevTile.updateNextSibling(newTile);
-                // this emits an update while the add hasn't been emitted yet
-                newTile.updatePreviousSibling(prevTile);
-            }
-            if (nextTile) {
-                newTile.updateNextSibling(nextTile);
-                nextTile.updatePreviousSibling(newTile);
-            }
+            prevTile?.updateNextSibling(newTile);
+            // this emits an update while the add hasn't been emitted yet
+            newTile.updatePreviousSibling(prevTile);
+            newTile.updateNextSibling(nextTile);
+            nextTile?.updatePreviousSibling(newTile);
             this._tiles.splice(tileIdx, 0, newTile);
             this.emitAdd(tileIdx, newTile);
             // add event is emitted, now the tile
