@@ -55,7 +55,7 @@ export class MessageComposer extends TemplateView {
                         className: "cancel",
                         onClick: () => this._clearReplyingTo()
                     }, "Close"),
-                t.view(new TileView(rvm, this._viewClassForTile, { interactive: false }, "div"))
+                t.view(new TileView(rvm, this._viewClassForTile, { interactive: false }))
             ]);
         });
         const input = t.div({className: "MessageComposer_input"}, [

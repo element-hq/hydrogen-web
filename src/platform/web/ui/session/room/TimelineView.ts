@@ -192,6 +192,7 @@ class TilesListView extends ListView<SimpleTile, TileView> {
         super({
             list: tiles,
             onItemClick: (tileView, evt) => tileView.onClick(evt),
+            tagName: "div"
         }, tile => {
             const TileView = viewClassForTile(tile);
             return new TileView(tile, viewClassForTile);

@@ -18,17 +18,15 @@ limitations under the License.
 import {renderStaticAvatar} from "../../../avatar";
 import {tag} from "../../../general/html";
 import {mountView} from "../../../general/utils";
-import {TemplateView} from "../../../general/TemplateView";
+import {BaseTileView} from "./BaseTileView";
 import {Popup} from "../../../general/Popup.js";
 import {Menu} from "../../../general/Menu.js";
 import {ReactionsView} from "./ReactionsView.js";
 
-export class BaseMessageView extends TemplateView {
-    constructor(value, viewClassForTile, renderFlags, tagName = "li") {
-        super(value);
+export class BaseMessageView extends BaseTileView {
+    constructor(value, viewClassForTile, renderFlags) {
+        super(value, viewClassForTile);
         this._menuPopup = null;
-        this._tagName = tagName;
-        this._viewClassForTile = viewClassForTile;
         // TODO An enum could be nice to make code easier to read at call sites.
         this._renderFlags = renderFlags;
     }
@@ -36,12 +34,12 @@ export class BaseMessageView extends TemplateView {
     get _interactive() { return this._renderFlags?.interactive ?? true; }
     get _isReplyPreview() { return this._renderFlags?.reply; }
 
-    render(t, vm) {
+    renderTile(t, vm) {
         const children = [this.renderMessageBody(t, vm)];
         if (this._interactive) {
             children.push(t.button({className: "Timeline_messageOptions"}, "⋯"));
         }
-        const li = t.el(this._tagName, {
+        const tile = t.div({
             className: {
                 "Timeline_message": true,
                 own: vm.isOwn,
@@ -59,13 +57,13 @@ export class BaseMessageView extends TemplateView {
         // don't use `t` from within the side-effect callback
         t.mapSideEffect(vm => vm.isContinuation, (isContinuation, wasContinuation) => {
             if (isContinuation && wasContinuation === false) {
-                li.removeChild(li.querySelector(".Timeline_messageAvatar"));
-                li.removeChild(li.querySelector(".Timeline_messageSender"));
+                tile.removeChild(tile.querySelector(".Timeline_messageAvatar"));
+                tile.removeChild(tile.querySelector(".Timeline_messageSender"));
             } else if (!isContinuation && !this._isReplyPreview) {
                 const avatar = tag.a({href: vm.memberPanelLink, className: "Timeline_messageAvatar"}, [renderStaticAvatar(vm, 30)]);
                 const sender = tag.div({className: `Timeline_messageSender usercolor${vm.avatarColorNumber}`}, vm.displayName);
-                li.insertBefore(avatar, li.firstChild);
-                li.insertBefore(sender, li.firstChild);
+                tile.insertBefore(avatar, tile.firstChild);
+                tile.insertBefore(sender, tile.firstChild);
             }
         });
         // similarly, we could do this with a simple ifView,
@@ -75,15 +73,15 @@ export class BaseMessageView extends TemplateView {
             if (reactions && this._interactive && !reactionsView) {
                 reactionsView = new ReactionsView(reactions);
                 this.addSubView(reactionsView);
-                li.appendChild(mountView(reactionsView));
+                tile.appendChild(mountView(reactionsView));
             } else if (!reactions && reactionsView) {
-                li.removeChild(reactionsView.root());
+                tile.removeChild(reactionsView.root());
                 reactionsView.unmount();
                 this.removeSubView(reactionsView);
                 reactionsView = null;
             }
         });
-        return li;
+        return tile;
     }
 
     /* This is called by the parent ListView, which just has 1 listener for the whole list */
