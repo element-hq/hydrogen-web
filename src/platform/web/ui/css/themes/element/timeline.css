@@ -233,7 +233,7 @@ only loads when the top comes into view*/
     align-self: stretch;
 }
 
-.Timeline_messageBody .media > .sendStatus {
+.Timeline_messageBody .media > .status {
     align-self: end;
     justify-self: start;
     font-size: 0.8em;
@@ -251,7 +251,7 @@ only loads when the top comes into view*/
 }
 
 .Timeline_messageBody .media > time,
-.Timeline_messageBody .media > .sendStatus {
+.Timeline_messageBody .media > .status {
     color: var(--text-color);
     display: block;
     padding: 2px;
