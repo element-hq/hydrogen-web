@@ -30,6 +30,9 @@ export class MediaDevicesWrapper implements IMediaDevices {
 
     async getMediaTracks(audio: true | MediaDeviceInfo, video: boolean | MediaDeviceInfo): Promise<Stream> {
         const stream = await this.mediaDevices.getUserMedia(this.getUserMediaContraints(audio, video));
+        stream.addEventListener("removetrack", evt => {
+            console.log(`removing track ${evt.track.id} (${evt.track.kind}) from stream ${stream.id}`);
+        });
         return stream as Stream;
     }
 

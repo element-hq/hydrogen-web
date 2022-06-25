@@ -383,8 +383,7 @@ export class PeerCall implements IDisposable {
             const offer = this.peerConnection.localDescription!;
             // Get rid of any candidates waiting to be sent: they'll be included in the local
             // description we just got and will send in the offer.
-            log.log(`Discarding ${
-                this.candidateSendQueue.length} candidates that will be sent in offer`);
+            log.set("includedCandidates", this.candidateSendQueue.length);
             this.candidateSendQueue = [];
 
             // need to queue this
@@ -414,16 +413,20 @@ export class PeerCall implements IDisposable {
 
         this.sendCandidateQueue(log);
 
-        await log.wrap("invite timeout", async log => {
-            if (this._state === CallState.InviteSent) {
+        if (this._state === CallState.InviteSent) {
+            const timeoutLog = this.logItem.child("invite timeout");
+            log.refDetached(timeoutLog);
+            // don't await this, as it would block other negotationneeded events from being processed
+            // as they are processed serially
+            timeoutLog.run(async log => {
                 try { await this.delay(CALL_TIMEOUT_MS); }
                 catch (err) { return; }
                 // @ts-ignore TS doesn't take the await above into account to know that the state could have changed in between
                 if (this._state === CallState.InviteSent) {
                     this._hangup(CallErrorCode.InviteTimeout, log);
                 }
-            }
-        });
+            }).catch(err => {}); // prevent error from being unhandled, it will be logged already by run above
+        }
     };
 
     private async handleInviteGlare(content: MCallInvite<MCallBase>, partyId: PartyId, log: ILogItem): Promise<void> {

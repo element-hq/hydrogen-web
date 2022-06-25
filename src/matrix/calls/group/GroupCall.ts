@@ -149,11 +149,14 @@ export class GroupCall extends EventEmitter<{change: never}> {
         await joinedData.logItem.wrap("join", async log => {
             this._state = GroupCallState.Joining;
             this.emitChange();
-            const memberContent = await this._createJoinPayload();
-            // send m.call.member state event
-            const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCallMember, this.options.ownUserId, memberContent, {log});
-            await request.response();
-            this.emitChange();
+            await log.wrap("update member state", async log => {
+                const memberContent = await this._createJoinPayload();
+                log.set("payload", memberContent);
+                // send m.call.member state event
+                const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCallMember, this.options.ownUserId, memberContent, {log});
+                await request.response();
+                this.emitChange();
+            });
             // send invite to all members that are < my userId
             for (const [,member] of this._members) {
                 this.connectToMember(member, joinedData, log);

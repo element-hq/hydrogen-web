@@ -109,6 +109,7 @@ export class CallViewModel extends ViewModel<Options> {
             // unmute but no track?
             if (muteSettings.microphone && !getStreamAudioTrack(localMedia.userMedia)) {
                 const stream = await this.platform.mediaDevices.getMediaTracks(true, !muteSettings.camera);
+                console.log("got tracks", Array.from(stream.getTracks()).map((t: MediaStreamTrack) => { return {kind: t.kind, id: t.id};}))
                 await this.call.setMedia(localMedia.withUserMedia(stream));
             } else {
                 await this.call.setMuted(muteSettings.toggleMicrophone());
