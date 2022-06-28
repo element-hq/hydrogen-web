@@ -14,33 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type {ILogItem} from "../../logging/types.js";
+import type {ILogItem} from "../../logging/types";
 import type {Platform} from "./Platform.js";
+import {ThemeBuilder} from "./ThemeBuilder";
 
 type NormalVariant = {
     id: string;
     cssLocation: string;
+    variables?: any;
 };
 
 type DefaultVariant = {
-    dark: {
-        id: string;
-        cssLocation: string;
+    dark: NormalVariant & {
         variantName: string;
     };
-    light: {
-        id: string;
-        cssLocation: string;
+    light: NormalVariant & {
         variantName: string;
     };
-    default: {
-        id: string;
-        cssLocation: string;
+    default: NormalVariant & {
         variantName: string;
     };
 }
 
-type ThemeInformation = NormalVariant | DefaultVariant; 
+export type ThemeInformation = NormalVariant | DefaultVariant; 
 
 export enum ColorSchemePreference {
     Dark,
@@ -50,18 +46,31 @@ export enum ColorSchemePreference {
 export class ThemeLoader {
     private _platform: Platform;
     private _themeMapping: Record<string, ThemeInformation>;
+    private _themeBuilder: ThemeBuilder;
 
     constructor(platform: Platform) {
         this._platform = platform;
     }
 
     async init(manifestLocations: string[], log?: ILogItem): Promise<void> {
+        const idToManifest = new Map();
         await this._platform.logger.wrapOrRun(log, "ThemeLoader.init", async (log) => {
             this._themeMapping = {};
             const results = await Promise.all(
                 manifestLocations.map( location => this._platform.request(location, { method: "GET", format: "json", cache: true, }).response())
             );
-            results.forEach(({ body }, i) => this._populateThemeMap(body, manifestLocations[i], log));
+            results.forEach(({ body }, i) => idToManifest.set(body.id, { manifest: body, location: manifestLocations[i] }));
+            this._themeBuilder = new ThemeBuilder(idToManifest, this.preferredColorScheme);
+            results.forEach(({ body }, i) => {
+                if (body.extends) {
+                    this._themeBuilder.populateDerivedTheme(body);
+                }
+                else {
+                    this._populateThemeMap(body, manifestLocations[i], log);
+                }
+            });
+            Object.assign(this._themeMapping, this._themeBuilder.themeMapping);
+            console.log("derived theme mapping", this._themeBuilder.themeMapping);
         });
     }
 
@@ -144,18 +153,23 @@ export class ThemeLoader {
 
     setTheme(themeName: string, themeVariant?: "light" | "dark" | "default", log?: ILogItem) {
         this._platform.logger.wrapOrRun(log, { l: "change theme", name: themeName, variant: themeVariant }, () => {
-            let cssLocation: string;
+            let cssLocation: string, variables: Record<string, string>;
             let themeDetails = this._themeMapping[themeName];
             if ("id" in themeDetails) {
                 cssLocation = themeDetails.cssLocation;
+                variables = themeDetails.variables;
             }
             else {
                 if (!themeVariant) {
                     throw new Error("themeVariant is undefined!");
                 }
                 cssLocation = themeDetails[themeVariant].cssLocation;
+                variables = themeDetails[themeVariant].variables;
             }
             this._platform.replaceStylesheet(cssLocation);
+            if (variables) {
+                this._themeBuilder.injectCSSVariables(variables);
+            }
             this._platform.settingsStorage.setString("theme-name", themeName);
             if (themeVariant) {
                 this._platform.settingsStorage.setString("theme-variant", themeVariant);
