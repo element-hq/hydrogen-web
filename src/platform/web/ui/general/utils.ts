@@ -54,3 +54,11 @@ export function insertAt(parentNode: Element, idx: number, childNode: Node): voi
 export function removeChildren(parentNode: Element): void {
     parentNode.innerHTML = '';
 }
+
+export function disableTargetCallback(callback: (evt: Event) => Promise<void>): (evt: Event) => Promise<void> {
+    return async (evt: Event) => {
+        (evt.target as HTMLElement)?.setAttribute("disabled", "disabled");
+        await callback(evt);
+        (evt.target as HTMLElement)?.removeAttribute("disabled");
+    }
+}

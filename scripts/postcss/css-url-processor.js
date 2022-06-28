@@ -16,7 +16,6 @@ limitations under the License.
 
 const valueParser = require("postcss-value-parser");
 const  resolve = require("path").resolve;
-let cssPath;
 
 function colorsFromURL(url, colorMap) {
     const params = new URL(`file://${url}`).searchParams;
@@ -36,7 +35,7 @@ function colorsFromURL(url, colorMap) {
     return [primaryColor, secondaryColor];
 }
 
-function processURL(decl, replacer, colorMap) {
+function processURL(decl, replacer, colorMap, cssPath) {
     const value = decl.value;
     const parsed = valueParser(value);
     parsed.walk(node => {
@@ -84,8 +83,8 @@ module.exports = (opts = {}) => {
             Go through each declaration and if it contains an URL, replace the url with the result
             of running replacer(url)
             */
-            cssPath = root.source?.input.file.replace(/[^/]*$/, "");
-            root.walkDecls(decl => processURL(decl, opts.replacer, colorMap));
+            const cssPath = root.source?.input.file.replace(/[^/]*$/, "");
+            root.walkDecls(decl => processURL(decl, opts.replacer, colorMap, cssPath));
         },
     };
 };
