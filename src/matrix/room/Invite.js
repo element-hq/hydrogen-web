@@ -61,6 +61,10 @@ export class Invite extends EventEmitter {
         return this._inviteData.avatarColorId || this.id;
     }
 
+    get type() {
+        return this._inviteData.type ?? undefined;
+    }
+
     get timestamp() {
         return this._inviteData.timestamp;
     }
@@ -89,7 +93,7 @@ export class Invite extends EventEmitter {
         await this._platform.logger.wrapOrRun(log, "acceptInvite", async log => {
             this._accepting = true;
             this._emitChange("accepting");
-            await this._hsApi.join(this._roomId, {log}).response();
+            await this._hsApi.joinIdOrAlias(this.canonicalAlias ?? this._roomId, {log}).response();
         });
     }
 
@@ -189,7 +193,7 @@ export class Invite extends EventEmitter {
             roomId: this.id,
             isEncrypted: !!summaryData.encryption,
             isDirectMessage: summaryData.isDirectMessage,
-//            type: 
+            type: summaryData.type,
             name,
             avatarUrl,
             avatarColorId,

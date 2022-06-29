@@ -415,7 +415,7 @@ export class BaseRoom extends EventEmitter {
     }
 
     get type() {
-        return this._summary.data.type;
+        return this._summary.data.type ?? undefined;
     }
 
     get lastMessageTimestamp() {
