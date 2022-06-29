@@ -53,7 +53,7 @@ export class BaseMediaView extends BaseMessageView {
             children.push(progress);
         }
         return t.div({className: "Timeline_messageBody"}, [
-            t.div({className: "media", style: `max-width: ${vm.width}px`}, children),
+            t.div({className: "media", style: `max-width: ${vm.width}px`, "data-testid": "media"}, children),
             t.if(vm => vm.error, t => t.p({className: "error"}, vm.error))
         ]);
     }
