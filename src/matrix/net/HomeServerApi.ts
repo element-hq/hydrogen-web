@@ -271,6 +271,12 @@ export class HomeServerApi {
         return this._post(`/join/${encodeURIComponent(roomIdOrAlias)}`, {}, {}, options);
     }
 
+    invite(roomId: string, userId: string, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._post(`/rooms/${encodeURIComponent(roomId)}/invite`, {}, {
+            user_id: userId
+        }, options);
+    }
+
     leave(roomId: string, options?: BaseRequestOptions): IHomeServerRequest {
         return this._post(`/rooms/${encodeURIComponent(roomId)}/leave`, {}, {}, options);
     }
@@ -296,6 +302,13 @@ export class HomeServerApi {
     claimDehydratedDevice(deviceId: string, options: BaseRequestOptions = {}): IHomeServerRequest {
         options.prefix = DEHYDRATION_PREFIX;
         return this._post(`/dehydrated_device/claim`, {}, {device_id: deviceId}, options);
+    }
+
+    searchProfile(searchTerm: string, limit?: number, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._post(`/user_directory/search`, {}, {
+            limit: limit ?? 10,
+            search_term: searchTerm,
+        }, options);
     }
 
     profile(userId: string, options?: BaseRequestOptions): IHomeServerRequest {
