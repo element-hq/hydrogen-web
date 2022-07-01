@@ -62,7 +62,7 @@ export class ViewModel<O extends Options = Options> extends EventEmitter<{change
       const segmentObservable = this.navigation.observe(type);
       const unsubscribe = segmentObservable.subscribe((value: string | true | undefined) => {
         onChange(value, type);
-      })
+      });
       this.track(unsubscribe);
     }
 
@@ -100,7 +100,7 @@ export class ViewModel<O extends Options = Options> extends EventEmitter<{change
 
     // TODO: this will need to support binding
     // if any of the expr is a function, assume the function is a binding, and return a binding function ourselves
-    // 
+    //
     // translated string should probably always be bindings, unless we're fine with a refresh when changing the language?
     // we probably are, if we're using routing with a url, we could just refresh.
     i18n(parts: TemplateStringsArray, ...expr: any[]) {
@@ -115,7 +115,7 @@ export class ViewModel<O extends Options = Options> extends EventEmitter<{change
         return result;
     }
 
-    emitChange(changedProps: any): void {
+    emitChange(changedProps?: any): void {
         if (this._options.emitChange) {
             this._options.emitChange(changedProps);
         } else {
