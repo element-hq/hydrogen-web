@@ -21,11 +21,7 @@ import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel.js";
 import {CompleteSSOLoginViewModel} from "./CompleteSSOLoginViewModel.js";
 import {LoadStatus} from "../../matrix/Client.js";
 import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
-
-// TODO(isaiah): make these default exported
-import {PasswordLoginMethod} from "../../matrix/login/PasswordLoginMethod";
-import {SSOLoginHelper} from "../../matrix/login/SSOLoginHelper";
-import {TokenLoginMethod} from "../../matrix/login/TokenLoginMethod";
+import {PasswordLoginMethod, SSOLoginHelper, TokenLoginMethod} from "../../matrix/login";
 
 type Options = {
     defaultHomeserver: string;
