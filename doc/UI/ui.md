@@ -3,18 +3,18 @@
 The [interface](https://github.com/vector-im/hydrogen-web/blob/master/src/platform/web/ui/general/types.ts) adopted by view components is agnostic of how they are rendered to the DOM. This has several benefits:
  - it allows Hydrogen to not ship a [heavy view framework](https://bundlephobia.com/package/react-dom@18.2.0) that may or may not be used by its SDK users, and also keep bundle size of the app down.
  - Given the interface is quite simple, is should be easy to integrate this interface into the render lifecycle of other frameworks.
- - The main implementations used in Hydrogen are [`ListView`](https://github.com/vector-im/hydrogen-web/blob/master/src/platform/web/ui/general/ListView.ts) (rendering [`ObservableList`](https://github.com/vector-im/hydrogen-web/blob/master/src/observable/list/BaseObservableList.ts)s) and [`TemplateView`](https://github.com/vector-im/hydrogen-web/blob/master/src/platform/web/ui/general/TemplateView.ts) (easy templating and one-way databinding), each only a few 100 lines of code and tailored towards their specific use-case. They work straight with the DOM API and have no other dependencies.
+ - The main implementations used in Hydrogen are [`ListView`](https://github.com/vector-im/hydrogen-web/blob/master/src/platform/web/ui/general/ListView.ts) (rendering [`ObservableList`](https://github.com/vector-im/hydrogen-web/blob/master/src/observable/list/BaseObservableList.ts)s) and [`TemplateView`](https://github.com/vector-im/hydrogen-web/blob/master/src/platform/web/ui/general/TemplateView.ts) (templating and one-way databinding), each only a few 100 lines of code and tailored towards their specific use-case. They work straight with the DOM API and have no other dependencies.
  - a common inteface allows us to mix and match between these different implementations (and gradually shift if need be in the future) with the code.
 
 ## Templates
 
 ### Template language
 
-TemplateView uses a mini-DSL language in pure javascript to express declarative templates. This template language is available without all the data-binding and event-handling bells and whistles in `ui/general/html.js`, and is basically a very thin wrapper around `document.createElement`, `document.createTextNode`, `node.setAttribute` and `node.appendChild` to quickly create DOM trees. The general syntax is as follows:
+Templates uses a mini-DSL language in pure javascript to express declarative templates. This is basically a very thin wrapper around `document.createElement`, `document.createTextNode`, `node.setAttribute` and `node.appendChild` to quickly create DOM trees. The general syntax is as follows:
 ```js
-tag.tag_name({attribute1: value, attribute2: value, ...}, [child_elements]);
-tag.tag_name(child_element);
-tag.tag_name([child_elements]);
+t.tag_name({attribute1: value, attribute2: value, ...}, [child_elements]);
+t.tag_name(child_element);
+t.tag_name([child_elements]);
 ```
 **tag_name** can be [most HTML or SVG tags](https://github.com/vector-im/hydrogen-web/blob/master/src/platform/web/ui/general/html.ts#L102-L110).
 
@@ -37,10 +37,9 @@ All these functions return DOM element nodes, e.g. the result of `document.creat
 
 ### TemplateView
 
-`TemplateView` builds on top of this by adopting the IView component model and adding easy event handling attributes and one-way databinding.
-In views based on `TemplateView`, you will see `t` used instead of `tag`.  
-`t` is `TemplateBuilder` object passed to the render function in `TemplateView`. As opposed to static templates with `tag`, you always use
-`TemplateView` as an instance of a class, as there is some extra state to keep track (bindings, event handlers and subviews).
+`TemplateView` builds on top of templating by adopting the IView component model and adding event handling attributes and one-way databinding.
+In views based on `TemplateView`, you will see a render method with a `t` argument.  
+`t` is `TemplateBuilder` object passed to the render function in `TemplateView`.
 
 You either subclass `TemplateView` and override the `render` method:
 ```js
@@ -167,7 +166,10 @@ If you do, they will be added every time the callback is run and only cleaned up
 
 #### `tag` vs `t`
 
-**Note:** Although syntactically similar, `TemplateBuilder` and `tag` are not functionally equivalent.  
+If you don't need a view component with data-binding, sub views and event handler attributes, the template language also is available in `ui/general/html.js` without any of these bells and whistles, exported as `tag`. As opposed to static templates with `tag`, you always use
+`TemplateView` as an instance of a class, as there is some extra state to keep track (bindings, event handlers and subviews).
+
+Although syntactically similar, `TemplateBuilder` and `tag` are not functionally equivalent.  
 Primarily `t` **supports** bindings and event handlers while `tag` **does not**. This is because to remove event listeners, we need to keep track of them, and thus we need to keep this state somewhere which
 we can't do with a simple function call but we can insite the TemplateView class.
 
