@@ -10,7 +10,7 @@ The [interface](https://github.com/vector-im/hydrogen-web/blob/master/src/platfo
 
 ### Template language
 
-Templates uses a mini-DSL language in pure javascript to express declarative templates. This is basically a very thin wrapper around `document.createElement`, `document.createTextNode`, `node.setAttribute` and `node.appendChild` to quickly create DOM trees. The general syntax is as follows:
+Templates use a mini-DSL language in pure javascript to express declarative templates. This is basically a very thin wrapper around `document.createElement`, `document.createTextNode`, `node.setAttribute` and `node.appendChild` to quickly create DOM trees. The general syntax is as follows:
 ```js
 t.tag_name({attribute1: value, attribute2: value, ...}, [child_elements]);
 t.tag_name(child_element);
@@ -27,9 +27,9 @@ Here is an example HTML segment followed with the code to create it in Hydrogen.
 </section>
 ```
 ```js
-tag.section({className: "main-section"},[
-    tag.h1("Demo"), 
-    tag.button({className:"btn_cool"}, "Click me")
+t.section({className: "main-section"},[
+    t.h1("Demo"), 
+    t.button({className:"btn_cool"}, "Click me")
 ]);
 ```
 
@@ -37,9 +37,9 @@ All these functions return DOM element nodes, e.g. the result of `document.creat
 
 ### TemplateView
 
-`TemplateView` builds on top of templating by adopting the IView component model and adding event handling attributes and one-way databinding.
+`TemplateView` builds on top of templating by adopting the IView component model and adding event handling attributes, sub views and one-way databinding.
 In views based on `TemplateView`, you will see a render method with a `t` argument.  
-`t` is `TemplateBuilder` object passed to the render function in `TemplateView`.
+`t` is `TemplateBuilder` object passed to the render function in `TemplateView`. It also takes a data object to render and bind to, often called `vm`, short for view model from the MVVM pattern Hydrogen uses.
 
 You either subclass `TemplateView` and override the `render` method:
 ```js
@@ -80,7 +80,7 @@ t.div({className: "Container"}, t.view(new ChildView(vm.childViewModel)));
 
 #### One-way data-binding
 
-A binding binds a part of the DOM to a value on the view model. The view model emits an update when any of its properties change to which the view can subscribe. When an update is received by the view, it will reevaluate all the bindings, and update the DOM accordingly.
+A binding couples a part of the DOM to a value on the view model. The view model emits an update when any of its properties change, to which the view can subscribe. When an update is received by the view, it will reevaluate all the bindings, and update the DOM accordingly.
 
 A binding can appear in many places where a static value can usually be used in the template tree.
 To create a binding, you pass a function that maps the view value to a static value.
