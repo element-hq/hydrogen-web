@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export function comparePrimitive(a, b) {
+export function comparePrimitive(a: any, b: any): -1 | 0 | 1 {
     if (a === b) {
         return 0;
     } else {
