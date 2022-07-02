@@ -16,67 +16,81 @@ limitations under the License.
 */
 
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
-import {ViewModel} from "../../ViewModel";
+import {Options, ViewModel} from "../../ViewModel";
+import {MediaRepository} from "../../../matrix/net/MediaRepository";
 
-const KIND_ORDER = ["roomBeingCreated", "invite", "room"];
+const KIND_ORDER = ["roomBeingCreated", "invite", "room"] as const;
+export type Kind = typeof KIND_ORDER[number];
 
-export class BaseTileViewModel extends ViewModel {
-    constructor(options) {
+export abstract class BaseTileViewModel extends ViewModel {
+    private _isOpen: boolean = false;
+    private _hidden: boolean = false;
+
+    constructor(options: Readonly<Options>) {
         super(options);
-        this._isOpen = false;
-        this._hidden = false;
     }
 
-    get hidden() {
+    abstract get name(): string;
+    abstract get kind(): Kind;
+
+    get hidden(): boolean {
         return this._hidden;
     }
 
-    set hidden(value) {
+    set hidden(value: boolean) {
         if (value !== this._hidden) {
             this._hidden = value;
             this.emitChange("hidden");
         }
     }
 
-    close() {
+    close(): void {
         if (this._isOpen) {
             this._isOpen = false;
             this.emitChange("isOpen");
         }
     }
 
-    open() {
+    open(): void {
         if (!this._isOpen) {
             this._isOpen = true;
             this.emitChange("isOpen");
         }
     }
 
-    get isOpen() {
+    get isOpen(): boolean {
         return this._isOpen;
     }
 
-    compare(other) {
+    compare(other: BaseTileViewModel): number {
         if (other.kind !== this.kind) {
             return KIND_ORDER.indexOf(this.kind) - KIND_ORDER.indexOf(other.kind);
         }
         return 0;
     }
 
+    protected abstract get _avatarSource(): AvatarSource;
+
     // Avatar view model contract
-    get avatarLetter() {
+    get avatarLetter(): string {
         return avatarInitials(this.name);
     }
 
-    get avatarColorNumber() {
+    get avatarColorNumber(): number {
         return getIdentifierColorNumber(this._avatarSource.avatarColorId);
     }
 
-    avatarUrl(size) {
+    avatarUrl(size: number): string | null {
         return getAvatarHttpUrl(this._avatarSource.avatarUrl, size, this.platform, this._avatarSource.mediaRepository);
     }
 
-    get avatarTitle() {
+    get avatarTitle(): string {
         return this.name;
     }
+}
+
+export type AvatarSource = {
+    avatarColorId: string;
+    avatarUrl: string;
+    mediaRepository: MediaRepository;
 }

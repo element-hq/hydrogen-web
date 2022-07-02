@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseTileViewModel} from "./BaseTileViewModel.js";
+import {BaseTileViewModel} from "./BaseTileViewModel";
 
 export class RoomTileViewModel extends BaseTileViewModel {
     constructor(options) {
