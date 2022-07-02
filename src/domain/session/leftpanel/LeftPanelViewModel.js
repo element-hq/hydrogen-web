@@ -17,7 +17,7 @@ limitations under the License.
 
 import {ViewModel} from "../../ViewModel";
 import {RoomTileViewModel} from "./RoomTileViewModel.js";
-import {InviteTileViewModel} from "./InviteTileViewModel.js";
+import {InviteTileViewModel} from "./InviteTileViewModel";
 import {RoomBeingCreatedTileViewModel} from "./RoomBeingCreatedTileViewModel.js";
 import {RoomFilter} from "./RoomFilter.js";
 import {ApplyMap} from "../../../observable";
