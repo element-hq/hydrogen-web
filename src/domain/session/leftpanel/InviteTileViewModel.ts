@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseTileViewModel, Kind, AvatarSource} from "./BaseTileViewModel.js";
+import {BaseTileViewModel, Kind, AvatarSource} from "./BaseTileViewModel";
 import {comparePrimitive} from "./common";
 import {Options as ViewModelOptions} from "../../ViewModel";
 import {Invite} from "../../../matrix/room/Invite.js";
