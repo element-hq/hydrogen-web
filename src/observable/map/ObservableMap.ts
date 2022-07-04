@@ -15,18 +15,20 @@ limitations under the License.
 */
 
 import {BaseObservableMap, BaseObservableMapConfig} from "./BaseObservableMap";
-import {JoinedMap} from "../map/JoinedMap.js";
-import {MappedMap} from "../map/MappedMap.js";
-import {FilteredMap} from "../map/FilteredMap.js";
+import {config} from "./config";
+import {JoinedMap} from "./JoinedMap.js";
+import {MappedMap} from "./MappedMap.js";
+import {FilteredMap} from "./FilteredMap.js";
 import {SortedMapList} from "../list/SortedMapList.js";
 
-export class ObservableMapInternal<K, V> extends BaseObservableMap<K, V> {
+
+export class ObservableMap<K, V> extends BaseObservableMap<K, V> {
     private _config: BaseObservableMapConfig<K, V>
     private readonly _values: Map<K, V>;
 
-    constructor(config: BaseObservableMapConfig<K, V>, initialValues?: (readonly [K, V])[]) {
+    constructor(initialValues?: (readonly [K, V])[]) {
         super();
-        this._config = config;
+        this._config = config<K, V>();
         this._values = new Map(initialValues);
     }
 

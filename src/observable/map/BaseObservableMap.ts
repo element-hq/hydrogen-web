@@ -60,10 +60,17 @@ export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserve
         }
     }
 
+    // The following group of functions have a default implementation
+    // in the neighboring `config.ts`. See the comment in that file for
+    // the explanation for why the default implementation isn't defined
+    // here. See the neighboring `ObservableMap.ts` for an example of how
+    // to easily use the default implementation in a class that extends
+    // this one (which is most likely what you want to do).
     abstract join(...otherMaps: Array<typeof this>): JoinedMap;
     abstract mapValues(mapper: any, updater?: (params: any) => void): MappedMap;
     abstract sortValues(comparator?: (a: any, b: any) => number): SortedMapList;
     abstract filterValues(filter: (v: V, k: K) => boolean): FilteredMap;
+
     abstract [Symbol.iterator](): Iterator<[K, V]>;
     abstract get size(): number;
     abstract get(key: K): V | undefined;
