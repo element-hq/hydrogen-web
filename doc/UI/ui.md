@@ -197,7 +197,7 @@ const list = new ListView({
 
 As items are added, removed, moved (change position) and updated, the DOM will be kept in sync.
 
-There is also a `LazyListView` that only renders items in and around the current viewport.
+There is also a `LazyListView` that only renders items in and around the current viewport, with the restriction that all items in the list must be rendered with the same height.
 
 ### Sub view updates
 
