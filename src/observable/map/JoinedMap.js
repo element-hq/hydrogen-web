@@ -191,7 +191,7 @@ class SourceSubscriptionHandler {
 }
 
 
-import { ObservableMap } from "./ObservableMap";
+import {ObservableMap} from "../";
 
 export function tests() {
 

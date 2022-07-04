@@ -15,12 +15,23 @@ limitations under the License.
 */
 
 import {BaseObservable} from "../BaseObservable";
+import {JoinedMap} from "../map/JoinedMap.js";
+import {MappedMap} from "../map/MappedMap.js";
+import {FilteredMap} from "../map/FilteredMap.js";
+import {SortedMapList} from "../list/SortedMapList.js";
 
 export interface IMapObserver<K, V> {
     onReset(): void;
     onAdd(key: K, value:V): void;
     onUpdate(key: K, value: V, params: any): void;
     onRemove(key: K, value: V): void
+}
+
+export type BaseObservableMapConfig<K, V> = {
+    join(_this: BaseObservableMap<K, V>, ...otherMaps: Array<BaseObservableMap<K, V>>): JoinedMap;
+    mapValues(_this: BaseObservableMap<K, V>, mapper: any, updater?: (params: any) => void): MappedMap;
+    sortValues(_this: BaseObservableMap<K, V>, comparator?: (a: any, b: any) => number): SortedMapList;
+    filterValues(_this: BaseObservableMap<K, V>, filter: (v: V, k: K) => boolean): FilteredMap;
 }
 
 export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserver<K, V>> {
@@ -49,6 +60,10 @@ export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserve
         }
     }
 
+    abstract join(...otherMaps: Array<typeof this>): JoinedMap;
+    abstract mapValues(mapper: any, updater?: (params: any) => void): MappedMap;
+    abstract sortValues(comparator?: (a: any, b: any) => number): SortedMapList;
+    abstract filterValues(filter: (v: V, k: K) => boolean): FilteredMap;
     abstract [Symbol.iterator](): Iterator<[K, V]>;
     abstract get size(): number;
     abstract get(key: K): V | undefined;

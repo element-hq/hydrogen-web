@@ -18,14 +18,40 @@ import {SortedMapList} from "./list/SortedMapList.js";
 import {FilteredMap} from "./map/FilteredMap.js";
 import {MappedMap} from "./map/MappedMap.js";
 import {JoinedMap} from "./map/JoinedMap.js";
-import {BaseObservableMap} from "./map/BaseObservableMap";
+import {BaseObservableMap, BaseObservableMapConfig} from "./map/BaseObservableMap";
+import {ObservableMapInternal} from "./map/ObservableMap";
 // re-export "root" (of chain) collections
 export { ObservableArray } from "./list/ObservableArray";
 export { SortedArray } from "./list/SortedArray";
 export { MappedList } from "./list/MappedList";
 export { AsyncMappedList } from "./list/AsyncMappedList";
 export { ConcatList } from "./list/ConcatList";
-export { ObservableMap } from "./map/ObservableMap";
+
+// avoid circular dependency between these classes
+// and BaseObservableMap (as they extend it)
+function config<K, V>(): BaseObservableMapConfig<K, V> {
+    return {
+        join: (_this: BaseObservableMap<K, V>, ...otherMaps: Array<BaseObservableMap<K, V>>): JoinedMap => {
+            return new JoinedMap([_this].concat(otherMaps));
+        },
+        mapValues: (_this: BaseObservableMap<K, V>, mapper: any, updater?: (params: any) => void): MappedMap => {
+            return new MappedMap(_this, mapper, updater);
+        },
+        sortValues: (_this: BaseObservableMap<K, V>, comparator?: (a: any, b: any) => number): SortedMapList => {
+            return new SortedMapList(_this, comparator);
+        },
+        filterValues: (_this: BaseObservableMap<K, V>, filter: (v: V, k: K) => boolean): FilteredMap => {
+            return new FilteredMap(_this, filter);
+        }
+    };
+};
+
+
+export class ObservableMap<K, V> extends ObservableMapInternal<K, V> {
+    constructor(initialValues?: (readonly [K, V])[]) {
+        super(config<K, V>(), initialValues);
+    }
+}
 
 // avoid circular dependency between these classes
 // and BaseObservableMap (as they extend it)

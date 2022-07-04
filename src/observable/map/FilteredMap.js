@@ -166,7 +166,7 @@ class FilterIterator {
     }
 }
 
-import {ObservableMap} from "./ObservableMap";
+import {ObservableMap} from "../";
 export function tests() {
     return {
         "filter preloaded list": assert => {
