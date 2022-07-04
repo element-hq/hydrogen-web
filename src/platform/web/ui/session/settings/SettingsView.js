@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../general/TemplateView";
+import {disableTargetCallback} from "../../general/utils";
 import {KeyBackupSettingsView} from "./KeyBackupSettingsView.js"
 
 export class SettingsView extends TemplateView {
@@ -101,15 +102,20 @@ export class SettingsView extends TemplateView {
                 return row(t, vm.i18n`Use the following theme`, this._themeOptions(t, vm));
             }),
         );
-        const logButtons = [t.button({onClick: () => vm.exportLogs()}, "Export")];
+        const logButtons = [];
         if (import.meta.env.DEV) {
             logButtons.push(t.button({onClick: () => openLogs(vm)}, "Open logs"));
         }
+        if (vm.canSendLogsToServer) {
+            logButtons.push(t.button({onClick: disableTargetCallback(() => vm.sendLogsToServer())}, `Submit logs to ${vm.logsServer}`));
+        }
+        logButtons.push(t.button({onClick: () => vm.exportLogs()}, "Download logs"));
         settingNodes.push(
             t.h3("Application"),
             row(t, vm.i18n`Version`, version),
             row(t, vm.i18n`Storage usage`, vm => `${vm.storageUsage} / ${vm.storageQuota}`),
             row(t, vm.i18n`Debug logs`, logButtons),
+            t.p({className: {hidden: vm => !vm.logsFeedbackMessage}}, vm => vm.logsFeedbackMessage),
             t.p(["Debug logs contain application usage data including your username, the IDs or aliases of the rooms or groups you have visited, the usernames of other users and the names of files you send. They do not contain messages. For more information, review our ",
                 t.a({href: "https://element.io/privacy", target: "_blank", rel: "noopener"}, "privacy policy"), "."]),
             t.p([])

@@ -196,13 +196,12 @@ export class ThemeLoader {
         }
     }
 
-    get preferredColorScheme(): ColorSchemePreference {
+    get preferredColorScheme(): ColorSchemePreference | undefined {
         if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
             return ColorSchemePreference.Dark;
         }
         else if (window.matchMedia("(prefers-color-scheme: light)").matches) {
             return ColorSchemePreference.Light;
         }
-        throw new Error("Cannot find preferred colorscheme!");
     }
 }
