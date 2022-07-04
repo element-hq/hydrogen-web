@@ -42,12 +42,13 @@ export class StartOIDCLoginViewModel extends ViewModel {
     async discover() {
         // Ask for the metadata once so it gets discovered and cached
         await this._api.metadata()
-        await this._api.ensureRegistered();
+        await this._api.registration();
     }
 
     async startOIDCLogin() {
+        const deviceScope = this._api.generateDeviceScope();
         const p = this._api.generateParams({
-            scope: "openid",
+            scope: `openid ${deviceScope}`,
             redirectUri: this.urlCreator.createOIDCRedirectURL(),
         });
         const clientId = await this._api.clientId();
