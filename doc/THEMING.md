@@ -10,7 +10,7 @@ Each such theme is produced by changing the values of variables in the base `the
 More in depth explanations can be found in later sections.
 
 ## Structure of `manifest.json`
-Link to hydrogen-web/theme.ts
+[See theme.ts](../src/platform/types/theme.ts)
 
 ## Variables
 CSS variables specific to a particular variant are specified in the `variants` section of the manifest:
