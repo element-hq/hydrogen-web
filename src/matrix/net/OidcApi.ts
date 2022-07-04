@@ -203,6 +203,11 @@ export class OidcApi {
         return metadata["registration_endpoint"];
     }
 
+    generateDeviceScope(): String {
+        const deviceId = randomString(10);
+        return `urn:matrix:device:${deviceId}`;
+    }
+
     generateParams({ scope, redirectUri }: { scope: string, redirectUri: string }): AuthorizationParams {
         return {
             scope,
