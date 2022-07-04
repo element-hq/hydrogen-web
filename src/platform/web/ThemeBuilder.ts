@@ -63,7 +63,6 @@ export class ThemeBuilder {
             const themeId = `${manifest.id}-${variant}`;
             const { name: variantName, default: isDefault, dark, variables } = variantDetails;
             const resolvedVariables = this.deriveVariables(variables, derivedVariables, dark);
-            console.log("resolved", resolvedVariables);
             Object.assign(variables, resolvedVariables);
             const themeDisplayName = `${themeName} ${variantName}`;
             if (isDefault) {
