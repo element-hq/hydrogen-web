@@ -999,49 +999,55 @@ export class PeerCall implements IDisposable {
 
     private updateLocalMedia(localMedia: LocalMedia, logItem: ILogItem): Promise<void> {
         return logItem.wrap("updateLocalMedia", async log => {
-            const oldMedia = this.localMedia;
-            this.localMedia = localMedia;
+            const senders = this.peerConnection.getSenders();
             const applyStream = async (oldStream: Stream | undefined, stream: Stream | undefined, streamPurpose: SDPStreamMetadataPurpose) => {
                 const applyTrack = async (oldTrack: Track | undefined, newTrack: Track | undefined) => {
-                    if (!oldTrack && newTrack) {
-                        log.wrap(`adding ${streamPurpose} ${newTrack.kind} track`, log => {
-                            const sender = this.peerConnection.addTrack(newTrack, stream!);
-                            this.options.webRTC.prepareSenderForPurpose(this.peerConnection, sender, streamPurpose);
-                        });
-                    } else if (oldTrack) {
-                        const sender = this.peerConnection.getSenders().find(s => s.track && s.track.id === oldTrack.id);
-                        if (sender) {
-                            if (newTrack && oldTrack.id !== newTrack.id) {
-                                try {
-                                    await log.wrap(`replacing ${streamPurpose} ${newTrack.kind} track`, log => {
-                                        return sender.replaceTrack(newTrack);
-                                    });
-                                } catch (err) {
-                                    // can't replace the track without renegotiating{
-                                    log.wrap(`adding and removing ${streamPurpose} ${newTrack.kind} track`, log => {
-                                        this.peerConnection.removeTrack(sender);
-                                        const newSender = this.peerConnection.addTrack(newTrack);
-                                        this.options.webRTC.prepareSenderForPurpose(this.peerConnection, newSender, streamPurpose);
-                                    });
-                                }
-                            } else if (!newTrack) {
-                                log.wrap(`removing ${streamPurpose} ${sender.track!.kind} track`, log => {
-                                    this.peerConnection.removeTrack(sender);
-                                });
-                            } else {
-                                log.log(`${streamPurpose} ${oldTrack.kind} track hasn't changed`);
-                            }
+                    const oldSender = senders.find(s => s.track === oldTrack);
+                    const streamToKeep = (oldStream ?? stream)!;
+                    if (streamToKeep !== stream) {
+                        if (oldTrack) {
+                            streamToKeep.removeTrack(oldTrack);
                         }
-                        // TODO: should we do something if we didn't find the sender? e.g. some other code already removed the sender but didn't update localMedia
+                        if (newTrack) {
+                            streamToKeep.addTrack(newTrack);
+                        }
+                    }
+                    if (newTrack && oldSender) {
+                        try {
+                            await log.wrap(`attempting to replace ${streamPurpose} ${newTrack.kind} track`, log => {
+                                return oldSender.replaceTrack(newTrack);
+                            });
+                            // replaceTrack succeeded, nothing left to do
+                            return;
+                        } catch (err) {}
+                    }
+                    if(oldSender) {
+                        log.wrap(`removing ${streamPurpose} ${oldSender.track!.kind} track`, log => {
+                            this.peerConnection.removeTrack(oldSender);
+                        });
+                    }
+                    if (newTrack) {
+                        log.wrap(`adding ${streamPurpose} ${newTrack.kind} track`, log => {
+                            const newSender = this.peerConnection.addTrack(newTrack, streamToKeep);
+                            this.options.webRTC.prepareSenderForPurpose(this.peerConnection, newSender, streamPurpose);
+                        });
                     }
                 }
-
+                if (!oldStream && !stream) {
+                    return;
+                }
                 await applyTrack(getStreamAudioTrack(oldStream), getStreamAudioTrack(stream));
                 await applyTrack(getStreamVideoTrack(oldStream), getStreamVideoTrack(stream));
             };
 
-            await applyStream(oldMedia?.userMedia, localMedia?.userMedia, SDPStreamMetadataPurpose.Usermedia);
-            await applyStream(oldMedia?.screenShare, localMedia?.screenShare, SDPStreamMetadataPurpose.Screenshare);
+            await applyStream(this.localMedia?.userMedia, localMedia?.userMedia, SDPStreamMetadataPurpose.Usermedia);
+            await applyStream(this.localMedia?.screenShare, localMedia?.screenShare, SDPStreamMetadataPurpose.Screenshare);
+            // we explicitly don't replace this.localMedia if already set
+            // as we need to keep the old stream so the stream id doesn't change
+            // instead we add and remove tracks in the stream in applyTrack
+            if (!this.localMedia) {
+                this.localMedia = localMedia;
+            }
             // TODO: datachannel, but don't do it here as we don't want to do it from answer, rather in different method
         });
     }
@@ -1158,3 +1164,13 @@ function enableTransceiver(transceiver: Transceiver, enabled: boolean, exclusive
         }
     }
 }
+
+/**
+ * tests to write:
+ * 
+ * upgradeCall: adding a track with setMedia calls the correct methods on the peerConnection
+ * upgradeCall: removing a track with setMedia calls the correct methods on the peerConnection
+ * upgradeCall: replacing compatible track with setMedia calls the correct methods on the peerConnection
+ * upgradeCall: replacing incompatible track (sender.replaceTrack throws) with setMedia calls the correct methods on the peerConnection
+ * 
+ * */

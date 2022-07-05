@@ -293,6 +293,7 @@ export class Member {
     async setMedia(localMedia: LocalMedia, previousMedia: LocalMedia): Promise<void> {
         const {connection} = this;
         if (connection) {
+            // TODO: see if we can simplify this
             connection.localMedia = localMedia.replaceClone(connection.localMedia, previousMedia);
             await connection.peerCall?.setMedia(connection.localMedia, connection.logItem);
         }
