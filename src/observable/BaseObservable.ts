@@ -80,5 +80,5 @@ export function tests() {
             assert.equal(c.firstSubscribeCalls, 1);
             assert.equal(c.firstUnsubscribeCalls, 1);
         }
-    }
+    };
 }

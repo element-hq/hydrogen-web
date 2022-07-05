@@ -31,7 +31,7 @@ export type BaseObservableMapConfig<K, V> = {
     join(_this: BaseObservableMap<K, V>, ...otherMaps: Array<BaseObservableMap<K, V>>): JoinedMap;
     mapValues(_this: BaseObservableMap<K, V>, mapper: any, updater?: (params: any) => void): MappedMap;
     sortValues(_this: BaseObservableMap<K, V>, comparator?: (a: any, b: any) => number): SortedMapList;
-    filterValues(_this: BaseObservableMap<K, V>, filter: (v: V, k: K) => boolean): FilteredMap;
+    filterValues(_this: BaseObservableMap<K, V>, filter: (v: V, k: K) => boolean): FilteredMap<K, V>;
 }
 
 export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserver<K, V>> {
@@ -48,13 +48,13 @@ export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserve
         }
     }
 
-    emitUpdate(key, value, params) {
+    emitUpdate(key: K, value: V, params: any) {
         for(let h of this._handlers) {
             h.onUpdate(key, value, params);
         }
     }
 
-    emitRemove(key, value) {
+    emitRemove(key: K, value: V) {
         for(let h of this._handlers) {
             h.onRemove(key, value);
         }
@@ -69,7 +69,7 @@ export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserve
     abstract join(...otherMaps: Array<typeof this>): JoinedMap;
     abstract mapValues(mapper: any, updater?: (params: any) => void): MappedMap;
     abstract sortValues(comparator?: (a: any, b: any) => number): SortedMapList;
-    abstract filterValues(filter: (v: V, k: K) => boolean): FilteredMap;
+    abstract filterValues(filter: (v: V, k: K) => boolean): FilteredMap<K, V>;
 
     abstract [Symbol.iterator](): Iterator<[K, V]>;
     abstract get size(): number;

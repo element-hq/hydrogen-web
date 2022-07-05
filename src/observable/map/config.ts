@@ -36,7 +36,7 @@ export function config<K, V>(): BaseObservableMapConfig<K, V> {
         sortValues: (_this: BaseObservableMap<K, V>, comparator?: (a: any, b: any) => number): SortedMapList => {
             return new SortedMapList(_this, comparator);
         },
-        filterValues: (_this: BaseObservableMap<K, V>, filter: (v: V, k: K) => boolean): FilteredMap => {
+        filterValues: (_this: BaseObservableMap<K, V>, filter: (v: V, k: K) => boolean): FilteredMap<K, V> => {
             return new FilteredMap(_this, filter);
         }
     };

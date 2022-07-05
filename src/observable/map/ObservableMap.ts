@@ -44,7 +44,7 @@ export class ObservableMap<K, V> extends BaseObservableMap<K, V> {
         return this._config.sortValues(this, comparator);
     }
 
-    filterValues(filter: (v: V, k: K) => boolean): FilteredMap {
+    filterValues(filter: (v: V, k: K) => boolean): FilteredMap<K, V> {
         return this._config.filterValues(this, filter);
     }
 
