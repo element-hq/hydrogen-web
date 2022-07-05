@@ -31,7 +31,7 @@ export function renderStaticAvatar(vm, size, extraClasses = undefined) {
         avatarClasses += ` ${extraClasses}`;
     }
     const avatarContent = hasAvatar ? renderImg(vm, size) : text(vm.avatarLetter);
-    const avatar = tag.div({className: avatarClasses}, [avatarContent]);
+    const avatar = tag.div({className: avatarClasses, "data-testid": "avatar"}, [avatarContent]);
     if (hasAvatar) {
         setAttribute(avatar, "data-avatar-letter", vm.avatarLetter);
         setAttribute(avatar, "data-avatar-color", vm.avatarColorNumber);

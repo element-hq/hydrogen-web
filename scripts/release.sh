@@ -1,3 +1,4 @@
+set -e
 if [ -z "$1" ]; then
     echo "provide a new version, current version is $(jq '.version' package.json)"
     exit 1
