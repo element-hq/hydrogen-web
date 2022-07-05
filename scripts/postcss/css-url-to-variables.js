@@ -55,7 +55,13 @@ function addResolvedVariablesToRootSelector(root, { Rule, Declaration }, urlVari
 function populateMapWithIcons(map, cssFileLocation, urlVariables) {
     const location = cssFileLocation.match(/(.+)\/.+\.css/)?.[1];
     const sharedObject = map.get(location);
-    sharedObject["icon"] = Object.fromEntries(urlVariables);
+    const output = {"icon": Object.fromEntries(urlVariables)};
+    if (sharedObject) {
+        Object.assign(sharedObject, output);
+    }
+    else {
+        map.set(location, output);
+    }
 }
 
 function *createCounter() {
