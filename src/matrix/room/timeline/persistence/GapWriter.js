@@ -163,7 +163,7 @@ export class GapWriter {
         if (!Array.isArray(chunk)) {
             throw new Error("Invalid chunk in response");
         }
-        if (typeof end !== "string") {
+        if (typeof end !== "string" && typeof end !== "undefined") {
             throw new Error("Invalid end token in response");
         }
 
