@@ -116,7 +116,8 @@ export class Member {
         if (this.connection) {
             return;
         }
-        const connection = new MemberConnection(localMedia, localMuteSettings, memberLogItem);
+        // Safari can't send a MediaStream to multiple sources, so clone it
+        const connection = new MemberConnection(localMedia.clone(), localMuteSettings, memberLogItem);
         this.connection = connection;
         let connectLogItem;
         connection.logItem.wrap("connect", async log => {
@@ -293,7 +294,6 @@ export class Member {
     async setMedia(localMedia: LocalMedia, previousMedia: LocalMedia): Promise<void> {
         const {connection} = this;
         if (connection) {
-            // TODO: see if we can simplify this
             connection.localMedia = localMedia.replaceClone(connection.localMedia, previousMedia);
             await connection.peerCall?.setMedia(connection.localMedia, connection.logItem);
         }

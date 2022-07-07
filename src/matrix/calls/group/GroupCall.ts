@@ -510,8 +510,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
         const logItem = joinedData.membersLogItem.child({l: "member", id: memberKey});
         logItem.set("sessionId", member.sessionId);
         log.wrap({l: "connect", id: memberKey}, log => {
-            // Safari can't send a MediaStream to multiple sources, so clone it
-            const connectItem = member.connect(joinedData.localMedia.clone(), joinedData.localMuteSettings, logItem);
+            const connectItem = member.connect(joinedData.localMedia, joinedData.localMuteSettings, logItem);
             if (connectItem) {
                 log.refDetached(connectItem);
             }
