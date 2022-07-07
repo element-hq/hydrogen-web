@@ -57,8 +57,7 @@ export class RoomView extends TemplateView {
                         switch (composerViewModel?.kind) {
                             case "composer":
                                 return new MessageComposer(vm.composerViewModel, this._viewClassForTile);
-                            case "archived":
-                            case "low-powerlevel":
+                            case "disabled":
                                 return new DisabledComposerView(vm.composerViewModel);
                         }
                     }),

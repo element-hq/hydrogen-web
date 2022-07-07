@@ -386,7 +386,7 @@ class ArchivedViewModel extends ViewModel {
     }
 
     get kind() {
-        return "archived";
+        return "disabled";
     }
 }
 
@@ -396,6 +396,6 @@ class LowerPowerLevelViewModel extends ViewModel {
     }
 
     get kind() {
-        return "low-powerlevel";
+        return "disabled";
     }
 }
