@@ -35,7 +35,7 @@ export class FilteredMap<K, V> extends BaseObservableMap<K, V> {
         this._config = config<K, V>();
     }
 
-    join(...otherMaps: Array<typeof this>): JoinedMap {
+    join(...otherMaps: Array<typeof this>): JoinedMap<K, V> {
         return this._config.join(this, ...otherMaps);
     }
 

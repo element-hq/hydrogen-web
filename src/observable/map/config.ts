@@ -27,7 +27,7 @@ import {SortedMapList} from "../list/SortedMapList.js";
 // (i.e. `new JoinedMap()`) and BaseObservableMap (as they extend it).
 export function config<K, V>(): BaseObservableMapConfig<K, V> {
     return {
-        join: (_this: BaseObservableMap<K, V>, ...otherMaps: Array<BaseObservableMap<K, V>>): JoinedMap => {
+        join: (_this: BaseObservableMap<K, V>, ...otherMaps: Array<BaseObservableMap<K, V>>): JoinedMap<K, V> => {
             return new JoinedMap([_this].concat(otherMaps));
         },
         mapValues: (_this: BaseObservableMap<K, V>, mapper: any, updater?: (params: any) => void): MappedMap => {
@@ -40,4 +40,4 @@ export function config<K, V>(): BaseObservableMapConfig<K, V> {
             return new FilteredMap(_this, filter);
         }
     };
-};
+}

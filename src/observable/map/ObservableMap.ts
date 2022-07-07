@@ -32,7 +32,7 @@ export class ObservableMap<K, V> extends BaseObservableMap<K, V> {
         this._values = new Map(initialValues);
     }
 
-    join(...otherMaps: Array<typeof this>): JoinedMap {
+    join(...otherMaps: Array<typeof this>): JoinedMap<K, V> {
         return this._config.join(this, ...otherMaps);
     }
 

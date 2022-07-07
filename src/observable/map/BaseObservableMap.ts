@@ -28,7 +28,7 @@ export interface IMapObserver<K, V> {
 }
 
 export type BaseObservableMapConfig<K, V> = {
-    join(_this: BaseObservableMap<K, V>, ...otherMaps: Array<BaseObservableMap<K, V>>): JoinedMap;
+    join(_this: BaseObservableMap<K, V>, ...otherMaps: Array<BaseObservableMap<K, V>>): JoinedMap<K, V>;
     mapValues(_this: BaseObservableMap<K, V>, mapper: any, updater?: (params: any) => void): MappedMap;
     sortValues(_this: BaseObservableMap<K, V>, comparator?: (a: any, b: any) => number): SortedMapList;
     filterValues(_this: BaseObservableMap<K, V>, filter: (v: V, k: K) => boolean): FilteredMap<K, V>;
@@ -66,7 +66,7 @@ export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserve
     // here. See the neighboring `ObservableMap.ts` for an example of how
     // to easily use the default implementation in a class that extends
     // this one (which is most likely what you want to do).
-    abstract join(...otherMaps: Array<typeof this>): JoinedMap;
+    abstract join(...otherMaps: Array<typeof this>): JoinedMap<K, V>;
     abstract mapValues(mapper: any, updater?: (params: any) => void): MappedMap;
     abstract sortValues(comparator?: (a: any, b: any) => number): SortedMapList;
     abstract filterValues(filter: (v: V, k: K) => boolean): FilteredMap<K, V>;
