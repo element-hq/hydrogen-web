@@ -69,7 +69,8 @@ export class RoomViewModel extends ViewModel {
 
     async _recreateComposerOnPowerLevelChange() {
         const powerLevelObservable = await this._room.observePowerLevels();
-        let oldCanSendMessage = powerLevelObservable.get().canSendType("m.room.message");
+        const canSendMessage = () => powerLevelObservable.get().canSendType("m.room.message");
+        let oldCanSendMessage = canSendMessage();
         const recreateComposer = newCanSendMessage => {
             this._composerVM = this.disposeTracked(this._composerVM);
             if (newCanSendMessage) {
@@ -80,8 +81,8 @@ export class RoomViewModel extends ViewModel {
             }
             this.emitChange("powerLevelObservable")
         };
-        this.track(powerLevelObservable.subscribe(newPowerLevel => {
-            const newCanSendMessage = newPowerLevel.canSendType("m.room.message");
+        this.track(powerLevelObservable.subscribe(() => {
+            const newCanSendMessage = canSendMessage();
             if (oldCanSendMessage !== newCanSendMessage) {
                 recreateComposer(newCanSendMessage);
                 oldCanSendMessage = newCanSendMessage;
