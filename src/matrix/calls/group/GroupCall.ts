@@ -175,8 +175,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
             await Promise.all(Array.from(this._members.values()).map(m => {
                 return m.setMedia(localMedia, oldMedia);
             }));
-
-            oldMedia?.stopExcept(localMedia);
+            oldMedia?.dispose();
         }
     }
 
