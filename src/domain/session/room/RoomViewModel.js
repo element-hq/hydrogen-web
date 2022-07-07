@@ -37,9 +37,9 @@ export class RoomViewModel extends ViewModel {
         this._sendError = null;
         this._composerVM = null;
         if (room.isArchived) {
-            this._composerVM = new ArchivedViewModel(this.childOptions({archivedRoom: room}));
+            this._composerVM = this.track(new ArchivedViewModel(this.childOptions({archivedRoom: room})));
         } else {
-            this._composerVM = new ComposerViewModel(this);
+            this._watchPowerLevelChange();
         }
         this._clearUnreadTimout = null;
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
@@ -65,6 +65,29 @@ export class RoomViewModel extends ViewModel {
             this.emitChange("error");
         }
         this._clearUnreadAfterDelay();
+    }
+
+    async _watchPowerLevelChange() {
+        const powerLevelObservable = await this._room.observePowerLevels();
+        let oldCanSendMessage = powerLevelObservable.get().canSendType("m.room.message");
+        const recreateComposer = newCanSendMessage => {
+            this._composerVM = this.disposeTracked(this._composerVM);
+            if (newCanSendMessage) {
+                this._composerVM = this.track(new ComposerViewModel(this));
+            }
+            else {
+                this._composerVM = this.track(new LowerPowerLevelViewModel());
+            }
+            this.emitChange("powerLevelObservable")
+        };
+        this.track(powerLevelObservable.subscribe(newPowerLevel => {
+            const newCanSendMessage = newPowerLevel.canSendType("m.room.message");
+            if (oldCanSendMessage !== newCanSendMessage) {
+                recreateComposer(newCanSendMessage);
+                oldCanSendMessage = newCanSendMessage;
+            }
+        }));
+        recreateComposer(oldCanSendMessage);
     }
 
     async _clearUnreadAfterDelay() {
@@ -363,5 +386,15 @@ class ArchivedViewModel extends ViewModel {
 
     get kind() {
         return "archived";
+    }
+}
+
+class LowerPowerLevelViewModel extends ViewModel {
+    get description() {
+        return this.i18n`You do not have the powerlevel necessary to send messages`;
+    }
+
+    get kind() {
+        return "low-powerlevel";
     }
 }

@@ -21,7 +21,7 @@ import {Menu} from "../../general/Menu.js";
 import {TimelineView} from "./TimelineView";
 import {TimelineLoadingView} from "./TimelineLoadingView.js";
 import {MessageComposer} from "./MessageComposer.js";
-import {RoomArchivedView} from "./RoomArchivedView.js";
+import {DisabledComposerView} from "./DisabledComposerView.js";
 import {AvatarView} from "../../AvatarView.js";
 
 export class RoomView extends TemplateView {
@@ -32,12 +32,6 @@ export class RoomView extends TemplateView {
     }
 
     render(t, vm) {
-        let bottomView;
-        if (vm.composerViewModel.kind === "composer") {
-            bottomView = new MessageComposer(vm.composerViewModel, this._viewClassForTile);
-        } else if (vm.composerViewModel.kind === "archived") {
-            bottomView = new RoomArchivedView(vm.composerViewModel);
-        }
         return t.main({className: "RoomView middle"}, [
             t.div({className: "RoomHeader middle-header"}, [
                 t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Close room`}),
@@ -58,7 +52,16 @@ export class RoomView extends TemplateView {
                         new TimelineView(timelineViewModel, this._viewClassForTile) :
                         new TimelineLoadingView(vm);    // vm is just needed for i18n
                 }),
-                t.view(bottomView),
+                t.mapView(vm => vm.composerViewModel,
+                    composerViewModel => {
+                        switch (composerViewModel?.kind) {
+                            case "composer":
+                                return new MessageComposer(vm.composerViewModel, this._viewClassForTile);
+                            case "archived":
+                            case "low-powerlevel":
+                                return new DisabledComposerView(vm.composerViewModel);
+                        }
+                    }),
             ])
         ]);
     }
