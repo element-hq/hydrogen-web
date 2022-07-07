@@ -21,7 +21,7 @@ import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel.js";
 import {CompleteSSOLoginViewModel} from "./CompleteSSOLoginViewModel.js";
 import {LoadStatus} from "../../matrix/Client.js";
 import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
-import {PasswordLoginMethod, SSOLoginHelper, TokenLoginMethod} from "../../matrix/login";
+import type {PasswordLoginMethod, SSOLoginHelper, TokenLoginMethod, ILoginMethod} from "../../matrix/login";
 
 type Options = {
     defaultHomeserver: string;
@@ -44,9 +44,9 @@ export class LoginViewModel extends ViewModel<Options> {
     private _abortHomeserverQueryTimeout?: () => void;
     private _abortQueryOperation?: () => void;
 
-    private _hideHomeserver = false;
-    private _isBusy = false;
-    private _errorMessage = "";
+    private _hideHomeserver: boolean = false;
+    private _isBusy: boolean = false;
+    private _errorMessage: string = "";
 
     constructor(options: Readonly<Options>) {
         super(options);
@@ -58,16 +58,45 @@ export class LoginViewModel extends ViewModel<Options> {
         void this._initViewModels();
     }
 
-    get passwordLoginViewModel() { return this._passwordLoginViewModel; }
-    get startSSOLoginViewModel() { return this._startSSOLoginViewModel; }
-    get completeSSOLoginViewModel(){ return this._completeSSOLoginViewModel; }
-    get homeserver() { return this._homeserver; }
-    get resolvedHomeserver() { return this._loginOptions?.homeserver; }
-    get errorMessage() { return this._errorMessage; }
-    get showHomeserver() { return !this._hideHomeserver; }
-    get loadViewModel() {return this._loadViewModel; }
-    get isBusy() { return this._isBusy; }
-    get isFetchingLoginOptions() { return !!this._abortQueryOperation; }
+    get passwordLoginViewModel(): PasswordLoginViewModel {
+        return this._passwordLoginViewModel;
+    }
+
+    get startSSOLoginViewModel(): StartSSOLoginViewModel {
+        return this._startSSOLoginViewModel;
+    }
+
+    get completeSSOLoginViewModel(): CompleteSSOLoginViewModel {
+        return this._completeSSOLoginViewModel;
+    }
+
+    get homeserver(): string {
+        return this._homeserver;
+    }
+
+    get resolvedHomeserver(): string | undefined {
+        return this._loginOptions?.homeserver;
+    }
+
+    get errorMessage(): string {
+        return this._errorMessage;
+    }
+
+    get showHomeserver(): boolean {
+        return !this._hideHomeserver;
+    }
+
+    get loadViewModel(): SessionLoadViewModel {
+        return this._loadViewModel;
+    }
+
+    get isBusy(): boolean {
+        return this._isBusy;
+    }
+
+    get isFetchingLoginOptions(): boolean {
+        return !!this._abortQueryOperation;
+    }
 
     goBack() {
         this.navigation.push("session");
@@ -80,7 +109,7 @@ export class LoginViewModel extends ViewModel<Options> {
                 this.childOptions(
                     {
                         client: this._client,
-                        attemptLogin: (loginMethod: PasswordLoginMethod) => this.attemptLogin(loginMethod),
+                        attemptLogin: (loginMethod: TokenLoginMethod) => this.attemptLogin(loginMethod),
                         loginToken: this._loginToken
                     })));
             this.emitChange("completeSSOLoginViewModel");
@@ -118,7 +147,7 @@ export class LoginViewModel extends ViewModel<Options> {
         this.emitChange("isBusy");
     }
 
-    async attemptLogin(loginMethod: PasswordLoginMethod) {
+    async attemptLogin(loginMethod: ILoginMethod) {
         this._setBusy(true);
         await this._client.startWithLogin(loginMethod, {inspectAccountSetup: true});
         const loadStatus = this._client.loadStatus;
@@ -171,7 +200,7 @@ export class LoginViewModel extends ViewModel<Options> {
         this.emitChange("disposeViewModels");
     }
 
-    async setHomeserver(newHomeserver) {
+    async setHomeserver(newHomeserver: string) {
         this._homeserver = newHomeserver;
         // clear everything set by queryHomeserver
         this._loginOptions = undefined;
