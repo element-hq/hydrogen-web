@@ -47,16 +47,7 @@ export class LocalMedia {
             if (oldOriginalStream?.id === newStream?.id) {
                 return oldCloneStream;
             } else {
-                const clonedStream = newStream?.clone();
-                // clonedStream.addEventListener("removetrack", evt => {
-                //     console.log(`removing track ${evt.track.id} (${evt.track.kind}) from clonedStream ${clonedStream.id}`);
-                // });
-                // console.log("got cloned tracks", Array.from(clonedStream.getTracks()).map((t: MediaStreamTrack) => { return {kind: t.kind, id: t.id};}), "from new stream", Array.from(newStream.getTracks()).map((t: MediaStreamTrack) => { return {kind: t.kind, id: t.id};}));
-                // console.log("stopping old audio stream", getStreamAudioTrack(oldCloneStream)?.id);
-                // console.log("stopping old video stream", getStreamVideoTrack(oldCloneStream)?.id);
-                getStreamAudioTrack(oldCloneStream)?.stop();
-                getStreamVideoTrack(oldCloneStream)?.stop();
-                return clonedStream;
+                return newStream?.clone();
             }
         }
         return new LocalMedia(

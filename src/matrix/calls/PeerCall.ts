@@ -1007,6 +1007,7 @@ export class PeerCall implements IDisposable {
                     if (streamToKeep !== stream) {
                         if (oldTrack) {
                             streamToKeep.removeTrack(oldTrack);
+                            oldTrack.stop();
                         }
                         if (newTrack) {
                             streamToKeep.addTrack(newTrack);
