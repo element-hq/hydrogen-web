@@ -77,7 +77,7 @@ export class RoomViewModel extends ViewModel {
                 this._composerVM = this.track(new ComposerViewModel(this));
             }
             else {
-                this._composerVM = this.track(new LowerPowerLevelViewModel());
+                this._composerVM = this.track(new LowerPowerLevelViewModel(this.childOptions()));
             }
             this.emitChange("powerLevelObservable")
         };
