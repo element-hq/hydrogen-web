@@ -37,7 +37,8 @@ type CreateRoomPayload = {
     invite?: string[];
     room_alias_name?: string;
     creation_content?: {"m.federate": boolean};
-    initial_state: {type: string; state_key: string; content: Record<string, any>}[]
+    initial_state: { type: string; state_key: string; content: Record<string, any> }[];
+    power_level_content_override?: Record<string, any>;
 }
 
 type ImageInfo = {
@@ -62,6 +63,7 @@ type Options = {
     invites?: string[];
     avatar?: Avatar;
     alias?: string;
+    powerLevelContentOverride?: Record<string, any>;
 }
 
 function defaultE2EEStatusForType(type: RoomType): boolean {
@@ -150,6 +152,9 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
                 createOptions.creation_content = {
                     "m.federate": false
                 };
+            }
+            if (this.options.powerLevelContentOverride) {
+                createOptions.power_level_content_override = this.options.powerLevelContentOverride;
             }
             if (this.isEncrypted) {
                 createOptions.initial_state.push(createRoomEncryptionEvent());
