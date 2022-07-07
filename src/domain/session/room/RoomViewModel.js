@@ -39,7 +39,7 @@ export class RoomViewModel extends ViewModel {
         if (room.isArchived) {
             this._composerVM = this.track(new ArchivedViewModel(this.childOptions({archivedRoom: room})));
         } else {
-            this._watchPowerLevelChange();
+            this._recreateComposerOnPowerLevelChange();
         }
         this._clearUnreadTimout = null;
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
@@ -67,7 +67,7 @@ export class RoomViewModel extends ViewModel {
         this._clearUnreadAfterDelay();
     }
 
-    async _watchPowerLevelChange() {
+    async _recreateComposerOnPowerLevelChange() {
         const powerLevelObservable = await this._room.observePowerLevels();
         let oldCanSendMessage = powerLevelObservable.get().canSendType("m.room.message");
         const recreateComposer = newCanSendMessage => {
