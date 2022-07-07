@@ -894,12 +894,12 @@ button.link {
     width: 100%;
 }
 
-.RoomArchivedView {
+.DisabledComposerView {
     padding: 12px;
     background-color: var(--background-color-secondary);
 }
 
-.RoomArchivedView h3 {
+.DisabledComposerView h3 {
     margin: 0;
 }
 
