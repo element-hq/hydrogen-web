@@ -86,7 +86,7 @@ class StartOIDCLoginView extends TemplateView {
                 type: "button",
                 onClick: () => vm.startOIDCLogin(),
                 disabled: vm => vm.isBusy
-            }, vm.i18n`Log in via OIDC`)
+            }, vm.i18n`Continue`)
         );
     }
 }
