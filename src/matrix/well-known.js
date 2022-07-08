@@ -50,7 +50,7 @@ export async function lookupHomeserver(homeserver, request) {
             homeserver = normalizeHomeserver(wellKnownHomeserver);
         }
 
-        const wellKnownIssuer = body["m.authentication"]?.["issuer"];
+        const wellKnownIssuer = body["org.matrix.msc2965.authentication"]?.["issuer"];
         if (typeof wellKnownIssuer === "string") {
             issuer = wellKnownIssuer;
         }
