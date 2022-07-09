@@ -41,7 +41,7 @@ export class JoinedMap<K, V> extends BaseObservableMap<K, V> {
         return this._config.mapValues(this, mapper, updater);
     }
 
-    sortValues(comparator?: (a: any, b: any) => number): SortedMapList {
+    sortValues(comparator: (a: V, b: V) => number): SortedMapList {
         return this._config.sortValues(this, comparator);
     }
 

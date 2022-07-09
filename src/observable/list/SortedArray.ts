@@ -87,7 +87,7 @@ export class SortedArray<T> extends BaseObservableList<T> {
         const idx = sortedIndex(this._items, item, this._comparator);
         if (idx >= this._items.length || this._comparator(this._items[idx], item) !== 0) {
             this._items.splice(idx, 0, item);
-            this.emitAdd(idx, item)
+            this.emitAdd(idx, item);
         } else {
             this._items[idx] = item;
             this.emitUpdate(idx, item, updateParams);
@@ -156,7 +156,7 @@ export function tests() {
             assert.equal(sa.get(0), "a");
             assert.equal(sa.get(1), "b");
             assert.equal(sa.get(2), "c");
-        }, 
+        },
         "_getNext": assert => {
             const sa = new SortedArray<string>((a, b) => a.localeCompare(b));
             sa.setManyUnsorted(["b", "a", "f"]);
@@ -183,5 +183,5 @@ export function tests() {
             // check done persists
             assert.equal(it.next().done, true);
         }
-    }
+    };
 }

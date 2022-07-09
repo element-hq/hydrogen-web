@@ -129,7 +129,7 @@ export class SortedMapList extends BaseObservableList {
                 }
                 return v;
             }
-        }
+        };
     }
 }
 
@@ -267,5 +267,5 @@ export function tests() {
             assert.equal(updateFired, 1);
             assert.deepEqual(Array.from(list).map(v => v.number), [1, 3, 11]);
         },
-    }
+    };
 }

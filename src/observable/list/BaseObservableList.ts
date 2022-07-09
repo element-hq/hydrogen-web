@@ -31,7 +31,7 @@ export function defaultObserverWith<T>(overrides: { [key in keyof IListObserver<
         onUpdate(){},
         onRemove(){},
         onMove(){},
-    }
+    };
     return Object.assign(defaults, overrides);
 }
 

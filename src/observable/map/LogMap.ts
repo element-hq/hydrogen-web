@@ -20,7 +20,7 @@ import {FilteredMap} from "./FilteredMap.js";
 import {MappedMap} from "./MappedMap.js";
 import {JoinedMap} from "./JoinedMap.js";
 import {SortedMapList} from "../list/SortedMapList.js";
-import {SubscriptionHandle} from "../BaseObservable"
+import {SubscriptionHandle} from "../BaseObservable";
 import {ILogItem, LabelOrValues} from "../../logging/types";
 import {LogLevel} from "../../logging/LogFilter";
 
@@ -46,7 +46,7 @@ export class LogMap<K, V> extends BaseObservableMap<K, V> {
         return this._config.mapValues(this, mapper, updater);
     }
 
-    sortValues(comparator?: (a: any, b: any) => number): SortedMapList {
+    sortValues(comparator: (a: V, b: V) => number): SortedMapList {
         return this._config.sortValues(this, comparator);
     }
 

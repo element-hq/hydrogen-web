@@ -33,7 +33,7 @@ export function config<K, V>(): BaseObservableMapConfig<K, V> {
         mapValues: (_this: BaseObservableMap<K, V>, mapper: any, updater: (params: any) => void): MappedMap<K, V> => {
             return new MappedMap(_this, mapper, updater);
         },
-        sortValues: (_this: BaseObservableMap<K, V>, comparator?: (a: any, b: any) => number): SortedMapList => {
+        sortValues: (_this: BaseObservableMap<K, V>, comparator: (a: V, b: V) => number): SortedMapList => {
             return new SortedMapList(_this, comparator);
         },
         filterValues: (_this: BaseObservableMap<K, V>, filter: (v: V, k: K) => boolean): FilteredMap<K, V> => {
