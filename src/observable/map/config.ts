@@ -30,14 +30,25 @@ export function config<K, V>(): BaseObservableMapConfig<K, V> {
         join: (_this: BaseObservableMap<K, V>, ...otherMaps: Array<BaseObservableMap<K, V>>): JoinedMap<K, V> => {
             return new JoinedMap([_this].concat(otherMaps));
         },
-        mapValues: (_this: BaseObservableMap<K, V>, mapper: any, updater: (params: any) => void): MappedMap<K, V> => {
+        mapValues: (_this: BaseObservableMap<K, V>, mapper: Mapper<V>, updater?: Updater<V>): MappedMap<K, V> => {
             return new MappedMap(_this, mapper, updater);
         },
-        sortValues: (_this: BaseObservableMap<K, V>, comparator: (a: V, b: V) => number): SortedMapList => {
+        sortValues: (_this: BaseObservableMap<K, V>, comparator: Comparator<V>): SortedMapList => {
             return new SortedMapList(_this, comparator);
         },
-        filterValues: (_this: BaseObservableMap<K, V>, filter: (v: V, k: K) => boolean): FilteredMap<K, V> => {
+        filterValues: (_this: BaseObservableMap<K, V>, filter: Filter<K, V>): FilteredMap<K, V> => {
             return new FilteredMap(_this, filter);
         }
     };
 }
+
+export type Mapper<V> = (
+    value: V,
+    emitSpontaneousUpdate: any,
+) => V;
+
+export type Updater<V> = (params: any, mappedValue?: V, value?: V) => void;
+
+export type Comparator<V> = (a: V, b: V) => number;
+
+export type Filter<K, V> = (v: V, k: K) => boolean;

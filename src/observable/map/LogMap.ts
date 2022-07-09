@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {BaseObservableMap, BaseObservableMapConfig} from "./BaseObservableMap";
-import {config} from "./config";
+import {config, Mapper, Updater, Comparator, Filter} from "./config";
 import {FilteredMap} from "./FilteredMap.js";
 import {MappedMap} from "./MappedMap.js";
 import {JoinedMap} from "./JoinedMap.js";
@@ -42,15 +42,15 @@ export class LogMap<K, V> extends BaseObservableMap<K, V> {
         return this._config.join(this, ...otherMaps);
     }
 
-    mapValues(mapper: any, updater?: (params: any) => void): MappedMap<K, V> {
+    mapValues(mapper: Mapper<V>, updater?: Updater<V>): MappedMap<K, V> {
         return this._config.mapValues(this, mapper, updater);
     }
 
-    sortValues(comparator: (a: V, b: V) => number): SortedMapList {
+    sortValues(comparator: Comparator<V>): SortedMapList {
         return this._config.sortValues(this, comparator);
     }
 
-    filterValues(filter: (v: V, k: K) => boolean): FilteredMap<K, V> {
+    filterValues(filter: Filter<K, V>): FilteredMap<K, V> {
         return this._config.filterValues(this, filter);
     }
 

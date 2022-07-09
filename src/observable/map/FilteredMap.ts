@@ -16,7 +16,7 @@ limitations under the License.
 
 import {BaseObservableMap, BaseObservableMapConfig} from "./BaseObservableMap";
 import {SubscriptionHandle} from "../BaseObservable";
-import {config} from "./config";
+import {config, Mapper, Updater, Comparator, Filter} from "./config";
 import {JoinedMap} from "./JoinedMap.js";
 import {MappedMap} from "./MappedMap.js";
 import {SortedMapList} from "../list/SortedMapList.js";
@@ -24,11 +24,11 @@ import {SortedMapList} from "../list/SortedMapList.js";
 export class FilteredMap<K, V> extends BaseObservableMap<K, V> {
     private _source: BaseObservableMap<K, V>;
     private _config: BaseObservableMapConfig<K, V>;
-    private _filter: (value: V, key: K) => boolean;
+    private _filter: Filter<K, V>;
     private _included?: Map<K, boolean>;
     private _subscription?: SubscriptionHandle;
 
-    constructor(source: BaseObservableMap<K, V>, filter: (value: V, key: K) => boolean) {
+    constructor(source: BaseObservableMap<K, V>, filter: Filter<K, V>) {
         super();
         this._source = source;
         this._filter = filter;
@@ -39,19 +39,19 @@ export class FilteredMap<K, V> extends BaseObservableMap<K, V> {
         return this._config.join(this, ...otherMaps);
     }
 
-    mapValues(mapper: any, updater?: (params: any) => void): MappedMap<K, V>{
+    mapValues(mapper: Mapper<V>, updater?: Updater<V>): MappedMap<K, V>{
         return this._config.mapValues(this, mapper, updater);
     }
 
-    sortValues(comparator: (a: V, b: V) => number): SortedMapList {
+    sortValues(comparator: Comparator<V>): SortedMapList {
         return this._config.sortValues(this, comparator);
     }
 
-    filterValues(filter: (v: V, k: K) => boolean): FilteredMap<K, V> {
+    filterValues(filter: Filter<K, V>): FilteredMap<K, V> {
         return this._config.filterValues(this, filter);
     }
 
-    setFilter(filter: (value: V, key: K) => boolean) {
+    setFilter(filter: Filter<K, V>) {
         this._filter = filter;
         if (this._subscription) {
             this._reapplyFilter();

@@ -46,7 +46,7 @@ export class MemberListViewModel extends ViewModel {
             const vm = new MemberTileViewModel(this.childOptions({member, emitChange, mediaRepository}));
             this.nameDisambiguator.disambiguate(vm);
             return vm;
-        }
+        };
         const updater = (params, vm, newMember) => {
             vm.updateFrom(newMember);
             this.nameDisambiguator.disambiguate(vm);

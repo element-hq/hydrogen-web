@@ -19,6 +19,7 @@ import {JoinedMap} from "../map/JoinedMap.js";
 import {MappedMap} from "../map/MappedMap.js";
 import {FilteredMap} from "../map/FilteredMap.js";
 import {SortedMapList} from "../list/SortedMapList.js";
+import {Mapper, Updater, Comparator, Filter} from "./config";
 
 export interface IMapObserver<K, V> {
     onReset(): void;
@@ -29,9 +30,9 @@ export interface IMapObserver<K, V> {
 
 export type BaseObservableMapConfig<K, V> = {
     join(_this: BaseObservableMap<K, V>, ...otherMaps: Array<BaseObservableMap<K, V>>): JoinedMap<K, V>;
-    mapValues(_this: BaseObservableMap<K, V>, mapper: any, updater?: (params: any) => void): MappedMap<K, V>;
-    sortValues(_this: BaseObservableMap<K, V>, comparator: (a: V, b: V) => number): SortedMapList;
-    filterValues(_this: BaseObservableMap<K, V>, filter: (v: V, k: K) => boolean): FilteredMap<K, V>;
+    mapValues(_this: BaseObservableMap<K, V>, mapper: any, updater?: Updater<V>): MappedMap<K, V>;
+    sortValues(_this: BaseObservableMap<K, V>, comparator: Comparator<V>): SortedMapList;
+    filterValues(_this: BaseObservableMap<K, V>, filter: Filter<K, V>): FilteredMap<K, V>;
 }
 
 export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserver<K, V>> {
@@ -67,9 +68,9 @@ export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserve
     // to easily use the default implementation in a class that extends
     // this one (which is most likely what you want to do).
     abstract join(...otherMaps: Array<typeof this>): JoinedMap<K, V>;
-    abstract mapValues(mapper: any, updater?: (params: any) => void): MappedMap<K, V>;
-    abstract sortValues(comparator: (a: V, b: V) => number): SortedMapList;
-    abstract filterValues(filter: (v: V, k: K) => boolean): FilteredMap<K, V>;
+    abstract mapValues(mapper: Mapper<V>, updater?: Updater<V>): MappedMap<K, V>;
+    abstract sortValues(comparator: Comparator<V>): SortedMapList;
+    abstract filterValues(filter: Filter<K, V>): FilteredMap<K, V>;
 
     abstract [Symbol.iterator](): Iterator<[K, V]>;
     abstract get size(): number;
