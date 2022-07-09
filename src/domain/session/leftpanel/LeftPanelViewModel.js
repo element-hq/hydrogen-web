@@ -23,6 +23,7 @@ import {RoomFilter} from "./RoomFilter.js";
 import {ApplyMap} from "../../../observable";
 import {addPanelIfNeeded} from "../../navigation";
 
+
 export class LeftPanelViewModel extends ViewModel {
     constructor(options) {
         super(options);
