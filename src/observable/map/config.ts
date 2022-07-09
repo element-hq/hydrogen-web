@@ -30,7 +30,7 @@ export function config<K, V>(): BaseObservableMapConfig<K, V> {
         join: (_this: BaseObservableMap<K, V>, ...otherMaps: Array<BaseObservableMap<K, V>>): JoinedMap<K, V> => {
             return new JoinedMap([_this].concat(otherMaps));
         },
-        mapValues: (_this: BaseObservableMap<K, V>, mapper: any, updater?: (params: any) => void): MappedMap => {
+        mapValues: (_this: BaseObservableMap<K, V>, mapper: any, updater: (params: any) => void): MappedMap<K, V> => {
             return new MappedMap(_this, mapper, updater);
         },
         sortValues: (_this: BaseObservableMap<K, V>, comparator?: (a: any, b: any) => number): SortedMapList => {

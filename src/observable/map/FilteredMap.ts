@@ -39,7 +39,7 @@ export class FilteredMap<K, V> extends BaseObservableMap<K, V> {
         return this._config.join(this, ...otherMaps);
     }
 
-    mapValues(mapper: any, updater?: (params: any) => void): MappedMap{
+    mapValues(mapper: any, updater?: (params: any) => void): MappedMap<K, V>{
         return this._config.mapValues(this, mapper, updater);
     }
 

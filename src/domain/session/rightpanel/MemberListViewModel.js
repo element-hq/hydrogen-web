@@ -47,7 +47,7 @@ export class MemberListViewModel extends ViewModel {
             this.nameDisambiguator.disambiguate(vm);
             return vm;
         }
-        const updater = (vm, params, newMember) => {
+        const updater = (params, vm, newMember) => {
             vm.updateFrom(newMember);
             this.nameDisambiguator.disambiguate(vm);
         };

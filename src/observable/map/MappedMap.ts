@@ -14,49 +14,83 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableMap} from "./BaseObservableMap";
+import {BaseObservableMap, BaseObservableMapConfig} from "./BaseObservableMap";
+import {config} from "./config";
+import {JoinedMap} from "./JoinedMap.js";
+import {FilteredMap} from "./FilteredMap.js";
+import {SortedMapList} from "../list/SortedMapList.js";
+import {SubscriptionHandle} from "../BaseObservable";
+
 /*
 so a mapped value can emit updates on it's own with this._emitSpontaneousUpdate that is passed in the mapping function
 how should the mapped value be notified of an update though? and can it then decide to not propagate the update?
 */
-export class MappedMap extends BaseObservableMap {
-    constructor(source, mapper, updater) {
+export class MappedMap<K, V> extends BaseObservableMap<K, V> {
+    private _source: BaseObservableMap<K, V>;
+    private _mapper: Mapper<V>;
+    private _updater?: Updater<V>;
+    private _mappedValues: Map<K, V>;
+    private _subscription?: SubscriptionHandle;
+    private _config: BaseObservableMapConfig<K, V>
+
+    constructor(
+        source: BaseObservableMap<K, V>,
+        mapper: Mapper<V>,
+        updater?: Updater<V>
+    ) {
         super();
         this._source = source;
         this._mapper = mapper;
         this._updater = updater;
-        this._mappedValues = new Map();
+        this._mappedValues = new Map<K, V>();
+        this._config = config<K, V>();
     }
 
-    _emitSpontaneousUpdate(key, params) {
+    join(...otherMaps: Array<typeof this>): JoinedMap<K, V> {
+        return this._config.join(this, ...otherMaps);
+    }
+
+    mapValues(mapper: any, updater?: (params: any) => void): MappedMap<K, V>{
+        return this._config.mapValues(this, mapper, updater);
+    }
+
+    sortValues(comparator?: (a: any, b: any) => number): SortedMapList {
+        return this._config.sortValues(this, comparator);
+    }
+
+    filterValues(filter: (v: V, k: K) => boolean): FilteredMap<K, V> {
+        return this._config.filterValues(this, filter);
+    }
+
+    _emitSpontaneousUpdate(key: K, params: any) {
         const value = this._mappedValues.get(key);
         if (value) {
             this.emitUpdate(key, value, params);
         }
     }
 
-    onAdd(key, value) {
+    onAdd(key: K, value: V) {
         const emitSpontaneousUpdate = this._emitSpontaneousUpdate.bind(this, key);
         const mappedValue = this._mapper(value, emitSpontaneousUpdate);
         this._mappedValues.set(key, mappedValue);
         this.emitAdd(key, mappedValue);
     }
 
-    onRemove(key/*, _value*/) {
+    onRemove(key: K/*, _value*/) {
         const mappedValue = this._mappedValues.get(key);
         if (this._mappedValues.delete(key)) {
-            this.emitRemove(key, mappedValue);
+            if (mappedValue) this.emitRemove(key, mappedValue);
         }
     }
 
-    onUpdate(key, value, params) {
+    onUpdate(key: K, value: V, params: any) {
         // if an update is emitted while calling source.subscribe() from onSubscribeFirst, ignore it
         if (!this._mappedValues) {
             return;
         }
         const mappedValue = this._mappedValues.get(key);
         if (mappedValue !== undefined) {
-            this._updater?.(mappedValue, params, value);
+            this._updater?.(params, mappedValue, value);
             // TODO: map params somehow if needed?
             this.emitUpdate(key, mappedValue, params);
         }
@@ -74,7 +108,7 @@ export class MappedMap extends BaseObservableMap {
 
     onUnsubscribeLast() {
         super.onUnsubscribeLast();
-        this._subscription = this._subscription();
+        if (this._subscription) this._subscription = this._subscription();
         this._mappedValues.clear();
     }
 
@@ -91,7 +125,14 @@ export class MappedMap extends BaseObservableMap {
         return this._mappedValues.size;
     }
 
-    get(key) {
+    get(key: K): V | undefined {
         return this._mappedValues.get(key);
     }
 }
+
+type Mapper<V> = (
+    value: V,
+    emitSpontaneousUpdate: any,
+) => V;
+
+type Updater<V> = (params: any, mappedValue?: V, value?: V) => void;

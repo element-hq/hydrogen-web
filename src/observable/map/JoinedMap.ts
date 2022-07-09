@@ -24,7 +24,7 @@ import {SubscriptionHandle} from "../BaseObservable"
 
 export class JoinedMap<K, V> extends BaseObservableMap<K, V> {
     protected _sources: BaseObservableMap<K, V>[];
-    private _config: BaseObservableMapConfig<K, V>
+    private _config: BaseObservableMapConfig<K, V>;
     private _subscriptions?: SourceSubscriptionHandler<K, V>[];
 
     constructor(sources: BaseObservableMap<K, V>[]) {
@@ -37,7 +37,7 @@ export class JoinedMap<K, V> extends BaseObservableMap<K, V> {
         return this._config.join(this, ...otherMaps);
     }
 
-    mapValues(mapper: any, updater?: (params: any) => void): MappedMap{
+    mapValues(mapper: any, updater?: (params: any) => void): MappedMap<K, V> {
         return this._config.mapValues(this, mapper, updater);
     }
 
