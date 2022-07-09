@@ -19,12 +19,13 @@ import {config} from "./config";
 import {FilteredMap} from "./FilteredMap.js";
 import {MappedMap} from "./MappedMap.js";
 import {SortedMapList} from "../list/SortedMapList.js";
+import {SubscriptionHandle} from "../BaseObservable"
 
 
 export class JoinedMap<K, V> extends BaseObservableMap<K, V> {
     protected _sources: BaseObservableMap<K, V>[];
     private _config: BaseObservableMapConfig<K, V>
-    private _subscriptions?: SourceSubscriptionHandler[];
+    private _subscriptions?: SourceSubscriptionHandler<K, V>[];
 
     constructor(sources: BaseObservableMap<K, V>[]) {
         super();
@@ -186,11 +187,15 @@ class JoinedIterator<K, V> implements Iterator<[K, V]> {
     }
 }
 
-class SourceSubscriptionHandler {
-    constructor(source, joinedMap) {
+class SourceSubscriptionHandler<K, V> {
+    private _source: BaseObservableMap<K, V>;
+    private _joinedMap: JoinedMap<K, V>;
+    private _subscription?: SubscriptionHandle;
+
+    constructor(source: BaseObservableMap<K, V>, joinedMap: JoinedMap<K, V>) {
         this._source = source;
         this._joinedMap = joinedMap;
-        this._subscription = null;
+        this._subscription = undefined;
     }
 
     subscribe() {
@@ -199,23 +204,23 @@ class SourceSubscriptionHandler {
     }
 
     dispose() {
-        this._subscription = this._subscription();
+        if (this._subscription) this._subscription = this._subscription();
     }
 
-    onAdd(key, value) {
+    onAdd(key: K, value: V) {
         this._joinedMap.onAdd(this._source, key, value);
     }
 
-    onRemove(key, value) {
+    onRemove(key: K, value: V) {
         this._joinedMap.onRemove(this._source, key, value);
     }
 
-    onUpdate(key, value, params) {
+    onUpdate(key: K, value: V, params: any) {
         this._joinedMap.onUpdate(this._source, key, value, params);
     }
 
     onReset() {
-        this._joinedMap.onReset(this._source);
+        this._joinedMap.onReset();
     }
 }
 
