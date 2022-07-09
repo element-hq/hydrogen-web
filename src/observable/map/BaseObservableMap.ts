@@ -15,9 +15,9 @@ limitations under the License.
 */
 
 import {BaseObservable} from "../BaseObservable";
-import {JoinedMap} from "../map/JoinedMap.js";
-import {MappedMap} from "../map/MappedMap.js";
-import {FilteredMap} from "../map/FilteredMap.js";
+import {JoinedMap} from "../map/JoinedMap";
+import {MappedMap} from "../map/MappedMap";
+import {FilteredMap} from "../map/FilteredMap";
 import {SortedMapList} from "../list/SortedMapList.js";
 import {Mapper, Updater, Comparator, Filter} from "./config";
 

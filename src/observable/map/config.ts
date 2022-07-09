@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {BaseObservableMap, BaseObservableMapConfig} from "./BaseObservableMap";
-import {FilteredMap} from "./FilteredMap.js";
-import {MappedMap} from "./MappedMap.js";
-import {JoinedMap} from "./JoinedMap.js";
+import {FilteredMap} from "./FilteredMap";
+import {MappedMap} from "./MappedMap";
+import {JoinedMap} from "./JoinedMap";
 import {SortedMapList} from "../list/SortedMapList.js";
 
 
