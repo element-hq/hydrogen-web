@@ -23,7 +23,7 @@ import {SortedMapList} from "../list/SortedMapList.js";
 
 export class FilteredMap<K, V> extends BaseObservableMap<K, V> {
     private _source: BaseObservableMap<K, V>;
-    private _config: BaseObservableMapConfig<K, V>
+    private _config: BaseObservableMapConfig<K, V>;
     private _filter: (value: V, key: K) => boolean;
     private _included?: Map<K, boolean>;
     private _subscription?: SubscriptionHandle;

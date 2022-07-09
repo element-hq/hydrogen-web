@@ -14,11 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {SortedMapList} from "./list/SortedMapList.js";
-import {FilteredMap} from "./map/FilteredMap.js";
-import {MappedMap} from "./map/MappedMap.js";
-import {JoinedMap} from "./map/JoinedMap.js";
-import {BaseObservableMap} from "./map/BaseObservableMap";
+
 // re-export "root" (of chain) collection
 export { ObservableMap } from "./map/ObservableMap";
 export { ObservableArray } from "./list/ObservableArray";
@@ -26,24 +22,3 @@ export { SortedArray } from "./list/SortedArray";
 export { MappedList } from "./list/MappedList";
 export { AsyncMappedList } from "./list/AsyncMappedList";
 export { ConcatList } from "./list/ConcatList";
-
-
-// avoid circular dependency between these classes
-// and BaseObservableMap (as they extend it)
-Object.assign(BaseObservableMap.prototype, {
-    sortValues(comparator) {
-        return new SortedMapList(this, comparator);
-    },
-
-    mapValues(mapper, updater) {
-        return new MappedMap(this, mapper, updater);
-    },
-
-    filterValues(filter) {
-        return new FilteredMap(this, filter);
-    },
-
-    join(...otherMaps) {
-        return new JoinedMap([this].concat(otherMaps));
-    }
-});
