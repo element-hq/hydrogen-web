@@ -46,28 +46,28 @@ export class MappedMap<K, V> extends BaseObservableMap<K, V> {
         this._config = config<K, V>();
     }
 
-    _emitSpontaneousUpdate(key: K, params: any) {
+    _emitSpontaneousUpdate(key: K, params: any): void {
         const value = this._mappedValues.get(key);
         if (value) {
             this.emitUpdate(key, value, params);
         }
     }
 
-    onAdd(key: K, value: V) {
+    onAdd(key: K, value: V): void {
         const emitSpontaneousUpdate = this._emitSpontaneousUpdate.bind(this, key);
         const mappedValue = this._mapper(value, emitSpontaneousUpdate);
         this._mappedValues.set(key, mappedValue);
         this.emitAdd(key, mappedValue);
     }
 
-    onRemove(key: K/*, _value*/) {
+    onRemove(key: K/*, _value*/): void {
         const mappedValue = this._mappedValues.get(key);
         if (this._mappedValues.delete(key)) {
             if (mappedValue) this.emitRemove(key, mappedValue);
         }
     }
 
-    onUpdate(key: K, value: V, params: any) {
+    onUpdate(key: K, value: V, params: any): void {
         // if an update is emitted while calling source.subscribe() from onSubscribeFirst, ignore it
         if (!this._mappedValues) {
             return;
@@ -80,7 +80,7 @@ export class MappedMap<K, V> extends BaseObservableMap<K, V> {
         }
     }
 
-    onSubscribeFirst() {
+    onSubscribeFirst(): void {
         this._subscription = this._source.subscribe(this);
         for (let [key, value] of this._source) {
             const emitSpontaneousUpdate = this._emitSpontaneousUpdate.bind(this, key);
@@ -90,22 +90,23 @@ export class MappedMap<K, V> extends BaseObservableMap<K, V> {
         super.onSubscribeFirst();
     }
 
-    onUnsubscribeLast() {
+    onUnsubscribeLast(): void {
         super.onUnsubscribeLast();
         if (this._subscription) this._subscription = this._subscription();
         this._mappedValues.clear();
     }
 
-    onReset() {
+    onReset(): void {
         this._mappedValues.clear();
         this.emitReset();
     }
 
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     [Symbol.iterator]() {
         return this._mappedValues.entries();
     }
 
-    get size() {
+    get size(): number {
         return this._mappedValues.size;
     }
 

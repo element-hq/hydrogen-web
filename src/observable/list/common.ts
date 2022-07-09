@@ -17,7 +17,12 @@ limitations under the License.
 import {BaseObservableList} from "./BaseObservableList";
 
 /* inline update of item in collection backed by array, without replacing the preexising item */
-export function findAndUpdateInArray<T>(predicate: (value: T) => boolean, array: T[], observable: BaseObservableList<T>, updater: (value: T) => any | false) {
+export function findAndUpdateInArray<T>(
+    predicate: (value: T) => boolean,
+    array: T[],
+    observable: BaseObservableList<T>,
+    updater: (value: T) => any | false
+): boolean {
     const index = array.findIndex(predicate);
     if (index !== -1) {
         const value = array[index];

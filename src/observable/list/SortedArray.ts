@@ -112,6 +112,7 @@ export class SortedArray<T> extends BaseObservableList<T> {
         return this._items.length;
     }
 
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     [Symbol.iterator]() {
         return new Iterator(this);
     }
@@ -127,6 +128,7 @@ class Iterator<T> {
         this._current = null;
     }
 
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     next() {
         if (this._sortedArray) {
             if (this._current) {
@@ -147,9 +149,10 @@ class Iterator<T> {
     }
 }
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {
     return {
-        "setManyUnsorted": assert => {
+        "setManyUnsorted": (assert): void => {
             const sa = new SortedArray<string>((a, b) => a.localeCompare(b));
             sa.setManyUnsorted(["b", "a", "c"]);
             assert.equal(sa.length, 3);
@@ -157,7 +160,7 @@ export function tests() {
             assert.equal(sa.get(1), "b");
             assert.equal(sa.get(2), "c");
         },
-        "_getNext": assert => {
+        "_getNext": (assert): void => {
             const sa = new SortedArray<string>((a, b) => a.localeCompare(b));
             sa.setManyUnsorted(["b", "a", "f"]);
             assert.equal(sa._getNext("a"), "b");
@@ -166,7 +169,7 @@ export function tests() {
             assert.equal(sa._getNext("c"), "f");
             assert.equal(sa._getNext("f"), undefined);
         },
-        "iterator with removals": assert => {
+        "iterator with removals": (assert): void => {
             const queue = new SortedArray<{idx: number}>((a, b) => a.idx - b.idx);
             queue.setManyUnsorted([{idx: 5}, {idx: 3}, {idx: 1}, {idx: 4}, {idx: 2}]);
             const it = queue[Symbol.iterator]();

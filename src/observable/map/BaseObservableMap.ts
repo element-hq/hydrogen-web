@@ -36,26 +36,26 @@ export type BaseObservableMapConfig<K, V> = {
 }
 
 export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserver<K, V>> {
-    emitReset() {
+    emitReset(): void {
         for(let h of this._handlers) {
             h.onReset();
         }
     }
     // we need batch events, mostly on index based collection though?
     // maybe we should get started without?
-    emitAdd(key: K, value: V) {
+    emitAdd(key: K, value: V): void {
         for(let h of this._handlers) {
             h.onAdd(key, value);
         }
     }
 
-    emitUpdate(key: K, value: V, params: any) {
+    emitUpdate(key: K, value: V, params: any): void {
         for(let h of this._handlers) {
             h.onUpdate(key, value, params);
         }
     }
 
-    emitRemove(key: K, value: V) {
+    emitRemove(key: K, value: V): void {
         for(let h of this._handlers) {
             h.onRemove(key, value);
         }

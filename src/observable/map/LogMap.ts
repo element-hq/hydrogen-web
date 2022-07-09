@@ -42,47 +42,48 @@ export class LogMap<K, V> extends BaseObservableMap<K, V> {
         return this._log.log(labelOrValues, logLevel);
     }
 
-    onAdd(key: K, value: V) {
+    onAdd(key: K, value: V): void {
         this.log("add " + JSON.stringify({key, value}));
         this.emitAdd(key, value);
     }
 
-    onRemove(key: K, value: V) {
+    onRemove(key: K, value: V): void {
         this.log("remove " + JSON.stringify({key, value}));
         this.emitRemove(key, value);
     }
 
-    onUpdate(key: K, value: V, params: any) {
+    onUpdate(key: K, value: V, params: any): void {
         this.log("update" + JSON.stringify({key, value, params}));
         this.emitUpdate(key, value, params);
     }
 
-    onSubscribeFirst() {
+    onSubscribeFirst(): void {
         this.log("subscribeFirst");
         this._subscription = this._source.subscribe(this);
         super.onSubscribeFirst();
     }
 
-    onUnsubscribeLast() {
+    onUnsubscribeLast(): void {
         super.onUnsubscribeLast();
         if (this._subscription) this._subscription = this._subscription();
         this.log("unsubscribeLast");
     }
 
-    onReset() {
+    onReset(): void {
         this.log("reset");
         this.emitReset();
     }
 
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     [Symbol.iterator]() {
         return this._source[Symbol.iterator]();
     }
 
-    get size() {
+    get size(): number {
         return this._source.size;
     }
 
-    get(key: K) {
+    get(key: K): V | undefined{
         return this._source.get(key);
     }
 

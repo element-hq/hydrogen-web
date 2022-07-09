@@ -86,10 +86,12 @@ export class ConcatList<T> extends BaseObservableList<T> implements IListObserve
         return len;
     }
 
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     [Symbol.iterator]() {
         let sourceListIdx = 0;
         let it = this._sourceLists[0][Symbol.iterator]();
         return {
+            // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
             next: () => {
                 let result = it.next();
                 while (result.done) {
@@ -108,16 +110,19 @@ export class ConcatList<T> extends BaseObservableList<T> implements IListObserve
 
 import {ObservableArray} from "./ObservableArray";
 import {defaultObserverWith} from "./BaseObservableList";
+
+
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export async function tests() {
     return {
-        test_length(assert) {
+        test_length(assert): void {
             const all = new ConcatList(
                 new ObservableArray([1, 2, 3]),
                 new ObservableArray([11, 12, 13])
             );
             assert.equal(all.length, 6);
         },
-        test_iterator(assert) {
+        test_iterator(assert): void {
             const all = new ConcatList(
                 new ObservableArray([1, 2, 3]),
                 new ObservableArray([11, 12, 13])
@@ -131,7 +136,7 @@ export async function tests() {
             assert.equal(it.next().value, 13);
             assert(it.next().done);
         },
-        test_add(assert) {
+        test_add(assert): void {
             const list1 = new ObservableArray([1, 2, 3]);
             const list2 = new ObservableArray([11, 12, 13]);
             const all = new ConcatList(list1, list2);
@@ -146,7 +151,7 @@ export async function tests() {
             list2.insert(1, 11.5);
             assert(fired);
         },
-        test_update(assert) {
+        test_update(assert): void {
             const list1 = new ObservableArray([1, 2, 3]);
             const list2 = new ObservableArray([11, 12, 13]);
             const all = new ConcatList(list1, list2);

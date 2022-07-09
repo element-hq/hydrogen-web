@@ -33,7 +33,7 @@ export class JoinedMap<K, V> extends BaseObservableMap<K, V> {
         this._config = config<K, V>();
     }
 
-    onAdd(source: BaseObservableMap<K, V>, key: K, value: V) {
+    onAdd(source: BaseObservableMap<K, V>, key: K, value: V): void {
         if (!this._isKeyAtSourceOccluded(source, key)) {
             const occludingValue = this._getValueFromOccludedSources(source, key);
             if (occludingValue !== undefined) {
@@ -45,7 +45,7 @@ export class JoinedMap<K, V> extends BaseObservableMap<K, V> {
         }
     }
 
-    onRemove(source: BaseObservableMap<K, V>, key: K, value: V) {
+    onRemove(source: BaseObservableMap<K, V>, key: K, value: V): void {
         if (!this._isKeyAtSourceOccluded(source, key)) {
             this.emitRemove(key, value);
             const occludedValue = this._getValueFromOccludedSources(source, key);
@@ -57,7 +57,7 @@ export class JoinedMap<K, V> extends BaseObservableMap<K, V> {
         }
     }
 
-    onUpdate(source: BaseObservableMap<K, V>, key: K, value: V, params: any) {
+    onUpdate(source: BaseObservableMap<K, V>, key: K, value: V, params: any): void {
         // if an update is emitted while calling source.subscribe() from onSubscribeFirst, ignore it
         if (!this._subscriptions) {
             return;
@@ -67,16 +67,16 @@ export class JoinedMap<K, V> extends BaseObservableMap<K, V> {
         }
     }
 
-    onReset() {
+    onReset(): void {
         this.emitReset();
     }
 
-    onSubscribeFirst() {
+    onSubscribeFirst(): void {
         this._subscriptions = this._sources.map(source => new SourceSubscriptionHandler(source, this).subscribe());
         super.onSubscribeFirst();
     }
 
-    _isKeyAtSourceOccluded(source: BaseObservableMap<K, V>, key: K) {
+    _isKeyAtSourceOccluded(source: BaseObservableMap<K, V>, key: K): boolean {
         // sources that come first in the sources array can
         // hide the keys in later sources, to prevent events
         // being emitted for the same key and different values,
@@ -91,7 +91,7 @@ export class JoinedMap<K, V> extends BaseObservableMap<K, V> {
     }
 
     // get the value that the given source and key occlude, if any
-    _getValueFromOccludedSources(source: BaseObservableMap<K, V>, key: K) {
+    _getValueFromOccludedSources(source: BaseObservableMap<K, V>, key: K): V | undefined{
         // sources that come first in the sources array can
         // hide the keys in later sources, to prevent events
         // being emitted for the same key and different values,
@@ -107,7 +107,7 @@ export class JoinedMap<K, V> extends BaseObservableMap<K, V> {
         return undefined;
     }
 
-    onUnsubscribeLast() {
+    onUnsubscribeLast(): void {
         super.onUnsubscribeLast();
         if (this._subscriptions) {
             for (const s of this._subscriptions) {
@@ -116,15 +116,16 @@ export class JoinedMap<K, V> extends BaseObservableMap<K, V> {
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     [Symbol.iterator]() {
         return new JoinedIterator<K, V>(this._sources);
     }
 
-    get size() {
+    get size(): number {
         return this._sources.reduce((sum, s) => sum + s.size, 0);
     }
 
-    get(key: K): V | undefined{
+    get(key: K): V | undefined {
         for (const s of this._sources) {
             const value = s.get(key);
             if (value) {
@@ -199,28 +200,28 @@ class SourceSubscriptionHandler<K, V> {
         this._subscription = undefined;
     }
 
-    subscribe() {
+    subscribe(): this {
         this._subscription = this._source.subscribe(this);
         return this;
     }
 
-    dispose() {
+    dispose(): void {
         if (this._subscription) this._subscription = this._subscription();
     }
 
-    onAdd(key: K, value: V) {
+    onAdd(key: K, value: V): void {
         this._joinedMap.onAdd(this._source, key, value);
     }
 
-    onRemove(key: K, value: V) {
+    onRemove(key: K, value: V): void {
         this._joinedMap.onRemove(this._source, key, value);
     }
 
-    onUpdate(key: K, value: V, params: any) {
+    onUpdate(key: K, value: V, params: any): void {
         this._joinedMap.onUpdate(this._source, key, value, params);
     }
 
-    onReset() {
+    onReset(): void {
         this._joinedMap.onReset();
     }
 }
@@ -228,9 +229,9 @@ class SourceSubscriptionHandler<K, V> {
 
 import {ObservableMap} from "..";
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {
-
-    function observeMap(map: JoinedMap<any, any>) {
+    function observeMap(map: JoinedMap<any, any>): { type: string; key: any; value: any; params?: any; }[] {
         const events: { type: string, key: any, value: any, params?: any }[] = [];
         map.subscribe({
             onAdd(key, value) { events.push({ type: "add", key, value }); },
@@ -244,7 +245,7 @@ export function tests() {
     }
 
     return {
-        "joined iterator": assert => {
+        "joined iterator": (assert): void => {
             const firstKV: [string, number] = ["a", 1];
             const secondKV: [string, number] = ["b", 2];
             const thirdKV: [string, number] = ["c", 3];
@@ -254,7 +255,7 @@ export function tests() {
             assert.equal(it.next().value, thirdKV);
             assert.equal(it.next().done, true);
         },
-        "prevent key collision during iteration": assert => {
+        "prevent key collision during iteration": (assert): void => {
             const first = new ObservableMap();
             const second = new ObservableMap();
             const join = new JoinedMap([first, second]);
@@ -266,7 +267,7 @@ export function tests() {
             assert.deepEqual(it.next().value, ["b", 3]);
             assert.equal(it.next().done, true);
         },
-        "adding occluded key doesn't emit add": assert => {
+        "adding occluded key doesn't emit add": (assert): void => {
             const first = new ObservableMap();
             const second = new ObservableMap();
             const join = new JoinedMap([first, second]);
@@ -278,7 +279,7 @@ export function tests() {
             assert.equal(events[0].key, "a");
             assert.equal(events[0].value, 1);
         },
-        "updating occluded key doesn't emit update": assert => {
+        "updating occluded key doesn't emit update": (assert): void => {
             const first = new ObservableMap();
             const second = new ObservableMap();
             const join = new JoinedMap([first, second]);
@@ -288,7 +289,7 @@ export function tests() {
             second.update("a", 3);
             assert.equal(events.length, 0);
         },
-        "removal of occluding key emits add after remove": assert => {
+        "removal of occluding key emits add after remove": (assert): void => {
             const first = new ObservableMap();
             const second = new ObservableMap();
             const join = new JoinedMap([first, second]);
@@ -304,7 +305,7 @@ export function tests() {
             assert.equal(events[1].key, "a");
             assert.equal(events[1].value, 2);
         },
-        "adding occluding key emits remove first": assert => {
+        "adding occluding key emits remove first": (assert): void => {
             const first = new ObservableMap();
             const second = new ObservableMap();
             const join = new JoinedMap([first, second]);

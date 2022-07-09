@@ -135,10 +135,12 @@ class ResetEvent<F> {
 import {ObservableArray} from "./ObservableArray";
 import {ListObserver} from "../../mocks/ListObserver.js";
 
+
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {
     return {
-        "events are emitted in order": async assert => {
-            const double = n => n * n;
+        "events are emitted in order": async (assert): Promise<void> => {
+            const double = (n: number): number => n * n;
             const source = new ObservableArray<number>();
             const mapper = new AsyncMappedList(source, async n => {
                 await new Promise(r => setTimeout(r, n));

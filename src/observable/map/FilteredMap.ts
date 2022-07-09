@@ -35,7 +35,7 @@ export class FilteredMap<K, V> extends BaseObservableMap<K, V> {
         this._config = config<K, V>();
     }
 
-    setFilter(filter: Filter<K, V>) {
+    setFilter(filter: Filter<K, V>): void {
         this._filter = filter;
         if (this._subscription) {
             this._reapplyFilter();
@@ -45,7 +45,7 @@ export class FilteredMap<K, V> extends BaseObservableMap<K, V> {
     /**
      * reapply the filter
      */
-    _reapplyFilter(silent = false) {
+    _reapplyFilter(silent = false): void {
         if (this._filter) {
             const oldIncluded = this._included;
             this._included = this._included || new Map();
@@ -71,7 +71,7 @@ export class FilteredMap<K, V> extends BaseObservableMap<K, V> {
         }
     }
 
-    onAdd(key: K, value: V) {
+    onAdd(key: K, value: V): void {
         if (this._filter) {
             if (this._included) {
                 const included = this._filter(value, key);
@@ -86,7 +86,7 @@ export class FilteredMap<K, V> extends BaseObservableMap<K, V> {
         this.emitAdd(key, value);
     }
 
-    onRemove(key: K, value: V) {
+    onRemove(key: K, value: V): void {
         const wasIncluded = !this._filter || this._included?.get(key);
         if (this._included) {
             this._included.delete(key);
@@ -98,7 +98,7 @@ export class FilteredMap<K, V> extends BaseObservableMap<K, V> {
         }
     }
 
-    onUpdate(key: K, value: V, params: any) {
+    onUpdate(key: K, value: V, params: any): void {
         // if an update is emitted while calling source.subscribe() from onSubscribeFirst, ignore it
         if (!this._included) {
             return;
@@ -113,7 +113,7 @@ export class FilteredMap<K, V> extends BaseObservableMap<K, V> {
         }
     }
 
-    _emitForUpdate(wasIncluded: boolean | undefined, isIncluded: boolean, key: K, value: V, params: any = null) {
+    _emitForUpdate(wasIncluded: boolean | undefined, isIncluded: boolean, key: K, value: V, params: any = null): void {
         if (wasIncluded && !isIncluded) {
             this.emitRemove(key, value);
         } else if (!wasIncluded && isIncluded) {
@@ -123,13 +123,13 @@ export class FilteredMap<K, V> extends BaseObservableMap<K, V> {
         }
     }
 
-    onSubscribeFirst() {
+    onSubscribeFirst(): void {
         this._subscription = this._source.subscribe(this);
         this._reapplyFilter(true);
         super.onSubscribeFirst();
     }
 
-    onUnsubscribeLast() {
+    onUnsubscribeLast(): void {
         super.onUnsubscribeLast();
         this._included = undefined;
         if (this._subscription) {
@@ -137,16 +137,17 @@ export class FilteredMap<K, V> extends BaseObservableMap<K, V> {
         }
     }
 
-    onReset() {
+    onReset(): void {
         this._reapplyFilter();
         this.emitReset();
     }
 
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     [Symbol.iterator]() {
         return new FilterIterator<K, V>(this._source, this._included);
     }
 
-    get size() {
+    get size(): number {
         let count = 0;
         this._included?.forEach(included => {
             if (included) {
@@ -156,7 +157,7 @@ export class FilteredMap<K, V> extends BaseObservableMap<K, V> {
         return count;
     }
 
-    get(key) {
+    get(key): V | undefined{
         const value = this._source.get(key);
         if (value && this._filter(value, key)) {
             return value;
@@ -188,6 +189,7 @@ class FilterIterator<K, V> {
         this._sourceIterator = map[Symbol.iterator]();
     }
 
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     next() {
         // eslint-disable-next-line no-constant-condition
         while (true) {
@@ -204,9 +206,11 @@ class FilterIterator<K, V> {
 }
 
 import {ObservableMap} from "..";
+
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {
     return {
-        "filter preloaded list": assert => {
+        "filter preloaded list": (assert): void => {
             const source = new ObservableMap();
             source.add("one", 1);
             source.add("two", 2);
@@ -233,17 +237,17 @@ export function tests() {
             assert.deepEqual(it.next().value, ["three", 3]);
             assert.equal(it.next().done, true);
         },
-        // "filter added values": assert => {
+        // "filter added values": (assert): void => {
 
         // },
-        // "filter removed values": assert => {
+        // "filter removed values": (assert): void => {
 
         // },
-        // "filter changed values": assert => {
+        // "filter changed values": (assert): void => {
 
         // },
 
-        "emits must trigger once": assert => {
+        "emits must trigger once": (assert): void => {
             const source = new ObservableMap();
             let count_add = 0, count_update = 0, count_remove = 0;
             source.add("num1", 1);

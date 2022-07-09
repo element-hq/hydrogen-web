@@ -36,42 +36,42 @@ export class ApplyMap<K, V> extends BaseObservableMap<K, V> {
         this._config = config<K, V>();
     }
 
-    hasApply() {
+    hasApply(): boolean {
         return !!this._apply;
     }
 
-    setApply(apply?: Apply<K, V>) {
+    setApply(apply?: Apply<K, V>): void {
         this._apply = apply;
         if (this._apply) {
             this.applyOnce(this._apply);
         }
     }
 
-    applyOnce(apply: Apply<K, V>) {
+    applyOnce(apply: Apply<K, V>): void {
         for (const [key, value] of this._source) {
             apply(key, value);
         }
     }
 
-    onAdd(key: K, value: V) {
+    onAdd(key: K, value: V): void {
         if (this._apply) {
             this._apply(key, value);
         }
         this.emitAdd(key, value);
     }
 
-    onRemove(key: K, value: V) {
+    onRemove(key: K, value: V): void {
         this.emitRemove(key, value);
     }
 
-    onUpdate(key: K, value: V, params: any) {
+    onUpdate(key: K, value: V, params: any): void {
         if (this._apply) {
             this._apply(key, value, params);
         }
         this.emitUpdate(key, value, params);
     }
 
-    onSubscribeFirst() {
+    onSubscribeFirst(): void {
         this._subscription = this._source.subscribe(this);
         if (this._apply) {
             this.applyOnce(this._apply);
@@ -79,27 +79,28 @@ export class ApplyMap<K, V> extends BaseObservableMap<K, V> {
         super.onSubscribeFirst();
     }
 
-    onUnsubscribeLast() {
+    onUnsubscribeLast(): void {
         super.onUnsubscribeLast();
         if (this._subscription) this._subscription = this._subscription();
     }
 
-    onReset() {
+    onReset(): void {
         if (this._apply) {
             this.applyOnce(this._apply);
         }
         this.emitReset();
     }
 
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     [Symbol.iterator]() {
         return this._source[Symbol.iterator]();
     }
 
-    get size() {
+    get size(): number {
         return this._source.size;
     }
 
-    get(key: K) {
+    get(key: K): V | undefined {
         return this._source.get(key);
     }
 

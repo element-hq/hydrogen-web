@@ -117,9 +117,10 @@ export class ObservableMap<K, V> extends BaseObservableMap<K, V> {
     }
 };
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {
     return {
-        test_initial_values(assert) {
+        test_initial_values(assert): void {
             const map = new ObservableMap([
                 ["a", 5],
                 ["b", 10]
@@ -129,7 +130,7 @@ export function tests() {
             assert.equal(map.get("b"), 10);
         },
 
-        test_add(assert) {
+        test_add(assert): void {
             let fired = 0;
             const map = new ObservableMap<number, {value: number}>();
             map.subscribe({
@@ -147,7 +148,7 @@ export function tests() {
             assert.equal(fired, 1);
         },
 
-        test_update(assert) {
+        test_update(assert): void {
             let fired = 0;
             const map = new ObservableMap<number, {number: number}>();
             const value = {number: 5};
@@ -168,7 +169,7 @@ export function tests() {
             assert.equal(fired, 1);
         },
 
-        test_update_unknown(assert) {
+        test_update_unknown(assert): void {
             let fired = 0;
             const map = new ObservableMap<number, {number: number}>();
             map.subscribe({
@@ -182,7 +183,7 @@ export function tests() {
             assert.equal(result, false);
         },
 
-        test_set(assert) {
+        test_set(assert): void {
             let add_fired = 0, update_fired = 0;
             const map = new ObservableMap<number, {value: number}>();
             map.subscribe({
@@ -209,7 +210,7 @@ export function tests() {
             assert.equal(update_fired, 1);
         },
 
-        test_remove(assert) {
+        test_remove(assert): void {
             let fired = 0;
             const map = new ObservableMap<number, {value: number}>();
             const value = {value: 5};
@@ -229,7 +230,7 @@ export function tests() {
             assert.equal(fired, 1);
         },
 
-        test_iterate(assert) {
+        test_iterate(assert): void {
             const results: any[] = [];
             const map = new ObservableMap<number, {number: number}>();
             map.add(1, {number: 5});
@@ -243,7 +244,7 @@ export function tests() {
             assert.equal(results.find(([key]) => key === 2)[1].number, 6);
             assert.equal(results.find(([key]) => key === 3)[1].number, 7);
         },
-        test_size(assert) {
+        test_size(assert): void {
             const map = new ObservableMap<number, {number: number}>();
             map.add(1, {number: 5});
             map.add(2, {number: 6});

@@ -75,6 +75,7 @@ export class ObservableArray<T> extends BaseObservableList<T> {
         return this._items.length;
     }
 
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     [Symbol.iterator]() {
         return this._items.values();
     }

@@ -37,14 +37,15 @@ export class BaseMappedList<F,T,R = T> extends BaseObservableList<T> {
         this._removeCallback = removeCallback;
     }
 
-    findAndUpdate(predicate: (value: T) => boolean, updater: (value: T) => any | false) {
+    findAndUpdate(predicate: (value: T) => boolean, updater: (value: T) => any | false): boolean {
         return findAndUpdateInArray(predicate, this._mappedValues!, this, updater);
     }
 
-    get length() {
+    get length(): number {
         return this._mappedValues!.length;
     }
 
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     [Symbol.iterator]() {
         return this._mappedValues!.values();
     }
