@@ -19,7 +19,7 @@ import {config} from "./config";
 import {FilteredMap} from "./FilteredMap.js";
 import {MappedMap} from "./MappedMap.js";
 import {SortedMapList} from "../list/SortedMapList.js";
-import {SubscriptionHandle} from "../BaseObservable"
+import {SubscriptionHandle} from "../BaseObservable";
 
 
 export class JoinedMap<K, V> extends BaseObservableMap<K, V> {

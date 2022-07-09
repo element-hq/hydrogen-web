@@ -16,13 +16,13 @@ limitations under the License.
 */
 
 import {IListObserver} from "./BaseObservableList";
-import {BaseMappedList, Mapper, Updater, runAdd, runUpdate, runRemove, runMove, runReset} from "./BaseMappedList";
+import {BaseMappedList, runAdd, runUpdate, runRemove, runMove, runReset} from "./BaseMappedList";
 
 export class AsyncMappedList<F,T> extends BaseMappedList<F,T,Promise<T>> implements IListObserver<F> {
     private _eventQueue: AsyncEvent<F>[] | null = null;
     private _flushing: boolean = false;
 
-    onSubscribeFirst(): void {
+    async onSubscribeFirst(): Promise<void> {
         this._sourceUnsubscribe = this._sourceList.subscribe(this);
         this._eventQueue = [];
         this._mappedValues = [];
@@ -31,7 +31,7 @@ export class AsyncMappedList<F,T> extends BaseMappedList<F,T,Promise<T>> impleme
             this._eventQueue.push(new AddEvent(idx, item));
             idx += 1;
         }
-        this._flush();
+        await this._flush();
     }
 
     async _flush(): Promise<void> {
@@ -49,38 +49,38 @@ export class AsyncMappedList<F,T> extends BaseMappedList<F,T,Promise<T>> impleme
         }
     }
 
-    onReset(): void {
+    async onReset(): Promise<void> {
         if (this._eventQueue) {
             this._eventQueue.push(new ResetEvent());
-            this._flush();
+            await this._flush();
         }
     }
 
-    onAdd(index: number, value: F): void {
+    async onAdd(index: number, value: F): Promise<void> {
         if (this._eventQueue) {
             this._eventQueue.push(new AddEvent(index, value));
-            this._flush();
+            await this._flush();
         }
     }
 
-    onUpdate(index: number, value: F, params: any): void {
+    async onUpdate(index: number, value: F, params: any): Promise<void> {
         if (this._eventQueue) {
             this._eventQueue.push(new UpdateEvent(index, value, params));
-            this._flush();
+            await this._flush();
         }
     }
 
-    onRemove(index: number): void {
+    async onRemove(index: number): Promise<void> {
         if (this._eventQueue) {
             this._eventQueue.push(new RemoveEvent(index));
-            this._flush();
+            await this._flush();
         }
     }
 
-    onMove(fromIdx: number, toIdx: number): void {
+    async onMove(fromIdx: number, toIdx: number): Promise<void> {
         if (this._eventQueue) {
             this._eventQueue.push(new MoveEvent(fromIdx, toIdx));
-            this._flush();
+            await this._flush();
         }
     }
 
@@ -150,7 +150,7 @@ export function tests() {
             mapper.subscribe(observer);
             source.append(2); // will sleep this amount, so second append would take less time
             source.append(1);
-            source.update(0, 7, "lucky seven")
+            source.update(0, 7, "lucky seven");
             source.remove(0);
             {
                 const {type, index, value} = await observer.next();
@@ -182,5 +182,5 @@ export function tests() {
                 assert.equal(value.n, 49);
             }
         }
-    }
+    };
 }

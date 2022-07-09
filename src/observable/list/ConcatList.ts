@@ -47,7 +47,7 @@ export class ConcatList<T> extends BaseObservableList<T> implements IListObserve
     onReset(): void {
         // TODO: not ideal if other source lists are large
         // but working impl for now
-        // reset, and 
+        // reset, and
         this.emitReset();
         let idx = 0;
         for(const item of this) {
@@ -102,7 +102,7 @@ export class ConcatList<T> extends BaseObservableList<T> implements IListObserve
                 }
                 return result;
             }
-        }
+        };
     }
 }
 

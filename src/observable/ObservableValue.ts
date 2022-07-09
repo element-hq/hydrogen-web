@@ -201,7 +201,7 @@ export function tests() {
         "waitFor promise resolves on matching update": async assert => {
             const a = new ObservableValue(5);
             const handle = a.waitFor(v => v === 6);
-            Promise.resolve().then(() => {
+            await Promise.resolve().then(() => {
                 a.set(6);
             });
             await handle.promise;
@@ -210,7 +210,7 @@ export function tests() {
         "waitFor promise rejects when disposed": async assert => {
             const a = new ObservableValue<number>(0);
             const handle = a.waitFor(() => false);
-            Promise.resolve().then(() => {
+            await Promise.resolve().then(() => {
                 handle.dispose();
             });
             await assert.rejects(handle.promise, AbortError);
@@ -244,5 +244,5 @@ export function tests() {
             count.set(5);
             assert.deepEqual(updates, [0, 5]);
         }
-    }
+    };
 }
