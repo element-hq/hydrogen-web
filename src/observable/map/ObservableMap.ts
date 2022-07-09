@@ -32,22 +32,6 @@ export class ObservableMap<K, V> extends BaseObservableMap<K, V> {
         this._values = new Map(initialValues);
     }
 
-    join(...otherMaps: Array<typeof this>): JoinedMap<K, V> {
-        return this._config.join(this, ...otherMaps);
-    }
-
-    mapValues(mapper: Mapper<V>, updater?: Updater<V>): MappedMap<K, V> {
-        return this._config.mapValues(this, mapper, updater);
-    }
-
-    sortValues(comparator: Comparator<V>): SortedMapList {
-        return this._config.sortValues(this, comparator);
-    }
-
-    filterValues(filter: Filter<K, V>): FilteredMap<K, V> {
-        return this._config.filterValues(this, filter);
-    }
-
     update(key: K, params?: any): boolean {
         const value = this._values.get(key);
         if (value !== undefined) {
@@ -114,6 +98,22 @@ export class ObservableMap<K, V> extends BaseObservableMap<K, V> {
 
     keys(): Iterator<K> {
         return this._values.keys();
+    }
+
+    join(...otherMaps: Array<typeof this>): JoinedMap<K, V> {
+        return this._config.join(this, ...otherMaps);
+    }
+
+    mapValues(mapper: Mapper<V>, updater?: Updater<V>): MappedMap<K, V> {
+        return this._config.mapValues(this, mapper, updater);
+    }
+
+    sortValues(comparator: Comparator<V>): SortedMapList {
+        return this._config.sortValues(this, comparator);
+    }
+
+    filterValues(filter: Filter<K, V>): FilteredMap<K, V> {
+        return this._config.filterValues(this, filter);
     }
 };
 

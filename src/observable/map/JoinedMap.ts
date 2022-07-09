@@ -33,22 +33,6 @@ export class JoinedMap<K, V> extends BaseObservableMap<K, V> {
         this._config = config<K, V>();
     }
 
-    join(...otherMaps: Array<typeof this>): JoinedMap<K, V> {
-        return this._config.join(this, ...otherMaps);
-    }
-
-    mapValues(mapper: Mapper<V>, updater?: Updater<V>): MappedMap<K, V> {
-        return this._config.mapValues(this, mapper, updater);
-    }
-
-    sortValues(comparator: Comparator<V>): SortedMapList {
-        return this._config.sortValues(this, comparator);
-    }
-
-    filterValues(filter: Filter<K, V>): FilteredMap<K, V> {
-        return this._config.filterValues(this, filter);
-    }
-
     onAdd(source: BaseObservableMap<K, V>, key: K, value: V) {
         if (!this._isKeyAtSourceOccluded(source, key)) {
             const occludingValue = this._getValueFromOccludedSources(source, key);
@@ -149,6 +133,23 @@ export class JoinedMap<K, V> extends BaseObservableMap<K, V> {
         }
         return undefined;
     }
+
+    join(...otherMaps: Array<typeof this>): JoinedMap<K, V> {
+        return this._config.join(this, ...otherMaps);
+    }
+
+    mapValues(mapper: Mapper<V>, updater?: Updater<V>): MappedMap<K, V> {
+        return this._config.mapValues(this, mapper, updater);
+    }
+
+    sortValues(comparator: Comparator<V>): SortedMapList {
+        return this._config.sortValues(this, comparator);
+    }
+
+    filterValues(filter: Filter<K, V>): FilteredMap<K, V> {
+        return this._config.filterValues(this, filter);
+    }
+
 }
 
 class JoinedIterator<K, V> implements Iterator<[K, V]> {
