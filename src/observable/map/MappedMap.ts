@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableMap, BaseObservableMapConfig} from "./BaseObservableMap";
-import {config, Mapper, Updater, Comparator, Filter} from "./config";
+import {BaseObservableMap} from "./BaseObservableMap";
+import {BaseObservableMapDefaults, Mapper, Updater, Comparator, Filter} from "./BaseObservableMapDefaults";
 import {JoinedMap} from "./JoinedMap";
 import {FilteredMap} from "./FilteredMap";
 import {SortedMapList} from "../list/SortedMapList.js";
@@ -26,12 +26,13 @@ so a mapped value can emit updates on it's own with this._emitSpontaneousUpdate 
 how should the mapped value be notified of an update though? and can it then decide to not propagate the update?
 */
 export class MappedMap<K, V> extends BaseObservableMap<K, V> {
+    private _defaults = new BaseObservableMapDefaults<K, V>();
     private _source: BaseObservableMap<K, V>;
     private _mapper: Mapper<V>;
     private _updater?: Updater<V>;
     private _mappedValues: Map<K, V>;
     private _subscription?: SubscriptionHandle;
-    private _config: BaseObservableMapConfig<K, V>
+
 
     constructor(
         source: BaseObservableMap<K, V>,
@@ -43,7 +44,6 @@ export class MappedMap<K, V> extends BaseObservableMap<K, V> {
         this._mapper = mapper;
         this._updater = updater;
         this._mappedValues = new Map<K, V>();
-        this._config = config<K, V>();
     }
 
     _emitSpontaneousUpdate(key: K, params: any): void {
@@ -115,18 +115,18 @@ export class MappedMap<K, V> extends BaseObservableMap<K, V> {
     }
 
     join(...otherMaps: Array<typeof this>): JoinedMap<K, V> {
-        return this._config.join(this, ...otherMaps);
+        return this._defaults.join(this, ...otherMaps);
     }
 
     mapValues(mapper: Mapper<V>, updater?: Updater<V>): MappedMap<K, V>{
-        return this._config.mapValues(this, mapper, updater);
+        return this._defaults.mapValues(this, mapper, updater);
     }
 
     sortValues(comparator: Comparator<V>): SortedMapList {
-        return this._config.sortValues(this, comparator);
+        return this._defaults.sortValues(this, comparator);
     }
 
     filterValues(filter: Filter<K, V>): FilteredMap<K, V> {
-        return this._config.filterValues(this, filter);
+        return this._defaults.filterValues(this, filter);
     }
 }

@@ -19,20 +19,13 @@ import {JoinedMap} from "../map/JoinedMap";
 import {MappedMap} from "../map/MappedMap";
 import {FilteredMap} from "../map/FilteredMap";
 import {SortedMapList} from "../list/SortedMapList.js";
-import {Mapper, Updater, Comparator, Filter} from "./config";
+import {Mapper, Updater, Comparator, Filter} from "./BaseObservableMapDefaults";
 
 export interface IMapObserver<K, V> {
     onReset(): void;
     onAdd(key: K, value:V): void;
     onUpdate(key: K, value: V, params: any): void;
     onRemove(key: K, value: V): void
-}
-
-export type BaseObservableMapConfig<K, V> = {
-    join(_this: BaseObservableMap<K, V>, ...otherMaps: Array<BaseObservableMap<K, V>>): JoinedMap<K, V>;
-    mapValues(_this: BaseObservableMap<K, V>, mapper: any, updater?: Updater<V>): MappedMap<K, V>;
-    sortValues(_this: BaseObservableMap<K, V>, comparator: Comparator<V>): SortedMapList;
-    filterValues(_this: BaseObservableMap<K, V>, filter: Filter<K, V>): FilteredMap<K, V>;
 }
 
 export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserver<K, V>> {
@@ -62,10 +55,11 @@ export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserve
     }
 
     // The following group of functions have a default implementation
-    // in the neighboring `config.ts`. See the comment in that file for
-    // the explanation for why the default implementation isn't defined
-    // here. See the neighboring `ObservableMap.ts` for an example of how
-    // to easily use the default implementation in a class that extends
+    // in the neighboring `BaseObservableMapDefaults.ts`. See the comment
+    // in that file for the explanation for why the default implementation
+    // isn't defined here. See the neighboring `ObservableMap.ts` for an
+    // example of how to easily add the boilerplate for using the default
+    // implementations of these functions in a class that extends
     // this one (which is most likely what you want to do).
     abstract join(...otherMaps: Array<typeof this>): JoinedMap<K, V>;
     abstract mapValues(mapper: Mapper<V>, updater?: Updater<V>): MappedMap<K, V>;

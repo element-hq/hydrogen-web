@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableMap, BaseObservableMapConfig} from "./BaseObservableMap";
+import {BaseObservableMap} from "./BaseObservableMap";
 import {SubscriptionHandle} from "../BaseObservable";
-import {config, Mapper, Updater, Comparator, Filter} from "./config";
+import {BaseObservableMapDefaults, Mapper, Updater, Comparator, Filter} from "./BaseObservableMapDefaults";
 import {JoinedMap} from "./JoinedMap";
 import {MappedMap} from "./MappedMap";
 import {FilteredMap} from "./FilteredMap";
@@ -24,16 +24,16 @@ import {SortedMapList} from "../list/SortedMapList.js";
 
 
 export class ApplyMap<K, V> extends BaseObservableMap<K, V> {
+    private _defaults = new BaseObservableMapDefaults<K, V>();
     private _source: BaseObservableMap<K, V>;
     private _subscription?: SubscriptionHandle;
     private _apply?: Apply<K, V>;
-    private _config: BaseObservableMapConfig<K, V>;
+
 
     constructor(source: BaseObservableMap<K, V>, apply?: Apply<K, V>) {
         super();
         this._source = source;
         this._apply = apply;
-        this._config = config<K, V>();
     }
 
     hasApply(): boolean {
@@ -105,19 +105,19 @@ export class ApplyMap<K, V> extends BaseObservableMap<K, V> {
     }
 
     join(...otherMaps: Array<typeof this>): JoinedMap<K, V> {
-        return this._config.join(this, ...otherMaps);
+        return this._defaults.join(this, ...otherMaps);
     }
 
     mapValues(mapper: Mapper<V>, updater?: Updater<V>): MappedMap<K, V> {
-        return this._config.mapValues(this, mapper, updater);
+        return this._defaults.mapValues(this, mapper, updater);
     }
 
     sortValues(comparator: Comparator<V>): SortedMapList {
-        return this._config.sortValues(this, comparator);
+        return this._defaults.sortValues(this, comparator);
     }
 
     filterValues(filter: Filter<K, V>): FilteredMap<K, V> {
-        return this._config.filterValues(this, filter);
+        return this._defaults.filterValues(this, filter);
     }
 
 }
