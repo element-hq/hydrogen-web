@@ -76,11 +76,16 @@ export class ThemeLoader {
             const themeName = manifest.name;
             let defaultDarkVariant: any = {}, defaultLightVariant: any = {};
             for (let [themeId, cssLocation] of Object.entries(builtAssets)) {
-                /**
-                 * This cssLocation is relative to the location of the manifest file.
-                 * So we first need to resolve it relative to the root of this hydrogen instance.
-                 */
-                cssLocation = new URL(cssLocation, new URL(manifestLocation, window.location.origin)).href;
+                try {
+                    /**
+                     * This cssLocation is relative to the location of the manifest file.
+                     * So we first need to resolve it relative to the root of this hydrogen instance.
+                     */
+                    cssLocation = new URL(cssLocation, new URL(manifestLocation, window.location.origin)).href;
+                }
+                catch {
+                    continue;
+                }
                 const variant = themeId.match(/.+-(.+)/)?.[1];
                 const { name: variantName, default: isDefault, dark } = manifest.values.variants[variant!];
                 const themeDisplayName = `${themeName} ${variantName}`;
