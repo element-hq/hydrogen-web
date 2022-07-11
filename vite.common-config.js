@@ -8,8 +8,8 @@ const path = require("path");
 const manifest = require("./package.json");
 const version = manifest.version;
 const compiledVariables = new Map();
-const derive = require("./scripts/postcss/color").derive;
 const replacer = require("./scripts/postcss/svg-colorizer").buildColorizedSVG;
+import {derive} from "./scripts/postcss/color.mjs";
 
 const commonOptions = {
     logLevel: "warn",
