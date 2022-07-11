@@ -15,30 +15,7 @@ limitations under the License.
 */
 import type {ThemeInformation} from "./ThemeLoader";
 import {ColorSchemePreference} from "./ThemeLoader";
-import {offColor} from 'off-color';
-
-function derive(value, operation, argument, isDark) {
-    const argumentAsNumber = parseInt(argument);
-    if (isDark) {
-        // For dark themes, invert the operation
-        if (operation === 'darker') {
-            operation = "lighter";
-        }
-        else if (operation === 'lighter') {
-            operation = "darker";
-        }
-    }
-    switch (operation) {
-        case "darker": {
-            const newColorString = offColor(value).darken(argumentAsNumber / 100).hex();
-            return newColorString;
-        }
-        case "lighter": {
-            const newColorString = offColor(value).lighten(argumentAsNumber / 100).hex();
-            return newColorString;
-        }
-    }
-}
+import {derive} from "../../../scripts/postcss/color.mjs";
 
 export class ThemeBuilder {
     // todo: replace any with manifest type when PR is merged
