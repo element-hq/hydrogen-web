@@ -61,11 +61,11 @@ export class ThemeLoader {
             const results = await Promise.all(
                 manifestLocations.map( location => this._platform.request(location, { method: "GET", format: "json", cache: true, }).response())
             );
-            results.forEach(({ body }) => this._populateThemeMap(body, log));
+            results.forEach(({ body }, i) => this._populateThemeMap(body, manifestLocations[i], log));
         });
     }
 
-    private _populateThemeMap(manifest, log: ILogItem) {
+    private _populateThemeMap(manifest, manifestLocation: string, log: ILogItem) {
         log.wrap("populateThemeMap", (l) => {
             /*
             After build has finished, the source section of each theme manifest
@@ -75,7 +75,17 @@ export class ThemeLoader {
             const builtAssets: Record<string, string> = manifest.source?.["built-assets"];
             const themeName = manifest.name;
             let defaultDarkVariant: any = {}, defaultLightVariant: any = {};
-            for (const [themeId, cssLocation] of Object.entries(builtAssets)) {
+            for (let [themeId, cssLocation] of Object.entries(builtAssets)) {
+                try {
+                    /**
+                     * This cssLocation is relative to the location of the manifest file.
+                     * So we first need to resolve it relative to the root of this hydrogen instance.
+                     */
+                    cssLocation = new URL(cssLocation, new URL(manifestLocation, window.location.origin)).href;
+                }
+                catch {
+                    continue;
+                }
                 const variant = themeId.match(/.+-(.+)/)?.[1];
                 const { name: variantName, default: isDefault, dark } = manifest.values.variants[variant!];
                 const themeDisplayName = `${themeName} ${variantName}`;
