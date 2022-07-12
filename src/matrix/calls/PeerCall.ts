@@ -177,6 +177,7 @@ export class PeerCall implements IDisposable {
             if (this._state !== CallState.Fledgling) {
                 return;
             }
+            log.set("signalingState", this.peerConnection.signalingState);
             this.direction = CallDirection.Outbound;
             this.setState(CallState.CreateOffer, log);
             this.localMuteSettings = localMuteSettings;
@@ -309,35 +310,39 @@ export class PeerCall implements IDisposable {
         }, async log => {
             logItem = log;
 
-            switch (message.type) {
-                case EventType.Invite:
-                    if (this.callId !== message.content.call_id) {
-                        await this.handleInviteGlare(message.content, partyId, log);
-                    } else {
+            const callIdMatches = this.callId === message.content.call_id;
+
+            if (message.type === EventType.Invite && !callIdMatches) {
+                await this.handleInviteGlare(message.content, partyId, log);
+            } else if (callIdMatches) {
+                switch (message.type) {
+                    case EventType.Invite:
                         await this.handleFirstInvite(message.content, partyId, log);
-                    }
-                    break;
-                case EventType.Answer:
-                    await this.handleAnswer(message.content, partyId, log);
-                    break;
-                case EventType.Negotiate:
-                    await this.onNegotiateReceived(message.content, log);
-                    break;
-                case EventType.Candidates:
-                    await this.handleRemoteIceCandidates(message.content, partyId, log);
-                    break;
-                case EventType.SDPStreamMetadataChanged:
-                case EventType.SDPStreamMetadataChangedPrefix:
-                    this.updateRemoteSDPStreamMetadata(message.content[SDPStreamMetadataKey], log);
-                    break;
-                case EventType.Hangup:
-                    // TODO: this is a bit hacky, double check its what we need
-                    log.set("reason", message.content.reason);
-                    this.terminate(CallParty.Remote, message.content.reason ?? CallErrorCode.UserHangup, log);
-                    break;
-                default:
-                    log.log(`Unknown event type for call: ${message.type}`);
-                    break;
+                        break;
+                    case EventType.Answer:
+                        await this.handleAnswer(message.content, partyId, log);
+                        break;
+                    case EventType.Negotiate:
+                        await this.onNegotiateReceived(message.content, log);
+                        break;
+                    case EventType.Candidates:
+                        await this.handleRemoteIceCandidates(message.content, partyId, log);
+                        break;
+                    case EventType.SDPStreamMetadataChanged:
+                    case EventType.SDPStreamMetadataChangedPrefix:
+                        this.updateRemoteSDPStreamMetadata(message.content[SDPStreamMetadataKey], log);
+                        break;
+                    case EventType.Hangup:
+                        // TODO: this is a bit hacky, double check its what we need
+                        log.set("reason", message.content.reason);
+                        this.terminate(CallParty.Remote, message.content.reason ?? CallErrorCode.UserHangup, log);
+                        break;
+                    default:
+                        log.log(`Unknown event type for call: ${message.type}`);
+                        break;
+                }
+            } else if (!callIdMatches) {
+                log.set("wrongCallId", true);
             }
         });
         return logItem;
@@ -879,6 +884,7 @@ export class PeerCall implements IDisposable {
         this.setState(CallState.Ended, log);
         this.localMedia = undefined;
 
+        // TODO: change signalingState to connectionState?
         if (this.peerConnection && this.peerConnection.signalingState !== 'closed') {
             this.peerConnection.close();
         }

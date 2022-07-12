@@ -283,7 +283,7 @@ export class Member {
                 }
             }
             if (!hasBeenDequeued) {
-                syncLog.refDetached(connection.logItem.log({l: "queued signalling message", type: message.type}));
+                syncLog.refDetached(connection.logItem.log({l: "queued signalling message", type: message.type, seq: message.content.seq}));
             }
         } else {
             syncLog.log({l: "member not connected", userId: this.userId, deviceId: this.deviceId});

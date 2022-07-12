@@ -24,11 +24,24 @@ const SPEAKING_SAMPLE_COUNT = 8; // samples
 
 export class DOMWebRTC implements WebRTC {
     createPeerConnection(forceTURN: boolean, turnServers: RTCIceServer[], iceCandidatePoolSize): PeerConnection {
-        return new RTCPeerConnection({
+        const peerConn = new RTCPeerConnection({
             iceTransportPolicy: forceTURN ? 'relay' : undefined,
             iceServers: turnServers,
             iceCandidatePoolSize: iceCandidatePoolSize,
         }) as PeerConnection;
+        return new Proxy(peerConn, {
+            get(target, prop, receiver) {
+                if (prop === "close") {
+                    console.trace("calling peerConnection.close");
+                }
+                const value = target[prop];
+                if (typeof value === "function") {
+                    return value.bind(target);
+                } else {
+                    return value;
+                }
+            }
+        });
     }
 
     prepareSenderForPurpose(peerConnection: PeerConnection, sender: Sender, purpose: SDPStreamMetadataPurpose): void {
