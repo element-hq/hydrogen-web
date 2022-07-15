@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {BaseMessageView} from "./BaseMessageView.js";
+import {Menu} from "../../../general/Menu.js";
 
 export class BaseMediaView extends BaseMessageView {
     renderMessageBody(t, vm) {
@@ -35,24 +36,39 @@ export class BaseMediaView extends BaseMessageView {
             this.renderMedia(t, vm),
             t.time(vm.date + " " + vm.time),
         ];
+        const status = t.div({
+            className: {
+                status: true,
+                hidden: vm => !vm.status
+            },
+        }, vm => vm.status);
+        children.push(status);
         if (vm.isPending) {
-            const sendStatus = t.div({
-                className: {
-                    sendStatus: true,
-                    hidden: vm => !vm.sendStatus
-                },
-            }, vm => vm.sendStatus);
             const progress = t.progress({
                 min: 0,
                 max: 100,
                 value: vm => vm.uploadPercentage,
                 className: {hidden: vm => !vm.isUploading}
             });
-            children.push(sendStatus, progress);
+            children.push(progress);
         }
         return t.div({className: "Timeline_messageBody"}, [
-            t.div({className: "media", style: `max-width: ${vm.width}px`}, children),
+            t.div({className: "media", style: `max-width: ${vm.width}px`, "data-testid": "media"}, children),
             t.if(vm => vm.error, t => t.p({className: "error"}, vm.error))
         ]);
+    }
+
+    createMenuOptions(vm) {
+        const options = super.createMenuOptions(vm);
+        if (!vm.isPending) {
+            let label;
+            switch (vm.shape) {
+                case "image": label = vm.i18n`Download image`; break;
+                case "video": label = vm.i18n`Download video`; break;
+                default: label = vm.i18n`Download media`; break;
+            }
+            options.push(Menu.option(label, () => vm.downloadMedia()));
+        }
+        return options;
     }
 }

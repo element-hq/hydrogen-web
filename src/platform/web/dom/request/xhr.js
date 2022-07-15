@@ -18,7 +18,7 @@ import {
     AbortError,
     ConnectionError
 } from "../../../../matrix/error.js";
-import {addCacheBuster} from "./common.js";
+import {addCacheBuster, mapAsFormData} from "./common.js";
 
 class RequestResult {
     constructor(promise, xhr) {
@@ -93,6 +93,9 @@ export function xhrRequest(url, options) {
     // if a BlobHandle, take native blob
     if (body?.nativeBlob) {
         body = body.nativeBlob;
+    }
+    if (body instanceof Map) {
+        body = mapAsFormData(body);
     }
     xhr.send(body || null);
 

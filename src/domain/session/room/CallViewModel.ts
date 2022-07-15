@@ -20,15 +20,18 @@ import {getStreamVideoTrack, getStreamAudioTrack} from "../../../matrix/calls/co
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {EventObservableValue} from "../../../observable/value/EventObservableValue";
 import {ObservableValueMap} from "../../../observable/map/ObservableValueMap";
+import type {Room} from "../../../matrix/room/Room";
 import type {GroupCall} from "../../../matrix/calls/group/GroupCall";
 import type {Member} from "../../../matrix/calls/group/Member";
+import type {RoomMember} from "../../../matrix/room/members/RoomMember";
 import type {BaseObservableList} from "../../../observable/list/BaseObservableList";
+import type {BaseObservableValue} from "../../../observable/value/BaseObservableValue";
 import type {Stream} from "../../../platform/types/MediaDevices";
 import type {MediaRepository} from "../../../matrix/net/MediaRepository";
 
 type Options = BaseOptions & {
     call: GroupCall,
-    mediaRepository: MediaRepository
+    room: Room,
 };
 
 export class CallViewModel extends ViewModel<Options> {
@@ -37,16 +40,35 @@ export class CallViewModel extends ViewModel<Options> {
     constructor(options: Options) {
         super(options);
         const ownMemberViewModelMap = new ObservableValueMap("self", new EventObservableValue(this.call, "change"))
-            .mapValues(call => new OwnMemberViewModel(this.childOptions({call: this.call, mediaRepository: this.getOption("mediaRepository")})), () => {});
+            .mapValues((call, emitChange) => new OwnMemberViewModel(this.childOptions({call, emitChange})), () => {});
         this.memberViewModels = this.call.members
             .filterValues(member => member.isConnected)
-            .mapValues(member => new CallMemberViewModel(this.childOptions({member, mediaRepository: this.getOption("mediaRepository")})))
+            .mapValues(member => new CallMemberViewModel(this.childOptions({member, mediaRepository: this.getOption("room").mediaRepository})))
             .join(ownMemberViewModelMap)
             .sortValues((a, b) => a.compare(b));
+        this.track(this.memberViewModels.subscribe({
+            onRemove: () => {
+                this.emitChange(); // update memberCount
+            },
+            onAdd: () => {
+                this.emitChange(); // update memberCount
+            },
+            onUpdate: () => {},
+            onReset: () => {},
+            onMove: () => {}
+        }))
     }
 
-    private get call(): GroupCall {
-        return this.getOption("call");
+    get isCameraMuted(): boolean {
+        return this.call.muteSettings?.camera ?? true;
+    }
+
+    get isMicrophoneMuted(): boolean {
+        return this.call.muteSettings?.microphone ?? true;
+    }
+
+    get memberCount(): number {
+        return this.memberViewModels.length;
     }
 
     get name(): string {
@@ -57,29 +79,62 @@ export class CallViewModel extends ViewModel<Options> {
         return this.call.id;
     }
 
-    get stream(): Stream | undefined {
-        return this.call.localMedia?.userMedia;
+    private get call(): GroupCall {
+        return this.getOption("call");
     }
 
-    leave() {
+    async hangup() {
         if (this.call.hasJoined) {
-            this.call.leave();
+            await this.call.leave();
         }
     }
 
-    async toggleVideo() {
-        if (this.call.muteSettings) {
-            this.call.setMuted(this.call.muteSettings.toggleCamera());
+    async toggleCamera() {
+        const {localMedia, muteSettings} = this.call;
+        if (muteSettings && localMedia) {
+            // unmute but no track?
+            if (muteSettings.camera && !getStreamVideoTrack(localMedia.userMedia)) {
+                const stream = await this.platform.mediaDevices.getMediaTracks(!muteSettings.microphone, true);
+                await this.call.setMedia(localMedia.withUserMedia(stream));
+            } else {
+                await this.call.setMuted(muteSettings.toggleCamera());
+            }
+            this.emitChange();
+        }
+    }
+
+    async toggleMicrophone() {
+        const {localMedia, muteSettings} = this.call;
+        if (muteSettings && localMedia) {
+            // unmute but no track?
+            if (muteSettings.microphone && !getStreamAudioTrack(localMedia.userMedia)) {
+                const stream = await this.platform.mediaDevices.getMediaTracks(true, !muteSettings.camera);
+                console.log("got tracks", Array.from(stream.getTracks()).map((t: MediaStreamTrack) => { return {kind: t.kind, id: t.id};}))
+                await this.call.setMedia(localMedia.withUserMedia(stream));
+            } else {
+                await this.call.setMuted(muteSettings.toggleMicrophone());
+            }
+            this.emitChange();
         }
     }
 }
 
-type OwnMemberOptions = BaseOptions & {
-    call: GroupCall,
-    mediaRepository: MediaRepository
-}
+class OwnMemberViewModel extends ViewModel<Options> implements IStreamViewModel {
+    private memberObservable: undefined | BaseObservableValue<RoomMember>;
+    
+    constructor(options: Options) {
+        super(options);
+        this.init();
+    }
 
-class OwnMemberViewModel extends ViewModel<OwnMemberOptions> implements IStreamViewModel {
+    async init() {
+        const room = this.getOption("room");
+        this.memberObservable = await room.observeMember(room.user.id);
+        this.track(this.memberObservable!.subscribe(() => {
+            this.emitChange(undefined);
+        }));
+    }
+
     get stream(): Stream | undefined {
         return this.call.localMedia?.userMedia;
     }
@@ -89,27 +144,40 @@ class OwnMemberViewModel extends ViewModel<OwnMemberOptions> implements IStreamV
     }
 
     get isCameraMuted(): boolean {
-        return isMuted(this.call.muteSettings?.camera, !!getStreamVideoTrack(this.stream));
+        return this.call.muteSettings?.camera ?? true;
     }
 
     get isMicrophoneMuted(): boolean {
-        return isMuted(this.call.muteSettings?.microphone, !!getStreamAudioTrack(this.stream));
+        return this.call.muteSettings?.microphone ?? true;
     }
 
     get avatarLetter(): string {
-        return "I";
+        const member = this.memberObservable?.get();
+        if (member) {
+            return avatarInitials(member.name);
+        } else {
+            return this.getOption("room").user.id;
+        }
     }
 
     get avatarColorNumber(): number {
-        return 3;
+        return getIdentifierColorNumber(this.getOption("room").user.id);
     }
 
     avatarUrl(size: number): string | undefined {
-        return undefined;
+        const member = this.memberObservable?.get();
+        if (member) {
+            return getAvatarHttpUrl(member.avatarUrl, size, this.platform, this.getOption("room").mediaRepository);
+        }
     }
 
     get avatarTitle(): string {
-        return "Me";
+        const member = this.memberObservable?.get();
+        if (member) {
+            return member.name;
+        } else {
+            return this.getOption("room").user.id;
+        }
     }
 
     compare(other: OwnMemberViewModel | CallMemberViewModel): number {
@@ -117,7 +185,10 @@ class OwnMemberViewModel extends ViewModel<OwnMemberOptions> implements IStreamV
     }
 }
 
-type MemberOptions = BaseOptions & {member: Member, mediaRepository: MediaRepository};
+type MemberOptions = BaseOptions & {
+    member: Member,
+    mediaRepository: MediaRepository
+};
 
 export class CallMemberViewModel extends ViewModel<MemberOptions> implements IStreamViewModel {
     get stream(): Stream | undefined {
@@ -129,11 +200,11 @@ export class CallMemberViewModel extends ViewModel<MemberOptions> implements ISt
     }
 
     get isCameraMuted(): boolean {
-        return isMuted(this.member.remoteMuteSettings?.camera, !!getStreamVideoTrack(this.stream));
+        return this.member.remoteMuteSettings?.camera ?? true;
     }
 
     get isMicrophoneMuted(): boolean {
-        return isMuted(this.member.remoteMuteSettings?.microphone, !!getStreamAudioTrack(this.stream));
+        return this.member.remoteMuteSettings?.microphone ?? true;
     }
 
     get avatarLetter(): string {
@@ -171,12 +242,4 @@ export interface IStreamViewModel extends AvatarSource, ViewModel {
     get stream(): Stream | undefined;
     get isCameraMuted(): boolean;
     get isMicrophoneMuted(): boolean;
-}
-
-function isMuted(muted: boolean | undefined, hasTrack: boolean) {
-    if (muted) {
-        return true;
-    } else {
-        return !hasTrack;
-    }
 }

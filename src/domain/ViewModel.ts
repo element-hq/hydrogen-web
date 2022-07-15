@@ -47,7 +47,7 @@ export class ViewModel<O extends Options = Options> extends EventEmitter<{change
         this._options = options;
     }
 
-    childOptions<T extends Object>(explicitOptions: T): T & Options {
+    childOptions<T extends Object>(explicitOptions: T): T & O {
         return Object.assign({}, this._options, explicitOptions);
     }
 
@@ -115,7 +115,7 @@ export class ViewModel<O extends Options = Options> extends EventEmitter<{change
         return result;
     }
 
-    emitChange(changedProps: any): void {
+    emitChange(changedProps?: any): void {
         if (this._options.emitChange) {
             this._options.emitChange(changedProps);
         } else {

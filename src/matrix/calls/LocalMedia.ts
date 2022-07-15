@@ -40,18 +40,13 @@ export class LocalMedia {
 
     /** @internal */
     replaceClone(oldClone: LocalMedia | undefined, oldOriginal: LocalMedia | undefined): LocalMedia {
-        let userMedia;
-        let screenShare;
         const cloneOrAdoptStream = (oldOriginalStream: Stream | undefined, oldCloneStream: Stream | undefined, newStream: Stream | undefined): Stream | undefined => {
             let stream;
             if (oldOriginalStream?.id === newStream?.id) {
-                stream = oldCloneStream;
+                return oldCloneStream;
             } else {
-                stream = newStream?.clone();
-                getStreamAudioTrack(oldCloneStream)?.stop();
-                getStreamVideoTrack(oldCloneStream)?.stop();
+                return newStream?.clone();
             }
-            return stream;
         }
         return new LocalMedia(
             cloneOrAdoptStream(oldOriginal?.userMedia, oldClone?.userMedia, this.userMedia),
@@ -66,16 +61,8 @@ export class LocalMedia {
     }
     
     dispose() {
-        this.stopExcept(undefined);
-    }
-
-    stopExcept(newMedia: LocalMedia | undefined) {
-        if(newMedia?.userMedia?.id !== this.userMedia?.id) {
-            getStreamAudioTrack(this.userMedia)?.stop();
-            getStreamVideoTrack(this.userMedia)?.stop();
-        }
-        if(newMedia?.screenShare?.id !== this.screenShare?.id) {
-            getStreamVideoTrack(this.screenShare)?.stop();
-        }
+        getStreamAudioTrack(this.userMedia)?.stop();
+        getStreamVideoTrack(this.userMedia)?.stop();
+        getStreamVideoTrack(this.screenShare)?.stop();
     }
 }

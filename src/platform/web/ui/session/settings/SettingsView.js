@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../general/TemplateView";
+import {disableTargetCallback} from "../../general/utils";
 import {KeyBackupSettingsView} from "./KeyBackupSettingsView.js"
 
 export class SettingsView extends TemplateView {
@@ -93,20 +94,28 @@ export class SettingsView extends TemplateView {
                 ]);
             })
         );
-
+        
         settingNodes.push(
             t.h3("Preferences"),
             row(t, vm.i18n`Scale down images when sending`, this._imageCompressionRange(t, vm)),
+            t.if(vm => !import.meta.env.DEV && vm.activeTheme, (t, vm) => {
+                return row(t, vm.i18n`Use the following theme`, this._themeOptions(t, vm));
+            }),
         );
-        const logButtons = [t.button({onClick: () => vm.exportLogs()}, "Export")];
+        const logButtons = [];
         if (import.meta.env.DEV) {
             logButtons.push(t.button({onClick: () => openLogs(vm)}, "Open logs"));
         }
+        if (vm.canSendLogsToServer) {
+            logButtons.push(t.button({onClick: disableTargetCallback(() => vm.sendLogsToServer())}, `Submit logs to ${vm.logsServer}`));
+        }
+        logButtons.push(t.button({onClick: () => vm.exportLogs()}, "Download logs"));
         settingNodes.push(
             t.h3("Application"),
             row(t, vm.i18n`Version`, version),
             row(t, vm.i18n`Storage usage`, vm => `${vm.storageUsage} / ${vm.storageQuota}`),
             row(t, vm.i18n`Debug logs`, logButtons),
+            t.p({className: {hidden: vm => !vm.logsFeedbackMessage}}, vm => vm.logsFeedbackMessage),
             t.p(["Debug logs contain application usage data including your username, the IDs or aliases of the rooms or groups you have visited, the usernames of other users and the names of files you send. They do not contain messages. For more information, review our ",
                 t.a({href: "https://element.io/privacy", target: "_blank", rel: "noopener"}, "privacy policy"), "."]),
             t.p([])
@@ -139,6 +148,56 @@ export class SettingsView extends TemplateView {
                 vm.i18n`resize to ${vm.sentImageSizeLimit}px` :
                 vm.i18n`no resizing`;
         })];
+    }
+
+    _themeOptions(t, vm) {
+        const { themeName: activeThemeName, themeVariant: activeThemeVariant } = vm.activeTheme;
+        const optionTags = [];
+        // 1. render the dropdown containing the themes
+        for (const name of Object.keys(vm.themeMapping)) {
+            optionTags.push( t.option({ value: name, selected: name === activeThemeName} , name));
+        }
+        const select = t.select({
+            onChange: (e) => {
+                const themeName = e.target.value;
+                if(!("id" in vm.themeMapping[themeName])) {
+                    const colorScheme = darkRadioButton.checked ? "dark" : lightRadioButton.checked ? "light" : "default";
+                    // execute the radio-button callback so that the theme actually changes!
+                    // otherwise the theme would only change when another radio-button is selected.
+                    radioButtonCallback(colorScheme);
+                    return;
+                }
+                vm.changeThemeOption(themeName);
+            }
+        }, optionTags);
+        // 2. render the radio-buttons used to choose variant
+        const radioButtonCallback = (colorScheme) => {
+            const selectedThemeName = select.options[select.selectedIndex].value;
+            vm.changeThemeOption(selectedThemeName, colorScheme);
+        };
+        const isDarkSelected = activeThemeVariant === "dark";
+        const isLightSelected = activeThemeVariant === "light";
+        const darkRadioButton = t.input({ type: "radio", name: "radio-chooser", value: "dark", id: "dark", checked: isDarkSelected });
+        const defaultRadioButton = t.input({ type: "radio", name: "radio-chooser", value: "default", id: "default", checked: !(isDarkSelected || isLightSelected) });
+        const lightRadioButton = t.input({ type: "radio", name: "radio-chooser", value: "light", id: "light", checked: isLightSelected });
+        const radioButtons = t.form({
+            className: {
+                hidden: () => {
+                    const themeName = select.options[select.selectedIndex].value;
+                    return "id" in vm.themeMapping[themeName];
+                }
+            },
+            onChange: (e) => radioButtonCallback(e.target.value)
+        },
+        [
+            defaultRadioButton,
+            t.label({for: "default"}, "Match system theme"),
+            darkRadioButton,
+            t.label({for: "dark"}, "dark"),
+            lightRadioButton,
+            t.label({for: "light"}, "light"),
+        ]);
+        return t.div({ className: "theme-chooser" }, [select, radioButtons]);
     }
 }
 

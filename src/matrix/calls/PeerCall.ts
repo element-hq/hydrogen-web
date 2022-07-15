@@ -71,7 +71,6 @@ export class PeerCall implements IDisposable {
     private localMedia?: LocalMedia;
     private localMuteSettings?: MuteSettings;
     // TODO: this should go in member
-    private seq: number = 0;
     // A queue for candidates waiting to go out.
     // We try to amalgamate candidates into a single candidate message where
     // possible
@@ -178,6 +177,7 @@ export class PeerCall implements IDisposable {
             if (this._state !== CallState.Fledgling) {
                 return;
             }
+            log.set("signalingState", this.peerConnection.signalingState);
             this.direction = CallDirection.Outbound;
             this.setState(CallState.CreateOffer, log);
             this.localMuteSettings = localMuteSettings;
@@ -238,7 +238,6 @@ export class PeerCall implements IDisposable {
             const content: MCallSDPStreamMetadataChanged<MCallBase> = {
                 call_id: this.callId,
                 version: 1,
-                seq: this.seq++,
                 [SDPStreamMetadataKey]: this.getSDPMetadata()
             };
             await this.sendSignallingMessage({type: EventType.SDPStreamMetadataChangedPrefix, content}, log);
@@ -263,7 +262,6 @@ export class PeerCall implements IDisposable {
                 const content: MCallSDPStreamMetadataChanged<MCallBase> = {
                     call_id: this.callId,
                     version: 1,
-                    seq: this.seq++,
                     [SDPStreamMetadataKey]: this.getSDPMetadata()
                 };
                 await this.sendSignallingMessage({type: EventType.SDPStreamMetadataChangedPrefix, content}, log);
@@ -312,35 +310,39 @@ export class PeerCall implements IDisposable {
         }, async log => {
             logItem = log;
 
-            switch (message.type) {
-                case EventType.Invite:
-                    if (this.callId !== message.content.call_id) {
-                        await this.handleInviteGlare(message.content, partyId, log);
-                    } else {
+            const callIdMatches = this.callId === message.content.call_id;
+
+            if (message.type === EventType.Invite && !callIdMatches) {
+                await this.handleInviteGlare(message.content, partyId, log);
+            } else if (callIdMatches) {
+                switch (message.type) {
+                    case EventType.Invite:
                         await this.handleFirstInvite(message.content, partyId, log);
-                    }
-                    break;
-                case EventType.Answer:
-                    await this.handleAnswer(message.content, partyId, log);
-                    break;
-                case EventType.Negotiate:
-                    await this.onNegotiateReceived(message.content, log);
-                    break;
-                case EventType.Candidates:
-                    await this.handleRemoteIceCandidates(message.content, partyId, log);
-                    break;
-                case EventType.SDPStreamMetadataChanged:
-                case EventType.SDPStreamMetadataChangedPrefix:
-                    this.updateRemoteSDPStreamMetadata(message.content[SDPStreamMetadataKey], log);
-                    break;
-                case EventType.Hangup:
-                    // TODO: this is a bit hacky, double check its what we need
-                    log.set("reason", message.content.reason);
-                    this.terminate(CallParty.Remote, message.content.reason ?? CallErrorCode.UserHangup, log);
-                    break;
-                default:
-                    log.log(`Unknown event type for call: ${message.type}`);
-                    break;
+                        break;
+                    case EventType.Answer:
+                        await this.handleAnswer(message.content, partyId, log);
+                        break;
+                    case EventType.Negotiate:
+                        await this.onNegotiateReceived(message.content, log);
+                        break;
+                    case EventType.Candidates:
+                        await this.handleRemoteIceCandidates(message.content, partyId, log);
+                        break;
+                    case EventType.SDPStreamMetadataChanged:
+                    case EventType.SDPStreamMetadataChangedPrefix:
+                        this.updateRemoteSDPStreamMetadata(message.content[SDPStreamMetadataKey], log);
+                        break;
+                    case EventType.Hangup:
+                        // TODO: this is a bit hacky, double check its what we need
+                        log.set("reason", message.content.reason);
+                        this.terminate(CallParty.Remote, message.content.reason ?? CallErrorCode.UserHangup, log);
+                        break;
+                    default:
+                        log.log(`Unknown event type for call: ${message.type}`);
+                        break;
+                }
+            } else if (!callIdMatches) {
+                log.set("wrongCallId", true);
             }
         });
         return logItem;
@@ -350,7 +352,6 @@ export class PeerCall implements IDisposable {
         const content = {
             call_id: callId,
             version: 1,
-            seq: this.seq++,
         };
         // TODO: Don't send UserHangup reason to older clients
         if (reason) {
@@ -387,8 +388,7 @@ export class PeerCall implements IDisposable {
             const offer = this.peerConnection.localDescription!;
             // Get rid of any candidates waiting to be sent: they'll be included in the local
             // description we just got and will send in the offer.
-            log.log(`Discarding ${
-                this.candidateSendQueue.length} candidates that will be sent in offer`);
+            log.set("includedCandidates", this.candidateSendQueue.length);
             this.candidateSendQueue = [];
 
             // need to queue this
@@ -398,7 +398,6 @@ export class PeerCall implements IDisposable {
                     offer,
                     [SDPStreamMetadataKey]: this.getSDPMetadata(),
                     version: 1,
-                    seq: this.seq++,
                     lifetime: CALL_TIMEOUT_MS
                 };
                 await this.sendSignallingMessage({type: EventType.Invite, content}, log);
@@ -409,7 +408,6 @@ export class PeerCall implements IDisposable {
                     description: offer,
                     [SDPStreamMetadataKey]: this.getSDPMetadata(),
                     version: 1,
-                    seq: this.seq++,
                     lifetime: CALL_TIMEOUT_MS
                 };
                 await this.sendSignallingMessage({type: EventType.Negotiate, content}, log);
@@ -420,16 +418,20 @@ export class PeerCall implements IDisposable {
 
         this.sendCandidateQueue(log);
 
-        await log.wrap("invite timeout", async log => {
-            if (this._state === CallState.InviteSent) {
+        if (this._state === CallState.InviteSent) {
+            const timeoutLog = this.logItem.child("invite timeout");
+            log.refDetached(timeoutLog);
+            // don't await this, as it would block other negotationneeded events from being processed
+            // as they are processed serially
+            timeoutLog.run(async log => {
                 try { await this.delay(CALL_TIMEOUT_MS); }
                 catch (err) { return; }
                 // @ts-ignore TS doesn't take the await above into account to know that the state could have changed in between
                 if (this._state === CallState.InviteSent) {
                     this._hangup(CallErrorCode.InviteTimeout, log);
                 }
-            }
-        });
+            }).catch(err => {}); // prevent error from being unhandled, it will be logged already by run above
+        }
     };
 
     private async handleInviteGlare(content: MCallInvite<MCallBase>, partyId: PartyId, log: ILogItem): Promise<void> {
@@ -674,7 +676,6 @@ export class PeerCall implements IDisposable {
                     description: this.peerConnection.localDescription!,
                     [SDPStreamMetadataKey]: this.getSDPMetadata(),
                     version: 1,
-                    seq: this.seq++,
                     lifetime: CALL_TIMEOUT_MS
                 };
                 await this.sendSignallingMessage({type: EventType.Negotiate, content}, log);
@@ -689,7 +690,6 @@ export class PeerCall implements IDisposable {
         const answerContent: MCallAnswer<MCallBase> = {
             call_id: this.callId,
             version: 1,
-            seq: this.seq++,
             answer: {
                 sdp: localDescription.sdp,
                 type: localDescription.type,
@@ -755,7 +755,6 @@ export class PeerCall implements IDisposable {
                     content: {
                         call_id: this.callId,
                         version: 1,
-                        seq: this.seq++,
                         candidates
                     },
                 }, log);
@@ -885,6 +884,7 @@ export class PeerCall implements IDisposable {
         this.setState(CallState.Ended, log);
         this.localMedia = undefined;
 
+        // TODO: change signalingState to connectionState?
         if (this.peerConnection && this.peerConnection.signalingState !== 'closed') {
             this.peerConnection.close();
         }
@@ -896,8 +896,8 @@ export class PeerCall implements IDisposable {
             const streamId = this.localMedia.userMedia.id;
             metadata[streamId] = {
                 purpose: SDPStreamMetadataPurpose.Usermedia,
-                audio_muted: this.localMuteSettings?.microphone || !getStreamAudioTrack(this.localMedia.userMedia),
-                video_muted: this.localMuteSettings?.camera || !getStreamVideoTrack(this.localMedia.userMedia),
+                audio_muted: this.localMuteSettings?.microphone ?? false,
+                video_muted: this.localMuteSettings?.camera ?? false,
             };
         }
         if (this.localMedia?.screenShare) {
@@ -945,7 +945,7 @@ export class PeerCall implements IDisposable {
                             this.updateRemoteMedia(log);
                         }
                     }
-                })
+                });
             };
             stream.addEventListener("removetrack", listener);
             const disposeListener = () => {
@@ -980,8 +980,10 @@ export class PeerCall implements IDisposable {
                                 videoReceiver.track.enabled = !metaData.video_muted;
                             }
                             this._remoteMuteSettings = new MuteSettings(
-                                metaData.audio_muted || !audioReceiver?.track,
-                                metaData.video_muted || !videoReceiver?.track
+                                metaData.audio_muted ?? false,
+                                metaData.video_muted ?? false,
+                                !!audioReceiver?.track ?? false,
+                                !!videoReceiver?.track ?? false
                             );
                             log.log({
                                 l: "setting userMedia",
@@ -1003,49 +1005,56 @@ export class PeerCall implements IDisposable {
 
     private updateLocalMedia(localMedia: LocalMedia, logItem: ILogItem): Promise<void> {
         return logItem.wrap("updateLocalMedia", async log => {
-            const oldMedia = this.localMedia;
-            this.localMedia = localMedia;
+            const senders = this.peerConnection.getSenders();
             const applyStream = async (oldStream: Stream | undefined, stream: Stream | undefined, streamPurpose: SDPStreamMetadataPurpose) => {
                 const applyTrack = async (oldTrack: Track | undefined, newTrack: Track | undefined) => {
-                    if (!oldTrack && newTrack) {
-                        log.wrap(`adding ${streamPurpose} ${newTrack.kind} track`, log => {
-                            const sender = this.peerConnection.addTrack(newTrack, stream!);
-                            this.options.webRTC.prepareSenderForPurpose(this.peerConnection, sender, streamPurpose);
-                        });
-                    } else if (oldTrack) {
-                        const sender = this.peerConnection.getSenders().find(s => s.track && s.track.id === oldTrack.id);
-                        if (sender) {
-                            if (newTrack && oldTrack.id !== newTrack.id) {
-                                try {
-                                    await log.wrap(`replacing ${streamPurpose} ${newTrack.kind} track`, log => {
-                                        return sender.replaceTrack(newTrack);
-                                    });
-                                } catch (err) {
-                                    // can't replace the track without renegotiating{
-                                    log.wrap(`adding and removing ${streamPurpose} ${newTrack.kind} track`, log => {
-                                        this.peerConnection.removeTrack(sender);
-                                        const newSender = this.peerConnection.addTrack(newTrack);
-                                        this.options.webRTC.prepareSenderForPurpose(this.peerConnection, newSender, streamPurpose);
-                                    });
-                                }
-                            } else if (!newTrack) {
-                                log.wrap(`removing ${streamPurpose} ${sender.track!.kind} track`, log => {
-                                    this.peerConnection.removeTrack(sender);
-                                });
-                            } else {
-                                log.log(`${streamPurpose} ${oldTrack.kind} track hasn't changed`);
-                            }
+                    const oldSender = senders.find(s => s.track === oldTrack);
+                    const streamToKeep = (oldStream ?? stream)!;
+                    if (streamToKeep !== stream) {
+                        if (oldTrack) {
+                            streamToKeep.removeTrack(oldTrack);
+                            oldTrack.stop();
                         }
-                        // TODO: should we do something if we didn't find the sender? e.g. some other code already removed the sender but didn't update localMedia
+                        if (newTrack) {
+                            streamToKeep.addTrack(newTrack);
+                        }
+                    }
+                    if (newTrack && oldSender) {
+                        try {
+                            await log.wrap(`attempting to replace ${streamPurpose} ${newTrack.kind} track`, log => {
+                                return oldSender.replaceTrack(newTrack);
+                            });
+                            // replaceTrack succeeded, nothing left to do
+                            return;
+                        } catch (err) {}
+                    }
+                    if(oldSender) {
+                        log.wrap(`removing ${streamPurpose} ${oldSender.track!.kind} track`, log => {
+                            this.peerConnection.removeTrack(oldSender);
+                        });
+                    }
+                    if (newTrack) {
+                        log.wrap(`adding ${streamPurpose} ${newTrack.kind} track`, log => {
+                            const newSender = this.peerConnection.addTrack(newTrack, streamToKeep);
+                            this.options.webRTC.prepareSenderForPurpose(this.peerConnection, newSender, streamPurpose);
+                        });
                     }
                 }
-
+                if (!oldStream && !stream) {
+                    return;
+                }
                 await applyTrack(getStreamAudioTrack(oldStream), getStreamAudioTrack(stream));
                 await applyTrack(getStreamVideoTrack(oldStream), getStreamVideoTrack(stream));
             };
 
-            await applyStream(oldMedia?.userMedia, localMedia?.userMedia, SDPStreamMetadataPurpose.Usermedia);
-            await applyStream(oldMedia?.screenShare, localMedia?.screenShare, SDPStreamMetadataPurpose.Screenshare);
+            await applyStream(this.localMedia?.userMedia, localMedia?.userMedia, SDPStreamMetadataPurpose.Usermedia);
+            await applyStream(this.localMedia?.screenShare, localMedia?.screenShare, SDPStreamMetadataPurpose.Screenshare);
+            // we explicitly don't replace this.localMedia if already set
+            // as we need to keep the old stream so the stream id doesn't change
+            // instead we add and remove tracks in the stream in applyTrack
+            if (!this.localMedia) {
+                this.localMedia = localMedia;
+            }
             // TODO: datachannel, but don't do it here as we don't want to do it from answer, rather in different method
         });
     }
@@ -1162,3 +1171,13 @@ function enableTransceiver(transceiver: Transceiver, enabled: boolean, exclusive
         }
     }
 }
+
+/**
+ * tests to write:
+ * 
+ * upgradeCall: adding a track with setMedia calls the correct methods on the peerConnection
+ * upgradeCall: removing a track with setMedia calls the correct methods on the peerConnection
+ * upgradeCall: replacing compatible track with setMedia calls the correct methods on the peerConnection
+ * upgradeCall: replacing incompatible track (sender.replaceTrack throws) with setMedia calls the correct methods on the peerConnection
+ * 
+ * */

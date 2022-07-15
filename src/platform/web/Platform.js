@@ -41,6 +41,7 @@ import {parseHTML} from "./parsehtml.js";
 import {handleAvatarError} from "./ui/avatar";
 import {MediaDevicesWrapper} from "./dom/MediaDevices";
 import {DOMWebRTC} from "./dom/WebRTC";
+import {ThemeLoader} from "./ThemeLoader";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -169,20 +170,40 @@ export class Platform {
         this._workerPromise = undefined;
         this.mediaDevices = new MediaDevicesWrapper(navigator.mediaDevices);
         this.webRTC = new DOMWebRTC();
+        this._themeLoader = import.meta.env.DEV? null: new ThemeLoader(this);
     }
 
     async init() {
-        if (!this._config) {
-            if (!this._configURL) {
-                throw new Error("Neither config nor configURL was provided!");
-            }
-            const {body}= await this.request(this._configURL, {method: "GET", format: "json", cache: true}).response();
-            this._config = body;
+        try {
+            await this.logger.run("Platform init", async (log) => {
+                if (!this._config) {
+                    if (!this._configURL) {
+                        throw new Error("Neither config nor configURL was provided!");
+                    }
+                    const {status, body}= await this.request(this._configURL, {method: "GET", format: "json", cache: true}).response();
+                    if (status === 404) {
+                        throw new Error(`Could not find ${this._configURL}. Did you copy over config.sample.json?`);
+                    } else if (status >= 400) {
+                        throw new Error(`Got status ${status} while trying to fetch ${this._configURL}`);
+                    }
+                    this._config = body;
+                }
+                this.notificationService = new NotificationService(
+                    this._serviceWorkerHandler,
+                    this._config.push
+                );
+                if (this._themeLoader) {
+                    const manifests = this.config["themeManifests"];
+                    await this._themeLoader?.init(manifests, log);
+                    const { themeName, themeVariant } = await this._themeLoader.getActiveTheme();
+                    log.log({ l: "Active theme", name: themeName, variant: themeVariant });
+                    this._themeLoader.setTheme(themeName, themeVariant, log);
+                }
+            });
+        } catch (err) {
+            this._container.innerText = err.message;
+            throw err;
         }
-        this.notificationService = new NotificationService(
-            this._serviceWorkerHandler,
-            this._config.push
-        );
     }
 
     _createLogger(isDevelopment) {
@@ -312,6 +333,27 @@ export class Platform {
 
     get version() {
         return DEFINE_VERSION;
+    }
+
+    get themeLoader() {
+        return this._themeLoader;
+    }
+
+    replaceStylesheet(newPath) {
+        const head = document.querySelector("head");
+        // remove default theme 
+        document.querySelectorAll(".theme").forEach(e => e.remove());
+        // add new theme
+        const styleTag = document.createElement("link");
+        styleTag.href = `./${newPath}`;
+        styleTag.rel = "stylesheet";
+        styleTag.type = "text/css";
+        styleTag.className = "theme";
+        head.appendChild(styleTag);
+    }
+
+    get description() {
+        return navigator.userAgent ?? "<unknown>";
     }
 
     dispose() {

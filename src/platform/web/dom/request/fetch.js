@@ -20,7 +20,7 @@ import {
     ConnectionError
 } from "../../../../matrix/error.js";
 import {abortOnTimeout} from "../../../../utils/timeout";
-import {addCacheBuster} from "./common.js";
+import {addCacheBuster, mapAsFormData} from "./common.js";
 import {xhrRequest} from "./xhr.js";
 
 class RequestResult {
@@ -69,6 +69,9 @@ export function createFetchRequest(createTimeout, serviceWorkerHandler) {
         // if a BlobHandle, take native blob
         if (body?.nativeBlob) {
             body = body.nativeBlob;
+        }
+        if (body instanceof Map) {
+            body = mapAsFormData(body);
         }
         let options = {method, body};
         if (controller) {

@@ -27,6 +27,29 @@ export class BaseMediaTile extends BaseMessageTile {
         this._decryptedFile = null;
         this._isVisible = false;
         this._error = null;
+        this._downloading = false;
+        this._downloadError = null;
+    }
+
+    async downloadMedia() {
+        if (this._downloading || this.isPending) {
+            return;
+        }
+        const content = this._getContent();
+        const filename = content.body;
+        this._downloading = true;
+        this.emitChange("status");
+        let blob;
+        try {
+            blob = await this._mediaRepository.downloadAttachment(content);
+            this.platform.saveFileAs(blob, filename);
+        } catch (err) {
+            this._downloadError = err;
+        } finally {
+            blob?.dispose();
+            this._downloading = false;
+        }
+        this.emitChange("status");
     }
 
     get isUploading() {
@@ -38,7 +61,7 @@ export class BaseMediaTile extends BaseMessageTile {
         return pendingEvent && Math.round((pendingEvent.attachmentsSentBytes / pendingEvent.attachmentsTotalBytes) * 100);
     }
 
-    get sendStatus() {
+    get status() {
         const {pendingEvent} = this._entry;
         switch (pendingEvent?.status) {
             case SendStatus.Waiting:
@@ -53,6 +76,12 @@ export class BaseMediaTile extends BaseMessageTile {
             case SendStatus.Error:
                 return this.i18n`Error: ${pendingEvent.error.message}`;
             default:
+                if (this._downloadError) {
+                    return `Download failed`;
+                }
+                if (this._downloading) {
+                    return this.i18n`Downloading…`;
+                }
                 return "";
         }
     }

@@ -40,7 +40,7 @@ const commonOptions = {
         postcss: {
             plugins: [
                 compileVariables({derive, compiledVariables}),
-                urlVariables({compileVariables}),
+                urlVariables({compiledVariables}),
                 urlProcessor({replacer}),
                 // cssvariables({
                 //     preserve: (declaration) => {

@@ -214,11 +214,12 @@ export class DeviceTracker {
         const allDeviceIdentities = [];
         const deviceIdentitiesToStore = [];
         // filter out devices that have changed their ed25519 key since last time we queried them
-        deviceIdentities = await Promise.all(deviceIdentities.map(async deviceIdentity => {
+        await Promise.all(deviceIdentities.map(async deviceIdentity => {
             if (knownDeviceIds.includes(deviceIdentity.deviceId)) {
                 const existingDevice = await txn.deviceIdentities.get(deviceIdentity.userId, deviceIdentity.deviceId);
                 if (existingDevice.ed25519Key !== deviceIdentity.ed25519Key) {
                     allDeviceIdentities.push(existingDevice);
+                    return;
                 }
             }
             allDeviceIdentities.push(deviceIdentity);
@@ -308,11 +309,66 @@ export class DeviceTracker {
         return await this._devicesForUserIds(roomId, userIds, txn, hsApi, log);
     }
 
+    /** gets devices for the given user ids that are in the given room */
     async devicesForRoomMembers(roomId, userIds, hsApi, log) {
         const txn = await this._storage.readTxn([
             this._storage.storeNames.userIdentities,
         ]);
         return await this._devicesForUserIds(roomId, userIds, txn, hsApi, log);
+    }
+
+    /** gets a single device */
+    async deviceForId(userId, deviceId, hsApi, log) {
+        const txn = await this._storage.readTxn([
+            this._storage.storeNames.deviceIdentities,
+        ]);
+        let device = await txn.deviceIdentities.get(userId, deviceId);
+        if (device) {
+            log.set("existingDevice", true);
+        } else {
+            //// BEGIN EXTRACT (deviceKeysMap)
+            const deviceKeyResponse = await hsApi.queryKeys({
+                "timeout": 10000,
+                "device_keys": {
+                    [userId]: [deviceId]
+                },
+                "token": this._getSyncToken()
+            }, {log}).response();
+            // verify signature
+            const verifiedKeysPerUser = log.wrap("verify", log => this._filterVerifiedDeviceKeys(deviceKeyResponse["device_keys"], log));
+            //// END EXTRACT
+
+            const verifiedKeys = verifiedKeysPerUser
+                .find(vkpu => vkpu.userId === userId).verifiedKeys
+                .find(vk => vk["device_id"] === deviceId);
+            // user hasn't uploaded keys for device?
+            if (!verifiedKeys) {
+                return undefined;
+            }
+            device = deviceKeysAsDeviceIdentity(verifiedKeys);
+            const txn = await this._storage.readWriteTxn([
+                this._storage.storeNames.deviceIdentities,
+            ]);
+            // check again we don't have the device already.
+            // when updating all keys for a user we allow updating the
+            // device when the key hasn't changed so the device display name
+            // can be updated, but here we don't.
+            const existingDevice = await txn.deviceIdentities.get(userId, deviceId);
+            if (existingDevice) {
+                device = existingDevice;
+                log.set("existingDeviceAfterFetch", true);
+            } else {
+                try {
+                    txn.deviceIdentities.set(device);
+                    log.set("newDevice", true);
+                } catch (err) {
+                    txn.abort();
+                    throw err;
+                }
+                await txn.complete();
+            }
+        }
+        return device;
     }
 
     /**
@@ -361,5 +417,156 @@ export class DeviceTracker {
 
     async getDeviceByCurve25519Key(curve25519Key, txn) {
         return await txn.deviceIdentities.getByCurve25519Key(curve25519Key);
+    }
+}
+
+import {createMockStorage} from "../../mocks/Storage";
+import {Instance as NullLoggerInstance} from "../../logging/NullLogger";
+
+export function tests() {
+
+    function createUntrackedRoomMock(roomId, joinedUserIds, invitedUserIds = []) {
+        return {
+            isTrackingMembers: false,
+            isEncrypted: true,
+            loadMemberList: () => {
+                const joinedMembers = joinedUserIds.map(userId => {return {membership: "join", roomId, userId};});
+                const invitedMembers = invitedUserIds.map(userId => {return {membership: "invite", roomId, userId};});
+                const members = joinedMembers.concat(invitedMembers);
+                const memberMap = members.reduce((map, member) => {
+                    map.set(member.userId, member);
+                    return map;
+                }, new Map());
+                return {members: memberMap, release() {}}
+            },
+            writeIsTrackingMembers(isTrackingMembers) {
+                if (this.isTrackingMembers !== isTrackingMembers) {
+                    return isTrackingMembers;
+                }
+                return undefined;
+            },
+            applyIsTrackingMembersChanges(isTrackingMembers) {
+                if (isTrackingMembers !== undefined) {
+                    this.isTrackingMembers = isTrackingMembers;
+                }
+            },
+        }
+    }
+
+    function createQueryKeysHSApiMock(createKey = (algorithm, userId, deviceId) => `${algorithm}:${userId}:${deviceId}:key`) {
+        return {
+            queryKeys(payload) {
+                const {device_keys: deviceKeys} = payload;
+                const userKeys = Object.entries(deviceKeys).reduce((userKeys, [userId, deviceIds]) => {
+                    if (deviceIds.length === 0) {
+                        deviceIds = ["device1"];
+                    }
+                    userKeys[userId] = deviceIds.filter(d => d === "device1").reduce((deviceKeys, deviceId) => {
+                        deviceKeys[deviceId] = {
+                            "algorithms": [
+                              "m.olm.v1.curve25519-aes-sha2",
+                              "m.megolm.v1.aes-sha2"
+                            ],
+                            "device_id": deviceId,
+                            "keys": {
+                                [`curve25519:${deviceId}`]: createKey("curve25519", userId, deviceId),
+                                [`ed25519:${deviceId}`]: createKey("ed25519", userId, deviceId),
+                            },
+                            "signatures": {
+                                [userId]: {
+                                    [`ed25519:${deviceId}`]: `ed25519:${userId}:${deviceId}:signature`
+                                }
+                            },
+                            "unsigned": {
+                              "device_display_name": `${userId} Phone`
+                            },
+                            "user_id": userId
+                        };
+                        return deviceKeys;
+                    }, {});
+                    return userKeys;
+                }, {});
+                const response = {device_keys: userKeys};
+                return {
+                    async response() {
+                        return response;
+                    }
+                };
+            }
+        };
+    }
+    const roomId = "!abc:hs.tld";
+
+    return {
+        "trackRoom only writes joined members": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            const room = createUntrackedRoomMock(roomId, ["@alice:hs.tld", "@bob:hs.tld"], ["@charly:hs.tld"]);
+            await tracker.trackRoom(room, NullLoggerInstance.item);
+            const txn = await storage.readTxn([storage.storeNames.userIdentities]);
+            assert.deepEqual(await txn.userIdentities.get("@alice:hs.tld"), {
+                userId: "@alice:hs.tld",
+                roomIds: [roomId],
+                deviceTrackingStatus: TRACKING_STATUS_OUTDATED
+            });
+            assert.deepEqual(await txn.userIdentities.get("@bob:hs.tld"), {
+                userId: "@bob:hs.tld",
+                roomIds: [roomId],
+                deviceTrackingStatus: TRACKING_STATUS_OUTDATED
+            });
+            assert.equal(await txn.userIdentities.get("@charly:hs.tld"), undefined);
+        },
+        "getting devices for tracked room yields correct keys": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            const room = createUntrackedRoomMock(roomId, ["@alice:hs.tld", "@bob:hs.tld"]);
+            await tracker.trackRoom(room, NullLoggerInstance.item);
+            const hsApi = createQueryKeysHSApiMock();
+            const devices = await tracker.devicesForRoomMembers(roomId, ["@alice:hs.tld", "@bob:hs.tld"], hsApi, NullLoggerInstance.item);
+            assert.equal(devices.length, 2);
+            assert.equal(devices.find(d => d.userId === "@alice:hs.tld").ed25519Key, "ed25519:@alice:hs.tld:device1:key");
+            assert.equal(devices.find(d => d.userId === "@bob:hs.tld").ed25519Key, "ed25519:@bob:hs.tld:device1:key");
+        },
+        "device with changed key is ignored": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            const room = createUntrackedRoomMock(roomId, ["@alice:hs.tld", "@bob:hs.tld"]);
+            await tracker.trackRoom(room, NullLoggerInstance.item);
+            const hsApi = createQueryKeysHSApiMock();
+            // query devices first time
+            await tracker.devicesForRoomMembers(roomId, ["@alice:hs.tld", "@bob:hs.tld"], hsApi, NullLoggerInstance.item);
+            const txn = await storage.readWriteTxn([storage.storeNames.userIdentities]);
+            // mark alice as outdated, so keys will be fetched again
+            tracker.writeDeviceChanges(["@alice:hs.tld"], txn, NullLoggerInstance.item);
+            await txn.complete();
+            const hsApiWithChangedAliceKey = createQueryKeysHSApiMock((algo, userId, deviceId) => {
+                return `${algo}:${userId}:${deviceId}:${userId === "@alice:hs.tld" ? "newKey" : "key"}`;
+            });
+            const devices = await tracker.devicesForRoomMembers(roomId, ["@alice:hs.tld", "@bob:hs.tld"], hsApiWithChangedAliceKey, NullLoggerInstance.item);
+            assert.equal(devices.length, 2);
+            assert.equal(devices.find(d => d.userId === "@alice:hs.tld").ed25519Key, "ed25519:@alice:hs.tld:device1:key");
+            assert.equal(devices.find(d => d.userId === "@bob:hs.tld").ed25519Key, "ed25519:@bob:hs.tld:device1:key");
+            const txn2 = await storage.readTxn([storage.storeNames.deviceIdentities]);
+            // also check the modified key was not stored
+            assert.equal((await txn2.deviceIdentities.get("@alice:hs.tld", "device1")).ed25519Key, "ed25519:@alice:hs.tld:device1:key");
+        }
     }
 }
