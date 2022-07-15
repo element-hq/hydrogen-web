@@ -36,14 +36,14 @@
             "red": {
                 "name": "Red",
                 "variables": {
-                    "background-color-primary": "#1F1F1F",
-                    "background-color-secondary": "#2B243E",
-                    "text-color": "#fff",
-                    "accent-color": "#F23041",
-                    "error-color": "#FF4B55",
+                    "background-color-primary": "#282828",
+                    "background-color-secondary": "#3c3836",
+                    "text-color": "#fbf1c7",
+                    "accent-color": "#8ec07c",
+                    "error-color": "#fb4934",
                     "fixed-white": "#fff",
-                    "room-badge": "#F23030",
-                    "link-color": "#238cf5"
+                    "room-badge": "#cc241d",
+                    "link-color": "#fe8019"
                 }
             }
         }
