@@ -17,6 +17,7 @@ limitations under the License.
 import {readFileSync, mkdirSync, writeFileSync} from "fs";
 import {resolve} from "path";
 import {h32} from "xxhashjs";
+import {getColoredSvgString} from "./svg-colorizer.js";
 
 function createHash(content) {
     const hasher = new h32(0);
@@ -32,11 +33,7 @@ function createHash(content) {
  */
 export function buildColorizedSVG(svgLocation, primaryColor, secondaryColor) {
     const svgCode = readFileSync(svgLocation, { encoding: "utf8"});
-    let coloredSVGCode = svgCode.replaceAll("#ff00ff", primaryColor);
-    coloredSVGCode = coloredSVGCode.replaceAll("#00ffff", secondaryColor);
-    if (svgCode === coloredSVGCode) {
-        throw new Error("svg-colorizer made no color replacements! The input svg should only contain colors #ff00ff (primary, case-sensitive) and #00ffff (secondary, case-sensitive).");
-    }
+    const coloredSVGCode = getColoredSvgString(svgCode, primaryColor, secondaryColor);
     const fileName = svgLocation.match(/.+[/\\](.+\.svg)/)[1];
     const outputName = `${fileName.substring(0, fileName.length - 4)}-${createHash(coloredSVGCode)}.svg`;
     const outputPath = resolve(__dirname, "../../.tmp");

@@ -8,7 +8,7 @@ const path = require("path");
 const manifest = require("./package.json");
 const version = manifest.version;
 const compiledVariables = new Map();
-import {buildColorizedSVG as replacer} from "./scripts/postcss/svg-colorizer.mjs";
+import {buildColorizedSVG as replacer} from "./scripts/postcss/svg-builder.mjs";
 import {derive} from "./scripts/postcss/color.mjs";
 
 const commonOptions = {
