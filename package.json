@@ -1,9 +1,12 @@
 {
   "name": "hydrogen-web",
-  "version": "0.2.28",
+  "version": "0.2.33",
   "description": "A javascript matrix client prototype, trying to minize RAM usage by offloading as much as possible to IndexedDB",
   "directories": {
     "doc": "doc"
+  },
+  "enginesStrict": {
+    "node": ">=15"
   },
   "scripts": {
     "lint": "eslint --cache src/",
@@ -11,9 +14,11 @@
     "lint-ci": "eslint src/",
     "test": "impunity --entry-point src/platform/web/main.js src/platform/web/Platform.js --force-esm-dirs lib/ src/ --root-dir src/",
     "test:postcss": "impunity --entry-point  scripts/postcss/tests/css-compile-variables.test.js scripts/postcss/tests/css-url-to-variables.test.js",
+    "test:sdk": "yarn build:sdk && cd ./scripts/sdk/test/ && yarn --no-lockfile && node test-sdk-in-esm-vite-build-env.js && node test-sdk-in-commonjs-env.js",
     "start": "vite --port 3000",
-    "build": "vite build",
-    "build:sdk": "./scripts/sdk/build.sh"
+    "build": "vite build && ./scripts/cleanup.sh",
+    "build:sdk": "./scripts/sdk/build.sh",
+    "watch:sdk": "./scripts/sdk/build.sh && yarn run vite build -c vite.sdk-lib-config.js --watch"
   },
   "repository": {
     "type": "git",
@@ -48,11 +53,11 @@
     "regenerator-runtime": "^0.13.7",
     "text-encoding": "^0.7.0",
     "typescript": "^4.4",
-    "vite": "^2.6.14",
+    "vite": "^2.9.8",
     "xxhashjs": "^0.2.2"
   },
   "dependencies": {
-    "@matrix-org/olm": "https://gitlab.matrix.org/api/v4/projects/27/packages/npm/@matrix-org/olm/-/@matrix-org/olm-3.2.3.tgz",
+    "@matrix-org/olm": "https://gitlab.matrix.org/api/v4/projects/27/packages/npm/@matrix-org/olm/-/@matrix-org/olm-3.2.8.tgz",
     "another-json": "^0.2.0",
     "base64-arraybuffer": "^0.2.0",
     "dompurify": "^2.3.0",

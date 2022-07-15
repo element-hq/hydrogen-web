@@ -22,6 +22,7 @@ import {EventType, CallIntent} from "./callEventTypes";
 import {GroupCall} from "./group/GroupCall";
 import {makeId} from "../common";
 import {CALL_LOG_TYPE} from "./common";
+import {EVENT_TYPE as MEMBER_EVENT_TYPE, RoomMember} from "../room/members/RoomMember";
 
 import type {LocalMedia} from "./LocalMedia";
 import type {Room} from "../room/Room";
@@ -36,6 +37,7 @@ import type {Transaction} from "../storage/idb/Transaction";
 import type {CallEntry} from "../storage/idb/stores/CallStore";
 import type {Clock} from "../../platform/web/dom/Clock";
 import type {RoomStateHandler} from "../room/state/types";
+import type {MemberSync} from "../room/timeline/persistence/MemberWriter";
 
 export type Options = Omit<GroupCallOptions, "emitUpdate" | "createTimeout"> & {
     clock: Clock
@@ -77,7 +79,7 @@ export class CallHandler implements RoomStateHandler {
         const names = this.options.storage.storeNames;
         const txn = await this.options.storage.readTxn([
             names.calls,
-            names.roomState
+            names.roomState,
         ]);
         return txn;
     }
@@ -97,15 +99,22 @@ export class CallHandler implements RoomStateHandler {
             }));
             const roomIds = Array.from(new Set(callEntries.map(e => e.roomId)));
             await Promise.all(roomIds.map(async roomId => {
-                // const ownCallsMemberEvent = await txn.roomState.get(roomId, EventType.GroupCallMember, this.options.ownUserId);
-                // if (ownCallsMemberEvent) {
-                //     this.handleCallMemberEvent(ownCallsMemberEvent.event, log);
-                // }
+                // TODO: don't load all members until we need them
                 const callsMemberEvents = await txn.roomState.getAllForType(roomId, EventType.GroupCallMember);
-                for (const entry of callsMemberEvents) {
-                    this.handleCallMemberEvent(entry.event, roomId, log);
-                }
-                // TODO: we should be loading the other members as well at some point
+                await Promise.all(callsMemberEvents.map(async entry => {
+                    const userId = entry.event.sender;
+                    const roomMemberState = await txn.roomState.get(roomId, MEMBER_EVENT_TYPE, userId);
+                    let roomMember;
+                    if (roomMemberState) {
+                        roomMember = RoomMember.fromMemberEvent(roomMemberState.event);
+                    }
+                    if (!roomMember) {
+                        // we'll be missing the member here if we received a call and it's members
+                        // as pre-gap state and the members weren't active in the timeline we got.
+                        roomMember = RoomMember.fromUserId(roomId, userId, "join");
+                    }
+                    this.handleCallMemberEvent(entry.event, roomMember, roomId, log);
+                }));
             }));
             log.set("newSize", this._calls.size);
         });
@@ -144,12 +153,18 @@ export class CallHandler implements RoomStateHandler {
     // TODO: check and poll turn server credentials here
 
     /** @internal */
-    handleRoomState(room: Room, event: StateEvent, txn: Transaction, log: ILogItem) {
+    async handleRoomState(room: Room, event: StateEvent, memberSync: MemberSync, txn: Transaction, log: ILogItem) {
         if (event.type === EventType.GroupCall) {
             this.handleCallEvent(event, room.id, txn, log);
         }
         if (event.type === EventType.GroupCallMember) {
-            this.handleCallMemberEvent(event, room.id, log);
+            let member = await memberSync.lookupMemberAtEvent(event.sender, event, txn);
+            if (!member) {
+                // we'll be missing the member here if we received a call and it's members
+                // as pre-gap state and the members weren't active in the timeline we got.
+                member = RoomMember.fromUserId(room.id, event.sender, "join");
+            }
+            this.handleCallMemberEvent(event, member, room.id, log);
         }
     }
 
@@ -157,6 +172,11 @@ export class CallHandler implements RoomStateHandler {
     updateRoomMembers(room: Room, memberChanges: Map<string, MemberChange>) {
         // TODO: also have map for roomId to calls, so we can easily update members
         // we will also need this to get the call for a room
+        for (const call of this._calls.values()) {
+            if (call.roomId === room.id) {
+                call.updateRoomMembers(memberChanges);
+            }
+        }
     }
 
     /** @internal */
@@ -193,7 +213,7 @@ export class CallHandler implements RoomStateHandler {
         }
     }
 
-    private handleCallMemberEvent(event: StateEvent, roomId: string, log: ILogItem) {
+    private handleCallMemberEvent(event: StateEvent, member: RoomMember, roomId: string, log: ILogItem) {
         const userId = event.state_key;
         const roomMemberKey = getRoomMemberKey(roomId, userId)
         const calls = event.content["m.calls"] ?? [];
@@ -202,7 +222,7 @@ export class CallHandler implements RoomStateHandler {
             const callId = call["m.call_id"];
             const groupCall = this._calls.get(callId);
             // TODO: also check the member when receiving the m.call event
-            groupCall?.updateMembership(userId, call, eventTimestamp, log);
+            groupCall?.updateMembership(userId, member, call, eventTimestamp, log);
         };
         const newCallIdsMemberOf = new Set<string>(calls.map(call => call["m.call_id"]));
         let previousCallIdsMemberOf = this.roomMemberToCallIds.get(roomMemberKey);

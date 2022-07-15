@@ -123,7 +123,7 @@ export class Room extends BaseRoom {
             txn.roomState.removeAllForRoom(this.id);
             txn.roomMembers.removeAllForRoom(this.id);
         }
-        const {entries: newEntries, updatedEntries, newLiveKey, memberChanges} =
+        const {entries: newEntries, updatedEntries, newLiveKey, memberChanges, memberSync} =
             await log.wrap("syncWriter", log => this._syncWriter.writeSync(
                 roomResponse, isRejoin, summaryChanges.hasFetchedMembers, txn, log), log.level.Detail);
         if (decryptChanges) {
@@ -180,7 +180,7 @@ export class Room extends BaseRoom {
             removedPendingEvents = await this._sendQueue.removeRemoteEchos(roomResponse.timeline.events, txn, log);
         }
         const powerLevelsEvent = this._getPowerLevelsEvent(roomResponse);
-        this._runRoomStateHandlers(roomResponse, txn, log);
+        await this._runRoomStateHandlers(roomResponse, memberSync, txn, log);
         return {
             roomResponse,
             summaryChanges,
@@ -453,14 +453,16 @@ export class Room extends BaseRoom {
         return this._sendQueue.pendingEvents;
     }
 
-    /** global room state handlers, run during write sync step */
-    _runRoomStateHandlers(roomResponse, txn, log) {
+    /** global room state handlers, run during writeSync step */
+    _runRoomStateHandlers(roomResponse, memberSync, txn, log) {
+        const promises = [];
         iterateResponseStateEvents(roomResponse, event => {
-            this._roomStateHandler.handleRoomState(this, event, txn, log);
+            promises.push(this._roomStateHandler.handleRoomState(this, event, memberSync, txn, log));
         });
+        return Promise.all(promises);
     }
 
-    /** local room state observers, run during after sync step */
+    /** local room state observers, run during afterSync step */
     _emitSyncRoomState(roomResponse) {
         iterateResponseStateEvents(roomResponse, event => {
             for (const handler of this._roomStateObservers) {

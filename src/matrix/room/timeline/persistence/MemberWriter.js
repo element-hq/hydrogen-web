@@ -56,7 +56,11 @@ export class MemberWriter {
     }
 }
 
-class MemberSync {
+/** Represents the member changes in a given sync.
+ *  Used to write the changes to storage and historical member
+ *  information for events in the same sync.
+ **/
+export class MemberSync {
     constructor(memberWriter, stateEvents, timelineEvents, hasFetchedMembers) {
         this._memberWriter = memberWriter;
         this._timelineEvents = timelineEvents;

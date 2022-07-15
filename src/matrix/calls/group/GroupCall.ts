@@ -18,7 +18,7 @@ import {ObservableMap} from "../../../observable/map/ObservableMap";
 import {Member} from "./Member";
 import {LocalMedia} from "../LocalMedia";
 import {MuteSettings, CALL_LOG_TYPE} from "../common";
-import {RoomMember} from "../../room/members/RoomMember";
+import {MemberChange, RoomMember} from "../../room/members/RoomMember";
 import {EventEmitter} from "../../../utils/EventEmitter";
 import {EventType, CallIntent} from "../callEventTypes";
 
@@ -55,7 +55,7 @@ function getDeviceFromMemberKey(key: string): string {
 
 export type Options = Omit<MemberOptions, "emitUpdate" | "confId" | "encryptDeviceMessage"> & {
     emitUpdate: (call: GroupCall, params?: any) => void;
-    encryptDeviceMessage: (roomId: string, userId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage>,
+    encryptDeviceMessage: (roomId: string, userId: string, deviceId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage | undefined>,
     storage: Storage,
     logger: ILogger,
 };
@@ -96,8 +96,8 @@ export class GroupCall extends EventEmitter<{change: never}> {
         this._memberOptions = Object.assign({}, options, {
             confId: this.id,
             emitUpdate: member => this._members.update(getMemberKey(member.userId, member.deviceId), member),
-            encryptDeviceMessage: (userId: string, message: SignallingMessage<MGroupCallBase>, log) => {
-                return this.options.encryptDeviceMessage(this.roomId, userId, message, log);
+            encryptDeviceMessage: (userId: string, deviceId: string, message: SignallingMessage<MGroupCallBase>, log) => {
+                return this.options.encryptDeviceMessage(this.roomId, userId, deviceId, message, log);
             }
         });
     }
@@ -148,21 +148,26 @@ export class GroupCall extends EventEmitter<{change: never}> {
             ownSessionId: this.options.sessionId
         });
         const membersLogItem = logItem.child("member connections");
+        const localMuteSettings = new MuteSettings();
+        localMuteSettings.updateTrackInfo(localMedia.userMedia);
         const joinedData = new JoinedData(
             logItem,
             membersLogItem,
             localMedia,
-            new MuteSettings()
+            localMuteSettings
         );
         this.joinedData = joinedData;
         await joinedData.logItem.wrap("join", async log => {
             this._state = GroupCallState.Joining;
             this.emitChange();
-            const memberContent = await this._createJoinPayload();
-            // send m.call.member state event
-            const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCallMember, this.options.ownUserId, memberContent, {log});
-            await request.response();
-            this.emitChange();
+            await log.wrap("update member state", async log => {
+                const memberContent = await this._createJoinPayload();
+                log.set("payload", memberContent);
+                // send m.call.member state event
+                const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCallMember, this.options.ownUserId, memberContent, {log});
+                await request.response();
+                this.emitChange();
+            });
             // send invite to all members that are < my userId
             for (const [,member] of this._members) {
                 this.connectToMember(member, joinedData, log);
@@ -174,10 +179,14 @@ export class GroupCall extends EventEmitter<{change: never}> {
         if ((this._state === GroupCallState.Joining || this._state === GroupCallState.Joined) && this.joinedData) {
             const oldMedia = this.joinedData.localMedia;
             this.joinedData.localMedia = localMedia;
+            // reflect the fact we gained or lost local tracks in the local mute settings
+            // and update the track info so PeerCall can use it to send up to date metadata,
+            this.joinedData.localMuteSettings.updateTrackInfo(localMedia.userMedia);
+            this.emitChange(); //allow listeners to see new media/mute settings
             await Promise.all(Array.from(this._members.values()).map(m => {
                 return m.setMedia(localMedia, oldMedia);
             }));
-            oldMedia?.stopExcept(localMedia);
+            oldMedia?.dispose();
         }
     }
 
@@ -186,11 +195,19 @@ export class GroupCall extends EventEmitter<{change: never}> {
         if (!joinedData) {
             return;
         }
+        const prevMuteSettings = joinedData.localMuteSettings;
+        // we still update the mute settings if nothing changed because
+        // you might be muted because you don't have a track or because
+        // you actively chosen to mute
+        // (which we want to respect in the future when you add a track)
         joinedData.localMuteSettings = muteSettings;
-        await Promise.all(Array.from(this._members.values()).map(m => {
-            return m.setMuted(joinedData.localMuteSettings);
-        }));
-        this.emitChange();
+        joinedData.localMuteSettings.updateTrackInfo(joinedData.localMedia.userMedia);
+        if (!prevMuteSettings.equals(muteSettings)) {
+            await Promise.all(Array.from(this._members.values()).map(m => {
+                return m.setMuted(joinedData.localMuteSettings);
+            }));
+            this.emitChange();
+        }
     }
 
     get muteSettings(): MuteSettings | undefined {
@@ -269,7 +286,20 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     /** @internal */
-    updateMembership(userId: string, callMembership: CallMembership, eventTimestamp: number, syncLog: ILogItem) {
+    updateRoomMembers(memberChanges: Map<string, MemberChange>) {
+        for (const change of memberChanges.values()) {
+            const {member} = change;
+            for (const callMember of this._members.values()) {
+                // find all call members for a room member (can be multiple, for every device)
+                if (callMember.userId === member.userId) {
+                    callMember.updateRoomMember(member);
+                }
+            }
+        }
+    }
+
+    /** @internal */
+    updateMembership(userId: string, roomMember: RoomMember, callMembership: CallMembership, eventTimestamp: number, syncLog: ILogItem) {
         syncLog.wrap({l: "update call membership", t: CALL_LOG_TYPE, id: this.id, userId}, log => {
             const devices = callMembership["m.devices"];
             const previousDeviceIds = this.getDeviceIdsForUserId(userId);
@@ -306,8 +336,8 @@ export class GroupCall extends EventEmitter<{change: never}> {
                             }
                             log.set("add", true);
                             member = new Member(
-                                RoomMember.fromUserId(this.roomId, userId, "join"),
-                                device, deviceIndex, eventTimestamp, this._memberOptions
+                                roomMember,
+                                device, deviceIndex, eventTimestamp, this._memberOptions,
                             );
                             this._members.add(memberKey, member);
                             if (this.joinedData) {
@@ -499,8 +529,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
         const logItem = joinedData.membersLogItem.child({l: "member", id: memberKey});
         logItem.set("sessionId", member.sessionId);
         log.wrap({l: "connect", id: memberKey}, log => {
-            // Safari can't send a MediaStream to multiple sources, so clone it
-            const connectItem = member.connect(joinedData.localMedia.clone(), joinedData.localMuteSettings, logItem);
+            const connectItem = member.connect(joinedData.localMedia, joinedData.localMuteSettings, logItem);
             if (connectItem) {
                 log.refDetached(connectItem);
             }

@@ -160,6 +160,11 @@ export class Logger implements ILogger {
     }
 
     /** @internal */
+    _removeItemFromOpenList(item: LogItem): void {
+        this._openItems.delete(item);
+    }
+
+    /** @internal */
     _persistItem(item: LogItem, filter?: LogFilter, forced?: boolean): void {
         for (var i = 0; i < this.reporters.length; i += 1) {
             this.reporters[i].reportItem(item, filter, forced);
@@ -186,6 +191,7 @@ class DeferredPersistRootLogItem extends LogItem {
     finish() {
         super.finish();
         (this._logger as Logger)._persistItem(this, undefined, false);
+        (this._logger as Logger)._removeItemFromOpenList(this);
     }
 
     forceFinish() {

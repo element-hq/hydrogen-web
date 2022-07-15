@@ -244,7 +244,7 @@ export class SyncWriter {
         const {currentKey, entries, updatedEntries} =
             await this._writeTimeline(timelineEvents, timeline, memberSync, this._lastLiveKey, txn, log);
         const memberChanges = await memberSync.write(txn);
-        return {entries, updatedEntries, newLiveKey: currentKey, memberChanges};
+        return {entries, updatedEntries, newLiveKey: currentKey, memberChanges, memberSync};
     }
 
     afterSync(newLiveKey) {

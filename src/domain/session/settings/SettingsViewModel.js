@@ -16,6 +16,7 @@ limitations under the License.
 
 import {ViewModel} from "../../ViewModel";
 import {KeyBackupViewModel} from "./KeyBackupViewModel.js";
+import {submitLogsToRageshakeServer} from "../../../domain/rageshake";
 
 class PushNotificationStatus {
     constructor() {
@@ -50,6 +51,8 @@ export class SettingsViewModel extends ViewModel {
         this.minSentImageSizeLimit = 400;
         this.maxSentImageSizeLimit = 4000;
         this.pushNotifications = new PushNotificationStatus();
+        this._activeTheme = undefined;
+        this._logsFeedbackMessage = undefined;
     }
 
     get _session() {
@@ -76,6 +79,9 @@ export class SettingsViewModel extends ViewModel {
         this.sentImageSizeLimit = await this.platform.settingsStorage.getInt("sentImageSizeLimit");
         this.pushNotifications.supported = await this.platform.notificationService.supportsPush();
         this.pushNotifications.enabled = await this._session.arePushNotificationsEnabled();
+        if (!import.meta.env.DEV) {
+            this._activeTheme = await this.platform.themeLoader.getActiveTheme();
+        }
         this.emitChange("");
     }
 
@@ -127,6 +133,14 @@ export class SettingsViewModel extends ViewModel {
         return this._formatBytes(this._estimate?.usage);
     }
 
+    get themeMapping() {
+        return this.platform.themeLoader.themeMapping;
+    }
+
+    get activeTheme() {
+        return this._activeTheme;
+    }
+
     _formatBytes(n) {
         if (typeof n === "number") {
             return Math.round(n / (1024 * 1024)).toFixed(1) + " MB";
@@ -144,6 +158,51 @@ export class SettingsViewModel extends ViewModel {
         const persister = this.logger.reporters.find(r => typeof r.export === "function");
         const logExport = await persister.export();
         return logExport.asBlob();
+    }
+
+    get canSendLogsToServer() {
+        return !!this.platform.config.bugReportEndpointUrl;
+    }
+
+    get logsServer() {
+        const {bugReportEndpointUrl} = this.platform.config;
+        try {
+            if (bugReportEndpointUrl) {
+                return new URL(bugReportEndpointUrl).hostname;
+            }
+        } catch (e) {}
+        return "";
+    }
+
+    async sendLogsToServer() {
+        const {bugReportEndpointUrl} = this.platform.config;
+        if (bugReportEndpointUrl) {
+            this._logsFeedbackMessage = this.i18n`Sending logs…`;
+            this.emitChange();
+            try {
+                const logExport = await this.logger.export();
+                await submitLogsToRageshakeServer(
+                    {
+                        app: "hydrogen",
+                        userAgent: this.platform.description,
+                        version: DEFINE_VERSION,
+                        text: `Submit logs from settings for user ${this._session.userId} on device ${this._session.deviceId}`,
+                    },
+                    logExport.asBlob(),
+                    bugReportEndpointUrl,
+                    this.platform.request
+                );
+                this._logsFeedbackMessage = this.i18n`Logs sent succesfully!`;
+                this.emitChange();
+            } catch (err) {
+                this._logsFeedbackMessage = err.message;
+                this.emitChange();
+            }
+        }
+    }
+
+    get logsFeedbackMessage() {
+        return this._logsFeedbackMessage;
     }
 
     async togglePushNotifications() {
@@ -174,6 +233,12 @@ export class SettingsViewModel extends ViewModel {
             this.pushNotifications.serverError = err;
             this.emitChange("pushNotifications.serverError");
         }
+    }
+
+    changeThemeOption(themeName, themeVariant) {
+        this.platform.themeLoader.setTheme(themeName, themeVariant);
+        // emit so that radio-buttons become displayed/hidden
+        this.emitChange("themeOption");
     }
 }
 

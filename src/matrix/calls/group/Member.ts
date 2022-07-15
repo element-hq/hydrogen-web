@@ -18,7 +18,7 @@ import {PeerCall, CallState} from "../PeerCall";
 import {makeTxnId, makeId} from "../../common";
 import {EventType, CallErrorCode} from "../callEventTypes";
 import {formatToDeviceMessagesPayload} from "../../common";
-
+import {sortedIndex} from "../../../utils/sortedIndex";
 import type {MuteSettings} from "../common";
 import type {Options as PeerCallOptions, RemoteMedia} from "../PeerCall";
 import type {LocalMedia} from "../LocalMedia";
@@ -36,7 +36,7 @@ export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessag
     // local session id of our client
     sessionId: string,
     hsApi: HomeServerApi,
-    encryptDeviceMessage: (userId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage>,
+    encryptDeviceMessage: (userId: string, deviceId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage | undefined>,
     emitUpdate: (participant: Member, params?: any) => void,
 }
 
@@ -53,6 +53,9 @@ const errorCodesWithoutRetry = [
 class MemberConnection {
     public retryCount: number = 0;
     public peerCall?: PeerCall;
+    public lastProcessedSeqNr: number | undefined;
+    public queuedSignallingMessages: SignallingMessage<MGroupCallBase>[] = [];
+    public outboundSeqCounter: number = 0;
 
     constructor(
         public localMedia: LocalMedia,
@@ -65,7 +68,7 @@ export class Member {
     private connection?: MemberConnection;
 
     constructor(
-        public readonly member: RoomMember,
+        public member: RoomMember,
         private callDeviceMembership: CallDeviceMembership,
         private _deviceIndex: number,
         private _eventTimestamp: number,
@@ -123,7 +126,8 @@ export class Member {
         if (this.connection) {
             return;
         }
-        const connection = new MemberConnection(localMedia, localMuteSettings, memberLogItem);
+        // Safari can't send a MediaStream to multiple sources, so clone it
+        const connection = new MemberConnection(localMedia.clone(), localMuteSettings, memberLogItem);
         this.connection = connection;
         let connectLogItem;
         connection.logItem.wrap("connect", async log => {
@@ -167,7 +171,7 @@ export class Member {
         connection.logItem.wrap("disconnect", async log => {
             disconnectLogItem = log;
             if (hangup) {
-                connection.peerCall?.hangup(CallErrorCode.UserHangup, log);
+                await connection.peerCall?.hangup(CallErrorCode.UserHangup, log);
             } else {
                 await connection.peerCall?.close(undefined, log);
             }
@@ -193,6 +197,13 @@ export class Member {
         if (this.connection) {
             this.connection.logItem.refDetached(causeItem);
         }
+    }
+    
+    /** @internal */
+    updateRoomMember(roomMember: RoomMember) {
+        this.member = roomMember;
+        // TODO: this emits an update during the writeSync phase, which we usually try to avoid
+        this.options.emitUpdate(this);
     }
 
     /** @internal */
@@ -230,25 +241,26 @@ export class Member {
     /** @internal */
     sendSignallingMessage = async (message: SignallingMessage<MCallBase>, log: ILogItem): Promise<void> => {
         const groupMessage = message as SignallingMessage<MGroupCallBase>;
+        groupMessage.content.seq = this.connection!.outboundSeqCounter++;
         groupMessage.content.conf_id = this.options.confId;
         groupMessage.content.device_id = this.options.ownDeviceId;
         groupMessage.content.party_id = this.options.ownDeviceId;
         groupMessage.content.sender_session_id = this.options.sessionId;
         groupMessage.content.dest_session_id = this.sessionId;
-        // const encryptedMessages = await this.options.encryptDeviceMessage(this.member.userId, groupMessage, log);
-        // const payload = formatToDeviceMessagesPayload(encryptedMessages);
-        const payload = {
-            messages: {
-                [this.member.userId]: {
-                    [this.deviceId]: groupMessage.content
-                }
-            }
-        };
+        let payload;
+        let type: string = message.type;
+        const encryptedMessages = await this.options.encryptDeviceMessage(this.member.userId, this.deviceId, groupMessage, log);
+        if (encryptedMessages) {
+            payload = formatToDeviceMessagesPayload(encryptedMessages);
+            type = "m.room.encrypted";
+        } else {
+            // device needs deviceId and userId
+            payload = formatToDeviceMessagesPayload([{content: groupMessage.content, device: this}]);
+        }
         // TODO: remove this for release
         log.set("payload", groupMessage.content);
         const request = this.options.hsApi.sendToDevice(
-            message.type,
-            //"m.room.encrypted",
+            type,
             payload,
             makeTxnId(),
             {log}
@@ -269,11 +281,27 @@ export class Member {
             if (message.type === EventType.Invite && !connection.peerCall) {
                 connection.peerCall = this._createPeerCall(message.content.call_id);
             }
+            const idx = sortedIndex(connection.queuedSignallingMessages, message, (a, b) => a.content.seq - b.content.seq);
+            connection.queuedSignallingMessages.splice(idx, 0, message);
+            let hasBeenDequeued = false;
             if (connection.peerCall) {
-                const item = connection.peerCall.handleIncomingSignallingMessage(message, this.deviceId, connection.logItem);
-                syncLog.refDetached(item);
-            } else {
-                // TODO: need to buffer events until invite comes?
+                while (
+                    connection.queuedSignallingMessages.length && (
+                        connection.lastProcessedSeqNr === undefined ||
+                        connection.queuedSignallingMessages[0].content.seq === connection.lastProcessedSeqNr + 1
+                    )
+               ) {
+                    const dequeuedMessage = connection.queuedSignallingMessages.shift()!;
+                    if (dequeuedMessage === message) {
+                        hasBeenDequeued = true;
+                    }
+                    const item = connection.peerCall!.handleIncomingSignallingMessage(dequeuedMessage, this.deviceId, connection.logItem);
+                    syncLog.refDetached(item);
+                    connection.lastProcessedSeqNr = dequeuedMessage.content.seq;
+                }
+            }
+            if (!hasBeenDequeued) {
+                syncLog.refDetached(connection.logItem.log({l: "queued signalling message", type: message.type, seq: message.content.seq}));
             }
         } else {
             syncLog.log({l: "member not connected", userId: this.userId, deviceId: this.deviceId});
@@ -284,7 +312,7 @@ export class Member {
     async setMedia(localMedia: LocalMedia, previousMedia: LocalMedia): Promise<void> {
         const {connection} = this;
         if (connection) {
-            connection.localMedia = connection.localMedia.replaceClone(connection.localMedia, previousMedia);
+            connection.localMedia = localMedia.replaceClone(connection.localMedia, previousMedia);
             await connection.peerCall?.setMedia(connection.localMedia, connection.logItem);
         }
     }

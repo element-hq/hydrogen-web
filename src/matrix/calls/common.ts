@@ -25,14 +25,36 @@ export function getStreamVideoTrack(stream: Stream | undefined): Track | undefin
 }
 
 export class MuteSettings {
-    constructor (public readonly microphone: boolean = false, public readonly camera: boolean = false) {}
+    constructor (
+        private readonly isMicrophoneMuted: boolean = false,
+        private readonly isCameraMuted: boolean = false,
+        private hasMicrophoneTrack: boolean = false,
+        private hasCameraTrack: boolean = false,
+    ) {}
+
+    updateTrackInfo(userMedia: Stream | undefined) {
+        this.hasMicrophoneTrack = !!getStreamAudioTrack(userMedia);
+        this.hasCameraTrack = !!getStreamVideoTrack(userMedia);
+    }
+
+    get microphone(): boolean {
+        return !this.hasMicrophoneTrack || this.isMicrophoneMuted;
+    }
+
+    get camera(): boolean {
+        return !this.hasCameraTrack || this.isCameraMuted;
+    }
 
     toggleCamera(): MuteSettings {
-        return new MuteSettings(this.microphone, !this.camera);
+        return new MuteSettings(this.microphone, !this.camera, this.hasMicrophoneTrack, this.hasCameraTrack);
     }
 
     toggleMicrophone(): MuteSettings {
-        return new MuteSettings(!this.microphone, this.camera);
+        return new MuteSettings(!this.microphone, this.camera, this.hasMicrophoneTrack, this.hasCameraTrack);
+    }
+
+    equals(other: MuteSettings) {
+        return this.microphone === other.microphone && this.camera === other.camera;
     }
 }
 

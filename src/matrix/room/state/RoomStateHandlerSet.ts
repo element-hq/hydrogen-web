@@ -20,14 +20,17 @@ import type {Transaction} from "../../storage/idb/Transaction";
 import type {Room} from "../Room";
 import type {MemberChange} from "../members/RoomMember";
 import type {RoomStateHandler} from "./types";
+import type {MemberSync} from "../timeline/persistence/MemberWriter.js";
 import {BaseObservable} from "../../../observable/BaseObservable";
 
 /** keeps track of all handlers registered with Session.observeRoomState */
 export class RoomStateHandlerSet extends BaseObservable<RoomStateHandler> implements RoomStateHandler {
-    handleRoomState(room: Room, stateEvent: StateEvent, txn: Transaction, log: ILogItem) {
+    async handleRoomState(room: Room, stateEvent: StateEvent, memberSync: MemberSync, txn: Transaction, log: ILogItem): Promise<void> {
+        const promises: Promise<void>[] = [];
         for(let h of this._handlers) {
-            h.handleRoomState(room, stateEvent, txn, log);
+            promises.push(h.handleRoomState(room, stateEvent, memberSync, txn, log));
         }
+        await Promise.all(promises);
     }
     updateRoomMembers(room: Room, memberChanges: Map<string, MemberChange>) {
         for(let h of this._handlers) {

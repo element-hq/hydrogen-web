@@ -56,6 +56,8 @@ export interface Stream {
     clone(): Stream;
     addEventListener<K extends keyof StreamEventMap>(type: K, listener: (this: Stream, ev: StreamEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
     removeEventListener<K extends keyof StreamEventMap>(type: K, listener: (this: Stream, ev: StreamEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+    addTrack(track: Track);
+    removeTrack(track: Track);
 }
 
 export enum TrackKind {

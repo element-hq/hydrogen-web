@@ -79,18 +79,22 @@ export class Session {
         this._callHandler = new CallHandler({
             clock: this._platform.clock,
             hsApi: this._hsApi,
-            encryptDeviceMessage: async (roomId, userId, message, log) => {
+            encryptDeviceMessage: async (roomId, userId, deviceId, message, log) => {
                 if (!this._deviceTracker || !this._olmEncryption) {
-                    throw new Error("encryption is not enabled");
+                    log.set("encryption_disabled", true);
+                    return;
                 }
-                // TODO: just get the devices we're sending the message to, not all the room devices
-                // although we probably already fetched all devices to send messages in the likely e2ee room
-                const devices = await log.wrap("get device keys", async log => {
-                    await this._deviceTracker.trackRoom(this.rooms.get(roomId), log);
-                    return this._deviceTracker.devicesForRoomMembers(roomId, [userId], this._hsApi, log);
+                const device = await log.wrap("get device key", async log => {
+                    const device = this._deviceTracker.deviceForId(userId, deviceId, this._hsApi, log);
+                    if (!device) {
+                        log.set("not_found", true);
+                    }
+                    return device;
                 });
-                const encryptedMessage = await this._olmEncryption.encrypt(message.type, message.content, devices, this._hsApi, log);
-                return encryptedMessage;
+                if (device) {
+                    const encryptedMessages = await this._olmEncryption.encrypt(message.type, message.content, [device], this._hsApi, log);
+                    return encryptedMessages;
+                }
             },
             storage: this._storage,
             webRTC: this._platform.webRTC,
@@ -693,7 +697,9 @@ export class Session {
     async writeSync(syncResponse, syncFilterId, preparation, txn, log) {
         const changes = {
             syncInfo: null,
-            e2eeAccountChanges: null
+            e2eeAccountChanges: null,
+            hasNewRoomKeys: false,
+            deviceMessageDecryptionResults: null,
         };
         const syncToken = syncResponse.next_batch;
         if (syncToken !== this.syncToken) {
@@ -714,7 +720,9 @@ export class Session {
         }
 
         if (preparation) {
-            changes.hasNewRoomKeys = await log.wrap("deviceMsgs", log => this._deviceMessageHandler.writeSync(preparation, txn, log));
+            const {hasNewRoomKeys, decryptionResults} = await log.wrap("deviceMsgs", log => this._deviceMessageHandler.writeSync(preparation, txn, log));
+            changes.hasNewRoomKeys = hasNewRoomKeys;
+            changes.deviceMessageDecryptionResults = decryptionResults;
         }
 
         // store account data
@@ -754,6 +762,9 @@ export class Session {
         }
         if (changes.hasNewRoomKeys) {
             this._keyBackup.get()?.flush(log);
+        }
+        if (changes.deviceMessageDecryptionResults) {
+            await this._deviceMessageHandler.afterSyncCompleted(changes.deviceMessageDecryptionResults, this._deviceTracker, this._hsApi, log);
         }
     }
 
