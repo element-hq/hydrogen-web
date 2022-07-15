@@ -60,17 +60,17 @@ export class ThemeLoader {
                 manifestLocations.map( location => this._platform.request(location, { method: "GET", format: "json", cache: true, }).response())
             );
             results.forEach(({ body }, i) => idToManifest.set(body.id, { manifest: body, location: manifestLocations[i] }));
-            this._themeBuilder = new ThemeBuilder(idToManifest, this.preferredColorScheme);
-            results.forEach(({ body }, i) => {
+            this._themeBuilder = new ThemeBuilder(this._platform, idToManifest, this.preferredColorScheme);
+            for (let i = 0; i < results.length; ++i) {
+                const { body } = results[i];
                 if (body.extends) {
-                    this._themeBuilder.populateDerivedTheme(body);
+                   await this._themeBuilder.populateDerivedTheme(body);
                 }
                 else {
                     this._populateThemeMap(body, manifestLocations[i], log);
                 }
-            });
+            }
             Object.assign(this._themeMapping, this._themeBuilder.themeMapping);
-            console.log("derived theme mapping", this._themeBuilder.themeMapping);
         });
     }
 
@@ -169,6 +169,9 @@ export class ThemeLoader {
             this._platform.replaceStylesheet(cssLocation);
             if (variables) {
                 this._themeBuilder.injectCSSVariables(variables);
+            }
+            else {
+                this._themeBuilder.removePreviousCSSVariables();
             }
             this._platform.settingsStorage.setString("theme-name", themeName);
             if (themeVariant) {

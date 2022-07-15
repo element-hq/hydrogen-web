@@ -14,72 +14,59 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import type {ThemeInformation} from "./ThemeLoader";
+import type {Platform} from "./Platform.js";
 import {ColorSchemePreference} from "./ThemeLoader";
-import {derive} from "../../../scripts/postcss/color.mjs";
+import {IconColorizer} from "./IconColorizer";
+import {DerivedVariables} from "./DerivedVariables";
 
 export class ThemeBuilder {
     // todo: replace any with manifest type when PR is merged
     private _idToManifest: Map<string, any>;
     private _themeMapping: Record<string, ThemeInformation> = {};
-    private _themeToVariables: Record<string, any> = {};
     private _preferredColorScheme?: ColorSchemePreference;
+    private _platform: Platform;
+    private _injectedVariables?: Record<string, string>;
 
-    constructor(manifestMap: Map<string, any>, preferredColorScheme?: ColorSchemePreference) {
+    constructor(platform: Platform, manifestMap: Map<string, any>, preferredColorScheme?: ColorSchemePreference) {
         this._idToManifest = manifestMap;
         this._preferredColorScheme = preferredColorScheme;
+        this._platform = platform;
     }
 
-    populateDerivedTheme(manifest) {
+    async populateDerivedTheme(manifest) {
         const { manifest: baseManifest, location } = this._idToManifest.get(manifest.extends);
         const runtimeCssLocation = baseManifest.source?.["runtime-asset"];
         const cssLocation = new URL(runtimeCssLocation, new URL(location, window.location.origin)).href;
         const derivedVariables = baseManifest.source?.["derived-variables"];
+        const icons = baseManifest.source?.["icon"];
         const themeName = manifest.name;
         let defaultDarkVariant: any = {}, defaultLightVariant: any = {};
         for (const [variant, variantDetails] of Object.entries(manifest.values.variants) as [string, any][]) {
-            const themeId = `${manifest.id}-${variant}`;
-            const { name: variantName, default: isDefault, dark, variables } = variantDetails;
-            const resolvedVariables = this.deriveVariables(variables, derivedVariables, dark);
-            Object.assign(variables, resolvedVariables);
-            const themeDisplayName = `${themeName} ${variantName}`;
-            if (isDefault) {
-                /**
-                 * This is a default variant!
-                 * We'll add these to the themeMapping (separately) keyed with just the
-                 * theme-name (i.e "Element" instead of "Element Dark").
-                 * We need to be able to distinguish them from other variants!
-                 * 
-                 * This allows us to render radio-buttons with "dark" and
-                 * "light" options.
-                */
-                const defaultVariant = dark ? defaultDarkVariant : defaultLightVariant;
-                defaultVariant.variantName = variantName;
-                defaultVariant.id = themeId;
-                defaultVariant.cssLocation = cssLocation;
-                defaultVariant.variables = variables;
+            try {
+                const themeId = `${manifest.id}-${variant}`;
+                const { name: variantName, default: isDefault, dark, variables } = variantDetails;
+                const resolvedVariables = new DerivedVariables(variables, derivedVariables, dark).toVariables();
+                Object.assign(variables, resolvedVariables);
+                const iconVariables = await new IconColorizer(this._platform, icons, variables, location).toVariables();
+                Object.assign(variables, resolvedVariables, iconVariables);
+                const themeDisplayName = `${themeName} ${variantName}`;
+                if (isDefault) {
+                    const defaultVariant = dark ? defaultDarkVariant : defaultLightVariant;
+                    Object.assign(defaultVariant, { variantName, id: themeId, cssLocation, variables });
+                    continue;
+                }
+                this._themeMapping[themeDisplayName] = { cssLocation, id: themeId, variables: variables, };
+            }
+            catch (e) {
+                console.error(e);
                 continue;
             }
-            // Non-default variants are keyed in themeMapping with "theme_name variant_name"
-            // eg: "Element Dark"
-            this._themeMapping[themeDisplayName] = {
-                cssLocation,
-                id: themeId,
-                variables: variables,
-            };
         }
         if (defaultDarkVariant.id && defaultLightVariant.id) {
-            /**
-             * As mentioned above, if there's both a default dark and a default light variant,
-             * add them to themeMapping separately.
-             */
             const defaultVariant = this._preferredColorScheme === ColorSchemePreference.Dark ? defaultDarkVariant : defaultLightVariant;
             this._themeMapping[themeName] = { dark: defaultDarkVariant, light: defaultLightVariant, default: defaultVariant };
         }
         else {
-            /**
-             * If only one default variant is found (i.e only dark default or light default but not both),
-             * treat it like any other variant.
-             */
             const variant = defaultDarkVariant.id ? defaultDarkVariant : defaultLightVariant;
             this._themeMapping[`${themeName} ${variant.variantName}`] = { id: variant.id, cssLocation: variant.cssLocation };
         }
@@ -94,38 +81,17 @@ export class ThemeBuilder {
         for (const [variable, value] of Object.entries(variables)) {
             root.style.setProperty(`--${variable}`, value);
         }
+        this._injectedVariables = variables;
     }
 
-    removeCSSVariables(variables: string[]) {
+    removePreviousCSSVariables() {
+        if (!this._injectedVariables) {
+            return;
+        }
         const root = document.documentElement;
-        for (const variable of variables) {
+        for (const variable of Object.keys(this._injectedVariables)) {
             root.style.removeProperty(`--${variable}`);
         }
-    }
-
-    deriveVariables(variables: Record<string, string>, derivedVariables: string[], isDark: boolean) {
-        const aliases: any = {};
-        const resolvedVariables: any = {};
-        const RE_VARIABLE_VALUE = /(.+)--(.+)-(.+)/;
-        for (const variable of derivedVariables) {
-            // If this is an alias, store it for processing later
-            const [alias, value] = variable.split("=");
-            if (value) {
-                aliases[alias] = value;
-                continue;
-            }
-            // Resolve derived variables
-            const matches = variable.match(RE_VARIABLE_VALUE);
-            if (matches) {
-                const [, baseVariable, operation, argument] = matches;
-                const value = variables[baseVariable];
-                const resolvedValue = derive(value, operation, argument, isDark);
-                resolvedVariables[variable] = resolvedValue;
-            }
-        }
-        for (const [alias, variable] of Object.entries(aliases) as any) {
-            resolvedVariables[alias] = variables[variable] ?? resolvedVariables[variable];
-        }
-        return resolvedVariables;
+        this._injectedVariables = undefined;
     }
 }
