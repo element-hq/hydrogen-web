@@ -57,7 +57,16 @@ async function generateIconSourceMap(icons, manifestLocation) {
         const resolvedLocation = path.resolve(__dirname, "../../", manifestLocation, location);
         const iconData = await fs.readFile(resolvedLocation);
         const svgString = iconData.toString();
-        const result = optimize(svgString);
+        const result = optimize(svgString, {
+            plugins: [
+                {
+                    name: "preset-default",
+                    params: {
+                        overrides: { convertColors: false, },
+                    },
+                },
+            ],
+        });
         const optimizedSvgString = result.data;
         const fileName = path.basename(resolvedLocation);
         sources[fileName] = optimizedSvgString;
