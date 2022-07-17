@@ -33,12 +33,15 @@ export class ThemeBuilder {
         this._platform = platform;
     }
 
-    async populateDerivedTheme(manifest) {
-        const { manifest: baseManifest, location } = this._idToManifest.get(manifest.extends)!;
+    async populateDerivedTheme(manifest: ThemeManifest) {
+        const { manifest: baseManifest, location } = this._idToManifest.get(manifest.extends!)!;
         const { cssLocation, derivedVariables, icons } = this._getsourceData(baseManifest, location);
         const themeName = manifest.name;
+        if (!themeName) {
+            throw new Error(`Theme name not found in manifest!`);
+        }
         let defaultDarkVariant: any = {}, defaultLightVariant: any = {};
-        for (const [variant, variantDetails] of Object.entries(manifest.values.variants) as [string, any][]) {
+        for (const [variant, variantDetails] of Object.entries(manifest.values?.variants!) as [string, any][]) {
             try {
                 const themeId = `${manifest.id}-${variant}`;
                 const { name: variantName, default: isDefault, dark, variables } = variantDetails;
