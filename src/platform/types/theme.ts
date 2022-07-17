@@ -22,6 +22,13 @@ export type ThemeManifest = Partial<{
     version: number;
     // A user-facing string that is the name for this theme-collection.
     name: string;
+    // An identifier for this theme
+    id: string;
+    /**
+     * Id of the theme that this theme derives from.
+     * Only present for derived/runtime themes.
+    */
+    extends: string;
     /**
      * This is added to the manifest during the build process and includes data
      * that is needed to load themes at runtime.
