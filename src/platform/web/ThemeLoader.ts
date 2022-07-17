@@ -64,11 +64,16 @@ export class ThemeLoader {
             this._themeBuilder = new ThemeBuilder(this._platform, idToManifest, this.preferredColorScheme);
             for (let i = 0; i < results.length; ++i) {
                 const { body } = results[i];
-                if (body.extends) {
-                   await this._themeBuilder.populateDerivedTheme(body);
+                try {
+                    if (body.extends) {
+                        await this._themeBuilder.populateDerivedTheme(body);
+                    }
+                    else {
+                        this._populateThemeMap(body, manifestLocations[i], log);
+                    }
                 }
-                else {
-                    this._populateThemeMap(body, manifestLocations[i], log);
+                catch(e) {
+                    console.error(e);
                 }
             }
             Object.assign(this._themeMapping, this._themeBuilder.themeMapping);
