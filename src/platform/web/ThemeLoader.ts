@@ -76,6 +76,17 @@ export class ThemeLoader {
                     console.error(e);
                 }
             }
+            //Add the default-theme as an additional option to the mapping
+            const defaultThemeId = this.getDefaultTheme();
+            if (defaultThemeId) {
+                const themeDetails = this._findThemeDetailsFromId(defaultThemeId);
+                if (themeDetails) {
+                    this._themeMapping["Default"] = { id: "default", cssLocation: themeDetails.cssLocation };
+                }
+            }
+            log.log({ l: "Default Theme", theme: defaultThemeId});
+            log.log({ l: "Preferred colorscheme", scheme: this.preferredColorScheme === ColorSchemePreference.Dark ? "dark" : "light" });
+            log.log({ l: "Result", themeMapping: this._themeMapping });
             Object.assign(this._themeMapping, this._themeBuilder.themeMapping);
         });
     }
@@ -150,17 +161,6 @@ export class ThemeLoader {
                 const variant = defaultDarkVariant.id ? defaultDarkVariant : defaultLightVariant;
                 this._themeMapping[`${themeName} ${variant.variantName}`] = { id: variant.id, cssLocation: variant.cssLocation };
             }
-            //Add the default-theme as an additional option to the mapping
-            const defaultThemeId = this.getDefaultTheme();
-            if (defaultThemeId) {
-                const themeDetails = this._findThemeDetailsFromId(defaultThemeId);
-                if (themeDetails) {
-                    this._themeMapping["Default"] = { id: "default", cssLocation: themeDetails.cssLocation };
-                }
-            }
-            l.log({ l: "Default Theme", theme: defaultThemeId});
-            l.log({ l: "Preferred colorscheme", scheme: this.preferredColorScheme === ColorSchemePreference.Dark ? "dark" : "light" });
-            l.log({ l: "Result", themeMapping: this._themeMapping });
          });
     }
 
