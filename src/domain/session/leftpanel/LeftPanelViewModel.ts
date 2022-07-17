@@ -15,33 +15,49 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ViewModel} from "../../ViewModel";
+import {ViewModel, Options as ViewModelOptions} from "../../ViewModel";
+import {BaseTileViewModel} from "./BaseTileViewModel";
 import {RoomTileViewModel} from "./RoomTileViewModel";
 import {InviteTileViewModel} from "./InviteTileViewModel";
 import {RoomBeingCreatedTileViewModel} from "./RoomBeingCreatedTileViewModel.js";
-import {RoomFilter} from "./RoomFilter.js";
-import {ApplyMap} from "../../../observable";
-import {addPanelIfNeeded} from "../../navigation";
+import {RoomFilter} from "./RoomFilter";
+import {ApplyMap, MappedMap, ObservableMap} from "../../../observable/";
+import {SortedMapList} from "../../../observable//list/SortedMapList.js";
+import {addPanelIfNeeded} from "../../navigation/index.js";
+import {Room} from "../../../matrix/room/Room.js";
+import {Invite} from "../../../matrix/room/Invite.js";
+import {RoomBeingCreated} from "../../../matrix/room/RoomBeingCreated";
+import {Session} from "../../../matrix/Session.js";
 
+type Options = { session: Session } & ViewModelOptions;
 
-export class LeftPanelViewModel extends ViewModel {
-    constructor(options) {
+export class LeftPanelViewModel extends ViewModel<Options> {
+    private _currentTileVM?: BaseTileViewModel;
+    private _tileViewModelsMap: MappedMap<string, RoomBeingCreated | Invite | Room, BaseTileViewModel>;
+    private _tileViewModelsFilterMap: ApplyMap<string, BaseTileViewModel>;
+    private _tileViewModels: SortedMapList;
+    private _closeUrl?: string = this.urlCreator.urlForSegment("session");
+    private _settingsUrl?: string = this.urlCreator.urlForSegment("settings");
+    private _createRoomUrl?: string = this.urlCreator.urlForSegment("create-room");
+    gridEnabled: boolean;
+
+    constructor(options: Options) {
         super(options);
         const {session} = options;
         this._tileViewModelsMap = this._mapTileViewModels(session.roomsBeingCreated, session.invites, session.rooms);
         this._tileViewModelsFilterMap = new ApplyMap(this._tileViewModelsMap);
         this._tileViewModels = this._tileViewModelsFilterMap.sortValues((a, b) => a.compare(b));
-        this._currentTileVM = null;
         this._setupNavigation();
-        this._closeUrl = this.urlCreator.urlForSegment("session");
-        this._settingsUrl = this.urlCreator.urlForSegment("settings");
-        this._createRoomUrl = this.urlCreator.urlForSegment("create-room");
     }
 
-    _mapTileViewModels(roomsBeingCreated, invites, rooms) {
+    _mapTileViewModels(
+        roomsBeingCreated: ObservableMap<string, RoomBeingCreated>,
+        invites: ObservableMap<string, Invite>,
+        rooms: ObservableMap<string, Room>
+    ): MappedMap<string, RoomBeingCreated | Invite | Room, BaseTileViewModel> {
         // join is not commutative, invites will take precedence over rooms
-        const allTiles = invites.join(roomsBeingCreated, rooms).mapValues((item, emitChange) => {
-            let vm;
+        const allTiles = invites.join(roomsBeingCreated, rooms).mapValues((item: RoomBeingCreated | Invite | Room, emitChange) => {
+            let vm: BaseTileViewModel;
             if (item.isBeingCreated) {
                 vm = new RoomBeingCreatedTileViewModel(this.childOptions({roomBeingCreated: item, emitChange}));
             } else if (item.isInvite) {
@@ -59,7 +75,7 @@ export class LeftPanelViewModel extends ViewModel {
         return allTiles;
     }
 
-    _updateCurrentVM(vm) {
+    _updateCurrentVM(vm: BaseTileViewModel): void {
         // need to also update the current vm here as
         // we can't call `_open` from the ctor as the map
         // is only populated when the view subscribes.
@@ -67,24 +83,27 @@ export class LeftPanelViewModel extends ViewModel {
         this._currentTileVM = vm;
     }
 
-    get closeUrl() {
+    get closeUrl(): string {
         return this._closeUrl;
     }
 
-    get settingsUrl() {
+    get settingsUrl(): string {
         return this._settingsUrl;
     }
 
-    get createRoomUrl() { return this._createRoomUrl; }
+    get createRoomUrl(): string { return this._createRoomUrl; }
 
-    _setupNavigation() {
+    _setupNavigation(): void {
         const roomObservable = this.navigation.observe("room");
         this.track(roomObservable.subscribe(roomId => this._open(roomId)));
 
         const gridObservable = this.navigation.observe("rooms");
         this.gridEnabled = !!gridObservable.get();
-        this.track(gridObservable.subscribe(roomIds => {
-            const changed = this.gridEnabled ^ !!roomIds;
+        this.track(gridObservable.subscribe((roomIds: string[]) => {
+            const xor = (b1: boolean, b2: boolean): boolean => {
+                return (b1 || b2) && !(b1 && b2);
+            };
+            const changed = xor(this.gridEnabled, !!roomIds);
             this.gridEnabled = !!roomIds;
             if (changed) {
                 this.emitChange("gridEnabled");
@@ -92,16 +111,16 @@ export class LeftPanelViewModel extends ViewModel {
         }));
     }
 
-    _open(roomId) {
+    _open(roomId: string): void {
         this._currentTileVM?.close();
-        this._currentTileVM = null;
+        this._currentTileVM = undefined;
         if (roomId) {
             this._currentTileVM = this._tileViewModelsMap.get(roomId);
             this._currentTileVM?.open();
         }
     }
 
-    toggleGrid() {
+    toggleGrid(): void {
         const room = this.navigation.path.get("room");
         let path = this.navigation.path.until("session");
         if (this.gridEnabled) {
@@ -122,16 +141,16 @@ export class LeftPanelViewModel extends ViewModel {
         this.navigation.applyPath(path);
     }
 
-    get tileViewModels() {
+    get tileViewModels(): SortedMapList {
         return this._tileViewModels;
     }
 
-    clearFilter() {
-        this._tileViewModelsFilterMap.setApply(null);
-        this._tileViewModelsFilterMap.applyOnce((roomId, vm) => vm.hidden = false);
+    clearFilter(): void {
+        this._tileViewModelsFilterMap.setApply(undefined);
+        this._tileViewModelsFilterMap.applyOnce((_roomId, vm) => vm.hidden = false);
     }
 
-    setFilter(query) {
+    setFilter(query: string): boolean {
         query = query.trim();
         if (query.length === 0) {
             this.clearFilter();

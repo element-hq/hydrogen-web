@@ -17,14 +17,10 @@ limitations under the License.
 import {BaseTileViewModel, Kind, AvatarSource} from "./BaseTileViewModel";
 import {Options as ViewModelOptions} from "../../ViewModel.js";
 import {Room} from "../../../matrix/room/Room.js";
-import {Client} from "../../../matrix/Client.js";
-import {Session} from "../../../matrix/Session.js";
 
 
 type Options = {
-    client: Client;
     room: Room;
-    session: Session;
 } & ViewModelOptions;
 
 export class RoomTileViewModel extends BaseTileViewModel {
