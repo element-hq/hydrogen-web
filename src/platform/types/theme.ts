@@ -42,6 +42,12 @@ export type ThemeManifest = Partial<{
         "runtime-asset": string;
         // Array of derived-variables
         "derived-variables": Array<string>;
+        /**
+         * Mapping from icon variable to location of icon in build output with query parameters
+         * indicating how it should be colored for this particular theme.
+         * eg: "icon-url-1": "element-logo.86bc8565.svg?primary=accent-color"
+         */
+        icon: Record<string, string>;
     };
     values: {
         /**
@@ -60,6 +66,8 @@ type Variant = Partial<{
     default: boolean;
     // A user-facing string that is the name for this variant.
     name: string;
+    // A boolean indicating whether this is a dark theme or not
+    dark: boolean;
     /**
      * Mapping from css variable to its value.
      * eg: {"background-color-primary": "#21262b", ...} 
