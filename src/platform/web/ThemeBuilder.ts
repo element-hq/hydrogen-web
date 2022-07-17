@@ -35,7 +35,7 @@ export class ThemeBuilder {
     }
 
     async populateDerivedTheme(manifest: ThemeManifest, log: ILogItem): Promise<void> {
-        await log.wrap("ThemeBuilder.populateThemeMap", async (l) => {
+        await log.wrap("ThemeBuilder.populateThemeMap", async () => {
             const {manifest: baseManifest, location} = this._idToManifest.get(manifest.extends!)!;
             const {cssLocation, derivedVariables, icons} = this._getSourceData(baseManifest, location, log);
             const themeName = manifest.name;

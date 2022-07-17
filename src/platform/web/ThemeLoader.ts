@@ -60,11 +60,13 @@ export class ThemeLoader {
             );
             results.forEach(({ body }, i) => idToManifest.set(body.id, { manifest: body, location: manifestLocations[i] }));
             this._themeBuilder = new ThemeBuilder(this._platform, idToManifest, this.preferredColorScheme);
+            const runtimeThemePromises: Promise<void>[] = [];
             for (let i = 0; i < results.length; ++i) {
                 const { body } = results[i];
                 try {
                     if (body.extends) {
-                        await this._themeBuilder.populateDerivedTheme(body, log);
+                        const promise = this._themeBuilder.populateDerivedTheme(body, log);
+                        runtimeThemePromises.push(promise);
                     }
                     else {
                         this._populateThemeMap(body, manifestLocations[i], log);
@@ -74,8 +76,9 @@ export class ThemeLoader {
                     console.error(e);
                 }
             }
+            await Promise.all(runtimeThemePromises);
             Object.assign(this._themeMapping, this._themeBuilder.themeMapping);
-            //Add the default-theme as an additional option to the mapping
+            // Add the default-theme as an additional option to the mapping
             const defaultThemeId = this.getDefaultTheme();
             if (defaultThemeId) {
                 const themeDetails = this._findThemeDetailsFromId(defaultThemeId);
@@ -94,7 +97,7 @@ export class ThemeLoader {
     }
 
     private _populateThemeMap(manifest: ThemeManifest, manifestLocation: string, log: ILogItem) {
-        log.wrap("populateThemeMap", (l) => {
+        log.wrap("populateThemeMap", () => {
             /*
             After build has finished, the source section of each theme manifest
             contains `built-assets` which is a mapping from the theme-id to
