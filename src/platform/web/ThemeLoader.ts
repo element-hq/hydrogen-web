@@ -25,16 +25,14 @@ type NormalVariant = {
     variables?: any;
 };
 
+type Variant = NormalVariant & {
+    variantName: string;
+};
+
 type DefaultVariant = {
-    dark: NormalVariant & {
-        variantName: string;
-    };
-    light: NormalVariant & {
-        variantName: string;
-    };
-    default: NormalVariant & {
-        variantName: string;
-    };
+    dark: Variant;
+    light: Variant;
+    default: Variant;
 }
 
 export type ThemeInformation = NormalVariant | DefaultVariant; 
@@ -76,18 +74,22 @@ export class ThemeLoader {
                     console.error(e);
                 }
             }
+            Object.assign(this._themeMapping, this._themeBuilder.themeMapping);
             //Add the default-theme as an additional option to the mapping
             const defaultThemeId = this.getDefaultTheme();
             if (defaultThemeId) {
                 const themeDetails = this._findThemeDetailsFromId(defaultThemeId);
                 if (themeDetails) {
-                    this._themeMapping["Default"] = { id: "default", cssLocation: themeDetails.cssLocation };
+                    this._themeMapping["Default"] = { id: "default", cssLocation: themeDetails.themeData.cssLocation! };
+                    const variables = themeDetails.themeData.variables;
+                    if (variables) {
+                        this._themeMapping["Default"].variables = variables;
+                    }
                 }
             }
             log.log({ l: "Default Theme", theme: defaultThemeId});
             log.log({ l: "Preferred colorscheme", scheme: this.preferredColorScheme === ColorSchemePreference.Dark ? "dark" : "light" });
             log.log({ l: "Result", themeMapping: this._themeMapping });
-            Object.assign(this._themeMapping, this._themeBuilder.themeMapping);
         });
     }
 
@@ -222,16 +224,16 @@ export class ThemeLoader {
         }
     }
 
-    private _findThemeDetailsFromId(themeId: string): {themeName: string, cssLocation: string, variant?: string} | undefined {
+    private _findThemeDetailsFromId(themeId: string): {themeName: string, themeData: Partial<Variant>} | undefined {
         for (const [themeName, themeData] of Object.entries(this._themeMapping)) {
             if ("id" in themeData && themeData.id === themeId) {
-                return { themeName, cssLocation: themeData.cssLocation };
+                return { themeName, themeData };
             }
             else if ("light" in themeData && themeData.light?.id === themeId) {
-                return { themeName, cssLocation: themeData.light.cssLocation, variant: "light" };
+                return { themeName, themeData: themeData.light };
             }
             else if ("dark" in themeData && themeData.dark?.id === themeId) {
-                return { themeName, cssLocation: themeData.dark.cssLocation, variant: "dark" };
+                return { themeName, themeData: themeData.dark };
             }
         }
     }
