@@ -18,10 +18,10 @@ import type {Platform} from "./Platform.js";
 import {ColorSchemePreference} from "./ThemeLoader";
 import {IconColorizer} from "./IconColorizer";
 import {DerivedVariables} from "./DerivedVariables";
+import {ThemeManifest} from "../types/theme";
 
 export class ThemeBuilder {
-    // todo: replace any with manifest type when PR is merged
-    private _idToManifest: Map<string, any>;
+    private _idToManifest: Map<string, {manifest: ThemeManifest, location: string}>;
     private _themeMapping: Record<string, ThemeInformation> = {};
     private _preferredColorScheme?: ColorSchemePreference;
     private _platform: Platform;
@@ -34,11 +34,8 @@ export class ThemeBuilder {
     }
 
     async populateDerivedTheme(manifest) {
-        const { manifest: baseManifest, location } = this._idToManifest.get(manifest.extends);
-        const runtimeCssLocation = baseManifest.source?.["runtime-asset"];
-        const cssLocation = new URL(runtimeCssLocation, new URL(location, window.location.origin)).href;
-        const derivedVariables = baseManifest.source?.["derived-variables"];
-        const icons = baseManifest.source?.["icon"];
+        const { manifest: baseManifest, location } = this._idToManifest.get(manifest.extends)!;
+        const { cssLocation, derivedVariables, icons } = this._getsourceData(baseManifest, location);
         const themeName = manifest.name;
         let defaultDarkVariant: any = {}, defaultLightVariant: any = {};
         for (const [variant, variantDetails] of Object.entries(manifest.values.variants) as [string, any][]) {
@@ -70,6 +67,23 @@ export class ThemeBuilder {
             const variant = defaultDarkVariant.id ? defaultDarkVariant : defaultLightVariant;
             this._themeMapping[`${themeName} ${variant.variantName}`] = { id: variant.id, cssLocation: variant.cssLocation };
         }
+    }
+
+    private _getsourceData(manifest: ThemeManifest, location: string) {
+        const runtimeCSSLocation = manifest.source?.["runtime-asset"];
+        if (!runtimeCSSLocation) {
+            throw new Error(`Run-time asset not found in source section for theme at ${location}`);
+        }
+        const cssLocation = new URL(runtimeCSSLocation, new URL(location, window.location.origin)).href;
+        const derivedVariables = manifest.source?.["derived-variables"];
+        if (!derivedVariables) {
+            throw new Error(`Derived variables not found in source section for theme at ${location}`);
+        }
+        const icons = manifest.source?.["icon"];
+        if (!icons) {
+            throw new Error(`Icon mapping not found in source section for theme at ${location}`);
+        }
+        return { cssLocation, derivedVariables, icons };
     }
 
     get themeMapping() {

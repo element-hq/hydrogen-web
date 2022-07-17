@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import type {ILogItem} from "../../logging/types";
+import { ThemeManifest } from "../types/theme";
 import type {Platform} from "./Platform.js";
 import {ThemeBuilder} from "./ThemeBuilder";
 
@@ -74,7 +75,7 @@ export class ThemeLoader {
         });
     }
 
-    private _populateThemeMap(manifest, manifestLocation: string, log: ILogItem) {
+    private _populateThemeMap(manifest: ThemeManifest, manifestLocation: string, log: ILogItem) {
         log.wrap("populateThemeMap", (l) => {
             /*
             After build has finished, the source section of each theme manifest
@@ -83,6 +84,9 @@ export class ThemeLoader {
             */
             const builtAssets: Record<string, string> = manifest.source?.["built-assets"];
             const themeName = manifest.name;
+            if (!themeName) {
+                throw new Error(`Theme name not found in manifest at ${manifestLocation}`);
+            }
             let defaultDarkVariant: any = {}, defaultLightVariant: any = {};
             for (let [themeId, cssLocation] of Object.entries(builtAssets)) {
                 try {
@@ -96,7 +100,11 @@ export class ThemeLoader {
                     continue;
                 }
                 const variant = themeId.match(/.+-(.+)/)?.[1];
-                const { name: variantName, default: isDefault, dark } = manifest.values.variants[variant!];
+                const variantDetails = manifest.values?.variants[variant!];
+                if (!variantDetails) {
+                    throw new Error(`Variant ${variant} is missing in manifest at ${manifestLocation}`);
+                }
+                const { name: variantName, default: isDefault, dark } = variantDetails;
                 const themeDisplayName = `${themeName} ${variantName}`;
                 if (isDefault) {
                     /**
