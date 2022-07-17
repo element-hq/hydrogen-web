@@ -19,7 +19,7 @@ import {ViewModel, Options as ViewModelOptions} from "../../ViewModel";
 import {BaseTileViewModel} from "./BaseTileViewModel";
 import {RoomTileViewModel} from "./RoomTileViewModel";
 import {InviteTileViewModel} from "./InviteTileViewModel";
-import {RoomBeingCreatedTileViewModel} from "./RoomBeingCreatedTileViewModel.js";
+import {RoomBeingCreatedTileViewModel} from "./RoomBeingCreatedTileViewModel";
 import {RoomFilter} from "./RoomFilter";
 import {ApplyMap, MappedMap, ObservableMap} from "../../../observable/";
 import {SortedMapList} from "../../../observable//list/SortedMapList.js";
@@ -59,11 +59,17 @@ export class LeftPanelViewModel extends ViewModel<Options> {
         const allTiles = invites.join(roomsBeingCreated, rooms).mapValues((item: RoomBeingCreated | Invite | Room, emitChange) => {
             let vm: BaseTileViewModel;
             if (item.isBeingCreated) {
-                vm = new RoomBeingCreatedTileViewModel(this.childOptions({roomBeingCreated: item, emitChange}));
+                vm = new RoomBeingCreatedTileViewModel(
+                        this.childOptions({roomBeingCreated: item as RoomBeingCreated, emitChange})
+                    );
             } else if (item.isInvite) {
-                vm = new InviteTileViewModel(this.childOptions({invite: item, emitChange}));
+                vm = new InviteTileViewModel(
+                        this.childOptions({invite: item as Invite, emitChange})
+                    );
             } else {
-                vm = new RoomTileViewModel(this.childOptions({room: item, emitChange}));
+                vm = new RoomTileViewModel(
+                        this.childOptions({room: item as Room, emitChange})
+                    );
             }
             const isOpen = this.navigation.path.get("room")?.value === item.id;
             if (isOpen) {

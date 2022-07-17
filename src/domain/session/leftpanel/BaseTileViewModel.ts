@@ -81,7 +81,10 @@ export abstract class BaseTileViewModel extends ViewModel {
     }
 
     avatarUrl(size: number): string | null {
-        return getAvatarHttpUrl(this._avatarSource.avatarUrl, size, this.platform, this._avatarSource.mediaRepository);
+        if (this._avatarSource.avatarUrl) {
+            return getAvatarHttpUrl(this._avatarSource.avatarUrl, size, this.platform, this._avatarSource.mediaRepository);
+        }
+        return null;
     }
 
     get avatarTitle(): string {
@@ -91,6 +94,6 @@ export abstract class BaseTileViewModel extends ViewModel {
 
 export type AvatarSource = {
     avatarColorId: string;
-    avatarUrl: string;
+    avatarUrl: string | undefined;
     mediaRepository: MediaRepository;
 }
