@@ -64,7 +64,7 @@ export class ThemeLoader {
                 const { body } = results[i];
                 try {
                     if (body.extends) {
-                        await this._themeBuilder.populateDerivedTheme(body);
+                        await this._themeBuilder.populateDerivedTheme(body, log);
                     }
                     else {
                         this._populateThemeMap(body, manifestLocations[i], log);
@@ -183,6 +183,7 @@ export class ThemeLoader {
             }
             this._platform.replaceStylesheet(cssLocation);
             if (variables) {
+                log?.log({l: "Derived Theme", variables});
                 this._themeBuilder.injectCSSVariables(variables);
             }
             else {
