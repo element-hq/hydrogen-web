@@ -34,7 +34,7 @@ export class ThemeBuilder {
         this._platform = platform;
     }
 
-    async populateDerivedTheme(manifest: ThemeManifest, log: ILogItem) {
+    async populateDerivedTheme(manifest: ThemeManifest, log: ILogItem): Promise<void> {
         await log.wrap("ThemeBuilder.populateThemeMap", async (l) => {
             const {manifest: baseManifest, location} = this._idToManifest.get(manifest.extends!)!;
             const {cssLocation, derivedVariables, icons} = this._getSourceData(baseManifest, location, log);
@@ -75,7 +75,8 @@ export class ThemeBuilder {
         });
     }
 
-    private _getSourceData(manifest: ThemeManifest, location: string, log:ILogItem) {
+    private _getSourceData(manifest: ThemeManifest, location: string, log: ILogItem)
+        : { cssLocation: string, derivedVariables: string[], icons: Record<string, string>} {
         return log.wrap("getSourceData", () => {
             const runtimeCSSLocation = manifest.source?.["runtime-asset"];
             if (!runtimeCSSLocation) {
@@ -94,11 +95,11 @@ export class ThemeBuilder {
          });
     }
 
-    get themeMapping() {
+    get themeMapping(): Record<string, ThemeInformation> {
         return this._themeMapping;
     }
 
-    injectCSSVariables(variables: Record<string, string>) {
+    injectCSSVariables(variables: Record<string, string>): void {
         const root = document.documentElement;
         for (const [variable, value] of Object.entries(variables)) {
             root.style.setProperty(`--${variable}`, value);
@@ -106,7 +107,7 @@ export class ThemeBuilder {
         this._injectedVariables = variables;
     }
 
-    removePreviousCSSVariables() {
+    removePreviousCSSVariables(): void {
         if (!this._injectedVariables) {
             return;
         }
