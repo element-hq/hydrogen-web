@@ -15,29 +15,26 @@ limitations under the License.
 */
 import type {ThemeInformation} from "./ThemeLoader";
 import type {Platform} from "./Platform.js";
+import type {ThemeManifest} from "../types/theme";
 import {ColorSchemePreference} from "./ThemeLoader";
 import {IconColorizer} from "./IconColorizer";
 import {DerivedVariables} from "./DerivedVariables";
-import {ThemeManifest} from "../types/theme";
 import {ILogItem} from "../../logging/types";
 
 export class ThemeBuilder {
-    private _idToManifest: Map<string, {manifest: ThemeManifest, location: string}>;
     private _themeMapping: Record<string, ThemeInformation> = {};
     private _preferredColorScheme?: ColorSchemePreference;
     private _platform: Platform;
     private _injectedVariables?: Record<string, string>;
 
-    constructor(platform: Platform, manifestMap: Map<string, any>, preferredColorScheme?: ColorSchemePreference) {
-        this._idToManifest = manifestMap;
+    constructor(platform: Platform, preferredColorScheme?: ColorSchemePreference) {
         this._preferredColorScheme = preferredColorScheme;
         this._platform = platform;
     }
 
-    async populateDerivedTheme(manifest: ThemeManifest, log: ILogItem): Promise<void> {
+    async populateDerivedTheme(manifest: ThemeManifest, baseManifest: ThemeManifest, baseManifestLocation: string, log: ILogItem): Promise<void> {
         await log.wrap("ThemeBuilder.populateThemeMap", async () => {
-            const {manifest: baseManifest, location} = this._idToManifest.get(manifest.extends!)!;
-            const {cssLocation, derivedVariables, icons} = this._getSourceData(baseManifest, location, log);
+            const {cssLocation, derivedVariables, icons} = this._getSourceData(baseManifest, baseManifestLocation, log);
             const themeName = manifest.name;
             if (!themeName) {
                 throw new Error(`Theme name not found in manifest!`);
@@ -49,7 +46,7 @@ export class ThemeBuilder {
                     const { name: variantName, default: isDefault, dark, variables } = variantDetails;
                     const resolvedVariables = new DerivedVariables(variables, derivedVariables, dark).toVariables();
                     Object.assign(variables, resolvedVariables);
-                    const iconVariables = await new IconColorizer(this._platform, icons, variables, location).toVariables();
+                    const iconVariables = await new IconColorizer(this._platform, icons, variables, baseManifestLocation).toVariables();
                     Object.assign(variables, resolvedVariables, iconVariables);
                     const themeDisplayName = `${themeName} ${variantName}`;
                     if (isDefault) {

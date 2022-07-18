@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import type {ILogItem} from "../../logging/types";
-import { ThemeManifest } from "../types/theme";
+import type {ThemeManifest} from "../types/theme";
 import type {Platform} from "./Platform.js";
 import {ThemeBuilder} from "./ThemeBuilder";
 
@@ -52,20 +52,24 @@ export class ThemeLoader {
     }
 
     async init(manifestLocations: string[], log?: ILogItem): Promise<void> {
-        const idToManifest = new Map();
         await this._platform.logger.wrapOrRun(log, "ThemeLoader.init", async (log) => {
             this._themeMapping = {};
             const results = await Promise.all(
-                manifestLocations.map( location => this._platform.request(location, { method: "GET", format: "json", cache: true, }).response())
+                manifestLocations.map(location => this._platform.request(location, { method: "GET", format: "json", cache: true, }).response())
             );
-            results.forEach(({ body }, i) => idToManifest.set(body.id, { manifest: body, location: manifestLocations[i] }));
-            this._themeBuilder = new ThemeBuilder(this._platform, idToManifest, this.preferredColorScheme);
+            this._themeBuilder = new ThemeBuilder(this._platform, this.preferredColorScheme);
             const runtimeThemePromises: Promise<void>[] = [];
             for (let i = 0; i < results.length; ++i) {
                 const { body } = results[i];
                 try {
                     if (body.extends) {
-                        const promise = this._themeBuilder.populateDerivedTheme(body, log);
+                        const indexOfBaseManifest = results.findIndex(manifest => manifest.body.id === body.extends);
+                        if (indexOfBaseManifest === -1) {
+                            throw new Error(`Base manifest for derived theme at ${manifestLocations[i]} not found!`);
+                        }
+                        const {body: baseManifest} = results[indexOfBaseManifest];
+                        const baseManifestLocation = manifestLocations[indexOfBaseManifest];
+                        const promise = this._themeBuilder.populateDerivedTheme(body, baseManifest, baseManifestLocation, log);
                         runtimeThemePromises.push(promise);
                     }
                     else {
@@ -97,7 +101,7 @@ export class ThemeLoader {
     }
 
     private _populateThemeMap(manifest: ThemeManifest, manifestLocation: string, log: ILogItem) {
-        log.wrap("populateThemeMap", () => {
+        log.wrap("ThemeLoader.populateThemeMap", () => {
             /*
             After build has finished, the source section of each theme manifest
             contains `built-assets` which is a mapping from the theme-id to
