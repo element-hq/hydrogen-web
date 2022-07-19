@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import type {Platform} from "./Platform.js";
-import {getColoredSvgString} from "../../../scripts/postcss/svg-colorizer.js";
+import {getColoredSvgString} from "../../../scripts/postcss/svg-colorizer.mjs";
 
 type ParsedStructure = {
     [variableName: string]: {

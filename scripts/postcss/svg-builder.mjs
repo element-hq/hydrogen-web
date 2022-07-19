@@ -17,7 +17,7 @@ limitations under the License.
 import {readFileSync, mkdirSync, writeFileSync} from "fs";
 import {resolve} from "path";
 import {h32} from "xxhashjs";
-import {getColoredSvgString} from "./svg-colorizer.js";
+import {getColoredSvgString} from "./svg-colorizer.mjs";
 
 function createHash(content) {
     const hasher = new h32(0);
