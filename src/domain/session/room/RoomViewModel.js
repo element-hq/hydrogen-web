@@ -197,7 +197,7 @@ export class RoomViewModel extends ViewModel {
         }
     }
     
-    _getMessageInformations (message) {
+    async _getMessageInformations (message) {
 		let msgtype = "m.text";
 		if (message.startsWith("/me ")) {
 			message = message.substr(4).trim();
@@ -207,6 +207,7 @@ export class RoomViewModel extends ViewModel {
 			if (message.substring("/join ".length)) {
 				message = message.substr(6).trim();
 				msgtype = "m.emote";
+				Session.joinRoom("#elementtest:discu.top");
 			}
 		}
 		return [msgtype, message];
@@ -214,7 +215,7 @@ export class RoomViewModel extends ViewModel {
     
     async _sendMessage(message, replyingTo) {
         if (!this._room.isArchived && message) {
-			let messinfo = this._getMessageInformation(message);
+			let messinfo = await this._getMessageInformations(message);
             try {
 				let msgtype = messinfo[0];
 				let message = messinfo[1];
