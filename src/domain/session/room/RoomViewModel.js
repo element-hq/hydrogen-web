@@ -197,19 +197,26 @@ export class RoomViewModel extends ViewModel {
         }
     }
     
+    _getMessageInformations (message) {
+		let msgtype = "m.text";
+		if (message.startsWith("/me ")) {
+			message = message.substr(4).trim();
+			msgtype = "m.emote";
+		}
+		else if (message.startsWith("/join ")) {
+			if (message.substring("/join ".length)) {
+			message = message.substr(6).trim();
+			msgtype = "m.emote";
+		}
+		return [msgtype, message];
+	}
+    
     async _sendMessage(message, replyingTo) {
         if (!this._room.isArchived && message) {
             try {
-                let msgtype = "m.text";
-                if (message.startsWith("/me ")) {
-                    message = message.substr(4).trim();
-                    msgtype = "m.emote";
-                }
-                else if (message.startsWith("/join ")) {
-					if (message.substring("/join ".length)) {
-					message = message.substr(4).trim();
-					msgtype = "m.emote";
-                }
+				let messinfo = this._getMessageInformation(message);
+				let msgtype = msginfo[0];
+				let message = msginfo[1];
                 if (replyingTo) {
                     await replyingTo.reply(msgtype, message);
                 } else {
