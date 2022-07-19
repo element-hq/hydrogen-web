@@ -32,7 +32,7 @@ export class RuntimeThemeParser {
     }
 
     async parse(manifest: ThemeManifest, baseManifest: ThemeManifest, baseManifestLocation: string, log: ILogItem): Promise<void> {
-        await log.wrap("ThemeBuilder.populateThemeMap", async () => {
+        await log.wrap("RuntimeThemeParser.parse", async () => {
             const {cssLocation, derivedVariables, icons} = this._getSourceData(baseManifest, baseManifestLocation, log);
             const themeName = manifest.name;
             if (!themeName) {
