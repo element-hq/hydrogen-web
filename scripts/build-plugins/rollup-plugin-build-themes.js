@@ -136,7 +136,6 @@ module.exports = function buildThemes(options) {
         },
 
         async buildStart() {
-            if (isDevelopment) { return; }
             const { themeConfig } = options;
             for (const location of themeConfig.themes) {
                 manifest = require(`${location}/manifest.json`);
@@ -157,18 +156,14 @@ module.exports = function buildThemes(options) {
                         }
                     }
                     // emit the css as built theme bundle
-                    this.emitFile({
-                        type: "chunk",
-                        id: `${location}/theme.css?variant=${variant}${details.dark? "&dark=true": ""}`,
-                        fileName,
-                    });
+                    if (!isDevelopment) {
+                        this.emitFile({ type: "chunk", id: `${location}/theme.css?variant=${variant}${details.dark ? "&dark=true" : ""}`, fileName, });
+                    }
                 }
                 // emit the css as runtime theme bundle
-                this.emitFile({
-                    type: "chunk",
-                    id: `${location}/theme.css?type=runtime`,
-                    fileName: `theme-${themeCollectionId}-runtime.css`,
-                });
+                if (!isDevelopment) {
+                    this.emitFile({ type: "chunk", id: `${location}/theme.css?type=runtime`, fileName: `theme-${themeCollectionId}-runtime.css`, });
+                }
             }
         },
 
