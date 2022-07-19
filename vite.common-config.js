@@ -9,7 +9,7 @@ const manifest = require("./package.json");
 const version = manifest.version;
 const compiledVariables = new Map();
 import {buildColorizedSVG as replacer} from "./scripts/postcss/svg-builder.mjs";
-import {derive} from "./scripts/postcss/color.mjs";
+import {derive} from "./src/platform/web/theming/actions/color.mjs";
 
 const commonOptions = {
     logLevel: "warn",

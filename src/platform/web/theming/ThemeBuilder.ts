@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import type {ThemeInformation} from "./ThemeLoader";
-import type {Platform} from "./Platform.js";
-import type {ThemeManifest} from "../types/theme";
+import type {Platform} from "../Platform.js";
+import type {ThemeManifest} from "../../types/theme";
 import {ColorSchemePreference} from "./ThemeLoader";
 import {IconColorizer} from "./IconColorizer";
 import {DerivedVariables} from "./DerivedVariables";
-import {ILogItem} from "../../logging/types";
+import {ILogItem} from "../../../logging/types";
 
 export class ThemeBuilder {
     private _themeMapping: Record<string, ThemeInformation> = {};
