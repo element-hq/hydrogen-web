@@ -34,7 +34,7 @@
                 }
             },
             "red": {
-                "name": "Red",
+                "name": "Gruvbox",
                 "variables": {
                     "background-color-primary": "#282828",
                     "background-color-secondary": "#3c3836",
