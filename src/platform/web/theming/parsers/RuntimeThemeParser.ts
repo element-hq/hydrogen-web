@@ -13,26 +13,25 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import type {ThemeInformation} from "./ThemeLoader";
-import type {Platform} from "../Platform.js";
-import type {ThemeManifest} from "../../types/theme";
-import {ColorSchemePreference} from "./ThemeLoader";
-import {IconColorizer} from "./IconColorizer";
-import {DerivedVariables} from "./DerivedVariables";
-import {ILogItem} from "../../../logging/types";
+import type {ThemeInformation} from "./types";
+import type {Platform} from "../../Platform.js";
+import type {ThemeManifest} from "../../../types/theme";
+import {ColorSchemePreference} from "./types";
+import {IconColorizer} from "../IconColorizer";
+import {DerivedVariables} from "../DerivedVariables";
+import {ILogItem} from "../../../../logging/types";
 
-export class ThemeBuilder {
+export class RuntimeThemeParser {
     private _themeMapping: Record<string, ThemeInformation> = {};
     private _preferredColorScheme?: ColorSchemePreference;
     private _platform: Platform;
-    private _injectedVariables?: Record<string, string>;
 
     constructor(platform: Platform, preferredColorScheme?: ColorSchemePreference) {
         this._preferredColorScheme = preferredColorScheme;
         this._platform = platform;
     }
 
-    async populateDerivedTheme(manifest: ThemeManifest, baseManifest: ThemeManifest, baseManifestLocation: string, log: ILogItem): Promise<void> {
+    async parse(manifest: ThemeManifest, baseManifest: ThemeManifest, baseManifestLocation: string, log: ILogItem): Promise<void> {
         await log.wrap("ThemeBuilder.populateThemeMap", async () => {
             const {cssLocation, derivedVariables, icons} = this._getSourceData(baseManifest, baseManifestLocation, log);
             const themeName = manifest.name;
@@ -96,22 +95,4 @@ export class ThemeBuilder {
         return this._themeMapping;
     }
 
-    injectCSSVariables(variables: Record<string, string>): void {
-        const root = document.documentElement;
-        for (const [variable, value] of Object.entries(variables)) {
-            root.style.setProperty(`--${variable}`, value);
-        }
-        this._injectedVariables = variables;
-    }
-
-    removePreviousCSSVariables(): void {
-        if (!this._injectedVariables) {
-            return;
-        }
-        const root = document.documentElement;
-        for (const variable of Object.keys(this._injectedVariables)) {
-            root.style.removeProperty(`--${variable}`);
-        }
-        this._injectedVariables = undefined;
-    }
 }

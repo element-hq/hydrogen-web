@@ -15,37 +15,16 @@ limitations under the License.
 */
 
 import type {ILogItem} from "../../../logging/types";
-import type {ThemeManifest} from "../../types/theme";
 import type {Platform} from "../Platform.js";
-import {ThemeBuilder} from "./ThemeBuilder";
-
-type NormalVariant = {
-    id: string;
-    cssLocation: string;
-    variables?: any;
-};
-
-type Variant = NormalVariant & {
-    variantName: string;
-};
-
-type DefaultVariant = {
-    dark: Variant;
-    light: Variant;
-    default: Variant;
-}
-
-export type ThemeInformation = NormalVariant | DefaultVariant; 
-
-export enum ColorSchemePreference {
-    Dark,
-    Light
-};
+import {RuntimeThemeParser} from "./parsers/RuntimeThemeParser";
+import type {Variant, ThemeInformation} from "./parsers/types";
+import {ColorSchemePreference} from "./parsers/types";
+import { BuiltThemeParser } from "./parsers/BuiltThemeParser";
 
 export class ThemeLoader {
     private _platform: Platform;
     private _themeMapping: Record<string, ThemeInformation>;
-    private _themeBuilder: ThemeBuilder;
+    private _injectedVariables?: Record<string, string>;
 
     constructor(platform: Platform) {
         this._platform = platform;
@@ -53,11 +32,11 @@ export class ThemeLoader {
 
     async init(manifestLocations: string[], log?: ILogItem): Promise<void> {
         await this._platform.logger.wrapOrRun(log, "ThemeLoader.init", async (log) => {
-            this._themeMapping = {};
             const results = await Promise.all(
                 manifestLocations.map(location => this._platform.request(location, { method: "GET", format: "json", cache: true, }).response())
             );
-            this._themeBuilder = new ThemeBuilder(this._platform, this.preferredColorScheme);
+            const runtimeThemeParser = new RuntimeThemeParser(this._platform, this.preferredColorScheme);
+            const builtThemeParser = new BuiltThemeParser(this.preferredColorScheme);
             const runtimeThemePromises: Promise<void>[] = [];
             for (let i = 0; i < results.length; ++i) {
                 const { body } = results[i];
@@ -69,11 +48,11 @@ export class ThemeLoader {
                         }
                         const {body: baseManifest} = results[indexOfBaseManifest];
                         const baseManifestLocation = manifestLocations[indexOfBaseManifest];
-                        const promise = this._themeBuilder.populateDerivedTheme(body, baseManifest, baseManifestLocation, log);
+                        const promise = runtimeThemeParser.parse(body, baseManifest, baseManifestLocation, log);
                         runtimeThemePromises.push(promise);
                     }
                     else {
-                        this._populateThemeMap(body, manifestLocations[i], log);
+                        builtThemeParser.parse(body, manifestLocations[i], log);
                     }
                 }
                 catch(e) {
@@ -81,96 +60,12 @@ export class ThemeLoader {
                 }
             }
             await Promise.all(runtimeThemePromises);
-            Object.assign(this._themeMapping, this._themeBuilder.themeMapping);
-            // Add the default-theme as an additional option to the mapping
-            const defaultThemeId = this.getDefaultTheme();
-            if (defaultThemeId) {
-                const themeDetails = this._findThemeDetailsFromId(defaultThemeId);
-                if (themeDetails) {
-                    this._themeMapping["Default"] = { id: "default", cssLocation: themeDetails.themeData.cssLocation! };
-                    const variables = themeDetails.themeData.variables;
-                    if (variables) {
-                        this._themeMapping["Default"].variables = variables;
-                    }
-                }
-            }
-            log.log({ l: "Default Theme", theme: defaultThemeId});
+            this._themeMapping = { ...builtThemeParser.themeMapping, ...runtimeThemeParser.themeMapping };
+            Object.assign(this._themeMapping, builtThemeParser.themeMapping, runtimeThemeParser.themeMapping);
+            this._addDefaultThemeToMapping(log);
             log.log({ l: "Preferred colorscheme", scheme: this.preferredColorScheme === ColorSchemePreference.Dark ? "dark" : "light" });
             log.log({ l: "Result", themeMapping: this._themeMapping });
         });
-    }
-
-    private _populateThemeMap(manifest: ThemeManifest, manifestLocation: string, log: ILogItem) {
-        log.wrap("ThemeLoader.populateThemeMap", () => {
-            /*
-            After build has finished, the source section of each theme manifest
-            contains `built-assets` which is a mapping from the theme-id to
-            cssLocation of theme
-            */
-            const builtAssets: Record<string, string> = manifest.source?.["built-assets"];
-            const themeName = manifest.name;
-            if (!themeName) {
-                throw new Error(`Theme name not found in manifest at ${manifestLocation}`);
-            }
-            let defaultDarkVariant: any = {}, defaultLightVariant: any = {};
-            for (let [themeId, cssLocation] of Object.entries(builtAssets)) {
-                try {
-                    /**
-                     * This cssLocation is relative to the location of the manifest file.
-                     * So we first need to resolve it relative to the root of this hydrogen instance.
-                     */
-                    cssLocation = new URL(cssLocation, new URL(manifestLocation, window.location.origin)).href;
-                }
-                catch {
-                    continue;
-                }
-                const variant = themeId.match(/.+-(.+)/)?.[1];
-                const variantDetails = manifest.values?.variants[variant!];
-                if (!variantDetails) {
-                    throw new Error(`Variant ${variant} is missing in manifest at ${manifestLocation}`);
-                }
-                const { name: variantName, default: isDefault, dark } = variantDetails;
-                const themeDisplayName = `${themeName} ${variantName}`;
-                if (isDefault) {
-                    /**
-                     * This is a default variant!
-                     * We'll add these to the themeMapping (separately) keyed with just the
-                     * theme-name (i.e "Element" instead of "Element Dark").
-                     * We need to be able to distinguish them from other variants!
-                     * 
-                     * This allows us to render radio-buttons with "dark" and
-                     * "light" options.
-                    */
-                    const defaultVariant = dark ? defaultDarkVariant : defaultLightVariant;
-                    defaultVariant.variantName = variantName;
-                    defaultVariant.id = themeId
-                    defaultVariant.cssLocation = cssLocation;
-                    continue;
-                }
-                // Non-default variants are keyed in themeMapping with "theme_name variant_name"
-                // eg: "Element Dark"
-                this._themeMapping[themeDisplayName] = {
-                    cssLocation,
-                    id: themeId
-                };
-            }
-            if (defaultDarkVariant.id && defaultLightVariant.id) {
-                /**
-                 * As mentioned above, if there's both a default dark and a default light variant,
-                 * add them to themeMapping separately.
-                 */
-                const defaultVariant = this.preferredColorScheme === ColorSchemePreference.Dark ? defaultDarkVariant : defaultLightVariant;
-                this._themeMapping[themeName] = { dark: defaultDarkVariant, light: defaultLightVariant, default: defaultVariant };
-            }
-            else {
-                /**
-                 * If only one default variant is found (i.e only dark default or light default but not both),
-                 * treat it like any other variant.
-                 */
-                const variant = defaultDarkVariant.id ? defaultDarkVariant : defaultLightVariant;
-                this._themeMapping[`${themeName} ${variant.variantName}`] = { id: variant.id, cssLocation: variant.cssLocation };
-            }
-         });
     }
 
     setTheme(themeName: string, themeVariant?: "light" | "dark" | "default", log?: ILogItem) {
@@ -191,10 +86,10 @@ export class ThemeLoader {
             this._platform.replaceStylesheet(cssLocation);
             if (variables) {
                 log?.log({l: "Derived Theme", variables});
-                this._themeBuilder.injectCSSVariables(variables);
+                this._injectCSSVariables(variables);
             }
             else {
-                this._themeBuilder.removePreviousCSSVariables();
+                this._removePreviousCSSVariables();
             }
             this._platform.settingsStorage.setString("theme-name", themeName);
             if (themeVariant) {
@@ -204,6 +99,25 @@ export class ThemeLoader {
                 this._platform.settingsStorage.remove("theme-variant");
             }
         });
+    }
+
+    private _injectCSSVariables(variables: Record<string, string>): void {
+        const root = document.documentElement;
+        for (const [variable, value] of Object.entries(variables)) {
+            root.style.setProperty(`--${variable}`, value);
+        }
+        this._injectedVariables = variables;
+    }
+
+    private _removePreviousCSSVariables(): void {
+        if (!this._injectedVariables) {
+            return;
+        }
+        const root = document.documentElement;
+        for (const variable of Object.keys(this._injectedVariables)) {
+            root.style.removeProperty(`--${variable}`);
+        }
+        this._injectedVariables = undefined;
     }
 
     /** Maps theme display name to theme information */
@@ -244,6 +158,23 @@ export class ThemeLoader {
                 return { themeName, themeData: themeData.dark };
             }
         }
+    }
+
+    private _addDefaultThemeToMapping(log: ILogItem) {
+        log.wrap("addDefaultThemeToMapping", l => { 
+            const defaultThemeId = this.getDefaultTheme();
+            if (defaultThemeId) {
+                const themeDetails = this._findThemeDetailsFromId(defaultThemeId);
+                if (themeDetails) {
+                    this._themeMapping["Default"] = { id: "default", cssLocation: themeDetails.themeData.cssLocation! };
+                    const variables = themeDetails.themeData.variables;
+                    if (variables) {
+                        this._themeMapping["Default"].variables = variables;
+                    }
+                }
+            }
+            l.log({ l: "Default Theme", theme: defaultThemeId});
+        });
     }
 
     get preferredColorScheme(): ColorSchemePreference | undefined {
