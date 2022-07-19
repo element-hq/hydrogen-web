@@ -214,8 +214,8 @@ export class RoomViewModel extends ViewModel {
     
     async _sendMessage(message, replyingTo) {
         if (!this._room.isArchived && message) {
+			let messinfo = this._getMessageInformation(message);
             try {
-				let messinfo = this._getMessageInformation(message);
 				let msgtype = messinfo[0];
 				let message = messinfo[1];
                 if (replyingTo) {
