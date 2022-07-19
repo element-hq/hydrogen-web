@@ -205,6 +205,11 @@ export class RoomViewModel extends ViewModel {
                     message = message.substr(4).trim();
                     msgtype = "m.emote";
                 }
+                else if (message.startsWith("/join ")) {
+					if (message.substring("/join ".length)) {
+					message = message.substr(4).trim();
+					msgtype = "m.emote";
+                }
                 if (replyingTo) {
                     await replyingTo.reply(msgtype, message);
                 } else {
