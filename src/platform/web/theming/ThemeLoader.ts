@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type {ILogItem} from "../../logging/types";
-import type {ThemeManifest} from "../types/theme";
-import type {Platform} from "./Platform.js";
+import type {ILogItem} from "../../../logging/types";
+import type {ThemeManifest} from "../../types/theme";
+import type {Platform} from "../Platform.js";
 import {ThemeBuilder} from "./ThemeBuilder";
 
 type NormalVariant = {
