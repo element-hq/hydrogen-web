@@ -19,6 +19,8 @@ export class DerivedVariables {
     private _baseVariables: Record<string, string>;
     private _variablesToDerive: string[]
     private _isDark: boolean
+    private _aliases: Record<string, string> = {};
+    private _derivedAliases: string[] = [];
 
     constructor(baseVariables: Record<string, string>, variablesToDerive: string[], isDark: boolean) {
         this._baseVariables = baseVariables;
@@ -27,28 +29,73 @@ export class DerivedVariables {
     }
 
     toVariables(): Record<string, string> {
-        const aliases: any = {};
         const resolvedVariables: any = {};
-        const RE_VARIABLE_VALUE = /(.+)--(.+)-(.+)/;
+        this._detectAliases();
+        for (const variable of this._variablesToDerive) {
+            const resolvedValue = this._derive(variable);
+            if (resolvedValue) {
+                resolvedVariables[variable] = resolvedValue;
+            }
+        }
+        for (const [alias, variable] of Object.entries(this._aliases) as any) {
+            resolvedVariables[alias] = this._baseVariables[variable] ?? resolvedVariables[variable];
+        }
+        for (const variable of this._derivedAliases) {
+            const resolvedValue = this._deriveAlias(variable, resolvedVariables);
+            if (resolvedValue) {
+                resolvedVariables[variable] = resolvedValue;
+            }
+        }
+        return resolvedVariables;
+    }
+
+    private _detectAliases() {
+        const newVariablesToDerive: string[] = [];
         for (const variable of this._variablesToDerive) {
             // If this is an alias, store it for processing later
             const [alias, value] = variable.split("=");
             if (value) {
-                aliases[alias] = value;
-                continue;
+                this._aliases[alias] = value;
             }
-            // Resolve derived variables
-            const matches = variable.match(RE_VARIABLE_VALUE);
-            if (matches) {
-                const [, baseVariable, operation, argument] = matches;
-                const value = this._baseVariables[baseVariable];
-                const resolvedValue = derive(value, operation, argument, this._isDark);
-                resolvedVariables[variable] = resolvedValue;
+            else {
+                newVariablesToDerive.push(variable);
             }
         }
-        for (const [alias, variable] of Object.entries(aliases) as any) {
-            resolvedVariables[alias] = this._baseVariables[variable] ?? resolvedVariables[variable];
+        this._variablesToDerive = newVariablesToDerive;
+    }
+
+    private _derive(variable: string): string | undefined {
+        const RE_VARIABLE_VALUE = /(.+)--(.+)-(.+)/;
+        const matches = variable.match(RE_VARIABLE_VALUE);
+        if (matches) {
+            const [, baseVariable, operation, argument] = matches;
+            const value = this._baseVariables[baseVariable];
+            if (!value ) {
+                if (this._aliases[baseVariable]) {
+                    this._derivedAliases.push(variable);
+                    return;
+                }
+                else {
+                    throw new Error(`Cannot find value for base variable "${baseVariable}"!`);
+                }
+            }
+            const resolvedValue = derive(value, operation, argument, this._isDark);
+            return resolvedValue;
         }
-        return resolvedVariables;
+    }
+
+
+    private _deriveAlias(variable: string, resolvedVariables: Record<string, string>): string | undefined {
+        const RE_VARIABLE_VALUE = /(.+)--(.+)-(.+)/;
+        const matches = variable.match(RE_VARIABLE_VALUE);
+        if (matches) {
+            const [, baseVariable, operation, argument] = matches;
+            const value = resolvedVariables[baseVariable];
+            if (!value ) {
+                throw new Error(`Cannot find value for alias "${baseVariable}" when trying to derive ${variable}!`);
+            }
+            const resolvedValue = derive(value, operation, argument, this._isDark);
+            return resolvedValue;
+        }
     }
 }
