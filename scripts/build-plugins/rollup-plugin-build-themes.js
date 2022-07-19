@@ -343,6 +343,7 @@ module.exports = function buildThemes(options) {
                     const assetHashedName = this.getFileName(ref);
                     nameToAssetHashedLocation[name] = assetHashedName;
                 }
+                // Update icon section in output manifest with paths to the icon in build output 
                 for (const [variable, location] of Object.entries(icon)) {
                     const [locationWithoutQueryParameters, queryParameters] = location.split("?");
                     const name = path.basename(locationWithoutQueryParameters);
