@@ -199,15 +199,20 @@ export class RoomViewModel extends ViewModel {
     
     async _getMessageInformations (message) {
 		let msgtype = "m.text";
-		if (message.startsWith("/me ")) {
-			message = message.substr(4).trim();
-			msgtype = "m.emote";
-		}
-		else if (message.startsWith("/join ")) {
-			if (message.substring("/join ".length)) {
-				message = message.substr(6).trim();
+		if (message.startsWith("/")) {
+			message=message.substring(1);
+			if (message.startsWith("me ")) {
+				message = message.substr(4).trim();
 				msgtype = "m.emote";
-				Session.joinRoom("#elementtest:discu.top");
+			}
+			else if (message.startsWith("join ")) {
+				if (message.substring(5)) {
+					let roomname = message.substr(5).trim();
+					message = undefined;
+					console.dir(this.platform);
+					__hydrogenViewModel._sessionViewModel._client.session.joinRoom(roomname);
+					msgtype = undefined;
+				}
 			}
 		}
 		return [msgtype, message];
