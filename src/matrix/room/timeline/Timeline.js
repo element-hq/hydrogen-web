@@ -27,7 +27,7 @@ import {NonPersistedEventEntry} from "./entries/NonPersistedEventEntry.js";
 import {EVENT_TYPE as MEMBER_EVENT_TYPE} from "../members/RoomMember.js";
 
 export class Timeline {
-    constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock, powerLevelsObservable, hsApi, ignoreMissingEvents}) {
+    constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock, powerLevelsObservable, hsApi}) {
         this._roomId = roomId;
         this._storage = storage;
         this._closeCallback = closeCallback;
@@ -50,7 +50,6 @@ export class Timeline {
         /** Only used to decrypt non-persisted context entries fetched from the homeserver */
         this._decryptEntries = null;
         this._hsApi = hsApi;
-        this._ignoreMissingEvents = ignoreMissingEvents || false;
         this.initializePowerLevels(powerLevelsObservable);
     }
 
@@ -322,18 +321,18 @@ export class Timeline {
             if (!entry.contextEventId) {
                 continue;
             }
-            const contextEventId = entry.contextEventId;
+            const id = entry.contextEventId;
             // before looking into remoteEntries, check the entries
             // that about to be added first
-            let contextEvent = entries.find(e => e.id === contextEventId);
+            let contextEvent = entries.find(e => e.id === id);
             if (!contextEvent) {
-                contextEvent = this._findLoadedEventById(contextEventId);
+                contextEvent = this._findLoadedEventById(id);
             }
             if (contextEvent) {
                 entry.setContextEntry(contextEvent);
                 // we don't emit an update here, as the add or update
                 // that the callee will emit hasn't been emitted yet.
-            } else if(!this._ignoreMissingEvents) {
+            } else {
                 // we don't await here, which is not ideal,
                 // but one of our callers, addEntries, is not async
                 // so there is not much point.
