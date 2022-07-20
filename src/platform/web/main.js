@@ -46,8 +46,6 @@ export async function main(platform) {
         });
         await vm.load();
         platform.createAndMountRootView(vm);
-        console.dir(vm);
-        console.dir(platform);
     } catch(err) {
         console.error(`${err.message}:\n${err.stack}`);
     }

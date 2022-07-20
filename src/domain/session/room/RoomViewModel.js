@@ -210,7 +210,7 @@ export class RoomViewModel extends ViewModel {
 					let roomname = message.substr(5).trim();
 					message = undefined;
 					console.dir(this.platform);
-					__hydrogenViewModel._sessionViewModel._client.session.joinRoom(roomname);
+					this.platform._sessionViewModel._client.session.joinRoom(roomname);
 					msgtype = undefined;
 				}
 			}
