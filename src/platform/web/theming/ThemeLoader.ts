@@ -19,7 +19,7 @@ import type {Platform} from "../Platform.js";
 import {RuntimeThemeParser} from "./parsers/RuntimeThemeParser";
 import type {Variant, ThemeInformation} from "./parsers/types";
 import {ColorSchemePreference} from "./parsers/types";
-import { BuiltThemeParser } from "./parsers/BuiltThemeParser";
+import {BuiltThemeParser} from "./parsers/BuiltThemeParser";
 
 export class ThemeLoader {
     private _platform: Platform;

@@ -49,7 +49,7 @@ export class DerivedVariables {
         return resolvedVariables;
     }
 
-    private _detectAliases() {
+    private _detectAliases(): void {
         const newVariablesToDerive: string[] = [];
         for (const variable of this._variablesToDerive) {
             const [alias, value] = variable.split("=");
@@ -82,7 +82,6 @@ export class DerivedVariables {
             return resolvedValue;
         }
     }
-
 
     private _deriveAlias(variable: string, resolvedVariables: Record<string, string>): string | undefined {
         const RE_VARIABLE_VALUE = /(.+)--(.+)-(.+)/;
