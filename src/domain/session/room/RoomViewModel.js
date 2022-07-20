@@ -20,7 +20,6 @@ import {ComposerViewModel} from "./ComposerViewModel.js"
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {ViewModel} from "../../ViewModel";
 import {imageToInfo} from "../common.js";
-import {Popup} from "../../../platform/web/ui/general/Popup.js";
 // TODO: remove fallback so default isn't included in bundle for SDK users that have their custom tileClassForEntry
 // this is a breaking SDK change though to make this option mandatory
 import {tileClassForEntry as defaultTileClassForEntry} from "./timeline/tiles/index";
@@ -230,6 +229,18 @@ export class RoomViewModel extends ViewModel {
 					}
 					msgtype=undefined;
 					message=undefined;
+					break;
+				case "shrug":
+					message="¯\\_(ツ)_/¯ "+message.substring(7);
+					break;
+				case "tableflip":
+					message="(╯°□°）╯︵ ┻━┻ "+message.substring(11);
+					break;
+				case "unflip":
+					message="┬──┬ ノ( ゜-゜ノ) "+message.substring(8);
+					break;
+				case "lenny":
+					message="( ͡° ͜ʖ ͡°) "+message.substring(7);
 					break;
 				default:
 					if (command[0][0]=="/") {
