@@ -52,7 +52,7 @@
     "regenerator-runtime": "^0.13.7",
     "svgo": "^2.8.0",
     "text-encoding": "^0.7.0",
-    "typescript": "^4.3.5",
+    "typescript": "^4.7.0",
     "vite": "^2.9.8",
     "xxhashjs": "^0.2.2"
   },
