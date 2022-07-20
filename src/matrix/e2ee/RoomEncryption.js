@@ -316,10 +316,13 @@ export class RoomEncryption {
     }
 
     async _shareNewRoomKey(roomKeyMessage, hsApi, log) {
+        const devices = await this._deviceTracker.devicesForTrackedRoom(this._room.id, this._historyVisibility, hsApi, log);
+        const userIds = Array.from(devices.reduce((set, device) => set.add(device.userId), new Set()));
+            
         let writeOpTxn = await this._storage.readWriteTxn([this._storage.storeNames.operations]);
         let operation;
         try {
-            operation = this._writeRoomKeyShareOperation(roomKeyMessage, null, writeOpTxn);
+            operation = this._writeRoomKeyShareOperation(roomKeyMessage, userIds, writeOpTxn);
         } catch (err) {
             writeOpTxn.abort();
             throw err;
@@ -385,16 +388,7 @@ export class RoomEncryption {
         log.set("id", operation.id);
 
         await this._deviceTracker.trackRoom(this._room, log);
-        let devices;
-        if (operation.userIds === null) {
-            devices = await this._deviceTracker.devicesForTrackedRoom(this._room.id, hsApi, log);
-            const userIds = Array.from(devices.reduce((set, device) => set.add(device.userId), new Set()));
-            operation.userIds = userIds;
-            await this._updateOperationsStore(operations => operations.update(operation));
-        } else {
-            devices = await this._deviceTracker.devicesForRoomMembers(this._room.id, operation.userIds, hsApi, log);
-        }
-        
+        const devices = await this._deviceTracker.devicesForRoomMembers(this._room.id, operation.userIds, hsApi, log);
         const messages = await log.wrap("olm encrypt", log => this._olmEncryption.encrypt(
             "m.room_key", operation.roomKeyMessage, devices, hsApi, log));
         const missingDevices = devices.filter(d => !messages.some(m => m.device === d));
