@@ -19,12 +19,22 @@ import {groupEventsBySession} from "./megolm/decryption/utils";
 import {mergeMap} from "../../utils/mergeMap";
 import {groupBy} from "../../utils/groupBy";
 import {makeTxnId} from "../common.js";
+import {iterateResponseStateEvents} from "../room/common";
 
 const ENCRYPTED_TYPE = "m.room.encrypted";
+const ROOM_HISTORY_VISIBILITY_TYPE = "m.room.history_visibility";
 // how often ensureMessageKeyIsShared can check if it needs to
 // create a new outbound session
 // note that encrypt could still create a new session
 const MIN_PRESHARE_INTERVAL = 60 * 1000; // 1min
+
+// Use enum when converting to TS
+const HistoryVisibility = Object.freeze({
+    Joined: "joined",
+    Invited: "invited",
+    WorldReadable: "world_readable",
+    Shared: "shared",
+});
 
 // TODO: this class is a good candidate for splitting up into encryption and decryption, there doesn't seem to be much overlap
 export class RoomEncryption {
@@ -45,6 +55,7 @@ export class RoomEncryption {
         this._isFlushingRoomKeyShares = false;
         this._lastKeyPreShareTime = null;
         this._keySharePromise = null;
+        this._historyVisibility = undefined;
         this._disposed = false;
     }
 
@@ -77,7 +88,13 @@ export class RoomEncryption {
         this._senderDeviceCache = new Map();    // purge the sender device cache
     }
 
-    async writeMemberChanges(memberChanges, txn, log) {
+    async writeSync(roomResponse, memberChanges, txn, log) {
+        let historyVisibility = this._historyVisibility;
+        iterateResponseStateEvents(roomResponse, event => {
+            if(event.state_key === "" && event.type === ROOM_HISTORY_VISIBILITY_TYPE) {
+                historyVisibility = event?.content?.history_visibility;
+            }
+        });
         let shouldFlush = false;
         const memberChangesArray = Array.from(memberChanges.values());
         // this also clears our session if we leave the room ourselves
@@ -89,10 +106,35 @@ export class RoomEncryption {
             this._megolmEncryption.discardOutboundSession(this._room.id, txn);
         }
         if (memberChangesArray.some(m => m.hasJoined)) {
-            shouldFlush = await this._addShareRoomKeyOperationForNewMembers(memberChangesArray, txn, log);
+            const userIds = memberChangesArray.filter(m => m.hasJoined).map(m => m.userId);
+            shouldFlush = await this._addShareRoomKeyOperationForMembers(userIds, txn, log)
+                            || shouldFlush;
         }
+        if (memberChangesArray.some(m => m.wasInvited)) {
+            historyVisibility = await this._loadHistoryVisibilityIfNeeded(historyVisibility, txn);
+            if (historyVisibility === HistoryVisibility.Invited) {
+                const userIds = memberChangesArray.filter(m => m.wasInvited).map(m => m.userId);
+                shouldFlush = await this._addShareRoomKeyOperationForMembers(userIds, txn, log)
+                                || shouldFlush;
+            }
+        }
+        
         await this._deviceTracker.writeMemberChanges(this._room, memberChanges, txn);
-        return shouldFlush;
+        return {shouldFlush, historyVisibility};
+    }
+
+    afterSync({historyVisibility}) {
+        this._historyVisibility = historyVisibility;
+    }
+
+    async _loadHistoryVisibilityIfNeeded(historyVisibility, txn) {
+        if (!historyVisibility) {
+            const visibilityEntry = await txn.roomState.get(this.id, ROOM_HISTORY_VISIBILITY_TYPE, "");
+            if (visibilityEntry) {
+                return event?.content?.history_visibility;
+            }
+        }
+        return historyVisibility;
     }
 
     async prepareDecryptAll(events, newKeys, source, txn) {
@@ -288,8 +330,7 @@ export class RoomEncryption {
         await this._processShareRoomKeyOperation(operation, hsApi, log);
     }
 
-    async _addShareRoomKeyOperationForNewMembers(memberChangesArray, txn, log) {
-        const userIds = memberChangesArray.filter(m => m.hasJoined).map(m => m.userId);
+    async _addShareRoomKeyOperationForMembers(userIds, txn, log) {
         const roomKeyMessage = await this._megolmEncryption.createRoomKeyMessage(
             this._room.id, txn);
         if (roomKeyMessage) {
