@@ -204,39 +204,37 @@ export class RoomViewModel extends ViewModel {
 			let command=message.substring(1).split(" ");
 			switch (command[0]) {
 				case "me":
-						message = message.substr(4).trim();
+						message = message.substring(4).trim();
 						msgtype = "m.emote";
 						break;
 				case "join":
-					switch (command.length-1) {
-						case 1:
-							if (message.substring(5)) {
-								let roomname = message.substr(5).trim();
-								message = undefined;
-								try {
-									await this._options.client.session.joinRoom(roomname);
-								} catch (exc) {
-									this._sendError=new Error("join syntax: /join <room-id>");
-									this._timelineError = null;
-									this.emitChange("error");
-								}
-								msgtype = undefined;
-							}
-							break;
-						default:
+					if (command.length==2) {
+						let roomname = message.substring(5).trim();
+						try {
+							await this._options.client.session.joinRoom(roomname);
+						} catch (exc) {
 							this._sendError=new Error("join syntax: /join <room-id>");
 							this._timelineError = null;
 							this.emitChange("error");
+						}
+					} else {
+						this._sendError=new Error("join syntax: /join <room-id>");
+						this._timelineError = null;
+						this.emitChange("error");
 					}
+					msgtype=undefined;
+					message=undefined;
 					break;
 				default:
 					if (command[0][0]=="/") {
-						message = message.substr(1).trim();
+						message = message.substring(1).trim();
 						break;
 					} else {
 						this._sendError=new Error("no command name '"+command[0]+"'");
 						this._timelineError = null;
 						this.emitChange("error");
+						msgtype=undefined;
+						message=undefined;
 					}
 			}
 		}
