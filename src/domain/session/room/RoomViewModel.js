@@ -247,10 +247,13 @@ export class RoomViewModel extends ViewModel {
             try {
 				let msgtype = messinfo[0];
 				let message = messinfo[1];
-                if (replyingTo) {
-                    if (msgtype && message) {await replyingTo.reply(msgtype, message);}
-                } else {
-                    await this._room.sendEvent("m.room.message", {msgtype, body: message});
+				console.log("messinfo :",messinfo);
+				if (msgtype && message) {
+	                if (replyingTo) {
+						await replyingTo.reply(msgtype, message);
+					} else {
+						await this._room.sendEvent("m.room.message", {msgtype, body: message});
+					}
                 }
             } catch (err) {
                 console.error(`room.sendMessage(): ${err.message}:\n${err.stack}`);
