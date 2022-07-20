@@ -20,6 +20,7 @@ import {ComposerViewModel} from "./ComposerViewModel.js"
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {ViewModel} from "../../ViewModel";
 import {imageToInfo} from "../common.js";
+import {Popup} from "../../../platform/web/ui/general/Popup.js";
 // TODO: remove fallback so default isn't included in bundle for SDK users that have their custom tileClassForEntry
 // this is a breaking SDK change though to make this option mandatory
 import {tileClassForEntry as defaultTileClassForEntry} from "./timeline/tiles/index";
@@ -200,19 +201,43 @@ export class RoomViewModel extends ViewModel {
     async _getMessageInformations (message) {
 		let msgtype = "m.text";
 		if (message.startsWith("/")) {
-			message=message.substring(1);
-			if (message.startsWith("me ")) {
-				message = message.substr(4).trim();
-				msgtype = "m.emote";
-			}
-			else if (message.startsWith("join ")) {
-				if (message.substring(5)) {
-					let roomname = message.substr(5).trim();
-					message = undefined;
-					console.dir(this.platform);
-					this.platform._sessionViewModel._client.session.joinRoom(roomname);
-					msgtype = undefined;
-				}
+			let command=message.substring(1).split(" ");
+			switch (command[0]) {
+				case "me":
+						message = message.substr(4).trim();
+						msgtype = "m.emote";
+						break;
+				case "join":
+					switch (command.length-1) {
+						case 1:
+							if (message.substring(5)) {
+								let roomname = message.substr(5).trim();
+								message = undefined;
+								try {
+									await this._options.client.session.joinRoom(roomname);
+								} catch (exc) {
+									this._sendError=new Error("join syntax: /join <room-id>");
+									this._timelineError = null;
+									this.emitChange("error");
+								}
+								msgtype = undefined;
+							}
+							break;
+						default:
+							this._sendError=new Error("join syntax: /join <room-id>");
+							this._timelineError = null;
+							this.emitChange("error");
+					}
+					break;
+				default:
+					if (command[0][0]=="/") {
+						message = message.substr(1).trim();
+						break;
+					} else {
+						this._sendError=new Error("no command name '"+command[0]+"'");
+						this._timelineError = null;
+						this.emitChange("error");
+					}
 			}
 		}
 		return [msgtype, message];
@@ -225,7 +250,7 @@ export class RoomViewModel extends ViewModel {
 				let msgtype = messinfo[0];
 				let message = messinfo[1];
                 if (replyingTo) {
-                    await replyingTo.reply(msgtype, message);
+                    if (msgtype && message) {await replyingTo.reply(msgtype, message);}
                 } else {
                     await this._room.sendEvent("m.room.message", {msgtype, body: message});
                 }
