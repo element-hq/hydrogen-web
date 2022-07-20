@@ -52,7 +52,6 @@ export class DerivedVariables {
     private _detectAliases() {
         const newVariablesToDerive: string[] = [];
         for (const variable of this._variablesToDerive) {
-            // If this is an alias, store it for processing later
             const [alias, value] = variable.split("=");
             if (value) {
                 this._aliases[alias] = value;
@@ -97,5 +96,36 @@ export class DerivedVariables {
             const resolvedValue = derive(value, operation, argument, this._isDark);
             return resolvedValue;
         }
+    }
+}
+
+import pkg from "off-color";
+const {offColor} = pkg;
+
+export function tests() {
+    return {
+        "Simple variable derivation": assert => {
+            const deriver = new DerivedVariables({ "background-color": "#ff00ff" }, ["background-color--darker-5"], false);
+            const result = deriver.toVariables();
+            const resultColor = offColor("#ff00ff").darken(5/100).hex();
+            assert.deepEqual(result, {"background-color--darker-5": resultColor});
+        },
+
+        "For dark themes, lighten and darken are inverted": assert => {
+            const deriver = new DerivedVariables({ "background-color": "#ff00ff" }, ["background-color--darker-5"], true);
+            const result = deriver.toVariables();
+            const resultColor = offColor("#ff00ff").lighten(5/100).hex();
+            assert.deepEqual(result, {"background-color--darker-5": resultColor});
+        },
+
+        "Aliases can be derived": assert => {
+            const deriver = new DerivedVariables({ "background-color": "#ff00ff" }, ["my-awesome-alias=background-color","my-awesome-alias--darker-5"], false);
+            const result = deriver.toVariables();
+            const resultColor = offColor("#ff00ff").darken(5/100).hex();
+            assert.deepEqual(result, {
+                "my-awesome-alias": "#ff00ff",
+                "my-awesome-alias--darker-5": resultColor,
+            });
+        },
     }
 }
