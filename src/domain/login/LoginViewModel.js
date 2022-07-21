@@ -69,7 +69,8 @@ export class LoginViewModel extends ViewModel {
                         client: this._client,
                         attemptLogin: loginMethod => this.attemptLogin(loginMethod),
                         loginToken: this._loginToken
-                    })));
+                    })
+                ));
             this.emitChange("completeSSOLoginViewModel");
         }
         else {
@@ -80,9 +81,11 @@ export class LoginViewModel extends ViewModel {
     _showPasswordLogin() {
         this._passwordLoginViewModel = this.track(new PasswordLoginViewModel(
             this.childOptions({
-                loginOptions: this._loginOptions,
-                attemptLogin: loginMethod => this.attemptLogin(loginMethod)
-        })));
+                loginOptions: () => this._loginOptions,
+                attemptLogin: loginMethod => this.attemptLogin(loginMethod),
+                setHomeserver: homeserver => this.setHomeserver(homeserver)
+            })
+        ));
         this.emitChange("passwordLoginViewModel");
     }
 
@@ -181,7 +184,7 @@ export class LoginViewModel extends ViewModel {
             }
         }
         this._abortHomeserverQueryTimeout = this.disposeTracked(this._abortHomeserverQueryTimeout);
-        this.queryHomeserver();
+        return this.queryHomeserver();
     }
     
     async queryHomeserver() {

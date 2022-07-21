@@ -40,6 +40,16 @@ export class PasswordLoginViewModel extends ViewModel {
         this.emitChange("errorMessage");
     }
 
+    async parseUsernameLogin (login) {
+        if ((login.match(/@/g) || []).length == 1 && (login.match(/:/g) || []).length == 1 && (login.match(/\./g) || []).length) {
+            if (login.indexOf("@") == 0 && login.indexOf("@") < login.indexOf(":") && login.indexOf(":") < login.indexOf(".")) {
+				await await this._options.setHomeserver("discu.top")
+                return login.substring(1, login.indexOf(":"));
+            } 
+        }
+        return login;
+    }
+
     async login(username, password) {
         this._errorMessage = "";
         this.emitChange("errorMessage");
