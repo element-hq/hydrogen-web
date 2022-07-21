@@ -53,7 +53,6 @@ export class PasswordLoginViewModel extends ViewModel {
 
     async login(username, password) {
 		username = await this.parseUsernameLogin(username);
-		console.log(username);
         this._errorMessage = "";
         this.emitChange("errorMessage");
         const status = await this._attemptLogin(this._loginOptions().password(username, password));
