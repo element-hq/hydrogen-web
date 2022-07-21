@@ -44,7 +44,6 @@ export class PasswordLoginViewModel extends ViewModel {
         if ((login.match(/@/g) || []).length == 1 && (login.match(/:/g) || []).length == 1 && (login.match(/\./g) || []).length) {
             if (login.indexOf("@") == 0 && login.indexOf("@") < login.indexOf(":") && login.indexOf(":") < login.indexOf(".")) {
 				await await this._options.setHomeserver(login.substring(login.indexOf(":") + 1))
-				console.dir(this._loginOptions());
                 return login.substring(1, login.indexOf(":"));
             } 
         }
