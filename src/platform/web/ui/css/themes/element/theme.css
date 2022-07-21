@@ -521,6 +521,18 @@ a {
 
 .RoomView_error {
     color: var(--error-color);
+    background : #efefef;
+    padding-right : 20px;
+    padding-left : 20px;
+    overflow : hidden;
+    height : 0px;
+    transition : 0.25s all ease-out;
+}
+
+.RoomView_error:not(:empty) {
+    height : auto;
+    padding-top : 20px;
+    padding-bottom : 20px;
 }
 
 .MessageComposer_replyPreview .Timeline_message {

@@ -22,16 +22,16 @@ export function makeTxnId() {
 }
 
 export function isTxnId(txnId) {
-	return txnId.startsWith("t") && txnId.length === 15;
+    return txnId.startsWith("t") && txnId.length === 15;
 }
 
 export function tests() {
-	return {
-		"isTxnId succeeds on result of makeTxnId": assert => {
-			assert(isTxnId(makeTxnId()));
-		},
-		"isTxnId fails on event id": assert => {
-			assert(!isTxnId("$yS_n5n3cIO2aTtek0_2ZSlv-7g4YYR2zKrk2mFCW_rm"));
-		},
-	}
+    return {
+        "isTxnId succeeds on result of makeTxnId": assert => {
+            assert(isTxnId(makeTxnId()));
+        },
+        "isTxnId fails on event id": assert => {
+            assert(!isTxnId("$yS_n5n3cIO2aTtek0_2ZSlv-7g4YYR2zKrk2mFCW_rm"));
+        },
+    }
 }
