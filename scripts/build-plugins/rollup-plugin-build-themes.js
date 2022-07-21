@@ -51,12 +51,20 @@ function addThemesToConfig(bundle, manifestLocations, defaultThemes) {
  */
 async function generateIconSourceMap(icons, manifestLocation) {
     const sources = {};
+    const fileNames = [];
+    const promises = [];
     const fs = require("fs").promises;
     for (const icon of Object.values(icons)) {
         const [location] = icon.split("?");
         const resolvedLocation = path.resolve(__dirname, "../../", manifestLocation, location);
-        const iconData = await fs.readFile(resolvedLocation);
-        const svgString = iconData.toString();
+        const iconData = fs.readFile(resolvedLocation);
+        promises.push(iconData);
+        const fileName = path.basename(resolvedLocation);
+        fileNames.push(fileName);
+    }
+    const results = await Promise.all(promises);
+    for (let i = 0; i < results.length; ++i)  {
+        const svgString = results[i].toString();
         const result = optimize(svgString, {
             plugins: [
                 {
@@ -68,8 +76,7 @@ async function generateIconSourceMap(icons, manifestLocation) {
             ],
         });
         const optimizedSvgString = result.data;
-        const fileName = path.basename(resolvedLocation);
-        sources[fileName] = optimizedSvgString;
+        sources[fileNames[i]] = optimizedSvgString;
     }
     return sources;
 }
