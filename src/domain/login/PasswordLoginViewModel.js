@@ -62,7 +62,7 @@ export class PasswordLoginViewModel extends ViewModel {
                 error = this.i18n`Your username and/or password don't seem to be correct.`;
                 break;
             case LoginFailure.Connection:
-                error = this.i18n`Can't connect to ${this._loginOptions.homeserver}.`;
+                error = this.i18n`Can't connect to ${this._loginOptions().homeserver}.`;
                 break;
             case LoginFailure.Unknown:
                 error = this.i18n`Something went wrong while checking your login and password.`;
