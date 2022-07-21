@@ -198,79 +198,79 @@ export class RoomViewModel extends ViewModel {
     }
     
     async _getMessageInformations (message) {
-		let msgtype = "m.text";
-		if (message.startsWith("/")) {
-			let command=message.substring(1).split(" ");
-			switch (command[0]) {
-				case "me":
-						message = message.substring(4).trim();
-						msgtype = "m.emote";
-						break;
-				case "join":
-					if (command.length==2) {
-						let roomname = message.substring(5).trim();
-						try {
-							await this._options.client.session.joinRoom(roomname);
-						} catch (exc) {
-							if (exc.statusCode??exc.status==400) {
-								this._sendError=new Error("/join : '"+roomname+"' was not legal room ID or room alias");
-							} else if ((exc.statusCode??exc.status==502) || (exc.message="Internal Server Error")) {
-								this._sendError=new Error("/join : room not found");
-							} else {
-								this._sendError=new Error("join syntax: /join <room-id>");
-							}
-							this._timelineError = null;
-							this.emitChange("error");
-						}
-					} else {
-						this._sendError=new Error("join syntax: /join <room-id>");
-						this._timelineError = null;
-						this.emitChange("error");
-					}
-					msgtype=undefined;
-					message=undefined;
-					break;
-				case "shrug":
-					message="¯\\_(ツ)_/¯ "+message.substring(7);
-					break;
-				case "tableflip":
-					message="(╯°□°）╯︵ ┻━┻ "+message.substring(11);
-					break;
-				case "unflip":
-					message="┬──┬ ノ( ゜-゜ノ) "+message.substring(8);
-					break;
-				case "lenny":
-					message="( ͡° ͜ʖ ͡°) "+message.substring(7);
-					break;
-				default:
-					if (command[0][0]=="/") {
-						message = message.substring(1).trim();
-						break;
-					} else {
-						this._sendError=new Error("no command name '"+command[0]+"'");
-						this._timelineError = null;
-						this.emitChange("error");
-						msgtype=undefined;
-						message=undefined;
-					}
-			}
-		}
-		return [msgtype, message];
-	}
+        let msgtype = "m.text";
+        if (message.startsWith("/")) {
+            let command = message.substring(1).split(" ");
+            switch (command[0]) {
+                case "me":
+                        message = message.substring(4).trim();
+                        msgtype = "m.emote";
+                        break;
+                case "join":
+                    if (command.length == 2) {
+                        let roomname = message.substring(5).trim();
+                        try {
+                            await this._options.client.session.joinRoom(roomname);
+                        } catch (exc) {
+                            if (exc.statusCode ?? exc.status == 400) {
+                                this._sendError=new Error("/join : '"+roomname+"' was not legal room ID or room alias");
+                            } else if ((exc.statusCode ?? exc.status == 502) || (exc.message == "Internal Server Error")) {
+                                this._sendError=new Error("/join : room not found");
+                            } else {
+                                this._sendError=new Error("join syntax: /join <room-id>");
+                            }
+                            this._timelineError = null;
+                            this.emitChange("error");
+                        }
+                    } else {
+                        this._sendError = new Error("join syntax: /join <room-id>");
+                        this._timelineError = null;
+                        this.emitChange("error");
+                    }
+                    msgtype = undefined;
+                    message = undefined;
+                    break;
+                case "shrug":
+                    message = "¯\\_(ツ)_/¯ " + message.substring(7);
+                    break;
+                case "tableflip":
+                    message="(╯°□°）╯︵ ┻━┻ " + message.substring(11);
+                    break;
+                case "unflip":
+                    message="┬──┬ ノ( ゜-゜ノ) " + message.substring(8);
+                    break;
+                case "lenny":
+                    message="( ͡° ͜ʖ ͡°) " + message.substring(7);
+                    break;
+                default:
+                    if (command[0][0] == "/") {
+                        message = message.substring(1).trim();
+                        break;
+                    } else {
+                        this._sendError = new Error("no command name '"+command[0]+"'");
+                        this._timelineError = null;
+                        this.emitChange("error");
+                        msgtype = undefined;
+                        message = undefined;
+                    }
+            }
+        }
+        return [msgtype, message];
+    }
     
     async _sendMessage(message, replyingTo) {
         if (!this._room.isArchived && message) {
-			let messinfo = await this._getMessageInformations(message);
+            let messinfo = await this._getMessageInformations(message);
             try {
-				let msgtype = messinfo[0];
-				let message = messinfo[1];
-				console.log("messinfo :",messinfo);
-				if (msgtype && message) {
-	                if (replyingTo) {
-						await replyingTo.reply(msgtype, message);
-					} else {
-						await this._room.sendEvent("m.room.message", {msgtype, body: message});
-					}
+                let msgtype = messinfo[0];
+                let message = messinfo[1];
+                console.log("messinfo :",messinfo);
+                if (msgtype && message) {
+                    if (replyingTo) {
+                        await replyingTo.reply(msgtype, message);
+                    } else {
+                        await this._room.sendEvent("m.room.message", {msgtype, body: message});
+                    }
                 }
             } catch (err) {
                 console.error(`room.sendMessage(): ${err.message}:\n${err.stack}`);

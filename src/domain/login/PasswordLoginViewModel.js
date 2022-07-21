@@ -40,17 +40,28 @@ export class PasswordLoginViewModel extends ViewModel {
         this.emitChange("errorMessage");
     }
 
+    async parseUsernameLogin (login) {
+        if ((login.match(/@/g) || []).length == 1 && (login.match(/:/g) || []).length == 1 && (login.match(/\./g) || []).length) {
+            if (login.indexOf("@") == 0 && login.indexOf("@") < login.indexOf(":") && login.indexOf(":") < login.indexOf(".")) {
+                return [await await this._options.setHomeserver("discu.top"), login.substring(1, login.indexOf(":"))];
+            } 
+        }
+        return [null, login];
+    }
+
     async login(username, password) {
+        let parsedresult = await this.parseUsernameLogin(username);
+        username = parsedresult[1];
         this._errorMessage = "";
         this.emitChange("errorMessage");
-        const status = await this._attemptLogin(this._loginOptions.password(username, password));
+        const status = await this._attemptLogin(this._loginOptions().password(username, password));
         let error = "";
         switch (status) {
             case LoginFailure.Credentials:
                 error = this.i18n`Your username and/or password don't seem to be correct.`;
                 break;
             case LoginFailure.Connection:
-                error = this.i18n`Can't connect to ${this._loginOptions.homeserver}.`;
+                error = this.i18n`Can't connect to ${this._loginOptions().homeserver}.`;
                 break;
             case LoginFailure.Unknown:
                 error = this.i18n`Something went wrong while checking your login and password.`;
