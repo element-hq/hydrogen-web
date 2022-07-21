@@ -43,7 +43,8 @@ export class PasswordLoginViewModel extends ViewModel {
     async parseUsernameLogin (login) {
         if ((login.match(/@/g) || []).length == 1 && (login.match(/:/g) || []).length == 1 && (login.match(/\./g) || []).length) {
             if (login.indexOf("@") == 0 && login.indexOf("@") < login.indexOf(":") && login.indexOf(":") < login.indexOf(".")) {
-				await await this._options.setHomeserver("discu.top")
+				await await this._options.setHomeserver(login.substring(login.indexOf(":") + 1))
+				console.dir(this._loginOptions());
                 return login.substring(1, login.indexOf(":"));
             } 
         }
@@ -51,9 +52,11 @@ export class PasswordLoginViewModel extends ViewModel {
     }
 
     async login(username, password) {
+		username = await this.parseUsernameLogin(username);
+		console.log(username);
         this._errorMessage = "";
         this.emitChange("errorMessage");
-        const status = await this._attemptLogin(this._loginOptions.password(username, password));
+        const status = await this._attemptLogin(this._loginOptions().password(username, password));
         let error = "";
         switch (status) {
             case LoginFailure.Credentials:
