@@ -36,8 +36,7 @@ export class PasswordLoginViewModel extends ViewModel {
     }
 
     _showError(message) {
-        this._errorMessage = message;
-        this.emitChange("errorMessage");
+        this._options.showConnectionError(message);
     }
 
     async parseUsernameLogin (login) {
@@ -51,8 +50,12 @@ export class PasswordLoginViewModel extends ViewModel {
     }
 
     async login(username, password) {
+		let usernameChanged = username;
 		username = await this.parseUsernameLogin(username);
-		if (!this._loginOptions()) {return;}
+		if (!this._loginOptions()) {
+			return;
+		}
+		usernameChanged = usernameChanged !== username;
         this._errorMessage = "";
         this.emitChange("errorMessage");
         const status = await this._attemptLogin(this._loginOptions().password(username, password));
@@ -69,7 +72,12 @@ export class PasswordLoginViewModel extends ViewModel {
                 break;
         }
         if (error) {
-            this._showError(error);
+			if (usernameChanged) {
+				console.log(error);
+				this._options.showConnectionError(error);
+			} else {
+				this._showError(error);
+			}
         }
     }
 }

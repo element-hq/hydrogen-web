@@ -83,7 +83,8 @@ export class LoginViewModel extends ViewModel {
             this.childOptions({
                 loginOptions: () => this._loginOptions,
                 attemptLogin: loginMethod => this.attemptLogin(loginMethod),
-                setHomeserver: homeserver => this.setHomeserver(homeserver)
+                setHomeserver: homeserver => this.setHomeserver(homeserver),
+                showConnectionError: message => this._showError(message)
             })
         ));
         this.emitChange("passwordLoginViewModel");
