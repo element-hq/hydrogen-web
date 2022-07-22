@@ -69,3 +69,28 @@ export function createRoomEncryptionEvent() {
         }
     }
 }
+
+
+// Use enum when converting to TS
+export const HistoryVisibility = Object.freeze({
+    Joined: "joined",
+    Invited: "invited",
+    WorldReadable: "world_readable",
+    Shared: "shared",
+});
+
+export function shouldShareKey(membership, historyVisibility) {
+    switch (historyVisibility) {
+        case HistoryVisibility.WorldReadable:
+            return true;
+        case HistoryVisibility.Shared:
+            // was part of room at some time
+            return membership !== undefined;
+        case HistoryVisibility.Joined:
+            return membership === "join";
+        case HistoryVisibility.Invited:
+            return membership === "invite" || membership === "join";
+        default:
+            return false;
+    }
+}
