@@ -216,7 +216,7 @@ export class RoomViewModel extends ViewModel {
                        } catch (exc) {
                            if ((exc.statusCode ?? exc.status) === 400) {
                                this._sendError = new Error(`/join : '${roomName}' was not legal room ID or room alias`);
-                           } else if ((exc.statusCode ?? exc.status) === 404 || (exc.statusCode ?? exc.status) === 502 || exc.message == "Internal Server Error") {
+                           } else if ((exc.statusCode ?? exc.status) === 403 || (exc.statusCode ?? exc.status) === 404 || (exc.statusCode ?? exc.status) === 502 || exc.message == "Internal Server Error") {
                                this._sendError = new Error(`/join : room '${roomName}' not found`);
                            } else {
                                this._sendError = new Error("join syntax: /join <room-id>");
