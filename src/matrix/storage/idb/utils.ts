@@ -80,7 +80,7 @@ export function openDatabase(name: string, createObjectStore: CreateObjectStore,
         try {
             await createObjectStore(db, txn, oldVersion, version);
         } catch (err) {
-            console.error(`Failed to createObjectStore in database=${name}`, err);
+            console.error(`openDatabase: Failed to createObjectStore in database=${name}`, err);
             // try aborting on error, if that hasn't been done already
             try {
                 txn.abort();
