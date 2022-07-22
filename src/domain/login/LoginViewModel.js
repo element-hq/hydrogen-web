@@ -130,6 +130,7 @@ export class LoginViewModel extends ViewModel {
         if (status === LoadStatus.LoginFailed) {
             return this._client.loginFailure;
         }
+        this._hidePasswordLogin()
         this._hideHomeserver = true;
         this.emitChange("hideHomeserver");
         this._createLoadViewModel();
