@@ -28,14 +28,6 @@ const ROOM_HISTORY_VISIBILITY_TYPE = "m.room.history_visibility";
 // note that encrypt could still create a new session
 const MIN_PRESHARE_INTERVAL = 60 * 1000; // 1min
 
-// Use enum when converting to TS
-const HistoryVisibility = Object.freeze({
-    Joined: "joined",
-    Invited: "invited",
-    WorldReadable: "world_readable",
-    Shared: "shared",
-});
-
 // TODO: this class is a good candidate for splitting up into encryption and decryption, there doesn't seem to be much overlap
 export class RoomEncryption {
     constructor({room, deviceTracker, olmEncryption, megolmEncryption, megolmDecryption, encryptionParams, storage, keyBackup, notifyMissingMegolmSession, clock}) {
@@ -89,37 +81,49 @@ export class RoomEncryption {
     }
 
     async writeSync(roomResponse, memberChanges, txn, log) {
-        let historyVisibility = this._historyVisibility;
-        iterateResponseStateEvents(roomResponse, event => {
+        let historyVisibility = await this._loadHistoryVisibilityIfNeeded(this._historyVisibility, txn);
+        const addedMembers = [];
+        const removedMembers = [];
+        // update the historyVisibility if needed
+        await iterateResponseStateEvents(roomResponse, event => {
+            // TODO: can the same state event appear twice? Hence we would be rewriting the useridentities twice...
+            // we'll see in the logs
             if(event.state_key === "" && event.type === ROOM_HISTORY_VISIBILITY_TYPE) {
-                historyVisibility = event?.content?.history_visibility;
+                const newHistoryVisibility = event?.content?.history_visibility;
+                if (newHistoryVisibility !== historyVisibility) {
+                    return log.wrap({
+                        l: "history_visibility changed",
+                        from: historyVisibility,
+                        to: newHistoryVisibility
+                    }, async log => {
+                        historyVisibility = newHistoryVisibility;
+                        const result = await this._deviceTracker.writeHistoryVisibility(this._room, historyVisibility, txn, log);
+                        addedMembers.push(...result.added);
+                        removedMembers.push(...result.removed);
+                    });
+                }
             }
         });
-        let shouldFlush = false;
-        const memberChangesArray = Array.from(memberChanges.values());
-        // this also clears our session if we leave the room ourselves
-        if (memberChangesArray.some(m => m.hasLeft)) {
+        // process member changes
+        if (memberChanges.size) {
+            const result = await this._deviceTracker.writeMemberChanges(
+                this._room, memberChanges, historyVisibility, txn);
+            addedMembers.push(...result.added);
+            removedMembers.push(...result.removed);
+        }
+        // discard key if somebody (including ourselves) left
+        if (removedMembers.length) {
             log.log({
                 l: "discardOutboundSession",
-                leftUsers: memberChangesArray.filter(m => m.hasLeft).map(m => m.userId),
+                leftUsers: removedMembers,
             });
             this._megolmEncryption.discardOutboundSession(this._room.id, txn);
         }
-        if (memberChangesArray.some(m => m.hasJoined)) {
-            const userIds = memberChangesArray.filter(m => m.hasJoined).map(m => m.userId);
-            shouldFlush = await this._addShareRoomKeyOperationForMembers(userIds, txn, log)
-                            || shouldFlush;
+        let shouldFlush = false;
+        // add room to userIdentities if needed, and share the current key with them
+        if (addedMembers.length) {
+            shouldFlush = await this._addShareRoomKeyOperationForMembers(addedMembers, txn, log);
         }
-        if (memberChangesArray.some(m => m.wasInvited)) {
-            historyVisibility = await this._loadHistoryVisibilityIfNeeded(historyVisibility, txn);
-            if (historyVisibility === HistoryVisibility.Invited) {
-                const userIds = memberChangesArray.filter(m => m.wasInvited).map(m => m.userId);
-                shouldFlush = await this._addShareRoomKeyOperationForMembers(userIds, txn, log)
-                                || shouldFlush;
-            }
-        }
-        
-        await this._deviceTracker.writeMemberChanges(this._room, memberChanges, txn);
         return {shouldFlush, historyVisibility};
     }
 
@@ -127,8 +131,11 @@ export class RoomEncryption {
         this._historyVisibility = historyVisibility;
     }
 
-    async _loadHistoryVisibilityIfNeeded(historyVisibility, txn) {
+    async _loadHistoryVisibilityIfNeeded(historyVisibility, txn = undefined) {
         if (!historyVisibility) {
+            if (!txn) {
+                txn = await this._storage.readTxn([this._storage.storeNames.roomState]);
+            }
             const visibilityEntry = await txn.roomState.get(this.id, ROOM_HISTORY_VISIBILITY_TYPE, "");
             if (visibilityEntry) {
                 return event?.content?.history_visibility;
@@ -316,6 +323,7 @@ export class RoomEncryption {
     }
 
     async _shareNewRoomKey(roomKeyMessage, hsApi, log) {
+        this._historyVisibility = await this._loadHistoryVisibilityIfNeeded(this._historyVisibility);
         const devices = await this._deviceTracker.devicesForTrackedRoom(this._room.id, this._historyVisibility, hsApi, log);
         const userIds = Array.from(devices.reduce((set, device) => set.add(device.userId), new Set()));
             
@@ -386,8 +394,8 @@ export class RoomEncryption {
 
     async _processShareRoomKeyOperation(operation, hsApi, log) {
         log.set("id", operation.id);
-
-        await this._deviceTracker.trackRoom(this._room, log);
+        this._historyVisibility = await this._loadHistoryVisibilityIfNeeded(this._historyVisibility);
+        await this._deviceTracker.trackRoom(this._room, this._historyVisibility, log);
         const devices = await this._deviceTracker.devicesForRoomMembers(this._room.id, operation.userIds, hsApi, log);
         const messages = await log.wrap("olm encrypt", log => this._olmEncryption.encrypt(
             "m.room_key", operation.roomKeyMessage, devices, hsApi, log));
