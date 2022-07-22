@@ -416,6 +416,11 @@ export class RoomViewModel extends ViewModel {
             this._composerVM.setReplyingTo(entry);
         }
     }
+    
+    dismissError(evt) {
+        this._sendError = null;
+        this.emitChange("error");
+    }
 }
 
 function videoToInfo(video) {

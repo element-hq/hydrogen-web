@@ -526,13 +526,60 @@ a {
     padding-left : 20px;
     overflow : hidden;
     height : 0px;
+    font-weight : bold;
     transition : 0.25s all ease-out;
+    position : relative;
+    display : flex;
 }
 
 .RoomView_error:not(:empty) {
-   height : auto;
+    height : 40px;
+    align-items : center;
     padding-top : 20px;
     padding-bottom : 20px;
+}
+
+.RoomView_error p {
+	position : relative;
+	display : block;
+    width : 100%;
+    height : auto;
+    margin : 0;
+}
+
+.RoomView_error button {
+    width : 40px;
+    padding-top : 20px;
+    padding-bottom : 20px;
+    background : none;
+    border : none;
+    position : relative;
+}
+
+.RoomView_error button:hover {
+	background : #cfcfcf;
+}
+
+.RoomView_error button:after {
+	content:"";
+	position : absolute;
+	top : 10px;
+	right: 16px;
+	background : red;
+	width : 5px;
+	height : 20px;
+	transform: rotate(45deg);
+}
+
+.RoomView_error button:before {
+	content:"";
+	position : absolute;
+	top : 17px;
+	left: 10px;
+	background : red;
+	width : 20px;
+	height : 5px;
+	transform: rotate(45deg);
 }
 
 .MessageComposer_replyPreview .Timeline_message {
