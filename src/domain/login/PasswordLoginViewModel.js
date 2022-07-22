@@ -24,10 +24,12 @@ export class PasswordLoginViewModel extends ViewModel {
         this._loginOptions = loginOptions;
         this._attemptLogin = attemptLogin;
         this._isBusy = false;
+		this._enabled = true;
         this._errorMessage = "";
     }
 
     get isBusy() { return this._isBusy; }
+    get isEnabled() { return this._isEnabled; }
     get errorMessage() { return this._errorMessage; }
 
     setBusy(status) {
@@ -36,36 +38,46 @@ export class PasswordLoginViewModel extends ViewModel {
     }
 
     _showError(message) {
-        this._options.showConnectionError(message);
+        this._errorMessage = message;
+        this.emitChange("errorMessage");
     }
+    
+    setLoginOptions(loginOptions) {
+		this._loginOptions = loginOptions;
+	}
+	
+	setEnabled(enabled) {
+		this._enabled = enabled;
+        this.emitChange("isEnabled");
+	}
 
     async parseUsernameLogin (login) {
         if ((login.match(/@/g) || []).length == 1 && (login.match(/:/g) || []).length == 1 && (login.match(/\./g) || []).length) {
             if (login.indexOf("@") == 0 && login.indexOf("@") < login.indexOf(":") && login.indexOf(":") < login.indexOf(".")) {
-				await await this._options.setHomeserver(login.substring(login.indexOf(":") + 1))
+				if (this._loginOptions.homeserver != login.substring(login.indexOf(":") + 1)) {await await this._options.setHomeserver(login.substring(login.indexOf(":") + 1));}
                 return login.substring(1, login.indexOf(":"));
             } 
         }
         return login;
     }
-
+    
     async login(username, password) {
+		this.setBusy(true);
 		let usernameChanged = username;
 		username = await this.parseUsernameLogin(username);
-		if (!this._loginOptions()) {
+		if (!this._loginOptions) {
 			return;
 		}
 		usernameChanged = usernameChanged !== username;
-        this._errorMessage = "";
-        this.emitChange("errorMessage");
-        const status = await this._attemptLogin(this._loginOptions().password(username, password));
+        this._showError("");
+        const status = await this._attemptLogin(this._loginOptions.password(username, password));
         let error = "";
         switch (status) {
             case LoginFailure.Credentials:
                 error = this.i18n`Your username and/or password don't seem to be correct.`;
                 break;
             case LoginFailure.Connection:
-                error = this.i18n`Can't connect to ${this._loginOptions().homeserver}.`;
+                error = this.i18n`Can't connect to ${this._loginOptions.homeserver}.`;
                 break;
             case LoginFailure.Unknown:
                 error = this.i18n`Something went wrong while checking your login and password.`;
@@ -79,5 +91,6 @@ export class PasswordLoginViewModel extends ViewModel {
 				this._showError(error);
 			}
         }
+		this.setBusy(false);
     }
 }
