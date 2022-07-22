@@ -53,12 +53,20 @@ type RoomResponse = {
 }
 
 /** iterates over any state events in a sync room response, in the order that they should be applied (from older to younger events) */
-export function iterateResponseStateEvents(roomResponse: RoomResponse, callback: (StateEvent) => void) {
+export function iterateResponseStateEvents(roomResponse: RoomResponse, callback: (StateEvent) => Promise<void> | void): Promise<void> | void {
+    let promises: Promise<void>[] | undefined = undefined;
+    const callCallback = stateEvent => {
+        const result = callback(stateEvent);
+        if (result instanceof Promise) {
+            promises = promises ?? [];
+            promises.push(result);
+        }
+    };
     // first iterate over state events, they precede the timeline
     const stateEvents = roomResponse.state?.events;
     if (stateEvents) {
         for (let i = 0; i < stateEvents.length; i++) {
-            callback(stateEvents[i]);
+            callCallback(stateEvents[i]);
         }
     }
     // now see if there are any state events within the timeline
@@ -67,9 +75,12 @@ export function iterateResponseStateEvents(roomResponse: RoomResponse, callback:
         for (let i = 0; i < timelineEvents.length; i++) {
             const event = timelineEvents[i];
             if (typeof event.state_key === "string") {
-                callback(event);
+                callCallback(event);
             }
         }
+    }
+    if (promises) {
+        return Promise.all(promises);
     }
 }
 
