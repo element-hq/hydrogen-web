@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {verifyEd25519Signature, SIGNATURE_ALGORITHM} from "./common.js";
+import {shouldShareKey} from "./common.js";
 
 const TRACKING_STATUS_OUTDATED = 0;
 const TRACKING_STATUS_UPTODATE = 1;
@@ -79,13 +80,38 @@ export class DeviceTracker {
         }));
     }
 
-    writeMemberChanges(room, memberChanges, txn) {
-        return Promise.all(Array.from(memberChanges.values()).map(async memberChange => {
-            return this._applyMemberChange(memberChange, txn);
+    /** @return Promise<{added: string[], removed: string[]}> the user ids for who the room was added or removed to the userIdentity,
+     *                                                        and with who a key should be now be shared
+     **/
+    async writeMemberChanges(room, memberChanges, historyVisibility, txn) {
+        const added = [];
+        const removed = [];
+        await Promise.all(Array.from(memberChanges.values()).map(async memberChange => {
+            // keys should now be shared with this member?
+            // add the room to the userIdentity if so
+            if (shouldShareKey(memberChange.membership, historyVisibility)) {
+                if (await this._addRoomToUserIdentity(memberChange.roomId, memberChange.userId, txn)) {
+                    added.push(memberChange.userId);
+                }
+            } else if (memberChange.hasLeft) {
+                // remove room
+                const {roomId} = memberChange;
+                // if we left the room, remove room from all user identities in the room
+                if (memberChange.userId === this._ownUserId) {
+                    const userIds = await txn.roomMembers.getAllUserIds(roomId);
+                    await Promise.all(userIds.map(userId => {
+                        return this._removeRoomFromUserIdentity(roomId, userId, txn);
+                    }));
+                } else {
+                    await this._removeRoomFromUserIdentity(roomId, memberChange.userId, txn);
+                }
+                removed.push(memberChange.userId);
+            }
         }));
+        return {added, removed};
     }
 
-    async trackRoom(room, log) {
+    async trackRoom(room, historyVisibility, log) {
         if (room.isTrackingMembers || !room.isEncrypted) {
             return;
         }
@@ -100,7 +126,11 @@ export class DeviceTracker {
                 isTrackingChanges = room.writeIsTrackingMembers(true, txn);
                 const members = Array.from(memberList.members.values());
                 log.set("members", members.length);
-                await this._writeJoinedMembers(members, txn);
+                await Promise.all(members.map(async member => {
+                    if (shouldShareKey(member.membership, historyVisibility)) {
+                        await this._addRoomToUserIdentity(member.roomId, member.userId, txn);
+                    }
+                }));
             } catch (err) {
                 txn.abort();
                 throw err;
@@ -120,13 +150,15 @@ export class DeviceTracker {
         }));
     }
 
-    async _writeMember(member, txn) {
+    async _addRoomToUserIdentity(roomId, userId, txn) {
         const {userIdentities} = txn;
-        const identity = await userIdentities.get(member.userId);
-        const updatedIdentity = addRoomToIdentity(identity, member.userId, member.roomId);
+        const identity = await userIdentities.get(userId);
+        const updatedIdentity = addRoomToIdentity(identity, userId, roomId);
         if (updatedIdentity) {
             userIdentities.set(updatedIdentity);
+            return true;
         }
+        return false;
     }
 
     async _removeRoomFromUserIdentity(roomId, userId, txn) {
@@ -141,28 +173,9 @@ export class DeviceTracker {
             } else {
                 userIdentities.set(identity);
             }
+            return true;
         }
-    }
-
-    async _applyMemberChange(memberChange, txn) {
-        // TODO: depends whether we encrypt for invited users??
-        // add room
-        if (memberChange.hasJoined) {
-            await this._writeMember(memberChange.member, txn);
-        }
-        // remove room
-        else if (memberChange.hasLeft) {
-            const {roomId} = memberChange;
-            // if we left the room, remove room from all user identities in the room
-            if (memberChange.userId === this._ownUserId) {
-                const userIds = await txn.roomMembers.getAllUserIds(roomId);
-                await Promise.all(userIds.map(userId => {
-                    return this._removeRoomFromUserIdentity(roomId, userId, txn);
-                }));
-            } else {
-                await this._removeRoomFromUserIdentity(roomId, memberChange.userId, txn);
-            }
-        }
+        return false;
     }
 
     async _queryKeys(userIds, hsApi, log) {
