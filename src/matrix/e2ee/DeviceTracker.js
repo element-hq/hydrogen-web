@@ -19,7 +19,7 @@ import {verifyEd25519Signature, SIGNATURE_ALGORITHM} from "./common.js";
 const TRACKING_STATUS_OUTDATED = 0;
 const TRACKING_STATUS_UPTODATE = 1;
 
-export function addRoomToIdentity(identity, userId, roomId) {
+function addRoomToIdentity(identity, userId, roomId) {
     if (!identity) {
         identity = {
             userId: userId,
