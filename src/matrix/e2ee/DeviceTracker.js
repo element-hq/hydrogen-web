@@ -16,6 +16,7 @@ limitations under the License.
 
 import {verifyEd25519Signature, SIGNATURE_ALGORITHM} from "./common.js";
 import {shouldShareKey} from "./common.js";
+import {RoomMember} from "../room/members/RoomMember.js";
 
 const TRACKING_STATUS_OUTDATED = 0;
 const TRACKING_STATUS_UPTODATE = 1;
@@ -142,12 +143,29 @@ export class DeviceTracker {
         }
     }
 
-    async _writeJoinedMembers(members, txn) {
-        await Promise.all(members.map(async member => {
-            if (member.membership === "join") {
-                await this._writeMember(member, txn);
-            }
-        }));
+    async writeHistoryVisibility(room, historyVisibility, syncTxn, log) {
+        const added = [];
+        const removed = [];
+        if (room.isTrackingMembers && room.isEncrypted) {
+            await log.wrap("rewriting userIdentities", async log => {
+                // don't use room.loadMemberList here because we want to use the syncTxn to load the members
+                const memberDatas = await syncTxn.roomMembers.getAll(room.id);
+                const members = memberDatas.map(d => new RoomMember(d));
+                log.set("members", members.length);
+                await Promise.all(members.map(async member => {
+                    if (shouldShareKey(member.membership, historyVisibility)) {
+                        if (await this._addRoomToUserIdentity(member.roomId, member.userId, syncTxn)) {
+                            added.push(member.userId);
+                        }
+                    } else {
+                        if (await this._removeRoomFromUserIdentity(member.roomId, member.userId, syncTxn)) {
+                            removed.push(member.userId);
+                        }
+                    }
+                }));
+            });
+        }
+        return {added, removed};
     }
 
     async _addRoomToUserIdentity(roomId, userId, txn) {
