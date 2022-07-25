@@ -249,7 +249,7 @@ export class LoginViewModel extends ViewModel {
             if (this._loginOptions.password) { this._showPasswordLogin(); }
             if (this._loginOptions.oidc) { this._showOIDCLogin(); }
             if (!this._loginOptions.sso && !this._loginOptions.password && !this._loginOptions.oidc) {
-                this._showError("This homeserver supports neither SSO nor password based login flows");
+                this._showError("This homeserver supports neither SSO nor password based login flows or has a usable OIDC Provider");
             } 
         }
         else {
