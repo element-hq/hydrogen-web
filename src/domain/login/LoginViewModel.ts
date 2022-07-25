@@ -171,7 +171,12 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
             new StartOIDCLoginViewModel(this.childOptions({loginOptions: this._loginOptions}))
         );
         this.emitChange("startOIDCLoginViewModel");
-        this._startOIDCLoginViewModel.discover();
+        try {
+            await this._startOIDCLoginViewModel.discover();
+        } catch (err) {
+            this._showError(err.message);
+            this._disposeViewModels();
+        }
     }
 
     private _showError(message: string): void {
