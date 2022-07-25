@@ -203,6 +203,11 @@ export class OidcApi {
         return metadata["registration_endpoint"];
     }
 
+    async revocationEndpoint(): Promise<string | undefined> {
+        const metadata = await this.metadata();
+        return metadata["revocation_endpoint"];
+    }
+
     generateDeviceScope(): String {
         const deviceId = randomString(10);
         return `urn:matrix:device:${deviceId}`;
@@ -280,5 +285,36 @@ export class OidcApi {
         assert(isValidBearerToken(token), "Got back a valid bearer token");
 
         return token;
+    }
+
+    async revokeToken({
+        token,
+        type,
+    }: { token: string, type: "refresh" | "access" }): Promise<void> {
+        const revocationEndpoint = await this.revocationEndpoint();
+        if (!revocationEndpoint) {
+            return;
+        }
+
+        const params = new URLSearchParams();
+        params.append("token_type", type);
+        params.append("token", token);
+        params.append("client_id", await this.clientId());
+        const body = params.toString();
+
+        const headers = new Map();
+        headers.set("Content-Type", "application/x-www-form-urlencoded");
+
+        const req = this._requestFn(revocationEndpoint, {
+            method: "POST",
+            headers,
+            format: "json",
+            body,
+        });
+
+        const res = await req.response();
+        if (res.status >= 400) {
+            throw new Error("failed to revoke token");
+        }
     }
 }
