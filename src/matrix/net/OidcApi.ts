@@ -90,7 +90,7 @@ export class OidcApi {
     }
 
     get metadataUrl() {
-        return new URL(WELL_KNOWN, this._issuer).toString();
+        return new URL(WELL_KNOWN, `${this._issuer}${this._issuer.endsWith('/') ? '' : '/'}`).toString();
     }
 
     get issuer() {
