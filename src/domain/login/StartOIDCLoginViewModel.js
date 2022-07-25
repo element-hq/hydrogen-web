@@ -41,8 +41,18 @@ export class StartOIDCLoginViewModel extends ViewModel {
 
     async discover() {
         // Ask for the metadata once so it gets discovered and cached
-        await this._api.metadata()
-        await this._api.registration();
+        try {
+            await this._api.metadata()
+        } catch (err) {
+            this.logger.log("Failed to discover OIDC metadata: " + err);
+            throw new Error("Failed to discover OIDC metadata: " + err.message );
+        }
+        try {
+            await this._api.registration();
+        } catch (err) {
+            this.logger.log("Failed to register OIDC client: " + err);
+            throw new Error("Failed to register OIDC client: " + err.message );
+        }
     }
 
     async startOIDCLogin() {
