@@ -153,7 +153,7 @@ export class OidcApi {
         assert(typeof m.registration_endpoint === "string", "Has a registration endpoint");
         assert(Array.isArray(m.response_types_supported) && m.response_types_supported.includes("code"), "Supports the code response type");
         assert(Array.isArray(m.response_modes_supported) && m.response_modes_supported.includes("fragment"), "Supports the fragment response mode");
-        assert(Array.isArray(m.grant_types_supported) && m.grant_types_supported.includes("authorization_code"), "Supports the authorization_code grant type");
+        assert(typeof m.authorization_endpoint === "string" || (Array.isArray(m.grant_types_supported) && m.grant_types_supported.includes("authorization_code")), "Supports the authorization_code grant type");
         assert(Array.isArray(m.code_challenge_methods_supported) && m.code_challenge_methods_supported.includes("S256"), "Supports the authorization_code grant type");
     }
 
