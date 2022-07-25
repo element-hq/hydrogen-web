@@ -48,7 +48,7 @@ export class StartOIDCLoginViewModel extends ViewModel {
     async startOIDCLogin() {
         const deviceScope = this._api.generateDeviceScope();
         const p = this._api.generateParams({
-            scope: `openid ${deviceScope}`,
+            scope: `openid urn:matrix:api:* ${deviceScope}`,
             redirectUri: this.urlCreator.createOIDCRedirectURL(),
         });
         const clientId = await this._api.clientId();
