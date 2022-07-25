@@ -490,6 +490,17 @@ export class Client {
                     request: this._platform.request
                 });
                 await hsApi.logout({log}).response();
+                const oidcApi = new OidcApi({
+                    issuer: sessionInfo.oidcIssuer,
+                    clientId: sessionInfo.oidcClientId,
+                    request: this._platform.request,
+                    encoding: this._platform.encoding,
+                    crypto: this._platform.crypto,
+                });
+                await oidcApi.revokeToken({ token: sessionInfo.accessToken, type: "access" });
+                if (sessionInfo.refreshToken) {
+                    await oidcApi.revokeToken({ token: sessionInfo.refreshToken, type: "refresh" });
+                }
             } catch (err) {}
             await this.deleteSession(log);
         });
