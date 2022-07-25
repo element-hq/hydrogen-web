@@ -27,7 +27,7 @@ export type Config = {
      * Read more about rageshake at https://github.com/matrix-org/rageshake
      * OPTIONAL
      */
-    bugReportEndpointUrl: string;
+    bugReportEndpointUrl?: string;
     /**
      * Paths to theme-manifests
      * eg: ["assets/theme-element.json", "assets/theme-awesome.json"]
@@ -41,7 +41,7 @@ export type Config = {
      * Whether the dark or light variant is used depends on the system preference.
      * OPTIONAL
      */
-    defaultTheme: {
+    defaultTheme?: {
         // id of light theme
         light: string;
         // id of dark theme
@@ -52,7 +52,7 @@ export type Config = {
      * See https://spec.matrix.org/latest/client-server-api/#post_matrixclientv3pushersset
      * OPTIONAL
      */
-    push: {
+    push?: {
         // See app_id in the request body in above link
         appId: string;
         // The host used for pushing notification
