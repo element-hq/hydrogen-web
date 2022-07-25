@@ -43,6 +43,7 @@ export async function main(platform) {
             // so we call it that in the view models
             urlCreator: urlRouter,
             navigation,
+            history: platform.history,
         });
         await vm.load();
         platform.createAndMountRootView(vm);

@@ -25,6 +25,8 @@ export {SessionViewModel} from "./domain/session/SessionViewModel.js";
 export {SessionView} from "./platform/web/ui/session/SessionView.js";
 export {RoomViewModel} from "./domain/session/room/RoomViewModel.js";
 export {RoomView} from "./platform/web/ui/session/room/RoomView.js";
+export {LightboxView} from "./platform/web/ui/session/room/LightboxView.js";
+export {setupLightboxNavigation} from "./domain/session/room/lightbox-navigation.js";
 export {TimelineViewModel} from "./domain/session/room/timeline/TimelineViewModel.js";
 export {tileClassForEntry} from "./domain/session/room/timeline/tiles/index";
 export type {TimelineEntry, TileClassForEntryFn, Options, TileConstructor} from "./domain/session/room/timeline/tiles/index";
@@ -62,6 +64,7 @@ export {TextMessageView} from "./platform/web/ui/session/room/timeline/TextMessa
 export {VideoView} from "./platform/web/ui/session/room/timeline/VideoView.js";
 
 export {Navigation} from "./domain/navigation/Navigation.js";
+export {History} from "./platform/web/dom/History.js";
 export {ComposerViewModel} from "./domain/session/room/ComposerViewModel.js";
 export {MessageComposer} from "./platform/web/ui/session/room/MessageComposer.js";
 export {TemplateView} from "./platform/web/ui/general/TemplateView";

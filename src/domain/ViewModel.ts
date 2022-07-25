@@ -28,12 +28,14 @@ import type {Clock} from "../platform/web/dom/Clock";
 import type {ILogger} from "../logging/types";
 import type {Navigation} from "./navigation/Navigation";
 import type {URLRouter} from "./navigation/URLRouter";
+import type {History} from "../platform/web/dom/History";
 
 export type Options = {
     platform: Platform
     logger: ILogger
     urlCreator: URLRouter
     navigation: Navigation
+    history: History
     emitChange?: (params: any) => void
 }
 
@@ -141,5 +143,9 @@ export class ViewModel<O extends Options = Options> extends EventEmitter<{change
 
     get navigation(): Navigation {
         return this._options.navigation;
+    }
+
+    get history(): History {
+        return this._options.history;
     }
 }
