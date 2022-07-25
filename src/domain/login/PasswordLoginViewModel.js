@@ -24,7 +24,7 @@ export class PasswordLoginViewModel extends ViewModel {
         this._loginOptions = loginOptions;
         this._attemptLogin = attemptLogin;
         this._isBusy = false;
-		this._enabled = true;
+        this._enabled = true;
         this._errorMessage = "";
     }
 
@@ -43,32 +43,33 @@ export class PasswordLoginViewModel extends ViewModel {
     }
     
     setLoginOptions(loginOptions) {
-		this._loginOptions = loginOptions;
-	}
-	
-	setEnabled(enabled) {
-		this._enabled = enabled;
+        this._loginOptions = loginOptions;
+    }
+    
+    setEnabled(enabled) {
+        this._enabled = enabled;
         this.emitChange("isEnabled");
-	}
+    }
 
     async parseUsernameLogin (login) {
         if ((login.match(/@/g) || []).length == 1 && (login.match(/:/g) || []).length == 1 && (login.match(/\./g) || []).length) {
             if (login.indexOf("@") == 0 && login.indexOf("@") < login.indexOf(":") && login.indexOf(":") < login.indexOf(".")) {
-				if (this._loginOptions.homeserver != login.substring(login.indexOf(":") + 1)) {await await this._options.setHomeserver(login.substring(login.indexOf(":") + 1));}
-                return login.substring(1, login.indexOf(":"));
+                const serverName = login.match(/@.*:(.+)/);
+                if (this._loginOptions.homeserver != serverName) {await this._options.setHomeserver(serverName);}
+                return serverName;
             } 
         }
         return login;
     }
     
     async login(username, password) {
-		this.setBusy(true);
-		let usernameChanged = username;
-		username = await this.parseUsernameLogin(username);
-		if (!this._loginOptions) {
-			return;
-		}
-		usernameChanged = usernameChanged !== username;
+        this.setBusy(true);
+        let usernameChanged = username;
+        username = await this.parseUsernameLogin(username);
+        if (!this._loginOptions) {
+            return;
+        }
+        usernameChanged = usernameChanged !== username;
         this._showError("");
         const status = await this._attemptLogin(this._loginOptions.password(username, password));
         let error = "";
@@ -84,13 +85,13 @@ export class PasswordLoginViewModel extends ViewModel {
                 break;
         }
         if (error) {
-			if (usernameChanged) {
-				console.log(error);
-				this._options.showConnectionError(error);
-			} else {
-				this._showError(error);
-			}
+            if (usernameChanged) {
+                console.log(error);
+                this._options.showConnectionError(error);
+            } else {
+                this._showError(error);
+            }
         }
-		this.setBusy(false);
+        this.setBusy(false);
     }
 }

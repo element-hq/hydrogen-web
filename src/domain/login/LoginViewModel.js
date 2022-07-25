@@ -166,8 +166,8 @@ export class LoginViewModel extends ViewModel {
     }
 
     updateLoginOptions() {
-		this._passwordLoginViewModel?.setLoginOptions(this._loginOptions);
-	}
+        this._passwordLoginViewModel?.setLoginOptions(this._loginOptions);
+    }
 
     async setHomeserver(newHomeserver) {
         this._homeserver = newHomeserver;
@@ -192,7 +192,7 @@ export class LoginViewModel extends ViewModel {
             }
         }
         this._abortHomeserverQueryTimeout = this.disposeTracked(this._abortHomeserverQueryTimeout);
-        return this.queryHomeserver();
+        await this.queryHomeserver();
     }
     
     async queryHomeserver() {
@@ -229,7 +229,7 @@ export class LoginViewModel extends ViewModel {
             this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
             this.emitChange("isFetchingLoginOptions");
         }
-		this.updateLoginOptions();
+        this.updateLoginOptions();
         if (this._loginOptions) {
             if (this._loginOptions.sso && !this._startSSOLoginViewModel) { this._showSSOLogin(); }
             if (!this._loginOptions.sso && this._startSSOLoginViewModel) { this._hideSSOLogin(); }
@@ -241,8 +241,8 @@ export class LoginViewModel extends ViewModel {
         }
         else {
             this._showError(`Could not query login methods supported by ${this.homeserver}`);
-			this._hideSSOLogin();
-			this._hidePasswordLogin();
+            this._hideSSOLogin();
+            this._hidePasswordLogin();
         }
         this._passwordLoginViewModel?.setEnabled(false);
     }
