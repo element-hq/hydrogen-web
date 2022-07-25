@@ -82,7 +82,7 @@ class StartOIDCLoginView extends TemplateView {
     render(t, vm) {
         return t.div({ className: "StartOIDCLoginView" },
             t.a({
-                className: "StartOIDCLoginView_button button-action secondary",
+                className: "StartOIDCLoginView_button button-action primary",
                 type: "button",
                 onClick: () => vm.startOIDCLogin(),
                 disabled: vm => vm.isBusy
