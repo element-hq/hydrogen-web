@@ -210,8 +210,8 @@ export class RoomViewModel extends ViewModel {
                    if (args.length == 1) {
                        let roomName = args[0];
                        try {
-                           await this._options.client.session.joinRoom(roomName);
                            const internalId = await this._options.client.session.joinRoom(roomName);
+                           await this._options.client.session.waitForRoomFromSync(internalId);
                            this.navigation.push("room", internalId);
                        } catch (exc) {
                            if ((exc.statusCode ?? exc.status) === 400) {
