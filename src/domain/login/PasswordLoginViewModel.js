@@ -56,7 +56,7 @@ export class PasswordLoginViewModel extends ViewModel {
             if (login.indexOf("@") == 0 && login.indexOf("@") < login.indexOf(":") && login.indexOf(":") < login.indexOf(".")) {
                 const serverName = login.match(/@.*:(.+)/) [1];
                 if (this._loginOptions.homeserver != serverName) {await this._options.setHomeserver(serverName);}
-                return serverName;
+                return login.match(/@(.+):.*/) [1];
             } 
         }
         return login;
