@@ -54,7 +54,7 @@ export class PasswordLoginViewModel extends ViewModel {
     async parseUsernameLogin (login) {
         if ((login.match(/@/g) || []).length == 1 && (login.match(/:/g) || []).length == 1 && (login.match(/\./g) || []).length) {
             if (login.indexOf("@") == 0 && login.indexOf("@") < login.indexOf(":") && login.indexOf(":") < login.indexOf(".")) {
-                const serverName = login.match(/@.*:(.+)/);
+                const serverName = login.match(/@.*:(.+)/) [1];
                 if (this._loginOptions.homeserver != serverName) {await this._options.setHomeserver(serverName);}
                 return serverName;
             } 
