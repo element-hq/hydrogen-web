@@ -238,6 +238,7 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         this._startSSOLoginViewModel = this.disposeTracked(this._startSSOLoginViewModel);
         this._passwordLoginViewModel = this.disposeTracked(this._passwordLoginViewModel);
         this._completeSSOLoginViewModel = this.disposeTracked(this._completeSSOLoginViewModel);
+        this._startOIDCLoginViewModel = this.disposeTracked(this._startOIDCLoginViewModel);
         this.emitChange("disposeViewModels");
     }
 
