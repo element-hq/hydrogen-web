@@ -522,26 +522,31 @@ a {
 .RoomView_error {
     color: var(--error-color);
     background : #efefef;
-    padding-right : 20px;
-    padding-left : 20px;
-    overflow : hidden;
     height : 0px;
     font-weight : bold;
     transition : 0.25s all ease-out;
+    padding-right : 20px;
+    padding-left : 20px;
+}
+
+.RoomView_error div{
+    overflow : hidden;
+    height: 100%;
+    width: 100%;
     position : relative;
     display : flex;
+    align-items : center;
 }
 
 .RoomView_error:not(:empty) {
     height : 40px;
-    align-items : center;
     padding-top : 20px;
     padding-bottom : 20px;
 }
 
 .RoomView_error p {
-	position : relative;
-	display : block;
+    position : relative;
+    display : block;
     width : 100%;
     height : auto;
     margin : 0;
@@ -557,29 +562,29 @@ a {
 }
 
 .RoomView_error button:hover {
-	background : #cfcfcf;
+    background : #cfcfcf;
 }
 
 .RoomView_error button:after {
-	content:"";
-	position : absolute;
-	top : 10px;
-	right: 16px;
-	background : red;
-	width : 5px;
-	height : 20px;
-	transform: rotate(45deg);
+    content:"";
+    position : absolute;
+    top : 10px;
+    right: 16px;
+    background : red;
+    width : 5px;
+    height : 20px;
+    transform: rotate(45deg);
 }
 
 .RoomView_error button:before {
-	content:"";
-	position : absolute;
-	top : 17px;
-	left: 10px;
-	background : red;
-	width : 20px;
-	height : 5px;
-	transform: rotate(45deg);
+    content:"";
+    position : absolute;
+    top : 17px;
+    left: 10px;
+    background : red;
+    width : 20px;
+    height : 5px;
+    transform: rotate(45deg);
 }
 
 .MessageComposer_replyPreview .Timeline_message {

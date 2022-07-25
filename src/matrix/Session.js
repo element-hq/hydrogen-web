@@ -948,23 +948,6 @@ export class Session {
             return body.room_id;
         });
     }
-
-    waitForRoomFromSync(roomId) {
-        let resolve;
-        const promise = new Promise(r => { resolve = r; })
-        const subscription = {
-            onAdd: (_, value) => {
-                if (value.id === roomId) {
-                    this._session.rooms.unsubscribe(subscription);
-                    resolve();
-                }
-            },
-            onUpdate: () => undefined,
-            onRemove: () => undefined,
-        };
-        this._session.rooms.subscribe(subscription);
-        return promise;
-    }
 }
 
 export function tests() {
