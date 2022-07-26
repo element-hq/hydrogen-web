@@ -116,12 +116,13 @@ export class DeviceTracker {
         if (room.isTrackingMembers || !room.isEncrypted) {
             return;
         }
-        const memberList = await room.loadMemberList(log);
+        const txn = await this._storage.readWriteTxn([
+            this._storage.storeNames.roomSummary,
+            this._storage.storeNames.userIdentities,
+        ]);
+        let memberList;
         try {
-            const txn = await this._storage.readWriteTxn([
-                this._storage.storeNames.roomSummary,
-                this._storage.storeNames.userIdentities,
-            ]);
+            memberList = await room.loadMemberList(txn, log);
             let isTrackingChanges;
             try {
                 isTrackingChanges = room.writeIsTrackingMembers(true, txn);
@@ -139,7 +140,7 @@ export class DeviceTracker {
             await txn.complete();
             room.applyIsTrackingMembersChanges(isTrackingChanges);
         } finally {
-            memberList.release();
+            memberList?.release();
         }
     }
 
