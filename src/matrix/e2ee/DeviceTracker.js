@@ -94,8 +94,8 @@ export class DeviceTracker {
                 if (await this._addRoomToUserIdentity(memberChange.roomId, memberChange.userId, txn)) {
                     added.push(memberChange.userId);
                 }
-            } else if (memberChange.hasLeft) {
-                // remove room
+            } else if (shouldShareKey(memberChange.previousMembership, historyVisibility)) {
+                // try to remove room we were previously sharing the key with the member but not anymore
                 const {roomId} = memberChange;
                 // if we left the room, remove room from all user identities in the room
                 if (memberChange.userId === this._ownUserId) {
@@ -667,6 +667,27 @@ export function tests() {
             assert.equal(devices.length, 2);
             assert.equal(devices.find(d => d.userId === "@alice:hs.tld").ed25519Key, "ed25519:@alice:hs.tld:device1:key");
             assert.equal(devices.find(d => d.userId === "@bob:hs.tld").ed25519Key, "ed25519:@bob:hs.tld:device1:key");
+        },
+        "rejecting invite with history visibility of invited removes room from user identity": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            // alice is joined, bob is invited
+            const room = await createUntrackedRoomMock(roomId, ["@alice:hs.tld"], ["@bob:hs.tld"]);
+            await tracker.trackRoom(room, HistoryVisibility.Invited, NullLoggerInstance.item);
+            const txn = await storage.readWriteTxn([storage.storeNames.userIdentities, storage.storeNames.deviceIdentities]);
+            // reject invite
+            const inviteChange = new MemberChange(RoomMember.fromUserId(roomId, "@bob:hs.tld", "leave"), "invite");
+            const memberChanges = new Map([[inviteChange.userId, inviteChange]]);
+            const {added, removed} = await tracker.writeMemberChanges(room, memberChanges, HistoryVisibility.Invited, txn);
+            assert.deepEqual(added, []);
+            assert.deepEqual(removed, ["@bob:hs.tld"]);
+            assert.equal(await txn.userIdentities.get("@bob:hs.tld"), undefined);
         },
     }
 }
