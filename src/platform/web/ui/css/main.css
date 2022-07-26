@@ -32,7 +32,7 @@ body.hydrogen {
     /* make sure to disable rubber-banding and pull to refresh in a PWA if we'd end up having a scrollbar */
     overscroll-behavior: none;
     /* disable rubberband scrolling on document in IE11 */
-    overflow: hidden;
+    overflow: auto;
 }
 
 .hydrogen {
