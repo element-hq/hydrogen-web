@@ -18,7 +18,7 @@ import {TemplateView} from "../general/TemplateView";
 
 export class PasswordLoginView extends TemplateView {
     render(t, vm) {
-        const disabled = vm => (!!vm.isBusy) && (!vm.isEnabled);
+        const disabled = vm => vm.isBusy && vm.isEnabled;
         const username = t.input({
             id: "username",
             type: "text",
@@ -32,25 +32,30 @@ export class PasswordLoginView extends TemplateView {
             disabled
         });
         
-        return t.div({className: "PasswordLoginView form" + (disabled ? " disabled" : "")}, [
-            t.if(vm => vm.error, t => t.div({ className: "error" }, vm => vm.error)),
-            t.form({
-                onSubmit: evnt => {
-                    evnt.preventDefault();
-                    vm.login(username.value, password.value);
-                }
-            }, [
-				t.if(vm => vm.errorMessage, (t, vm) => t.p({className: "error"}, vm.i18n(vm.errorMessage))),
-                t.div({ className: "form-row text" }, [t.label({ for: "username" }, vm.i18n`Username`), username]),
-                t.div({ className: "form-row text" }, [t.label({ for: "password" }, vm.i18n`Password`), password]),
-                t.div({ className: "button-row" }, [
-                    t.button({
-                        className: "button-action primary",
-                        type: "submit",
-                        disabled
-                    }, vm.i18n`Log In`),
-                ]),
-            ])
+        return t.div({
+            className: { 
+                PasswordLoginView: true, 
+                form: true, 
+                disabled: disabled
+            }}, [
+                t.if(vm => vm.error, t => t.div({ className: "error" }, vm => vm.error)),
+                t.form({
+                    onSubmit: evnt => {
+                        evnt.preventDefault();
+                        vm.login(username.value, password.value);
+                    }
+                }, [
+                    t.if(vm => vm.errorMessage, (t, vm) => t.p({className: "error"}, vm.i18n(vm.errorMessage))),
+                    t.div({ className: "form-row text" }, [t.label({ for: "username" }, vm.i18n`Username`), username]),
+                    t.div({ className: "form-row text" }, [t.label({ for: "password" }, vm.i18n`Password`), password]),
+                    t.div({ className: "button-row" }, [
+                        t.button({
+                            className: "button-action primary",
+                            type: "submit",
+                            disabled
+                        }, vm.i18n`Log In`),
+                    ]),
+                ])
         ]);
     }
 }
