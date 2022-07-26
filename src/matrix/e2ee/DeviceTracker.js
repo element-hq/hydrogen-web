@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {verifyEd25519Signature, SIGNATURE_ALGORITHM} from "./common.js";
-import {shouldShareKey} from "./common.js";
+import {HistoryVisibility, shouldShareKey} from "./common.js";
 import {RoomMember} from "../room/members/RoomMember.js";
 
 const TRACKING_STATUS_OUTDATED = 0;
@@ -150,20 +150,24 @@ export class DeviceTracker {
         if (room.isTrackingMembers && room.isEncrypted) {
             await log.wrap("rewriting userIdentities", async log => {
                 // don't use room.loadMemberList here because we want to use the syncTxn to load the members
-                const memberDatas = await syncTxn.roomMembers.getAll(room.id);
-                const members = memberDatas.map(d => new RoomMember(d));
-                log.set("members", members.length);
-                await Promise.all(members.map(async member => {
-                    if (shouldShareKey(member.membership, historyVisibility)) {
-                        if (await this._addRoomToUserIdentity(member.roomId, member.userId, syncTxn)) {
-                            added.push(member.userId);
+                const memberList = await room.loadMemberList(syncTxn, log);
+                try {
+                    const members = Array.from(memberList.members.values());
+                    log.set("members", members.length);
+                    await Promise.all(members.map(async member => {
+                        if (shouldShareKey(member.membership, historyVisibility)) {
+                            if (await this._addRoomToUserIdentity(member.roomId, member.userId, syncTxn)) {
+                                added.push(member.userId);
+                            }
+                        } else {
+                            if (await this._removeRoomFromUserIdentity(member.roomId, member.userId, syncTxn)) {
+                                removed.push(member.userId);
+                            }
                         }
-                    } else {
-                        if (await this._removeRoomFromUserIdentity(member.roomId, member.userId, syncTxn)) {
-                            removed.push(member.userId);
-                        }
-                    }
-                }));
+                    }));
+                } finally {
+                    memberList.release();
+                }
             });
         }
         return {added, removed};
@@ -399,6 +403,7 @@ export class DeviceTracker {
 
 import {createMockStorage} from "../../mocks/Storage";
 import {Instance as NullLoggerInstance} from "../../logging/NullLogger";
+import {MemberChange} from "../room/members/RoomMember";
 
 export function tests() {
 
@@ -407,8 +412,8 @@ export function tests() {
             isTrackingMembers: false,
             isEncrypted: true,
             loadMemberList: () => {
-                const joinedMembers = joinedUserIds.map(userId => {return {membership: "join", roomId, userId};});
-                const invitedMembers = invitedUserIds.map(userId => {return {membership: "invite", roomId, userId};});
+                const joinedMembers = joinedUserIds.map(userId => {return RoomMember.fromUserId(roomId, userId, "join");});
+                const invitedMembers = invitedUserIds.map(userId => {return RoomMember.fromUserId(roomId, userId, "invite");});
                 const members = joinedMembers.concat(invitedMembers);
                 const memberMap = members.reduce((map, member) => {
                     map.set(member.userId, member);
@@ -472,10 +477,29 @@ export function tests() {
             }
         };
     }
+
+    async function writeMemberListToStorage(room, storage) {
+        const txn = await storage.readWriteTxn([
+            storage.storeNames.roomMembers,
+        ]);
+        const memberList = await room.loadMemberList(txn);
+        try {
+            for (const member of memberList.members.values()) {
+                txn.roomMembers.set(member.serialize());
+            }
+        } catch (err) {
+            txn.abort();
+            throw err;
+        } finally {
+            memberList.release();
+        }
+        await txn.complete();
+    }
+
     const roomId = "!abc:hs.tld";
 
     return {
-        "trackRoom only writes joined members": async assert => {
+        "trackRoom only writes joined members with history visibility of joined": async assert => {
             const storage = await createMockStorage();
             const tracker = new DeviceTracker({
                 storage,
@@ -485,7 +509,7 @@ export function tests() {
                 ownDeviceId: "ABCD",
             });
             const room = createUntrackedRoomMock(roomId, ["@alice:hs.tld", "@bob:hs.tld"], ["@charly:hs.tld"]);
-            await tracker.trackRoom(room, NullLoggerInstance.item);
+            await tracker.trackRoom(room, HistoryVisibility.Joined, NullLoggerInstance.item);
             const txn = await storage.readTxn([storage.storeNames.userIdentities]);
             assert.deepEqual(await txn.userIdentities.get("@alice:hs.tld"), {
                 userId: "@alice:hs.tld",
@@ -509,7 +533,7 @@ export function tests() {
                 ownDeviceId: "ABCD",
             });
             const room = createUntrackedRoomMock(roomId, ["@alice:hs.tld", "@bob:hs.tld"]);
-            await tracker.trackRoom(room, NullLoggerInstance.item);
+            await tracker.trackRoom(room, HistoryVisibility.Joined, NullLoggerInstance.item);
             const hsApi = createQueryKeysHSApiMock();
             const devices = await tracker.devicesForRoomMembers(roomId, ["@alice:hs.tld", "@bob:hs.tld"], hsApi, NullLoggerInstance.item);
             assert.equal(devices.length, 2);
@@ -526,7 +550,7 @@ export function tests() {
                 ownDeviceId: "ABCD",
             });
             const room = createUntrackedRoomMock(roomId, ["@alice:hs.tld", "@bob:hs.tld"]);
-            await tracker.trackRoom(room, NullLoggerInstance.item);
+            await tracker.trackRoom(room, HistoryVisibility.Joined, NullLoggerInstance.item);
             const hsApi = createQueryKeysHSApiMock();
             // query devices first time
             await tracker.devicesForRoomMembers(roomId, ["@alice:hs.tld", "@bob:hs.tld"], hsApi, NullLoggerInstance.item);
@@ -544,6 +568,105 @@ export function tests() {
             const txn2 = await storage.readTxn([storage.storeNames.deviceIdentities]);
             // also check the modified key was not stored
             assert.equal((await txn2.deviceIdentities.get("@alice:hs.tld", "device1")).ed25519Key, "ed25519:@alice:hs.tld:device1:key");
-        }
+        },
+        "change history visibility from joined to invited adds invitees": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            // alice is joined, bob is invited
+            const room = await createUntrackedRoomMock(roomId, 
+                ["@alice:hs.tld"], ["@bob:hs.tld"]);
+            await tracker.trackRoom(room, HistoryVisibility.Joined, NullLoggerInstance.item);
+            const txn = await storage.readWriteTxn([storage.storeNames.userIdentities, storage.storeNames.deviceIdentities]);
+            assert.equal(await txn.userIdentities.get("@bob:hs.tld"), undefined);
+            const {added, removed} = await tracker.writeHistoryVisibility(room, HistoryVisibility.Invited, txn, NullLoggerInstance.item);
+            assert.equal((await txn.userIdentities.get("@bob:hs.tld")).userId, "@bob:hs.tld");
+            assert.deepEqual(added, ["@bob:hs.tld"]);
+            assert.deepEqual(removed, []);
+        },
+        "change history visibility from invited to joined removes invitees": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            // alice is joined, bob is invited
+            const room = await createUntrackedRoomMock(roomId, 
+                ["@alice:hs.tld"], ["@bob:hs.tld"]);
+            await tracker.trackRoom(room, HistoryVisibility.Invited, NullLoggerInstance.item);
+            const txn = await storage.readWriteTxn([storage.storeNames.userIdentities, storage.storeNames.deviceIdentities]);
+            assert.equal((await txn.userIdentities.get("@bob:hs.tld")).userId, "@bob:hs.tld");
+            const {added, removed} = await tracker.writeHistoryVisibility(room, HistoryVisibility.Joined, txn, NullLoggerInstance.item);
+            assert.equal(await txn.userIdentities.get("@bob:hs.tld"), undefined);
+            assert.deepEqual(added, []);
+            assert.deepEqual(removed, ["@bob:hs.tld"]);
+        },
+        "adding invitee with history visibility of invited adds room to userIdentities": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            const room = await createUntrackedRoomMock(roomId, ["@alice:hs.tld"]);
+            await tracker.trackRoom(room, HistoryVisibility.Invited, NullLoggerInstance.item);
+            const txn = await storage.readWriteTxn([storage.storeNames.userIdentities, storage.storeNames.deviceIdentities]);
+            // inviting a new member
+            const inviteChange = new MemberChange(RoomMember.fromUserId(roomId, "@bob:hs.tld", "invite"));
+            const {added, removed} = await tracker.writeMemberChanges(room, [inviteChange], HistoryVisibility.Invited, txn);
+            assert.deepEqual(added, ["@bob:hs.tld"]);
+            assert.deepEqual(removed, []);
+            assert.equal((await txn.userIdentities.get("@bob:hs.tld")).userId, "@bob:hs.tld");
+        },
+        "adding invitee with history visibility of joined doesn't add room": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            const room = await createUntrackedRoomMock(roomId, ["@alice:hs.tld"]);
+            await tracker.trackRoom(room, HistoryVisibility.Joined, NullLoggerInstance.item);
+            const txn = await storage.readWriteTxn([storage.storeNames.userIdentities, storage.storeNames.deviceIdentities]);
+            // inviting a new member
+            const inviteChange = new MemberChange(RoomMember.fromUserId(roomId, "@bob:hs.tld", "invite"));
+            const memberChanges = new Map([[inviteChange.userId, inviteChange]]);
+            const {added, removed} = await tracker.writeMemberChanges(room, memberChanges, HistoryVisibility.Joined, txn);
+            assert.deepEqual(added, []);
+            assert.deepEqual(removed, []);
+            assert.equal(await txn.userIdentities.get("@bob:hs.tld"), undefined);
+        },
+        "getting all devices after changing history visibility now includes invitees": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            const room = createUntrackedRoomMock(roomId, ["@alice:hs.tld"], ["@bob:hs.tld"]);
+            await tracker.trackRoom(room, HistoryVisibility.Invited, NullLoggerInstance.item);
+            const hsApi = createQueryKeysHSApiMock();
+            // write memberlist from room mock to mock storage,
+            // as devicesForTrackedRoom reads directly from roomMembers store.
+            await writeMemberListToStorage(room, storage);
+            const devices = await tracker.devicesForTrackedRoom(roomId, hsApi, NullLoggerInstance.item);
+            assert.equal(devices.length, 2);
+            assert.equal(devices.find(d => d.userId === "@alice:hs.tld").ed25519Key, "ed25519:@alice:hs.tld:device1:key");
+            assert.equal(devices.find(d => d.userId === "@bob:hs.tld").ed25519Key, "ed25519:@bob:hs.tld:device1:key");
+        },
     }
 }
