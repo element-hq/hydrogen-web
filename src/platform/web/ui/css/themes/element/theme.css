@@ -559,32 +559,24 @@ a {
     background : none;
     border : none;
     position : relative;
+    border-radius : 5px;
+    transition: 0.1s all ease-out;
+    cursor: pointer;
 }
 
 .RoomView_error button:hover {
     background : #cfcfcf;
 }
 
-.RoomView_error button:after {
-    content:"";
-    position : absolute;
-    top : 10px;
-    right: 16px;
-    background : red;
-    width : 5px;
-    height : 20px;
-    transform: rotate(45deg);
-}
-
 .RoomView_error button:before {
-    content:"";
+    content:"\274c";
     position : absolute;
-    top : 17px;
+    top : 15px;
     left: 10px;
-    background : red;
     width : 20px;
-    height : 5px;
-    transform: rotate(45deg);
+    height : 10px;
+    font-size : 10px;
+    align-self : middle;
 }
 
 .MessageComposer_replyPreview .Timeline_message {

@@ -23,6 +23,7 @@ import {imageToInfo} from "../common.js";
 // TODO: remove fallback so default isn't included in bundle for SDK users that have their custom tileClassForEntry
 // this is a breaking SDK change though to make this option mandatory
 import {tileClassForEntry as defaultTileClassForEntry} from "./timeline/tiles/index";
+import {RoomStatus} from "../../../matrix/room/common";
 
 export class RoomViewModel extends ViewModel {
     constructor(options) {
@@ -210,7 +211,7 @@ export class RoomViewModel extends ViewModel {
                     let roomName = args[0];
                     try {
                         const roomId = await this._options.client.session.joinRoom(roomName);
-                        await session.observeRoomStatus(roomId).waitFor(status === RoomStatus.Joined);
+                        await (await this._options.client.session.observeRoomStatus(roomId)).waitFor(status => status === RoomStatus.Joined);
                         this.navigation.push("room", roomId);
                     } catch (exc) {
                         if ((exc.statusCode ?? exc.status) === 400) {
@@ -220,7 +221,7 @@ export class RoomViewModel extends ViewModel {
                         } else if ((exc.statusCode ?? exc.status) === 403) {
                             this._sendError = new Error(`/join : you're not invited to join '${roomName}'`);
                         } else {
-                            this._sendError = new Error("join syntax: /join <room-id>");
+                            this._sendError = exc;
                         }
                         this._timelineError = null;
                         this.emitChange("error");
