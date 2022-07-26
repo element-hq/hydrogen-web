@@ -409,6 +409,7 @@ export function tests() {
 
     function createUntrackedRoomMock(roomId, joinedUserIds, invitedUserIds = []) {
         return {
+            id: roomId,
             isTrackingMembers: false,
             isEncrypted: true,
             loadMemberList: () => {
@@ -688,6 +689,49 @@ export function tests() {
             assert.deepEqual(added, []);
             assert.deepEqual(removed, ["@bob:hs.tld"]);
             assert.equal(await txn.userIdentities.get("@bob:hs.tld"), undefined);
+        },
+        "remove room from user identity sharing multiple rooms with us preserves other room": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            // alice is joined, bob is invited
+            const room1 = await createUntrackedRoomMock("!abc:hs.tld", ["@alice:hs.tld", "@bob:hs.tld"]);
+            const room2 = await createUntrackedRoomMock("!def:hs.tld", ["@alice:hs.tld", "@bob:hs.tld"]);
+            await tracker.trackRoom(room1, HistoryVisibility.Joined, NullLoggerInstance.item);
+            await tracker.trackRoom(room2, HistoryVisibility.Joined, NullLoggerInstance.item);
+            const txn1 = await storage.readTxn([storage.storeNames.userIdentities]);
+            assert.deepEqual((await txn1.userIdentities.get("@bob:hs.tld")).roomIds, ["!abc:hs.tld", "!def:hs.tld"]);
+            const leaveChange = new MemberChange(RoomMember.fromUserId(room2.id, "@bob:hs.tld", "leave"), "join");
+            const memberChanges = new Map([[leaveChange.userId, leaveChange]]);
+            const txn2 = await storage.readWriteTxn([storage.storeNames.userIdentities, storage.storeNames.deviceIdentities]);
+            await tracker.writeMemberChanges(room2, memberChanges, HistoryVisibility.Joined, txn2);
+            await txn2.complete();
+            const txn3 = await storage.readTxn([storage.storeNames.userIdentities]);
+            assert.deepEqual((await txn3.userIdentities.get("@bob:hs.tld")).roomIds, ["!abc:hs.tld"]);
+        },
+        "add room to user identity sharing multiple rooms with us preserves other room": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            // alice is joined, bob is invited
+            const room1 = await createUntrackedRoomMock("!abc:hs.tld", ["@alice:hs.tld", "@bob:hs.tld"]);
+            const room2 = await createUntrackedRoomMock("!def:hs.tld", ["@alice:hs.tld", "@bob:hs.tld"]);
+            await tracker.trackRoom(room1, HistoryVisibility.Joined, NullLoggerInstance.item);
+            const txn1 = await storage.readTxn([storage.storeNames.userIdentities]);
+            assert.deepEqual((await txn1.userIdentities.get("@bob:hs.tld")).roomIds, ["!abc:hs.tld"]);
+            await tracker.trackRoom(room2, HistoryVisibility.Joined, NullLoggerInstance.item);
+            const txn2 = await storage.readTxn([storage.storeNames.userIdentities]);
+            assert.deepEqual((await txn2.userIdentities.get("@bob:hs.tld")).roomIds, ["!abc:hs.tld", "!def:hs.tld"]);
         },
     }
 }
