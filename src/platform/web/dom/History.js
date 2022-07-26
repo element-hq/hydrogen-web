@@ -17,6 +17,12 @@ limitations under the License.
 import {BaseObservableValue} from "../../../observable/ObservableValue";
 
 export class History extends BaseObservableValue {
+    
+    constructor() {
+        super();
+        this._lastSessionHash = null;
+    }
+    
     handleEvent(event) {
         if (event.type === "hashchange") {
             this.emit(this.get());
