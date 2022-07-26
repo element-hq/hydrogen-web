@@ -285,6 +285,27 @@ export class HomeServerApi {
         return this._post(`/rooms/${encodeURIComponent(roomId)}/forget`, {}, {}, options);
     }
 
+    kick(roomId: string, userId: string, reason?: string, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._post(`/rooms/${encodeURIComponent(roomId)}/kick`, {}, {
+            user_id: userId,
+            reason: reason,
+        }, options);
+    }
+
+    ban(roomId: string, userId: string, reason?: string, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._post(`/rooms/${encodeURIComponent(roomId)}/ban`, {}, {
+            user_id: userId,
+            reason: reason,
+        }, options);
+    }
+
+    unban(roomId: string, userId: string, reason?: string, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._post(`/rooms/${encodeURIComponent(roomId)}/unban`, {}, {
+            user_id: userId,
+            reason: reason,
+        }, options);
+    }
+
     logout(options?: BaseRequestOptions): IHomeServerRequest {
         return this._post(`/logout`, {}, {}, options);
     }
