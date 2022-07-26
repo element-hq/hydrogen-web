@@ -80,7 +80,7 @@ export function iterateResponseStateEvents(roomResponse: RoomResponse, callback:
         }
     }
     if (promises) {
-        return Promise.all(promises);
+        return Promise.all(promises).then(() => undefined);
     }
 }
 
