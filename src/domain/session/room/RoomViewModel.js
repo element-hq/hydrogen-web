@@ -202,7 +202,7 @@ export class RoomViewModel extends ViewModel {
         const [commandName, ...args] = message.substring(1).split(" ");
         switch (commandName) {
             case "me":
-                message = message.substring(4).trim();
+                message = args.join(" ");
                 msgtype = "m.emote";
                 break;
             case "join":
@@ -232,19 +232,19 @@ export class RoomViewModel extends ViewModel {
                 }
                 break;
             case "shrug":
-                message = "¯\\_(ツ)_/¯ " + message.substring(7);
+                message = "¯\\_(ツ)_/¯ " + args.join(" ");
                 msgtype = "m.text";
                 break;
             case "tableflip":
-                message="(╯°□°）╯︵ ┻━┻ " + message.substring(11);
+                message="(╯°□°）╯︵ ┻━┻ " + args.join(" ");
                 msgtype = "m.text";
                 break;
             case "unflip":
-                message="┬──┬ ノ( ゜-゜ノ) " + message.substring(8);
+                message="┬──┬ ノ( ゜-゜ノ) " + args.join(" ");
                 msgtype = "m.text";
                 break;
             case "lenny":
-                message="( ͡° ͜ʖ ͡°) " + message.substring(7);
+                message="( ͡° ͜ʖ ͡°) " + args.join(" ");
                 msgtype = "m.text";
                 break;
             default:
