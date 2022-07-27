@@ -253,6 +253,7 @@ a.button-action {
     padding: 30px;
     max-height: calc(100% - 30px); /* removing padding */
     display: flex;
+    overflow: auto;
     flex-direction: column;
 }
 
@@ -263,6 +264,10 @@ a.button-action {
 }
 
 .PreSessionScreen > * {
+    flex: 1 0 auto;
+}
+
+.PreSessionScreen > div {
     flex: 1 1 auto;
 }
 
