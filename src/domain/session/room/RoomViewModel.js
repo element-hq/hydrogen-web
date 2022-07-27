@@ -230,7 +230,7 @@ export class RoomViewModel extends ViewModel {
                 if (args.length == 1) {
                     const roomName = args[0];
                     const exc = await this.joinRoom(roomName);
-                    if (exc!==true) {
+                    if (exc !== true) {
                         if (exc && exc.stack && exc.message) {
                             this._sendError = exc;
                         } else {
@@ -273,21 +273,21 @@ export class RoomViewModel extends ViewModel {
     
     async _sendMessage(message, replyingTo) {
         if (!this._room.isArchived && message) {
-            let messinfo = {msgtype : "m.text", message : message};
+            let messinfo = {type : "m.text", message : message};
             if (message.startsWith("//")) {
                 messinfo.message = message.substring(1).trim();
             } else if (message.startsWith("/")) {
                 messinfo = await this._processCommand(message);
             }
             try {
-               const msgtype = messinfo.type;
-               const message = messinfo.message;
-               if (msgtype && message) {
-                   if (replyingTo) {
-                           await replyingTo.reply(msgtype, message);
-                   } else {
-                           await this._room.sendEvent("m.room.message", {msgtype, body: message});
-                   }
+                const msgtype = messinfo.type;
+                const message = messinfo.message;
+                if (msgtype && message) {
+                    if (replyingTo) {
+                        await replyingTo.reply(msgtype, message);
+                    } else {
+                        await this._room.sendEvent("m.room.message", {msgtype, body: message});
+                    }
                 }
             } catch (err) {
                 console.error(`room.sendMessage(): ${err.message}:\n${err.stack}`);
