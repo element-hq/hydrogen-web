@@ -198,30 +198,23 @@ export class RoomViewModel extends ViewModel {
         }
     }
     
-    async executeJoinCommand(args) {
-        if (args.length == 1) {
-            let roomName = args[0];
-            try {
-                const roomId = await this._options.client.session.joinRoom(roomName);
-                await (await this._options.client.session.observeRoomStatus(roomId)).waitFor(status => status === RoomStatus.Joined);
-                this.navigation.push("room", roomId);
-            } catch (exc) {
-                if ((exc.statusCode ?? exc.status) === 400) {
-                    this._sendError = new Error(`/join : '${roomName}' was not legal room ID or room alias`);
-                } else if ((exc.statusCode ?? exc.status) === 404 || (exc.statusCode ?? exc.status) === 502 || exc.message == "Internal Server Error") {
-                    this._sendError = new Error(`/join : room '${roomName}' not found`);
-                } else if ((exc.statusCode ?? exc.status) === 403) {
-                    this._sendError = new Error(`/join : you're not invited to join '${roomName}'`);
-                } else {
-                    this._sendError = exc;
-                }
-                this._timelineError = null;
-                this.emitChange("error");
+    async joinRoom(roomName) {
+        try {
+            const roomId = await this._options.client.session.joinRoom(roomName);
+            const roomStatusObserver = await this._options.client.session.observeRoomStatus(roomId);
+            await roomStatusObserver.waitFor(status => status === RoomStatus.Joined);
+            this.navigation.push("room", roomId);
+            return true;
+        } catch (exc) {
+            if ((exc.statusCode ?? exc.status) === 400) {
+                return `'${roomName}' was not legal room ID or room alias`;
+            } else if ((exc.statusCode ?? exc.status) === 404 || (exc.statusCode ?? exc.status) === 502 || exc.message == "Internal Server Error") {
+                return `room '${roomName}' not found`;
+            } else if ((exc.statusCode ?? exc.status) === 403) {
+                return `you're not invited to join '${roomName}'`;
+            } else {
+                return exc;
             }
-        } else {
-            this._sendError = new Error("join syntax: /join <room-id>");
-            this._timelineError = null;
-            this.emitChange("error");
         }
     }
     
@@ -234,7 +227,23 @@ export class RoomViewModel extends ViewModel {
                 msgtype = "m.emote";
                 break;
             case "join":
-                await this.executeJoinCommand(args);
+                if (args.length == 1) {
+                    const roomName = args[0];
+                    const exc = await this.joinRoom(roomName);
+                    if (exc!==true) {
+                        if (exc && exc.stack && exc.message) {
+                            this._sendError = exc;
+                        } else {
+                            this._sendError = new Error("/join : " + exc);
+                        }
+                        this._timelineError = null;
+                        this.emitChange("error");
+                    }
+                } else {
+                    this._sendError = new Error("join syntax: /join <room-id>");
+                    this._timelineError = null;
+                    this.emitChange("error");
+                }
                 break;
             case "shrug":
                 message = "¯\\_(ツ)_/¯ " + args.join(" ");
