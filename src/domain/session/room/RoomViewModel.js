@@ -198,6 +198,33 @@ export class RoomViewModel extends ViewModel {
         }
     }
     
+    async executeJoinCommand(args) {
+        if (args.length == 1) {
+            let roomName = args[0];
+            try {
+                const roomId = await this._options.client.session.joinRoom(roomName);
+                await (await this._options.client.session.observeRoomStatus(roomId)).waitFor(status => status === RoomStatus.Joined);
+                this.navigation.push("room", roomId);
+            } catch (exc) {
+                if ((exc.statusCode ?? exc.status) === 400) {
+                    this._sendError = new Error(`/join : '${roomName}' was not legal room ID or room alias`);
+                } else if ((exc.statusCode ?? exc.status) === 404 || (exc.statusCode ?? exc.status) === 502 || exc.message == "Internal Server Error") {
+                    this._sendError = new Error(`/join : room '${roomName}' not found`);
+                } else if ((exc.statusCode ?? exc.status) === 403) {
+                    this._sendError = new Error(`/join : you're not invited to join '${roomName}'`);
+                } else {
+                    this._sendError = exc;
+                }
+                this._timelineError = null;
+                this.emitChange("error");
+            }
+        } else {
+            this._sendError = new Error("join syntax: /join <room-id>");
+            this._timelineError = null;
+            this.emitChange("error");
+        }
+    }
+    
     async _processCommand (message) {
         let msgtype = undefined;
         const [commandName, ...args] = message.substring(1).split(" ");
@@ -207,30 +234,7 @@ export class RoomViewModel extends ViewModel {
                 msgtype = "m.emote";
                 break;
             case "join":
-                if (args.length == 1) {
-                    let roomName = args[0];
-                    try {
-                        const roomId = await this._options.client.session.joinRoom(roomName);
-                        await (await this._options.client.session.observeRoomStatus(roomId)).waitFor(status => status === RoomStatus.Joined);
-                        this.navigation.push("room", roomId);
-                    } catch (exc) {
-                        if ((exc.statusCode ?? exc.status) === 400) {
-                            this._sendError = new Error(`/join : '${roomName}' was not legal room ID or room alias`);
-                        } else if ((exc.statusCode ?? exc.status) === 404 || (exc.statusCode ?? exc.status) === 502 || exc.message == "Internal Server Error") {
-                            this._sendError = new Error(`/join : room '${roomName}' not found`);
-                        } else if ((exc.statusCode ?? exc.status) === 403) {
-                            this._sendError = new Error(`/join : you're not invited to join '${roomName}'`);
-                        } else {
-                            this._sendError = exc;
-                        }
-                        this._timelineError = null;
-                        this.emitChange("error");
-                    }
-                } else {
-                    this._sendError = new Error("join syntax: /join <room-id>");
-                    this._timelineError = null;
-                    this.emitChange("error");
-                }
+                await this.executeJoinCommand(args);
                 break;
             case "shrug":
                 message = "¯\\_(ツ)_/¯ " + args.join(" ");
