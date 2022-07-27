@@ -147,9 +147,9 @@ export class LoginViewModel extends ViewModel<Options> {
         this.emitChange("isBusy");
     }
 
-    async attemptLogin(loginMethod: ILoginMethod) {
+    async attemptLogin(loginMethod: ILoginMethod): Promise<null> {
         this._setBusy(true);
-        await this._client.startWithLogin(loginMethod, {inspectAccountSetup: true});
+        void this._client.startWithLogin(loginMethod, {inspectAccountSetup: true});
         const loadStatus = this._client.loadStatus;
         const handle = loadStatus.waitFor((status: LoadStatus) => status !== LoadStatus.Login);
         await handle.promise;
@@ -161,11 +161,11 @@ export class LoginViewModel extends ViewModel<Options> {
         this._hideHomeserver = true;
         this.emitChange("hideHomeserver");
         this._disposeViewModels();
-        await this._createLoadViewModel();
+        void this._createLoadViewModel();
         return null;
     }
 
-    async _createLoadViewModel() {
+    _createLoadViewModel(): void {
         this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
         this._loadViewModel = this.disposeTracked(this._loadViewModel);
         this._loadViewModel = this.track(
@@ -181,7 +181,7 @@ export class LoginViewModel extends ViewModel<Options> {
                 })
             )
         );
-        await this._loadViewModel.start();
+        void this._loadViewModel.start();
         this.emitChange("loadViewModel");
         this._loadViewModelSubscription = this.track(
             this._loadViewModel.disposableOn("change", () => {
@@ -200,7 +200,7 @@ export class LoginViewModel extends ViewModel<Options> {
         this.emitChange("disposeViewModels");
     }
 
-    async setHomeserver(newHomeserver: string) {
+    async setHomeserver(newHomeserver: string): void {
         this._homeserver = newHomeserver;
         // clear everything set by queryHomeserver
         this._loginOptions = undefined;
@@ -223,10 +223,10 @@ export class LoginViewModel extends ViewModel<Options> {
             }
         }
         this._abortHomeserverQueryTimeout = this.disposeTracked(this._abortHomeserverQueryTimeout);
-        await this.queryHomeserver();
+        void this.queryHomeserver();
     }
 
-    async queryHomeserver() {
+    async queryHomeserver(): void {
         // don't repeat a query we've just done
         if (this._homeserver === this._queriedHomeserver || this._homeserver === "") {
             return;
@@ -270,12 +270,12 @@ export class LoginViewModel extends ViewModel<Options> {
         }
     }
 
-    async dispose() {
+    dispose(): void {
         super.dispose();
         if (this._client) {
             // if we move away before we're done with initial sync
             // delete the session
-            await this._client.deleteSession();
+            void this._client.deleteSession();
         }
     }
 }
