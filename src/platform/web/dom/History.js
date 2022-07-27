@@ -20,7 +20,7 @@ export class History extends BaseObservableValue {
     
     constructor() {
         super();
-        this._lastSessionHash = null;
+        this._lastSessionHash = undefined;
     }
     
     handleEvent(event) {
