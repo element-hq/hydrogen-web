@@ -251,6 +251,40 @@ a.button-action {
 
 .PreSessionScreen {
     padding: 30px;
+    max-height: calc(100% - 30px); /* removing padding */
+    display: flex;
+    flex-direction: column;
+}
+
+@media screen and (min-width: 600px) {
+    .PreSessionScreen {
+        max-height: calc(100% - 30px - 80px); /* removing padding and margin */
+    }
+}
+
+.PreSessionScreen > * {
+    flex: 1 1 auto;
+}
+
+.PreSessionScreen > div.logo {
+    flex: 1 0 auto;
+}
+
+.SessionPickerView {
+    display: flex;
+    flex-direction: column;
+    overflow: clip;
+}
+
+.SessionPickerView > * {
+    flex: 1 0 auto;
+    display: block;
+    position: relative;
+}
+
+.SessionPickerView ul {
+    flex: 1 1 auto;
+    overflow: auto;
 }
 
 .PreSessionScreen h1 {
