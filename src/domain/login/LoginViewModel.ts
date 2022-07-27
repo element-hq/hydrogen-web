@@ -55,7 +55,7 @@ export class LoginViewModel extends ViewModel<Options> {
         this._loginToken = loginToken;
         this._client = new Client(this.platform);
         this._homeserver = defaultHomeserver;
-        void this._initViewModels();
+        this._initViewModels();
     }
 
     get passwordLoginViewModel(): PasswordLoginViewModel {
@@ -98,11 +98,11 @@ export class LoginViewModel extends ViewModel<Options> {
         return !!this._abortQueryOperation;
     }
 
-    goBack() {
+    goBack(): void {
         this.navigation.push("session");
     }
 
-    async _initViewModels() {
+    _initViewModels(): void {
         if (this._loginToken) {
             this._hideHomeserver = true;
             this._completeSSOLoginViewModel = this.track(new CompleteSSOLoginViewModel(
@@ -115,11 +115,11 @@ export class LoginViewModel extends ViewModel<Options> {
             this.emitChange("completeSSOLoginViewModel");
         }
         else {
-            await this.queryHomeserver();
+            void this.queryHomeserver();
         }
     }
 
-    _showPasswordLogin() {
+    _showPasswordLogin(): void {
         this._passwordLoginViewModel = this.track(new PasswordLoginViewModel(
             this.childOptions({
                 loginOptions: this._loginOptions,
@@ -128,19 +128,19 @@ export class LoginViewModel extends ViewModel<Options> {
         this.emitChange("passwordLoginViewModel");
     }
 
-    _showSSOLogin() {
+    _showSSOLogin(): void {
         this._startSSOLoginViewModel = this.track(
             new StartSSOLoginViewModel(this.childOptions({loginOptions: this._loginOptions}))
         );
         this.emitChange("startSSOLoginViewModel");
     }
 
-    _showError(message: string) {
+    _showError(message: string): void {
         this._errorMessage = message;
         this.emitChange("errorMessage");
     }
 
-    _setBusy(status: boolean) {
+    _setBusy(status: boolean): void {
         this._isBusy = status;
         this._passwordLoginViewModel?.setBusy(status);
         this._startSSOLoginViewModel?.setBusy(status);
@@ -193,14 +193,14 @@ export class LoginViewModel extends ViewModel<Options> {
         );
     }
 
-    _disposeViewModels() {
+    _disposeViewModels(): void {
         this._startSSOLoginViewModel = this.disposeTracked(this._startSSOLoginViewModel);
         this._passwordLoginViewModel = this.disposeTracked(this._passwordLoginViewModel);
         this._completeSSOLoginViewModel = this.disposeTracked(this._completeSSOLoginViewModel);
         this.emitChange("disposeViewModels");
     }
 
-    async setHomeserver(newHomeserver: string): void {
+    async setHomeserver(newHomeserver: string): Promise<void> {
         this._homeserver = newHomeserver;
         // clear everything set by queryHomeserver
         this._loginOptions = undefined;
@@ -226,7 +226,7 @@ export class LoginViewModel extends ViewModel<Options> {
         void this.queryHomeserver();
     }
 
-    async queryHomeserver(): void {
+    async queryHomeserver(): Promise<void> {
         // don't repeat a query we've just done
         if (this._homeserver === this._queriedHomeserver || this._homeserver === "") {
             return;

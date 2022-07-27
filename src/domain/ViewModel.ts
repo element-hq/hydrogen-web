@@ -58,7 +58,7 @@ export class ViewModel<O extends Options = Options> extends EventEmitter<{change
         return this._options[name];
     }
 
-    observeNavigation(type: string, onChange: (value: string | true | undefined, type: string) => void) {
+    observeNavigation(type: string, onChange: (value: string | true | undefined, type: string) => void): void {
       const segmentObservable = this.navigation.observe(type);
       const unsubscribe = segmentObservable.subscribe((value: string | true | undefined) => {
         onChange(value, type);
@@ -103,7 +103,7 @@ export class ViewModel<O extends Options = Options> extends EventEmitter<{change
     //
     // translated string should probably always be bindings, unless we're fine with a refresh when changing the language?
     // we probably are, if we're using routing with a url, we could just refresh.
-    i18n(parts: TemplateStringsArray, ...expr: any[]) {
+    i18n(parts: TemplateStringsArray, ...expr: any[]): string {
         // just concat for now
         let result = "";
         for (let i = 0; i < parts.length; ++i) {
