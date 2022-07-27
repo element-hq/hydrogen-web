@@ -15,18 +15,15 @@ limitations under the License.
 */
 
 import {BaseObservableMap} from "./BaseObservableMap";
-import {BaseObservableMapDefaults, Mapper, Updater, Comparator, Filter} from "./BaseObservableMapDefaults";
-import {JoinedMap} from "./JoinedMap";
-import {FilteredMap} from "./FilteredMap";
-import {SortedMapList} from "../list/SortedMapList.js";
+import {BaseObservableMapDefaults, Mapper, Updater} from "./BaseObservableMapDefaults";
 import {SubscriptionHandle} from "../BaseObservable";
+
 
 /*
 so a mapped value can emit updates on it's own with this._emitSpontaneousUpdate that is passed in the mapping function
 how should the mapped value be notified of an update though? and can it then decide to not propagate the update?
 */
 export class MappedMap<K, V> extends BaseObservableMap<K, V> {
-    private _defaults = new BaseObservableMapDefaults<K, V>();
     private _source: BaseObservableMap<K, V>;
     private _mapper: Mapper<V>;
     private _updater?: Updater<V>;
@@ -39,7 +36,7 @@ export class MappedMap<K, V> extends BaseObservableMap<K, V> {
         mapper: Mapper<V>,
         updater?: Updater<V>
     ) {
-        super();
+        super(new BaseObservableMapDefaults<K, V>());
         this._source = source;
         this._mapper = mapper;
         this._updater = updater;
@@ -112,21 +109,5 @@ export class MappedMap<K, V> extends BaseObservableMap<K, V> {
 
     get(key: K): V | undefined {
         return this._mappedValues.get(key);
-    }
-
-    join(...otherMaps: Array<typeof this>): JoinedMap<K, V> {
-        return this._defaults.join(this, ...otherMaps);
-    }
-
-    mapValues(mapper: Mapper<V>, updater?: Updater<V>): MappedMap<K, V>{
-        return this._defaults.mapValues(this, mapper, updater);
-    }
-
-    sortValues(comparator: Comparator<V>): SortedMapList {
-        return this._defaults.sortValues(this, comparator);
-    }
-
-    filterValues(filter: Filter<K, V>): FilteredMap<K, V> {
-        return this._defaults.filterValues(this, filter);
     }
 }

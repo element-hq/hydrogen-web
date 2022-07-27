@@ -16,20 +16,17 @@ limitations under the License.
 
 import {BaseObservableMap} from "./BaseObservableMap";
 import {SubscriptionHandle} from "../BaseObservable";
-import {BaseObservableMapDefaults, Mapper, Updater, Comparator, Filter} from "./BaseObservableMapDefaults";
-import {JoinedMap} from "./JoinedMap";
-import {MappedMap} from "./MappedMap";
-import {SortedMapList} from "../list/SortedMapList.js";
+import {BaseObservableMapDefaults, Filter} from "./BaseObservableMapDefaults";
+
 
 export class FilteredMap<K, V> extends BaseObservableMap<K, V> {
-    private _defaults = new BaseObservableMapDefaults<K, V>();
     private _source: BaseObservableMap<K, V>;
     private _filter: Filter<K, V>;
     private _included?: Map<K, boolean>;
     private _subscription?: SubscriptionHandle;
 
     constructor(source: BaseObservableMap<K, V>, filter: Filter<K, V>) {
-        super();
+        super(new BaseObservableMapDefaults<K, V>());
         this._source = source;
         this._filter = filter;
     }
@@ -161,22 +158,6 @@ export class FilteredMap<K, V> extends BaseObservableMap<K, V> {
         if (value && this._filter(value, key)) {
             return value;
         }
-    }
-
-    join(...otherMaps: Array<typeof this>): JoinedMap<K, V> {
-        return this._defaults.join(this, ...otherMaps);
-    }
-
-    mapValues(mapper: Mapper<V>, updater?: Updater<V>): MappedMap<K, V>{
-        return this._defaults.mapValues(this, mapper, updater);
-    }
-
-    sortValues(comparator: Comparator<V>): SortedMapList {
-        return this._defaults.sortValues(this, comparator);
-    }
-
-    filterValues(filter: Filter<K, V>): FilteredMap<K, V> {
-        return this._defaults.filterValues(this, filter);
     }
 }
 

@@ -19,7 +19,8 @@ import {JoinedMap} from "../map/JoinedMap";
 import {MappedMap} from "../map/MappedMap";
 import {FilteredMap} from "../map/FilteredMap";
 import {SortedMapList} from "../list/SortedMapList.js";
-import {Mapper, Updater, Comparator, Filter} from "./BaseObservableMapDefaults";
+import type {BaseObservableMapDefaults, Mapper, Updater, Comparator, Filter} from "./BaseObservableMapDefaults";
+
 
 export interface IMapObserver<K, V> {
     onReset(): void;
@@ -29,6 +30,13 @@ export interface IMapObserver<K, V> {
 }
 
 export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserver<K, V>> {
+    private _defaults: BaseObservableMapDefaults<K, V>;
+
+    constructor(defaults: BaseObservableMapDefaults<K, V>) {
+        super();
+        this._defaults = defaults;
+    }
+
     emitReset(): void {
         for(let h of this._handlers) {
             h.onReset();
@@ -54,17 +62,22 @@ export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserve
         }
     }
 
-    // The following group of functions have a default implementation
-    // in the neighboring `BaseObservableMapDefaults.ts`. See the comment
-    // in that file for the explanation for why the default implementation
-    // isn't defined here. See the neighboring `ObservableMap.ts` for an
-    // example of how to easily add the boilerplate for using the default
-    // implementations of these functions in a class that extends
-    // this one (which is most likely what you want to do).
-    abstract join(...otherMaps: Array<typeof this>): JoinedMap<K, V>;
-    abstract mapValues(mapper: Mapper<V>, updater?: Updater<V>): MappedMap<K, V>;
-    abstract sortValues(comparator: Comparator<V>): SortedMapList;
-    abstract filterValues(filter: Filter<K, V>): FilteredMap<K, V>;
+    join(...otherMaps: Array<typeof this>): JoinedMap<K, V> {
+        return this._defaults.join(this, ...otherMaps);
+    }
+
+    mapValues(mapper: Mapper<V>, updater?: Updater<V>): MappedMap<K, V> {
+        return this._defaults.mapValues(this, mapper, updater);
+    }
+
+    sortValues(comparator: Comparator<V>): SortedMapList {
+        return this._defaults.sortValues(this, comparator);
+    }
+
+    filterValues(filter: Filter<K, V>): FilteredMap<K, V> {
+        return this._defaults.filterValues(this, filter);
+    }
+
 
     abstract [Symbol.iterator](): Iterator<[K, V]>;
     abstract get size(): number;

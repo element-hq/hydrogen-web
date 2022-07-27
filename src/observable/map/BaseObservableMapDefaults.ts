@@ -13,15 +13,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {BaseObservableMap} from "./BaseObservableMap";
+import type {BaseObservableMap} from "./BaseObservableMap";
 import {FilteredMap} from "./FilteredMap";
 import {MappedMap} from "./MappedMap";
 import {JoinedMap} from "./JoinedMap";
 import {SortedMapList} from "../list/SortedMapList.js";
 
 
-// This class is used as a default implementation of
-// the respective abstract functions in BaseObservableMap.
+// This class provides implementations of functions that are part of BaseObservableMap.
 // It is kept as its own class in its own file in order to avoid a circular
 // dependency between the classes that extend BaseObservableMap which are
 // instantiated here (i.e. `new JoinedMap()`).

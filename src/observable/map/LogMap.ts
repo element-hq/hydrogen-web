@@ -15,23 +15,19 @@ limitations under the License.
 */
 
 import {BaseObservableMap} from "./BaseObservableMap";
-import {BaseObservableMapDefaults, Mapper, Updater, Comparator, Filter} from "./BaseObservableMapDefaults";
-import {FilteredMap} from "./FilteredMap";
-import {MappedMap} from "./MappedMap";
-import {JoinedMap} from "./JoinedMap";
-import {SortedMapList} from "../list/SortedMapList.js";
+import {BaseObservableMapDefaults} from "./BaseObservableMapDefaults";
 import {SubscriptionHandle} from "../BaseObservable";
 import {ILogItem, LabelOrValues} from "../../logging/types";
 import {LogLevel} from "../../logging/LogFilter";
 
+
 export class LogMap<K, V> extends BaseObservableMap<K, V> {
-    private _defaults = new BaseObservableMapDefaults<K, V>();
     private _source: BaseObservableMap<K, V>;
     private _subscription?: SubscriptionHandle;
     private _log: ILogItem;
 
     constructor(source: BaseObservableMap<K, V>, log: ILogItem) {
-        super();
+        super(new BaseObservableMapDefaults<K, V>());
         this._source = source;
         this._log = log;
     }
@@ -84,21 +80,4 @@ export class LogMap<K, V> extends BaseObservableMap<K, V> {
     get(key: K): V | undefined{
         return this._source.get(key);
     }
-
-    join(...otherMaps: Array<typeof this>): JoinedMap<K, V> {
-        return this._defaults.join(this, ...otherMaps);
-    }
-
-    mapValues(mapper: Mapper<V>, updater?: Updater<V>): MappedMap<K, V> {
-        return this._defaults.mapValues(this, mapper, updater);
-    }
-
-    sortValues(comparator: Comparator<V>): SortedMapList {
-        return this._defaults.sortValues(this, comparator);
-    }
-
-    filterValues(filter: Filter<K, V>): FilteredMap<K, V> {
-        return this._defaults.filterValues(this, filter);
-    }
-
 }
