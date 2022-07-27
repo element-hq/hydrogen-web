@@ -323,8 +323,7 @@ export class RoomEncryption {
     }
 
     async _shareNewRoomKey(roomKeyMessage, hsApi, log) {
-        this._historyVisibility = await this._loadHistoryVisibilityIfNeeded(this._historyVisibility);
-        const devices = await this._deviceTracker.devicesForTrackedRoom(this._room.id, this._historyVisibility, hsApi, log);
+        const devices = await this._deviceTracker.devicesForTrackedRoom(this._room.id, hsApi, log);
         const userIds = Array.from(devices.reduce((set, device) => set.add(device.userId), new Set()));
             
         let writeOpTxn = await this._storage.readWriteTxn([this._storage.storeNames.operations]);
