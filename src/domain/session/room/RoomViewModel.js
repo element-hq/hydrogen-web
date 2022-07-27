@@ -218,6 +218,19 @@ export class RoomViewModel extends ViewModel {
         }
     }
     
+    async _processCommandJoin(roomName) {
+        const exc = await this.joinRoom(roomName);
+        if (exc !== true) {
+            if (exc && exc.stack && exc.message) {
+                this._sendError = exc;
+            } else {
+                this._sendError = new Error("/join : " + exc);
+            }
+            this._timelineError = null;
+            this.emitChange("error");
+        }
+    } 
+
     async _processCommand (message) {
         let msgtype = undefined;
         const [commandName, ...args] = message.substring(1).split(" ");
@@ -229,16 +242,7 @@ export class RoomViewModel extends ViewModel {
             case "join":
                 if (args.length == 1) {
                     const roomName = args[0];
-                    const exc = await this.joinRoom(roomName);
-                    if (exc !== true) {
-                        if (exc && exc.stack && exc.message) {
-                            this._sendError = exc;
-                        } else {
-                            this._sendError = new Error("/join : " + exc);
-                        }
-                        this._timelineError = null;
-                        this.emitChange("error");
-                    }
+                    await this._processCommandJoin(roomName);
                 } else {
                     this._sendError = new Error("join syntax: /join <room-id>");
                     this._timelineError = null;
