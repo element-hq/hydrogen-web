@@ -18,7 +18,7 @@ import {TemplateView} from "../general/TemplateView";
 
 export class PasswordLoginView extends TemplateView {
     render(t, vm) {
-        const disabled = vm => vm.isBusy && vm.isEnabled;
+        const disabled = vm => vm.isBusy || !vm.isEnabled;
         const username = t.input({
             id: "username",
             type: "text",
