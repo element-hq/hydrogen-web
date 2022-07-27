@@ -208,7 +208,7 @@ export class LoginViewModel extends ViewModel<Options> {
         this._showError("");
         this._disposeViewModels();
         this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
-        this.emitChange(); // multiple fields changing
+        this.emitChange("loginViewModels"); // multiple fields changing
         // also clear the timeout if it is still running
         this.disposeTracked(this._abortHomeserverQueryTimeout);
         const timeout = this.clock.createTimeout(1000);
