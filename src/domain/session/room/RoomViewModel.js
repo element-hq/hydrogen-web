@@ -205,14 +205,15 @@ export class RoomViewModel extends ViewModel {
             await roomStatusObserver.waitFor(status => status === RoomStatus.Joined);
             this.navigation.push("room", roomId);
         } catch (err) {
-            if ((exc.statusCode ?? exc.status) === 400) {
-                const exc = new Error(`/join : '${roomName}' was not legal room ID or room alias`);
-            } else if ((exc.statusCode ?? exc.status) === 404 || (exc.statusCode ?? exc.status) === 502 || exc.message == "Internal Server Error") {
-                const exc = new Error(`/join : room '${roomName}' not found`);
-            } else if ((exc.statusCode ?? exc.status) === 403) {
-                const exc = new Error(`/join : you're not invited to join '${roomName}'`);
+            let exc;
+            if ((err.statusCode ?? err.status) === 400) {
+                exc = new Error(`/join : '${roomName}' was not legal room ID or room alias`);
+            } else if ((err.statusCode ?? err.status) === 404 || (err.statusCode ?? err.status) === 502 || err.message == "Internal Server Error") {
+                exc = new Error(`/join : room '${roomName}' not found`);
+            } else if ((err.statusCode ?? err.status) === 403) {
+                exc = new Error(`/join : you're not invited to join '${roomName}'`);
             } else {
-                const exc = err;
+                exc = err;
             }
             this._sendError = exc;
             this._timelineError = null;
