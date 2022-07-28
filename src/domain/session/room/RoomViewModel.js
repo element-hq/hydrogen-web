@@ -199,40 +199,30 @@ export class RoomViewModel extends ViewModel {
     }
     
     async joinRoom(roomName) {
+    }
+    
+    async _processCommandJoin(roomName) {
         try {
             const roomId = await this._options.client.session.joinRoom(roomName);
             const roomStatusObserver = await this._options.client.session.observeRoomStatus(roomId);
             await roomStatusObserver.waitFor(status => status === RoomStatus.Joined);
             this.navigation.push("room", roomId);
-            return true;
         } catch (exc) {
             if ((exc.statusCode ?? exc.status) === 400) {
-                return `'${roomName}' was not legal room ID or room alias`;
+                exc = new Error(`/join : '${roomName}' was not legal room ID or room alias`);
             } else if ((exc.statusCode ?? exc.status) === 404 || (exc.statusCode ?? exc.status) === 502 || exc.message == "Internal Server Error") {
-                return `room '${roomName}' not found`;
+                exc = new Error(`/join : room '${roomName}' not found`);
             } else if ((exc.statusCode ?? exc.status) === 403) {
-                return `you're not invited to join '${roomName}'`;
-            } else {
-                return exc;
+                exc = new Error(`/join : you're not invited to join '${roomName}'`);
             }
-        }
-    }
-    
-    async _processCommandJoin(roomName) {
-        const exc = await this.joinRoom(roomName);
-        if (exc !== true) {
-            if (exc && exc.stack && exc.message) {
-                this._sendError = exc;
-            } else {
-                this._sendError = new Error("/join : " + exc);
-            }
+            this._sendError = exc;
             this._timelineError = null;
             this.emitChange("error");
         }
     } 
 
     async _processCommand (message) {
-        let msgtype = undefined;
+        let msgtype;
         const [commandName, ...args] = message.substring(1).split(" ");
         switch (commandName) {
             case "me":
@@ -269,7 +259,6 @@ export class RoomViewModel extends ViewModel {
                 this._sendError = new Error(`no command name "${commandName}". To send the message instead of executing, please type "/${message}"`);
                 this._timelineError = null;
                 this.emitChange("error");
-                msgtype = undefined;
                 message = undefined;
        }
        return {type: msgtype, message: message};

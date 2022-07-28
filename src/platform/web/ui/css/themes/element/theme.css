@@ -539,7 +539,7 @@ a {
 }
 
 .RoomView_error:not(:empty) {
-    height : 40px;
+    height : auto;
     padding-top : 20px;
     padding-bottom : 20px;
 }
@@ -572,7 +572,7 @@ a {
     content:"\274c";
     position : absolute;
     top : 15px;
-    left: 10px;
+    left: 9px;
     width : 20px;
     height : 10px;
     font-size : 10px;
