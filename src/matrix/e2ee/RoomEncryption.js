@@ -136,9 +136,9 @@ export class RoomEncryption {
             if (!txn) {
                 txn = await this._storage.readTxn([this._storage.storeNames.roomState]);
             }
-            const visibilityEntry = await txn.roomState.get(this.id, ROOM_HISTORY_VISIBILITY_TYPE, "");
+            const visibilityEntry = await txn.roomState.get(this._room.id, ROOM_HISTORY_VISIBILITY_TYPE, "");
             if (visibilityEntry) {
-                return event?.content?.history_visibility;
+                return visibilityEntry.event?.content?.history_visibility;
             }
         }
         return historyVisibility;
