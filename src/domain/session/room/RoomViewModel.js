@@ -198,22 +198,21 @@ export class RoomViewModel extends ViewModel {
         }
     }
     
-    async joinRoom(roomName) {
-    }
-    
     async _processCommandJoin(roomName) {
         try {
             const roomId = await this._options.client.session.joinRoom(roomName);
             const roomStatusObserver = await this._options.client.session.observeRoomStatus(roomId);
             await roomStatusObserver.waitFor(status => status === RoomStatus.Joined);
             this.navigation.push("room", roomId);
-        } catch (exc) {
+        } catch (err) {
             if ((exc.statusCode ?? exc.status) === 400) {
-                exc = new Error(`/join : '${roomName}' was not legal room ID or room alias`);
+                const exc = new Error(`/join : '${roomName}' was not legal room ID or room alias`);
             } else if ((exc.statusCode ?? exc.status) === 404 || (exc.statusCode ?? exc.status) === 502 || exc.message == "Internal Server Error") {
-                exc = new Error(`/join : room '${roomName}' not found`);
+                const exc = new Error(`/join : room '${roomName}' not found`);
             } else if ((exc.statusCode ?? exc.status) === 403) {
-                exc = new Error(`/join : you're not invited to join '${roomName}'`);
+                const exc = new Error(`/join : you're not invited to join '${roomName}'`);
+            } else {
+                const exc = err;
             }
             this._sendError = exc;
             this._timelineError = null;
