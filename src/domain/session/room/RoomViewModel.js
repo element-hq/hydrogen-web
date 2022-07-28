@@ -230,7 +230,7 @@ export class RoomViewModel extends ViewModel {
                 msgtype = "m.emote";
                 break;
             case "join":
-                if (args.length == 1) {
+                if (args.length === 1) {
                     const roomName = args[0];
                     await this._processCommandJoin(roomName);
                 } else {
